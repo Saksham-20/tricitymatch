@@ -1,0 +1,12 @@
+# Allow .env files in this project
+!.env
+!.env.local
+!.env.development
+!.env.production
+
+# Other common ignores
+node_modules/
+dist/
+build/
+*.log
+.DS_Store
