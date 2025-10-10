@@ -1,0 +1,91 @@
+# CodeRabbit Configuration for TricityMatch
+# This file configures CodeRabbit's review behavior for your project
+
+# Global settings
+review:
+  # Enable comprehensive reviews for entire codebase
+  comprehensive: true
+  # Review all files in the project
+  scope: "entire_codebase"
+  
+  # Focus areas for this matrimonial/dating app
+  focus_areas:
+    - security
+    - performance
+    - user_privacy
+    - data_validation
+    - authentication
+    - api_design
+    - database_queries
+    - frontend_components
+    - error_handling
+    - code_quality
+    - best_practices
+    - accessibility
+    - testing
+    - documentation
+
+# Language-specific settings
+languages:
+  javascript:
+    # Enable ESLint integration
+    linting: true
+    # Check for common JS issues
+    common_issues: true
+    
+  typescript:
+    # TypeScript specific checks
+    type_safety: true
+    strict_mode: true
+    
+  sql:
+    # Database query optimization
+    query_optimization: true
+    security_checks: true
+
+# File patterns to include/exclude
+files:
+  include:
+    - "backend/**/*.js"
+    - "frontend/src/**/*.{js,jsx,ts,tsx}"
+    - "backend/migrations/**/*.js"
+    - "backend/models/**/*.js"
+    - "backend/controllers/**/*.js"
+    - "backend/routes/**/*.js"
+    - "backend/middlewares/**/*.js"
+  
+  exclude:
+    - "node_modules/**"
+    - "**/*.min.js"
+    - "**/dist/**"
+    - "**/build/**"
+    - "**/*.log"
+
+# Security-focused reviews for matrimonial app
+security:
+  # Check for sensitive data exposure
+  data_exposure: true
+  # Validate authentication flows
+  auth_flows: true
+  # Check API security
+  api_security: true
+  # Database security
+  db_security: true
+
+# Performance checks
+performance:
+  # Database query optimization
+  db_queries: true
+  # Frontend performance
+  frontend_perf: true
+  # API response times
+  api_performance: true
+
+# Privacy compliance (important for matrimonial apps)
+privacy:
+  # Check for PII handling
+  pii_handling: true
+  # Data retention policies
+  data_retention: true
+  # Consent mechanisms
+  consent_flows: true
