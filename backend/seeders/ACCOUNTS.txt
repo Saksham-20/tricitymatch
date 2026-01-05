@@ -1,0 +1,237 @@
+================================================================================
+TRICITYMATCH - TEST ACCOUNT CREDENTIALS
+================================================================================
+
+DEFAULT PASSWORD FOR ALL ACCOUNTS: password123
+
+================================================================================
+MALE ACCOUNTS (15)
+================================================================================
+
+1.  Rahul Sharma
+    Email: rahul.sharma1@example.com
+    Phone: 9876510000
+    Password: password123
+    Subscription: Elite
+
+2.  Aman Singh
+    Email: aman.singh2@example.com
+    Phone: 9876510001
+    Password: password123
+    Subscription: Elite
+
+3.  Karan Kumar
+    Email: karan.kumar3@example.com
+    Phone: 9876510002
+    Password: password123
+    Subscription: Premium
+
+4.  Arjun Verma
+    Email: arjun.verma4@example.com
+    Phone: 9876510003
+    Password: password123
+    Subscription: Premium
+
+5.  Rohit Gupta
+    Email: rohit.gupta5@example.com
+    Phone: 9876510004
+    Password: password123
+    Subscription: Premium
+
+6.  Vikram Malhotra
+    Email: vikram.malhotra6@example.com
+    Phone: 9876510005
+    Password: password123
+    Subscription: Free
+
+7.  Sahil Bedi
+    Email: sahil.bedi7@example.com
+    Phone: 9876510006
+    Password: password123
+    Subscription: Free
+
+8.  Ankit Chopra
+    Email: ankit.chopra8@example.com
+    Phone: 9876510007
+    Password: password123
+    Subscription: Free
+
+9.  Harsh Sethi
+    Email: harsh.sethi9@example.com
+    Phone: 9876510008
+    Password: password123
+    Subscription: Free
+
+10. Manpreet Gill
+    Email: manpreet.gill10@example.com
+    Phone: 9876510009
+    Password: password123
+    Subscription: Free
+
+11. Jaspreet Dhillon
+    Email: jaspreet.dhillon11@example.com
+    Phone: 9876510010
+    Password: password123
+    Subscription: Free
+
+12. Gurpreet Brar
+    Email: gurpreet.brar12@example.com
+    Phone: 9876510011
+    Password: password123
+    Subscription: Free
+
+13. Simran Kaur
+    Email: simran.kaur13@example.com
+    Phone: 9876510012
+    Password: password123
+    Subscription: Free
+
+14. Harpreet Singh
+    Email: harpreet.singh14@example.com
+    Phone: 9876510013
+    Password: password123
+    Subscription: Free
+
+15. Navdeep Sidhu
+    Email: navdeep.sidhu15@example.com
+    Phone: 9876510014
+    Password: password123
+    Subscription: Free
+
+================================================================================
+FEMALE ACCOUNTS (15)
+================================================================================
+
+16. Priya Sharma
+    Email: priya.sharma1@example.com
+    Phone: 9876610000
+    Password: password123
+    Subscription: Elite
+
+17. Anjali Singh
+    Email: anjali.singh2@example.com
+    Phone: 9876610001
+    Password: password123
+    Subscription: Elite
+
+18. Kavya Kumar
+    Email: kavya.kumar3@example.com
+    Phone: 9876610002
+    Password: password123
+    Subscription: Elite
+
+19. Neha Verma
+    Email: neha.verma4@example.com
+    Phone: 9876610003
+    Password: password123
+    Subscription: Premium
+
+20. Riya Gupta
+    Email: riya.gupta5@example.com
+    Phone: 9876610004
+    Password: password123
+    Subscription: Premium
+
+21. Sneha Malhotra
+    Email: sneha.malhotra6@example.com
+    Phone: 9876610005
+    Password: password123
+    Subscription: Premium
+
+22. Isha Bedi
+    Email: isha.bedi7@example.com
+    Phone: 9876610006
+    Password: password123
+    Subscription: Free
+
+23. Aanya Chopra
+    Email: aanya.chopra8@example.com
+    Phone: 9876610007
+    Password: password123
+    Subscription: Free
+
+24. Meera Sethi
+    Email: meera.sethi9@example.com
+    Phone: 9876610008
+    Password: password123
+    Subscription: Free
+
+25. Simran Kaur
+    Email: simran.kaur10@example.com
+    Phone: 9876610009
+    Password: password123
+    Subscription: Free
+
+26. Harleen Gill
+    Email: harleen.gill11@example.com
+    Phone: 9876610010
+    Password: password123
+    Subscription: Free
+
+27. Gurleen Dhillon
+    Email: gurleen.dhillon12@example.com
+    Phone: 9876610011
+    Password: password123
+    Subscription: Free
+
+28. Navneet Brar
+    Email: navneet.brar13@example.com
+    Phone: 9876610012
+    Password: password123
+    Subscription: Free
+
+29. Jasleen Sidhu
+    Email: jasleen.sidhu14@example.com
+    Phone: 9876610013
+    Password: password123
+    Subscription: Free
+
+30. Manpreet Kaur
+    Email: manpreet.kaur15@example.com
+    Phone: 9876610014
+    Password: password123
+    Subscription: Free
+
+================================================================================
+QUICK REFERENCE
+================================================================================
+
+TOTAL ACCOUNTS: 30 (15 Male + 15 Female)
+DEFAULT PASSWORD: password123
+
+RECOMMENDED TEST ACCOUNTS:
+- Male:   rahul.sharma1@example.com / password123
+- Female: priya.sharma1@example.com / password123
+- Premium: karan.kumar3@example.com / password123
+- Elite:  rahul.sharma1@example.com / password123
+
+EMAIL PATTERN: {firstname}.{lastname}{number}@example.com
+PHONE PATTERN (Male):   98765{10000-10014}
+PHONE PATTERN (Female): 98766{10000-10014}
+
+SUBSCRIPTION BREAKDOWN:
+- Elite:   5 accounts (2 male, 3 female)
+- Premium: 5 accounts (3 male, 3 female)
+- Free:    20 accounts (10 male, 10 female)
+
+================================================================================
+USAGE INSTRUCTIONS
+================================================================================
+
+1. Run the seeder:
+   cd backend
+   npx sequelize-cli db:seed:all
+
+2. Login with any account:
+   - Use any email from the list above
+   - Password: password123
+
+3. All accounts are pre-configured with:
+   - Email verified: Yes
+   - Status: Active
+   - Complete profiles (80-100% completion)
+   - Random interests, languages, and preferences
+
+================================================================================
+
+

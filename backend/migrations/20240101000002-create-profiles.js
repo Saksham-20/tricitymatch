@@ -6,20 +6,23 @@ module.exports = {
       id: {
         type: Sequelize.UUID,
         defaultValue: Sequelize.UUIDV4,
-        primaryKey: true,
-        allowNull: false
+        primaryKey: true
       },
       userId: {
         type: Sequelize.UUID,
         allowNull: false,
+        unique: true,
         references: {
           model: 'Users',
           key: 'id'
         },
-        onUpdate: 'CASCADE',
         onDelete: 'CASCADE'
       },
-      name: {
+      firstName: {
+        type: Sequelize.STRING,
+        allowNull: false
+      },
+      lastName: {
         type: Sequelize.STRING,
         allowNull: false
       },
@@ -27,8 +30,8 @@ module.exports = {
         type: Sequelize.ENUM('male', 'female', 'other'),
         allowNull: false
       },
-      dob: {
-        type: Sequelize.DATEONLY,
+      dateOfBirth: {
+        type: Sequelize.DATE,
         allowNull: false
       },
       height: {
@@ -39,20 +42,17 @@ module.exports = {
         type: Sequelize.INTEGER,
         allowNull: true
       },
-      religion: {
+      city: {
         type: Sequelize.STRING,
-        allowNull: true
+        allowNull: false,
+        defaultValue: 'Chandigarh'
       },
-      caste: {
+      state: {
         type: Sequelize.STRING,
-        allowNull: true
-      },
-      community: {
-        type: Sequelize.STRING,
-        allowNull: true
+        defaultValue: 'Punjab'
       },
       skinTone: {
-        type: Sequelize.ENUM('fair', 'wheatish', 'dark', 'very fair'),
+        type: Sequelize.ENUM('fair', 'wheatish', 'dark'),
         allowNull: true
       },
       diet: {
@@ -60,14 +60,18 @@ module.exports = {
         allowNull: true
       },
       smoking: {
-        type: Sequelize.ENUM('yes', 'no', 'occasionally'),
+        type: Sequelize.ENUM('never', 'occasionally', 'regularly'),
         allowNull: true
       },
       drinking: {
-        type: Sequelize.ENUM('yes', 'no', 'occasionally'),
+        type: Sequelize.ENUM('never', 'occasionally', 'regularly'),
         allowNull: true
       },
       education: {
+        type: Sequelize.STRING,
+        allowNull: true
+      },
+      degree: {
         type: Sequelize.STRING,
         allowNull: true
       },
@@ -79,84 +83,87 @@ module.exports = {
         type: Sequelize.INTEGER,
         allowNull: true
       },
-      city: {
+      preferredAgeMin: {
+        type: Sequelize.INTEGER,
+        allowNull: true
+      },
+      preferredAgeMax: {
+        type: Sequelize.INTEGER,
+        allowNull: true
+      },
+      preferredHeightMin: {
+        type: Sequelize.INTEGER,
+        allowNull: true
+      },
+      preferredHeightMax: {
+        type: Sequelize.INTEGER,
+        allowNull: true
+      },
+      preferredEducation: {
         type: Sequelize.STRING,
         allowNull: true
+      },
+      preferredProfession: {
+        type: Sequelize.STRING,
+        allowNull: true
+      },
+      preferredCity: {
+        type: Sequelize.ARRAY(Sequelize.STRING),
+        defaultValue: ['Chandigarh', 'Mohali', 'Panchkula']
+      },
+      personalityValues: {
+        type: Sequelize.JSONB,
+        allowNull: true
+      },
+      familyPreferences: {
+        type: Sequelize.JSONB,
+        allowNull: true
+      },
+      lifestylePreferences: {
+        type: Sequelize.JSONB,
+        allowNull: true
+      },
+      photos: {
+        type: Sequelize.ARRAY(Sequelize.STRING),
+        defaultValue: []
+      },
+      profilePhoto: {
+        type: Sequelize.STRING,
+        allowNull: true
+      },
+      completionPercentage: {
+        type: Sequelize.INTEGER,
+        defaultValue: 0
+      },
+      isActive: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: true
       },
       bio: {
         type: Sequelize.TEXT,
         allowNull: true
       },
-      photos: {
-        type: Sequelize.JSON,
-        defaultValue: [],
-        allowNull: false
-      },
-      personalityAnswers: {
-        type: Sequelize.JSON,
-        defaultValue: {},
-        allowNull: false
-      },
-      verificationStatus: {
-        type: Sequelize.ENUM('pending', 'verified', 'rejected'),
-        defaultValue: 'pending',
-        allowNull: false
-      },
-      verificationDocs: {
-        type: Sequelize.JSON,
-        defaultValue: {},
-        allowNull: false
-      },
-      verificationNotes: {
-        type: Sequelize.TEXT,
-        allowNull: true
-      },
-      birthTime: {
-        type: Sequelize.TIME,
-        allowNull: true
-      },
-      birthPlace: {
-        type: Sequelize.STRING,
-        allowNull: true
-      },
-      kundliData: {
-        type: Sequelize.JSON,
-        defaultValue: {},
-        allowNull: false
-      },
-      isProfileComplete: {
+      showPhone: {
         type: Sequelize.BOOLEAN,
-        defaultValue: false,
-        allowNull: false
+        defaultValue: false
       },
-      profileCompletionPercentage: {
-        type: Sequelize.INTEGER,
-        defaultValue: 0,
-        allowNull: false
+      showEmail: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: false
       },
       createdAt: {
-        type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.NOW
+        type: Sequelize.DATE
       },
       updatedAt: {
-        type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.NOW
+        type: Sequelize.DATE
       }
     });
-
-    // Add indexes
-    await queryInterface.addIndex('Profiles', ['userId']);
-    await queryInterface.addIndex('Profiles', ['gender']);
-    await queryInterface.addIndex('Profiles', ['religion']);
-    await queryInterface.addIndex('Profiles', ['caste']);
-    await queryInterface.addIndex('Profiles', ['city']);
-    await queryInterface.addIndex('Profiles', ['verificationStatus']);
-    await queryInterface.addIndex('Profiles', ['isProfileComplete']);
   },
 
   async down(queryInterface, Sequelize) {
     await queryInterface.dropTable('Profiles');
   }
 };
+

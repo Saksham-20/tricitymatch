@@ -1,0 +1,265 @@
+{
+  "defaultPassword": "password123",
+  "accounts": [
+    {
+      "name": "Rahul Sharma",
+      "email": "rahul.sharma1@example.com",
+      "phone": "9876510000",
+      "password": "password123",
+      "gender": "male",
+      "subscription": "elite"
+    },
+    {
+      "name": "Aman Singh",
+      "email": "aman.singh2@example.com",
+      "phone": "9876510001",
+      "password": "password123",
+      "gender": "male",
+      "subscription": "elite"
+    },
+    {
+      "name": "Karan Kumar",
+      "email": "karan.kumar3@example.com",
+      "phone": "9876510002",
+      "password": "password123",
+      "gender": "male",
+      "subscription": "premium"
+    },
+    {
+      "name": "Arjun Verma",
+      "email": "arjun.verma4@example.com",
+      "phone": "9876510003",
+      "password": "password123",
+      "gender": "male",
+      "subscription": "premium"
+    },
+    {
+      "name": "Rohit Gupta",
+      "email": "rohit.gupta5@example.com",
+      "phone": "9876510004",
+      "password": "password123",
+      "gender": "male",
+      "subscription": "premium"
+    },
+    {
+      "name": "Vikram Malhotra",
+      "email": "vikram.malhotra6@example.com",
+      "phone": "9876510005",
+      "password": "password123",
+      "gender": "male",
+      "subscription": "free"
+    },
+    {
+      "name": "Sahil Bedi",
+      "email": "sahil.bedi7@example.com",
+      "phone": "9876510006",
+      "password": "password123",
+      "gender": "male",
+      "subscription": "free"
+    },
+    {
+      "name": "Ankit Chopra",
+      "email": "ankit.chopra8@example.com",
+      "phone": "9876510007",
+      "password": "password123",
+      "gender": "male",
+      "subscription": "free"
+    },
+    {
+      "name": "Harsh Sethi",
+      "email": "harsh.sethi9@example.com",
+      "phone": "9876510008",
+      "password": "password123",
+      "gender": "male",
+      "subscription": "free"
+    },
+    {
+      "name": "Manpreet Gill",
+      "email": "manpreet.gill10@example.com",
+      "phone": "9876510009",
+      "password": "password123",
+      "gender": "male",
+      "subscription": "free"
+    },
+    {
+      "name": "Jaspreet Dhillon",
+      "email": "jaspreet.dhillon11@example.com",
+      "phone": "9876510010",
+      "password": "password123",
+      "gender": "male",
+      "subscription": "free"
+    },
+    {
+      "name": "Gurpreet Brar",
+      "email": "gurpreet.brar12@example.com",
+      "phone": "9876510011",
+      "password": "password123",
+      "gender": "male",
+      "subscription": "free"
+    },
+    {
+      "name": "Simran Kaur",
+      "email": "simran.kaur13@example.com",
+      "phone": "9876510012",
+      "password": "password123",
+      "gender": "male",
+      "subscription": "free"
+    },
+    {
+      "name": "Harpreet Singh",
+      "email": "harpreet.singh14@example.com",
+      "phone": "9876510013",
+      "password": "password123",
+      "gender": "male",
+      "subscription": "free"
+    },
+    {
+      "name": "Navdeep Sidhu",
+      "email": "navdeep.sidhu15@example.com",
+      "phone": "9876510014",
+      "password": "password123",
+      "gender": "male",
+      "subscription": "free"
+    },
+    {
+      "name": "Priya Sharma",
+      "email": "priya.sharma1@example.com",
+      "phone": "9876610000",
+      "password": "password123",
+      "gender": "female",
+      "subscription": "elite"
+    },
+    {
+      "name": "Anjali Singh",
+      "email": "anjali.singh2@example.com",
+      "phone": "9876610001",
+      "password": "password123",
+      "gender": "female",
+      "subscription": "elite"
+    },
+    {
+      "name": "Kavya Kumar",
+      "email": "kavya.kumar3@example.com",
+      "phone": "9876610002",
+      "password": "password123",
+      "gender": "female",
+      "subscription": "elite"
+    },
+    {
+      "name": "Neha Verma",
+      "email": "neha.verma4@example.com",
+      "phone": "9876610003",
+      "password": "password123",
+      "gender": "female",
+      "subscription": "premium"
+    },
+    {
+      "name": "Riya Gupta",
+      "email": "riya.gupta5@example.com",
+      "phone": "9876610004",
+      "password": "password123",
+      "gender": "female",
+      "subscription": "premium"
+    },
+    {
+      "name": "Sneha Malhotra",
+      "email": "sneha.malhotra6@example.com",
+      "phone": "9876610005",
+      "password": "password123",
+      "gender": "female",
+      "subscription": "premium"
+    },
+    {
+      "name": "Isha Bedi",
+      "email": "isha.bedi7@example.com",
+      "phone": "9876610006",
+      "password": "password123",
+      "gender": "female",
+      "subscription": "free"
+    },
+    {
+      "name": "Aanya Chopra",
+      "email": "aanya.chopra8@example.com",
+      "phone": "9876610007",
+      "password": "password123",
+      "gender": "female",
+      "subscription": "free"
+    },
+    {
+      "name": "Meera Sethi",
+      "email": "meera.sethi9@example.com",
+      "phone": "9876610008",
+      "password": "password123",
+      "gender": "female",
+      "subscription": "free"
+    },
+    {
+      "name": "Simran Kaur",
+      "email": "simran.kaur10@example.com",
+      "phone": "9876610009",
+      "password": "password123",
+      "gender": "female",
+      "subscription": "free"
+    },
+    {
+      "name": "Harleen Gill",
+      "email": "harleen.gill11@example.com",
+      "phone": "9876610010",
+      "password": "password123",
+      "gender": "female",
+      "subscription": "free"
+    },
+    {
+      "name": "Gurleen Dhillon",
+      "email": "gurleen.dhillon12@example.com",
+      "phone": "9876610011",
+      "password": "password123",
+      "gender": "female",
+      "subscription": "free"
+    },
+    {
+      "name": "Navneet Brar",
+      "email": "navneet.brar13@example.com",
+      "phone": "9876610012",
+      "password": "password123",
+      "gender": "female",
+      "subscription": "free"
+    },
+    {
+      "name": "Jasleen Sidhu",
+      "email": "jasleen.sidhu14@example.com",
+      "phone": "9876610013",
+      "password": "password123",
+      "gender": "female",
+      "subscription": "free"
+    },
+    {
+      "name": "Manpreet Kaur",
+      "email": "manpreet.kaur15@example.com",
+      "phone": "9876610014",
+      "password": "password123",
+      "gender": "female",
+      "subscription": "free"
+    }
+  ],
+  "quickTestAccounts": {
+    "male": {
+      "email": "rahul.sharma1@example.com",
+      "password": "password123"
+    },
+    "female": {
+      "email": "priya.sharma1@example.com",
+      "password": "password123"
+    },
+    "premium": {
+      "email": "karan.kumar3@example.com",
+      "password": "password123"
+    },
+    "elite": {
+      "email": "rahul.sharma1@example.com",
+      "password": "password123"
+    }
+  }
+}
+
+

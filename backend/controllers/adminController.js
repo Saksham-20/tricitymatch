@@ -1,60 +1,29 @@
-const { validationResult } = require('express-validator');
+const { User, Profile, Subscription, Match, Verification, ProfileView } = require('../models');
 const { Op } = require('sequelize');
-const { User, Profile, Payment, Report, Notification, ProfileView, Like, Shortlist } = require('../models');
-const { sendEmail } = require('../utils/emailService');
 
-// Get all users with filters
-const getUsers = async (req, res) => {
+// @route   GET /api/admin/users
+// @desc    Get all users with filters
+// @access  Private/Admin
+exports.getUsers = async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
-
-    const {
-      page = 1,
-      limit = 20,
-      search,
-      role,
-      subscriptionType,
-      isActive,
-      isVerified
-    } = req.query;
-
+    const { status, role, page = 1, limit = 20, search } = req.query;
     const offset = (page - 1) * limit;
 
-    // Build where clause
-    const whereClause = {};
-    if (role) whereClause.role = role;
-    if (subscriptionType) whereClause.subscriptionType = subscriptionType;
-    if (isActive !== undefined) whereClause.isActive = isActive === 'true';
-
-    // Build profile where clause for search and verification
-    const profileWhereClause = {};
+    const where = {};
+    if (status) where.status = status;
+    if (role) where.role = role;
     if (search) {
-      profileWhereClause[Op.or] = [
-        { name: { [Op.iLike]: `%${search}%` } },
-        { city: { [Op.iLike]: `%${search}%` } },
-        { profession: { [Op.iLike]: `%${search}%` } }
+      where[Op.or] = [
+        { email: { [Op.iLike]: `%${search}%` } },
+        { phone: { [Op.iLike]: `%${search}%` } }
       ];
     }
-    if (isVerified !== undefined) {
-      profileWhereClause.verificationStatus = isVerified === 'true' ? 'verified' : { [Op.ne]: 'verified' };
-    }
 
-    const users = await User.findAndCountAll({
-      where: whereClause,
+    const { count, rows: users } = await User.findAndCountAll({
+      where,
       include: [
-        {
-          model: Profile,
-          as: 'profile',
-          where: Object.keys(profileWhereClause).length > 0 ? profileWhereClause : undefined,
-          required: Object.keys(profileWhereClause).length > 0
-        }
+        { model: Profile, attributes: ['firstName', 'lastName', 'city'] },
+        { model: Subscription, order: [['createdAt', 'DESC']], limit: 1 }
       ],
       limit: parseInt(limit),
       offset: parseInt(offset),
@@ -63,663 +32,216 @@ const getUsers = async (req, res) => {
 
     res.json({
       success: true,
-      data: {
-        users: users.rows,
-        pagination: {
-          currentPage: parseInt(page),
-          totalPages: Math.ceil(users.count / limit),
-          totalCount: users.count,
-          hasNext: offset + limit < users.count,
-          hasPrev: page > 1
-        }
+      users,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: count,
+        pages: Math.ceil(count / limit)
       }
     });
-
   } catch (error) {
     console.error('Get users error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching users'
-    });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
-// Get user by ID
-const getUserById = async (req, res) => {
+// @route   PUT /api/admin/users/:userId/status
+// @desc    Update user status
+// @access  Private/Admin
+exports.updateUserStatus = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { userId } = req.params;
+    const { status } = req.body;
 
-    const user = await User.findByPk(id, {
-      include: [
-        { model: Profile, as: 'profile' },
-        { model: Payment, as: 'payments', order: [['createdAt', 'DESC']] },
-        { model: Report, as: 'reportsMade', limit: 5 },
-        { model: Report, as: 'reportsReceived', limit: 5 }
-      ]
-    });
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
+    if (!['active', 'inactive', 'banned', 'pending'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
     }
-
-    // Get additional stats
-    const profileViews = await ProfileView.count({ where: { viewedUserId: id } });
-    const likesReceived = await Like.count({ where: { likedUserId: id } });
-    const likesGiven = await Like.count({ where: { userId: id } });
-
-    res.json({
-      success: true,
-      data: {
-        user: user.toJSON(),
-        stats: {
-          profileViews,
-          likesReceived,
-          likesGiven
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error('Get user by ID error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching user'
-    });
-  }
-};
-
-// Verify user identity
-const verifyUser = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status, notes } = req.body; // status: 'verified' or 'rejected'
-
-    const user = await User.findByPk(id, {
-      include: [{ model: Profile, as: 'profile' }]
-    });
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-
-    if (!user.profile) {
-      return res.status(400).json({
-        success: false,
-        message: 'User profile not found'
-      });
-    }
-
-    // Update verification status
-    await user.profile.update({
-      verificationStatus: status,
-      verificationNotes: notes
-    });
-
-    // Create notification for user
-    await Notification.create({
-      userId: id,
-      type: status === 'verified' ? 'verification_approved' : 'verification_rejected',
-      title: status === 'verified' ? 'Identity Verified! ✅' : 'Verification Rejected',
-      content: status === 'verified' 
-        ? 'Congratulations! Your identity has been verified. You now have a verified badge on your profile.'
-        : 'Your identity verification was rejected. Please check the requirements and try again.',
-      data: { notes }
-    });
-
-    res.json({
-      success: true,
-      message: `User verification ${status} successfully`,
-      data: {
-        verificationStatus: status,
-        notes
-      }
-    });
-
-  } catch (error) {
-    console.error('Verify user error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while verifying user'
-    });
-  }
-};
-
-// Ban user
-const banUser = async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
-
-    const { id } = req.params;
-    const { reason, duration } = req.body;
-
-    const user = await User.findByPk(id);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-
-    if (user.role === 'admin') {
-      return res.status(400).json({
-        success: false,
-        message: 'Cannot ban admin users'
-      });
-    }
-
-    // Calculate ban expiry
-    const banExpiry = duration ? new Date(Date.now() + duration * 24 * 60 * 60 * 1000) : null;
-
-    await user.update({
-      isActive: false,
-      banReason: reason,
-      banExpiry,
-      bannedBy: req.user.id,
-      bannedAt: new Date()
-    });
-
-    // Create notification for user
-    await Notification.create({
-      userId: id,
-      type: 'admin_message',
-      title: 'Account Suspended',
-      content: `Your account has been suspended. Reason: ${reason}${banExpiry ? `. Duration: ${duration} days` : ''}`,
-      data: { reason, duration, banExpiry }
-    });
-
-    res.json({
-      success: true,
-      message: 'User banned successfully',
-      data: {
-        banReason: reason,
-        banExpiry,
-        duration
-      }
-    });
-
-  } catch (error) {
-    console.error('Ban user error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while banning user'
-    });
-  }
-};
-
-// Unban user
-const unbanUser = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const user = await User.findByPk(id);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-
-    await user.update({
-      isActive: true,
-      banReason: null,
-      banExpiry: null,
-      bannedBy: null,
-      bannedAt: null
-    });
-
-    // Create notification for user
-    await Notification.create({
-      userId: id,
-      type: 'admin_message',
-      title: 'Account Restored',
-      content: 'Your account has been restored and you can now access all features.',
-      data: {}
-    });
-
-    res.json({
-      success: true,
-      message: 'User unbanned successfully'
-    });
-
-  } catch (error) {
-    console.error('Unban user error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while unbanning user'
-    });
-  }
-};
-
-// Get reports
-const getReports = async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
-
-    const {
-      page = 1,
-      limit = 20,
-      status,
-      reason
-    } = req.query;
-
-    const offset = (page - 1) * limit;
-
-    const whereClause = {};
-    if (status) whereClause.status = status;
-    if (reason) whereClause.reason = reason;
-
-    const reports = await Report.findAndCountAll({
-      where: whereClause,
-      include: [
-        {
-          model: User,
-          as: 'reporter',
-          attributes: ['id', 'email'],
-          include: [{ model: Profile, as: 'profile', attributes: ['name'] }]
-        },
-        {
-          model: User,
-          as: 'reportedUser',
-          attributes: ['id', 'email'],
-          include: [{ model: Profile, as: 'profile', attributes: ['name'] }]
-        }
-      ],
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-      order: [['createdAt', 'DESC']]
-    });
-
-    res.json({
-      success: true,
-      data: {
-        reports: reports.rows,
-        pagination: {
-          currentPage: parseInt(page),
-          totalPages: Math.ceil(reports.count / limit),
-          totalCount: reports.count,
-          hasNext: offset + limit < reports.count,
-          hasPrev: page > 1
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error('Get reports error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching reports'
-    });
-  }
-};
-
-// Resolve report
-const resolveReport = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { action, notes } = req.body; // action: 'ban_user', 'dismiss', 'warn_user'
-
-    const report = await Report.findByPk(id);
-    if (!report) {
-      return res.status(404).json({
-        success: false,
-        message: 'Report not found'
-      });
-    }
-
-    // Update report status
-    await report.update({
-      status: 'resolved',
-      adminNotes: notes,
-      resolvedBy: req.user.id,
-      resolvedAt: new Date()
-    });
-
-    // Take action based on report
-    if (action === 'ban_user') {
-      const reportedUser = await User.findByPk(report.reportedUserId);
-      if (reportedUser && reportedUser.role !== 'admin') {
-        await reportedUser.update({
-          isActive: false,
-          banReason: `Reported for: ${report.reason}`,
-          bannedBy: req.user.id,
-          bannedAt: new Date()
-        });
-      }
-    }
-
-    res.json({
-      success: true,
-      message: 'Report resolved successfully',
-      data: {
-        action,
-        notes
-      }
-    });
-
-  } catch (error) {
-    console.error('Resolve report error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while resolving report'
-    });
-  }
-};
-
-// Dismiss report
-const dismissReport = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { notes } = req.body;
-
-    const report = await Report.findByPk(id);
-    if (!report) {
-      return res.status(404).json({
-        success: false,
-        message: 'Report not found'
-      });
-    }
-
-    await report.update({
-      status: 'dismissed',
-      adminNotes: notes,
-      resolvedBy: req.user.id,
-      resolvedAt: new Date()
-    });
-
-    res.json({
-      success: true,
-      message: 'Report dismissed successfully'
-    });
-
-  } catch (error) {
-    console.error('Dismiss report error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while dismissing report'
-    });
-  }
-};
-
-// Get analytics
-const getAnalytics = async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
-
-    const { period = '30d', startDate, endDate } = req.query;
-
-    // Calculate date range
-    let dateRange = {};
-    if (startDate && endDate) {
-      dateRange = {
-        [Op.between]: [new Date(startDate), new Date(endDate)]
-      };
-    } else {
-      const days = period === '7d' ? 7 : period === '30d' ? 30 : period === '90d' ? 90 : 365;
-      const start = new Date();
-      start.setDate(start.getDate() - days);
-      dateRange = {
-        [Op.gte]: start
-      };
-    }
-
-    // Get user statistics
-    const totalUsers = await User.count();
-    const newUsers = await User.count({ where: { createdAt: dateRange } });
-    const activeUsers = await User.count({ where: { isActive: true } });
-    const verifiedUsers = await User.count({
-      include: [{
-        model: Profile,
-        as: 'profile',
-        where: { verificationStatus: 'verified' }
-      }]
-    });
-
-    // Get subscription statistics
-    const subscriptionStats = await User.findAll({
-      attributes: [
-        'subscriptionType',
-        [User.sequelize.fn('COUNT', User.sequelize.col('id')), 'count']
-      ],
-      group: ['subscriptionType']
-    });
-
-    // Get revenue statistics
-    const revenue = await Payment.sum('amount', {
-      where: {
-        status: 'completed',
-        createdAt: dateRange
-      }
-    });
-
-    // Get engagement statistics
-    const totalLikes = await Like.count({ where: { createdAt: dateRange } });
-    const totalProfileViews = await ProfileView.count({ where: { createdAt: dateRange } });
-    const totalReports = await Report.count({ where: { createdAt: dateRange } });
-
-    // Get daily signups for chart
-    const dailySignups = await User.findAll({
-      attributes: [
-        [User.sequelize.fn('DATE', User.sequelize.col('createdAt')), 'date'],
-        [User.sequelize.fn('COUNT', User.sequelize.col('id')), 'count']
-      ],
-      where: { createdAt: dateRange },
-      group: [User.sequelize.fn('DATE', User.sequelize.col('createdAt'))],
-      order: [[User.sequelize.fn('DATE', User.sequelize.col('createdAt')), 'ASC']]
-    });
-
-    res.json({
-      success: true,
-      data: {
-        users: {
-          total: totalUsers,
-          new: newUsers,
-          active: activeUsers,
-          verified: verifiedUsers
-        },
-        subscriptions: subscriptionStats,
-        revenue: {
-          total: revenue || 0,
-          inRupees: (revenue || 0) / 100
-        },
-        engagement: {
-          likes: totalLikes,
-          profileViews: totalProfileViews,
-          reports: totalReports
-        },
-        dailySignups
-      }
-    });
-
-  } catch (error) {
-    console.error('Get analytics error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching analytics'
-    });
-  }
-};
-
-// Get dashboard stats
-const getDashboardStats = async (req, res) => {
-  try {
-    // Get quick stats
-    const totalUsers = await User.count();
-    const activeUsers = await User.count({ where: { isActive: true } });
-    const premiumUsers = await User.count({ where: { subscriptionType: { [Op.ne]: 'free' } } });
-    const pendingReports = await Report.count({ where: { status: 'pending' } });
-    const pendingVerifications = await Profile.count({ where: { verificationStatus: 'pending' } });
-
-    // Get recent activity
-    const recentUsers = await User.findAll({
-      include: [{ model: Profile, as: 'profile' }],
-      order: [['createdAt', 'DESC']],
-      limit: 5
-    });
-
-    const recentReports = await Report.findAll({
-      include: [
-        { model: User, as: 'reporter', include: [{ model: Profile, as: 'profile' }] },
-        { model: User, as: 'reportedUser', include: [{ model: Profile, as: 'profile' }] }
-      ],
-      order: [['createdAt', 'DESC']],
-      limit: 5
-    });
-
-    res.json({
-      success: true,
-      data: {
-        stats: {
-          totalUsers,
-          activeUsers,
-          premiumUsers,
-          pendingReports,
-          pendingVerifications
-        },
-        recentActivity: {
-          users: recentUsers,
-          reports: recentReports
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error('Get dashboard stats error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching dashboard stats'
-    });
-  }
-};
-
-// Send notification to user
-const sendNotificationToUser = async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
-
-    const { userId, title, content, type = 'admin_message' } = req.body;
 
     const user = await User.findByPk(userId);
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    // Create notification
-    const notification = await Notification.create({
-      userId,
-      type,
-      title,
-      content,
-      data: { sentBy: req.user.id }
-    });
+    user.status = status;
+    await user.save();
 
     res.json({
       success: true,
-      message: 'Notification sent successfully',
-      data: {
-        notification: notification.toJSON()
-      }
+      message: 'User status updated',
+      user
     });
-
   } catch (error) {
-    console.error('Send notification error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while sending notification'
-    });
+    console.error('Update user status error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
-// Get verification queue
-const getVerificationQueue = async (req, res) => {
+// @route   GET /api/admin/verifications
+// @desc    Get pending verifications
+// @access  Private/Admin
+exports.getVerifications = async (req, res) => {
   try {
-    const { page = 1, limit = 20 } = req.query;
-    const offset = (page - 1) * limit;
+    const { status = 'pending' } = req.query;
 
-    const profiles = await Profile.findAndCountAll({
-      where: { verificationStatus: 'pending' },
+    const verifications = await Verification.findAll({
+      where: { status },
       include: [
         {
           model: User,
-          as: 'user',
-          attributes: ['id', 'email', 'createdAt']
+          include: [{ model: Profile, attributes: ['firstName', 'lastName', 'profilePhoto'] }]
         }
       ],
-      limit: parseInt(limit),
-      offset: parseInt(offset),
       order: [['createdAt', 'ASC']]
     });
 
     res.json({
       success: true,
-      data: {
-        profiles: profiles.rows,
-        pagination: {
-          currentPage: parseInt(page),
-          totalPages: Math.ceil(profiles.count / limit),
-          totalCount: profiles.count,
-          hasNext: offset + limit < profiles.count,
-          hasPrev: page > 1
-        }
-      }
+      verifications
     });
-
   } catch (error) {
-    console.error('Get verification queue error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching verification queue'
-    });
+    console.error('Get verifications error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
-module.exports = {
-  getUsers,
-  getUserById,
-  verifyUser,
-  banUser,
-  unbanUser,
-  getReports,
-  resolveReport,
-  dismissReport,
-  getAnalytics,
-  getDashboardStats,
-  sendNotificationToUser,
-  getVerificationQueue
+// @route   PUT /api/admin/verifications/:verificationId
+// @desc    Approve/reject verification
+// @access  Private/Admin
+exports.updateVerification = async (req, res) => {
+  try {
+    const { verificationId } = req.params;
+    const { status, adminNotes } = req.body;
+
+    if (!['approved', 'rejected', 'flagged'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+
+    const verification = await Verification.findByPk(verificationId);
+    if (!verification) {
+      return res.status(404).json({ message: 'Verification not found' });
+    }
+
+    verification.status = status;
+    verification.adminNotes = adminNotes;
+    verification.verifiedAt = new Date();
+    verification.verifiedBy = req.user.id;
+    await verification.save();
+
+    res.json({
+      success: true,
+      message: 'Verification updated',
+      verification
+    });
+  } catch (error) {
+    console.error('Update verification error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
 };
+
+// @route   GET /api/admin/analytics
+// @desc    Get analytics data
+// @access  Private/Admin
+exports.getAnalytics = async (req, res) => {
+  try {
+    // User statistics
+    const totalUsers = await User.count();
+    const activeUsers = await User.count({ where: { status: 'active' } });
+    const pendingUsers = await User.count({ where: { status: 'pending' } });
+    const bannedUsers = await User.count({ where: { status: 'banned' } });
+
+    // Subscription statistics
+    const totalSubscriptions = await Subscription.count();
+    const activeSubscriptions = await Subscription.count({ 
+      where: { status: 'active' } 
+    });
+    const premiumSubscriptions = await Subscription.count({
+      where: { status: 'active', planType: 'premium' }
+    });
+    const eliteSubscriptions = await Subscription.count({
+      where: { status: 'active', planType: 'elite' }
+    });
+
+    // Revenue calculation
+    const revenueData = await Subscription.findAll({
+      where: { status: 'active' },
+      attributes: ['planType', 'amount']
+    });
+    const totalRevenue = revenueData.reduce((sum, sub) => sum + (parseFloat(sub.amount) || 0), 0);
+
+    // Match statistics
+    const totalMatches = await Match.count();
+    const mutualMatches = await Match.count({ where: { isMutual: true } });
+    const totalLikes = await Match.count({ where: { action: 'like' } });
+
+    // Profile views
+    const totalProfileViews = await ProfileView.count();
+    const viewsThisWeek = await ProfileView.count({
+      where: {
+        createdAt: { [Op.gte]: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+      }
+    });
+
+    // Verification statistics
+    const pendingVerifications = await Verification.count({ 
+      where: { status: 'pending' } 
+    });
+    const approvedVerifications = await Verification.count({ 
+      where: { status: 'approved' } 
+    });
+
+    res.json({
+      success: true,
+      analytics: {
+        users: {
+          total: totalUsers,
+          active: activeUsers,
+          pending: pendingUsers,
+          banned: bannedUsers
+        },
+        subscriptions: {
+          total: totalSubscriptions,
+          active: activeSubscriptions,
+          premium: premiumSubscriptions,
+          elite: eliteSubscriptions,
+          revenue: totalRevenue
+        },
+        matches: {
+          total: totalMatches,
+          mutual: mutualMatches,
+          likes: totalLikes
+        },
+        engagement: {
+          profileViews: totalProfileViews,
+          viewsThisWeek: viewsThisWeek
+        },
+        verifications: {
+          pending: pendingVerifications,
+          approved: approvedVerifications
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get analytics error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// @route   GET /api/admin/reports
+// @desc    Get reported users/issues (placeholder for future implementation)
+// @access  Private/Admin
+exports.getReports = async (req, res) => {
+  try {
+    // This is a placeholder for a reports system
+    // In a full implementation, you'd have a Reports model
+    res.json({
+      success: true,
+      reports: [],
+      message: 'Reports feature coming soon'
+    });
+  } catch (error) {
+    console.error('Get reports error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+

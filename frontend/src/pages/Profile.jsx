@@ -1,194 +1,156 @@
-import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { useAuth } from '../context/AuthContext'
-import { profileAPI } from '../api/profile'
-import { 
-  User, 
-  Edit, 
-  Camera, 
-  MapPin, 
-  Calendar, 
-  GraduationCap, 
-  Briefcase,
-  Heart,
-  Star,
-  Shield
-} from 'lucide-react'
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import api from '../api/axios';
+import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
+import { ProfileMultiStepForm } from '../components/ui/profile-multistep-form';
 
 const Profile = () => {
-  const { user, profile } = useAuth()
-  const [loading, setLoading] = useState(true)
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [activeStep, setActiveStep] = useState(0);
+  const [formData, setFormData] = useState({});
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  
+  // Check if user has premium subscription
+  const [isPremium, setIsPremium] = useState(false);
+  
+  useEffect(() => {
+    checkSubscription();
+  }, []);
+  
+  const checkSubscription = async () => {
+    try {
+      const response = await api.get('/subscription/my-subscription');
+      const subscription = response.data.subscription;
+      setIsPremium(subscription?.status === 'active' && ['premium', 'elite'].includes(subscription?.planType));
+    } catch (error) {
+      setIsPremium(false);
+    }
+  };
 
   useEffect(() => {
-    fetchProfile()
-  }, [])
+    loadProfile();
+  }, []);
 
-  const fetchProfile = async () => {
+  const loadProfile = async () => {
     try {
-      // Profile data is already available from AuthContext
-      setLoading(false)
+      const response = await api.get('/profile/me');
+      const profileData = response.data.profile;
+      setProfile(profileData);
+      setFormData(profileData || {});
+      
+      // Determine which step to show based on completion
+      if (profileData) {
+        const completion = profileData.completionPercentage || 0;
+        if (completion < 30) setActiveStep(0);
+        else if (completion < 50) setActiveStep(1);
+        else if (completion < 70) setActiveStep(2);
+        else if (completion < 85) setActiveStep(3);
+        else if (completion < 95) setActiveStep(4);
+        else setActiveStep(5);
+      }
     } catch (error) {
-      console.error('Error fetching profile:', error)
-      setLoading(false)
+      toast.error('Failed to load profile');
+    } finally {
+      setLoading(false);
     }
-  }
+  };
+
+  const handleFileUpload = async (e, field) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formDataObj = new FormData();
+    formDataObj.append(field === 'profilePhoto' ? 'profilePhoto' : 'photos', file);
+
+    try {
+      const response = await api.put('/profile/me', formDataObj, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setProfile(response.data.profile);
+      setFormData(response.data.profile);
+      toast.success('Photo uploaded successfully');
+    } catch (error) {
+      toast.error('Failed to upload photo');
+    }
+  };
+
+  const handleMultiStepComplete = async (data) => {
+    try {
+      const response = await api.put('/profile/me', data);
+      setProfile(response.data.profile);
+      setFormData(response.data.profile);
+      toast.success('Profile updated successfully!');
+      navigate('/dashboard');
+    } catch (error) {
+      toast.error('Failed to update profile');
+    }
+  };
+
+  const calculateProgress = () => {
+    if (!profile) return 0;
+    return profile.completionPercentage || 0;
+  };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="spinner"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="card"
-      >
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
-          <button className="btn-primary flex items-center space-x-2">
-            <Edit className="w-4 h-4" />
-            <span>Edit Profile</span>
-          </button>
-        </div>
-
-        {profile ? (
-          <div className="space-y-8">
-            {/* Profile Header */}
-            <div className="flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-6">
-              {profile.photos?.[0] ? (
-                <img
-                  src={profile.photos[0].url}
-                  alt="Profile"
-                  className="w-32 h-32 rounded-2xl object-cover"
-                />
-              ) : (
-                <div className="w-32 h-32 bg-gradient-to-r from-primary-400 to-secondary-400 rounded-2xl flex items-center justify-center">
-                  <User className="w-16 h-16 text-white" />
-                </div>
+    <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8 bg-gray-50">
+      <div className="max-w-4xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-3xl md:text-4xl font-semibold text-gray-900 mb-4">Complete Your Profile</h1>
+            
+            {/* Progress Bar */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-900">Profile Completion</span>
+                <span className="text-sm font-medium text-primary-600">{calculateProgress()}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2.5">
+                <div
+                  className="bg-primary-600 h-2.5 rounded-full transition-all duration-500"
+                  style={{ width: `${calculateProgress()}%` }}
+                ></div>
+              </div>
+              {calculateProgress() < 100 && (
+                <p className="text-sm text-gray-600 mt-2 text-center">
+                  Complete your profile for better matches
+                </p>
               )}
-              
-              <div className="flex-1">
-                <div className="flex items-center space-x-3 mb-2">
-                  <h2 className="text-2xl font-bold text-gray-900">{profile.name}</h2>
-                  {profile.verificationStatus === 'verified' && (
-                    <div className="flex items-center space-x-1 bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm">
-                      <Shield className="w-4 h-4" />
-                      <span>Verified</span>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="flex flex-wrap items-center gap-4 text-gray-600">
-                  {profile.age && (
-                    <div className="flex items-center space-x-2">
-                      <Calendar className="w-4 h-4" />
-                      <span>{profile.age} years old</span>
-                    </div>
-                  )}
-                  {profile.city && (
-                    <div className="flex items-center space-x-2">
-                      <MapPin className="w-4 h-4" />
-                      <span>{profile.city}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
-
-            {/* Profile Details */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900">Basic Information</h3>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Gender</label>
-                    <p className="text-gray-900 capitalize">{profile.gender}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Height</label>
-                    <p className="text-gray-900">{profile.height || 'Not specified'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Religion</label>
-                    <p className="text-gray-900">{profile.religion || 'Not specified'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Caste</label>
-                    <p className="text-gray-900">{profile.caste || 'Not specified'}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900">Education & Career</h3>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Education</label>
-                    <p className="text-gray-900">{profile.education || 'Not specified'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Profession</label>
-                    <p className="text-gray-900">{profile.profession || 'Not specified'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Income</label>
-                    <p className="text-gray-900">{profile.income || 'Not specified'}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Bio */}
-            {profile.bio && (
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">About Me</h3>
-                <p className="text-gray-700 leading-relaxed">{profile.bio}</p>
-              </div>
-            )}
-
-            {/* Photos */}
-            {profile.photos && profile.photos.length > 0 && (
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Photos</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {profile.photos.map((photo, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={photo.url}
-                        alt={`Photo ${index + 1}`}
-                        className="w-full h-32 object-cover rounded-xl"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
-        ) : (
-          <div className="text-center py-12">
-            <div className="w-24 h-24 bg-gradient-to-r from-primary-400 to-secondary-400 rounded-full flex items-center justify-center mx-auto mb-6">
-              <User className="w-12 h-12 text-white" />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">
-              Complete Your Profile
-            </h3>
-            <p className="text-gray-600 mb-6">
-              Create your profile to start connecting with potential matches in Tricity.
-            </p>
-            <button className="btn-primary">
-              Create Profile
-            </button>
+
+          {/* Form Card */}
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 md:p-10">
+            <ProfileMultiStepForm
+              initialData={formData}
+              onComplete={handleMultiStepComplete}
+              onStepChange={(step) => setActiveStep(step)}
+              isPremium={isPremium}
+              profile={profile}
+              onFileUpload={handleFileUpload}
+            />
           </div>
-        )}
-      </motion.div>
+        </motion.div>
+      </div>
     </div>
-  )
-}
+  );
+};
 
-export default Profile
+
+export default Profile;
+

@@ -1,159 +1,93 @@
 const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
-const morgan = require('morgan');
-const { createServer } = require('http');
-const { Server } = require('socket.io');
 const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', `.env.${process.env.NODE_ENV || 'development'}`) });
 
-const config = require('./config/config');
-const { connectDB } = require('./config/sequelize');
-const { authMiddleware } = require('./middlewares/authMiddleware');
+const sequelize = require('./config/database');
 const errorHandler = require('./middlewares/errorHandler');
-const rateLimiter = require('./middlewares/rateLimiter');
-
-// Import routes
-const authRoutes = require('./routes/authRoutes');
-const profileRoutes = require('./routes/profileRoutes');
-const matchRoutes = require('./routes/matchRoutes');
-const subscriptionRoutes = require('./routes/subscriptionRoutes');
-const adminRoutes = require('./routes/adminRoutes');
-const insightRoutes = require('./routes/insightRoutes');
-const notificationRoutes = require('./routes/notificationRoutes');
-const boostRoutes = require('./routes/boostRoutes');
-
-// Import socket handlers
-const socketHandler = require('./utils/socketHandler');
+const logger = require('./middlewares/logger');
+const routes = require('./routes');
+const initializeSocket = require('./socket/socketHandler');
 
 const app = express();
-const server = createServer(app);
+const server = http.createServer(app);
 
-// Socket.io setup
+// Initialize Socket.io
 const io = new Server(server, {
   cors: {
-    origin: config.socket.corsOrigin,
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     methods: ['GET', 'POST'],
     credentials: true
   }
 });
 
-// Connect to database
-connectDB();
+initializeSocket(io);
 
-// Security middleware
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "https:"],
-      scriptSrc: ["'self'", "https://checkout.razorpay.com"],
-      connectSrc: ["'self'", "https://api.razorpay.com"]
-    }
-  }
+// Middleware
+app.use(helmet());
+app.use(compression());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true
 }));
-
-// CORS configuration
-app.use(cors(config.cors));
-
-// Compression
-if (config.nodeEnv === 'production') {
-  app.use(compression());
-}
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Logging
-if (config.nodeEnv === 'development') {
-  app.use(morgan('dev'));
-} else {
-  app.use(morgan('combined'));
+if (process.env.NODE_ENV === 'development') {
+  app.use(logger);
 }
 
-// Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Rate limiting
-app.use('/api/auth', rateLimiter.authLimiter);
-app.use('/api', rateLimiter.generalLimiter);
-
-// Static files
+// Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Routes
+app.use('/api', routes);
 
 // Health check
 app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString(),
-    environment: config.nodeEnv 
-  });
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/profile', authMiddleware, profileRoutes);
-app.use('/api/matches', authMiddleware, matchRoutes);
-app.use('/api/subscription', authMiddleware, subscriptionRoutes);
-app.use('/api/admin', authMiddleware, adminRoutes);
-app.use('/api/insights', authMiddleware, insightRoutes);
-app.use('/api/notifications', authMiddleware, notificationRoutes);
-app.use('/api/boost', authMiddleware, boostRoutes);
-
-// Socket.io authentication middleware
-io.use((socket, next) => {
-  const token = socket.handshake.auth.token;
-  if (!token) {
-    return next(new Error('Authentication error'));
-  }
-  
-  try {
-    const jwt = require('jsonwebtoken');
-    const decoded = jwt.verify(token, config.jwt.secret);
-    socket.userId = decoded.id;
-    next();
-  } catch (err) {
-    next(new Error('Authentication error'));
-  }
-});
-
-// Socket.io connection handling
-io.on('connection', (socket) => {
-  console.log(`User ${socket.userId} connected`);
-  socketHandler(io, socket);
-  
-  socket.on('disconnect', () => {
-    console.log(`User ${socket.userId} disconnected`);
-  });
-});
-
-// Error handling middleware
+// Error handler
 app.use(errorHandler);
 
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({ 
-    success: false, 
-    message: 'Route not found' 
-  });
-});
+// Database connection and server start
+const PORT = process.env.PORT || 5000;
 
-const PORT = config.port;
+const startServer = async () => {
+  try {
+    await sequelize.authenticate();
+    console.log('Database connection established successfully.');
 
-server.listen(PORT, () => {
-  console.log(`🚀 Server running in ${config.nodeEnv} mode on port ${PORT}`);
-  console.log(`📱 Frontend URL: ${config.cors.origin}`);
-  console.log(`💾 Database: Connected`);
-  console.log(`🔐 JWT Secret: ${config.jwt.secret ? 'Configured' : 'Missing'}`);
-  console.log(`💳 Razorpay: ${config.razorpay.keyId ? 'Configured' : 'Missing'}`);
-});
+    // Sync models (use migrations in production)
+    if (process.env.NODE_ENV === 'development') {
+      await sequelize.sync({ alter: false });
+      console.log('Database models synced.');
+    }
+
+    server.listen(PORT, () => {
+      console.log(`Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
+      console.log(`Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
+    });
+  } catch (error) {
+    console.error('Unable to start server:', error);
+    process.exit(1);
+  }
+};
+
+startServer();
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully');
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM signal received: closing HTTP server');
   server.close(() => {
-    console.log('Process terminated');
+    console.log('HTTP server closed');
+    sequelize.close();
   });
 });
 
-module.exports = app;

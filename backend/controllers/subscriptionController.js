@@ -1,433 +1,235 @@
-const { validationResult } = require('express-validator');
-const Razorpay = require('razorpay');
-const crypto = require('crypto');
-const { User, Payment, ProfileBoost } = require('../models');
-const config = require('../config/config');
-const { sendSubscriptionExpiryEmail } = require('../utils/emailService');
+const { Subscription, User } = require('../models');
+const { createOrder, verifyPayment, getPlanDetails } = require('../utils/razorpay');
+const { sendSubscriptionReminder } = require('../utils/emailService');
 
-// Initialize Razorpay
-const razorpay = new Razorpay({
-  key_id: config.razorpay.keyId,
-  key_secret: config.razorpay.keySecret
-});
-
-// Create subscription order
-const createOrder = async (req, res) => {
+// @route   POST /api/subscription/create-order
+// @desc    Create Razorpay order
+// @access  Private
+exports.createOrder = async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
+    const { planType } = req.body;
+    const userId = req.user.id;
+
+    if (!['premium', 'elite'].includes(planType)) {
+      return res.status(400).json({ message: 'Invalid plan type' });
+    }
+
+    // Check if user already has active subscription
+    const activeSubscription = await Subscription.findOne({
+      where: {
+        userId,
+        status: 'active'
+      }
+    });
+
+    if (activeSubscription) {
+      return res.status(400).json({ 
+        message: 'You already have an active subscription',
+        subscription: activeSubscription
       });
     }
 
-    const { plan, duration } = req.body;
+    const order = await createOrder(planType, userId);
+
+    // Create subscription record
+    const subscription = await Subscription.create({
+      userId,
+      planType,
+      razorpayOrderId: order.orderId,
+      status: 'pending',
+      amount: order.amount / 100 // Convert from paise to rupees
+    });
+
+    res.json({
+      success: true,
+      order: {
+        id: order.orderId,
+        amount: order.amount,
+        currency: order.currency
+      },
+      subscription
+    });
+  } catch (error) {
+    console.error('Create order error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// @route   POST /api/subscription/verify-payment
+// @desc    Verify Razorpay payment
+// @access  Private
+exports.verifyPayment = async (req, res) => {
+  try {
+    const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
     const userId = req.user.id;
 
-    // Check if user already has active subscription
-    const user = await User.findByPk(userId);
-    if (user.isSubscriptionActive() && user.subscriptionType !== 'free') {
-      return res.status(400).json({
-        success: false,
-        message: 'You already have an active subscription'
-      });
+    // Verify payment signature
+    const isValid = verifyPayment(razorpayOrderId, razorpayPaymentId, razorpaySignature);
+
+    if (!isValid) {
+      return res.status(400).json({ message: 'Payment verification failed' });
+    }
+
+    // Find subscription
+    const subscription = await Subscription.findOne({
+      where: {
+        userId,
+        razorpayOrderId,
+        status: 'pending'
+      }
+    });
+
+    if (!subscription) {
+      return res.status(404).json({ message: 'Subscription not found' });
     }
 
     // Get plan details
-    const planDetails = config.subscriptionPlans[plan];
+    const planDetails = getPlanDetails(subscription.planType);
     if (!planDetails) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid plan selected'
-      });
+      return res.status(400).json({ message: 'Invalid plan type' });
     }
 
-    // Calculate amount (in paise)
-    const amount = planDetails.price * 100;
-    const orderId = `order_${Date.now()}_${userId}`;
+    // Update subscription
+    const now = new Date();
+    const endDate = new Date(now);
+    endDate.setDate(endDate.getDate() + planDetails.duration);
 
-    // Create Razorpay order
-    const order = await razorpay.orders.create({
-      amount: amount,
-      currency: 'INR',
-      receipt: orderId,
-      notes: {
-        userId,
-        plan,
-        duration
-      }
-    });
-
-    // Save payment record
-    await Payment.create({
-      userId,
-      orderId: order.id,
-      amount,
-      plan,
-      planDuration: duration,
-      status: 'pending'
-    });
+    subscription.razorpayPaymentId = razorpayPaymentId;
+    subscription.razorpaySignature = razorpaySignature;
+    subscription.status = 'active';
+    subscription.startDate = now;
+    subscription.endDate = endDate;
+    await subscription.save();
 
     res.json({
       success: true,
-      data: {
-        orderId: order.id,
-        amount: order.amount,
-        currency: order.currency,
-        key: config.razorpay.keyId
-      }
+      message: 'Payment verified and subscription activated',
+      subscription
     });
-
-  } catch (error) {
-    console.error('Create order error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while creating order'
-    });
-  }
-};
-
-// Verify payment and activate subscription
-const verifyPayment = async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
-
-    const { orderId, paymentId, signature } = req.body;
-    const userId = req.user.id;
-
-    // Verify signature
-    const generatedSignature = crypto
-      .createHmac('sha256', config.razorpay.keySecret)
-      .update(`${orderId}|${paymentId}`)
-      .digest('hex');
-
-    if (generatedSignature !== signature) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid payment signature'
-      });
-    }
-
-    // Get payment record
-    const payment = await Payment.findOne({
-      where: { orderId, userId, status: 'pending' }
-    });
-
-    if (!payment) {
-      return res.status(404).json({
-        success: false,
-        message: 'Payment record not found'
-      });
-    }
-
-    // Update payment record
-    await payment.update({
-      paymentId,
-      status: 'completed',
-      razorpaySignature: signature
-    });
-
-    // Activate subscription
-    const user = await User.findByPk(userId);
-    const subscriptionExpiry = new Date();
-    subscriptionExpiry.setDate(subscriptionExpiry.getDate() + payment.planDuration);
-
-    await user.update({
-      subscriptionType: payment.plan,
-      subscriptionExpiry
-    });
-
-    res.json({
-      success: true,
-      message: 'Payment verified and subscription activated successfully',
-      data: {
-        subscriptionType: payment.plan,
-        subscriptionExpiry,
-        payment: payment.toJSON()
-      }
-    });
-
   } catch (error) {
     console.error('Verify payment error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while verifying payment'
-    });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
-// Get subscription status
-const getSubscriptionStatus = async (req, res) => {
+// @route   GET /api/subscription/my-subscription
+// @desc    Get current user's subscription
+// @access  Private
+exports.getMySubscription = async (req, res) => {
   try {
     const userId = req.user.id;
-    const user = await User.findByPk(userId);
 
-    const isActive = user.isSubscriptionActive();
-    const daysLeft = user.subscriptionExpiry 
-      ? Math.ceil((user.subscriptionExpiry - new Date()) / (1000 * 60 * 60 * 24))
-      : 0;
-
-    res.json({
-      success: true,
-      data: {
-        subscriptionType: user.subscriptionType,
-        subscriptionExpiry: user.subscriptionExpiry,
-        isActive,
-        daysLeft: Math.max(0, daysLeft),
-        planDetails: config.subscriptionPlans[user.subscriptionType]
-      }
-    });
-
-  } catch (error) {
-    console.error('Get subscription status error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching subscription status'
-    });
-  }
-};
-
-// Get payment history
-const getPaymentHistory = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { page = 1, limit = 10 } = req.query;
-    const offset = (page - 1) * limit;
-
-    const payments = await Payment.findAndCountAll({
+    const subscription = await Subscription.findOne({
       where: { userId },
-      order: [['createdAt', 'DESC']],
-      limit: parseInt(limit),
-      offset: parseInt(offset)
+      order: [['createdAt', 'DESC']]
     });
 
-    res.json({
-      success: true,
-      data: {
-        payments: payments.rows,
-        pagination: {
-          currentPage: parseInt(page),
-          totalPages: Math.ceil(payments.count / limit),
-          totalCount: payments.count,
-          hasNext: offset + limit < payments.count,
-          hasPrev: page > 1
+    if (!subscription) {
+      return res.json({
+        success: true,
+        subscription: {
+          planType: 'free',
+          status: 'active'
         }
-      }
-    });
-
-  } catch (error) {
-    console.error('Get payment history error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching payment history'
-    });
-  }
-};
-
-// Cancel subscription
-const cancelSubscription = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const user = await User.findByPk(userId);
-
-    if (user.subscriptionType === 'free') {
-      return res.status(400).json({
-        success: false,
-        message: 'No active subscription to cancel'
       });
     }
 
-    // Set subscription expiry to current date (immediate cancellation)
-    await user.update({
-      subscriptionExpiry: new Date()
-    });
+    // Check if subscription expired
+    if (subscription.status === 'active' && subscription.endDate) {
+      const now = new Date();
+      if (now > subscription.endDate) {
+        subscription.status = 'expired';
+        await subscription.save();
+      }
+    }
 
     res.json({
       success: true,
-      message: 'Subscription cancelled successfully'
+      subscription
     });
-
   } catch (error) {
-    console.error('Cancel subscription error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while cancelling subscription'
-    });
+    console.error('Get subscription error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
-// Create profile boost order
-const createBoostOrder = async (req, res) => {
+// @route   GET /api/subscription/plans
+// @desc    Get available subscription plans
+// @access  Public
+exports.getPlans = async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
-
-    const { duration } = req.body;
-    const userId = req.user.id;
-
-    // Check if user already has active boost
-    const user = await User.findByPk(userId);
-    if (user.isBoostActive()) {
-      return res.status(400).json({
-        success: false,
-        message: 'You already have an active profile boost'
-      });
-    }
-
-    // Calculate amount based on duration (₹50 per hour)
-    const amount = duration * 50 * 100; // Convert to paise
-    const orderId = `boost_${Date.now()}_${userId}`;
-
-    // Create Razorpay order
-    const order = await razorpay.orders.create({
-      amount: amount,
-      currency: 'INR',
-      receipt: orderId,
-      notes: {
-        userId,
-        type: 'boost',
-        duration
+    const plans = {
+      free: {
+        name: 'Free',
+        price: 0,
+        duration: 'Unlimited',
+        features: ['basic_search', 'limited_likes', 'profile_viewing']
+      },
+      premium: {
+        name: 'Premium',
+        price: 2999,
+        duration: '30 days',
+        features: ['unlimited_likes', 'view_contacts', 'chat', 'who_liked_you', 'advanced_search']
+      },
+      elite: {
+        name: 'Elite',
+        price: 4999,
+        duration: '30 days',
+        features: [
+          'unlimited_likes',
+          'view_contacts',
+          'chat',
+          'who_liked_you',
+          'advanced_search',
+          'priority_support',
+          'verified_badge',
+          'profile_boost'
+        ]
       }
-    });
-
-    // Save payment record
-    await Payment.create({
-      userId,
-      orderId: order.id,
-      amount,
-      plan: 'boost',
-      planDuration: duration,
-      status: 'pending'
-    });
+    };
 
     res.json({
       success: true,
-      data: {
-        orderId: order.id,
-        amount: order.amount,
-        currency: order.currency,
-        key: config.razorpay.keyId,
-        duration
-      }
+      plans
     });
-
   } catch (error) {
-    console.error('Create boost order error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while creating boost order'
-    });
+    console.error('Get plans error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
-// Verify boost payment
-const verifyBoostPayment = async (req, res) => {
+// @route   POST /api/subscription/webhook
+// @desc    Razorpay webhook handler
+// @access  Public (should be secured with webhook secret in production)
+exports.webhook = async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
+    const { event, payload } = req.body;
+
+    if (event === 'payment.captured') {
+      const { order_id, payment_id } = payload.payment.entity;
+      
+      const subscription = await Subscription.findOne({
+        where: { razorpayOrderId: order_id }
       });
-    }
 
-    const { orderId, paymentId, signature } = req.body;
-    const userId = req.user.id;
+      if (subscription && subscription.status === 'pending') {
+        const planDetails = getPlanDetails(subscription.planType);
+        const now = new Date();
+        const endDate = new Date(now);
+        endDate.setDate(endDate.getDate() + planDetails.duration);
 
-    // Verify signature
-    const generatedSignature = crypto
-      .createHmac('sha256', config.razorpay.keySecret)
-      .update(`${orderId}|${paymentId}`)
-      .digest('hex');
-
-    if (generatedSignature !== signature) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid payment signature'
-      });
-    }
-
-    // Get payment record
-    const payment = await Payment.findOne({
-      where: { orderId, userId, status: 'pending', plan: 'boost' }
-    });
-
-    if (!payment) {
-      return res.status(404).json({
-        success: false,
-        message: 'Boost payment record not found'
-      });
-    }
-
-    // Update payment record
-    await payment.update({
-      paymentId,
-      status: 'completed',
-      razorpaySignature: signature
-    });
-
-    // Activate profile boost
-    const boostStartTime = new Date();
-    const boostEndTime = new Date();
-    boostEndTime.setHours(boostEndTime.getHours() + payment.planDuration);
-
-    await ProfileBoost.create({
-      userId,
-      boostStartTime,
-      boostEndTime,
-      duration: payment.planDuration,
-      isPaid: true,
-      paymentId: payment.id
-    });
-
-    // Update user's boost expiry
-    const user = await User.findByPk(userId);
-    await user.update({
-      boostExpiry: boostEndTime
-    });
-
-    res.json({
-      success: true,
-      message: 'Profile boost activated successfully',
-      data: {
-        boostStartTime,
-        boostEndTime,
-        duration: payment.planDuration,
-        payment: payment.toJSON()
+        subscription.razorpayPaymentId = payment_id;
+        subscription.status = 'active';
+        subscription.startDate = now;
+        subscription.endDate = endDate;
+        await subscription.save();
       }
-    });
+    }
 
+    res.json({ success: true });
   } catch (error) {
-    console.error('Verify boost payment error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while verifying boost payment'
-    });
+    console.error('Webhook error:', error);
+    res.status(500).json({ message: 'Webhook error', error: error.message });
   }
 };
 
-module.exports = {
-  createOrder,
-  verifyPayment,
-  getSubscriptionStatus,
-  getPaymentHistory,
-  cancelSubscription,
-  createBoostOrder,
-  verifyBoostPayment
-};

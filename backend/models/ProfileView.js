@@ -1,5 +1,5 @@
 const { DataTypes } = require('sequelize');
-const { sequelize } = require('../config/sequelize');
+const sequelize = require('../config/database');
 
 const ProfileView = sequelize.define('ProfileView', {
   id: {
@@ -22,22 +22,9 @@ const ProfileView = sequelize.define('ProfileView', {
       model: 'Users',
       key: 'id'
     }
-  },
-  isRevealed: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false
-  },
-  viewCount: {
-    type: DataTypes.INTEGER,
-    defaultValue: 1
   }
 }, {
-  timestamps: true,
   indexes: [
-    {
-      unique: true,
-      fields: ['viewerId', 'viewedUserId']
-    },
     {
       fields: ['viewedUserId', 'createdAt']
     }
@@ -45,3 +32,4 @@ const ProfileView = sequelize.define('ProfileView', {
 });
 
 module.exports = ProfileView;
+

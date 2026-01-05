@@ -1,497 +1,265 @@
-const { validationResult } = require('express-validator');
-const { User, Profile, Preference, ProfileView, Notification } = require('../models');
+const { Profile, User, ProfileView, Subscription } = require('../models');
 const { calculateCompatibility } = require('../utils/compatibility');
-const { sendMatchNotificationEmail } = require('../utils/emailService');
+const path = require('path');
 
-// Get my profile
-const getMyProfile = async (req, res) => {
+// Calculate profile completion percentage
+const calculateCompletion = (profile) => {
+  let completed = 0;
+  let total = 0;
+
+  // Basic Info (30%)
+  total += 30;
+  if (profile.firstName) completed += 5;
+  if (profile.lastName) completed += 5;
+  if (profile.gender) completed += 5;
+  if (profile.dateOfBirth) completed += 5;
+  if (profile.height) completed += 5;
+  if (profile.weight) completed += 5;
+
+  // Lifestyle (15%)
+  total += 15;
+  if (profile.skinTone) completed += 3;
+  if (profile.diet) completed += 4;
+  if (profile.smoking) completed += 4;
+  if (profile.drinking) completed += 4;
+
+  // Education & Profession (20%)
+  total += 20;
+  if (profile.education) completed += 5;
+  if (profile.degree) completed += 5;
+  if (profile.profession) completed += 5;
+  if (profile.income) completed += 5;
+
+  // Preferences (15%)
+  total += 15;
+  if (profile.preferredAgeMin && profile.preferredAgeMax) completed += 5;
+  if (profile.preferredHeightMin && profile.preferredHeightMax) completed += 5;
+  if (profile.preferredEducation) completed += 5;
+
+  // Photos (10%)
+  total += 10;
+  if (profile.profilePhoto) completed += 5;
+  if (profile.photos && profile.photos.length > 0) completed += 5;
+
+  // Personality (10%)
+  total += 10;
+  if (profile.personalityValues) completed += 5;
+  if (profile.familyPreferences) completed += 5;
+
+  // Enhanced Features (10%)
+  total += 10;
+  if (profile.interestTags && profile.interestTags.length > 0) completed += 3;
+  if (profile.profilePrompts && Object.keys(profile.profilePrompts).length > 0) completed += 3;
+  if (profile.spotifyPlaylist) completed += 2;
+  if (profile.languages && profile.languages.length > 0) completed += 2;
+
+  return Math.round((completed / total) * 100);
+};
+
+// @route   GET /api/profile/me
+// @desc    Get current user's profile
+// @access  Private
+exports.getMyProfile = async (req, res) => {
   try {
-    const user = await User.findByPk(req.user.id, {
-      include: [
-        { model: Profile, as: 'profile' },
-        { model: Preference, as: 'preference' }
-      ]
+    const profile = await Profile.findOne({
+      where: { userId: req.user.id },
+      include: [{ model: User, attributes: ['email', 'phone', 'status'] }]
     });
 
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
+    if (!profile) {
+      return res.status(404).json({ message: 'Profile not found' });
     }
 
     res.json({
       success: true,
-      data: {
-        user: user.toJSON(),
-        profile: user.profile?.toJSON(),
-        preference: user.preference?.toJSON()
-      }
+      profile
     });
-
   } catch (error) {
-    console.error('Get my profile error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching profile'
-    });
+    console.error('Get profile error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
-// Update profile
-const updateProfile = async (req, res) => {
+// @route   PUT /api/profile/me
+// @desc    Update user's profile
+// @access  Private
+exports.updateProfile = async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
-
-    const profileData = req.body;
     const profile = await Profile.findOne({ where: { userId: req.user.id } });
 
     if (!profile) {
-      return res.status(404).json({
-        success: false,
-        message: 'Profile not found'
-      });
+      return res.status(404).json({ message: 'Profile not found' });
     }
 
-    // Update profile
-    await profile.update(profileData);
+    // Update profile fields
+    const updateData = { ...req.body };
     
-    // Update completion status
-    await profile.updateCompletionStatus();
+    // Handle photo uploads
+    if (req.files) {
+      if (req.files.photos) {
+        const photoPaths = req.files.photos.map(file => 
+          `/uploads/photos/${file.filename}`
+        );
+        updateData.photos = [...(profile.photos || []), ...photoPaths];
+      }
+      if (req.files.profilePhoto && req.files.profilePhoto[0]) {
+        updateData.profilePhoto = `/uploads/photos/${req.files.profilePhoto[0].filename}`;
+      }
+    }
 
-    // Fetch updated profile
-    const updatedProfile = await Profile.findByPk(profile.id, {
-      include: [{ model: User, as: 'user' }]
-    });
+    await profile.update(updateData);
+    
+    // Recalculate completion percentage
+    profile.completionPercentage = calculateCompletion(profile);
+    await profile.save();
 
     res.json({
       success: true,
-      message: 'Profile updated successfully',
-      data: {
-        profile: updatedProfile.toJSON(),
-        completionPercentage: updatedProfile.profileCompletionPercentage
-      }
+      profile,
+      message: 'Profile updated successfully'
     });
-
   } catch (error) {
     console.error('Update profile error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while updating profile'
-    });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
-// Upload photo
-const uploadPhoto = async (req, res) => {
+// @route   GET /api/profile/:userId
+// @desc    Get user profile by ID (with privacy checks)
+// @access  Private
+exports.getProfile = async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: 'No photo uploaded'
-      });
-    }
-
-    const profile = await Profile.findOne({ where: { userId: req.user.id } });
-    if (!profile) {
-      return res.status(404).json({
-        success: false,
-        message: 'Profile not found'
-      });
-    }
-
-    const photos = profile.photos || [];
-    
-    // Check photo limit (max 5 photos)
-    if (photos.length >= 5) {
-      return res.status(400).json({
-        success: false,
-        message: 'Maximum 5 photos allowed'
-      });
-    }
-
-    // Add new photo
-    const photoUrl = `/uploads/profiles/${req.file.filename}`;
-    photos.push({
-      id: Date.now().toString(),
-      url: photoUrl,
-      isPrimary: photos.length === 0, // First photo is primary
-      uploadedAt: new Date().toISOString()
-    });
-
-    await profile.update({ photos });
-    await profile.updateCompletionStatus();
-
-    res.json({
-      success: true,
-      message: 'Photo uploaded successfully',
-      data: {
-        photo: {
-          id: photos[photos.length - 1].id,
-          url: photoUrl,
-          isPrimary: photos[photos.length - 1].isPrimary
-        },
-        totalPhotos: photos.length
-      }
-    });
-
-  } catch (error) {
-    console.error('Upload photo error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while uploading photo'
-    });
-  }
-};
-
-// Delete photo
-const deletePhoto = async (req, res) => {
-  try {
-    const { photoId } = req.params;
-    const profile = await Profile.findOne({ where: { userId: req.user.id } });
-
-    if (!profile) {
-      return res.status(404).json({
-        success: false,
-        message: 'Profile not found'
-      });
-    }
-
-    const photos = profile.photos || [];
-    const photoIndex = photos.findIndex(photo => photo.id === photoId);
-
-    if (photoIndex === -1) {
-      return res.status(404).json({
-        success: false,
-        message: 'Photo not found'
-      });
-    }
-
-    // Remove photo
-    photos.splice(photoIndex, 1);
-
-    // If deleted photo was primary, make first remaining photo primary
-    if (photos.length > 0 && !photos.some(photo => photo.isPrimary)) {
-      photos[0].isPrimary = true;
-    }
-
-    await profile.update({ photos });
-    await profile.updateCompletionStatus();
-
-    res.json({
-      success: true,
-      message: 'Photo deleted successfully',
-      data: {
-        totalPhotos: photos.length
-      }
-    });
-
-  } catch (error) {
-    console.error('Delete photo error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while deleting photo'
-    });
-  }
-};
-
-// Verify identity
-const verifyIdentity = async (req, res) => {
-  try {
-    const profile = await Profile.findOne({ where: { userId: req.user.id } });
-    if (!profile) {
-      return res.status(404).json({
-        success: false,
-        message: 'Profile not found'
-      });
-    }
-
-    const verificationDocs = {};
-    
-    // Process uploaded files
-    if (req.files) {
-      Object.keys(req.files).forEach(fieldName => {
-        const file = req.files[fieldName][0];
-        verificationDocs[fieldName] = {
-          filename: file.filename,
-          url: `/uploads/profiles/${file.filename}`,
-          uploadedAt: new Date().toISOString()
-        };
-      });
-    }
-
-    // Update verification status
-    await profile.update({
-      verificationStatus: 'pending',
-      verificationDocs: { ...profile.verificationDocs, ...verificationDocs }
-    });
-
-    // Create notification for admin
-    await Notification.create({
-      userId: req.user.id,
-      type: 'admin_message',
-      title: 'Identity Verification Request',
-      content: 'User has submitted identity verification documents',
-      data: { verificationDocs }
-    });
-
-    res.json({
-      success: true,
-      message: 'Identity verification documents uploaded successfully. Admin will review and approve.',
-      data: {
-        verificationStatus: 'pending',
-        documentsUploaded: Object.keys(verificationDocs)
-      }
-    });
-
-  } catch (error) {
-    console.error('Verify identity error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while uploading verification documents'
-    });
-  }
-};
-
-// Get profile completion status
-const getProfileCompletion = async (req, res) => {
-  try {
-    const profile = await Profile.findOne({ where: { userId: req.user.id } });
-    if (!profile) {
-      return res.status(404).json({
-        success: false,
-        message: 'Profile not found'
-      });
-    }
-
-    const completionPercentage = profile.calculateCompletionPercentage();
-    const isComplete = completionPercentage >= 80;
-
-    res.json({
-      success: true,
-      data: {
-        completionPercentage,
-        isComplete,
-        missingFields: getMissingFields(profile),
-        nextSteps: getNextSteps(profile)
-      }
-    });
-
-  } catch (error) {
-    console.error('Get profile completion error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching profile completion'
-    });
-  }
-};
-
-// Update preferences
-const updatePreferences = async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
-
-    const preferenceData = req.body;
-    let preference = await Preference.findOne({ where: { userId: req.user.id } });
-
-    if (!preference) {
-      preference = await Preference.create({
-        userId: req.user.id,
-        ...preferenceData
-      });
-    } else {
-      await preference.update(preferenceData);
-    }
-
-    res.json({
-      success: true,
-      message: 'Preferences updated successfully',
-      data: {
-        preference: preference.toJSON()
-      }
-    });
-
-  } catch (error) {
-    console.error('Update preferences error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while updating preferences'
-    });
-  }
-};
-
-// Get profile by ID (for viewing other profiles)
-const getProfileById = async (req, res) => {
-  try {
-    const { id } = req.params;
+    const { userId } = req.params;
     const viewerId = req.user.id;
 
-    // Don't allow viewing own profile through this endpoint
-    if (id === viewerId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Use /profile/me to view your own profile'
-      });
+    // Check if viewing own profile
+    if (userId === viewerId) {
+      return exports.getMyProfile(req, res);
     }
 
     const profile = await Profile.findOne({
-      where: { userId: id },
+      where: { userId, isActive: true },
       include: [
-        { 
-          model: User, 
-          as: 'user',
-          attributes: ['id', 'email', 'phone', 'subscriptionType', 'subscriptionExpiry']
+        {
+          model: User,
+          attributes: ['id', 'email', 'phone', 'status'],
+          include: [{ model: Subscription, where: { status: 'active' }, required: false }]
         }
       ]
     });
 
     if (!profile) {
-      return res.status(404).json({
-        success: false,
-        message: 'Profile not found'
-      });
+      return res.status(404).json({ message: 'Profile not found' });
     }
 
-    // Track profile view
-    await trackProfileView(viewerId, id);
+    // Check subscription for contact visibility
+    const viewerSubscription = await Subscription.findOne({
+      where: { userId: viewerId, status: 'active' }
+    });
 
-    // Get viewer's preferences for compatibility calculation
-    const viewerPreference = await Preference.findOne({ where: { userId: viewerId } });
-    const profilePreference = await Preference.findOne({ where: { userId: id } });
+    const hasPremiumAccess = viewerSubscription && 
+      ['premium', 'elite'].includes(viewerSubscription.planType);
+
+    // Record profile view
+    await ProfileView.create({
+      viewerId,
+      viewedUserId: userId
+    });
 
     // Calculate compatibility
-    const compatibility = calculateCompatibility(
-      profile,
-      profile, // This would be the viewer's profile
-      profilePreference,
-      viewerPreference
-    );
+    const viewerProfile = await Profile.findOne({ where: { userId: viewerId } });
+    let compatibilityScore = null;
+    if (viewerProfile) {
+      compatibilityScore = calculateCompatibility(viewerProfile, profile);
+    }
 
-    // Hide contact info if viewer is not premium
-    const viewer = await User.findByPk(viewerId);
-    const isPremium = viewer.subscriptionType !== 'free' && viewer.isSubscriptionActive();
-
+    // Prepare response with privacy checks
     const profileData = profile.toJSON();
-    if (!isPremium) {
-      profileData.user.phone = '******';
-      profileData.user.email = '******';
+    if (!hasPremiumAccess) {
+      profileData.User.phone = null;
+      profileData.User.email = null;
+      // Hide social media links from non-premium users
+      profileData.socialMediaLinks = null;
     }
 
     res.json({
       success: true,
-      data: {
-        profile: profileData,
-        compatibility,
-        canViewContact: isPremium,
-        isPremiumRequired: !isPremium
+      profile: profileData,
+      compatibilityScore,
+      hasPremiumAccess
+    });
+  } catch (error) {
+    console.error('Get profile error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// @route   GET /api/profile/me/stats
+// @desc    Get profile engagement stats
+// @access  Private
+exports.getProfileStats = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    // Profile views this week
+    const viewsThisWeek = await ProfileView.count({
+      where: {
+        viewedUserId: userId,
+        createdAt: { [require('sequelize').Op.gte]: weekAgo }
       }
     });
 
-  } catch (error) {
-    console.error('Get profile by ID error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching profile'
-    });
-  }
-};
-
-// Helper function to track profile views
-const trackProfileView = async (viewerId, viewedUserId) => {
-  try {
-    const existingView = await ProfileView.findOne({
-      where: { viewerId, viewedUserId }
+    // Total profile views
+    const totalViews = await ProfileView.count({
+      where: { viewedUserId: userId }
     });
 
-    if (existingView) {
-      await existingView.update({
-        viewCount: existingView.viewCount + 1,
-        updatedAt: new Date()
-      });
-    } else {
-      await ProfileView.create({
-        viewerId,
-        viewedUserId,
-        isRevealed: false
-      });
+    // Likes received
+    const { Match } = require('../models');
+    const likesReceived = await Match.count({
+      where: {
+        matchedUserId: userId,
+        action: 'like'
+      }
+    });
 
-      // Create notification for profile owner
-      await Notification.create({
-        userId: viewedUserId,
-        type: 'profile_view',
-        title: 'Profile Viewed',
-        content: 'Someone viewed your profile',
-        data: { viewerId }
-      });
-    }
+    // Likes by city
+    const likesByCity = await Match.findAll({
+      where: {
+        matchedUserId: userId,
+        action: 'like'
+      },
+      include: [{
+        model: User,
+        as: 'User',
+        include: [{
+          model: Profile,
+          attributes: ['city']
+        }]
+      }],
+      attributes: []
+    });
+
+    const cityCounts = {};
+    likesByCity.forEach(match => {
+      const city = match.User?.Profile?.city || 'Unknown';
+      cityCounts[city] = (cityCounts[city] || 0) + 1;
+    });
+
+    res.json({
+      success: true,
+      stats: {
+        viewsThisWeek,
+        totalViews,
+        likesReceived,
+        likesByCity: cityCounts
+      }
+    });
   } catch (error) {
-    console.error('Error tracking profile view:', error);
+    console.error('Get stats error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
-// Helper function to get missing fields
-const getMissingFields = (profile) => {
-  const requiredFields = [
-    { key: 'name', label: 'Name' },
-    { key: 'height', label: 'Height' },
-    { key: 'religion', label: 'Religion' },
-    { key: 'education', label: 'Education' },
-    { key: 'profession', label: 'Profession' },
-    { key: 'city', label: 'City' },
-    { key: 'bio', label: 'About You' },
-    { key: 'photos', label: 'Photos' }
-  ];
-
-  return requiredFields.filter(field => {
-    const value = profile[field.key];
-    return !value || (Array.isArray(value) && value.length === 0);
-  }).map(field => field.label);
-};
-
-// Helper function to get next steps
-const getNextSteps = (profile) => {
-  const steps = [];
-  
-  if (!profile.photos || profile.photos.length === 0) {
-    steps.push('Add your best photo to get 3x more matches');
-  } else if (profile.photos.length < 3) {
-    steps.push('Add more photos to showcase your personality');
-  }
-
-  if (!profile.bio) {
-    steps.push('Write a compelling bio to attract better matches');
-  }
-
-  if (profile.verificationStatus === 'pending') {
-    steps.push('Complete identity verification for trust badge');
-  } else if (profile.verificationStatus !== 'verified') {
-    steps.push('Verify your identity to get verified badge');
-  }
-
-  return steps;
-};
-
-module.exports = {
-  getMyProfile,
-  updateProfile,
-  uploadPhoto,
-  deletePhoto,
-  verifyIdentity,
-  getProfileById,
-  getProfileCompletion,
-  updatePreferences
-};

@@ -1,273 +1,261 @@
-const { Profile, Preference } = require('../models');
-
 /**
- * Calculate compatibility percentage between two profiles
- * @param {Object} profile1 - First user's profile
- * @param {Object} profile2 - Second user's profile
- * @param {Object} preference1 - First user's preferences
- * @param {Object} preference2 - Second user's preferences
- * @returns {number} Compatibility percentage (0-100)
+ * Sophisticated Compatibility Algorithm
+ * Calculates compatibility percentage between two profiles based on multiple weighted factors
  */
-const calculateCompatibility = (profile1, profile2, preference1, preference2) => {
-  let score = 0;
-  let totalWeight = 0;
 
-  // 1. Personality Answers Match (40% weight)
-  if (profile1.personalityAnswers && profile2.personalityAnswers) {
-    const personalityScore = calculatePersonalityMatch(
-      profile1.personalityAnswers, 
-      profile2.personalityAnswers
-    );
-    score += personalityScore * 0.4;
-    totalWeight += 0.4;
+const calculateAge = (dateOfBirth) => {
+  const today = new Date();
+  const birthDate = new Date(dateOfBirth);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
   }
-
-  // 2. Preferences Match (30% weight)
-  const preferencesScore1 = calculatePreferencesMatch(profile1, preference2);
-  const preferencesScore2 = calculatePreferencesMatch(profile2, preference1);
-  const avgPreferencesScore = (preferencesScore1 + preferencesScore2) / 2;
-  score += avgPreferencesScore * 0.3;
-  totalWeight += 0.3;
-
-  // 3. Lifestyle Compatibility (20% weight)
-  const lifestyleScore = calculateLifestyleMatch(profile1, profile2);
-  score += lifestyleScore * 0.2;
-  totalWeight += 0.2;
-
-  // 4. Location Proximity (10% weight)
-  const locationScore = calculateLocationMatch(profile1, profile2);
-  score += locationScore * 0.1;
-  totalWeight += 0.1;
-
-  // Normalize score based on available data
-  return totalWeight > 0 ? Math.round((score / totalWeight) * 100) : 0;
+  return age;
 };
 
-/**
- * Calculate personality match based on answers
- */
-const calculatePersonalityMatch = (answers1, answers2) => {
-  const questions = Object.keys(answers1);
-  let matches = 0;
-  let totalQuestions = 0;
+const calculateCompatibility = (profile1, profile2) => {
+  let totalScore = 0;
+  let maxScore = 0;
+  const weights = {
+    basic: 0.25,        // Age, height preferences
+    lifestyle: 0.20,    // Diet, smoking, drinking
+    education: 0.15,    // Education and profession
+    location: 0.15,     // City proximity
+    personality: 0.15,  // Values and preferences
+    family: 0.10        // Family preferences
+  };
 
-  questions.forEach(question => {
-    if (answers2[question]) {
-      totalQuestions++;
-      if (answers1[question] === answers2[question]) {
-        matches++;
-      }
-    }
-  });
-
-  return totalQuestions > 0 ? (matches / totalQuestions) * 100 : 0;
-};
-
-/**
- * Calculate how well a profile matches preferences
- */
-const calculatePreferencesMatch = (profile, preferences) => {
-  if (!preferences) return 50; // Neutral score if no preferences set
-
-  let score = 0;
-  let factors = 0;
-
-  // Age match
-  if (preferences.ageMin || preferences.ageMax) {
-    const age = profile.calculateAge();
-    if (preferences.isAgeMatch(age)) {
-      score += 100;
+  // 1. Basic Compatibility (Age, Height) - 25%
+  maxScore += weights.basic * 100;
+  let basicScore = 0;
+  
+  const age1 = calculateAge(profile1.dateOfBirth);
+  const age2 = calculateAge(profile2.dateOfBirth);
+  
+  // Age compatibility
+  if (profile1.preferredAgeMin && profile1.preferredAgeMax) {
+    if (age2 >= profile1.preferredAgeMin && age2 <= profile1.preferredAgeMax) {
+      basicScore += 50;
     } else {
-      score += 50; // Partial score for close matches
+      const diff = Math.min(
+        Math.abs(age2 - profile1.preferredAgeMin),
+        Math.abs(age2 - profile1.preferredAgeMax)
+      );
+      basicScore += Math.max(0, 50 - diff * 5); // Penalty for age difference
     }
-    factors++;
   }
-
-  // Height match
-  if (preferences.heightMin || preferences.heightMax) {
-    if (preferences.isHeightMatch(profile.height)) {
-      score += 100;
+  
+  if (profile2.preferredAgeMin && profile2.preferredAgeMax) {
+    if (age1 >= profile2.preferredAgeMin && age1 <= profile2.preferredAgeMax) {
+      basicScore += 50;
     } else {
-      score += 50;
+      const diff = Math.min(
+        Math.abs(age1 - profile2.preferredAgeMin),
+        Math.abs(age1 - profile2.preferredAgeMax)
+      );
+      basicScore += Math.max(0, 50 - diff * 5);
     }
-    factors++;
   }
-
-  // Religion match
-  if (preferences.religion && profile.religion) {
-    if (preferences.religion === profile.religion || preferences.religion === 'any') {
-      score += 100;
-    } else {
-      score += 0;
+  
+  // Height compatibility
+  if (profile1.height && profile2.height && profile1.preferredHeightMin && profile1.preferredHeightMax) {
+    if (profile2.height >= profile1.preferredHeightMin && profile2.height <= profile1.preferredHeightMax) {
+      basicScore += 25;
     }
-    factors++;
   }
-
-  // Education match
-  if (preferences.education && profile.education) {
-    if (preferences.education === profile.education || preferences.education === 'any') {
-      score += 100;
-    } else {
-      score += 50;
+  
+  if (profile2.height && profile1.height && profile2.preferredHeightMin && profile2.preferredHeightMax) {
+    if (profile1.height >= profile2.preferredHeightMin && profile1.height <= profile2.preferredHeightMax) {
+      basicScore += 25;
     }
-    factors++;
   }
+  
+  totalScore += (basicScore / 100) * weights.basic * 100;
 
-  // Income match
-  if (preferences.incomeMin || preferences.incomeMax) {
-    if (preferences.isIncomeMatch(profile.income)) {
-      score += 100;
-    } else {
-      score += 50;
-    }
-    factors++;
-  }
-
-  return factors > 0 ? score / factors : 50;
-};
-
-/**
- * Calculate lifestyle compatibility
- */
-const calculateLifestyleMatch = (profile1, profile2) => {
-  let score = 0;
-  let factors = 0;
-
+  // 2. Lifestyle Compatibility - 20%
+  maxScore += weights.lifestyle * 100;
+  let lifestyleScore = 0;
+  
   // Diet compatibility
   if (profile1.diet && profile2.diet) {
     if (profile1.diet === profile2.diet) {
-      score += 100;
+      lifestyleScore += 40;
     } else if (
-      (profile1.diet === 'vegetarian' && profile2.diet === 'jain') ||
-      (profile1.diet === 'jain' && profile2.diet === 'vegetarian')
+      (profile1.diet === 'vegetarian' && profile2.diet === 'vegan') ||
+      (profile1.diet === 'vegan' && profile2.diet === 'vegetarian')
     ) {
-      score += 80; // High compatibility
-    } else if (
-      (profile1.diet === 'vegetarian' && profile2.diet === 'non-vegetarian') ||
-      (profile1.diet === 'non-vegetarian' && profile2.diet === 'vegetarian')
-    ) {
-      score += 30; // Lower compatibility
-    } else {
-      score += 50; // Neutral
+      lifestyleScore += 30;
+    } else if (profile1.diet === 'jain' || profile2.diet === 'jain') {
+      lifestyleScore += 20; // Jain diet is more restrictive
     }
-    factors++;
   }
-
+  
   // Smoking compatibility
   if (profile1.smoking && profile2.smoking) {
     if (profile1.smoking === profile2.smoking) {
-      score += 100;
+      lifestyleScore += 30;
     } else if (
-      (profile1.smoking === 'no' && profile2.smoking === 'occasionally') ||
-      (profile1.smoking === 'occasionally' && profile2.smoking === 'no')
+      (profile1.smoking === 'never' && profile2.smoking !== 'never') ||
+      (profile2.smoking === 'never' && profile1.smoking !== 'never')
     ) {
-      score += 70;
+      lifestyleScore += 0; // Major incompatibility
     } else {
-      score += 20;
+      lifestyleScore += 15;
     }
-    factors++;
   }
-
+  
   // Drinking compatibility
   if (profile1.drinking && profile2.drinking) {
     if (profile1.drinking === profile2.drinking) {
-      score += 100;
+      lifestyleScore += 30;
     } else if (
-      (profile1.drinking === 'no' && profile2.drinking === 'occasionally') ||
-      (profile1.drinking === 'occasionally' && profile2.drinking === 'no')
+      (profile1.drinking === 'never' && profile2.drinking !== 'never') ||
+      (profile2.drinking === 'never' && profile1.drinking !== 'never')
     ) {
-      score += 70;
+      lifestyleScore += 5; // Some incompatibility
     } else {
-      score += 20;
+      lifestyleScore += 20;
     }
-    factors++;
   }
+  
+  totalScore += (lifestyleScore / 100) * weights.lifestyle * 100;
 
-  return factors > 0 ? score / factors : 50;
-};
+  // 3. Education & Profession - 15%
+  maxScore += weights.education * 100;
+  let educationScore = 0;
+  
+  if (profile1.education && profile2.education) {
+    if (profile1.education === profile2.education) {
+      educationScore += 50;
+    } else {
+      // Partial match based on education level
+      const eduLevels = {
+        'phd': 5,
+        'masters': 4,
+        'bachelors': 3,
+        'diploma': 2,
+        'high_school': 1
+      };
+      const level1 = eduLevels[profile1.education.toLowerCase()] || 0;
+      const level2 = eduLevels[profile2.education.toLowerCase()] || 0;
+      if (Math.abs(level1 - level2) <= 1) {
+        educationScore += 30;
+      }
+    }
+  }
+  
+  if (profile1.profession && profile2.profession) {
+    if (profile1.profession === profile2.profession) {
+      educationScore += 30;
+    } else if (profile1.preferredProfession && profile1.preferredProfession === profile2.profession) {
+      educationScore += 20;
+    }
+  }
+  
+  if (profile1.preferredEducation && profile2.education) {
+    if (profile1.preferredEducation === profile2.education) {
+      educationScore += 20;
+    }
+  }
+  
+  totalScore += (educationScore / 100) * weights.education * 100;
 
-/**
- * Calculate location proximity match
- */
-const calculateLocationMatch = (profile1, profile2) => {
-  if (!profile1.city || !profile2.city) return 50;
-
+  // 4. Location Compatibility - 15%
+  maxScore += weights.location * 100;
+  let locationScore = 0;
+  
   const tricityCities = ['Chandigarh', 'Mohali', 'Panchkula'];
-  const nearbyCities = ['Zirakpur', 'Kharar', 'Derabassi', 'Kalka', 'Ambala'];
-
-  // Same city
+  const isTricity1 = tricityCities.includes(profile1.city);
+  const isTricity2 = tricityCities.includes(profile2.city);
+  
   if (profile1.city === profile2.city) {
-    return 100;
-  }
-
-  // Both in Tricity
-  if (tricityCities.includes(profile1.city) && tricityCities.includes(profile2.city)) {
-    return 90;
-  }
-
-  // One in Tricity, one nearby
-  if (
-    (tricityCities.includes(profile1.city) && nearbyCities.includes(profile2.city)) ||
-    (nearbyCities.includes(profile1.city) && tricityCities.includes(profile2.city))
+    locationScore = 100; // Same city
+  } else if (isTricity1 && isTricity2) {
+    locationScore = 80; // Both in Tricity
+  } else if (
+    profile1.preferredCity && 
+    profile1.preferredCity.includes(profile2.city)
   ) {
-    return 80;
+    locationScore = 70; // Matches preferred city
+  } else if (
+    profile2.preferredCity && 
+    profile2.preferredCity.includes(profile1.city)
+  ) {
+    locationScore = 70;
+  } else {
+    locationScore = 30; // Different cities
   }
+  
+  totalScore += (locationScore / 100) * weights.location * 100;
 
-  // Both nearby
-  if (nearbyCities.includes(profile1.city) && nearbyCities.includes(profile2.city)) {
-    return 70;
-  }
-
-  // Different regions
-  return 30;
-};
-
-/**
- * Calculate Kundli compatibility (simplified version)
- */
-const calculateKundliCompatibility = (kundli1, kundli2) => {
-  if (!kundli1 || !kundli2) return 50;
-
-  let score = 0;
-  let factors = 0;
-
-  // Rashi (Moon sign) compatibility
-  if (kundli1.rashi && kundli2.rashi) {
-    const compatibleRashis = {
-      'Aries': ['Leo', 'Sagittarius', 'Gemini', 'Aquarius'],
-      'Taurus': ['Virgo', 'Capricorn', 'Cancer', 'Pisces'],
-      'Gemini': ['Libra', 'Aquarius', 'Aries', 'Leo'],
-      'Cancer': ['Scorpio', 'Pisces', 'Taurus', 'Virgo'],
-      'Leo': ['Sagittarius', 'Aries', 'Gemini', 'Libra'],
-      'Virgo': ['Capricorn', 'Taurus', 'Cancer', 'Scorpio'],
-      'Libra': ['Aquarius', 'Gemini', 'Leo', 'Sagittarius'],
-      'Scorpio': ['Pisces', 'Cancer', 'Virgo', 'Capricorn'],
-      'Sagittarius': ['Aries', 'Leo', 'Libra', 'Aquarius'],
-      'Capricorn': ['Taurus', 'Virgo', 'Scorpio', 'Pisces'],
-      'Aquarius': ['Gemini', 'Libra', 'Sagittarius', 'Aries'],
-      'Pisces': ['Cancer', 'Scorpio', 'Capricorn', 'Taurus']
-    };
-
-    if (compatibleRashis[kundli1.rashi]?.includes(kundli2.rashi)) {
-      score += 100;
-    } else {
-      score += 50;
+  // 5. Personality & Values - 15%
+  maxScore += weights.personality * 100;
+  let personalityScore = 0;
+  
+  if (profile1.personalityValues && profile2.personalityValues) {
+    const values1 = profile1.personalityValues;
+    const values2 = profile2.personalityValues;
+    let matchingValues = 0;
+    let totalValues = 0;
+    
+    for (const key in values1) {
+      if (values2.hasOwnProperty(key)) {
+        totalValues++;
+        if (values1[key] === values2[key]) {
+          matchingValues++;
+        }
+      }
     }
-    factors++;
+    
+    if (totalValues > 0) {
+      personalityScore = (matchingValues / totalValues) * 100;
+    }
   }
-
-  // Nakshatra compatibility (simplified)
-  if (kundli1.nakshatra && kundli2.nakshatra) {
-    // This would require a more complex calculation
-    // For now, return a random score between 60-90
-    score += 75;
-    factors++;
+  
+  // Lifestyle preferences matching
+  if (profile1.lifestylePreferences && profile2.lifestylePreferences) {
+    const hobbies1 = profile1.lifestylePreferences.hobbies || [];
+    const hobbies2 = profile2.lifestylePreferences.hobbies || [];
+    
+    if (hobbies1.length > 0 && hobbies2.length > 0) {
+      const commonHobbies = hobbies1.filter(h => hobbies2.includes(h));
+      const hobbyScore = (commonHobbies.length / Math.max(hobbies1.length, hobbies2.length)) * 30;
+      personalityScore += hobbyScore;
+    }
   }
+  
+  totalScore += (personalityScore / 100) * weights.personality * 100;
 
-  return factors > 0 ? score / factors : 50;
+  // 6. Family Preferences - 10%
+  maxScore += weights.family * 100;
+  let familyScore = 0;
+  
+  if (profile1.familyPreferences && profile2.familyPreferences) {
+    const fam1 = profile1.familyPreferences;
+    const fam2 = profile2.familyPreferences;
+    
+    // Joint family preference
+    if (fam1.jointFamily !== undefined && fam2.jointFamily !== undefined) {
+      if (fam1.jointFamily === fam2.jointFamily) {
+        familyScore += 50;
+      }
+    }
+    
+    // Children preference
+    if (fam1.children !== undefined && fam2.children !== undefined) {
+      const diff = Math.abs(fam1.children - fam2.children);
+      familyScore += Math.max(0, 50 - diff * 10);
+    }
+  }
+  
+  totalScore += (familyScore / 100) * weights.family * 100;
+
+  // Calculate final percentage
+  const compatibilityPercentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
+  
+  return Math.min(100, Math.max(0, compatibilityPercentage));
 };
 
-module.exports = {
-  calculateCompatibility,
-  calculateKundliCompatibility
-};
+module.exports = { calculateCompatibility, calculateAge };
+

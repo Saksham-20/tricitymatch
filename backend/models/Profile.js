@@ -1,5 +1,5 @@
 const { DataTypes } = require('sequelize');
-const { sequelize } = require('../config/sequelize');
+const sequelize = require('../config/database');
 
 const Profile = sequelize.define('Profile', {
   id: {
@@ -10,56 +10,50 @@ const Profile = sequelize.define('Profile', {
   userId: {
     type: DataTypes.UUID,
     allowNull: false,
+    unique: true,
     references: {
       model: 'Users',
       key: 'id'
     }
   },
-  name: {
+  // Basic Info
+  firstName: {
     type: DataTypes.STRING,
-    allowNull: false,
-    validate: {
-      len: [2, 50]
-    }
+    allowNull: false
+  },
+  lastName: {
+    type: DataTypes.STRING,
+    allowNull: false
   },
   gender: {
     type: DataTypes.ENUM('male', 'female', 'other'),
     allowNull: false
   },
-  dob: {
-    type: DataTypes.DATEONLY,
+  dateOfBirth: {
+    type: DataTypes.DATE,
     allowNull: false
   },
   height: {
     type: DataTypes.INTEGER, // in cm
-    allowNull: true,
-    validate: {
-      min: 120,
-      max: 220
-    }
+    allowNull: true
   },
   weight: {
     type: DataTypes.INTEGER, // in kg
-    allowNull: true,
-    validate: {
-      min: 30,
-      max: 200
-    }
-  },
-  religion: {
-    type: DataTypes.STRING,
     allowNull: true
   },
-  caste: {
+  // Location
+  city: {
     type: DataTypes.STRING,
-    allowNull: true
+    allowNull: false,
+    defaultValue: 'Chandigarh'
   },
-  community: {
+  state: {
     type: DataTypes.STRING,
-    allowNull: true
+    defaultValue: 'Punjab'
   },
+  // Lifestyle
   skinTone: {
-    type: DataTypes.ENUM('fair', 'wheatish', 'dark', 'very fair'),
+    type: DataTypes.ENUM('fair', 'wheatish', 'dark'),
     allowNull: true
   },
   diet: {
@@ -67,14 +61,19 @@ const Profile = sequelize.define('Profile', {
     allowNull: true
   },
   smoking: {
-    type: DataTypes.ENUM('yes', 'no', 'occasionally'),
+    type: DataTypes.ENUM('never', 'occasionally', 'regularly'),
     allowNull: true
   },
   drinking: {
-    type: DataTypes.ENUM('yes', 'no', 'occasionally'),
+    type: DataTypes.ENUM('never', 'occasionally', 'regularly'),
     allowNull: true
   },
+  // Education & Profession
   education: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  degree: {
     type: DataTypes.STRING,
     allowNull: true
   },
@@ -84,101 +83,115 @@ const Profile = sequelize.define('Profile', {
   },
   income: {
     type: DataTypes.INTEGER,
-    allowNull: true,
-    validate: {
-      min: 0
-    }
+    allowNull: true
   },
-  city: {
+  // Preferences
+  preferredAgeMin: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  preferredAgeMax: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  preferredHeightMin: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  preferredHeightMax: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  preferredEducation: {
     type: DataTypes.STRING,
     allowNull: true
+  },
+  preferredProfession: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  preferredCity: {
+    type: DataTypes.ARRAY(DataTypes.STRING),
+    defaultValue: ['Chandigarh', 'Mohali', 'Panchkula']
+  },
+  // Personality Questions (for compatibility)
+  personalityValues: {
+    type: DataTypes.JSONB,
+    allowNull: true // e.g., { familyOriented: true, careerFocused: false, traditional: true }
+  },
+  familyPreferences: {
+    type: DataTypes.JSONB,
+    allowNull: true // e.g., { jointFamily: true, children: 2 }
+  },
+  lifestylePreferences: {
+    type: DataTypes.JSONB,
+    allowNull: true // e.g., { travel: true, hobbies: ['reading', 'music'] }
+  },
+  // Photos
+  photos: {
+    type: DataTypes.ARRAY(DataTypes.STRING),
+    defaultValue: []
+  },
+  profilePhoto: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  // Profile Status
+  completionPercentage: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  isActive: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
   },
   bio: {
     type: DataTypes.TEXT,
-    allowNull: true,
-    validate: {
-      len: [0, 500]
-    }
-  },
-  photos: {
-    type: DataTypes.JSON,
-    defaultValue: []
-  },
-  personalityAnswers: {
-    type: DataTypes.JSON,
-    defaultValue: {}
-  },
-  verificationStatus: {
-    type: DataTypes.ENUM('pending', 'verified', 'rejected'),
-    defaultValue: 'pending'
-  },
-  verificationDocs: {
-    type: DataTypes.JSON,
-    defaultValue: {}
-  },
-  birthTime: {
-    type: DataTypes.TIME,
     allowNull: true
   },
-  birthPlace: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  kundliData: {
-    type: DataTypes.JSON,
-    defaultValue: {}
-  },
-  isProfileComplete: {
+  // Privacy Settings
+  showPhone: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
   },
-  profileCompletionPercentage: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0,
-    validate: {
-      min: 0,
-      max: 100
-    }
+  showEmail: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  // Enhanced Features
+  interestTags: {
+    type: DataTypes.ARRAY(DataTypes.STRING),
+    defaultValue: []
+  },
+  profilePrompts: {
+    type: DataTypes.JSONB,
+    allowNull: true // Hinge-style prompts: { prompt1: "I'm looking for...", answer1: "...", ... }
+  },
+  spotifyPlaylist: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  socialMediaLinks: {
+    type: DataTypes.JSONB,
+    allowNull: true // { instagram: "url", linkedin: "url", facebook: "url", twitter: "url" }
+  },
+  personalityType: {
+    type: DataTypes.STRING,
+    allowNull: true // MBTI, Enneagram, etc.
+  },
+  languages: {
+    type: DataTypes.ARRAY(DataTypes.STRING),
+    defaultValue: []
+  },
+  incognitoMode: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  photoBlurUntilMatch: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   }
-}, {
-  timestamps: true
 });
 
-// Instance methods
-Profile.prototype.calculateAge = function() {
-  const today = new Date();
-  const birthDate = new Date(this.dob);
-  let age = today.getFullYear() - birthDate.getFullYear();
-  const monthDiff = today.getMonth() - birthDate.getMonth();
-  
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-    age--;
-  }
-  
-  return age;
-};
-
-Profile.prototype.calculateCompletionPercentage = function() {
-  const fields = [
-    'name', 'gender', 'dob', 'height', 'religion', 'education', 
-    'profession', 'city', 'bio', 'photos'
-  ];
-  
-  let completedFields = 0;
-  fields.forEach(field => {
-    if (this[field] && (Array.isArray(this[field]) ? this[field].length > 0 : true)) {
-      completedFields++;
-    }
-  });
-  
-  return Math.round((completedFields / fields.length) * 100);
-};
-
-Profile.prototype.updateCompletionStatus = function() {
-  const percentage = this.calculateCompletionPercentage();
-  this.profileCompletionPercentage = percentage;
-  this.isProfileComplete = percentage >= 80;
-  return this.save();
-};
-
 module.exports = Profile;
+
