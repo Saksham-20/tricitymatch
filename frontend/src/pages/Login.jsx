@@ -50,29 +50,36 @@ const Login = () => {
     if (!validate()) return;
     
     setLoading(true);
-    const result = await login(formData.email, formData.password);
-    setLoading(false);
-    
-    if (result.success) {
-      navigate('/dashboard');
+    try {
+      const result = await login(formData.email, formData.password);
+      setLoading(false);
+      
+      if (result.success) {
+        // Small delay to ensure state is updated
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 100);
+      }
+    } catch (error) {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-neutral-50">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="max-w-md w-full space-y-8"
       >
         <div className="text-center">
-          <h2 className="text-3xl md:text-4xl font-semibold text-gray-900 mb-2">Welcome Back</h2>
-          <p className="text-gray-600">Sign in to your TricityMatch account</p>
+          <h2 className="text-3xl md:text-4xl font-semibold text-neutral-800 mb-2">Welcome Back</h2>
+          <p className="text-neutral-600">Sign in to your TricityMatch account</p>
         </div>
 
         <form className="card space-y-6" onSubmit={handleSubmit}>
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="email" className="block text-sm font-medium text-neutral-700 mb-2">
               Email Address
             </label>
             <input
@@ -92,7 +99,7 @@ const Login = () => {
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-900 mb-2">
+            <label htmlFor="password" className="block text-sm font-medium text-neutral-700 mb-2">
               Password
             </label>
             <input
@@ -119,13 +126,13 @@ const Login = () => {
                 type="checkbox"
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+              <label htmlFor="remember-me" className="ml-2 block text-sm text-neutral-700">
                 Remember me
               </label>
             </div>
 
             <div className="text-sm">
-              <Link to="#" className="font-medium text-blue-600 hover:text-blue-700">
+              <Link to="#" className="font-medium text-primary hover:text-primary-600">
                 Forgot password?
               </Link>
             </div>
@@ -140,9 +147,9 @@ const Login = () => {
           </button>
 
           <div className="text-center">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-neutral-600">
               Don't have an account?{' '}
-              <Link to="/signup" className="font-medium text-blue-600 hover:text-blue-700">
+              <Link to="/signup" className="font-medium text-primary hover:text-primary-600">
                 Create one
               </Link>
             </p>

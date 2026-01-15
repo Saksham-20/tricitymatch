@@ -129,6 +129,36 @@ exports.searchProfiles = async (req, res) => {
         });
 
         const profileData = profile.toJSON();
+        
+        // Debug: Log profile structure
+        if (!profileData.userId) {
+          console.warn('Profile missing userId:', {
+            profileId: profileData.id,
+            hasUser: !!profileData.User,
+            userData: profileData.User
+          });
+        }
+        
+        // Ensure userId is always at the top level (in case it's nested in User object)
+        if (!profileData.userId && profileData.User?.id) {
+          profileData.userId = profileData.User.id;
+        }
+        
+        // If still no userId, try to get it from the profile instance
+        if (!profileData.userId && profile.userId) {
+          profileData.userId = profile.userId;
+        }
+        
+        // Remove nested User object if present (we only need userId)
+        if (profileData.User) {
+          delete profileData.User;
+        }
+        
+        // Ensure userId exists - this is critical for frontend
+        if (!profileData.userId) {
+          console.error('Profile still missing userId after normalization:', profileData);
+        }
+        
         profileData.compatibilityScore = compatibilityScore;
         profileData.matchStatus = match ? match.action : null;
         profileData.isMutual = match ? match.isMutual : false;
@@ -215,10 +245,24 @@ exports.getSuggestions = async (req, res) => {
     // Return top matches
     const topMatches = profilesWithCompatibility
       .slice(0, limit)
-      .map(item => ({
-        ...item.profile.toJSON(),
-        compatibilityScore: item.compatibilityScore
-      }));
+      .map(item => {
+        const profileData = item.profile.toJSON();
+        
+        // Ensure userId is always at the top level (in case it's nested in User object)
+        if (!profileData.userId && profileData.User?.id) {
+          profileData.userId = profileData.User.id;
+        }
+        
+        // Remove nested User object if present (we only need userId)
+        if (profileData.User) {
+          delete profileData.User;
+        }
+        
+        return {
+          ...profileData,
+          compatibilityScore: item.compatibilityScore
+        };
+      });
 
     res.json({
       success: true,

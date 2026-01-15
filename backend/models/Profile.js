@@ -27,11 +27,12 @@ const Profile = sequelize.define('Profile', {
   },
   gender: {
     type: DataTypes.ENUM('male', 'female', 'other'),
-    allowNull: false
+    allowNull: true,
+    defaultValue: 'other'
   },
   dateOfBirth: {
     type: DataTypes.DATE,
-    allowNull: false
+    allowNull: true
   },
   height: {
     type: DataTypes.INTEGER, // in cm

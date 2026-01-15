@@ -1,362 +1,924 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { FiSearch, FiHeart, FiShield, FiUsers, FiCheckCircle, FiMail, FiUser, FiFileText, FiMessageCircle } from 'react-icons/fi';
+import { Link } from 'react-router-dom';
+import { FiSearch, FiHeart, FiUsers, FiBookmark, FiMessageCircle, FiEye, FiShield, FiCheckCircle, FiArrowRight, FiStar } from 'react-icons/fi';
 
 const Home = () => {
-  const navigate = useNavigate();
-  const [searchForm, setSearchForm] = useState({
-    lookingFor: '',
-    maritalStatus: '',
-    location: ''
-  });
+  const [hoveredProfile, setHoveredProfile] = useState(null);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    navigate('/search', { state: searchForm });
-  };
-
-  const statistics = [
-    { icon: <FiUsers className="w-8 h-8" />, number: '4,512', label: "Total groom & bride's biodatas" },
-    { icon: <FiUser className="w-8 h-8" />, number: '1,881', label: "Total groom's biodatas" },
-    { icon: <FiUser className="w-8 h-8" />, number: '2,629', label: "Total bride's biodatas" },
-    { icon: <FiHeart className="w-8 h-8" />, number: '1,190+', label: "Total Successful Matches" },
+  // Mock featured profiles data
+  const featuredProfiles = [
+    { id: 1, name: 'Rahul Gupta', age: 31, location: 'Mumbai, Maharashtra', education: 'B.Tech from IIT Delhi', match: 97 },
+    { id: 2, name: 'Priya Sharma', age: 28, location: 'Delhi, NCR', education: 'MBA from IIM Ahmedabad', match: 95 },
+    { id: 3, name: 'Arjun Patel', age: 32, location: 'Bangalore, Karnataka', education: 'M.Tech from IIT Bombay', match: 93 },
+    { id: 4, name: 'Anjali Nair', age: 29, location: 'Chennai, Tamil Nadu', education: 'B.Tech from NIT Trichy', match: 94 },
+    { id: 5, name: 'Vikram Singh', age: 30, location: 'Pune, Maharashtra', education: 'CA from ICAI', match: 92 },
+    { id: 6, name: 'Meera Reddy', age: 27, location: 'Hyderabad, Telangana', education: 'MBBS from AIIMS', match: 96 },
+    { id: 7, name: 'Rohan Kapoor', age: 33, location: 'Chandigarh, Punjab', education: 'B.Tech from IIT Kanpur', match: 91 },
+    { id: 8, name: 'Kavya Menon', age: 26, location: 'Kochi, Kerala', education: 'M.Sc from IISc Bangalore', match: 98 },
+    { id: 9, name: 'Aman Verma', age: 31, location: 'Jaipur, Rajasthan', education: 'B.Tech from IIT Roorkee', match: 90 },
+    { id: 10, name: 'Sneha Desai', age: 28, location: 'Ahmedabad, Gujarat', education: 'B.Tech from NIT Surat', match: 94 },
+    { id: 11, name: 'Aditya Kumar', age: 29, location: 'Lucknow, Uttar Pradesh', education: 'MBA from XLRI', match: 93 },
+    { id: 12, name: 'Divya Iyer', age: 27, location: 'Coimbatore, Tamil Nadu', education: 'B.Tech from PSG Tech', match: 95 },
+    { id: 13, name: 'Rohit Malhotra', age: 32, location: 'Gurgaon, Haryana', education: 'B.Tech from IIT Delhi', match: 92 },
+    { id: 14, name: 'Pooja Shah', age: 26, location: 'Surat, Gujarat', education: 'CA from ICAI', match: 96 },
+    { id: 15, name: 'Karan Mehta', age: 30, location: 'Indore, Madhya Pradesh', education: 'B.Tech from IIT Indore', match: 91 },
   ];
 
-  const howItWorks = [
+  const testimonials = [
     {
-      step: 1,
-      title: 'Create Biodata',
-      description: 'You can easily create a biodata on TricityMatch completely free of cost within some steps.',
-      icon: <FiFileText className="w-6 h-6" />
+      names: 'Priya & Arjun',
+      location: 'Mumbai, Maharashtra',
+      date: 'June 2024',
+      quote: 'We found our perfect match through this wonderful platform. The journey from strangers to soulmates has been magical.',
+      image: '👫'
     },
     {
-      step: 2,
-      title: 'Search Biodata',
-      description: 'You can easily search biodata using many filters including age, profession, educational qualification, and more.',
-      icon: <FiSearch className="w-6 h-6" />
+      names: 'Anjali & Rohan',
+      location: 'Delhi, NCR',
+      date: 'August 2024',
+      quote: 'TricityMatch made it so easy to connect with like-minded people. The verification process gave us confidence!',
+      image: '💑'
     },
     {
-      step: 3,
-      title: 'Contact with Guardians',
-      description: 'If someone likes your biodata or you like someone\'s biodata, you can directly contact their parents.',
-      icon: <FiMessageCircle className="w-6 h-6" />
-    },
-    {
-      step: 4,
-      title: 'Get Married',
-      description: 'If you like the biodata and if you think conversation is well, do your own inquiry & get married according to your traditions.',
-      icon: <FiHeart className="w-6 h-6" />
+      names: 'Meera & Vikram',
+      location: 'Bangalore, Karnataka',
+      date: 'September 2024',
+      quote: 'From the first message to our engagement, everything felt right. Family values and compatibility made all the difference.',
+      image: '💒'
     },
   ];
 
-  const keyFeatures = [
-    'Easily can search biodata',
-    'Can find biodata from specific area',
-    'Filters for age, education & preferences',
-    'Reasonable pricing package & refundable',
-    'Quick support responses & contacts',
+  const features = [
+    { icon: <FiShield />, title: 'Verified Profiles', desc: 'Identity verification ensures trust' },
+    { icon: <FiHeart />, title: 'Smart Matching', desc: 'AI-powered compatibility algorithm' },
+    { icon: <FiUsers />, title: 'Tricity Focus', desc: 'Connect with people from your region' },
+    { icon: <FiCheckCircle />, title: 'Family Values', desc: 'Respectful, traditional approach' },
   ];
 
   return (
-    <div className="min-h-screen bg-soft-peach">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-soft-peach via-soft-pink to-soft-blue py-16 md:py-24">
-        {/* Decorative floral elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-10 w-32 h-32 bg-primary-200 rounded-full opacity-20 blur-3xl"></div>
-          <div className="absolute bottom-20 right-10 w-40 h-40 bg-peach-300 rounded-full opacity-20 blur-3xl"></div>
-          <div className="absolute top-1/2 left-1/4 w-24 h-24 bg-soft-purple rounded-full opacity-30 blur-2xl"></div>
+    <div style={{ minHeight: '100vh', backgroundColor: '#FAFAFA', paddingTop: '80px' }}>
+      {/* Unique Split Hero Section */}
+      <section style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        minHeight: '600px',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        {/* Left Side - Text Content */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          padding: '80px 60px',
+          background: 'linear-gradient(135deg, #FAFAFA 0%, #FFF7E6 100%)',
+          position: 'relative',
+          zIndex: 2
+        }}>
+          <div style={{
+            position: 'absolute',
+            top: '-100px',
+            right: '-100px',
+            width: '400px',
+            height: '400px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(194, 24, 91, 0.08) 0%, transparent 70%)',
+            zIndex: 1
+          }}></div>
+          
+          <div style={{ position: 'relative', zIndex: 3 }}>
+            <div style={{
+              display: 'inline-block',
+              padding: '8px 16px',
+              backgroundColor: '#fce4ec',
+              borderRadius: '20px',
+              marginBottom: '24px',
+              fontSize: '14px',
+              fontWeight: '600',
+              color: '#C2185B'
+            }}>
+              India's Trusted Matrimonial Platform
+            </div>
+            
+            <h1 style={{
+              fontSize: 'clamp(2.5rem, 5vw, 4rem)',
+              fontWeight: '800',
+              color: '#1F2937',
+              marginBottom: '24px',
+              lineHeight: '1.1',
+              letterSpacing: '-0.02em'
+            }}>
+              From Trust to
+              <span style={{ 
+                display: 'block',
+                background: 'linear-gradient(135deg, #C2185B 0%, #F59E0B 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}>Love</span>
+            </h1>
+            
+            <p style={{
+              fontSize: '20px',
+              color: '#6B7280',
+              marginBottom: '40px',
+              lineHeight: '1.6',
+              maxWidth: '500px'
+            }}>
+              Mindful community, genuine connection. Find your life partner through verified, trusted profiles.
+            </p>
+            
+            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+              <Link
+                to="/search"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  backgroundColor: '#C2185B',
+                  color: 'white',
+                  padding: '16px 32px',
+                  borderRadius: '12px',
+                  fontWeight: '600',
+                  fontSize: '16px',
+                  textDecoration: 'none',
+                  boxShadow: '0 10px 25px -5px rgba(194, 24, 91, 0.3)',
+                  transition: 'all 0.3s'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 15px 35px -5px rgba(194, 24, 91, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 10px 25px -5px rgba(194, 24, 91, 0.3)';
+                }}
+              >
+                Find Your Match
+                <FiArrowRight style={{ width: '18px', height: '18px' }} />
+              </Link>
+              
+            <Link
+              to="/signup"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  backgroundColor: 'transparent',
+                  color: '#C2185B',
+                  padding: '16px 32px',
+                  borderRadius: '12px',
+                  fontWeight: '600',
+                  fontSize: '16px',
+                  textDecoration: 'none',
+                  border: '2px solid #C2185B',
+                  transition: 'all 0.3s'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = '#fce4ec';
+                  e.target.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'transparent';
+                  e.target.style.transform = 'translateY(0)';
+                }}
+              >
+                Create Profile
+            </Link>
+            </div>
+          </div>
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            {/* Left Side - Hero Content */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6 }}
+        {/* Right Side - Visual Element */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '80px 60px',
+          background: 'linear-gradient(135deg, #fce4ec 0%, #FFF7E6 100%)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '500px',
+            height: '500px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(245, 158, 11, 0.15) 0%, transparent 70%)',
+            animation: 'pulse 3s ease-in-out infinite'
+          }}></div>
+          
+          <div style={{
+            position: 'relative',
+            zIndex: 2,
+            textAlign: 'center'
+          }}>
+            <div style={{
+              width: '300px',
+              height: '300px',
+              borderRadius: '24px',
+              background: 'linear-gradient(135deg, #C2185B 0%, #F59E0B 100%)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              boxShadow: '0 20px 60px -15px rgba(194, 24, 91, 0.4)',
+              transform: 'rotate(-5deg)',
+              transition: 'transform 0.3s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'rotate(0deg) scale(1.05)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'rotate(-5deg) scale(1)'}
             >
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-                Find a life partner of your choice
-              </h1>
-              <p className="text-lg md:text-xl text-gray-700 mb-8">
-                We made it easy for you to get your life partner in your location
-              </p>
-
-              {/* Search Form */}
-              <form onSubmit={handleSearch} className="bg-white rounded-2xl shadow-xl p-6 mb-8">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">I'm looking for</label>
-                    <select
-                      value={searchForm.lookingFor}
-                      onChange={(e) => setSearchForm({ ...searchForm, lookingFor: e.target.value })}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none text-gray-900"
-                    >
-                      <option value="">Select</option>
-                      <option value="male">Male's Biodata</option>
-                      <option value="female">Female's Biodata</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Marital Status</label>
-                    <select
-                      value={searchForm.maritalStatus}
-                      onChange={(e) => setSearchForm({ ...searchForm, maritalStatus: e.target.value })}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none text-gray-900"
-                    >
-                      <option value="">Select</option>
-                      <option value="never-married">Never Married</option>
-                      <option value="divorced">Divorced</option>
-                      <option value="widowed">Widowed</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
-                    <select
-                      value={searchForm.location}
-                      onChange={(e) => setSearchForm({ ...searchForm, location: e.target.value })}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none text-gray-900"
-                    >
-                      <option value="">Where are you looking for?</option>
-                      <option value="chandigarh">Chandigarh</option>
-                      <option value="mohali">Mohali</option>
-                      <option value="panchkula">Panchkula</option>
-                    </select>
-                  </div>
-                </div>
-                <button
-                  type="submit"
-                  className="w-full md:w-auto bg-primary-600 hover:bg-primary-700 text-white px-8 py-4 rounded-full font-semibold text-base shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2"
-                >
-                  <FiSearch className="w-5 h-5" />
-                  Search
-                </button>
-              </form>
-
-              {/* Illustration Placeholder */}
-              <div className="hidden lg:block mt-8">
-                <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md">
-                  <div className="flex items-center justify-center space-x-4">
-                    <div className="w-24 h-24 bg-gradient-to-br from-primary-200 to-peach-200 rounded-full flex items-center justify-center">
-                      <FiUsers className="w-12 h-12 text-primary-600" />
-                    </div>
-                    <div className="w-24 h-24 bg-gradient-to-br from-peach-200 to-primary-200 rounded-full flex items-center justify-center">
-                      <FiHeart className="w-12 h-12 text-peach-600" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Right Side - Profile Creation */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="bg-white rounded-2xl shadow-xl p-8"
-            >
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Creating a new profile</h2>
-              <p className="text-gray-600 mb-6 leading-relaxed">
-                You can easily create a biodata on TricityMatch completely free of cost within some steps. You can easily search biodata using many filters including age, profession & educational qualifications.
-              </p>
-              <Link
-                to="/signup"
-                className="btn-primary inline-flex items-center gap-2"
-              >
-                Register Profile
-              </Link>
-              <div className="mt-6 bg-gradient-to-br from-primary-50 to-peach-50 rounded-xl p-6">
-                <div className="flex items-center justify-center">
-                  <div className="w-32 h-32 bg-gradient-to-br from-primary-200 to-peach-200 rounded-full flex items-center justify-center">
-                    <FiUser className="w-16 h-16 text-primary-600" />
-                  </div>
-                </div>
-              </div>
-            </motion.div>
+              <FiHeart style={{ width: '80px', height: '80px', marginBottom: '20px' }} />
+              <div style={{ fontSize: '48px', fontWeight: 'bold', marginBottom: '10px' }}>1,190+</div>
+              <div style={{ fontSize: '18px', opacity: 0.9 }}>Successful Matches</div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Religious Quote Section */}
-      <section className="py-16 bg-gradient-to-br from-soft-peach via-soft-pink to-soft-blue">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-8 md:p-12"
-          >
-            <p className="text-lg md:text-xl text-gray-800 leading-relaxed italic">
-              "Marriage is a sacred bond that brings two souls together. When you find the right partner, 
-              you find a companion for life's journey. Trust in the process, have faith, and let love guide you."
+      {/* Features Grid - Unique Layout */}
+      <section style={{
+        padding: '100px 0',
+        backgroundColor: '#FFFFFF',
+        position: 'relative'
+      }}>
+        <div style={{
+          maxWidth: '1400px',
+          margin: '0 auto',
+          padding: '0 40px'
+        }}>
+          <div style={{
+            textAlign: 'center',
+            marginBottom: '60px'
+          }}>
+            <h2 style={{
+              fontSize: 'clamp(2rem, 4vw, 3rem)',
+              fontWeight: 'bold',
+              color: '#1F2937',
+              marginBottom: '16px'
+            }}>
+            Why Choose TricityMatch?
+          </h2>
+            <p style={{
+              fontSize: '18px',
+              color: '#6B7280',
+              maxWidth: '600px',
+              margin: '0 auto'
+            }}>
+              Built with trust, designed for families, powered by technology
             </p>
-            <p className="text-sm text-gray-600 mt-4">- Traditional Wisdom</p>
-          </motion.div>
-        </div>
-      </section>
+          </div>
 
-      {/* Statistics Section */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-12"
-          >
-            TricityMatch's User Statistics
-          </motion.h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {statistics.map((stat, index) => (
-              <motion.div
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: '30px',
+            marginTop: '60px'
+          }}>
+            {features.map((feature, index) => (
+              <div
                 key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="bg-gradient-to-br from-soft-peach to-soft-pink rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-200"
+                style={{
+                  padding: '40px 30px',
+                  borderRadius: '20px',
+                  background: index % 2 === 0 
+                    ? 'linear-gradient(135deg, #FAFAFA 0%, #FFFFFF 100%)'
+                    : 'linear-gradient(135deg, #FFF7E6 0%, #FAFAFA 100%)',
+                  border: '2px solid transparent',
+                  transition: 'all 0.3s',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#C2185B';
+                  e.currentTarget.style.transform = 'translateY(-8px)';
+                  e.currentTarget.style.boxShadow = '0 20px 40px -10px rgba(194, 24, 91, 0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'transparent';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
               >
-                <div className="text-primary-600 mb-4 flex justify-center">
-                  {stat.icon}
+                <div style={{
+                  width: '60px',
+                  height: '60px',
+                  borderRadius: '16px',
+                  background: 'linear-gradient(135deg, #C2185B 0%, #F59E0B 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontSize: '28px',
+                  marginBottom: '24px'
+                }}>
+                  {feature.icon}
                 </div>
-                <div className="text-3xl font-bold text-gray-900 text-center mb-2">{stat.number}</div>
-                <div className="text-sm text-gray-700 text-center">{stat.label}</div>
-              </motion.div>
+                <h3 style={{
+                  fontSize: '20px',
+                  fontWeight: '600',
+                  color: '#1F2937',
+                  marginBottom: '12px'
+                }}>
+                  {feature.title}
+                </h3>
+                <p style={{
+                  fontSize: '14px',
+                  color: '#6B7280',
+                  lineHeight: '1.6'
+                }}>
+                  {feature.desc}
+                </p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Key Features Section */}
-      <section className="py-16 bg-gradient-to-br from-soft-peach via-soft-pink to-soft-blue">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-            >
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Key Features</h2>
-              <p className="text-lg text-gray-700 mb-6">
-                We made it easy for users to get a great experience about biodata.
+      {/* Featured Profiles - Asymmetric Grid */}
+      <section style={{
+        padding: '100px 0',
+        background: 'linear-gradient(180deg, #FFFFFF 0%, #FAFAFA 100%)',
+        position: 'relative'
+      }}>
+        <div style={{
+          maxWidth: '1400px',
+          margin: '0 auto',
+          padding: '0 40px'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '60px'
+          }}>
+            <div>
+              <h2 style={{
+                fontSize: 'clamp(2rem, 4vw, 3rem)',
+                fontWeight: 'bold',
+                color: '#1F2937',
+                marginBottom: '16px'
+              }}>
+                Featured Profiles
+              </h2>
+              <p style={{
+                fontSize: '18px',
+                color: '#6B7280'
+              }}>
+                Discover verified members actively looking for their life partner
               </p>
-              <ul className="space-y-4">
-                {keyFeatures.map((feature, index) => (
-                  <motion.li
-                    key={index}
-                    initial={{ opacity: 0, x: -20 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: index * 0.1 }}
-                    className="flex items-start gap-3"
-                  >
-                    <div className="flex-shrink-0 w-6 h-6 bg-primary-600 rounded-full flex items-center justify-center mt-0.5">
-                      <FiCheckCircle className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-gray-700 text-base">{feature}</span>
-                  </motion.li>
-                ))}
-              </ul>
-              <Link
-                to="/about"
-                className="btn-primary inline-flex items-center gap-2 mt-8"
-              >
-                Learn More
-              </Link>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="bg-white rounded-2xl shadow-xl p-8"
+            </div>
+            <Link
+              to="/search"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                color: '#C2185B',
+                fontWeight: '600',
+                textDecoration: 'none',
+                fontSize: '16px',
+                transition: 'all 0.3s'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.gap = '12px';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.gap = '8px';
+              }}
             >
-              <div className="bg-gradient-to-br from-primary-100 to-peach-100 rounded-xl p-12 flex items-center justify-center">
-                <div className="w-48 h-48 bg-gradient-to-br from-primary-200 to-peach-200 rounded-full flex items-center justify-center relative">
-                  <div className="absolute inset-0 bg-primary-400 rounded-full animate-ping opacity-20"></div>
-                  <FiShield className="w-24 h-24 text-primary-600" />
-                </div>
-              </div>
-            </motion.div>
+              View All
+              <FiArrowRight style={{ width: '18px', height: '18px' }} />
+            </Link>
+          </div>
+
+          {/* Playing Cards Scattered Layout */}
+          <div style={{
+            position: 'relative',
+            width: '100%',
+            minHeight: 'calc(100vh - 200px)',
+            height: 'calc(100vh - 200px)',
+            marginBottom: '60px',
+            padding: '30px 50px'
+          }}>
+            {featuredProfiles.map((profile, index) => {
+              // Spread cards across the entire viewport - using percentage-based positioning
+              // Scattered positioning - cards spread to fill the entire screen
+              const cardPositions = [
+                { top: '5%', left: '3%', width: '200px', height: '280px', rotate: '-4deg', zIndex: 4 }, // Top left
+                { top: '2%', left: '18%', width: '190px', height: '266px', rotate: '3deg', zIndex: 3 }, // Top left-center
+                { top: '8%', left: '33%', width: '190px', height: '266px', rotate: '-2deg', zIndex: 2 }, // Top center-left
+                { top: '4%', left: '48%', width: '190px', height: '266px', rotate: '2deg', zIndex: 1 }, // Top center
+                { top: '6%', left: '63%', width: '190px', height: '266px', rotate: '-1.5deg', zIndex: 2 }, // Top center-right
+                { top: '3%', left: '78%', width: '190px', height: '266px', rotate: '2.5deg', zIndex: 1 }, // Top right
+                { top: '50%', left: '2%', width: '200px', height: '280px', rotate: '4deg', zIndex: 5 }, // Bottom left
+                { top: '48%', left: '17%', width: '190px', height: '266px', rotate: '-3deg', zIndex: 3 }, // Bottom left-center
+                { top: '52%', left: '32%', width: '190px', height: '266px', rotate: '1.5deg', zIndex: 2 }, // Bottom center-left
+                { top: '50%', left: '47%', width: '190px', height: '266px', rotate: '2.5deg', zIndex: 2 }, // Center
+                { top: '49%', left: '62%', width: '190px', height: '266px', rotate: '-1deg', zIndex: 1 }, // Bottom center-right
+                { top: '51%', left: '77%', width: '190px', height: '266px', rotate: '1.8deg', zIndex: 1 }, // Bottom right
+                { top: '25%', left: '10%', width: '190px', height: '266px', rotate: '-1.5deg', zIndex: 3 }, // Middle-left
+                { top: '27%', left: '70%', width: '190px', height: '266px', rotate: '2deg', zIndex: 2 }, // Middle-right
+                { top: '26%', left: '40%', width: '190px', height: '266px', rotate: '-2.5deg', zIndex: 3 }, // Middle-center
+              ];
+              
+              const position = cardPositions[index] || cardPositions[index % cardPositions.length];
+              const isLarge = index === 0 || index === 6; // First and seventh cards are larger
+               
+              return (
+                <div
+                  key={profile.id}
+                  style={{
+                    position: 'absolute',
+                    top: position.top,
+                    left: position.left,
+                    width: position.width,
+                    height: position.height,
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: '12px', // Playing card corner radius
+                    overflow: 'hidden',
+                    boxShadow: '0 8px 30px rgba(0, 0, 0, 0.15)',
+                    border: '1px solid #E5E7EB',
+                    transition: 'all 0.3s ease-out',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    transform: `rotate(${position.rotate})`,
+                    zIndex: position.zIndex
+                  }}
+                  onMouseEnter={() => setHoveredProfile(profile.id)}
+                  onMouseLeave={() => setHoveredProfile(null)}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.borderColor = '#C2185B';
+                    e.currentTarget.style.transform = `rotate(0deg) translateY(-15px) scale(1.08)`;
+                    e.currentTarget.style.boxShadow = '0 20px 50px rgba(194, 24, 91, 0.3)';
+                    e.currentTarget.style.zIndex = '10';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.borderColor = '#E5E7EB';
+                    e.currentTarget.style.transform = `rotate(${position.rotate})`;
+                    e.currentTarget.style.boxShadow = '0 8px 30px rgba(0, 0, 0, 0.15)';
+                    e.currentTarget.style.zIndex = position.zIndex;
+                  }}
+                 >
+                   {/* Image Section - Playing Card Style */}
+                   <div style={{
+                     flex: '0 0 auto',
+                     height: isLarge ? '160px' : '140px',
+                     background: 'linear-gradient(135deg, #f8bbd0 0%, #FFEECC 100%)',
+                     position: 'relative',
+                     display: 'flex',
+                     alignItems: 'center',
+                     justifyContent: 'center',
+                     borderBottom: '1px solid #E5E7EB'
+                   }}>
+                     <FiUsers style={{
+                       width: isLarge ? '70px' : '60px',
+                       height: isLarge ? '70px' : '60px',
+                       color: '#f06292',
+                       opacity: hoveredProfile === profile.id ? 0.7 : 1,
+                       transition: 'all 0.3s'
+                     }} />
+                     
+                     {/* Match Badge */}
+                     {profile.match >= 95 && (
+                       <div style={{
+                         position: 'absolute',
+                         top: '10px',
+                         left: '10px',
+                         backgroundColor: '#16A34A',
+                         color: 'white',
+                         padding: '4px 10px',
+                         borderRadius: '16px',
+                         fontSize: '10px',
+                         fontWeight: '600',
+                         display: 'flex',
+                         alignItems: 'center',
+                         gap: '3px',
+                         zIndex: 2
+                       }}>
+                         <FiStar style={{ width: '10px', height: '10px' }} />
+                         {profile.match}% Match
+                       </div>
+                     )}
+                     
+                     {/* Action Icons */}
+                     <div style={{
+                       position: 'absolute',
+                       top: '10px',
+                       right: '10px',
+                       display: 'flex',
+                       gap: '6px',
+                       zIndex: 2
+                     }}>
+                       <button 
+                         onClick={(e) => {
+                           e.preventDefault();
+                           e.stopPropagation();
+                         }}
+                         style={{
+                           width: '28px',
+                           height: '28px',
+                           backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                           borderRadius: '50%',
+                           border: 'none',
+                           display: 'flex',
+                           alignItems: 'center',
+                           justifyContent: 'center',
+                           cursor: 'pointer',
+                           boxShadow: '0 2px 6px rgba(0, 0, 0, 0.1)',
+                           transition: 'all 0.2s'
+                         }}
+                         onMouseEnter={(e) => {
+                           e.target.style.transform = 'scale(1.1)';
+                           e.target.style.backgroundColor = '#FFFFFF';
+                         }}
+                         onMouseLeave={(e) => {
+                           e.target.style.transform = 'scale(1)';
+                           e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
+                         }}
+                       >
+                         <FiBookmark style={{ width: '12px', height: '12px', color: '#6B7280' }} />
+                       </button>
+                       <button 
+                         onClick={(e) => {
+                           e.preventDefault();
+                           e.stopPropagation();
+                         }}
+                         style={{
+                           width: '28px',
+                           height: '28px',
+                           backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                           borderRadius: '50%',
+                           border: 'none',
+                           display: 'flex',
+                           alignItems: 'center',
+                           justifyContent: 'center',
+                           cursor: 'pointer',
+                           boxShadow: '0 2px 6px rgba(0, 0, 0, 0.1)',
+                           transition: 'all 0.2s'
+                         }}
+                         onMouseEnter={(e) => {
+                           e.target.style.transform = 'scale(1.1)';
+                           e.target.style.backgroundColor = '#FFFFFF';
+                         }}
+                         onMouseLeave={(e) => {
+                           e.target.style.transform = 'scale(1)';
+                           e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
+                         }}
+                       >
+                         <FiHeart style={{ width: '12px', height: '12px', color: '#C2185B' }} />
+                       </button>
+                     </div>
+                   </div>
+                   
+                   {/* Content Section - Playing Card Style */}
+                   <div style={{
+                     flex: '1 1 auto',
+                     padding: isLarge ? '12px' : '10px',
+                     display: 'flex',
+                     flexDirection: 'column',
+                     minHeight: 0,
+                     backgroundColor: '#FFFFFF'
+                   }}>
+                     {/* Profile Info */}
+                     <div style={{ 
+                       flex: '1 1 auto',
+                       marginBottom: '8px',
+                       minHeight: 0
+                     }}>
+                       <h3 style={{
+                         fontSize: isLarge ? '15px' : '14px',
+                         fontWeight: '600',
+                         color: '#1F2937',
+                         marginBottom: '4px',
+                         lineHeight: '1.3'
+                       }}>
+                         {profile.name}
+                       </h3>
+                       <p style={{
+                         fontSize: '11px',
+                         color: '#6B7280',
+                         marginBottom: '3px',
+                         lineHeight: '1.4'
+                       }}>
+                         {profile.age} years • {profile.location.split(',')[0]}
+                       </p>
+                       {isLarge && (
+                         <p style={{
+                           fontSize: '10px',
+                           color: '#9CA3AF',
+                           marginTop: '4px',
+                           lineHeight: '1.4'
+                         }}>
+                           {profile.education}
+                         </p>
+                       )}
+                     </div>
+                     
+                     {/* Action Buttons - Always at bottom */}
+                     <div style={{ 
+                       display: 'flex', 
+                       gap: '5px',
+                       marginTop: 'auto',
+                       paddingTop: '8px',
+                       borderTop: '1px solid #F3F4F6',
+                       flexShrink: 0
+                     }}>
+                       <button 
+                         onClick={(e) => {
+                           e.preventDefault();
+                           e.stopPropagation();
+                         }}
+                         style={{
+                           flex: 1,
+                           backgroundColor: '#F59E0B',
+                           color: 'white',
+                           padding: '6px 8px',
+                           borderRadius: '5px',
+                           fontWeight: '500',
+                           fontSize: '11px',
+                           border: 'none',
+                           cursor: 'pointer',
+                           transition: 'all 0.2s',
+                           display: 'flex',
+                           alignItems: 'center',
+                           justifyContent: 'center',
+                           height: '28px',
+                           lineHeight: '1'
+                         }}
+                         onMouseEnter={(e) => {
+                           e.target.style.backgroundColor = '#D6890A';
+                           e.target.style.transform = 'translateY(-1px)';
+                         }}
+                         onMouseLeave={(e) => {
+                           e.target.style.backgroundColor = '#F59E0B';
+                           e.target.style.transform = 'translateY(0)';
+                         }}
+                       >
+                         Message
+                       </button>
+                       <Link
+                         to={`/profile/${profile.id}`}
+                         onClick={(e) => e.stopPropagation()}
+                         style={{
+                           flex: 1,
+                           backgroundColor: 'transparent',
+                           border: '1.5px solid #E5E7EB',
+                           color: '#C2185B',
+                           padding: '6px 8px',
+                           borderRadius: '5px',
+                           fontWeight: '500',
+                           fontSize: '11px',
+                           textDecoration: 'none',
+                           textAlign: 'center',
+                           transition: 'all 0.2s',
+                           display: 'flex',
+                           alignItems: 'center',
+                           justifyContent: 'center',
+                           height: '28px',
+                           lineHeight: '1'
+                         }}
+                         onMouseEnter={(e) => {
+                           e.target.style.borderColor = '#C2185B';
+                           e.target.style.backgroundColor = '#fce4ec';
+                           e.target.style.transform = 'translateY(-1px)';
+                         }}
+                         onMouseLeave={(e) => {
+                           e.target.style.borderColor = '#E5E7EB';
+                           e.target.style.backgroundColor = 'transparent';
+                           e.target.style.transform = 'translateY(0)';
+                         }}
+                       >
+                         View
+                       </Link>
+                     </div>
+                   </div>
+                 </div>
+               );
+             })}
           </div>
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">How TricityMatch Works</h2>
-            <p className="text-lg text-gray-600">A very easy 4 step process to find your partner.</p>
-          </motion.div>
+      {/* Testimonials - Side by Side Layout */}
+      <section style={{
+        padding: '100px 0',
+        backgroundColor: '#FFFFFF',
+        position: 'relative'
+      }}>
+        <div style={{
+          maxWidth: '1400px',
+          margin: '0 auto',
+          padding: '0 40px'
+        }}>
+          <div style={{
+            textAlign: 'center',
+            marginBottom: '60px'
+          }}>
+            <h2 style={{
+              fontSize: 'clamp(2rem, 4vw, 3rem)',
+              fontWeight: 'bold',
+              color: '#1F2937',
+              marginBottom: '16px'
+            }}>
+              Success Stories
+            </h2>
+            <p style={{
+              fontSize: '18px',
+              color: '#6B7280'
+            }}>
+              Real couples, real stories, real happiness
+            </p>
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {howItWorks.map((step, index) => (
-              <motion.div
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '40px'
+          }}>
+            {testimonials.map((testimonial, index) => (
+              <div
                 key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="relative"
+                style={{
+                  backgroundColor: index === 1 ? '#FFF7E6' : '#FAFAFA',
+                  borderRadius: '24px',
+                  padding: '40px',
+                  border: index === 1 ? '2px solid #F59E0B' : '2px solid transparent',
+                  transition: 'all 0.3s',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-8px)';
+                  e.currentTarget.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
               >
-                <div className="bg-gradient-to-br from-soft-peach to-soft-pink rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-200 h-full">
-                  <div className="flex items-center justify-center w-16 h-16 bg-primary-600 rounded-full text-white text-2xl font-bold mb-4 mx-auto">
-                    {step.step}
-                  </div>
-                  <div className="text-primary-600 mb-4 flex justify-center">
-                    {step.icon}
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3 text-center">{step.title}</h3>
-                  <p className="text-gray-600 text-sm text-center leading-relaxed">{step.description}</p>
+                <div style={{
+                  fontSize: '60px',
+                  marginBottom: '20px',
+                  textAlign: 'center'
+                }}>
+                  {testimonial.image}
                 </div>
-                {index < howItWorks.length - 1 && (
-                  <div className="hidden lg:block absolute top-1/2 -right-4 transform -translate-y-1/2">
-                    <div className="w-8 h-0.5 bg-primary-300"></div>
-                    <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-0 h-0 border-l-8 border-l-primary-300 border-t-4 border-t-transparent border-b-4 border-b-transparent"></div>
-                  </div>
-                )}
-              </motion.div>
+                
+                <p style={{
+                  fontSize: '16px',
+                  color: '#374151',
+                  lineHeight: '1.7',
+                  marginBottom: '24px',
+                  fontStyle: 'italic',
+                  textAlign: 'center'
+                }}>
+                  "{testimonial.quote}"
+                </p>
+                
+                <div style={{
+                  textAlign: 'center',
+                  paddingTop: '24px',
+                  borderTop: '1px solid #E5E7EB'
+                }}>
+                  <h4 style={{
+                    fontWeight: '600',
+                    color: '#1F2937',
+                    marginBottom: '4px'
+                  }}>
+                    {testimonial.names}
+                  </h4>
+                  <p style={{
+                    fontSize: '14px',
+                    color: '#9CA3AF'
+                  }}>
+                    {testimonial.location} • {testimonial.date}
+                  </p>
+                </div>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Newsletter Section */}
-      <section className="py-16 bg-gradient-to-br from-soft-peach via-soft-pink to-soft-blue">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="bg-white rounded-2xl shadow-xl p-8 md:p-12 text-center"
-          >
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Our Newsletter</h2>
-            <p className="text-lg text-gray-600 mb-8">
-              Join our newsletter to get every update of our website and its privacy & policies.
+      {/* Final CTA - Unique Split Design */}
+      <section style={{
+        padding: '120px 0',
+        background: 'linear-gradient(135deg, #C2185B 0%, #F59E0B 100%)',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        <div style={{
+          position: 'absolute',
+          top: '-200px',
+          right: '-200px',
+          width: '600px',
+          height: '600px',
+          borderRadius: '50%',
+          background: 'rgba(255, 255, 255, 0.1)',
+          filter: 'blur(80px)'
+        }}></div>
+        
+        <div style={{
+          maxWidth: '1200px',
+          margin: '0 auto',
+          padding: '0 40px',
+          position: 'relative',
+          zIndex: 2
+        }}>
+          <div style={{
+            textAlign: 'center',
+            color: 'white'
+          }}>
+            <h2 style={{
+              fontSize: 'clamp(2.5rem, 5vw, 4rem)',
+              fontWeight: 'bold',
+              marginBottom: '24px',
+              lineHeight: '1.2'
+            }}>
+              Ready to Begin Your Journey?
+          </h2>
+            <p style={{
+              fontSize: '20px',
+              marginBottom: '40px',
+              opacity: 0.95,
+              maxWidth: '600px',
+              margin: '0 auto 40px'
+            }}>
+              Join thousands of families who found their perfect match through TricityMatch
             </p>
-            <form className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="flex-1 px-6 py-3 border-2 border-gray-200 rounded-full focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none text-gray-900"
-              />
-              <button
-                type="submit"
-                className="btn-primary whitespace-nowrap"
+            
+            <div style={{
+              display: 'flex',
+              gap: '20px',
+              justifyContent: 'center',
+              flexWrap: 'wrap'
+            }}>
+          <Link
+            to="/signup"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  backgroundColor: 'white',
+                  color: '#C2185B',
+                  padding: '18px 40px',
+                  borderRadius: '12px',
+                  fontWeight: '600',
+                  fontSize: '18px',
+                  textDecoration: 'none',
+                  boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)',
+                  transition: 'all 0.3s'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'translateY(-4px)';
+                  e.target.style.boxShadow = '0 15px 40px rgba(0, 0, 0, 0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.2)';
+                }}
               >
-                <FiMail className="w-5 h-5 inline mr-2" />
-                Subscribe
-              </button>
-            </form>
-          </motion.div>
+                Create Your Profile
+                <FiArrowRight style={{ width: '20px', height: '20px' }} />
+              </Link>
+              
+              <Link
+                to="/search"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  backgroundColor: 'transparent',
+                  color: 'white',
+                  padding: '18px 40px',
+                  borderRadius: '12px',
+                  fontWeight: '600',
+                  fontSize: '18px',
+                  textDecoration: 'none',
+                  border: '2px solid white',
+                  transition: 'all 0.3s'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                  e.target.style.transform = 'translateY(-4px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'transparent';
+                  e.target.style.transform = 'translateY(0)';
+                }}
+              >
+                Browse Profiles
+          </Link>
+            </div>
+          </div>
         </div>
       </section>
     </div>

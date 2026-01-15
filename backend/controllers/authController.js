@@ -35,13 +35,13 @@ exports.signup = async (req, res) => {
       status: 'active'
     });
 
-    // Create profile
+    // Create profile with optional gender and dateOfBirth
     await Profile.create({
       userId: user.id,
       firstName,
       lastName,
-      gender,
-      dateOfBirth
+      gender: gender || 'other', // Default to 'other' if not provided
+      dateOfBirth: dateOfBirth || new Date('1990-01-01') // Default date if not provided
     });
 
     // Generate token

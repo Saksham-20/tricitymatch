@@ -25,16 +25,27 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem('token');
     if (!token) {
       setLoading(false);
+      setIsAuthenticated(false);
       return;
     }
 
     try {
       const response = await api.get('/auth/me');
-      setUser(response.data.user);
-      setIsAuthenticated(true);
+      const userData = response.data.user || response.data;
+      if (userData) {
+        setUser(userData);
+        setIsAuthenticated(true);
+        // Update localStorage with fresh user data
+        localStorage.setItem('user', JSON.stringify(userData));
+      } else {
+        throw new Error('No user data received');
+      }
     } catch (error) {
+      console.error('Auth check error:', error);
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      setUser(null);
+      setIsAuthenticated(false);
     } finally {
       setLoading(false);
     }
@@ -45,15 +56,36 @@ export const AuthProvider = ({ children }) => {
       const response = await api.post('/auth/login', { email, password });
       const { token, user } = response.data;
       
+      if (!token || !user) {
+        throw new Error('Invalid response from server');
+      }
+      
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
-      setUser(user);
+      
+      // Fetch full user data including profile
+      try {
+        const meResponse = await api.get('/auth/me');
+        const fullUserData = meResponse.data.user || meResponse.data;
+        if (fullUserData) {
+          setUser(fullUserData);
+          localStorage.setItem('user', JSON.stringify(fullUserData));
+        } else {
+          setUser(user);
+        }
+      } catch (err) {
+        // If /auth/me fails, use the basic user data from login
+        console.warn('Failed to fetch full user data, using basic data:', err);
+        setUser(user);
+      }
+      
       setIsAuthenticated(true);
       
       toast.success('Welcome back!');
       return { success: true };
     } catch (error) {
-      const message = error.response?.data?.message || 'Login failed';
+      console.error('Login error:', error);
+      const message = error.response?.data?.message || error.message || 'Login failed';
       toast.error(message);
       return { success: false, error: message };
     }
@@ -64,15 +96,43 @@ export const AuthProvider = ({ children }) => {
       const response = await api.post('/auth/signup', userData);
       const { token, user } = response.data;
       
+      if (!token || !user) {
+        throw new Error('Invalid response from server');
+      }
+      
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
-      setUser(user);
+      
+      // Fetch full user data including profile
+      try {
+        const meResponse = await api.get('/auth/me');
+        const fullUserData = meResponse.data.user || meResponse.data;
+        if (fullUserData) {
+          setUser(fullUserData);
+          localStorage.setItem('user', JSON.stringify(fullUserData));
+        } else {
+          setUser(user);
+        }
+      } catch (err) {
+        // If /auth/me fails, use the basic user data from signup
+        console.warn('Failed to fetch full user data, using basic data:', err);
+        setUser(user);
+      }
+      
       setIsAuthenticated(true);
       
       toast.success('Account created successfully!');
       return { success: true };
     } catch (error) {
-      const message = error.response?.data?.message || 'Signup failed';
+      console.error('Signup error:', error);
+      let message = error.response?.data?.message || error.message || 'Signup failed';
+      
+      // Handle validation errors
+      if (error.response?.data?.errors) {
+        const validationErrors = error.response.data.errors.map(e => e.msg || e.message).join(', ');
+        message = validationErrors;
+      }
+      
       toast.error(message);
       return { success: false, error: message };
     }

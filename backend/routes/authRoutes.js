@@ -10,8 +10,8 @@ const signupValidation = [
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
   body('firstName').notEmpty().withMessage('First name is required'),
   body('lastName').notEmpty().withMessage('Last name is required'),
-  body('gender').isIn(['male', 'female', 'other']).withMessage('Invalid gender'),
-  body('dateOfBirth').isISO8601().withMessage('Invalid date of birth')
+  body('gender').optional().isIn(['male', 'female', 'other']).withMessage('Invalid gender'),
+  body('dateOfBirth').optional().isISO8601().withMessage('Invalid date of birth')
 ];
 
 const loginValidation = [

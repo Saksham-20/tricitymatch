@@ -1,14 +1,25 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const ProtectedRoute = ({ children, adminOnly = false }) => {
   const { isAuthenticated, loading, user } = useAuth();
+  const [isChecking, setIsChecking] = useState(true);
 
-  if (loading) {
+  useEffect(() => {
+    // Give a moment for auth state to update after login/signup
+    if (!loading) {
+      const timer = setTimeout(() => {
+        setIsChecking(false);
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, isAuthenticated]);
+
+  if (loading || isChecking) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-neutral-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }

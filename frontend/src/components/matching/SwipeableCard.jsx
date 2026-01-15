@@ -41,7 +41,7 @@ const SwipeableCard = ({ profile, onSwipe, onLike, onShortlist, onPass, onViewDe
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-500 text-5xl font-semibold border border-gray-300">
-              {profile.firstName[0]}
+              {profile.firstName?.[0]?.toUpperCase() || profile.lastName?.[0]?.toUpperCase() || '?'}
             </div>
           )}
           

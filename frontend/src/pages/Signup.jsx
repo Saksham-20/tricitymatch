@@ -43,16 +43,23 @@ const Signup = () => {
     };
 
     setLoading(true);
-    const result = await signup(signupData);
-    setLoading(false);
-    
-    if (result.success) {
-      navigate('/profile');
+    try {
+      const result = await signup(signupData);
+      setLoading(false);
+      
+      if (result.success) {
+        // Small delay to ensure state is updated
+        setTimeout(() => {
+          navigate('/profile');
+        }, 100);
+      }
+    } catch (error) {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-neutral-50">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -60,20 +67,20 @@ const Signup = () => {
       >
         {/* Header */}
         <div className="text-center mb-8">
-          <h2 className="text-3xl md:text-4xl font-semibold text-gray-900 mb-3">Create Your Account</h2>
-          <p className="text-gray-600 text-base">Join TricityMatch to find your life partner. Your information is secure and private.</p>
+          <h2 className="text-3xl md:text-4xl font-semibold text-neutral-800 mb-3">Create Your Account</h2>
+          <p className="text-neutral-600 text-base">Join TricityMatch to find your life partner. Your information is secure and private.</p>
         </div>
 
         {/* Form Card */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 md:p-10">
+        <div className="bg-white rounded-xl shadow-lg border border-neutral-200 p-8 md:p-10">
           <SignupMultiStepForm onComplete={handleMultiStepComplete} errors={errors} />
         </div>
 
         {/* Footer Link */}
         <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-neutral-600">
             Already have an account?{' '}
-                      <Link to="/login" className="font-semibold text-primary-600 hover:text-primary-700 transition-colors">
+            <Link to="/login" className="font-semibold text-primary hover:text-primary-600 transition-colors">
               Sign in
             </Link>
           </p>

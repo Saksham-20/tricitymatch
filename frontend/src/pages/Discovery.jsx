@@ -19,9 +19,45 @@ const Discovery = () => {
     try {
       setLoading(true);
       const response = await api.get('/search/suggestions?limit=20');
-      setProfiles(response.data.suggestions);
+      
+      console.log('Suggestions API Response:', response.data); // Debug log
+      
+      // Extract suggestions from response
+      let suggestionsData = [];
+      if (Array.isArray(response.data)) {
+        suggestionsData = response.data;
+      } else if (response.data?.suggestions && Array.isArray(response.data.suggestions)) {
+        suggestionsData = response.data.suggestions;
+      } else if (response.data?.data?.suggestions && Array.isArray(response.data.data.suggestions)) {
+        suggestionsData = response.data.data.suggestions;
+      }
+      
+      // Normalize profile data structure - ensure userId is always present
+      const normalizedProfiles = suggestionsData.map(profile => {
+        // Extract userId from various possible structures
+        const userId = profile.userId || profile.id || profile.User?.id || (profile.User && profile.User.id);
+        
+        // Return normalized profile with all necessary fields
+        return {
+          ...profile,
+          userId: userId,
+          id: userId || profile.id,
+          firstName: profile.firstName || '',
+          lastName: profile.lastName || '',
+          city: profile.city || profile.location || '',
+          profilePhoto: profile.profilePhoto || null,
+        };
+      }).filter(profile => profile.userId); // Filter out profiles without userId
+      
+      console.log('Normalized suggestions:', normalizedProfiles.length, normalizedProfiles); // Debug log
+      
+      setProfiles(normalizedProfiles);
+      setCurrentIndex(0); // Reset to first profile
     } catch (error) {
-      toast.error('Failed to load suggestions');
+      console.error('Suggestions error:', error);
+      console.error('Error details:', error.response?.data);
+      toast.error(error.response?.data?.message || 'Failed to load suggestions');
+      setProfiles([]);
     } finally {
       setLoading(false);
     }
@@ -31,10 +67,17 @@ const Discovery = () => {
     const currentProfile = profiles[currentIndex];
     if (!currentProfile) return;
 
+    const profileId = currentProfile.userId || currentProfile.id;
+    if (!profileId) {
+      console.error('Profile missing userId:', currentProfile);
+      toast.error('Invalid profile data');
+      return;
+    }
+
     const action = direction === 'right' ? 'like' : 'pass';
     
     try {
-      await api.post(`/match/${currentProfile.userId}`, { action });
+      await api.post(`/match/${profileId}`, { action });
       
       if (action === 'like') {
         toast.success('Profile liked!');
@@ -49,7 +92,8 @@ const Discovery = () => {
         setCurrentIndex(0);
       }
     } catch (error) {
-      toast.error('Failed to perform action');
+      console.error('Match action error:', error);
+      toast.error(error.response?.data?.message || 'Failed to perform action');
     }
   };
 
@@ -60,8 +104,15 @@ const Discovery = () => {
     const currentProfile = profiles[currentIndex];
     if (!currentProfile) return;
 
+    const profileId = currentProfile.userId || currentProfile.id;
+    if (!profileId) {
+      console.error('Profile missing userId:', currentProfile);
+      toast.error('Invalid profile data');
+      return;
+    }
+
     try {
-      await api.post(`/match/${currentProfile.userId}`, { action: 'shortlist' });
+      await api.post(`/match/${profileId}`, { action: 'shortlist' });
       toast.success('Profile shortlisted!');
       
       if (currentIndex < profiles.length - 1) {
@@ -71,14 +122,21 @@ const Discovery = () => {
         setCurrentIndex(0);
       }
     } catch (error) {
-      toast.error('Failed to shortlist');
+      console.error('Shortlist error:', error);
+      toast.error(error.response?.data?.message || 'Failed to shortlist');
     }
   };
 
   const handleViewDetails = () => {
     const currentProfile = profiles[currentIndex];
     if (currentProfile) {
-      window.location.href = `/profile/${currentProfile.userId}`;
+      const profileId = currentProfile.userId || currentProfile.id;
+      if (profileId) {
+        window.location.href = `/profile/${profileId}`;
+      } else {
+        console.error('Profile missing userId:', currentProfile);
+        toast.error('Invalid profile data');
+      }
     }
   };
 

@@ -5,24 +5,24 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm font-medium ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 shadow-md hover:shadow-lg",
+  "inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 shadow-md hover:shadow-lg active:translate-y-[1px]",
   {
     variants: {
       variant: {
-        default: "bg-primary-600 text-white hover:bg-primary-700",
+        default: "bg-primary text-white hover:bg-primary-600",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         outline:
-          "border-2 border-gray-300 bg-background hover:bg-gray-50 hover:border-gray-400",
+          "border-2 border-neutral-200 bg-background hover:bg-neutral-50 hover:border-neutral-300",
         secondary:
-          "bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50",
-        ghost: "hover:bg-accent hover:text-accent-foreground shadow-none",
-        link: "text-primary-600 underline-offset-4 hover:underline shadow-none",
+          "bg-white text-neutral-800 border-2 border-neutral-200 hover:bg-neutral-50 hover:border-neutral-300",
+        ghost: "hover:bg-neutral-100 hover:text-neutral-900 shadow-none",
+        link: "text-primary underline-offset-4 hover:underline shadow-none",
       },
       size: {
         default: "h-10 px-6 py-2",
-        sm: "h-9 rounded-full px-4",
-        lg: "h-12 rounded-full px-8",
+        sm: "h-9 rounded-lg px-4",
+        lg: "h-12 rounded-lg px-8",
         icon: "h-10 w-10",
       },
     },

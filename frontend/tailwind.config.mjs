@@ -15,36 +15,60 @@ export default {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
-          50: '#faf5ff',
-          100: '#f3e8ff',
-          200: '#e9d5ff',
-          300: '#d8b4fe',
-          400: '#c084fc',
-          500: '#a855f7',
-          600: '#9333ea',
-          700: '#7e22ce',
-          800: '#6b21a8',
-          900: '#581c87',
+          DEFAULT: "#C2185B", // Rose Garnet
+          foreground: "#FFFFFF",
+          50: '#fce4ec',
+          100: '#f8bbd0',
+          200: '#f48fb1',
+          300: '#f06292',
+          400: '#ec407a',
+          500: '#C2185B',
+          600: '#AD1457',
+          700: '#880E4F',
+          800: '#6a0d47',
+          900: '#4a0a33',
         },
-        peach: {
-          50: '#fff5f2',
-          100: '#ffe8e0',
-          200: '#ffd4c2',
-          300: '#ffb8a0',
-          400: '#ff9370',
-          500: '#ff7043',
-          600: '#ff5722',
-          700: '#e64a19',
-          800: '#bf360c',
-          900: '#9e2e0a',
+        saffron: {
+          DEFAULT: "#F59E0B", // Saffron Gold
+          foreground: "#FFFFFF",
+          50: '#FFF7E6',
+          100: '#FFEECC',
+          200: '#FFE099',
+          300: '#FFD166',
+          400: '#FFC233',
+          500: '#F59E0B',
+          600: '#D6890A',
+          700: '#B87409',
+          800: '#9A5F08',
+          900: '#7C4A07',
         },
-        soft: {
-          peach: '#fff5f0',
-          pink: '#fce7f3',
-          blue: '#e0f2fe',
-          purple: '#f3e8ff',
+        trust: {
+          DEFAULT: "#16A34A", // Emerald Trust
+          foreground: "#FFFFFF",
+          50: '#f0fdf4',
+          100: '#dcfce7',
+          200: '#bbf7d0',
+          300: '#86efac',
+          400: '#4ade80',
+          500: '#16A34A',
+          600: '#15803d',
+          700: '#166534',
+          800: '#14532d',
+          900: '#14532d',
+        },
+        premium: {
+          DEFAULT: "#4F46E5", // Royal Indigo
+          foreground: "#FFFFFF",
+          50: '#eef2ff',
+          100: '#e0e7ff',
+          200: '#c7d2fe',
+          300: '#a5b4fc',
+          400: '#818cf8',
+          500: '#4F46E5',
+          600: '#4338ca',
+          700: '#3730a3',
+          800: '#312e81',
+          900: '#1e1b4b',
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -82,16 +106,16 @@ export default {
         },
         // Neutral grays for backgrounds and text
         neutral: {
-          50: '#fafafa',
-          100: '#f5f5f5',
-          200: '#e5e5e5',
-          300: '#d4d4d4',
-          400: '#a3a3a3',
-          500: '#737373',
-          600: '#525252',
-          700: '#404040',
-          800: '#262626',
-          900: '#171717',
+          50: '#FAFAFA', // Main BG
+          100: '#F5F5F5', // Soft Section BG
+          200: '#E5E7EB', // Borders
+          300: '#D1D5DB',
+          400: '#9CA3AF', // Muted Text
+          500: '#6B7280', // Secondary Text
+          600: '#4B5563',
+          700: '#374151',
+          800: '#1F2937', // Primary Text
+          900: '#111827',
         }
       },
       fontFamily: {
@@ -133,10 +157,20 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "fade-in": {
+          from: { opacity: "0", transform: "translateY(8px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "shimmer": {
+          "0%": { backgroundPosition: "-1000px 0" },
+          "100%": { backgroundPosition: "1000px 0" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "fade-in": "fade-in 0.35s ease-out",
+        "shimmer": "shimmer 1.2s linear infinite",
       },
     },
   },

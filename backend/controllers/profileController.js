@@ -2,58 +2,63 @@ const { Profile, User, ProfileView, Subscription } = require('../models');
 const { calculateCompatibility } = require('../utils/compatibility');
 const path = require('path');
 
-// Calculate profile completion percentage
+// Calculate profile completion percentage based on IMPORTANT fields only
 const calculateCompletion = (profile) => {
+  if (!profile) return 0;
+  
   let completed = 0;
   let total = 0;
 
-  // Basic Info (30%)
-  total += 30;
-  if (profile.firstName) completed += 5;
-  if (profile.lastName) completed += 5;
-  if (profile.gender) completed += 5;
-  if (profile.dateOfBirth) completed += 5;
+  // ===== REQUIRED FIELDS (40%) - Must have for basic profile =====
+  total += 40;
+  if (profile.firstName && profile.firstName.trim()) completed += 8;
+  if (profile.lastName && profile.lastName.trim()) completed += 8;
+  if (profile.gender) completed += 8;
+  if (profile.dateOfBirth) completed += 8;
+  if (profile.city && profile.city.trim()) completed += 8;
+
+  // ===== IMPORTANT FIELDS (50%) - Highly recommended =====
+  total += 50;
+  
+  // Physical Info (10%)
   if (profile.height) completed += 5;
   if (profile.weight) completed += 5;
+  
+  // Education & Career (15%)
+  if (profile.education && profile.education.trim()) completed += 7.5;
+  if (profile.profession && profile.profession.trim()) completed += 7.5;
+  
+  // Profile Photo (10%) - Very important for matches
+  if (profile.profilePhoto) completed += 10;
+  
+  // Bio (10%) - Important for personality
+  if (profile.bio && profile.bio.trim().length >= 20) completed += 10;
+  
+  // Lifestyle Preferences (5%) - At least one lifestyle field
+  let lifestyleCount = 0;
+  if (profile.diet) lifestyleCount++;
+  if (profile.smoking) lifestyleCount++;
+  if (profile.drinking) lifestyleCount++;
+  if (lifestyleCount > 0) completed += 5;
 
-  // Lifestyle (15%)
-  total += 15;
-  if (profile.skinTone) completed += 3;
-  if (profile.diet) completed += 4;
-  if (profile.smoking) completed += 4;
-  if (profile.drinking) completed += 4;
-
-  // Education & Profession (20%)
-  total += 20;
-  if (profile.education) completed += 5;
-  if (profile.degree) completed += 5;
-  if (profile.profession) completed += 5;
-  if (profile.income) completed += 5;
-
-  // Preferences (15%)
-  total += 15;
-  if (profile.preferredAgeMin && profile.preferredAgeMax) completed += 5;
-  if (profile.preferredHeightMin && profile.preferredHeightMax) completed += 5;
-  if (profile.preferredEducation) completed += 5;
-
-  // Photos (10%)
+  // ===== OPTIONAL ENHANCEMENTS (10%) - Nice to have =====
   total += 10;
-  if (profile.profilePhoto) completed += 5;
-  if (profile.photos && profile.photos.length > 0) completed += 5;
-
-  // Personality (10%)
-  total += 10;
-  if (profile.personalityValues) completed += 5;
-  if (profile.familyPreferences) completed += 5;
-
-  // Enhanced Features (10%)
-  total += 10;
+  
+  // Additional photos
+  if (profile.photos && profile.photos.length > 0) completed += 3;
+  
+  // Personality info
+  if (profile.personalityValues && Object.keys(profile.personalityValues).length > 0) completed += 2;
+  if (profile.familyPreferences && Object.keys(profile.familyPreferences).length > 0) completed += 2;
+  
+  // Interest tags
   if (profile.interestTags && profile.interestTags.length > 0) completed += 3;
-  if (profile.profilePrompts && Object.keys(profile.profilePrompts).length > 0) completed += 3;
-  if (profile.spotifyPlaylist) completed += 2;
-  if (profile.languages && profile.languages.length > 0) completed += 2;
 
-  return Math.round((completed / total) * 100);
+  // Calculate percentage
+  const percentage = Math.round((completed / total) * 100);
+  
+  // Cap at 100% and ensure minimum is 0%
+  return Math.max(0, Math.min(100, percentage));
 };
 
 // @route   GET /api/profile/me
@@ -107,11 +112,23 @@ exports.updateProfile = async (req, res) => {
       }
     }
 
+    // Update profile with new data
     await profile.update(updateData);
     
-    // Recalculate completion percentage
-    profile.completionPercentage = calculateCompletion(profile);
+    // Reload to get all fields including JSONB fields that might have been updated
+    await profile.reload();
+    
+    // Recalculate completion percentage with fresh data
+    // Convert to plain object to ensure all fields are accessible
+    const profileData = profile.toJSON();
+    const completion = calculateCompletion(profileData);
+    
+    // Update completion percentage
+    profile.completionPercentage = completion;
     await profile.save();
+    
+    // Final reload to return updated profile
+    await profile.reload();
 
     res.json({
       success: true,
