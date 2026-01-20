@@ -13,6 +13,28 @@ const logger = require('./middlewares/logger');
 const routes = require('./routes');
 const initializeSocket = require('./socket/socketHandler');
 
+// Validate required environment variables at startup
+const validateEnv = () => {
+  const required = ['JWT_SECRET'];
+  const missing = required.filter(key => !process.env[key]);
+  
+  if (missing.length > 0) {
+    console.error('FATAL: Missing required environment variables:', missing.join(', '));
+    console.error('Please set these in your .env.development or .env.production file');
+    process.exit(1);
+  }
+  
+  // Warn about insecure defaults in production
+  if (process.env.NODE_ENV === 'production') {
+    if (process.env.JWT_SECRET === 'your-super-secret-jwt-key-change-this-in-production') {
+      console.error('FATAL: JWT_SECRET is using default value in production!');
+      process.exit(1);
+    }
+  }
+};
+
+validateEnv();
+
 const app = express();
 const server = http.createServer(app);
 
@@ -34,6 +56,14 @@ app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true
 }));
+
+// Capture raw body for webhook signature verification (must be before express.json())
+app.use('/api/subscription/webhook', express.raw({ type: 'application/json' }), (req, res, next) => {
+  req.rawBody = req.body;
+  req.body = JSON.parse(req.body.toString());
+  next();
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

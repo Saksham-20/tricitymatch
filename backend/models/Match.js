@@ -44,7 +44,11 @@ const Match = sequelize.define('Match', {
     {
       unique: true,
       fields: ['userId', 'matchedUserId']
-    }
+    },
+    // For "who liked me" queries
+    { fields: ['matchedUserId', 'action'] },
+    // For mutual match lookups
+    { fields: ['isMutual'] }
   ]
 });
 

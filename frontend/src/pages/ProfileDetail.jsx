@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { FiHeart, FiStar, FiX, FiInstagram, FiLinkedin, FiFacebook, FiTwitter, FiMusic, FiLock, FiCheck } from 'react-icons/fi';
 import CompatibilityMeter from '../components/matching/CompatibilityMeter';
 import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL } from '../utils/api';
 
 const ProfileDetail = () => {
   const { userId } = useParams();
@@ -13,6 +14,8 @@ const ProfileDetail = () => {
   const [profile, setProfile] = useState(null);
   const [compatibilityScore, setCompatibilityScore] = useState(null);
   const [hasPremiumAccess, setHasPremiumAccess] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
+  const [isShortlisted, setIsShortlisted] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,6 +28,8 @@ const ProfileDetail = () => {
       setProfile(response.data.profile);
       setCompatibilityScore(response.data.compatibilityScore);
       setHasPremiumAccess(response.data.hasPremiumAccess);
+      setIsLiked(response.data.isLiked || false);
+      setIsShortlisted(response.data.isShortlisted || false);
     } catch (error) {
       toast.error('Failed to load profile');
     } finally {
@@ -35,7 +40,14 @@ const ProfileDetail = () => {
   const handleMatchAction = async (action) => {
     try {
       await api.post(`/match/${userId}`, { action });
-      toast.success(action === 'like' ? 'Profile liked!' : 'Profile shortlisted!');
+      if (action === 'like') {
+        setIsLiked(true);
+        setIsShortlisted(false);
+        toast.success('Profile liked!');
+      } else if (action === 'shortlist') {
+        setIsShortlisted(true);
+        toast.success('Profile shortlisted!');
+      }
     } catch (error) {
       toast.error('Failed to perform action');
     }
@@ -88,14 +100,14 @@ const ProfileDetail = () => {
               {profile.profilePhoto ? (
                 <div className="grid grid-cols-2 gap-4">
                   <img
-                    src={`http://localhost:5000${profile.profilePhoto}`}
+                    src={`${API_BASE_URL}${profile.profilePhoto}`}
                     alt={profile.firstName}
                     className="w-full h-64 object-cover rounded-lg border border-gray-200"
                   />
                   {profile.photos && profile.photos.slice(0, 3).map((photo, index) => (
                     <img
                       key={index}
-                      src={`http://localhost:5000${photo}`}
+                      src={`${API_BASE_URL}${photo}`}
                       alt={`${profile.firstName} ${index + 1}`}
                       className="w-full h-64 object-cover rounded-lg border border-gray-200"
                     />
@@ -265,17 +277,45 @@ const ProfileDetail = () => {
             <div className="card space-y-3">
               <button
                 onClick={() => handleMatchAction('like')}
-                className="w-full btn-primary flex items-center justify-center gap-2"
+                disabled={isLiked}
+                className={`w-full flex items-center justify-center gap-2 transition-all duration-200 ${
+                  isLiked
+                    ? 'bg-green-500 hover:bg-green-600 text-white cursor-default'
+                    : 'btn-primary'
+                }`}
               >
-                <FiHeart className="w-4 h-4" />
-                Express Interest
+                {isLiked ? (
+                  <>
+                    <FiCheck className="w-4 h-4" />
+                    Interest Expressed
+                  </>
+                ) : (
+                  <>
+                    <FiHeart className="w-4 h-4" />
+                    Express Interest
+                  </>
+                )}
               </button>
               <button
                 onClick={() => handleMatchAction('shortlist')}
-                className="w-full btn-secondary flex items-center justify-center gap-2"
+                disabled={isShortlisted}
+                className={`w-full flex items-center justify-center gap-2 transition-all duration-200 ${
+                  isShortlisted
+                    ? 'bg-amber-500 hover:bg-amber-600 text-white cursor-default'
+                    : 'btn-secondary'
+                }`}
               >
-                <FiStar className="w-4 h-4" />
-                Save Profile
+                {isShortlisted ? (
+                  <>
+                    <FiCheck className="w-4 h-4" />
+                    Profile Saved
+                  </>
+                ) : (
+                  <>
+                    <FiStar className="w-4 h-4" />
+                    Save Profile
+                  </>
+                )}
               </button>
             </div>
 

@@ -51,6 +51,13 @@ const Subscription = sequelize.define('Subscription', {
     type: DataTypes.BOOLEAN,
     defaultValue: false
   }
+}, {
+  indexes: [
+    // For checking active subscriptions (most common query)
+    { fields: ['userId', 'status', 'planType'] },
+    // For finding subscriptions by payment ID
+    { fields: ['razorpayPaymentId'] }
+  ]
 });
 
 module.exports = Subscription;

@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
-import { FiEye, FiHeart, FiUsers, FiTrendingUp, FiMessageCircle, FiStar, FiMapPin } from 'react-icons/fi';
+import { FiEye, FiHeart, FiUsers, FiTrendingUp, FiMessageCircle, FiStar, FiMapPin, FiArrowRight, FiCheckCircle } from 'react-icons/fi';
+import { FaCrown } from 'react-icons/fa';
 import { formatCompatibilityScore } from '../utils/compatibility';
+import { staggerContainer, fadeInUp, cardHover, scaleIn } from '../utils/animations';
+import { API_BASE_URL } from '../utils/api';
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
@@ -23,7 +27,6 @@ const Dashboard = () => {
     try {
       setLoading(true);
       
-      // Set default stats immediately
       setStats({
         viewsThisWeek: 0,
         totalViews: 0,
@@ -47,12 +50,10 @@ const Dashboard = () => {
         })
       ]);
 
-      // Handle stats
       if (statsRes.status === 'fulfilled' && statsRes.value?.data?.stats) {
         setStats(statsRes.value.data.stats);
       }
 
-      // Handle suggestions - normalize data
       if (suggestionsRes.status === 'fulfilled') {
         let suggestionsData = [];
         const response = suggestionsRes.value?.data;
@@ -65,7 +66,6 @@ const Dashboard = () => {
           suggestionsData = response.data.suggestions;
         }
         
-        // Normalize suggestions
         const normalized = suggestionsData.map(profile => ({
           ...profile,
           userId: profile.userId || profile.id || profile.User?.id,
@@ -73,13 +73,11 @@ const Dashboard = () => {
           lastName: profile.lastName || profile.last_name || '',
           city: profile.city || profile.location || 'Location not specified',
           profilePhoto: profile.profilePhoto || profile.profile_photo || null,
-        })).filter(p => p.userId); // Only include profiles with userId
+        })).filter(p => p.userId);
         
-        console.log('Normalized suggestions:', normalized.length, normalized);
         setSuggestions(normalized);
       }
 
-      // Handle mutual matches - normalize data
       if (matchesRes.status === 'fulfilled') {
         let matchesData = [];
         const response = matchesRes.value?.data;
@@ -92,7 +90,6 @@ const Dashboard = () => {
           matchesData = response.data.mutualMatches;
         }
         
-        // Normalize mutual matches
         const normalized = matchesData.map(match => ({
           ...match,
           userId: match.userId || match.id || match.User?.id,
@@ -100,9 +97,8 @@ const Dashboard = () => {
           lastName: match.lastName || match.last_name || '',
           city: match.city || match.location || 'Location not specified',
           profilePhoto: match.profilePhoto || match.profile_photo || null,
-        })).filter(m => m.userId); // Only include matches with userId
+        })).filter(m => m.userId);
         
-        console.log('Normalized mutual matches:', normalized.length, normalized);
         setMutualMatches(normalized);
       }
     } catch (error) {
@@ -112,168 +108,246 @@ const Dashboard = () => {
     }
   };
 
+  const statsConfig = [
+    { 
+      key: 'viewsThisWeek', 
+      label: 'Profile Views', 
+      sublabel: 'This week',
+      icon: FiEye, 
+      gradient: 'from-primary-500 to-primary-600',
+      bgGradient: 'from-primary-50 to-primary-100',
+      iconBg: 'bg-primary-100',
+      iconColor: 'text-primary-500'
+    },
+    { 
+      key: 'totalViews', 
+      label: 'Total Views', 
+      sublabel: 'All time',
+      icon: FiTrendingUp, 
+      gradient: 'from-gold-500 to-gold-600',
+      bgGradient: 'from-gold-50 to-gold-100',
+      iconBg: 'bg-gold-100',
+      iconColor: 'text-gold-600'
+    },
+    { 
+      key: 'likesReceived', 
+      label: 'Interests Received', 
+      sublabel: 'Total',
+      icon: FiHeart, 
+      gradient: 'from-pink-500 to-pink-600',
+      bgGradient: 'from-pink-50 to-pink-100',
+      iconBg: 'bg-pink-100',
+      iconColor: 'text-pink-500'
+    },
+    { 
+      key: 'mutualMatches', 
+      label: 'Mutual Matches', 
+      sublabel: 'Ready to chat',
+      icon: FiUsers, 
+      gradient: 'from-success to-green-600',
+      bgGradient: 'from-success-light to-green-100',
+      iconBg: 'bg-success-light',
+      iconColor: 'text-success',
+      customValue: true
+    },
+  ];
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center"
+        >
+          <div className="spinner mx-auto mb-4" />
+          <p className="text-neutral-600">Loading your dashboard...</p>
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-neutral-50 via-white to-neutral-50">
+    <motion.div 
+      initial="initial"
+      animate="animate"
+      variants={staggerContainer}
+      className="min-h-screen py-8 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-neutral-50 via-white to-primary-50/20"
+    >
       <div className="max-w-7xl mx-auto">
-        {/* Enhanced Header */}
-        <div className="mb-10">
-          <div className="bg-gradient-to-r from-primary-500 via-primary-600 to-saffron-500 rounded-2xl shadow-xl p-8 text-white mb-6">
-            <h1 className="text-4xl md:text-5xl font-bold mb-2 drop-shadow-lg">Your Dashboard</h1>
-            <p className="text-white/90 text-lg">Welcome back! Here's your activity overview</p>
-          </div>
-        </div>
-
-        {/* Enhanced Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-          <div className="bg-white rounded-2xl shadow-lg border border-neutral-200 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-neutral-600 text-sm font-semibold mb-1">Profile Views</p>
-                <p className="text-4xl font-bold bg-gradient-to-r from-primary-600 to-primary-500 bg-clip-text text-transparent">{stats?.viewsThisWeek ?? 0}</p>
-                <p className="text-xs text-neutral-500 mt-2">This week</p>
-              </div>
-              <div className="w-14 h-14 bg-gradient-to-br from-primary-100 to-primary-200 rounded-xl flex items-center justify-center">
-                <FiEye className="w-7 h-7 text-primary-600" />
-              </div>
+        {/* Header Banner */}
+        <motion.div 
+          variants={fadeInUp}
+          className="mb-10"
+        >
+          <div className="bg-gradient-hero rounded-3xl shadow-burgundy p-8 md:p-10 text-white relative overflow-hidden">
+            {/* Background Pattern */}
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute top-10 right-10 w-40 h-40 border border-white rounded-full" />
+              <div className="absolute bottom-0 left-20 w-60 h-60 border border-white rounded-full" />
+            </div>
+            
+            <div className="relative z-10">
+              <h1 className="text-3xl md:text-4xl font-display font-bold mb-2">
+                Welcome to Your Dashboard
+              </h1>
+              <p className="text-white/90 text-lg">
+                Track your profile activity and discover potential matches
+              </p>
             </div>
           </div>
+        </motion.div>
 
-          <div className="bg-white rounded-2xl shadow-lg border border-neutral-200 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-neutral-600 text-sm font-semibold mb-1">Total Views</p>
-                <p className="text-4xl font-bold bg-gradient-to-r from-saffron-600 to-saffron-500 bg-clip-text text-transparent">{stats?.totalViews ?? 0}</p>
-                <p className="text-xs text-neutral-500 mt-2">All time</p>
-              </div>
-              <div className="w-14 h-14 bg-gradient-to-br from-saffron-100 to-saffron-200 rounded-xl flex items-center justify-center">
-                <FiTrendingUp className="w-7 h-7 text-saffron-600" />
-              </div>
-            </div>
-          </div>
+        {/* Stats Grid */}
+        <motion.div 
+          variants={fadeInUp}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10"
+        >
+          {statsConfig.map((stat, index) => {
+            const Icon = stat.icon;
+            const value = stat.customValue ? mutualMatches.length : (stats?.[stat.key] ?? 0);
+            
+            return (
+              <motion.div
+                key={stat.key}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{ y: -4, transition: { duration: 0.2 } }}
+                className="card group cursor-default"
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-neutral-600 text-sm font-medium mb-1">{stat.label}</p>
+                    <motion.p 
+                      className={`text-4xl font-bold bg-gradient-to-r ${stat.gradient} bg-clip-text text-transparent`}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.3 + index * 0.1 }}
+                    >
+                      {value}
+                    </motion.p>
+                    <p className="text-xs text-neutral-500 mt-1">{stat.sublabel}</p>
+                  </div>
+                  <div className={`w-14 h-14 ${stat.iconBg} rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
+                    <Icon className={`w-7 h-7 ${stat.iconColor}`} />
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </motion.div>
 
-          <div className="bg-white rounded-2xl shadow-lg border border-neutral-200 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-neutral-600 text-sm font-semibold mb-1">Likes Received</p>
-                <p className="text-4xl font-bold bg-gradient-to-r from-pink-600 to-pink-500 bg-clip-text text-transparent">{stats?.likesReceived ?? 0}</p>
-                <p className="text-xs text-neutral-500 mt-2">Total</p>
-              </div>
-              <div className="w-14 h-14 bg-gradient-to-br from-pink-100 to-pink-200 rounded-xl flex items-center justify-center">
-                <FiHeart className="w-7 h-7 text-pink-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-lg border border-neutral-200 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-neutral-600 text-sm font-semibold mb-1">Mutual Matches</p>
-                <p className="text-4xl font-bold bg-gradient-to-r from-trust-600 to-trust-500 bg-clip-text text-transparent">{mutualMatches.length}</p>
-                <p className="text-xs text-neutral-500 mt-2">Ready to chat</p>
-              </div>
-              <div className="w-14 h-14 bg-gradient-to-br from-trust-100 to-trust-200 rounded-xl flex items-center justify-center">
-                <FiUsers className="w-7 h-7 text-trust-600" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Enhanced Mutual Matches */}
-        {mutualMatches.length > 0 && (
-          <div className="mb-10">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-3xl font-bold text-neutral-900 mb-1">Mutual Matches</h2>
-                <p className="text-neutral-600 text-sm">People who liked you back</p>
-              </div>
-              <Link to="/chat" className="bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white px-6 py-2.5 rounded-xl text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center space-x-2">
-                <span>View All</span>
-                <FiMessageCircle className="w-4 h-4" />
-              </Link>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {mutualMatches.slice(0, 3).map((match, index) => {
-                const userId = match.userId || match.id;
-                if (!userId) {
-                  console.warn('Mutual match missing userId:', match);
-                  return null;
-                }
-                
-                return (
-                  <MatchCard 
-                    key={`match-${userId}-${index}`}
-                    match={match}
-                    userId={userId}
-                  />
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Enhanced Suggestions */}
-        {suggestions.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-3xl font-bold text-neutral-900 mb-1">Suggested Matches</h2>
-                <p className="text-neutral-600 text-sm">Based on your preferences</p>
-              </div>
-              <Link to="/search" className="bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white px-6 py-2.5 rounded-xl text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200">
-                View All
-              </Link>
-            </div>
-            <div 
-              className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6"
-              style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}
+        {/* Mutual Matches Section */}
+        <AnimatePresence>
+          {mutualMatches.length > 0 && (
+            <motion.div 
+              variants={fadeInUp}
+              className="mb-10"
             >
-              {suggestions.map((profile, index) => {
-                const userId = profile.userId || profile.id;
-                if (!userId) {
-                  console.warn('Suggestion missing userId:', profile);
-                  return null;
-                }
-                
-                return (
-                  <ProfileCard 
-                    key={`suggestion-${userId}-${index}`}
-                    profile={profile}
-                    userId={userId}
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl md:text-3xl font-display font-bold text-neutral-800 mb-1">
+                    Mutual Matches
+                  </h2>
+                  <p className="text-neutral-600 text-sm">People who expressed interest in you too</p>
+                </div>
+                <motion.div whileHover={{ x: 5 }}>
+                  <Link 
+                    to="/chat" 
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-hero text-white rounded-xl text-sm font-semibold shadow-burgundy hover:shadow-burgundy-lg transition-all duration-300"
+                  >
+                    <FiMessageCircle className="w-4 h-4" />
+                    Start Chatting
+                  </Link>
+                </motion.div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {mutualMatches.slice(0, 3).map((match, index) => (
+                  <MatchCard 
+                    key={`match-${match.userId}-${index}`}
+                    match={match}
+                    userId={match.userId}
+                    index={index}
                   />
-                );
-              })}
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Suggestions Section */}
+        {suggestions.length > 0 && (
+          <motion.div variants={fadeInUp}>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl md:text-3xl font-display font-bold text-neutral-800 mb-1">
+                  Suggested Matches
+                </h2>
+                <p className="text-neutral-600 text-sm">Profiles based on your preferences</p>
+              </div>
+              <motion.div whileHover={{ x: 5 }}>
+                <Link 
+                  to="/search" 
+                  className="inline-flex items-center gap-2 text-primary-500 font-semibold hover:text-primary-600 transition-colors"
+                >
+                  View All
+                  <FiArrowRight className="w-4 h-4" />
+                </Link>
+              </motion.div>
             </div>
-          </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {suggestions.map((profile, index) => (
+                <ProfileCard 
+                  key={`suggestion-${profile.userId}-${index}`}
+                  profile={profile}
+                  userId={profile.userId}
+                  index={index}
+                />
+              ))}
+            </div>
+          </motion.div>
         )}
 
-        {/* Enhanced Empty State */}
+        {/* Empty State */}
         {suggestions.length === 0 && mutualMatches.length === 0 && (
-          <div className="text-center py-16 bg-white rounded-2xl shadow-lg border border-neutral-200">
-            <div className="w-20 h-20 bg-gradient-to-br from-primary-100 to-saffron-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <FiUsers className="w-10 h-10 text-primary-600" />
-            </div>
-            <h3 className="text-2xl font-bold text-neutral-900 mb-2">Complete your profile to see matches!</h3>
-            <p className="text-neutral-600 mb-8 max-w-md mx-auto">Add more details to your profile to get better match suggestions</p>
-            <Link to="/profile" className="bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 inline-block">
-              Complete Profile
-            </Link>
-          </div>
+          <motion.div 
+            variants={fadeInUp}
+            className="text-center py-16 card"
+          >
+            <motion.div 
+              className="w-24 h-24 bg-gradient-to-br from-primary-100 to-gold-100 rounded-full flex items-center justify-center mx-auto mb-6"
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              <FiUsers className="w-12 h-12 text-primary-500" />
+            </motion.div>
+            <h3 className="text-2xl font-display font-bold text-neutral-800 mb-3">
+              Complete Your Profile
+            </h3>
+            <p className="text-neutral-600 mb-8 max-w-md mx-auto">
+              Add more details to your profile to get personalized match suggestions
+            </p>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Link 
+                to="/profile" 
+                className="btn-primary inline-flex items-center gap-2"
+              >
+                Complete Profile
+                <FiArrowRight className="w-5 h-5" />
+              </Link>
+            </motion.div>
+          </motion.div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 };
 
-// Simplified MatchCard component
-const MatchCard = ({ match, userId }) => {
+// Match Card Component
+const MatchCard = ({ match, userId, index }) => {
   const navigate = useNavigate();
   const fullName = `${match.firstName || ''} ${match.lastName || ''}`.trim() || 'Unknown';
   const initials = (match.firstName?.[0] || '') + (match.lastName?.[0] || '') || '?';
@@ -285,45 +359,80 @@ const MatchCard = ({ match, userId }) => {
   };
 
   return (
-    <div 
-      className="bg-white rounded-2xl shadow-lg border border-neutral-200 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
+    <motion.div 
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ delay: index * 0.1 }}
+      whileHover={{ y: -6 }}
       onClick={handleClick}
+      className="card cursor-pointer group"
     >
       <div className="text-center">
-        {match.profilePhoto ? (
-          <img
-            src={`http://localhost:5000${match.profilePhoto}`}
-            alt={fullName}
-            className="w-20 h-20 rounded-full mx-auto mb-4 object-cover border-2 border-neutral-200"
-            onError={(e) => {
-              e.target.style.display = 'none';
-              e.target.nextElementSibling.style.display = 'flex';
-            }}
-          />
-        ) : null}
-        <div 
-          className={`w-20 h-20 rounded-full mx-auto mb-4 bg-gradient-to-br from-primary-100 to-saffron-100 flex items-center justify-center text-neutral-600 text-xl font-semibold border-2 border-neutral-300 ${match.profilePhoto ? 'hidden' : ''}`}
-        >
-          {initials}
+        {/* Profile Image */}
+        <div className="relative mx-auto mb-4">
+          {match.profilePhoto ? (
+            <img
+              src={`${API_BASE_URL}${match.profilePhoto}`}
+              alt={fullName}
+              className="w-24 h-24 rounded-full mx-auto object-cover border-4 border-white shadow-lg group-hover:border-primary-100 transition-colors"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                e.target.nextElementSibling.style.display = 'flex';
+              }}
+            />
+          ) : null}
+          <div 
+            className={`w-24 h-24 rounded-full mx-auto bg-gradient-to-br from-primary-100 to-gold-100 flex items-center justify-center text-neutral-600 text-2xl font-semibold border-4 border-white shadow-lg ${match.profilePhoto ? 'hidden' : ''}`}
+          >
+            {initials}
+          </div>
+          
+          {/* Match Badge */}
+          <motion.div 
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.3, type: "spring" }}
+            className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-3 py-1 bg-success text-white text-xs font-semibold rounded-full shadow-md flex items-center gap-1"
+          >
+            <FiHeart className="w-3 h-3" />
+            Mutual
+          </motion.div>
         </div>
-        <h3 className="text-lg font-semibold mb-1 text-neutral-900">
+        
+        <h3 className="text-lg font-semibold text-neutral-800 mb-1">
           {fullName}
         </h3>
-        <p className="text-neutral-700 text-sm mb-2">{match.city || 'Location not specified'}</p>
+        <p className="text-neutral-600 text-sm flex items-center justify-center gap-1 mb-3">
+          <FiMapPin className="w-3.5 h-3.5" />
+          {match.city || 'Location not specified'}
+        </p>
+        
         {match.compatibilityScore && (
-          <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-medium ${
-            formatCompatibilityScore(match.compatibilityScore).bg
-          } ${formatCompatibilityScore(match.compatibilityScore).color}`}>
-            {match.compatibilityScore}% Match
+          <span className="inline-block px-3 py-1 bg-gold-50 text-gold-700 text-xs font-semibold rounded-full border border-gold-200">
+            {match.compatibilityScore}% Compatible
           </span>
         )}
+        
+        {/* Chat Button */}
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate('/chat');
+          }}
+          className="mt-4 w-full py-2.5 bg-gradient-to-r from-gold-500 to-gold-600 text-white rounded-xl text-sm font-semibold hover:from-gold-600 hover:to-gold-700 transition-all shadow-gold"
+        >
+          <FiMessageCircle className="w-4 h-4 inline-block mr-2" />
+          Message
+        </motion.button>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
-// Simplified ProfileCard component
-const ProfileCard = ({ profile, userId }) => {
+// Profile Card Component
+const ProfileCard = ({ profile, userId, index }) => {
   const navigate = useNavigate();
   const compatibility = formatCompatibilityScore(profile.compatibilityScore);
   const fullName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'Unknown';
@@ -335,20 +444,22 @@ const ProfileCard = ({ profile, userId }) => {
     }
   };
 
-  console.log('Dashboard ProfileCard render:', { fullName, userId, hasPhoto: !!profile.profilePhoto });
-
   return (
-    <div 
-      className="bg-white rounded-2xl shadow-lg border border-neutral-200 overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer group"
+    <motion.div 
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ delay: index * 0.08 }}
+      whileHover={{ y: -6 }}
       onClick={handleClick}
-      style={{ minHeight: '320px', display: 'flex', flexDirection: 'column' }}
+      className="card p-0 overflow-hidden cursor-pointer group"
     >
-      <div className="relative mb-4 overflow-hidden rounded-t-2xl" style={{ minHeight: '192px', flexShrink: 0 }}>
+      {/* Profile Image */}
+      <div className="relative h-48 overflow-hidden">
         {profile.profilePhoto ? (
           <img
-            src={`http://localhost:5000${profile.profilePhoto}`}
+            src={`${API_BASE_URL}${profile.profilePhoto}`}
             alt={fullName}
-            className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
             onError={(e) => {
               e.target.style.display = 'none';
               e.target.nextElementSibling.style.display = 'flex';
@@ -356,29 +467,55 @@ const ProfileCard = ({ profile, userId }) => {
           />
         ) : null}
         <div 
-          className={`w-full h-48 bg-gradient-to-br from-primary-100 via-saffron-100 to-primary-200 flex items-center justify-center text-neutral-500 text-4xl font-bold ${profile.profilePhoto ? 'hidden' : ''}`}
+          className={`w-full h-full bg-gradient-to-br from-primary-100 via-gold-50 to-primary-50 flex items-center justify-center text-neutral-400 text-4xl font-bold ${profile.profilePhoto ? 'hidden' : ''}`}
         >
           {initials}
         </div>
+        
+        {/* Compatibility Badge */}
         {profile.compatibilityScore && (
-          <div className={`absolute top-3 right-3 px-3 py-1.5 rounded-full text-xs font-bold ${compatibility.bg} ${compatibility.color} shadow-lg`}>
-            {Math.round(profile.compatibilityScore)}% Match
-          </div>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            className={`absolute top-3 right-3 px-3 py-1.5 rounded-full text-xs font-bold shadow-md ${compatibility.bg} ${compatibility.color}`}
+          >
+            <FiStar className="w-3 h-3 inline-block mr-1" />
+            {Math.round(profile.compatibilityScore)}%
+          </motion.div>
         )}
+        
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
-      <div className="p-4" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <h3 className="text-xl font-bold mb-2 text-neutral-900">
+      
+      {/* Content */}
+      <div className="p-5">
+        <h3 className="text-lg font-semibold text-neutral-800 mb-1 group-hover:text-primary-500 transition-colors">
           {fullName}
         </h3>
-        <p className="text-neutral-600 text-sm mb-3 flex items-center gap-1.5">
-          <FiMapPin className="w-3.5 h-3.5 text-primary" />
+        <p className="text-neutral-600 text-sm flex items-center gap-1.5 mb-2">
+          <FiMapPin className="w-3.5 h-3.5 text-primary-400" />
           {profile.city || 'Location not specified'}
         </p>
         {profile.education && (
-          <p className="text-neutral-600 text-xs font-medium">{profile.education}</p>
+          <p className="text-neutral-500 text-xs">{profile.education}</p>
         )}
+        
+        {/* Action Button */}
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleClick();
+          }}
+          className="mt-4 w-full py-2.5 btn-secondary text-sm"
+        >
+          View Profile
+        </motion.button>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

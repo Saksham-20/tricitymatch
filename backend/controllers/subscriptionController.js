@@ -23,7 +23,7 @@ exports.createOrder = async (req, res) => {
     });
 
     if (activeSubscription) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: 'You already have an active subscription',
         subscription: activeSubscription
       });
@@ -207,7 +207,7 @@ exports.webhook = async (req, res) => {
 
     if (event === 'payment.captured') {
       const { order_id, payment_id } = payload.payment.entity;
-      
+
       const subscription = await Subscription.findOne({
         where: { razorpayOrderId: order_id }
       });

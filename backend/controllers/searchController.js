@@ -2,6 +2,12 @@ const { Profile, User, Match, Subscription } = require('../models');
 const { Op } = require('sequelize');
 const { calculateCompatibility } = require('../utils/compatibility');
 
+// Escape special characters for LIKE patterns to prevent injection
+const escapeLikePattern = (str) => {
+  if (!str) return str;
+  return str.replace(/[%_\\]/g, '\\$&');
+};
+
 // @route   GET /api/search
 // @desc    Search profiles with filters
 // @access  Private
@@ -40,8 +46,8 @@ exports.searchProfiles = async (req, res) => {
     };
 
     // Gender filter (opposite gender)
-    const oppositeGender = currentProfile.gender === 'male' ? 'female' : 
-                          currentProfile.gender === 'female' ? 'male' : 'other';
+    const oppositeGender = currentProfile.gender === 'male' ? 'female' :
+      currentProfile.gender === 'female' ? 'male' : 'other';
     where.gender = oppositeGender;
 
     // Age filter
@@ -49,7 +55,7 @@ exports.searchProfiles = async (req, res) => {
       const now = new Date();
       const minDate = ageMax ? new Date(now.getFullYear() - ageMax - 1, now.getMonth(), now.getDate()) : null;
       const maxDate = ageMin ? new Date(now.getFullYear() - ageMin, now.getMonth(), now.getDate()) : null;
-      
+
       if (minDate && maxDate) {
         where.dateOfBirth = { [Op.between]: [minDate, maxDate] };
       } else if (minDate) {
@@ -76,9 +82,9 @@ exports.searchProfiles = async (req, res) => {
       where.education = education;
     }
 
-    // Profession filter
+    // Profession filter (escape special characters to prevent pattern injection)
     if (profession) {
-      where.profession = { [Op.iLike]: `%${profession}%` };
+      where.profession = { [Op.iLike]: `%${escapeLikePattern(profession)}%` };
     }
 
     // Lifestyle filters
@@ -115,61 +121,50 @@ exports.searchProfiles = async (req, res) => {
       order: [['createdAt', 'DESC']]
     });
 
-    // Calculate compatibility for each profile
-    const profilesWithCompatibility = await Promise.all(
-      profiles.map(async (profile) => {
-        const compatibilityScore = calculateCompatibility(currentProfile, profile);
-        
-        // Check if already liked/shortlisted
-        const match = await Match.findOne({
+    // Extract all profile userIds for batch match query (fixes N+1 problem)
+    const profileUserIds = profiles.map(p => p.userId);
+    
+    // Single query to get all match statuses instead of N queries
+    const existingMatches = profileUserIds.length > 0 
+      ? await Match.findAll({
           where: {
             userId,
-            matchedUserId: profile.userId
+            matchedUserId: { [Op.in]: profileUserIds }
           }
-        });
+        })
+      : [];
+    
+    // Create a map for O(1) lookup
+    const matchMap = new Map();
+    existingMatches.forEach(match => {
+      matchMap.set(match.matchedUserId, match);
+    });
 
-        const profileData = profile.toJSON();
-        
-        // Debug: Log profile structure
-        if (!profileData.userId) {
-          console.warn('Profile missing userId:', {
-            profileId: profileData.id,
-            hasUser: !!profileData.User,
-            userData: profileData.User
-          });
-        }
-        
-        // Ensure userId is always at the top level (in case it's nested in User object)
-        if (!profileData.userId && profileData.User?.id) {
-          profileData.userId = profileData.User.id;
-        }
-        
-        // If still no userId, try to get it from the profile instance
-        if (!profileData.userId && profile.userId) {
-          profileData.userId = profile.userId;
-        }
-        
-        // Remove nested User object if present (we only need userId)
-        if (profileData.User) {
-          delete profileData.User;
-        }
-        
-        // Ensure userId exists - this is critical for frontend
-        if (!profileData.userId) {
-          console.error('Profile still missing userId after normalization:', profileData);
-        }
-        
-        profileData.compatibilityScore = compatibilityScore;
-        profileData.matchStatus = match ? match.action : null;
-        profileData.isMutual = match ? match.isMutual : false;
+    // Calculate compatibility for each profile (no more N+1 queries)
+    const profilesWithCompatibility = profiles.map((profile) => {
+      const compatibilityScore = calculateCompatibility(currentProfile, profile);
+      const match = matchMap.get(profile.userId);
 
-        return profileData;
-      })
-    );
+      const raw = profile.toJSON();
+      const profileData = {
+        ...raw,
+        userId: raw.userId || raw.User?.id || profile.userId,
+        compatibilityScore,
+        matchStatus: match ? match.action : null,
+        isMutual: match ? match.isMutual : false
+      };
+
+      // Remove nested User object to keep payload consistent
+      if (profileData.User) {
+        delete profileData.User;
+      }
+
+      return profileData;
+    });
 
     // Sort by compatibility if requested
     if (sortBy === 'compatibility') {
-      profilesWithCompatibility.sort((a, b) => 
+      profilesWithCompatibility.sort((a, b) =>
         (b.compatibilityScore || 0) - (a.compatibilityScore || 0)
       );
     }
@@ -207,8 +202,8 @@ exports.getSuggestions = async (req, res) => {
     }
 
     // Get opposite gender
-    const oppositeGender = currentProfile.gender === 'male' ? 'female' : 
-                          currentProfile.gender === 'female' ? 'male' : 'other';
+    const oppositeGender = currentProfile.gender === 'male' ? 'female' :
+      currentProfile.gender === 'female' ? 'male' : 'other';
 
     // Get profiles user hasn't interacted with
     const interactedUserIds = await Match.findAll({
@@ -238,7 +233,7 @@ exports.getSuggestions = async (req, res) => {
       compatibilityScore: calculateCompatibility(currentProfile, profile)
     }));
 
-    profilesWithCompatibility.sort((a, b) => 
+    profilesWithCompatibility.sort((a, b) =>
       b.compatibilityScore - a.compatibilityScore
     );
 
@@ -246,22 +241,19 @@ exports.getSuggestions = async (req, res) => {
     const topMatches = profilesWithCompatibility
       .slice(0, limit)
       .map(item => {
-        const profileData = item.profile.toJSON();
-        
-        // Ensure userId is always at the top level (in case it's nested in User object)
-        if (!profileData.userId && profileData.User?.id) {
-          profileData.userId = profileData.User.id;
-        }
-        
-        // Remove nested User object if present (we only need userId)
+        const raw = item.profile.toJSON();
+        const profileData = {
+          ...raw,
+          userId: raw.userId || raw.User?.id || item.profile.userId,
+          compatibilityScore: item.compatibilityScore
+        };
+
+        // Remove nested User object to keep payload consistent
         if (profileData.User) {
           delete profileData.User;
         }
-        
-        return {
-          ...profileData,
-          compatibilityScore: item.compatibilityScore
-        };
+
+        return profileData;
       });
 
     res.json({

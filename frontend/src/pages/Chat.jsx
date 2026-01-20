@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 import { FiSend, FiMessageCircle } from 'react-icons/fi';
+import { API_BASE_URL } from '../utils/api';
 
 const Chat = () => {
   const { socket } = useSocket();
@@ -134,7 +135,7 @@ const Chat = () => {
               <div className="flex items-center space-x-3">
                 {match.profilePhoto ? (
                   <img
-                    src={`http://localhost:5000${match.profilePhoto}`}
+                    src={`${API_BASE_URL}${match.profilePhoto}`}
                     alt={match.firstName}
                     className="w-12 h-12 rounded-full object-cover"
                   />
@@ -163,7 +164,7 @@ const Chat = () => {
               <div className="flex items-center space-x-3">
                 {selectedMatch.profilePhoto ? (
                   <img
-                    src={`http://localhost:5000${selectedMatch.profilePhoto}`}
+                    src={`${API_BASE_URL}${selectedMatch.profilePhoto}`}
                     alt={selectedMatch.firstName}
                     className="w-10 h-10 rounded-full object-cover"
                   />

@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { validateEmail, validatePassword } from '../utils/validators';
-import { motion } from 'framer-motion';
+import { FiMail, FiLock, FiEye, FiEyeOff, FiHeart, FiShield, FiArrowRight } from 'react-icons/fi';
+import { fadeInUp, staggerContainer, shakeAnimation } from '../utils/animations';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -11,6 +13,8 @@ const Login = () => {
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [shakeTrigger, setShakeTrigger] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -41,6 +45,10 @@ const Login = () => {
     }
     
     setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      setShakeTrigger(true);
+      setTimeout(() => setShakeTrigger(false), 500);
+    }
     return Object.keys(newErrors).length === 0;
   };
 
@@ -55,7 +63,6 @@ const Login = () => {
       setLoading(false);
       
       if (result.success) {
-        // Small delay to ensure state is updated
         setTimeout(() => {
           navigate('/dashboard');
         }, 100);
@@ -66,99 +73,243 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-neutral-50">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-md w-full space-y-8"
-      >
-        <div className="text-center">
-          <h2 className="text-3xl md:text-4xl font-semibold text-neutral-800 mb-2">Welcome Back</h2>
-          <p className="text-neutral-600">Sign in to your TricityMatch account</p>
+    <div className="min-h-screen flex bg-gradient-to-br from-neutral-50 via-primary-50/20 to-gold-50/30">
+      {/* Left Side - Decorative */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-hero relative overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-20 left-20 w-64 h-64 border border-white rounded-full" />
+          <div className="absolute bottom-40 right-10 w-96 h-96 border border-white rounded-full" />
+          <div className="absolute top-1/2 left-1/3 w-48 h-48 border border-white rounded-full" />
         </div>
+        
+        {/* Content */}
+        <div className="relative z-10 flex flex-col justify-center items-center w-full p-12 text-white">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-center max-w-md"
+          >
+            <motion.div
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="mb-8"
+            >
+              <FiHeart className="w-20 h-20 mx-auto" />
+            </motion.div>
+            
+            <h1 className="text-4xl font-display font-bold mb-4">
+              Welcome Back
+            </h1>
+            <p className="text-lg opacity-90 mb-8">
+              Continue your journey to find your perfect life partner
+            </p>
+            
+            <div className="flex items-center justify-center gap-6 text-sm">
+              <div className="flex items-center gap-2">
+                <FiShield className="w-5 h-5" />
+                <span>Secure</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <FiHeart className="w-5 h-5" />
+                <span>Trusted</span>
+              </div>
+            </div>
+          </motion.div>
 
-        <form className="card space-y-6" onSubmit={handleSubmit}>
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-neutral-700 mb-2">
-              Email Address
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              className={`input-field ${errors.email ? 'border-red-500' : ''}`}
-              placeholder="you@example.com"
-              value={formData.email}
-              onChange={handleChange}
-            />
-            {errors.email && (
-              <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-            )}
-          </div>
+          {/* Floating Elements */}
+          <motion.div
+            className="absolute bottom-20 left-20 bg-white/10 backdrop-blur-sm rounded-2xl p-4"
+            animate={{ y: [0, -10, 0] }}
+            transition={{ duration: 3, repeat: Infinity }}
+          >
+            <p className="text-sm font-medium">1,190+ Matches Made</p>
+          </motion.div>
+        </div>
+      </div>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-neutral-700 mb-2">
-              Password
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              className={`input-field ${errors.password ? 'border-red-500' : ''}`}
-              placeholder="Enter your password"
-              value={formData.password}
-              onChange={handleChange}
-            />
-            {errors.password && (
-              <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-            )}
-          </div>
+      {/* Right Side - Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12">
+        <motion.div
+          initial="initial"
+          animate="animate"
+          variants={staggerContainer}
+          className="w-full max-w-md"
+        >
+          {/* Mobile Logo */}
+          <motion.div variants={fadeInUp} className="lg:hidden text-center mb-8">
+            <span className="text-3xl font-display font-bold text-gradient-primary">
+              TricityMatch
+            </span>
+          </motion.div>
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <input
-                id="remember-me"
-                name="remember-me"
-                type="checkbox"
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-neutral-700">
-                Remember me
+          <motion.div variants={fadeInUp} className="text-center mb-8">
+            <h2 className="text-3xl font-display font-bold text-neutral-800 mb-2">
+              Sign In
+            </h2>
+            <p className="text-neutral-600">
+              Welcome back to TricityMatch
+            </p>
+          </motion.div>
+
+          <motion.form 
+            variants={fadeInUp}
+            onSubmit={handleSubmit}
+            className={`card space-y-6 ${shakeTrigger ? 'animate-shake' : ''}`}
+          >
+            {/* Email Field */}
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-neutral-700 mb-2">
+                Email Address
               </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <FiMail className={`w-5 h-5 ${errors.email ? 'text-destructive' : 'text-neutral-400'}`} />
+                </div>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  className={`input-field pl-12 ${errors.email ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : ''}`}
+                  placeholder="you@example.com"
+                  value={formData.email}
+                  onChange={handleChange}
+                />
+              </div>
+              <AnimatePresence>
+                {errors.email && (
+                  <motion.p 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="mt-2 text-sm text-destructive flex items-center gap-1"
+                  >
+                    {errors.email}
+                  </motion.p>
+                )}
+              </AnimatePresence>
             </div>
 
-            <div className="text-sm">
-              <Link to="#" className="font-medium text-primary hover:text-primary-600">
+            {/* Password Field */}
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-neutral-700 mb-2">
+                Password
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <FiLock className={`w-5 h-5 ${errors.password ? 'text-destructive' : 'text-neutral-400'}`} />
+                </div>
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  required
+                  className={`input-field pl-12 pr-12 ${errors.password ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : ''}`}
+                  placeholder="Enter your password"
+                  value={formData.password}
+                  onChange={handleChange}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-neutral-400 hover:text-neutral-600 transition-colors"
+                >
+                  {showPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
+                </button>
+              </div>
+              <AnimatePresence>
+                {errors.password && (
+                  <motion.p 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="mt-2 text-sm text-destructive"
+                  >
+                    {errors.password}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Remember Me & Forgot Password */}
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 rounded border-neutral-300 text-primary-500 focus:ring-primary-500"
+                />
+                <span className="text-sm text-neutral-700">Remember me</span>
+              </label>
+              <Link 
+                to="/forgot-password" 
+                className="text-sm font-medium text-primary-500 hover:text-primary-600 transition-colors"
+              >
                 Forgot password?
               </Link>
             </div>
-          </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+            {/* Submit Button */}
+            <motion.button
+              type="submit"
+              disabled={loading}
+              whileHover={{ scale: loading ? 1 : 1.01 }}
+              whileTap={{ scale: loading ? 1 : 0.99 }}
+              className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  Sign In
+                  <FiArrowRight className="w-5 h-5" />
+                </>
+              )}
+            </motion.button>
+
+            {/* Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-neutral-200" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-4 bg-white text-neutral-500">New to TricityMatch?</span>
+              </div>
+            </div>
+
+            {/* Create Account Link */}
+            <Link
+              to="/signup"
+              className="btn-secondary w-full flex items-center justify-center gap-2"
+            >
+              Create Your Profile
+            </Link>
+          </motion.form>
+
+          {/* Trust Badges */}
+          <motion.div 
+            variants={fadeInUp}
+            className="mt-8 flex items-center justify-center gap-6 text-xs text-neutral-500"
           >
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
-
-          <div className="text-center">
-            <p className="text-sm text-neutral-600">
-              Don't have an account?{' '}
-              <Link to="/signup" className="font-medium text-primary hover:text-primary-600">
-                Create one
-              </Link>
-            </p>
-          </div>
-        </form>
-      </motion.div>
+            <div className="flex items-center gap-1">
+              <FiShield className="w-4 h-4 text-success" />
+              <span>SSL Secured</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <FiHeart className="w-4 h-4 text-primary-500" />
+              <span>100% Privacy</span>
+            </div>
+          </motion.div>
+        </motion.div>
+      </div>
     </div>
   );
 };
 
 export default Login;
-

@@ -62,5 +62,15 @@ User.prototype.comparePassword = async function(candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
+// Override toJSON to exclude sensitive fields from API responses
+User.prototype.toJSON = function() {
+  const values = { ...this.get() };
+  
+  // Remove sensitive fields
+  delete values.password;
+  
+  return values;
+};
+
 module.exports = User;
 

@@ -2,6 +2,28 @@ const { Message, User, Profile, Subscription, Match } = require('../models');
 const { Op } = require('sequelize');
 const { sendMessageNotification } = require('../utils/emailService');
 
+// Message constraints
+const MAX_MESSAGE_LENGTH = 2000;
+
+// Sanitize message content to prevent XSS
+const sanitizeMessage = (content) => {
+  if (typeof content !== 'string') return '';
+  
+  return content
+    // Remove HTML tags
+    .replace(/<[^>]*>/g, '')
+    // Escape special HTML characters
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    // Remove null bytes and control characters (except newlines and tabs)
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    // Trim whitespace
+    .trim();
+};
+
 // @route   GET /api/chat/conversations
 // @desc    Get all conversations for current user
 // @access  Private
@@ -208,6 +230,19 @@ exports.sendMessage = async (req, res) => {
       return res.status(400).json({ message: 'Receiver ID and content are required' });
     }
 
+    // Sanitize and validate message content
+    const sanitizedContent = sanitizeMessage(content);
+    
+    if (!sanitizedContent) {
+      return res.status(400).json({ message: 'Message content cannot be empty' });
+    }
+    
+    if (sanitizedContent.length > MAX_MESSAGE_LENGTH) {
+      return res.status(400).json({ 
+        message: `Message too long. Maximum ${MAX_MESSAGE_LENGTH} characters allowed.` 
+      });
+    }
+
     // Check subscription
     const subscription = await Subscription.findOne({
       where: {
@@ -239,11 +274,11 @@ exports.sendMessage = async (req, res) => {
       });
     }
 
-    // Create message
+    // Create message with sanitized content
     const message = await Message.create({
       senderId,
       receiverId,
-      content
+      content: sanitizedContent
     });
 
     // Populate sender info
@@ -268,7 +303,7 @@ exports.sendMessage = async (req, res) => {
       await sendMessageNotification(
         receiver.email,
         `${senderProfile.firstName} ${senderProfile.lastName}`,
-        content.substring(0, 100)
+        sanitizedContent.substring(0, 100)
       );
     }
 

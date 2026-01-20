@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
-const { User } = require('../models');
+const { User, Subscription } = require('../models');
+const { Op } = require('sequelize');
 
 const auth = async (req, res, next) => {
   try {
@@ -36,5 +37,46 @@ const adminAuth = async (req, res, next) => {
   }
 };
 
-module.exports = { auth, adminAuth };
+// Middleware to require premium subscription for certain routes
+const requirePremium = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    
+    const subscription = await Subscription.findOne({
+      where: {
+        userId,
+        status: 'active',
+        planType: { [Op.in]: ['premium', 'elite'] }
+      }
+    });
+
+    if (!subscription) {
+      return res.status(403).json({ 
+        message: 'Premium subscription required',
+        code: 'PREMIUM_REQUIRED'
+      });
+    }
+
+    // Check if subscription has expired
+    if (subscription.endDate && new Date() > new Date(subscription.endDate)) {
+      // Update status to expired
+      subscription.status = 'expired';
+      await subscription.save();
+      
+      return res.status(403).json({ 
+        message: 'Your subscription has expired',
+        code: 'SUBSCRIPTION_EXPIRED'
+      });
+    }
+
+    // Attach subscription to request for use in controllers
+    req.subscription = subscription;
+    next();
+  } catch (error) {
+    console.error('Premium check error:', error);
+    res.status(500).json({ message: 'Error checking subscription status' });
+  }
+};
+
+module.exports = { auth, adminAuth, requirePremium };
 

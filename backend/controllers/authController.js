@@ -1,12 +1,24 @@
 const jwt = require('jsonwebtoken');
 const { User, Profile } = require('../models');
 const { validationResult } = require('express-validator');
+const { sendEmail } = require('../utils/emailService');
+
+// Token expiry configuration (configurable via environment)
+const JWT_EXPIRY = process.env.JWT_EXPIRY || '30d';
+const RESET_TOKEN_EXPIRY = process.env.RESET_TOKEN_EXPIRY || '1h';
 
 const generateToken = (userId) => {
   if (!process.env.JWT_SECRET) {
     throw new Error('JWT_SECRET is not configured. Please set it in .env.development file.');
   }
-  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '30d' });
+  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: JWT_EXPIRY });
+};
+
+const generateResetToken = (userId) => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET is not configured. Please set it in .env.development file.');
+  }
+  return jwt.sign({ userId, type: 'password_reset' }, process.env.JWT_SECRET, { expiresIn: RESET_TOKEN_EXPIRY });
 };
 
 // @route   POST /api/auth/signup
@@ -129,6 +141,87 @@ exports.getMe = async (req, res) => {
     });
   } catch (error) {
     console.error('Get me error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// @route   POST /api/auth/forgot-password
+// @desc    Initiate password reset
+// @access  Public
+exports.forgotPassword = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { email } = req.body;
+    const user = await User.findOne({ where: { email } });
+
+    // Respond generically to avoid email enumeration
+    if (!user) {
+      return res.json({ success: true, message: 'If the email exists, a reset link has been sent.' });
+    }
+
+    const resetToken = generateResetToken(user.id);
+    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+
+    // Send email (best effort; do not fail the flow if email fails)
+    await sendEmail(
+      user.email,
+      'Password Reset Request',
+      `<p>You requested a password reset.</p><p>Click <a href="${resetUrl}">here</a> to reset your password. This link expires in 1 hour.</p>`,
+      `Reset your password: ${resetUrl}`
+    );
+
+    // In development, return token to ease testing
+    const includeToken = process.env.NODE_ENV === 'development';
+
+    res.json({
+      success: true,
+      message: 'If the email exists, a reset link has been sent.',
+      ...(includeToken ? { resetToken } : {})
+    });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// @route   POST /api/auth/reset-password
+// @desc    Reset password using token
+// @access  Public
+exports.resetPassword = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { token, password } = req.body;
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      return res.status(400).json({ message: 'Invalid or expired reset token' });
+    }
+
+    if (decoded.type !== 'password_reset') {
+      return res.status(400).json({ message: 'Invalid reset token' });
+    }
+
+    const user = await User.findByPk(decoded.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.password = password;
+    await user.save();
+
+    res.json({ success: true, message: 'Password has been reset successfully' });
+  } catch (error) {
+    console.error('Reset password error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };

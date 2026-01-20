@@ -1,5 +1,6 @@
-const { Profile, User, ProfileView, Subscription } = require('../models');
+const { Profile, User, ProfileView, Subscription, Match } = require('../models');
 const { calculateCompatibility } = require('../utils/compatibility');
+const { Op } = require('sequelize');
 const path = require('path');
 
 // Calculate profile completion percentage based on IMPORTANT fields only
@@ -190,6 +191,17 @@ exports.getProfile = async (req, res) => {
       compatibilityScore = calculateCompatibility(viewerProfile, profile);
     }
 
+    // Check if viewer has already liked or shortlisted this profile
+    const existingMatch = await Match.findOne({
+      where: {
+        userId: viewerId,
+        matchedUserId: userId
+      }
+    });
+
+    const isLiked = existingMatch && existingMatch.action === 'like';
+    const isShortlisted = existingMatch && existingMatch.action === 'shortlist';
+
     // Prepare response with privacy checks
     const profileData = profile.toJSON();
     if (!hasPremiumAccess) {
@@ -203,7 +215,9 @@ exports.getProfile = async (req, res) => {
       success: true,
       profile: profileData,
       compatibilityScore,
-      hasPremiumAccess
+      hasPremiumAccess,
+      isLiked,
+      isShortlisted
     });
   } catch (error) {
     console.error('Get profile error:', error);
@@ -220,45 +234,48 @@ exports.getProfileStats = async (req, res) => {
     const now = new Date();
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    // Profile views this week
-    const viewsThisWeek = await ProfileView.count({
-      where: {
-        viewedUserId: userId,
-        createdAt: { [require('sequelize').Op.gte]: weekAgo }
-      }
-    });
-
-    // Total profile views
-    const totalViews = await ProfileView.count({
-      where: { viewedUserId: userId }
-    });
-
-    // Likes received
-    const { Match } = require('../models');
-    const likesReceived = await Match.count({
-      where: {
-        matchedUserId: userId,
-        action: 'like'
-      }
-    });
-
-    // Likes by city
-    const likesByCity = await Match.findAll({
-      where: {
-        matchedUserId: userId,
-        action: 'like'
-      },
-      include: [{
-        model: User,
-        as: 'User',
+    // Run all independent queries in parallel for better performance
+    const [viewsThisWeek, totalViews, likesReceived, likesByCity] = await Promise.all([
+      // Profile views this week
+      ProfileView.count({
+        where: {
+          viewedUserId: userId,
+          createdAt: { [Op.gte]: weekAgo }
+        }
+      }),
+      
+      // Total profile views
+      ProfileView.count({
+        where: { viewedUserId: userId }
+      }),
+      
+      // Likes received
+      Match.count({
+        where: {
+          matchedUserId: userId,
+          action: 'like'
+        }
+      }),
+      
+      // Likes by city (still need join for city data)
+      Match.findAll({
+        where: {
+          matchedUserId: userId,
+          action: 'like'
+        },
         include: [{
-          model: Profile,
-          attributes: ['city']
-        }]
-      }],
-      attributes: []
-    });
+          model: User,
+          as: 'User',
+          include: [{
+            model: Profile,
+            attributes: ['city']
+          }]
+        }],
+        attributes: ['id']
+      })
+    ]);
 
+    // Process city counts in memory
     const cityCounts = {};
     likesByCity.forEach(match => {
       const city = match.User?.Profile?.city || 'Unknown';

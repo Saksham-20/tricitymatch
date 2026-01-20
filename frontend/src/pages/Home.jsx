@@ -1,9 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { FiSearch, FiHeart, FiUsers, FiBookmark, FiMessageCircle, FiEye, FiShield, FiCheckCircle, FiArrowRight, FiStar } from 'react-icons/fi';
+import { motion, useInView, useScroll, useTransform } from 'framer-motion';
+import { FiSearch, FiHeart, FiUsers, FiBookmark, FiMessageCircle, FiShield, FiCheckCircle, FiArrowRight, FiStar, FiAward, FiUserCheck } from 'react-icons/fi';
+import { staggerContainer, fadeInUp, scrollReveal, cardHover, scaleIn } from '../utils/animations';
 
 const Home = () => {
   const [hoveredProfile, setHoveredProfile] = useState(null);
+  const heroRef = useRef(null);
+  const { scrollYProgress } = useScroll();
+  const y = useTransform(scrollYProgress, [0, 1], [0, -50]);
 
   // Mock featured profiles data
   const featuredProfiles = [
@@ -13,15 +18,6 @@ const Home = () => {
     { id: 4, name: 'Anjali Nair', age: 29, location: 'Chennai, Tamil Nadu', education: 'B.Tech from NIT Trichy', match: 94 },
     { id: 5, name: 'Vikram Singh', age: 30, location: 'Pune, Maharashtra', education: 'CA from ICAI', match: 92 },
     { id: 6, name: 'Meera Reddy', age: 27, location: 'Hyderabad, Telangana', education: 'MBBS from AIIMS', match: 96 },
-    { id: 7, name: 'Rohan Kapoor', age: 33, location: 'Chandigarh, Punjab', education: 'B.Tech from IIT Kanpur', match: 91 },
-    { id: 8, name: 'Kavya Menon', age: 26, location: 'Kochi, Kerala', education: 'M.Sc from IISc Bangalore', match: 98 },
-    { id: 9, name: 'Aman Verma', age: 31, location: 'Jaipur, Rajasthan', education: 'B.Tech from IIT Roorkee', match: 90 },
-    { id: 10, name: 'Sneha Desai', age: 28, location: 'Ahmedabad, Gujarat', education: 'B.Tech from NIT Surat', match: 94 },
-    { id: 11, name: 'Aditya Kumar', age: 29, location: 'Lucknow, Uttar Pradesh', education: 'MBA from XLRI', match: 93 },
-    { id: 12, name: 'Divya Iyer', age: 27, location: 'Coimbatore, Tamil Nadu', education: 'B.Tech from PSG Tech', match: 95 },
-    { id: 13, name: 'Rohit Malhotra', age: 32, location: 'Gurgaon, Haryana', education: 'B.Tech from IIT Delhi', match: 92 },
-    { id: 14, name: 'Pooja Shah', age: 26, location: 'Surat, Gujarat', education: 'CA from ICAI', match: 96 },
-    { id: 15, name: 'Karan Mehta', age: 30, location: 'Indore, Madhya Pradesh', education: 'B.Tech from IIT Indore', match: 91 },
   ];
 
   const testimonials = [
@@ -49,878 +45,491 @@ const Home = () => {
   ];
 
   const features = [
-    { icon: <FiShield />, title: 'Verified Profiles', desc: 'Identity verification ensures trust' },
-    { icon: <FiHeart />, title: 'Smart Matching', desc: 'AI-powered compatibility algorithm' },
-    { icon: <FiUsers />, title: 'Tricity Focus', desc: 'Connect with people from your region' },
-    { icon: <FiCheckCircle />, title: 'Family Values', desc: 'Respectful, traditional approach' },
+    { icon: <FiShield className="w-7 h-7" />, title: 'Verified Profiles', desc: 'Identity verification ensures trust and safety for all members' },
+    { icon: <FiHeart className="w-7 h-7" />, title: 'Smart Matching', desc: 'AI-powered compatibility algorithm for better matches' },
+    { icon: <FiUsers className="w-7 h-7" />, title: 'Tricity Focus', desc: 'Connect with people from Chandigarh, Mohali & Panchkula' },
+    { icon: <FiCheckCircle className="w-7 h-7" />, title: 'Family Values', desc: 'Respectful, traditional approach to matrimony' },
   ];
 
-  return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#FAFAFA', paddingTop: '80px' }}>
-      {/* Unique Split Hero Section */}
-      <section style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        minHeight: '600px',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
-        {/* Left Side - Text Content */}
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          padding: '80px 60px',
-          background: 'linear-gradient(135deg, #FAFAFA 0%, #FFF7E6 100%)',
-          position: 'relative',
-          zIndex: 2
-        }}>
-          <div style={{
-            position: 'absolute',
-            top: '-100px',
-            right: '-100px',
-            width: '400px',
-            height: '400px',
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(194, 24, 91, 0.08) 0%, transparent 70%)',
-            zIndex: 1
-          }}></div>
-          
-          <div style={{ position: 'relative', zIndex: 3 }}>
-            <div style={{
-              display: 'inline-block',
-              padding: '8px 16px',
-              backgroundColor: '#fce4ec',
-              borderRadius: '20px',
-              marginBottom: '24px',
-              fontSize: '14px',
-              fontWeight: '600',
-              color: '#C2185B'
-            }}>
-              India's Trusted Matrimonial Platform
-            </div>
-            
-            <h1 style={{
-              fontSize: 'clamp(2.5rem, 5vw, 4rem)',
-              fontWeight: '800',
-              color: '#1F2937',
-              marginBottom: '24px',
-              lineHeight: '1.1',
-              letterSpacing: '-0.02em'
-            }}>
-              From Trust to
-              <span style={{ 
-                display: 'block',
-                background: 'linear-gradient(135deg, #C2185B 0%, #F59E0B 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text'
-              }}>Love</span>
-            </h1>
-            
-            <p style={{
-              fontSize: '20px',
-              color: '#6B7280',
-              marginBottom: '40px',
-              lineHeight: '1.6',
-              maxWidth: '500px'
-            }}>
-              Mindful community, genuine connection. Find your life partner through verified, trusted profiles.
-            </p>
-            
-            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-              <Link
-                to="/search"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  backgroundColor: '#C2185B',
-                  color: 'white',
-                  padding: '16px 32px',
-                  borderRadius: '12px',
-                  fontWeight: '600',
-                  fontSize: '16px',
-                  textDecoration: 'none',
-                  boxShadow: '0 10px 25px -5px rgba(194, 24, 91, 0.3)',
-                  transition: 'all 0.3s'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.transform = 'translateY(-2px)';
-                  e.target.style.boxShadow = '0 15px 35px -5px rgba(194, 24, 91, 0.4)';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = '0 10px 25px -5px rgba(194, 24, 91, 0.3)';
-                }}
-              >
-                Find Your Match
-                <FiArrowRight style={{ width: '18px', height: '18px' }} />
-              </Link>
-              
-            <Link
-              to="/signup"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  backgroundColor: 'transparent',
-                  color: '#C2185B',
-                  padding: '16px 32px',
-                  borderRadius: '12px',
-                  fontWeight: '600',
-                  fontSize: '16px',
-                  textDecoration: 'none',
-                  border: '2px solid #C2185B',
-                  transition: 'all 0.3s'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = '#fce4ec';
-                  e.target.style.transform = 'translateY(-2px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = 'transparent';
-                  e.target.style.transform = 'translateY(0)';
-                }}
-              >
-                Create Profile
-            </Link>
-            </div>
-          </div>
-        </div>
+  const stats = [
+    { value: '1,190+', label: 'Successful Matches' },
+    { value: '50,000+', label: 'Verified Profiles' },
+    { value: '98%', label: 'Satisfaction Rate' },
+    { value: '15+', label: 'Years Experience' },
+  ];
 
-        {/* Right Side - Visual Element */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '80px 60px',
-          background: 'linear-gradient(135deg, #fce4ec 0%, #FFF7E6 100%)',
-          position: 'relative',
-          overflow: 'hidden'
-        }}>
-          <div style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: '500px',
-            height: '500px',
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(245, 158, 11, 0.15) 0%, transparent 70%)',
-            animation: 'pulse 3s ease-in-out infinite'
-          }}></div>
-          
-          <div style={{
-            position: 'relative',
-            zIndex: 2,
-            textAlign: 'center'
-          }}>
-            <div style={{
-              width: '300px',
-              height: '300px',
-              borderRadius: '24px',
-              background: 'linear-gradient(135deg, #C2185B 0%, #F59E0B 100%)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              boxShadow: '0 20px 60px -15px rgba(194, 24, 91, 0.4)',
-              transform: 'rotate(-5deg)',
-              transition: 'transform 0.3s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'rotate(0deg) scale(1.05)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'rotate(-5deg) scale(1)'}
+  // Animation variants for scroll reveal
+  const SectionWrapper = ({ children, className = "" }) => {
+    const ref = useRef(null);
+    const isInView = useInView(ref, { once: true, margin: "-100px" });
+    
+    return (
+      <motion.div
+        ref={ref}
+        initial="hidden"
+        animate={isInView ? "visible" : "hidden"}
+        variants={scrollReveal}
+        className={className}
+      >
+        {children}
+      </motion.div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-background overflow-x-hidden">
+      {/* Hero Section */}
+      <section className="relative min-h-[90vh] flex items-center overflow-hidden">
+        {/* Background Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-neutral-50 via-primary-50/30 to-gold-50/40" />
+        
+        {/* Animated Background Elements */}
+        <motion.div 
+          className="absolute top-20 right-20 w-96 h-96 rounded-full bg-gradient-to-br from-primary-200/30 to-gold-200/30 blur-3xl"
+          animate={{ 
+            scale: [1, 1.1, 1],
+            opacity: [0.3, 0.5, 0.3]
+          }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div 
+          className="absolute bottom-20 left-20 w-72 h-72 rounded-full bg-gradient-to-br from-gold-200/30 to-primary-200/30 blur-3xl"
+          animate={{ 
+            scale: [1.1, 1, 1.1],
+            opacity: [0.4, 0.6, 0.4]
+          }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+        />
+
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+            {/* Left - Text Content */}
+            <motion.div 
+              className="text-center lg:text-left"
+              initial="initial"
+              animate="animate"
+              variants={staggerContainer}
             >
-              <FiHeart style={{ width: '80px', height: '80px', marginBottom: '20px' }} />
-              <div style={{ fontSize: '48px', fontWeight: 'bold', marginBottom: '10px' }}>1,190+</div>
-              <div style={{ fontSize: '18px', opacity: 0.9 }}>Successful Matches</div>
-            </div>
+              <motion.div 
+                variants={fadeInUp}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 border border-primary-100 rounded-full mb-6"
+              >
+                <FiAward className="w-4 h-4 text-primary-500" />
+                <span className="text-sm font-semibold text-primary-600">India's Trusted Matrimony Platform</span>
+              </motion.div>
+              
+              <motion.h1 
+                variants={fadeInUp}
+                className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-neutral-800 mb-6 leading-tight"
+              >
+                Where Trust Meets{' '}
+                <span className="text-gradient-primary">Love</span>
+              </motion.h1>
+              
+              <motion.p 
+                variants={fadeInUp}
+                className="text-lg md:text-xl text-neutral-600 mb-8 max-w-lg mx-auto lg:mx-0"
+              >
+                Find your perfect life partner through verified profiles and meaningful connections. 
+                Join thousands of families who found happiness with TricityMatch.
+              </motion.p>
+              
+              <motion.div 
+                variants={fadeInUp}
+                className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
+              >
+                <motion.div whileHover={{ scale: 1.02, y: -2 }} whileTap={{ scale: 0.98 }}>
+                  <Link
+                    to="/search"
+                    className="btn-primary inline-flex items-center justify-center gap-2 w-full sm:w-auto"
+                  >
+                    Find Your Match
+                    <FiArrowRight className="w-5 h-5" />
+                  </Link>
+                </motion.div>
+                
+                <motion.div whileHover={{ scale: 1.02, y: -2 }} whileTap={{ scale: 0.98 }}>
+                  <Link
+                    to="/signup"
+                    className="btn-secondary inline-flex items-center justify-center gap-2 w-full sm:w-auto"
+                  >
+                    Create Profile
+                  </Link>
+                </motion.div>
+              </motion.div>
+
+              {/* Trust Badges */}
+              <motion.div 
+                variants={fadeInUp}
+                className="flex flex-wrap gap-4 mt-10 justify-center lg:justify-start"
+              >
+                <div className="flex items-center gap-2 text-sm text-neutral-600">
+                  <FiUserCheck className="w-5 h-5 text-success" />
+                  <span>100% Verified</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-neutral-600">
+                  <FiShield className="w-5 h-5 text-success" />
+                  <span>Secure & Private</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-neutral-600">
+                  <FiStar className="w-5 h-5 text-gold" />
+                  <span>4.8/5 Rating</span>
+                </div>
+              </motion.div>
+            </motion.div>
+
+            {/* Right - Visual Element */}
+            <motion.div 
+              className="relative hidden lg:flex items-center justify-center"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+            >
+              {/* Main Stats Card */}
+              <motion.div
+                className="relative z-10"
+                animate={{ y: [0, -10, 0] }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <div className="w-80 h-80 rounded-3xl bg-gradient-hero flex flex-col items-center justify-center text-white shadow-2xl shadow-primary-500/30">
+                  <motion.div
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    <FiHeart className="w-20 h-20 mb-6" />
+                  </motion.div>
+                  <span className="text-5xl font-bold mb-2">1,190+</span>
+                  <span className="text-xl opacity-90">Successful Matches</span>
+                </div>
+              </motion.div>
+
+              {/* Floating Cards */}
+              <motion.div
+                className="absolute -top-4 -left-8 bg-white rounded-2xl shadow-card p-4"
+                animate={{ y: [0, -8, 0], rotate: [-2, 2, -2] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-success-light flex items-center justify-center">
+                    <FiCheckCircle className="w-5 h-5 text-success" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-neutral-800">Verified Profile</p>
+                    <p className="text-xs text-neutral-500">Just joined</p>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div
+                className="absolute -bottom-4 -right-8 bg-white rounded-2xl shadow-card p-4"
+                animate={{ y: [0, 8, 0], rotate: [2, -2, 2] }}
+                transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gold-50 flex items-center justify-center">
+                    <FiStar className="w-5 h-5 text-gold" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-neutral-800">New Match!</p>
+                    <p className="text-xs text-neutral-500">98% Compatible</p>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
           </div>
         </div>
       </section>
 
-      {/* Features Grid - Unique Layout */}
-      <section style={{
-        padding: '100px 0',
-        backgroundColor: '#FFFFFF',
-        position: 'relative'
-      }}>
-        <div style={{
-          maxWidth: '1400px',
-          margin: '0 auto',
-          padding: '0 40px'
-        }}>
-          <div style={{
-            textAlign: 'center',
-            marginBottom: '60px'
-          }}>
-            <h2 style={{
-              fontSize: 'clamp(2rem, 4vw, 3rem)',
-              fontWeight: 'bold',
-              color: '#1F2937',
-              marginBottom: '16px'
-            }}>
-            Why Choose TricityMatch?
-          </h2>
-            <p style={{
-              fontSize: '18px',
-              color: '#6B7280',
-              maxWidth: '600px',
-              margin: '0 auto'
-            }}>
+      {/* Stats Section */}
+      <section className="py-16 bg-white border-y border-neutral-100">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {stats.map((stat, index) => (
+              <SectionWrapper key={index}>
+                <motion.div 
+                  className="text-center"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  viewport={{ once: true }}
+                >
+                  <p className="text-3xl md:text-4xl font-bold text-gradient-primary mb-2">{stat.value}</p>
+                  <p className="text-neutral-600 text-sm md:text-base">{stat.label}</p>
+                </motion.div>
+              </SectionWrapper>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-20 md:py-28 bg-gradient-to-b from-white to-neutral-50">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <SectionWrapper className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-display font-bold text-neutral-800 mb-4">
+              Why Choose TricityMatch?
+            </h2>
+            <p className="text-lg text-neutral-600 max-w-2xl mx-auto">
               Built with trust, designed for families, powered by technology
             </p>
-          </div>
+          </SectionWrapper>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: '30px',
-            marginTop: '60px'
-          }}>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
             {features.map((feature, index) => (
-              <div
+              <motion.div
                 key={index}
-                style={{
-                  padding: '40px 30px',
-                  borderRadius: '20px',
-                  background: index % 2 === 0 
-                    ? 'linear-gradient(135deg, #FAFAFA 0%, #FFFFFF 100%)'
-                    : 'linear-gradient(135deg, #FFF7E6 0%, #FAFAFA 100%)',
-                  border: '2px solid transparent',
-                  transition: 'all 0.3s',
-                  cursor: 'pointer',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#C2185B';
-                  e.currentTarget.style.transform = 'translateY(-8px)';
-                  e.currentTarget.style.boxShadow = '0 20px 40px -10px rgba(194, 24, 91, 0.2)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'transparent';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1, duration: 0.5 }}
+                viewport={{ once: true }}
+                whileHover={{ y: -8 }}
+                className="group"
               >
-                <div style={{
-                  width: '60px',
-                  height: '60px',
-                  borderRadius: '16px',
-                  background: 'linear-gradient(135deg, #C2185B 0%, #F59E0B 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontSize: '28px',
-                  marginBottom: '24px'
-                }}>
-                  {feature.icon}
-                </div>
-                <h3 style={{
-                  fontSize: '20px',
-                  fontWeight: '600',
-                  color: '#1F2937',
-                  marginBottom: '12px'
-                }}>
-                  {feature.title}
-                </h3>
-                <p style={{
-                  fontSize: '14px',
-                  color: '#6B7280',
-                  lineHeight: '1.6'
-                }}>
-                  {feature.desc}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Profiles - Asymmetric Grid */}
-      <section style={{
-        padding: '100px 0',
-        background: 'linear-gradient(180deg, #FFFFFF 0%, #FAFAFA 100%)',
-        position: 'relative'
-      }}>
-        <div style={{
-          maxWidth: '1400px',
-          margin: '0 auto',
-          padding: '0 40px'
-        }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '60px'
-          }}>
-            <div>
-              <h2 style={{
-                fontSize: 'clamp(2rem, 4vw, 3rem)',
-                fontWeight: 'bold',
-                color: '#1F2937',
-                marginBottom: '16px'
-              }}>
-                Featured Profiles
-              </h2>
-              <p style={{
-                fontSize: '18px',
-                color: '#6B7280'
-              }}>
-                Discover verified members actively looking for their life partner
-              </p>
-            </div>
-            <Link
-              to="/search"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                color: '#C2185B',
-                fontWeight: '600',
-                textDecoration: 'none',
-                fontSize: '16px',
-                transition: 'all 0.3s'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.gap = '12px';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.gap = '8px';
-              }}
-            >
-              View All
-              <FiArrowRight style={{ width: '18px', height: '18px' }} />
-            </Link>
-          </div>
-
-          {/* Playing Cards Scattered Layout */}
-          <div style={{
-            position: 'relative',
-            width: '100%',
-            minHeight: 'calc(100vh - 200px)',
-            height: 'calc(100vh - 200px)',
-            marginBottom: '60px',
-            padding: '30px 50px'
-          }}>
-            {featuredProfiles.map((profile, index) => {
-              // Spread cards across the entire viewport - using percentage-based positioning
-              // Scattered positioning - cards spread to fill the entire screen
-              const cardPositions = [
-                { top: '5%', left: '3%', width: '200px', height: '280px', rotate: '-4deg', zIndex: 4 }, // Top left
-                { top: '2%', left: '18%', width: '190px', height: '266px', rotate: '3deg', zIndex: 3 }, // Top left-center
-                { top: '8%', left: '33%', width: '190px', height: '266px', rotate: '-2deg', zIndex: 2 }, // Top center-left
-                { top: '4%', left: '48%', width: '190px', height: '266px', rotate: '2deg', zIndex: 1 }, // Top center
-                { top: '6%', left: '63%', width: '190px', height: '266px', rotate: '-1.5deg', zIndex: 2 }, // Top center-right
-                { top: '3%', left: '78%', width: '190px', height: '266px', rotate: '2.5deg', zIndex: 1 }, // Top right
-                { top: '50%', left: '2%', width: '200px', height: '280px', rotate: '4deg', zIndex: 5 }, // Bottom left
-                { top: '48%', left: '17%', width: '190px', height: '266px', rotate: '-3deg', zIndex: 3 }, // Bottom left-center
-                { top: '52%', left: '32%', width: '190px', height: '266px', rotate: '1.5deg', zIndex: 2 }, // Bottom center-left
-                { top: '50%', left: '47%', width: '190px', height: '266px', rotate: '2.5deg', zIndex: 2 }, // Center
-                { top: '49%', left: '62%', width: '190px', height: '266px', rotate: '-1deg', zIndex: 1 }, // Bottom center-right
-                { top: '51%', left: '77%', width: '190px', height: '266px', rotate: '1.8deg', zIndex: 1 }, // Bottom right
-                { top: '25%', left: '10%', width: '190px', height: '266px', rotate: '-1.5deg', zIndex: 3 }, // Middle-left
-                { top: '27%', left: '70%', width: '190px', height: '266px', rotate: '2deg', zIndex: 2 }, // Middle-right
-                { top: '26%', left: '40%', width: '190px', height: '266px', rotate: '-2.5deg', zIndex: 3 }, // Middle-center
-              ];
-              
-              const position = cardPositions[index] || cardPositions[index % cardPositions.length];
-              const isLarge = index === 0 || index === 6; // First and seventh cards are larger
-               
-              return (
-                <div
-                  key={profile.id}
-                  style={{
-                    position: 'absolute',
-                    top: position.top,
-                    left: position.left,
-                    width: position.width,
-                    height: position.height,
-                    backgroundColor: '#FFFFFF',
-                    borderRadius: '12px', // Playing card corner radius
-                    overflow: 'hidden',
-                    boxShadow: '0 8px 30px rgba(0, 0, 0, 0.15)',
-                    border: '1px solid #E5E7EB',
-                    transition: 'all 0.3s ease-out',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    transform: `rotate(${position.rotate})`,
-                    zIndex: position.zIndex
-                  }}
-                  onMouseEnter={() => setHoveredProfile(profile.id)}
-                  onMouseLeave={() => setHoveredProfile(null)}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.borderColor = '#C2185B';
-                    e.currentTarget.style.transform = `rotate(0deg) translateY(-15px) scale(1.08)`;
-                    e.currentTarget.style.boxShadow = '0 20px 50px rgba(194, 24, 91, 0.3)';
-                    e.currentTarget.style.zIndex = '10';
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.borderColor = '#E5E7EB';
-                    e.currentTarget.style.transform = `rotate(${position.rotate})`;
-                    e.currentTarget.style.boxShadow = '0 8px 30px rgba(0, 0, 0, 0.15)';
-                    e.currentTarget.style.zIndex = position.zIndex;
-                  }}
-                 >
-                   {/* Image Section - Playing Card Style */}
-                   <div style={{
-                     flex: '0 0 auto',
-                     height: isLarge ? '160px' : '140px',
-                     background: 'linear-gradient(135deg, #f8bbd0 0%, #FFEECC 100%)',
-                     position: 'relative',
-                     display: 'flex',
-                     alignItems: 'center',
-                     justifyContent: 'center',
-                     borderBottom: '1px solid #E5E7EB'
-                   }}>
-                     <FiUsers style={{
-                       width: isLarge ? '70px' : '60px',
-                       height: isLarge ? '70px' : '60px',
-                       color: '#f06292',
-                       opacity: hoveredProfile === profile.id ? 0.7 : 1,
-                       transition: 'all 0.3s'
-                     }} />
-                     
-                     {/* Match Badge */}
-                     {profile.match >= 95 && (
-                       <div style={{
-                         position: 'absolute',
-                         top: '10px',
-                         left: '10px',
-                         backgroundColor: '#16A34A',
-                         color: 'white',
-                         padding: '4px 10px',
-                         borderRadius: '16px',
-                         fontSize: '10px',
-                         fontWeight: '600',
-                         display: 'flex',
-                         alignItems: 'center',
-                         gap: '3px',
-                         zIndex: 2
-                       }}>
-                         <FiStar style={{ width: '10px', height: '10px' }} />
-                         {profile.match}% Match
-                       </div>
-                     )}
-                     
-                     {/* Action Icons */}
-                     <div style={{
-                       position: 'absolute',
-                       top: '10px',
-                       right: '10px',
-                       display: 'flex',
-                       gap: '6px',
-                       zIndex: 2
-                     }}>
-                       <button 
-                         onClick={(e) => {
-                           e.preventDefault();
-                           e.stopPropagation();
-                         }}
-                         style={{
-                           width: '28px',
-                           height: '28px',
-                           backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                           borderRadius: '50%',
-                           border: 'none',
-                           display: 'flex',
-                           alignItems: 'center',
-                           justifyContent: 'center',
-                           cursor: 'pointer',
-                           boxShadow: '0 2px 6px rgba(0, 0, 0, 0.1)',
-                           transition: 'all 0.2s'
-                         }}
-                         onMouseEnter={(e) => {
-                           e.target.style.transform = 'scale(1.1)';
-                           e.target.style.backgroundColor = '#FFFFFF';
-                         }}
-                         onMouseLeave={(e) => {
-                           e.target.style.transform = 'scale(1)';
-                           e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
-                         }}
-                       >
-                         <FiBookmark style={{ width: '12px', height: '12px', color: '#6B7280' }} />
-                       </button>
-                       <button 
-                         onClick={(e) => {
-                           e.preventDefault();
-                           e.stopPropagation();
-                         }}
-                         style={{
-                           width: '28px',
-                           height: '28px',
-                           backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                           borderRadius: '50%',
-                           border: 'none',
-                           display: 'flex',
-                           alignItems: 'center',
-                           justifyContent: 'center',
-                           cursor: 'pointer',
-                           boxShadow: '0 2px 6px rgba(0, 0, 0, 0.1)',
-                           transition: 'all 0.2s'
-                         }}
-                         onMouseEnter={(e) => {
-                           e.target.style.transform = 'scale(1.1)';
-                           e.target.style.backgroundColor = '#FFFFFF';
-                         }}
-                         onMouseLeave={(e) => {
-                           e.target.style.transform = 'scale(1)';
-                           e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
-                         }}
-                       >
-                         <FiHeart style={{ width: '12px', height: '12px', color: '#C2185B' }} />
-                       </button>
-                     </div>
-                   </div>
-                   
-                   {/* Content Section - Playing Card Style */}
-                   <div style={{
-                     flex: '1 1 auto',
-                     padding: isLarge ? '12px' : '10px',
-                     display: 'flex',
-                     flexDirection: 'column',
-                     minHeight: 0,
-                     backgroundColor: '#FFFFFF'
-                   }}>
-                     {/* Profile Info */}
-                     <div style={{ 
-                       flex: '1 1 auto',
-                       marginBottom: '8px',
-                       minHeight: 0
-                     }}>
-                       <h3 style={{
-                         fontSize: isLarge ? '15px' : '14px',
-                         fontWeight: '600',
-                         color: '#1F2937',
-                         marginBottom: '4px',
-                         lineHeight: '1.3'
-                       }}>
-                         {profile.name}
-                       </h3>
-                       <p style={{
-                         fontSize: '11px',
-                         color: '#6B7280',
-                         marginBottom: '3px',
-                         lineHeight: '1.4'
-                       }}>
-                         {profile.age} years • {profile.location.split(',')[0]}
-                       </p>
-                       {isLarge && (
-                         <p style={{
-                           fontSize: '10px',
-                           color: '#9CA3AF',
-                           marginTop: '4px',
-                           lineHeight: '1.4'
-                         }}>
-                           {profile.education}
-                         </p>
-                       )}
-                     </div>
-                     
-                     {/* Action Buttons - Always at bottom */}
-                     <div style={{ 
-                       display: 'flex', 
-                       gap: '5px',
-                       marginTop: 'auto',
-                       paddingTop: '8px',
-                       borderTop: '1px solid #F3F4F6',
-                       flexShrink: 0
-                     }}>
-                       <button 
-                         onClick={(e) => {
-                           e.preventDefault();
-                           e.stopPropagation();
-                         }}
-                         style={{
-                           flex: 1,
-                           backgroundColor: '#F59E0B',
-                           color: 'white',
-                           padding: '6px 8px',
-                           borderRadius: '5px',
-                           fontWeight: '500',
-                           fontSize: '11px',
-                           border: 'none',
-                           cursor: 'pointer',
-                           transition: 'all 0.2s',
-                           display: 'flex',
-                           alignItems: 'center',
-                           justifyContent: 'center',
-                           height: '28px',
-                           lineHeight: '1'
-                         }}
-                         onMouseEnter={(e) => {
-                           e.target.style.backgroundColor = '#D6890A';
-                           e.target.style.transform = 'translateY(-1px)';
-                         }}
-                         onMouseLeave={(e) => {
-                           e.target.style.backgroundColor = '#F59E0B';
-                           e.target.style.transform = 'translateY(0)';
-                         }}
-                       >
-                         Message
-                       </button>
-                       <Link
-                         to={`/profile/${profile.id}`}
-                         onClick={(e) => e.stopPropagation()}
-                         style={{
-                           flex: 1,
-                           backgroundColor: 'transparent',
-                           border: '1.5px solid #E5E7EB',
-                           color: '#C2185B',
-                           padding: '6px 8px',
-                           borderRadius: '5px',
-                           fontWeight: '500',
-                           fontSize: '11px',
-                           textDecoration: 'none',
-                           textAlign: 'center',
-                           transition: 'all 0.2s',
-                           display: 'flex',
-                           alignItems: 'center',
-                           justifyContent: 'center',
-                           height: '28px',
-                           lineHeight: '1'
-                         }}
-                         onMouseEnter={(e) => {
-                           e.target.style.borderColor = '#C2185B';
-                           e.target.style.backgroundColor = '#fce4ec';
-                           e.target.style.transform = 'translateY(-1px)';
-                         }}
-                         onMouseLeave={(e) => {
-                           e.target.style.borderColor = '#E5E7EB';
-                           e.target.style.backgroundColor = 'transparent';
-                           e.target.style.transform = 'translateY(0)';
-                         }}
-                       >
-                         View
-                       </Link>
-                     </div>
-                   </div>
-                 </div>
-               );
-             })}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials - Side by Side Layout */}
-      <section style={{
-        padding: '100px 0',
-        backgroundColor: '#FFFFFF',
-        position: 'relative'
-      }}>
-        <div style={{
-          maxWidth: '1400px',
-          margin: '0 auto',
-          padding: '0 40px'
-        }}>
-          <div style={{
-            textAlign: 'center',
-            marginBottom: '60px'
-          }}>
-            <h2 style={{
-              fontSize: 'clamp(2rem, 4vw, 3rem)',
-              fontWeight: 'bold',
-              color: '#1F2937',
-              marginBottom: '16px'
-            }}>
-              Success Stories
-            </h2>
-            <p style={{
-              fontSize: '18px',
-              color: '#6B7280'
-            }}>
-              Real couples, real stories, real happiness
-            </p>
-          </div>
-
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '40px'
-          }}>
-            {testimonials.map((testimonial, index) => (
-              <div
-                key={index}
-                style={{
-                  backgroundColor: index === 1 ? '#FFF7E6' : '#FAFAFA',
-                  borderRadius: '24px',
-                  padding: '40px',
-                  border: index === 1 ? '2px solid #F59E0B' : '2px solid transparent',
-                  transition: 'all 0.3s',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-8px)';
-                  e.currentTarget.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.1)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
-              >
-                <div style={{
-                  fontSize: '60px',
-                  marginBottom: '20px',
-                  textAlign: 'center'
-                }}>
-                  {testimonial.image}
-                </div>
-                
-                <p style={{
-                  fontSize: '16px',
-                  color: '#374151',
-                  lineHeight: '1.7',
-                  marginBottom: '24px',
-                  fontStyle: 'italic',
-                  textAlign: 'center'
-                }}>
-                  "{testimonial.quote}"
-                </p>
-                
-                <div style={{
-                  textAlign: 'center',
-                  paddingTop: '24px',
-                  borderTop: '1px solid #E5E7EB'
-                }}>
-                  <h4 style={{
-                    fontWeight: '600',
-                    color: '#1F2937',
-                    marginBottom: '4px'
-                  }}>
-                    {testimonial.names}
-                  </h4>
-                  <p style={{
-                    fontSize: '14px',
-                    color: '#9CA3AF'
-                  }}>
-                    {testimonial.location} • {testimonial.date}
+                <div className="h-full p-8 rounded-2xl bg-white border border-neutral-100 shadow-card hover:shadow-card-hover hover:border-primary-100 transition-all duration-300">
+                  <div className="w-14 h-14 rounded-xl bg-gradient-hero flex items-center justify-center text-white mb-6 group-hover:scale-110 transition-transform duration-300">
+                    {feature.icon}
+                  </div>
+                  <h3 className="text-xl font-semibold text-neutral-800 mb-3">
+                    {feature.title}
+                  </h3>
+                  <p className="text-neutral-600">
+                    {feature.desc}
                   </p>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Final CTA - Unique Split Design */}
-      <section style={{
-        padding: '120px 0',
-        background: 'linear-gradient(135deg, #C2185B 0%, #F59E0B 100%)',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
-        <div style={{
-          position: 'absolute',
-          top: '-200px',
-          right: '-200px',
-          width: '600px',
-          height: '600px',
-          borderRadius: '50%',
-          background: 'rgba(255, 255, 255, 0.1)',
-          filter: 'blur(80px)'
-        }}></div>
-        
-        <div style={{
-          maxWidth: '1200px',
-          margin: '0 auto',
-          padding: '0 40px',
-          position: 'relative',
-          zIndex: 2
-        }}>
-          <div style={{
-            textAlign: 'center',
-            color: 'white'
-          }}>
-            <h2 style={{
-              fontSize: 'clamp(2.5rem, 5vw, 4rem)',
-              fontWeight: 'bold',
-              marginBottom: '24px',
-              lineHeight: '1.2'
-            }}>
-              Ready to Begin Your Journey?
-          </h2>
-            <p style={{
-              fontSize: '20px',
-              marginBottom: '40px',
-              opacity: 0.95,
-              maxWidth: '600px',
-              margin: '0 auto 40px'
-            }}>
-              Join thousands of families who found their perfect match through TricityMatch
-            </p>
-            
-            <div style={{
-              display: 'flex',
-              gap: '20px',
-              justifyContent: 'center',
-              flexWrap: 'wrap'
-            }}>
-          <Link
-            to="/signup"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  backgroundColor: 'white',
-                  color: '#C2185B',
-                  padding: '18px 40px',
-                  borderRadius: '12px',
-                  fontWeight: '600',
-                  fontSize: '18px',
-                  textDecoration: 'none',
-                  boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)',
-                  transition: 'all 0.3s'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.transform = 'translateY(-4px)';
-                  e.target.style.boxShadow = '0 15px 40px rgba(0, 0, 0, 0.3)';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.2)';
-                }}
-              >
-                Create Your Profile
-                <FiArrowRight style={{ width: '20px', height: '20px' }} />
-              </Link>
-              
-              <Link
-                to="/search"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  backgroundColor: 'transparent',
-                  color: 'white',
-                  padding: '18px 40px',
-                  borderRadius: '12px',
-                  fontWeight: '600',
-                  fontSize: '18px',
-                  textDecoration: 'none',
-                  border: '2px solid white',
-                  transition: 'all 0.3s'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                  e.target.style.transform = 'translateY(-4px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = 'transparent';
-                  e.target.style.transform = 'translateY(0)';
-                }}
-              >
-                Browse Profiles
-          </Link>
+      {/* Featured Profiles Section */}
+      <section className="py-20 md:py-28 bg-neutral-50">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <SectionWrapper>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-12">
+              <div>
+                <h2 className="text-3xl md:text-4xl font-display font-bold text-neutral-800 mb-3">
+                  Featured Profiles
+                </h2>
+                <p className="text-lg text-neutral-600">
+                  Discover verified members actively looking for their life partner
+                </p>
+              </div>
+              <motion.div whileHover={{ x: 5 }} className="mt-4 md:mt-0">
+                <Link
+                  to="/search"
+                  className="inline-flex items-center gap-2 text-primary-500 font-semibold hover:text-primary-600 transition-colors"
+                >
+                  View All Profiles
+                  <FiArrowRight className="w-5 h-5" />
+                </Link>
+              </motion.div>
             </div>
+          </SectionWrapper>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+            {featuredProfiles.map((profile, index) => (
+              <motion.div
+                key={profile.id}
+                initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ delay: index * 0.1, duration: 0.4 }}
+                viewport={{ once: true }}
+                whileHover={{ y: -8 }}
+                className="group"
+              >
+                <div className="bg-white rounded-2xl overflow-hidden border border-neutral-100 shadow-card hover:shadow-card-hover transition-all duration-300">
+                  {/* Profile Image Placeholder */}
+                  <div className="relative h-48 bg-gradient-to-br from-primary-100 via-gold-50 to-primary-50 flex items-center justify-center">
+                    <FiUsers className="w-16 h-16 text-primary-300 group-hover:scale-110 transition-transform duration-300" />
+                    
+                    {/* Match Badge */}
+                    {profile.match >= 95 && (
+                      <motion.div 
+                        className="absolute top-4 left-4 px-3 py-1.5 bg-success text-white text-xs font-semibold rounded-full flex items-center gap-1.5 shadow-md"
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 0.3, type: "spring" }}
+                      >
+                        <FiStar className="w-3 h-3" />
+                        {profile.match}% Match
+                      </motion.div>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div className="absolute top-4 right-4 flex gap-2">
+                      <motion.button 
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="w-9 h-9 bg-white/95 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md hover:bg-white transition-colors"
+                      >
+                        <FiBookmark className="w-4 h-4 text-neutral-600" />
+                      </motion.button>
+                      <motion.button 
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="w-9 h-9 bg-white/95 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md hover:bg-white transition-colors"
+                      >
+                        <FiHeart className="w-4 h-4 text-primary-500" />
+                      </motion.button>
+                    </div>
+                  </div>
+
+                  {/* Profile Info */}
+                  <div className="p-5">
+                    <h3 className="text-lg font-semibold text-neutral-800 mb-1">
+                      {profile.name}
+                    </h3>
+                    <p className="text-sm text-neutral-600 mb-2">
+                      {profile.age} years • {profile.location.split(',')[0]}
+                    </p>
+                    <p className="text-xs text-neutral-500 mb-4">
+                      {profile.education}
+                    </p>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-3">
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="flex-1 py-2.5 bg-gold text-white text-sm font-semibold rounded-xl hover:bg-gold-600 transition-colors"
+                      >
+                        Express Interest
+                      </motion.button>
+                      <Link
+                        to={`/profile/${profile.id}`}
+                        className="flex-1 py-2.5 border-2 border-neutral-200 text-primary-500 text-sm font-semibold rounded-xl text-center hover:border-primary-500 hover:bg-primary-50 transition-all"
+                      >
+                        View Profile
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
+
+      {/* Testimonials Section */}
+      <section className="py-20 md:py-28 bg-white">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <SectionWrapper className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-display font-bold text-neutral-800 mb-4">
+              Success Stories
+            </h2>
+            <p className="text-lg text-neutral-600">
+              Real couples, real stories, real happiness
+            </p>
+          </SectionWrapper>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.15, duration: 0.5 }}
+                viewport={{ once: true }}
+                whileHover={{ y: -6 }}
+                className={`p-8 rounded-3xl transition-all duration-300 ${
+                  index === 1 
+                    ? 'bg-gradient-to-br from-gold-50 to-primary-50 border-2 border-gold-200' 
+                    : 'bg-neutral-50 border border-neutral-100'
+                }`}
+              >
+                <div className="text-5xl mb-6 text-center">{testimonial.image}</div>
+                <p className="text-neutral-700 italic text-center mb-6 leading-relaxed">
+                  "{testimonial.quote}"
+                </p>
+                <div className="text-center pt-6 border-t border-neutral-200">
+                  <h4 className="font-semibold text-neutral-800">{testimonial.names}</h4>
+                  <p className="text-sm text-neutral-500">{testimonial.location} • {testimonial.date}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 md:py-28 bg-gradient-hero relative overflow-hidden">
+        {/* Background Glow */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-72 h-72 bg-white/10 rounded-full blur-3xl" />
+        
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <SectionWrapper className="text-center">
+            <motion.h2 
+              className="text-3xl md:text-4xl lg:text-5xl font-display font-bold text-white mb-6"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+            >
+              Ready to Begin Your Journey?
+            </motion.h2>
+            <motion.p 
+              className="text-lg md:text-xl text-white/90 mb-10 max-w-2xl mx-auto"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              viewport={{ once: true }}
+            >
+              Join thousands of families who found their perfect match through TricityMatch
+            </motion.p>
+            
+            <motion.div 
+              className="flex flex-col sm:flex-row gap-4 justify-center"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              viewport={{ once: true }}
+            >
+              <motion.div whileHover={{ scale: 1.02, y: -2 }} whileTap={{ scale: 0.98 }}>
+                <Link
+                  to="/signup"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-primary-500 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
+                >
+                  Create Your Profile
+                  <FiArrowRight className="w-5 h-5" />
+                </Link>
+              </motion.div>
+              
+              <motion.div whileHover={{ scale: 1.02, y: -2 }} whileTap={{ scale: 0.98 }}>
+                <Link
+                  to="/search"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-transparent border-2 border-white text-white font-semibold rounded-xl hover:bg-white/10 transition-all"
+                >
+                  Browse Profiles
+                </Link>
+              </motion.div>
+            </motion.div>
+          </SectionWrapper>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-12 bg-neutral-900 text-white">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <div>
+              <span className="text-2xl font-display font-bold bg-gradient-to-r from-primary-400 to-gold-400 bg-clip-text text-transparent">
+                TricityMatch
+              </span>
+              <p className="text-neutral-400 text-sm mt-2">India's Trusted Matrimony Platform</p>
+            </div>
+            <div className="flex items-center gap-6 text-sm text-neutral-400">
+              <Link to="/about" className="hover:text-white transition-colors">About</Link>
+              <Link to="/contact" className="hover:text-white transition-colors">Contact</Link>
+              <Link to="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+              <Link to="/terms" className="hover:text-white transition-colors">Terms</Link>
+            </div>
+            <p className="text-sm text-neutral-500">
+              © 2024 TricityMatch. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

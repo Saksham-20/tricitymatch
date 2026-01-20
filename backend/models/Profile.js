@@ -192,6 +192,17 @@ const Profile = sequelize.define('Profile', {
     type: DataTypes.BOOLEAN,
     defaultValue: false
   }
+}, {
+  indexes: [
+    // Frequently filtered in search queries
+    { fields: ['city'] },
+    { fields: ['gender'] },
+    { fields: ['isActive'] },
+    // Composite index for common search pattern
+    { fields: ['isActive', 'gender', 'city'] },
+    // For age-based filtering (calculated from dateOfBirth)
+    { fields: ['dateOfBirth'] }
+  ]
 });
 
 module.exports = Profile;
