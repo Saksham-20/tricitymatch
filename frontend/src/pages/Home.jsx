@@ -25,22 +25,28 @@ const Home = () => {
       names: 'Priya & Arjun',
       location: 'Mumbai, Maharashtra',
       date: 'June 2024',
-      quote: 'We found our perfect match through this wonderful platform. The journey from strangers to soulmates has been magical.',
-      image: '👫'
+      quote: 'We found our perfect match through this wonderful platform. The journey from strangers to soulmates has been magical. TricityMatch understood what we were looking for.',
+      initials: 'PA',
+      verified: true,
+      years: '2'
     },
     {
       names: 'Anjali & Rohan',
       location: 'Delhi, NCR',
       date: 'August 2024',
-      quote: 'TricityMatch made it so easy to connect with like-minded people. The verification process gave us confidence!',
-      image: '💑'
+      quote: 'TricityMatch made it so easy to connect with like-minded people. The verification process gave us confidence. We knew we could trust the profiles we were seeing!',
+      initials: 'AR',
+      verified: true,
+      years: '1'
     },
     {
       names: 'Meera & Vikram',
       location: 'Bangalore, Karnataka',
       date: 'September 2024',
-      quote: 'From the first message to our engagement, everything felt right. Family values and compatibility made all the difference.',
-      image: '💒'
+      quote: 'From the first message to our engagement, everything felt right. Family values and compatibility made all the difference. Thank you, TricityMatch!',
+      initials: 'MV',
+      verified: true,
+      years: '1'
     },
   ];
 
@@ -122,16 +128,17 @@ const Home = () => {
                 variants={fadeInUp}
                 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-neutral-800 mb-6 leading-tight"
               >
-                Where Trust Meets{' '}
-                <span className="text-gradient-primary">Love</span>
+                Your Journey to{' '}
+                <span className="text-gradient-primary">Forever</span>{' '}
+                Starts Here
               </motion.h1>
               
               <motion.p 
                 variants={fadeInUp}
                 className="text-lg md:text-xl text-neutral-600 mb-8 max-w-lg mx-auto lg:mx-0"
               >
-                Find your perfect life partner through verified profiles and meaningful connections. 
-                Join thousands of families who found happiness with TricityMatch.
+                Discover meaningful connections through verified profiles and heartfelt stories. 
+                Join thousands of happy families who found their perfect match with TricityMatch.
               </motion.p>
               
               <motion.div 
@@ -143,7 +150,7 @@ const Home = () => {
                     to="/search"
                     className="btn-primary inline-flex items-center justify-center gap-2 w-full sm:w-auto"
                   >
-                    Find Your Match
+                    Begin Your Story
                     <FiArrowRight className="w-5 h-5" />
                   </Link>
                 </motion.div>
@@ -415,11 +422,20 @@ const Home = () => {
       <section className="py-20 md:py-28 bg-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <SectionWrapper className="text-center mb-16">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gold-50 border border-gold-200 rounded-full mb-4"
+            >
+              <FiHeart className="w-4 h-4 text-primary-500" />
+              <span className="text-sm font-semibold text-gold-700">Love Stories</span>
+            </motion.div>
             <h2 className="text-3xl md:text-4xl font-display font-bold text-neutral-800 mb-4">
-              Success Stories
+              Happy Couples, Beautiful Beginnings
             </h2>
-            <p className="text-lg text-neutral-600">
-              Real couples, real stories, real happiness
+            <p className="text-lg text-neutral-600 max-w-2xl mx-auto">
+              These are real stories from real couples who found their forever with TricityMatch
             </p>
           </SectionWrapper>
 
@@ -432,19 +448,50 @@ const Home = () => {
                 transition={{ delay: index * 0.15, duration: 0.5 }}
                 viewport={{ once: true }}
                 whileHover={{ y: -6 }}
-                className={`p-8 rounded-3xl transition-all duration-300 ${
+                className={`relative p-8 rounded-3xl transition-all duration-300 ${
                   index === 1 
                     ? 'bg-gradient-to-br from-gold-50 to-primary-50 border-2 border-gold-200' 
                     : 'bg-neutral-50 border border-neutral-100'
                 }`}
               >
-                <div className="text-5xl mb-6 text-center">{testimonial.image}</div>
-                <p className="text-neutral-700 italic text-center mb-6 leading-relaxed">
+                {/* Verified Badge */}
+                {testimonial.verified && (
+                  <div className="absolute top-4 right-4">
+                    <div className="flex items-center gap-1 px-2 py-1 bg-success-light rounded-full">
+                      <FiCheckCircle className="w-3 h-3 text-success" />
+                      <span className="text-[10px] font-semibold text-success">Verified</span>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Couple Avatar */}
+                <div className="flex justify-center mb-6">
+                  <div className="relative">
+                    <div className="w-20 h-20 rounded-full bg-gradient-hero flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                      {testimonial.initials}
+                    </div>
+                    <motion.div
+                      className="absolute -bottom-1 -right-1 w-7 h-7 bg-white rounded-full flex items-center justify-center shadow-md"
+                      animate={{ scale: [1, 1.1, 1] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                    >
+                      <FiHeart className="w-4 h-4 text-primary-500 fill-primary-500" />
+                    </motion.div>
+                  </div>
+                </div>
+                
+                {/* Quote */}
+                <p className="text-neutral-700 text-center mb-6 leading-relaxed">
                   "{testimonial.quote}"
                 </p>
+                
+                {/* Details */}
                 <div className="text-center pt-6 border-t border-neutral-200">
                   <h4 className="font-semibold text-neutral-800">{testimonial.names}</h4>
-                  <p className="text-sm text-neutral-500">{testimonial.location} • {testimonial.date}</p>
+                  <p className="text-sm text-neutral-500 mb-2">{testimonial.location} • {testimonial.date}</p>
+                  <span className="inline-block px-3 py-1 bg-primary-50 text-primary-600 text-xs font-medium rounded-full">
+                    Together {testimonial.years} year{testimonial.years !== '1' ? 's' : ''}
+                  </span>
                 </div>
               </motion.div>
             ))}
@@ -466,7 +513,7 @@ const Home = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
-              Ready to Begin Your Journey?
+              Your Story Awaits
             </motion.h2>
             <motion.p 
               className="text-lg md:text-xl text-white/90 mb-10 max-w-2xl mx-auto"
@@ -475,7 +522,8 @@ const Home = () => {
               transition={{ delay: 0.1 }}
               viewport={{ once: true }}
             >
-              Join thousands of families who found their perfect match through TricityMatch
+              Every love story is unique. Yours is waiting to be written. 
+              Join thousands of happy families who found their perfect match with TricityMatch.
             </motion.p>
             
             <motion.div 

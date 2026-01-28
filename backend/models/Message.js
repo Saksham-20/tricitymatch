@@ -31,7 +31,19 @@ const Message = sequelize.define('Message', {
     type: DataTypes.BOOLEAN,
     defaultValue: false
   },
+  deliveredAt: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
   readAt: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  isEdited: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  editedAt: {
     type: DataTypes.DATE,
     allowNull: true
   }

@@ -44,14 +44,16 @@ const Navbar = () => {
   const NavLink = ({ path, label, icon: Icon }) => (
     <Link
       to={path}
+      aria-current={isActive(path) ? 'page' : undefined}
       className={`group relative flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 ${
         isActive(path)
           ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-burgundy'
           : 'text-neutral-600 hover:text-primary-500 hover:bg-primary-50'
       }`}
     >
-      <Icon className={`w-4 h-4 transition-transform duration-300 ${!isActive(path) && 'group-hover:scale-110'}`} />
+      <Icon className={`w-4 h-4 transition-transform duration-300 ${!isActive(path) && 'group-hover:scale-110'}`} aria-hidden="true" />
       <span className="hidden md:inline">{label}</span>
+      <span className="md:hidden sr-only">{label}</span>
       
       {/* Active indicator */}
       {isActive(path) && (
@@ -66,10 +68,20 @@ const Navbar = () => {
 
   return (
     <>
+      {/* Skip to main content link for accessibility */}
+      <a 
+        href="#main-content" 
+        className="skip-link focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary-500 focus:text-white focus:rounded-lg focus:font-semibold focus:shadow-lg"
+      >
+        Skip to main content
+      </a>
+      
       <motion.nav
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
+        role="navigation"
+        aria-label="Main navigation"
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           isScrolled 
             ? 'bg-white/98 backdrop-blur-lg shadow-lg border-b border-neutral-100' 
@@ -128,9 +140,10 @@ const Navbar = () => {
                   onClick={handleLogout}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
+                  aria-label="Log out of your account"
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-neutral-600 hover:text-red-600 hover:bg-red-50 transition-all duration-200"
                 >
-                  <FiLogOut className="w-4 h-4" />
+                  <FiLogOut className="w-4 h-4" aria-hidden="true" />
                   <span className="hidden lg:inline">Logout</span>
                 </motion.button>
               </div>
@@ -160,12 +173,15 @@ const Navbar = () => {
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-expanded={isMobileMenuOpen}
+              aria-controls="mobile-menu"
+              aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
               className="md:hidden p-2 rounded-xl text-neutral-600 hover:text-primary-500 hover:bg-primary-50 transition-colors"
             >
               {isMobileMenuOpen ? (
-                <FiX className="w-6 h-6" />
+                <FiX className="w-6 h-6" aria-hidden="true" />
               ) : (
-                <FiMenu className="w-6 h-6" />
+                <FiMenu className="w-6 h-6" aria-hidden="true" />
               )}
             </motion.button>
           </div>
@@ -188,6 +204,10 @@ const Navbar = () => {
             
             {/* Menu Panel */}
             <motion.div
+              id="mobile-menu"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Mobile navigation menu"
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}

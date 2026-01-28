@@ -147,7 +147,10 @@ module.exports = {
         personalityType: ['INTJ', 'ENFP', 'ISFJ', 'ESTP', 'INFP'][Math.floor(Math.random() * 5)],
         languages: userLanguages,
         bio: `Hi, I'm ${name.first}. I'm a ${professions[Math.floor(Math.random() * professions.length)]} based in ${cities[Math.floor(Math.random() * cities.length)]}. Looking for someone special to share life's journey with.`,
-        completionPercentage: 85 + Math.floor(Math.random() * 15),
+        // Profile photo placeholder for complete profile (using UI Avatars service)
+        profilePhoto: `/uploads/photos/default-male-${(i % 5) + 1}.jpg`,
+        photos: [`/uploads/photos/default-male-${(i % 5) + 1}.jpg`],
+        completionPercentage: 100, // All fields filled = 100%
         isActive: true,
         showPhone: hasSubscription,
         showEmail: hasSubscription,
@@ -260,7 +263,10 @@ module.exports = {
         personalityType: ['ENFJ', 'ISFP', 'ESTJ', 'INTP', 'ESFP'][Math.floor(Math.random() * 5)],
         languages: userLanguages,
         bio: `Hello! I'm ${name.first}. A ${professions[Math.floor(Math.random() * professions.length)]} from ${cities[Math.floor(Math.random() * cities.length)]}. Looking for a life partner who values family and growth.`,
-        completionPercentage: 80 + Math.floor(Math.random() * 20),
+        // Profile photo placeholder for complete profile
+        profilePhoto: `/uploads/photos/default-female-${(i % 5) + 1}.jpg`,
+        photos: [`/uploads/photos/default-female-${(i % 5) + 1}.jpg`],
+        completionPercentage: 100, // All fields filled = 100%
         isActive: true,
         showPhone: hasSubscription,
         showEmail: hasSubscription,

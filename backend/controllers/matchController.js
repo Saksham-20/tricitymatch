@@ -220,20 +220,41 @@ exports.getMutualMatches = async (req, res) => {
           as: 'MatchedUser',
           include: [{
             model: Profile,
-            where: { isActive: true }
+            where: { isActive: true },
+            required: false  // Allow matches even if Profile query fails
           }]
         }
       ],
       order: [['mutualMatchDate', 'DESC']]
     });
 
+    // Filter out matches where Profile doesn't exist and map to expected format
+    const validMatches = mutualMatches
+      .filter(match => match.MatchedUser && match.MatchedUser.Profile)
+      .map(match => {
+        const profile = match.MatchedUser.Profile.toJSON();
+        return {
+          // Include userId from the matched user (not from Profile)
+          userId: match.matchedUserId,
+          firstName: profile.firstName,
+          lastName: profile.lastName,
+          city: profile.city,
+          profilePhoto: profile.profilePhoto,
+          // Include additional fields that might be useful
+          gender: profile.gender,
+          dateOfBirth: profile.dateOfBirth,
+          education: profile.education,
+          profession: profile.profession,
+          matchedAt: match.mutualMatchDate,
+          compatibilityScore: match.compatibilityScore
+        };
+      });
+
+    console.log(`Found ${validMatches.length} mutual matches for user ${userId}`);
+
     res.json({
       success: true,
-      mutualMatches: mutualMatches.map(match => ({
-        ...match.MatchedUser.Profile.toJSON(),
-        matchedAt: match.mutualMatchDate,
-        compatibilityScore: match.compatibilityScore
-      }))
+      mutualMatches: validMatches
     });
   } catch (error) {
     console.error('Get mutual matches error:', error);

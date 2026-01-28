@@ -76,6 +76,16 @@ exports.getMyProfile = async (req, res) => {
       return res.status(404).json({ message: 'Profile not found' });
     }
 
+    // Always recalculate completion percentage to ensure accuracy
+    const profileData = profile.toJSON();
+    const calculatedCompletion = calculateCompletion(profileData);
+    
+    // Update if different from stored value
+    if (profile.completionPercentage !== calculatedCompletion) {
+      profile.completionPercentage = calculatedCompletion;
+      await profile.save();
+    }
+
     res.json({
       success: true,
       profile

@@ -676,3 +676,89 @@
     display: none;
   }
 }
+
+/* =============================================== */
+/* ACCESSIBILITY - REDUCED MOTION                  */
+/* =============================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  /* Ensure critical transitions remain functional but instant */
+  .btn-primary,
+  .btn-secondary,
+  .btn-gold,
+  .card,
+  .nav-link {
+    transition: none !important;
+  }
+}
+
+/* =============================================== */
+/* ACCESSIBILITY - FOCUS STYLES                    */
+/* =============================================== */
+
+/* Global focus-visible styles for keyboard navigation */
+:focus-visible {
+  outline: 2px solid #8B2346;
+  outline-offset: 2px;
+}
+
+/* Enhanced focus for buttons */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid #8B2346;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(139, 35, 70, 0.15);
+}
+
+/* Form inputs focus */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  border-color: #8B2346;
+  box-shadow: 0 0 0 4px rgba(139, 35, 70, 0.1);
+}
+
+/* Skip link for screen readers */
+.skip-link {
+  @apply sr-only;
+}
+
+.skip-link:focus {
+  @apply not-sr-only fixed top-4 left-4 z-[100] px-4 py-2 bg-primary-500 text-white rounded-lg font-semibold shadow-lg;
+}
+
+/* Focus ring utility */
+.focus-ring {
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2;
+}
+
+/* =============================================== */
+/* MOBILE SAFE AREA                                */
+/* =============================================== */
+
+/* iOS Safe Area support for bottom navigation */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.h-safe-area-inset-bottom {
+  height: env(safe-area-inset-bottom, 0px);
+}
+
+/* Bottom navigation spacing */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+}

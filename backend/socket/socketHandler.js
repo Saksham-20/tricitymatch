@@ -44,8 +44,9 @@ const initializeSocket = (io) => {
 
     // Handle joining a conversation room
     socket.on('join-room', async (roomId) => {
-      // Extract user IDs from roomId (format: userId1-userId2)
-      const userIds = roomId.split('-');
+      // Extract user IDs from roomId (format: userId1_room_userId2)
+      // Using _room_ as separator since UUIDs contain hyphens
+      const userIds = roomId.split('_room_');
       const otherUserId = userIds.find(id => id !== socket.userId);
       
       if (!otherUserId) {
@@ -74,8 +75,8 @@ const initializeSocket = (io) => {
     // Handle sending a message (messages are created via API, socket just broadcasts)
     socket.on('send-message', async ({ roomId, message }) => {
       try {
-        // Extract receiver ID from roomId
-        const userIds = roomId.split('-');
+        // Extract receiver ID from roomId (format: userId1_room_userId2)
+        const userIds = roomId.split('_room_');
         const receiverId = userIds.find(id => id !== socket.userId);
         
         if (!receiverId) {
@@ -111,11 +112,35 @@ const initializeSocket = (io) => {
 
     // Handle typing indicator
     socket.on('typing', ({ receiverId, isTyping }) => {
-      const roomId = [socket.userId, receiverId].sort().join('-');
+      const roomId = [socket.userId, receiverId].sort().join('_room_');
       socket.to(roomId).emit('user_typing', {
         userId: socket.userId,
         isTyping
       });
+    });
+
+    // Handle message edited (broadcast to other user)
+    socket.on('message-edited', ({ roomId, message }) => {
+      // Broadcast to room excluding sender
+      socket.to(roomId).emit('message-edited', { message });
+      
+      // Also notify receiver's personal room
+      const userIds = roomId.split('_room_');
+      const receiverId = userIds.find(id => id !== socket.userId);
+      if (receiverId) {
+        socket.to(`user_${receiverId}`).emit('message-edited', { message });
+      }
+    });
+
+    // Handle message deleted (broadcast to other user)
+    socket.on('message-deleted', ({ roomId, messageId, receiverId }) => {
+      // Broadcast to room excluding sender
+      socket.to(roomId).emit('message-deleted', { messageId });
+      
+      // Also notify receiver's personal room
+      if (receiverId) {
+        socket.to(`user_${receiverId}`).emit('message-deleted', { messageId });
+      }
     });
 
     // Handle disconnect

@@ -2,10 +2,11 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Navbar from './components/common/Navbar';
+import BottomNav from './components/common/BottomNav';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -144,41 +145,59 @@ const AnimatedRoutes = () => {
   );
 };
 
+// Wrapper component to access auth context
+const AppContent = () => {
+  const { isAuthenticated } = useAuth();
+  const location = useLocation();
+  
+  // Don't show bottom nav on chat page (it has its own navigation)
+  const showBottomNav = isAuthenticated && location.pathname !== '/chat';
+  
+  return (
+    <>
+      <Navbar />
+      <main id="main-content" tabIndex="-1" className={showBottomNav ? 'pb-20 md:pb-0' : ''}>
+        <AnimatedRoutes />
+      </main>
+      {showBottomNav && <BottomNav />}
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#FFFFFF',
+            color: '#2D2D2D',
+            borderRadius: '12px',
+            border: '1px solid #E8E8E8',
+            boxShadow: '0 10px 30px rgba(139, 35, 70, 0.1)',
+            padding: '16px',
+            fontFamily: 'Inter, sans-serif',
+          },
+          success: {
+            iconTheme: {
+              primary: '#2E7D32',
+              secondary: '#FFFFFF',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#C62828',
+              secondary: '#FFFFFF',
+            },
+          },
+        }}
+      />
+    </>
+  );
+};
+
 function App() {
   return (
     <AuthProvider>
       <SocketProvider>
         <Router>
           <div className="min-h-screen bg-background">
-            <Navbar />
-            <AnimatedRoutes />
-            <Toaster 
-              position="top-right"
-              toastOptions={{
-                duration: 4000,
-                style: {
-                  background: '#FFFFFF',
-                  color: '#2D2D2D',
-                  borderRadius: '12px',
-                  border: '1px solid #E8E8E8',
-                  boxShadow: '0 10px 30px rgba(139, 35, 70, 0.1)',
-                  padding: '16px',
-                  fontFamily: 'Inter, sans-serif',
-                },
-                success: {
-                  iconTheme: {
-                    primary: '#2E7D32',
-                    secondary: '#FFFFFF',
-                  },
-                },
-                error: {
-                  iconTheme: {
-                    primary: '#C62828',
-                    secondary: '#FFFFFF',
-                  },
-                },
-              }}
-            />
+            <AppContent />
           </div>
         </Router>
       </SocketProvider>

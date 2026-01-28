@@ -103,7 +103,7 @@ const Login = () => {
               Welcome Back
             </h1>
             <p className="text-lg opacity-90 mb-8">
-              Continue your journey to find your perfect life partner
+              We've missed you! Continue your beautiful journey to find your soulmate
             </p>
             
             <div className="flex items-center justify-center gap-6 text-sm">
@@ -149,7 +149,7 @@ const Login = () => {
               Sign In
             </h2>
             <p className="text-neutral-600">
-              Welcome back to TricityMatch
+              We're so happy you're here. Your journey continues...
             </p>
           </motion.div>
 

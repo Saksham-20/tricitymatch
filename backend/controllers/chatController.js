@@ -196,9 +196,23 @@ exports.getMessages = async (req, res) => {
       order: [['createdAt', 'ASC']]
     });
 
-    // Mark messages as read
+    const now = new Date();
+
+    // Mark messages sent TO current user as delivered (if not already)
     await Message.update(
-      { isRead: true, readAt: new Date() },
+      { deliveredAt: now },
+      {
+        where: {
+          senderId: otherUserId,
+          receiverId: currentUserId,
+          deliveredAt: null
+        }
+      }
+    );
+
+    // Mark messages sent TO current user as read
+    await Message.update(
+      { isRead: true, readAt: now },
       {
         where: {
           senderId: otherUserId,
@@ -208,9 +222,28 @@ exports.getMessages = async (req, res) => {
       }
     );
 
+    // Reload messages to get updated status
+    const updatedMessages = await Message.findAll({
+      where: {
+        [Op.or]: [
+          { senderId: currentUserId, receiverId: otherUserId },
+          { senderId: otherUserId, receiverId: currentUserId }
+        ]
+      },
+      include: [
+        {
+          model: User,
+          as: 'Sender',
+          attributes: ['id'],
+          include: [{ model: Profile, attributes: ['firstName', 'lastName', 'profilePhoto'] }]
+        }
+      ],
+      order: [['createdAt', 'ASC']]
+    });
+
     res.json({
       success: true,
-      messages
+      messages: updatedMessages
     });
   } catch (error) {
     console.error('Get messages error:', error);
@@ -313,6 +346,117 @@ exports.sendMessage = async (req, res) => {
     });
   } catch (error) {
     console.error('Send message error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// @route   PUT /api/chat/messages/:messageId
+// @desc    Edit a message (only sender can edit)
+// @access  Private
+exports.editMessage = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { content } = req.body;
+    const userId = req.user.id;
+
+    if (!content) {
+      return res.status(400).json({ message: 'Message content is required' });
+    }
+
+    // Sanitize and validate
+    const sanitizedContent = sanitizeMessage(content);
+    
+    if (!sanitizedContent) {
+      return res.status(400).json({ message: 'Message content cannot be empty' });
+    }
+    
+    if (sanitizedContent.length > MAX_MESSAGE_LENGTH) {
+      return res.status(400).json({ 
+        message: `Message too long. Maximum ${MAX_MESSAGE_LENGTH} characters allowed.` 
+      });
+    }
+
+    // Find the message
+    const message = await Message.findByPk(messageId);
+
+    if (!message) {
+      return res.status(404).json({ message: 'Message not found' });
+    }
+
+    // Only sender can edit their message
+    if (message.senderId !== userId) {
+      return res.status(403).json({ message: 'You can only edit your own messages' });
+    }
+
+    // Check if message is too old to edit (optional: 15 minutes limit)
+    const messageAge = Date.now() - new Date(message.createdAt).getTime();
+    const maxEditTime = 15 * 60 * 1000; // 15 minutes
+    if (messageAge > maxEditTime) {
+      return res.status(403).json({ message: 'Message is too old to edit (15 minute limit)' });
+    }
+
+    // Update message
+    message.content = sanitizedContent;
+    message.isEdited = true;
+    message.editedAt = new Date();
+    await message.save();
+
+    // Return updated message with sender info
+    const updatedMessage = await Message.findByPk(messageId, {
+      include: [
+        {
+          model: User,
+          as: 'Sender',
+          attributes: ['id'],
+          include: [{ model: Profile, attributes: ['firstName', 'lastName', 'profilePhoto'] }]
+        }
+      ]
+    });
+
+    res.json({
+      success: true,
+      message: updatedMessage
+    });
+  } catch (error) {
+    console.error('Edit message error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// @route   DELETE /api/chat/messages/:messageId
+// @desc    Delete a message (only sender can delete)
+// @access  Private
+exports.deleteMessage = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const userId = req.user.id;
+
+    // Find the message
+    const message = await Message.findByPk(messageId);
+
+    if (!message) {
+      return res.status(404).json({ message: 'Message not found' });
+    }
+
+    // Only sender can delete their message
+    if (message.senderId !== userId) {
+      return res.status(403).json({ message: 'You can only delete your own messages' });
+    }
+
+    // Store message ID before deletion
+    const deletedMessageId = message.id;
+    const receiverId = message.receiverId;
+
+    // Delete the message
+    await message.destroy();
+
+    res.json({
+      success: true,
+      deletedMessageId,
+      receiverId
+    });
+  } catch (error) {
+    console.error('Delete message error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };

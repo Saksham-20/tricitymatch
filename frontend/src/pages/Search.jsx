@@ -185,7 +185,7 @@ const Search = () => {
               transition={{ delay: 0.2 }}
               className="text-3xl md:text-4xl font-display font-bold text-white mb-3"
             >
-              Find Your Perfect Match
+              Discover Your Perfect Match
             </motion.h1>
             <motion.p 
               initial={{ opacity: 0, y: 20 }}
@@ -193,7 +193,7 @@ const Search = () => {
               transition={{ delay: 0.3 }}
               className="text-white/90 text-lg max-w-2xl mx-auto"
             >
-              Discover meaningful connections from verified profiles in the Tricity area
+              Every profile is a story waiting to meet yours. Find verified matches from the Tricity area.
             </motion.p>
           </div>
         </motion.div>
@@ -430,8 +430,8 @@ const Search = () => {
                 <div className="w-20 h-20 bg-gradient-to-br from-primary-100 to-gold-100 rounded-full flex items-center justify-center mx-auto mb-6">
                   <FiUsers className="w-10 h-10 text-primary-500" />
                 </div>
-                <p className="text-neutral-800 mb-2 text-xl font-semibold">No profiles found</p>
-                <p className="text-neutral-600 mb-6">Try adjusting your filters to see more results</p>
+                <p className="text-neutral-800 mb-2 text-xl font-semibold font-display">Keep Searching</p>
+                <p className="text-neutral-600 mb-6">Your perfect match might be just a filter away. Try expanding your preferences!</p>
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
