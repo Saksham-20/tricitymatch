@@ -10,6 +10,8 @@ import InterestTags from "../profile/InterestTags"
 import ProfilePrompts from "../profile/ProfilePrompts"
 import SocialMediaLinks from "../profile/SocialMediaLinks"
 import SpotifyIntegration from "../profile/SpotifyIntegration"
+import { API_BASE_URL } from "../../utils/api"
+import { getImageUrl } from "../../utils/cloudinary"
 
 interface ProfileMultiStepFormProps {
   initialData?: Record<string, any>
@@ -607,7 +609,7 @@ export function ProfileMultiStepForm({
                   <div className="flex items-center gap-4">
                     {profile.profilePhoto && (
                       <img
-                        src={`http://localhost:5000${profile.profilePhoto}`}
+                        src={getImageUrl(profile.profilePhoto, API_BASE_URL, 'thumbnail')}
                         alt="Profile"
                         className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
                       />

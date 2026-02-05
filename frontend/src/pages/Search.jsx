@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { FiFilter, FiHeart, FiStar, FiX, FiBookmark, FiSearch, FiMapPin, FiBriefcase, FiBook, FiUsers, FiCalendar, FiChevronDown, FiArrowRight } from 'react-icons/fi';
 import { staggerContainer, fadeInUp, scaleIn } from '../utils/animations';
 import { API_BASE_URL } from '../utils/api';
+import { getImageUrl } from '../utils/cloudinary';
 
 const Search = () => {
   const [profiles, setProfiles] = useState([]);
@@ -557,7 +558,7 @@ const ProfileCard = ({ profile, userId, index, onLike, onShortlist }) => {
       <div className="relative h-52 overflow-hidden">
         {profile.profilePhoto ? (
           <img
-            src={`${API_BASE_URL}${profile.profilePhoto}`}
+            src={getImageUrl(profile.profilePhoto, API_BASE_URL, 'profile')}
             alt={fullName}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
             onError={(e) => {

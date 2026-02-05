@@ -7,6 +7,7 @@ import { FiHeart, FiStar, FiX, FiInstagram, FiLinkedin, FiFacebook, FiTwitter, F
 import CompatibilityMeter from '../components/matching/CompatibilityMeter';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../utils/api';
+import { getImageUrl } from '../utils/cloudinary';
 
 const ProfileDetail = () => {
   const { userId } = useParams();
@@ -100,14 +101,14 @@ const ProfileDetail = () => {
               {profile.profilePhoto ? (
                 <div className="grid grid-cols-2 gap-4">
                   <img
-                    src={`${API_BASE_URL}${profile.profilePhoto}`}
+                    src={getImageUrl(profile.profilePhoto, API_BASE_URL, 'full')}
                     alt={profile.firstName}
                     className="w-full h-64 object-cover rounded-lg border border-gray-200"
                   />
                   {profile.photos && profile.photos.slice(0, 3).map((photo, index) => (
                     <img
                       key={index}
-                      src={`${API_BASE_URL}${photo}`}
+                      src={getImageUrl(photo, API_BASE_URL, 'full')}
                       alt={`${profile.firstName} ${index + 1}`}
                       className="w-full h-64 object-cover rounded-lg border border-gray-200"
                     />

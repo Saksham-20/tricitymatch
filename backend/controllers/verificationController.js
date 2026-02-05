@@ -23,16 +23,10 @@ exports.submitVerification = async (req, res) => {
       });
     }
 
-    // Handle file uploads
-    const documentFront = req.files?.documentFront?.[0] 
-      ? `/uploads/documents/${req.files.documentFront[0].filename}` 
-      : null;
-    const documentBack = req.files?.documentBack?.[0] 
-      ? `/uploads/documents/${req.files.documentBack[0].filename}` 
-      : null;
-    const selfiePhoto = req.files?.selfiePhoto?.[0] 
-      ? `/uploads/documents/${req.files.selfiePhoto[0].filename}` 
-      : null;
+    // Handle file uploads - Cloudinary returns full URL in file.path
+    const documentFront = req.files?.documentFront?.[0]?.path || null;
+    const documentBack = req.files?.documentBack?.[0]?.path || null;
+    const selfiePhoto = req.files?.selfiePhoto?.[0]?.path || null;
 
     if (!documentFront || !selfiePhoto) {
       return res.status(400).json({ 
@@ -112,4 +106,3 @@ exports.getVerificationStatus = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
-

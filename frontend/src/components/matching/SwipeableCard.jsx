@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { FiHeart, FiStar, FiX, FiInfo, FiCheck } from 'react-icons/fi';
 import { formatCompatibilityScore } from '../../utils/compatibility';
+import { API_BASE_URL } from '../../utils/api';
+import { getImageUrl } from '../../utils/cloudinary';
 
 const SwipeableCard = ({ profile, onSwipe, onLike, onShortlist, onPass, onViewDetails }) => {
   const [exitX, setExitX] = useState(0);
@@ -35,7 +37,7 @@ const SwipeableCard = ({ profile, onSwipe, onLike, onShortlist, onPass, onViewDe
         <div className="relative h-96 bg-gray-200 overflow-hidden">
           {profile.profilePhoto ? (
             <img
-              src={`http://localhost:5000${profile.profilePhoto}`}
+              src={getImageUrl(profile.profilePhoto, API_BASE_URL, 'full')}
               alt={profile.firstName}
               className="w-full h-full object-cover"
             />

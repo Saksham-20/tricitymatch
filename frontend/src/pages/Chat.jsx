@@ -7,6 +7,7 @@ import { FiSend, FiMessageCircle, FiCheck, FiEdit2, FiTrash2, FiX, FiChevronLeft
 import { BsCheck, BsCheckAll, BsEmojiSmile } from 'react-icons/bs';
 import { HiOutlinePhotograph } from 'react-icons/hi';
 import { API_BASE_URL } from '../utils/api';
+import { getImageUrl } from '../utils/cloudinary';
 
 // Custom scrollbar styles (injected once)
 const scrollbarStyles = `
@@ -518,7 +519,7 @@ const Chat = () => {
                   <div className="relative flex-shrink-0">
                     {match.profilePhoto ? (
                       <img
-                        src={`${API_BASE_URL}${match.profilePhoto}`}
+                        src={getImageUrl(match.profilePhoto, API_BASE_URL, 'thumbnail')}
                         alt={match.firstName}
                         className="w-14 h-14 rounded-full object-cover ring-2 ring-white shadow-md"
                       />
@@ -571,7 +572,7 @@ const Chat = () => {
                   <div className="relative">
                     {selectedMatch.profilePhoto ? (
                       <img
-                        src={`${API_BASE_URL}${selectedMatch.profilePhoto}`}
+                        src={getImageUrl(selectedMatch.profilePhoto, API_BASE_URL, 'avatar')}
                         alt={`Profile photo of ${selectedMatch.firstName}`}
                         className="w-11 h-11 rounded-full object-cover ring-2 ring-primary-100"
                       />

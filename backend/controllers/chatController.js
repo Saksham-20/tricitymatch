@@ -445,12 +445,8 @@ exports.deleteMessage = async (req, res) => {
 
     // Store message ID before deletion
     const deletedMessageId = message.id;
-    const receiverId = message.receiverId;
-
-    // Delete the message
-    await message.destroy();
-
-    res.json({
+    const receiverId = message.receiverId;    // Delete the message
+    await message.destroy();    res.json({
       success: true,
       deletedMessageId,
       receiverId
@@ -460,4 +456,3 @@ exports.deleteMessage = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
-

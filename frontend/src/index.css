@@ -750,13 +750,9 @@ textarea:focus-visible {
 /* iOS Safe Area support for bottom navigation */
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-
-.h-safe-area-inset-bottom {
+}.h-safe-area-inset-bottom {
   height: env(safe-area-inset-bottom, 0px);
-}
-
-/* Bottom navigation spacing */
+}/* Bottom navigation spacing */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .pb-safe {
     padding-bottom: calc(1rem + env(safe-area-inset-bottom));

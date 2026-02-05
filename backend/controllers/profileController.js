@@ -1,7 +1,10 @@
 const { Profile, User, ProfileView, Subscription, Match } = require('../models');
 const { calculateCompatibility } = require('../utils/compatibility');
+const { deleteFromCloudinary } = require('../middlewares/upload');
 const { Op } = require('sequelize');
-const path = require('path');
+
+// Maximum number of gallery photos allowed
+const MAX_GALLERY_PHOTOS = 5;
 
 // Calculate profile completion percentage based on IMPORTANT fields only
 const calculateCompletion = (profile) => {
@@ -112,14 +115,42 @@ exports.updateProfile = async (req, res) => {
     
     // Handle photo uploads
     if (req.files) {
+      // Handle gallery photos
       if (req.files.photos) {
-        const photoPaths = req.files.photos.map(file => 
-          `/uploads/photos/${file.filename}`
-        );
-        updateData.photos = [...(profile.photos || []), ...photoPaths];
+        // Get new photo URLs from Cloudinary (file.path contains full URL)
+        const newPhotoPaths = req.files.photos.map(file => file.path);
+        const existingPhotos = profile.photos || [];
+        const combinedPhotos = [...existingPhotos, ...newPhotoPaths];
+        
+        // Limit to MAX_GALLERY_PHOTOS
+        if (combinedPhotos.length > MAX_GALLERY_PHOTOS) {
+          // Delete excess photos from Cloudinary
+          const photosToDelete = combinedPhotos.slice(MAX_GALLERY_PHOTOS);
+          for (const photoUrl of photosToDelete) {
+            try {
+              await deleteFromCloudinary(photoUrl);
+            } catch (err) {
+              console.error('Error deleting excess photo:', err);
+            }
+          }
+          updateData.photos = combinedPhotos.slice(0, MAX_GALLERY_PHOTOS);
+        } else {
+          updateData.photos = combinedPhotos;
+        }
       }
+      
+      // Handle profile photo
       if (req.files.profilePhoto && req.files.profilePhoto[0]) {
-        updateData.profilePhoto = `/uploads/photos/${req.files.profilePhoto[0].filename}`;
+        // Delete old profile photo from Cloudinary if exists
+        if (profile.profilePhoto) {
+          try {
+            await deleteFromCloudinary(profile.profilePhoto);
+          } catch (err) {
+            console.error('Error deleting old profile photo:', err);
+          }
+        }
+        // Use full Cloudinary URL from file.path
+        updateData.profilePhoto = req.files.profilePhoto[0].path;
       }
     }
 
@@ -148,6 +179,106 @@ exports.updateProfile = async (req, res) => {
     });
   } catch (error) {
     console.error('Update profile error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// @route   DELETE /api/profile/me/photo
+// @desc    Delete a photo from gallery
+// @access  Private
+exports.deletePhoto = async (req, res) => {
+  try {
+    const { photoUrl } = req.body;
+    
+    if (!photoUrl) {
+      return res.status(400).json({ message: 'Photo URL is required' });
+    }
+    
+    const profile = await Profile.findOne({ where: { userId: req.user.id } });
+    
+    if (!profile) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
+    
+    const photos = profile.photos || [];
+    
+    // Check if photo exists in gallery
+    const photoIndex = photos.indexOf(photoUrl);
+    if (photoIndex === -1) {
+      return res.status(404).json({ message: 'Photo not found in gallery' });
+    }
+    
+    // Delete from Cloudinary
+    try {
+      await deleteFromCloudinary(photoUrl);
+    } catch (err) {
+      console.error('Error deleting photo from Cloudinary:', err);
+      // Continue even if Cloudinary deletion fails
+    }
+    
+    // Remove from photos array
+    photos.splice(photoIndex, 1);
+    profile.photos = photos;
+    await profile.save();
+    
+    // Recalculate completion
+    await profile.reload();
+    const profileData = profile.toJSON();
+    const completion = calculateCompletion(profileData);
+    profile.completionPercentage = completion;
+    await profile.save();
+    
+    res.json({
+      success: true,
+      message: 'Photo deleted successfully',
+      photos: profile.photos
+    });
+  } catch (error) {
+    console.error('Delete photo error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// @route   DELETE /api/profile/me/profile-photo
+// @desc    Delete profile photo
+// @access  Private
+exports.deleteProfilePhoto = async (req, res) => {
+  try {
+    const profile = await Profile.findOne({ where: { userId: req.user.id } });
+    
+    if (!profile) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
+    
+    if (!profile.profilePhoto) {
+      return res.status(404).json({ message: 'No profile photo to delete' });
+    }
+    
+    // Delete from Cloudinary
+    try {
+      await deleteFromCloudinary(profile.profilePhoto);
+    } catch (err) {
+      console.error('Error deleting profile photo from Cloudinary:', err);
+      // Continue even if Cloudinary deletion fails
+    }
+    
+    // Remove from profile
+    profile.profilePhoto = null;
+    await profile.save();
+    
+    // Recalculate completion
+    await profile.reload();
+    const profileData = profile.toJSON();
+    const completion = calculateCompletion(profileData);
+    profile.completionPercentage = completion;
+    await profile.save();
+    
+    res.json({
+      success: true,
+      message: 'Profile photo deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete profile photo error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
@@ -306,4 +437,3 @@ exports.getProfileStats = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
-

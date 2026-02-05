@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiHeart, FiStar, FiBookmark, FiMapPin, FiCalendar, FiBook, FiBriefcase } from 'react-icons/fi';
 import { API_BASE_URL } from '../../utils/api';
+import { getImageUrl } from '../../utils/cloudinary';
 
 /**
  * ProfileCard Component - Reusable card for displaying user profiles
@@ -84,7 +85,7 @@ const ProfileCard = ({
           <div className="relative flex-shrink-0">
             {profile.profilePhoto ? (
               <img
-                src={`${API_BASE_URL}${profile.profilePhoto}`}
+                src={getImageUrl(profile.profilePhoto, API_BASE_URL, 'thumbnail')}
                 alt={`Profile photo of ${fullName}`}
                 className="w-14 h-14 rounded-full object-cover ring-2 ring-white shadow-md"
               />
@@ -150,7 +151,7 @@ const ProfileCard = ({
       <div className="relative h-52 overflow-hidden">
         {profile.profilePhoto ? (
           <img
-            src={`${API_BASE_URL}${profile.profilePhoto}`}
+            src={getImageUrl(profile.profilePhoto, API_BASE_URL, 'profile')}
             alt={`Profile photo of ${fullName}`}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
             onError={(e) => {

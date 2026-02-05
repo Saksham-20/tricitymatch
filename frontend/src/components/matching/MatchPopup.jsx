@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiHeart, FiMessageCircle, FiX, FiArrowRight } from 'react-icons/fi';
 import { API_BASE_URL } from '../../utils/api';
+import { getImageUrl } from '../../utils/cloudinary';
 
 /**
  * MatchPopup Component - Celebration popup when two users match
@@ -185,7 +186,7 @@ const MatchPopup = ({
                 >
                   {currentUser?.profilePhoto ? (
                     <img
-                      src={`${API_BASE_URL}${currentUser.profilePhoto}`}
+                      src={getImageUrl(currentUser.profilePhoto, API_BASE_URL, 'profile')}
                       alt="Your profile"
                       className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
                     />
@@ -213,7 +214,7 @@ const MatchPopup = ({
                 >
                   {matchedUser?.profilePhoto ? (
                     <img
-                      src={`${API_BASE_URL}${matchedUser.profilePhoto}`}
+                      src={getImageUrl(matchedUser.profilePhoto, API_BASE_URL, 'profile')}
                       alt={`${matchedUser?.firstName}'s profile`}
                       className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
                     />
