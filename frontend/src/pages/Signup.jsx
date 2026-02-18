@@ -14,10 +14,11 @@ const Signup = () => {
   const navigate = useNavigate();
 
   const handleMultiStepComplete = async (data) => {
-    // Split fullName into firstName and lastName
-    const nameParts = data.fullName.trim().split(" ");
+    // Split fullName into firstName and lastName (backend requires both, min 2 chars each)
+    const nameParts = data.fullName.trim().split(/\s+/).filter(Boolean);
     const firstName = nameParts[0] || "";
-    const lastName = nameParts.slice(1).join(" ") || "";
+    let lastName = nameParts.slice(1).join(" ") || "";
+    if (!lastName) lastName = firstName; // single name: use first name as last name so backend validation passes
 
     // Validate
     const newErrors = {};
@@ -25,10 +26,10 @@ const Signup = () => {
       newErrors.email = 'Please enter a valid email';
     }
     if (!validatePassword(data.password)) {
-      newErrors.password = 'Password must be at least 6 characters';
+      newErrors.password = 'Password must be at least 8 characters and include uppercase, lowercase, number, and special character';
     }
     if (!validateName(firstName)) {
-      newErrors.fullName = 'Please enter your full name';
+      newErrors.fullName = 'Please enter your full name (at least 2 characters)';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -36,12 +37,12 @@ const Signup = () => {
       return;
     }
 
-    // Prepare form data
+    // Prepare form data (backend expects firstName, lastName, email, password)
     const signupData = {
-      email: data.email,
+      email: data.email.trim(),
       password: data.password,
-      firstName,
-      lastName,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
     };
 
     setLoading(true);
@@ -50,9 +51,7 @@ const Signup = () => {
       setLoading(false);
       
       if (result.success) {
-        setTimeout(() => {
-          navigate('/profile');
-        }, 100);
+        navigate('/dashboard', { replace: true });
       }
     } catch (error) {
       setLoading(false);
@@ -168,7 +167,7 @@ const Signup = () => {
             variants={fadeInUp}
             className="card"
           >
-            <SignupMultiStepForm onComplete={handleMultiStepComplete} errors={errors} />
+            <SignupMultiStepForm onComplete={handleMultiStepComplete} errors={errors} loading={loading} />
           </motion.div>
 
           {/* Footer Link */}

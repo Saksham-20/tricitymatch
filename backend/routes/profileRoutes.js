@@ -1,14 +1,62 @@
+/**
+ * Profile Routes
+ * Profile management endpoints with validation and rate limiting
+ */
+
 const express = require('express');
 const router = express.Router();
-const { getMyProfile, updateProfile, getProfile, getProfileStats, deletePhoto, deleteProfilePhoto } = require('../controllers/profileController');
-const { auth } = require('../middlewares/auth');
+const { 
+  getMyProfile, 
+  updateProfile, 
+  getProfile, 
+  getProfileStats, 
+  deletePhoto, 
+  deleteProfilePhoto 
+} = require('../controllers/profileController');
+const { auth, verifyTargetUser } = require('../middlewares/auth');
 const { uploadPhotos, validateUploadedFiles } = require('../middlewares/upload');
+const { handleValidationErrors } = require('../middlewares/errorHandler');
+const { profileUpdateLimiter, uploadLimiter } = require('../middlewares/security');
+const { updateProfileValidation, getProfileValidation, deletePhotoValidation } = require('../validators');
 
+// ==================== OWN PROFILE ROUTES ====================
+
+// Get own profile
 router.get('/me', auth, getMyProfile);
-router.put('/me', auth, uploadPhotos, validateUploadedFiles, updateProfile);
+
+// Update own profile (with optional file uploads)
+router.put('/me', 
+  auth, 
+  profileUpdateLimiter,
+  uploadPhotos,
+  validateUploadedFiles,
+  updateProfileValidation,
+  handleValidationErrors,
+  updateProfile
+);
+
+// Get profile stats
 router.get('/me/stats', auth, getProfileStats);
-router.delete('/me/photo', auth, deletePhoto);
+
+// Delete a gallery photo
+router.delete('/me/photo', 
+  auth,
+  deletePhotoValidation,
+  handleValidationErrors,
+  deletePhoto
+);
+
+// Delete profile photo
 router.delete('/me/profile-photo', auth, deleteProfilePhoto);
-router.get('/:userId', auth, getProfile);
+
+// ==================== OTHER USER PROFILE ROUTES ====================
+
+// Get another user's profile (with privacy checks)
+router.get('/:userId', 
+  auth,
+  getProfileValidation,
+  handleValidationErrors,
+  getProfile
+);
 
 module.exports = router;

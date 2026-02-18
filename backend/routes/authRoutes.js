@@ -1,56 +1,116 @@
+/**
+ * Authentication Routes
+ * All auth-related endpoints with proper validation and rate limiting
+ */
+
 const express = require('express');
 const router = express.Router();
-const { body } = require('express-validator');
-const rateLimit = require('express-rate-limit');
-const { signup, login, getMe, forgotPassword, resetPassword } = require('../controllers/authController');
+const { 
+  signup, 
+  login, 
+  getMe, 
+  forgotPassword, 
+  resetPassword,
+  refreshToken,
+  logout,
+  logoutAll,
+  changePassword,
+  getSessions,
+  revokeSession
+} = require('../controllers/authController');
 const { auth } = require('../middlewares/auth');
+const { handleValidationErrors } = require('../middlewares/errorHandler');
+const { 
+  authLimiter, 
+  signupLimiter, 
+  passwordResetLimiter 
+} = require('../middlewares/security');
+const { 
+  signupValidation, 
+  loginValidation, 
+  forgotPasswordValidation, 
+  resetPasswordValidation,
+  refreshTokenValidation
+} = require('../validators');
+const { body, param } = require('express-validator');
 
-// Rate limiters for auth endpoints
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts per window
-  message: { message: 'Too many attempts, please try again after 15 minutes' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+// ==================== PUBLIC ROUTES ====================
 
-const signupLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5, // 5 signups per hour per IP
-  message: { message: 'Too many accounts created, please try again after an hour' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+// Signup - strict rate limiting
+router.post('/signup', 
+  signupLimiter, 
+  signupValidation, 
+  handleValidationErrors, 
+  signup
+);
 
-// Validation rules
-const signupValidation = [
-  body('email').isEmail().withMessage('Please provide a valid email'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-  body('firstName').notEmpty().withMessage('First name is required'),
-  body('lastName').notEmpty().withMessage('Last name is required'),
-  body('gender').optional().isIn(['male', 'female', 'other']).withMessage('Invalid gender'),
-  body('dateOfBirth').optional().isISO8601().withMessage('Invalid date of birth')
-];
+// Login - auth rate limiting with account lockout check
+router.post('/login', 
+  authLimiter,
+  loginValidation, 
+  handleValidationErrors, 
+  login
+);
 
-const loginValidation = [
-  body('email').isEmail().withMessage('Please provide a valid email'),
-  body('password').notEmpty().withMessage('Password is required')
-];
+// Refresh token - moderate rate limiting
+router.post('/refresh', 
+  authLimiter,
+  refreshTokenValidation,
+  handleValidationErrors,
+  refreshToken
+);
 
-const forgotPasswordValidation = [
-  body('email').isEmail().withMessage('Please provide a valid email')
-];
+// Forgot password - strict rate limiting
+router.post('/forgot-password', 
+  passwordResetLimiter, 
+  forgotPasswordValidation, 
+  handleValidationErrors, 
+  forgotPassword
+);
 
-const resetPasswordValidation = [
-  body('token').notEmpty().withMessage('Reset token is required'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
-];
+// Reset password - strict rate limiting
+router.post('/reset-password', 
+  passwordResetLimiter, 
+  resetPasswordValidation, 
+  handleValidationErrors, 
+  resetPassword
+);
 
-router.post('/signup', signupLimiter, signupValidation, signup);
-router.post('/login', authLimiter, loginValidation, login);
+// ==================== PROTECTED ROUTES ====================
+
+// Get current user
 router.get('/me', auth, getMe);
-router.post('/forgot-password', authLimiter, forgotPasswordValidation, forgotPassword);
-router.post('/reset-password', authLimiter, resetPasswordValidation, resetPassword);
+
+// Logout current session
+router.post('/logout', auth, logout);
+
+// Logout all sessions
+router.post('/logout-all', auth, logoutAll);
+
+// Change password
+router.post('/change-password', 
+  auth,
+  [
+    body('currentPassword').notEmpty().withMessage('Current password is required'),
+    body('newPassword')
+      .isLength({ min: 8 })
+      .withMessage('Password must be at least 8 characters')
+      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
+      .withMessage('Password must contain uppercase, lowercase, number, and special character'),
+  ],
+  handleValidationErrors,
+  changePassword
+);
+
+// Get active sessions
+router.get('/sessions', auth, getSessions);
+
+// Revoke a specific session
+router.delete('/sessions/:sessionId',
+  auth,
+  [param('sessionId').isUUID(4).withMessage('Invalid session ID')],
+  handleValidationErrors,
+  revokeSession
+);
 
 module.exports = router;
-

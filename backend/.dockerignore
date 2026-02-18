@@ -1,0 +1,51 @@
+# Dependencies
+node_modules
+npm-debug.log*
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Logs
+logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files
+coverage
+.nyc_output
+*.test.js
+*.spec.js
+__tests__
+
+# Documentation
+*.md
+!README.md
+
+# Uploads (will be mounted as volume)
+uploads/*
+!uploads/.gitkeep
+
+# Seeders data files
+seeders/ACCOUNT*.md
+seeders/*.txt
+seeders/*.json
+
+# Development files
+nodemon.json
+.eslintrc*
+.prettierrc*

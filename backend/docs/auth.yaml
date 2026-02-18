@@ -1,0 +1,317 @@
+# Authentication API Documentation
+
+paths:
+  /auth/signup:
+    post:
+      summary: Register a new user
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - firstName
+                - lastName
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  minLength: 8
+                  description: Must contain uppercase, lowercase, number, and special character
+                  example: SecurePass123!
+                firstName:
+                  type: string
+                  minLength: 2
+                  maxLength: 50
+                  example: John
+                lastName:
+                  type: string
+                  minLength: 2
+                  maxLength: 50
+                  example: Doe
+                phone:
+                  type: string
+                  example: "+919876543210"
+                gender:
+                  type: string
+                  enum: [male, female, other]
+                dateOfBirth:
+                  type: string
+                  format: date
+                  description: Must be at least 18 years old
+                  example: "1995-06-15"
+      responses:
+        '201':
+          description: User registered successfully
+          headers:
+            Set-Cookie:
+              description: Access and refresh tokens set as httpOnly cookies
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: User registered successfully
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/login:
+    post:
+      summary: Login with email and password
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  example: SecurePass123!
+      responses:
+        '200':
+          description: Login successful
+          headers:
+            Set-Cookie:
+              description: Access and refresh tokens set as httpOnly cookies
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Login successful
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/User'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Account locked due to too many failed attempts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Too many login attempts
+
+  /auth/logout:
+    post:
+      summary: Logout current session
+      tags: [Auth]
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Logged out successfully
+
+  /auth/refresh-token:
+    post:
+      summary: Refresh access token
+      tags: [Auth]
+      security: []
+      description: Uses the refresh token from cookies to generate new access token
+      responses:
+        '200':
+          description: Token refreshed successfully
+          headers:
+            Set-Cookie:
+              description: New access token set as httpOnly cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Token refreshed successfully
+        '401':
+          description: Invalid or expired refresh token
+
+  /auth/forgot-password:
+    post:
+      summary: Request password reset email
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+      responses:
+        '200':
+          description: Reset email sent (always returns success for security)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: If email exists, reset instructions have been sent
+
+  /auth/reset-password:
+    post:
+      summary: Reset password with token
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+                - password
+              properties:
+                token:
+                  type: string
+                  description: Reset token from email
+                password:
+                  type: string
+                  minLength: 8
+                  description: New password
+                  example: NewSecurePass123!
+      responses:
+        '200':
+          description: Password reset successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Password reset successful
+        '400':
+          description: Invalid or expired token
+
+  /auth/me:
+    get:
+      summary: Get current authenticated user
+      tags: [Auth]
+      responses:
+        '200':
+          description: Current user data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/User'
+                      profile:
+                        $ref: '#/components/schemas/Profile'
+                      subscription:
+                        $ref: '#/components/schemas/Subscription'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /auth/change-password:
+    put:
+      summary: Change password for authenticated user
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - currentPassword
+                - newPassword
+              properties:
+                currentPassword:
+                  type: string
+                newPassword:
+                  type: string
+                  minLength: 8
+      responses:
+        '200':
+          description: Password changed successfully
+        '400':
+          description: Current password is incorrect
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'

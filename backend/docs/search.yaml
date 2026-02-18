@@ -1,0 +1,222 @@
+# Search API Documentation
+
+paths:
+  /search:
+    get:
+      summary: Search for profiles
+      tags: [Search]
+      description: |
+        Search and filter profiles based on various criteria.
+        Results exclude users you've already matched with or passed on.
+        Premium users get access to more filters.
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: ageMin
+          in: query
+          schema:
+            type: integer
+            minimum: 18
+            maximum: 99
+          description: Minimum age
+        - name: ageMax
+          in: query
+          schema:
+            type: integer
+            minimum: 18
+            maximum: 99
+          description: Maximum age
+        - name: heightMin
+          in: query
+          schema:
+            type: integer
+            minimum: 100
+            maximum: 250
+          description: Minimum height in cm
+        - name: heightMax
+          in: query
+          schema:
+            type: integer
+            minimum: 100
+            maximum: 250
+          description: Maximum height in cm
+        - name: city
+          in: query
+          schema:
+            type: string
+            maxLength: 100
+          description: Filter by city
+        - name: education
+          in: query
+          schema:
+            type: string
+            maxLength: 100
+          description: Filter by education level
+        - name: profession
+          in: query
+          schema:
+            type: string
+            maxLength: 100
+          description: Filter by profession
+        - name: diet
+          in: query
+          schema:
+            type: string
+            enum: [vegetarian, non-vegetarian, vegan, jain]
+          description: Filter by dietary preference
+        - name: smoking
+          in: query
+          schema:
+            type: string
+            enum: [never, occasionally, regularly]
+          description: Filter by smoking habit
+        - name: drinking
+          in: query
+          schema:
+            type: string
+            enum: [never, occasionally, regularly]
+          description: Filter by drinking habit
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [compatibility, createdAt, lastLogin]
+            default: compatibility
+          description: Sort results by criteria
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ProfileSummary'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /search/suggestions:
+    get:
+      summary: Get suggested profiles
+      tags: [Search]
+      description: |
+        Get AI-powered profile suggestions based on your preferences and behavior.
+        Returns profiles most likely to be a good match.
+      parameters:
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Suggested profiles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/ProfileSummary'
+                        - type: object
+                          properties:
+                            compatibilityScore:
+                              type: integer
+                              minimum: 0
+                              maximum: 100
+                              description: Match compatibility percentage
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /search/nearby:
+    get:
+      summary: Search profiles by location
+      tags: [Search]
+      description: |
+        Find profiles within a specified radius.
+        Requires location permission from the user.
+      parameters:
+        - name: latitude
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+        - name: longitude
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+        - name: radius
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 500
+          description: Radius in kilometers
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Nearby profiles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/ProfileSummary'
+                        - type: object
+                          properties:
+                            distance:
+                              type: number
+                              description: Distance in kilometers
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Premium feature - requires subscription
+
+components:
+  schemas:
+    ProfileSummary:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        firstName:
+          type: string
+        age:
+          type: integer
+        city:
+          type: string
+        profilePhoto:
+          type: string
+          format: uri
+        profession:
+          type: string
+        education:
+          type: string
+        bio:
+          type: string
+          maxLength: 200
+        isVerified:
+          type: boolean
+        isOnline:
+          type: boolean
+        lastActive:
+          type: string
+          format: date-time

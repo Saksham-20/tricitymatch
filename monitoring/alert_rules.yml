@@ -1,0 +1,218 @@
+# Prometheus Alerting Rules for TricityMatch
+# These rules define when alerts should be triggered
+
+groups:
+  - name: tricitymatch_alerts
+    rules:
+      # ==================== APPLICATION ALERTS ====================
+      
+      # High error rate alert
+      - alert: HighErrorRate
+        expr: |
+          (sum(rate(tricitymatch_http_requests_total{status=~"5.."}[5m])) / 
+           sum(rate(tricitymatch_http_requests_total[5m]))) * 100 > 5
+        for: 5m
+        labels:
+          severity: critical
+          service: api
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | printf \"%.2f\" }}% over the last 5 minutes"
+          runbook: "Check application logs and recent deployments"
+
+      # High response latency
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.95, sum(rate(tricitymatch_http_request_duration_seconds_bucket[5m])) by (le)) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: "High API latency detected"
+          description: "95th percentile latency is {{ $value | printf \"%.2f\" }}s"
+          runbook: "Check database queries and external service calls"
+
+      # Low request throughput (possible outage)
+      - alert: LowThroughput
+        expr: |
+          sum(rate(tricitymatch_http_requests_total[5m])) < 0.1
+        for: 10m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: "Very low request throughput"
+          description: "Request rate is {{ $value | printf \"%.2f\" }} req/s - possible service issue"
+
+      # ==================== RESOURCE ALERTS ====================
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: |
+          tricitymatch_memory_usage_percent > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value | printf \"%.1f\" }}%"
+          runbook: "Check for memory leaks or consider scaling"
+
+      # Critical memory usage
+      - alert: CriticalMemoryUsage
+        expr: |
+          tricitymatch_memory_usage_percent > 95
+        for: 2m
+        labels:
+          severity: critical
+          service: api
+        annotations:
+          summary: "Critical memory usage - OOM risk"
+          description: "Memory usage is {{ $value | printf \"%.1f\" }}%"
+          runbook: "Immediate action required - restart pod or scale horizontally"
+
+      # ==================== DATABASE ALERTS ====================
+
+      # Database connection pool exhaustion
+      - alert: DatabasePoolExhausted
+        expr: |
+          tricitymatch_database_connections_active >= tricitymatch_database_connections_max * 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "Database connection pool nearly exhausted"
+          description: "Active connections at 90%+ of pool capacity"
+
+      # Slow database queries
+      - alert: SlowDatabaseQueries
+        expr: |
+          tricitymatch_database_latency_ms > 500
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "Slow database queries detected"
+          description: "Database latency is {{ $value }}ms"
+
+      # ==================== CACHE ALERTS ====================
+
+      # Low cache hit rate
+      - alert: LowCacheHitRate
+        expr: |
+          tricitymatch_cache_hits_total / (tricitymatch_cache_hits_total + tricitymatch_cache_misses_total) < 0.5
+        for: 15m
+        labels:
+          severity: warning
+          service: cache
+        annotations:
+          summary: "Low cache hit rate"
+          description: "Cache hit rate is {{ $value | printf \"%.1f\" }}% - check cache configuration"
+
+      # Redis connection failure
+      - alert: RedisDown
+        expr: |
+          tricitymatch_redis_status == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: cache
+        annotations:
+          summary: "Redis connection lost"
+          description: "Application has lost connection to Redis"
+
+      # ==================== SECURITY ALERTS ====================
+
+      # High rate of authentication failures (possible attack)
+      - alert: HighAuthFailures
+        expr: |
+          rate(tricitymatch_login_failures_total[5m]) > 1
+        for: 5m
+        labels:
+          severity: warning
+          service: security
+        annotations:
+          summary: "High authentication failure rate"
+          description: "{{ $value | printf \"%.1f\" }} auth failures per second - possible brute force attack"
+          runbook: "Review failed login IPs, consider temporary IP blocks"
+
+      # High rate limit hits (possible DDoS)
+      - alert: HighRateLimitHits
+        expr: |
+          rate(tricitymatch_rate_limit_hits_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: security
+        annotations:
+          summary: "High rate limit hits"
+          description: "{{ $value | printf \"%.1f\" }} rate limit hits per second"
+          runbook: "Review source IPs, adjust rate limits if needed"
+
+      # ==================== QUEUE ALERTS ====================
+
+      # High queue backlog
+      - alert: HighQueueBacklog
+        expr: |
+          tricitymatch_queue_waiting_total > 1000
+        for: 10m
+        labels:
+          severity: warning
+          service: queue
+        annotations:
+          summary: "High job queue backlog"
+          description: "{{ $value }} jobs waiting in queue"
+          runbook: "Check queue processors, consider scaling workers"
+
+      # Queue processing failures
+      - alert: QueueFailures
+        expr: |
+          rate(tricitymatch_queue_failed_total[15m]) > 0.1
+        for: 15m
+        labels:
+          severity: warning
+          service: queue
+        annotations:
+          summary: "Job queue processing failures"
+          description: "Jobs are failing at {{ $value | printf \"%.2f\" }} per second"
+
+  - name: infrastructure_alerts
+    rules:
+      # ==================== INFRASTRUCTURE ALERTS ====================
+
+      # Instance down
+      - alert: InstanceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Instance {{ $labels.instance }} down"
+          description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 1 minute"
+
+      # High disk usage
+      - alert: HighDiskUsage
+        expr: |
+          (node_filesystem_size_bytes{fstype!~"tmpfs|overlay"} - node_filesystem_free_bytes{fstype!~"tmpfs|overlay"}) 
+          / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"} * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High disk usage on {{ $labels.instance }}"
+          description: "Disk usage is {{ $value | printf \"%.1f\" }}%"
+
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: |
+          100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value | printf \"%.1f\" }}%"

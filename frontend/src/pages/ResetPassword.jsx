@@ -55,7 +55,7 @@ const ResetPassword = () => {
     e.preventDefault();
 
     if (!validatePassword(formData.password)) {
-      toast.error('Password must be at least 6 characters');
+      toast.error('Password must be at least 8 characters and include uppercase, lowercase, number, and special character');
       return;
     }
 

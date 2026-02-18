@@ -41,7 +41,7 @@ const Login = () => {
     if (!formData.password) {
       newErrors.password = 'Password is required';
     } else if (!validatePassword(formData.password)) {
-      newErrors.password = 'Password must be at least 6 characters';
+      newErrors.password = 'Password must be at least 8 characters and include uppercase, lowercase, number, and special character';
     }
     
     setErrors(newErrors);

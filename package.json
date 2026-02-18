@@ -1,0 +1,43 @@
+{
+  "name": "tricitymatch",
+  "version": "1.0.0",
+  "description": "TricityMatch - Modern Matrimonial Platform",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "build": "npm run build --workspace=frontend",
+    "test": "npm run test --workspace=backend && npm run test:run --workspace=frontend",
+    "test:backend": "npm run test --workspace=backend",
+    "test:frontend": "npm run test:run --workspace=frontend",
+    "lint": "npm run lint --workspace=backend && npm run lint --workspace=frontend",
+    "lint:fix": "npm run lint:fix --workspace=backend && npm run lint:fix --workspace=frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "eslint": "^8.56.0",
+    "lint-staged": "^15.2.0",
+    "prettier": "^3.2.5"
+  },
+  "lint-staged": {
+    "backend/**/*.js": [
+      "npx eslint --fix --max-warnings 999",
+      "node scripts/prettier-staged.cjs"
+    ],
+    "frontend/**/*.{js,jsx}": [
+      "npx eslint --fix --max-warnings 999",
+      "node scripts/prettier-staged.cjs"
+    ],
+    "frontend/**/*.{ts,tsx}": [
+      "node scripts/prettier-staged.cjs"
+    ]
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

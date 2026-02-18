@@ -8,6 +8,10 @@ import { BsCheck, BsCheckAll, BsEmojiSmile } from 'react-icons/bs';
 import { HiOutlinePhotograph } from 'react-icons/hi';
 import { API_BASE_URL } from '../utils/api';
 import { getImageUrl } from '../utils/cloudinary';
+import { sanitizeText } from '../utils/sanitize';
+
+// Environment check for logging
+const isDev = import.meta.env.DEV;
 
 // Custom scrollbar styles (injected once)
 const scrollbarStyles = `
@@ -206,7 +210,9 @@ const Chat = () => {
   const loadMutualMatches = async () => {
     try {
       const response = await api.get('/match/mutual');
-      console.log('Mutual matches response:', response.data);
+      if (isDev) {
+        console.log('Mutual matches response:', response.data);
+      }
       
       const mutualMatches = response.data.mutualMatches || [];
       setMatches(mutualMatches);
@@ -215,7 +221,9 @@ const Chat = () => {
         setSelectedMatch(mutualMatches[0]);
       }
     } catch (error) {
-      console.error('Failed to load mutual matches:', error.response?.data || error.message);
+      if (isDev) {
+        console.error('Failed to load mutual matches:', error.response?.data || error.message);
+      }
       // Don't show error toast for 403 (no subscription) - show empty state instead
       if (error.response?.status !== 403) {
         toast.error('Failed to load matches');
@@ -229,10 +237,14 @@ const Chat = () => {
     if (!selectedMatch) return;
     try {
       const response = await api.get(`/chat/messages/${selectedMatch.userId}`);
-      console.log('Messages response:', response.data);
+      if (isDev) {
+        console.log('Messages response:', response.data);
+      }
       setMessages(response.data.messages || []);
     } catch (error) {
-      console.error('Failed to load messages:', error.response?.data || error.message);
+      if (isDev) {
+        console.error('Failed to load messages:', error.response?.data || error.message);
+      }
       if (error.response?.status === 403) {
         toast.error(error.response?.data?.message || 'Premium subscription required');
       } else {
@@ -276,7 +288,9 @@ const Chat = () => {
         });
       }
     } catch (error) {
-      console.error('Failed to send message:', error.response?.data || error.message);
+      if (isDev) {
+        console.error('Failed to send message:', error.response?.data || error.message);
+      }
       // Restore the message if failed
       setNewMessage(messageContent);
       if (error.response?.status === 403) {
@@ -334,7 +348,9 @@ const Chat = () => {
       setEditContent('');
       toast.success('Message updated');
     } catch (error) {
-      console.error('Failed to edit message:', error.response?.data || error.message);
+      if (isDev) {
+        console.error('Failed to edit message:', error.response?.data || error.message);
+      }
       toast.error(error.response?.data?.message || 'Failed to edit message');
     }
   };
@@ -360,7 +376,9 @@ const Chat = () => {
       setDeleteConfirm(null);
       toast.success('Message deleted');
     } catch (error) {
-      console.error('Failed to delete message:', error.response?.data || error.message);
+      if (isDev) {
+        console.error('Failed to delete message:', error.response?.data || error.message);
+      }
       toast.error(error.response?.data?.message || 'Failed to delete message');
     }
   };
@@ -728,7 +746,7 @@ const Chat = () => {
                           </div>
                         ) : (
                           <>
-                            <p className="break-words text-[15px] leading-relaxed">{message.content}</p>
+                            <p className="break-words text-[15px] leading-relaxed">{sanitizeText(message.content)}</p>
                             <div className={`flex items-center justify-end gap-1.5 mt-1 ${
                               isSentByMe ? 'text-white/70' : 'text-neutral-400'
                             }`}>

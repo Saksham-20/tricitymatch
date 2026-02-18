@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { CheckIcon, ArrowRightIcon } from "lucide-react"
+import { getPasswordErrors, validateEmail, validateName, validatePassword } from "@/utils/validators"
 
 type Step = {
   id: number
@@ -24,9 +25,10 @@ const steps: Step[] = [
 interface SignupMultiStepFormProps {
   onComplete: (data: { fullName: string; email: string; password: string }) => void
   errors?: Record<string, string>
+  loading?: boolean
 }
 
-export function SignupMultiStepForm({ onComplete, errors = {} }: SignupMultiStepFormProps) {
+export function SignupMultiStepForm({ onComplete, errors = {}, loading = false }: SignupMultiStepFormProps) {
   const [currentStep, setCurrentStep] = useState(0)
   const [formData, setFormData] = useState<Record<string, string>>({})
 
@@ -48,8 +50,32 @@ export function SignupMultiStepForm({ onComplete, errors = {} }: SignupMultiStep
 
   const currentStepData = steps[currentStep]
   const progress = ((currentStep + 1) / steps.length) * 100
-  const hasError = errors[currentStepData.field] ? true : false
-  const canProceed = formData[currentStepData.field]?.trim() && !hasError
+  const value = formData[currentStepData.field] || ""
+
+  const localError = (() => {
+    const trimmed = value.trim()
+    if (!trimmed) return "This field is required"
+
+    if (currentStepData.field === "fullName") {
+      return validateName(trimmed) ? "" : "Please enter your full name"
+    }
+
+    if (currentStepData.field === "email") {
+      return validateEmail(trimmed) ? "" : "Please enter a valid email"
+    }
+
+    if (currentStepData.field === "password") {
+      if (validatePassword(value)) return ""
+      return `Password must include: ${getPasswordErrors(value).join(", ")}`
+    }
+
+    return ""
+  })()
+
+  const externalError = errors[currentStepData.field] || ""
+  const errorMessage = externalError || localError
+  const hasError = Boolean(errorMessage)
+  const canProceed = value.trim() && !hasError
 
   return (
     <div className="w-full max-w-md mx-auto">
@@ -114,7 +140,7 @@ export function SignupMultiStepForm({ onComplete, errors = {} }: SignupMultiStep
               id={currentStepData.field}
               type={currentStepData.type || "text"}
               placeholder={currentStepData.placeholder}
-              value={formData[currentStepData.field] || ""}
+              value={value}
               onChange={(e) => handleInputChange(currentStepData.field, e.target.value)}
               autoFocus
               className={cn(
@@ -126,7 +152,7 @@ export function SignupMultiStepForm({ onComplete, errors = {} }: SignupMultiStep
               )}
             />
             {hasError && (
-              <p className="mt-2 text-sm text-red-600 font-medium">{errors[currentStepData.field]}</p>
+              <p className="mt-2 text-sm text-red-600 font-medium">{errorMessage}</p>
             )}
           </div>
         </div>
@@ -135,11 +161,11 @@ export function SignupMultiStepForm({ onComplete, errors = {} }: SignupMultiStep
         <div className="space-y-3 pt-2">
           <Button
             onClick={handleNext}
-            disabled={!canProceed}
+            disabled={!canProceed || loading}
             className="w-full h-14 text-base font-semibold shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <span className="flex items-center justify-center gap-2">
-              {currentStep === steps.length - 1 ? "Create Account" : "Continue"}
+              {currentStep === steps.length - 1 ? (loading ? "Creating account…" : "Create Account") : "Continue"}
               <ArrowRightIcon
                 className="h-5 w-5 transition-transform group-hover:translate-x-1 duration-300"
                 strokeWidth={2.5}

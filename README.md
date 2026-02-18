@@ -1,366 +1,372 @@
-# TricityMatch - Matrimonial Website
+# TricityMatch - Matrimonial Platform
 
-A complete, production-grade matrimonial website for the Tricity area (Chandigarh, Mohali, Panchkula) built with React.js, Node.js, and PostgreSQL.
+<p align="center">
+  <img src="docs/logo.png" alt="TricityMatch Logo" width="200" />
+</p>
 
-## 🌟 Features
+<p align="center">
+  A production-grade, secure, and scalable matrimonial platform for the Tricity area (Chandigarh, Mohali, Panchkula).
+</p>
 
-- **Smart Compatibility Matching**: AI-powered algorithm calculates compatibility based on preferences, lifestyle, personality, and location
-- **Identity Verification**: Optional Aadhaar/PAN verification with admin approval
-- **Real-time Chat**: Socket.io powered chat for premium users
-- **Subscription System**: Free, Premium, and Elite plans with Razorpay integration
-- **Advanced Search**: Filter by age, height, education, profession, lifestyle, and location
-- **Profile Insights**: Engagement statistics and analytics dashboard
-- **Modern UI/UX**: Beautiful, responsive design with Framer Motion animations
-- **Privacy Controls**: Hide contact information until premium subscription
+<p align="center">
+  <a href="#features">Features</a> •
+  <a href="#quick-start">Quick Start</a> •
+  <a href="#documentation">Documentation</a> •
+  <a href="#deployment">Deployment</a> •
+  <a href="#api-reference">API</a>
+</p>
 
-## 🛠️ Tech Stack
+---
 
-### Frontend
-- React.js 18
-- Vite
-- Tailwind CSS
-- Framer Motion
-- Axios
-- Socket.io Client
-- React Router DOM
+## Features
 
-### Backend
-- Node.js
-- Express.js
-- PostgreSQL
-- Sequelize ORM
-- JWT Authentication
-- Bcrypt Password Hashing
-- Multer (File Uploads)
-- Razorpay (Payments)
-- Socket.io (Real-time Chat)
-- Nodemailer (Email Notifications)
+### Core Features
+- **Smart Compatibility Matching** - AI-powered algorithm calculating compatibility based on preferences, lifestyle, personality, and location
+- **Real-time Chat** - Socket.io powered instant messaging for matched users
+- **Identity Verification** - Aadhaar/PAN verification with admin approval workflow
+- **Subscription System** - Free, Premium, and Elite plans with Razorpay integration
+- **Advanced Search** - Filter by age, height, education, profession, lifestyle, and location
+- **Privacy Controls** - Incognito mode, photo blur until match, contact visibility settings
 
-## 📋 Prerequisites
+### Production Features
+- **Security Hardened** - JWT with refresh tokens, rate limiting, CSRF protection, input validation
+- **Monitoring & Observability** - Prometheus metrics, health checks, structured logging
+- **Performance Optimized** - Redis caching, background job processing, database indexing
+- **Containerized** - Docker and Docker Compose for easy deployment
+- **CI/CD Ready** - GitHub Actions workflows for testing and deployment
 
-- Node.js (v16 or higher)
-- PostgreSQL (v12 or higher)
-- npm or yarn
+---
 
-## 🚀 Setup Instructions
+## Tech Stack
 
-### 1. Clone the Repository
+| Layer | Technologies |
+|-------|-------------|
+| **Frontend** | React 18, Vite, Tailwind CSS, Framer Motion, Socket.io Client |
+| **Backend** | Node.js 20, Express.js, Socket.io, JWT Auth |
+| **Database** | PostgreSQL 15, Sequelize ORM |
+| **Cache** | Redis 7 (with in-memory fallback) |
+| **Queue** | Bull (Redis-based job processing) |
+| **Payments** | Razorpay |
+| **Storage** | Cloudinary (images), Local filesystem |
+| **Monitoring** | Prometheus, Grafana, Custom metrics |
+| **Deployment** | Docker, Docker Compose, Nginx |
+
+---
+
+## Quick Start
+
+### Prerequisites
+- **Docker** >= 20.10 and **Docker Compose** >= 2.0
+- Or: **Node.js** >= 20, **PostgreSQL** >= 15, **Redis** >= 7 (optional)
+
+### Option 1: Docker (Recommended)
 
 ```bash
-git clone <repository-url>
-cd TricityMatch
+# Clone the repository
+git clone https://github.com/your-org/tricitymatch.git
+cd tricitymatch
+
+# Copy environment template
+cp .env.example .env
+
+# Edit .env with your settings (minimum: DB_PASSWORD, JWT_SECRET)
+nano .env
+
+# Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f backend
 ```
 
-### 2. Backend Setup
+**Access the application:**
+- Frontend: http://localhost:3000
+- API: http://localhost:5000/api
+- API Docs: http://localhost:5000/api/docs
+- Health Check: http://localhost:5000/monitoring/health
+
+### Option 2: Manual Setup
 
 ```bash
+# Backend
 cd backend
 npm install
-```
-
-#### Database Configuration
-
-1. Create a PostgreSQL database:
-```sql
-CREATE DATABASE matrimony_dev;
-```
-
-2. Configure environment variables:
-   - Copy `.env.example` to `.env.development` and `.env.production`
-   - Fill in your database credentials and other settings
-
-#### Environment Variables (.env.development)
-
-```env
-NODE_ENV=development
-PORT=5000
-FRONTEND_URL=http://localhost:3000
-
-# Database
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=your_password
-DB_NAME=matrimony_dev
-
-# JWT Secret (generate a strong random string)
-JWT_SECRET=your-super-secret-jwt-key-min-32-characters
-
-# Razorpay (Get from Razorpay Dashboard)
-RAZORPAY_KEY_ID=rzp_test_xxxxxxxxxxxxx
-RAZORPAY_KEY_SECRET=xxxxxxxxxxxxxxxxxxxxx
-
-# Email (Optional for development)
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=your-email@gmail.com
-EMAIL_PASSWORD=your-app-password
-EMAIL_FROM=noreply@tricitymatch.com
-
-# File Upload
-UPLOAD_DIR=./uploads
-MAX_FILE_SIZE=5242880
-
-# Admin
-ADMIN_EMAIL=admin@tricitymatch.com
-```
-
-#### Run Database Migrations
-
-```bash
+cp ../.env.example ../.env.development
+# Edit .env.development with your database credentials
 npm run migrate
-```
-
-#### Start Backend Server
-
-```bash
-# Development mode with hot reload
 npm run dev
 
-# Production mode
-npm start
-```
-
-The backend will run on `http://localhost:5000`
-
-### 3. Frontend Setup
-
-```bash
+# Frontend (new terminal)
 cd frontend
 npm install
-```
-
-#### Environment Variables
-
-Create a `.env` file in the frontend directory:
-
-```env
-VITE_API_URL=http://localhost:5000/api
-VITE_RAZORPAY_KEY_ID=rzp_test_xxxxxxxxxxxxx
-```
-
-#### Start Frontend Development Server
-
-```bash
 npm run dev
 ```
 
-The frontend will run on `http://localhost:3000`
+---
 
-### 4. Production Build
+## Documentation
 
-#### Frontend Build
+| Document | Description |
+|----------|-------------|
+| [Deployment Guide](docs/DEPLOYMENT.md) | Production deployment instructions |
+| [API Documentation](http://localhost:5000/api/docs) | Interactive Swagger documentation |
+| [Environment Configuration](.env.example) | All configuration options |
 
-```bash
-cd frontend
-npm run build
-```
+---
 
-The production build will be in the `frontend/dist` directory.
-
-#### Backend Production
-
-1. Set `NODE_ENV=production` in `.env.production`
-2. Update all production environment variables
-3. Run migrations:
-```bash
-NODE_ENV=production npm run migrate
-```
-4. Start server:
-```bash
-NODE_ENV=production npm start
-```
-
-## 📁 Project Structure
+## Project Structure
 
 ```
 TricityMatch/
 ├── backend/
-│   ├── config/          # Database and app configuration
-│   ├── controllers/     # Request handlers
-│   ├── models/          # Sequelize models
-│   ├── routes/          # API routes
-│   ├── middlewares/     # Auth, upload, error handling
-│   ├── migrations/      # Database migrations
-│   ├── utils/           # Utilities (compatibility, email, razorpay)
-│   ├── socket/          # Socket.io handlers
-│   └── server.js        # Entry point
+│   ├── config/           # Database, environment, swagger config
+│   ├── controllers/      # Request handlers
+│   ├── docs/             # API documentation (YAML)
+│   ├── middlewares/      # Auth, security, error handling
+│   ├── migrations/       # Database migrations
+│   ├── models/           # Sequelize models
+│   ├── routes/           # API routes
+│   ├── socket/           # WebSocket handlers
+│   ├── tests/            # Unit and integration tests
+│   ├── utils/            # Utilities (cache, queue, metrics, etc.)
+│   ├── validators/       # Input validation schemas
+│   └── server.js         # Application entry point
 ├── frontend/
 │   ├── src/
-│   │   ├── components/  # Reusable components
-│   │   ├── pages/       # Page components
-│   │   ├── context/     # React contexts (Auth, Socket)
-│   │   ├── api/         # API client
-│   │   ├── utils/       # Utility functions
-│   │   └── App.jsx      # Main app component
+│   │   ├── api/          # API client
+│   │   ├── components/   # Reusable UI components
+│   │   ├── context/      # React contexts
+│   │   ├── pages/        # Page components
+│   │   └── utils/        # Frontend utilities
 │   └── public/           # Static assets
-├── .env.development     # Development environment variables
-├── .env.production      # Production environment variables
-└── README.md
+├── monitoring/           # Prometheus, Grafana configs
+├── nginx/                # Nginx reverse proxy config
+├── scripts/              # Database init, deployment scripts
+├── docker-compose.yml    # Container orchestration
+└── .env.example          # Environment template
 ```
-
-## 🔐 Authentication
-
-- JWT tokens stored in localStorage
-- Protected routes require authentication
-- Admin routes require admin role
-- Password hashing with bcrypt (10 rounds)
-
-## 💳 Subscription Plans
-
-### Free
-- Basic search
-- Limited likes
-- Profile viewing
-- Compatibility scores
-
-### Premium (₹2,999/month)
-- Unlimited likes
-- View contacts
-- Chat with matches
-- See who liked you
-- Advanced search filters
-- Priority support
-
-### Elite (₹4,999/month)
-- All Premium features
-- Verified badge
-- Profile boost
-- Priority in search results
-- Exclusive events
-- Dedicated support
-
-## 🔍 API Endpoints
-
-### Authentication
-- `POST /api/auth/signup` - Register new user
-- `POST /api/auth/login` - Login user
-- `GET /api/auth/me` - Get current user
-
-### Profile
-- `GET /api/profile/me` - Get own profile
-- `PUT /api/profile/me` - Update profile
-- `GET /api/profile/me/stats` - Get engagement stats
-- `GET /api/profile/:userId` - Get user profile
-
-### Search
-- `GET /api/search` - Search profiles with filters
-- `GET /api/search/suggestions` - Get compatibility-based suggestions
-
-### Matching
-- `POST /api/match/:userId` - Like/shortlist/pass profile
-- `GET /api/match/likes` - Get who liked you (premium)
-- `GET /api/match/shortlist` - Get shortlisted profiles
-- `GET /api/match/mutual` - Get mutual matches
-
-### Chat
-- `GET /api/chat/conversations` - Get all conversations
-- `GET /api/chat/messages/:userId` - Get messages with user
-- `POST /api/chat/messages` - Send message
-
-### Subscription
-- `GET /api/subscription/plans` - Get available plans
-- `GET /api/subscription/my-subscription` - Get current subscription
-- `POST /api/subscription/create-order` - Create Razorpay order
-- `POST /api/subscription/verify-payment` - Verify payment
-
-## 🎨 Using Environment Files
-
-The application uses separate environment files for development and production. The backend automatically loads the correct file based on the `NODE_ENV` environment variable.
-
-### Development Environment
-
-1. Copy `.env.example` to `.env.development`
-2. Fill in development values:
-   - Local PostgreSQL database credentials
-   - Razorpay test keys (from Razorpay Dashboard → Settings → API Keys → Test Mode)
-   - Email configuration (optional for development)
-   - JWT secret (can be any string for development, but use a strong one in production)
-3. Run the backend with:
-   ```bash
-   NODE_ENV=development npm run dev
-   ```
-   Or simply `npm run dev` (defaults to development)
-
-### Production Environment
-
-1. Copy `.env.example` to `.env.production`
-2. Fill in production values:
-   - Production PostgreSQL database with SSL enabled
-   - Razorpay live keys (from Razorpay Dashboard → Settings → API Keys → Live Mode)
-   - Production email SMTP credentials
-   - **Strong JWT secret** (generate using: `openssl rand -base64 32`)
-   - Production frontend URL
-3. Run the backend with:
-   ```bash
-   NODE_ENV=production npm start
-   ```
-
-### How It Works
-
-- The backend's `server.js` and `config/config.js` automatically load `.env.development` or `.env.production` based on `NODE_ENV`
-- Frontend uses a single `.env` file (or environment variables) for Vite
-- **Important**: Never commit `.env.development` or `.env.production` to version control. Only commit `.env.example`
-
-## 🔧 Configuration
-
-### Database Connection
-
-The app automatically uses the correct environment file based on `NODE_ENV`:
-- `development` → `.env.development`
-- `production` → `.env.production`
-
-### Razorpay Setup
-
-1. Sign up at [Razorpay](https://razorpay.com)
-2. Get API keys from Dashboard → Settings → API Keys
-3. Use test keys for development
-4. Use live keys for production
-
-### Email Configuration
-
-For Gmail:
-1. Enable 2-factor authentication
-2. Generate an App Password
-3. Use the app password in `EMAIL_PASSWORD`
-
-## 🐛 Troubleshooting
-
-### Database Connection Issues
-- Ensure PostgreSQL is running
-- Check database credentials in `.env.development`
-- Verify database exists: `psql -U postgres -l`
-
-### Port Already in Use
-- Change `PORT` in `.env.development`
-- Or kill the process using the port
-
-### File Upload Issues
-- Ensure `uploads/` directory exists
-- Check file size limits (5MB default)
-- Verify Multer configuration
-
-### Socket.io Connection Issues
-- Check CORS configuration
-- Verify JWT token in localStorage
-- Ensure premium subscription for chat
-
-## 📝 License
-
-ISC
-
-## 👥 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
-
-## 📧 Support
-
-For issues and questions, please open an issue on GitHub.
 
 ---
 
-**Built with ❤️ for Tricity**
+## API Reference
 
+### Authentication
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/signup` | Register new user |
+| POST | `/api/auth/login` | Login (sets httpOnly cookies) |
+| POST | `/api/auth/logout` | Logout and revoke tokens |
+| POST | `/api/auth/refresh-token` | Refresh access token |
+| GET | `/api/auth/me` | Get current user |
+
+### Profile
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/profile` | Get own profile |
+| PUT | `/api/profile` | Update profile |
+| GET | `/api/profile/:userId` | View another profile |
+| POST | `/api/profile/photo` | Upload profile photo |
+
+### Search & Match
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/search` | Search profiles with filters |
+| GET | `/api/search/suggestions` | Get AI suggestions |
+| POST | `/api/match/:userId` | Like/shortlist/pass |
+| GET | `/api/match/matches` | Get mutual matches |
+
+### Chat
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/chat/conversations` | List conversations |
+| GET | `/api/chat/:userId` | Get messages |
+| POST | `/api/chat/send` | Send message |
+
+### Monitoring
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/monitoring/health` | Basic health check |
+| GET | `/monitoring/health/ready` | Kubernetes readiness |
+| GET | `/monitoring/metrics` | Prometheus metrics |
+
+Full API documentation available at `/api/docs` when running the server.
+
+---
+
+## Deployment
+
+### Development
+```bash
+docker-compose up -d
+```
+
+### Production (with Nginx & Redis)
+```bash
+docker-compose --profile full up -d --build
+```
+
+### Production with Monitoring
+```bash
+docker-compose --profile full --profile monitoring up -d --build
+```
+
+### Cloud Deployment
+See [Deployment Guide](docs/DEPLOYMENT.md) for:
+- AWS ECS/Fargate deployment
+- DigitalOcean deployment
+- Kubernetes deployment
+- SSL certificate setup
+- Database backup strategies
+
+---
+
+## Monitoring
+
+### Endpoints
+- **Health Check**: `/monitoring/health/full`
+- **Prometheus Metrics**: `/monitoring/metrics`
+- **JSON Metrics**: `/monitoring/metrics/json`
+
+### Dashboards (with monitoring profile)
+- **Grafana**: http://localhost:3001 (admin / changeme)
+- **Prometheus**: http://localhost:9090
+
+### Metrics Collected
+- HTTP request rates and latency (p50, p95, p99)
+- Business metrics (signups, logins, matches, messages)
+- Cache hit/miss ratios
+- Background job queue stats
+- Memory, CPU, and disk usage
+
+---
+
+## Configuration
+
+### Required Environment Variables
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `JWT_SECRET` | JWT signing secret (min 32 chars) | `your-random-secret` |
+| `DB_PASSWORD` | PostgreSQL password | `secure-password` |
+| `FRONTEND_URL` | Frontend URL for CORS | `https://tricitymatch.com` |
+
+### Optional Services
+
+| Service | Variables | Purpose |
+|---------|-----------|---------|
+| Redis | `REDIS_HOST`, `REDIS_PORT` | Caching, job queues |
+| Razorpay | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | Payments |
+| Cloudinary | `CLOUDINARY_*` | Image storage |
+| Email | `EMAIL_*` | Notifications |
+
+See [.env.example](.env.example) for all options.
+
+---
+
+## Security Features
+
+- **Authentication**: JWT with httpOnly cookies, refresh token rotation
+- **Rate Limiting**: Per-IP and per-user rate limits
+- **Input Validation**: Comprehensive validation with express-validator
+- **SQL Injection**: Parameterized queries via Sequelize
+- **XSS Protection**: Helmet security headers, input sanitization
+- **CSRF Protection**: Token-based CSRF protection
+- **Password Security**: Bcrypt hashing (12 rounds)
+- **Account Security**: Login attempt limits, lockout mechanism
+
+---
+
+## Testing
+
+```bash
+cd backend
+
+# Run all tests
+npm test
+
+# Run with coverage
+npm run test:coverage
+
+# Run specific tests
+npm run test:unit
+npm run test:integration
+```
+
+---
+
+## Subscription Plans
+
+| Feature | Free | Premium (₹2,999/mo) | Elite (₹4,999/mo) |
+|---------|------|---------------------|-------------------|
+| Basic Search | ✓ | ✓ | ✓ |
+| Daily Likes | 10 | Unlimited | Unlimited |
+| View Contacts | ✗ | ✓ | ✓ |
+| Chat | ✗ | ✓ | ✓ |
+| See Who Liked You | ✗ | ✓ | ✓ |
+| Verified Badge | ✗ | ✗ | ✓ |
+| Profile Boost | ✗ | ✗ | ✓ |
+| Priority Support | ✗ | ✓ | ✓ |
+
+---
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Development Guidelines
+- Follow existing code style (ESLint configured)
+- Write tests for new features
+- Update documentation as needed
+- Keep commits atomic and well-described
+
+---
+
+## Troubleshooting
+
+### Database Connection Failed
+```bash
+# Check if PostgreSQL is running
+docker-compose ps postgres
+
+# View logs
+docker-compose logs postgres
+```
+
+### Redis Not Available
+The application gracefully falls back to in-memory cache if Redis is unavailable.
+
+### Port Already in Use
+```bash
+# Change ports in .env
+BACKEND_PORT=5001
+FRONTEND_PORT=3001
+```
+
+### More Help
+- Check [Deployment Guide](docs/DEPLOYMENT.md) troubleshooting section
+- View application logs: `docker-compose logs -f backend`
+- Health check: `curl http://localhost:5000/monitoring/health/full`
+
+---
+
+## License
+
+ISC License - see [LICENSE](LICENSE) for details.
+
+---
+
+## Support
+
+- **Documentation**: Check the `/docs` folder
+- **Issues**: Open a GitHub issue
+- **Email**: support@tricitymatch.com
+
+---
+
+<p align="center">
+  <strong>Built with ❤️ for Tricity</strong>
+</p>

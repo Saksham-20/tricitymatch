@@ -1,0 +1,225 @@
+# Match API Documentation
+
+paths:
+  /match/{userId}:
+    post:
+      summary: Perform match action on a user
+      tags: [Match]
+      description: |
+        Like, shortlist, or pass on a profile.
+        When both users like each other, a mutual match is created.
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Target user ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - action
+              properties:
+                action:
+                  type: string
+                  enum: [like, shortlist, pass]
+                  description: |
+                    - like: Express interest in user (may create mutual match)
+                    - shortlist: Save for later consideration
+                    - pass: Not interested
+      responses:
+        '200':
+          description: Action performed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      isMutualMatch:
+                        type: boolean
+                        description: True if both users have liked each other
+                      match:
+                        $ref: '#/components/schemas/Match'
+        '400':
+          description: Cannot match with self or already matched
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /match/matches:
+    get:
+      summary: Get all mutual matches
+      tags: [Match]
+      description: Get list of users who have mutually liked each other
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: List of mutual matches
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            matchId:
+                              type: string
+                              format: uuid
+                            user:
+                              $ref: '#/components/schemas/ProfileSummary'
+                            matchedAt:
+                              type: string
+                              format: date-time
+                            lastMessage:
+                              type: string
+                              description: Preview of last message (if any)
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /match/likes-received:
+    get:
+      summary: Get profiles who liked you
+      tags: [Match]
+      description: |
+        View users who have expressed interest in you.
+        Free users see blurred photos; premium users see full profiles.
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: List of users who liked you
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            user:
+                              $ref: '#/components/schemas/ProfileSummary'
+                            likedAt:
+                              type: string
+                              format: date-time
+                            isBlurred:
+                              type: boolean
+                              description: True for free users (photo blurred)
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /match/likes-sent:
+    get:
+      summary: Get profiles you liked
+      tags: [Match]
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: List of users you've liked
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            user:
+                              $ref: '#/components/schemas/ProfileSummary'
+                            likedAt:
+                              type: string
+                              format: date-time
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /match/shortlist:
+    get:
+      summary: Get shortlisted profiles
+      tags: [Match]
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: List of shortlisted users
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            user:
+                              $ref: '#/components/schemas/ProfileSummary'
+                            shortlistedAt:
+                              type: string
+                              format: date-time
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /match/unmatch/{matchId}:
+    delete:
+      summary: Unmatch with a user
+      tags: [Match]
+      description: Remove a mutual match (also removes chat history)
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Unmatched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Successfully unmatched
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'

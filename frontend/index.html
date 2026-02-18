@@ -2,16 +2,108 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TricityMatch - Find Your Perfect Match in Tricity ❤️</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Primary Meta Tags -->
+    <title>TricityMatch - Find Your Perfect Match in Tricity</title>
+    <meta name="title" content="TricityMatch - Find Your Perfect Match in Tricity" />
+    <meta name="description" content="The most trusted matrimonial platform for Chandigarh, Mohali, and Panchkula. Find your perfect life partner with our smart matching algorithm." />
+    <meta name="keywords" content="matrimony, tricity, chandigarh, mohali, panchkula, marriage, matchmaking, life partner" />
+    <meta name="author" content="TricityMatch" />
+    
+    <!-- Viewport -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#E11D48" />
+    <meta name="msapplication-TileColor" content="#E11D48" />
+    
+    <!-- Favicons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Apple PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="TricityMatch" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://tricitymatch.com/" />
+    <meta property="og:title" content="TricityMatch - Find Your Perfect Match in Tricity" />
+    <meta property="og:description" content="The most trusted matrimonial platform for Chandigarh, Mohali, and Panchkula. Find your perfect life partner with our smart matching algorithm." />
+    <meta property="og:image" content="https://tricitymatch.com/og-image.png" />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://tricitymatch.com/" />
+    <meta property="twitter:title" content="TricityMatch - Find Your Perfect Match in Tricity" />
+    <meta property="twitter:description" content="The most trusted matrimonial platform for Chandigarh, Mohali, and Panchkula." />
+    <meta property="twitter:image" content="https://tricitymatch.com/og-image.png" />
+    
+    <!-- Preconnect to external domains -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://res.cloudinary.com" />
+    
+    <!-- DNS Prefetch -->
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://res.cloudinary.com" />
+    
+    <!-- Fonts -->
+    <link 
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&display=swap" 
+      rel="stylesheet" 
+    />
+    
+    <!-- Inline critical CSS for faster first paint -->
+    <style>
+      /* Critical CSS for initial render */
+      *,*::before,*::after{box-sizing:border-box}
+      html{-webkit-text-size-adjust:100%;line-height:1.5}
+      body{margin:0;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,sans-serif}
+      #root{min-height:100vh}
+      .loading-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#FFF5F7 0%,#FFFFFF 50%,#FCE7F3 100%)}
+      .loading-spinner{width:48px;height:48px;border:4px solid #FCE7F3;border-top-color:#E11D48;border-radius:50%;animation:spin 1s linear infinite}
+      @keyframes spin{to{transform:rotate(360deg)}}
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <!-- No-JS fallback -->
+    <noscript>
+      <div style="padding:2rem;text-align:center;font-family:sans-serif">
+        <h1>JavaScript Required</h1>
+        <p>TricityMatch requires JavaScript to run. Please enable JavaScript in your browser settings.</p>
+      </div>
+    </noscript>
+    
+    <!-- App container with loading state -->
+    <div id="root">
+      <div class="loading-screen">
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
+    
+    <!-- Main application script -->
     <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator && window.location.hostname !== 'localhost') {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('SW registered:', registration.scope);
+            })
+            .catch((error) => {
+              console.log('SW registration failed:', error);
+            });
+        });
+      }
+    </script>
   </body>
 </html>
-

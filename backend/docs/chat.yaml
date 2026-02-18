@@ -1,0 +1,280 @@
+# Chat API Documentation
+
+paths:
+  /chat/conversations:
+    get:
+      summary: Get all conversations
+      tags: [Chat]
+      description: Get list of all chat conversations with matched users
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            conversationId:
+                              type: string
+                              format: uuid
+                            user:
+                              $ref: '#/components/schemas/ProfileSummary'
+                            lastMessage:
+                              type: object
+                              properties:
+                                content:
+                                  type: string
+                                senderId:
+                                  type: string
+                                  format: uuid
+                                sentAt:
+                                  type: string
+                                  format: date-time
+                            unreadCount:
+                              type: integer
+                            updatedAt:
+                              type: string
+                              format: date-time
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /chat/{userId}:
+    get:
+      summary: Get messages with a user
+      tags: [Chat]
+      description: Retrieve chat history with a specific matched user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Chat partner's user ID
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: before
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Get messages before this timestamp
+      responses:
+        '200':
+          description: Chat messages
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Message'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Not matched with this user
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /chat/send:
+    post:
+      summary: Send a message
+      tags: [Chat]
+      description: |
+        Send a text message to a matched user.
+        Real-time delivery via WebSocket; this endpoint for REST fallback.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - receiverId
+                - content
+              properties:
+                receiverId:
+                  type: string
+                  format: uuid
+                  description: Recipient's user ID
+                content:
+                  type: string
+                  maxLength: 2000
+                  description: Message text
+      responses:
+        '201':
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Message'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Not matched with this user or blocked
+
+  /chat/message/{messageId}:
+    put:
+      summary: Edit a message
+      tags: [Chat]
+      description: |
+        Edit a previously sent message.
+        Only the sender can edit, and only within 15 minutes of sending.
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                  maxLength: 2000
+      responses:
+        '200':
+          description: Message edited successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Message'
+        '400':
+          description: Edit time limit exceeded
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Not the message sender
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    delete:
+      summary: Delete a message
+      tags: [Chat]
+      description: Soft delete a message (marks as deleted, not removed from DB)
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Message deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Message deleted
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Not the message sender
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /chat/read/{userId}:
+    post:
+      summary: Mark messages as read
+      tags: [Chat]
+      description: Mark all messages from a user as read
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Messages marked as read
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      markedCount:
+                        type: integer
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /chat/unread:
+    get:
+      summary: Get unread message count
+      tags: [Chat]
+      responses:
+        '200':
+          description: Unread counts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      totalUnread:
+                        type: integer
+                      byUser:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            userId:
+                              type: string
+                              format: uuid
+                            unreadCount:
+                              type: integer
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'

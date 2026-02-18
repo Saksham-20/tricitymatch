@@ -1,37 +1,41 @@
+/**
+ * Match Controller
+ * Handles match actions (like/shortlist/pass) with proper transactions
+ */
+
 const { Match, Profile, User, Subscription } = require('../models');
 const { Op } = require('sequelize');
+const sequelize = require('../config/database');
 const { calculateCompatibility } = require('../utils/compatibility');
 const { sendMatchNotification } = require('../utils/emailService');
+const config = require('../config/env');
+const { createError, asyncHandler } = require('../middlewares/errorHandler');
 
 // @route   POST /api/match/:userId
 // @desc    Like/shortlist/pass a profile
 // @access  Private
-exports.matchAction = async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const { action } = req.body; // 'like', 'shortlist', or 'pass'
-    const currentUserId = req.user.id;
+exports.matchAction = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const { action } = req.body;
+  const currentUserId = req.user.id;
 
-    if (userId === currentUserId) {
-      return res.status(400).json({ message: 'Cannot match with yourself' });
-    }
-
-    if (!['like', 'shortlist', 'pass'].includes(action)) {
-      return res.status(400).json({ message: 'Invalid action' });
-    }
-
+  // Use transaction for consistency
+  const result = await sequelize.transaction(async (t) => {
     // Check if match already exists
     let match = await Match.findOne({
       where: {
         userId: currentUserId,
         matchedUserId: userId
-      }
+      },
+      transaction: t
     });
 
     // Calculate compatibility
-    const currentProfile = await Profile.findOne({ where: { userId: currentUserId } });
-    const matchedProfile = await Profile.findOne({ where: { userId } });
-    
+    const [currentProfile, matchedProfile] = await Promise.all([
+      Profile.findOne({ where: { userId: currentUserId }, transaction: t }),
+      Profile.findOne({ where: { userId }, transaction: t })
+    ]);
+
     let compatibilityScore = null;
     if (currentProfile && matchedProfile) {
       compatibilityScore = calculateCompatibility(currentProfile, matchedProfile);
@@ -41,7 +45,7 @@ exports.matchAction = async (req, res) => {
       // Update existing match
       match.action = action;
       match.compatibilityScore = compatibilityScore;
-      await match.save();
+      await match.save({ transaction: t });
     } else {
       // Create new match
       match = await Match.create({
@@ -49,216 +53,239 @@ exports.matchAction = async (req, res) => {
         matchedUserId: userId,
         action,
         compatibilityScore
-      });
+      }, { transaction: t });
     }
 
     // Check for mutual match
+    let isMutualMatch = false;
     if (action === 'like') {
       const reverseMatch = await Match.findOne({
         where: {
           userId,
           matchedUserId: currentUserId,
           action: 'like'
-        }
+        },
+        transaction: t
       });
 
       if (reverseMatch) {
-        // Mutual match!
+        // Mutual match! Update both records
+        isMutualMatch = true;
+        const mutualDate = new Date();
+
         match.isMutual = true;
-        match.mutualMatchDate = new Date();
-        await match.save();
+        match.mutualMatchDate = mutualDate;
+        await match.save({ transaction: t });
 
         reverseMatch.isMutual = true;
-        reverseMatch.mutualMatchDate = new Date();
-        await reverseMatch.save();
-
-        // Send notifications
-        const currentUser = await User.findByPk(currentUserId);
-        const matchedUser = await User.findByPk(userId);
-        
-        if (currentUser && matchedUser) {
-          const currentProfile = await Profile.findOne({ where: { userId: currentUserId } });
-          const matchedProfile = await Profile.findOne({ where: { userId } });
-          
-          const profileUrl = `${process.env.FRONTEND_URL}/profile/${userId}`;
-          const matchedProfileUrl = `${process.env.FRONTEND_URL}/profile/${currentUserId}`;
-          
-          await sendMatchNotification(
-            matchedUser.email,
-            `${currentProfile.firstName} ${currentProfile.lastName}`,
-            profileUrl
-          );
-          
-          await sendMatchNotification(
-            currentUser.email,
-            `${matchedProfile.firstName} ${matchedProfile.lastName}`,
-            matchedProfileUrl
-          );
-        }
+        reverseMatch.mutualMatchDate = mutualDate;
+        await reverseMatch.save({ transaction: t });
       }
     }
 
-    res.json({
-      success: true,
-      match,
-      isMutual: match.isMutual
-    });
-  } catch (error) {
-    console.error('Match action error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    return { match, isMutualMatch, currentProfile, matchedProfile };
+  });
+
+  // Send notifications outside transaction (non-critical)
+  if (result.isMutualMatch) {
+    try {
+      const [currentUser, matchedUser] = await Promise.all([
+        User.findByPk(currentUserId),
+        User.findByPk(userId)
+      ]);
+
+      if (currentUser && matchedUser && result.currentProfile && result.matchedProfile) {
+        const profileUrl = `${config.server.frontendUrl}/profile/${userId}`;
+        const matchedProfileUrl = `${config.server.frontendUrl}/profile/${currentUserId}`;
+
+        // Send emails in parallel (fire and forget)
+        Promise.all([
+          sendMatchNotification(
+            matchedUser.email,
+            `${result.currentProfile.firstName} ${result.currentProfile.lastName}`,
+            profileUrl
+          ),
+          sendMatchNotification(
+            currentUser.email,
+            `${result.matchedProfile.firstName} ${result.matchedProfile.lastName}`,
+            matchedProfileUrl
+          )
+        ]).catch(err => console.error('Failed to send match notifications:', err));
+      }
+    } catch (error) {
+      console.error('Error preparing match notifications:', error);
+    }
   }
-};
+
+  res.json({
+    success: true,
+    match: result.match,
+    isMutual: result.isMutualMatch
+  });
+});
 
 // @route   GET /api/match/likes
 // @desc    Get profiles that liked the current user (premium feature)
-// @access  Private
-exports.getLikes = async (req, res) => {
-  try {
-    const userId = req.user.id;
+// @access  Private/Premium
+exports.getLikes = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 20;
+  const offset = (page - 1) * limit;
 
-    // Check subscription
-    const subscription = await Subscription.findOne({
-      where: {
-        userId,
-        status: 'active',
-        planType: { [Op.in]: ['premium', 'elite'] }
+  // Get likes with pagination
+  const { count, rows: likes } = await Match.findAndCountAll({
+    where: {
+      matchedUserId: userId,
+      action: 'like'
+    },
+    include: [
+      {
+        model: User,
+        as: 'User',
+        attributes: ['id'],
+        include: [{
+          model: Profile,
+          where: { isActive: true },
+          attributes: ['firstName', 'lastName', 'city', 'profilePhoto', 'gender', 'dateOfBirth', 'education', 'profession']
+        }]
       }
-    });
+    ],
+    order: [['createdAt', 'DESC']],
+    limit,
+    offset
+  });
 
-    if (!subscription) {
-      return res.status(403).json({ 
-        message: 'Premium subscription required to view who liked you' 
-      });
+  // Filter out likes without valid profiles
+  const validLikes = likes
+    .filter(like => like.User?.Profile)
+    .map(like => ({
+      userId: like.userId,
+      ...like.User.Profile.toJSON(),
+      likedAt: like.createdAt,
+      compatibilityScore: like.compatibilityScore
+    }));
+
+  res.json({
+    success: true,
+    likes: validLikes,
+    pagination: {
+      page,
+      limit,
+      total: count,
+      pages: Math.ceil(count / limit)
     }
-
-    const likes = await Match.findAll({
-      where: {
-        matchedUserId: userId,
-        action: 'like'
-      },
-      include: [
-        {
-          model: User,
-          as: 'User',
-          include: [{
-            model: Profile,
-            where: { isActive: true }
-          }]
-        }
-      ],
-      order: [['createdAt', 'DESC']]
-    });
-
-    res.json({
-      success: true,
-      likes: likes.map(like => ({
-        ...like.User.Profile.toJSON(),
-        likedAt: like.createdAt,
-        compatibilityScore: like.compatibilityScore
-      }))
-    });
-  } catch (error) {
-    console.error('Get likes error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
+  });
+});
 
 // @route   GET /api/match/shortlist
 // @desc    Get shortlisted profiles
 // @access  Private
-exports.getShortlist = async (req, res) => {
-  try {
-    const userId = req.user.id;
+exports.getShortlist = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 20;
+  const offset = (page - 1) * limit;
 
-    const shortlisted = await Match.findAll({
-      where: {
-        userId,
-        action: 'shortlist'
-      },
-      include: [
-        {
-          model: User,
-          as: 'MatchedUser',
-          include: [{
-            model: Profile,
-            where: { isActive: true }
-          }]
-        }
-      ],
-      order: [['createdAt', 'DESC']]
-    });
+  const { count, rows: shortlisted } = await Match.findAndCountAll({
+    where: {
+      userId,
+      action: 'shortlist'
+    },
+    include: [
+      {
+        model: User,
+        as: 'MatchedUser',
+        attributes: ['id'],
+        include: [{
+          model: Profile,
+          where: { isActive: true },
+          attributes: ['firstName', 'lastName', 'city', 'profilePhoto', 'gender', 'dateOfBirth', 'education', 'profession']
+        }]
+      }
+    ],
+    order: [['createdAt', 'DESC']],
+    limit,
+    offset
+  });
 
-    res.json({
-      success: true,
-      shortlisted: shortlisted.map(match => ({
-        ...match.MatchedUser.Profile.toJSON(),
-        shortlistedAt: match.createdAt,
-        compatibilityScore: match.compatibilityScore
-      }))
-    });
-  } catch (error) {
-    console.error('Get shortlist error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
+  const validShortlisted = shortlisted
+    .filter(match => match.MatchedUser?.Profile)
+    .map(match => ({
+      userId: match.matchedUserId,
+      ...match.MatchedUser.Profile.toJSON(),
+      shortlistedAt: match.createdAt,
+      compatibilityScore: match.compatibilityScore
+    }));
+
+  res.json({
+    success: true,
+    shortlisted: validShortlisted,
+    pagination: {
+      page,
+      limit,
+      total: count,
+      pages: Math.ceil(count / limit)
+    }
+  });
+});
 
 // @route   GET /api/match/mutual
 // @desc    Get mutual matches
 // @access  Private
-exports.getMutualMatches = async (req, res) => {
-  try {
-    const userId = req.user.id;
+exports.getMutualMatches = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 20;
+  const offset = (page - 1) * limit;
 
-    const mutualMatches = await Match.findAll({
-      where: {
-        userId,
-        isMutual: true
-      },
-      include: [
-        {
-          model: User,
-          as: 'MatchedUser',
-          include: [{
-            model: Profile,
-            where: { isActive: true },
-            required: false  // Allow matches even if Profile query fails
-          }]
-        }
-      ],
-      order: [['mutualMatchDate', 'DESC']]
-    });
+  const { count, rows: mutualMatches } = await Match.findAndCountAll({
+    where: {
+      userId,
+      isMutual: true
+    },
+    include: [
+      {
+        model: User,
+        as: 'MatchedUser',
+        attributes: ['id'],
+        include: [{
+          model: Profile,
+          where: { isActive: true },
+          required: false,
+          attributes: ['firstName', 'lastName', 'city', 'profilePhoto', 'gender', 'dateOfBirth', 'education', 'profession']
+        }]
+      }
+    ],
+    order: [['mutualMatchDate', 'DESC']],
+    limit,
+    offset
+  });
 
-    // Filter out matches where Profile doesn't exist and map to expected format
-    const validMatches = mutualMatches
-      .filter(match => match.MatchedUser && match.MatchedUser.Profile)
-      .map(match => {
-        const profile = match.MatchedUser.Profile.toJSON();
-        return {
-          // Include userId from the matched user (not from Profile)
-          userId: match.matchedUserId,
-          firstName: profile.firstName,
-          lastName: profile.lastName,
-          city: profile.city,
-          profilePhoto: profile.profilePhoto,
-          // Include additional fields that might be useful
-          gender: profile.gender,
-          dateOfBirth: profile.dateOfBirth,
-          education: profile.education,
-          profession: profile.profession,
-          matchedAt: match.mutualMatchDate,
-          compatibilityScore: match.compatibilityScore
-        };
-      });
+  const validMatches = mutualMatches
+    .filter(match => match.MatchedUser?.Profile)
+    .map(match => ({
+      userId: match.matchedUserId,
+      firstName: match.MatchedUser.Profile.firstName,
+      lastName: match.MatchedUser.Profile.lastName,
+      city: match.MatchedUser.Profile.city,
+      profilePhoto: match.MatchedUser.Profile.profilePhoto,
+      gender: match.MatchedUser.Profile.gender,
+      dateOfBirth: match.MatchedUser.Profile.dateOfBirth,
+      education: match.MatchedUser.Profile.education,
+      profession: match.MatchedUser.Profile.profession,
+      matchedAt: match.mutualMatchDate,
+      compatibilityScore: match.compatibilityScore
+    }));
 
-    console.log(`Found ${validMatches.length} mutual matches for user ${userId}`);
-
-    res.json({
-      success: true,
-      mutualMatches: validMatches
-    });
-  } catch (error) {
-    console.error('Get mutual matches error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
-
+  res.json({
+    success: true,
+    mutualMatches: validMatches,
+    pagination: {
+      page,
+      limit,
+      total: count,
+      pages: Math.ceil(count / limit)
+    }
+  });
+});

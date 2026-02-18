@@ -1,0 +1,282 @@
+# Subscription API Documentation
+
+paths:
+  /subscription:
+    get:
+      summary: Get current subscription status
+      tags: [Subscription]
+      responses:
+        '200':
+          description: Subscription details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      subscription:
+                        $ref: '#/components/schemas/Subscription'
+                      features:
+                        type: object
+                        properties:
+                          unlimitedLikes:
+                            type: boolean
+                          seeWhoLikesYou:
+                            type: boolean
+                          advancedFilters:
+                            type: boolean
+                          prioritySupport:
+                            type: boolean
+                          profileBoost:
+                            type: boolean
+                          readReceipts:
+                            type: boolean
+                          undoPass:
+                            type: boolean
+                      limits:
+                        type: object
+                        properties:
+                          dailyLikes:
+                            type: integer
+                          galleryPhotos:
+                            type: integer
+                          messageLength:
+                            type: integer
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /subscription/plans:
+    get:
+      summary: Get available subscription plans
+      tags: [Subscription]
+      security: []
+      responses:
+        '200':
+          description: List of subscription plans
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          enum: [free, premium, elite]
+                        name:
+                          type: string
+                        price:
+                          type: number
+                        currency:
+                          type: string
+                          example: INR
+                        duration:
+                          type: integer
+                          description: Duration in days
+                        features:
+                          type: array
+                          items:
+                            type: string
+                        popular:
+                          type: boolean
+
+  /subscription/order:
+    post:
+      summary: Create a payment order
+      tags: [Subscription]
+      description: Create a Razorpay order to initiate payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - planType
+              properties:
+                planType:
+                  type: string
+                  enum: [premium, elite]
+                duration:
+                  type: string
+                  enum: [monthly, quarterly, yearly]
+                  default: monthly
+      responses:
+        '200':
+          description: Payment order created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      orderId:
+                        type: string
+                        description: Razorpay order ID
+                      amount:
+                        type: integer
+                        description: Amount in paise
+                      currency:
+                        type: string
+                        example: INR
+                      keyId:
+                        type: string
+                        description: Razorpay key ID for frontend
+        '400':
+          description: Invalid plan type
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /subscription/verify:
+    post:
+      summary: Verify payment and activate subscription
+      tags: [Subscription]
+      description: Verify Razorpay payment signature and activate subscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - razorpayOrderId
+                - razorpayPaymentId
+                - razorpaySignature
+              properties:
+                razorpayOrderId:
+                  type: string
+                razorpayPaymentId:
+                  type: string
+                razorpaySignature:
+                  type: string
+      responses:
+        '200':
+          description: Payment verified, subscription activated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Subscription activated successfully
+                  data:
+                    type: object
+                    properties:
+                      subscription:
+                        $ref: '#/components/schemas/Subscription'
+        '400':
+          description: Payment verification failed
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /subscription/webhook:
+    post:
+      summary: Razorpay webhook endpoint
+      tags: [Subscription]
+      security: []
+      description: |
+        Webhook endpoint for Razorpay payment events.
+        Signature verification required via X-Razorpay-Signature header.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Webhook processed
+        '400':
+          description: Invalid signature
+
+  /subscription/cancel:
+    post:
+      summary: Cancel subscription
+      tags: [Subscription]
+      description: Cancel current subscription (remains active until end date)
+      responses:
+        '200':
+          description: Subscription cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Subscription will not renew after current period
+                  data:
+                    type: object
+                    properties:
+                      endsAt:
+                        type: string
+                        format: date-time
+        '400':
+          description: No active subscription
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /subscription/history:
+    get:
+      summary: Get subscription history
+      tags: [Subscription]
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Subscription history
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                              format: uuid
+                            planType:
+                              type: string
+                            status:
+                              type: string
+                            startDate:
+                              type: string
+                              format: date-time
+                            endDate:
+                              type: string
+                              format: date-time
+                            amount:
+                              type: number
+                            paymentId:
+                              type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'

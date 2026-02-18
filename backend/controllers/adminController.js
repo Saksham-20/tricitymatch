@@ -1,247 +1,274 @@
+/**
+ * Admin Controller
+ * Administrative operations with proper authorization
+ */
+
 const { User, Profile, Subscription, Match, Verification, ProfileView } = require('../models');
 const { Op } = require('sequelize');
+const { createError, asyncHandler } = require('../middlewares/errorHandler');
+const { logAudit } = require('../middlewares/logger');
+
+// Escape special characters for LIKE patterns
+const escapeLikePattern = (str) => {
+  if (!str) return str;
+  return str.replace(/[%_\\]/g, '\\$&');
+};
 
 // @route   GET /api/admin/users
 // @desc    Get all users with filters
 // @access  Private/Admin
-exports.getUsers = async (req, res) => {
-  try {
-    const { status, role, page = 1, limit = 20, search } = req.query;
-    const offset = (page - 1) * limit;
+exports.getUsers = asyncHandler(async (req, res) => {
+  const { status, role, page = 1, limit = 20, search } = req.query;
+  const offset = (page - 1) * limit;
 
-    const where = {};
-    if (status) where.status = status;
-    if (role) where.role = role;
-    if (search) {
-      where[Op.or] = [
-        { email: { [Op.iLike]: `%${search}%` } },
-        { phone: { [Op.iLike]: `%${search}%` } }
-      ];
-    }
-
-    const { count, rows: users } = await User.findAndCountAll({
-      where,
-      include: [
-        { model: Profile, attributes: ['firstName', 'lastName', 'city'] },
-        { model: Subscription, order: [['createdAt', 'DESC']], limit: 1 }
-      ],
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-      order: [['createdAt', 'DESC']]
-    });
-
-    res.json({
-      success: true,
-      users,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total: count,
-        pages: Math.ceil(count / limit)
-      }
-    });
-  } catch (error) {
-    console.error('Get users error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+  const where = {};
+  if (status) where.status = status;
+  if (role) where.role = role;
+  if (search) {
+    where[Op.or] = [
+      { email: { [Op.iLike]: `%${escapeLikePattern(search)}%` } },
+      { phone: { [Op.iLike]: `%${escapeLikePattern(search)}%` } }
+    ];
   }
-};
+
+  const { count, rows: users } = await User.findAndCountAll({
+    where,
+    include: [
+      { model: Profile, attributes: ['firstName', 'lastName', 'city'] },
+      { model: Subscription, order: [['createdAt', 'DESC']], limit: 1 }
+    ],
+    limit: parseInt(limit),
+    offset: parseInt(offset),
+    order: [['createdAt', 'DESC']]
+  });
+
+  res.json({
+    success: true,
+    users,
+    pagination: {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      total: count,
+      pages: Math.ceil(count / limit)
+    }
+  });
+});
 
 // @route   PUT /api/admin/users/:userId/status
 // @desc    Update user status
 // @access  Private/Admin
-exports.updateUserStatus = async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const { status } = req.body;
+exports.updateUserStatus = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const { status } = req.body;
 
-    if (!['active', 'inactive', 'banned', 'pending'].includes(status)) {
-      return res.status(400).json({ message: 'Invalid status' });
-    }
-
-    const user = await User.findByPk(userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    user.status = status;
-    await user.save();
-
-    res.json({
-      success: true,
-      message: 'User status updated',
-      user
-    });
-  } catch (error) {
-    console.error('Update user status error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+  const user = await User.findByPk(userId);
+  if (!user) {
+    throw createError.notFound('User not found');
   }
-};
+
+  const previousStatus = user.status;
+  user.status = status;
+  await user.save();
+
+  // Audit log
+  logAudit('user_status_changed', req.user.id, {
+    targetUserId: userId,
+    previousStatus,
+    newStatus: status
+  });
+
+  res.json({
+    success: true,
+    message: 'User status updated',
+    user
+  });
+});
 
 // @route   GET /api/admin/verifications
 // @desc    Get pending verifications
 // @access  Private/Admin
-exports.getVerifications = async (req, res) => {
-  try {
-    const { status = 'pending' } = req.query;
+exports.getVerifications = asyncHandler(async (req, res) => {
+  const { status = 'pending' } = req.query;
 
-    const verifications = await Verification.findAll({
-      where: { status },
-      include: [
-        {
-          model: User,
-          include: [{ model: Profile, attributes: ['firstName', 'lastName', 'profilePhoto'] }]
-        }
-      ],
-      order: [['createdAt', 'ASC']]
-    });
+  const verifications = await Verification.findAll({
+    where: { status },
+    include: [
+      {
+        model: User,
+        include: [{ model: Profile, attributes: ['firstName', 'lastName', 'profilePhoto'] }]
+      }
+    ],
+    order: [['createdAt', 'ASC']]
+  });
 
-    res.json({
-      success: true,
-      verifications
-    });
-  } catch (error) {
-    console.error('Get verifications error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
+  res.json({
+    success: true,
+    verifications
+  });
+});
 
 // @route   PUT /api/admin/verifications/:verificationId
 // @desc    Approve/reject verification
 // @access  Private/Admin
-exports.updateVerification = async (req, res) => {
-  try {
-    const { verificationId } = req.params;
-    const { status, adminNotes } = req.body;
+exports.updateVerification = asyncHandler(async (req, res) => {
+  const { verificationId } = req.params;
+  const { status, adminNotes } = req.body;
 
-    if (!['approved', 'rejected', 'flagged'].includes(status)) {
-      return res.status(400).json({ message: 'Invalid status' });
-    }
-
-    const verification = await Verification.findByPk(verificationId);
-    if (!verification) {
-      return res.status(404).json({ message: 'Verification not found' });
-    }
-
-    verification.status = status;
-    verification.adminNotes = adminNotes;
-    verification.verifiedAt = new Date();
-    verification.verifiedBy = req.user.id;
-    await verification.save();
-
-    res.json({
-      success: true,
-      message: 'Verification updated',
-      verification
-    });
-  } catch (error) {
-    console.error('Update verification error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+  const verification = await Verification.findByPk(verificationId);
+  if (!verification) {
+    throw createError.notFound('Verification not found');
   }
-};
+
+  const previousStatus = verification.status;
+  verification.status = status;
+  verification.adminNotes = adminNotes;
+  verification.verifiedAt = new Date();
+  verification.verifiedBy = req.user.id;
+  await verification.save();
+
+  // Audit log
+  logAudit('verification_status_changed', req.user.id, {
+    verificationId,
+    userId: verification.userId,
+    previousStatus,
+    newStatus: status
+  });
+
+  res.json({
+    success: true,
+    message: 'Verification updated',
+    verification
+  });
+});
 
 // @route   GET /api/admin/analytics
 // @desc    Get analytics data
 // @access  Private/Admin
-exports.getAnalytics = async (req, res) => {
-  try {
+exports.getAnalytics = asyncHandler(async (req, res) => {
+  // Run all analytics queries in parallel
+  const [
+    userStats,
+    subscriptionStats,
+    matchStats,
+    viewsThisWeek,
+    verificationStats
+  ] = await Promise.all([
     // User statistics
-    const totalUsers = await User.count();
-    const activeUsers = await User.count({ where: { status: 'active' } });
-    const pendingUsers = await User.count({ where: { status: 'pending' } });
-    const bannedUsers = await User.count({ where: { status: 'banned' } });
+    User.findAll({
+      attributes: [
+        'status',
+        [require('sequelize').fn('COUNT', require('sequelize').col('id')), 'count']
+      ],
+      group: ['status'],
+      raw: true
+    }),
 
-    // Subscription statistics
-    const totalSubscriptions = await Subscription.count();
-    const activeSubscriptions = await Subscription.count({ 
-      where: { status: 'active' } 
-    });
-    const premiumSubscriptions = await Subscription.count({
-      where: { status: 'active', planType: 'premium' }
-    });
-    const eliteSubscriptions = await Subscription.count({
-      where: { status: 'active', planType: 'elite' }
-    });
-
-    // Revenue calculation
-    const revenueData = await Subscription.findAll({
+    // Subscription statistics with revenue
+    Subscription.findAll({
       where: { status: 'active' },
-      attributes: ['planType', 'amount']
-    });
-    const totalRevenue = revenueData.reduce((sum, sub) => sum + (parseFloat(sub.amount) || 0), 0);
+      attributes: [
+        'planType',
+        [require('sequelize').fn('COUNT', require('sequelize').col('id')), 'count'],
+        [require('sequelize').fn('SUM', require('sequelize').col('amount')), 'revenue']
+      ],
+      group: ['planType'],
+      raw: true
+    }),
 
     // Match statistics
-    const totalMatches = await Match.count();
-    const mutualMatches = await Match.count({ where: { isMutual: true } });
-    const totalLikes = await Match.count({ where: { action: 'like' } });
+    Match.findAll({
+      attributes: [
+        [require('sequelize').fn('COUNT', require('sequelize').col('id')), 'total'],
+        [require('sequelize').fn('COUNT', require('sequelize').literal("CASE WHEN \"isMutual\" = true THEN 1 END")), 'mutual'],
+        [require('sequelize').fn('COUNT', require('sequelize').literal("CASE WHEN \"action\" = 'like' THEN 1 END")), 'likes']
+      ],
+      raw: true
+    }),
 
-    // Profile views
-    const totalProfileViews = await ProfileView.count();
-    const viewsThisWeek = await ProfileView.count({
+    // Profile views this week
+    ProfileView.count({
       where: {
         createdAt: { [Op.gte]: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
       }
-    });
+    }),
 
     // Verification statistics
-    const pendingVerifications = await Verification.count({ 
-      where: { status: 'pending' } 
-    });
-    const approvedVerifications = await Verification.count({ 
-      where: { status: 'approved' } 
-    });
+    Verification.findAll({
+      attributes: [
+        'status',
+        [require('sequelize').fn('COUNT', require('sequelize').col('id')), 'count']
+      ],
+      group: ['status'],
+      raw: true
+    })
+  ]);
 
-    res.json({
-      success: true,
-      analytics: {
-        users: {
-          total: totalUsers,
-          active: activeUsers,
-          pending: pendingUsers,
-          banned: bannedUsers
-        },
-        subscriptions: {
-          total: totalSubscriptions,
-          active: activeSubscriptions,
-          premium: premiumSubscriptions,
-          elite: eliteSubscriptions,
-          revenue: totalRevenue
-        },
-        matches: {
-          total: totalMatches,
-          mutual: mutualMatches,
-          likes: totalLikes
-        },
-        engagement: {
-          profileViews: totalProfileViews,
-          viewsThisWeek: viewsThisWeek
-        },
-        verifications: {
-          pending: pendingVerifications,
-          approved: approvedVerifications
-        }
-      }
-    });
-  } catch (error) {
-    console.error('Get analytics error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
+  // Process user stats
+  const users = {
+    total: 0,
+    active: 0,
+    pending: 0,
+    banned: 0,
+    inactive: 0
+  };
+  userStats.forEach(stat => {
+    users[stat.status] = parseInt(stat.count);
+    users.total += parseInt(stat.count);
+  });
+
+  // Process subscription stats
+  const subscriptions = {
+    total: 0,
+    premium: 0,
+    elite: 0,
+    revenue: 0
+  };
+  subscriptionStats.forEach(stat => {
+    subscriptions[stat.planType] = parseInt(stat.count);
+    subscriptions.total += parseInt(stat.count);
+    subscriptions.revenue += parseFloat(stat.revenue) || 0;
+  });
+
+  // Process match stats
+  const matches = matchStats[0] ? {
+    total: parseInt(matchStats[0].total) || 0,
+    mutual: parseInt(matchStats[0].mutual) || 0,
+    likes: parseInt(matchStats[0].likes) || 0
+  } : { total: 0, mutual: 0, likes: 0 };
+
+  // Process verification stats
+  const verifications = {
+    pending: 0,
+    approved: 0,
+    rejected: 0
+  };
+  verificationStats.forEach(stat => {
+    verifications[stat.status] = parseInt(stat.count);
+  });
+
+  res.json({
+    success: true,
+    analytics: {
+      users,
+      subscriptions,
+      matches,
+      engagement: {
+        viewsThisWeek,
+        totalProfileViews: await ProfileView.count()
+      },
+      verifications
+    }
+  });
+});
 
 // @route   GET /api/admin/reports
-// @desc    Get reported users/issues (placeholder for future implementation)
+// @desc    Get reported users/issues
 // @access  Private/Admin
-exports.getReports = async (req, res) => {
-  try {
-    // This is a placeholder for a reports system
-    // In a full implementation, you'd have a Reports model
-    res.json({
-      success: true,
-      reports: [],
-      message: 'Reports feature coming soon'
-    });
-  } catch (error) {
-    console.error('Get reports error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
-
+exports.getReports = asyncHandler(async (req, res) => {
+  // Placeholder for reports system
+  res.json({
+    success: true,
+    reports: [],
+    message: 'Reports feature coming soon'
+  });
+});

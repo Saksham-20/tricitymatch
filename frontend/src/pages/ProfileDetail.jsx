@@ -8,6 +8,7 @@ import CompatibilityMeter from '../components/matching/CompatibilityMeter';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../utils/api';
 import { getImageUrl } from '../utils/cloudinary';
+import { sanitizeText, sanitizeUrl } from '../utils/sanitize';
 
 const ProfileDetail = () => {
   const { userId } = useParams();
@@ -133,7 +134,7 @@ const ProfileDetail = () => {
                 )}
               </div>
               {profile.bio && (
-                <p className="text-gray-700 mb-6 leading-relaxed">{profile.bio}</p>
+                <p className="text-gray-700 mb-6 leading-relaxed">{sanitizeText(profile.bio)}</p>
               )}
 
               <div className="grid grid-cols-2 gap-4">
@@ -181,8 +182,8 @@ const ProfileDetail = () => {
                       if (!answer) return null;
                       return (
                         <div key={key} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                          <p className="font-medium text-gray-900 mb-2">{prompt}</p>
-                          <p className="text-gray-700 leading-relaxed">{answer}</p>
+                          <p className="font-medium text-gray-900 mb-2">{sanitizeText(prompt)}</p>
+                          <p className="text-gray-700 leading-relaxed">{sanitizeText(answer)}</p>
                         </div>
                       );
                     })}
@@ -208,19 +209,19 @@ const ProfileDetail = () => {
             )}
 
             {/* Spotify Playlist */}
-            {profile.spotifyPlaylist && (
+            {profile.spotifyPlaylist && sanitizeUrl(profile.spotifyPlaylist) && (
               <div className="card">
                 <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-gray-900">
                   <FiMusic className="w-5 h-5 text-gray-600" />
                   Music Taste
                 </h2>
                 <a
-                  href={profile.spotifyPlaylist}
+                  href={sanitizeUrl(profile.spotifyPlaylist)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:text-blue-700 underline text-sm"
                 >
-                  Listen to {profile.firstName}'s playlist →
+                  Listen to {sanitizeText(profile.firstName)}'s playlist →
                 </a>
               </div>
             )}

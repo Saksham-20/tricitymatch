@@ -1,0 +1,325 @@
+# Monitoring API Documentation
+
+paths:
+  /monitoring/health:
+    get:
+      summary: Basic health check
+      tags: [Monitoring]
+      security: []
+      description: Simple liveness check - returns OK if service is running
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+                  uptime:
+                    type: number
+                    description: Uptime in seconds
+
+  /monitoring/health/live:
+    get:
+      summary: Kubernetes liveness probe
+      tags: [Monitoring]
+      security: []
+      description: Returns 200 if process is running
+      responses:
+        '200':
+          description: Process is alive
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: OK
+
+  /monitoring/health/ready:
+    get:
+      summary: Kubernetes readiness probe
+      tags: [Monitoring]
+      security: []
+      description: Returns 200 if service is ready to accept traffic (DB connected)
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy, degraded]
+                  database:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                      latencyMs:
+                        type: number
+                  redis:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+        '503':
+          description: Service is not ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: unhealthy
+                  error:
+                    type: string
+
+  /monitoring/health/full:
+    get:
+      summary: Full system health check
+      tags: [Monitoring]
+      security: []
+      description: Comprehensive health check including all subsystems
+      responses:
+        '200':
+          description: Full health report
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy, degraded, unhealthy]
+                  timestamp:
+                    type: string
+                    format: date-time
+                  uptime:
+                    type: string
+                  version:
+                    type: string
+                  database:
+                    type: object
+                  redis:
+                    type: object
+                  memory:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                      heapUsedMB:
+                        type: number
+                      heapTotalMB:
+                        type: number
+                      usagePercent:
+                        type: number
+                  cpu:
+                    type: object
+                  disk:
+                    type: object
+                  queues:
+                    type: object
+                  cache:
+                    type: object
+
+  /monitoring/metrics:
+    get:
+      summary: Prometheus metrics endpoint
+      tags: [Monitoring]
+      security: []
+      description: Returns metrics in Prometheus exposition format
+      responses:
+        '200':
+          description: Prometheus metrics
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: |
+                  # HELP tricitymatch_http_requests_total Total HTTP requests
+                  # TYPE tricitymatch_http_requests_total counter
+                  tricitymatch_http_requests_total{method="GET",path="/api/search",status="200"} 1234
+
+  /monitoring/metrics/json:
+    get:
+      summary: Metrics in JSON format
+      tags: [Monitoring]
+      security: []
+      responses:
+        '200':
+          description: JSON metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  timestamp:
+                    type: string
+                    format: date-time
+                  uptime:
+                    type: number
+                  requests:
+                    type: object
+                  latency:
+                    type: object
+                  business:
+                    type: object
+                    properties:
+                      signups:
+                        type: integer
+                      logins:
+                        type: integer
+                      matches:
+                        type: integer
+                      messages:
+                        type: integer
+                  cache:
+                    type: object
+                    properties:
+                      hits:
+                        type: integer
+                      misses:
+                        type: integer
+                      hitRate:
+                        type: number
+
+  /monitoring/info:
+    get:
+      summary: Application info
+      tags: [Monitoring]
+      security: []
+      responses:
+        '200':
+          description: Application information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    example: TricityMatch API
+                  version:
+                    type: string
+                  environment:
+                    type: string
+                  nodeVersion:
+                    type: string
+                  uptime:
+                    type: number
+                  memory:
+                    type: object
+
+  /monitoring/alerts:
+    get:
+      summary: Get active alerts
+      tags: [Monitoring]
+      description: Admin only - view active system alerts
+      responses:
+        '200':
+          description: Active alerts and statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  active:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        type:
+                          type: string
+                        severity:
+                          type: string
+                          enum: [info, warning, critical]
+                        message:
+                          type: string
+                        timestamp:
+                          type: string
+                          format: date-time
+                  stats:
+                    type: object
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /monitoring/queues:
+    get:
+      summary: Get queue statistics
+      tags: [Monitoring]
+      description: Admin only - view background job queue status
+      responses:
+        '200':
+          description: Queue statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  email:
+                    type: object
+                    properties:
+                      waiting:
+                        type: integer
+                      active:
+                        type: integer
+                      completed:
+                        type: integer
+                      failed:
+                        type: integer
+                  notification:
+                    type: object
+                  cleanup:
+                    type: object
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /monitoring/cache:
+    get:
+      summary: Get cache statistics
+      tags: [Monitoring]
+      description: Admin only - view cache performance metrics
+      responses:
+        '200':
+          description: Cache statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  type:
+                    type: string
+                    enum: [redis, memory]
+                  connected:
+                    type: boolean
+                  stats:
+                    type: object
+                    properties:
+                      hits:
+                        type: integer
+                      misses:
+                        type: integer
+                      hitRate:
+                        type: string
+                      keys:
+                        type: integer
+                      memoryUsage:
+                        type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'

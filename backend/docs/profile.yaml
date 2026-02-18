@@ -1,0 +1,317 @@
+# Profile API Documentation
+
+paths:
+  /profile:
+    get:
+      summary: Get current user's profile
+      tags: [Profile]
+      responses:
+        '200':
+          description: Profile data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Profile'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    put:
+      summary: Update current user's profile
+      tags: [Profile]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                  minLength: 2
+                  maxLength: 50
+                lastName:
+                  type: string
+                  minLength: 2
+                  maxLength: 50
+                gender:
+                  type: string
+                  enum: [male, female, other]
+                dateOfBirth:
+                  type: string
+                  format: date
+                height:
+                  type: integer
+                  minimum: 100
+                  maximum: 250
+                  description: Height in centimeters
+                weight:
+                  type: integer
+                  minimum: 30
+                  maximum: 300
+                  description: Weight in kilograms
+                city:
+                  type: string
+                  maxLength: 100
+                state:
+                  type: string
+                  maxLength: 100
+                skinTone:
+                  type: string
+                  enum: [fair, wheatish, dark]
+                diet:
+                  type: string
+                  enum: [vegetarian, non-vegetarian, vegan, jain]
+                smoking:
+                  type: string
+                  enum: [never, occasionally, regularly]
+                drinking:
+                  type: string
+                  enum: [never, occasionally, regularly]
+                education:
+                  type: string
+                  maxLength: 100
+                degree:
+                  type: string
+                  maxLength: 100
+                profession:
+                  type: string
+                  maxLength: 100
+                income:
+                  type: integer
+                  minimum: 0
+                  description: Annual income
+                bio:
+                  type: string
+                  maxLength: 1000
+                interestTags:
+                  type: array
+                  maxItems: 20
+                  items:
+                    type: string
+                    maxLength: 50
+                languages:
+                  type: array
+                  maxItems: 10
+                  items:
+                    type: string
+                personalityType:
+                  type: string
+                  maxLength: 50
+                showPhone:
+                  type: boolean
+                showEmail:
+                  type: boolean
+                incognitoMode:
+                  type: boolean
+                preferredAgeMin:
+                  type: integer
+                  minimum: 18
+                  maximum: 99
+                preferredAgeMax:
+                  type: integer
+                  minimum: 18
+                  maximum: 99
+                preferredHeightMin:
+                  type: integer
+                  minimum: 100
+                  maximum: 250
+                preferredHeightMax:
+                  type: integer
+                  minimum: 100
+                  maximum: 250
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Profile updated successfully
+                  data:
+                    $ref: '#/components/schemas/Profile'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /profile/{userId}:
+    get:
+      summary: Get another user's profile
+      tags: [Profile]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: User ID to view
+      responses:
+        '200':
+          description: Profile data (with privacy settings applied)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Profile'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: User has blocked you or is in incognito mode
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /profile/photo:
+    post:
+      summary: Upload profile photo
+      tags: [Profile]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                photo:
+                  type: string
+                  format: binary
+                  description: Image file (JPEG, PNG, max 5MB)
+      responses:
+        '200':
+          description: Photo uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Photo uploaded successfully
+                  data:
+                    type: object
+                    properties:
+                      photoUrl:
+                        type: string
+                        format: uri
+        '400':
+          description: Invalid file type or size
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    delete:
+      summary: Delete a profile photo
+      tags: [Profile]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - photoUrl
+              properties:
+                photoUrl:
+                  type: string
+                  format: uri
+                  description: URL of the photo to delete
+      responses:
+        '200':
+          description: Photo deleted successfully
+        '400':
+          description: Invalid photo URL
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /profile/gallery:
+    post:
+      summary: Upload gallery photo
+      tags: [Profile]
+      description: Upload additional photos to gallery (max 5 photos for free users, 10 for premium)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                photo:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Gallery photo uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      photoUrl:
+                        type: string
+                        format: uri
+        '400':
+          description: Gallery limit reached or invalid file
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /profile/completion:
+    get:
+      summary: Get profile completion status
+      tags: [Profile]
+      responses:
+        '200':
+          description: Profile completion details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      percentage:
+                        type: integer
+                        minimum: 0
+                        maximum: 100
+                      completedFields:
+                        type: array
+                        items:
+                          type: string
+                      missingFields:
+                        type: array
+                        items:
+                          type: string
+                      recommendations:
+                        type: array
+                        items:
+                          type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'

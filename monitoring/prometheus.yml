@@ -1,0 +1,67 @@
+# Prometheus Configuration for TricityMatch
+# Use this as a reference for setting up monitoring in production
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  
+  # Attach labels to any time series or alerts
+  external_labels:
+    environment: 'production'
+    application: 'tricitymatch'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+# Load rules once and periodically evaluate them
+rule_files:
+  - "alert_rules.yml"
+
+# Scrape configuration
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # TricityMatch API metrics
+  - job_name: 'tricitymatch-api'
+    scrape_interval: 10s
+    metrics_path: '/monitoring/metrics'
+    static_configs:
+      - targets: ['api:5000']
+        labels:
+          service: 'api'
+          tier: 'backend'
+    
+    # Optional: Add authentication if metrics endpoint is protected
+    # basic_auth:
+    #   username: prometheus
+    #   password_file: /etc/prometheus/secrets/metrics_password
+
+  # Node Exporter for server metrics (if deployed)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          tier: 'infrastructure'
+
+  # PostgreSQL Exporter (if deployed)
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+        labels:
+          service: 'database'
+          tier: 'data'
+
+  # Redis Exporter (if deployed)
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+        labels:
+          service: 'cache'
+          tier: 'data'

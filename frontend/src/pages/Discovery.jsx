@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 import SwipeableCard from '../components/matching/SwipeableCard';
 import { FiHeart, FiStar, FiX } from 'react-icons/fi';
 
+// Environment check for logging
+const isDev = import.meta.env.DEV;
+
 const Discovery = () => {
+  const navigate = useNavigate();
   const [profiles, setProfiles] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -20,7 +25,9 @@ const Discovery = () => {
       setLoading(true);
       const response = await api.get('/search/suggestions?limit=20');
       
-      console.log('Suggestions API Response:', response.data); // Debug log
+      if (isDev) {
+        console.log('Suggestions API Response:', response.data);
+      }
       
       // Extract suggestions from response
       let suggestionsData = [];
@@ -49,13 +56,16 @@ const Discovery = () => {
         };
       }).filter(profile => profile.userId); // Filter out profiles without userId
       
-      console.log('Normalized suggestions:', normalizedProfiles.length, normalizedProfiles); // Debug log
+      if (isDev) {
+        console.log('Normalized suggestions:', normalizedProfiles.length);
+      }
       
       setProfiles(normalizedProfiles);
       setCurrentIndex(0); // Reset to first profile
     } catch (error) {
-      console.error('Suggestions error:', error);
-      console.error('Error details:', error.response?.data);
+      if (isDev) {
+        console.error('Suggestions error:', error);
+      }
       toast.error(error.response?.data?.message || 'Failed to load suggestions');
       setProfiles([]);
     } finally {
@@ -69,7 +79,9 @@ const Discovery = () => {
 
     const profileId = currentProfile.userId || currentProfile.id;
     if (!profileId) {
-      console.error('Profile missing userId:', currentProfile);
+      if (isDev) {
+        console.error('Profile missing userId:', currentProfile);
+      }
       toast.error('Invalid profile data');
       return;
     }
@@ -92,7 +104,9 @@ const Discovery = () => {
         setCurrentIndex(0);
       }
     } catch (error) {
-      console.error('Match action error:', error);
+      if (isDev) {
+        console.error('Match action error:', error);
+      }
       toast.error(error.response?.data?.message || 'Failed to perform action');
     }
   };
@@ -106,7 +120,9 @@ const Discovery = () => {
 
     const profileId = currentProfile.userId || currentProfile.id;
     if (!profileId) {
-      console.error('Profile missing userId:', currentProfile);
+      if (isDev) {
+        console.error('Profile missing userId:', currentProfile);
+      }
       toast.error('Invalid profile data');
       return;
     }
@@ -122,7 +138,9 @@ const Discovery = () => {
         setCurrentIndex(0);
       }
     } catch (error) {
-      console.error('Shortlist error:', error);
+      if (isDev) {
+        console.error('Shortlist error:', error);
+      }
       toast.error(error.response?.data?.message || 'Failed to shortlist');
     }
   };
@@ -132,9 +150,11 @@ const Discovery = () => {
     if (currentProfile) {
       const profileId = currentProfile.userId || currentProfile.id;
       if (profileId) {
-        window.location.href = `/profile/${profileId}`;
+        navigate(`/profile/${profileId}`);
       } else {
-        console.error('Profile missing userId:', currentProfile);
+        if (isDev) {
+          console.error('Profile missing userId:', currentProfile);
+        }
         toast.error('Invalid profile data');
       }
     }

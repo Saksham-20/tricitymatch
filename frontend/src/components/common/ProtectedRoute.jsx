@@ -1,22 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import React from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const ProtectedRoute = ({ children, adminOnly = false }) => {
   const { isAuthenticated, loading, user } = useAuth();
-  const [isChecking, setIsChecking] = useState(true);
+  const location = useLocation();
 
-  useEffect(() => {
-    // Give a moment for auth state to update after login/signup
-    if (!loading) {
-      const timer = setTimeout(() => {
-        setIsChecking(false);
-      }, 50);
-      return () => clearTimeout(timer);
-    }
-  }, [loading, isAuthenticated]);
-
-  if (loading || isChecking) {
+  // Show loading spinner while checking auth state
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-neutral-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -24,10 +15,13 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
     );
   }
 
+  // Redirect to login if not authenticated
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    // Save the attempted URL for redirecting after login
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // Redirect non-admin users trying to access admin routes
   if (adminOnly && user?.role !== 'admin') {
     return <Navigate to="/dashboard" replace />;
   }
@@ -36,4 +30,3 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
 };
 
 export default ProtectedRoute;
-
