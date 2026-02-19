@@ -2,108 +2,45 @@
 
 /**
  * Migration: Add Performance Indexes
- * 
- * Adds indexes for frequently queried fields to improve query performance
+ *
+ * Adds indexes for frequently queried fields. Uses IF NOT EXISTS so re-run is safe.
  */
 module.exports = {
   async up(queryInterface, Sequelize) {
+    const { sequelize } = queryInterface;
+    const run = (sql) => sequelize.query(sql);
+
     // ==================== VERIFICATIONS TABLE ====================
-    // Index for admin queries filtering by status
-    await queryInterface.addIndex('Verifications', ['status'], {
-      name: 'idx_verifications_status'
-    });
-
-    // Index for user lookups
-    await queryInterface.addIndex('Verifications', ['userId'], {
-      name: 'idx_verifications_user_id'
-    });
-
-    // Composite index for admin dashboard queries
-    await queryInterface.addIndex('Verifications', ['status', 'createdAt'], {
-      name: 'idx_verifications_status_created'
-    });
+    await run('CREATE INDEX IF NOT EXISTS idx_verifications_status ON "Verifications" (status);');
+    await run('CREATE INDEX IF NOT EXISTS idx_verifications_user_id ON "Verifications" ("userId");');
+    await run('CREATE INDEX IF NOT EXISTS idx_verifications_status_created ON "Verifications" (status, "createdAt");');
 
     // ==================== PROFILE_VIEWS TABLE ====================
-    // Composite index for efficient duplicate view checks
-    await queryInterface.addIndex('ProfileViews', ['viewerId', 'viewedUserId'], {
-      unique: true,
-      name: 'idx_profile_views_viewer_viewed_unique'
-    });
-
-    // Index for views received queries
-    await queryInterface.addIndex('ProfileViews', ['viewedUserId', 'createdAt'], {
-      name: 'idx_profile_views_viewed_created'
-    });
+    await run('CREATE UNIQUE INDEX IF NOT EXISTS idx_profile_views_viewer_viewed_unique ON "ProfileViews" ("viewerId", "viewedUserId");');
+    await run('CREATE INDEX IF NOT EXISTS idx_profile_views_viewed_created ON "ProfileViews" ("viewedUserId", "createdAt");');
 
     // ==================== SUBSCRIPTIONS TABLE ====================
-    // Composite index for active subscription checks
-    await queryInterface.addIndex('Subscriptions', ['userId', 'status', 'endDate'], {
-      name: 'idx_subscriptions_user_status_end'
-    });
-
-    // Index for Razorpay order lookups
-    await queryInterface.addIndex('Subscriptions', ['razorpayOrderId'], {
-      name: 'idx_subscriptions_razorpay_order'
-    });
-
-    // Index for payment ID lookups (idempotency checks)
-    await queryInterface.addIndex('Subscriptions', ['razorpayPaymentId'], {
-      name: 'idx_subscriptions_razorpay_payment'
-    });
+    await run('CREATE INDEX IF NOT EXISTS idx_subscriptions_user_status_end ON "Subscriptions" ("userId", status, "endDate");');
+    await run('CREATE INDEX IF NOT EXISTS idx_subscriptions_razorpay_order ON "Subscriptions" ("razorpayOrderId");');
+    await run('CREATE INDEX IF NOT EXISTS idx_subscriptions_razorpay_payment ON "Subscriptions" ("razorpayPaymentId");');
 
     // ==================== MATCHES TABLE ====================
-    // Composite index for mutual match queries
-    await queryInterface.addIndex('Matches', ['userId', 'matchedUserId', 'isMutual'], {
-      name: 'idx_matches_user_matched_mutual'
-    });
-
-    // Index for likes received (column is "action" in Matches table)
-    await queryInterface.addIndex('Matches', ['matchedUserId', 'action'], {
-      name: 'idx_matches_matched_action'
-    });
+    await run('CREATE INDEX IF NOT EXISTS idx_matches_user_matched_mutual ON "Matches" ("userId", "matchedUserId", "isMutual");');
+    await run('CREATE INDEX IF NOT EXISTS idx_matches_matched_action ON "Matches" ("matchedUserId", "action");');
 
     // ==================== MESSAGES TABLE ====================
-    // Composite index for conversation queries
-    await queryInterface.addIndex('Messages', ['senderId', 'receiverId', 'createdAt'], {
-      name: 'idx_messages_sender_receiver_created'
-    });
-
-    // Index for unread messages
-    await queryInterface.addIndex('Messages', ['receiverId', 'isRead'], {
-      name: 'idx_messages_receiver_read'
-    });
+    await run('CREATE INDEX IF NOT EXISTS idx_messages_sender_receiver_created ON "Messages" ("senderId", "receiverId", "createdAt");');
+    await run('CREATE INDEX IF NOT EXISTS idx_messages_receiver_read ON "Messages" ("receiverId", "isRead");');
 
     // ==================== PROFILES TABLE ====================
-    // Index for search queries
-    await queryInterface.addIndex('Profiles', ['gender'], {
-      name: 'idx_profiles_gender'
-    });
-
-    // Composite index for location-based searches
-    await queryInterface.addIndex('Profiles', ['city', 'state'], {
-      name: 'idx_profiles_city_state'
-    });
-
-    // Index for completion percentage sorting
-    await queryInterface.addIndex('Profiles', ['completionPercentage'], {
-      name: 'idx_profiles_completion'
-    });
+    await run('CREATE INDEX IF NOT EXISTS idx_profiles_gender ON "Profiles" (gender);');
+    await run('CREATE INDEX IF NOT EXISTS idx_profiles_city_state ON "Profiles" (city, state);');
+    await run('CREATE INDEX IF NOT EXISTS idx_profiles_completion ON "Profiles" ("completionPercentage");');
 
     // ==================== USERS TABLE ====================
-    // Index for phone lookups (if used)
-    await queryInterface.addIndex('Users', ['phone'], {
-      name: 'idx_users_phone'
-    });
-
-    // Index for status filtering
-    await queryInterface.addIndex('Users', ['status'], {
-      name: 'idx_users_status'
-    });
-
-    // Composite index for admin user queries
-    await queryInterface.addIndex('Users', ['role', 'status', 'createdAt'], {
-      name: 'idx_users_role_status_created'
-    });
+    await run('CREATE INDEX IF NOT EXISTS idx_users_phone ON "Users" (phone);');
+    await run('CREATE INDEX IF NOT EXISTS idx_users_status ON "Users" (status);');
+    await run('CREATE INDEX IF NOT EXISTS idx_users_role_status_created ON "Users" (role, status, "createdAt");');
   },
 
   async down(queryInterface, Sequelize) {
