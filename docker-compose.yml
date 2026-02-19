@@ -6,8 +6,6 @@
 #   Production:   docker-compose --profile full up -d
 #   With monitoring: docker-compose --profile full --profile monitoring up -d
 
-version: '3.8'
-
 services:
   # ==================== DATABASE ====================
   postgres:
