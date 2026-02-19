@@ -39,6 +39,8 @@ services:
     image: redis:7-alpine
     container_name: tricitymatch-redis
     restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     command: >
       redis-server
       --appendonly yes
@@ -49,7 +51,7 @@ services:
       - redis_data:/data
     # No host port: backend connects via network (redis:6379). Avoids conflict with host Redis.
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "if [ -n \"$$REDIS_PASSWORD\" ]; then redis-cli -a \"$$REDIS_PASSWORD\" --no-auth-warning ping; else redis-cli ping; fi | grep -q PONG"]
       interval: 10s
       timeout: 5s
       retries: 5
