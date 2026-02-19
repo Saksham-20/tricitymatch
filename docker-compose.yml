@@ -20,8 +20,9 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    # Host port 5433 avoids conflict with existing Postgres on 5432; backend still uses postgres:5432
     ports:
-      - "${DB_PORT:-5433}:5432"
+      - "${POSTGRES_HOST_PORT:-5433}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-matrimony_dev}"]
       interval: 10s
