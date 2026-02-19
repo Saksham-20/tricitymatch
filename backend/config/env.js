@@ -90,7 +90,8 @@ const config = {
       acquire: optionalNumber('DB_POOL_ACQUIRE', 30000),
       idle: optionalNumber('DB_POOL_IDLE', 10000),
     },
-    ssl: isProduction ? {
+    // Only use SSL when DB_SSL=true (e.g. managed cloud DB). Docker Postgres does not use SSL.
+    ssl: isProduction && optionalBoolean('DB_SSL', false) ? {
       require: true,
       rejectUnauthorized: optionalBoolean('DB_SSL_REJECT_UNAUTHORIZED', true),
     } : false,
