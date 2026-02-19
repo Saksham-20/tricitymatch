@@ -147,6 +147,24 @@ const securityHeaders = helmet({
 
 // ==================== CORS CONFIGURATION ====================
 
+// Build allowed origins: FRONTEND_URL, CORS_ORIGIN, and same host with other scheme (http/https)
+const getAllowedOrigins = () => {
+  const list = new Set();
+  const add = (url) => {
+    if (!url || typeof url !== 'string') return;
+    const u = url.trim().replace(/\/+$/, '');
+    if (u) list.add(u);
+    try {
+      const parsed = new URL(u);
+      const other = parsed.protocol === 'https:' ? `http://${parsed.host}` : `https://${parsed.host}`;
+      list.add(other);
+    } catch (_) { /* ignore */ }
+  };
+  add(config.server.frontendUrl);
+  add(config.security.corsOrigin);
+  return Array.from(list);
+};
+
 const corsOptions = {
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps or curl)
@@ -154,10 +172,7 @@ const corsOptions = {
       return callback(null, true);
     }
 
-    const allowedOrigins = [
-      config.server.frontendUrl,
-      // Add additional allowed origins here
-    ];
+    const allowedOrigins = getAllowedOrigins();
 
     // In development, allow localhost variants
     if (config.isDevelopment) {
