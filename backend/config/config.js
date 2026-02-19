@@ -34,25 +34,30 @@ module.exports = {
     dialect: 'postgres',
     logging: false
   },
-  production: {
-    username: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    host: process.env.DB_HOST,
-    port: parseInt(process.env.DB_PORT) || 5432,
-    dialect: 'postgres',
-    logging: false,
-    pool: {
-      max: parseInt(process.env.DB_POOL_MAX) || 20,
-      min: parseInt(process.env.DB_POOL_MIN) || 5,
-      acquire: 30000,
-      idle: 10000
-    },
-    dialectOptions: {
-      ssl: {
-        require: true,
-        rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false'
-      }
-    }
-  }
+  production: (() => {
+    const useSsl = process.env.DB_SSL === 'true' || process.env.DB_SSL === '1';
+    return {
+      username: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+      host: process.env.DB_HOST,
+      port: parseInt(process.env.DB_PORT) || 5432,
+      dialect: 'postgres',
+      logging: false,
+      pool: {
+        max: parseInt(process.env.DB_POOL_MAX) || 20,
+        min: parseInt(process.env.DB_POOL_MIN) || 5,
+        acquire: 30000,
+        idle: 10000
+      },
+      ...(useSsl && {
+        dialectOptions: {
+          ssl: {
+            require: true,
+            rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false'
+          }
+        }
+      })
+    };
+  })()
 };
