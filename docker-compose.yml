@@ -41,20 +41,16 @@ services:
     restart: unless-stopped
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
-    command: >
-      redis-server
-      --appendonly yes
-      --maxmemory 256mb
-      --maxmemory-policy allkeys-lru
-      --requirepass ${REDIS_PASSWORD:-}
+    command: ["sh", "-c", "exec redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru $$([ -n \"$$REDIS_PASSWORD\" ] && echo --requirepass \"$$REDIS_PASSWORD\")"]
     volumes:
       - redis_data:/data
     # No host port: backend connects via network (redis:6379). Avoids conflict with host Redis.
     healthcheck:
-      test: ["CMD-SHELL", "if [ -n \"$$REDIS_PASSWORD\" ]; then redis-cli -a \"$$REDIS_PASSWORD\" --no-auth-warning ping; else redis-cli ping; fi | grep -q PONG"]
+      test: ["CMD-SHELL", "[ -n \"$$REDIS_PASSWORD\" ] && redis-cli -a \"$$REDIS_PASSWORD\" --no-auth-warning ping || redis-cli ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
     networks:
       - tricitymatch-network
     deploy:
