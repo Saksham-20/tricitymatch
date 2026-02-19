@@ -57,8 +57,8 @@ module.exports = {
       name: 'idx_matches_user_matched_mutual'
     });
 
-    // Index for likes received
-    await queryInterface.addIndex('Matches', ['matchedUserId', 'actionType'], {
+    // Index for likes received (column is "action" in Matches table)
+    await queryInterface.addIndex('Matches', ['matchedUserId', 'action'], {
       name: 'idx_matches_matched_action'
     });
 
