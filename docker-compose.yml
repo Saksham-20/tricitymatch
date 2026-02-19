@@ -20,9 +20,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    # Host port 5433 avoids conflict with existing Postgres on 5432; backend still uses postgres:5432
-    ports:
-      - "${POSTGRES_HOST_PORT:-5433}:5432"
+    # No host port: backend connects via network (postgres:5432). Avoids conflict with host Postgres.
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-matrimony_dev}"]
       interval: 10s
@@ -49,8 +47,7 @@ services:
       --requirepass ${REDIS_PASSWORD:-}
     volumes:
       - redis_data:/data
-    ports:
-      - "${REDIS_PORT:-6380}:6379"
+    # No host port: backend connects via network (redis:6379). Avoids conflict with host Redis.
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
