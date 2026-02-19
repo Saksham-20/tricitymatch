@@ -9,8 +9,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install all dependencies (including dev for build)
-RUN npm ci --only=production
+# Install production dependencies (npm install tolerates lock file out of sync)
+RUN npm install --omit=dev
 
 # ==================== PRODUCTION STAGE ====================
 FROM node:20-alpine AS production
