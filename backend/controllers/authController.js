@@ -11,11 +11,12 @@ const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { recordFailedLogin, clearLoginAttempts } = require('../middlewares/security');
 const { log } = require('../middlewares/logger');
 
-// Cookie configuration
+// Cookie configuration: use Secure only over HTTPS so cookies work when frontend is http://
+const useSecureCookies = config.isProduction && (config.server.frontendUrl || '').startsWith('https');
 const getCookieOptions = (maxAge) => ({
   httpOnly: true,
-  secure: config.isProduction,
-  sameSite: config.isProduction ? 'strict' : 'lax',
+  secure: useSecureCookies,
+  sameSite: config.isProduction ? 'lax' : 'lax', // lax allows cookies on same-site cross-origin (e.g. port 3000 -> 5001)
   maxAge,
   path: '/',
 });
