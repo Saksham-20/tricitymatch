@@ -124,6 +124,13 @@ exports.updateProfile = asyncHandler(async (req, res) => {
     const { profilePhoto: bodyProfilePhoto, ...restBody } = req.body;
     const updateData = { ...restBody };
 
+    // Don't overwrite critical fields with empty — keeps suggestions/discovery working (e.g. gender)
+    const criticalFields = ['gender', 'firstName', 'lastName'];
+    criticalFields.forEach((key) => {
+      const v = updateData[key];
+      if (v === '' || v === null || v === undefined) delete updateData[key];
+    });
+
     // Normalize file path: Cloudinary returns full URL; local storage returns path — store URL path for local
     const getStoredPath = (file) => {
       if (!file || !file.path) return null;

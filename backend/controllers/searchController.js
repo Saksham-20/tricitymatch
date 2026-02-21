@@ -50,10 +50,11 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
     userId: { [Op.ne]: userId } // Exclude self
   };
 
-  // Gender filter (opposite gender by default)
-  const oppositeGender = currentProfile.gender === 'male' ? 'female' :
-    currentProfile.gender === 'female' ? 'male' : 'other';
-  where.gender = oppositeGender;
+  // Gender filter: opposite gender when set; otherwise both so results aren't empty
+  const gender = (currentProfile.gender || '').toLowerCase();
+  if (gender === 'male') where.gender = 'female';
+  else if (gender === 'female') where.gender = 'male';
+  else where.gender = { [Op.in]: ['male', 'female'] };
 
   // Age filter
   if (ageMin || ageMax) {
@@ -193,9 +194,13 @@ exports.getSuggestions = asyncHandler(async (req, res) => {
     throw createError.badRequest('Please complete your profile first');
   }
 
-  // Get opposite gender
-  const oppositeGender = currentProfile.gender === 'male' ? 'female' :
-    currentProfile.gender === 'female' ? 'male' : 'other';
+  // Prefer opposite gender; if current user's gender is missing/other, show both so suggestions aren't empty
+  const gender = (currentProfile.gender || '').toLowerCase();
+  const genderFilter = gender === 'male'
+    ? { gender: 'female' }
+    : gender === 'female'
+      ? { gender: 'male' }
+      : { gender: { [Op.in]: ['male', 'female'] } };
 
   // Get profiles user hasn't interacted with
   const interactedUserIds = await Match.findAll({
@@ -207,7 +212,7 @@ exports.getSuggestions = asyncHandler(async (req, res) => {
     where: {
       isActive: true,
       userId: { [Op.ne]: userId, [Op.notIn]: interactedUserIds },
-      gender: oppositeGender
+      ...genderFilter
     },
     include: [
       {
