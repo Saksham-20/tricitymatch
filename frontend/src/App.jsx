@@ -23,6 +23,7 @@ const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 // Protected pages (load on demand)
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Profile = lazy(() => import('./pages/Profile'));
+const MyProfileView = lazy(() => import('./pages/MyProfileView'));
 const ProfileDetail = lazy(() => import('./pages/ProfileDetail'));
 const Search = lazy(() => import('./pages/Search'));
 const Discovery = lazy(() => import('./pages/Discovery'));
@@ -104,6 +105,16 @@ const AnimatedRoutes = () => {
           />
           <Route
             path="/profile"
+            element={
+              <ProtectedRoute>
+                <PageTransition>
+                  <MyProfileView />
+                </PageTransition>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile/edit"
             element={
               <ProtectedRoute>
                 <PageTransition>

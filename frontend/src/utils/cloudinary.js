@@ -96,32 +96,33 @@ export const getAvatarUrl = (url) => {
  * @returns {string} - The proper URL to use
  */
 export const getImageUrl = (url, apiBaseUrl, transformation = 'profile') => {
-  if (!url) {
-    return null;
-  }
-  
+  const u = typeof url === 'string' ? url.trim() : url;
+  if (!u) return null;
+
   // If it's already a full URL (Cloudinary or other)
-  if (url.startsWith('http://') || url.startsWith('https://')) {
+  if (u.startsWith('http://') || u.startsWith('https://')) {
     // Apply transformation if it's a Cloudinary URL
-    if (isCloudinaryUrl(url)) {
+    if (isCloudinaryUrl(u)) {
       switch (transformation) {
         case 'thumbnail':
-          return getThumbnailUrl(url);
+          return getThumbnailUrl(u);
         case 'profile':
-          return getProfileCardUrl(url);
+          return getProfileCardUrl(u);
         case 'full':
-          return getFullSizeUrl(url);
+          return getFullSizeUrl(u);
         case 'gallery':
-          return getGalleryThumbnailUrl(url);
+          return getGalleryThumbnailUrl(u);
         case 'avatar':
-          return getAvatarUrl(url);
+          return getAvatarUrl(u);
         default:
-          return url;
+          return u;
       }
     }
-    return url;
+    return u;
   }
-  
-  // Local path - prepend API base URL
-  return `${apiBaseUrl}${url}`;
+
+  // Local path - prepend API base URL (ensure no double slash)
+  const base = (apiBaseUrl || '').replace(/\/$/, '');
+  const path = u.startsWith('/') ? u : `/${u}`;
+  return base ? `${base}${path}` : path;
 };

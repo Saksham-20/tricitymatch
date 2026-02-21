@@ -283,6 +283,9 @@ const startServer = async () => {
 
     // Start server
     server.listen(config.server.port, () => {
+      const cloudinaryStatus = config.cloudinary?.isConfigured?.()
+        ? 'Cloudinary: configured'
+        : 'Cloudinary: NOT configured (local disk)';
       console.log(`
 ╔════════════════════════════════════════════════════════════╗
 ║                  TricityMatch Server                       ║
@@ -291,6 +294,7 @@ const startServer = async () => {
 ║  Environment: ${config.env.padEnd(43)}║
 ║  Port:        ${String(config.server.port).padEnd(43)}║
 ║  Frontend:    ${config.server.frontendUrl.substring(0, 43).padEnd(43)}║
+║  ${cloudinaryStatus.padEnd(54)}║
 ║  Monitoring:  /monitoring/health, /monitoring/metrics      ║
 ╚════════════════════════════════════════════════════════════╝
       `);

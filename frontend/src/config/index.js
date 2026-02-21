@@ -46,7 +46,7 @@ export const app = {
 // Limits and Constraints
 export const limits = {
   maxFileSize: 5 * 1024 * 1024, // 5MB
-  maxGalleryPhotos: 5,
+  maxGalleryPhotos: 6,
   maxMessageLength: 2000,
   maxBioLength: 1000,
   maxInterestTags: 20,

@@ -116,7 +116,14 @@ const handleJWTExpiredError = () => {
 
 const handleMulterError = (err) => {
   if (err.code === 'LIMIT_FILE_SIZE') {
-    return new AppError('File too large', 400, ErrorTypes.VALIDATION_ERROR);
+    const maxMB = config.upload?.maxFileSize
+      ? Math.round(config.upload.maxFileSize / 1024 / 1024)
+      : 5;
+    return new AppError(
+      `File too large. Maximum size is ${maxMB}MB.`,
+      400,
+      ErrorTypes.VALIDATION_ERROR
+    );
   }
   if (err.code === 'LIMIT_FILE_COUNT') {
     return new AppError('Too many files', 400, ErrorTypes.VALIDATION_ERROR);
@@ -208,6 +215,9 @@ const handleValidationErrors = (req, res, next) => {
       field: err.path || err.param,
       message: err.msg,
     }));
+    if (config.isDevelopment) {
+      console.warn('Validation failed on', req.method, req.path, ':', JSON.stringify(messages, null, 2));
+    }
     throw createError.validation('Validation failed', messages);
   }
   next();

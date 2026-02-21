@@ -535,15 +535,25 @@ const Chat = () => {
                 <div className="flex items-center gap-3">
                   {/* Avatar */}
                   <div className="relative flex-shrink-0">
-                    {match.profilePhoto ? (
-                      <img
-                        src={getImageUrl(match.profilePhoto, API_BASE_URL, 'thumbnail')}
-                        alt={match.firstName}
-                        className="w-14 h-14 rounded-full object-cover ring-2 ring-white shadow-md"
-                      />
+                    {(match.profilePhoto || match.profile_photo) ? (
+                      <>
+                        <img
+                          src={getImageUrl(match.profilePhoto || match.profile_photo, API_BASE_URL, 'thumbnail')}
+                          alt={match.firstName || 'Profile'}
+                          className="w-14 h-14 rounded-full object-cover ring-2 ring-white shadow-md"
+                          loading="lazy"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'flex';
+                          }}
+                        />
+                        <div className="w-14 h-14 rounded-full bg-gradient-hero flex items-center justify-center text-white font-bold text-lg ring-2 ring-white shadow-md hidden" aria-hidden="true">
+                          {(match.firstName || '?')[0]}
+                        </div>
+                      </>
                     ) : (
                       <div className="w-14 h-14 rounded-full bg-gradient-hero flex items-center justify-center text-white font-bold text-lg ring-2 ring-white shadow-md">
-                        {match.firstName[0]}
+                        {(match.firstName || '?')[0]}
                       </div>
                     )}
                     {/* Online indicator */}
@@ -588,15 +598,24 @@ const Chat = () => {
 
                   {/* Avatar */}
                   <div className="relative">
-                    {selectedMatch.profilePhoto ? (
-                      <img
-                        src={getImageUrl(selectedMatch.profilePhoto, API_BASE_URL, 'avatar')}
-                        alt={`Profile photo of ${selectedMatch.firstName}`}
-                        className="w-11 h-11 rounded-full object-cover ring-2 ring-primary-100"
-                      />
+                    {(selectedMatch.profilePhoto || selectedMatch.profile_photo) ? (
+                      <>
+                        <img
+                          src={getImageUrl(selectedMatch.profilePhoto || selectedMatch.profile_photo, API_BASE_URL, 'avatar')}
+                          alt={`Profile photo of ${selectedMatch.firstName || 'Match'}`}
+                          className="w-11 h-11 rounded-full object-cover ring-2 ring-primary-100"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'flex';
+                          }}
+                        />
+                        <div className="w-11 h-11 rounded-full bg-gradient-hero flex items-center justify-center text-white font-semibold ring-2 ring-primary-100 hidden" aria-hidden="true">
+                          {(selectedMatch.firstName || '?')[0]}
+                        </div>
+                      </>
                     ) : (
                       <div className="w-11 h-11 rounded-full bg-gradient-hero flex items-center justify-center text-white font-semibold ring-2 ring-primary-100">
-                        {selectedMatch.firstName[0]}
+                        {(selectedMatch.firstName || '?')[0]}
                       </div>
                     )}
                     <div className="absolute bottom-0 right-0 w-3 h-3 bg-success rounded-full border-2 border-white"></div>

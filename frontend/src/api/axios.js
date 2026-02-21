@@ -30,6 +30,10 @@ const processQueue = (error, token = null) => {
 api.interceptors.request.use(
   (config) => {
     // Cookies are sent automatically with withCredentials: true
+    // FormData must use multipart boundary; do not send application/json or body is consumed and multer gets nothing
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
     return config;
   },
   (error) => {

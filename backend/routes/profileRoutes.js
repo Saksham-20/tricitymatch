@@ -24,11 +24,18 @@ const { updateProfileValidation, getProfileValidation, deletePhotoValidation } =
 // Get own profile
 router.get('/me', auth, getMyProfile);
 
+// Ensure body exists after multer (multipart-only requests can leave req.body undefined)
+const ensureBody = (req, res, next) => {
+  if (req.body === undefined) req.body = {};
+  next();
+};
+
 // Update own profile (with optional file uploads)
 router.put('/me', 
   auth, 
   profileUpdateLimiter,
   uploadPhotos,
+  ensureBody,
   validateUploadedFiles,
   updateProfileValidation,
   handleValidationErrors,

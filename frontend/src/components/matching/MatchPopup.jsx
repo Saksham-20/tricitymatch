@@ -184,12 +184,21 @@ const MatchPopup = ({
                   animate={{ x: [0, 5, 0] }}
                   transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                 >
-                  {currentUser?.profilePhoto ? (
-                    <img
-                      src={getImageUrl(currentUser.profilePhoto, API_BASE_URL, 'profile')}
-                      alt="Your profile"
-                      className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
-                    />
+                  {(currentUser?.profilePhoto || currentUser?.profile_photo) ? (
+                    <>
+                      <img
+                        src={getImageUrl(currentUser.profilePhoto || currentUser.profile_photo, API_BASE_URL, 'profile')}
+                        alt="Your profile"
+                        className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'flex';
+                        }}
+                      />
+                      <div className="w-24 h-24 rounded-full bg-gradient-hero flex items-center justify-center text-white font-bold text-2xl border-4 border-white shadow-lg hidden" aria-hidden="true">
+                        {getInitials(currentUser)}
+                      </div>
+                    </>
                   ) : (
                     <div className="w-24 h-24 rounded-full bg-gradient-hero flex items-center justify-center text-white font-bold text-2xl border-4 border-white shadow-lg">
                       {getInitials(currentUser)}
@@ -212,12 +221,21 @@ const MatchPopup = ({
                   animate={{ x: [0, -5, 0] }}
                   transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                 >
-                  {matchedUser?.profilePhoto ? (
-                    <img
-                      src={getImageUrl(matchedUser.profilePhoto, API_BASE_URL, 'profile')}
-                      alt={`${matchedUser?.firstName}'s profile`}
-                      className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
-                    />
+                  {(matchedUser?.profilePhoto || matchedUser?.profile_photo) ? (
+                    <>
+                      <img
+                        src={getImageUrl(matchedUser.profilePhoto || matchedUser.profile_photo, API_BASE_URL, 'profile')}
+                        alt={`${matchedUser?.firstName || 'Match'}'s profile`}
+                        className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'flex';
+                        }}
+                      />
+                      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center text-white font-bold text-2xl border-4 border-white shadow-lg hidden" aria-hidden="true">
+                        {getInitials(matchedUser)}
+                      </div>
+                    </>
                   ) : (
                     <div className="w-24 h-24 rounded-full bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center text-white font-bold text-2xl border-4 border-white shadow-lg">
                       {getInitials(matchedUser)}

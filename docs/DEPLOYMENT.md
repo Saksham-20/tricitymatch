@@ -4,9 +4,10 @@
 1. [Prerequisites](#prerequisites)
 2. [Quick Start (Development)](#quick-start-development)
 3. [Production Deployment](#production-deployment)
-4. [Cloud Deployment](#cloud-deployment)
-5. [Monitoring Setup](#monitoring-setup)
-6. [Troubleshooting](#troubleshooting)
+4. [Hostinger VPS](#hostinger-vps)
+5. [Cloud Deployment](#cloud-deployment)
+6. [Monitoring Setup](#monitoring-setup)
+7. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -163,6 +164,16 @@ docker-compose exec backend npm run migrate
 # Seed initial data (if needed)
 docker-compose exec backend npm run seed
 ```
+
+---
+
+## Hostinger VPS
+
+For step-by-step deployment on a **Hostinger VPS** (Ubuntu, Docker, optional domain + SSL), see:
+
+**[Deploy TricityMatch on Hostinger VPS](HOSTINGER-VPS.md)**
+
+That guide covers: SSH access, installing Docker, configuring `.env`, running with or without a domain, and setting up Let's Encrypt SSL.
 
 ---
 

@@ -96,9 +96,10 @@ exports.getMyProfile = asyncHandler(async (req, res) => {
     await profile.save();
   }
 
+  const payload = profile.get ? profile.get({ plain: true }) : profile.toJSON();
   res.json({
     success: true,
-    profile
+    profile: payload
   });
 });
 
@@ -106,6 +107,11 @@ exports.getMyProfile = asyncHandler(async (req, res) => {
 // @desc    Update user's profile
 // @access  Private
 exports.updateProfile = asyncHandler(async (req, res) => {
+  if (process.env.NODE_ENV === 'development') {
+    const ct = req.headers['content-type'] || '';
+    const fileCount = req.files ? Object.keys(req.files).reduce((n, k) => n + (req.files[k]?.length || 0), 0) : 0;
+    console.log('[profile] PUT /me Content-Type:', ct.slice(0, 50), '| files:', fileCount);
+  }
   const profile = await Profile.findOne({ where: { userId: req.user.id } });
 
   if (!profile) {
@@ -114,46 +120,70 @@ exports.updateProfile = asyncHandler(async (req, res) => {
 
   // Use transaction for data consistency
   await sequelize.transaction(async (t) => {
-    // Update profile fields
-    const updateData = { ...req.body };
+    // Update profile fields (exclude profilePhoto from body here; we set it from gallery or file)
+    const { profilePhoto: bodyProfilePhoto, ...restBody } = req.body;
+    const updateData = { ...restBody };
+
+    // Normalize file path: Cloudinary returns full URL; local storage returns path — store URL path for local
+    const getStoredPath = (file) => {
+      if (!file || !file.path) return null;
+      if (String(file.path).includes('cloudinary')) return file.path;
+      return `/uploads/${file.filename || file.path.replace(/^.*[/\\]/, '')}`;
+    };
+
+    let finalPhotos = [...(profile.photos || [])];
+    let finalProfilePhoto = profile.profilePhoto;
 
     // Handle photo uploads
     if (req.files) {
+      if (req.files.photos?.length) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[profile] Received', req.files.photos.length, 'photo(s) for gallery');
+        }
+      }
       // Handle gallery photos
       if (req.files.photos) {
-        const newPhotoPaths = req.files.photos.map(file => file.path);
-        const existingPhotos = profile.photos || [];
-        const combinedPhotos = [...existingPhotos, ...newPhotoPaths];
-
-        // Limit to MAX_GALLERY_PHOTOS
-        if (combinedPhotos.length > MAX_GALLERY_PHOTOS) {
-          const photosToDelete = combinedPhotos.slice(MAX_GALLERY_PHOTOS);
-          for (const photoUrl of photosToDelete) {
+        const newPhotoPaths = req.files.photos.map(getStoredPath).filter(Boolean);
+        finalPhotos = [...finalPhotos, ...newPhotoPaths];
+        if (finalPhotos.length > MAX_GALLERY_PHOTOS) {
+          const toDelete = finalPhotos.slice(MAX_GALLERY_PHOTOS);
+          for (const photoUrl of toDelete) {
             try {
-              await deleteFromCloudinary(photoUrl);
+              if (photoUrl && photoUrl.includes('cloudinary')) await deleteFromCloudinary(photoUrl);
             } catch (err) {
               console.error('Error deleting excess photo:', err);
             }
           }
-          updateData.photos = combinedPhotos.slice(0, MAX_GALLERY_PHOTOS);
-        } else {
-          updateData.photos = combinedPhotos;
+          finalPhotos = finalPhotos.slice(0, MAX_GALLERY_PHOTOS);
+        }
+        if (!finalProfilePhoto && finalPhotos.length > 0) {
+          finalProfilePhoto = finalPhotos[0];
         }
       }
 
-      // Handle profile photo
+      // Handle profile photo (single file): add to gallery and set as main
       if (req.files.profilePhoto && req.files.profilePhoto[0]) {
-        // Delete old profile photo from Cloudinary if exists
-        if (profile.profilePhoto) {
-          try {
-            await deleteFromCloudinary(profile.profilePhoto);
-          } catch (err) {
-            console.error('Error deleting old profile photo:', err);
+        const file = req.files.profilePhoto[0];
+        const pathUrl = getStoredPath(file);
+        if (pathUrl) {
+          finalProfilePhoto = pathUrl;
+          if (!finalPhotos.includes(pathUrl)) {
+            finalPhotos = [pathUrl, ...finalPhotos].slice(0, MAX_GALLERY_PHOTOS);
           }
         }
-        updateData.profilePhoto = req.files.profilePhoto[0].path;
       }
     }
+
+    // Allow setting profile photo from existing gallery (e.g. "Set as profile photo")
+    if (bodyProfilePhoto && typeof bodyProfilePhoto === 'string' && bodyProfilePhoto.trim()) {
+      const allowedPhotos = finalPhotos.length ? finalPhotos : (profile.photos || []);
+      if (allowedPhotos.includes(bodyProfilePhoto.trim())) {
+        finalProfilePhoto = bodyProfilePhoto.trim();
+      }
+    }
+
+    updateData.photos = finalPhotos;
+    updateData.profilePhoto = finalProfilePhoto || null;
 
     // Update profile with new data
     await profile.update(updateData, { transaction: t });
@@ -167,9 +197,17 @@ exports.updateProfile = asyncHandler(async (req, res) => {
   profile.completionPercentage = completion;
   await profile.save();
 
+  // Reload once more so response has latest DB state; send plain object so client gets photos array
+  await profile.reload();
+  const payload = profile.get ? profile.get({ plain: true }) : profile.toJSON();
+
+  if (process.env.NODE_ENV === 'development' && payload.photos?.length) {
+    console.log('[profile] Responding with photos count:', payload.photos.length);
+  }
+
   res.json({
     success: true,
-    profile,
+    profile: payload,
     message: 'Profile updated successfully'
   });
 });
@@ -186,28 +224,32 @@ exports.deletePhoto = asyncHandler(async (req, res) => {
     throw createError.notFound('Profile not found');
   }
 
-  const photos = profile.photos || [];
-  const photoIndex = photos.indexOf(photoUrl);
+  const currentPhotos = profile.photos || [];
+  const photoIndex = currentPhotos.indexOf(photoUrl);
 
   if (photoIndex === -1) {
     throw createError.notFound('Photo not found in gallery');
   }
 
-  // Delete from Cloudinary
+  // Delete from Cloudinary (only Cloudinary URLs)
   try {
-    await deleteFromCloudinary(photoUrl);
+    if (photoUrl && photoUrl.includes('cloudinary')) {
+      await deleteFromCloudinary(photoUrl);
+    }
   } catch (err) {
     console.error('Error deleting photo from Cloudinary:', err);
   }
 
-  // Remove from photos array
-  photos.splice(photoIndex, 1);
-  profile.photos = photos;
+  // New array so Sequelize detects change and persists
+  const updatedPhotos = currentPhotos.filter((url) => url !== photoUrl);
+  profile.photos = updatedPhotos;
+  if (profile.profilePhoto === photoUrl) {
+    profile.profilePhoto = updatedPhotos.length > 0 ? updatedPhotos[0] : null;
+  }
   await profile.save();
 
-  // Recalculate completion
-  await profile.reload();
-  const profileData = profile.toJSON();
+  // Recalculate completion (use current in-memory profile, no reload yet)
+  const profileData = profile.get ? profile.get({ plain: true }) : profile.toJSON();
   const completion = calculateCompletion(profileData);
   profile.completionPercentage = completion;
   await profile.save();
@@ -215,7 +257,8 @@ exports.deletePhoto = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     message: 'Photo deleted successfully',
-    photos: profile.photos
+    photos: profile.photos,
+    profilePhoto: profile.profilePhoto,
   });
 });
 
@@ -233,15 +276,24 @@ exports.deleteProfilePhoto = asyncHandler(async (req, res) => {
     throw createError.notFound('No profile photo to delete');
   }
 
-  // Delete from Cloudinary
+  const urlToRemove = profile.profilePhoto;
+  // Delete from Cloudinary (only Cloudinary URLs)
   try {
-    await deleteFromCloudinary(profile.profilePhoto);
+    if (urlToRemove.includes('cloudinary')) {
+      await deleteFromCloudinary(urlToRemove);
+    }
   } catch (err) {
     console.error('Error deleting profile photo from Cloudinary:', err);
   }
 
-  // Remove from profile
+  // Remove from profile and from photos array
   profile.profilePhoto = null;
+  const photos = profile.photos || [];
+  const idx = photos.indexOf(urlToRemove);
+  if (idx !== -1) {
+    photos.splice(idx, 1);
+    profile.photos = photos;
+  }
   await profile.save();
 
   // Recalculate completion

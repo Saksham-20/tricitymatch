@@ -383,13 +383,14 @@ const Dashboard = () => {
               Add more details to your profile to get personalized match suggestions
             </p>
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-              <Link 
-                to="/profile" 
+              <button
+                type="button"
+                onClick={() => navigate('/profile')}
                 className="btn-primary inline-flex items-center gap-2"
               >
                 Complete Profile
                 <FiArrowRight className="w-5 h-5" />
-              </Link>
+              </button>
             </motion.div>
           </motion.div>
         )}

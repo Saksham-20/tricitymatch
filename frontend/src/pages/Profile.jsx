@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { ProfileMultiStepForm } from '../components/ui/profile-multistep-form';
 import { FiCheckCircle, FiHeart, FiUsers, FiStar, FiX } from 'react-icons/fi';
+import { limits } from '../config';
+
+const AUTO_SAVE_DEBOUNCE_MS = 1500;
 
 const Profile = () => {
   const [profile, setProfile] = useState(null);
@@ -12,9 +15,11 @@ const Profile = () => {
   const [activeStep, setActiveStep] = useState(0);
   const [formData, setFormData] = useState({});
   const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [saveStatus, setSaveStatus] = useState('idle'); // 'idle' | 'saving' | 'saved'
+  const saveTimeoutRef = useRef(null);
   const navigate = useNavigate();
   const { user } = useAuth();
-  
+
   // Check if user has premium subscription
   const [isPremium, setIsPremium] = useState(false);
   
@@ -60,28 +65,113 @@ const Profile = () => {
     }
   };
 
+  const maxPhotos = limits.maxGalleryPhotos || 6;
+
   const handleFileUpload = async (e, field) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const isMultiple = field === 'photos';
+    const files = isMultiple ? Array.from(e.target.files || []) : (e.target.files?.[0] ? [e.target.files[0]] : []);
+    if (!files.length) return;
+
+    const maxBytes = limits.maxFileSize || 5 * 1024 * 1024;
+    const maxMB = Math.round(maxBytes / 1024 / 1024);
+    for (const file of files) {
+      if (file.size > maxBytes) {
+        toast.error(`"${file.name}" is too large. Maximum size is ${maxMB}MB.`);
+        e.target.value = '';
+        return;
+      }
+    }
+
+    const currentCount = profile?.photos?.length ?? 0;
+    const slotsLeft = maxPhotos - currentCount;
+    if (isMultiple && files.length > slotsLeft) {
+      toast.error(`You can add up to ${maxPhotos} photos. ${slotsLeft} slot(s) left.`);
+      e.target.value = '';
+      return;
+    }
 
     const formDataObj = new FormData();
-    formDataObj.append(field === 'profilePhoto' ? 'profilePhoto' : 'photos', file);
+    const key = field === 'profilePhoto' ? 'profilePhoto' : 'photos';
+    files.forEach((file) => formDataObj.append(key, file));
 
     try {
-      const response = await api.put('/profile/me', formDataObj, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      const updatedProfile = response.data.profile;
-      setProfile(updatedProfile);
-      setFormData(updatedProfile);
-      toast.success('Photo uploaded successfully');
-      
-      // Check if profile is now complete
-      if (updatedProfile.completionPercentage >= 100) {
+      const putResponse = await api.put('/profile/me', formDataObj);
+      const fromPut = putResponse.data?.profile;
+      if (fromPut && Array.isArray(fromPut.photos)) {
+        setProfile(fromPut);
+        setFormData(fromPut);
+      }
+      toast.success(files.length > 1 ? 'Photos uploaded successfully' : 'Photo uploaded successfully');
+      // Refetch with cache-bust so browser doesn't return 304 cached (stale) profile
+      const { data } = await api.get(`/profile/me?_=${Date.now()}`);
+      const updatedProfile = data?.profile;
+      if (updatedProfile) {
+        setProfile(updatedProfile);
+        setFormData(updatedProfile);
+      }
+      if ((updatedProfile || fromPut)?.completionPercentage >= 100) {
         setShowCompletionModal(true);
       }
     } catch (error) {
-      toast.error('Failed to upload photo');
+      const msg = error.response?.data?.error?.message || 'Failed to upload photo';
+      toast.error(msg);
+    } finally {
+      e.target.value = '';
+    }
+  };
+
+  const handleSetAsProfilePhoto = async (photoUrl) => {
+    if (!photoUrl || profile?.profilePhoto === photoUrl) return;
+    try {
+      const response = await api.put('/profile/me', { profilePhoto: photoUrl });
+      setProfile(response.data.profile);
+      setFormData(response.data.profile);
+      toast.success('Profile photo updated');
+    } catch (error) {
+      const msg = error.response?.data?.error?.message || 'Failed to set profile photo';
+      toast.error(msg);
+    }
+  };
+
+  const handleDeletePhoto = async (photoUrl) => {
+    if (!photoUrl) return;
+    try {
+      const { data } = await api.delete('/profile/me/photo', { data: { photoUrl } });
+      // Update UI immediately from delete response (avoids stale GET cache)
+      if (Array.isArray(data.photos)) {
+        const updated = {
+          ...profile,
+          photos: data.photos,
+          ...(data.profilePhoto !== undefined && { profilePhoto: data.profilePhoto }),
+        };
+        setProfile(updated);
+        setFormData(updated);
+      }
+      toast.success('Photo removed');
+      // Refetch with cache-bust to stay in sync (completion %, etc.)
+      const res = await api.get(`/profile/me?_=${Date.now()}`);
+      const refreshed = res.data?.profile;
+      if (refreshed) {
+        setProfile(refreshed);
+        setFormData(refreshed);
+      }
+    } catch (error) {
+      const msg = error.response?.data?.error?.message || 'Failed to remove photo';
+      toast.error(msg);
+    }
+  };
+
+  const handleDeleteProfilePhoto = async () => {
+    try {
+      await api.delete('/profile/me/profile-photo');
+      const response = await api.get('/profile/me');
+      const updatedProfile = response.data.profile;
+      setProfile(updatedProfile);
+      setFormData(updatedProfile);
+      toast.success('Profile photo removed');
+    } catch (error) {
+      const msg = error.response?.data?.error?.message || 'Failed to remove profile photo';
+      toast.error(msg);
     }
   };
 
@@ -91,17 +181,22 @@ const Profile = () => {
       const updatedProfile = response.data.profile;
       setProfile(updatedProfile);
       setFormData(updatedProfile);
-      
+
       // Check if profile is now complete (>= 90% or 100%)
       const completion = updatedProfile.completionPercentage || 0;
       if (completion >= 90) {
         setShowCompletionModal(true);
       } else {
-        toast.success('Profile updated successfully!');
+        toast.success(
+          completion >= 50
+            ? 'Profile saved! Add more details to get better matches.'
+            : 'Profile saved. Complete your profile to get better results and more visibility.'
+        );
         navigate('/dashboard');
       }
     } catch (error) {
-      toast.error('Failed to update profile');
+      const msg = error.response?.data?.error?.message || 'Failed to update profile';
+      toast.error(msg);
     }
   };
 
@@ -114,6 +209,39 @@ const Profile = () => {
     setShowCompletionModal(false);
     navigate('/dashboard');
   };
+
+  // Auto-save: debounced PUT so data persists after reload
+  const saveToBackend = useCallback(async (data) => {
+    if (!data || typeof data !== 'object') return;
+    setSaveStatus('saving');
+    try {
+      const response = await api.put('/profile/me', data);
+      const updatedProfile = response.data.profile;
+      setProfile(updatedProfile);
+      setFormData(updatedProfile);
+      setSaveStatus('saved');
+      if (updatedProfile.completionPercentage >= 100) setShowCompletionModal(true);
+      setTimeout(() => setSaveStatus('idle'), 2000);
+    } catch (error) {
+      setSaveStatus('idle');
+      const msg = error.response?.data?.error?.message || 'Could not save. Please try again.';
+      toast.error(msg);
+    }
+  }, []);
+
+  const handleFormDataChange = useCallback((newFormData) => {
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => {
+      saveTimeoutRef.current = null;
+      saveToBackend(newFormData);
+    }, AUTO_SAVE_DEBOUNCE_MS);
+  }, [saveToBackend]);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -131,8 +259,14 @@ const Profile = () => {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
+          <Link
+            to="/profile"
+            className="text-primary-600 hover:text-primary-700 text-sm font-medium mb-4 inline-block"
+          >
+            ← View my profile
+          </Link>
           <h1 className="text-4xl md:text-5xl font-bold text-neutral-900 mb-4 bg-gradient-to-r from-primary-600 to-primary-500 bg-clip-text text-transparent">
-            Complete Your Profile
+            Edit profile
           </h1>
             
           {/* Enhanced Progress Bar */}
@@ -160,6 +294,17 @@ const Profile = () => {
                 Profile Complete! You're all set to find matches.
               </p>
             )}
+            {saveStatus !== 'idle' && (
+              <p className="text-sm text-neutral-500 mt-2 text-center">
+                {saveStatus === 'saving' && 'Saving…'}
+                {saveStatus === 'saved' && (
+                  <span className="text-trust-600 font-medium flex items-center justify-center gap-1">
+                    <FiCheckCircle className="w-4 h-4" />
+                    Saved — your progress is safe if you leave or reload.
+                  </span>
+                )}
+              </p>
+            )}
           </div>
         </div>
 
@@ -169,9 +314,14 @@ const Profile = () => {
             initialData={formData}
             onComplete={handleMultiStepComplete}
             onStepChange={(step) => setActiveStep(step)}
+            onFormDataChange={handleFormDataChange}
             isPremium={isPremium}
             profile={profile}
             onFileUpload={handleFileUpload}
+            onSetAsProfilePhoto={handleSetAsProfilePhoto}
+            onDeletePhoto={handleDeletePhoto}
+            onDeleteProfilePhoto={handleDeleteProfilePhoto}
+            maxPhotos={maxPhotos}
           />
         </div>
       </div>

@@ -10,13 +10,21 @@ const path = require('path');
 const config = require('../config/env');
 const { createError } = require('./errorHandler');
 
-// Configure Cloudinary
-if (config.cloudinary.isConfigured()) {
+// Configure Cloudinary (log once so we know which storage is used)
+const cloudinaryConfigured = config.cloudinary.isConfigured();
+if (cloudinaryConfigured) {
   cloudinary.config({
     cloud_name: config.cloudinary.cloudName,
     api_key: config.cloudinary.apiKey,
     api_secret: config.cloudinary.apiSecret,
   });
+  if (config.isDevelopment) {
+    console.log(`[upload] Using Cloudinary (folder: ${config.cloudinary.folder})`);
+  }
+} else {
+  if (config.isDevelopment) {
+    console.warn('[upload] Cloudinary not configured — uploads will use local disk (backend/uploads). Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET in .env.development at project root.');
+  }
 }
 
 // Allowed file types
@@ -138,6 +146,24 @@ const validateUploadedFiles = (req, res, next) => {
   next();
 };
 
+// Extract Cloudinary public_id from URL (handles optional transformations)
+// e.g. .../upload/v123/folder/id.jpg or .../upload/c_fill,w_500/v123/folder/id.jpg
+function getCloudinaryPublicId(fileUrl) {
+  if (!fileUrl || !fileUrl.includes('cloudinary')) return null;
+  const parts = fileUrl.split('/');
+  const vIndex = parts.findIndex((p) => /^v\d+$/.test(p));
+  if (vIndex === -1 || vIndex >= parts.length - 1) {
+    // Fallback: last two segments as folder/filename
+    const file = parts[parts.length - 1];
+    const folder = parts[parts.length - 2];
+    if (!file || !folder) return null;
+    return `${folder}/${file.split('.')[0]}`;
+  }
+  const pathAfterVersion = parts.slice(vIndex + 1).join('/');
+  const withoutExt = pathAfterVersion.replace(/\.[^.]+$/, '');
+  return withoutExt || null;
+}
+
 // Delete file from Cloudinary
 const deleteFromCloudinary = async (fileUrl) => {
   if (!fileUrl || !config.cloudinary.isConfigured()) {
@@ -145,14 +171,15 @@ const deleteFromCloudinary = async (fileUrl) => {
   }
 
   try {
-    // Extract public ID from URL
-    // Cloudinary URLs look like: https://res.cloudinary.com/{cloud}/image/upload/v{version}/{folder}/{publicId}.{ext}
-    const urlParts = fileUrl.split('/');
-    const filenameWithExt = urlParts[urlParts.length - 1];
-    const folder = urlParts[urlParts.length - 2];
-    const publicId = `${folder}/${filenameWithExt.split('.')[0]}`;
-
+    const publicId = getCloudinaryPublicId(fileUrl);
+    if (!publicId) {
+      if (config.isDevelopment) console.warn('[upload] Could not extract public_id from URL:', fileUrl?.slice(0, 80));
+      return;
+    }
     const result = await cloudinary.uploader.destroy(publicId);
+    if (config.isDevelopment && result?.result !== 'ok') {
+      console.warn('[upload] Cloudinary destroy result:', result);
+    }
     return result;
   } catch (error) {
     console.error('Error deleting from Cloudinary:', error);

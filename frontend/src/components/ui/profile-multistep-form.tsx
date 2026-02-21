@@ -5,33 +5,45 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
-import { CheckIcon, ArrowRightIcon } from "lucide-react"
+import { CheckIcon, ArrowRightIcon, Star, Trash2, Plus } from "lucide-react"
 import InterestTags from "../profile/InterestTags"
 import ProfilePrompts from "../profile/ProfilePrompts"
 import SocialMediaLinks from "../profile/SocialMediaLinks"
 import SpotifyIntegration from "../profile/SpotifyIntegration"
 import { API_BASE_URL } from "../../utils/api"
 import { getImageUrl } from "../../utils/cloudinary"
+import { ImageLightbox } from "./ImageLightbox"
 
 interface ProfileMultiStepFormProps {
   initialData?: Record<string, any>
   onComplete: (data: Record<string, any>) => void
   onStepChange?: (step: number) => void
+  onFormDataChange?: (data: Record<string, any>) => void
   isPremium?: boolean
   profile?: any
   onFileUpload?: (e: any, field: string) => void
+  onSetAsProfilePhoto?: (photoUrl: string) => void
+  onDeletePhoto?: (photoUrl: string) => void
+  onDeleteProfilePhoto?: () => void
+  maxPhotos?: number
 }
 
 export function ProfileMultiStepForm({ 
   initialData = {}, 
   onComplete, 
   onStepChange,
+  onFormDataChange,
   isPremium = false,
   profile,
-  onFileUpload
+  onFileUpload,
+  onSetAsProfilePhoto,
+  onDeletePhoto,
+  onDeleteProfilePhoto,
+  maxPhotos = 6
 }: ProfileMultiStepFormProps) {
   const [currentStep, setCurrentStep] = useState(0)
   const [formData, setFormData] = useState<Record<string, any>>(initialData)
+  const [lightbox, setLightbox] = useState<{ open: boolean; src: string | null; alt: string }>({ open: false, src: null, alt: '' })
 
   useEffect(() => {
     if (initialData) {
@@ -72,17 +84,21 @@ export function ProfileMultiStepForm({
   }
 
   const handleInputChange = (field: string, value: any) => {
-    setFormData({ ...formData, [field]: value })
+    const next = { ...formData, [field]: value }
+    setFormData(next)
+    onFormDataChange?.(next)
   }
 
   const handleNestedChange = (parent: string, child: string, value: any) => {
-    setFormData({
+    const next = {
       ...formData,
       [parent]: {
         ...(formData[parent] || {}),
         [child]: value
       }
-    })
+    }
+    setFormData(next)
+    onFormDataChange?.(next)
   }
 
   const currentStepData = steps[currentStep]
@@ -593,37 +609,124 @@ export function ProfileMultiStepForm({
                   <Input
                     id="children"
                     type="number"
+                    min={0}
+                    max={20}
                     placeholder="0"
-                    value={formData.familyPreferences?.children || ""}
-                    onChange={(e) => handleNestedChange("familyPreferences", "children", e.target.value)}
+                    value={formData.familyPreferences?.children ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value === '' ? '' : Math.max(0, Math.min(20, parseInt(e.target.value, 10) || 0));
+                      handleNestedChange("familyPreferences", "children", v);
+                    }}
                     className="h-12 border-2"
                   />
                 </div>
               </div>
 
               {profile && onFileUpload && (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-900">
-                    Profile Photo
-                  </Label>
-                  <div className="flex items-center gap-4">
-                    {profile.profilePhoto && (
-                      <img
-                        src={getImageUrl(profile.profilePhoto, API_BASE_URL, 'thumbnail')}
-                        alt="Profile"
-                        className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
-                      />
-                    )}
-                    <label className="btn-secondary cursor-pointer">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => onFileUpload(e, 'profilePhoto')}
-                        className="hidden"
-                      />
-                      Upload Photo
-                    </label>
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-900">
+                      Photos (up to {maxPhotos})
+                    </Label>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Your main profile photo is shown on cards and search. Choose it below. All photos are visible when someone opens your profile.
+                    </p>
                   </div>
+                  {(() => {
+                    const displayPhotos =
+                      profile.profilePhoto && !(profile.photos || []).includes(profile.profilePhoto)
+                        ? [profile.profilePhoto, ...(profile.photos || [])]
+                        : (profile.photos || [])
+                    const cellClass = "w-28 h-28 sm:w-32 sm:h-32 flex-shrink-0 rounded-xl overflow-hidden border-2 border-gray-200 bg-gray-100"
+                    return (
+                  <>
+                  <div className="flex flex-wrap items-start gap-3">
+                    {/* Add photo button first — same size as photo cells */}
+                    {displayPhotos.length < maxPhotos && (
+                      <label className={`${cellClass} border-dashed border-gray-300 bg-gray-50 flex flex-col items-center justify-center cursor-pointer hover:border-primary-400 hover:bg-primary-50/50 transition-colors`}>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/jpg,image/png,image/webp"
+                          multiple
+                          onChange={(e) => onFileUpload(e, 'photos')}
+                          className="hidden"
+                        />
+                        <Plus className="w-8 h-8 text-gray-400 mb-1" />
+                        <span className="text-xs font-medium text-gray-600">Add photo{maxPhotos - displayPhotos.length > 1 ? 's' : ''}</span>
+                      </label>
+                    )}
+                    {/* Uploaded photos next to the button, same size */}
+                    {displayPhotos.map((photoUrl: string, index: number) => (
+                      <div
+                        key={photoUrl}
+                        className={`${cellClass} relative flex flex-col`}
+                      >
+                        <div className="relative flex-1 min-h-0">
+                          <img
+                            src={getImageUrl(photoUrl, API_BASE_URL, 'gallery')}
+                            alt={`Photo ${index + 1}`}
+                            className="w-full h-full object-cover cursor-pointer"
+                            onClick={() => setLightbox({ open: true, src: getImageUrl(photoUrl, API_BASE_URL, 'full'), alt: `Photo ${index + 1}` })}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => e.key === 'Enter' && setLightbox({ open: true, src: getImageUrl(photoUrl, API_BASE_URL, 'full'), alt: `Photo ${index + 1}` })}
+                          />
+                          {profile.profilePhoto === photoUrl && (
+                            <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded-md bg-primary-600 text-white text-[10px] sm:text-xs font-medium flex items-center gap-0.5">
+                              <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-current" />
+                              Main
+                            </span>
+                          )}
+                        </div>
+                        {/* Always-visible strip: mobile-friendly touch targets (min 44px), compact on desktop */}
+                        <div className="absolute bottom-0 left-0 right-0 flex bg-black/60 backdrop-blur-sm">
+                          {profile.profilePhoto !== photoUrl && onSetAsProfilePhoto && (
+                            <button
+                              type="button"
+                              onClick={() => onSetAsProfilePhoto(photoUrl)}
+                              className="flex-1 min-h-[44px] sm:min-h-[36px] flex items-center justify-center gap-1 px-1.5 py-2 sm:py-1.5 rounded-none text-white text-[10px] sm:text-xs font-medium hover:bg-white/20 active:bg-white/30 touch-manipulation"
+                            >
+                              <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+                              Main
+                            </button>
+                          )}
+                          {(profile.photos || []).includes(photoUrl)
+                            ? onDeletePhoto && (
+                                <button
+                                  type="button"
+                                  onClick={() => onDeletePhoto(photoUrl)}
+                                  className="flex-1 min-h-[44px] sm:min-h-[36px] flex items-center justify-center gap-1 px-1.5 py-2 sm:py-1.5 rounded-none bg-red-600/90 text-white text-[10px] sm:text-xs font-medium hover:bg-red-600 active:bg-red-700 touch-manipulation"
+                                >
+                                  <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+                                  Remove
+                                </button>
+                              )
+                            : onDeleteProfilePhoto && (
+                                <button
+                                  type="button"
+                                  onClick={() => onDeleteProfilePhoto()}
+                                  className="flex-1 min-h-[44px] sm:min-h-[36px] flex items-center justify-center gap-1 px-1.5 py-2 sm:py-1.5 rounded-none bg-red-600/90 text-white text-[10px] sm:text-xs font-medium hover:bg-red-600 active:bg-red-700 touch-manipulation"
+                                >
+                                  <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+                                  Remove
+                                </button>
+                              )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                    <ImageLightbox
+                      src={lightbox.src}
+                      alt={lightbox.alt}
+                      open={lightbox.open}
+                      onClose={() => setLightbox((p) => ({ ...p, open: false }))}
+                    />
+                  </>
+                    )
+                  })()}
+                  <p className="text-xs text-gray-500">
+                    Max 5MB per photo. JPEG, PNG or WebP. Stored on our servers and linked to your profile.
+                  </p>
                 </div>
               )}
             </div>

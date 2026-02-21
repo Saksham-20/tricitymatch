@@ -556,19 +556,20 @@ const ProfileCard = ({ profile, userId, index, onLike, onShortlist }) => {
     >
       {/* Photo Section */}
       <div className="relative h-52 overflow-hidden">
-        {profile.profilePhoto ? (
+        {(profile.profilePhoto || profile.profile_photo) ? (
           <img
-            src={getImageUrl(profile.profilePhoto, API_BASE_URL, 'profile')}
+            src={getImageUrl(profile.profilePhoto || profile.profile_photo, API_BASE_URL, 'profile')}
             alt={fullName}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+            loading="lazy"
             onError={(e) => {
               e.target.style.display = 'none';
-              e.target.nextElementSibling.style.display = 'flex';
+              if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'flex';
             }}
           />
         ) : null}
         <div 
-          className={`w-full h-full bg-gradient-to-br from-primary-100 via-gold-50 to-primary-50 flex items-center justify-center ${profile.profilePhoto ? 'hidden' : ''}`}
+          className={`w-full h-full bg-gradient-to-br from-primary-100 via-gold-50 to-primary-50 flex items-center justify-center ${(profile.profilePhoto || profile.profile_photo) ? 'hidden' : ''}`}
         >
           <span className="text-4xl font-bold text-primary-300">
             {initials}

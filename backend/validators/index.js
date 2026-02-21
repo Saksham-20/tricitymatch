@@ -122,8 +122,16 @@ const resetPasswordValidation = [
 
 const refreshTokenValidation = [
   body('refreshToken')
+    .optional()
     .notEmpty()
-    .withMessage('Refresh token is required'),
+    .withMessage('Refresh token must not be empty when provided'),
+  body()
+    .custom((_, { req }) => {
+      const fromBody = req.body?.refreshToken;
+      const fromCookie = req.cookies?.refreshToken;
+      if (fromBody || fromCookie) return true;
+      throw new Error('Refresh token is required (send in body or cookie)');
+    }),
 ];
 
 // ==================== PROFILE VALIDATORS ====================
@@ -137,7 +145,7 @@ const allowedProfileFields = [
   'personalityValues', 'familyPreferences', 'lifestylePreferences',
   'bio', 'showPhone', 'showEmail', 'interestTags', 'profilePrompts',
   'spotifyPlaylist', 'socialMediaLinks', 'personalityType', 'languages',
-  'incognitoMode', 'photoBlurUntilMatch'
+  'incognitoMode', 'photoBlurUntilMatch', 'profilePhoto', 'photos'
 ];
 
 const updateProfileValidation = [
@@ -164,11 +172,11 @@ const updateProfileValidation = [
     .isISO8601()
     .withMessage('Invalid date format'),
   body('height')
-    .optional()
+    .optional({ checkFalsy: true })
     .isInt({ min: 100, max: 250 })
     .withMessage('Height must be between 100-250 cm'),
   body('weight')
-    .optional()
+    .optional({ checkFalsy: true })
     .isInt({ min: 30, max: 300 })
     .withMessage('Weight must be between 30-300 kg'),
   body('city')
@@ -182,19 +190,19 @@ const updateProfileValidation = [
     .isLength({ max: 100 })
     .withMessage('State must not exceed 100 characters'),
   body('skinTone')
-    .optional()
+    .optional({ checkFalsy: true })
     .isIn(['fair', 'wheatish', 'dark'])
     .withMessage('Invalid skin tone'),
   body('diet')
-    .optional()
+    .optional({ checkFalsy: true })
     .isIn(['vegetarian', 'non-vegetarian', 'vegan', 'jain'])
     .withMessage('Invalid diet preference'),
   body('smoking')
-    .optional()
+    .optional({ checkFalsy: true })
     .isIn(['never', 'occasionally', 'regularly'])
     .withMessage('Invalid smoking preference'),
   body('drinking')
-    .optional()
+    .optional({ checkFalsy: true })
     .isIn(['never', 'occasionally', 'regularly'])
     .withMessage('Invalid drinking preference'),
   body('education')
@@ -208,7 +216,7 @@ const updateProfileValidation = [
     .isLength({ max: 100 })
     .withMessage('Profession must not exceed 100 characters'),
   body('income')
-    .optional()
+    .optional({ checkFalsy: true })
     .isInt({ min: 0, max: 100000000 })
     .withMessage('Invalid income value'),
   body('bio')
@@ -217,11 +225,11 @@ const updateProfileValidation = [
     .isLength({ max: 1000 })
     .withMessage('Bio must not exceed 1000 characters'),
   body('preferredAgeMin')
-    .optional()
+    .optional({ checkFalsy: true })
     .isInt({ min: 18, max: 99 })
     .withMessage('Preferred age min must be 18-99'),
   body('preferredAgeMax')
-    .optional()
+    .optional({ checkFalsy: true })
     .isInt({ min: 18, max: 99 })
     .withMessage('Preferred age max must be 18-99'),
   body('interestTags')
@@ -249,14 +257,19 @@ const updateProfileValidation = [
     .optional()
     .isBoolean()
     .withMessage('incognitoMode must be a boolean'),
-  // Sanitize to only allow whitelisted fields
+  body('familyPreferences.children')
+    .optional()
+    .isInt({ min: 0, max: 20 })
+    .withMessage('Desired children must be between 0 and 20'),
+  // Strip disallowed fields so client can send full profile (e.g. from GET); only allowed keys are kept
   body()
     .custom((value, { req }) => {
-      const receivedFields = Object.keys(req.body);
-      const invalidFields = receivedFields.filter(f => !allowedProfileFields.includes(f));
-      if (invalidFields.length > 0) {
-        throw new Error(`Invalid fields: ${invalidFields.join(', ')}`);
-      }
+      const body = req.body || {};
+      const allowed = new Set(allowedProfileFields);
+      const stripped = Object.fromEntries(
+        Object.entries(body).filter(([key]) => allowed.has(key))
+      );
+      req.body = stripped;
       return true;
     }),
 ];

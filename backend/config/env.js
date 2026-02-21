@@ -5,10 +5,30 @@
  */
 
 const path = require('path');
+const fs = require('fs');
 
-// Load environment variables based on NODE_ENV
-const envFile = `.env.${process.env.NODE_ENV || 'development'}`;
-require('dotenv').config({ path: path.join(__dirname, '..', '..', envFile) });
+// Load environment variables based on NODE_ENV (from project root, one level above backend/)
+const nodeEnv = process.env.NODE_ENV || 'development';
+const envFile = `.env.${nodeEnv}`;
+const envPath = path.resolve(__dirname, '..', '..', envFile);
+
+if (fs.existsSync(envPath)) {
+  require('dotenv').config({ path: envPath });
+  if (nodeEnv === 'development') {
+    const hasCloudinary = !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET);
+    console.log(`[env] Loaded ${envFile} from project root. Cloudinary: ${hasCloudinary ? 'yes' : 'no (set CLOUDINARY_* in this file)'}`);
+  }
+} else {
+  const fallbackPath = path.resolve(__dirname, '..', envFile);
+  if (fs.existsSync(fallbackPath)) {
+    require('dotenv').config({ path: fallbackPath });
+    if (nodeEnv === 'development') {
+      console.log(`[env] Loaded ${envFile} from backend/ folder`);
+    }
+  } else if (nodeEnv === 'development') {
+    console.warn(`[env] No ${envFile} found at ${envPath} or ${fallbackPath}. Create .env.development at project root with CLOUDINARY_* for Cloudinary uploads.`);
+  }
+}
 
 // Validation helpers
 const requiredString = (key, defaultValue = undefined) => {
@@ -41,8 +61,7 @@ const optionalBoolean = (key, defaultValue = false) => {
   return value === 'true' || value === '1';
 };
 
-// Determine environment
-const nodeEnv = process.env.NODE_ENV || 'development';
+// Determine environment (nodeEnv already set above)
 const isProduction = nodeEnv === 'production';
 const isDevelopment = nodeEnv === 'development';
 const isTest = nodeEnv === 'test';
@@ -170,7 +189,7 @@ const config = {
   upload: {
     dir: optionalString('UPLOAD_DIR', './uploads'),
     maxFileSize: optionalNumber('MAX_FILE_SIZE', 5 * 1024 * 1024),
-    maxGalleryPhotos: optionalNumber('MAX_GALLERY_PHOTOS', 5),
+    maxGalleryPhotos: optionalNumber('MAX_GALLERY_PHOTOS', 6),
   },
 
   // Chat

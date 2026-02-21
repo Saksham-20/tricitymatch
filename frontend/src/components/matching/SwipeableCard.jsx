@@ -35,12 +35,21 @@ const SwipeableCard = ({ profile, onSwipe, onLike, onShortlist, onPass, onViewDe
       <div className="card h-full flex flex-col overflow-hidden">
         {/* Photo Section */}
         <div className="relative h-96 bg-gray-200 overflow-hidden">
-          {profile.profilePhoto ? (
-            <img
-              src={getImageUrl(profile.profilePhoto, API_BASE_URL, 'full')}
-              alt={profile.firstName}
-              className="w-full h-full object-cover"
-            />
+          {(profile.profilePhoto || profile.profile_photo) ? (
+            <>
+              <img
+                src={getImageUrl(profile.profilePhoto || profile.profile_photo, API_BASE_URL, 'full')}
+                alt={profile.firstName || 'Profile'}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'flex';
+                }}
+              />
+              <div className="w-full h-full flex items-center justify-center text-gray-500 text-5xl font-semibold border border-gray-300 bg-gray-100 hidden" aria-hidden="true">
+                {profile.firstName?.[0]?.toUpperCase() || profile.lastName?.[0]?.toUpperCase() || '?'}
+              </div>
+            </>
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-500 text-5xl font-semibold border border-gray-300">
               {profile.firstName?.[0]?.toUpperCase() || profile.lastName?.[0]?.toUpperCase() || '?'}

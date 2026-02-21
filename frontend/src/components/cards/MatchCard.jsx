@@ -47,19 +47,20 @@ const MatchCard = ({ match, userId, index = 0, onChat }) => {
       <div className="text-center">
         {/* Profile Image */}
         <div className="relative mx-auto mb-4">
-          {match.profilePhoto ? (
+          {(match.profilePhoto || match.profile_photo) ? (
             <img
-              src={getImageUrl(match.profilePhoto, API_BASE_URL, 'profile')}
+              src={getImageUrl(match.profilePhoto || match.profile_photo, API_BASE_URL, 'profile')}
               alt={`Profile photo of ${fullName}`}
               className="w-24 h-24 rounded-full mx-auto object-cover border-4 border-white shadow-lg group-hover:border-primary-100 transition-colors"
+              loading="lazy"
               onError={(e) => {
                 e.target.style.display = 'none';
-                e.target.nextElementSibling.style.display = 'flex';
+                if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'flex';
               }}
             />
           ) : null}
           <div 
-            className={`w-24 h-24 rounded-full mx-auto bg-gradient-to-br from-primary-100 to-gold-100 flex items-center justify-center text-neutral-600 text-2xl font-semibold border-4 border-white shadow-lg ${match.profilePhoto ? 'hidden' : ''}`}
+            className={`w-24 h-24 rounded-full mx-auto bg-gradient-to-br from-primary-100 to-gold-100 flex items-center justify-center text-neutral-600 text-2xl font-semibold border-4 border-white shadow-lg ${(match.profilePhoto || match.profile_photo) ? 'hidden' : ''}`}
           >
             {initials}
           </div>
