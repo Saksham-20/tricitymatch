@@ -140,7 +140,7 @@ const config = {
     corsOrigin: optionalString('CORS_ORIGIN', 'http://localhost:3000'),
     cookieSecret: optionalString('COOKIE_SECRET', isDevelopment ? 'dev-cookie-secret' : undefined),
     csrfSecret: optionalString('CSRF_SECRET', isDevelopment ? 'dev-csrf-secret' : undefined),
-    maxRequestSize: optionalString('MAX_REQUEST_SIZE', '10kb'),
+    maxRequestSize: optionalString('MAX_REQUEST_SIZE', '10mb'), // JSON/urlencoded body limit; multipart uses multer
     maxFileSize: optionalNumber('MAX_FILE_SIZE', 5 * 1024 * 1024), // 5MB
   },
 

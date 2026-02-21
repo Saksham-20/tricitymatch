@@ -364,10 +364,15 @@ process.on('uncaughtException', (error) => {
   gracefulShutdown('uncaughtException');
 });
 
-// Handle unhandled promise rejections
+// Handle unhandled promise rejections (e.g. from multer-storage-cloudinary)
 process.on('unhandledRejection', (reason, promise) => {
+  const msg = (reason?.message || String(reason)).toLowerCase();
+  if (msg.includes('invalid cloud_name') || (reason?.http_code === 401 && msg.includes('cloud'))) {
+    console.error(
+      'Unhandled Rejection (Cloudinary): Invalid cloud name. Set CLOUDINARY_CLOUD_NAME to the exact cloud name from your Cloudinary dashboard (Dashboard URL or API keys), not a placeholder like "tricitymatch-prod".'
+    );
+  }
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  // Don't exit, but log for monitoring
 });
 
 // Start the server

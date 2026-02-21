@@ -126,6 +126,7 @@ nano .env
 - `COOKIE_SECRET` - Different from JWT_SECRET
 - `FRONTEND_URL` - Your actual domain
 - `CORS_ORIGIN` - Your actual domain
+- **Cloudinary:** `CLOUDINARY_CLOUD_NAME` must be the **exact cloud name** from your [Cloudinary Dashboard](https://console.cloudinary.com/) (the subdomain, e.g. `duywipohs`). Do not use a placeholder like `tricitymatch-prod` unless that is the actual cloud name in your account. Use the same values as in the Dashboard → API Keys section (`cloud_name`, `api_key`, `api_secret`). If you see "Invalid cloud_name" in logs, the cloud name is wrong.
 
 ### 4. SSL Certificate Setup
 
@@ -323,6 +324,20 @@ docker-compose logs postgres
 # Test connection
 docker-compose exec backend node -e "require('./config/database').authenticate().then(()=>console.log('OK'))"
 ```
+
+#### "Invalid cloud_name" or profile photo upload fails (500)
+- **Cause:** `CLOUDINARY_CLOUD_NAME` is wrong (e.g. a placeholder like `tricitymatch-prod`).
+- **Fix:** In [Cloudinary Console](https://console.cloudinary.com/) go to Dashboard. Your **cloud name** is shown there (and in API Keys). Set in production `.env`:
+  - `CLOUDINARY_CLOUD_NAME=<your actual cloud name>`
+  - `CLOUDINARY_API_KEY` and `CLOUDINARY_API_SECRET` from the same Dashboard → API Keys section.
+- **Important:** `docker compose restart backend` does **not** reload `.env`. Recreate the container so it picks up new values:
+  ```bash
+  docker compose up -d --force-recreate backend
+  ```
+
+#### "File too large" / "size is too big" when uploading a photo under 5MB
+- **Cause:** `MAX_FILE_SIZE` in `.env` may be set too low (value is in **bytes**). Default is 5MB (5242880).
+- **Fix:** In production `.env` set `MAX_FILE_SIZE=5242880` (or remove the line to use the default). Then recreate the backend container: `docker compose up -d --force-recreate backend`.
 
 #### Redis Connection Issues
 ```bash

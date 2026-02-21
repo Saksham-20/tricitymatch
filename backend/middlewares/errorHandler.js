@@ -166,6 +166,21 @@ const errorHandler = (err, req, res, next) => {
     error = new AppError('Request body too large', 413, ErrorTypes.BAD_REQUEST);
   }
 
+  // Cloudinary errors (invalid cloud name, auth, etc.) — return 502 and safe message
+  const msg = (err.message || '').toLowerCase();
+  if (msg.includes('invalid cloud_name') || msg.includes('cloudinary') || (err.http_code === 401 && msg.includes('cloud'))) {
+    if (config.isProduction) {
+      console.error('Cloudinary configuration error. Ensure CLOUDINARY_CLOUD_NAME is the exact cloud name from your Cloudinary dashboard (e.g. the subdomain), not a placeholder. Original:', err.message);
+    }
+    error = new AppError(
+      config.isProduction
+        ? 'Image upload is temporarily unavailable. Please try again later.'
+        : `Cloudinary error: ${err.message}. Check CLOUDINARY_CLOUD_NAME (use the exact cloud name from Cloudinary dashboard).`,
+      502,
+      'SERVICE_UNAVAILABLE'
+    );
+  }
+
   // Log the error
   logError(error, req);
 
