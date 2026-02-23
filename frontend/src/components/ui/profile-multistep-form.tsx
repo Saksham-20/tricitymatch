@@ -41,6 +41,7 @@ export function ProfileMultiStepForm({
   onDeleteProfilePhoto,
   maxPhotos = 6
 }: ProfileMultiStepFormProps) {
+  // Always start on the first tab when opening Edit profile (user preference).
   const [currentStep, setCurrentStep] = useState(0)
   const [formData, setFormData] = useState<Record<string, any>>(initialData)
   const [lightbox, setLightbox] = useState<{ open: boolean; src: string | null; alt: string }>({ open: false, src: null, alt: '' })
@@ -50,19 +51,6 @@ export function ProfileMultiStepForm({
       setFormData(initialData)
     }
   }, [initialData])
-
-  // Determine initial step based on completion
-  useEffect(() => {
-    if (initialData?.completionPercentage) {
-      const completion = initialData.completionPercentage
-      if (completion < 30) setCurrentStep(0)
-      else if (completion < 50) setCurrentStep(1)
-      else if (completion < 70) setCurrentStep(2)
-      else if (completion < 85) setCurrentStep(3)
-      else if (completion < 95) setCurrentStep(4)
-      else setCurrentStep(5)
-    }
-  }, [initialData?.completionPercentage])
 
   const steps = [
     { id: 1, name: "Basic Info" },
@@ -126,40 +114,43 @@ export function ProfileMultiStepForm({
 
   return (
     <div className="w-full max-w-3xl mx-auto">
-      {/* Step Indicator */}
-      <div className="mb-10 flex items-center justify-center gap-2">
-        {steps.map((step, index) => (
-          <div key={step.id} className="flex items-center gap-2">
-            <button
-              onClick={() => index < currentStep && setCurrentStep(index)}
-              disabled={index > currentStep}
-              className={cn(
-                "group relative flex h-10 w-10 items-center justify-center rounded-full transition-all duration-300 ease-out border-2",
-                "disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2",
-                index < currentStep && "bg-green-600 text-white border-green-600 shadow-md",
-                index === currentStep && "bg-primary-600 text-white border-primary-600 shadow-lg scale-110",
-                index > currentStep && "bg-white text-gray-400 border-gray-300",
+      {/* Step Indicator - responsive: smaller on mobile, full size on md+ */}
+      <div className="mb-6 sm:mb-10 flex items-center justify-center overflow-x-auto pb-2 -mx-1 px-1 min-h-[2.5rem] sm:min-h-0">
+        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+          {steps.map((step, index) => (
+            <div key={step.id} className="flex items-center gap-1 sm:gap-2">
+              <button
+                onClick={() => index < currentStep && setCurrentStep(index)}
+                disabled={index > currentStep}
+                className={cn(
+                  "group relative flex items-center justify-center rounded-full transition-all duration-300 ease-out border-2 flex-shrink-0 overflow-visible",
+                  "h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 min-h-[2rem] sm:min-h-[2.25rem] md:min-h-[2.5rem]",
+                  "disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 sm:focus:ring-offset-2",
+                  index < currentStep && "bg-green-600 text-white border-green-600 shadow-md",
+                  index === currentStep && "bg-primary-600 text-white border-primary-600 shadow-lg scale-105 sm:scale-110",
+                  index > currentStep && "bg-white text-gray-400 border-gray-300",
+                )}
+              >
+                {index < currentStep ? (
+                  <CheckIcon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" strokeWidth={2.5} />
+                ) : (
+                  <span className="text-xs sm:text-sm font-semibold tabular-nums leading-none flex items-center justify-center">{step.id}</span>
+                )}
+              </button>
+              {index < steps.length - 1 && (
+                <div className="relative h-0.5 w-3 sm:w-6 md:w-8 lg:w-12 flex-shrink-0">
+                  <div className="absolute inset-0 bg-gray-200 rounded-full" />
+                  <div
+                    className="absolute inset-0 bg-primary-600 rounded-full transition-all duration-500 ease-out origin-left"
+                    style={{
+                      transform: `scaleX(${index < currentStep ? 1 : 0})`,
+                    }}
+                  />
+                </div>
               )}
-            >
-              {index < currentStep ? (
-                <CheckIcon className="h-5 w-5" strokeWidth={2.5} />
-              ) : (
-                <span className="text-sm font-semibold tabular-nums">{step.id}</span>
-              )}
-            </button>
-            {index < steps.length - 1 && (
-              <div className="relative h-0.5 w-12">
-                <div className="absolute inset-0 bg-gray-200 rounded-full" />
-                <div
-                  className="absolute inset-0 bg-primary-600 rounded-full transition-all duration-500 ease-out origin-left"
-                  style={{
-                    transform: `scaleX(${index < currentStep ? 1 : 0})`,
-                  }}
-                />
-              </div>
-            )}
-          </div>
-        ))}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Progress Bar */}
