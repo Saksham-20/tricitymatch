@@ -26,7 +26,6 @@ const Profile = lazy(() => import('./pages/Profile'));
 const MyProfileView = lazy(() => import('./pages/MyProfileView'));
 const ProfileDetail = lazy(() => import('./pages/ProfileDetail'));
 const Search = lazy(() => import('./pages/Search'));
-const Discovery = lazy(() => import('./pages/Discovery'));
 const Chat = lazy(() => import('./pages/Chat'));
 const Subscription = lazy(() => import('./pages/Subscription'));
 
@@ -144,16 +143,6 @@ const AnimatedRoutes = () => {
             }
           />
           <Route
-            path="/discovery"
-            element={
-              <ProtectedRoute>
-                <PageTransition>
-                  <Discovery />
-                </PageTransition>
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/chat"
             element={
               <ProtectedRoute>
@@ -195,7 +184,7 @@ const AppContent = () => {
     <>
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-50 focus:p-4 focus:bg-rose-500 focus:text-white"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-50 focus:p-4 focus:bg-primary-500 focus:text-white"
       >
         Skip to main content
       </a>

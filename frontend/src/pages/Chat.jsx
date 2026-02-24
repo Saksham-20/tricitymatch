@@ -70,7 +70,7 @@ const MessageTicks = ({ message, isSent }) => {
   if (message.isRead) {
     return (
       <span className="inline-flex items-center ml-1">
-        <BsCheckAll className="w-4 h-4 text-blue-400" />
+        <BsCheckAll className="w-4 h-4 text-primary-400" />
       </span>
     );
   }
@@ -557,7 +557,7 @@ const Chat = () => {
                       </div>
                     )}
                     {/* Online indicator */}
-                    <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                    <div className="absolute bottom-0 right-0 w-4 h-4 bg-success rounded-full border-2 border-white"></div>
                   </div>
 
                   {/* Info */}
@@ -705,7 +705,7 @@ const Chat = () => {
                           <span className="text-xs text-destructive font-medium">Delete?</span>
                           <button
                             onClick={() => deleteMessage(message.id)}
-                            className="px-2 py-0.5 rounded-full bg-destructive hover:bg-red-700 text-white text-xs font-medium transition-colors"
+                            className="px-2 py-0.5 rounded-full bg-destructive hover:bg-destructive/90 text-white text-xs font-medium transition-colors"
                           >
                             Yes
                           </button>

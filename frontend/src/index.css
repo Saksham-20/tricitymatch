@@ -744,6 +744,38 @@ textarea:focus-visible {
 }
 
 /* =============================================== */
+/* SCROLLBAR HIDE                                  */
+/* =============================================== */
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* =============================================== */
+/* TEXT GRADIENT                                   */
+/* =============================================== */
+
+.text-gradient-primary {
+  background: linear-gradient(135deg, #8B2346 0%, #C9A227 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* =============================================== */
+/* GRADIENT HERO BACKGROUND                        */
+/* =============================================== */
+
+.bg-gradient-hero {
+  background: linear-gradient(135deg, #8B2346 0%, #6B1D3A 100%);
+}
+
+/* =============================================== */
 /* MOBILE SAFE AREA                                */
 /* =============================================== */
 

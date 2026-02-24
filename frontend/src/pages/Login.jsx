@@ -74,57 +74,85 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-neutral-50 via-primary-50/20 to-gold-50/30">
-      {/* Left Side - Decorative */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-hero relative overflow-hidden">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-20 w-64 h-64 border border-white rounded-full" />
-          <div className="absolute bottom-40 right-10 w-96 h-96 border border-white rounded-full" />
-          <div className="absolute top-1/2 left-1/3 w-48 h-48 border border-white rounded-full" />
-        </div>
-        
+      {/* Left Side — Editorial panel */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-neutral-900">
+        {/* Warm gradient wash */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary-900/90 via-neutral-900 to-neutral-900" />
+
+        {/* Rotating orbit rings */}
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 80, repeat: Infinity, ease: 'linear' }}
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[38rem] h-[38rem] rounded-full border border-white/5 pointer-events-none"
+        />
+        <motion.div
+          animate={{ rotate: -360 }}
+          transition={{ duration: 55, repeat: Infinity, ease: 'linear' }}
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24rem] h-[24rem] rounded-full border border-white/8 pointer-events-none"
+        />
+
+        {/* Top line accent */}
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary-500/40 to-transparent" />
+
         {/* Content */}
-        <div className="relative z-10 flex flex-col justify-center items-center w-full p-12 text-white">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-center max-w-md"
-          >
-            <motion.div
-              animate={{ scale: [1, 1.1, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="mb-8"
-            >
-              <FiHeart className="w-20 h-20 mx-auto" />
-            </motion.div>
-            
-            <h1 className="text-4xl font-display font-bold mb-4">
-              Welcome Back
-            </h1>
-            <p className="text-lg opacity-90 mb-8">
-              We've missed you! Continue your beautiful journey to find your soulmate
+        <div className="relative z-10 flex flex-col justify-between w-full p-14 text-white">
+          {/* Logo */}
+          <div>
+            <span className="font-display text-2xl font-bold text-white">TricityMatch</span>
+            <p className="text-xs text-white/40 mt-0.5 uppercase tracking-widest">
+              Chandigarh · Mohali · Panchkula
             </p>
-            
-            <div className="flex items-center justify-center gap-6 text-sm">
-              <div className="flex items-center gap-2">
-                <FiShield className="w-5 h-5" />
-                <span>Secure</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <FiHeart className="w-5 h-5" />
-                <span>Trusted</span>
-              </div>
+          </div>
+
+          {/* Main copy */}
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.2 }}
+            className="max-w-sm"
+          >
+            <p className="text-xs font-semibold text-primary-400 uppercase tracking-widest mb-5">
+              Welcome back
+            </p>
+            <h2 className="font-display text-5xl font-bold leading-tight mb-5">
+              Your journey<br />continues here.
+            </h2>
+            <p className="text-white/60 text-base leading-relaxed">
+              Thousands of families found their forever through TricityMatch.
+              Every sign-in brings you closer.
+            </p>
+
+            {/* Stat pills */}
+            <div className="flex flex-wrap gap-3 mt-8">
+              {[
+                { n: '1,190+', l: 'Matches Made' },
+                { n: '98%',    l: 'Satisfaction' },
+                { n: '50K+',   l: 'Profiles' },
+              ].map(({ n, l }) => (
+                <div key={l} className="flex flex-col px-4 py-2.5 rounded-xl bg-white/6 border border-white/10">
+                  <span className="text-lg font-bold text-white leading-none">{n}</span>
+                  <span className="text-[11px] text-white/50 mt-0.5">{l}</span>
+                </div>
+              ))}
             </div>
           </motion.div>
 
-          {/* Floating Elements */}
+          {/* Bottom trust strip */}
           <motion.div
-            className="absolute bottom-20 left-20 bg-white/10 backdrop-blur-sm rounded-2xl p-4"
-            animate={{ y: [0, -10, 0] }}
-            transition={{ duration: 3, repeat: Infinity }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
+            className="flex items-center gap-5 text-xs text-white/40"
           >
-            <p className="text-sm font-medium">1,190+ Matches Made</p>
+            <div className="flex items-center gap-1.5">
+              <FiShield className="w-3.5 h-3.5" />
+              <span>SSL Secured</span>
+            </div>
+            <span className="w-px h-3 bg-white/20" />
+            <div className="flex items-center gap-1.5">
+              <FiHeart className="w-3.5 h-3.5" />
+              <span>100% Privacy</span>
+            </div>
           </motion.div>
         </div>
       </div>
