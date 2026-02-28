@@ -21,40 +21,47 @@ const calculateCompletion = (profile) => {
   let completed = 0;
   let total = 0;
 
-  // ===== REQUIRED FIELDS (40%) - Must have for basic profile =====
-  total += 40;
-  if (profile.firstName && profile.firstName.trim()) completed += 8;
-  if (profile.lastName && profile.lastName.trim()) completed += 8;
-  if (profile.gender) completed += 8;
-  if (profile.dateOfBirth) completed += 8;
-  if (profile.city && profile.city.trim()) completed += 8;
+  // ===== REQUIRED FIELDS (35%) - Must have for basic profile =====
+  total += 35;
+  if (profile.firstName && profile.firstName.trim()) completed += 7;
+  if (profile.lastName && profile.lastName.trim()) completed += 7;
+  if (profile.gender) completed += 7;
+  if (profile.dateOfBirth) completed += 7;
+  if (profile.city && profile.city.trim()) completed += 7;
 
   // ===== IMPORTANT FIELDS (50%) - Highly recommended =====
   total += 50;
 
-  // Physical Info (10%)
-  if (profile.height) completed += 5;
-  if (profile.weight) completed += 5;
+  // Physical Info (8%)
+  if (profile.height) completed += 4;
+  if (profile.weight) completed += 4;
 
-  // Education & Career (15%)
-  if (profile.education && profile.education.trim()) completed += 7.5;
-  if (profile.profession && profile.profession.trim()) completed += 7.5;
+  // Education & Career (12%)
+  if (profile.education && profile.education.trim()) completed += 6;
+  if (profile.profession && profile.profession.trim()) completed += 6;
 
   // Profile Photo (10%) - Very important for matches
   if (profile.profilePhoto) completed += 10;
 
-  // Bio (10%) - Important for personality
-  if (profile.bio && profile.bio.trim().length >= 20) completed += 10;
+  // Bio (8%) - Important for personality
+  if (profile.bio && profile.bio.trim().length >= 20) completed += 8;
 
-  // Lifestyle Preferences (5%) - At least one lifestyle field
+  // Lifestyle Preferences (4%) - At least one lifestyle field
   let lifestyleCount = 0;
   if (profile.diet) lifestyleCount++;
   if (profile.smoking) lifestyleCount++;
   if (profile.drinking) lifestyleCount++;
-  if (lifestyleCount > 0) completed += 5;
+  if (lifestyleCount > 0) completed += 4;
 
-  // ===== OPTIONAL ENHANCEMENTS (10%) - Nice to have =====
-  total += 10;
+  // Religion & Marital Status (5%) - Important for Indian matrimony
+  if (profile.religion && profile.religion.trim()) completed += 3;
+  if (profile.maritalStatus) completed += 2;
+
+  // Mother Tongue (3%)
+  if (profile.motherTongue && profile.motherTongue.trim()) completed += 3;
+
+  // ===== OPTIONAL ENHANCEMENTS (15%) - Nice to have =====
+  total += 15;
 
   // Additional photos
   if (profile.photos && profile.photos.length > 0) completed += 3;
@@ -64,7 +71,23 @@ const calculateCompletion = (profile) => {
   if (profile.familyPreferences && Object.keys(profile.familyPreferences).length > 0) completed += 2;
 
   // Interest tags
-  if (profile.interestTags && profile.interestTags.length > 0) completed += 3;
+  if (profile.interestTags && profile.interestTags.length > 0) completed += 2;
+
+  // Horoscope / Kundli (3%) - any horoscope field filled
+  let horoscopeCount = 0;
+  if (profile.manglikStatus) horoscopeCount++;
+  if (profile.rashi && profile.rashi.trim()) horoscopeCount++;
+  if (profile.nakshatra && profile.nakshatra.trim()) horoscopeCount++;
+  if (profile.zodiacSign && profile.zodiacSign.trim()) horoscopeCount++;
+  if (horoscopeCount > 0) completed += 3;
+
+  // Family details (3%) - family type or status filled
+  let familyCount = 0;
+  if (profile.familyType) familyCount++;
+  if (profile.familyStatus) familyCount++;
+  if (profile.fatherOccupation && profile.fatherOccupation.trim()) familyCount++;
+  if (profile.motherOccupation && profile.motherOccupation.trim()) familyCount++;
+  if (familyCount > 0) completed += 3;
 
   // Calculate percentage
   const percentage = Math.round((completed / total) * 100);

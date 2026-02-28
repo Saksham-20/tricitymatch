@@ -33,9 +33,9 @@ const DetailRow = ({ label, value, isLast }) => (
 
 const SOCIAL_PLATFORMS = [
   { key: 'instagram', label: 'Instagram', icon: FiInstagram },
-  { key: 'linkedin',  label: 'LinkedIn',  icon: FiLinkedin  },
-  { key: 'facebook',  label: 'Facebook',  icon: FiFacebook  },
-  { key: 'twitter',   label: 'Twitter',   icon: FiTwitter   },
+  { key: 'linkedin', label: 'LinkedIn', icon: FiLinkedin },
+  { key: 'facebook', label: 'Facebook', icon: FiFacebook },
+  { key: 'twitter', label: 'Twitter', icon: FiTwitter },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -114,15 +114,19 @@ const MyProfileView = () => {
   const activeSocials = SOCIAL_PLATFORMS.filter((p) => profile.socialMediaLinks?.[p.key]);
 
   const detailRows = [
-    age != null             && { label: 'Age',              value: `${age} years`    },
-    location                && { label: 'Location',         value: location           },
-    profile.height          && { label: 'Height',           value: `${profile.height} cm` },
-    profile.education       && { label: 'Education',        value: profile.education  },
-    profile.profession      && { label: 'Profession',       value: profile.profession },
-    profile.diet            && { label: 'Diet',             value: profile.diet       },
-    profile.smoking         && { label: 'Smoking',          value: profile.smoking    },
-    profile.drinking        && { label: 'Drinking',         value: profile.drinking   },
-    profile.personalityType && { label: 'Personality',      value: profile.personalityType },
+    age != null && { label: 'Age', value: `${age} years` },
+    location && { label: 'Location', value: location },
+    profile.height && { label: 'Height', value: `${profile.height} cm` },
+    profile.education && { label: 'Education', value: profile.education },
+    profile.profession && { label: 'Profession', value: profile.profession },
+    profile.religion && { label: 'Religion', value: profile.religion },
+    profile.caste && { label: 'Caste', value: profile.caste },
+    profile.motherTongue && { label: 'Mother Tongue', value: profile.motherTongue },
+    profile.maritalStatus && { label: 'Marital Status', value: profile.maritalStatus?.replace(/_/g, ' ') },
+    profile.diet && { label: 'Diet', value: profile.diet },
+    profile.smoking && { label: 'Smoking', value: profile.smoking },
+    profile.drinking && { label: 'Drinking', value: profile.drinking },
+    profile.personalityType && { label: 'Personality', value: profile.personalityType },
   ].filter(Boolean);
 
   return (
@@ -177,9 +181,8 @@ const MyProfileView = () => {
                           key={photo}
                           type="button"
                           onClick={() => setLightbox({ open: true, src, alt })}
-                          className={`block w-full rounded-xl border border-neutral-100 overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 transition-transform hover:scale-[1.02] ${
-                            i === 0 ? 'sm:col-span-2 sm:row-span-2 h-64 sm:h-80' : 'h-44'
-                          }`}
+                          className={`block w-full rounded-xl border border-neutral-100 overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 transition-transform hover:scale-[1.02] ${i === 0 ? 'sm:col-span-2 sm:row-span-2 h-64 sm:h-80' : 'h-44'
+                            }`}
                         >
                           <img
                             src={src} alt={alt}
@@ -379,6 +382,55 @@ const MyProfileView = () => {
                       isLast={i === detailRows.length - 1}
                     />
                   ))}
+                </div>
+              </Section>
+            )}
+
+            {/* Horoscope & Kundli */}
+            {(profile.manglikStatus || profile.zodiacSign || profile.rashi || profile.nakshatra) && (
+              <Section title="Horoscope & Kundli">
+                <div>
+                  {profile.manglikStatus && (
+                    <DetailRow label="Manglik" value={profile.manglikStatus.replace(/_/g, ' ')} />
+                  )}
+                  {profile.zodiacSign && (
+                    <DetailRow label="Zodiac Sign" value={profile.zodiacSign} />
+                  )}
+                  {profile.rashi && (
+                    <DetailRow label="Rashi" value={profile.rashi} />
+                  )}
+                  {profile.nakshatra && (
+                    <DetailRow label="Nakshatra" value={profile.nakshatra} />
+                  )}
+                  {profile.placeOfBirth && (
+                    <DetailRow label="Place of Birth" value={profile.placeOfBirth} />
+                  )}
+                  {profile.birthTime && (
+                    <DetailRow label="Birth Time" value={profile.birthTime} isLast />
+                  )}
+                </div>
+              </Section>
+            )}
+
+            {/* Family Background */}
+            {(profile.familyType || profile.familyStatus || profile.fatherOccupation || profile.motherOccupation) && (
+              <Section title="Family Background">
+                <div>
+                  {profile.familyType && (
+                    <DetailRow label="Family Type" value={profile.familyType.replace(/_/g, ' ')} />
+                  )}
+                  {profile.familyStatus && (
+                    <DetailRow label="Family Status" value={profile.familyStatus.replace(/_/g, ' ')} />
+                  )}
+                  {profile.fatherOccupation && (
+                    <DetailRow label="Father's Occupation" value={profile.fatherOccupation} />
+                  )}
+                  {profile.motherOccupation && (
+                    <DetailRow label="Mother's Occupation" value={profile.motherOccupation} />
+                  )}
+                  {profile.numberOfSiblings > 0 && (
+                    <DetailRow label="Siblings" value={profile.numberOfSiblings} isLast />
+                  )}
                 </div>
               </Section>
             )}

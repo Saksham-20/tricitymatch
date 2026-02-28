@@ -19,11 +19,11 @@ import FloatingActionBar from '../components/profile/FloatingActionBar';
 // ─── Inline Compatibility Ring ───────────────
 const CompatRing = ({ score }) => {
   const size = 96;
-  const sw   = 6;
-  const r    = (size - sw * 2) / 2;
+  const sw = 6;
+  const r = (size - sw * 2) / 2;
   const circ = 2 * Math.PI * r;
   const offset = circ - (score / 100) * circ;
-  const color  = score >= 90 ? '#2E7D32' : score >= 75 ? '#C9A227' : '#8B2346';
+  const color = score >= 90 ? '#2E7D32' : score >= 75 ? '#C9A227' : '#8B2346';
 
   return (
     <div className="flex flex-col items-center gap-2">
@@ -76,16 +76,16 @@ const Section = ({ title, children, badge }) => (
 
 // ─────────────────────────────────────────────
 const ProfileDetail = () => {
-  const { userId }       = useParams();
-  const navigate         = useNavigate();
-  const { user: me }     = useAuth();
-  const [profile, setProfile]             = useState(null);
-  const [compatScore, setCompatScore]     = useState(null);
+  const { userId } = useParams();
+  const navigate = useNavigate();
+  const { user: me } = useAuth();
+  const [profile, setProfile] = useState(null);
+  const [compatScore, setCompatScore] = useState(null);
   const [premiumAccess, setPremiumAccess] = useState(false);
-  const [isLiked, setIsLiked]             = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
   const [isShortlisted, setIsShortlisted] = useState(false);
-  const [loading, setLoading]             = useState(true);
-  const [lightbox, setLightbox]           = useState({ open: false, src: null, alt: '' });
+  const [loading, setLoading] = useState(true);
+  const [lightbox, setLightbox] = useState({ open: false, src: null, alt: '' });
 
   useEffect(() => { loadProfile(); }, [userId]);
 
@@ -155,9 +155,9 @@ const ProfileDetail = () => {
 
   const socialPlatforms = [
     { key: 'instagram', label: 'Instagram', icon: FiInstagram },
-    { key: 'linkedin',  label: 'LinkedIn',  icon: FiLinkedin  },
-    { key: 'facebook',  label: 'Facebook',  icon: FiFacebook  },
-    { key: 'twitter',   label: 'Twitter',   icon: FiTwitter   },
+    { key: 'linkedin', label: 'LinkedIn', icon: FiLinkedin },
+    { key: 'facebook', label: 'Facebook', icon: FiFacebook },
+    { key: 'twitter', label: 'Twitter', icon: FiTwitter },
   ];
 
   return (
@@ -186,9 +186,8 @@ const ProfileDetail = () => {
                       key={photo}
                       type="button"
                       onClick={() => setLightbox({ open: true, src: url, alt: `${firstName} ${i + 1}` })}
-                      className={`overflow-hidden bg-neutral-100 hover:brightness-95 transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                        i === 0 ? 'col-span-2 row-span-2 sm:row-span-1' : ''
-                      }`}
+                      className={`overflow-hidden bg-neutral-100 hover:brightness-95 transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 ${i === 0 ? 'col-span-2 row-span-2 sm:row-span-1' : ''
+                        }`}
                     >
                       <img
                         src={url}
@@ -393,11 +392,10 @@ const ProfileDetail = () => {
                 <button
                   onClick={() => handleAction('like')}
                   disabled={isLiked}
-                  className={`w-full flex items-center justify-center gap-2 py-3 text-sm font-semibold rounded-xl transition-all duration-200 ${
-                    isLiked
+                  className={`w-full flex items-center justify-center gap-2 py-3 text-sm font-semibold rounded-xl transition-all duration-200 ${isLiked
                       ? 'bg-success-50 text-success border border-success-100 cursor-default'
                       : 'bg-primary-500 text-white hover:bg-primary-600 shadow-burgundy hover:-translate-y-0.5'
-                  }`}
+                    }`}
                 >
                   {isLiked
                     ? <><FiCheck className="w-4 h-4" /> Interest Expressed</>
@@ -406,11 +404,10 @@ const ProfileDetail = () => {
 
                 <button
                   onClick={() => handleAction('shortlist')}
-                  className={`w-full flex items-center justify-center gap-2 py-3 text-sm font-semibold rounded-xl transition-all duration-200 ${
-                    isShortlisted
+                  className={`w-full flex items-center justify-center gap-2 py-3 text-sm font-semibold rounded-xl transition-all duration-200 ${isShortlisted
                       ? 'bg-gold-50 text-gold-700 border border-gold-200'
                       : 'border-2 border-neutral-200 text-primary-500 hover:border-primary-300 hover:bg-primary-50'
-                  }`}
+                    }`}
                 >
                   {isShortlisted
                     ? <><FiCheck className="w-4 h-4" /> Saved</>
@@ -450,13 +447,48 @@ const ProfileDetail = () => {
                   {profile.height && (
                     <DetailRow label="Height" value={`${profile.height} cm`} />
                   )}
-                  <DetailRow label="Education"  value={profile.education} />
+                  <DetailRow label="Education" value={profile.education} />
                   <DetailRow label="Profession" value={profile.profession} />
-                  <DetailRow label="Diet"       value={profile.diet} />
-                  <DetailRow label="Smoking"    value={profile.smoking} />
-                  <DetailRow label="Drinking"   value={profile.drinking} />
+                  <DetailRow label="Religion" value={profile.religion} />
+                  <DetailRow label="Caste" value={profile.caste} />
+                  <DetailRow label="Mother Tongue" value={profile.motherTongue} />
+                  <DetailRow label="Marital Status" value={profile.maritalStatus?.replace(/_/g, ' ')} />
+                  <DetailRow label="Diet" value={profile.diet} />
+                  <DetailRow label="Smoking" value={profile.smoking} />
+                  <DetailRow label="Drinking" value={profile.drinking} />
                   <DetailRow label="Personality" value={profile.personalityType} />
                 </div>
+
+                {/* Horoscope / Kundli */}
+                {(profile.manglikStatus || profile.zodiacSign || profile.rashi || profile.nakshatra) && (
+                  <div className="mt-3 pt-3 border-t border-neutral-100">
+                    <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-2">
+                      Horoscope & Kundli
+                    </p>
+                    <DetailRow label="Manglik" value={profile.manglikStatus?.replace(/_/g, ' ')} />
+                    <DetailRow label="Zodiac Sign" value={profile.zodiacSign} />
+                    <DetailRow label="Rashi" value={profile.rashi} />
+                    <DetailRow label="Nakshatra" value={profile.nakshatra} />
+                    <DetailRow label="Place of Birth" value={profile.placeOfBirth} />
+                    <DetailRow label="Birth Time" value={profile.birthTime} />
+                  </div>
+                )}
+
+                {/* Family Background */}
+                {(profile.familyType || profile.familyStatus || profile.fatherOccupation || profile.motherOccupation) && (
+                  <div className="mt-3 pt-3 border-t border-neutral-100">
+                    <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-2">
+                      Family Background
+                    </p>
+                    <DetailRow label="Family Type" value={profile.familyType?.replace(/_/g, ' ')} />
+                    <DetailRow label="Family Status" value={profile.familyStatus?.replace(/_/g, ' ')} />
+                    <DetailRow label="Father's Occupation" value={profile.fatherOccupation} />
+                    <DetailRow label="Mother's Occupation" value={profile.motherOccupation} />
+                    {profile.numberOfSiblings > 0 && (
+                      <DetailRow label="Siblings" value={profile.numberOfSiblings} />
+                    )}
+                  </div>
+                )}
 
                 {/* Languages */}
                 {profile.languages?.length > 0 && (

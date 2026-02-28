@@ -52,6 +52,84 @@ const Profile = sequelize.define('Profile', {
     type: DataTypes.STRING,
     defaultValue: 'Punjab'
   },
+  // Religious & Community Background
+  religion: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  caste: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  subCaste: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  gotra: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  motherTongue: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  // Marital Status
+  maritalStatus: {
+    type: DataTypes.ENUM('never_married', 'divorced', 'widowed', 'awaiting_divorce'),
+    allowNull: true
+  },
+  numberOfChildren: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: 0
+  },
+  // Horoscope & Kundli
+  placeOfBirth: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  birthTime: {
+    type: DataTypes.STRING, // HH:MM format
+    allowNull: true
+  },
+  manglikStatus: {
+    type: DataTypes.ENUM('manglik', 'non_manglik', 'anshik_manglik', 'not_sure'),
+    allowNull: true
+  },
+  zodiacSign: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  rashi: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  nakshatra: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  // Family Details
+  familyType: {
+    type: DataTypes.ENUM('joint', 'nuclear'),
+    allowNull: true
+  },
+  familyStatus: {
+    type: DataTypes.ENUM('middle_class', 'upper_middle_class', 'affluent', 'rich'),
+    allowNull: true
+  },
+  fatherOccupation: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  motherOccupation: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  numberOfSiblings: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: 0
+  },
   // Lifestyle
   skinTone: {
     type: DataTypes.ENUM('fair', 'wheatish', 'dark'),

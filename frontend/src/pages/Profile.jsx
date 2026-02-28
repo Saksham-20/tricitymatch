@@ -22,11 +22,11 @@ const Profile = () => {
 
   // Check if user has premium subscription
   const [isPremium, setIsPremium] = useState(false);
-  
+
   useEffect(() => {
     checkSubscription();
   }, []);
-  
+
   const checkSubscription = async () => {
     try {
       const response = await api.get('/subscription/my-subscription');
@@ -47,16 +47,18 @@ const Profile = () => {
       const profileData = response.data.profile;
       setProfile(profileData);
       setFormData(profileData || {});
-      
+
       // Determine which step to show based on completion
       if (profileData) {
         const completion = profileData.completionPercentage || 0;
-        if (completion < 30) setActiveStep(0);
-        else if (completion < 50) setActiveStep(1);
-        else if (completion < 70) setActiveStep(2);
-        else if (completion < 85) setActiveStep(3);
-        else if (completion < 95) setActiveStep(4);
-        else setActiveStep(5);
+        if (completion < 20) setActiveStep(0);
+        else if (completion < 35) setActiveStep(1);
+        else if (completion < 45) setActiveStep(2);
+        else if (completion < 55) setActiveStep(3);
+        else if (completion < 65) setActiveStep(4);
+        else if (completion < 75) setActiveStep(5);
+        else if (completion < 90) setActiveStep(6);
+        else setActiveStep(7);
       }
     } catch (error) {
       toast.error('Failed to load profile');
@@ -268,7 +270,7 @@ const Profile = () => {
           <h1 className="text-4xl md:text-5xl font-bold text-neutral-900 mb-4 bg-gradient-to-r from-primary-600 to-primary-500 bg-clip-text text-transparent">
             Edit profile
           </h1>
-            
+
           {/* Enhanced Progress Bar */}
           <div className="mb-6 bg-white rounded-2xl shadow-lg border border-neutral-200 p-6">
             <div className="flex items-center justify-between mb-3">

@@ -15,13 +15,13 @@ const path = require('path');
 const config = require('./config/env');
 
 // Import middleware
-const { 
-  securityHeaders, 
-  corsOptions, 
+const {
+  securityHeaders,
+  corsOptions,
   apiLimiter,
   sanitizeRequest,
   requestId,
-  extractIp 
+  extractIp
 } = require('./middlewares/security');
 const { errorHandler, notFoundHandler } = require('./middlewares/errorHandler');
 const logger = require('./middlewares/logger');
@@ -45,8 +45,8 @@ const server = http.createServer(app);
 // Initialize Socket.io with security configuration
 const io = new Server(server, {
   cors: {
-    origin: config.isProduction 
-      ? config.server.frontendUrl 
+    origin: config.isProduction
+      ? config.server.frontendUrl
       : ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000'],
     methods: ['GET', 'POST'],
     credentials: true
@@ -83,7 +83,7 @@ app.use(compression());
 // ==================== BODY PARSING WITH SIZE LIMITS ====================
 
 // Capture raw body for webhook signature verification (before JSON parsing)
-app.use('/api/subscription/webhook', express.raw({ 
+app.use('/api/subscription/webhook', express.raw({
   type: 'application/json',
   limit: '10kb'
 }), (req, res, next) => {
@@ -97,15 +97,15 @@ app.use('/api/subscription/webhook', express.raw({
 });
 
 // JSON body parser with size limit
-app.use(express.json({ 
+app.use(express.json({
   limit: config.security.maxRequestSize,
   strict: true
 }));
 
 // URL-encoded body parser with size limit
-app.use(express.urlencoded({ 
-  extended: true, 
-  limit: config.security.maxRequestSize 
+app.use(express.urlencoded({
+  extended: true,
+  limit: config.security.maxRequestSize
 }));
 
 // Sanitize request data
@@ -184,7 +184,7 @@ app.use('/api', routes); // Keep backward compatibility
 if (config.isDevelopment || process.env.ENABLE_SWAGGER === 'true') {
   const swaggerUi = require('swagger-ui-express');
   const swaggerSpec = require('./config/swagger');
-  
+
   app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
     customCss: '.swagger-ui .topbar { display: none }',
     customSiteTitle: 'TricityMatch API Documentation',
@@ -193,13 +193,13 @@ if (config.isDevelopment || process.env.ENABLE_SWAGGER === 'true') {
       displayRequestDuration: true,
     }
   }));
-  
+
   // JSON spec endpoint
   app.get('/api/docs.json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.send(swaggerSpec);
   });
-  
+
   console.log('📚 API Documentation available at /api/docs');
 }
 
@@ -252,7 +252,7 @@ const startServer = async () => {
 
     // Sync models in development (use migrations in production)
     if (config.isDevelopment) {
-      await sequelize.sync({ alter: false });
+      await sequelize.sync({ alter: true });
       console.log('✓ Database models synced');
     }
 
@@ -309,16 +309,16 @@ const startServer = async () => {
 
 const gracefulShutdown = async (signal) => {
   console.log(`\n${signal} received: starting graceful shutdown`);
-  
+
   // Close server to stop accepting new connections
   server.close(async () => {
     console.log('✓ HTTP server closed');
-    
+
     // Close socket connections
     io.close(() => {
       console.log('✓ Socket.io connections closed');
     });
-    
+
     // Close background job queues
     try {
       await closeQueues();
@@ -326,7 +326,7 @@ const gracefulShutdown = async (signal) => {
     } catch (error) {
       console.error('✗ Error closing job queues:', error);
     }
-    
+
     // Close Redis cache
     try {
       await closeCache();
@@ -334,7 +334,7 @@ const gracefulShutdown = async (signal) => {
     } catch (error) {
       console.error('✗ Error closing cache:', error);
     }
-    
+
     // Close database connection
     try {
       await sequelize.close();
@@ -342,7 +342,7 @@ const gracefulShutdown = async (signal) => {
     } catch (error) {
       console.error('✗ Error closing database:', error);
     }
-    
+
     console.log('Graceful shutdown completed');
     process.exit(0);
   });

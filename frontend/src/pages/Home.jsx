@@ -4,7 +4,7 @@ import { motion, useInView, AnimatePresence } from 'framer-motion';
 import {
   FiShield, FiCheckCircle, FiHeart, FiArrowRight, FiStar, FiUsers,
   FiMessageCircle, FiLock, FiMapPin, FiBookmark, FiChevronRight,
-  FiChevronLeft, FiUser,
+  FiChevronLeft, FiUser, FiPlay,
 } from 'react-icons/fi';
 
 // ─────────────────────────────────────────────
@@ -45,17 +45,39 @@ const CompatibilityRing = ({ score, size = 72 }) => {
 };
 
 // ─────────────────────────────────────────────
-// Match Preview Card
+// Match Preview Card (with image support)
 // ─────────────────────────────────────────────
 const MatchPreviewCard = ({ profile }) => (
   <motion.div
     whileHover={{ y: -6, boxShadow: '0 16px 48px rgba(139,35,70,0.14)' }}
     transition={{ duration: 0.2 }}
-    className="relative flex-shrink-0 w-[17rem] bg-white rounded-2xl overflow-hidden border border-neutral-100 shadow-card snap-start"
+    className="relative flex-shrink-0 w-[17rem] bg-white rounded-3xl overflow-hidden border border-neutral-100 shadow-card snap-start"
   >
     {/* Image */}
-    <div className="relative h-48 bg-gradient-to-br from-primary-100 via-primary-50 to-gold-50 flex items-center justify-center overflow-hidden">
-      <FiUser className="w-14 h-14 text-primary-300" />
+    <div className="relative h-48 overflow-hidden">
+      {profile.image ? (
+        <img
+          src={profile.image}
+          alt={profile.name}
+          className="w-full h-full object-cover"
+          loading="lazy"
+        />
+      ) : (
+        <div className="w-full h-full bg-gradient-to-br from-primary-100 via-primary-50 to-gold-50 flex items-center justify-center">
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center"
+            style={{
+              background: 'rgba(255,255,255,0.65)',
+              backdropFilter: 'blur(6px)',
+              border: '2px solid rgba(255,255,255,0.8)',
+            }}
+          >
+            <span className="text-2xl font-display font-bold text-primary-300">
+              {profile.name.split(' ').map(n => n[0]).join('')}
+            </span>
+          </div>
+        </div>
+      )}
 
       {profile.premium && (
         <div className="absolute inset-0 flex flex-col items-end justify-end p-3"
@@ -69,22 +91,25 @@ const MatchPreviewCard = ({ profile }) => (
       )}
 
       {profile.online && !profile.premium && (
-        <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2 py-1 bg-white/90 rounded-full shadow-sm text-xs font-medium text-neutral-700">
+        <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2 py-1 bg-white/90 backdrop-blur-sm rounded-full shadow-sm text-xs font-medium text-neutral-700">
           <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse-soft" />
           Online now
         </div>
       )}
 
-      <button className="absolute top-3 right-3 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center shadow-sm hover:bg-white transition-colors">
+      <button className="absolute top-3 right-3 w-8 h-8 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white transition-colors">
         <FiBookmark className="w-3.5 h-3.5 text-neutral-600" />
       </button>
+
+      {/* Bottom gradient */}
+      <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
     </div>
 
     {/* Body */}
     <div className="p-4">
       <div className="flex items-start gap-3 mb-3">
         <div className="flex-1 min-w-0">
-          <h4 className="font-semibold text-neutral-800 text-sm leading-tight truncate">
+          <h4 className="font-display font-semibold text-neutral-800 text-sm leading-tight truncate">
             {profile.name}, {profile.age}
           </h4>
           <p className="text-xs text-neutral-400 mt-0.5 flex items-center gap-1">
@@ -105,7 +130,7 @@ const MatchPreviewCard = ({ profile }) => (
 
       <Link
         to={`/profile/${profile.id}`}
-        className="block text-center py-2.5 bg-primary-500 text-white text-sm font-semibold rounded-xl hover:bg-primary-600 transition-colors"
+        className="block text-center py-2.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white text-sm font-semibold rounded-xl hover:from-primary-600 hover:to-primary-700 transition-all shadow-burgundy"
       >
         View Full Profile
       </Link>
@@ -134,7 +159,7 @@ const TimelineStep = ({ step, index, total }) => {
           initial={{ scale: 0 }}
           animate={inView ? { scale: 1 } : {}}
           transition={{ duration: 0.4, delay: index * 0.12 + 0.1, type: 'spring', stiffness: 260 }}
-          className="w-11 h-11 rounded-full bg-primary-500 flex items-center justify-center text-white shadow-burgundy"
+          className="w-11 h-11 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white shadow-burgundy"
         >
           {React.cloneElement(step.icon, { className: 'w-4.5 h-4.5' })}
         </motion.div>
@@ -159,7 +184,7 @@ const TimelineStep = ({ step, index, total }) => {
 };
 
 // ─────────────────────────────────────────────
-// Story Card
+// Story Card (with image)
 // ─────────────────────────────────────────────
 const StoryCard = ({ story }) => (
   <motion.div
@@ -169,9 +194,15 @@ const StoryCard = ({ story }) => (
     transition={{ duration: 0.45 }}
     className="grid md:grid-cols-[2fr_3fr] gap-8 md:gap-14 items-center"
   >
-    <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-gradient-to-br from-primary-100 to-gold-100 flex items-center justify-center">
-      <FiHeart className="w-20 h-20 text-primary-300" />
-      <div className="absolute bottom-4 left-4 flex items-center gap-2 px-3 py-1.5 bg-white/90 rounded-full shadow-sm">
+    <div className="relative aspect-[4/3] rounded-3xl overflow-hidden shadow-lg">
+      <img
+        src={story.image}
+        alt={`${story.names} — TricityMatch success story`}
+        className="w-full h-full object-cover"
+        loading="lazy"
+      />
+      {/* Overlay badge */}
+      <div className="absolute bottom-4 left-4 flex items-center gap-2 px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-full shadow-sm">
         <FiCheckCircle className="w-3.5 h-3.5 text-success" />
         <span className="text-xs font-semibold text-neutral-800">Verified Couple</span>
       </div>
@@ -204,11 +235,11 @@ const Home = () => {
   const [activeStory, setActiveStory] = useState(0);
 
   const featuredProfiles = [
-    { id: 1, name: 'Priya Sharma', age: 28, location: 'Mohali, Punjab', match: 97, online: true,  premium: false, tags: ['MBA IIM', 'Family-first', 'Travel'] },
-    { id: 2, name: 'Rahul Gupta',  age: 31, location: 'Chandigarh',     match: 95, online: false, premium: false, tags: ['IIT Graduate', 'Startup Founder', 'Trekking'] },
-    { id: 3, name: 'Anjali Nair',  age: 29, location: 'Panchkula',      match: 94, online: true,  premium: true,  tags: ['Doctor AIIMS', 'Spiritual', 'Art'] },
-    { id: 4, name: 'Arjun Patel',  age: 32, location: 'Chandigarh',     match: 93, online: false, premium: false, tags: ['Entrepreneur', 'Fitness', 'Books'] },
-    { id: 5, name: 'Meera Reddy',  age: 27, location: 'Mohali, Punjab', match: 96, online: true,  premium: false, tags: ['Software Engineer', 'Cooking', 'Music'] },
+    { id: 1, name: 'Priya Sharma', age: 28, location: 'Mohali, Punjab', match: 97, online: true, premium: false, tags: ['MBA IIM', 'Family-first', 'Travel'], image: '/images/profile-priya.png' },
+    { id: 2, name: 'Rahul Gupta', age: 31, location: 'Chandigarh', match: 95, online: false, premium: false, tags: ['IIT Graduate', 'Startup Founder', 'Trekking'], image: '/images/profile-rahul.png' },
+    { id: 3, name: 'Anjali Nair', age: 29, location: 'Panchkula', match: 94, online: true, premium: true, tags: ['Doctor AIIMS', 'Spiritual', 'Art'], image: '/images/profile-anjali.png' },
+    { id: 4, name: 'Arjun Patel', age: 32, location: 'Chandigarh', match: 93, online: false, premium: false, tags: ['Entrepreneur', 'Fitness', 'Books'], image: '/images/profile-arjun.png' },
+    { id: 5, name: 'Meera Reddy', age: 27, location: 'Mohali, Punjab', match: 96, online: true, premium: false, tags: ['Software Engineer', 'Cooking', 'Music'], image: '/images/profile-meera.png' },
   ];
 
   const testimonials = [
@@ -218,6 +249,7 @@ const Home = () => {
       date: 'June 2024',
       quote: 'We found each other in the most unexpected, yet perfectly right way. TricityMatch knew what we needed before we did.',
       years: '2',
+      image: '/images/couple-testimonial.png',
     },
     {
       names: 'Anjali & Rohan',
@@ -225,6 +257,7 @@ const Home = () => {
       date: 'August 2024',
       quote: 'Trust was everything for us. The verification process gave us both the confidence to open up and truly connect.',
       years: '1',
+      image: '/images/wedding-ceremony.png',
     },
     {
       names: 'Meera & Vikram',
@@ -232,6 +265,7 @@ const Home = () => {
       date: 'September 2024',
       quote: 'From the first message to our engagement, everything felt intentional. This platform respects both families.',
       years: '1',
+      image: '/images/couple-engagement.png',
     },
   ];
 
@@ -259,17 +293,17 @@ const Home = () => {
   ];
 
   const trustPoints = [
-    { icon: <FiShield />, title: 'Identity Verified',        desc: 'Every profile undergoes government ID verification before going live.' },
-    { icon: <FiLock />,   title: 'End-to-End Encrypted',    desc: 'Your conversations and data are encrypted and never shared.' },
-    { icon: <FiCheckCircle />, title: 'Human-Moderated',    desc: 'Our safety team reviews profiles daily to keep the experience trustworthy.' },
-    { icon: <FiUsers />,  title: 'Family-Approved Process', desc: 'Designed to include families at every step — built on mutual respect.' },
+    { icon: <FiShield />, title: 'Identity Verified', desc: 'Every profile undergoes government ID verification before going live.' },
+    { icon: <FiLock />, title: 'End-to-End Encrypted', desc: 'Your conversations and data are encrypted and never shared.' },
+    { icon: <FiCheckCircle />, title: 'Human-Moderated', desc: 'Our safety team reviews profiles daily to keep the experience trustworthy.' },
+    { icon: <FiUsers />, title: 'Family-Approved Process', desc: 'Designed to include families at every step — built on mutual respect.' },
   ];
 
   const stats = [
     { value: '1,190+', label: 'Successful Matches' },
-    { value: '50K+',   label: 'Verified Profiles' },
-    { value: '98%',    label: 'Satisfaction Rate' },
-    { value: '15+',    label: 'Years Trusted' },
+    { value: '50K+', label: 'Verified Profiles' },
+    { value: '98%', label: 'Satisfaction Rate' },
+    { value: '15+', label: 'Years Trusted' },
   ];
 
   useEffect(() => {
@@ -281,24 +315,34 @@ const Home = () => {
     <div className="min-h-screen bg-white overflow-x-hidden">
 
       {/* ── HERO ────────────────────────────────── */}
-      <section className="relative min-h-screen flex items-center pt-24 pb-20 overflow-hidden">
-        {/* Background tint */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_65%_-10%,rgba(139,35,70,0.055),transparent)]" />
+      <section className="relative min-h-screen flex items-center pt-20 pb-20 overflow-hidden">
+        {/* Background */}
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_65%_-10%,rgba(139,35,70,0.06),transparent)]" />
+          {/* Subtle grid overlay */}
+          <div
+            className="absolute inset-0 opacity-[0.03]"
+            style={{
+              backgroundImage: 'linear-gradient(rgba(139,35,70,1) 1px, transparent 1px), linear-gradient(90deg, rgba(139,35,70,1) 1px, transparent 1px)',
+              backgroundSize: '60px 60px',
+            }}
+          />
+        </div>
 
         {/* Rotating decorative rings */}
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 70, repeat: Infinity, ease: 'linear' }}
-          className="absolute top-16 right-4 md:right-16 w-[28rem] h-[28rem] rounded-full border border-primary-100/50 pointer-events-none"
+          className="absolute top-16 right-4 md:right-16 w-[28rem] h-[28rem] rounded-full border border-primary-100/40 pointer-events-none"
         />
         <motion.div
           animate={{ rotate: -360 }}
           transition={{ duration: 45, repeat: Infinity, ease: 'linear' }}
-          className="absolute top-24 right-10 md:right-24 w-[18rem] h-[18rem] rounded-full border border-gold-200/40 pointer-events-none"
+          className="absolute top-24 right-10 md:right-24 w-[18rem] h-[18rem] rounded-full border border-gold-200/30 pointer-events-none"
         />
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid lg:grid-cols-[1fr_400px] xl:grid-cols-[1fr_440px] gap-12 xl:gap-24 items-center">
+          <div className="grid lg:grid-cols-2 gap-12 xl:gap-20 items-center">
 
             {/* Left — copy */}
             <motion.div
@@ -348,7 +392,7 @@ const Home = () => {
               >
                 <Link
                   to="/signup"
-                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-primary-500 text-white font-semibold rounded-xl hover:bg-primary-600 transition-all duration-200 shadow-burgundy hover:shadow-burgundy-lg hover:-translate-y-0.5"
+                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white font-semibold rounded-xl hover:from-primary-600 hover:to-primary-700 transition-all duration-200 shadow-burgundy hover:shadow-burgundy-lg hover:-translate-y-0.5"
                 >
                   Create Free Profile
                   <FiArrowRight className="w-4 h-4" />
@@ -387,73 +431,68 @@ const Home = () => {
               </motion.div>
             </motion.div>
 
-            {/* Right — stacked profile card (desktop) */}
+            {/* Right — Hero Image (desktop) */}
             <motion.div
-              initial={{ opacity: 0, x: 28 }}
-              animate={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, x: 28, scale: 0.95 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.45, ease: 'easeOut' }}
               className="hidden lg:block relative"
             >
-              {/* Stacked back layers */}
-              <div className="absolute inset-0 rounded-2xl bg-primary-50 border border-primary-100 rotate-[-5deg] origin-bottom-left" />
-              <div className="absolute inset-0 rounded-2xl bg-white border border-neutral-100 shadow-card rotate-[-2.5deg] origin-bottom-left" />
+              {/* Main hero image */}
+              <div className="relative rounded-3xl overflow-hidden shadow-2xl">
+                <img
+                  src="/images/hero-couple.png"
+                  alt="Happy couple — TricityMatch"
+                  className="w-full h-[520px] object-cover"
+                />
+                {/* Gradient overlays */}
+                <div className="absolute inset-0 bg-gradient-to-t from-primary-900/30 via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-r from-primary-900/10 to-transparent" />
 
-              {/* Front card */}
-              <div className="relative bg-white rounded-2xl overflow-hidden border border-neutral-100 shadow-card-hover">
-                <div className="h-52 bg-gradient-to-br from-primary-100 via-primary-50 to-gold-50 flex items-center justify-center relative">
-                  <FiUser className="w-16 h-16 text-primary-300" />
-                  <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 bg-white/90 rounded-full shadow-sm text-xs font-medium text-neutral-700">
-                    <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-                    Active now
-                  </div>
-                </div>
-
-                <div className="p-5">
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-neutral-800">Priya Sharma, 28</h4>
-                      <p className="text-xs text-neutral-400 mt-0.5 flex items-center gap-1">
-                        <FiMapPin className="w-3 h-3" /> Mohali, Punjab
-                      </p>
+                {/* Bottom overlay text */}
+                <div className="absolute bottom-0 inset-x-0 p-6">
+                  <div className="flex items-center gap-3">
+                    <div className="flex -space-x-2">
+                      {[0, 1, 2, 3].map(i => (
+                        <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-gradient-to-br from-gold-300 to-primary-300 shadow-sm" />
+                      ))}
                     </div>
-                    <CompatibilityRing score={97} size={58} />
-                  </div>
-
-                  <div className="flex flex-wrap gap-1.5 mb-4">
-                    {['MBA IIM', 'Family-first', 'Career-driven'].map((t, i) => (
-                      <span key={i} className="px-2 py-0.5 text-[11px] rounded-full bg-primary-50 text-primary-600 border border-primary-100">
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button className="flex-1 py-2.5 bg-primary-500 text-white text-sm font-semibold rounded-xl hover:bg-primary-600 transition-colors">
-                      Send Interest
-                    </button>
-                    <button className="w-10 h-10 border border-neutral-200 rounded-xl flex items-center justify-center hover:border-primary-200 hover:bg-primary-50 transition-colors">
-                      <FiBookmark className="w-4 h-4 text-neutral-500" />
-                    </button>
-                    <button className="w-10 h-10 border border-neutral-200 rounded-xl flex items-center justify-center hover:border-primary-200 hover:bg-primary-50 transition-colors">
-                      <FiMessageCircle className="w-4 h-4 text-neutral-500" />
-                    </button>
+                    <div>
+                      <p className="text-white text-sm font-semibold">1,190+ Couples Matched</p>
+                      <p className="text-white/70 text-xs">Join Tricity's fastest-growing matrimony</p>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Floating notification */}
+              {/* Floating notification card */}
               <motion.div
                 animate={{ y: [0, -8, 0] }}
                 transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
                 className="absolute -bottom-5 -left-10 bg-white rounded-2xl shadow-card-hover p-3 border border-neutral-100"
               >
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-success-50 flex items-center justify-center">
+                  <div className="w-9 h-9 rounded-full bg-success-50 flex items-center justify-center">
                     <FiHeart className="w-4 h-4 text-success" />
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-neutral-800">New match found!</p>
                     <p className="text-[10px] text-neutral-400">97% compatibility</p>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Floating compatibility card */}
+              <motion.div
+                animate={{ y: [0, 6, 0] }}
+                transition={{ duration: 3.8, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
+                className="absolute top-8 -right-6 bg-white rounded-2xl shadow-card-hover p-3 border border-neutral-100"
+              >
+                <div className="flex items-center gap-2.5">
+                  <CompatibilityRing score={97} size={42} />
+                  <div>
+                    <p className="text-xs font-semibold text-neutral-800">Perfect Match</p>
+                    <p className="text-[10px] text-neutral-400">Priya & Arjun</p>
                   </div>
                 </div>
               </motion.div>
@@ -464,7 +503,7 @@ const Home = () => {
       </section>
 
       {/* ── STATS STRIP ─────────────────────────── */}
-      <section className="py-12 border-y border-neutral-100 bg-neutral-50">
+      <section className="py-14 border-y border-neutral-100 bg-neutral-50">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-y-8">
             {stats.map((s, i) => (
@@ -533,7 +572,7 @@ const Home = () => {
           {/* View more placeholder */}
           <Link
             to="/search"
-            className="snap-start flex-shrink-0 w-[17rem] rounded-2xl border-2 border-dashed border-neutral-200 flex flex-col items-center justify-center gap-3 p-8 hover:border-primary-300 hover:bg-primary-50/30 transition-all group"
+            className="snap-start flex-shrink-0 w-[17rem] rounded-3xl border-2 border-dashed border-neutral-200 flex flex-col items-center justify-center gap-3 p-8 hover:border-primary-300 hover:bg-primary-50/30 transition-all group"
           >
             <div className="w-12 h-12 rounded-full bg-neutral-100 group-hover:bg-white flex items-center justify-center transition-colors shadow-sm">
               <FiArrowRight className="w-5 h-5 text-neutral-400 group-hover:text-primary-500 transition-colors" />
@@ -555,8 +594,21 @@ const Home = () => {
       </section>
 
       {/* ── HOW IT WORKS ────────────────────────── */}
-      <section className="py-20 md:py-28 bg-neutral-50">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 md:py-28 bg-neutral-50 relative overflow-hidden">
+        {/* Decorative image on the far right */}
+        <div className="absolute right-0 top-0 bottom-0 w-1/4 hidden xl:block pointer-events-none">
+          <div className="absolute inset-0 opacity-[0.06]">
+            <img
+              src="/images/wedding-ceremony.png"
+              alt=""
+              className="w-full h-full object-cover"
+              aria-hidden="true"
+            />
+          </div>
+          <div className="absolute inset-0 bg-gradient-to-r from-neutral-50 to-transparent" />
+        </div>
+
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid lg:grid-cols-2 gap-14 lg:gap-20 items-start">
 
             {/* Left — sticky heading */}
@@ -577,9 +629,20 @@ const Home = () => {
                 We've designed every step with intentionality — because finding a life partner
                 deserves more than an algorithm.
               </p>
+
+              {/* Process image */}
+              <div className="rounded-2xl overflow-hidden shadow-card mb-8 hidden lg:block">
+                <img
+                  src="/images/wedding-hands.png"
+                  alt="Wedding hands — TricityMatch"
+                  className="w-full h-48 object-cover"
+                  loading="lazy"
+                />
+              </div>
+
               <Link
                 to="/signup"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-primary-500 text-white font-semibold rounded-xl hover:bg-primary-600 transition-all duration-200 shadow-burgundy hover:-translate-y-0.5"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white font-semibold rounded-xl hover:from-primary-600 hover:to-primary-700 transition-all duration-200 shadow-burgundy hover:-translate-y-0.5"
               >
                 Begin Your Journey
                 <FiArrowRight className="w-4 h-4" />
@@ -630,7 +693,7 @@ const Home = () => {
                   whileHover={{ y: -4 }}
                   className="p-5 rounded-2xl border border-neutral-100 bg-neutral-50 hover:bg-white hover:border-primary-100 hover:shadow-card transition-all duration-200 group cursor-default"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-primary-500 text-white flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-200">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 text-white flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-200 shadow-burgundy">
                     {React.cloneElement(pt.icon, { className: 'w-4.5 h-4.5' })}
                   </div>
                   <h4 className="font-semibold text-neutral-800 mb-1.5">{pt.title}</h4>
@@ -684,9 +747,8 @@ const Home = () => {
                 key={i}
                 onClick={() => setActiveStory(i)}
                 aria-label={`Story ${i + 1}`}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  i === activeStory ? 'w-8 bg-primary-500' : 'w-1.5 bg-neutral-300 hover:bg-neutral-400'
-                }`}
+                className={`h-1.5 rounded-full transition-all duration-300 ${i === activeStory ? 'w-8 bg-primary-500' : 'w-1.5 bg-neutral-300 hover:bg-neutral-400'
+                  }`}
               />
             ))}
           </div>
@@ -694,8 +756,18 @@ const Home = () => {
       </section>
 
       {/* ── CTA CLOSURE ─────────────────────────── */}
-      <section className="py-24 md:py-32 relative overflow-hidden bg-neutral-900">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary-900/75 via-neutral-900 to-neutral-900" />
+      <section className="py-24 md:py-32 relative overflow-hidden">
+        {/* Background image + dark overlay */}
+        <div className="absolute inset-0">
+          <img
+            src="/images/couple-walking.png"
+            alt=""
+            className="w-full h-full object-cover"
+            aria-hidden="true"
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-neutral-900/92 via-primary-900/85 to-neutral-900/95" />
+        </div>
+
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary-500/30 to-transparent" />
 
         <motion.div
@@ -730,7 +802,7 @@ const Home = () => {
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Link
                   to="/signup"
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary-500 text-white font-semibold rounded-xl hover:bg-primary-400 transition-all duration-200 shadow-burgundy hover:-translate-y-0.5"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-primary-500 to-primary-400 text-white font-semibold rounded-xl hover:from-primary-400 hover:to-primary-300 transition-all duration-200 shadow-burgundy hover:-translate-y-0.5"
                 >
                   Create Your Profile — Free
                   <FiArrowRight className="w-5 h-5" />

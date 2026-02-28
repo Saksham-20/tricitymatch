@@ -3,58 +3,109 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   FiHeart, FiBookmark, FiMapPin, FiBook, FiBriefcase,
-  FiLock, FiCheckCircle,
+  FiLock, FiCheckCircle, FiArrowRight,
 } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 import { API_BASE_URL } from '../../utils/api';
 import { getImageUrl } from '../../utils/cloudinary';
 
-// ─── Inline mini compatibility bar ──────────
-const MiniCompatBar = ({ score }) => {
+/* ──────────────────────────────────────────────────────────
+   Animated compatibility arc — circular score indicator
+   ────────────────────────────────────────────────────────── */
+const CompatArc = ({ score }) => {
   if (!score) return null;
   const color = score >= 90 ? '#2E7D32' : score >= 75 ? '#C9A227' : '#8B2346';
+  const radius = 18;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (score / 100) * circumference;
+
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex-1 h-1 bg-neutral-100 rounded-full overflow-hidden">
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${score}%` }}
-          transition={{ duration: 1.2, ease: 'easeOut', delay: 0.2 }}
-          className="h-full rounded-full"
-          style={{ backgroundColor: color }}
+    <div className="relative w-12 h-12 flex-shrink-0" title={`${Math.round(score)}% match`}>
+      <svg width="48" height="48" viewBox="0 0 48 48" className="transform -rotate-90">
+        <circle cx="24" cy="24" r={radius} fill="none" stroke="#F5F5F5" strokeWidth="3" />
+        <motion.circle
+          cx="24" cy="24" r={radius} fill="none"
+          stroke={color} strokeWidth="3" strokeLinecap="round"
+          strokeDasharray={circumference}
+          initial={{ strokeDashoffset: circumference }}
+          animate={{ strokeDashoffset: offset }}
+          transition={{ duration: 1.2, ease: 'easeOut', delay: 0.3 }}
         />
-      </div>
-      <span className="text-[11px] font-bold flex-shrink-0" style={{ color }}>
+      </svg>
+      <span
+        className="absolute inset-0 flex items-center justify-center text-[11px] font-bold"
+        style={{ color }}
+      >
         {Math.round(score)}%
       </span>
     </div>
   );
 };
 
-// ─── Premium blur overlay ────────────────────
+/* ──────────────────────────────────────────────────────────
+   Shimmer compatibility bar (linear)
+   ────────────────────────────────────────────────────────── */
+const ShimmerBar = ({ score }) => {
+  if (!score) return null;
+  const color = score >= 90 ? '#2E7D32' : score >= 75 ? '#C9A227' : '#8B2346';
+  return (
+    <div className="h-1.5 bg-neutral-100 rounded-full overflow-hidden">
+      <motion.div
+        initial={{ width: 0 }}
+        animate={{ width: `${score}%` }}
+        transition={{ duration: 1.2, ease: 'easeOut', delay: 0.25 }}
+        className="h-full rounded-full relative"
+        style={{
+          background: `linear-gradient(90deg, ${color}, ${color}dd)`,
+        }}
+      >
+        {/* shimmer effect */}
+        <motion.div
+          className="absolute inset-0 rounded-full"
+          style={{
+            background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)',
+            backgroundSize: '200% 100%',
+          }}
+          animate={{ backgroundPosition: ['200% 0', '-200% 0'] }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'linear', delay: 1.5 }}
+        />
+      </motion.div>
+    </div>
+  );
+};
+
+/* ──────────────────────────────────────────────────────────
+   Premium blur overlay
+   ────────────────────────────────────────────────────────── */
 const PremiumBlur = () => (
   <div
-    className="absolute inset-0 flex flex-col items-center justify-center gap-2"
+    className="absolute inset-0 flex flex-col items-center justify-center gap-2 z-10"
     style={{
-      backdropFilter: 'blur(8px)',
-      background: 'rgba(255,255,255,0.22)',
+      backdropFilter: 'blur(10px)',
+      background: 'rgba(255,255,255,0.25)',
     }}
   >
-    <div className="w-10 h-10 rounded-full bg-white/90 shadow-md flex items-center justify-center">
-      <FiLock className="w-4.5 h-4.5 text-primary-500" />
+    <div className="w-12 h-12 rounded-full bg-white/90 shadow-lg flex items-center justify-center">
+      <FiLock className="w-5 h-5 text-primary-500" />
     </div>
-    <p className="text-xs font-semibold text-neutral-800 bg-white/80 px-3 py-1 rounded-full shadow-sm">
+    <p className="text-xs font-semibold text-neutral-800 bg-white/80 px-4 py-1.5 rounded-full shadow-sm">
       Upgrade to view
     </p>
   </div>
 );
 
+/* ──────────────────────────────────────────────────────────
+   Detail chip
+   ────────────────────────────────────────────────────────── */
+const DetailChip = ({ icon: Icon, text }) => (
+  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-neutral-50 rounded-lg text-neutral-600 border border-neutral-100">
+    <Icon className="w-3 h-3 text-primary-400 flex-shrink-0" />
+    <span className="text-[12px] truncate leading-tight">{text}</span>
+  </div>
+);
+
 /**
- * ProfileCard — full + compact variants
- *
- * New props:
- *  @param {boolean} isPremiumLocked  — blur photo for non-premium users
- *  @param {boolean} isOnline         — show online indicator
+ * ProfileCard — full + compact variants (redesigned)
  */
 const ProfileCard = ({
   profile,
@@ -69,9 +120,9 @@ const ProfileCard = ({
   isOnline = false,
 }) => {
   const navigate = useNavigate();
-  const [isLiked, setIsLiked]         = useState(profile.matchStatus === 'like');
+  const [isLiked, setIsLiked] = useState(profile.matchStatus === 'like');
   const [isShortlisted, setIsShortlisted] = useState(profile.matchStatus === 'shortlist');
-  const [imgError, setImgError]       = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   const getAge = () => {
     if (profile.age) return profile.age;
@@ -89,12 +140,12 @@ const ProfileCard = ({
   const initials = ((profile.firstName?.[0] || '') + (profile.lastName?.[0] || '')).toUpperCase() || '?';
 
   const handleCardClick = () => userId && navigate(`/profile/${userId}`);
-  const handleLike      = (e) => { e.stopPropagation(); setIsLiked(!isLiked); onLike?.(); };
+  const handleLike = (e) => { e.stopPropagation(); setIsLiked(!isLiked); onLike?.(); };
   const handleShortlist = (e) => { e.stopPropagation(); setIsShortlisted(!isShortlisted); onShortlist?.(); };
 
   const hasPhoto = (profile.profilePhoto || profile.profile_photo) && !imgError;
 
-  // ── Compact ─────────────────────────────────
+  // ── Compact ───────────────────────────────────
   if (variant === 'compact') {
     return (
       <motion.div
@@ -136,7 +187,7 @@ const ProfileCard = ({
             <p className="text-xs text-neutral-500">{getAge()} yrs · {profile.city || '—'}</p>
             {profile.compatibilityScore && (
               <div className="mt-1.5">
-                <MiniCompatBar score={profile.compatibilityScore} />
+                <ShimmerBar score={profile.compatibilityScore} />
               </div>
             )}
           </div>
@@ -148,9 +199,8 @@ const ProfileCard = ({
               whileTap={{ scale: 0.9 }}
               onClick={handleLike}
               aria-label={isLiked ? 'Unlike' : 'Like'}
-              className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
-                isLiked ? 'bg-primary-500 text-white' : 'bg-neutral-100 text-primary-400 hover:bg-primary-50'
-              }`}
+              className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 flex-shrink-0 ${isLiked ? 'bg-primary-500 text-white' : 'bg-neutral-100 text-primary-400 hover:bg-primary-50'
+                }`}
             >
               <FiHeart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
             </motion.button>
@@ -160,7 +210,7 @@ const ProfileCard = ({
     );
   }
 
-  // ── Full ─────────────────────────────────────
+  // ── Full (Redesigned) ──────────────────────────
   return (
     <motion.div
       layout
@@ -169,39 +219,64 @@ const ProfileCard = ({
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ delay: index * 0.05, duration: 0.3 }}
       whileHover={{ y: -6 }}
-      className="bg-white rounded-2xl border border-neutral-100 shadow-card hover:shadow-card-hover transition-all duration-200 overflow-hidden cursor-pointer group"
+      className="group relative bg-white rounded-3xl overflow-hidden cursor-pointer transition-all duration-300"
+      style={{
+        boxShadow: '0 4px 24px rgba(139, 35, 70, 0.07), 0 1px 4px rgba(0,0,0,0.04)',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = '0 12px 40px rgba(139, 35, 70, 0.14), 0 4px 12px rgba(0,0,0,0.06)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = '0 4px 24px rgba(139, 35, 70, 0.07), 0 1px 4px rgba(0,0,0,0.04)';
+      }}
       onClick={handleCardClick}
       role="article"
       aria-label={`Profile of ${fullName}`}
     >
-      {/* Photo */}
-      <div className="relative h-52 overflow-hidden">
+      {/* ── Photo Section ──────────────────────────── */}
+      <div className="relative h-56 overflow-hidden">
         {hasPhoto ? (
           <img
             src={getImageUrl(profile.profilePhoto || profile.profile_photo, API_BASE_URL, 'profile')}
             alt={`${fullName}`}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
             loading="lazy"
             onError={() => setImgError(true)}
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-primary-100 via-primary-50 to-gold-50 flex items-center justify-center">
-            <span className="text-5xl font-bold text-primary-300">{initials}</span>
+          /* ── Premium no-photo placeholder ─────────── */
+          <div className="w-full h-full bg-gradient-to-br from-primary-50 via-primary-100 to-gold-50 flex items-center justify-center relative">
+            {/* decorative circles */}
+            <div className="absolute top-4 right-6 w-20 h-20 rounded-full bg-primary-200/30" />
+            <div className="absolute bottom-6 left-4 w-14 h-14 rounded-full bg-gold-200/40" />
+            {/* frosted avatar */}
+            <div
+              className="w-20 h-20 rounded-full flex items-center justify-center shadow-lg relative z-[1]"
+              style={{
+                background: 'rgba(255, 255, 255, 0.65)',
+                backdropFilter: 'blur(8px)',
+                border: '2px solid rgba(255,255,255,0.8)',
+              }}
+            >
+              <span className="text-3xl font-display font-bold text-primary-400">
+                {initials}
+              </span>
+            </div>
           </div>
         )}
 
         {/* Premium blur lock */}
         {isPremiumLocked && <PremiumBlur />}
 
-        {/* Gradient scrim (hover) */}
+        {/* Bottom scrim — always visible for legibility */}
         {!isPremiumLocked && (
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/30 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none" />
         )}
 
         {/* Online indicator */}
         {isOnline && (
-          <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2 py-1 bg-white/90 rounded-full shadow-sm">
-            <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse-soft" />
+          <div className="absolute top-3.5 left-3.5 flex items-center gap-1.5 px-2.5 py-1 bg-white/85 backdrop-blur-md rounded-full shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-success animate-pulse-soft" />
             <span className="text-[11px] font-semibold text-neutral-700">Online</span>
           </div>
         )}
@@ -212,12 +287,12 @@ const ProfileCard = ({
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3 }}
-            className="absolute top-3 left-3 px-2.5 py-1.5 bg-gradient-to-r from-primary-500 to-primary-700 rounded-full text-[11px] font-semibold flex items-center gap-1.5 text-white shadow-md"
+            className="absolute top-3.5 left-3.5 px-3 py-1.5 bg-gradient-to-r from-primary-500 to-primary-600 rounded-full text-[11px] font-semibold flex items-center gap-1.5 text-white shadow-burgundy"
           >
             <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
             </svg>
-            Suggested
+            AI Suggested
           </motion.div>
         )}
 
@@ -226,114 +301,110 @@ const ProfileCard = ({
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-            className="absolute top-3 left-3 px-2.5 py-1 bg-neutral-900/80 backdrop-blur-sm rounded-full text-[11px] font-bold flex items-center gap-1.5 text-white"
+            transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+            className="absolute top-3.5 left-3.5 px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 text-white shadow-lg"
+            style={{
+              background: 'linear-gradient(135deg, rgba(30,30,30,0.85), rgba(50,50,50,0.8))',
+              backdropFilter: 'blur(6px)',
+            }}
           >
-            <FiCheckCircle className="w-3 h-3 text-success" />
+            <FiCheckCircle className="w-3.5 h-3.5 text-success" />
             {Math.round(profile.compatibilityScore)}% Match
           </motion.div>
         )}
 
         {/* Premium crown */}
         {profile.isPremium && (
-          <div className="absolute top-3 right-12 w-7 h-7 rounded-full bg-gold-400 flex items-center justify-center shadow-gold">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.4, type: 'spring' }}
+            className="absolute top-3.5 right-14 w-8 h-8 rounded-full bg-gradient-to-br from-gold-400 to-gold-500 flex items-center justify-center shadow-gold"
+          >
             <FaCrown className="w-3.5 h-3.5 text-white" />
-          </div>
+          </motion.div>
         )}
 
-        {/* Actions */}
+        {/* ── Action buttons (bookmark + like) ──── */}
         {showActions && !isPremiumLocked && (
-          <div className="absolute top-3 right-3 flex gap-1.5 z-10">
+          <div className="absolute top-3.5 right-3 flex gap-2 z-10">
             <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
+              whileHover={{ scale: 1.12 }}
+              whileTap={{ scale: 0.88 }}
               onClick={handleShortlist}
               aria-label={isShortlisted ? 'Remove from shortlist' : 'Shortlist'}
-              className={`w-9 h-9 rounded-full flex items-center justify-center shadow-md transition-all duration-200 ${
-                isShortlisted ? 'bg-gold text-white' : 'bg-white/95 backdrop-blur-sm text-neutral-600 hover:bg-white'
-              }`}
+              className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 ${isShortlisted
+                  ? 'bg-gold text-white'
+                  : 'bg-white/70 backdrop-blur-md text-neutral-500 hover:bg-white hover:text-gold-500 ring-1 ring-white/50'
+                }`}
             >
-              <FiBookmark className={`w-4 h-4 ${isShortlisted ? 'fill-current' : ''}`} />
+              <FiBookmark className={`w-4.5 h-4.5 ${isShortlisted ? 'fill-current' : ''}`} />
             </motion.button>
             <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
+              whileHover={{ scale: 1.12 }}
+              whileTap={{ scale: 0.88 }}
               onClick={handleLike}
               aria-label={isLiked ? 'Unlike' : 'Express interest'}
-              className={`w-9 h-9 rounded-full flex items-center justify-center shadow-md transition-all duration-200 ${
-                isLiked ? 'bg-primary-500 text-white' : 'bg-white/95 backdrop-blur-sm text-primary-500 hover:bg-white'
-              }`}
+              className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 ${isLiked
+                  ? 'bg-primary-500 text-white'
+                  : 'bg-white/70 backdrop-blur-md text-primary-400 hover:bg-white hover:text-primary-500 ring-1 ring-white/50'
+                }`}
             >
               <motion.div
                 animate={isLiked ? { scale: [1, 1.35, 1] } : {}}
                 transition={{ duration: 0.3 }}
               >
-                <FiHeart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
+                <FiHeart className={`w-4.5 h-4.5 ${isLiked ? 'fill-current' : ''}`} />
               </motion.div>
             </motion.button>
           </div>
         )}
       </div>
 
-      {/* Info */}
+      {/* ── Info Section ───────────────────────────── */}
       <div className="p-5">
-        <div className="flex items-start justify-between gap-2 mb-3">
-          <div className="min-w-0">
-            <h3 className="font-semibold text-neutral-800 group-hover:text-primary-500 transition-colors truncate">
+        {/* Name + age + score arc */}
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="min-w-0 flex-1">
+            <h3 className="font-display text-lg font-semibold text-neutral-800 group-hover:text-primary-500 transition-colors truncate leading-snug">
               {fullName}
             </h3>
-            <p className="text-sm text-neutral-500 mt-0.5">{getAge()} yrs</p>
+            <p className="text-[13px] text-neutral-400 mt-0.5 font-medium">
+              {getAge()} yrs
+            </p>
           </div>
           {profile.compatibilityScore && (
-            <div className="flex-shrink-0 text-right">
-              <span
-                className="text-xs font-bold"
-                style={{
-                  color: profile.compatibilityScore >= 90 ? '#2E7D32'
-                       : profile.compatibilityScore >= 75 ? '#C9A227'
-                       : '#8B2346',
-                }}
-              >
-                {Math.round(profile.compatibilityScore)}%
-              </span>
-              <p className="text-[10px] text-neutral-400">match</p>
-            </div>
+            <CompatArc score={profile.compatibilityScore} />
           )}
         </div>
 
-        {/* Compatibility bar */}
+        {/* Shimmer bar */}
         {profile.compatibilityScore && (
-          <div className="mb-3">
-            <MiniCompatBar score={profile.compatibilityScore} />
+          <div className="mb-4">
+            <ShimmerBar score={profile.compatibilityScore} />
           </div>
         )}
 
-        <div className="space-y-1.5 mb-4">
-          <div className="flex items-center gap-2 text-neutral-500">
-            <FiMapPin className="w-3.5 h-3.5 text-primary-400 flex-shrink-0" />
-            <span className="text-xs truncate">{profile.city || '—'}</span>
-          </div>
+        {/* Detail chips */}
+        <div className="flex flex-wrap gap-1.5 mb-5">
+          {profile.city && (
+            <DetailChip icon={FiMapPin} text={profile.city} />
+          )}
           {profile.education && (
-            <div className="flex items-center gap-2 text-neutral-500">
-              <FiBook className="w-3.5 h-3.5 text-primary-400 flex-shrink-0" />
-              <span className="text-xs truncate">{profile.education}</span>
-            </div>
+            <DetailChip icon={FiBook} text={profile.education} />
           )}
           {profile.profession && (
-            <div className="flex items-center gap-2 text-neutral-500">
-              <FiBriefcase className="w-3.5 h-3.5 text-primary-400 flex-shrink-0" />
-              <span className="text-xs truncate">{profile.profession}</span>
-            </div>
+            <DetailChip icon={FiBriefcase} text={profile.profession} />
           )}
         </div>
 
-        {/* Actions */}
+        {/* ── Action buttons ──────────────────────── */}
         {showActions && (
-          <div className="flex gap-2 pt-4 border-t border-neutral-100">
+          <div className="flex gap-2.5 pt-4 border-t border-neutral-100">
             {isPremiumLocked ? (
               <button
                 onClick={(e) => { e.stopPropagation(); navigate('/subscription'); }}
-                className="flex-1 py-2.5 flex items-center justify-center gap-2 bg-gold text-neutral-900 text-sm font-semibold rounded-xl hover:bg-gold-400 transition-colors"
+                className="flex-1 py-3 flex items-center justify-center gap-2 bg-gradient-to-r from-gold-400 to-gold-500 text-white text-sm font-semibold rounded-2xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-gold"
               >
                 <FaCrown className="w-3.5 h-3.5" />
                 Unlock Profile
@@ -342,23 +413,23 @@ const ProfileCard = ({
               <>
                 <motion.button
                   whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  whileTap={{ scale: 0.97 }}
                   onClick={handleLike}
-                  className={`flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all duration-200 ${
-                    isLiked
-                      ? 'bg-primary-100 text-primary-600 border border-primary-200'
-                      : 'bg-primary-500 text-white hover:bg-primary-600 shadow-burgundy'
-                  }`}
+                  className={`flex-1 py-3 text-sm font-semibold rounded-2xl transition-all duration-200 ${isLiked
+                      ? 'bg-primary-50 text-primary-600 border border-primary-200'
+                      : 'bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:from-primary-600 hover:to-primary-700 shadow-burgundy'
+                    }`}
                 >
-                  {isLiked ? 'Interest Sent' : 'Express Interest'}
+                  {isLiked ? '✓ Interest Sent' : 'Express Interest'}
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  whileTap={{ scale: 0.97 }}
                   onClick={handleCardClick}
-                  className="flex-1 py-2.5 border-2 border-neutral-200 text-primary-500 text-sm font-semibold rounded-xl hover:border-primary-300 hover:bg-primary-50 transition-all duration-200"
+                  className="flex-1 py-3 text-sm font-semibold rounded-2xl transition-all duration-200 border border-neutral-200 text-neutral-600 hover:border-primary-300 hover:text-primary-500 hover:bg-primary-50/50 flex items-center justify-center gap-1.5"
                 >
                   View Profile
+                  <FiArrowRight className="w-3.5 h-3.5" />
                 </motion.button>
               </>
             )}
