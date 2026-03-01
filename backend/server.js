@@ -255,23 +255,16 @@ const startServer = async () => {
       await sequelize.sync({ alter: true });
       console.log('✓ Database models synced');
     } else {
-      // Auto-run pending migrations in production
-      const { Umzug, SequelizeStorage } = require('umzug');
+      // Auto-run pending migrations in production (umzug v2 API)
+      const Umzug = require('umzug');
       const umzug = new Umzug({
         migrations: {
-          glob: path.join(__dirname, 'migrations/*.js'),
-          resolve: ({ name, path: migrationPath, context }) => {
-            const migration = require(migrationPath);
-            return {
-              name,
-              up: async () => migration.up(context, require('sequelize').DataTypes),
-              down: async () => migration.down(context, require('sequelize').DataTypes),
-            };
-          },
+          path: path.join(__dirname, 'migrations'),
+          params: [sequelize.getQueryInterface(), require('sequelize')],
         },
-        context: sequelize.getQueryInterface(),
-        storage: new SequelizeStorage({ sequelize }),
-        logger: console,
+        storage: 'sequelize',
+        storageOptions: { sequelize },
+        logging: console.log,
       });
       const pending = await umzug.pending();
       if (pending.length > 0) {
