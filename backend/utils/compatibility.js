@@ -27,7 +27,7 @@ const calculateCompatibility = (profile1, profile2) => {
   maxScore += 20;
   const age1 = calculateAge(profile1.dateOfBirth);
   const age2 = calculateAge(profile2.dateOfBirth);
-  
+
   if (age1 && age2) {
     const ageDiff = Math.abs(age1 - age2);
     if (ageDiff <= 2) score += 20;
@@ -41,8 +41,8 @@ const calculateCompatibility = (profile1, profile2) => {
   if (profile1.city && profile2.city) {
     if (profile1.city.toLowerCase() === profile2.city.toLowerCase()) {
       score += 15;
-    } else if (profile1.state && profile2.state && 
-               profile1.state.toLowerCase() === profile2.state.toLowerCase()) {
+    } else if (profile1.state && profile2.state &&
+      profile1.state.toLowerCase() === profile2.state.toLowerCase()) {
       score += 8;
     }
   }
@@ -55,6 +55,14 @@ const calculateCompatibility = (profile1, profile2) => {
     else if (heightDiff <= 10) score += 8;
     else if (heightDiff <= 15) score += 5;
     else if (heightDiff <= 20) score += 3;
+  }
+
+  // ===== RELIGION COMPATIBILITY (10 points) =====
+  maxScore += 10;
+  if (profile1.religion && profile2.religion) {
+    if (profile1.religion.toLowerCase() === profile2.religion.toLowerCase()) {
+      score += 10;
+    }
   }
 
   // ===== EDUCATION COMPATIBILITY (15 points) =====
@@ -91,7 +99,7 @@ const calculateCompatibility = (profile1, profile2) => {
 
   // ===== LIFESTYLE COMPATIBILITY (30 points) =====
   maxScore += 30;
-  
+
   // Diet (10 points)
   if (profile1.diet && profile2.diet) {
     if (profile1.diet === profile2.diet) {
@@ -136,19 +144,19 @@ const calculateCompatibility = (profile1, profile2) => {
   if (profile1.interestTags?.length && profile2.interestTags?.length) {
     const tags1 = new Set(profile1.interestTags.map(t => t.toLowerCase()));
     const tags2 = new Set(profile2.interestTags.map(t => t.toLowerCase()));
-    
+
     let commonTags = 0;
     for (const tag of tags1) {
       if (tags2.has(tag)) commonTags++;
     }
-    
+
     const overlapPercentage = (commonTags * 2) / (tags1.size + tags2.size);
     score += Math.round(overlapPercentage * 10);
   }
 
   // ===== PREFERENCE MATCHING (bonus points) =====
   // Check if profile2 matches profile1's preferences
-  
+
   // Age preferences
   if (profile1.preferredAgeMin && profile1.preferredAgeMax && age2) {
     if (age2 >= profile1.preferredAgeMin && age2 <= profile1.preferredAgeMax) {
@@ -208,8 +216,8 @@ const getCompatibilityBreakdown = (profile1, profile2) => {
   // Location
   if (profile1.city && profile2.city) {
     const sameCity = profile1.city.toLowerCase() === profile2.city.toLowerCase();
-    const sameState = profile1.state && profile2.state && 
-                      profile1.state.toLowerCase() === profile2.state.toLowerCase();
+    const sameState = profile1.state && profile2.state &&
+      profile1.state.toLowerCase() === profile2.state.toLowerCase();
     breakdown.categories.location = {
       score: sameCity ? 100 : sameState ? 50 : 0,
       detail: sameCity ? 'Same city' : sameState ? 'Same state' : 'Different locations'
@@ -221,11 +229,11 @@ const getCompatibilityBreakdown = (profile1, profile2) => {
   if (profile1.diet === profile2.diet) lifestyleMatches.push('diet');
   if (profile1.smoking === profile2.smoking) lifestyleMatches.push('smoking');
   if (profile1.drinking === profile2.drinking) lifestyleMatches.push('drinking');
-  
+
   breakdown.categories.lifestyle = {
     score: Math.round((lifestyleMatches.length / 3) * 100),
-    detail: lifestyleMatches.length > 0 
-      ? `Matching: ${lifestyleMatches.join(', ')}` 
+    detail: lifestyleMatches.length > 0
+      ? `Matching: ${lifestyleMatches.join(', ')}`
       : 'Different lifestyle preferences'
   };
 

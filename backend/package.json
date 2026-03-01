@@ -58,7 +58,8 @@
     "sequelize-cli": "^6.6.2",
     "socket.io": "^4.6.1",
     "swagger-jsdoc": "^6.2.8",
-    "swagger-ui-express": "^5.0.0"
+    "swagger-ui-express": "^5.0.0",
+    "umzug": "^2.3.0"
   },
   "devDependencies": {
     "cross-env": "^7.0.3",

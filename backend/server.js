@@ -250,10 +250,35 @@ const startServer = async () => {
     await sequelize.authenticate();
     console.log('✓ Database connection established');
 
-    // Sync models in development (use migrations in production)
+    // Sync models in development, run migrations in production
     if (config.isDevelopment) {
       await sequelize.sync({ alter: true });
       console.log('✓ Database models synced');
+    } else {
+      // Auto-run pending migrations in production
+      const { Umzug, SequelizeStorage } = require('umzug');
+      const umzug = new Umzug({
+        migrations: {
+          glob: path.join(__dirname, 'migrations/*.js'),
+          resolve: ({ name, path: migrationPath, context }) => {
+            const migration = require(migrationPath);
+            return {
+              name,
+              up: async () => migration.up(context, require('sequelize').DataTypes),
+              down: async () => migration.down(context, require('sequelize').DataTypes),
+            };
+          },
+        },
+        context: sequelize.getQueryInterface(),
+        storage: new SequelizeStorage({ sequelize }),
+        logger: console,
+      });
+      const pending = await umzug.pending();
+      if (pending.length > 0) {
+        console.log(`Running ${pending.length} pending migration(s)...`);
+        await umzug.up();
+      }
+      console.log('✓ Database migrations up to date');
     }
 
     // Initialize Redis cache (optional - degrades gracefully)
