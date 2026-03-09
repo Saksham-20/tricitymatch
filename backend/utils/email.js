@@ -42,7 +42,7 @@ const getTransporter = () => {
 // Email templates
 const templates = {
   welcome: (name) => ({
-    subject: 'Welcome to TricityMatch!',
+    subject: 'Welcome to TricityShadi!',
     html: `
       <!DOCTYPE html>
       <html>
@@ -59,11 +59,11 @@ const templates = {
       <body>
         <div class="container">
           <div class="header">
-            <h1>Welcome to TricityMatch!</h1>
+            <h1>Welcome to TricityShadi!</h1>
           </div>
           <div class="content">
             <p>Hi ${name},</p>
-            <p>Thank you for joining TricityMatch! We're excited to help you find your perfect match.</p>
+            <p>Thank you for joining TricityShadi! We're excited to help you find your perfect match.</p>
             <p>Here's what you can do next:</p>
             <ul>
               <li>Complete your profile to increase your visibility</li>
@@ -73,18 +73,18 @@ const templates = {
             <a href="${config.server.frontendUrl}" class="button">Complete Your Profile</a>
           </div>
           <div class="footer">
-            <p>© ${new Date().getFullYear()} TricityMatch. All rights reserved.</p>
+            <p>© ${new Date().getFullYear()} TricityShadi. All rights reserved.</p>
             <p>If you didn't create this account, please ignore this email.</p>
           </div>
         </div>
       </body>
       </html>
     `,
-    text: `Welcome to TricityMatch, ${name}! Thank you for joining us. Complete your profile to get started.`
+    text: `Welcome to TricityShadi, ${name}! Thank you for joining us. Complete your profile to get started.`
   }),
 
   passwordReset: (name, resetLink) => ({
-    subject: 'Reset Your Password - TricityMatch',
+    subject: 'Reset Your Password - TricityShadi',
     html: `
       <!DOCTYPE html>
       <html>
@@ -114,7 +114,7 @@ const templates = {
             <p style="margin-top: 20px;">If you didn't request a password reset, you can safely ignore this email. Your password will not be changed.</p>
           </div>
           <div class="footer">
-            <p>© ${new Date().getFullYear()} TricityMatch. All rights reserved.</p>
+            <p>© ${new Date().getFullYear()} TricityShadi. All rights reserved.</p>
           </div>
         </div>
       </body>
@@ -124,7 +124,7 @@ const templates = {
   }),
 
   matchNotification: (name, matchName) => ({
-    subject: `It's a Match! 🎉 - TricityMatch`,
+    subject: `It's a Match! 🎉 - TricityShadi`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -150,7 +150,7 @@ const templates = {
             <a href="${config.server.frontendUrl}/matches" class="button">Start Chatting</a>
           </div>
           <div class="footer">
-            <p>© ${new Date().getFullYear()} TricityMatch. All rights reserved.</p>
+            <p>© ${new Date().getFullYear()} TricityShadi. All rights reserved.</p>
           </div>
         </div>
       </body>
@@ -160,7 +160,7 @@ const templates = {
   }),
 
   subscriptionConfirmation: (name, plan, expiryDate) => ({
-    subject: 'Subscription Confirmed - TricityMatch',
+    subject: 'Subscription Confirmed - TricityShadi',
     html: `
       <!DOCTYPE html>
       <html>
@@ -199,7 +199,7 @@ const templates = {
             <a href="${config.server.frontendUrl}/browse" class="button">Start Matching</a>
           </div>
           <div class="footer">
-            <p>© ${new Date().getFullYear()} TricityMatch. All rights reserved.</p>
+            <p>© ${new Date().getFullYear()} TricityShadi. All rights reserved.</p>
           </div>
         </div>
       </body>
@@ -209,7 +209,7 @@ const templates = {
   }),
 
   verificationApproved: (name) => ({
-    subject: 'Profile Verified! ✓ - TricityMatch',
+    subject: 'Profile Verified! ✓ - TricityShadi',
     html: `
       <!DOCTYPE html>
       <html>
@@ -237,13 +237,13 @@ const templates = {
             <a href="${config.server.frontendUrl}/profile" class="button">View Your Profile</a>
           </div>
           <div class="footer">
-            <p>© ${new Date().getFullYear()} TricityMatch. All rights reserved.</p>
+            <p>© ${new Date().getFullYear()} TricityShadi. All rights reserved.</p>
           </div>
         </div>
       </body>
       </html>
     `,
-    text: `Hi ${name}, Congratulations! Your TricityMatch profile has been verified. You now have a verification badge.`
+    text: `Hi ${name}, Congratulations! Your TricityShadi profile has been verified. You now have a verification badge.`
   }),
 };
 
@@ -268,7 +268,7 @@ const sendEmail = async (to, template, data = {}) => {
     }
 
     const mailOptions = {
-      from: `"TricityMatch" <${config.email.from || config.email.user}>`,
+      from: `"TricityShadi" <${config.email.from || config.email.user}>`,
       to,
       subject: emailContent.subject,
       html: emailContent.html,

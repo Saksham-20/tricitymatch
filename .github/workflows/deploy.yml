@@ -22,7 +22,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     environment:
       name: staging
-      url: https://staging.tricitymatch.com
+      url: https://staging.tricityshadi.com
 
     steps:
       - name: Checkout code
@@ -80,7 +80,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     environment:
       name: production
-      url: https://tricitymatch.com
+      url: https://tricityshadi.com
 
     steps:
       - name: Checkout code
@@ -135,7 +135,7 @@ jobs:
         with:
           payload: |
             {
-              "text": "✅ TricityMatch deployed to production successfully!",
+              "text": "✅ TricityShadi deployed to production successfully!",
               "attachments": [
                 {
                   "color": "good",
@@ -164,7 +164,7 @@ jobs:
         with:
           payload: |
             {
-              "text": "❌ TricityMatch production deployment failed!",
+              "text": "❌ TricityShadi production deployment failed!",
               "attachments": [
                 {
                   "color": "danger",

@@ -37,10 +37,10 @@ export const cloudinary = {
 
 // App Configuration
 export const app = {
-  name: 'TricityMatch',
+  name: 'TricityShadi',
   version: __APP_VERSION__ || '1.0.0',
   buildTime: __BUILD_TIME__ || new Date().toISOString(),
-  supportEmail: 'support@tricitymatch.com',
+  supportEmail: 'support@tricityshadi.com',
 };
 
 // Limits and Constraints

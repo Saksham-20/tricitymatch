@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { validateEmail, validatePassword } from '../utils/validators';
+import Logo from '../components/common/Logo';
 import { FiMail, FiLock, FiEye, FiEyeOff, FiHeart, FiShield, FiArrowRight } from 'react-icons/fi';
 import { fadeInUp, staggerContainer, shakeAnimation } from '../utils/animations';
 
@@ -98,8 +99,8 @@ const Login = () => {
         <div className="relative z-10 flex flex-col justify-between w-full p-14 text-white">
           {/* Logo */}
           <div>
-            <span className="font-display text-2xl font-bold text-white">TricityMatch</span>
-            <p className="text-xs text-white/40 mt-0.5 uppercase tracking-widest">
+            <Logo variant="white" size="lg" linkTo="/" />
+            <p className="text-xs text-white/40 mt-1 uppercase tracking-widest">
               Chandigarh · Mohali · Panchkula
             </p>
           </div>
@@ -118,7 +119,7 @@ const Login = () => {
               Your journey<br />continues here.
             </h2>
             <p className="text-white/60 text-base leading-relaxed">
-              Thousands of families found their forever through TricityMatch.
+              Thousands of families found their forever through TricityShadi.
               Every sign-in brings you closer.
             </p>
 
@@ -166,10 +167,8 @@ const Login = () => {
           className="w-full max-w-md"
         >
           {/* Mobile Logo */}
-          <motion.div variants={fadeInUp} className="lg:hidden text-center mb-8">
-            <span className="text-3xl font-display font-bold text-gradient-primary">
-              TricityMatch
-            </span>
+          <motion.div variants={fadeInUp} className="lg:hidden flex justify-center mb-8">
+            <Logo size="lg" linkTo="/" />
           </motion.div>
 
           <motion.div variants={fadeInUp} className="text-center mb-8">
@@ -307,7 +306,7 @@ const Login = () => {
                 <div className="w-full border-t border-neutral-200" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white text-neutral-500">New to TricityMatch?</span>
+                <span className="px-4 bg-white text-neutral-500">New to TricityShadi?</span>
               </div>
             </div>
 

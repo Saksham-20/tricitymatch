@@ -1,4 +1,4 @@
-# TricityMatch - Test Account Credentials
+# TricityShadi - Test Account Credentials
 
 This file contains all the test account credentials created by the seeder.
 

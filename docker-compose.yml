@@ -1,4 +1,4 @@
-# TricityMatch Docker Compose Configuration
+# TricityShadi Docker Compose Configuration
 # Production-grade deployment setup
 #
 # Usage:
@@ -101,7 +101,7 @@ services:
       EMAIL_PORT: ${EMAIL_PORT:-587}
       EMAIL_USER: ${EMAIL_USER}
       EMAIL_PASSWORD: ${EMAIL_PASSWORD}
-      EMAIL_FROM: ${EMAIL_FROM:-noreply@tricitymatch.com}
+      EMAIL_FROM: ${EMAIL_FROM:-noreply@tricityshadi.com}
       # Cloudinary
       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}

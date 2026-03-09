@@ -2,7 +2,7 @@
 
 ## ✅ Setup Complete
 
-The shadcn/ui multistep form component has been successfully integrated into your TricityMatch project.
+The shadcn/ui multistep form component has been successfully integrated into your TricityShadi project.
 
 ## 📁 Project Structure
 

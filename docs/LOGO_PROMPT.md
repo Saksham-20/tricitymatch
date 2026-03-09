@@ -1,12 +1,12 @@
-# TricityMatch Logo-Generation Prompt (Copy/Paste)
+# TricityShadi Logo-Generation Prompt (Copy/Paste)
 
 Use this prompt with any image-generation AI (Midjourney, DALL·E, Ideogram, Leonardo, etc.) to generate high-quality logo ideas.
 
 ```text
-You are a senior brand identity designer. Create logo concepts for a website named “TricityMatch”.
+You are a senior brand identity designer. Create logo concepts for a website named “TricityShadi”.
 
 ABOUT THE WEBSITE:
-- TricityMatch is a modern matrimonial platform focused on the Tricity region of India: Chandigarh, Mohali, and Panchkula.
+- TricityShadi is a modern matrimonial platform focused on the Tricity region of India: Chandigarh, Mohali, and Panchkula.
 - Brand promise: trusted matchmaking with modern technology.
 - The platform combines emotional connection, family values, and smart compatibility.
 - Core features include AI-based compatibility matching, profile discovery, real-time chat for matched users, identity verification, and privacy controls.
@@ -69,5 +69,5 @@ At the end, write one final production-ready prompt I can use in an image genera
 ## Optional Add-On Prompt (for final high-fidelity generation)
 
 ```text
-Create a premium, minimalist vector-style logo for “TricityMatch”, a trusted matrimonial platform for Chandigarh, Mohali, and Panchkula. Design should express trust, meaningful union, and modern compatibility technology. Use a unique abstract symbol based on connection between three nodes/cities and subtle union geometry. Avoid cliché hearts/rings unless highly abstract. Style: clean flat branding, strong silhouette, scalable, corporate-grade. Include: full logo (icon + wordmark), icon-only app mark, monochrome black version, monochrome white version, and transparent-background version. Color direction: deep navy + muted gold + soft neutral accents. Typography: elegant modern sans-serif with premium feel. Deliver multiple balanced variations with precise spacing and alignment.
+Create a premium, minimalist vector-style logo for “TricityShadi”, a trusted matrimonial platform for Chandigarh, Mohali, and Panchkula. Design should express trust, meaningful union, and modern compatibility technology. Use a unique abstract symbol based on connection between three nodes/cities and subtle union geometry. Avoid cliché hearts/rings unless highly abstract. Style: clean flat branding, strong silhouette, scalable, corporate-grade. Include: full logo (icon + wordmark), icon-only app mark, monochrome black version, monochrome white version, and transparent-background version. Color direction: deep navy + muted gold + soft neutral accents. Typography: elegant modern sans-serif with premium feel. Deliver multiple balanced variations with precise spacing and alignment.
 ```

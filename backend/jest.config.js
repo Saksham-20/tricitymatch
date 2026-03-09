@@ -1,6 +1,6 @@
 /**
  * Jest Configuration
- * Testing framework setup for TricityMatch backend
+ * Testing framework setup for TricityShadi backend
  */
 
 module.exports = {

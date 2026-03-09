@@ -166,7 +166,7 @@ const config = {
     secure: optionalBoolean('EMAIL_SECURE', false),
     user: optionalString('EMAIL_USER'),
     password: optionalString('EMAIL_PASSWORD'),
-    from: optionalString('EMAIL_FROM', 'noreply@tricitymatch.com'),
+    from: optionalString('EMAIL_FROM', 'noreply@tricityshadi.com'),
     isConfigured: () => {
       return !!optionalString('EMAIL_USER') && !!optionalString('EMAIL_PASSWORD');
     },
@@ -200,7 +200,7 @@ const config = {
 
   // Admin
   admin: {
-    email: optionalString('ADMIN_EMAIL', 'admin@tricitymatch.com'),
+    email: optionalString('ADMIN_EMAIL', 'admin@tricityshadi.com'),
   },
 
   // Redis (for caching and job queues)

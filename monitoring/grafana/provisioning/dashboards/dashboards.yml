@@ -3,9 +3,9 @@
 apiVersion: 1
 
 providers:
-  - name: 'TricityMatch Dashboards'
+  - name: 'TricityShadi Dashboards'
     orgId: 1
-    folder: 'TricityMatch'
+    folder: 'TricityShadi'
     type: file
     disableDeletion: false
     updateIntervalSeconds: 30

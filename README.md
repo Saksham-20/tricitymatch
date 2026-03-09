@@ -1,7 +1,7 @@
-# TricityMatch - Matrimonial Platform
+# TricityShadi - Matrimonial Platform
 
 <p align="center">
-  <img src="docs/logo.png" alt="TricityMatch Logo" width="200" />
+  <img src="docs/logo.png" alt="TricityShadi Logo" width="200" />
 </p>
 
 <p align="center">
@@ -117,7 +117,7 @@ npm run dev
 ## Project Structure
 
 ```
-TricityMatch/
+TricityShadi/
 ├── backend/
 │   ├── config/           # Database, environment, swagger config
 │   ├── controllers/      # Request handlers
@@ -248,7 +248,7 @@ See [Deployment Guide](docs/DEPLOYMENT.md) for:
 |----------|-------------|---------|
 | `JWT_SECRET` | JWT signing secret (min 32 chars) | `your-random-secret` |
 | `DB_PASSWORD` | PostgreSQL password | `secure-password` |
-| `FRONTEND_URL` | Frontend URL for CORS | `https://tricitymatch.com` |
+| `FRONTEND_URL` | Frontend URL for CORS | `https://tricityshadi.com` |
 
 ### Optional Services
 
@@ -363,7 +363,7 @@ ISC License - see [LICENSE](LICENSE) for details.
 
 - **Documentation**: Check the `/docs` folder
 - **Issues**: Open a GitHub issue
-- **Email**: support@tricitymatch.com
+- **Email**: support@tricityshadi.com
 
 ---
 

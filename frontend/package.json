@@ -1,7 +1,7 @@
 {
   "name": "tricitymatch-frontend",
   "version": "1.0.0",
-  "description": "Frontend for TricityMatch matrimonial website",
+  "description": "Frontend for TricityShadi matrimonial website",
   "private": true,
   "type": "module",
   "dependencies": {

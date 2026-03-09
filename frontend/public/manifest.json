@@ -1,6 +1,6 @@
 {
-  "name": "TricityMatch - Matrimonial Platform",
-  "short_name": "TricityMatch",
+  "name": "TricityShadi - Matrimonial Platform",
+  "short_name": "TricityShadi",
   "description": "Find your perfect life partner in Tricity (Chandigarh, Mohali, Panchkula)",
   "start_url": "/",
   "display": "standalone",
@@ -66,14 +66,14 @@
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "TricityMatch Desktop View"
+      "label": "TricityShadi Desktop View"
     },
     {
       "src": "/screenshots/mobile.png",
       "sizes": "750x1334",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "TricityMatch Mobile View"
+      "label": "TricityShadi Mobile View"
     }
   ],
   "shortcuts": [

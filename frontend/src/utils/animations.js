@@ -1,5 +1,5 @@
 /**
- * Framer Motion Animation Variants for TricityMatch
+ * Framer Motion Animation Variants for TricityShadi
  * Royal Elegance Theme - Matrimony Platform
  */
 

@@ -1,7 +1,7 @@
 {
   "name": "tricitymatch-backend",
   "version": "1.0.0",
-  "description": "Backend API for TricityMatch matrimonial website",
+  "description": "Backend API for TricityShadi matrimonial website",
   "main": "server.js",
   "engines": {
     "node": ">=18.0.0"

@@ -1,4 +1,4 @@
-# Deploy TricityMatch on Hostinger VPS — Step by Step
+# Deploy TricityShadi on Hostinger VPS — Step by Step
 
 Use this guide in order. Each step has commands you can copy-paste. We use **GitHub** for code: you **clone** once on the VPS, then **pull** whenever you want to update.
 
@@ -7,7 +7,7 @@ Use this guide in order. Each step has commands you can copy-paste. We use **Git
 ## Before you start
 
 - **Hostinger VPS** with SSH access (IP, username, password or SSH key).
-- **TricityMatch code on GitHub** (your repo). If it’s only on your PC, push it to GitHub first (see Step 0).
+- **TricityShadi code on GitHub** (your repo). If it’s only on your PC, push it to GitHub first (see Step 0).
 - **`.env` is in `.gitignore`** (it already is) — so your secrets are never committed; on the VPS you’ll create `.env` from a template.
 
 ---
@@ -16,18 +16,18 @@ Use this guide in order. Each step has commands you can copy-paste. We use **Git
 
 Do this only if the project isn’t on GitHub yet.
 
-1. Create a new repository on GitHub (e.g. `TricityMatch`), **don’t** add a README (you already have code).
+1. Create a new repository on GitHub (e.g. `TricityShadi`), **don’t** add a README (you already have code).
 2. On your PC, in the project folder:
 
 ```bash
-cd D:\REACT\TricityMatch
+cd D:\REACT\TricityShadi
 git remote -v
 ```
 
 If you see `origin` pointing to GitHub, you’re good. If not:
 
 ```bash
-git remote add origin https://github.com/YOUR_USERNAME/TricityMatch.git
+git remote add origin https://github.com/YOUR_USERNAME/TricityShadi.git
 git push -u origin main
 ```
 
@@ -110,8 +110,8 @@ Replace `YOUR_USERNAME` and repo name if different (use the **HTTPS** clone URL 
 
 ```bash
 cd /opt
-sudo git clone https://github.com/YOUR_USERNAME/TricityMatch.git
-cd TricityMatch
+sudo git clone https://github.com/YOUR_USERNAME/TricityShadi.git
+cd TricityShadi
 ```
 
 If the repo is **private**, use a **Personal Access Token** instead of password when Git asks:
@@ -139,7 +139,7 @@ Your `.env` is **not** in Git (it’s in `.gitignore`). You create it once on th
 **5.1 — Copy the template**
 
 ```bash
-cd /opt/TricityMatch
+cd /opt/TricityShadi
 cp .env.production.example .env
 ```
 
@@ -170,7 +170,7 @@ Set at least these (use your own values):
 | `EMAIL_PORT`     | `587` |
 | `EMAIL_USER`     | Your email |
 | `EMAIL_PASSWORD` | App password (e.g. Gmail app password) |
-| `EMAIL_FROM`     | e.g. `TricityMatch <noreply@yourdomain.com>` |
+| `EMAIL_FROM`     | e.g. `TricityShadi <noreply@yourdomain.com>` |
 | `CLOUDINARY_CLOUD_NAME` | From Cloudinary |
 | `CLOUDINARY_API_KEY`    | From Cloudinary |
 | `CLOUDINARY_API_SECRET` | From Cloudinary |
@@ -208,7 +208,7 @@ sudo ufw --force enable
 **6A.3 — Build and start** (no Nginx; frontend and backend listen directly)
 
 ```bash
-cd /opt/TricityMatch
+cd /opt/TricityShadi
 docker compose up -d --build
 ```
 
@@ -247,7 +247,7 @@ Wait a few minutes, then on your PC: `ping yourdomain.com` — it should show yo
 **6B.2 — Create SSL directory on VPS**
 
 ```bash
-cd /opt/TricityMatch
+cd /opt/TricityShadi
 sudo mkdir -p nginx/ssl
 ```
 
@@ -283,7 +283,7 @@ sudo chown -R $USER:$USER nginx/ssl
 nano nginx/nginx.conf
 ```
 
-Replace every `tricitymatch.com` and `www.tricitymatch.com` with **yourdomain.com** and **www.yourdomain.com**. Save: `Ctrl+O`, `Enter`, `Ctrl+X`.
+Replace every `tricityshadi.com` and `www.tricityshadi.com` with **yourdomain.com** and **www.yourdomain.com**. Save: `Ctrl+O`, `Enter`, `Ctrl+X`.
 
 **6B.6 — `.env` for domain**
 
@@ -333,7 +333,7 @@ ssh root@YOUR_VPS_IP
 **7.2 — Go to the project and pull**
 
 ```bash
-cd /opt/TricityMatch
+cd /opt/TricityShadi
 git pull origin main
 ```
 

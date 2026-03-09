@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
+import Logo from '../components/common/Logo';
 import {
   FiShield, FiCheckCircle, FiHeart, FiArrowRight, FiStar, FiUsers,
   FiMessageCircle, FiLock, FiMapPin, FiBookmark, FiChevronRight,
@@ -197,7 +198,7 @@ const StoryCard = ({ story }) => (
     <div className="relative aspect-[4/3] rounded-3xl overflow-hidden shadow-lg">
       <img
         src={story.image}
-        alt={`${story.names} — TricityMatch success story`}
+        alt={`${story.names} — TricityShadi success story`}
         className="w-full h-full object-cover"
         loading="lazy"
       />
@@ -247,7 +248,7 @@ const Home = () => {
       names: 'Priya & Arjun',
       location: 'Chandigarh',
       date: 'June 2024',
-      quote: 'We found each other in the most unexpected, yet perfectly right way. TricityMatch knew what we needed before we did.',
+      quote: 'We found each other in the most unexpected, yet perfectly right way. TricityShadi knew what we needed before we did.',
       years: '2',
       image: '/images/couple-testimonial.png',
     },
@@ -442,7 +443,7 @@ const Home = () => {
               <div className="relative rounded-3xl overflow-hidden shadow-2xl">
                 <img
                   src="/images/hero-couple.png"
-                  alt="Happy couple — TricityMatch"
+                  alt="Happy couple — TricityShadi"
                   className="w-full h-[520px] object-cover"
                 />
                 {/* Gradient overlays */}
@@ -634,7 +635,7 @@ const Home = () => {
               <div className="rounded-2xl overflow-hidden shadow-card mb-8 hidden lg:block">
                 <img
                   src="/images/wedding-hands.png"
-                  alt="Wedding hands — TricityMatch"
+                  alt="Wedding hands — TricityShadi"
                   className="w-full h-48 object-cover"
                   loading="lazy"
                 />
@@ -796,7 +797,7 @@ const Home = () => {
                 Every great love story<br />starts with one step.
               </h2>
               <p className="text-neutral-400 text-lg mb-10 leading-relaxed">
-                Join thousands of families who trusted TricityMatch to find their forever partner.
+                Join thousands of families who trusted TricityShadi to find their forever partner.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -824,7 +825,7 @@ const Home = () => {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div>
-              <span className="font-display text-2xl font-bold text-white">TricityMatch</span>
+              <Logo variant="white" size="lg" linkTo="/" />
               <p className="text-xs text-neutral-500 mt-1">Chandigarh · Mohali · Panchkula</p>
             </div>
             <nav className="flex flex-wrap justify-center gap-6 text-sm text-neutral-500">
@@ -834,7 +835,7 @@ const Home = () => {
                 </Link>
               ))}
             </nav>
-            <p className="text-xs text-neutral-600">© 2026 TricityMatch</p>
+            <p className="text-xs text-neutral-600">© 2026 TricityShadi</p>
           </div>
         </div>
       </footer>

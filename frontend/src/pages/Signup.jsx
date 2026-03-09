@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { validateEmail, validatePassword, validateName } from '../utils/validators';
 import { motion } from 'framer-motion';
 import { SignupMultiStepForm } from '../components/ui/signup-multistep-form';
+import Logo from '../components/common/Logo';
 import { FiHeart, FiUsers, FiShield, FiCheckCircle, FiStar } from 'react-icons/fi';
 import { fadeInUp, staggerContainer } from '../utils/animations';
 
@@ -87,8 +88,8 @@ const Signup = () => {
         <div className="relative z-10 flex flex-col justify-between w-full p-14 text-white">
           {/* Logo */}
           <div>
-            <span className="font-display text-2xl font-bold text-white">TricityMatch</span>
-            <p className="text-xs text-white/40 mt-0.5 uppercase tracking-widest">
+            <Logo variant="white" size="lg" linkTo="/" />
+            <p className="text-xs text-white/40 mt-1 uppercase tracking-widest">
               Chandigarh · Mohali · Panchkula
             </p>
           </div>
@@ -159,10 +160,8 @@ const Signup = () => {
           className="w-full max-w-md"
         >
           {/* Mobile Logo */}
-          <motion.div variants={fadeInUp} className="lg:hidden text-center mb-8">
-            <span className="text-3xl font-display font-bold text-gradient-primary">
-              TricityMatch
-            </span>
+          <motion.div variants={fadeInUp} className="lg:hidden flex justify-center mb-8">
+            <Logo size="lg" linkTo="/" />
           </motion.div>
 
           {/* Header */}
@@ -171,7 +170,7 @@ const Signup = () => {
               Create Your Profile
             </h2>
             <p className="text-neutral-600">
-              Join TricityMatch to find your life partner. Your information is secure and private.
+              Join TricityShadi to find your life partner. Your information is secure and private.
             </p>
           </motion.div>
 

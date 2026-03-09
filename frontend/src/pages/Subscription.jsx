@@ -183,7 +183,7 @@ const Subscription = () => {
           key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_xxxxxxxxxxxxx',
           amount: order.amount,
           currency: order.currency,
-          name: 'TricityMatch',
+          name: 'TricityShadi',
           description: `${planType} Subscription`,
           order_id: order.id,
           handler: async (response) => {

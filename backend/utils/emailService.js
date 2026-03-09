@@ -17,7 +17,7 @@ const sendEmail = async (to, subject, html, text) => {
   try {
     const transporter = createTransporter();
     const mailOptions = {
-      from: process.env.EMAIL_FROM || 'noreply@tricitymatch.com',
+      from: process.env.EMAIL_FROM || 'noreply@tricityshadi.com',
       to,
       subject,
       html,
@@ -49,7 +49,7 @@ const sendMatchNotification = async (userEmail, matchedUserName, profileUrl) => 
       <p>Great news! <strong>${matchedUserName}</strong> has liked your profile.</p>
       <p>Check out their profile and start a conversation!</p>
       <a href="${profileUrl}" style="display: inline-block; padding: 12px 24px; background-color: #e91e63; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0;">View Profile</a>
-      <p>Best regards,<br>TricityMatch Team</p>
+      <p>Best regards,<br>TricityShadi Team</p>
     </div>
   `;
   return await sendEmail(userEmail, subject, html);
@@ -64,7 +64,7 @@ const sendMessageNotification = async (userEmail, senderName, messagePreview) =>
       <p><strong>${senderName}</strong> sent you a message:</p>
       <p style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; font-style: italic;">"${messagePreview}"</p>
       <p>Log in to reply!</p>
-      <p>Best regards,<br>TricityMatch Team</p>
+      <p>Best regards,<br>TricityShadi Team</p>
     </div>
   `;
   return await sendEmail(userEmail, subject, html);
@@ -79,7 +79,7 @@ const sendSubscriptionReminder = async (userEmail, planType, daysLeft) => {
       <p>Your <strong>${planType}</strong> subscription will expire in <strong>${daysLeft} days</strong>.</p>
       <p>Renew now to continue enjoying premium features!</p>
       <a href="${process.env.FRONTEND_URL}/subscription" style="display: inline-block; padding: 12px 24px; background-color: #e91e63; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0;">Renew Subscription</a>
-      <p>Best regards,<br>TricityMatch Team</p>
+      <p>Best regards,<br>TricityShadi Team</p>
     </div>
   `;
   return await sendEmail(userEmail, subject, html);

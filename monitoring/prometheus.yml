@@ -1,4 +1,4 @@
-# Prometheus Configuration for TricityMatch
+# Prometheus Configuration for TricityShadi
 # Use this as a reference for setting up monitoring in production
 
 global:
@@ -28,7 +28,7 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
-  # TricityMatch API metrics
+  # TricityShadi API metrics
   - job_name: 'tricitymatch-api'
     scrape_interval: 10s
     metrics_path: '/monitoring/metrics'

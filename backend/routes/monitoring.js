@@ -163,7 +163,7 @@ router.get('/metrics/json', (req, res) => {
  */
 router.get('/info', (req, res) => {
   res.json({
-    name: 'TricityMatch API',
+    name: 'TricityShadi API',
     version: process.env.npm_package_version || '1.0.0',
     environment: config.env,
     nodeVersion: process.version,

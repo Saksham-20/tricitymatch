@@ -406,7 +406,7 @@ exports.resetPassword = asyncHandler(async (req, res) => {
   // Send confirmation email
   try {
     await sendEmail(user.email, {
-      subject: 'Password Changed - TricityMatch',
+      subject: 'Password Changed - TricityShadi',
       html: `
         <p>Hi ${user.firstName || 'User'},</p>
         <p>Your password has been successfully changed.</p>

@@ -9,10 +9,10 @@ const options = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'TricityMatch API',
+      title: 'TricityShadi API',
       version: '1.0.0',
       description: `
-        TricityMatch Matrimonial Platform API Documentation
+        TricityShadi Matrimonial Platform API Documentation
         
         ## Authentication
         Most endpoints require authentication via JWT tokens stored in httpOnly cookies.
@@ -35,8 +35,8 @@ const options = {
         \`\`\`
       `,
       contact: {
-        name: 'TricityMatch Support',
-        email: 'support@tricitymatch.com',
+        name: 'TricityShadi Support',
+        email: 'support@tricityshadi.com',
       },
       license: {
         name: 'MIT',

@@ -1,4 +1,4 @@
-# TricityMatch Deployment Guide
+# TricityShadi Deployment Guide
 
 ## Table of Contents
 1. [Prerequisites](#prerequisites)
@@ -135,11 +135,11 @@ nano .env
 mkdir -p nginx/ssl
 
 # Get Let's Encrypt certificate
-sudo certbot certonly --standalone -d tricitymatch.com -d www.tricitymatch.com
+sudo certbot certonly --standalone -d tricityshadi.com -d www.tricityshadi.com
 
 # Copy certificates
-sudo cp /etc/letsencrypt/live/tricitymatch.com/fullchain.pem nginx/ssl/
-sudo cp /etc/letsencrypt/live/tricitymatch.com/privkey.pem nginx/ssl/
+sudo cp /etc/letsencrypt/live/tricityshadi.com/fullchain.pem nginx/ssl/
+sudo cp /etc/letsencrypt/live/tricityshadi.com/privkey.pem nginx/ssl/
 ```
 
 ### 5. Deploy
@@ -172,7 +172,7 @@ docker-compose exec backend npm run seed
 
 For step-by-step deployment on a **Hostinger VPS** (Ubuntu, Docker, optional domain + SSL), see:
 
-**[Deploy TricityMatch on Hostinger VPS](HOSTINGER-VPS.md)**
+**[Deploy TricityShadi on Hostinger VPS](HOSTINGER-VPS.md)**
 
 That guide covers: SSH access, installing Docker, configuring `.env`, running with or without a domain, and setting up Let's Encrypt SSL.
 
@@ -420,4 +420,4 @@ For issues:
 1. Check application logs
 2. Review this guide
 3. Check GitHub Issues
-4. Contact: support@tricitymatch.com
+4. Contact: support@tricityshadi.com

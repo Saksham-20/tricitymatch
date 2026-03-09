@@ -1,4 +1,4 @@
-# TricityMatch Backend Dockerfile
+# TricityShadi Backend Dockerfile
 # Multi-stage build for production optimization
 
 # ==================== BUILD STAGE ====================

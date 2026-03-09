@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
+import Logo from './Logo';
 import {
   FiUser, FiLogOut, FiHome, FiSearch, FiMessageCircle,
   FiMenu, FiX, FiBell, FiSettings, FiCreditCard, FiChevronDown,
@@ -247,16 +248,7 @@ const Navbar = () => {
           <div className="flex items-center justify-between h-16">
 
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-1.5 group">
-              <span className="font-display text-xl font-bold bg-gradient-to-r from-primary-500 to-gold-500 bg-clip-text text-transparent">
-                TricityMatch
-              </span>
-              <motion.div
-                animate={{ scale: [1, 1.25, 1], opacity: [0.7, 1, 0.7] }}
-                transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-                className="w-1.5 h-1.5 rounded-full bg-primary-500"
-              />
-            </Link>
+            <Logo size="sm" linkTo="/" />
 
             {/* Desktop nav */}
             {isAuthenticated ? (
@@ -349,9 +341,7 @@ const Navbar = () => {
             >
               {/* Header */}
               <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100">
-                <span className="font-display text-lg font-bold bg-gradient-to-r from-primary-500 to-gold-500 bg-clip-text text-transparent">
-                  TricityMatch
-                </span>
+                <Logo size="xs" linkTo="/" />
                 <button
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="w-9 h-9 flex items-center justify-center rounded-xl text-neutral-500 hover:bg-neutral-100 transition-colors"

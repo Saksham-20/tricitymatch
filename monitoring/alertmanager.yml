@@ -1,4 +1,4 @@
-# Alertmanager Configuration for TricityMatch
+# Alertmanager Configuration for TricityShadi
 # Configure alert routing and notification channels
 
 global:
@@ -7,8 +7,8 @@ global:
   
   # SMTP configuration for email alerts
   # smtp_smarthost: 'smtp.gmail.com:587'
-  # smtp_from: 'alerts@tricitymatch.com'
-  # smtp_auth_username: 'alerts@tricitymatch.com'
+  # smtp_from: 'alerts@tricityshadi.com'
+  # smtp_auth_username: 'alerts@tricityshadi.com'
   # smtp_auth_password: '{{ .SMTP_PASSWORD }}'
   
   # Slack configuration
@@ -84,7 +84,7 @@ receivers:
   - name: 'critical-alerts'
     # Email configuration
     # email_configs:
-    #   - to: 'oncall@tricitymatch.com'
+    #   - to: 'oncall@tricityshadi.com'
     #     send_resolved: true
     #     headers:
     #       Subject: '🚨 CRITICAL: {{ .GroupLabels.alertname }}'

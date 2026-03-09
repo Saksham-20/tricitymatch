@@ -1,4 +1,4 @@
--- TricityMatch Database Initialization Script
+-- TricityShadi Database Initialization Script
 -- This script runs when PostgreSQL container starts for the first time
 
 -- Create extensions
@@ -15,5 +15,5 @@ CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 -- Log initialization
 DO $$
 BEGIN
-    RAISE NOTICE 'TricityMatch database initialized at %', NOW();
+    RAISE NOTICE 'TricityShadi database initialized at %', NOW();
 END $$;
