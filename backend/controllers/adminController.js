@@ -3,10 +3,13 @@
  * Administrative operations with proper authorization
  */
 
-const { User, Profile, Subscription, Match, Verification, ProfileView } = require('../models');
+const { User, Profile, Subscription, Match, Verification, ProfileView, Report } = require('../models');
 const { Op } = require('sequelize');
+const sequelize = require('../config/database');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { logAudit } = require('../middlewares/logger');
+const { generateInvoicePDF } = require('../utils/invoice');
+const { notify } = require('../utils/notifyUser');
 
 // Escape special characters for LIKE patterns
 const escapeLikePattern = (str) => {
@@ -145,130 +148,363 @@ exports.updateVerification = asyncHandler(async (req, res) => {
 // @desc    Get analytics data
 // @access  Private/Admin
 exports.getAnalytics = asyncHandler(async (req, res) => {
-  // Run all analytics queries in parallel
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+
   const [
-    userStats,
-    subscriptionStats,
-    matchStats,
-    viewsThisWeek,
-    verificationStats
+    totalUsers,
+    verifiedUsers,
+    activeSubscribers,
+    revenueThisMonth,
+    pendingVerifications,
+    openReports,
+    registrations,
+    monthlyRevenue,
+    planDistribution,
   ] = await Promise.all([
-    // User statistics
-    User.findAll({
-      attributes: [
-        'status',
-        [require('sequelize').fn('COUNT', require('sequelize').col('id')), 'count']
-      ],
-      group: ['status'],
-      raw: true
+    // Total non-admin users
+    User.count({ where: { role: 'user' } }),
+
+    // Email-verified users
+    User.count({ where: { role: 'user', emailVerified: true } }),
+
+    // Active premium subscribers
+    Subscription.count({
+      where: {
+        status: 'active',
+        planType: { [Op.in]: ['basic_premium', 'premium_plus', 'vip'] },
+        [Op.or]: [{ endDate: null }, { endDate: { [Op.gt]: now } }],
+      },
     }),
 
-    // Subscription statistics with revenue
+    // Revenue collected this calendar month
+    Subscription.sum('amount', {
+      where: { status: 'active', createdAt: { [Op.gte]: startOfMonth } },
+    }),
+
+    // Pending verification requests
+    Verification.count({ where: { status: 'pending' } }),
+
+    // Open (pending) user reports
+    Report.count({ where: { status: 'pending' } }),
+
+    // Daily registrations for last 30 days
+    sequelize.query(
+      `SELECT TO_CHAR("createdAt"::date, 'MM/DD') AS date, COUNT(*)::int AS count
+       FROM "Users"
+       WHERE "createdAt" >= :thirtyDaysAgo AND role = 'user'
+       GROUP BY "createdAt"::date
+       ORDER BY "createdAt"::date ASC`,
+      { replacements: { thirtyDaysAgo }, type: sequelize.QueryTypes.SELECT }
+    ),
+
+    // Monthly revenue for last 6 months
+    sequelize.query(
+      `SELECT TO_CHAR(DATE_TRUNC('month', "createdAt"), 'Mon YY') AS month,
+              SUM(amount)::float AS amount
+       FROM "Subscriptions"
+       WHERE "createdAt" >= :sixMonthsAgo AND status = 'active'
+       GROUP BY DATE_TRUNC('month', "createdAt")
+       ORDER BY DATE_TRUNC('month', "createdAt") ASC`,
+      { replacements: { sixMonthsAgo }, type: sequelize.QueryTypes.SELECT }
+    ),
+
+    // Subscription plan distribution
     Subscription.findAll({
       where: { status: 'active' },
       attributes: [
         'planType',
         [require('sequelize').fn('COUNT', require('sequelize').col('id')), 'count'],
-        [require('sequelize').fn('SUM', require('sequelize').col('amount')), 'revenue']
       ],
       group: ['planType'],
-      raw: true
+      raw: true,
     }),
-
-    // Match statistics
-    Match.findAll({
-      attributes: [
-        [require('sequelize').fn('COUNT', require('sequelize').col('id')), 'total'],
-        [require('sequelize').fn('COUNT', require('sequelize').literal("CASE WHEN \"isMutual\" = true THEN 1 END")), 'mutual'],
-        [require('sequelize').fn('COUNT', require('sequelize').literal("CASE WHEN \"action\" = 'like' THEN 1 END")), 'likes']
-      ],
-      raw: true
-    }),
-
-    // Profile views this week
-    ProfileView.count({
-      where: {
-        createdAt: { [Op.gte]: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
-      }
-    }),
-
-    // Verification statistics
-    Verification.findAll({
-      attributes: [
-        'status',
-        [require('sequelize').fn('COUNT', require('sequelize').col('id')), 'count']
-      ],
-      group: ['status'],
-      raw: true
-    })
   ]);
-
-  // Process user stats
-  const users = {
-    total: 0,
-    active: 0,
-    pending: 0,
-    banned: 0,
-    inactive: 0
-  };
-  userStats.forEach(stat => {
-    users[stat.status] = parseInt(stat.count);
-    users.total += parseInt(stat.count);
-  });
-
-  // Process subscription stats
-  const subscriptions = {
-    total: 0,
-    premium: 0,
-    elite: 0,
-    revenue: 0
-  };
-  subscriptionStats.forEach(stat => {
-    subscriptions[stat.planType] = parseInt(stat.count);
-    subscriptions.total += parseInt(stat.count);
-    subscriptions.revenue += parseFloat(stat.revenue) || 0;
-  });
-
-  // Process match stats
-  const matches = matchStats[0] ? {
-    total: parseInt(matchStats[0].total) || 0,
-    mutual: parseInt(matchStats[0].mutual) || 0,
-    likes: parseInt(matchStats[0].likes) || 0
-  } : { total: 0, mutual: 0, likes: 0 };
-
-  // Process verification stats
-  const verifications = {
-    pending: 0,
-    approved: 0,
-    rejected: 0
-  };
-  verificationStats.forEach(stat => {
-    verifications[stat.status] = parseInt(stat.count);
-  });
 
   res.json({
     success: true,
-    analytics: {
-      users,
-      subscriptions,
-      matches,
-      engagement: {
-        viewsThisWeek,
-        totalProfileViews: await ProfileView.count()
-      },
-      verifications
-    }
+    stats: {
+      totalUsers,
+      verifiedUsers,
+      activeSubscribers,
+      revenueThisMonth: revenueThisMonth || 0,
+      pendingVerifications,
+      openReports,
+    },
+    registrations: registrations.map((r) => ({ date: r.date, count: r.count })),
+    revenue: monthlyRevenue.map((r) => ({ month: r.month, amount: r.amount || 0 })),
+    planDistribution: planDistribution.map((p) => ({ plan: p.planType, count: parseInt(p.count) })),
   });
 });
 
 // @route   GET /api/admin/reports
-// @desc    Get reported users/issues
+// @desc    Get user reports with optional status filter
 // @access  Private/Admin
 exports.getReports = asyncHandler(async (req, res) => {
-  // Placeholder for reports system
+  const { status, page = 1, limit = 20 } = req.query;
+  const offset = (parseInt(page) - 1) * parseInt(limit);
+  const where = {};
+  if (status) where.status = status;
+
+  const { count, rows: reports } = await Report.findAndCountAll({
+    where,
+    include: [
+      {
+        model: User,
+        as: 'Reporter',
+        attributes: ['id', 'email'],
+        include: [{ model: Profile, attributes: ['firstName', 'lastName'] }],
+      },
+      {
+        model: User,
+        as: 'ReportedUser',
+        attributes: ['id', 'email'],
+        include: [{ model: Profile, attributes: ['firstName', 'lastName'] }],
+      },
+    ],
+    order: [['createdAt', 'DESC']],
+    limit: parseInt(limit),
+    offset,
+  });
+
   res.json({
     success: true,
-    reports: [],
-    message: 'Reports feature coming soon'
+    reports,
+    pagination: {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      total: count,
+      pages: Math.ceil(count / parseInt(limit)),
+    },
   });
 });
+
+// @route   PUT /api/admin/reports/:reportId
+// @desc    Update report status (reviewed/dismissed)
+// @access  Private/Admin
+exports.updateReport = asyncHandler(async (req, res) => {
+  const { reportId } = req.params;
+  const { status, adminNotes } = req.body;
+
+  const validStatuses = ['reviewed', 'dismissed'];
+  if (!validStatuses.includes(status)) {
+    throw createError.badRequest('Status must be reviewed or dismissed');
+  }
+
+  const report = await Report.findByPk(reportId);
+  if (!report) throw createError.notFound('Report not found');
+
+  const previous = report.status;
+  report.status = status;
+  report.adminNotes = adminNotes || null;
+  report.reviewedBy = req.user.id;
+  report.reviewedAt = new Date();
+  await report.save();
+
+  logAudit('report_status_changed', req.user.id, { reportId, previous, status });
+
+  // Notify reporter that their report was reviewed
+  await notify(
+    report.reporterId,
+    'report_reviewed',
+    'Your report has been reviewed',
+    `Your report has been ${status === 'reviewed' ? 'reviewed and action has been taken' : 'reviewed and dismissed'}.`
+  );
+
+  res.json({ success: true, report });
+});
+
+// @route   POST /api/admin/users
+// @desc    Create a new user (admin-side)
+// @access  Private/Admin
+exports.createUser = asyncHandler(async (req, res) => {
+  const { email, password, phone, firstName, lastName, role = 'user', status = 'active' } = req.body;
+
+  if (!email || !password || !firstName || !lastName) {
+    throw createError.badRequest('email, password, firstName, and lastName are required');
+  }
+
+  const existing = await User.findOne({ where: { email: email.toLowerCase() } });
+  if (existing) throw createError.conflict('User already exists with this email');
+
+  const result = await sequelize.transaction(async (t) => {
+    const user = await User.create({
+      email: email.toLowerCase(),
+      password,
+      phone: phone || null,
+      role,
+      status,
+      emailVerified: true,
+    }, { transaction: t });
+
+    await Profile.create({
+      userId: user.id,
+      firstName,
+      lastName,
+      gender: 'other',
+      dateOfBirth: new Date('1990-01-01'),
+    }, { transaction: t });
+
+    return user;
+  });
+
+  logAudit('user_created_by_admin', req.user.id, { newUserId: result.id, email });
+
+  const user = await User.findByPk(result.id, {
+    include: [{ model: Profile, attributes: ['firstName', 'lastName', 'city'] }],
+    attributes: { exclude: ['password'] },
+  });
+
+  res.status(201).json({ success: true, message: 'User created', user });
+});
+
+// @route   GET /api/admin/users/:userId
+// @desc    Get full user detail for admin
+// @access  Private/Admin
+exports.getUser = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+
+  const user = await User.findByPk(userId, {
+    attributes: { exclude: ['password'] },
+    include: [
+      { model: Profile },
+      { model: Subscription, order: [['createdAt', 'DESC']] },
+      { model: Verification },
+    ],
+  });
+
+  if (!user) throw createError.notFound('User not found');
+
+  // Reports received by this user
+  const reports = await Report.findAll({
+    where: { reportedUserId: userId },
+    limit: 10,
+    order: [['createdAt', 'DESC']],
+    attributes: ['id', 'reason', 'status', 'createdAt'],
+  });
+
+  res.json({ success: true, user, reports });
+});
+
+// @route   PUT /api/admin/users/:userId/subscription
+// @desc    Manually override a user's subscription (bypass Razorpay)
+// @access  Private/Admin
+exports.updateSubscription = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const { planType, startDate, endDate, status = 'active' } = req.body;
+
+  const validPlans = ['free', 'basic_premium', 'premium_plus', 'vip'];
+  if (!validPlans.includes(planType)) {
+    throw createError.badRequest('planType must be free, basic_premium, premium_plus, or vip');
+  }
+
+  const user = await User.findByPk(userId);
+  if (!user) throw createError.notFound('User not found');
+
+  // Cancel existing active subscriptions
+  await Subscription.update(
+    { status: 'cancelled' },
+    { where: { userId, status: 'active' } }
+  );
+
+  const subscription = await Subscription.create({
+    userId,
+    planType,
+    status,
+    startDate: startDate ? new Date(startDate) : new Date(),
+    endDate: endDate ? new Date(endDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    amount: planType === 'basic_premium' ? 199900 : planType === 'premium_plus' ? 399900 : planType === 'vip' ? 999900 : 0,
+  });
+
+  logAudit('subscription_overridden', req.user.id, { userId, planType, status });
+
+  await notify(
+    userId,
+    'system',
+    'Subscription updated',
+    `Your subscription has been updated to ${planType} plan by the admin.`
+  );
+
+  res.json({ success: true, message: 'Subscription updated', subscription });
+});
+
+// @route   GET /api/admin/revenue
+// @desc    Monthly revenue report
+// @access  Private/Admin
+exports.getRevenueReport = asyncHandler(async (req, res) => {
+  const { format } = req.query; // ?format=csv
+
+  // Monthly revenue for last 12 months
+  const monthlyRevenue = await sequelize.query(
+    `SELECT
+       TO_CHAR(DATE_TRUNC('month', "createdAt"), 'YYYY-MM') AS month,
+       "planType",
+       COUNT(*)::int AS count,
+       SUM(amount)::float AS revenue
+     FROM "Subscriptions"
+     WHERE status IN ('active', 'expired')
+       AND amount > 0
+       AND "createdAt" >= NOW() - INTERVAL '12 months'
+     GROUP BY DATE_TRUNC('month', "createdAt"), "planType"
+     ORDER BY DATE_TRUNC('month', "createdAt") ASC`,
+    { type: sequelize.constructor.QueryTypes.SELECT }
+  );
+
+  // All-time totals
+  const [totals] = await sequelize.query(
+    `SELECT
+       COUNT(*)::int AS total_transactions,
+       SUM(amount)::float AS total_revenue,
+       AVG(amount)::float AS avg_transaction
+     FROM "Subscriptions"
+     WHERE status IN ('active', 'expired') AND amount > 0`,
+    { type: sequelize.constructor.QueryTypes.SELECT }
+  );
+
+  if (format === 'csv') {
+    // Build CSV
+    const rows = ['Month,Plan,Transactions,Revenue'];
+    monthlyRevenue.forEach(r => {
+      rows.push(`${r.month},${r.planType},${r.count},${r.revenue}`);
+    });
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="revenue-report.csv"');
+    return res.send(rows.join('\n'));
+  }
+
+  res.json({
+    success: true,
+    monthlyRevenue,
+    totals: {
+      totalTransactions: totals?.total_transactions || 0,
+      totalRevenue: totals?.total_revenue || 0,
+      avgTransaction: totals?.avg_transaction || 0,
+    },
+  });
+});
+
+// @route   GET /api/admin/invoice/:subscriptionId
+// @desc    Download invoice PDF (admin can access any user's invoice)
+// @access  Private/Admin
+exports.adminGetInvoice = asyncHandler(async (req, res) => {
+  const { subscriptionId } = req.params;
+
+  const subscription = await Subscription.findByPk(subscriptionId, {
+    include: [{
+      model: User,
+      attributes: ['id', 'email'],
+      include: [{ model: Profile, attributes: ['firstName', 'lastName'] }],
+    }],
+  });
+
+  if (!subscription) throw createError.notFound('Subscription not found');
+
+  generateInvoicePDF(res, {
+    subscription,
+    user: subscription.User,
+    profile: subscription.User?.Profile,
+  });
+});
+

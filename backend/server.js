@@ -57,6 +57,9 @@ const io = new Server(server, {
 
 initializeSocket(io);
 
+// Make io accessible to other modules (notifyUser helper, etc.)
+require('./utils/socket').setIO(io);
+
 // ==================== SECURITY MIDDLEWARE ====================
 
 // Trust proxy (required for rate limiting behind reverse proxy)

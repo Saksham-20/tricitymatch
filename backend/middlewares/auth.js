@@ -143,7 +143,7 @@ const requirePremium = asyncHandler(async (req, res, next) => {
     where: {
       userId,
       status: 'active',
-      planType: { [Op.in]: ['premium', 'elite'] },
+      planType: { [Op.in]: ['basic_premium', 'premium_plus', 'vip'] },
       [Op.or]: [
         { endDate: null },
         { endDate: { [Op.gt]: new Date() } }
@@ -168,9 +168,9 @@ const requirePremium = asyncHandler(async (req, res, next) => {
 });
 
 /**
- * Elite subscription requirement middleware
+ * VIP subscription requirement middleware
  */
-const requireElite = asyncHandler(async (req, res, next) => {
+const requireVIP = asyncHandler(async (req, res, next) => {
   const userId = req.user?.id;
 
   if (!userId) {
@@ -181,7 +181,7 @@ const requireElite = asyncHandler(async (req, res, next) => {
     where: {
       userId,
       status: 'active',
-      planType: 'elite',
+      planType: 'vip',
       [Op.or]: [
         { endDate: null },
         { endDate: { [Op.gt]: new Date() } }
@@ -190,10 +190,37 @@ const requireElite = asyncHandler(async (req, res, next) => {
   });
 
   if (!subscription) {
-    throw createError.forbidden('Elite subscription required', 'ELITE_REQUIRED');
+    throw createError.forbidden('VIP subscription required', 'VIP_REQUIRED');
   }
 
   req.subscription = subscription;
+  next();
+});
+
+/**
+ * Check contact unlock limit middleware
+ * Must be used after requirePremium middleware (req.subscription must exist)
+ */
+const checkContactUnlockLimit = asyncHandler(async (req, res, next) => {
+  const subscription = req.subscription;
+
+  if (!subscription) {
+    throw createError.forbidden('Premium subscription required', 'PREMIUM_REQUIRED');
+  }
+
+  // NULL contactUnlocksAllowed = unlimited unlocks
+  if (subscription.contactUnlocksAllowed === null) {
+    return next();
+  }
+
+  // Check if user has remaining unlocks
+  if (subscription.contactUnlocksUsed >= subscription.contactUnlocksAllowed) {
+    throw createError.forbidden(
+      `You have used all ${subscription.contactUnlocksAllowed} contact unlocks for your plan. Upgrade to unlock more.`,
+      'CONTACT_UNLOCK_LIMIT_REACHED'
+    );
+  }
+
   next();
 });
 
@@ -293,7 +320,7 @@ const socketRequirePremium = async (socket, next) => {
       where: {
         userId: socket.userId,
         status: 'active',
-        planType: { [Op.in]: ['premium', 'elite'] },
+        planType: { [Op.in]: ['basic_premium', 'premium_plus', 'vip'] },
         [Op.or]: [
           { endDate: null },
           { endDate: { [Op.gt]: new Date() } }
@@ -321,7 +348,8 @@ module.exports = {
   optionalAuth,
   adminAuth,
   requirePremium,
-  requireElite,
+  requireVIP,
+  checkContactUnlockLimit,
   ownsResource,
   verifyTargetUser,
   socketAuth,

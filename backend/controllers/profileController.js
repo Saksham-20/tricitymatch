@@ -3,7 +3,7 @@
  * Handles user profile management with proper security
  */
 
-const { Profile, User, ProfileView, Subscription, Match } = require('../models');
+const { Profile, User, ProfileView, Subscription, Match, ContactUnlock } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const { calculateCompatibility } = require('../utils/compatibility');
@@ -158,7 +158,7 @@ exports.updateProfile = asyncHandler(async (req, res) => {
     const getStoredPath = (file) => {
       if (!file || !file.path) return null;
       if (String(file.path).includes('cloudinary')) return file.path;
-      return `/uploads/${file.filename || file.path.replace(/^.*[/\\]/, '')}`;
+      return `/uploads/${file.filename || file.path.replace(/^.*[/\\\\]/, '')}`;
     };
 
     let finalPhotos = [...(profile.photos || [])];
@@ -346,7 +346,6 @@ exports.getProfile = asyncHandler(async (req, res) => {
   const { userId } = req.params;
   const viewerId = req.user.id;
 
-  // Check if viewing own profile
   if (userId === viewerId) {
     return exports.getMyProfile(req, res);
   }
@@ -372,14 +371,17 @@ exports.getProfile = asyncHandler(async (req, res) => {
   });
 
   const hasPremiumAccess = viewerSubscription &&
-    ['premium', 'elite'].includes(viewerSubscription.planType);
+    ['basic_premium', 'premium_plus', 'vip'].includes(viewerSubscription.planType);
 
-  // Record profile view (batch to prevent duplicates in short time)
+  // Check if contact was already unlocked
+  const existingUnlock = await ContactUnlock.findOne({
+    where: { userId: viewerId, targetUserId: userId }
+  });
+  const isContactUnlocked = !!existingUnlock;
+
+  // Record profile view
   try {
-    await ProfileView.create({
-      viewerId,
-      viewedUserId: userId
-    });
+    await ProfileView.create({ viewerId, viewedUserId: userId });
   } catch (err) {
     // Ignore duplicate errors
   }
@@ -393,18 +395,14 @@ exports.getProfile = asyncHandler(async (req, res) => {
 
   // Check match status
   const existingMatch = await Match.findOne({
-    where: {
-      userId: viewerId,
-      matchedUserId: userId
-    }
+    where: { userId: viewerId, matchedUserId: userId }
   });
-
   const isLiked = existingMatch && existingMatch.action === 'like';
   const isShortlisted = existingMatch && existingMatch.action === 'shortlist';
 
   // Prepare response with privacy checks
   const profileData = profile.toJSON();
-  if (!hasPremiumAccess) {
+  if (!hasPremiumAccess || !isContactUnlocked) {
     if (profileData.User) {
       profileData.User.phone = null;
       profileData.User.email = null;
@@ -412,11 +410,31 @@ exports.getProfile = asyncHandler(async (req, res) => {
     profileData.socialMediaLinks = null;
   }
 
+  // Check if target user has premium (for badge display)
+  const targetSubscription = await Subscription.findOne({
+    where: {
+      userId,
+      status: 'active',
+      planType: { [Op.in]: ['basic_premium', 'premium_plus', 'vip'] },
+      endDate: { [Op.gt]: new Date() }
+    }
+  });
+
   res.json({
     success: true,
-    profile: profileData,
+    profile: {
+      ...profileData,
+      isPremium: !!targetSubscription,
+      premiumPlan: targetSubscription?.planType || null
+    },
     compatibilityScore,
     hasPremiumAccess,
+    isContactUnlocked,
+    contactUnlocksRemaining: hasPremiumAccess
+      ? (viewerSubscription.contactUnlocksAllowed === null
+        ? -1
+        : Math.max(0, (viewerSubscription.contactUnlocksAllowed || 0) - (viewerSubscription.contactUnlocksUsed || 0)))
+      : 0,
     isLiked,
     isShortlisted
   });
@@ -430,42 +448,26 @@ exports.getProfileStats = asyncHandler(async (req, res) => {
   const now = new Date();
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-  // Run all queries in parallel for better performance
   const [viewsThisWeek, totalViews, likesReceived, likesByCity] = await Promise.all([
     ProfileView.count({
-      where: {
-        viewedUserId: userId,
-        createdAt: { [Op.gte]: weekAgo }
-      }
+      where: { viewedUserId: userId, createdAt: { [Op.gte]: weekAgo } }
     }),
     ProfileView.count({
       where: { viewedUserId: userId }
     }),
     Match.count({
-      where: {
-        matchedUserId: userId,
-        action: 'like'
-      }
+      where: { matchedUserId: userId, action: 'like' }
     }),
     Match.findAll({
-      where: {
-        matchedUserId: userId,
-        action: 'like'
-      },
+      where: { matchedUserId: userId, action: 'like' },
       include: [{
-        model: User,
-        as: 'User',
-        attributes: ['id'],
-        include: [{
-          model: Profile,
-          attributes: ['city']
-        }]
+        model: User, as: 'User', attributes: ['id'],
+        include: [{ model: Profile, attributes: ['city'] }]
       }],
       attributes: ['id']
     })
   ]);
 
-  // Process city counts in memory
   const cityCounts = {};
   likesByCity.forEach(match => {
     const city = match.User?.Profile?.city || 'Unknown';
@@ -474,11 +476,128 @@ exports.getProfileStats = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    stats: {
-      viewsThisWeek,
-      totalViews,
-      likesReceived,
-      likesByCity: cityCounts
-    }
+    stats: { viewsThisWeek, totalViews, likesReceived, likesByCity: cityCounts }
   });
 });
+
+// @route   POST /api/profile/:userId/unlock-contact
+// @desc    Unlock contact details for a specific profile
+// @access  Private/Premium
+exports.unlockContact = asyncHandler(async (req, res) => {
+  const { userId: targetUserId } = req.params;
+  const userId = req.user.id;
+
+  if (userId === targetUserId) {
+    throw createError.badRequest('Cannot unlock your own contact');
+  }
+
+  // Check if already unlocked
+  const existing = await ContactUnlock.findOne({ where: { userId, targetUserId } });
+  if (existing) {
+    const tp = await Profile.findOne({
+      where: { userId: targetUserId },
+      include: [{ model: User, attributes: ['email', 'phone'] }]
+    });
+    return res.json({
+      success: true,
+      alreadyUnlocked: true,
+      contact: { phone: tp?.User?.phone || null, email: tp?.User?.email || null }
+    });
+  }
+
+  const result = await sequelize.transaction(async (t) => {
+    await ContactUnlock.create({ userId, targetUserId }, { transaction: t });
+
+    const subscription = req.subscription;
+    if (subscription.contactUnlocksAllowed !== null) {
+      subscription.contactUnlocksUsed = (subscription.contactUnlocksUsed || 0) + 1;
+      await subscription.save({ transaction: t });
+    }
+
+    const tp = await Profile.findOne({
+      where: { userId: targetUserId },
+      include: [{ model: User, attributes: ['email', 'phone'] }],
+      transaction: t
+    });
+
+    return {
+      contact: { phone: tp?.User?.phone || null, email: tp?.User?.email || null },
+      remaining: subscription.contactUnlocksAllowed === null
+        ? -1
+        : Math.max(0, subscription.contactUnlocksAllowed - (subscription.contactUnlocksUsed || 0))
+    };
+  });
+
+  res.json({
+    success: true,
+    alreadyUnlocked: false,
+    contact: result.contact,
+    contactUnlocksRemaining: result.remaining
+  });
+});
+
+// @route   GET /api/profile/me/viewers
+// @desc    Get users who viewed the current user's profile (premium only)
+// @access  Private/Premium
+exports.getProfileViewers = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 20;
+  const offset = (page - 1) * limit;
+
+  const { count, rows: views } = await ProfileView.findAndCountAll({
+    where: { viewedUserId: userId },
+    include: [{
+      model: User, as: 'Viewer', attributes: ['id'],
+      include: [{
+        model: Profile, where: { isActive: true },
+        attributes: ['firstName', 'lastName', 'city', 'profilePhoto', 'gender', 'dateOfBirth', 'education', 'profession']
+      }]
+    }],
+    order: [['createdAt', 'DESC']],
+    limit,
+    offset
+  });
+
+  const validViewers = views
+    .filter(v => v.Viewer?.Profile)
+    .map(v => ({ userId: v.viewerId, ...v.Viewer.Profile.toJSON(), viewedAt: v.createdAt }));
+
+  res.json({
+    success: true,
+    viewers: validViewers,
+    pagination: { page, limit, total: count, pages: Math.ceil(count / limit) }
+  });
+});
+
+// @route   PUT /api/profile/privacy
+// @desc    Update profile privacy settings
+// @access  Private
+exports.updatePrivacySettings = async (req, res) => {
+  try {
+    const { profileVisibility, showOnlineStatus, showLastSeen } = req.body;
+    const profile = await require('../models').Profile.findOne({ where: { userId: req.user.id } });
+    if (!profile) throw Object.assign(new Error('Profile not found'), { status: 404 });
+
+    if (profileVisibility !== undefined) {
+      const valid = ['everyone', 'matches_only'];
+      if (!valid.includes(profileVisibility)) {
+        return res.status(400).json({ success: false, error: { message: 'Invalid profileVisibility value' } });
+      }
+      profile.profileVisibility = profileVisibility;
+    }
+    if (typeof showOnlineStatus === 'boolean') profile.showOnlineStatus = showOnlineStatus;
+    if (typeof showLastSeen === 'boolean') profile.showLastSeen = showLastSeen;
+
+    await profile.save();
+
+    res.json({ success: true, message: 'Privacy settings updated', profile: {
+      profileVisibility: profile.profileVisibility,
+      showOnlineStatus: profile.showOnlineStatus,
+      showLastSeen: profile.showLastSeen,
+    }});
+  } catch (err) {
+    const status = err.status || 500;
+    res.status(status).json({ success: false, error: { message: err.message } });
+  }
+};

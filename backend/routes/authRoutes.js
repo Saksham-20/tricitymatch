@@ -16,7 +16,8 @@ const {
   logoutAll,
   changePassword,
   getSessions,
-  revokeSession
+  revokeSession,
+  deleteAccount,
 } = require('../controllers/authController');
 const { auth } = require('../middlewares/auth');
 const { handleValidationErrors } = require('../middlewares/errorHandler');
@@ -111,6 +112,14 @@ router.delete('/sessions/:sessionId',
   [param('sessionId').isUUID(4).withMessage('Invalid session ID')],
   handleValidationErrors,
   revokeSession
+);
+
+// Delete account (soft-delete, requires password confirmation)
+router.delete('/account',
+  auth,
+  [body('password').notEmpty().withMessage('Password is required')],
+  handleValidationErrors,
+  deleteAccount
 );
 
 module.exports = router;

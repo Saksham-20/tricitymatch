@@ -528,3 +528,27 @@ exports.revokeSession = asyncHandler(async (req, res) => {
     message: 'Session revoked'
   });
 });
+
+// @route   DELETE /api/auth/account
+// @desc    Soft-delete account (requires password confirmation)
+// @access  Private
+exports.deleteAccount = asyncHandler(async (req, res) => {
+  const { password } = req.body;
+  if (!password) throw createError.badRequest('Password is required to delete your account');
+
+  const user = await User.findByPk(req.user.id);
+  if (!user) throw createError.notFound('User not found');
+
+  const isValid = await user.comparePassword(password);
+  if (!isValid) throw createError.unauthorized('Incorrect password');
+
+  // Soft-delete: mark as deleted + revoke all tokens
+  user.status = 'deleted';
+  await user.save();
+
+  await RefreshToken.destroy({ where: { userId: user.id } });
+  clearAuthCookies(res);
+
+  res.json({ success: true, message: 'Account deleted successfully' });
+});
+

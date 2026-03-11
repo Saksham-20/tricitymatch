@@ -3,9 +3,12 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import Logo from './Logo';
+import api from '../../api/axios';
+import useDarkMode from '../../hooks/useDarkMode';
 import {
   FiUser, FiLogOut, FiHome, FiSearch, FiMessageCircle,
   FiMenu, FiX, FiBell, FiSettings, FiCreditCard, FiChevronDown,
+  FiClock, FiSun, FiMoon,
 } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 
@@ -22,11 +25,11 @@ const NotificationBell = ({ count = 0 }) => {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const mockNotifs = [
-    { id: 1, text: 'Priya Sharma sent you an interest', time: '2m ago', unread: true },
-    { id: 2, text: 'Rahul Gupta viewed your profile', time: '15m ago', unread: true },
-    { id: 3, text: 'New match suggestion available', time: '1h ago', unread: false },
-  ];
+  const handleMarkAllRead = async () => {
+    try {
+      await api.patch('/notifications/read-all');
+    } catch (_) { /* silent */ }
+  };
 
   return (
     <div ref={ref} className="relative">
@@ -59,25 +62,19 @@ const NotificationBell = ({ count = 0 }) => {
             <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-100">
               <span className="text-sm font-semibold text-neutral-800">Notifications</span>
               {count > 0 && (
-                <span className="text-xs text-primary-500 font-medium cursor-pointer hover:text-primary-700">
+                <button
+                  onClick={handleMarkAllRead}
+                  className="text-xs text-primary-500 font-medium hover:text-primary-700 transition-colors"
+                >
                   Mark all read
-                </span>
+                </button>
               )}
             </div>
 
             <div className="divide-y divide-neutral-100 max-h-72 overflow-y-auto">
-              {mockNotifs.map((n) => (
-                <div
-                  key={n.id}
-                  className={`flex items-start gap-3 px-4 py-3 hover:bg-neutral-50 cursor-pointer transition-colors ${n.unread ? 'bg-primary-50/40' : ''}`}
-                >
-                  <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${n.unread ? 'bg-primary-500' : 'bg-transparent'}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-neutral-700 leading-snug">{n.text}</p>
-                    <p className="text-xs text-neutral-400 mt-0.5">{n.time}</p>
-                  </div>
-                </div>
-              ))}
+              <div className="px-4 py-8 text-center">
+                <p className="text-sm text-neutral-500">View all notifications below</p>
+              </div>
             </div>
 
             <div className="px-4 py-2.5 border-t border-neutral-100">
@@ -113,9 +110,10 @@ const ProfileDropdown = ({ user, onLogout }) => {
     ((user?.firstName?.[0] || '') + (user?.lastName?.[0] || '')).toUpperCase() || 'U';
 
   const menuItems = [
-    { icon: FiUser, label: 'My Profile', to: '/profile' },
-    { icon: FiSettings, label: 'Settings', to: '/settings' },
-    { icon: FiCreditCard, label: 'Subscription', to: '/subscription' },
+    { icon: FiUser,       label: 'My Profile',      to: '/profile' },
+    { icon: FiSettings,   label: 'Settings',         to: '/settings' },
+    { icon: FiCreditCard, label: 'Subscription',     to: '/subscription' },
+    { icon: FiClock,      label: 'Payment History',  to: '/payment/history' },
   ];
 
   return (
@@ -198,7 +196,20 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const NOTIF_COUNT = 2;
+  const { isDark, toggle: toggleDark } = useDarkMode();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const fetchCount = () => {
+      api.get('/notifications/unread-count')
+        .then(r => setUnreadCount(r.data?.count || 0))
+        .catch(() => {});
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 30000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const onScroll = () => setIsScrolled(window.scrollY > 20);
@@ -290,8 +301,15 @@ const Navbar = () => {
             <div className="flex items-center gap-1">
               {isAuthenticated && (
                 <>
+                  <button
+                    onClick={toggleDark}
+                    className="hidden md:flex w-10 h-10 items-center justify-center rounded-xl text-neutral-600 hover:text-primary-500 hover:bg-primary-50 transition-all duration-200"
+                    aria-label="Toggle dark mode"
+                  >
+                    {isDark ? <FiSun className="w-5 h-5" /> : <FiMoon className="w-5 h-5" />}
+                  </button>
                   <div className="hidden md:block">
-                    <NotificationBell count={NOTIF_COUNT} />
+                    <NotificationBell count={unreadCount} />
                   </div>
                   <div className="hidden md:block">
                     <ProfileDropdown user={user} onLogout={handleLogout} />

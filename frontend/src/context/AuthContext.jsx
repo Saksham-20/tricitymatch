@@ -74,7 +74,7 @@ export const AuthProvider = ({ children }) => {
       
       setIsAuthenticated(true);
       toast.success('Welcome back!');
-      return { success: true };
+      return { success: true, role: userData?.role };
     } catch (error) {
       const message = error.response?.data?.message || error.message || 'Login failed';
       toast.error(message);

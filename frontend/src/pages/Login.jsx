@@ -65,7 +65,7 @@ const Login = () => {
       
       if (result.success) {
         setTimeout(() => {
-          navigate('/dashboard');
+          navigate(result.role === 'admin' ? '/admin/dashboard' : '/dashboard');
         }, 100);
       }
     } catch (error) {

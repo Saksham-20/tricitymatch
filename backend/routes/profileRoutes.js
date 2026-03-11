@@ -11,9 +11,12 @@ const {
   getProfile, 
   getProfileStats, 
   deletePhoto, 
-  deleteProfilePhoto 
+  deleteProfilePhoto,
+  updatePrivacySettings,
+  unlockContact,
+  getProfileViewers,
 } = require('../controllers/profileController');
-const { auth, verifyTargetUser } = require('../middlewares/auth');
+const { auth, requirePremium, checkContactUnlockLimit, verifyTargetUser } = require('../middlewares/auth');
 const { uploadPhotos, validateUploadedFiles } = require('../middlewares/upload');
 const { handleValidationErrors } = require('../middlewares/errorHandler');
 const { profileUpdateLimiter, uploadLimiter } = require('../middlewares/security');
@@ -45,6 +48,9 @@ router.put('/me',
 // Get profile stats
 router.get('/me/stats', auth, getProfileStats);
 
+// Get who viewed your profile (premium only)
+router.get('/me/viewers', auth, requirePremium, getProfileViewers);
+
 // Delete a gallery photo
 router.delete('/me/photo', 
   auth,
@@ -56,6 +62,9 @@ router.delete('/me/photo',
 // Delete profile photo
 router.delete('/me/profile-photo', auth, deleteProfilePhoto);
 
+// Update privacy settings
+router.put('/privacy', auth, updatePrivacySettings);
+
 // ==================== OTHER USER PROFILE ROUTES ====================
 
 // Get another user's profile (with privacy checks)
@@ -66,4 +75,13 @@ router.get('/:userId',
   getProfile
 );
 
+// Unlock contact details for a profile (premium only, with unlock limit check)
+router.post('/:userId/unlock-contact',
+  auth,
+  requirePremium,
+  checkContactUnlockLimit,
+  unlockContact
+);
+
 module.exports = router;
+

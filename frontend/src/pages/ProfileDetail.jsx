@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import {
   FiHeart, FiStar, FiInstagram, FiLinkedin, FiFacebook, FiTwitter,
   FiMusic, FiLock, FiCheck, FiMapPin, FiCalendar, FiBook, FiBriefcase,
-  FiGlobe, FiChevronLeft, FiMessageCircle, FiShield,
+  FiGlobe, FiChevronLeft, FiMessageCircle, FiShield, FiPhone, FiMail, FiUnlock,
 } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
@@ -15,6 +15,7 @@ import { getImageUrl } from '../utils/cloudinary';
 import { sanitizeText, sanitizeUrl } from '../utils/sanitize';
 import { ImageLightbox } from '../components/ui/ImageLightbox';
 import FloatingActionBar from '../components/profile/FloatingActionBar';
+import UpgradeModal from '../components/common/UpgradeModal';
 
 // ─── Inline Compatibility Ring ───────────────
 const CompatRing = ({ score }) => {
@@ -82,9 +83,15 @@ const ProfileDetail = () => {
   const [profile, setProfile] = useState(null);
   const [compatScore, setCompatScore] = useState(null);
   const [premiumAccess, setPremiumAccess] = useState(false);
+  const [isContactUnlocked, setIsContactUnlocked] = useState(false);
+  const [contactUnlocksRemaining, setContactUnlocksRemaining] = useState(0);
+  const [unlockedContact, setUnlockedContact] = useState(null);
   const [isLiked, setIsLiked] = useState(false);
   const [isShortlisted, setIsShortlisted] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [unlockLoading, setUnlockLoading] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeFeature, setUpgradeFeature] = useState('');
   const [lightbox, setLightbox] = useState({ open: false, src: null, alt: '' });
 
   useEffect(() => { loadProfile(); }, [userId]);
@@ -95,12 +102,53 @@ const ProfileDetail = () => {
       setProfile(res.data.profile);
       setCompatScore(res.data.compatibilityScore);
       setPremiumAccess(res.data.hasPremiumAccess);
+      setIsContactUnlocked(res.data.isContactUnlocked || false);
+      setContactUnlocksRemaining(res.data.contactUnlocksRemaining || 0);
       setIsLiked(res.data.isLiked || false);
       setIsShortlisted(res.data.isShortlisted || false);
+      // If contact was already unlocked, store contact info from profile
+      if (res.data.isContactUnlocked && res.data.profile?.User) {
+        setUnlockedContact({
+          phone: res.data.profile.User.phone,
+          email: res.data.profile.User.email,
+        });
+      }
     } catch {
       toast.error('Failed to load profile');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUnlockContact = async () => {
+    if (!premiumAccess) {
+      setUpgradeFeature('View Contact Details');
+      setShowUpgradeModal(true);
+      return;
+    }
+    try {
+      setUnlockLoading(true);
+      const res = await api.post(`/profile/${userId}/unlock-contact`);
+      setUnlockedContact(res.data.contact);
+      setIsContactUnlocked(true);
+      if (res.data.contactUnlocksRemaining !== undefined) {
+        setContactUnlocksRemaining(res.data.contactUnlocksRemaining);
+      }
+      toast.success(res.data.alreadyUnlocked ? 'Contact already unlocked' : 'Contact unlocked!');
+    } catch (err) {
+      const code = err.response?.data?.error?.code;
+      if (code === 'CONTACT_UNLOCK_LIMIT_REACHED') {
+        toast.error('No unlocks remaining. Upgrade your plan for more!');
+        setUpgradeFeature('More Contact Unlocks');
+        setShowUpgradeModal(true);
+      } else if (code === 'PREMIUM_REQUIRED') {
+        setUpgradeFeature('View Contact Details');
+        setShowUpgradeModal(true);
+      } else {
+        toast.error('Failed to unlock contact');
+      }
+    } finally {
+      setUnlockLoading(false);
     }
   };
 
@@ -331,9 +379,81 @@ const ProfileDetail = () => {
                 </Section>
               )}
 
+              {/* Contact Details Section */}
+              <Section title="Contact Details" badge={
+                premiumAccess && contactUnlocksRemaining !== -1 && contactUnlocksRemaining > 0 && (
+                  <span className="text-xs font-medium text-primary-500 bg-primary-50 px-2 py-0.5 rounded-full">
+                    {contactUnlocksRemaining} unlocks left
+                  </span>
+                )
+              }>
+                {isContactUnlocked && unlockedContact ? (
+                  <div className="space-y-3">
+                    {unlockedContact.phone && (
+                      <div className="flex items-center gap-3 p-3.5 bg-success-50 border border-success-100 rounded-xl">
+                        <div className="w-9 h-9 rounded-lg bg-success/15 flex items-center justify-center">
+                          <FiPhone className="w-4 h-4 text-success" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-success font-medium uppercase tracking-wide">Phone</p>
+                          <p className="text-sm font-semibold text-neutral-800">{unlockedContact.phone}</p>
+                        </div>
+                      </div>
+                    )}
+                    {unlockedContact.email && (
+                      <div className="flex items-center gap-3 p-3.5 bg-success-50 border border-success-100 rounded-xl">
+                        <div className="w-9 h-9 rounded-lg bg-success/15 flex items-center justify-center">
+                          <FiMail className="w-4 h-4 text-success" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-success font-medium uppercase tracking-wide">Email</p>
+                          <p className="text-sm font-semibold text-neutral-800">{unlockedContact.email}</p>
+                        </div>
+                      </div>
+                    )}
+                    {!unlockedContact.phone && !unlockedContact.email && (
+                      <p className="text-sm text-neutral-500 text-center py-3">No contact details available</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <div className="w-12 h-12 rounded-2xl bg-neutral-100 flex items-center justify-center mx-auto mb-3">
+                      <FiLock className="w-5 h-5 text-neutral-400" />
+                    </div>
+                    <p className="text-sm font-semibold text-neutral-700 mb-1">
+                      Contact details are locked
+                    </p>
+                    <p className="text-xs text-neutral-400 mb-4">
+                      {premiumAccess
+                        ? 'Use one of your unlocks to view this profile\'s contact details'
+                        : 'Upgrade to Premium to view phone and email'}
+                    </p>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleUnlockContact}
+                      disabled={unlockLoading}
+                      className={`inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-xl transition-all ${
+                        premiumAccess
+                          ? 'bg-primary-500 text-white hover:bg-primary-600 shadow-burgundy'
+                          : 'bg-gold text-neutral-900 hover:bg-gold-400 shadow-gold'
+                      }`}
+                    >
+                      {unlockLoading ? (
+                        <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                      ) : premiumAccess ? (
+                        <><FiUnlock className="w-4 h-4" /> Unlock Contact</>
+                      ) : (
+                        <><FaCrown className="w-3.5 h-3.5" /> Upgrade to Premium</>
+                      )}
+                    </motion.button>
+                  </div>
+                )}
+              </Section>
+
               {/* Social links */}
               {profile.socialMediaLinks && (
-                premiumAccess ? (
+                premiumAccess && isContactUnlocked ? (
                   <Section title="Social Media">
                     <div className="grid grid-cols-2 gap-3">
                       {socialPlatforms.map(({ key, label, icon: Icon }) => {
@@ -360,18 +480,18 @@ const ProfileDetail = () => {
                       <FiLock className="w-5 h-5 text-neutral-400" />
                     </div>
                     <p className="text-sm font-semibold text-neutral-700 mb-1">
-                      Social media links are Premium-only
+                      Social media links are locked
                     </p>
                     <p className="text-xs text-neutral-400 mb-4">
-                      Upgrade to view and connect on social platforms
+                      Unlock contact to view social profiles
                     </p>
-                    <Link
-                      to="/subscription"
+                    <button
+                      onClick={() => { setUpgradeFeature('Social Media Links'); setShowUpgradeModal(true); }}
                       className="inline-flex items-center gap-2 px-4 py-2.5 bg-gold text-neutral-900 text-sm font-semibold rounded-xl hover:bg-gold-400 transition-colors"
                     >
                       <FaCrown className="w-3.5 h-3.5" />
                       Upgrade to Premium
-                    </Link>
+                    </button>
                   </div>
                 )
               )}
@@ -526,6 +646,13 @@ const ProfileDetail = () => {
         alt={lightbox.alt}
         open={lightbox.open}
         onClose={() => setLightbox(p => ({ ...p, open: false }))}
+      />
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        feature={upgradeFeature}
       />
     </>
   );

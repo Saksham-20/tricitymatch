@@ -3,14 +3,16 @@
  * Handles payment processing with Razorpay
  */
 
-const { Subscription, User } = require('../models');
+const { Subscription, User, Profile } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
-const { createOrder: razorpayCreateOrder, verifyPayment, getPlanDetails } = require('../utils/razorpay');
+const { createOrder: razorpayCreateOrder, verifyPayment: razorpayVerifyPayment, getPlanDetails } = require('../utils/razorpay');
 const { sendSubscriptionConfirmation } = require('../utils/email');
 const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { log, logAudit } = require('../middlewares/logger');
+const { generateInvoicePDF } = require('../utils/invoice');
+const { notify } = require('../utils/notifyUser');
 
 // @route   POST /api/subscription/create-order
 // @desc    Create Razorpay order
@@ -25,7 +27,7 @@ exports.createOrder = asyncHandler(async (req, res) => {
   }
 
   // Validate plan type
-  const validPlans = ['premium', 'elite'];
+  const validPlans = ['basic_premium', 'premium_plus', 'vip'];
   if (!validPlans.includes(planType)) {
     throw createError.badRequest('Invalid plan type');
   }
@@ -103,7 +105,7 @@ exports.verifyPayment = asyncHandler(async (req, res) => {
   }
 
   // Verify payment signature
-  const isValid = verifyPayment(razorpayOrderId, razorpayPaymentId, razorpaySignature);
+  const isValid = razorpayVerifyPayment(razorpayOrderId, razorpayPaymentId, razorpaySignature);
 
   if (!isValid) {
     log.warn('Payment signature verification failed', { userId, razorpayOrderId });
@@ -163,6 +165,9 @@ exports.verifyPayment = asyncHandler(async (req, res) => {
     sub.status = 'active';
     sub.startDate = now;
     sub.endDate = endDate;
+    // Set contact unlock limits based on plan
+    sub.contactUnlocksAllowed = planDetails.contactUnlocks;
+    sub.contactUnlocksUsed = 0;
     await sub.save({ transaction: t });
 
     // Cancel any other pending subscriptions for this user
@@ -254,33 +259,52 @@ exports.getPlans = asyncHandler(async (req, res) => {
       name: 'Free',
       price: 0,
       duration: 'Unlimited',
-      features: ['basic_search', 'limited_likes', 'profile_viewing']
-    },
-    premium: {
-      name: 'Premium',
-      price: 2999,
-      duration: '30 days',
+      contactUnlocks: 0,
       features: [
-        'unlimited_likes',
-        'view_contacts',
-        'chat',
-        'who_liked_you',
-        'advanced_search'
+        'Create profile',
+        'Browse matches',
+        'Send interest',
+        'Basic search filters'
       ]
     },
-    elite: {
-      name: 'Elite',
-      price: 4999,
-      duration: '30 days',
+    basic_premium: {
+      name: 'Basic Premium',
+      price: 1999,
+      duration: '3 months',
+      contactUnlocks: 30,
       features: [
-        'unlimited_likes',
-        'view_contacts',
-        'chat',
-        'who_liked_you',
-        'advanced_search',
-        'priority_support',
-        'verified_badge',
-        'profile_boost'
+        'View contact details',
+        'Unlimited messages',
+        'See who viewed profile',
+        'Advanced search filters',
+        '30 contact unlocks'
+      ]
+    },
+    premium_plus: {
+      name: 'Premium Plus',
+      price: 3999,
+      duration: '6 months',
+      contactUnlocks: -1,
+      popular: true,
+      features: [
+        'Everything in Basic Premium',
+        'Unlimited contact unlocks',
+        'Profile boost',
+        'Spotlight listing',
+        'Priority customer support'
+      ]
+    },
+    vip: {
+      name: 'VIP',
+      price: 9999,
+      duration: '12 months',
+      contactUnlocks: -1,
+      features: [
+        'Everything in Premium Plus',
+        'Priority ranking in search',
+        'Verified badge',
+        'Dedicated relationship advisor',
+        'Exclusive member events'
       ]
     }
   };
@@ -369,3 +393,50 @@ exports.webhook = asyncHandler(async (req, res) => {
   // Always return 200 to acknowledge webhook
   res.json({ success: true });
 });
+
+// @route   GET /api/subscription/history
+// @desc    Get current user's payment/subscription history
+// @access  Private
+exports.getPaymentHistory = asyncHandler(async (req, res) => {
+  const subscriptions = await Subscription.findAll({
+    where: {
+      userId: req.user.id,
+      status: { [Op.in]: ['active', 'expired', 'cancelled'] },
+    },
+    order: [['createdAt', 'DESC']],
+    attributes: [
+      'id', 'planType', 'status', 'amount',
+      'startDate', 'endDate', 'razorpayPaymentId', 'razorpayOrderId', 'createdAt',
+    ],
+  });
+
+  res.json({ success: true, subscriptions });
+});
+
+// @route   GET /api/subscription/invoice/:subscriptionId
+// @desc    Download invoice PDF for a specific subscription (user's own only)
+// @access  Private
+exports.getInvoice = asyncHandler(async (req, res) => {
+  const { subscriptionId } = req.params;
+
+  const subscription = await Subscription.findOne({
+    where: { id: subscriptionId, userId: req.user.id },
+    include: [{
+      model: User,
+      attributes: ['id', 'email'],
+      include: [{ model: Profile, attributes: ['firstName', 'lastName'] }],
+    }],
+  });
+
+  if (!subscription) throw createError.notFound('Subscription not found');
+  if (!subscription.amount || parseFloat(subscription.amount) === 0) {
+    throw createError.badRequest('Invoice not available for free plan');
+  }
+
+  generateInvoicePDF(res, {
+    subscription,
+    user: subscription.User,
+    profile: subscription.User?.Profile,
+  });
+});
+

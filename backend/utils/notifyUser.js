@@ -1,0 +1,41 @@
+/**
+ * notifyUser — creates a DB Notification and optionally emits
+ * a real-time Socket.io event to the target user.
+ *
+ * @param {string} userId   — UUID of recipient
+ * @param {string} type     — Notification type (see Notification model enum)
+ * @param {string} title    — Short title
+ * @param {string} body     — Longer description
+ * @param {string} [relatedId] — Optional UUID of related entity
+ */
+
+const { Notification } = require('../models');
+const { getIO } = require('./socket');
+const { log } = require('../middlewares/logger');
+
+const notify = async (userId, type, title, body, relatedId = null) => {
+  try {
+    const notification = await Notification.create({ userId, type, title, body, relatedId });
+
+    // Emit real-time event if user has an active socket connection
+    const io = getIO();
+    if (io) {
+      io.to(`user_${userId}`).emit('notification', {
+        id: notification.id,
+        type,
+        title,
+        body,
+        relatedId,
+        isRead: false,
+        createdAt: notification.createdAt,
+      });
+    }
+
+    return notification;
+  } catch (err) {
+    // Non-fatal — log but don't crash the calling request
+    log('error', 'notifyUser failed', { userId, type, error: err.message });
+  }
+};
+
+module.exports = { notify };

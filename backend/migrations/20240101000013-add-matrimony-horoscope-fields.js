@@ -2,101 +2,42 @@
 
 module.exports = {
     async up(queryInterface, Sequelize) {
+        const run = (sql) => queryInterface.sequelize.query(sql);
+
         // ── Religious & Community Background ──
-        await queryInterface.addColumn('Profiles', 'religion', {
-            type: Sequelize.STRING,
-            allowNull: true
-        });
-
-        await queryInterface.addColumn('Profiles', 'caste', {
-            type: Sequelize.STRING,
-            allowNull: true
-        });
-
-        await queryInterface.addColumn('Profiles', 'subCaste', {
-            type: Sequelize.STRING,
-            allowNull: true
-        });
-
-        await queryInterface.addColumn('Profiles', 'gotra', {
-            type: Sequelize.STRING,
-            allowNull: true
-        });
-
-        await queryInterface.addColumn('Profiles', 'motherTongue', {
-            type: Sequelize.STRING,
-            allowNull: true
-        });
+        await run(`ALTER TABLE "Profiles" ADD COLUMN IF NOT EXISTS "religion" VARCHAR(255)`);
+        await run(`ALTER TABLE "Profiles" ADD COLUMN IF NOT EXISTS "caste" VARCHAR(255)`);
+        await run(`ALTER TABLE "Profiles" ADD COLUMN IF NOT EXISTS "subCaste" VARCHAR(255)`);
+        await run(`ALTER TABLE "Profiles" ADD COLUMN IF NOT EXISTS "gotra" VARCHAR(255)`);
+        await run(`ALTER TABLE "Profiles" ADD COLUMN IF NOT EXISTS "motherTongue" VARCHAR(255)`);
 
         // ── Marital Status ──
-        await queryInterface.addColumn('Profiles', 'maritalStatus', {
-            type: Sequelize.ENUM('never_married', 'divorced', 'widowed', 'awaiting_divorce'),
-            allowNull: true
-        });
-
-        await queryInterface.addColumn('Profiles', 'numberOfChildren', {
-            type: Sequelize.INTEGER,
-            allowNull: true,
-            defaultValue: 0
-        });
+        // Create ENUM types first (IF NOT EXISTS guards)
+        await run(`DO $$ BEGIN CREATE TYPE enum_profiles_maritalStatus AS ENUM ('never_married','divorced','widowed','awaiting_divorce'); EXCEPTION WHEN duplicate_object THEN null; END $$`);
+        await run(`ALTER TABLE "Profiles" ADD COLUMN IF NOT EXISTS "maritalStatus" enum_profiles_maritalStatus`);
+        await run(`ALTER TABLE "Profiles" ADD COLUMN IF NOT EXISTS "numberOfChildren" INTEGER DEFAULT 0`);
 
         // ── Horoscope & Kundli ──
-        await queryInterface.addColumn('Profiles', 'placeOfBirth', {
-            type: Sequelize.STRING,
-            allowNull: true
-        });
+        await run(`ALTER TABLE "Profiles" ADD COLUMN IF NOT EXISTS "placeOfBirth" VARCHAR(255)`);
+        await run(`ALTER TABLE "Profiles" ADD COLUMN IF NOT EXISTS "birthTime" VARCHAR(255)`);
 
-        await queryInterface.addColumn('Profiles', 'birthTime', {
-            type: Sequelize.STRING, // HH:MM format
-            allowNull: true
-        });
+        await run(`DO $$ BEGIN CREATE TYPE enum_profiles_manglikStatus AS ENUM ('manglik','non_manglik','anshik_manglik','not_sure'); EXCEPTION WHEN duplicate_object THEN null; END $$`);
+        await run(`ALTER TABLE "Profiles" ADD COLUMN IF NOT EXISTS "manglikStatus" enum_profiles_manglikStatus`);
 
-        await queryInterface.addColumn('Profiles', 'manglikStatus', {
-            type: Sequelize.ENUM('manglik', 'non_manglik', 'anshik_manglik', 'not_sure'),
-            allowNull: true
-        });
-
-        await queryInterface.addColumn('Profiles', 'zodiacSign', {
-            type: Sequelize.STRING, // Western zodiac: Aries–Pisces
-            allowNull: true
-        });
-
-        await queryInterface.addColumn('Profiles', 'rashi', {
-            type: Sequelize.STRING, // Vedic moon sign: Mesh–Meen
-            allowNull: true
-        });
-
-        await queryInterface.addColumn('Profiles', 'nakshatra', {
-            type: Sequelize.STRING, // 27 nakshatras
-            allowNull: true
-        });
+        await run(`ALTER TABLE "Profiles" ADD COLUMN IF NOT EXISTS "zodiacSign" VARCHAR(255)`);
+        await run(`ALTER TABLE "Profiles" ADD COLUMN IF NOT EXISTS "rashi" VARCHAR(255)`);
+        await run(`ALTER TABLE "Profiles" ADD COLUMN IF NOT EXISTS "nakshatra" VARCHAR(255)`);
 
         // ── Family Details ──
-        await queryInterface.addColumn('Profiles', 'familyType', {
-            type: Sequelize.ENUM('joint', 'nuclear'),
-            allowNull: true
-        });
+        await run(`DO $$ BEGIN CREATE TYPE enum_profiles_familyType AS ENUM ('joint','nuclear'); EXCEPTION WHEN duplicate_object THEN null; END $$`);
+        await run(`ALTER TABLE "Profiles" ADD COLUMN IF NOT EXISTS "familyType" enum_profiles_familyType`);
 
-        await queryInterface.addColumn('Profiles', 'familyStatus', {
-            type: Sequelize.ENUM('middle_class', 'upper_middle_class', 'affluent', 'rich'),
-            allowNull: true
-        });
+        await run(`DO $$ BEGIN CREATE TYPE enum_profiles_familyStatus AS ENUM ('middle_class','upper_middle_class','affluent','rich'); EXCEPTION WHEN duplicate_object THEN null; END $$`);
+        await run(`ALTER TABLE "Profiles" ADD COLUMN IF NOT EXISTS "familyStatus" enum_profiles_familyStatus`);
 
-        await queryInterface.addColumn('Profiles', 'fatherOccupation', {
-            type: Sequelize.STRING,
-            allowNull: true
-        });
-
-        await queryInterface.addColumn('Profiles', 'motherOccupation', {
-            type: Sequelize.STRING,
-            allowNull: true
-        });
-
-        await queryInterface.addColumn('Profiles', 'numberOfSiblings', {
-            type: Sequelize.INTEGER,
-            allowNull: true,
-            defaultValue: 0
-        });
+        await run(`ALTER TABLE "Profiles" ADD COLUMN IF NOT EXISTS "fatherOccupation" VARCHAR(255)`);
+        await run(`ALTER TABLE "Profiles" ADD COLUMN IF NOT EXISTS "motherOccupation" VARCHAR(255)`);
+        await run(`ALTER TABLE "Profiles" ADD COLUMN IF NOT EXISTS "numberOfSiblings" INTEGER DEFAULT 0`);
     },
 
     async down(queryInterface, Sequelize) {

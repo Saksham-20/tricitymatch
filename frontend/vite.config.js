@@ -48,8 +48,11 @@ export default defineConfig(({ mode }) => {
 
     // Path aliases (include workspace root node_modules for hoisted deps like dompurify)
     resolve: {
+      // dedupe forces a single instance of these packages even in a monorepo
+      dedupe: ['react', 'react-dom', 'react-router-dom', 'recharts'],
       alias: {
         dompurify: path.resolve(__dirname, '../node_modules/dompurify'),
+        clsx: path.resolve(__dirname, '../node_modules/clsx'),
         '@': path.resolve(__dirname, './src'),
         '@components': path.resolve(__dirname, './src/components'),
         '@pages': path.resolve(__dirname, './src/pages'),
@@ -136,6 +139,7 @@ export default defineConfig(({ mode }) => {
         'axios',
         'socket.io-client',
         'dompurify',
+        'recharts',
       ],
       exclude: [],
     },

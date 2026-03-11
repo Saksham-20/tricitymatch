@@ -11,7 +11,9 @@ const {
   verifyPayment, 
   getMySubscription, 
   getPlans, 
-  webhook 
+  webhook,
+  getPaymentHistory,
+  getInvoice,
 } = require('../controllers/subscriptionController');
 const { auth } = require('../middlewares/auth');
 const { handleValidationErrors, createError } = require('../middlewares/errorHandler');
@@ -99,6 +101,19 @@ router.post('/verify-payment',
   verifyPaymentValidation,
   handleValidationErrors,
   verifyPayment
+);
+
+// Payment history
+router.get('/history', auth, getPaymentHistory);
+
+// Download invoice PDF
+router.get('/invoice/:subscriptionId',
+  auth,
+  (req, res, next) => {
+    const { param } = require('express-validator');
+    param('subscriptionId').isUUID(4)(req, res, next);
+  },
+  getInvoice
 );
 
 module.exports = router;

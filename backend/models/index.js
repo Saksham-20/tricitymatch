@@ -7,6 +7,10 @@ const Message = require('./Message');
 const Verification = require('./Verification');
 const ProfileView = require('./ProfileView');
 const RefreshToken = require('./RefreshToken');
+const Block = require('./Block');
+const Report = require('./Report');
+const Notification = require('./Notification');
+const ContactUnlock = require('./ContactUnlock');
 
 // Define Relationships
 User.hasOne(Profile, { foreignKey: 'userId', onDelete: 'CASCADE' });
@@ -41,6 +45,29 @@ ProfileView.belongsTo(User, { foreignKey: 'viewedUserId', as: 'ViewedUser' });
 User.hasMany(RefreshToken, { foreignKey: 'userId', onDelete: 'CASCADE' });
 RefreshToken.belongsTo(User, { foreignKey: 'userId' });
 
+// Block relationships
+User.hasMany(Block, { foreignKey: 'blockerId', as: 'BlockedUsers', onDelete: 'CASCADE' });
+User.hasMany(Block, { foreignKey: 'blockedUserId', as: 'BlockedBy', onDelete: 'CASCADE' });
+Block.belongsTo(User, { foreignKey: 'blockerId', as: 'Blocker' });
+Block.belongsTo(User, { foreignKey: 'blockedUserId', as: 'BlockedUser' });
+
+// Report relationships
+User.hasMany(Report, { foreignKey: 'reporterId', as: 'ReportsFiled', onDelete: 'CASCADE' });
+User.hasMany(Report, { foreignKey: 'reportedUserId', as: 'ReportsReceived', onDelete: 'CASCADE' });
+Report.belongsTo(User, { foreignKey: 'reporterId', as: 'Reporter' });
+Report.belongsTo(User, { foreignKey: 'reportedUserId', as: 'ReportedUser' });
+Report.belongsTo(User, { foreignKey: 'reviewedBy', as: 'Reviewer' });
+
+// Notification relationships
+User.hasMany(Notification, { foreignKey: 'userId', onDelete: 'CASCADE' });
+Notification.belongsTo(User, { foreignKey: 'userId' });
+
+// ContactUnlock relationships
+User.hasMany(ContactUnlock, { foreignKey: 'userId', as: 'ContactUnlocks', onDelete: 'CASCADE' });
+User.hasMany(ContactUnlock, { foreignKey: 'targetUserId', as: 'UnlockedBy', onDelete: 'CASCADE' });
+ContactUnlock.belongsTo(User, { foreignKey: 'userId', as: 'Unlocker' });
+ContactUnlock.belongsTo(User, { foreignKey: 'targetUserId', as: 'UnlockedUser' });
+
 module.exports = {
   sequelize,
   User,
@@ -50,6 +77,10 @@ module.exports = {
   Message,
   Verification,
   ProfileView,
-  RefreshToken
+  RefreshToken,
+  Block,
+  Report,
+  Notification,
+  ContactUnlock,
 };
 

@@ -7,6 +7,8 @@ import { SocketProvider } from './context/SocketContext';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import LoadingSpinner, { PageSkeleton } from './components/common/LoadingSpinner';
 import ProtectedRoute from './components/common/ProtectedRoute';
+import AdminProtectedRoute from './components/admin/AdminProtectedRoute';
+import AdminLayout from './components/admin/AdminLayout';
 import Navbar from './components/common/Navbar';
 import BottomNav from './components/common/BottomNav';
 
@@ -19,6 +21,18 @@ const Login = lazy(() => import('./pages/Login'));
 const Signup = lazy(() => import('./pages/Signup'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const Terms = lazy(() => import('./pages/Terms'));
+const Privacy = lazy(() => import('./pages/Privacy'));
+
+// Admin pages
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
+const AdminUserDetail = lazy(() => import('./pages/admin/AdminUserDetail'));
+const AdminCreateUser = lazy(() => import('./pages/admin/AdminCreateUser'));
+const AdminVerifications = lazy(() => import('./pages/admin/AdminVerifications'));
+const AdminSubscriptions = lazy(() => import('./pages/admin/AdminSubscriptions'));
+const AdminRevenue = lazy(() => import('./pages/admin/AdminRevenue'));
+const AdminReports = lazy(() => import('./pages/admin/AdminReports'));
 
 // Protected pages (load on demand)
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -28,6 +42,11 @@ const ProfileDetail = lazy(() => import('./pages/ProfileDetail'));
 const Search = lazy(() => import('./pages/Search'));
 const Chat = lazy(() => import('./pages/Chat'));
 const Subscription = lazy(() => import('./pages/Subscription'));
+const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
+const PaymentFailed = lazy(() => import('./pages/PaymentFailed'));
+const PaymentHistory = lazy(() => import('./pages/PaymentHistory'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Notifications = lazy(() => import('./pages/Notifications'));
 
 // ==================== PAGE TRANSITION ====================
 
@@ -88,6 +107,16 @@ const AnimatedRoutes = () => {
           <Route path="/reset-password" element={
             <PageTransition>
               <ResetPassword />
+            </PageTransition>
+          } />
+          <Route path="/terms" element={
+            <PageTransition>
+              <Terms />
+            </PageTransition>
+          } />
+          <Route path="/privacy" element={
+            <PageTransition>
+              <Privacy />
             </PageTransition>
           } />
 
@@ -162,6 +191,73 @@ const AnimatedRoutes = () => {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/payment/success"
+            element={
+              <ProtectedRoute>
+                <PaymentSuccess />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/payment/failed"
+            element={
+              <ProtectedRoute>
+                <PaymentFailed />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/payment/history"
+            element={
+              <ProtectedRoute>
+                <PageTransition>
+                  <PaymentHistory />
+                </PageTransition>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <PageTransition>
+                  <Settings />
+                </PageTransition>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <PageTransition>
+                  <Notifications />
+                </PageTransition>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Admin Routes - bypass Navbar/BottomNav via AppContent check */}
+          <Route path="/admin/login" element={<Navigate to="/login" replace />} />
+          <Route
+            path="/admin/*"
+            element={
+              <AdminProtectedRoute>
+                <AdminLayout />
+              </AdminProtectedRoute>
+            }
+          >
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard"     element={<AdminDashboard />} />
+            <Route path="users"         element={<AdminUsers />} />
+            <Route path="users/create"  element={<AdminCreateUser />} />
+            <Route path="users/:userId" element={<AdminUserDetail />} />
+            <Route path="verifications" element={<AdminVerifications />} />
+            <Route path="subscriptions" element={<AdminSubscriptions />} />
+            <Route path="revenue"       element={<AdminRevenue />} />
+            <Route path="reports"       element={<AdminReports />} />
+          </Route>
 
           {/* Catch-all redirect */}
           <Route path="*" element={<Navigate to="/" replace />} />
@@ -176,9 +272,23 @@ const AnimatedRoutes = () => {
 const AppContent = () => {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith('/admin');
   
-  // Don't show bottom nav on chat page (it has its own navigation)
-  const showBottomNav = isAuthenticated && location.pathname !== '/chat';
+  // Don't show bottom nav on chat page or admin pages (admin has its own nav)
+  const showBottomNav = isAuthenticated && location.pathname !== '/chat' && !isAdminRoute;
+
+  // Admin routes render without Navbar/BottomNav/Toaster
+  if (isAdminRoute) {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-600" />
+        </div>
+      }>
+        <AnimatedRoutes />
+      </Suspense>
+    );
+  }
   
   return (
     <>

@@ -6,12 +6,18 @@
 const express = require('express');
 const router = express.Router();
 const { 
-  getUsers, 
+  getUsers,
+  getUser,
+  createUser,
   updateUserStatus, 
+  updateSubscription,
   getVerifications, 
   updateVerification, 
   getAnalytics,
-  getReports
+  getReports,
+  updateReport,
+  getRevenueReport,
+  adminGetInvoice,
 } = require('../controllers/adminController');
 const { auth, adminAuth } = require('../middlewares/auth');
 const { handleValidationErrors } = require('../middlewares/errorHandler');
@@ -21,46 +27,51 @@ const {
   updateVerificationValidation, 
   adminSearchValidation 
 } = require('../validators');
+const { body, param } = require('express-validator');
 
 // All admin routes require authentication and admin role
 router.use(auth, adminAuth, adminLimiter);
 
 // ==================== USER MANAGEMENT ====================
 
-// Get all users with filters
-router.get('/users', 
-  adminSearchValidation,
+router.get('/users', adminSearchValidation, handleValidationErrors, getUsers);
+router.post('/users', createUser);
+router.get('/users/:userId', param('userId').isUUID(4), handleValidationErrors, getUser);
+router.put('/users/:userId/status', updateUserStatusValidation, handleValidationErrors, updateUserStatus);
+router.put('/users/:userId/subscription',
+  param('userId').isUUID(4),
+  body('planType').isIn(['free', 'premium', 'elite']),
   handleValidationErrors,
-  getUsers
-);
-
-// Update user status
-router.put('/users/:userId/status', 
-  updateUserStatusValidation,
-  handleValidationErrors,
-  updateUserStatus
+  updateSubscription
 );
 
 // ==================== VERIFICATION MANAGEMENT ====================
 
-// Get pending verifications
 router.get('/verifications', getVerifications);
+router.put('/verifications/:verificationId', updateVerificationValidation, handleValidationErrors, updateVerification);
 
-// Approve/reject verification
-router.put('/verifications/:verificationId', 
-  updateVerificationValidation,
-  handleValidationErrors,
-  updateVerification
-);
+// ==================== ANALYTICS & REVENUE ====================
 
-// ==================== ANALYTICS ====================
-
-// Get analytics data
 router.get('/analytics', getAnalytics);
+router.get('/revenue', getRevenueReport);
 
 // ==================== REPORTS ====================
 
-// Get reported users/issues
 router.get('/reports', getReports);
+router.put('/reports/:reportId',
+  param('reportId').isUUID(4),
+  body('status').isIn(['reviewed', 'dismissed']),
+  handleValidationErrors,
+  updateReport
+);
+
+// ==================== INVOICES ====================
+
+router.get('/invoice/:subscriptionId',
+  param('subscriptionId').isUUID(4),
+  handleValidationErrors,
+  adminGetInvoice
+);
 
 module.exports = router;
+

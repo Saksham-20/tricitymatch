@@ -30,6 +30,7 @@ const Badge = ({
     info: 'bg-blue-100 text-blue-700',
     premium: 'bg-gradient-to-r from-amber-400 to-orange-400 text-white',
     elite: 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white',
+    vip: 'bg-gradient-to-r from-yellow-400 via-amber-400 to-orange-500 text-white shadow-sm',
   };
 
   const sizes = {
@@ -49,6 +50,7 @@ const Badge = ({
     info: 'bg-blue-500',
     premium: 'bg-white',
     elite: 'bg-white',
+    vip: 'bg-white',
   };
 
   return (

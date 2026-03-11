@@ -16,7 +16,7 @@ const Subscription = sequelize.define('Subscription', {
     }
   },
   planType: {
-    type: DataTypes.ENUM('free', 'premium', 'elite'),
+    type: DataTypes.ENUM('free', 'basic_premium', 'premium_plus', 'vip'),
     defaultValue: 'free'
   },
   razorpayOrderId: {
@@ -50,6 +50,18 @@ const Subscription = sequelize.define('Subscription', {
   autoRenew: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
+  },
+  contactUnlocksAllowed: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: null,
+    comment: 'Max contact unlocks for this plan. NULL = unlimited.'
+  },
+  contactUnlocksUsed: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+    comment: 'Number of contact unlocks used so far.'
   }
 }, {
   indexes: [

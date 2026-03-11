@@ -123,25 +123,49 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
 
   // Batch query for match statuses (fixes N+1)
   const profileUserIds = profiles.map(p => p.userId);
-  const existingMatches = profileUserIds.length > 0
-    ? await Match.findAll({
-      where: {
-        userId,
-        matchedUserId: { [Op.in]: profileUserIds }
-      }
-    })
-    : [];
+  const [existingMatches, activeSubscriptions] = await Promise.all([
+    profileUserIds.length > 0
+      ? Match.findAll({
+        where: {
+          userId,
+          matchedUserId: { [Op.in]: profileUserIds }
+        }
+      })
+      : [],
+    profileUserIds.length > 0
+      ? Subscription.findAll({
+        where: {
+          userId: { [Op.in]: profileUserIds },
+          status: 'active',
+          planType: { [Op.in]: ['basic_premium', 'premium_plus', 'vip'] },
+          [Op.or]: [{ endDate: null }, { endDate: { [Op.gt]: new Date() } }]
+        },
+        attributes: ['userId', 'planType']
+      })
+      : []
+  ]);
 
-  // Create lookup map
+  // Create lookup maps
   const matchMap = new Map();
   existingMatches.forEach(match => {
     matchMap.set(match.matchedUserId, match);
+  });
+
+  // Keep highest plan per user (vip > premium_plus > basic_premium)
+  const planRank = { vip: 3, premium_plus: 2, basic_premium: 1 };
+  const subMap = new Map();
+  activeSubscriptions.forEach(s => {
+    const existing = subMap.get(s.userId);
+    if (!existing || (planRank[s.planType] || 0) > (planRank[existing] || 0)) {
+      subMap.set(s.userId, s.planType);
+    }
   });
 
   // Calculate compatibility for each profile
   const profilesWithCompatibility = profiles.map((profile) => {
     const compatibilityScore = calculateCompatibility(currentProfile, profile);
     const match = matchMap.get(profile.userId);
+    const premiumPlan = subMap.get(profile.userId) || null;
 
     const raw = profile.toJSON();
     const profileData = {
@@ -149,7 +173,9 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
       userId: raw.userId || raw.User?.id || profile.userId,
       compatibilityScore,
       matchStatus: match ? match.action : null,
-      isMutual: match ? match.isMutual : false
+      isMutual: match ? match.isMutual : false,
+      isPremium: !!premiumPlan,
+      premiumPlan
     };
 
     // Remove nested User object
@@ -160,11 +186,21 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
     return profileData;
   });
 
-  // Sort by compatibility if requested
+  // Boost premium members toward the top while preserving compatibility ordering
+  const premiumBoost = (plan) => {
+    if (plan === 'vip') return 20;
+    if (plan === 'premium_plus') return 10;
+    if (plan === 'basic_premium') return 5;
+    return 0;
+  };
+
+  // Sort by compatibility if requested (premium members get a boost)
   if (sortBy === 'compatibility') {
-    profilesWithCompatibility.sort((a, b) =>
-      (b.compatibilityScore || 0) - (a.compatibilityScore || 0)
-    );
+    profilesWithCompatibility.sort((a, b) => {
+      const scoreA = (a.compatibilityScore || 0) + premiumBoost(a.premiumPlan);
+      const scoreB = (b.compatibilityScore || 0) + premiumBoost(b.premiumPlan);
+      return scoreB - scoreA;
+    });
   }
 
   // Get total count
@@ -224,25 +260,61 @@ exports.getSuggestions = asyncHandler(async (req, res) => {
     limit: limit * 2 // Get more to filter by compatibility
   });
 
-  // Calculate compatibility and sort
+  // Batch-fetch active subscriptions for suggestion profiles
+  const suggestionUserIds = profiles.map(p => p.userId);
+  const suggestionSubs = suggestionUserIds.length > 0
+    ? await Subscription.findAll({
+      where: {
+        userId: { [Op.in]: suggestionUserIds },
+        status: 'active',
+        planType: { [Op.in]: ['basic_premium', 'premium_plus', 'vip'] },
+        [Op.or]: [{ endDate: null }, { endDate: { [Op.gt]: new Date() } }]
+      },
+      attributes: ['userId', 'planType']
+    })
+    : [];
+
+  const planRankSug = { vip: 3, premium_plus: 2, basic_premium: 1 };
+  const subMapSug = new Map();
+  suggestionSubs.forEach(s => {
+    const existing = subMapSug.get(s.userId);
+    if (!existing || (planRankSug[s.planType] || 0) > (planRankSug[existing] || 0)) {
+      subMapSug.set(s.userId, s.planType);
+    }
+  });
+
+  // Calculate compatibility and sort (with premium boost)
+  const premiumBoostSug = (plan) => {
+    if (plan === 'vip') return 20;
+    if (plan === 'premium_plus') return 10;
+    if (plan === 'basic_premium') return 5;
+    return 0;
+  };
+
   const profilesWithCompatibility = profiles.map(profile => ({
     profile,
-    compatibilityScore: calculateCompatibility(currentProfile, profile)
+    compatibilityScore: calculateCompatibility(currentProfile, profile),
+    premiumPlan: subMapSug.get(profile.userId) || null
   }));
 
-  profilesWithCompatibility.sort((a, b) =>
-    b.compatibilityScore - a.compatibilityScore
-  );
+  profilesWithCompatibility.sort((a, b) => {
+    const scoreA = a.compatibilityScore + premiumBoostSug(a.premiumPlan);
+    const scoreB = b.compatibilityScore + premiumBoostSug(b.premiumPlan);
+    return scoreB - scoreA;
+  });
 
   // Return top matches
   const topMatches = profilesWithCompatibility
     .slice(0, limit)
     .map(item => {
       const raw = item.profile.toJSON();
+      const premiumPlan = item.premiumPlan;
       const profileData = {
         ...raw,
         userId: raw.userId || raw.User?.id || item.profile.userId,
-        compatibilityScore: item.compatibilityScore
+        compatibilityScore: item.compatibilityScore,
+        isPremium: !!premiumPlan,
+        premiumPlan
       };
 
       if (profileData.User) {

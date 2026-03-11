@@ -28,17 +28,47 @@ const getRazorpayInstance = () => {
 
 // Subscription plans configuration
 const PLANS = {
-  premium: {
-    name: 'Premium',
-    amount: 2999, // in paise (₹29.99)
-    duration: 30, // days
-    features: ['unlimited_likes', 'view_contacts', 'chat', 'who_liked_you']
+  basic_premium: {
+    name: 'Basic Premium',
+    amount: 199900,       // ₹1,999 in paise
+    duration: 90,          // 3 months
+    contactUnlocks: 30,    // Limited unlocks
+    features: [
+      'view_contacts',
+      'unlimited_messages',
+      'who_viewed_profile',
+      'advanced_search'
+    ]
   },
-  elite: {
-    name: 'Elite',
-    amount: 4999, // in paise (₹49.99)
-    duration: 30, // days
-    features: ['unlimited_likes', 'view_contacts', 'chat', 'who_liked_you', 'priority_support', 'verified_badge']
+  premium_plus: {
+    name: 'Premium Plus',
+    amount: 399900,       // ₹3,999 in paise
+    duration: 180,         // 6 months
+    contactUnlocks: null,  // Unlimited
+    features: [
+      'view_contacts',
+      'unlimited_messages',
+      'who_viewed_profile',
+      'advanced_search',
+      'profile_boost',
+      'spotlight_listing'
+    ]
+  },
+  vip: {
+    name: 'VIP',
+    amount: 999900,       // ₹9,999 in paise
+    duration: 365,         // 12 months
+    contactUnlocks: null,  // Unlimited
+    features: [
+      'view_contacts',
+      'unlimited_messages',
+      'who_viewed_profile',
+      'advanced_search',
+      'profile_boost',
+      'spotlight_listing',
+      'priority_ranking',
+      'verified_badge'
+    ]
   }
 };
 

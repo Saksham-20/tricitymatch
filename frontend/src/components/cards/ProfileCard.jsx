@@ -181,9 +181,29 @@ const ProfileCard = ({
 
           {/* Info */}
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-sm text-neutral-800 truncate group-hover:text-primary-500 transition-colors">
-              {fullName}
-            </h3>
+            <div className="flex items-center gap-1 min-w-0">
+              <h3 className="font-semibold text-sm text-neutral-800 truncate group-hover:text-primary-500 transition-colors">
+                {fullName}
+              </h3>
+              {profile.isPremium && (
+                <FaCrown
+                  className={`w-3 h-3 flex-shrink-0 ${
+                    profile.premiumPlan === 'vip'
+                      ? 'text-amber-400'
+                      : profile.premiumPlan === 'premium_plus'
+                      ? 'text-purple-500'
+                      : 'text-rose-400'
+                  }`}
+                  title={
+                    profile.premiumPlan === 'vip'
+                      ? 'VIP Member'
+                      : profile.premiumPlan === 'premium_plus'
+                      ? 'Premium Plus Member'
+                      : 'Premium Member'
+                  }
+                />
+              )}
+            </div>
             <p className="text-xs text-neutral-500">{getAge()} yrs · {profile.city || '—'}</p>
             {profile.compatibilityScore && (
               <div className="mt-1.5">
@@ -313,15 +333,26 @@ const ProfileCard = ({
           </motion.div>
         )}
 
-        {/* Premium crown */}
+        {/* Premium crown badge — tier-specific */}
         {profile.isPremium && (
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.4, type: 'spring' }}
-            className="absolute top-3.5 right-14 w-8 h-8 rounded-full bg-gradient-to-br from-gold-400 to-gold-500 flex items-center justify-center shadow-gold"
+            className={`absolute top-3.5 right-14 flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold text-white shadow-lg ${
+              profile.premiumPlan === 'vip'
+                ? 'bg-gradient-to-r from-amber-400 to-yellow-500'
+                : profile.premiumPlan === 'premium_plus'
+                ? 'bg-gradient-to-r from-purple-500 to-indigo-500'
+                : 'bg-gradient-to-r from-rose-400 to-pink-500'
+            }`}
           >
-            <FaCrown className="w-3.5 h-3.5 text-white" />
+            <FaCrown className="w-3 h-3" />
+            {profile.premiumPlan === 'vip'
+              ? 'VIP'
+              : profile.premiumPlan === 'premium_plus'
+              ? 'Plus'
+              : 'Premium'}
           </motion.div>
         )}
 
@@ -366,9 +397,14 @@ const ProfileCard = ({
         {/* Name + age + score arc */}
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="min-w-0 flex-1">
-            <h3 className="font-display text-lg font-semibold text-neutral-800 group-hover:text-primary-500 transition-colors truncate leading-snug">
-              {fullName}
-            </h3>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <h3 className="font-display text-lg font-semibold text-neutral-800 group-hover:text-primary-500 transition-colors truncate leading-snug">
+                {fullName}
+              </h3>
+              {(profile.verificationStatus === 'approved' || profile.User?.verificationStatus === 'approved' || profile.isVerified) && (
+                <FiCheckCircle className="w-4 h-4 text-blue-500 flex-shrink-0" title="Verified profile" />
+              )}
+            </div>
             <p className="text-[13px] text-neutral-400 mt-0.5 font-medium">
               {getAge()} yrs
             </p>

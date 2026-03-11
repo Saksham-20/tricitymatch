@@ -72,12 +72,13 @@ module.exports = {
       }
     });
 
-    // Add indexes
-    await queryInterface.addIndex('RefreshTokens', ['userId']);
-    await queryInterface.addIndex('RefreshTokens', ['tokenHash'], { unique: true });
-    await queryInterface.addIndex('RefreshTokens', ['family']);
-    await queryInterface.addIndex('RefreshTokens', ['expiresAt']);
-    await queryInterface.addIndex('RefreshTokens', ['isRevoked']);
+    // Add indexes — use raw SQL so re-running is safe if indexes already exist
+    const qi = queryInterface.sequelize;
+    await qi.query('CREATE INDEX IF NOT EXISTS "refresh_tokens_user_id" ON "RefreshTokens" ("userId")');
+    await qi.query('CREATE UNIQUE INDEX IF NOT EXISTS "refresh_tokens_token_hash" ON "RefreshTokens" ("tokenHash")');
+    await qi.query('CREATE INDEX IF NOT EXISTS "refresh_tokens_family" ON "RefreshTokens" ("family")');
+    await qi.query('CREATE INDEX IF NOT EXISTS "refresh_tokens_expires_at" ON "RefreshTokens" ("expiresAt")');
+    await qi.query('CREATE INDEX IF NOT EXISTS "refresh_tokens_is_revoked" ON "RefreshTokens" ("isRevoked")');
   },
 
   async down(queryInterface, Sequelize) {

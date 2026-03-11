@@ -16,6 +16,15 @@ module.exports = {
     await run('CREATE INDEX IF NOT EXISTS idx_verifications_status_created ON "Verifications" (status, "createdAt");');
 
     // ==================== PROFILE_VIEWS TABLE ====================
+    // Remove duplicate (viewerId, viewedUserId) rows keeping the most recent one
+    await run(`
+      DELETE FROM "ProfileViews"
+      WHERE id NOT IN (
+        SELECT DISTINCT ON ("viewerId", "viewedUserId") id
+        FROM "ProfileViews"
+        ORDER BY "viewerId", "viewedUserId", "createdAt" DESC
+      )
+    `);
     await run('CREATE UNIQUE INDEX IF NOT EXISTS idx_profile_views_viewer_viewed_unique ON "ProfileViews" ("viewerId", "viewedUserId");');
     await run('CREATE INDEX IF NOT EXISTS idx_profile_views_viewed_created ON "ProfileViews" ("viewedUserId", "createdAt");');
 
