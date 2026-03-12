@@ -18,17 +18,18 @@ const PLAN_FEATURES = {
     'Unlimited messages',
     'See who viewed profile',
     'Advanced search filters',
-    '30 contact unlocks',
+    '5 contact unlocks',
   ],
   premium_plus: [
     'Everything in Basic Premium',
-    'Unlimited contact unlocks',
+    '10 contact unlocks',
     'Profile boost',
     'Spotlight listing',
     'Priority customer support',
   ],
   vip: [
     'Everything in Premium Plus',
+    'Unlimited contact unlocks',
     'Priority ranking in search',
     'Verified badge',
     'Dedicated relationship advisor',
@@ -39,9 +40,9 @@ const PLAN_FEATURES = {
 // ─── Plan card config ─────────────────────────
 const PLAN_CONFIG = {
   free:           { label: 'Free',          accent: 'neutral',  icon: null,     cta: 'Free Forever' },
-  basic_premium:  { label: 'Basic Premium', accent: 'primary',  icon: FiZap,    cta: 'Get Basic',   duration: '3 months', price: 1999  },
-  premium_plus:   { label: 'Premium Plus',  accent: 'primary',  icon: FaCrown,  cta: 'Get Premium+', duration: '6 months', price: 3999  },
-  vip:            { label: 'VIP',           accent: 'gold',     icon: FiShield, cta: 'Get VIP',      duration: '12 months', price: 9999 },
+  basic_premium:  { label: 'Basic Premium', accent: 'primary',  icon: FiZap,    cta: 'Get Basic',   duration: '15 days',  price: 1500  },
+  premium_plus:   { label: 'Premium Plus',  accent: 'primary',  icon: FaCrown,  cta: 'Get Premium+', duration: '1 month',  price: 3000  },
+  vip:            { label: 'VIP',           accent: 'gold',     icon: FiShield, cta: 'Get VIP',      duration: '3 months', price: 7499  },
 };
 
 // ─── Single plan card ─────────────────────────
@@ -52,11 +53,9 @@ const PlanCard = ({ planKey, plan, isPopular, isCurrent, onSubscribe }) => {
   const free = planKey === 'free';
   const displayPrice = plan.price || cfg.price || 0;
 
-  // Compute per-month price for display
+  // Compute per-month price for display (only show for multi-month plans)
   let perMonth = null;
-  if (planKey === 'basic_premium') perMonth = Math.round(displayPrice / 3);
-  if (planKey === 'premium_plus') perMonth = Math.round(displayPrice / 6);
-  if (planKey === 'vip') perMonth = Math.round(displayPrice / 12);
+  if (planKey === 'vip') perMonth = Math.round(displayPrice / 3);
 
   return (
     <motion.div

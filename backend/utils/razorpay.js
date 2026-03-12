@@ -1,5 +1,6 @@
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
+const config = require('../config/env');
 
 // Lazy initialization - only create Razorpay instance if valid keys are provided
 let razorpay = null;
@@ -30,9 +31,9 @@ const getRazorpayInstance = () => {
 const PLANS = {
   basic_premium: {
     name: 'Basic Premium',
-    amount: 199900,       // ₹1,999 in paise
-    duration: 90,          // 3 months
-    contactUnlocks: 30,    // Limited unlocks
+    amount: 150000,       // ₹1,500 in paise
+    duration: 15,          // 15 days
+    contactUnlocks: 5,     // 5 contact unlocks
     features: [
       'view_contacts',
       'unlimited_messages',
@@ -42,9 +43,9 @@ const PLANS = {
   },
   premium_plus: {
     name: 'Premium Plus',
-    amount: 399900,       // ₹3,999 in paise
-    duration: 180,         // 6 months
-    contactUnlocks: null,  // Unlimited
+    amount: 300000,       // ₹3,000 in paise
+    duration: 30,          // 1 month
+    contactUnlocks: 10,    // 10 contact unlocks
     features: [
       'view_contacts',
       'unlimited_messages',
@@ -56,8 +57,8 @@ const PLANS = {
   },
   vip: {
     name: 'VIP',
-    amount: 999900,       // ₹9,999 in paise
-    duration: 365,         // 12 months
+    amount: 749900,       // ₹7,499 in paise
+    duration: 90,          // 3 months
     contactUnlocks: null,  // Unlimited
     features: [
       'view_contacts',
@@ -108,8 +109,12 @@ const createOrder = async (planType, userId) => {
 
 const verifyPayment = (razorpayOrderId, razorpayPaymentId, razorpaySignature) => {
   const body = razorpayOrderId + '|' + razorpayPaymentId;
+  const keySecret = config.razorpay.keySecret;
+  if (!keySecret) {
+    throw new Error('Razorpay key secret is not configured');
+  }
   const expectedSignature = crypto
-    .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+    .createHmac('sha256', keySecret)
     .update(body.toString())
     .digest('hex');
 

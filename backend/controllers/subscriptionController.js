@@ -269,26 +269,26 @@ exports.getPlans = asyncHandler(async (req, res) => {
     },
     basic_premium: {
       name: 'Basic Premium',
-      price: 1999,
-      duration: '3 months',
-      contactUnlocks: 30,
+      price: 1500,
+      duration: '15 days',
+      contactUnlocks: 5,
       features: [
         'View contact details',
         'Unlimited messages',
         'See who viewed profile',
         'Advanced search filters',
-        '30 contact unlocks'
+        '5 contact unlocks'
       ]
     },
     premium_plus: {
       name: 'Premium Plus',
-      price: 3999,
-      duration: '6 months',
-      contactUnlocks: -1,
+      price: 3000,
+      duration: '1 month',
+      contactUnlocks: 10,
       popular: true,
       features: [
         'Everything in Basic Premium',
-        'Unlimited contact unlocks',
+        '10 contact unlocks',
         'Profile boost',
         'Spotlight listing',
         'Priority customer support'
@@ -296,11 +296,12 @@ exports.getPlans = asyncHandler(async (req, res) => {
     },
     vip: {
       name: 'VIP',
-      price: 9999,
-      duration: '12 months',
+      price: 7499,
+      duration: '3 months',
       contactUnlocks: -1,
       features: [
         'Everything in Premium Plus',
+        'Unlimited contact unlocks',
         'Priority ranking in search',
         'Verified badge',
         'Dedicated relationship advisor',

@@ -24,7 +24,8 @@ const { handleValidationErrors } = require('../middlewares/errorHandler');
 const { 
   authLimiter, 
   signupLimiter, 
-  passwordResetLimiter 
+  passwordResetLimiter,
+  checkAccountLockout
 } = require('../middlewares/security');
 const { 
   signupValidation, 
@@ -48,6 +49,7 @@ router.post('/signup',
 // Login - auth rate limiting with account lockout check
 router.post('/login', 
   authLimiter,
+  checkAccountLockout,
   loginValidation, 
   handleValidationErrors, 
   login

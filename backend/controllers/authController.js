@@ -16,7 +16,7 @@ const useSecureCookies = config.isProduction && (config.server.frontendUrl || ''
 const getCookieOptions = (maxAge) => ({
   httpOnly: true,
   secure: useSecureCookies,
-  sameSite: config.isProduction ? 'lax' : 'lax', // lax allows cookies on same-site cross-origin (e.g. port 3000 -> 5001)
+  sameSite: 'lax', // lax allows cookies on same-site cross-origin (e.g. port 3000 -> 5001)
   maxAge,
   path: '/',
 });
@@ -137,10 +137,9 @@ exports.signup = asyncHandler(async (req, res) => {
       email: result.email,
       role: result.role
     },
-    // Also return tokens in body for clients that can't use cookies
+    // Access token returned for non-cookie clients; refresh token is httpOnly cookie only
     tokens: {
       accessToken,
-      refreshToken,
       expiresIn: config.auth.jwtExpiry
     }
   });
@@ -204,9 +203,9 @@ exports.login = asyncHandler(async (req, res) => {
       email: user.email,
       role: user.role
     },
+    // Access token returned for non-cookie clients; refresh token is httpOnly cookie only
     tokens: {
       accessToken,
-      refreshToken,
       expiresIn: config.auth.jwtExpiry
     }
   });
@@ -271,7 +270,6 @@ exports.refreshToken = asyncHandler(async (req, res) => {
     message: 'Token refreshed',
     tokens: {
       accessToken: newAccessToken,
-      refreshToken: newRefreshToken,
       expiresIn: config.auth.jwtExpiry
     }
   });
@@ -349,9 +347,16 @@ exports.forgotPassword = asyncHandler(async (req, res) => {
     return res.json({ success: true, message: genericMessage });
   }
 
-  // Generate reset token (short-lived)
+  // Generate reset token (short-lived, tied to current password so it's single-use)
+  // Including a fingerprint of the current password hash invalidates the token
+  // automatically once the password is changed.
+  const pwdFingerprint = require('crypto')
+    .createHash('sha256')
+    .update(user.password)
+    .digest('hex')
+    .substring(0, 16);
   const resetToken = jwt.sign(
-    { userId: user.id, type: 'password_reset' },
+    { userId: user.id, type: 'password_reset', pwdFp: pwdFingerprint },
     config.auth.jwtSecret,
     { expiresIn: config.auth.resetTokenExpiry }
   );
@@ -394,6 +399,19 @@ exports.resetPassword = asyncHandler(async (req, res) => {
   const user = await User.findByPk(decoded.userId);
   if (!user) {
     throw createError.notFound('User not found');
+  }
+
+  // Verify the password fingerprint matches — if the password has already been changed
+  // (e.g. token used once, or user reset password via another method), reject the token.
+  if (decoded.pwdFp) {
+    const currentFp = require('crypto')
+      .createHash('sha256')
+      .update(user.password)
+      .digest('hex')
+      .substring(0, 16);
+    if (currentFp !== decoded.pwdFp) {
+      throw createError.badRequest('Reset token has already been used or is no longer valid');
+    }
   }
 
   // Update password (will be hashed by model hook)

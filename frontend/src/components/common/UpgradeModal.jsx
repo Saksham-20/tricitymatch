@@ -8,25 +8,25 @@ const plans = [
   {
     key: 'basic_premium',
     name: 'Basic Premium',
-    price: '₹1,999',
-    duration: '3 months',
-    contactUnlocks: '30 unlocks',
+    price: '₹1,500',
+    duration: '15 days',
+    contactUnlocks: '5 unlocks',
     accent: 'primary',
   },
   {
     key: 'premium_plus',
     name: 'Premium Plus',
-    price: '₹3,999',
-    duration: '6 months',
-    contactUnlocks: 'Unlimited',
+    price: '₹3,000',
+    duration: '1 month',
+    contactUnlocks: '10 unlocks',
     accent: 'primary',
     popular: true,
   },
   {
     key: 'vip',
     name: 'VIP',
-    price: '₹9,999',
-    duration: '12 months',
+    price: '₹7,499',
+    duration: '3 months',
     contactUnlocks: 'Unlimited',
     accent: 'gold',
   },
@@ -61,7 +61,7 @@ const UpgradeModal = ({ isOpen, onClose, feature = 'this feature', description }
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: 20 }}
             transition={{ type: 'spring', damping: 22, stiffness: 300 }}
-            className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-md mx-auto bg-white rounded-3xl shadow-2xl z-50 overflow-hidden"
+            className="fixed inset-x-4 top-[50%] -translate-y-1/2 max-w-md mx-auto bg-white rounded-3xl shadow-2xl z-50 overflow-hidden flex flex-col max-h-[90vh]"
           >
             {/* Gradient header */}
             <div
@@ -90,7 +90,7 @@ const UpgradeModal = ({ isOpen, onClose, feature = 'this feature', description }
             </div>
 
             {/* Plan mini-cards */}
-            <div className="px-5 py-5 space-y-3">
+            <div className="px-5 py-5 space-y-3 overflow-y-auto flex-1">
               {plans.map((plan) => (
                 <button
                   key={plan.key}

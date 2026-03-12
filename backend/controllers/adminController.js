@@ -64,6 +64,11 @@ exports.updateUserStatus = asyncHandler(async (req, res) => {
   const { userId } = req.params;
   const { status } = req.body;
 
+  const validStatuses = ['active', 'inactive', 'banned', 'pending'];
+  if (!status || !validStatuses.includes(status)) {
+    throw createError.badRequest(`Invalid status. Must be one of: ${validStatuses.join(', ')}`);
+  }
+
   const user = await User.findByPk(userId);
   if (!user) {
     throw createError.notFound('User not found');

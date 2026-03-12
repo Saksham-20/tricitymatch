@@ -321,13 +321,11 @@ const requestId = (req, res, next) => {
 // ==================== IP EXTRACTION ====================
 
 const extractIp = (req, res, next) => {
-  // Trust proxy headers if behind reverse proxy
-  const forwardedFor = req.headers['x-forwarded-for'];
-  if (forwardedFor) {
-    req.clientIp = forwardedFor.split(',')[0].trim();
-  } else {
-    req.clientIp = req.ip || req.connection.remoteAddress;
-  }
+  // Use Express's req.ip which respects the 'trust proxy' setting (set to 1 in server.js).
+  // This gives the correct client IP even behind a reverse proxy, and is NOT
+  // spoofable because Express validates the proxy chain depth.
+  // We fall back to req.connection.remoteAddress only if req.ip is somehow unavailable.
+  req.clientIp = req.ip || req.connection?.remoteAddress || '0.0.0.0';
   next();
 };
 
