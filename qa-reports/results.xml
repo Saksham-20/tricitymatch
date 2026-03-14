@@ -1,0 +1,1166 @@
+<testsuites id="" name="" tests="279" failures="0" skipped="279" errors="0" time="0.15124">
+<testsuite name="01-auth-flow.spec.js" timestamp="2026-03-13T07:50:01.055Z" hostname="desktop-chrome" tests="10" failures="0" skipped="10" time="0" errors="0">
+<testcase name="🔐 Auth Flow › Login page loads and has required fields" classname="01-auth-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔐 Auth Flow › Login shows validation errors on empty submit" classname="01-auth-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔐 Auth Flow › Login shows error for invalid credentials" classname="01-auth-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔐 Auth Flow › Protected /dashboard redirects unauthenticated users to login" classname="01-auth-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔐 Auth Flow › Protected /profile redirects unauthenticated users" classname="01-auth-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔐 Auth Flow › Signup page loads and has required fields" classname="01-auth-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔐 Auth Flow › Forgot password page loads with email field" classname="01-auth-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔐 Auth Flow › Forgot password shows error for missing email" classname="01-auth-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔐 Auth Flow › Reset password page loads" classname="01-auth-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔐 Auth Flow › Successful login redirects to dashboard" classname="01-auth-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="02-crawler.spec.js" timestamp="2026-03-13T07:50:01.055Z" hostname="desktop-chrome" tests="1" failures="0" skipped="1" time="0" errors="0">
+<testcase name="🕷  Autonomous Website Crawler › Crawl all public pages and audit each" classname="02-crawler.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="03-visual-ui.spec.js" timestamp="2026-03-13T07:50:01.055Z" hostname="desktop-chrome" tests="24" failures="0" skipped="24" time="0" errors="0">
+<testcase name="🖼  Visual UI Audit › Page: home › home @ desktop (1280x800)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: home › home @ tablet (768x1024)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: home › home @ mobile (390x844)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: login › login @ desktop (1280x800)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: login › login @ tablet (768x1024)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: login › login @ mobile (390x844)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: signup › signup @ desktop (1280x800)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: signup › signup @ tablet (768x1024)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: signup › signup @ mobile (390x844)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: forgot-password › forgot-password @ desktop (1280x800)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: forgot-password › forgot-password @ tablet (768x1024)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: forgot-password › forgot-password @ mobile (390x844)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: terms › terms @ desktop (1280x800)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: terms › terms @ tablet (768x1024)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: terms › terms @ mobile (390x844)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: privacy › privacy @ desktop (1280x800)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: privacy › privacy @ tablet (768x1024)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: privacy › privacy @ mobile (390x844)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Desktop navbar has all key links" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Mobile shows bottom navigation bar" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Homepage hero section and CTA buttons are visible on desktop" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Homepage is responsive on mobile (no horizontal scroll)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Login form is centered and aligned on desktop" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Terms page renders long-form content without overflow" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="04-ux-interactions.spec.js" timestamp="2026-03-13T07:50:01.055Z" hostname="desktop-chrome" tests="21" failures="0" skipped="21" time="0" errors="0">
+<testcase name="🏠 Homepage Interactions › Home page loads without JS errors" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🏠 Homepage Interactions › Home page CTA buttons are clickable" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🏠 Homepage Interactions › Navigation links are functional (no dead links)" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔑 Login Form UX › Tab key moves focus between form fields correctly" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔑 Login Form UX › Password field toggles visibility if toggle exists" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔑 Login Form UX › Login button shows loading state on submit" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔑 Login Form UX › Login page has link to Sign Up" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔑 Login Form UX › Login page has link to Forgot Password" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="📝 Signup Form UX › Signup page renders step 1 with required fields" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="📝 Signup Form UX › Signup step 1 validates required fields before proceeding" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="📝 Signup Form UX › Signup has a link back to Login" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="📝 Signup Form UX › Signup step 1 accepts email input" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔒 Forgot Password UX › Forgot password form submits and shows feedback" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🧭 Navigation UX › All top-level nav links are reachable from homepage" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🧭 Navigation UX › Mobile hamburger menu (if present) opens &amp; shows links" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🧭 Navigation UX › Bottom navigation visible on mobile" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🧭 Navigation UX › Back navigation works from Terms page" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="⌨  Keyboard Navigation UX › Login form is fully navigable by keyboard" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="⌨  Keyboard Navigation UX › Skip-to-main link is present (screen reader accessibility)" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="⌨  Keyboard Navigation UX › Enter key submits login form" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔲 Modals &amp; Overlays › Escape key closes open modals" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="05-error-detection.spec.js" timestamp="2026-03-13T07:50:01.055Z" hostname="desktop-chrome" tests="8" failures="0" skipped="8" time="0" errors="0">
+<testcase name="🚨 Error Detection &amp; Console Monitoring › No critical errors on: /" classname="05-error-detection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🚨 Error Detection &amp; Console Monitoring › No critical errors on: /login" classname="05-error-detection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🚨 Error Detection &amp; Console Monitoring › No critical errors on: /signup" classname="05-error-detection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🚨 Error Detection &amp; Console Monitoring › No critical errors on: /forgot-password" classname="05-error-detection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🚨 Error Detection &amp; Console Monitoring › No critical errors on: /terms" classname="05-error-detection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🚨 Error Detection &amp; Console Monitoring › No critical errors on: /privacy" classname="05-error-detection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🚨 Error Detection &amp; Console Monitoring › No 404 responses for critical static assets" classname="05-error-detection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🚨 Error Detection &amp; Console Monitoring › Final error report summary" classname="05-error-detection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="06-accessibility.spec.js" timestamp="2026-03-13T07:50:01.055Z" hostname="desktop-chrome" tests="13" failures="0" skipped="13" time="0" errors="0">
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Home (/) passes accessibility checks" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Login (/login) passes accessibility checks" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Signup (/signup) passes accessibility checks" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › ForgotPassword (/forgot-password) passes accessibility checks" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Terms (/terms) passes accessibility checks" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Privacy (/privacy) passes accessibility checks" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Login form inputs have associated labels" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › All images on homepage have alt text" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Page has proper heading hierarchy (H1 exists)" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Interactive elements have visible focus rings" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Page language attribute is set" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Links have descriptive text (no bare &quot;click here&quot;)" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Accessibility summary report" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="07-performance.spec.js" timestamp="2026-03-13T07:50:01.055Z" hostname="desktop-chrome" tests="6" failures="0" skipped="6" time="0" errors="0">
+<testcase name="⚡  Performance Audit › Performance benchmark: Home (/)" classname="07-performance.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="⚡  Performance Audit › Performance benchmark: Login (/login)" classname="07-performance.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="⚡  Performance Audit › Performance benchmark: Signup (/signup)" classname="07-performance.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="⚡  Performance Audit › No render-blocking scripts on homepage" classname="07-performance.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="⚡  Performance Audit › Images are using modern formats (webp/avif) or optimised" classname="07-performance.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="⚡  Performance Audit › Performance summary report" classname="07-performance.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="08-broken-assets.spec.js" timestamp="2026-03-13T07:50:01.055Z" hostname="desktop-chrome" tests="10" failures="0" skipped="10" time="0" errors="0">
+<testcase name="🔗 Broken Asset Detection › No broken assets on: Home (/)" classname="08-broken-assets.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔗 Broken Asset Detection › No broken assets on: Login (/login)" classname="08-broken-assets.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔗 Broken Asset Detection › No broken assets on: Signup (/signup)" classname="08-broken-assets.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔗 Broken Asset Detection › No broken assets on: ForgotPassword (/forgot-password)" classname="08-broken-assets.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔗 Broken Asset Detection › No broken assets on: Terms (/terms)" classname="08-broken-assets.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔗 Broken Asset Detection › No broken assets on: Privacy (/privacy)" classname="08-broken-assets.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔗 Broken Asset Detection › Favicon exists and loads" classname="08-broken-assets.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔗 Broken Asset Detection › Custom fonts load successfully" classname="08-broken-assets.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔗 Broken Asset Detection › Web app manifest (PWA) exists" classname="08-broken-assets.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔗 Broken Asset Detection › Broken asset summary report" classname="08-broken-assets.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="01-auth-flow.spec.js" timestamp="2026-03-13T07:50:01.055Z" hostname="mobile-chrome" tests="10" failures="0" skipped="10" time="0" errors="0">
+<testcase name="🔐 Auth Flow › Login page loads and has required fields" classname="01-auth-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔐 Auth Flow › Login shows validation errors on empty submit" classname="01-auth-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔐 Auth Flow › Login shows error for invalid credentials" classname="01-auth-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔐 Auth Flow › Protected /dashboard redirects unauthenticated users to login" classname="01-auth-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔐 Auth Flow › Protected /profile redirects unauthenticated users" classname="01-auth-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔐 Auth Flow › Signup page loads and has required fields" classname="01-auth-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔐 Auth Flow › Forgot password page loads with email field" classname="01-auth-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔐 Auth Flow › Forgot password shows error for missing email" classname="01-auth-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔐 Auth Flow › Reset password page loads" classname="01-auth-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔐 Auth Flow › Successful login redirects to dashboard" classname="01-auth-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="02-crawler.spec.js" timestamp="2026-03-13T07:50:01.055Z" hostname="mobile-chrome" tests="1" failures="0" skipped="1" time="0" errors="0">
+<testcase name="🕷  Autonomous Website Crawler › Crawl all public pages and audit each" classname="02-crawler.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="03-visual-ui.spec.js" timestamp="2026-03-13T07:50:01.055Z" hostname="mobile-chrome" tests="24" failures="0" skipped="24" time="0" errors="0">
+<testcase name="🖼  Visual UI Audit › Page: home › home @ desktop (1280x800)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: home › home @ tablet (768x1024)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: home › home @ mobile (390x844)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: login › login @ desktop (1280x800)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: login › login @ tablet (768x1024)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: login › login @ mobile (390x844)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: signup › signup @ desktop (1280x800)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: signup › signup @ tablet (768x1024)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: signup › signup @ mobile (390x844)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: forgot-password › forgot-password @ desktop (1280x800)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: forgot-password › forgot-password @ tablet (768x1024)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: forgot-password › forgot-password @ mobile (390x844)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: terms › terms @ desktop (1280x800)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: terms › terms @ tablet (768x1024)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: terms › terms @ mobile (390x844)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: privacy › privacy @ desktop (1280x800)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: privacy › privacy @ tablet (768x1024)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: privacy › privacy @ mobile (390x844)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Desktop navbar has all key links" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Mobile shows bottom navigation bar" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Homepage hero section and CTA buttons are visible on desktop" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Homepage is responsive on mobile (no horizontal scroll)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Login form is centered and aligned on desktop" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Terms page renders long-form content without overflow" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="04-ux-interactions.spec.js" timestamp="2026-03-13T07:50:01.055Z" hostname="mobile-chrome" tests="21" failures="0" skipped="21" time="0" errors="0">
+<testcase name="🏠 Homepage Interactions › Home page loads without JS errors" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🏠 Homepage Interactions › Home page CTA buttons are clickable" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🏠 Homepage Interactions › Navigation links are functional (no dead links)" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔑 Login Form UX › Tab key moves focus between form fields correctly" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔑 Login Form UX › Password field toggles visibility if toggle exists" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔑 Login Form UX › Login button shows loading state on submit" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔑 Login Form UX › Login page has link to Sign Up" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔑 Login Form UX › Login page has link to Forgot Password" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="📝 Signup Form UX › Signup page renders step 1 with required fields" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="📝 Signup Form UX › Signup step 1 validates required fields before proceeding" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="📝 Signup Form UX › Signup has a link back to Login" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="📝 Signup Form UX › Signup step 1 accepts email input" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔒 Forgot Password UX › Forgot password form submits and shows feedback" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🧭 Navigation UX › All top-level nav links are reachable from homepage" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🧭 Navigation UX › Mobile hamburger menu (if present) opens &amp; shows links" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🧭 Navigation UX › Bottom navigation visible on mobile" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🧭 Navigation UX › Back navigation works from Terms page" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="⌨  Keyboard Navigation UX › Login form is fully navigable by keyboard" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="⌨  Keyboard Navigation UX › Skip-to-main link is present (screen reader accessibility)" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="⌨  Keyboard Navigation UX › Enter key submits login form" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔲 Modals &amp; Overlays › Escape key closes open modals" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="05-error-detection.spec.js" timestamp="2026-03-13T07:50:01.055Z" hostname="mobile-chrome" tests="8" failures="0" skipped="8" time="0" errors="0">
+<testcase name="🚨 Error Detection &amp; Console Monitoring › No critical errors on: /" classname="05-error-detection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🚨 Error Detection &amp; Console Monitoring › No critical errors on: /login" classname="05-error-detection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🚨 Error Detection &amp; Console Monitoring › No critical errors on: /signup" classname="05-error-detection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🚨 Error Detection &amp; Console Monitoring › No critical errors on: /forgot-password" classname="05-error-detection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🚨 Error Detection &amp; Console Monitoring › No critical errors on: /terms" classname="05-error-detection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🚨 Error Detection &amp; Console Monitoring › No critical errors on: /privacy" classname="05-error-detection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🚨 Error Detection &amp; Console Monitoring › No 404 responses for critical static assets" classname="05-error-detection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🚨 Error Detection &amp; Console Monitoring › Final error report summary" classname="05-error-detection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="06-accessibility.spec.js" timestamp="2026-03-13T07:50:01.055Z" hostname="mobile-chrome" tests="13" failures="0" skipped="13" time="0" errors="0">
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Home (/) passes accessibility checks" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Login (/login) passes accessibility checks" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Signup (/signup) passes accessibility checks" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › ForgotPassword (/forgot-password) passes accessibility checks" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Terms (/terms) passes accessibility checks" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Privacy (/privacy) passes accessibility checks" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Login form inputs have associated labels" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › All images on homepage have alt text" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Page has proper heading hierarchy (H1 exists)" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Interactive elements have visible focus rings" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Page language attribute is set" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Links have descriptive text (no bare &quot;click here&quot;)" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Accessibility summary report" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="07-performance.spec.js" timestamp="2026-03-13T07:50:01.055Z" hostname="mobile-chrome" tests="6" failures="0" skipped="6" time="0" errors="0">
+<testcase name="⚡  Performance Audit › Performance benchmark: Home (/)" classname="07-performance.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="⚡  Performance Audit › Performance benchmark: Login (/login)" classname="07-performance.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="⚡  Performance Audit › Performance benchmark: Signup (/signup)" classname="07-performance.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="⚡  Performance Audit › No render-blocking scripts on homepage" classname="07-performance.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="⚡  Performance Audit › Images are using modern formats (webp/avif) or optimised" classname="07-performance.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="⚡  Performance Audit › Performance summary report" classname="07-performance.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="08-broken-assets.spec.js" timestamp="2026-03-13T07:50:01.055Z" hostname="mobile-chrome" tests="10" failures="0" skipped="10" time="0" errors="0">
+<testcase name="🔗 Broken Asset Detection › No broken assets on: Home (/)" classname="08-broken-assets.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔗 Broken Asset Detection › No broken assets on: Login (/login)" classname="08-broken-assets.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔗 Broken Asset Detection › No broken assets on: Signup (/signup)" classname="08-broken-assets.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔗 Broken Asset Detection › No broken assets on: ForgotPassword (/forgot-password)" classname="08-broken-assets.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔗 Broken Asset Detection › No broken assets on: Terms (/terms)" classname="08-broken-assets.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔗 Broken Asset Detection › No broken assets on: Privacy (/privacy)" classname="08-broken-assets.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔗 Broken Asset Detection › Favicon exists and loads" classname="08-broken-assets.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔗 Broken Asset Detection › Custom fonts load successfully" classname="08-broken-assets.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔗 Broken Asset Detection › Web app manifest (PWA) exists" classname="08-broken-assets.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔗 Broken Asset Detection › Broken asset summary report" classname="08-broken-assets.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="01-auth-flow.spec.js" timestamp="2026-03-13T07:50:01.055Z" hostname="tablet" tests="10" failures="0" skipped="10" time="0" errors="0">
+<testcase name="🔐 Auth Flow › Login page loads and has required fields" classname="01-auth-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔐 Auth Flow › Login shows validation errors on empty submit" classname="01-auth-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔐 Auth Flow › Login shows error for invalid credentials" classname="01-auth-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔐 Auth Flow › Protected /dashboard redirects unauthenticated users to login" classname="01-auth-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔐 Auth Flow › Protected /profile redirects unauthenticated users" classname="01-auth-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔐 Auth Flow › Signup page loads and has required fields" classname="01-auth-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔐 Auth Flow › Forgot password page loads with email field" classname="01-auth-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔐 Auth Flow › Forgot password shows error for missing email" classname="01-auth-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔐 Auth Flow › Reset password page loads" classname="01-auth-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔐 Auth Flow › Successful login redirects to dashboard" classname="01-auth-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="02-crawler.spec.js" timestamp="2026-03-13T07:50:01.055Z" hostname="tablet" tests="1" failures="0" skipped="1" time="0" errors="0">
+<testcase name="🕷  Autonomous Website Crawler › Crawl all public pages and audit each" classname="02-crawler.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="03-visual-ui.spec.js" timestamp="2026-03-13T07:50:01.055Z" hostname="tablet" tests="24" failures="0" skipped="24" time="0" errors="0">
+<testcase name="🖼  Visual UI Audit › Page: home › home @ desktop (1280x800)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: home › home @ tablet (768x1024)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: home › home @ mobile (390x844)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: login › login @ desktop (1280x800)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: login › login @ tablet (768x1024)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: login › login @ mobile (390x844)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: signup › signup @ desktop (1280x800)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: signup › signup @ tablet (768x1024)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: signup › signup @ mobile (390x844)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: forgot-password › forgot-password @ desktop (1280x800)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: forgot-password › forgot-password @ tablet (768x1024)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: forgot-password › forgot-password @ mobile (390x844)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: terms › terms @ desktop (1280x800)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: terms › terms @ tablet (768x1024)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: terms › terms @ mobile (390x844)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: privacy › privacy @ desktop (1280x800)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: privacy › privacy @ tablet (768x1024)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Page: privacy › privacy @ mobile (390x844)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Desktop navbar has all key links" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Mobile shows bottom navigation bar" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Homepage hero section and CTA buttons are visible on desktop" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Homepage is responsive on mobile (no horizontal scroll)" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Login form is centered and aligned on desktop" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🖼  Visual UI Audit › Terms page renders long-form content without overflow" classname="03-visual-ui.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="04-ux-interactions.spec.js" timestamp="2026-03-13T07:50:01.055Z" hostname="tablet" tests="21" failures="0" skipped="21" time="0" errors="0">
+<testcase name="🏠 Homepage Interactions › Home page loads without JS errors" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🏠 Homepage Interactions › Home page CTA buttons are clickable" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🏠 Homepage Interactions › Navigation links are functional (no dead links)" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔑 Login Form UX › Tab key moves focus between form fields correctly" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔑 Login Form UX › Password field toggles visibility if toggle exists" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔑 Login Form UX › Login button shows loading state on submit" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔑 Login Form UX › Login page has link to Sign Up" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔑 Login Form UX › Login page has link to Forgot Password" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="📝 Signup Form UX › Signup page renders step 1 with required fields" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="📝 Signup Form UX › Signup step 1 validates required fields before proceeding" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="📝 Signup Form UX › Signup has a link back to Login" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="📝 Signup Form UX › Signup step 1 accepts email input" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔒 Forgot Password UX › Forgot password form submits and shows feedback" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🧭 Navigation UX › All top-level nav links are reachable from homepage" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🧭 Navigation UX › Mobile hamburger menu (if present) opens &amp; shows links" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🧭 Navigation UX › Bottom navigation visible on mobile" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🧭 Navigation UX › Back navigation works from Terms page" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="⌨  Keyboard Navigation UX › Login form is fully navigable by keyboard" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="⌨  Keyboard Navigation UX › Skip-to-main link is present (screen reader accessibility)" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="⌨  Keyboard Navigation UX › Enter key submits login form" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔲 Modals &amp; Overlays › Escape key closes open modals" classname="04-ux-interactions.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="05-error-detection.spec.js" timestamp="2026-03-13T07:50:01.055Z" hostname="tablet" tests="8" failures="0" skipped="8" time="0" errors="0">
+<testcase name="🚨 Error Detection &amp; Console Monitoring › No critical errors on: /" classname="05-error-detection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🚨 Error Detection &amp; Console Monitoring › No critical errors on: /login" classname="05-error-detection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🚨 Error Detection &amp; Console Monitoring › No critical errors on: /signup" classname="05-error-detection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🚨 Error Detection &amp; Console Monitoring › No critical errors on: /forgot-password" classname="05-error-detection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🚨 Error Detection &amp; Console Monitoring › No critical errors on: /terms" classname="05-error-detection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🚨 Error Detection &amp; Console Monitoring › No critical errors on: /privacy" classname="05-error-detection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🚨 Error Detection &amp; Console Monitoring › No 404 responses for critical static assets" classname="05-error-detection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🚨 Error Detection &amp; Console Monitoring › Final error report summary" classname="05-error-detection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="06-accessibility.spec.js" timestamp="2026-03-13T07:50:01.055Z" hostname="tablet" tests="13" failures="0" skipped="13" time="0" errors="0">
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Home (/) passes accessibility checks" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Login (/login) passes accessibility checks" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Signup (/signup) passes accessibility checks" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › ForgotPassword (/forgot-password) passes accessibility checks" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Terms (/terms) passes accessibility checks" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Privacy (/privacy) passes accessibility checks" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Login form inputs have associated labels" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › All images on homepage have alt text" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Page has proper heading hierarchy (H1 exists)" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Interactive elements have visible focus rings" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Page language attribute is set" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Links have descriptive text (no bare &quot;click here&quot;)" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="♿  Accessibility Audit (WCAG 2.1 AA) › Accessibility summary report" classname="06-accessibility.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="07-performance.spec.js" timestamp="2026-03-13T07:50:01.055Z" hostname="tablet" tests="6" failures="0" skipped="6" time="0" errors="0">
+<testcase name="⚡  Performance Audit › Performance benchmark: Home (/)" classname="07-performance.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="⚡  Performance Audit › Performance benchmark: Login (/login)" classname="07-performance.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="⚡  Performance Audit › Performance benchmark: Signup (/signup)" classname="07-performance.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="⚡  Performance Audit › No render-blocking scripts on homepage" classname="07-performance.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="⚡  Performance Audit › Images are using modern formats (webp/avif) or optimised" classname="07-performance.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="⚡  Performance Audit › Performance summary report" classname="07-performance.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="08-broken-assets.spec.js" timestamp="2026-03-13T07:50:01.055Z" hostname="tablet" tests="10" failures="0" skipped="10" time="0" errors="0">
+<testcase name="🔗 Broken Asset Detection › No broken assets on: Home (/)" classname="08-broken-assets.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔗 Broken Asset Detection › No broken assets on: Login (/login)" classname="08-broken-assets.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔗 Broken Asset Detection › No broken assets on: Signup (/signup)" classname="08-broken-assets.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔗 Broken Asset Detection › No broken assets on: ForgotPassword (/forgot-password)" classname="08-broken-assets.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔗 Broken Asset Detection › No broken assets on: Terms (/terms)" classname="08-broken-assets.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔗 Broken Asset Detection › No broken assets on: Privacy (/privacy)" classname="08-broken-assets.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔗 Broken Asset Detection › Favicon exists and loads" classname="08-broken-assets.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔗 Broken Asset Detection › Custom fonts load successfully" classname="08-broken-assets.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔗 Broken Asset Detection › Web app manifest (PWA) exists" classname="08-broken-assets.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="🔗 Broken Asset Detection › Broken asset summary report" classname="08-broken-assets.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+</testsuites>

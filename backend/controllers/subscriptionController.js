@@ -118,6 +118,7 @@ exports.verifyPayment = asyncHandler(async (req, res) => {
     const existingPayment = await Subscription.findOne({
       where: {
         razorpayPaymentId,
+        userId,
         status: 'active'
       },
       transaction: t

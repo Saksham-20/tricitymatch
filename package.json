@@ -16,13 +16,33 @@
     "test:backend": "npm run test --workspace=backend",
     "test:frontend": "npm run test:run --workspace=frontend",
     "lint": "npm run lint --workspace=backend && npm run lint --workspace=frontend",
-    "lint:fix": "npm run lint:fix --workspace=backend && npm run lint:fix --workspace=frontend"
+    "lint:fix": "npm run lint:fix --workspace=backend && npm run lint:fix --workspace=frontend",
+    "qa": "npx playwright test",
+    "qa:auth": "npx playwright test e2e/tests/01-auth-flow.spec.js",
+    "qa:crawl": "npx playwright test e2e/tests/02-crawler.spec.js",
+    "qa:visual": "npx playwright test e2e/tests/03-visual-ui.spec.js",
+    "qa:ux": "npx playwright test e2e/tests/04-ux-interactions.spec.js",
+    "qa:errors": "npx playwright test e2e/tests/05-error-detection.spec.js",
+    "qa:a11y": "npx playwright test e2e/tests/06-accessibility.spec.js",
+    "qa:perf": "npx playwright test e2e/tests/07-performance.spec.js",
+    "qa:assets": "npx playwright test e2e/tests/08-broken-assets.spec.js",
+    "qa:report": "node e2e/utils/generate-report.js",
+    "qa:full": "npx playwright test && node e2e/utils/generate-report.js",
+    "qa:ui": "npx playwright show-report qa-reports/playwright-html",
+    "assets:optimize": "node scripts/optimize-home-images.mjs",
+    "qa:debug": "npx playwright test --debug",
+    "qa:headed": "npx playwright test --headed",
+    "qa:desktop": "npx playwright test --project=desktop-chrome",
+    "qa:mobile": "npx playwright test --project=mobile-chrome"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.1",
+    "@playwright/test": "^1.58.2",
     "concurrently": "^8.2.2",
     "eslint": "^8.56.0",
     "lint-staged": "^15.2.0",
-    "prettier": "^3.2.5"
+    "prettier": "^3.2.5",
+    "sharp": "^0.34.5"
   },
   "lint-staged": {
     "backend/**/*.js": [

@@ -67,9 +67,9 @@ const ForgotPassword = () => {
         className="w-full max-w-md"
       >
         <motion.div variants={fadeInUp} className="text-center mb-8">
-          <h2 className="text-3xl font-display font-bold text-neutral-800 mb-2">
+          <h1 className="text-3xl font-display font-bold text-neutral-800 mb-2">
             Forgot Password?
-          </h2>
+          </h1>
           <p className="text-neutral-600">
             Enter your email and we'll send you a reset link
           </p>

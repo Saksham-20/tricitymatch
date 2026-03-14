@@ -3,14 +3,66 @@ import api from '../api/axios';
 import toast from 'react-hot-toast';
 
 const AuthContext = createContext();
+const AUTH_HINT_KEY = 'tricitymatch-auth-hint';
+
+const PROTECTED_ROUTE_PREFIXES = [
+  '/dashboard',
+  '/profile',
+  '/search',
+  '/chat',
+  '/subscription',
+  '/payment',
+  '/settings',
+  '/notifications',
+  '/admin',
+];
+
+const hasStoredAuthHint = () => {
+  try {
+    return window.localStorage.getItem(AUTH_HINT_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
+
+const setStoredAuthHint = (value) => {
+  try {
+    if (value) {
+      window.localStorage.setItem(AUTH_HINT_KEY, '1');
+    } else {
+      window.localStorage.removeItem(AUTH_HINT_KEY);
+    }
+  } catch {
+    // Ignore storage issues; this is only a non-sensitive UX hint.
+  }
+};
+
+const routeNeedsAuthCheck = (pathname = '/') =>
+  PROTECTED_ROUTE_PREFIXES.some(prefix => pathname === prefix || pathname.startsWith(`${prefix}/`));
 
 // Environment check for logging
 const isDev = import.meta.env.DEV;
 
+const authFallback = {
+  user: null,
+  loading: false,
+  isAuthenticated: false,
+  login: async () => ({ success: false, error: 'Auth context unavailable. Please refresh.' }),
+  signup: async () => ({ success: false, error: 'Auth context unavailable. Please refresh.' }),
+  logout: async () => {},
+  logoutAll: async () => {},
+  updateUser: () => {},
+  checkAuth: async () => {},
+  refreshUser: async () => {},
+};
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
+    if (isDev) {
+      console.error('useAuth called outside AuthProvider. Falling back to safe unauthenticated state.');
+    }
+    return authFallback;
   }
   return context;
 };
@@ -28,6 +80,7 @@ export const AuthProvider = ({ children }) => {
       if (userData) {
         setUser(userData);
         setIsAuthenticated(true);
+        setStoredAuthHint(true);
       } else {
         throw new Error('No user data received');
       }
@@ -40,13 +93,26 @@ export const AuthProvider = ({ children }) => {
       }
       setUser(null);
       setIsAuthenticated(false);
+      if (error.response?.status === 401) {
+        setStoredAuthHint(false);
+      }
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    checkAuth();
+    const pathname = window.location.pathname;
+    const shouldCheckAuth = hasStoredAuthHint() || routeNeedsAuthCheck(pathname);
+
+    if (shouldCheckAuth) {
+      checkAuth();
+      return;
+    }
+
+    setLoading(false);
+    setUser(null);
+    setIsAuthenticated(false);
   }, [checkAuth]);
 
   const login = async (email, password) => {
@@ -73,6 +139,7 @@ export const AuthProvider = ({ children }) => {
       }
       
       setIsAuthenticated(true);
+      setStoredAuthHint(true);
       toast.success('Welcome back!');
       return { success: true, role: userData?.role };
     } catch (error) {
@@ -106,6 +173,7 @@ export const AuthProvider = ({ children }) => {
       }
       
       setIsAuthenticated(true);
+      setStoredAuthHint(true);
       toast.success('Account created successfully!');
       return { success: true };
     } catch (error) {
@@ -131,6 +199,7 @@ export const AuthProvider = ({ children }) => {
     }
     setUser(null);
     setIsAuthenticated(false);
+    setStoredAuthHint(false);
     toast.success('Logged out successfully');
   };
 
@@ -139,6 +208,7 @@ export const AuthProvider = ({ children }) => {
       await api.post('/auth/logout-all');
       setUser(null);
       setIsAuthenticated(false);
+      setStoredAuthHint(false);
       toast.success('Logged out from all devices');
     } catch (error) {
       toast.error('Failed to logout from all devices');

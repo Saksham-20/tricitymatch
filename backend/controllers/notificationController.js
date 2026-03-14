@@ -10,13 +10,14 @@ const { createError, asyncHandler } = require('../middlewares/errorHandler');
 // @desc    Get notifications for current user (paginated)
 // @access  Private
 exports.getNotifications = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 20 } = req.query;
-  const offset = (parseInt(page) - 1) * parseInt(limit);
+  const page = Math.max(parseInt(req.query.page) || 1, 1);
+  const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 100);
+  const offset = (page - 1) * limit;
 
   const { count, rows: notifications } = await Notification.findAndCountAll({
     where: { userId: req.user.id },
     order: [['createdAt', 'DESC']],
-    limit: parseInt(limit),
+    limit,
     offset,
   });
 
@@ -29,8 +30,8 @@ exports.getNotifications = asyncHandler(async (req, res) => {
     notifications,
     unreadCount,
     pagination: {
-      page: parseInt(page),
-      limit: parseInt(limit),
+      page,
+      limit,
       total: count,
       pages: Math.ceil(count / parseInt(limit)),
     },

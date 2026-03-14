@@ -166,9 +166,9 @@ const Signup = () => {
 
           {/* Header */}
           <motion.div variants={fadeInUp} className="text-center mb-8">
-            <h2 className="text-3xl font-display font-bold text-neutral-800 mb-3">
+            <h1 className="text-3xl font-display font-bold text-neutral-800 mb-3">
               Create Your Profile
-            </h2>
+            </h1>
             <p className="text-neutral-600">
               Join TricityShadi to find your life partner. Your information is secure and private.
             </p>

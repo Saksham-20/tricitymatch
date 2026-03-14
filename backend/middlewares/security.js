@@ -10,7 +10,7 @@
 const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
 const helmet = require('helmet');
 const config = require('../config/env');
-const { createError } = require('./errorHandler');
+const { createError, asyncHandler } = require('./errorHandler');
 
 // ==================== RATE LIMITERS ====================
 
@@ -220,57 +220,91 @@ const sanitizeRequest = (req, res, next) => {
   next();
 };
 
-const sanitizeObject = (obj) => {
+const sanitizeObject = (obj, depth = 0) => {
+  // Hard limit on recursion depth to prevent prototype pollution via deep nesting
+  if (depth > 10) return;
+
   for (const key in obj) {
+    // Block keys that are NoSQL/JS operator names
+    if (key.startsWith('$') || key === '__proto__' || key === 'constructor' || key === 'prototype') {
+      delete obj[key];
+      continue;
+    }
+
     if (typeof obj[key] === 'string') {
       // Remove null bytes
       obj[key] = obj[key].replace(/\0/g, '');
-      // Remove potential MongoDB operators
+      // Block string values that look like operator injections
       if (obj[key].startsWith('$')) {
         delete obj[key];
       }
+    } else if (Array.isArray(obj[key])) {
+      // Sanitize array elements
+      obj[key] = obj[key].filter((item) => {
+        if (typeof item === 'string') return !item.startsWith('$');
+        return true;
+      });
+      obj[key].forEach((item) => {
+        if (item && typeof item === 'object') sanitizeObject(item, depth + 1);
+      });
     } else if (typeof obj[key] === 'object' && obj[key] !== null) {
-      // Check for MongoDB operator objects
-      if (Object.keys(obj[key]).some(k => k.startsWith('$'))) {
-        delete obj[key];
-      } else {
-        sanitizeObject(obj[key]);
-      }
+      // Recursively sanitize nested objects
+      sanitizeObject(obj[key], depth + 1);
     }
   }
 };
 
 // ==================== ACCOUNT LOCKOUT ====================
 
-// In-memory store for login attempts (use Redis in production for distributed systems)
-const loginAttempts = new Map();
+// Redis-backed login attempt tracking (falls back to in-memory if Redis unavailable).
+// Using the shared cache module ensures lockout state survives restarts and
+// works correctly across multiple server processes / containers.
+const { get: cacheGet, set: cacheSet, del: cacheDel } = require('../utils/cache');
 
-const cleanupLoginAttempts = () => {
-  const now = Date.now();
-  const lockoutMs = config.auth.lockoutDuration * 60 * 1000;
-  
-  for (const [key, data] of loginAttempts.entries()) {
-    if (now - data.lastAttempt > lockoutMs) {
-      loginAttempts.delete(key);
-    }
+// In-memory fallback only used when Redis is unavailable
+const _fallbackAttempts = new Map();
+const _lockoutTtlSec = () => config.auth.lockoutDuration * 60;
+
+const _getLockoutData = async (key) => {
+  try {
+    const cached = await cacheGet(key);
+    if (cached) return cached;
+  } catch (_) { /* fall through */ }
+  return _fallbackAttempts.get(key) || null;
+};
+
+const _setLockoutData = async (key, data) => {
+  const ttl = _lockoutTtlSec();
+  try {
+    await cacheSet(key, data, ttl);
+  } catch (_) { /* fall through */ }
+  _fallbackAttempts.set(key, data);
+  // Prune in-memory map to prevent unbounded growth
+  if (_fallbackAttempts.size > 10000) {
+    const firstKey = _fallbackAttempts.keys().next().value;
+    _fallbackAttempts.delete(firstKey);
   }
 };
 
-// Cleanup every 5 minutes
-setInterval(cleanupLoginAttempts, 5 * 60 * 1000);
+const _delLockoutData = async (key) => {
+  try {
+    await cacheDel(key);
+  } catch (_) { /* fall through */ }
+  _fallbackAttempts.delete(key);
+};
 
-const checkAccountLockout = (req, res, next) => {
+const checkAccountLockout = asyncHandler(async (req, res, next) => {
   const email = req.body.email?.toLowerCase();
   if (!email) {
     return next();
   }
 
-  const key = `login:${email}`;
-  const attempts = loginAttempts.get(key);
+  const key = `lockout:${email}`;
+  const data = await _getLockoutData(key);
   const lockoutMs = config.auth.lockoutDuration * 60 * 1000;
 
-  if (attempts && attempts.count >= config.auth.maxLoginAttempts) {
-    const timeSinceLock = Date.now() - attempts.lockTime;
+  if (data && data.count >= config.auth.maxLoginAttempts) {
+    const timeSinceLock = Date.now() - data.lockTime;
     if (timeSinceLock < lockoutMs) {
       const remainingMinutes = Math.ceil((lockoutMs - timeSinceLock) / 60000);
       return res.status(429).json({
@@ -281,31 +315,31 @@ const checkAccountLockout = (req, res, next) => {
         },
       });
     }
-    // Lockout expired, reset
-    loginAttempts.delete(key);
+    // Lockout TTL expired — clear it
+    await _delLockoutData(key);
   }
 
   next();
-};
+});
 
-const recordFailedLogin = (email) => {
-  const key = `login:${email?.toLowerCase()}`;
-  const attempts = loginAttempts.get(key) || { count: 0, lastAttempt: 0 };
-  
-  attempts.count += 1;
-  attempts.lastAttempt = Date.now();
-  
-  if (attempts.count >= config.auth.maxLoginAttempts) {
-    attempts.lockTime = Date.now();
+const recordFailedLogin = async (email) => {
+  const key = `lockout:${email?.toLowerCase()}`;
+  const data = (await _getLockoutData(key)) || { count: 0, lastAttempt: 0, lockTime: 0 };
+
+  data.count += 1;
+  data.lastAttempt = Date.now();
+
+  if (data.count >= config.auth.maxLoginAttempts) {
+    data.lockTime = Date.now();
   }
-  
-  loginAttempts.set(key, attempts);
-  return attempts.count;
+
+  await _setLockoutData(key, data);
+  return data.count;
 };
 
-const clearLoginAttempts = (email) => {
-  const key = `login:${email?.toLowerCase()}`;
-  loginAttempts.delete(key);
+const clearLoginAttempts = async (email) => {
+  const key = `lockout:${email?.toLowerCase()}`;
+  await _delLockoutData(key);
 };
 
 // ==================== REQUEST ID MIDDLEWARE ====================

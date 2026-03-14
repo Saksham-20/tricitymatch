@@ -269,7 +269,7 @@ const Search = () => {
             {profiles.length > 0 && (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-                  <AnimatePresence mode="popLayout">
+                  <AnimatePresence>
                     {profiles.map((profile, i) => {
                       const pid = profile.userId || profile.id || profile.profileId;
                       if (!pid) return null;

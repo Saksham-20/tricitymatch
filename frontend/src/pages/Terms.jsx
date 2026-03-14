@@ -47,7 +47,7 @@ export default function Terms() {
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">6. Privacy</h2>
-              <p>Your use of the Service is also governed by our <Link to="/privacy" className="text-rose-700 hover:underline">Privacy Policy</Link>, which is incorporated by reference.</p>
+              <p>Your use of the Service is also governed by our <Link to="/privacy" className="text-rose-700 underline hover:text-rose-800">Privacy Policy</Link>, which is incorporated by reference.</p>
             </section>
 
             <section>
@@ -67,7 +67,7 @@ export default function Terms() {
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">10. Contact</h2>
-              <p>For questions about these Terms, contact us at <a href="mailto:legal@tricitymatch.com" className="text-rose-700 hover:underline">legal@tricitymatch.com</a>.</p>
+              <p>For questions about these Terms, contact us at <a href="mailto:legal@tricitymatch.com" className="text-rose-700 underline hover:text-rose-800">legal@tricitymatch.com</a>.</p>
             </section>
           </div>
         </div>

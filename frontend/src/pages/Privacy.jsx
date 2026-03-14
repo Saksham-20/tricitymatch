@@ -41,7 +41,7 @@ export default function Privacy() {
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">4. Profile Visibility</h2>
-              <p>You can control your profile visibility in <Link to="/settings" className="text-rose-700 hover:underline">Settings → Privacy</Link>. You can choose to show your profile to everyone, only premium users, or only your connections.</p>
+              <p>You can control your profile visibility in <Link to="/settings" className="text-rose-700 underline hover:text-rose-800">Settings → Privacy</Link>. You can choose to show your profile to everyone, only premium users, or only your connections.</p>
             </section>
 
             <section>
@@ -56,7 +56,7 @@ export default function Privacy() {
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">7. Your Rights</h2>
-              <p>You have the right to access, correct, or delete your personal data. You can manage this through your profile settings or by contacting us at <a href="mailto:privacy@tricitymatch.com" className="text-rose-700 hover:underline">privacy@tricitymatch.com</a>.</p>
+              <p>You have the right to access, correct, or delete your personal data. You can manage this through your profile settings or by contacting us at <a href="mailto:privacy@tricitymatch.com" className="text-rose-700 underline hover:text-rose-800">privacy@tricitymatch.com</a>.</p>
             </section>
 
             <section>
@@ -71,7 +71,7 @@ export default function Privacy() {
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">10. Contact</h2>
-              <p>For privacy-related enquiries, contact us at <a href="mailto:privacy@tricitymatch.com" className="text-rose-700 hover:underline">privacy@tricitymatch.com</a>.</p>
+              <p>For privacy-related enquiries, contact us at <a href="mailto:privacy@tricitymatch.com" className="text-rose-700 underline hover:text-rose-800">privacy@tricitymatch.com</a>.</p>
             </section>
           </div>
         </div>

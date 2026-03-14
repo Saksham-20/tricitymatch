@@ -21,7 +21,10 @@ const escapeLikePattern = (str) => {
 // @desc    Get all users with filters
 // @access  Private/Admin
 exports.getUsers = asyncHandler(async (req, res) => {
-  const { status, role, page = 1, limit = 20, search } = req.query;
+  const rawLimit = parseInt(req.query.limit) || 20;
+  const limit = Math.min(Math.max(rawLimit, 1), 100); // cap at 100 rows per page
+  const page = Math.max(parseInt(req.query.page) || 1, 1);
+  const { status, role, search } = req.query;
   const offset = (page - 1) * limit;
 
   const where = {};
@@ -40,8 +43,8 @@ exports.getUsers = asyncHandler(async (req, res) => {
       { model: Profile, attributes: ['firstName', 'lastName', 'city'] },
       { model: Subscription, order: [['createdAt', 'DESC']], limit: 1 }
     ],
-    limit: parseInt(limit),
-    offset: parseInt(offset),
+    limit,
+    offset,
     order: [['createdAt', 'DESC']]
   });
 
@@ -49,8 +52,8 @@ exports.getUsers = asyncHandler(async (req, res) => {
     success: true,
     users,
     pagination: {
-      page: parseInt(page),
-      limit: parseInt(limit),
+      page,
+      limit,
       total: count,
       pages: Math.ceil(count / limit)
     }
@@ -122,6 +125,17 @@ exports.updateVerification = asyncHandler(async (req, res) => {
   const { verificationId } = req.params;
   const { status, adminNotes } = req.body;
 
+  // Allowlist status values
+  const validVerificationStatuses = ['approved', 'rejected'];
+  if (!status || !validVerificationStatuses.includes(status)) {
+    throw createError.badRequest(`Status must be one of: ${validVerificationStatuses.join(', ')}`);
+  }
+
+  // Cap adminNotes length to prevent large payloads stored in DB
+  const safeAdminNotes = typeof adminNotes === 'string'
+    ? adminNotes.substring(0, 1000)
+    : null;
+
   const verification = await Verification.findByPk(verificationId);
   if (!verification) {
     throw createError.notFound('Verification not found');
@@ -129,7 +143,7 @@ exports.updateVerification = asyncHandler(async (req, res) => {
 
   const previousStatus = verification.status;
   verification.status = status;
-  verification.adminNotes = adminNotes;
+  verification.adminNotes = safeAdminNotes;
   verification.verifiedAt = new Date();
   verification.verifiedBy = req.user.id;
   await verification.save();
@@ -248,8 +262,11 @@ exports.getAnalytics = asyncHandler(async (req, res) => {
 // @desc    Get user reports with optional status filter
 // @access  Private/Admin
 exports.getReports = asyncHandler(async (req, res) => {
-  const { status, page = 1, limit = 20 } = req.query;
-  const offset = (parseInt(page) - 1) * parseInt(limit);
+  const rawLimit = parseInt(req.query.limit) || 20;
+  const limit = Math.min(Math.max(rawLimit, 1), 100);
+  const page = Math.max(parseInt(req.query.page) || 1, 1);
+  const offset = (page - 1) * limit;
+  const { status } = req.query;
   const where = {};
   if (status) where.status = status;
 
@@ -270,7 +287,7 @@ exports.getReports = asyncHandler(async (req, res) => {
       },
     ],
     order: [['createdAt', 'DESC']],
-    limit: parseInt(limit),
+    limit,
     offset,
   });
 
@@ -278,8 +295,8 @@ exports.getReports = asyncHandler(async (req, res) => {
     success: true,
     reports,
     pagination: {
-      page: parseInt(page),
-      limit: parseInt(limit),
+      page,
+      limit,
       total: count,
       pages: Math.ceil(count / parseInt(limit)),
     },
@@ -325,11 +342,18 @@ exports.updateReport = asyncHandler(async (req, res) => {
 // @desc    Create a new user (admin-side)
 // @access  Private/Admin
 exports.createUser = asyncHandler(async (req, res) => {
-  const { email, password, phone, firstName, lastName, role = 'user', status = 'active' } = req.body;
+  const { email, password, phone, firstName, lastName, status = 'active' } = req.body;
+  // Role must always default to 'user' — never trust the request body for role assignment.
+  // Admin can promote users via a separate, explicit admin action if needed.
+  const role = 'user';
 
   if (!email || !password || !firstName || !lastName) {
     throw createError.badRequest('email, password, firstName, and lastName are required');
   }
+
+  // Validate status to only allowed values (never allow 'banned' on creation)
+  const allowedStatuses = ['active', 'pending', 'inactive'];
+  const safeStatus = allowedStatuses.includes(status) ? status : 'active';
 
   const existing = await User.findOne({ where: { email: email.toLowerCase() } });
   if (existing) throw createError.conflict('User already exists with this email');
@@ -340,7 +364,7 @@ exports.createUser = asyncHandler(async (req, res) => {
       password,
       phone: phone || null,
       role,
-      status,
+      status: safeStatus,
       emailVerified: true,
     }, { transaction: t });
 

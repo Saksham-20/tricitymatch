@@ -30,12 +30,13 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
     smoking,
     drinking,
     interestTags,
-    page = 1,
-    limit = 20,
     sortBy = 'compatibility'
   } = req.query;
 
   const userId = req.user.id;
+  // Enforce hard limits — do not trust validator alone
+  const page = Math.max(parseInt(req.query.page) || 1, 1);
+  const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 100);
   const offset = (page - 1) * limit;
 
   // Get current user's profile for compatibility calculation
@@ -223,7 +224,7 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
 // @access  Private
 exports.getSuggestions = asyncHandler(async (req, res) => {
   const userId = req.user.id;
-  const limit = parseInt(req.query.limit) || 10;
+  const limit = Math.min(Math.max(parseInt(req.query.limit) || 10, 1), 50);
 
   const currentProfile = await Profile.findOne({ where: { userId } });
   if (!currentProfile) {

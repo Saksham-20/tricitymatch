@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-03-13T08:45:00.001Z",
+  "pages": [
+    {
+      "url": "http://localhost:3000/",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "networkErrors": [],
+      "consoleWarnings": [],
+      "slowResources": []
+    },
+    {
+      "url": "http://localhost:3000/login",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "networkErrors": [],
+      "consoleWarnings": [],
+      "slowResources": []
+    },
+    {
+      "url": "http://localhost:3000/signup",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "networkErrors": [],
+      "consoleWarnings": [],
+      "slowResources": []
+    },
+    {
+      "url": "http://localhost:3000/forgot-password",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "networkErrors": [],
+      "consoleWarnings": [],
+      "slowResources": []
+    },
+    {
+      "url": "http://localhost:3000/terms",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "networkErrors": [],
+      "consoleWarnings": [],
+      "slowResources": []
+    },
+    {
+      "url": "http://localhost:3000/privacy",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "networkErrors": [],
+      "consoleWarnings": [],
+      "slowResources": []
+    }
+  ],
+  "totalConsoleErrors": 0,
+  "totalNetworkErrors": 0,
+  "totalSlowResources": 0
+}

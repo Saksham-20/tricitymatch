@@ -1,0 +1,404 @@
+{
+  "startedAt": "2026-03-13T08:28:23.850Z",
+  "baseURL": "http://localhost:3000",
+  "pages": [
+    {
+      "url": "http://localhost:3000/",
+      "title": "TricityShadi - Find Your Perfect Match in Tricity",
+      "status": "ok",
+      "loadTimeMs": 1709,
+      "screenshot": "D:\\REACT\\TricityMatch\\qa-reports\\screenshots\\crawler\\_.png",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "networkFailures": [],
+      "brokenImages": [],
+      "overflowElements": [],
+      "linksFound": 24
+    },
+    {
+      "url": "http://localhost:3000/login",
+      "title": "TricityShadi - Find Your Perfect Match in Tricity",
+      "status": "ok",
+      "loadTimeMs": 1226,
+      "screenshot": "D:\\REACT\\TricityMatch\\qa-reports\\screenshots\\crawler\\_login.png",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "networkFailures": [],
+      "brokenImages": [],
+      "overflowElements": [],
+      "linksFound": 9
+    },
+    {
+      "url": "http://localhost:3000/signup",
+      "title": "TricityShadi - Find Your Perfect Match in Tricity",
+      "status": "ok",
+      "loadTimeMs": 850,
+      "screenshot": "D:\\REACT\\TricityMatch\\qa-reports\\screenshots\\crawler\\_signup.png",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "networkFailures": [],
+      "brokenImages": [],
+      "overflowElements": [],
+      "linksFound": 8
+    },
+    {
+      "url": "http://localhost:3000/forgot-password",
+      "title": "TricityShadi - Find Your Perfect Match in Tricity",
+      "status": "ok",
+      "loadTimeMs": 1202,
+      "screenshot": "D:\\REACT\\TricityMatch\\qa-reports\\screenshots\\crawler\\_forgot_password.png",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "networkFailures": [],
+      "brokenImages": [],
+      "overflowElements": [],
+      "linksFound": 6
+    },
+    {
+      "url": "http://localhost:3000/terms",
+      "title": "TricityShadi - Find Your Perfect Match in Tricity",
+      "status": "ok",
+      "loadTimeMs": 829,
+      "screenshot": "D:\\REACT\\TricityMatch\\qa-reports\\screenshots\\crawler\\_terms.png",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "networkFailures": [],
+      "brokenImages": [],
+      "overflowElements": [],
+      "linksFound": 7
+    },
+    {
+      "url": "http://localhost:3000/privacy",
+      "title": "TricityShadi - Find Your Perfect Match in Tricity",
+      "status": "ok",
+      "loadTimeMs": 999,
+      "screenshot": "D:\\REACT\\TricityMatch\\qa-reports\\screenshots\\crawler\\_privacy.png",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "networkFailures": [],
+      "brokenImages": [],
+      "overflowElements": [],
+      "linksFound": 7
+    },
+    {
+      "url": "http://localhost:3000/search",
+      "title": "TricityShadi - Find Your Perfect Match in Tricity",
+      "status": "ok",
+      "loadTimeMs": 1078,
+      "screenshot": "D:\\REACT\\TricityMatch\\qa-reports\\screenshots\\crawler\\_search.png",
+      "consoleErrors": [
+        {
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+          "location": {
+            "url": "http://localhost:5000/api/auth/me",
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        },
+        {
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+          "location": {
+            "url": "http://localhost:5000/api/auth/me",
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        }
+      ],
+      "consoleWarnings": [],
+      "networkFailures": [
+        {
+          "url": "http://localhost:5000/api/auth/me",
+          "status": 401
+        },
+        {
+          "url": "http://localhost:5000/api/auth/me",
+          "status": 401
+        }
+      ],
+      "brokenImages": [],
+      "overflowElements": [],
+      "linksFound": 9
+    },
+    {
+      "url": "http://localhost:3000/profile/1",
+      "title": "TricityShadi - Find Your Perfect Match in Tricity",
+      "status": "ok",
+      "loadTimeMs": 886,
+      "screenshot": "D:\\REACT\\TricityMatch\\qa-reports\\screenshots\\crawler\\_profile_1.png",
+      "consoleErrors": [
+        {
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+          "location": {
+            "url": "http://localhost:5000/api/auth/me",
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        },
+        {
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+          "location": {
+            "url": "http://localhost:5000/api/auth/me",
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        }
+      ],
+      "consoleWarnings": [],
+      "networkFailures": [
+        {
+          "url": "http://localhost:5000/api/auth/me",
+          "status": 401
+        },
+        {
+          "url": "http://localhost:5000/api/auth/me",
+          "status": 401
+        }
+      ],
+      "brokenImages": [],
+      "overflowElements": [],
+      "linksFound": 9
+    },
+    {
+      "url": "http://localhost:3000/profile/2",
+      "title": "TricityShadi - Find Your Perfect Match in Tricity",
+      "status": "ok",
+      "loadTimeMs": 724,
+      "screenshot": "D:\\REACT\\TricityMatch\\qa-reports\\screenshots\\crawler\\_profile_2.png",
+      "consoleErrors": [
+        {
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+          "location": {
+            "url": "http://localhost:5000/api/auth/me",
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        },
+        {
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+          "location": {
+            "url": "http://localhost:5000/api/auth/me",
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        }
+      ],
+      "consoleWarnings": [],
+      "networkFailures": [
+        {
+          "url": "http://localhost:5000/api/auth/me",
+          "status": 401
+        },
+        {
+          "url": "http://localhost:5000/api/auth/me",
+          "status": 401
+        }
+      ],
+      "brokenImages": [],
+      "overflowElements": [],
+      "linksFound": 9
+    },
+    {
+      "url": "http://localhost:3000/profile/3",
+      "title": "TricityShadi - Find Your Perfect Match in Tricity",
+      "status": "ok",
+      "loadTimeMs": 927,
+      "screenshot": "D:\\REACT\\TricityMatch\\qa-reports\\screenshots\\crawler\\_profile_3.png",
+      "consoleErrors": [
+        {
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+          "location": {
+            "url": "http://localhost:5000/api/auth/me",
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        },
+        {
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+          "location": {
+            "url": "http://localhost:5000/api/auth/me",
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        }
+      ],
+      "consoleWarnings": [],
+      "networkFailures": [
+        {
+          "url": "http://localhost:5000/api/auth/me",
+          "status": 401
+        },
+        {
+          "url": "http://localhost:5000/api/auth/me",
+          "status": 401
+        }
+      ],
+      "brokenImages": [],
+      "overflowElements": [],
+      "linksFound": 9
+    },
+    {
+      "url": "http://localhost:3000/profile/4",
+      "title": "TricityShadi - Find Your Perfect Match in Tricity",
+      "status": "ok",
+      "loadTimeMs": 738,
+      "screenshot": "D:\\REACT\\TricityMatch\\qa-reports\\screenshots\\crawler\\_profile_4.png",
+      "consoleErrors": [
+        {
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+          "location": {
+            "url": "http://localhost:5000/api/auth/me",
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        },
+        {
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+          "location": {
+            "url": "http://localhost:5000/api/auth/me",
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        }
+      ],
+      "consoleWarnings": [],
+      "networkFailures": [
+        {
+          "url": "http://localhost:5000/api/auth/me",
+          "status": 401
+        },
+        {
+          "url": "http://localhost:5000/api/auth/me",
+          "status": 401
+        }
+      ],
+      "brokenImages": [],
+      "overflowElements": [],
+      "linksFound": 9
+    },
+    {
+      "url": "http://localhost:3000/profile/5",
+      "title": "TricityShadi - Find Your Perfect Match in Tricity",
+      "status": "ok",
+      "loadTimeMs": 877,
+      "screenshot": "D:\\REACT\\TricityMatch\\qa-reports\\screenshots\\crawler\\_profile_5.png",
+      "consoleErrors": [
+        {
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+          "location": {
+            "url": "http://localhost:5000/api/auth/me",
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        },
+        {
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+          "location": {
+            "url": "http://localhost:5000/api/auth/me",
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        }
+      ],
+      "consoleWarnings": [],
+      "networkFailures": [
+        {
+          "url": "http://localhost:5000/api/auth/me",
+          "status": 401
+        },
+        {
+          "url": "http://localhost:5000/api/auth/me",
+          "status": 401
+        }
+      ],
+      "brokenImages": [],
+      "overflowElements": [],
+      "linksFound": 9
+    },
+    {
+      "url": "http://localhost:3000/about",
+      "title": "TricityShadi - Find Your Perfect Match in Tricity",
+      "status": "ok",
+      "loadTimeMs": 796,
+      "screenshot": "D:\\REACT\\TricityMatch\\qa-reports\\screenshots\\crawler\\_about.png",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "networkFailures": [],
+      "brokenImages": [],
+      "overflowElements": [],
+      "linksFound": 24
+    },
+    {
+      "url": "http://localhost:3000/contact",
+      "title": "TricityShadi - Find Your Perfect Match in Tricity",
+      "status": "ok",
+      "loadTimeMs": 1133,
+      "screenshot": "D:\\REACT\\TricityMatch\\qa-reports\\screenshots\\crawler\\_contact.png",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "networkFailures": [],
+      "brokenImages": [],
+      "overflowElements": [],
+      "linksFound": 24
+    },
+    {
+      "url": "http://localhost:3000/safety",
+      "title": "TricityShadi - Find Your Perfect Match in Tricity",
+      "status": "ok",
+      "loadTimeMs": 890,
+      "screenshot": "D:\\REACT\\TricityMatch\\qa-reports\\screenshots\\crawler\\_safety.png",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "networkFailures": [],
+      "brokenImages": [],
+      "overflowElements": [],
+      "linksFound": 24
+    },
+    {
+      "url": "http://localhost:3000/settings",
+      "title": "TricityShadi - Find Your Perfect Match in Tricity",
+      "status": "ok",
+      "loadTimeMs": 1001,
+      "screenshot": "D:\\REACT\\TricityMatch\\qa-reports\\screenshots\\crawler\\_settings.png",
+      "consoleErrors": [
+        {
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+          "location": {
+            "url": "http://localhost:5000/api/auth/me",
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        },
+        {
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+          "location": {
+            "url": "http://localhost:5000/api/auth/me",
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        }
+      ],
+      "consoleWarnings": [],
+      "networkFailures": [
+        {
+          "url": "http://localhost:5000/api/auth/me",
+          "status": 401
+        },
+        {
+          "url": "http://localhost:5000/api/auth/me",
+          "status": 401
+        }
+      ],
+      "brokenImages": [],
+      "overflowElements": [],
+      "linksFound": 9
+    }
+  ],
+  "summary": {
+    "totalVisited": 16,
+    "totalErrors": 14,
+    "totalWarnings": 0,
+    "totalBrokenImages": 0,
+    "totalOverflows": 0,
+    "totalNetworkFailures": 14
+  }
+}

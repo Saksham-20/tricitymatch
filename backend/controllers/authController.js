@@ -155,14 +155,14 @@ exports.login = asyncHandler(async (req, res) => {
   // Find user
   const user = await User.findOne({ where: { email: normalizedEmail } });
   if (!user) {
-    recordFailedLogin(normalizedEmail);
+    await recordFailedLogin(normalizedEmail);
     throw createError.unauthorized('Invalid credentials');
   }
 
   // Check password
   const isMatch = await user.comparePassword(password);
   if (!isMatch) {
-    const attempts = recordFailedLogin(normalizedEmail);
+    const attempts = await recordFailedLogin(normalizedEmail);
     const remaining = config.auth.maxLoginAttempts - attempts;
     
     if (remaining > 0) {
@@ -173,7 +173,7 @@ exports.login = asyncHandler(async (req, res) => {
   }
 
   // Clear failed login attempts on success
-  clearLoginAttempts(normalizedEmail);
+  await clearLoginAttempts(normalizedEmail);
 
   // Check if user is active
   if (user.status !== 'active') {

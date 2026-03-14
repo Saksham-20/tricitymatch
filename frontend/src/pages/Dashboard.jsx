@@ -253,13 +253,12 @@ const Dashboard = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const [statsRes, suggestionsRes, matchesRes, profileRes, viewersRes, subRes] = await Promise.allSettled([
+      const [statsRes, suggestionsRes, matchesRes, profileRes, subRes] = await Promise.allSettled([
         api.get('/profile/me/stats').catch(() => ({ data: { stats: null } })),
         api.get('/search/suggestions?limit=8').catch(() => ({ data: { suggestions: [] } })),
         api.get('/match/mutual').catch(() => ({ data: { mutualMatches: [] } })),
         api.get('/profile/me').catch(() => ({ data: { profile: null } })),
-        api.get('/profile/me/viewers?limit=6').catch(() => ({ data: { viewers: [] } })),
-        api.get('/subscription/me').catch(() => ({ data: { subscription: null } })),
+        api.get('/subscription/my-subscription').catch(() => ({ data: { subscription: null } })),
       ]);
 
       if (statsRes.status === 'fulfilled' && statsRes.value?.data?.stats) {
@@ -307,21 +306,35 @@ const Dashboard = () => {
         }
       }
 
-      // ── Profile viewers (premium only) ───────────────────────────────
-      if (viewersRes.status === 'fulfilled') {
-        const res = viewersRes.value?.data;
-        const viewers = res?.viewers ?? [];
-        setProfileViewers(viewers);
-        setHasPremium(true); // If viewers endpoint succeeds, user is premium
-      } else {
-        // 403 = not premium, that's expected
-        setHasPremium(false);
-      }
-
       // ── Subscription status ───────────────────────────────────────────
       if (subRes.status === 'fulfilled') {
         const res = subRes.value?.data;
-        setSubscription(res?.subscription ?? null);
+        const currentSubscription = res?.subscription ?? null;
+        setSubscription(currentSubscription);
+
+        const isPremiumActive =
+          !!currentSubscription &&
+          ['basic_premium', 'premium_plus', 'vip'].includes(currentSubscription.planType) &&
+          (currentSubscription.status === 'active' || currentSubscription.isActive === true);
+
+        setHasPremium(isPremiumActive);
+
+        if (isPremiumActive) {
+          try {
+            const viewersRes = await api.get('/profile/me/viewers?limit=6');
+            const viewers = viewersRes?.data?.viewers ?? [];
+            setProfileViewers(viewers);
+          } catch {
+            // Premium check can race with backend sync right after payment; keep UI stable.
+            setProfileViewers([]);
+          }
+        } else {
+          setProfileViewers([]);
+        }
+      } else {
+        setSubscription(null);
+        setHasPremium(false);
+        setProfileViewers([]);
       }
     } catch (err) {
       if (import.meta.env.DEV) console.error('Dashboard load error:', err);

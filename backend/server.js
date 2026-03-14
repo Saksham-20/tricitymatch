@@ -183,12 +183,30 @@ app.use('/api', routes); // Keep backward compatibility
 
 // ==================== API DOCUMENTATION ====================
 
-// Swagger UI (only in development or when explicitly enabled)
+// Swagger UI — only available in development or when explicitly enabled AND a
+// SWAGGER_TOKEN env var is set (basic bearer token gate for staging environments).
+// NEVER expose Swagger in production without the token gate.
 if (config.isDevelopment || process.env.ENABLE_SWAGGER === 'true') {
   const swaggerUi = require('swagger-ui-express');
   const swaggerSpec = require('./config/swagger');
 
-  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  // Optional bearer-token gate for non-development environments
+  const swaggerGuard = (req, res, next) => {
+    if (config.isDevelopment) return next();
+    const swaggerToken = process.env.SWAGGER_TOKEN;
+    if (!swaggerToken) {
+      // SWAGGER_TOKEN not set — deny access in non-dev even with ENABLE_SWAGGER=true
+      return res.status(403).json({ error: 'API docs are disabled in this environment. Set SWAGGER_TOKEN to enable.' });
+    }
+    const auth = req.headers.authorization;
+    if (!auth || auth !== `Bearer ${swaggerToken}`) {
+      res.setHeader('WWW-Authenticate', 'Bearer realm="API Docs"');
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    next();
+  };
+
+  app.use('/api/docs', swaggerGuard, swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
     customCss: '.swagger-ui .topbar { display: none }',
     customSiteTitle: 'TricityShadi API Documentation',
     swaggerOptions: {
@@ -197,13 +215,15 @@ if (config.isDevelopment || process.env.ENABLE_SWAGGER === 'true') {
     }
   }));
 
-  // JSON spec endpoint
-  app.get('/api/docs.json', (req, res) => {
+  // JSON spec endpoint — same guard
+  app.get('/api/docs.json', swaggerGuard, (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.send(swaggerSpec);
   });
 
-  console.log('📚 API Documentation available at /api/docs');
+  if (config.isDevelopment) {
+    console.log('📚 API Documentation available at /api/docs');
+  }
 }
 
 // ==================== HEALTH CHECKS ====================

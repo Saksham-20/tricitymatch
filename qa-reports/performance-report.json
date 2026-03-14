@@ -1,0 +1,107 @@
+{
+  "generatedAt": "2026-03-13T08:29:27.888Z",
+  "thresholds": {
+    "fcpMs": 3000,
+    "lcpMs": 4000,
+    "clsScore": 0.25,
+    "totalRequests": 80,
+    "totalSizeKB": 15000,
+    "largestJsKB": 1000
+  },
+  "pages": [
+    {
+      "path": "/",
+      "name": "Home",
+      "vitals": {
+        "fcp": 604,
+        "lcp": 2336,
+        "cls": 0.000018992185592651365,
+        "fid": 0,
+        "ttfb": 11.799999998882413
+      },
+      "resources": {
+        "totalRequests": 44,
+        "totalSizeKB": 4556,
+        "largestJsKB": 8,
+        "jsCount": 2,
+        "imageCount": 10,
+        "slowResources": [],
+        "largeResources": [
+          {
+            "name": "chunk-47AYDC35.js",
+            "sizeKB": 907
+          },
+          {
+            "name": "react-icons_fa.js",
+            "sizeKB": 1354
+          }
+        ]
+      },
+      "timestamp": "2026-03-13T08:29:36.485Z"
+    },
+    {
+      "path": "/login",
+      "name": "Login",
+      "vitals": {
+        "fcp": 336,
+        "lcp": 1336,
+        "cls": 0.000018992185592651365,
+        "fid": 0,
+        "ttfb": 17.800000000745058
+      },
+      "resources": {
+        "totalRequests": 38,
+        "totalSizeKB": 4153,
+        "largestJsKB": 39,
+        "jsCount": 4,
+        "imageCount": 2,
+        "slowResources": [],
+        "largeResources": [
+          {
+            "name": "chunk-47AYDC35.js",
+            "sizeKB": 907
+          },
+          {
+            "name": "react-icons_fa.js",
+            "sizeKB": 1354
+          }
+        ]
+      },
+      "timestamp": "2026-03-13T08:29:42.797Z"
+    },
+    {
+      "path": "/signup",
+      "name": "Signup",
+      "vitals": {
+        "fcp": 336,
+        "lcp": 1468,
+        "cls": 0.000017572593688964845,
+        "fid": 0,
+        "ttfb": 12.099999999627471
+      },
+      "resources": {
+        "totalRequests": 51,
+        "totalSizeKB": 5346,
+        "largestJsKB": 39,
+        "jsCount": 5,
+        "imageCount": 2,
+        "slowResources": [],
+        "largeResources": [
+          {
+            "name": "chunk-47AYDC35.js",
+            "sizeKB": 907
+          },
+          {
+            "name": "react-icons_fa.js",
+            "sizeKB": 1354
+          },
+          {
+            "name": "lucide-react.js",
+            "sizeKB": 1026
+          }
+        ]
+      },
+      "timestamp": "2026-03-13T08:29:49.008Z"
+    }
+  ]
+}

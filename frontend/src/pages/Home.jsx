@@ -98,7 +98,9 @@ const MatchPreviewCard = ({ profile }) => (
         </div>
       )}
 
-      <button className="absolute top-3 right-3 w-8 h-8 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white transition-colors">
+      <button
+        aria-label="Save profile"
+        className="absolute top-3 right-3 w-8 h-8 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white transition-colors">
         <FiBookmark className="w-3.5 h-3.5 text-neutral-600" />
       </button>
 
@@ -110,9 +112,9 @@ const MatchPreviewCard = ({ profile }) => (
     <div className="p-4">
       <div className="flex items-start gap-3 mb-3">
         <div className="flex-1 min-w-0">
-          <h4 className="font-display font-semibold text-neutral-800 text-sm leading-tight truncate">
+          <h3 className="font-display font-semibold text-neutral-800 text-sm leading-tight truncate">
             {profile.name}, {profile.age}
-          </h4>
+          </h3>
           <p className="text-xs text-neutral-400 mt-0.5 flex items-center gap-1">
             <FiMapPin className="w-3 h-3 flex-shrink-0" />
             {profile.location}
@@ -236,11 +238,11 @@ const Home = () => {
   const [activeStory, setActiveStory] = useState(0);
 
   const featuredProfiles = [
-    { id: 1, name: 'Priya Sharma', age: 28, location: 'Mohali, Punjab', match: 97, online: true, premium: false, tags: ['MBA IIM', 'Family-first', 'Travel'], image: '/images/profile-priya.png' },
-    { id: 2, name: 'Rahul Gupta', age: 31, location: 'Chandigarh', match: 95, online: false, premium: false, tags: ['IIT Graduate', 'Startup Founder', 'Trekking'], image: '/images/profile-rahul.png' },
-    { id: 3, name: 'Anjali Nair', age: 29, location: 'Panchkula', match: 94, online: true, premium: true, tags: ['Doctor AIIMS', 'Spiritual', 'Art'], image: '/images/profile-anjali.png' },
-    { id: 4, name: 'Arjun Patel', age: 32, location: 'Chandigarh', match: 93, online: false, premium: false, tags: ['Entrepreneur', 'Fitness', 'Books'], image: '/images/profile-arjun.png' },
-    { id: 5, name: 'Meera Reddy', age: 27, location: 'Mohali, Punjab', match: 96, online: true, premium: false, tags: ['Software Engineer', 'Cooking', 'Music'], image: '/images/profile-meera.png' },
+    { id: 1, name: 'Priya Sharma', age: 28, location: 'Mohali, Punjab', match: 97, online: true, premium: false, tags: ['MBA IIM', 'Family-first', 'Travel'], image: '/images/optimized/profile-priya.webp' },
+    { id: 2, name: 'Rahul Gupta', age: 31, location: 'Chandigarh', match: 95, online: false, premium: false, tags: ['IIT Graduate', 'Startup Founder', 'Trekking'], image: '/images/optimized/profile-rahul.webp' },
+    { id: 3, name: 'Anjali Nair', age: 29, location: 'Panchkula', match: 94, online: true, premium: true, tags: ['Doctor AIIMS', 'Spiritual', 'Art'], image: '/images/optimized/profile-anjali.webp' },
+    { id: 4, name: 'Arjun Patel', age: 32, location: 'Chandigarh', match: 93, online: false, premium: false, tags: ['Entrepreneur', 'Fitness', 'Books'], image: '/images/optimized/profile-arjun.webp' },
+    { id: 5, name: 'Meera Reddy', age: 27, location: 'Mohali, Punjab', match: 96, online: true, premium: false, tags: ['Software Engineer', 'Cooking', 'Music'], image: '/images/optimized/profile-meera.webp' },
   ];
 
   const testimonials = [
@@ -250,7 +252,7 @@ const Home = () => {
       date: 'June 2024',
       quote: 'We found each other in the most unexpected, yet perfectly right way. TricityShadi knew what we needed before we did.',
       years: '2',
-      image: '/images/couple-testimonial.png',
+      image: '/images/optimized/couple-testimonial.webp',
     },
     {
       names: 'Anjali & Rohan',
@@ -258,7 +260,7 @@ const Home = () => {
       date: 'August 2024',
       quote: 'Trust was everything for us. The verification process gave us both the confidence to open up and truly connect.',
       years: '1',
-      image: '/images/wedding-ceremony.png',
+      image: '/images/optimized/wedding-ceremony.webp',
     },
     {
       names: 'Meera & Vikram',
@@ -266,7 +268,7 @@ const Home = () => {
       date: 'September 2024',
       quote: 'From the first message to our engagement, everything felt intentional. This platform respects both families.',
       years: '1',
-      image: '/images/couple-engagement.png',
+      image: '/images/optimized/couple-engagement.webp',
     },
   ];
 
@@ -442,7 +444,7 @@ const Home = () => {
               {/* Main hero image */}
               <div className="relative rounded-3xl overflow-hidden shadow-2xl">
                 <img
-                  src="/images/hero-couple.png"
+                  src="/images/optimized/hero-couple.webp"
                   alt="Happy couple — TricityShadi"
                   className="w-full h-[520px] object-cover"
                 />
@@ -600,10 +602,9 @@ const Home = () => {
         <div className="absolute right-0 top-0 bottom-0 w-1/4 hidden xl:block pointer-events-none">
           <div className="absolute inset-0 opacity-[0.06]">
             <img
-              src="/images/wedding-ceremony.png"
-              alt=""
+              src="/images/optimized/wedding-ceremony.webp"
+              alt="Wedding ceremony celebration"
               className="w-full h-full object-cover"
-              aria-hidden="true"
             />
           </div>
           <div className="absolute inset-0 bg-gradient-to-r from-neutral-50 to-transparent" />
@@ -634,7 +635,7 @@ const Home = () => {
               {/* Process image */}
               <div className="rounded-2xl overflow-hidden shadow-card mb-8 hidden lg:block">
                 <img
-                  src="/images/wedding-hands.png"
+                  src="/images/optimized/wedding-hands.webp"
                   alt="Wedding hands — TricityShadi"
                   className="w-full h-48 object-cover"
                   loading="lazy"
@@ -697,7 +698,7 @@ const Home = () => {
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 text-white flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-200 shadow-burgundy">
                     {React.cloneElement(pt.icon, { className: 'w-4.5 h-4.5' })}
                   </div>
-                  <h4 className="font-semibold text-neutral-800 mb-1.5">{pt.title}</h4>
+                  <h3 className="font-semibold text-neutral-800 mb-1.5">{pt.title}</h3>
                   <p className="text-sm text-neutral-500 leading-relaxed">{pt.desc}</p>
                 </motion.div>
               ))}
@@ -761,10 +762,9 @@ const Home = () => {
         {/* Background image + dark overlay */}
         <div className="absolute inset-0">
           <img
-            src="/images/couple-walking.png"
-            alt=""
+            src="/images/optimized/couple-walking.webp"
+            alt="Couple walking together"
             className="w-full h-full object-cover"
-            aria-hidden="true"
           />
           <div className="absolute inset-0 bg-gradient-to-br from-neutral-900/92 via-primary-900/85 to-neutral-900/95" />
         </div>

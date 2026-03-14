@@ -386,7 +386,7 @@ const Navbar = () => {
                     )}
                   </div>
                   <div className="ml-auto flex-shrink-0">
-                    <NotificationBell count={NOTIF_COUNT} />
+                    <NotificationBell count={unreadCount} />
                   </div>
                 </div>
               )}

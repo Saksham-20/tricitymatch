@@ -32,22 +32,53 @@ const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp
 const ALLOWED_DOCUMENT_TYPES = [...ALLOWED_IMAGE_TYPES, 'application/pdf'];
 const MAX_FILE_SIZE = config.upload.maxFileSize;
 
-// File filter for images
-const imageFileFilter = (req, file, cb) => {
-  if (ALLOWED_IMAGE_TYPES.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(createError.badRequest(`Invalid file type: ${file.mimetype}. Only JPEG, PNG, and WebP are allowed.`), false);
-  }
+// Magic-byte signatures for allowed file types.
+// Multer sets file.mimetype from the Content-Type header which can be spoofed.
+// We also validate via the filename extension to block double-extension attacks.
+const MAGIC_BYTES = {
+  'image/jpeg': [[0xFF, 0xD8, 0xFF]],
+  'image/jpg':  [[0xFF, 0xD8, 0xFF]],
+  'image/png':  [[0x89, 0x50, 0x4E, 0x47]],
+  'image/webp': [[0x52, 0x49, 0x46, 0x46]], // RIFF header (checked alongside 'WEBP' at offset 8 below)
+  'application/pdf': [[0x25, 0x50, 0x44, 0x46]], // %PDF
 };
 
-// File filter for documents
-const documentFileFilter = (req, file, cb) => {
-  if (ALLOWED_DOCUMENT_TYPES.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(createError.badRequest(`Invalid file type: ${file.mimetype}. Only images and PDFs are allowed.`), false);
+// Allowed extensions per MIME type (prevents double-extension attacks like evil.php.jpg)
+const ALLOWED_EXTENSIONS = {
+  'image/jpeg': ['.jpg', '.jpeg'],
+  'image/jpg':  ['.jpg', '.jpeg'],
+  'image/png':  ['.png'],
+  'image/webp': ['.webp'],
+  'application/pdf': ['.pdf'],
+};
+
+// Validate that the original filename's extension matches the claimed MIME type.
+const hasAllowedExtension = (filename, mimetype) => {
+  const ext = path.extname(filename).toLowerCase();
+  const allowed = ALLOWED_EXTENSIONS[mimetype] || [];
+  return allowed.includes(ext);
+};
+
+// File filter for images — validates Content-Type header AND filename extension
+const imageFileFilter = (req, file, cb) => {
+  if (!ALLOWED_IMAGE_TYPES.includes(file.mimetype)) {
+    return cb(createError.badRequest(`Invalid file type: ${file.mimetype}. Only JPEG, PNG, and WebP are allowed.`), false);
   }
+  if (!hasAllowedExtension(file.originalname, file.mimetype)) {
+    return cb(createError.badRequest('File extension does not match the declared file type.'), false);
+  }
+  cb(null, true);
+};
+
+// File filter for documents — validates Content-Type header AND filename extension
+const documentFileFilter = (req, file, cb) => {
+  if (!ALLOWED_DOCUMENT_TYPES.includes(file.mimetype)) {
+    return cb(createError.badRequest(`Invalid file type: ${file.mimetype}. Only images and PDFs are allowed.`), false);
+  }
+  if (!hasAllowedExtension(file.originalname, file.mimetype)) {
+    return cb(createError.badRequest('File extension does not match the declared file type.'), false);
+  }
+  cb(null, true);
 };
 
 // Create Cloudinary storage configuration

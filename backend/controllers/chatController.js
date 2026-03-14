@@ -189,8 +189,9 @@ exports.getConversations = asyncHandler(async (req, res) => {
 exports.getMessages = asyncHandler(async (req, res) => {
   const { userId: otherUserId } = req.params;
   const currentUserId = req.user.id;
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 50;
+  const page = Math.max(parseInt(req.query.page) || 1, 1);
+  // Cap to 100 messages per page to prevent bulk dumps
+  const limit = Math.min(Math.max(parseInt(req.query.limit) || 50, 1), 100);
   const offset = (page - 1) * limit;
 
   // Verify mutual match

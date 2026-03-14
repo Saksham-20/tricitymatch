@@ -1,0 +1,68 @@
+{
+  "generatedAt": "2026-03-13T08:29:29.329Z",
+  "pages": [
+    {
+      "path": "http://localhost:3000/",
+      "name": "Home",
+      "brokenImages": [],
+      "network404": [],
+      "emptySrc": [],
+      "brokenSvg": [],
+      "brokenBgImages": [],
+      "iconCount": 0
+    },
+    {
+      "path": "http://localhost:3000/login",
+      "name": "Login",
+      "brokenImages": [],
+      "network404": [],
+      "emptySrc": [],
+      "brokenSvg": [],
+      "brokenBgImages": [],
+      "iconCount": 0
+    },
+    {
+      "path": "http://localhost:3000/signup",
+      "name": "Signup",
+      "brokenImages": [],
+      "network404": [],
+      "emptySrc": [],
+      "brokenSvg": [],
+      "brokenBgImages": [],
+      "iconCount": 0
+    },
+    {
+      "path": "http://localhost:3000/forgot-password",
+      "name": "ForgotPassword",
+      "brokenImages": [],
+      "network404": [],
+      "emptySrc": [],
+      "brokenSvg": [],
+      "brokenBgImages": [],
+      "iconCount": 0
+    },
+    {
+      "path": "http://localhost:3000/terms",
+      "name": "Terms",
+      "brokenImages": [],
+      "network404": [],
+      "emptySrc": [],
+      "brokenSvg": [],
+      "brokenBgImages": [],
+      "iconCount": 0
+    },
+    {
+      "path": "http://localhost:3000/privacy",
+      "name": "Privacy",
+      "brokenImages": [],
+      "network404": [],
+      "emptySrc": [],
+      "brokenSvg": [],
+      "brokenBgImages": [],
+      "iconCount": 0
+    }
+  ],
+  "totalBrokenImages": 0,
+  "totalMissing404": 0,
+  "totalEmptySrc": 0
+}

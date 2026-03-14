@@ -115,13 +115,14 @@ const authenticateSocket = async (socket, next) => {
 };
 
 // Check premium subscription for chat access
+// Plan names must match DB enum: basic_premium, premium_plus, vip
 const checkSubscription = async (userId) => {
   try {
     const subscription = await Subscription.findOne({
       where: {
         userId,
         status: 'active',
-        planType: { [Op.in]: ['premium', 'elite'] },
+        planType: { [Op.in]: ['basic_premium', 'premium_plus', 'vip'] },
         [Op.or]: [
           { endDate: null },
           { endDate: { [Op.gt]: new Date() } }

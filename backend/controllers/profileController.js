@@ -141,11 +141,32 @@ exports.updateProfile = asyncHandler(async (req, res) => {
     throw createError.notFound('Profile not found');
   }
 
+  // Allowlisted profile fields — NEVER spread req.body directly to prevent mass-assignment
+  const PROFILE_UPDATABLE_FIELDS = [
+    'firstName', 'lastName', 'gender', 'dateOfBirth', 'height', 'weight',
+    'city', 'state', 'skinTone', 'diet', 'smoking', 'drinking',
+    'education', 'degree', 'profession', 'income',
+    'religion', 'caste', 'subCaste', 'gotra', 'motherTongue', 'maritalStatus', 'numberOfChildren',
+    'placeOfBirth', 'birthTime', 'manglikStatus', 'zodiacSign', 'rashi', 'nakshatra',
+    'familyType', 'familyStatus', 'fatherOccupation', 'motherOccupation',
+    'preferredAgeMin', 'preferredAgeMax', 'preferredHeightMin', 'preferredHeightMax',
+    'preferredEducation', 'preferredProfession', 'preferredCity',
+    'personalityValues', 'familyPreferences', 'lifestylePreferences',
+    'bio', 'showPhone', 'showEmail', 'interestTags', 'profilePrompts',
+    'spotifyPlaylist', 'socialMediaLinks', 'personalityType', 'languages',
+    'incognitoMode', 'photoBlurUntilMatch',
+  ];
+
   // Use transaction for data consistency
   await sequelize.transaction(async (t) => {
-    // Update profile fields (exclude profilePhoto from body here; we set it from gallery or file)
-    const { profilePhoto: bodyProfilePhoto, ...restBody } = req.body;
-    const updateData = { ...restBody };
+    // Build updateData from ONLY allowlisted fields — prevents mass-assignment
+    const bodyProfilePhoto = req.body?.profilePhoto;
+    const updateData = {};
+    for (const field of PROFILE_UPDATABLE_FIELDS) {
+      if (Object.prototype.hasOwnProperty.call(req.body || {}, field)) {
+        updateData[field] = req.body[field];
+      }
+    }
 
     // Don't overwrite critical fields with empty — keeps suggestions/discovery working (e.g. gender)
     const criticalFields = ['gender', 'firstName', 'lastName'];
@@ -355,7 +376,8 @@ exports.getProfile = asyncHandler(async (req, res) => {
     include: [
       {
         model: User,
-        attributes: ['id', 'email', 'phone', 'status'],
+        // Only fetch fields safe to return publicly; contact details are gated below
+        attributes: ['id', 'status'],
         include: [{ model: Subscription, where: { status: 'active' }, required: false }]
       }
     ]
@@ -402,10 +424,22 @@ exports.getProfile = asyncHandler(async (req, res) => {
 
   // Prepare response with privacy checks
   const profileData = profile.toJSON();
-  if (!hasPremiumAccess || !isContactUnlocked) {
+
+  // Only fetch contact details from DB when the viewer has actually earned access.
+  // This prevents any accidental leakage through JSON serialisation.
+  if (hasPremiumAccess && isContactUnlocked) {
+    const targetUser = await User.findByPk(userId, { attributes: ['phone', 'email'] });
     if (profileData.User) {
-      profileData.User.phone = null;
-      profileData.User.email = null;
+      profileData.User.phone = targetUser?.phone ?? null;
+      profileData.User.email = targetUser?.email ?? null;
+    } else {
+      profileData.contactPhone = targetUser?.phone ?? null;
+      profileData.contactEmail = targetUser?.email ?? null;
+    }
+  } else {
+    if (profileData.User) {
+      delete profileData.User.phone;
+      delete profileData.User.email;
     }
     profileData.socialMediaLinks = null;
   }

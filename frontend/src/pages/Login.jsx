@@ -13,6 +13,7 @@ const Login = () => {
     password: '',
   });
   const [errors, setErrors] = useState({});
+  const [apiError, setApiError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [shakeTrigger, setShakeTrigger] = useState(false);
@@ -24,10 +25,11 @@ const Login = () => {
       ...formData,
       [e.target.name]: e.target.value,
     });
-    // Clear error when user starts typing
+    // Clear errors when user starts typing
     if (errors[e.target.name]) {
       setErrors({ ...errors, [e.target.name]: '' });
     }
+    if (apiError) setApiError('');
   };
 
   const validate = () => {
@@ -55,7 +57,7 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+    setApiError('');
     if (!validate()) return;
     
     setLoading(true);
@@ -67,9 +69,14 @@ const Login = () => {
         setTimeout(() => {
           navigate(result.role === 'admin' ? '/admin/dashboard' : '/dashboard');
         }, 100);
+      } else {
+        setApiError(result.message || 'Incorrect email or password. Please try again.');
+        setShakeTrigger(true);
+        setTimeout(() => setShakeTrigger(false), 500);
       }
     } catch (error) {
       setLoading(false);
+      setApiError('Something went wrong. Please try again.');
     }
   };
 
@@ -172,9 +179,9 @@ const Login = () => {
           </motion.div>
 
           <motion.div variants={fadeInUp} className="text-center mb-8">
-            <h2 className="text-3xl font-display font-bold text-neutral-800 mb-2">
+            <h1 className="text-3xl font-display font-bold text-neutral-800 mb-2">
               Sign In
-            </h2>
+            </h1>
             <p className="text-neutral-600">
               We're so happy you're here. Your journey continues...
             </p>
@@ -185,6 +192,21 @@ const Login = () => {
             onSubmit={handleSubmit}
             className={`card space-y-6 ${shakeTrigger ? 'animate-shake' : ''}`}
           >
+            {/* API Error Alert */}
+            <AnimatePresence>
+              {apiError && (
+                <motion.div
+                  role="alert"
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  className="flex items-center gap-2 px-4 py-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm"
+                >
+                  {apiError}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Email Field */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-neutral-700 mb-2">
@@ -242,6 +264,7 @@ const Login = () => {
                 />
                 <button
                   type="button"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 right-0 pr-4 flex items-center text-neutral-400 hover:text-neutral-600 transition-colors"
                 >
@@ -267,6 +290,7 @@ const Login = () => {
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
+                  aria-label="Remember me"
                   className="w-4 h-4 rounded border-neutral-300 text-primary-500 focus:ring-primary-500"
                 />
                 <span className="text-sm text-neutral-700">Remember me</span>

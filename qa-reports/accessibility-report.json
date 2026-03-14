@@ -1,0 +1,22 @@
+{
+  "generatedAt": "2026-03-13T08:29:13.574Z",
+  "standard": "WCAG 2.1 AA",
+  "pages": [
+    {
+      "path": "/signup",
+      "name": "Signup",
+      "violations": [],
+      "passes": 37,
+      "incomplete": 1
+    },
+    {
+      "path": "/privacy",
+      "name": "Privacy",
+      "violations": [],
+      "passes": 34,
+      "incomplete": 0
+    }
+  ],
+  "totalViolations": 0,
+  "criticalViolations": 0
+}
