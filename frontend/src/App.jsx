@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { Toaster } from 'react-hot-toast';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { OnboardingProvider } from './context/OnboardingContext';
 import { SocketProvider } from './context/SocketContext';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import LoadingSpinner, { PageSkeleton } from './components/common/LoadingSpinner';
@@ -18,11 +19,14 @@ import BottomNav from './components/common/BottomNav';
 // Public pages (smaller, load faster)
 const Home = lazy(() => import('./pages/Home'));
 const Login = lazy(() => import('./pages/Login'));
-const Signup = lazy(() => import('./pages/Signup'));
+const ModernOnboarding = lazy(() => import('./pages/ModernOnboarding'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const Terms = lazy(() => import('./pages/Terms'));
 const Privacy = lazy(() => import('./pages/Privacy'));
+
+// Modern Profile Editor (new)
+const ModernProfileEditor = lazy(() => import('./pages/ModernProfileEditor'));
 
 // Admin pages
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
@@ -94,9 +98,10 @@ const AnimatedRoutes = () => {
               <Login />
             </PageTransition>
           } />
-          <Route path="/signup" element={
+          <Route path="/signup" element={<Navigate to="/onboarding" replace />} />
+          <Route path="/onboarding" element={
             <PageTransition>
-              <Signup />
+              <ModernOnboarding />
             </PageTransition>
           } />
           <Route path="/forgot-password" element={
@@ -146,7 +151,7 @@ const AnimatedRoutes = () => {
             element={
               <ProtectedRoute>
                 <PageTransition>
-                  <Profile />
+                  <ModernProfileEditor />
                 </PageTransition>
               </ProtectedRoute>
             }
@@ -346,13 +351,15 @@ function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <SocketProvider>
-          <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-            <div className="min-h-screen bg-background">
-              <AppContent />
-            </div>
-          </Router>
-        </SocketProvider>
+        <OnboardingProvider>
+          <SocketProvider>
+            <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+              <div className="min-h-screen bg-background">
+                <AppContent />
+              </div>
+            </Router>
+          </SocketProvider>
+        </OnboardingProvider>
       </AuthProvider>
     </ErrorBoundary>
   );

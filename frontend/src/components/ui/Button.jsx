@@ -26,13 +26,14 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: 'bg-gradient-to-r from-rose-500 to-pink-500 text-white hover:from-rose-600 hover:to-pink-600 focus:ring-rose-500 shadow-md hover:shadow-lg',
-        secondary: 'bg-gray-100 text-gray-900 hover:bg-gray-200 focus:ring-gray-500',
-        outline: 'border-2 border-rose-500 text-rose-500 hover:bg-rose-50 focus:ring-rose-500',
-        ghost: 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:ring-gray-500',
-        danger: 'bg-red-500 text-white hover:bg-red-600 focus:ring-red-500',
-        success: 'bg-green-500 text-white hover:bg-green-600 focus:ring-green-500',
-        link: 'text-rose-500 hover:text-rose-600 underline-offset-4 hover:underline focus:ring-rose-500 p-0',
+        primary: 'bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:from-primary-600 hover:to-primary-700 focus:ring-primary-500 shadow-burgundy hover:shadow-lg',
+        secondary: 'bg-neutral-100 text-neutral-900 hover:bg-neutral-200 focus:ring-neutral-500',
+        outline: 'border-2 border-primary-500 text-primary-500 hover:bg-primary-50 focus:ring-primary-500',
+        ghost: 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 focus:ring-neutral-500',
+        danger: 'bg-destructive text-white hover:bg-destructive-700 focus:ring-destructive',
+        success: 'bg-success text-white hover:bg-success-700 focus:ring-success',
+        link: 'text-primary-500 hover:text-primary-600 underline-offset-4 hover:underline focus:ring-primary-500 p-0',
+        gold: 'bg-gradient-to-r from-gold-500 to-gold-600 text-neutral-900 hover:from-gold-600 hover:to-gold-700 focus:ring-gold-500 shadow-gold hover:shadow-lg font-semibold',
       },
       size: {
         xs: 'text-xs px-2.5 py-1.5 rounded-md',

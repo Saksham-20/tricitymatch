@@ -37,9 +37,9 @@ const Card = React.forwardRef(
   ) => {
     const variants = {
       elevated: 'bg-white shadow-md',
-      outlined: 'bg-white border border-gray-200',
-      filled: 'bg-gray-50',
-      gradient: 'bg-gradient-to-br from-rose-50 to-pink-50',
+      outlined: 'bg-white border border-neutral-200',
+      filled: 'bg-neutral-50',
+      gradient: 'bg-gradient-to-br from-primary-50 to-gold-50',
     };
 
     const paddings = {

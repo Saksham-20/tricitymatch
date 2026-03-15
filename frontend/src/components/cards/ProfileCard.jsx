@@ -402,7 +402,16 @@ const ProfileCard = ({
                 {fullName}
               </h3>
               {(profile.verificationStatus === 'approved' || profile.User?.verificationStatus === 'approved' || profile.isVerified) && (
-                <FiCheckCircle className="w-4 h-4 text-blue-500 flex-shrink-0" title="Verified profile" />
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.4, type: 'spring', stiffness: 260 }}
+                  title="Verified profile"
+                  className="flex items-center gap-0.5 px-2 py-1 bg-primary-50 rounded-full border border-primary-200"
+                >
+                  <FiCheckCircle className="w-3.5 h-3.5 text-primary-600 flex-shrink-0" />
+                  <span className="text-[10px] font-bold text-primary-600 uppercase tracking-wider">Verified</span>
+                </motion.div>
               )}
             </div>
             <p className="text-[13px] text-neutral-400 mt-0.5 font-medium">

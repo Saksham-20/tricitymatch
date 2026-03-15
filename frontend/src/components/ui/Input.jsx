@@ -40,15 +40,15 @@ const Input = forwardRef(
     return (
       <div className={cn('space-y-1.5', containerClassName)}>
         {label && (
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-neutral-700">
             {label}
-            {required && <span className="text-rose-500 ml-1">*</span>}
+            {required && <span className="text-destructive ml-1">*</span>}
           </label>
         )}
         
         <div className="relative">
           {leftIcon && (
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
               {leftIcon}
             </div>
           )}
@@ -59,14 +59,14 @@ const Input = forwardRef(
             disabled={disabled}
             className={cn(
               'w-full px-4 py-3 rounded-xl border bg-white transition-all duration-200',
-              'focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500',
-              'placeholder:text-gray-400',
+              'focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500',
+              'placeholder:text-neutral-400',
               leftIcon && 'pl-10',
               (rightIcon || isPassword) && 'pr-10',
               error
-                ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500'
-                : 'border-gray-200 hover:border-gray-300',
-              disabled && 'bg-gray-50 text-gray-500 cursor-not-allowed',
+                ? 'border-destructive focus:ring-destructive/20 focus:border-destructive'
+                : 'border-neutral-200 hover:border-neutral-300',
+              disabled && 'bg-neutral-50 text-neutral-500 cursor-not-allowed',
               className
             )}
             aria-invalid={!!error}
@@ -78,7 +78,7 @@ const Input = forwardRef(
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 focus:outline-none"
               tabIndex={-1}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
@@ -96,7 +96,7 @@ const Input = forwardRef(
           )}
           
           {!isPassword && rightIcon && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
               {rightIcon}
             </div>
           )}
@@ -109,7 +109,7 @@ const Input = forwardRef(
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -5 }}
               id={`${props.id || props.name}-error`}
-              className="text-sm text-red-500 flex items-center gap-1"
+              className="text-sm text-destructive flex items-center gap-1"
               role="alert"
             >
               <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -122,7 +122,7 @@ const Input = forwardRef(
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-sm text-gray-500"
+              className="text-sm text-neutral-500"
             >
               {hint}
             </motion.p>

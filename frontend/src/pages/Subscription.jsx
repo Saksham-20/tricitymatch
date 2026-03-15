@@ -4,6 +4,7 @@ import api from '../api/axios';
 import toast from 'react-hot-toast';
 import { FiCheck, FiArrowRight, FiZap, FiShield } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
+import { razorpay } from '../config';
 
 // ─── Plan feature lists ───────────────────────
 const PLAN_FEATURES = {
@@ -210,6 +211,11 @@ const Subscription = () => {
 
   const handleSubscribe = async (planType) => {
     try {
+      if (!razorpay.isConfigured) {
+        toast.error('Payments are not configured for this environment. Set VITE_RAZORPAY_KEY_ID in the frontend env.');
+        return;
+      }
+
       const res = await api.post('/subscription/create-order', { planType });
       const { order } = res.data;
 
@@ -217,7 +223,7 @@ const Subscription = () => {
       script.src = 'https://checkout.razorpay.com/v1/checkout.js';
       script.onload = () => {
         const rzp = new window.Razorpay({
-          key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_xxxxxxxxxxxxx',
+          key: razorpay.keyId,
           amount: order.amount,
           currency: order.currency,
           name: 'TricityShadi',
@@ -242,8 +248,13 @@ const Subscription = () => {
         rzp.open();
       };
       document.body.appendChild(script);
-    } catch {
-      toast.error('Failed to create order');
+    } catch (error) {
+      toast.error(
+        error.response?.data?.error?.message ||
+        error.response?.data?.message ||
+        error.message ||
+        'Failed to create order'
+      );
     }
   };
 

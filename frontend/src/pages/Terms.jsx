@@ -5,7 +5,7 @@ export default function Terms() {
   return (
     <div className="min-h-screen bg-neutral-50 pt-20 pb-16 px-4">
       <div className="max-w-3xl mx-auto">
-        <Link to="/" className="text-sm text-rose-700 hover:text-rose-800 mb-6 inline-block">← Back to Home</Link>
+        <Link to="/" className="text-sm text-primary-600 hover:text-primary-700 mb-6 inline-block">← Back to Home</Link>
 
         <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-8 md:p-12">
           <h1 className="text-3xl font-bold text-neutral-900 mb-2">Terms of Service</h1>
@@ -47,7 +47,7 @@ export default function Terms() {
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">6. Privacy</h2>
-              <p>Your use of the Service is also governed by our <Link to="/privacy" className="text-rose-700 underline hover:text-rose-800">Privacy Policy</Link>, which is incorporated by reference.</p>
+              <p>Your use of the Service is also governed by our <Link to="/privacy" className="text-primary-600 underline hover:text-primary-700">Privacy Policy</Link>, which is incorporated by reference.</p>
             </section>
 
             <section>
@@ -67,7 +67,7 @@ export default function Terms() {
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">10. Contact</h2>
-              <p>For questions about these Terms, contact us at <a href="mailto:legal@tricitymatch.com" className="text-rose-700 underline hover:text-rose-800">legal@tricitymatch.com</a>.</p>
+              <p>For questions about these Terms, contact us at <a href="mailto:legal@tricitymatch.com" className="text-primary-600 underline hover:text-primary-700">legal@tricitymatch.com</a>.</p>
             </section>
           </div>
         </div>

@@ -377,8 +377,8 @@ const searchValidation = [
 
 const createOrderValidation = [
   body('planType')
-    .isIn(['premium', 'elite'])
-    .withMessage('Plan type must be premium or elite'),
+    .isIn(['basic_premium', 'premium_plus', 'vip'])
+    .withMessage('Plan type must be one of: basic_premium, premium_plus, vip'),
 ];
 
 const verifyPaymentValidation = [

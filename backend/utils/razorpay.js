@@ -7,8 +7,8 @@ let razorpay = null;
 
 const getRazorpayInstance = () => {
   if (!razorpay) {
-    const keyId = process.env.RAZORPAY_KEY_ID;
-    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    const keyId = config.razorpay.keyId;
+    const keySecret = config.razorpay.keySecret;
     
     // Only initialize if keys are provided and not placeholders
     if (keyId && keySecret && 

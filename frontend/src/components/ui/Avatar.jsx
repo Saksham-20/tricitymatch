@@ -50,16 +50,16 @@ const Avatar = ({
   };
 
   const getColorFromName = (name) => {
-    if (!name) return 'bg-gray-400';
+    if (!name) return 'bg-neutral-400';
     const colors = [
-      'bg-rose-500',
-      'bg-pink-500',
-      'bg-purple-500',
-      'bg-indigo-500',
-      'bg-blue-500',
-      'bg-cyan-500',
-      'bg-teal-500',
-      'bg-emerald-500',
+      'bg-primary-500',
+      'bg-primary-600',
+      'bg-gold-500',
+      'bg-success',
+      'bg-info',
+      'bg-primary-400',
+      'bg-gold-600',
+      'bg-success-700',
     ];
     const index = name.charCodeAt(0) % colors.length;
     return colors[index];
@@ -94,7 +94,7 @@ const Avatar = ({
         <span
           className={cn(
             'absolute bottom-0 right-0 rounded-full border-white',
-            online ? 'bg-green-500' : 'bg-gray-400',
+            online ? 'bg-success' : 'bg-neutral-400',
             indicatorSizes[size]
           )}
           aria-label={online ? 'Online' : 'Offline'}
@@ -105,7 +105,7 @@ const Avatar = ({
       {verified && (
         <span
           className={cn(
-            'absolute -bottom-0.5 -right-0.5 bg-blue-500 rounded-full p-0.5',
+            'absolute -bottom-0.5 -right-0.5 bg-primary-500 rounded-full p-0.5',
             size === 'xs' && 'hidden',
             (size === 'sm' || size === 'md') && 'p-0.5',
             size === 'lg' && 'p-1',

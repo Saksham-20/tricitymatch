@@ -177,7 +177,7 @@ export default function BlockReportModal({ isOpen, onClose, targetUser, onBlock 
                     <button
                       type="submit"
                       disabled={loading}
-                      className="flex-1 py-2.5 rounded-xl bg-rose-700 hover:bg-rose-600 text-white text-sm font-semibold disabled:opacity-60 transition-colors"
+                      className="flex-1 py-2.5 rounded-xl bg-destructive hover:bg-destructive-700 text-white text-sm font-semibold disabled:opacity-60 transition-colors"
                     >
                       {loading ? 'Submitting…' : 'Submit Report'}
                     </button>

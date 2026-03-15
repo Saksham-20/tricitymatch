@@ -1,7 +1,8 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { FiX, FiLock, FiArrowRight, FiCheck } from 'react-icons/fi';
+import { createPortal } from 'react-dom';
+import { FiX, FiLock, FiArrowRight } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 
 const plans = [
@@ -42,26 +43,31 @@ const plans = [
 const UpgradeModal = ({ isOpen, onClose, feature = 'this feature', description }) => {
   const navigate = useNavigate();
 
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
-          />
+  if (!isOpen) return null;
 
-          {/* Modal */}
+  return createPortal(
+    <AnimatePresence>
+      <>
+        {/* Backdrop */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+        />
+
+        {/* Modal wrapper keeps dialog fully visible across viewports */}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
           <motion.div
             initial={{ opacity: 0, scale: 0.92, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: 20 }}
             transition={{ type: 'spring', damping: 22, stiffness: 300 }}
-            className="fixed inset-x-4 top-[50%] -translate-y-1/2 max-w-md mx-auto bg-white rounded-3xl shadow-2xl z-50 overflow-hidden flex flex-col max-h-[90vh]"
+            className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)] my-auto"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Upgrade to Premium"
           >
             {/* Gradient header */}
             <div
@@ -138,9 +144,10 @@ const UpgradeModal = ({ isOpen, onClose, feature = 'this feature', description }
               </button>
             </div>
           </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+        </div>
+      </>
+    </AnimatePresence>,
+    document.body
   );
 };
 

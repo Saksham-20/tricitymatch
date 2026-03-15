@@ -23,9 +23,16 @@ export const features = {
 };
 
 // Razorpay Configuration
+const isRealPublicKey = (value) => {
+  if (!value) return false;
+
+  const normalized = String(value).trim().toLowerCase();
+  return normalized.startsWith('rzp_') && !normalized.includes('your-') && !normalized.includes('xxxxxxxx');
+};
+
 export const razorpay = {
   keyId: import.meta.env.VITE_RAZORPAY_KEY_ID || '',
-  isConfigured: !!import.meta.env.VITE_RAZORPAY_KEY_ID,
+  isConfigured: isRealPublicKey(import.meta.env.VITE_RAZORPAY_KEY_ID),
 };
 
 // Cloudinary Configuration

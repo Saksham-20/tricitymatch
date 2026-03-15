@@ -5,7 +5,7 @@ export default function Privacy() {
   return (
     <div className="min-h-screen bg-neutral-50 pt-20 pb-16 px-4">
       <div className="max-w-3xl mx-auto">
-        <Link to="/" className="text-sm text-rose-700 hover:text-rose-800 mb-6 inline-block">← Back to Home</Link>
+        <Link to="/" className="text-sm text-primary-600 hover:text-primary-700 mb-6 inline-block">← Back to Home</Link>
 
         <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-8 md:p-12">
           <h1 className="text-3xl font-bold text-neutral-900 mb-2">Privacy Policy</h1>
@@ -41,7 +41,7 @@ export default function Privacy() {
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">4. Profile Visibility</h2>
-              <p>You can control your profile visibility in <Link to="/settings" className="text-rose-700 underline hover:text-rose-800">Settings → Privacy</Link>. You can choose to show your profile to everyone, only premium users, or only your connections.</p>
+              <p>You can control your profile visibility in <Link to="/settings" className="text-primary-600 underline hover:text-primary-700">Settings → Privacy</Link>. You can choose to show your profile to everyone, only premium users, or only your connections.</p>
             </section>
 
             <section>
@@ -56,7 +56,7 @@ export default function Privacy() {
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">7. Your Rights</h2>
-              <p>You have the right to access, correct, or delete your personal data. You can manage this through your profile settings or by contacting us at <a href="mailto:privacy@tricitymatch.com" className="text-rose-700 underline hover:text-rose-800">privacy@tricitymatch.com</a>.</p>
+              <p>You have the right to access, correct, or delete your personal data. You can manage this through your profile settings or by contacting us at <a href="mailto:privacy@tricitymatch.com" className="text-primary-600 underline hover:text-primary-700">privacy@tricitymatch.com</a>.</p>
             </section>
 
             <section>
@@ -71,7 +71,7 @@ export default function Privacy() {
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">10. Contact</h2>
-              <p>For privacy-related enquiries, contact us at <a href="mailto:privacy@tricitymatch.com" className="text-rose-700 underline hover:text-rose-800">privacy@tricitymatch.com</a>.</p>
+              <p>For privacy-related enquiries, contact us at <a href="mailto:privacy@tricitymatch.com" className="text-primary-600 underline hover:text-primary-700">privacy@tricitymatch.com</a>.</p>
             </section>
           </div>
         </div>

@@ -61,6 +61,13 @@ const optionalBoolean = (key, defaultValue = false) => {
   return value === 'true' || value === '1';
 };
 
+const hasRealSecret = (value) => {
+  if (!value) return false;
+
+  const normalized = String(value).trim().toLowerCase();
+  return !normalized.includes('your-') && !normalized.includes('xxxxxxxx');
+};
+
 // Determine environment (nodeEnv already set above)
 const isProduction = nodeEnv === 'production';
 const isDevelopment = nodeEnv === 'development';
@@ -152,10 +159,7 @@ const config = {
     isConfigured: () => {
       const keyId = optionalString('RAZORPAY_KEY_ID');
       const keySecret = optionalString('RAZORPAY_KEY_SECRET');
-      return keyId && keySecret && 
-             !keyId.includes('your-') && 
-             !keySecret.includes('your-') &&
-             keyId.startsWith('rzp_');
+      return keyId.startsWith('rzp_') && hasRealSecret(keyId) && hasRealSecret(keySecret);
     },
   },
 
