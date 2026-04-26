@@ -114,7 +114,7 @@ exports.signup = asyncHandler(async (req, res) => {
     if (err.name === 'SequelizeUniqueConstraintError') {
       throw createError.conflict('User already exists with this email');
     }
-    log('error', 'Signup transaction failed', { error: err.message, stack: err.stack });
+    log.error('Signup transaction failed', { error: err.message, stack: err.stack });
     throw createError.badRequest('Unable to create account. Please try again.');
   }
 
@@ -568,5 +568,33 @@ exports.deleteAccount = asyncHandler(async (req, res) => {
   clearAuthCookies(res);
 
   res.json({ success: true, message: 'Account deleted successfully' });
+});
+
+// @route   POST /api/auth/send-otp
+// @desc    Send dummy OTP for testing
+// @access  Public
+exports.sendOtp = asyncHandler(async (req, res) => {
+  const { type, target } = req.body; // type: 'email' or 'phone'
+  log.info(`[DUMMY OTP] Sending OTP to ${target} via ${type}`);
+  res.json({
+    success: true,
+    message: `OTP sent successfully to ${target}`
+  });
+});
+
+// @route   POST /api/auth/verify-otp
+// @desc    Verify dummy OTP for testing (accepts 123456 or 000000)
+// @access  Public
+exports.verifyOtp = asyncHandler(async (req, res) => {
+  const { type, target, code } = req.body;
+  if (code === '123456' || code === '000000') {
+    log.info(`[DUMMY OTP] Verified OTP for ${target} via ${type}`);
+    res.json({
+      success: true,
+      message: `${type} verified successfully`
+    });
+  } else {
+    throw createError.badRequest('Invalid OTP');
+  }
 });
 

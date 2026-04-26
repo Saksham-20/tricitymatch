@@ -27,9 +27,28 @@ const { updateProfileValidation, getProfileValidation, deletePhotoValidation } =
 // Get own profile
 router.get('/me', auth, getMyProfile);
 
-// Ensure body exists after multer (multipart-only requests can leave req.body undefined)
+// Ensure body exists after multer and normalize FormData primitives
 const ensureBody = (req, res, next) => {
   if (req.body === undefined) req.body = {};
+  
+  // Normalise arrays (Multer converts single-element appends into a raw string)
+  ['interestTags', 'languages', 'preferredCity'].forEach(field => {
+    if (typeof req.body[field] === 'string') {
+      req.body[field] = req.body[field] ? [req.body[field]] : [];
+    }
+  });
+
+  // Normalise JSON strings (Frontend appends stringified objects)
+  ['personalityValues', 'familyPreferences', 'lifestylePreferences', 'profilePrompts'].forEach(field => {
+    if (typeof req.body[field] === 'string') {
+      try {
+        req.body[field] = JSON.parse(req.body[field]);
+      } catch (e) {
+        // ignore parsing errors, validation will handle invalid objects
+      }
+    }
+  });
+
   next();
 };
 

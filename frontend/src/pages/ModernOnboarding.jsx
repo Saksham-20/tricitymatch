@@ -69,24 +69,18 @@ const ModernOnboardingContent = () => {
     prevStep,
     goToStep,
     formData,
-    errors,
     getCompletionPercentage,
     clearDraft,
     isLoading,
+    setIsLoading,
     mode,
+    visibleSteps,
   } = useOnboarding();
 
   const navigate = useNavigate();
   const { signup } = useAuth();
   const [showQuitDialog, setShowQuitDialog] = useState(false);
   const [completionPercentage, setCompletionPercentage] = useState(0);
-
-  // Filter steps based on mode
-  const visibleSteps = STEPS.filter(step => {
-    // Check if step should be shown in this mode
-    if (!step.showIn) return true; // Show all by default
-    return step.showIn.includes(mode);
-  });
 
   // Build stepComponents array based on visible steps
   const stepComponents = visibleSteps.map(step => allStepComponents[step.id]);
@@ -104,7 +98,30 @@ const ModernOnboardingContent = () => {
     navigate('/');
   };
 
+  const handleComplete = async () => {
+    setIsLoading(true);
+    try {
+      if (mode === 'signup' || mode === 'create_for_other') {
+        const result = await signup(formData);
+        if (result.success) {
+          clearDraft();
+          navigate('/dashboard');
+        }
+      } else {
+        clearDraft();
+        navigate('/dashboard');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const Step = stepComponents[currentStep];
+
+  if (!visibleSteps || !visibleSteps[currentStep] || !Step) {
+    return null; // Return null while synchronizing steps to prevent crash
+  }
+
   const progressPercentage = ((currentStep + 1) / visibleSteps.length) * 100;
 
   const benefits = [
@@ -182,9 +199,9 @@ const ModernOnboardingContent = () => {
 
             {/* Current step indicator (desktop) */}
             <div className="mt-12 pt-8 border-t border-white/10">
-              <p className="text-xs text-white/50 mb-3">Step {currentStep + 1} of {STEPS.length}</p>
+              <p className="text-xs text-white/50 mb-3">Step {currentStep + 1} of {visibleSteps.length}</p>
               <div className="flex items-center justify-between gap-2 mb-2">
-                <p className="text-sm font-medium text-white">{STEPS[currentStep].title}</p>
+                <p className="text-sm font-medium text-white">{visibleSteps[currentStep].title}</p>
                 <span className="text-xs text-white/60">{Math.round(progressPercentage)}%</span>
               </div>
               <div className="h-1 bg-white/10 rounded-full overflow-hidden">
@@ -305,7 +322,6 @@ const ModernOnboardingContent = () => {
               transition={{ duration: 0.3 }}
               className="bg-white rounded-2xl shadow-xl p-8 sm:p-10"
             >
-              {/* Step header */}
               <div className="mb-8">
                 <motion.p
                   initial={{ opacity: 0 }}
@@ -313,7 +329,7 @@ const ModernOnboardingContent = () => {
                   transition={{ delay: 0.1 }}
                   className="text-xs font-semibold text-primary-600 uppercase tracking-widest mb-2"
                 >
-                  {STEPS[currentStep].icon && `Step ${currentStep + 1}`}
+                  {visibleSteps[currentStep].icon && `Step ${currentStep + 1}`}
                 </motion.p>
                 <motion.h2
                   initial={{ opacity: 0, y: -10 }}
@@ -321,7 +337,7 @@ const ModernOnboardingContent = () => {
                   transition={{ delay: 0.15 }}
                   className="text-2xl sm:text-3xl font-bold text-neutral-900 mb-3"
                 >
-                  {STEPS[currentStep].title}
+                  {visibleSteps[currentStep].title}
                 </motion.h2>
                 <motion.p
                   initial={{ opacity: 0 }}
@@ -329,7 +345,7 @@ const ModernOnboardingContent = () => {
                   transition={{ delay: 0.2 }}
                   className="text-neutral-600"
                 >
-                  {STEPS[currentStep].description}
+                  {visibleSteps[currentStep].description}
                 </motion.p>
               </div>
 
@@ -366,12 +382,12 @@ const ModernOnboardingContent = () => {
 
             <Button
               size="lg"
-              onClick={nextStep}
+              onClick={currentStep === visibleSteps.length - 1 ? handleComplete : nextStep}
               disabled={isLoading}
               className="flex-1 flex items-center justify-center gap-2"
             >
-              {isLoading ? 'Processing...' : currentStep === STEPS.length - 1 ? 'Complete' : 'Next'}
-              {!isLoading && <FiChevronRight className="w-5 h-5" />}
+              {isLoading ? 'Processing...' : currentStep === visibleSteps.length - 1 ? 'Complete' : 'Next'}
+              {!isLoading && currentStep !== visibleSteps.length - 1 && <FiChevronRight className="w-5 h-5" />}
             </Button>
           </motion.div>
 

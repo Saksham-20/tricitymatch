@@ -25,16 +25,23 @@ export const OnboardingProvider = ({ children, mode = 'signup', existingProfile 
   });
 
   const [currentStep, setCurrentStep] = useState(() => {
+    const initialVisibleSteps = STEPS.filter(step => {
+      if (!step.showIn) return true;
+      return step.showIn.includes(mode);
+    });
+    const maxStep = Math.max(0, initialVisibleSteps.length - 1);
+
     // In edit mode, don't need welcome/account steps
     if (mode === 'edit') {
-      return 2; // Start at Basic Info
+      return Math.min(2, maxStep); // Start at Basic Info or max step
     }
     // In create_for_other mode, start at "Who are you creating for?" step
     if (mode === 'create_for_other') {
       return 0; // Start at account type selection
     }
     const saved = localStorage.getItem('onboarding_step');
-    return saved ? parseInt(saved) : 0;
+    const parsed = saved ? parseInt(saved) : 0;
+    return Math.min(parsed, maxStep);
   });
 
   const [errors, setErrors] = useState({});
@@ -76,13 +83,25 @@ export const OnboardingProvider = ({ children, mode = 'signup', existingProfile 
     setErrors(stepErrors);
   }, []);
 
+  const visibleSteps = STEPS.filter(step => {
+    if (!step.showIn) return true;
+    return step.showIn.includes(onboardingMode);
+  });
+
+  // Ensure current step is always within bounds
+  useEffect(() => {
+    if (currentStep >= visibleSteps.length) {
+      setCurrentStep(Math.max(0, visibleSteps.length - 1));
+    }
+  }, [visibleSteps.length, currentStep]);
+
   const goToStep = useCallback((step) => {
-    setCurrentStep(Math.max(0, Math.min(step, STEPS.length - 1)));
-  }, []);
+    setCurrentStep(Math.max(0, Math.min(step, visibleSteps.length - 1)));
+  }, [visibleSteps.length]);
 
   const nextStep = useCallback(() => {
-    setCurrentStep(prev => Math.min(prev + 1, STEPS.length - 1));
-  }, []);
+    setCurrentStep(prev => Math.min(prev + 1, visibleSteps.length - 1));
+  }, [visibleSteps.length]);
 
   const prevStep = useCallback(() => {
     setCurrentStep(prev => Math.max(prev - 1, 0));
@@ -147,6 +166,7 @@ export const OnboardingProvider = ({ children, mode = 'signup', existingProfile 
     getCompletionPercentage,
     mode: onboardingMode,
     setMode: setOnboardingMode,
+    visibleSteps,
   };
 
   return (

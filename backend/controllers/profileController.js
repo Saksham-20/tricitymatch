@@ -162,9 +162,33 @@ exports.updateProfile = asyncHandler(async (req, res) => {
     // Build updateData from ONLY allowlisted fields — prevents mass-assignment
     const bodyProfilePhoto = req.body?.profilePhoto;
     const updateData = {};
+    
+    // Fields that must be arrays in the database (excluding photos which is handled separately)
+    const arrayFields = ['preferredCity', 'interestTags', 'languages'];
+    // Fields that must be JSON in the database
+    const jsonFields = ['personalityValues', 'familyPreferences', 'lifestylePreferences', 'profilePrompts'];
+    
     for (const field of PROFILE_UPDATABLE_FIELDS) {
       if (Object.prototype.hasOwnProperty.call(req.body || {}, field)) {
-        updateData[field] = req.body[field];
+        let value = req.body[field];
+        
+        if (arrayFields.includes(field)) {
+          // If multer parsed a single appended element, it's a string. Make it an array.
+          updateData[field] = typeof value === 'string' ? (value ? [value] : []) : value;
+        } else if (jsonFields.includes(field)) {
+          // If the frontend stringified the object for FormData, parse it back
+          if (typeof value === 'string') {
+            try {
+              updateData[field] = JSON.parse(value);
+            } catch (e) {
+              updateData[field] = value;
+            }
+          } else {
+            updateData[field] = value;
+          }
+        } else {
+          updateData[field] = value;
+        }
       }
     }
 

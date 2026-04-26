@@ -20,7 +20,7 @@ import PreferencesStep from '../components/onboarding/steps/PreferencesStep';
 import PhotosStep from '../components/onboarding/steps/PhotosStep';
 import Progress from '../components/ui/Progress';
 import Button from '../components/ui/Button';
-import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import LoadingSpinner from '../components/common/LoadingSpinner';
 
 const EditStepComponents = [
   BasicInfoStep,
@@ -93,8 +93,10 @@ const ModernProfileEditorContent = () => {
         if (value instanceof File) {
           submitData.append(key, value);
         } else if (Array.isArray(value)) {
-          value.forEach((item, index) => {
-            submitData.append(`${key}[${index}]`, item);
+          value.forEach((item) => {
+            // Append multiple items with the exact same key name
+            // Multer/busboy natively parses this into an array, and correctly identifies 'photos' without rejecting it as an unexpected field
+            submitData.append(key, item);
           });
         } else if (typeof value === 'object' && value !== null) {
           submitData.append(key, JSON.stringify(value));
@@ -117,8 +119,17 @@ const ModernProfileEditorContent = () => {
         }, 2000);
       }
     } catch (error) {
-      console.error('Error saving profile:', error);
-      toast.error(error.response?.data?.message || 'Failed to update profile');
+      console.error('Error saving profile:', error.response?.data || error);
+      
+      // Try to extract detailed validation errors if they exist
+      const details = error.response?.data?.error?.details;
+      let errorMessage = error.response?.data?.message || 'Failed to update profile';
+      
+      if (Array.isArray(details) && details.length > 0) {
+        errorMessage = details.map(d => d.message).join(', ');
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

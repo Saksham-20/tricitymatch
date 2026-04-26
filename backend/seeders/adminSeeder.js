@@ -59,11 +59,19 @@ async function seed() {
 
     console.log(`[seeder] ✅ Admin user created successfully: ${ADMIN_EMAIL}`);
     console.log('[seeder] ⚠  Change the admin password after first login!');
-    process.exit(0);
   } catch (err) {
     console.error('[seeder] ❌ Error:', err.message);
-    process.exit(1);
+    throw err;
   }
 }
 
-seed();
+module.exports = {
+  up: async (queryInterface, Sequelize) => {
+    await seed();
+  },
+  down: async (queryInterface, Sequelize) => {
+    // Admin user deletion not typically done in down, but we can delete the profile and user if needed
+    const User = require('../models/User');
+    await User.destroy({ where: { email: ADMIN_EMAIL } });
+  }
+};

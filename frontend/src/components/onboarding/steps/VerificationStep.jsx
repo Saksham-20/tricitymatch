@@ -4,6 +4,7 @@ import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
 import CheckBox from '../../ui/CheckBox';
 import { FiCheckCircle, FiPhone, FiMail } from 'react-icons/fi';
+import api from '../../../api/axios';
 
 const VerificationStep = () => {
   const { formData, updateFormData, errors, setStepErrors } = useOnboarding();
@@ -24,22 +25,33 @@ const VerificationStep = () => {
     return () => validateStep();
   }, []);
 
-  const handleSendCode = () => {
-    // Simulate sending code
-    console.log(`Sending verification code to ${verificationMethod}`);
-    // In real implementation, this would call an API
+  const handleSendCode = async (method) => {
+    try {
+      const target = method === 'email' ? formData.email : formData.phoneNumber;
+      if (!target) return;
+      await api.post('/auth/send-otp', { type: method, target });
+      console.log(`Sending verification code to ${method}`);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleVerifyCode = () => {
-    // Simulate verifying code
+  const handleVerifyCode = async (method) => {
     if (verificationCode.length === 6) {
-      setCodeVerified(true);
-      if (verificationMethod === 'email') {
-        updateFormData('emailVerification', true);
-      } else {
-        updateFormData('phoneVerification', true);
+      try {
+        const target = method === 'email' ? formData.email : formData.phoneNumber;
+        await api.post('/auth/verify-otp', { type: method, target, code: verificationCode });
+        
+        if (method === 'email') {
+          updateFormData('emailVerification', true);
+        } else {
+          updateFormData('phoneVerification', true);
+        }
+        setVerificationCode('');
+        setStepErrors({});
+      } catch (err) {
+        setStepErrors({ [method]: 'Invalid verification code. Try 123456.' });
       }
-      setStepErrors({});
     }
   };
 
@@ -105,19 +117,22 @@ const VerificationStep = () => {
               </p>
               <div className="flex gap-2">
                 <button
-                  onClick={handleSendCode}
+                  onClick={() => handleSendCode('email')}
                   className="px-4 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
                 >
                   Send Code
                 </button>
                 <button
-                  onClick={handleVerifyCode}
+                  onClick={() => handleVerifyCode('email')}
                   disabled={verificationCode.length !== 6}
                   className="px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Verify
                 </button>
               </div>
+              {errors?.email && (
+                <p className="text-sm border-l-2 border-red-500 bg-red-50 text-red-600 p-2 mt-2">{errors.email}</p>
+              )}
             </motion.div>
           )}
         </div>
@@ -167,12 +182,31 @@ const VerificationStep = () => {
                 value={formData.phoneNumber}
                 onChange={(value) => updateFormData('phoneNumber', value)}
               />
-              <button
-                onClick={handleSendCode}
-                className="px-4 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-              >
-                Send OTP
-              </button>
+              <FormField
+                label="Verification Code (Optional)"
+                placeholder="Enter 6-digit code"
+                value={verificationCode}
+                onChange={(value) => setVerificationCode(value.replace(/\D/g, '').slice(0, 6))}
+                maxLength="6"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleSendCode('phone')}
+                  className="px-4 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                >
+                  Send OTP
+                </button>
+                <button
+                  onClick={() => handleVerifyCode('phone')}
+                  disabled={verificationCode.length !== 6}
+                  className="px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Verify
+                </button>
+              </div>
+              {errors?.phone && (
+                <p className="text-sm border-l-2 border-red-500 bg-red-50 text-red-600 p-2 mt-2">{errors.phone}</p>
+              )}
             </motion.div>
           )}
         </div>

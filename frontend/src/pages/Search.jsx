@@ -51,14 +51,18 @@ const Search = () => {
 
   useEffect(() => { searchProfiles(); }, [page]);
 
-  const searchProfiles = async () => {
+  const searchProfiles = async (options = {}) => {
     try {
       setLoading(true);
+      const currentFilters = options.overrideFilters || filters;
+      const currentPage = options.overridePage || page;
+      const currentSort = options.overrideSort || sortBy;
+
       const params = new URLSearchParams();
-      Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v); });
-      params.append('page', page);
+      Object.entries(currentFilters).forEach(([k, v]) => { if (v) params.append(k, v); });
+      params.append('page', currentPage);
       params.append('limit', 18);
-      params.append('sortBy', sortBy);
+      params.append('sortBy', currentSort);
 
       const response = await api.get(`/search?${params.toString()}`);
 
@@ -85,14 +89,15 @@ const Search = () => {
         };
       });
 
-      page === 1 ? setProfiles(normalized) : setProfiles(prev => [...prev, ...normalized]);
+      currentPage === 1 ? setProfiles(normalized) : setProfiles(prev => [...prev, ...normalized]);
 
       const pagination = response.data?.pagination || response.data?.data?.pagination || {};
       setHasMore(pagination.page < pagination.pages);
       setTotalCount(pagination.total || normalized.length);
     } catch (err) {
+      const currentPage = options.overridePage || page;
       if (err.response?.status !== 404) toast.error('Failed to load profiles');
-      if (page === 1) setProfiles([]);
+      if (currentPage === 1) setProfiles([]);
     } finally {
       setLoading(false);
     }
@@ -106,14 +111,15 @@ const Search = () => {
 
   const handleApplyFilters = () => {
     setPage(1);
-    searchProfiles();
+    searchProfiles({ overridePage: 1 });
     toast.success('Filters applied');
   };
 
   const handleClearFilters = () => {
-    setFilters({ ageMin: '', ageMax: '', heightMin: '', heightMax: '', city: '', education: '', profession: '', diet: '', smoking: '', drinking: '' });
+    const emptyFilters = { ageMin: '', ageMax: '', heightMin: '', heightMax: '', city: '', education: '', profession: '', diet: '', smoking: '', drinking: '' };
+    setFilters(emptyFilters);
     setPage(1);
-    searchProfiles();
+    searchProfiles({ overrideFilters: emptyFilters, overridePage: 1 });
   };
 
   const handleMatchAction = async (userId, action) => {
@@ -128,9 +134,10 @@ const Search = () => {
   };
 
   const handleSortChange = (e) => {
-    setSortBy(e.target.value);
+    const newSort = e.target.value;
+    setSortBy(newSort);
     setPage(1);
-    searchProfiles();
+    searchProfiles({ overrideSort: newSort, overridePage: 1 });
   };
 
   return (

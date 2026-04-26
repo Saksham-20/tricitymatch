@@ -175,16 +175,7 @@ const initializeSocket = (io) => {
       console.log(`Socket connected: ${userId} (${socket.id})`);
     }
 
-    // Check subscription on connection
-    const subscription = await checkSubscription(userId);
-    if (!subscription) {
-      socket.emit('error', { 
-        code: 'PREMIUM_REQUIRED',
-        message: 'Premium subscription required for chat'
-      });
-      socket.disconnect(true);
-      return;
-    }
+    // Removed aggressive subscription check here to allow non-premium users to receive real-time notifications.
 
     // Join user's personal room for notifications
     socket.join(`user_${userId}`);
@@ -384,26 +375,7 @@ const initializeSocket = (io) => {
     });
   });
 
-  // Periodic subscription check (every 5 minutes)
-  subscriptionCheckInterval = setInterval(async () => {
-    try {
-      const sockets = await io.fetchSockets();
-      for (const socket of sockets) {
-        if (socket.userId) {
-          const subscription = await checkSubscription(socket.userId);
-          if (!subscription) {
-            socket.emit('error', { 
-              code: 'SUBSCRIPTION_EXPIRED',
-              message: 'Your subscription has expired'
-            });
-            socket.disconnect(true);
-          }
-        }
-      }
-    } catch (error) {
-      log.error('Subscription check interval error', { error: error.message });
-    }
-  }, 5 * 60 * 1000);
+  // Periodic subscription check interval removed to prevent forcefully disconnecting non-premium users.
 
   // Clean up rate limit records every 2 minutes
   rateLimitCleanupInterval = setInterval(cleanupRateLimits, 2 * 60 * 1000);

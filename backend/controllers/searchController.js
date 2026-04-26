@@ -66,9 +66,9 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
     if (minDate && maxDate) {
       where.dateOfBirth = { [Op.between]: [minDate, maxDate] };
     } else if (minDate) {
-      where.dateOfBirth = { [Op.lte]: minDate };
+      where.dateOfBirth = { [Op.gte]: minDate };
     } else if (maxDate) {
-      where.dateOfBirth = { [Op.gte]: maxDate };
+      where.dateOfBirth = { [Op.lte]: maxDate };
     }
   }
 
@@ -81,7 +81,7 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
 
   // City filter
   if (city) {
-    where.city = city;
+    where.city = { [Op.iLike]: `%${escapeLikePattern(city)}%` };
   }
 
   // Education filter

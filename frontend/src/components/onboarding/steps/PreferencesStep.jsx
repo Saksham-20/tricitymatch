@@ -7,7 +7,7 @@ import CheckBox from '../../ui/CheckBox';
 
 const PreferencesStep = () => {
   const { formData, updateFormData, errors, setStepErrors } = useOnboarding();
-  const CITIES = ['Chandigarh', 'Mohali', 'Panchkula', 'Delhi', 'Mumbai', 'Bangalore'];
+  const CITIES = ['Chandigarh', 'Mohali', 'Panchkula'];
   const EDUCATION_OPTIONS = ['12th Pass', 'Diploma', 'Bachelor', 'Master', 'PhD', 'Professional Degree'];
 
   const validateStep = () => {

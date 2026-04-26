@@ -7,14 +7,14 @@ import Select from '../../ui/Select';
 const EDUCATION_DEGREES = ['12th Pass', 'Diploma', 'Bachelor', 'Master', 'PhD', 'Professional Degree', 'Other'];
 const PROFESSIONS = ['Student', 'Engineer', 'Doctor', 'Lawyer', 'Business Owner', 'Entrepreneur', 'IT Professional', 'Accountant', 'Teacher', 'Civil Servant', 'Other'];
 const INCOME_RANGES = [
-  { value: '0-3', label: '₹0 - 3 Lac' },
-  { value: '3-5', label: '₹3 - 5 Lac' },
-  { value: '5-10', label: '₹5 - 10 Lac' },
-  { value: '10-15', label: '₹10 - 15 Lac' },
-  { value: '15-25', label: '₹15 - 25 Lac' },
-  { value: '25-50', label: '₹25 - 50 Lac' },
-  { value: '50+', label: '₹50 Lac+' },
-  { value: 'prefer_not_to_say', label: 'Prefer not to say' },
+  { value: '300000', label: '₹0 - 3 Lac' },
+  { value: '500000', label: '₹3 - 5 Lac' },
+  { value: '1000000', label: '₹5 - 10 Lac' },
+  { value: '1500000', label: '₹10 - 15 Lac' },
+  { value: '2500000', label: '₹15 - 25 Lac' },
+  { value: '5000000', label: '₹25 - 50 Lac' },
+  { value: '10000000', label: '₹50 Lac+' },
+  { value: '0', label: 'Prefer not to say' },
 ];
 
 const EducationStep = () => {

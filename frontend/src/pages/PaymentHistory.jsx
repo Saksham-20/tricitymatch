@@ -37,7 +37,7 @@ export default function PaymentHistory() {
   const [loading, setLoading]    = useState(true);
 
   useEffect(() => {
-    api.get('/subscriptions/history')
+    api.get('/subscription/history')
       .then((r) => setSubs(r.data.subscriptions || r.data || []))
       .catch(() => toast.error('Failed to load payment history'))
       .finally(() => setLoading(false));
@@ -45,7 +45,7 @@ export default function PaymentHistory() {
 
   const downloadInvoice = async (subId) => {
     try {
-      const res = await api.get(`/subscriptions/invoice/${subId}`, { responseType: 'blob' });
+      const res = await api.get(`/subscription/invoice/${subId}`, { responseType: 'blob' });
       const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
       const a = document.createElement('a');
       a.href = url;

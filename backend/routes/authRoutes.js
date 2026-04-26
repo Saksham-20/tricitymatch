@@ -18,6 +18,8 @@ const {
   getSessions,
   revokeSession,
   deleteAccount,
+  sendOtp,
+  verifyOtp,
 } = require('../controllers/authController');
 const { auth } = require('../middlewares/auth');
 const { handleValidationErrors } = require('../middlewares/errorHandler');
@@ -78,6 +80,10 @@ router.post('/reset-password',
   handleValidationErrors, 
   resetPassword
 );
+
+// Dummy OTP endpoints for testing
+router.post('/send-otp', sendOtp);
+router.post('/verify-otp', verifyOtp);
 
 // ==================== PROTECTED ROUTES ====================
 

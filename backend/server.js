@@ -275,8 +275,8 @@ const startServer = async () => {
 
     // Sync models in development, run migrations in production
     if (config.isDevelopment) {
-      await sequelize.sync({ alter: true });
-      console.log('✓ Database models synced');
+      await sequelize.sync({ alter: false });
+      console.log('✓ Database models synced (alter: false)');
     } else {
       // Auto-run pending migrations in production (umzug v2 API)
       const Umzug = require('umzug');
