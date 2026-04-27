@@ -9,6 +9,33 @@ import {
 } from 'react-icons/fi';
 
 // ─────────────────────────────────────────────
+// Count-up animation for stats
+// ─────────────────────────────────────────────
+const CountUp = ({ target, suffix = '', duration = 1800 }) => {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true });
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    if (!inView) return;
+    const numeric = parseInt(target.replace(/[^0-9]/g, ''), 10);
+    const startTime = performance.now();
+    const tick = (now) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.floor(eased * numeric));
+      if (progress < 1) requestAnimationFrame(tick);
+      else setCount(numeric);
+    };
+    requestAnimationFrame(tick);
+  }, [inView, target, duration]);
+
+  const formatted = count.toLocaleString('en-IN');
+  return <span ref={ref} className="tabular-nums">{formatted}{suffix}</span>;
+};
+
+// ─────────────────────────────────────────────
 // Compatibility Ring  — animated SVG circle
 // ─────────────────────────────────────────────
 const CompatibilityRing = ({ score, size = 72 }) => {
@@ -322,14 +349,7 @@ const Home = () => {
         {/* Background */}
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_65%_-10%,rgba(139,35,70,0.06),transparent)]" />
-          {/* Subtle grid overlay */}
-          <div
-            className="absolute inset-0 opacity-[0.03]"
-            style={{
-              backgroundImage: 'linear-gradient(rgba(139,35,70,1) 1px, transparent 1px), linear-gradient(90deg, rgba(139,35,70,1) 1px, transparent 1px)',
-              backgroundSize: '60px 60px',
-            }}
-          />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_10%_100%,rgba(201,162,39,0.07),transparent)]" />
         </div>
 
         {/* Rotating decorative rings */}
@@ -366,7 +386,7 @@ const Home = () => {
 
               <motion.h1
                 variants={{ hidden: { opacity: 0, y: 28 }, visible: { opacity: 1, y: 0, transition: { duration: 0.65 } } }}
-                className="font-display text-5xl md:text-6xl lg:text-7xl font-bold text-neutral-900 leading-[1.04] mb-6"
+                className="font-display text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold text-neutral-900 leading-[0.97] mb-6"
               >
                 Find Someone<br />
                 <span className="relative inline-block">
@@ -382,7 +402,7 @@ const Home = () => {
 
               <motion.p
                 variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } } }}
-                className="text-lg text-neutral-500 mb-10 leading-relaxed"
+                className="text-lg text-neutral-600 mb-10 leading-loose"
               >
                 Connecting families across Chandigarh, Mohali and Panchkula through verified profiles,
                 intelligent matching, and genuine human values.
@@ -395,14 +415,14 @@ const Home = () => {
               >
                 <Link
                   to="/signup"
-                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white font-semibold rounded-xl hover:from-primary-600 hover:to-primary-700 transition-all duration-200 shadow-burgundy hover:shadow-burgundy-lg hover:-translate-y-0.5"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base bg-gradient-to-r from-primary-500 to-primary-600 text-white font-semibold rounded-xl hover:from-primary-600 hover:to-primary-700 transition-all duration-200 shadow-burgundy hover:shadow-burgundy-lg hover:-translate-y-0.5 tracking-wide"
                 >
                   Create Free Profile
                   <FiArrowRight className="w-4 h-4" />
                 </Link>
                 <Link
                   to="/search"
-                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 border-2 border-neutral-200 text-neutral-700 font-semibold rounded-xl hover:border-primary-300 hover:text-primary-600 transition-all duration-200"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base bg-white/60 backdrop-blur-sm border border-neutral-200 text-neutral-700 font-semibold rounded-xl hover:bg-white/80 hover:border-primary-300 hover:text-primary-600 transition-all duration-200 shadow-sm"
                 >
                   Browse Profiles
                 </Link>
@@ -425,8 +445,8 @@ const Home = () => {
                 <span className="h-4 w-px bg-neutral-200 hidden sm:block" />
                 <div className="flex items-center gap-2">
                   <div className="flex -space-x-1.5">
-                    {[0, 1, 2].map(i => (
-                      <div key={i} className="w-6 h-6 rounded-full border-2 border-white bg-gradient-to-br from-primary-300 to-gold-400" />
+                    {['/images/optimized/profile-priya.webp', '/images/optimized/profile-meera.webp', '/images/optimized/profile-anjali.webp'].map((img, i) => (
+                      <img key={i} src={img} alt={`Profile ${i}`} className="w-6 h-6 rounded-full border-2 border-white object-cover" />
                     ))}
                   </div>
                   <span>1,190+ matched</span>
@@ -472,11 +492,11 @@ const Home = () => {
               <motion.div
                 animate={{ y: [0, -8, 0] }}
                 transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
-                className="absolute -bottom-5 -left-10 bg-white rounded-2xl shadow-card-hover p-3 border border-neutral-100"
+                className="absolute -bottom-5 -left-10 bg-white rounded-3xl shadow-xl p-3 border border-neutral-100"
               >
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-full bg-success-50 flex items-center justify-center">
-                    <FiHeart className="w-4 h-4 text-success" />
+                  <div className="w-9 h-9 rounded-full bg-primary-50 flex items-center justify-center">
+                    <FiHeart className="w-4 h-4 text-primary-500" />
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-neutral-800">New match found!</p>
@@ -489,7 +509,7 @@ const Home = () => {
               <motion.div
                 animate={{ y: [0, 6, 0] }}
                 transition={{ duration: 3.8, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
-                className="absolute top-8 -right-6 bg-white rounded-2xl shadow-card-hover p-3 border border-neutral-100"
+                className="absolute top-8 -right-6 bg-white rounded-3xl shadow-xl p-3 border border-neutral-100"
               >
                 <div className="flex items-center gap-2.5">
                   <CompatibilityRing score={97} size={42} />
@@ -506,7 +526,7 @@ const Home = () => {
       </section>
 
       {/* ── STATS STRIP ─────────────────────────── */}
-      <section className="py-14 border-y border-neutral-100 bg-neutral-50">
+      <section className="py-14 border-y border-neutral-100 bg-gradient-to-r from-neutral-50 via-primary-50/30 to-neutral-50">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-y-8">
             {stats.map((s, i) => (
@@ -519,10 +539,12 @@ const Home = () => {
                 className="text-center relative"
               >
                 {i > 0 && (
-                  <span className="hidden md:block absolute left-0 top-1/2 -translate-y-1/2 h-8 w-px bg-neutral-200" />
+                  <div className="hidden md:block absolute left-0 top-1/2 -translate-y-1/2 h-12 w-px bg-gradient-to-b from-transparent via-neutral-200 to-transparent" />
                 )}
-                <p className="font-display text-4xl font-bold text-primary-500 mb-1">{s.value}</p>
-                <p className="text-sm text-neutral-500">{s.label}</p>
+                <p className="font-display text-4xl font-bold text-primary-500 mb-1 tabular-nums">
+                  <CountUp target={s.value} duration={1800} />
+                </p>
+                <p className="text-sm font-medium text-neutral-600">{s.label}</p>
               </motion.div>
             ))}
           </div>

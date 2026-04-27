@@ -4,7 +4,7 @@
  */
 
 const jwt = require('jsonwebtoken');
-const { User, Profile, RefreshToken } = require('../models');
+const { User, Profile, RefreshToken, ReferralCode, MarketingLead } = require('../models');
 const { sendWelcomeEmail, sendPasswordResetEmail, sendEmail } = require('../utils/email');
 const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
@@ -80,12 +80,28 @@ const clearAuthCookies = (res) => {
 // @desc    Register a new user
 // @access  Public
 exports.signup = asyncHandler(async (req, res) => {
-  const { email, password, phone, firstName, lastName, gender, dateOfBirth } = req.body;
+  const { email, password, phone, firstName, lastName, gender, dateOfBirth, referralCode } = req.body;
+  const codeFromQuery = req.query.ref || req.body.ref;
 
   // Check if user already exists
   const existingUser = await User.findOne({ where: { email: email.toLowerCase() } });
   if (existingUser) {
     throw createError.conflict('User already exists with this email');
+  }
+
+  // Validate and process referral code
+  let referralData = null;
+  const codeToUse = referralCode || codeFromQuery;
+  if (codeToUse) {
+    const code = await ReferralCode.findOne({ where: { code: codeToUse.toUpperCase(), isActive: true } });
+    if (code) {
+      referralData = {
+        referralCodeUsed: code.code,
+        referredByMarketingUserId: code.marketingUserId,
+        isBoosted: true,
+        boostExpiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000)
+      };
+    }
   }
 
   const sequelize = require('../config/database');
@@ -96,7 +112,8 @@ exports.signup = asyncHandler(async (req, res) => {
         email: email.toLowerCase(),
         password,
         phone: phone || null,
-        status: 'active'
+        status: 'active',
+        ...(referralData && referralData)
       }, { transaction: t });
 
       const profileDateOfBirth = dateOfBirth ? new Date(dateOfBirth) : new Date('2000-01-01');
@@ -107,6 +124,24 @@ exports.signup = asyncHandler(async (req, res) => {
         gender: gender || 'other',
         dateOfBirth: profileDateOfBirth
       }, { transaction: t });
+
+      // If referral code used, increment usage count and create marketing lead
+      if (referralData) {
+        await ReferralCode.update(
+          { usageCount: sequelize.literal('usageCount + 1') },
+          { where: { code: referralData.referralCodeUsed }, transaction: t }
+        );
+
+        await MarketingLead.create({
+          name: `${firstName} ${lastName}`,
+          phone: phone || 'N/A',
+          email: email,
+          assignedToMarketingUserId: referralData.referredByMarketingUserId,
+          referralCode: referralData.referralCodeUsed,
+          convertedUserId: user.id,
+          status: 'contacted'
+        }, { transaction: t });
+      }
 
       return user;
     });
@@ -135,7 +170,8 @@ exports.signup = asyncHandler(async (req, res) => {
     user: {
       id: result.id,
       email: result.email,
-      role: result.role
+      role: result.role,
+      isBoosted: result.isBoosted || false
     },
     // Access token returned for non-cookie clients; refresh token is httpOnly cookie only
     tokens: {

@@ -3,7 +3,7 @@
  * Handles payment processing with Razorpay
  */
 
-const { Subscription, User, Profile } = require('../models');
+const { Subscription, User, Profile, MarketingLead } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const { createOrder: razorpayCreateOrder, verifyPayment: razorpayVerifyPayment, getPlanDetails } = require('../utils/razorpay');
@@ -194,6 +194,18 @@ exports.verifyPayment = asyncHandler(async (req, res) => {
     paymentId: razorpayPaymentId,
     endDate: subscription.endDate
   });
+
+  // Update marketing lead if user was referred via referral code
+  const lead = await MarketingLead.findOne({
+    where: { convertedUserId: userId }
+  });
+  if (lead) {
+    lead.paymentStatus = 'paid';
+    lead.amountPaid = subscription.amount;
+    lead.paymentId = razorpayPaymentId;
+    lead.status = 'converted';
+    await lead.save();
+  }
 
   // Send confirmation email asynchronously
   const user = await User.findByPk(userId, { attributes: ['email', 'firstName'] });

@@ -30,6 +30,7 @@ const logger = require('./middlewares/logger');
 const sequelize = require('./config/database');
 const routes = require('./routes');
 const monitoringRoutes = require('./routes/monitoring');
+const marketingRoutes = require('./routes/marketingRoutes');
 const initializeSocket = require('./socket/socketHandler');
 
 // Import monitoring utilities
@@ -180,6 +181,9 @@ app.use('/api/monitoring', monitoringRoutes);
 // API routes with version prefix
 app.use('/api/v1', routes);
 app.use('/api', routes); // Keep backward compatibility
+
+// Marketing routes (requires auth + marketing role)
+app.use('/api/marketing', marketingRoutes);
 
 // ==================== API DOCUMENTATION ====================
 

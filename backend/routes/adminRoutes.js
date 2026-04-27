@@ -5,19 +5,27 @@
 
 const express = require('express');
 const router = express.Router();
-const { 
+const {
   getUsers,
   getUser,
   createUser,
-  updateUserStatus, 
+  updateUserStatus,
   updateSubscription,
-  getVerifications, 
-  updateVerification, 
+  getVerifications,
+  updateVerification,
   getAnalytics,
   getReports,
   updateReport,
   getRevenueReport,
   adminGetInvoice,
+  getMarketingUsers,
+  createMarketingUser,
+  updateMarketingUserStatus,
+  getMarketingUserStats,
+  getReferralCodes,
+  createReferralCode,
+  toggleReferralCode,
+  getLeads,
 } = require('../controllers/adminController');
 const { auth, adminAuth } = require('../middlewares/auth');
 const { handleValidationErrors } = require('../middlewares/errorHandler');
@@ -72,6 +80,36 @@ router.get('/invoice/:subscriptionId',
   handleValidationErrors,
   adminGetInvoice
 );
+
+// ==================== MARKETING USERS ====================
+
+router.get('/marketing-users', getMarketingUsers);
+router.post('/marketing-users', createMarketingUser);
+router.put('/marketing-users/:userId/status',
+  param('userId').isUUID(4),
+  body('status').isIn(['active', 'inactive']),
+  handleValidationErrors,
+  updateMarketingUserStatus
+);
+router.get('/marketing-users/:userId/stats',
+  param('userId').isUUID(4),
+  handleValidationErrors,
+  getMarketingUserStats
+);
+
+// ==================== REFERRAL CODES ====================
+
+router.get('/referral-codes', getReferralCodes);
+router.post('/referral-codes', createReferralCode);
+router.put('/referral-codes/:id/toggle',
+  param('id').isUUID(4),
+  handleValidationErrors,
+  toggleReferralCode
+);
+
+// ==================== MARKETING LEADS ====================
+
+router.get('/leads', getLeads);
 
 module.exports = router;
 

@@ -3,7 +3,7 @@
  * Administrative operations with proper authorization
  */
 
-const { User, Profile, Subscription, Match, Verification, ProfileView, Report } = require('../models');
+const { User, Profile, Subscription, Match, Verification, ProfileView, Report, ReferralCode, MarketingLead } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
@@ -534,6 +534,278 @@ exports.adminGetInvoice = asyncHandler(async (req, res) => {
     subscription,
     user: subscription.User,
     profile: subscription.User?.Profile,
+  });
+});
+
+// ==================== MARKETING USERS ====================
+
+// @route   GET /api/admin/marketing-users
+// @desc    Get all marketing role users
+// @access  Private/Admin
+exports.getMarketingUsers = asyncHandler(async (req, res) => {
+  const rawLimit = parseInt(req.query.limit) || 20;
+  const limit = Math.min(Math.max(rawLimit, 1), 100);
+  const page = Math.max(parseInt(req.query.page) || 1, 1);
+  const offset = (page - 1) * limit;
+  const { status } = req.query;
+
+  const where = { role: { [Op.in]: ['marketing', 'marketing_manager'] } };
+  if (status) where.status = status;
+
+  const { count, rows: users } = await User.findAndCountAll({
+    where,
+    include: [
+      { model: Profile, attributes: ['firstName', 'lastName', 'city'] }
+    ],
+    limit,
+    offset,
+    order: [['createdAt', 'DESC']]
+  });
+
+  res.json({
+    success: true,
+    users,
+    pagination: {
+      page,
+      limit,
+      total: count,
+      pages: Math.ceil(count / limit)
+    }
+  });
+});
+
+// @route   POST /api/admin/marketing-users
+// @desc    Create marketing user
+// @access  Private/Admin
+exports.createMarketingUser = asyncHandler(async (req, res) => {
+  const { email, password, phone, firstName, lastName, role = 'marketing' } = req.body;
+
+  if (!email || !password || !firstName || !lastName) {
+    throw createError.badRequest('email, password, firstName, and lastName are required');
+  }
+
+  const validRoles = ['marketing', 'marketing_manager'];
+  if (!validRoles.includes(role)) {
+    throw createError.badRequest('role must be marketing or marketing_manager');
+  }
+
+  const existing = await User.findOne({ where: { email: email.toLowerCase() } });
+  if (existing) throw createError.conflict('User already exists with this email');
+
+  const result = await sequelize.transaction(async (t) => {
+    const user = await User.create({
+      email: email.toLowerCase(),
+      password,
+      phone: phone || null,
+      role,
+      status: 'active',
+      emailVerified: true,
+    }, { transaction: t });
+
+    await Profile.create({
+      userId: user.id,
+      firstName,
+      lastName,
+      gender: 'other',
+      dateOfBirth: new Date('1990-01-01'),
+    }, { transaction: t });
+
+    return user;
+  });
+
+  logAudit('marketing_user_created', req.user.id, { newUserId: result.id, email, role });
+
+  const user = await User.findByPk(result.id, {
+    include: [{ model: Profile, attributes: ['firstName', 'lastName'] }],
+    attributes: { exclude: ['password'] },
+  });
+
+  res.status(201).json({ success: true, message: 'Marketing user created', user });
+});
+
+// @route   PUT /api/admin/marketing-users/:userId/status
+// @desc    Activate/deactivate marketing user
+// @access  Private/Admin
+exports.updateMarketingUserStatus = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const { status } = req.body;
+
+  const validStatuses = ['active', 'inactive'];
+  if (!validStatuses.includes(status)) {
+    throw createError.badRequest('status must be active or inactive');
+  }
+
+  const user = await User.findByPk(userId);
+  if (!user || !['marketing', 'marketing_manager'].includes(user.role)) {
+    throw createError.notFound('Marketing user not found');
+  }
+
+  const previousStatus = user.status;
+  user.status = status;
+  await user.save();
+
+  logAudit('marketing_user_status_changed', req.user.id, {
+    targetUserId: userId,
+    previousStatus,
+    newStatus: status
+  });
+
+  res.json({ success: true, message: 'Marketing user status updated', user });
+});
+
+// @route   GET /api/admin/marketing-users/:userId/stats
+// @desc    Get marketing user stats
+// @access  Private/Admin
+exports.getMarketingUserStats = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+
+  const user = await User.findByPk(userId);
+  if (!user || !['marketing', 'marketing_manager'].includes(user.role)) {
+    throw createError.notFound('Marketing user not found');
+  }
+
+  const [leadsCount, convertedCount, revenueData] = await Promise.all([
+    MarketingLead.count({ where: { assignedToMarketingUserId: userId } }),
+    MarketingLead.count({ where: { assignedToMarketingUserId: userId, status: 'converted' } }),
+    sequelize.query(
+      `SELECT SUM("amountPaid")::float AS total FROM "MarketingLeads" WHERE "assignedToMarketingUserId" = :userId AND "paymentStatus" = 'paid'`,
+      { replacements: { userId }, type: sequelize.QueryTypes.SELECT }
+    )
+  ]);
+
+  res.json({
+    success: true,
+    stats: {
+      totalLeads: leadsCount,
+      convertedLeads: convertedCount,
+      totalRevenue: revenueData[0]?.total || 0
+    }
+  });
+});
+
+// ==================== REFERRAL CODES ====================
+
+// @route   GET /api/admin/referral-codes
+// @desc    Get all referral codes
+// @access  Private/Admin
+exports.getReferralCodes = asyncHandler(async (req, res) => {
+  const rawLimit = parseInt(req.query.limit) || 20;
+  const limit = Math.min(Math.max(rawLimit, 1), 100);
+  const page = Math.max(parseInt(req.query.page) || 1, 1);
+  const offset = (page - 1) * limit;
+  const { isActive } = req.query;
+
+  const where = {};
+  if (isActive !== undefined) where.isActive = isActive === 'true';
+
+  const { count, rows: codes } = await ReferralCode.findAndCountAll({
+    where,
+    include: [
+      { model: User, as: 'MarketingUser', attributes: ['id', 'email'] }
+    ],
+    limit,
+    offset,
+    order: [['createdAt', 'DESC']]
+  });
+
+  res.json({
+    success: true,
+    codes,
+    pagination: {
+      page,
+      limit,
+      total: count,
+      pages: Math.ceil(count / limit)
+    }
+  });
+});
+
+// @route   POST /api/admin/referral-codes
+// @desc    Create referral code
+// @access  Private/Admin
+exports.createReferralCode = asyncHandler(async (req, res) => {
+  const { code, marketingUserId, campaign, source } = req.body;
+
+  if (!code || !marketingUserId) {
+    throw createError.badRequest('code and marketingUserId are required');
+  }
+
+  const user = await User.findByPk(marketingUserId);
+  if (!user || !['marketing', 'marketing_manager'].includes(user.role)) {
+    throw createError.badRequest('Invalid marketing user');
+  }
+
+  const existing = await ReferralCode.findOne({ where: { code } });
+  if (existing) throw createError.conflict('Referral code already exists');
+
+  const referralCode = await ReferralCode.create({
+    code: code.toUpperCase(),
+    marketingUserId,
+    campaign: campaign || null,
+    source: source || null,
+    isActive: true,
+    usageCount: 0
+  });
+
+  logAudit('referral_code_created', req.user.id, { codeId: referralCode.id, code });
+
+  res.status(201).json({ success: true, message: 'Referral code created', referralCode });
+});
+
+// @route   PUT /api/admin/referral-codes/:id/toggle
+// @desc    Activate/deactivate referral code
+// @access  Private/Admin
+exports.toggleReferralCode = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const code = await ReferralCode.findByPk(id);
+  if (!code) throw createError.notFound('Referral code not found');
+
+  code.isActive = !code.isActive;
+  await code.save();
+
+  logAudit('referral_code_toggled', req.user.id, { codeId: id, isActive: code.isActive });
+
+  res.json({ success: true, message: 'Referral code updated', referralCode: code });
+});
+
+// ==================== MARKETING LEADS ====================
+
+// @route   GET /api/admin/leads
+// @desc    Get all marketing leads
+// @access  Private/Admin
+exports.getLeads = asyncHandler(async (req, res) => {
+  const rawLimit = parseInt(req.query.limit) || 20;
+  const limit = Math.min(Math.max(rawLimit, 1), 100);
+  const page = Math.max(parseInt(req.query.page) || 1, 1);
+  const offset = (page - 1) * limit;
+  const { status, paymentStatus, marketingUserId } = req.query;
+
+  const where = {};
+  if (status) where.status = status;
+  if (paymentStatus) where.paymentStatus = paymentStatus;
+  if (marketingUserId) where.assignedToMarketingUserId = marketingUserId;
+
+  const { count, rows: leads } = await MarketingLead.findAndCountAll({
+    where,
+    include: [
+      { model: User, as: 'AssignedMarketer', attributes: ['id', 'email'] },
+      { model: User, as: 'ConvertedUser', attributes: ['id', 'email'] }
+    ],
+    limit,
+    offset,
+    order: [['createdAt', 'DESC']]
+  });
+
+  res.json({
+    success: true,
+    leads,
+    pagination: {
+      page,
+      limit,
+      total: count,
+      pages: Math.ceil(count / limit)
+    }
   });
 });
 

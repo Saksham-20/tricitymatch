@@ -11,6 +11,8 @@ const Block = require('./Block');
 const Report = require('./Report');
 const Notification = require('./Notification');
 const ContactUnlock = require('./ContactUnlock');
+const ReferralCode = require('./ReferralCode');
+const MarketingLead = require('./MarketingLead');
 
 // Define Relationships
 User.hasOne(Profile, { foreignKey: 'userId', onDelete: 'CASCADE' });
@@ -68,6 +70,16 @@ User.hasMany(ContactUnlock, { foreignKey: 'targetUserId', as: 'UnlockedBy', onDe
 ContactUnlock.belongsTo(User, { foreignKey: 'userId', as: 'Unlocker' });
 ContactUnlock.belongsTo(User, { foreignKey: 'targetUserId', as: 'UnlockedUser' });
 
+// ReferralCode relationships
+User.hasMany(ReferralCode, { foreignKey: 'marketingUserId', onDelete: 'CASCADE' });
+ReferralCode.belongsTo(User, { foreignKey: 'marketingUserId', as: 'MarketingUser' });
+
+// MarketingLead relationships
+User.hasMany(MarketingLead, { foreignKey: 'assignedToMarketingUserId', as: 'MarketingLeads', onDelete: 'CASCADE' });
+User.hasMany(MarketingLead, { foreignKey: 'convertedUserId', as: 'ConvertedFrom' });
+MarketingLead.belongsTo(User, { foreignKey: 'assignedToMarketingUserId', as: 'AssignedMarketer' });
+MarketingLead.belongsTo(User, { foreignKey: 'convertedUserId', as: 'ConvertedUser' });
+
 module.exports = {
   sequelize,
   User,
@@ -82,5 +94,7 @@ module.exports = {
   Report,
   Notification,
   ContactUnlock,
+  ReferralCode,
+  MarketingLead,
 };
 

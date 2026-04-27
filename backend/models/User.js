@@ -29,7 +29,7 @@ const User = sequelize.define('User', {
     allowNull: true
   },
   role: {
-    type: DataTypes.ENUM('user', 'admin'),
+    type: DataTypes.ENUM('user', 'admin', 'super_admin', 'marketing_manager', 'marketing'),
     defaultValue: 'user'
   },
   status: {
@@ -41,6 +41,30 @@ const User = sequelize.define('User', {
     defaultValue: false
   },
   lastLogin: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  phoneVerified: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  referralCodeUsed: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  referredByMarketingUserId: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'Users',
+      key: 'id'
+    }
+  },
+  isBoosted: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  boostExpiresAt: {
     type: DataTypes.DATE,
     allowNull: true
   }

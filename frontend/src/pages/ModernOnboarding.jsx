@@ -79,8 +79,10 @@ const ModernOnboardingContent = () => {
 
   const navigate = useNavigate();
   const { signup } = useAuth();
+  const [searchParams] = useSearchParams();
   const [showQuitDialog, setShowQuitDialog] = useState(false);
   const [completionPercentage, setCompletionPercentage] = useState(0);
+  const referralCode = searchParams.get('ref');
 
   // Build stepComponents array based on visible steps
   const stepComponents = visibleSteps.map(step => allStepComponents[step.id]);
@@ -102,7 +104,11 @@ const ModernOnboardingContent = () => {
     setIsLoading(true);
     try {
       if (mode === 'signup' || mode === 'create_for_other') {
-        const result = await signup(formData);
+        const signupData = { ...formData };
+        if (referralCode) {
+          signupData.referralCode = referralCode;
+        }
+        const result = await signup(signupData);
         if (result.success) {
           clearDraft();
           navigate('/dashboard');

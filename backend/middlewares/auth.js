@@ -121,8 +121,26 @@ const adminAuth = asyncHandler(async (req, res, next) => {
     throw createError.unauthorized('Authentication required');
   }
 
-  if (req.user.role !== 'admin') {
+  if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
     throw createError.forbidden('Admin access required');
+  }
+
+  next();
+});
+
+/**
+ * Marketing authorization middleware
+ * Must be used after auth middleware
+ * Allows marketing, marketing_manager, admin, and super_admin roles
+ */
+const marketingAuth = asyncHandler(async (req, res, next) => {
+  if (!req.user) {
+    throw createError.unauthorized('Authentication required');
+  }
+
+  const allowedRoles = ['marketing', 'marketing_manager', 'admin', 'super_admin'];
+  if (!allowedRoles.includes(req.user.role)) {
+    throw createError.forbidden('Marketing access required');
   }
 
   next();
@@ -347,6 +365,7 @@ module.exports = {
   auth,
   optionalAuth,
   adminAuth,
+  marketingAuth,
   requirePremium,
   requireVIP,
   checkContactUnlockLimit,

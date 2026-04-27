@@ -37,6 +37,16 @@ const AdminVerifications = lazy(() => import('./pages/admin/AdminVerifications')
 const AdminSubscriptions = lazy(() => import('./pages/admin/AdminSubscriptions'));
 const AdminRevenue = lazy(() => import('./pages/admin/AdminRevenue'));
 const AdminReports = lazy(() => import('./pages/admin/AdminReports'));
+const AdminMarketingUsers = lazy(() => import('./pages/admin/AdminMarketingUsers'));
+const AdminReferralCodes = lazy(() => import('./pages/admin/AdminReferralCodes'));
+const AdminLeads = lazy(() => import('./pages/admin/AdminLeads'));
+
+// Marketing pages
+const MarketingLayout = lazy(() => import('./pages/marketing/MarketingLayout'));
+const MarketingDashboard = lazy(() => import('./pages/marketing/MarketingDashboard'));
+const MarketingLeads = lazy(() => import('./pages/marketing/MarketingLeads'));
+const MarketingReferralCodes = lazy(() => import('./pages/marketing/MarketingReferralCodes'));
+const MarketingProtectedRoute = lazy(() => import('./pages/marketing/MarketingProtectedRoute'));
 
 // Protected pages (load on demand)
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -243,6 +253,21 @@ const AnimatedRoutes = () => {
             }
           />
 
+          {/* Marketing Routes - bypass Navbar/BottomNav via AppContent check */}
+          <Route
+            path="/marketing/*"
+            element={
+              <MarketingProtectedRoute>
+                <MarketingLayout />
+              </MarketingProtectedRoute>
+            }
+          >
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard"     element={<MarketingDashboard />} />
+            <Route path="leads"         element={<MarketingLeads />} />
+            <Route path="referral-codes" element={<MarketingReferralCodes />} />
+          </Route>
+
           {/* Admin Routes - bypass Navbar/BottomNav via AppContent check */}
           <Route path="/admin/login" element={<Navigate to="/login" replace />} />
           <Route
@@ -262,6 +287,9 @@ const AnimatedRoutes = () => {
             <Route path="subscriptions" element={<AdminSubscriptions />} />
             <Route path="revenue"       element={<AdminRevenue />} />
             <Route path="reports"       element={<AdminReports />} />
+            <Route path="marketing-users" element={<AdminMarketingUsers />} />
+            <Route path="referral-codes"  element={<AdminReferralCodes />} />
+            <Route path="leads"           element={<AdminLeads />} />
           </Route>
 
           {/* Catch-all redirect */}
@@ -278,12 +306,13 @@ const AppContent = () => {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
-  
-  // Don't show bottom nav on chat page or admin pages (admin has its own nav)
-  const showBottomNav = isAuthenticated && location.pathname !== '/chat' && !isAdminRoute;
+  const isMarketingRoute = location.pathname.startsWith('/marketing');
 
-  // Admin routes render without Navbar/BottomNav/Toaster
-  if (isAdminRoute) {
+  // Don't show bottom nav on chat page or admin/marketing pages
+  const showBottomNav = isAuthenticated && location.pathname !== '/chat' && !isAdminRoute && !isMarketingRoute;
+
+  // Admin and marketing routes render without Navbar/BottomNav/Toaster
+  if (isAdminRoute || isMarketingRoute) {
     return (
       <Suspense fallback={
         <div className="min-h-screen bg-gray-900 flex items-center justify-center">
