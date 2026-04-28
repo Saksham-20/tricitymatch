@@ -207,6 +207,15 @@ exports.verifyPayment = asyncHandler(async (req, res) => {
     await lead.save();
   }
 
+  // VIP plan: activate 30-day profile boost
+  if (subscription.planType === 'vip') {
+    const boostExpiry = new Date(subscription.endDate);
+    await User.update(
+      { isBoosted: true, boostExpiresAt: boostExpiry },
+      { where: { id: userId } }
+    );
+  }
+
   // Send confirmation email asynchronously
   const user = await User.findByPk(userId, { attributes: ['email', 'firstName'] });
   if (user?.email) {
@@ -363,6 +372,10 @@ exports.webhook = asyncHandler(async (req, res) => {
 
       if (subscription && subscription.status === 'pending') {
         const planDetails = getPlanDetails(subscription.planType);
+        if (!planDetails) {
+          log.warn('Webhook: unknown planType, skipping activation', { planType: subscription.planType, orderId: order_id });
+          return;
+        }
         const now = new Date();
         const endDate = new Date(now);
         endDate.setDate(endDate.getDate() + planDetails.duration);
@@ -371,7 +384,17 @@ exports.webhook = asyncHandler(async (req, res) => {
         subscription.status = 'active';
         subscription.startDate = now;
         subscription.endDate = endDate;
+        subscription.contactUnlocksAllowed = planDetails.contactUnlocks;
+        subscription.contactUnlocksUsed = 0;
         await subscription.save({ transaction: t });
+
+        // VIP plan: activate profile boost via webhook too
+        if (subscription.planType === 'vip') {
+          await User.update(
+            { isBoosted: true, boostExpiresAt: endDate },
+            { where: { id: subscription.userId }, transaction: t }
+          );
+        }
 
         logAudit('subscription_activated_webhook', subscription.userId, {
           subscriptionId: subscription.id,

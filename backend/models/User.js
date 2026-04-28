@@ -33,7 +33,7 @@ const User = sequelize.define('User', {
     defaultValue: 'user'
   },
   status: {
-    type: DataTypes.ENUM('active', 'inactive', 'banned', 'pending'),
+    type: DataTypes.ENUM('active', 'inactive', 'banned', 'pending', 'deleted'),
     defaultValue: 'pending'
   },
   emailVerified: {

@@ -1,14 +1,15 @@
 const nodemailer = require('nodemailer');
+const config = require('../config/env');
 
 // Create transporter based on environment
 const createTransporter = () => {
   return nodemailer.createTransport({
-    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.EMAIL_PORT) || 587,
-    secure: false,
+    host: config.email.host,
+    port: config.email.port,
+    secure: config.email.secure,
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASSWORD
+      user: config.email.user,
+      pass: config.email.password
     }
   });
 };
@@ -17,7 +18,7 @@ const sendEmail = async (to, subject, html, text) => {
   try {
     const transporter = createTransporter();
     const mailOptions = {
-      from: process.env.EMAIL_FROM || 'noreply@tricityshadi.com',
+      from: config.email.from,
       to,
       subject,
       html,
@@ -25,14 +26,14 @@ const sendEmail = async (to, subject, html, text) => {
     };
 
     const info = await transporter.sendMail(mailOptions);
-    
-    if (process.env.NODE_ENV === 'development') {
+
+    if (config.isDevelopment) {
       console.log('Email sent:', info.messageId);
       if (info.response && info.response.includes('ethereal')) {
         console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
       }
     }
-    
+
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error('Email sending failed:', error);
@@ -78,7 +79,7 @@ const sendSubscriptionReminder = async (userEmail, planType, daysLeft) => {
       <p>Hi there,</p>
       <p>Your <strong>${planType}</strong> subscription will expire in <strong>${daysLeft} days</strong>.</p>
       <p>Renew now to continue enjoying premium features!</p>
-      <a href="${process.env.FRONTEND_URL}/subscription" style="display: inline-block; padding: 12px 24px; background-color: #e91e63; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0;">Renew Subscription</a>
+      <a href="${config.server.frontendUrl}/subscription" style="display: inline-block; padding: 12px 24px; background-color: #e91e63; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0;">Renew Subscription</a>
       <p>Best regards,<br>TricityShadi Team</p>
     </div>
   `;

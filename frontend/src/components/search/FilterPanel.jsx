@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiFilter, FiX, FiMapPin, FiBriefcase, FiBook, FiCalendar,
-  FiChevronDown, FiSearch, FiCheck,
+  FiChevronDown, FiSearch, FiCheck, FiHeart,
 } from 'react-icons/fi';
 
 // ─── Filter Section (collapsible) ───────────
@@ -82,6 +82,7 @@ const FilterContent = ({ filters, onChange }) => {
   const [sections, setSections] = useState({
     basic: true,
     location: true,
+    background: false,
     education: false,
     lifestyle: false,
   });
@@ -128,6 +129,62 @@ const FilterContent = ({ filters, onChange }) => {
         </div>
       </FilterSection>
 
+      {/* Background */}
+      <FilterSection title="Background" icon={FiHeart} sectionKey="background" expanded={sections.background} onToggle={toggle}>
+        <div className="space-y-4">
+          <div>
+            <FieldLabel htmlFor="maritalStatus">Marital Status</FieldLabel>
+            <StyledSelect id="maritalStatus" name="maritalStatus" value={filters.maritalStatus || ''} onChange={onChange}>
+              <option value="">Any</option>
+              <option value="never_married">Never Married</option>
+              <option value="divorced">Divorced</option>
+              <option value="widowed">Widowed</option>
+              <option value="awaiting_divorce">Awaiting Divorce</option>
+            </StyledSelect>
+          </div>
+          <div>
+            <FieldLabel htmlFor="religion">Religion</FieldLabel>
+            <StyledSelect id="religion" name="religion" value={filters.religion || ''} onChange={onChange}>
+              <option value="">Any</option>
+              <option value="Hindu">Hindu</option>
+              <option value="Muslim">Muslim</option>
+              <option value="Sikh">Sikh</option>
+              <option value="Christian">Christian</option>
+              <option value="Jain">Jain</option>
+              <option value="Buddhist">Buddhist</option>
+              <option value="Parsi">Parsi</option>
+              <option value="Jewish">Jewish</option>
+              <option value="Other">Other</option>
+            </StyledSelect>
+          </div>
+          <div>
+            <FieldLabel htmlFor="caste">Caste / Community</FieldLabel>
+            <StyledInput
+              id="caste" name="caste"
+              value={filters.caste || ''} onChange={onChange}
+              placeholder="e.g. Jatt, Khatri, Brahmin"
+            />
+          </div>
+          <div>
+            <FieldLabel htmlFor="motherTongue">Mother Tongue</FieldLabel>
+            <StyledSelect id="motherTongue" name="motherTongue" value={filters.motherTongue || ''} onChange={onChange}>
+              <option value="">Any</option>
+              <option value="Punjabi">Punjabi</option>
+              <option value="Hindi">Hindi</option>
+              <option value="English">English</option>
+              <option value="Haryanvi">Haryanvi</option>
+              <option value="Urdu">Urdu</option>
+              <option value="Bengali">Bengali</option>
+              <option value="Tamil">Tamil</option>
+              <option value="Telugu">Telugu</option>
+              <option value="Marathi">Marathi</option>
+              <option value="Gujarati">Gujarati</option>
+              <option value="Other">Other</option>
+            </StyledSelect>
+          </div>
+        </div>
+      </FilterSection>
+
       {/* Education & Career */}
       <FilterSection title="Education & Career" icon={FiBook} sectionKey="education" expanded={sections.education} onToggle={toggle}>
         <div className="space-y-4">
@@ -149,6 +206,17 @@ const FilterContent = ({ filters, onChange }) => {
               value={filters.profession || ''} onChange={onChange}
               placeholder="e.g. Engineer, Doctor"
             />
+          </div>
+          <div>
+            <FieldLabel htmlFor="incomeMin">Min Annual Income (₹)</FieldLabel>
+            <StyledSelect id="incomeMin" name="incomeMin" value={filters.incomeMin || ''} onChange={onChange}>
+              <option value="">No minimum</option>
+              <option value="200000">₹2 Lakh+</option>
+              <option value="500000">₹5 Lakh+</option>
+              <option value="1000000">₹10 Lakh+</option>
+              <option value="2000000">₹20 Lakh+</option>
+              <option value="5000000">₹50 Lakh+</option>
+            </StyledSelect>
           </div>
         </div>
       </FilterSection>

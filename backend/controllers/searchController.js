@@ -3,7 +3,7 @@
  * Handles profile search with optimized queries
  */
 
-const { Profile, User, Match, Subscription } = require('../models');
+const { Profile, User, Match, Subscription, Block, Verification } = require('../models');
 const { Op } = require('sequelize');
 const { calculateCompatibility } = require('../utils/compatibility');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
@@ -30,6 +30,12 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
     smoking,
     drinking,
     interestTags,
+    religion,
+    caste,
+    maritalStatus,
+    incomeMin,
+    incomeMax,
+    motherTongue,
     sortBy = 'compatibility'
   } = req.query;
 
@@ -45,10 +51,23 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
     throw createError.badRequest('Please complete your profile first');
   }
 
+  // Fetch blocked/blocking user IDs to exclude from results
+  const blocks = await Block.findAll({
+    where: {
+      [Op.or]: [{ blockerId: userId }, { blockedUserId: userId }]
+    },
+    attributes: ['blockerId', 'blockedUserId']
+  });
+  const blockedUserIds = blocks.map(b => b.blockerId === userId ? b.blockedUserId : b.blockerId);
+
   // Build where clause
   const where = {
     isActive: true,
-    userId: { [Op.ne]: userId } // Exclude self
+    incognitoMode: { [Op.ne]: true }, // Exclude users in incognito mode
+    userId: {
+      [Op.ne]: userId, // Exclude self
+      ...(blockedUserIds.length > 0 ? { [Op.notIn]: blockedUserIds } : {})
+    }
   };
 
   // Gender filter: opposite gender when set; otherwise both so results aren't empty
@@ -107,13 +126,42 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
     };
   }
 
-  // Get profiles
+  // Religion filter
+  if (religion) {
+    where.religion = { [Op.iLike]: escapeLikePattern(religion) };
+  }
+
+  // Caste filter
+  if (caste) {
+    where.caste = { [Op.iLike]: `%${escapeLikePattern(caste)}%` };
+  }
+
+  // Marital status filter
+  const validMaritalStatuses = ['never_married', 'divorced', 'widowed', 'awaiting_divorce'];
+  if (maritalStatus && validMaritalStatuses.includes(maritalStatus)) {
+    where.maritalStatus = maritalStatus;
+  }
+
+  // Income filter
+  if (incomeMin) {
+    where.income = { ...(where.income || {}), [Op.gte]: parseInt(incomeMin) };
+  }
+  if (incomeMax) {
+    where.income = { ...(where.income || {}), [Op.lte]: parseInt(incomeMax) };
+  }
+
+  // Mother tongue filter
+  if (motherTongue) {
+    where.motherTongue = { [Op.iLike]: escapeLikePattern(motherTongue) };
+  }
+
+  // Get profiles — include isBoosted + boostExpiresAt for ranking
   const profiles = await Profile.findAll({
     where,
     include: [
       {
         model: User,
-        attributes: ['id', 'email', 'status'],
+        attributes: ['id', 'status', 'isBoosted', 'boostExpiresAt'],
         where: { status: 'active' }
       }
     ],
@@ -124,7 +172,7 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
 
   // Batch query for match statuses (fixes N+1)
   const profileUserIds = profiles.map(p => p.userId);
-  const [existingMatches, activeSubscriptions] = await Promise.all([
+  const [existingMatches, activeSubscriptions, verifications] = await Promise.all([
     profileUserIds.length > 0
       ? Match.findAll({
         where: {
@@ -142,6 +190,15 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
           [Op.or]: [{ endDate: null }, { endDate: { [Op.gt]: new Date() } }]
         },
         attributes: ['userId', 'planType']
+      })
+      : [],
+    profileUserIds.length > 0
+      ? Verification.findAll({
+        where: {
+          userId: { [Op.in]: profileUserIds },
+          status: 'approved'
+        },
+        attributes: ['userId']
       })
       : []
   ]);
@@ -162,21 +219,39 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
     }
   });
 
+  // Verified user IDs set
+  const verifiedUserIds = new Set(verifications.map(v => v.userId));
+
+  const now = new Date();
+
   // Calculate compatibility for each profile
   const profilesWithCompatibility = profiles.map((profile) => {
     const compatibilityScore = calculateCompatibility(currentProfile, profile);
     const match = matchMap.get(profile.userId);
     const premiumPlan = subMap.get(profile.userId) || null;
+    // Check if referral boost is still active
+    const isBoostedActive = profile.User?.isBoosted &&
+      (!profile.User?.boostExpiresAt || new Date(profile.User.boostExpiresAt) > now);
 
     const raw = profile.toJSON();
+    const isMutual = match ? match.isMutual : false;
+
+    // Enforce photo blur: hide photos for non-mutual matches when user has photoBlurUntilMatch
+    const profilePhoto = (raw.photoBlurUntilMatch && !isMutual) ? null : raw.profilePhoto;
+    const photos = (raw.photoBlurUntilMatch && !isMutual) ? [] : raw.photos;
+
     const profileData = {
       ...raw,
+      profilePhoto,
+      photos,
       userId: raw.userId || raw.User?.id || profile.userId,
       compatibilityScore,
       matchStatus: match ? match.action : null,
-      isMutual: match ? match.isMutual : false,
+      isMutual,
+      isBoosted: isBoostedActive,
       isPremium: !!premiumPlan,
-      premiumPlan
+      premiumPlan,
+      isVerified: verifiedUserIds.has(raw.userId || profile.userId)
     };
 
     // Remove nested User object
@@ -187,7 +262,7 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
     return profileData;
   });
 
-  // Boost premium members toward the top while preserving compatibility ordering
+  // Boost premium members and referral-boosted users toward top
   const premiumBoost = (plan) => {
     if (plan === 'vip') return 20;
     if (plan === 'premium_plus') return 10;
@@ -195,11 +270,11 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
     return 0;
   };
 
-  // Sort by compatibility if requested (premium members get a boost)
+  // Sort by compatibility if requested
   if (sortBy === 'compatibility') {
     profilesWithCompatibility.sort((a, b) => {
-      const scoreA = (a.compatibilityScore || 0) + premiumBoost(a.premiumPlan);
-      const scoreB = (b.compatibilityScore || 0) + premiumBoost(b.premiumPlan);
+      const scoreA = (a.compatibilityScore || 0) + premiumBoost(a.premiumPlan) + (a.isBoosted ? 8 : 0);
+      const scoreB = (b.compatibilityScore || 0) + premiumBoost(b.premiumPlan) + (b.isBoosted ? 8 : 0);
       return scoreB - scoreA;
     });
   }
@@ -239,41 +314,57 @@ exports.getSuggestions = asyncHandler(async (req, res) => {
       ? { gender: 'male' }
       : { gender: { [Op.in]: ['male', 'female'] } };
 
-  // Get profiles user hasn't interacted with
-  const interactedUserIds = await Match.findAll({
-    where: { userId },
-    attributes: ['matchedUserId']
-  }).then(matches => matches.map(m => m.matchedUserId));
+  // Get profiles user hasn't interacted with, excluding blocked users
+  const [interactedUserIds, suggestionBlocks] = await Promise.all([
+    Match.findAll({ where: { userId }, attributes: ['matchedUserId'] })
+      .then(matches => matches.map(m => m.matchedUserId)),
+    Block.findAll({
+      where: { [Op.or]: [{ blockerId: userId }, { blockedUserId: userId }] },
+      attributes: ['blockerId', 'blockedUserId']
+    })
+  ]);
+  const blockedSuggestionIds = suggestionBlocks.map(b => b.blockerId === userId ? b.blockedUserId : b.blockerId);
+  const excludedIds = [...new Set([...interactedUserIds, ...blockedSuggestionIds])];
 
   const profiles = await Profile.findAll({
     where: {
       isActive: true,
-      userId: { [Op.ne]: userId, [Op.notIn]: interactedUserIds },
+      userId: { [Op.ne]: userId, [Op.notIn]: excludedIds },
       ...genderFilter
     },
     include: [
       {
         model: User,
-        attributes: ['id', 'status'],
+        attributes: ['id', 'status', 'isBoosted', 'boostExpiresAt'],
         where: { status: 'active' }
       }
     ],
     limit: limit * 2 // Get more to filter by compatibility
   });
 
-  // Batch-fetch active subscriptions for suggestion profiles
+  // Batch-fetch active subscriptions + verifications for suggestion profiles
   const suggestionUserIds = profiles.map(p => p.userId);
-  const suggestionSubs = suggestionUserIds.length > 0
-    ? await Subscription.findAll({
-      where: {
-        userId: { [Op.in]: suggestionUserIds },
-        status: 'active',
-        planType: { [Op.in]: ['basic_premium', 'premium_plus', 'vip'] },
-        [Op.or]: [{ endDate: null }, { endDate: { [Op.gt]: new Date() } }]
-      },
-      attributes: ['userId', 'planType']
-    })
-    : [];
+  const [suggestionSubs, suggestionVerifications] = await Promise.all([
+    suggestionUserIds.length > 0
+      ? Subscription.findAll({
+        where: {
+          userId: { [Op.in]: suggestionUserIds },
+          status: 'active',
+          planType: { [Op.in]: ['basic_premium', 'premium_plus', 'vip'] },
+          [Op.or]: [{ endDate: null }, { endDate: { [Op.gt]: new Date() } }]
+        },
+        attributes: ['userId', 'planType']
+      })
+      : [],
+    suggestionUserIds.length > 0
+      ? Verification.findAll({
+        where: { userId: { [Op.in]: suggestionUserIds }, status: 'approved' },
+        attributes: ['userId']
+      })
+      : []
+  ]);
+
+  const verifiedSuggestionIds = new Set(suggestionVerifications.map(v => v.userId));
 
   const planRankSug = { vip: 3, premium_plus: 2, basic_premium: 1 };
   const subMapSug = new Map();
@@ -284,7 +375,9 @@ exports.getSuggestions = asyncHandler(async (req, res) => {
     }
   });
 
-  // Calculate compatibility and sort (with premium boost)
+  const nowSug = new Date();
+
+  // Calculate compatibility and sort (with premium + referral boost)
   const premiumBoostSug = (plan) => {
     if (plan === 'vip') return 20;
     if (plan === 'premium_plus') return 10;
@@ -292,15 +385,20 @@ exports.getSuggestions = asyncHandler(async (req, res) => {
     return 0;
   };
 
-  const profilesWithCompatibility = profiles.map(profile => ({
-    profile,
-    compatibilityScore: calculateCompatibility(currentProfile, profile),
-    premiumPlan: subMapSug.get(profile.userId) || null
-  }));
+  const profilesWithCompatibility = profiles.map(profile => {
+    const isBoostedActive = profile.User?.isBoosted &&
+      (!profile.User?.boostExpiresAt || new Date(profile.User.boostExpiresAt) > nowSug);
+    return {
+      profile,
+      compatibilityScore: calculateCompatibility(currentProfile, profile),
+      premiumPlan: subMapSug.get(profile.userId) || null,
+      isBoosted: isBoostedActive,
+    };
+  });
 
   profilesWithCompatibility.sort((a, b) => {
-    const scoreA = a.compatibilityScore + premiumBoostSug(a.premiumPlan);
-    const scoreB = b.compatibilityScore + premiumBoostSug(b.premiumPlan);
+    const scoreA = a.compatibilityScore + premiumBoostSug(a.premiumPlan) + (a.isBoosted ? 8 : 0);
+    const scoreB = b.compatibilityScore + premiumBoostSug(b.premiumPlan) + (b.isBoosted ? 8 : 0);
     return scoreB - scoreA;
   });
 
@@ -315,7 +413,9 @@ exports.getSuggestions = asyncHandler(async (req, res) => {
         userId: raw.userId || raw.User?.id || item.profile.userId,
         compatibilityScore: item.compatibilityScore,
         isPremium: !!premiumPlan,
-        premiumPlan
+        premiumPlan,
+        isBoosted: item.isBoosted,
+        isVerified: verifiedSuggestionIds.has(raw.userId || item.profile.userId),
       };
 
       if (profileData.User) {

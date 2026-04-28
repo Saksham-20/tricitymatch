@@ -96,7 +96,7 @@ const config = {
 
   // Server
   server: {
-    port: requiredNumber('PORT', 5000),
+    port: requiredNumber('PORT', 5001),
     frontendUrl: requiredString('FRONTEND_URL', 'http://localhost:3000'),
     apiVersion: 'v1',
   },

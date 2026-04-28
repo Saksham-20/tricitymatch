@@ -45,6 +45,7 @@ const Search = () => {
     heightMin: '', heightMax: '',
     city: '', education: '', profession: '',
     diet: '', smoking: '', drinking: '',
+    religion: '', caste: '', maritalStatus: '', motherTongue: '', incomeMin: '',
   });
 
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
@@ -116,7 +117,7 @@ const Search = () => {
   };
 
   const handleClearFilters = () => {
-    const emptyFilters = { ageMin: '', ageMax: '', heightMin: '', heightMax: '', city: '', education: '', profession: '', diet: '', smoking: '', drinking: '' };
+    const emptyFilters = { ageMin: '', ageMax: '', heightMin: '', heightMax: '', city: '', education: '', profession: '', diet: '', smoking: '', drinking: '', religion: '', caste: '', maritalStatus: '', motherTongue: '', incomeMin: '' };
     setFilters(emptyFilters);
     setPage(1);
     searchProfiles({ overrideFilters: emptyFilters, overridePage: 1 });

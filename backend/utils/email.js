@@ -19,7 +19,7 @@ const getTransporter = () => {
     secure: config.email.port === 465,
     auth: {
       user: config.email.user,
-      pass: config.email.pass,
+      pass: config.email.password,
     },
     pool: true,
     maxConnections: 5,
@@ -208,6 +208,50 @@ const templates = {
     text: `Hi ${name}, Your ${plan} subscription is confirmed and valid until ${expiryDate}. Enjoy all premium features!`
   }),
 
+  verificationRejected: (name, reason) => ({
+    subject: 'Profile Verification Update - TricityShadi',
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: #dc3545; color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+          .reason-box { background: #fff3f3; border: 1px solid #dc3545; padding: 15px; border-radius: 5px; margin: 20px 0; }
+          .button { display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin-top: 20px; }
+          .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Verification Update</h1>
+          </div>
+          <div class="content">
+            <p>Hi ${name},</p>
+            <p>We were unable to verify your profile at this time.</p>
+            ${reason ? `<div class="reason-box"><strong>Reason:</strong> ${reason}</div>` : ''}
+            <p>Please re-submit your verification documents ensuring they are:</p>
+            <ul>
+              <li>Clear and legible</li>
+              <li>Valid and not expired</li>
+              <li>Matching the information on your profile</li>
+            </ul>
+            <a href="${config.server.frontendUrl}/settings" class="button">Re-submit Verification</a>
+          </div>
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} TricityShadi. All rights reserved.</p>
+            <p>If you have questions, contact our support team.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+    text: `Hi ${name}, Your verification was not approved.${reason ? ' Reason: ' + reason : ''} Please re-submit with clear, valid documents.`
+  }),
+
   verificationApproved: (name) => ({
     subject: 'Profile Verified! ✓ - TricityShadi',
     html: `
@@ -244,6 +288,51 @@ const templates = {
       </html>
     `,
     text: `Hi ${name}, Congratulations! Your TricityShadi profile has been verified. You now have a verification badge.`
+  }),
+
+  weeklyDigest: (name, matchCount, profilesHtml) => ({
+    subject: `${matchCount} new matches this week on TricityShadi 💌`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; background: #f8f4f0; margin: 0; padding: 0; }
+          .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; }
+          .header { background: linear-gradient(135deg, #7c1e3f, #a0294f); color: white; padding: 32px 24px; text-align: center; }
+          .header h1 { margin: 0; font-size: 24px; }
+          .header p { margin: 8px 0 0; opacity: 0.85; font-size: 14px; }
+          .body { padding: 28px 24px; }
+          .profiles { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin: 20px 0; }
+          .cta { text-align: center; margin: 28px 0 16px; }
+          .btn { background: #7c1e3f; color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: bold; display: inline-block; }
+          .footer { text-align: center; padding: 16px; background: #f8f4f0; color: #888; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>You have ${matchCount} new matches! 💌</h1>
+            <p>New profiles matching your preferences this week</p>
+          </div>
+          <div class="body">
+            <p>Hi ${name},</p>
+            <p>New members have joined TricityShadi this week who match your preferences. Don't miss out!</p>
+            ${profilesHtml || ''}
+            <div class="cta">
+              <a href="${config.server.frontendUrl}/search" class="btn">View All Matches →</a>
+            </div>
+            <p style="color: #666; font-size: 13px; text-align: center;">Log in to see their full profiles and send interest.</p>
+          </div>
+          <div class="footer">
+            <p>You're receiving this because you have an active profile on TricityShadi.</p>
+            <p>© TricityShadi — Chandigarh · Mohali · Panchkula</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+    text: `Hi ${name}, You have ${matchCount} new profiles matching your preferences this week on TricityShadi. Log in to view them: ${config.server.frontendUrl}/search`
   }),
 };
 
@@ -312,6 +401,13 @@ const sendSubscriptionConfirmation = (to, name, plan, expiryDate) =>
 // Send verification approved email
 const sendVerificationApproved = (to, name) => sendEmail(to, 'verificationApproved', { name });
 
+// Send verification rejected email
+const sendVerificationRejected = (to, name, reason) => sendEmail(to, 'verificationRejected', { name, reason });
+
+// Send weekly digest email
+const sendWeeklyDigest = (to, name, matchCount, profilesHtml) =>
+  sendEmail(to, 'weeklyDigest', { name, matchCount, profilesHtml });
+
 module.exports = {
   sendEmail,
   sendWelcomeEmail,
@@ -319,5 +415,7 @@ module.exports = {
   sendMatchNotification,
   sendSubscriptionConfirmation,
   sendVerificationApproved,
+  sendVerificationRejected,
+  sendWeeklyDigest,
   templates,
 };

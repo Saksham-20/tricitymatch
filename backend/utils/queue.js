@@ -186,10 +186,10 @@ const setupCleanupProcessor = (queue) => {
   queue.process('cleanup-inactive-sessions', async (job) => {
     const { RefreshToken } = require('../models');
     const { Op } = require('sequelize');
-    
+
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - 30); // 30 days ago
-    
+
     // Revoke tokens not used in 30 days
     const result = await RefreshToken.update(
       { isRevoked: true, revokedReason: 'inactivity' },
@@ -200,9 +200,82 @@ const setupCleanupProcessor = (queue) => {
         }
       }
     );
-    
+
     log.info('Cleaned up inactive sessions', { count: result[0] });
     return { cleaned: result[0] };
+  });
+
+  queue.process('send-weekly-digest', async (job) => {
+    const { User, Profile, Match } = require('../models');
+    const { Op } = require('sequelize');
+    const { sendWeeklyDigest } = require('./email');
+
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    // Get active users with complete profiles (have gender set)
+    const users = await User.findAll({
+      where: { status: 'active' },
+      include: [{
+        model: Profile,
+        where: { isActive: true, gender: { [Op.in]: ['male', 'female'] } },
+        attributes: ['gender', 'city', 'preferredAgeMin', 'preferredAgeMax', 'firstName']
+      }],
+      attributes: ['id', 'email'],
+      limit: 500 // batch size — prevents memory overload on large user base
+    });
+
+    let sent = 0;
+    for (const user of users) {
+      try {
+        const profile = user.Profile;
+        if (!profile || !user.email) continue;
+
+        const oppositeGender = profile.gender === 'male' ? 'female' : 'male';
+        const ageMin = profile.preferredAgeMin;
+        const ageMax = profile.preferredAgeMax;
+
+        // Get already-interacted user IDs to exclude
+        const interacted = await Match.findAll({
+          where: { userId: user.id },
+          attributes: ['matchedUserId']
+        });
+        const interactedIds = interacted.map(m => m.matchedUserId);
+
+        // Count new profiles matching preferences joined in last 7 days
+        const ageWhere = {};
+        if (ageMin) {
+          const maxDob = new Date();
+          maxDob.setFullYear(maxDob.getFullYear() - ageMin);
+          ageWhere[Op.lte] = maxDob;
+        }
+        if (ageMax) {
+          const minDob = new Date();
+          minDob.setFullYear(minDob.getFullYear() - ageMax - 1);
+          ageWhere[Op.gte] = minDob;
+        }
+
+        const matchCount = await Profile.count({
+          where: {
+            isActive: true,
+            incognitoMode: { [Op.ne]: true },
+            gender: oppositeGender,
+            createdAt: { [Op.gte]: weekAgo },
+            userId: { [Op.ne]: user.id, ...(interactedIds.length > 0 ? { [Op.notIn]: interactedIds } : {}) },
+            ...(Object.keys(ageWhere).length > 0 ? { dateOfBirth: ageWhere } : {})
+          }
+        });
+
+        if (matchCount > 0) {
+          await sendWeeklyDigest(user.email, profile.firstName || 'there', matchCount, '');
+          sent++;
+        }
+      } catch (err) {
+        log.warn('Weekly digest failed for user', { userId: user.id, error: err.message });
+      }
+    }
+
+    log.info('Weekly digest sent', { sent, total: users.length });
+    return { sent };
   });
 
   queue.process('expire-subscriptions', async (job) => {
@@ -351,6 +424,11 @@ const scheduleCleanupJobs = async () => {
     // Expire subscriptions every hour
     await cleanupQueue.add('expire-subscriptions', {}, {
       repeat: { cron: '0 * * * *' }
+    });
+
+    // Weekly new-matches digest — every Monday at 10 AM
+    await cleanupQueue.add('send-weekly-digest', {}, {
+      repeat: { cron: '0 10 * * 1' }
     });
 
     log.info('Cleanup jobs scheduled');

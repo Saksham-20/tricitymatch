@@ -153,6 +153,12 @@ exports.signup = asyncHandler(async (req, res) => {
     throw createError.badRequest('Unable to create account. Please try again.');
   }
 
+  // Send welcome email (non-blocking)
+  setImmediate(() => {
+    sendWelcomeEmail(result.email, firstName)
+      .catch(err => log.error('Failed to send welcome email', { error: err.message, userId: result.id }));
+  });
+
   // Generate tokens
   const accessToken = generateAccessToken(result.id);
   const refreshToken = await generateRefreshToken(

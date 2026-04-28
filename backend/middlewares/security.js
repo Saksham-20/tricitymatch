@@ -120,13 +120,13 @@ const securityHeaders = helmet({
     directives: {
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", 'data:', 'blob:', 'https://res.cloudinary.com'],
-      connectSrc: ["'self'", config.server.frontendUrl],
+      scriptSrc: ["'self'", 'https://checkout.razorpay.com'],
+      imgSrc: ["'self'", 'data:', 'blob:', 'https://res.cloudinary.com', 'https://checkout.razorpay.com'],
+      connectSrc: ["'self'", config.server.frontendUrl, 'https://api.razorpay.com', 'https://lumberjack.razorpay.com', 'https://checkout.razorpay.com'],
+      frameSrc: ["'self'", 'https://api.razorpay.com'],
       fontSrc: ["'self'", 'https://fonts.gstatic.com'],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
-      frameSrc: ["'none'"],
     },
   },
   crossOriginEmbedderPolicy: false, // Required for Cloudinary images
@@ -172,9 +172,13 @@ const corsOptions = {
       return callback(null, true);
     }
 
+    const isLocalDevelopmentOrigin =
+      config.isDevelopment &&
+      /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+
     const allowedOrigins = getAllowedOrigins();
 
-    // In development, allow localhost variants
+    // In development, allow localhost variants on any port
     if (config.isDevelopment) {
       allowedOrigins.push(
         'http://localhost:3000',
@@ -184,7 +188,7 @@ const corsOptions = {
       );
     }
 
-    if (allowedOrigins.includes(origin)) {
+    if (allowedOrigins.includes(origin) || isLocalDevelopmentOrigin) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));

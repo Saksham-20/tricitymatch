@@ -28,12 +28,12 @@ export default defineConfig(({ mode }) => {
       host: true, // Expose to network
       proxy: {
         '/api': {
-          target: env.VITE_API_URL || 'http://localhost:5000',
+          target: env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5001',
           changeOrigin: true,
           secure: false,
         },
         '/socket.io': {
-          target: env.VITE_WS_URL || 'http://localhost:5000',
+          target: env.VITE_WS_URL || 'http://localhost:5001',
           changeOrigin: true,
           ws: true,
         },

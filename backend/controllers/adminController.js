@@ -10,6 +10,7 @@ const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { logAudit } = require('../middlewares/logger');
 const { generateInvoicePDF } = require('../utils/invoice');
 const { notify } = require('../utils/notifyUser');
+const { sendVerificationApproved, sendVerificationRejected } = require('../utils/email');
 
 // Escape special characters for LIKE patterns
 const escapeLikePattern = (str) => {
@@ -27,9 +28,12 @@ exports.getUsers = asyncHandler(async (req, res) => {
   const { status, role, search } = req.query;
   const offset = (page - 1) * limit;
 
+  const VALID_USER_STATUSES = ['active', 'inactive', 'banned', 'pending', 'deleted'];
+  const VALID_USER_ROLES = ['user', 'admin', 'super_admin', 'marketing', 'marketing_manager'];
+
   const where = {};
-  if (status) where.status = status;
-  if (role) where.role = role;
+  if (status && VALID_USER_STATUSES.includes(status)) where.status = status;
+  if (role && VALID_USER_ROLES.includes(role)) where.role = role;
   if (search) {
     where[Op.or] = [
       { email: { [Op.iLike]: `%${escapeLikePattern(search)}%` } },
@@ -99,7 +103,9 @@ exports.updateUserStatus = asyncHandler(async (req, res) => {
 // @desc    Get pending verifications
 // @access  Private/Admin
 exports.getVerifications = asyncHandler(async (req, res) => {
-  const { status = 'pending' } = req.query;
+  const rawStatus = req.query.status;
+  const VALID_VERIFICATION_STATUSES = ['pending', 'approved', 'rejected'];
+  const status = rawStatus && VALID_VERIFICATION_STATUSES.includes(rawStatus) ? rawStatus : 'pending';
 
   const verifications = await Verification.findAll({
     where: { status },
@@ -154,6 +160,29 @@ exports.updateVerification = asyncHandler(async (req, res) => {
     userId: verification.userId,
     previousStatus,
     newStatus: status
+  });
+
+  // Notify user via in-app + email (non-blocking)
+  setImmediate(async () => {
+    try {
+      const user = await User.findByPk(verification.userId, {
+        attributes: ['email'],
+        include: [{ model: Profile, attributes: ['firstName'] }]
+      });
+      if (!user) return;
+      const name = user.Profile?.firstName || 'User';
+
+      if (status === 'approved') {
+        await notify(verification.userId, 'verification_approved', 'Profile Verified!', 'Your identity has been verified. Your profile now shows a verified badge.');
+        await sendVerificationApproved(user.email, name);
+      } else if (status === 'rejected') {
+        const reason = safeAdminNotes || 'Please resubmit with clear, valid documents.';
+        await notify(verification.userId, 'verification_rejected', 'Verification Update', `Your verification was not approved. ${reason}`);
+        await sendVerificationRejected(user.email, name, reason);
+      }
+    } catch (err) {
+      // Non-fatal — verification is already saved
+    }
   });
 
   res.json({
@@ -267,8 +296,9 @@ exports.getReports = asyncHandler(async (req, res) => {
   const page = Math.max(parseInt(req.query.page) || 1, 1);
   const offset = (page - 1) * limit;
   const { status } = req.query;
+  const VALID_REPORT_STATUSES = ['pending', 'reviewed', 'dismissed'];
   const where = {};
-  if (status) where.status = status;
+  if (status && VALID_REPORT_STATUSES.includes(status)) where.status = status;
 
   const { count, rows: reports } = await Report.findAndCountAll({
     where,
@@ -438,14 +468,29 @@ exports.updateSubscription = asyncHandler(async (req, res) => {
     { where: { userId, status: 'active' } }
   );
 
+  const { getPlanDetails } = require('../utils/razorpay');
+  const planDetails = getPlanDetails(planType);
+
+  const subEndDate = endDate ? new Date(endDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
   const subscription = await Subscription.create({
     userId,
     planType,
     status,
     startDate: startDate ? new Date(startDate) : new Date(),
-    endDate: endDate ? new Date(endDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-    amount: planType === 'basic_premium' ? 199900 : planType === 'premium_plus' ? 399900 : planType === 'vip' ? 999900 : 0,
+    endDate: subEndDate,
+    amount: planType === 'basic_premium' ? 1500 : planType === 'premium_plus' ? 3000 : planType === 'vip' ? 7499 : 0,
+    contactUnlocksAllowed: planDetails ? planDetails.contactUnlocks : null,
+    contactUnlocksUsed: 0,
   });
+
+  // VIP admin override: activate profile boost
+  if (planType === 'vip' && status === 'active') {
+    await User.update(
+      { isBoosted: true, boostExpiresAt: subEndDate },
+      { where: { id: userId } }
+    );
+  }
 
   logAudit('subscription_overridden', req.user.id, { userId, planType, status });
 
@@ -549,8 +594,9 @@ exports.getMarketingUsers = asyncHandler(async (req, res) => {
   const offset = (page - 1) * limit;
   const { status } = req.query;
 
+  const VALID_MARKETING_STATUSES = ['active', 'inactive'];
   const where = { role: { [Op.in]: ['marketing', 'marketing_manager'] } };
-  if (status) where.status = status;
+  if (status && VALID_MARKETING_STATUSES.includes(status)) where.status = status;
 
   const { count, rows: users } = await User.findAndCountAll({
     where,
@@ -781,9 +827,12 @@ exports.getLeads = asyncHandler(async (req, res) => {
   const offset = (page - 1) * limit;
   const { status, paymentStatus, marketingUserId } = req.query;
 
+  const VALID_LEAD_STATUSES = ['new', 'contacted', 'converted', 'lost'];
+  const VALID_PAYMENT_STATUSES = ['pending', 'paid', 'failed'];
+
   const where = {};
-  if (status) where.status = status;
-  if (paymentStatus) where.paymentStatus = paymentStatus;
+  if (status && VALID_LEAD_STATUSES.includes(status)) where.status = status;
+  if (paymentStatus && VALID_PAYMENT_STATUSES.includes(paymentStatus)) where.paymentStatus = paymentStatus;
   if (marketingUserId) where.assignedToMarketingUserId = marketingUserId;
 
   const { count, rows: leads } = await MarketingLead.findAndCountAll({

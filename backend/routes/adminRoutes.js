@@ -48,7 +48,7 @@ router.get('/users/:userId', param('userId').isUUID(4), handleValidationErrors, 
 router.put('/users/:userId/status', updateUserStatusValidation, handleValidationErrors, updateUserStatus);
 router.put('/users/:userId/subscription',
   param('userId').isUUID(4),
-  body('planType').isIn(['free', 'premium', 'elite']),
+  body('planType').isIn(['free', 'basic_premium', 'premium_plus', 'vip']),
   handleValidationErrors,
   updateSubscription
 );

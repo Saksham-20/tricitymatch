@@ -3,11 +3,12 @@
  * Handles match actions (like/shortlist/pass) with proper transactions
  */
 
-const { Match, Profile, User, Subscription } = require('../models');
+const { Match, Profile, User, Subscription, Block } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const { calculateCompatibility } = require('../utils/compatibility');
 const { sendMatchNotification } = require('../utils/emailService');
+const { notify } = require('../utils/notifyUser');
 const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 
@@ -18,6 +19,19 @@ exports.matchAction = asyncHandler(async (req, res) => {
   const { userId } = req.params;
   const { action } = req.body;
   const currentUserId = req.user.id;
+
+  // Prevent match actions between blocked users (either direction)
+  const blockExists = await Block.findOne({
+    where: {
+      [Op.or]: [
+        { blockerId: currentUserId, blockedUserId: userId },
+        { blockerId: userId, blockedUserId: currentUserId }
+      ]
+    }
+  });
+  if (blockExists) {
+    throw createError.forbidden('Cannot perform this action');
+  }
 
   // Use transaction for consistency
   const result = await sequelize.transaction(async (t) => {
@@ -87,35 +101,43 @@ exports.matchAction = asyncHandler(async (req, res) => {
   });
 
   // Send notifications outside transaction (non-critical)
-  if (result.isMutualMatch) {
+  setImmediate(async () => {
     try {
       const [currentUser, matchedUser] = await Promise.all([
         User.findByPk(currentUserId),
         User.findByPk(userId)
       ]);
 
-      if (currentUser && matchedUser && result.currentProfile && result.matchedProfile) {
+      if (!currentUser || !matchedUser) return;
+
+      const currentName = result.currentProfile
+        ? `${result.currentProfile.firstName} ${result.currentProfile.lastName}`
+        : 'Someone';
+      const matchedName = result.matchedProfile
+        ? `${result.matchedProfile.firstName} ${result.matchedProfile.lastName}`
+        : 'Someone';
+
+      if (result.isMutualMatch) {
+        // Mutual match — notify both users in-app + email
+        await Promise.all([
+          notify(userId, 'new_match', "It's a Match! 🎉", `You and ${currentName} liked each other!`, result.match.id),
+          notify(currentUserId, 'new_match', "It's a Match! 🎉", `You and ${matchedName} liked each other!`, result.match.id),
+        ]);
+
         const profileUrl = `${config.server.frontendUrl}/profile/${userId}`;
         const matchedProfileUrl = `${config.server.frontendUrl}/profile/${currentUserId}`;
-
-        // Send emails in parallel (fire and forget)
         Promise.all([
-          sendMatchNotification(
-            matchedUser.email,
-            `${result.currentProfile.firstName} ${result.currentProfile.lastName}`,
-            profileUrl
-          ),
-          sendMatchNotification(
-            currentUser.email,
-            `${result.matchedProfile.firstName} ${result.matchedProfile.lastName}`,
-            matchedProfileUrl
-          )
-        ]).catch(err => console.error('Failed to send match notifications:', err));
+          sendMatchNotification(matchedUser.email, currentName, profileUrl),
+          sendMatchNotification(currentUser.email, matchedName, matchedProfileUrl),
+        ]).catch(err => console.error('Failed to send match emails:', err));
+      } else if (result.match.action === 'like') {
+        // One-way like — notify the liked user in-app only (no email, avoid spam)
+        await notify(userId, 'new_match', 'Someone liked your profile!', `${currentName} liked your profile. Like them back to connect!`, result.match.id);
       }
     } catch (error) {
-      console.error('Error preparing match notifications:', error);
+      console.error('Error sending match notifications:', error);
     }
-  }
+  });
 
   res.json({
     success: true,

@@ -7,7 +7,7 @@ const express = require('express');
 const router = express.Router();
 const { auth, marketingAuth } = require('../middlewares/auth');
 const { asyncHandler, createError } = require('../middlewares/errorHandler');
-const { MarketingLead, ReferralCode, Subscription, User, Op } = require('../models');
+const { MarketingLead, ReferralCode, User } = require('../models');
 const sequelize = require('../config/database');
 
 // All marketing routes require authentication and marketing role
@@ -53,9 +53,12 @@ router.get('/leads', asyncHandler(async (req, res) => {
   const offset = (page - 1) * limit;
   const { status, paymentStatus } = req.query;
 
+  const VALID_LEAD_STATUSES = ['new', 'contacted', 'converted', 'lost'];
+  const VALID_PAYMENT_STATUSES = ['pending', 'paid', 'failed'];
+
   const where = { assignedToMarketingUserId: userId };
-  if (status) where.status = status;
-  if (paymentStatus) where.paymentStatus = paymentStatus;
+  if (status && VALID_LEAD_STATUSES.includes(status)) where.status = status;
+  if (paymentStatus && VALID_PAYMENT_STATUSES.includes(paymentStatus)) where.paymentStatus = paymentStatus;
 
   const { count, rows: leads } = await MarketingLead.findAndCountAll({
     where,

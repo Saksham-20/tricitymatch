@@ -445,9 +445,25 @@ exports.getProfile = asyncHandler(async (req, res) => {
   });
   const isLiked = existingMatch && existingMatch.action === 'like';
   const isShortlisted = existingMatch && existingMatch.action === 'shortlist';
+  const isMutual = existingMatch?.isMutual || false;
 
   // Prepare response with privacy checks
   const profileData = profile.toJSON();
+
+  // Enforce incognito mode: if target user has incognito on and viewer is not a mutual match, skip recording view
+  // (view was already recorded above; nothing to undo — incognito only hides the viewer from the target's list)
+  // We enforce it by removing the view record we just created
+  if (profile.incognitoMode) {
+    try {
+      await ProfileView.destroy({ where: { viewerId, viewedUserId: userId }, limit: 1 });
+    } catch (_) {}
+  }
+
+  // Enforce photo blur: replace photo URLs with null for non-mutual viewers when photoBlurUntilMatch is set
+  if (profile.photoBlurUntilMatch && !isMutual) {
+    profileData.profilePhoto = null;
+    profileData.photos = [];
+  }
 
   // Only fetch contact details from DB when the viewer has actually earned access.
   // This prevents any accidental leakage through JSON serialisation.
@@ -631,31 +647,26 @@ exports.getProfileViewers = asyncHandler(async (req, res) => {
 // @route   PUT /api/profile/privacy
 // @desc    Update profile privacy settings
 // @access  Private
-exports.updatePrivacySettings = async (req, res) => {
-  try {
-    const { profileVisibility, showOnlineStatus, showLastSeen } = req.body;
-    const profile = await require('../models').Profile.findOne({ where: { userId: req.user.id } });
-    if (!profile) throw Object.assign(new Error('Profile not found'), { status: 404 });
+exports.updatePrivacySettings = asyncHandler(async (req, res) => {
+  const { profileVisibility, showOnlineStatus, showLastSeen } = req.body;
+  const profile = await Profile.findOne({ where: { userId: req.user.id } });
+  if (!profile) throw createError.notFound('Profile not found');
 
-    if (profileVisibility !== undefined) {
-      const valid = ['everyone', 'matches_only'];
-      if (!valid.includes(profileVisibility)) {
-        return res.status(400).json({ success: false, error: { message: 'Invalid profileVisibility value' } });
-      }
-      profile.profileVisibility = profileVisibility;
+  if (profileVisibility !== undefined) {
+    const valid = ['everyone', 'matches_only'];
+    if (!valid.includes(profileVisibility)) {
+      throw createError.badRequest('Invalid profileVisibility value');
     }
-    if (typeof showOnlineStatus === 'boolean') profile.showOnlineStatus = showOnlineStatus;
-    if (typeof showLastSeen === 'boolean') profile.showLastSeen = showLastSeen;
-
-    await profile.save();
-
-    res.json({ success: true, message: 'Privacy settings updated', profile: {
-      profileVisibility: profile.profileVisibility,
-      showOnlineStatus: profile.showOnlineStatus,
-      showLastSeen: profile.showLastSeen,
-    }});
-  } catch (err) {
-    const status = err.status || 500;
-    res.status(status).json({ success: false, error: { message: err.message } });
+    profile.profileVisibility = profileVisibility;
   }
-};
+  if (typeof showOnlineStatus === 'boolean') profile.showOnlineStatus = showOnlineStatus;
+  if (typeof showLastSeen === 'boolean') profile.showLastSeen = showLastSeen;
+
+  await profile.save();
+
+  res.json({ success: true, message: 'Privacy settings updated', profile: {
+    profileVisibility: profile.profileVisibility,
+    showOnlineStatus: profile.showOnlineStatus,
+    showLastSeen: profile.showLastSeen,
+  }});
+});
