@@ -66,7 +66,7 @@ const CompatibilityRing = ({ score, size = 72 }) => {
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-xs font-bold leading-none" style={{ color }}>{score}%</span>
-        <span className="text-[9px] text-neutral-400 mt-0.5">match</span>
+        <span className="text-[10px] text-neutral-400 mt-0.5">match</span>
       </div>
     </div>
   );
@@ -152,7 +152,7 @@ const MatchPreviewCard = ({ profile }) => (
 
       <div className="flex flex-wrap gap-1.5 mb-4">
         {profile.tags.map((tag, i) => (
-          <span key={i} className="px-2 py-0.5 text-[11px] rounded-full bg-primary-50 text-primary-600 border border-primary-100">
+          <span key={i} className="px-2 py-0.5 text-xs rounded-full bg-primary-50 text-primary-600 border border-primary-100">
             {tag}
           </span>
         ))}
@@ -205,7 +205,7 @@ const TimelineStep = ({ step, index, total }) => {
 
       {/* Right — text */}
       <div className="pb-10 flex-1">
-        <span className="text-[10px] font-semibold text-primary-400 uppercase tracking-widest">Step {index + 1}</span>
+        <span className="text-[11px] font-semibold text-primary-400 uppercase tracking-widest">Step {index + 1}</span>
         <h3 className="font-display text-xl font-semibold text-neutral-800 mt-0.5 mb-1.5">{step.title}</h3>
         <p className="text-sm text-neutral-500 leading-relaxed">{step.desc}</p>
       </div>
@@ -500,7 +500,7 @@ const Home = () => {
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-neutral-800">New match found!</p>
-                    <p className="text-[10px] text-neutral-400">97% compatibility</p>
+                    <p className="text-[11px] text-neutral-400">97% compatibility</p>
                   </div>
                 </div>
               </motion.div>
@@ -515,7 +515,7 @@ const Home = () => {
                   <CompatibilityRing score={97} size={42} />
                   <div>
                     <p className="text-xs font-semibold text-neutral-800">Perfect Match</p>
-                    <p className="text-[10px] text-neutral-400">Priya & Arjun</p>
+                    <p className="text-[11px] text-neutral-400">Priya & Arjun</p>
                   </div>
                 </div>
               </motion.div>
@@ -852,7 +852,7 @@ const Home = () => {
             </div>
             <nav className="flex flex-wrap justify-center gap-6 text-sm text-neutral-500">
               {['About', 'Contact', 'Privacy', 'Terms', 'Safety'].map(l => (
-                <Link key={l} to={`/${l.toLowerCase()}`} className="hover:text-neutral-300 transition-colors">
+                <Link key={l} to={`/${l.toLowerCase()}`} className="hover:text-neutral-300 transition-colors py-2 inline-flex items-center min-h-[44px]">
                   {l}
                 </Link>
               ))}

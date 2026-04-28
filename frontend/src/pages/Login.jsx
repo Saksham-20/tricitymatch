@@ -183,7 +183,7 @@ const Login = () => {
               Sign In
             </h1>
             <p className="text-neutral-600">
-              We're so happy you're here. Your journey continues...
+              Enter your details to access your profile.
             </p>
           </motion.div>
 

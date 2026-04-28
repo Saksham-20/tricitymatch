@@ -284,7 +284,7 @@ const Navbar = () => {
               <div className="hidden md:flex items-center gap-4">
                 <Link
                   to="/login"
-                  className="text-sm font-semibold text-neutral-600 hover:text-primary-500 transition-colors px-3 py-2 rounded-xl hover:bg-primary-50"
+                  className="text-sm font-semibold text-neutral-600 hover:text-primary-500 transition-colors px-3 py-2.5 rounded-xl hover:bg-primary-50 min-h-[44px] inline-flex items-center"
                 >
                   Sign In
                 </Link>

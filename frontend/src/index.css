@@ -63,6 +63,7 @@
     font-family: 'Playfair Display', 'Georgia', serif;
     @apply font-semibold tracking-tight;
     color: hsl(var(--foreground));
+    text-wrap: balance;
   }
   
   h4, h5, h6 {
