@@ -35,6 +35,18 @@ export const razorpay = {
   isConfigured: isRealPublicKey(import.meta.env.VITE_RAZORPAY_KEY_ID),
 };
 
+// Google OAuth Configuration
+const isRealGoogleClientId = (value) => {
+  if (!value) return false;
+  const normalized = String(value).trim();
+  return normalized.endsWith('.apps.googleusercontent.com') && !normalized.startsWith('your-');
+};
+
+export const google = {
+  clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
+  isConfigured: isRealGoogleClientId(import.meta.env.VITE_GOOGLE_CLIENT_ID),
+};
+
 // Cloudinary Configuration
 export const cloudinary = {
   cloudName: import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '',

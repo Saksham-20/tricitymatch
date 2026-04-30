@@ -207,6 +207,12 @@ const config = {
     email: optionalString('ADMIN_EMAIL', 'admin@tricityshadi.com'),
   },
 
+  // Google OAuth
+  google: {
+    clientId: optionalString('GOOGLE_CLIENT_ID'),
+    isConfigured: () => !!optionalString('GOOGLE_CLIENT_ID'),
+  },
+
   // Redis (for caching and job queues)
   redis: {
     url: optionalString('REDIS_URL', ''),

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
-import { FiUser, FiLock, FiBell, FiAlertTriangle, FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiUser, FiLock, FiBell, FiAlertTriangle, FiEye, FiEyeOff, FiMoon } from 'react-icons/fi';
+import useDarkMode from '../hooks/useDarkMode';
 
 const TABS = [
   { id: 'account',       label: 'Account',       icon: FiUser },
@@ -16,6 +17,7 @@ const AccountTab = () => {
   const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [loading, setLoading] = useState(false);
   const [show, setShow] = useState({ current: false, newPw: false, confirm: false });
+  const { isDark, toggle: toggleDark } = useDarkMode();
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
@@ -40,6 +42,26 @@ const AccountTab = () => {
 
   return (
     <div className="space-y-6">
+      {/* Dark mode toggle */}
+      <div className="flex items-center justify-between max-w-md p-4 rounded-2xl border border-neutral-100">
+        <div className="flex items-center gap-3">
+          <FiMoon className="w-5 h-5 text-neutral-500" />
+          <div>
+            <p className="text-sm font-medium text-neutral-800">Dark Mode</p>
+            <p className="text-xs text-neutral-500">Switch between light and dark theme</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={toggleDark}
+          className={`relative inline-flex w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none ${isDark ? 'bg-primary-500' : 'bg-neutral-200'}`}
+          style={isDark ? { backgroundColor: '#8B2346' } : {}}
+          aria-label="Toggle dark mode"
+        >
+          <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${isDark ? 'translate-x-5' : 'translate-x-0'}`} />
+        </button>
+      </div>
+
       <div>
         <h3 className="text-base font-semibold text-neutral-800 mb-1">Change Password</h3>
         <p className="text-sm text-neutral-500">Update your account password</p>

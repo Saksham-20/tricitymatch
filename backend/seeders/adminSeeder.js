@@ -18,7 +18,7 @@ const User = require('../models/User');
 const Profile = require('../models/Profile');
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@tricitymatch.com';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Admin@TricityMatch2024!';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Pass@1234';
 
 async function seed() {
   try {

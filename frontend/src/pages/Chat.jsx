@@ -485,7 +485,7 @@ const Chat = () => {
             When you and someone else both like each other, you'll be able to start a conversation here.
           </p>
           <a 
-            href="/discovery" 
+            href="/search"
             className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-hero text-white rounded-full font-semibold hover:shadow-burgundy hover:scale-105 transition-all duration-200"
           >
             Find Your Match

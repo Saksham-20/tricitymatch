@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiChevronDown, FiChevronUp, FiCheck, FiCamera, FiUser, FiBook, FiBriefcase, FiHeart } from 'react-icons/fi';
 
@@ -14,6 +15,7 @@ import { FiChevronDown, FiChevronUp, FiCheck, FiCamera, FiUser, FiBook, FiBriefc
  */
 const ProfileCompletionMeter = ({ profile = {} }) => {
   const [expanded, setExpanded] = useState(false);
+  const navigate = useNavigate();
 
   // Tasks mirror the backend's calculateCompletion() logic exactly.
   // Each task shows users what they need to fill to increase their score.
@@ -173,6 +175,7 @@ const ProfileCompletionMeter = ({ profile = {} }) => {
                 return (
                   <div
                     key={task.id}
+                    onClick={() => !task.done && navigate('/profile/edit')}
                     className={`flex items-center gap-3 p-2.5 rounded-xl transition-colors ${
                       task.done
                         ? 'bg-success-50 opacity-60'

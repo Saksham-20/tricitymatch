@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -6,6 +6,8 @@ import { validateEmail, validatePassword } from '../utils/validators';
 import Logo from '../components/common/Logo';
 import { FiMail, FiLock, FiEye, FiEyeOff, FiHeart, FiShield, FiArrowRight } from 'react-icons/fi';
 import { fadeInUp, staggerContainer, shakeAnimation } from '../utils/animations';
+import { google as googleConfig } from '../config';
+import api from '../api/axios';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -15,10 +17,55 @@ const Login = () => {
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [shakeTrigger, setShakeTrigger] = useState(false);
-  const { login } = useAuth();
+  const { login, setUser } = useAuth();
   const navigate = useNavigate();
+
+  const handleGoogleCredential = useCallback(async (response) => {
+    setGoogleLoading(true);
+    setApiError('');
+    try {
+      const result = await api.post('/auth/google', { credential: response.credential });
+      if (result.data.success) {
+        // Fetch full user profile and let AuthContext handle state
+        const meResult = await api.get('/auth/me');
+        if (meResult.data?.user) {
+          setUser(meResult.data.user);
+          localStorage.setItem('tricitymatch-auth-hint', '1');
+        }
+        navigate(result.data.user?.role === 'admin' ? '/admin/dashboard' : '/dashboard');
+      }
+    } catch (err) {
+      setApiError(err.response?.data?.message || 'Google sign-in failed. Please try again.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  }, [navigate, setUser]);
+
+  useEffect(() => {
+    if (!googleConfig.isConfigured) return;
+
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      window.google?.accounts.id.initialize({
+        client_id: googleConfig.clientId,
+        callback: handleGoogleCredential,
+        auto_select: false,
+        cancel_on_tap_outside: true,
+      });
+      window.google?.accounts.id.renderButton(
+        document.getElementById('google-signin-btn'),
+        { theme: 'outline', size: 'large', width: '100%', text: 'signin_with' }
+      );
+    };
+    document.head.appendChild(script);
+    return () => { document.head.removeChild(script); };
+  }, [handleGoogleCredential]);
 
   const handleChange = (e) => {
     setFormData({
@@ -323,6 +370,23 @@ const Login = () => {
                 </>
               )}
             </motion.button>
+
+            {/* Google Sign-In */}
+            {googleConfig.isConfigured && (
+              <>
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-neutral-200" />
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-4 bg-white text-neutral-500">or continue with</span>
+                  </div>
+                </div>
+                <div className={`w-full overflow-hidden rounded-xl ${googleLoading ? 'opacity-60 pointer-events-none' : ''}`}>
+                  <div id="google-signin-btn" className="w-full" />
+                </div>
+              </>
+            )}
 
             {/* Divider */}
             <div className="relative">

@@ -244,6 +244,7 @@ export const AuthProvider = ({ children }) => {
         updateUser,
         checkAuth,
         refreshUser,
+        setUser,
       }}
     >
       {children}

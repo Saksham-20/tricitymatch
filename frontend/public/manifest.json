@@ -9,7 +9,10 @@
   "orientation": "portrait-primary",
   "scope": "/",
   "lang": "en",
-  "categories": ["lifestyle", "social"],
+  "categories": [
+    "lifestyle",
+    "social"
+  ],
   "icons": [
     {
       "src": "/icons/icon-72x72.png",
@@ -60,43 +63,27 @@
       "purpose": "maskable any"
     }
   ],
-  "screenshots": [
-    {
-      "src": "/screenshots/desktop.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "TricityShadi Desktop View"
-    },
-    {
-      "src": "/screenshots/mobile.png",
-      "sizes": "750x1334",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "TricityShadi Mobile View"
-    }
-  ],
   "shortcuts": [
     {
       "name": "Search Profiles",
       "short_name": "Search",
       "description": "Find matching profiles",
       "url": "/search",
-      "icons": [{ "src": "/icons/search-96x96.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     },
     {
       "name": "My Matches",
       "short_name": "Matches",
       "description": "View your matches",
       "url": "/dashboard",
-      "icons": [{ "src": "/icons/heart-96x96.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     },
     {
       "name": "Chat",
       "short_name": "Chat",
       "description": "Message your matches",
       "url": "/chat",
-      "icons": [{ "src": "/icons/chat-96x96.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     }
   ],
   "related_applications": [],

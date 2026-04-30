@@ -10,6 +10,7 @@ const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { recordFailedLogin, clearLoginAttempts } = require('../middlewares/security');
 const { log } = require('../middlewares/logger');
+const { OAuth2Client } = require('google-auth-library');
 
 // Cookie configuration: use Secure only over HTTPS so cookies work when frontend is http://
 const useSecureCookies = config.isProduction && (config.server.frontendUrl || '').startsWith('https');
@@ -638,5 +639,88 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
   } else {
     throw createError.badRequest('Invalid OTP');
   }
+});
+
+// @route   POST /api/auth/google
+// @desc    Sign in / sign up with Google ID token
+// @access  Public
+exports.googleAuth = asyncHandler(async (req, res) => {
+  const { credential } = req.body;
+  if (!credential) throw createError.badRequest('Google credential is required');
+
+  const clientId = config.google.clientId;
+  if (!clientId) throw createError.internal('Google OAuth is not configured on this server');
+
+  const client = new OAuth2Client(clientId);
+  let payload;
+  try {
+    const ticket = await client.verifyIdToken({ idToken: credential, audience: clientId });
+    payload = ticket.getPayload();
+  } catch {
+    throw createError.unauthorized('Invalid Google credential');
+  }
+
+  const { sub: googleId, email, given_name: firstName, family_name: lastName, email_verified } = payload;
+  if (!email_verified) throw createError.badRequest('Google account email is not verified');
+
+  const sequelize = require('../config/database');
+
+  // Find existing user by googleId or email
+  let user = await User.findOne({ where: { googleId } });
+  let isNewUser = false;
+
+  if (!user) {
+    user = await User.findOne({ where: { email: email.toLowerCase() } });
+    if (user) {
+      // Link Google to existing email account
+      user.googleId = googleId;
+      if (!user.emailVerified) user.emailVerified = true;
+      await user.save();
+    } else {
+      // New user — create account + profile in one transaction
+      isNewUser = true;
+      user = await sequelize.transaction(async (t) => {
+        const newUser = await User.create({
+          email: email.toLowerCase(),
+          googleId,
+          password: null,
+          status: 'active',
+          emailVerified: true,
+        }, { transaction: t });
+
+        await Profile.create({
+          userId: newUser.id,
+          firstName: firstName || '',
+          lastName: lastName || '',
+          gender: 'other',
+          dateOfBirth: new Date('2000-01-01'),
+        }, { transaction: t });
+
+        return newUser;
+      });
+
+      setImmediate(() => {
+        sendWelcomeEmail(user.email, firstName || 'there')
+          .catch(err => log.error('Failed to send welcome email (google)', { error: err.message }));
+      });
+    }
+  }
+
+  if (user.status === 'banned') throw createError.forbidden('Your account has been suspended');
+
+  user.lastLogin = new Date();
+  await user.save();
+
+  const accessToken = generateAccessToken(user.id);
+  const refreshToken = await generateRefreshToken(user.id, req.headers['user-agent'], req.clientIp || req.ip);
+  setAuthCookies(res, accessToken, refreshToken);
+
+  res.status(isNewUser ? 201 : 200).json({
+    success: true,
+    message: isNewUser ? 'Account created successfully' : 'Logged in successfully',
+    isNewUser,
+    user: { id: user.id, email: user.email, role: user.role },
+    tokens: { accessToken, expiresIn: config.auth.jwtExpiry },
+  });
 });
 

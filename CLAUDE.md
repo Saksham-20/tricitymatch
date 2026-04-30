@@ -82,7 +82,7 @@ Key dirs:
 - `utils/razorpay.js` — lazy-init Razorpay instance (skips init if keys are placeholders)
 - `utils/email.js` — nodemailer templates (welcome, reset, subscription confirmation)
 - `utils/invoice.js` — PDF invoice generation
-- `migrations/` — 19 migration files (full schema history)
+- `migrations/` — 22 migration files (full schema history)
 - `seeders/` — user seed + adminSeeder.js
 
 Auth uses **httpOnly cookies** (not Authorization header). JWT access tokens (15m) + refresh tokens (7d stored in DB as `RefreshToken` records). The axios client sends `withCredentials: true`.
@@ -164,6 +164,7 @@ VITE_API_URL=http://localhost:5001/api
 VITE_WS_URL=http://localhost:5001
 VITE_RAZORPAY_KEY_ID=rzp_test_xxxxxxxxxxxxx   ← still placeholder
 VITE_CLOUDINARY_CLOUD_NAME=duywipohs
+VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com   ← placeholder
 ```
 
 **Must restart dev server after any `.env` change.**
@@ -180,7 +181,9 @@ VITE_CLOUDINARY_CLOUD_NAME=duywipohs
 
 **Subscription:** Razorpay order → verify signature → activate; webhook at `/api/v1/subscription/webhook` handles async capture. Contact unlocks tracked per-subscription.
 
-**Admin:** Login via standard `/login` (not `/admin/login` — that redirects). Role `admin` required. Admin creds: `admin@tricitymatch.com` / `Admin@TricityMatch2024!` (default if `ADMIN_PASSWORD` not in env).
+**Admin:** Login via standard `/login` (not `/admin/login` — that redirects). Role `admin` required. Admin creds: `admin@tricitymatch.com` / `Pass@1234` (default if `ADMIN_PASSWORD` not in env).
+
+**Google OAuth:** `POST /api/v1/auth/google` — verifies Google ID token, creates or links account, sets httpOnly cookies. Frontend shows Google button only when `VITE_GOOGLE_CLIENT_ID` is a real `.apps.googleusercontent.com` value. To enable: replace placeholder in both `.env.development` (`GOOGLE_CLIENT_ID`) and `frontend/.env` (`VITE_GOOGLE_CLIENT_ID`) with Client ID from Google Cloud Console.
 
 **Marketing portal:** `/marketing/*`, role `marketing` required.
 
@@ -220,12 +223,19 @@ VITE_CLOUDINARY_CLOUD_NAME=duywipohs
 | `adminController.js:447` admin subscription override stored amounts in paise (`199900`) not rupees | Fixed to rupees (`1500`, `3000`, `7499`) matching how `verifyPayment` stores `order.amount / 100` | 2026-04-28 |
 | `adminController.updateSubscription` didn't set `contactUnlocksAllowed`/`contactUnlocksUsed` | Added `getPlanDetails()` call + both fields on admin-created subscriptions | 2026-04-28 |
 | CSP `scriptSrc: ["'self'"]` blocked Razorpay checkout CDN | Added `https://checkout.razorpay.com` to `scriptSrc`, `imgSrc`, `connectSrc`, `frameSrc`; added `https://api.razorpay.com` and `https://lumberjack.razorpay.com` to `connectSrc` | 2026-04-28 |
+| Dark mode toggle had no effect — `darkMode: 'class'` missing from Tailwind config | Added `darkMode: 'class'` to `frontend/tailwind.config.js`; added dark mode toggle to Settings page | 2026-04-30 |
+| Chat "Find Your Match" button linked to `/discovery` (non-existent route) | Changed `href` to `/search` in `frontend/src/pages/Chat.jsx:488` | 2026-04-30 |
+| Profile completion tasks ("What to complete") not clickable | Added `onClick={() => !task.done && navigate('/profile/edit')}` in `ProfileCompletionMeter.jsx` | 2026-04-30 |
+| Seeded user passwords were `Password@123`; admin default was `Admin@TricityMatch2024!` | Changed to `Pass@1234` in both `20240101000001-seed-users.js` and `adminSeeder.js` | 2026-04-30 |
+| `MarketingLayout.jsx` imported from `../../contexts/AuthContext` (directory doesn't exist) | Fixed to `../../context/AuthContext` | 2026-04-30 |
+| `AdminLeads.jsx` + `AdminMarketingUsers.jsx` imported non-existent `api/apiClient` | Created `frontend/src/api/apiClient.js` as alias re-export of `axios.js` | 2026-04-30 |
+| `AdminReferralCodes.jsx` imported `Toggle2` from lucide-react (icon doesn't exist) | Replaced with `ToggleRight` | 2026-04-30 |
 
 ---
 
 ## Launch Readiness Audit — 2026-04-28
 
-**Score: 65 / 100** (up from 62 — CORS + port bugs fixed)
+**Score: ~78 / 100** (up from 73 — UI bugs fixed, Google OAuth added, build errors resolved 2026-04-30)
 
 ### What Is Complete
 
@@ -251,7 +261,9 @@ VITE_CLOUDINARY_CLOUD_NAME=duywipohs
 | SEO meta tags | ✅ Done | index.html has title, description, OG tags |
 | Terms + Privacy pages | ✅ Done | Static pages exist |
 | Error boundary + loading states | ✅ Done | ErrorBoundary.jsx, skeleton loaders throughout |
-| Migrations (19 files) | ✅ Done | Full schema history |
+| Migrations (22 files) | ✅ Done | Full schema history |
+| Dark mode | ✅ Fixed | `tailwind.config.js` + Settings page toggle — 2026-04-30 |
+| Google Sign-In | ✅ Done (needs credentials) | Backend endpoint + frontend button wired; activate by setting real `GOOGLE_CLIENT_ID` |
 | Invoice PDF generation | ✅ Done | invoice.js util, download route |
 | Verification (submit + admin review) | ✅ Done | Upload → pending → admin approve/reject |
 | CORS (dev) | ✅ Fixed | Any localhost port allowed in dev |
@@ -263,7 +275,7 @@ VITE_CLOUDINARY_CLOUD_NAME=duywipohs
 | Area | Severity | Problem |
 |------|----------|---------|
 | **Razorpay keys** | 🔴 BLOCKER | `rzp_test_xxxxxxxxxxxxx` placeholder in both backend env + `frontend/.env`. Payments will fail. |
-| **CSP blocks Razorpay CDN** | 🔴 BLOCKER | `security.js` `scriptSrc: ["'self'"]` — Razorpay checkout script blocked in production. |
+| **CSP blocks Razorpay CDN** | ✅ FIXED | Razorpay domains added to `security.js` — 2026-04-28 |
 | **Email not configured** | 🟡 Risk | `EMAIL_USER=your-email@gmail.com` placeholder. Welcome/reset emails fail silently. |
 | **OTP is dummy** | 🟡 Risk | `sendOtp`/`verifyOtp` accept hardcoded `123456` or `000000`. Phone verification is fake. |
 | **PWA icons missing** | 🟡 Incomplete | `manifest.json` references `/icons/icon-*.png` — `/public/icons/` directory is empty. PWA install fails. |
@@ -322,8 +334,8 @@ VITE_CLOUDINARY_CLOUD_NAME=duywipohs
 | File | Change |
 |------|--------|
 | ~~`backend/middlewares/security.js:119-130`~~ | ✅ DONE — Razorpay CDN domains added 2026-04-28 |
-| `.env.development` (root) | Replace Razorpay placeholder keys with real test keys |
-| `frontend/.env` | Replace `VITE_RAZORPAY_KEY_ID` placeholder with real test key |
+| `.env.development` (root) | Replace Razorpay + Google placeholder keys with real values |
+| `frontend/.env` | Replace `VITE_RAZORPAY_KEY_ID` + `VITE_GOOGLE_CLIENT_ID` placeholders with real values |
 | `.env.production` (create) | All vars from `.env.production.example` with real values |
 | `frontend/public/icons/` | Generate all icon PNGs listed in manifest.json |
 | `frontend/src/pages/Profile.jsx` | Delete (dead file, not routed) |
@@ -335,7 +347,7 @@ VITE_CLOUDINARY_CLOUD_NAME=duywipohs
 
 Default admin (seeded by `backend/seeders/adminSeeder.js`):
 - **Email:** `admin@tricitymatch.com` (or `ADMIN_EMAIL` env var)
-- **Password:** `Admin@TricityMatch2024!` (or `ADMIN_PASSWORD` env var)
+- **Password:** `Pass@1234` (or `ADMIN_PASSWORD` env var)
 - **Login URL:** `/login` (not `/admin/login` — that redirects to `/login`)
 
 To re-seed or reset admin password: `node backend/seeders/adminSeeder.js`
@@ -347,7 +359,7 @@ To re-seed or reset admin password: `node backend/seeders/adminSeeder.js`
 - **Monorepo**: `backend/` (Express/CommonJS) + `frontend/` (React+Vite/ESM) + `e2e/` (Playwright)
 - **Ports**: backend=5001, frontend dev server=3000, Vite proxies `/api` and `/socket.io` to 5001
 - **Auth**: httpOnly cookie JWT (15m access + 7d refresh), rotation on use, family-based revocation
-- **DB**: PostgreSQL via Sequelize ORM, 19 migrations, Redis optional (graceful fallback to in-memory)
+- **DB**: PostgreSQL via Sequelize ORM, 22 migrations, Redis optional (graceful fallback to in-memory)
 - **Uploads**: Multer → Cloudinary (magic-byte validation), local disk fallback in dev. Cloudinary configured (real creds in dev env).
 - **Payments**: Razorpay — create order → frontend checkout → verify signature → activate subscription. Webhook handler at `/api/v1/subscription/webhook`.
 - **Real-time**: Socket.io. Chat rooms per conversation. Notification room per user (`user_${userId}`).
@@ -489,8 +501,57 @@ Remaining hard blockers:
 3. PWA icons missing — install fails
 
 ### NEXT STEP
-1. `cd backend && npm run migrate` (if not done yet)
+1. `cd backend && npm run migrate` (if not done yet — migrations 21 + 22 pending)
 2. Get real Razorpay test keys → `.env.development` + `frontend/.env`
-3. Create `.env.production` from `.env.production.example`
-4. Generate PWA icons: `npx pwa-asset-generator frontend/public/favicon.svg frontend/public/icons`
-5. Configure real email creds for weekly digest to work
+3. Get Google OAuth Client ID → `.env.development` + `frontend/.env`
+4. Create `.env.production` from `.env.production.example`
+5. Generate PWA icons: `npx pwa-asset-generator frontend/public/favicon.svg frontend/public/icons`
+6. Configure real email creds for weekly digest to work
+
+---
+
+## UI Fixes Pass — 2026-04-30
+
+### Bugs Fixed
+
+| Severity | File | Root Cause | Fix |
+|----------|------|-----------|-----|
+| HIGH | `frontend/tailwind.config.js` | `darkMode: 'class'` missing — hook adds `.dark` to `<html>` but Tailwind never applied dark variant | Added `darkMode: 'class'` |
+| HIGH | `frontend/src/pages/Chat.jsx:488` | "Find Your Match" button `href="/discovery"` — route doesn't exist | Changed to `/search` |
+| MEDIUM | `frontend/src/components/profile/ProfileCompletionMeter.jsx` | Task items in "What to complete" were non-interactive divs | Added `onClick` → navigate to `/profile/edit` for incomplete tasks |
+| MEDIUM | `backend/seeders/20240101000001-seed-users.js` | Seeded password `Password@123` — not matching expected default | Changed to `Pass@1234` |
+| MEDIUM | `backend/seeders/adminSeeder.js` | Default admin password `Admin@TricityMatch2024!` | Changed default to `Pass@1234` |
+| HIGH | `frontend/src/pages/marketing/MarketingLayout.jsx:3` | `import from '../../contexts/AuthContext'` — directory `contexts/` doesn't exist | Fixed to `../../context/AuthContext` |
+| HIGH | `frontend/src/api/apiClient.js` | `AdminLeads.jsx` + `AdminMarketingUsers.jsx` imported non-existent `api/apiClient` — build error | Created `apiClient.js` as alias re-export of `axios.js` |
+| HIGH | `frontend/src/pages/admin/AdminReferralCodes.jsx:2` | Imported `Toggle2` from lucide-react — icon doesn't exist — build failure | Replaced with `ToggleRight` |
+
+### Features Added
+
+| Feature | Backend | Frontend |
+|---------|---------|----------|
+| Google Sign-In | `POST /api/v1/auth/google` in `authController.js` — verifies ID token via `google-auth-library`, creates/links user, sets cookies | Login page loads Google Identity Services script, renders official button when `VITE_GOOGLE_CLIENT_ID` configured |
+| Dark mode toggle in Settings | — | `Settings.jsx` Account tab — toggle with `useDarkMode` hook |
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `frontend/tailwind.config.js` | Added `darkMode: 'class'` |
+| `frontend/src/pages/Chat.jsx` | `href="/discovery"` → `href="/search"` |
+| `frontend/src/components/profile/ProfileCompletionMeter.jsx` | Added `useNavigate` + click handler on incomplete tasks |
+| `backend/seeders/20240101000001-seed-users.js` | Password `Password@123` → `Pass@1234` |
+| `backend/seeders/adminSeeder.js` | Default password → `Pass@1234` |
+| `frontend/src/pages/marketing/MarketingLayout.jsx` | Fixed context import path |
+| `frontend/src/api/apiClient.js` | Created — re-exports `axios.js` |
+| `frontend/src/pages/admin/AdminReferralCodes.jsx` | `Toggle2` → `ToggleRight` |
+| `backend/controllers/authController.js` | Added `googleAuth` handler |
+| `backend/routes/authRoutes.js` | Added `POST /google` route |
+| `backend/models/User.js` | `password` now nullable; added `googleId` field |
+| `backend/config/env.js` | Added `google.clientId` config |
+| `backend/migrations/20240101000022-add-google-oauth-to-users.js` | Adds `googleId` column + makes `password` nullable |
+| `frontend/src/pages/Login.jsx` | Google Sign-In button + `handleGoogleCredential` callback |
+| `frontend/src/context/AuthContext.jsx` | Exposed `setUser` in context value |
+| `frontend/src/config/index.js` | Added `google` config export |
+| `frontend/.env` | Added `VITE_GOOGLE_CLIENT_ID` placeholder |
+| `.env.development` (root) | Added `GOOGLE_CLIENT_ID` placeholder |
+| `frontend/src/pages/Settings.jsx` | Added dark mode toggle to Account tab |

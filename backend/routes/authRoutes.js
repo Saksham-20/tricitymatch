@@ -5,11 +5,11 @@
 
 const express = require('express');
 const router = express.Router();
-const { 
-  signup, 
-  login, 
-  getMe, 
-  forgotPassword, 
+const {
+  signup,
+  login,
+  getMe,
+  forgotPassword,
   resetPassword,
   refreshToken,
   logout,
@@ -20,6 +20,7 @@ const {
   deleteAccount,
   sendOtp,
   verifyOtp,
+  googleAuth,
 } = require('../controllers/authController');
 const { auth } = require('../middlewares/auth');
 const { handleValidationErrors } = require('../middlewares/errorHandler');
@@ -80,6 +81,9 @@ router.post('/reset-password',
   handleValidationErrors, 
   resetPassword
 );
+
+// Google OAuth — verify Google ID token, sign in or register
+router.post('/google', authLimiter, googleAuth);
 
 // Dummy OTP endpoints for testing
 router.post('/send-otp', sendOtp);

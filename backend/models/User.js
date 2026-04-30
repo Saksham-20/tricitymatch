@@ -19,10 +19,15 @@ const User = sequelize.define('User', {
   },
   password: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true, // null for OAuth-only users
     validate: {
       len: [8, 100]
     }
+  },
+  googleId: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    unique: true,
   },
   phone: {
     type: DataTypes.STRING,

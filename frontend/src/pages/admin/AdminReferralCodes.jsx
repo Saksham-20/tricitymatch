@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Copy, Toggle2 } from 'lucide-react';
+import { Plus, Copy, ToggleRight } from 'lucide-react';
 import apiClient from '../../api/apiClient';
 
 export default function AdminReferralCodes() {
@@ -134,7 +134,7 @@ export default function AdminReferralCodes() {
                         onClick={() => handleToggle(code.id)}
                         className={`${code.isActive ? 'text-red-600' : 'text-green-600'} hover:opacity-75`}
                       >
-                        <Toggle2 size={18} />
+                        <ToggleRight size={18} />
                       </button>
                     </td>
                   </tr>

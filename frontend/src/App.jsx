@@ -50,7 +50,6 @@ const MarketingProtectedRoute = lazy(() => import('./pages/marketing/MarketingPr
 
 // Protected pages (load on demand)
 const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Profile = lazy(() => import('./pages/Profile'));
 const MyProfileView = lazy(() => import('./pages/MyProfileView'));
 const ProfileDetail = lazy(() => import('./pages/ProfileDetail'));
 const Search = lazy(() => import('./pages/Search'));
