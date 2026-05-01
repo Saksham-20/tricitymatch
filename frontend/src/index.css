@@ -48,6 +48,27 @@
     --radius: 0.75rem;
   }
 
+  html.dark {
+    --background: 222 18% 10%;
+    --foreground: 0 0% 92%;
+    --card: 222 16% 14%;
+    --card-foreground: 0 0% 90%;
+    --popover: 222 16% 14%;
+    --popover-foreground: 0 0% 90%;
+    --secondary: 222 14% 55%;
+    --secondary-foreground: 0 0% 10%;
+    --muted: 222 15% 20%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 341 55% 52%;
+    --accent-foreground: 0 0% 100%;
+    --border: 222 14% 22%;
+    --input: 222 14% 22%;
+    --ring: 341 55% 52%;
+    --primary-light: 341 40% 18%;
+    --gold-light: 45 30% 16%;
+    --success-light: 123 25% 15%;
+  }
+
   * {
     @apply border-border;
   }
@@ -791,3 +812,120 @@ textarea:focus-visible {
     padding-bottom: calc(1rem + env(safe-area-inset-bottom));
   }
 }
+
+/* =============================================== */
+/* DARK MODE — override hardcoded Tailwind classes  */
+/* =============================================== */
+
+html.dark body {
+  background-color: #0f1117;
+  color: #ebebeb;
+}
+
+/* Whites → dark surface */
+html.dark .bg-white { background-color: #1a1f2e !important; }
+html.dark .bg-white\/90 { background-color: rgba(26,31,46,0.90) !important; }
+html.dark .bg-white\/15 { background-color: rgba(255,255,255,0.10) !important; }
+html.dark .bg-white\/20 { background-color: rgba(255,255,255,0.12) !important; }
+html.dark .bg-white\/25 { background-color: rgba(255,255,255,0.15) !important; }
+html.dark .bg-white\/30 { background-color: rgba(255,255,255,0.15) !important; }
+
+/* Neutral scale — shift every shade darker */
+html.dark .bg-neutral-50  { background-color: #0f1117 !important; }
+html.dark .bg-neutral-100 { background-color: #1a1f2e !important; }
+html.dark .bg-neutral-200 { background-color: #252b3b !important; }
+html.dark .bg-neutral-300 { background-color: #303748 !important; }
+html.dark .bg-neutral-800 { background-color: #e2e8f0 !important; }
+html.dark .bg-neutral-900 { background-color: #f1f5f9 !important; }
+
+html.dark .bg-gray-50  { background-color: #0f1117 !important; }
+html.dark .bg-gray-100 { background-color: #1a1f2e !important; }
+html.dark .bg-gray-200 { background-color: #252b3b !important; }
+html.dark .bg-gray-900 { background-color: #f1f5f9 !important; }
+
+/* Text — invert neutrals */
+html.dark .text-neutral-900 { color: #f1f5f9 !important; }
+html.dark .text-neutral-800 { color: #e2e8f0 !important; }
+html.dark .text-neutral-700 { color: #cbd5e1 !important; }
+html.dark .text-neutral-600 { color: #94a3b8 !important; }
+html.dark .text-neutral-500 { color: #64748b !important; }
+html.dark .text-neutral-400 { color: #475569 !important; }
+
+html.dark .text-gray-900 { color: #f1f5f9 !important; }
+html.dark .text-gray-800 { color: #e2e8f0 !important; }
+html.dark .text-gray-700 { color: #cbd5e1 !important; }
+html.dark .text-gray-600 { color: #94a3b8 !important; }
+html.dark .text-gray-500 { color: #64748b !important; }
+
+/* Borders */
+html.dark .border-neutral-100 { border-color: #252b3b !important; }
+html.dark .border-neutral-200 { border-color: #303748 !important; }
+html.dark .border-neutral-300 { border-color: #3a4257 !important; }
+html.dark .border-gray-100 { border-color: #252b3b !important; }
+html.dark .border-gray-200 { border-color: #303748 !important; }
+html.dark .border-gray-300 { border-color: #3a4257 !important; }
+
+/* Inputs & selects */
+html.dark input:not([type="submit"]):not([type="button"]):not([type="range"]),
+html.dark select,
+html.dark textarea {
+  background-color: #252b3b !important;
+  color: #ebebeb !important;
+  border-color: #303748 !important;
+}
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #64748b !important;
+}
+
+/* Cards with shadow-card class */
+html.dark .shadow-card { box-shadow: 0 4px 20px rgba(0,0,0,0.4) !important; }
+
+/* Hover states for neutral backgrounds */
+html.dark .hover\:bg-neutral-50:hover  { background-color: #1a1f2e !important; }
+html.dark .hover\:bg-neutral-100:hover { background-color: #252b3b !important; }
+html.dark .hover\:bg-primary-50:hover  { background-color: #2a1020 !important; }
+
+/* Scrollbar in dark mode */
+html.dark ::-webkit-scrollbar-track { background: #1a1f2e; }
+html.dark ::-webkit-scrollbar-thumb { background: #303748; }
+html.dark ::-webkit-scrollbar-thumb:hover { background: #3a4257; }
+
+/* =============================================== */
+/* DARK MODE — additional slash-opacity bg-white   */
+/* =============================================== */
+
+/* High-opacity whites (navbar, dropdowns, overlays) */
+html.dark .bg-white\/95 { background-color: rgba(20,24,38,0.97) !important; }
+html.dark .bg-white\/98 { background-color: rgba(20,24,38,0.99) !important; }
+html.dark .bg-white\/90 { background-color: rgba(20,24,38,0.92) !important; }
+html.dark .bg-white\/85 { background-color: rgba(20,24,38,0.87) !important; }
+html.dark .bg-white\/80 { background-color: rgba(20,24,38,0.82) !important; }
+html.dark .bg-white\/70 { background-color: rgba(20,24,38,0.72) !important; }
+html.dark .bg-white\/60 { background-color: rgba(20,24,38,0.62) !important; }
+
+/* Premium lock overlay — was bg-white/80 backdrop-blur */
+/* Force dark surface with dark tint */
+html.dark [class*="bg-white\/8"] { background-color: rgba(15,17,23,0.85) !important; }
+
+/* Navbar border in dark */
+html.dark .border-b.border-neutral-100,
+html.dark nav .border-neutral-100 { border-color: #252b3b !important; }
+
+/* Mobile sidebar (bg-white fixed panel) */
+html.dark .fixed.bg-white { background-color: #14182a !important; }
+html.dark .shadow-2xl { box-shadow: 0 25px 50px rgba(0,0,0,0.6) !important; }
+
+/* Dropdown menus */
+html.dark .rounded-2xl.bg-white { background-color: #1a1f2e !important; }
+html.dark .rounded-2xl.shadow-2xl { background-color: #1a1f2e !important; }
+
+/* Text overrides for dark dropdowns/menus */
+html.dark .text-neutral-700 { color: #cbd5e1 !important; }
+html.dark .text-neutral-600 { color: #94a3b8 !important; }
+
+/* bg-neutral-50 used as sidebar section bg */
+html.dark .bg-neutral-50 { background-color: #0f1117 !important; }
+
+/* Who Viewed You lock overlay */
+html.dark .backdrop-blur-\[2px\] { background-color: rgba(15,17,23,0.80) !important; }

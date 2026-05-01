@@ -4,7 +4,7 @@ import { useOnboarding } from '../../../context/OnboardingContext';
 import { FiUpload, FiX, FiImage } from 'react-icons/fi';
 
 const PhotosStep = () => {
-  const { formData, updateFormData, errors, setStepErrors } = useOnboarding();
+  const { formData, updateFormData, errors, setStepErrors, registerStepValidator } = useOnboarding();
   const fileInputRef = useRef(null);
   const [imagePreview, setImagePreview] = useState(null);
 
@@ -18,7 +18,7 @@ const PhotosStep = () => {
   };
 
   React.useEffect(() => {
-    return () => validateStep();
+    return registerStepValidator(validateStep);
   }, []);
 
   const handleFileSelect = (e) => {

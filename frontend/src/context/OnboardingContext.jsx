@@ -1,4 +1,4 @@
-import React, { createContext, useState, useCallback, useContext, useEffect } from 'react';
+import React, { createContext, useState, useCallback, useContext, useEffect, useRef } from 'react';
 
 // Create context for onboarding state management
 const OnboardingContext = createContext();
@@ -47,6 +47,7 @@ export const OnboardingProvider = ({ children, mode = 'signup', existingProfile 
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const stepValidatorRef = useRef(null);
 
   // Auto-save form data and current step to localStorage
   useEffect(() => {
@@ -81,6 +82,18 @@ export const OnboardingProvider = ({ children, mode = 'signup', existingProfile 
 
   const setStepErrors = useCallback((stepErrors) => {
     setErrors(stepErrors);
+  }, []);
+
+  const registerStepValidator = useCallback((fn) => {
+    stepValidatorRef.current = fn;
+    return () => { stepValidatorRef.current = null; };
+  }, []);
+
+  const validateCurrentStep = useCallback(() => {
+    if (stepValidatorRef.current) {
+      return stepValidatorRef.current();
+    }
+    return true;
   }, []);
 
   const visibleSteps = STEPS.filter(step => {
@@ -167,6 +180,8 @@ export const OnboardingProvider = ({ children, mode = 'signup', existingProfile 
     mode: onboardingMode,
     setMode: setOnboardingMode,
     visibleSteps,
+    registerStepValidator,
+    validateCurrentStep,
   };
 
   return (

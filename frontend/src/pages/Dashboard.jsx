@@ -653,12 +653,12 @@ const Dashboard = () => {
                 ))}
               </div>
               {/* Overlay CTA */}
-              <div className="absolute inset-0 bg-white/80 backdrop-blur-[2px] flex flex-col items-center justify-center">
-                <div className="w-12 h-12 rounded-2xl bg-gold-50 flex items-center justify-center mb-3">
+              <div className="absolute inset-0 bg-white/80 dark:bg-[#0f1117]/85 backdrop-blur-[2px] flex flex-col items-center justify-center">
+                <div className="w-12 h-12 rounded-2xl bg-gold-50 dark:bg-[#2a2010] flex items-center justify-center mb-3">
                   <FiLock className="w-5 h-5 text-gold-600" />
                 </div>
-                <p className="text-sm font-semibold text-neutral-800 mb-1">Premium Feature</p>
-                <p className="text-xs text-neutral-500 mb-4 max-w-xs text-center">See who's interested in your profile</p>
+                <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-1">Premium Feature</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-4 max-w-xs text-center">See who's interested in your profile</p>
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}

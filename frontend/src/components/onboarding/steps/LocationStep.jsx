@@ -6,7 +6,7 @@ import Select from '../../ui/Select';
 const CITIES = ['Chandigarh', 'Mohali', 'Panchkula'];
 
 const LocationStep = () => {
-  const { formData, updateFormData, errors, setStepErrors } = useOnboarding();
+  const { formData, updateFormData, errors, setStepErrors, registerStepValidator } = useOnboarding();
 
   const validateStep = () => {
     const newErrors = {};
@@ -18,7 +18,7 @@ const LocationStep = () => {
   };
 
   React.useEffect(() => {
-    return () => validateStep();
+    return registerStepValidator(validateStep);
   }, []);
 
   return (

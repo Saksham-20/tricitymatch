@@ -57,10 +57,10 @@ const NotificationBell = ({ count = 0 }) => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.18 }}
-            className="absolute right-0 top-12 w-80 bg-white rounded-2xl shadow-2xl border border-neutral-100 overflow-hidden z-50"
+            className="absolute right-0 top-12 w-80 bg-white dark:bg-[#1a1f2e] rounded-2xl shadow-2xl dark:shadow-[0_25px_50px_rgba(0,0,0,0.6)] border border-neutral-100 dark:border-[#252b3b] overflow-hidden z-50"
           >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-100">
-              <span className="text-sm font-semibold text-neutral-800">Notifications</span>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-100 dark:border-[#252b3b]">
+              <span className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">Notifications</span>
               {count > 0 && (
                 <button
                   onClick={handleMarkAllRead}
@@ -141,14 +141,14 @@ const ProfileDropdown = ({ user, onLogout }) => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.18 }}
-            className="absolute right-0 top-12 w-56 bg-white rounded-2xl shadow-2xl border border-neutral-100 overflow-hidden z-50"
+            className="absolute right-0 top-12 w-56 bg-white dark:bg-[#1a1f2e] rounded-2xl shadow-2xl dark:shadow-[0_25px_50px_rgba(0,0,0,0.6)] border border-neutral-100 dark:border-[#252b3b] overflow-hidden z-50"
           >
             {/* User info */}
-            <div className="px-4 py-3 border-b border-neutral-100">
-              <p className="text-sm font-semibold text-neutral-800 truncate">
+            <div className="px-4 py-3 border-b border-neutral-100 dark:border-[#252b3b]">
+              <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 truncate">
                 {user?.firstName} {user?.lastName}
               </p>
-              <p className="text-xs text-neutral-500 truncate">{user?.email}</p>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">{user?.email}</p>
               {user?.isPremium && (
                 <div className="flex items-center gap-1 mt-1.5">
                   <FaCrown className="w-3 h-3 text-gold" />
@@ -249,9 +249,9 @@ const Navbar = () => {
         transition={{ duration: 0.45, ease: 'easeOut' }}
         role="navigation"
         aria-label="Main navigation"
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 dark:bg-[#14182a] dark:border-[#252b3b] ${
           isScrolled
-            ? 'bg-white/98 backdrop-blur-lg shadow-sm border-b border-neutral-100'
+            ? 'bg-white/98 backdrop-blur-lg shadow-sm border-b border-neutral-100 dark:shadow-none dark:border-b'
             : 'bg-white/95 backdrop-blur-md'
         }`}
       >
@@ -352,17 +352,17 @@ const Navbar = () => {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 220 }}
-              className="fixed top-0 right-0 h-full w-72 bg-white shadow-2xl z-50 md:hidden flex flex-col"
+              className="fixed top-0 right-0 h-full w-72 bg-white dark:bg-[#14182a] shadow-2xl dark:shadow-[0_0_60px_rgba(0,0,0,0.7)] z-50 md:hidden flex flex-col"
               role="dialog"
               aria-modal="true"
               aria-label="Navigation menu"
             >
               {/* Header */}
-              <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 dark:border-[#252b3b]">
                 <Logo size="xs" linkTo="/" />
                 <button
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="w-9 h-9 flex items-center justify-center rounded-xl text-neutral-500 hover:bg-neutral-100 transition-colors"
+                  className="w-9 h-9 flex items-center justify-center rounded-xl text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-[#252b3b] transition-colors"
                 >
                   <FiX className="w-4.5 h-4.5" />
                 </button>
@@ -370,7 +370,7 @@ const Navbar = () => {
 
               {/* User info (auth) */}
               {isAuthenticated && user && (
-                <div className="flex items-center gap-3 px-5 py-4 border-b border-neutral-100 bg-neutral-50">
+                <div className="flex items-center gap-3 px-5 py-4 border-b border-neutral-100 dark:border-[#252b3b] bg-neutral-50 dark:bg-[#0f1117]">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
                     {((user.firstName?.[0] || '') + (user.lastName?.[0] || '')).toUpperCase() || 'U'}
                   </div>

@@ -12,7 +12,7 @@ const MARITAL_STATUSES = [
 ];
 
 const MaritalStatusStep = () => {
-  const { formData, updateFormData, errors, setStepErrors } = useOnboarding();
+  const { formData, updateFormData, errors, setStepErrors, registerStepValidator } = useOnboarding();
 
   const validateStep = () => {
     const newErrors = {};
@@ -24,7 +24,7 @@ const MaritalStatusStep = () => {
   };
 
   React.useEffect(() => {
-    return () => validateStep();
+    return registerStepValidator(validateStep);
   }, []);
 
   return (

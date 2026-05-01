@@ -5,7 +5,7 @@ import FormField from '../../ui/FormField';
 import { validateName } from '../../../utils/validators';
 
 const BasicInfoStep = () => {
-  const { formData, updateFormData, errors, setStepErrors, setFieldTouched } = useOnboarding();
+  const { formData, updateFormData, errors, setStepErrors, setFieldTouched, registerStepValidator } = useOnboarding();
 
   const validateStep = () => {
     const newErrors = {};
@@ -41,7 +41,7 @@ const BasicInfoStep = () => {
   };
 
   React.useEffect(() => {
-    return () => validateStep();
+    return registerStepValidator(validateStep);
   }, []);
 
   return (

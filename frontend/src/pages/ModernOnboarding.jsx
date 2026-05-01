@@ -75,6 +75,7 @@ const ModernOnboardingContent = () => {
     setIsLoading,
     mode,
     visibleSteps,
+    validateCurrentStep,
   } = useOnboarding();
 
   const navigate = useNavigate();
@@ -98,6 +99,10 @@ const ModernOnboardingContent = () => {
   const confirmQuit = () => {
     // Keep draft for resume later
     navigate('/');
+  };
+
+  const handleNext = () => {
+    if (validateCurrentStep()) nextStep();
   };
 
   const handleComplete = async () => {
@@ -388,7 +393,7 @@ const ModernOnboardingContent = () => {
 
             <Button
               size="lg"
-              onClick={currentStep === visibleSteps.length - 1 ? handleComplete : nextStep}
+              onClick={currentStep === visibleSteps.length - 1 ? handleComplete : handleNext}
               disabled={isLoading}
               className="flex-1 flex items-center justify-center gap-2"
             >

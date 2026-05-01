@@ -6,7 +6,7 @@ import { validateEmail, validatePassword } from '../../../utils/validators';
 import { FiEye, FiEyeOff, FiUser, FiUsers, FiHeart } from 'react-icons/fi';
 
 const CreateAccountStep = () => {
-  const { formData, updateFormData, errors, setStepErrors, setFieldTouched } = useOnboarding();
+  const { formData, updateFormData, errors, setStepErrors, setFieldTouched, registerStepValidator } = useOnboarding();
   const [showPassword, setShowPassword] = useState(false);
 
   const creatingForOptions = [
@@ -62,7 +62,7 @@ const CreateAccountStep = () => {
   };
 
   React.useEffect(() => {
-    return () => validateStep();
+    return registerStepValidator(validateStep);
   }, []);
 
   return (

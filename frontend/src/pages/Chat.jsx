@@ -498,7 +498,7 @@ const Chat = () => {
   const groupedMessages = groupMessagesByDate(messages);
 
   return (
-    <div className="h-screen flex bg-neutral-100 overflow-hidden">
+    <div className="h-[calc(100vh-4rem)] md:h-screen flex bg-neutral-100 overflow-hidden">
       {/* Matches Sidebar */}
       <div className={`
         ${showMobileSidebar ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}

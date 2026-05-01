@@ -307,8 +307,7 @@ const AppContent = () => {
   const isAdminRoute = location.pathname.startsWith('/admin');
   const isMarketingRoute = location.pathname.startsWith('/marketing');
 
-  // Don't show bottom nav on chat page or admin/marketing pages
-  const showBottomNav = isAuthenticated && location.pathname !== '/chat' && !isAdminRoute && !isMarketingRoute;
+  const showBottomNav = isAuthenticated && !isAdminRoute && !isMarketingRoute;
 
   // Admin and marketing routes render without Navbar/BottomNav/Toaster
   if (isAdminRoute || isMarketingRoute) {
@@ -335,7 +334,7 @@ const AppContent = () => {
       <main 
         id="main-content" 
         tabIndex="-1" 
-        className={showBottomNav ? 'pb-20 md:pb-0' : ''}
+        className={showBottomNav ? 'pb-24 md:pb-0' : ''}
       >
         <ErrorBoundary>
           <AnimatedRoutes />
