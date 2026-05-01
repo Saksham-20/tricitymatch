@@ -45,11 +45,13 @@ exports.getUsers = asyncHandler(async (req, res) => {
     where,
     include: [
       { model: Profile, attributes: ['firstName', 'lastName', 'city'] },
-      { model: Subscription, order: [['createdAt', 'DESC']], limit: 1 }
+      // separate:true runs a dedicated query per user — required for limit+order on HasMany in findAndCountAll
+      { model: Subscription, separate: true, order: [['createdAt', 'DESC']], limit: 1 }
     ],
     limit,
     offset,
-    order: [['createdAt', 'DESC']]
+    order: [['createdAt', 'DESC']],
+    subQuery: false,
   });
 
   res.json({
@@ -106,8 +108,11 @@ exports.getVerifications = asyncHandler(async (req, res) => {
   const rawStatus = req.query.status;
   const VALID_VERIFICATION_STATUSES = ['pending', 'approved', 'rejected'];
   const status = rawStatus && VALID_VERIFICATION_STATUSES.includes(rawStatus) ? rawStatus : 'pending';
+  const page = Math.max(parseInt(req.query.page) || 1, 1);
+  const limit = Math.min(Math.max(parseInt(req.query.limit) || 50, 1), 200);
+  const offset = (page - 1) * limit;
 
-  const verifications = await Verification.findAll({
+  const { count, rows: verifications } = await Verification.findAndCountAll({
     where: { status },
     include: [
       {
@@ -115,12 +120,15 @@ exports.getVerifications = asyncHandler(async (req, res) => {
         include: [{ model: Profile, attributes: ['firstName', 'lastName', 'profilePhoto'] }]
       }
     ],
-    order: [['createdAt', 'ASC']]
+    order: [['createdAt', 'ASC']],
+    limit,
+    offset,
   });
 
   res.json({
     success: true,
-    verifications
+    verifications,
+    pagination: { page, limit, total: count, pages: Math.ceil(count / limit) },
   });
 });
 
@@ -429,10 +437,17 @@ exports.getUser = asyncHandler(async (req, res) => {
     attributes: { exclude: ['password'] },
     include: [
       { model: Profile },
-      { model: Subscription, order: [['createdAt', 'DESC']] },
       { model: Verification },
     ],
   });
+
+  if (user) {
+    // Fetch subscriptions separately to avoid limit/order issues in eager load
+    const subscriptions = await user.getSubscriptions
+      ? await Subscription.findAll({ where: { userId }, order: [['createdAt', 'DESC']], limit: 10 })
+      : [];
+    user.dataValues.Subscriptions = subscriptions;
+  }
 
   if (!user) throw createError.notFound('User not found');
 
@@ -538,12 +553,16 @@ exports.getRevenueReport = asyncHandler(async (req, res) => {
   );
 
   if (format === 'csv') {
-    // Build CSV
+    // Sanitize CSV fields to prevent formula injection (prefix cells that start with =+-@)
+    const csvSafe = (v) => {
+      const s = String(v == null ? '' : v);
+      return /^[=+\-@|]/.test(s) ? `'${s}` : s;
+    };
     const rows = ['Month,Plan,Transactions,Revenue'];
     monthlyRevenue.forEach(r => {
-      rows.push(`${r.month},${r.planType},${r.count},${r.revenue}`);
+      rows.push([csvSafe(r.month), csvSafe(r.planType), csvSafe(r.count), csvSafe(r.revenue)].join(','));
     });
-    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="revenue-report.csv"');
     return res.send(rows.join('\n'));
   }

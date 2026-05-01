@@ -275,7 +275,7 @@ exports.refreshToken = asyncHandler(async (req, res) => {
     const possibleToken = await RefreshToken.findOne({ where: { tokenHash } });
     if (possibleToken) {
       await RefreshToken.revokeFamily(possibleToken.family, 'token_reuse_detected');
-      console.warn(`Potential token reuse attack detected for user ${possibleToken.userId}`);
+      log.security('token_reuse_detected', { userId: possibleToken.userId, family: possibleToken.family });
     }
     clearAuthCookies(res);
     throw createError.unauthorized('Invalid refresh token');

@@ -9,6 +9,7 @@ const sequelize = require('../config/database');
 const { sendMessageNotification } = require('../utils/emailService');
 const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
+const { log } = require('../middlewares/logger');
 
 // Message constraints from config
 const MAX_MESSAGE_LENGTH = config.chat.maxMessageLength;
@@ -294,23 +295,23 @@ exports.sendMessage = asyncHandler(async (req, res) => {
     }]
   });
 
-  // Send email notification (non-blocking)
+  // Send email notification (non-blocking). Never pass message content to avoid PII in logs/email previews.
   setImmediate(async () => {
     try {
       const [receiver, senderProfile] = await Promise.all([
-        User.findByPk(receiverId, { include: [{ model: Profile }] }),
-        Profile.findOne({ where: { userId: senderId } })
+        User.findByPk(receiverId, { attributes: ['id', 'email'], include: [{ model: Profile, attributes: ['firstName'] }] }),
+        Profile.findOne({ where: { userId: senderId }, attributes: ['firstName', 'lastName'] })
       ]);
 
-      if (receiver && senderProfile) {
+      if (receiver?.email && senderProfile) {
         await sendMessageNotification(
           receiver.email,
           `${senderProfile.firstName} ${senderProfile.lastName}`,
-          sanitizedContent.substring(0, 100)
+          'You have a new message' // no content preview — avoids PII in email logs
         );
       }
     } catch (error) {
-      console.error('Failed to send message notification:', error);
+      log.error('Failed to send message notification', { error: error.message, receiverId });
     }
   });
 

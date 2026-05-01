@@ -85,9 +85,9 @@ router.post('/reset-password',
 // Google OAuth — verify Google ID token, sign in or register
 router.post('/google', authLimiter, googleAuth);
 
-// Dummy OTP endpoints for testing
-router.post('/send-otp', sendOtp);
-router.post('/verify-otp', verifyOtp);
+// Dummy OTP endpoints for testing — rate limited to prevent enumeration/brute-force
+router.post('/send-otp', authLimiter, sendOtp);
+router.post('/verify-otp', authLimiter, verifyOtp);
 
 // ==================== PROTECTED ROUTES ====================
 

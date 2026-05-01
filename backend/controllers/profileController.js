@@ -10,6 +10,7 @@ const { calculateCompatibility } = require('../utils/compatibility');
 const { deleteFromCloudinary } = require('../middlewares/upload');
 const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
+const { log } = require('../middlewares/logger');
 
 // Maximum number of gallery photos allowed
 const MAX_GALLERY_PHOTOS = config.upload.maxGalleryPhotos;
@@ -187,6 +188,14 @@ exports.updateProfile = asyncHandler(async (req, res) => {
             updateData[field] = value;
           }
         } else {
+          // Strip HTML tags from free-text fields to prevent stored XSS
+          const freeTextFields = ['bio', 'education', 'degree', 'profession', 'city', 'state',
+            'religion', 'caste', 'subCaste', 'gotra', 'motherTongue', 'placeOfBirth',
+            'birthTime', 'rashi', 'nakshatra', 'zodiacSign', 'fatherOccupation', 'motherOccupation',
+            'preferredEducation', 'preferredProfession', 'firstName', 'lastName', 'personalityType'];
+          if (freeTextFields.includes(field) && typeof value === 'string') {
+            value = value.replace(/<[^>]*>/g, '').trim();
+          }
           updateData[field] = value;
         }
       }
@@ -226,7 +235,7 @@ exports.updateProfile = asyncHandler(async (req, res) => {
             try {
               if (photoUrl && photoUrl.includes('cloudinary')) await deleteFromCloudinary(photoUrl);
             } catch (err) {
-              console.error('Error deleting excess photo:', err);
+              log.error('Error deleting excess photo from Cloudinary', { error: err.message });
             }
           }
           finalPhotos = finalPhotos.slice(0, MAX_GALLERY_PHOTOS);
@@ -312,7 +321,7 @@ exports.deletePhoto = asyncHandler(async (req, res) => {
       await deleteFromCloudinary(photoUrl);
     }
   } catch (err) {
-    console.error('Error deleting photo from Cloudinary:', err);
+    log.error('Error deleting photo from Cloudinary', { error: err.message });
   }
 
   // New array so Sequelize detects change and persists
@@ -358,7 +367,7 @@ exports.deleteProfilePhoto = asyncHandler(async (req, res) => {
       await deleteFromCloudinary(urlToRemove);
     }
   } catch (err) {
-    console.error('Error deleting profile photo from Cloudinary:', err);
+    log.error('Error deleting profile photo from Cloudinary', { error: err.message });
   }
 
   // Remove from profile and from photos array
@@ -615,8 +624,8 @@ exports.unlockContact = asyncHandler(async (req, res) => {
 // @access  Private/Premium
 exports.getProfileViewers = asyncHandler(async (req, res) => {
   const userId = req.user.id;
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 20;
+  const page = Math.max(parseInt(req.query.page) || 1, 1);
+  const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 100);
   const offset = (page - 1) * limit;
 
   const { count, rows: views } = await ProfileView.findAndCountAll({

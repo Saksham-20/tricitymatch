@@ -56,15 +56,14 @@ const sendMatchNotification = async (userEmail, matchedUserName, profileUrl) => 
   return await sendEmail(userEmail, subject, html);
 };
 
-const sendMessageNotification = async (userEmail, senderName, messagePreview) => {
+// messageNotice is a safe, non-private string like "You have a new message" — never pass raw message content here.
+const sendMessageNotification = async (userEmail, senderName, messageNotice) => {
   const subject = 'New Message from ' + senderName;
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <h2 style="color: #e91e63;">You have a new message!</h2>
       <p>Hi there,</p>
-      <p><strong>${senderName}</strong> sent you a message:</p>
-      <p style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; font-style: italic;">"${messagePreview}"</p>
-      <p>Log in to reply!</p>
+      <p><strong>${senderName}</strong> sent you a message. Log in to read it.</p>
       <p>Best regards,<br>TricityShadi Team</p>
     </div>
   `;

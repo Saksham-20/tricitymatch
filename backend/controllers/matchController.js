@@ -11,6 +11,7 @@ const { sendMatchNotification } = require('../utils/emailService');
 const { notify } = require('../utils/notifyUser');
 const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
+const { log } = require('../middlewares/logger');
 
 // @route   POST /api/match/:userId
 // @desc    Like/shortlist/pass a profile
@@ -129,13 +130,13 @@ exports.matchAction = asyncHandler(async (req, res) => {
         Promise.all([
           sendMatchNotification(matchedUser.email, currentName, profileUrl),
           sendMatchNotification(currentUser.email, matchedName, matchedProfileUrl),
-        ]).catch(err => console.error('Failed to send match emails:', err));
+        ]).catch(err => log.error('Failed to send match emails', { error: err.message }));
       } else if (result.match.action === 'like') {
         // One-way like — notify the liked user in-app only (no email, avoid spam)
         await notify(userId, 'new_match', 'Someone liked your profile!', `${currentName} liked your profile. Like them back to connect!`, result.match.id);
       }
     } catch (error) {
-      console.error('Error sending match notifications:', error);
+      log.error('Error sending match notifications', { error: error.message, userId, currentUserId });
     }
   });
 

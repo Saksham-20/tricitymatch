@@ -371,6 +371,35 @@ const searchValidation = [
     .optional()
     .isIn(['compatibility', 'createdAt', 'lastLogin'])
     .withMessage('Invalid sort option'),
+  query('religion')
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('Religion must not exceed 100 characters'),
+  query('caste')
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('Caste must not exceed 100 characters'),
+  query('motherTongue')
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('Mother tongue must not exceed 100 characters'),
+  query('maritalStatus')
+    .optional()
+    .isIn(['never_married', 'divorced', 'widowed', 'awaiting_divorce'])
+    .withMessage('Invalid marital status'),
+  query('incomeMin')
+    .optional()
+    .isInt({ min: 0, max: 100000000 })
+    .withMessage('Income min must be a non-negative integer')
+    .toInt(),
+  query('incomeMax')
+    .optional()
+    .isInt({ min: 0, max: 100000000 })
+    .withMessage('Income max must be a non-negative integer')
+    .toInt(),
 ];
 
 // ==================== SUBSCRIPTION VALIDATORS ====================

@@ -86,19 +86,22 @@ app.use(compression());
 
 // ==================== BODY PARSING WITH SIZE LIMITS ====================
 
-// Capture raw body for webhook signature verification (before JSON parsing)
-app.use('/api/subscription/webhook', express.raw({
-  type: 'application/json',
-  limit: '10kb'
-}), (req, res, next) => {
-  req.rawBody = req.body;
-  try {
-    req.body = JSON.parse(req.body.toString());
-  } catch (e) {
-    req.body = {};
-  }
-  next();
-});
+// Capture raw body for webhook signature verification (before JSON parsing).
+// Must cover both /api/v1/subscription/webhook (versioned) and legacy /api/subscription/webhook.
+const rawBodyCapture = [
+  express.raw({ type: 'application/json', limit: '10kb' }),
+  (req, res, next) => {
+    req.rawBody = req.body;
+    try {
+      req.body = JSON.parse(req.body.toString());
+    } catch (e) {
+      req.body = {};
+    }
+    next();
+  },
+];
+app.use('/api/v1/subscription/webhook', ...rawBodyCapture);
+app.use('/api/subscription/webhook', ...rawBodyCapture);
 
 // JSON body parser with size limit
 app.use(express.json({

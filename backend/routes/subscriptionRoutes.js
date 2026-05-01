@@ -38,30 +38,22 @@ router.post('/webhook', (req, res, next) => {
   const secret = config.razorpay.webhookSecret;
   const signature = req.headers['x-razorpay-signature'];
 
-  // Check if webhook is configured
+  // Webhook secret not configured — ack 200 to prevent Razorpay retry storm, log warning.
   if (!secret) {
-    console.warn('Webhook secret not configured');
-    return res.status(500).json({ 
-      success: false,
-      error: { message: 'Webhook not configured' }
-    });
+    console.warn(JSON.stringify({ level: 'WARN', message: 'Webhook received but RAZORPAY_WEBHOOK_SECRET not configured — request discarded', timestamp: new Date().toISOString() }));
+    return res.json({ success: true });
   }
 
-  // Verify signature
+  // Missing signature header — reject with 401 (not a retry candidate)
   if (!signature) {
-    return res.status(401).json({ 
-      success: false,
-      error: { message: 'Missing webhook signature' }
-    });
+    return res.status(401).json({ success: false, error: { message: 'Missing webhook signature' } });
   }
 
-  // Use raw body for signature verification
+  // Raw body must be present (captured in server.js before JSON parsing)
   const rawBody = req.rawBody;
   if (!rawBody) {
-    return res.status(500).json({ 
-      success: false,
-      error: { message: 'Raw body not available' }
-    });
+    console.error(JSON.stringify({ level: 'ERROR', message: 'Webhook raw body missing — check server.js raw body capture path', timestamp: new Date().toISOString() }));
+    return res.status(500).json({ success: false, error: { message: 'Raw body not available' } });
   }
 
   const expectedSignature = crypto
@@ -69,12 +61,12 @@ router.post('/webhook', (req, res, next) => {
     .update(rawBody)
     .digest('hex');
 
-  if (signature !== expectedSignature) {
-    console.warn('Invalid webhook signature');
-    return res.status(401).json({ 
-      success: false,
-      error: { message: 'Invalid webhook signature' }
-    });
+  const sigBuf = Buffer.from(signature.length === expectedSignature.length ? signature : '', 'hex');
+  const expBuf = Buffer.from(expectedSignature, 'hex');
+  const signatureValid = sigBuf.length === expBuf.length && crypto.timingSafeEqual(expBuf, sigBuf);
+  if (!signatureValid) {
+    console.warn(JSON.stringify({ level: 'WARN', message: 'Invalid webhook signature', timestamp: new Date().toISOString() }));
+    return res.status(401).json({ success: false, error: { message: 'Invalid webhook signature' } });
   }
 
   next();
@@ -107,12 +99,11 @@ router.post('/verify-payment',
 router.get('/history', auth, getPaymentHistory);
 
 // Download invoice PDF
+const { param: evParam } = require('express-validator');
 router.get('/invoice/:subscriptionId',
   auth,
-  (req, res, next) => {
-    const { param } = require('express-validator');
-    param('subscriptionId').isUUID(4)(req, res, next);
-  },
+  evParam('subscriptionId').isUUID(4).withMessage('Invalid subscription ID'),
+  handleValidationErrors,
   getInvoice
 );
 

@@ -235,6 +235,39 @@ const config = {
   },
 };
 
+// ==================== PRODUCTION STARTUP VALIDATION ====================
+// Fail fast in production if critical values are missing or are known placeholders.
+if (isProduction) {
+  const errors = [];
+
+  // JWT secret must not be the dev default
+  if (!config.auth.jwtSecret || config.auth.jwtSecret.includes('dev-secret')) {
+    errors.push('JWT_SECRET must be a strong secret in production (not the dev placeholder)');
+  }
+
+  // Cookie secret must be set and not the dev default
+  if (!config.security.cookieSecret || config.security.cookieSecret === 'dev-cookie-secret') {
+    errors.push('COOKIE_SECRET must be set to a strong random value in production');
+  }
+
+  // Database password must not be the bare default 'root'
+  if (!config.database.password || config.database.password === 'root') {
+    errors.push('DB_PASSWORD must be set in production');
+  }
+
+  // FRONTEND_URL must be a real HTTPS URL
+  if (!config.server.frontendUrl || config.server.frontendUrl.startsWith('http://localhost')) {
+    errors.push('FRONTEND_URL must be a production HTTPS URL');
+  }
+
+  if (errors.length > 0) {
+    console.error('\n🚨 PRODUCTION STARTUP BLOCKED — critical env vars missing or using placeholders:\n');
+    errors.forEach(e => console.error(`  ✗ ${e}`));
+    console.error('\nFix the above issues before starting in production.\n');
+    process.exit(1);
+  }
+}
+
 // Freeze config to prevent modifications
 const deepFreeze = (obj) => {
   Object.keys(obj).forEach(key => {

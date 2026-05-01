@@ -142,4 +142,12 @@ RefreshToken.cleanupExpired = async function() {
   });
 };
 
+// Never expose raw token or hash in serialized output
+RefreshToken.prototype.toJSON = function () {
+  const values = { ...this.get() };
+  delete values.token;
+  delete values.tokenHash;
+  return values;
+};
+
 module.exports = RefreshToken;

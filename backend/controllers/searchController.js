@@ -142,12 +142,14 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
     where.maritalStatus = maritalStatus;
   }
 
-  // Income filter
-  if (incomeMin) {
-    where.income = { ...(where.income || {}), [Op.gte]: parseInt(incomeMin) };
+  // Income filter — parse and validate to prevent NaN being passed to the DB query
+  const parsedIncomeMin = incomeMin !== undefined ? parseInt(incomeMin, 10) : NaN;
+  const parsedIncomeMax = incomeMax !== undefined ? parseInt(incomeMax, 10) : NaN;
+  if (!isNaN(parsedIncomeMin) && parsedIncomeMin >= 0) {
+    where.income = { ...(where.income || {}), [Op.gte]: parsedIncomeMin };
   }
-  if (incomeMax) {
-    where.income = { ...(where.income || {}), [Op.lte]: parseInt(incomeMax) };
+  if (!isNaN(parsedIncomeMax) && parsedIncomeMax >= 0) {
+    where.income = { ...(where.income || {}), [Op.lte]: parsedIncomeMax };
   }
 
   // Mother tongue filter
