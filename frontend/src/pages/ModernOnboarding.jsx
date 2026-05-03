@@ -106,6 +106,7 @@ const ModernOnboardingContent = () => {
   };
 
   const handleComplete = async () => {
+    if (!validateCurrentStep()) return;
     setIsLoading(true);
     try {
       if (mode === 'signup' || mode === 'create_for_other') {

@@ -7,14 +7,16 @@ import { FiCheckCircle, FiPhone, FiMail } from 'react-icons/fi';
 import api from '../../../api/axios';
 
 const VerificationStep = () => {
-  const { formData, updateFormData, errors, setStepErrors } = useOnboarding();
+  const { formData, updateFormData, errors, setStepErrors, registerStepValidator } = useOnboarding();
   const [verificationMethod, setVerificationMethod] = useState('email');
   const [verificationCode, setVerificationCode] = useState('');
   const [codeVerified, setCodeVerified] = useState(false);
+  const formDataRef = React.useRef(formData);
+  formDataRef.current = formData;
 
   const validateStep = () => {
     const newErrors = {};
-    if (!formData.emailVerification) {
+    if (!formDataRef.current.emailVerification) {
       newErrors.emailVerification = 'Email verification is required';
     }
     setStepErrors(newErrors);
@@ -22,7 +24,7 @@ const VerificationStep = () => {
   };
 
   React.useEffect(() => {
-    return () => validateStep();
+    return registerStepValidator(validateStep);
   }, []);
 
   const handleSendCode = async (method) => {
@@ -69,6 +71,10 @@ const VerificationStep = () => {
           We'll send you a verification code to confirm your email and phone number. This keeps your profile secure.
         </p>
       </motion.div>
+
+      {errors.emailVerification && (
+        <p className="text-sm text-red-600 font-medium">{errors.emailVerification}</p>
+      )}
 
       {/* Email Verification */}
       <motion.div
