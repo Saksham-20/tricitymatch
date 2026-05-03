@@ -23,7 +23,9 @@ export const SocketProvider = ({ children }) => {
   const connect = useCallback(() => {
     if (!isAuthenticated || !user) return null;
 
-    const socketUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+    const socketUrl = import.meta.env.VITE_WS_URL ||
+      (import.meta.env.VITE_API_URL?.replace('/api', '') || '') ||
+      window.location.origin;
     
     const newSocket = io(socketUrl, {
       // Use cookies for authentication (httpOnly cookies are sent automatically)
