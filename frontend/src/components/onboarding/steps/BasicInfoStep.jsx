@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
@@ -6,30 +6,33 @@ import { validateName } from '../../../utils/validators';
 
 const BasicInfoStep = () => {
   const { formData, updateFormData, errors, setStepErrors, setFieldTouched, registerStepValidator } = useOnboarding();
+  const formDataRef = useRef(formData);
+  formDataRef.current = formData;
 
   const validateStep = () => {
+    const data = formDataRef.current;
     const newErrors = {};
 
-    if (!formData.firstName?.trim()) {
+    if (!data.firstName?.trim()) {
       newErrors.firstName = 'First name is required';
-    } else if (!validateName(formData.firstName)) {
+    } else if (!validateName(data.firstName)) {
       newErrors.firstName = 'At least 2 characters';
     }
 
-    if (!formData.lastName?.trim()) {
+    if (!data.lastName?.trim()) {
       newErrors.lastName = 'Last name is required';
-    } else if (!validateName(formData.lastName)) {
+    } else if (!validateName(data.lastName)) {
       newErrors.lastName = 'At least 2 characters';
     }
 
-    if (!formData.gender) {
+    if (!data.gender) {
       newErrors.gender = 'Gender is required';
     }
 
-    if (!formData.dateOfBirth) {
+    if (!data.dateOfBirth) {
       newErrors.dateOfBirth = 'Date of birth is required';
     } else {
-      const dob = new Date(formData.dateOfBirth);
+      const dob = new Date(data.dateOfBirth);
       const age = Math.floor((new Date() - dob) / (365.25 * 24 * 60 * 60 * 1000));
       if (age < 18) {
         newErrors.dateOfBirth = 'You must be at least 18 years old';

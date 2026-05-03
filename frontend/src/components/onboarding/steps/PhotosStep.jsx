@@ -7,10 +7,12 @@ const PhotosStep = () => {
   const { formData, updateFormData, errors, setStepErrors, registerStepValidator } = useOnboarding();
   const fileInputRef = useRef(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const formDataRef = useRef(formData);
+  formDataRef.current = formData;
 
   const validateStep = () => {
     const newErrors = {};
-    if (!formData.profilePhoto) {
+    if (!formDataRef.current.profilePhoto) {
       newErrors.profilePhoto = 'Please upload a profile photo';
     }
     setStepErrors(newErrors);

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import Select from '../../ui/Select';
@@ -13,10 +13,12 @@ const MARITAL_STATUSES = [
 
 const MaritalStatusStep = () => {
   const { formData, updateFormData, errors, setStepErrors, registerStepValidator } = useOnboarding();
+  const formDataRef = useRef(formData);
+  formDataRef.current = formData;
 
   const validateStep = () => {
     const newErrors = {};
-    if (!formData.maritalStatus) {
+    if (!formDataRef.current.maritalStatus) {
       newErrors.maritalStatus = 'Please select your marital status';
     }
     setStepErrors(newErrors);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
@@ -8,6 +8,8 @@ import { FiEye, FiEyeOff, FiUser, FiUsers, FiHeart } from 'react-icons/fi';
 const CreateAccountStep = () => {
   const { formData, updateFormData, errors, setStepErrors, setFieldTouched, registerStepValidator } = useOnboarding();
   const [showPassword, setShowPassword] = useState(false);
+  const formDataRef = useRef(formData);
+  formDataRef.current = formData;
 
   const creatingForOptions = [
     { value: 'self', label: 'For Me', icon: FiUser, description: 'I am creating my own profile' },
@@ -24,35 +26,36 @@ const CreateAccountStep = () => {
   ];
 
   const validateStep = () => {
+    const data = formDataRef.current;
     const newErrors = {};
 
-    if (!formData.creatingFor) {
+    if (!data.creatingFor) {
       newErrors.creatingFor = 'Please select who this profile is for';
     }
 
-    if (!formData.email) {
+    if (!data.email) {
       newErrors.email = 'Email is required';
-    } else if (!validateEmail(formData.email)) {
+    } else if (!validateEmail(data.email)) {
       newErrors.email = 'Invalid email address';
     }
 
-    if (!formData.password) {
+    if (!data.password) {
       newErrors.password = 'Password is required';
-    } else if (!validatePassword(formData.password)) {
+    } else if (!validatePassword(data.password)) {
       newErrors.password = 'Min 8 chars (uppercase, lowercase, number, symbol)';
     }
 
     // Additional validation for "other" relationship option
-    if (formData.creatingFor !== 'self') {
-      if (!formData.relationshipToProfile) {
+    if (data.creatingFor !== 'self') {
+      if (!data.relationshipToProfile) {
         newErrors.relationshipToProfile = 'Please select your relationship';
       }
 
-      if (!formData.yourName || formData.yourName.trim().length < 2) {
+      if (!data.yourName || data.yourName.trim().length < 2) {
         newErrors.yourName = 'Name is required (at least 2 characters)';
       }
 
-      if (!formData.yourPhone || formData.yourPhone.trim().length < 10) {
+      if (!data.yourPhone || data.yourPhone.trim().length < 10) {
         newErrors.yourPhone = 'Valid phone number is required';
       }
     }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import Select from '../../ui/Select';
@@ -7,10 +7,12 @@ const CITIES = ['Chandigarh', 'Mohali', 'Panchkula'];
 
 const LocationStep = () => {
   const { formData, updateFormData, errors, setStepErrors, registerStepValidator } = useOnboarding();
+  const formDataRef = useRef(formData);
+  formDataRef.current = formData;
 
   const validateStep = () => {
     const newErrors = {};
-    if (!formData.city) {
+    if (!formDataRef.current.city) {
       newErrors.city = 'Please select your city';
     }
     setStepErrors(newErrors);
