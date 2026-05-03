@@ -724,7 +724,10 @@ exports.updateMarketingUserStatus = asyncHandler(async (req, res) => {
 exports.getMarketingUserStats = asyncHandler(async (req, res) => {
   const { userId } = req.params;
 
-  const user = await User.findByPk(userId);
+  const user = await User.findByPk(userId, {
+    include: [{ model: Profile, attributes: ['firstName', 'lastName', 'city'] }],
+    attributes: { exclude: ['password'] },
+  });
   if (!user || !['marketing', 'marketing_manager'].includes(user.role)) {
     throw createError.notFound('Marketing user not found');
   }
@@ -740,6 +743,7 @@ exports.getMarketingUserStats = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
+    user,
     stats: {
       totalLeads: leadsCount,
       convertedLeads: convertedCount,
@@ -758,10 +762,11 @@ exports.getReferralCodes = asyncHandler(async (req, res) => {
   const limit = Math.min(Math.max(rawLimit, 1), 100);
   const page = Math.max(parseInt(req.query.page) || 1, 1);
   const offset = (page - 1) * limit;
-  const { isActive } = req.query;
+  const { isActive, marketingUserId } = req.query;
 
   const where = {};
   if (isActive !== undefined) where.isActive = isActive === 'true';
+  if (marketingUserId) where.marketingUserId = marketingUserId;
 
   const { count, rows: codes } = await ReferralCode.findAndCountAll({
     where,
@@ -847,7 +852,7 @@ exports.getLeads = asyncHandler(async (req, res) => {
   const { status, paymentStatus, marketingUserId } = req.query;
 
   const VALID_LEAD_STATUSES = ['new', 'contacted', 'converted', 'lost'];
-  const VALID_PAYMENT_STATUSES = ['pending', 'paid', 'failed'];
+  const VALID_PAYMENT_STATUSES = ['none', 'paid'];
 
   const where = {};
   if (status && VALID_LEAD_STATUSES.includes(status)) where.status = status;

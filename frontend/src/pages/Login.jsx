@@ -35,7 +35,10 @@ const Login = () => {
           setUser(meResult.data.user);
           localStorage.setItem('tricitymatch-auth-hint', '1');
         }
-        navigate(result.data.user?.role === 'admin' ? '/admin/dashboard' : '/dashboard');
+        const role = result.data.user?.role;
+        navigate(role === 'admin' || role === 'super_admin' ? '/admin/dashboard'
+          : role === 'marketing' || role === 'marketing_manager' ? '/marketing/dashboard'
+          : '/dashboard');
       }
     } catch (err) {
       setApiError(err.response?.data?.message || 'Google sign-in failed. Please try again.');
@@ -114,7 +117,9 @@ const Login = () => {
       
       if (result.success) {
         setTimeout(() => {
-          navigate(result.role === 'admin' ? '/admin/dashboard' : '/dashboard');
+          navigate(result.role === 'admin' || result.role === 'super_admin' ? '/admin/dashboard'
+            : result.role === 'marketing' || result.role === 'marketing_manager' ? '/marketing/dashboard'
+            : '/dashboard');
         }, 100);
       } else {
         setApiError(result.message || 'Incorrect email or password. Please try again.');

@@ -6,9 +6,10 @@
 const express = require('express');
 const router = express.Router();
 const { auth, marketingAuth } = require('../middlewares/auth');
-const { asyncHandler, createError } = require('../middlewares/errorHandler');
+const { asyncHandler, createError, handleValidationErrors } = require('../middlewares/errorHandler');
 const { MarketingLead, ReferralCode, User } = require('../models');
 const sequelize = require('../config/database');
+const { param } = require('express-validator');
 
 // All marketing routes require authentication and marketing role
 router.use(auth, marketingAuth);
@@ -54,7 +55,7 @@ router.get('/leads', asyncHandler(async (req, res) => {
   const { status, paymentStatus } = req.query;
 
   const VALID_LEAD_STATUSES = ['new', 'contacted', 'converted', 'lost'];
-  const VALID_PAYMENT_STATUSES = ['pending', 'paid', 'failed'];
+  const VALID_PAYMENT_STATUSES = ['none', 'paid'];
 
   const where = { assignedToMarketingUserId: userId };
   if (status && VALID_LEAD_STATUSES.includes(status)) where.status = status;
@@ -80,6 +81,33 @@ router.get('/leads', asyncHandler(async (req, res) => {
       pages: Math.ceil(count / limit)
     }
   });
+}));
+
+// @route   PUT /api/marketing/leads/:leadId/status
+// @desc    Update lead status (only own leads, only status field)
+// @access  Private/Marketing
+router.put('/leads/:leadId/status',
+  param('leadId').isUUID(4),
+  handleValidationErrors,
+  asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const { leadId } = req.params;
+  const { status } = req.body;
+
+  const VALID_LEAD_STATUSES = ['new', 'contacted', 'converted', 'lost'];
+  if (!status || !VALID_LEAD_STATUSES.includes(status)) {
+    throw createError.badRequest(`status must be one of: ${VALID_LEAD_STATUSES.join(', ')}`);
+  }
+
+  const lead = await MarketingLead.findOne({
+    where: { id: leadId, assignedToMarketingUserId: userId }
+  });
+  if (!lead) throw createError.notFound('Lead not found');
+
+  lead.status = status;
+  await lead.save();
+
+  res.json({ success: true, message: 'Lead status updated', lead });
 }));
 
 // @route   GET /api/marketing/referral-codes

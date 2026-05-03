@@ -25,7 +25,11 @@ const Message = sequelize.define('Message', {
   },
   content: {
     type: DataTypes.TEXT,
-    allowNull: false
+    allowNull: false,
+    validate: {
+      notEmpty: true,
+      len: [1, 2000]
+    }
   },
   isRead: {
     type: DataTypes.BOOLEAN,
@@ -48,6 +52,13 @@ const Message = sequelize.define('Message', {
     allowNull: true
   }
 }, {
+  hooks: {
+    beforeCreate(message) {
+      if (message.senderId === message.receiverId) {
+        throw new Error('Cannot send a message to yourself');
+      }
+    }
+  },
   indexes: [
     {
       fields: ['senderId', 'receiverId']

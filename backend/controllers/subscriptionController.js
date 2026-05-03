@@ -477,3 +477,66 @@ exports.getInvoice = asyncHandler(async (req, res) => {
   });
 });
 
+// @route   DELETE /api/subscription/current
+// @desc    Cancel the current active subscription (with optional Razorpay refund)
+// @access  Private
+exports.cancelSubscription = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+
+  const subscription = await Subscription.findOne({
+    where: { userId, status: 'active', endDate: { [Op.gt]: new Date() } },
+    order: [['createdAt', 'DESC']],
+  });
+
+  if (!subscription) {
+    throw createError.notFound('No active subscription to cancel');
+  }
+
+  await sequelize.transaction(async (t) => {
+    subscription.status = 'cancelled';
+    await subscription.save({ transaction: t });
+
+    // Deactivate boost if this plan granted it
+    await User.update(
+      { isBoosted: false, boostExpiresAt: null },
+      { where: { id: userId }, transaction: t }
+    );
+  });
+
+  // Attempt pro-rated refund via Razorpay if payment ID exists
+  let refundResult = null;
+  if (subscription.razorpayPaymentId && config.razorpay.isConfigured()) {
+    try {
+      const { getRazorpayInstance } = require('../utils/razorpay');
+      const rzp = getRazorpayInstance();
+      if (rzp) {
+        const now = new Date();
+        const start = new Date(subscription.startDate);
+        const end = new Date(subscription.endDate);
+        const totalDays = Math.max((end - start) / (1000 * 60 * 60 * 24), 1);
+        const remainingDays = Math.max((end - now) / (1000 * 60 * 60 * 24), 0);
+        const refundFraction = remainingDays / totalDays;
+        const refundAmountPaise = Math.floor(parseFloat(subscription.amount) * 100 * refundFraction);
+
+        if (refundAmountPaise >= 100) { // Min ₹1 refund
+          const refund = await rzp.payments.refund(subscription.razorpayPaymentId, {
+            amount: refundAmountPaise,
+            notes: { reason: 'user_cancellation', subscriptionId: subscription.id },
+          });
+          refundResult = { refundId: refund.id, amount: refundAmountPaise / 100 };
+        }
+      }
+    } catch (refundErr) {
+      log.error('Refund failed after cancellation', { error: refundErr.message, subscriptionId: subscription.id });
+    }
+  }
+
+  logAudit('subscription_cancelled', userId, { subscriptionId: subscription.id, refundResult });
+
+  res.json({
+    success: true,
+    message: 'Subscription cancelled',
+    refund: refundResult,
+  });
+});
+

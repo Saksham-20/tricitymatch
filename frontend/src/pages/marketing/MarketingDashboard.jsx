@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, TrendingUp, DollarSign, Code2 } from 'lucide-react';
+import { Users, TrendingUp, DollarSign, Code2, PhoneCall } from 'lucide-react';
 import apiClient from '../../api/apiClient';
 
 export default function MarketingDashboard() {
@@ -33,10 +33,10 @@ export default function MarketingDashboard() {
       {error && <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-4">{error}</div>}
 
       {stats && (
-        <div className="grid grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex items-center gap-4">
-              <Users className="text-blue-600" size={32} />
+              <Users className="text-blue-600" size={28} />
               <div>
                 <p className="text-gray-600 text-sm">Total Leads</p>
                 <p className="text-3xl font-bold">{stats.totalLeads}</p>
@@ -46,7 +46,17 @@ export default function MarketingDashboard() {
 
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex items-center gap-4">
-              <TrendingUp className="text-green-600" size={32} />
+              <PhoneCall className="text-blue-400" size={28} />
+              <div>
+                <p className="text-gray-600 text-sm">Contacted</p>
+                <p className="text-3xl font-bold">{stats.contactedLeads}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow">
+            <div className="flex items-center gap-4">
+              <TrendingUp className="text-green-600" size={28} />
               <div>
                 <p className="text-gray-600 text-sm">Converted</p>
                 <p className="text-3xl font-bold">{stats.convertedLeads}</p>
@@ -56,17 +66,17 @@ export default function MarketingDashboard() {
 
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex items-center gap-4">
-              <DollarSign className="text-purple-600" size={32} />
+              <DollarSign className="text-purple-600" size={28} />
               <div>
-                <p className="text-gray-600 text-sm">Total Revenue</p>
-                <p className="text-3xl font-bold">₹{stats.totalRevenue?.toLocaleString()}</p>
+                <p className="text-gray-600 text-sm">Revenue</p>
+                <p className="text-3xl font-bold">₹{stats.totalRevenue?.toLocaleString() || 0}</p>
               </div>
             </div>
           </div>
 
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex items-center gap-4">
-              <Code2 className="text-orange-600" size={32} />
+              <Code2 className="text-orange-600" size={28} />
               <div>
                 <p className="text-gray-600 text-sm">Active Codes</p>
                 <p className="text-3xl font-bold">{stats.activeReferralCodes}</p>

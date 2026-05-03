@@ -18,8 +18,9 @@ const RefreshToken = sequelize.define('RefreshToken', {
   },
   token: {
     type: DataTypes.STRING(512),
-    allowNull: false,
-    unique: true
+    allowNull: false
+    // No unique constraint — raw token is only stored for issuance reference.
+    // All lookups use tokenHash (SHA-256). Raw token exposure on DB breach is limited.
   },
   tokenHash: {
     type: DataTypes.STRING(64),

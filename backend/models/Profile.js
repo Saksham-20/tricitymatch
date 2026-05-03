@@ -32,15 +32,25 @@ const Profile = sequelize.define('Profile', {
   },
   dateOfBirth: {
     type: DataTypes.DATE,
-    allowNull: true
+    allowNull: true,
+    validate: {
+      isOldEnough(value) {
+        if (value) {
+          const age = Math.floor((Date.now() - new Date(value)) / (365.25 * 24 * 60 * 60 * 1000));
+          if (age < 18) throw new Error('Must be at least 18 years old');
+        }
+      }
+    }
   },
   height: {
     type: DataTypes.INTEGER, // in cm
-    allowNull: true
+    allowNull: true,
+    validate: { min: 100, max: 250 }
   },
   weight: {
     type: DataTypes.INTEGER, // in kg
-    allowNull: true
+    allowNull: true,
+    validate: { min: 30, max: 250 }
   },
   // Location
   city: {
@@ -162,16 +172,27 @@ const Profile = sequelize.define('Profile', {
   },
   income: {
     type: DataTypes.INTEGER,
-    allowNull: true
+    allowNull: true,
+    validate: { min: 0 }
   },
   // Preferences
   preferredAgeMin: {
     type: DataTypes.INTEGER,
-    allowNull: true
+    allowNull: true,
+    validate: { min: 18, max: 100 }
   },
   preferredAgeMax: {
     type: DataTypes.INTEGER,
-    allowNull: true
+    allowNull: true,
+    validate: {
+      min: 18,
+      max: 100,
+      isGreaterThanMin(value) {
+        if (value && this.preferredAgeMin && value < this.preferredAgeMin) {
+          throw new Error('preferredAgeMax must be >= preferredAgeMin');
+        }
+      }
+    }
   },
   preferredHeightMin: {
     type: DataTypes.INTEGER,

@@ -40,6 +40,13 @@ const Match = sequelize.define('Match', {
     allowNull: true
   }
 }, {
+  hooks: {
+    beforeCreate(match) {
+      if (match.userId === match.matchedUserId) {
+        throw new Error('Cannot match with yourself');
+      }
+    }
+  },
   indexes: [
     {
       unique: true,

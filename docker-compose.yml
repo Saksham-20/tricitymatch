@@ -183,6 +183,10 @@ services:
       - tricitymatch-network
     profiles:
       - full
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
   # ==================== PROMETHEUS ====================
   prometheus:
@@ -204,6 +208,10 @@ services:
       - tricitymatch-network
     profiles:
       - monitoring
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   # ==================== GRAFANA ====================
   grafana:
@@ -212,7 +220,7 @@ services:
     restart: unless-stopped
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-changeme}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:?GRAFANA_PASSWORD must be set in .env.production}
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana_data:/var/lib/grafana
@@ -226,6 +234,10 @@ services:
       - prometheus
     profiles:
       - monitoring
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
 # ==================== VOLUMES ====================
 volumes:

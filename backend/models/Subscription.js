@@ -61,9 +61,23 @@ const Subscription = sequelize.define('Subscription', {
     type: DataTypes.INTEGER,
     allowNull: false,
     defaultValue: 0,
-    comment: 'Number of contact unlocks used so far.'
+    comment: 'Number of contact unlocks used so far.',
+    validate: { min: 0 }
   }
 }, {
+  validate: {
+    endDateAfterStart() {
+      if (this.startDate && this.endDate && new Date(this.endDate) < new Date(this.startDate)) {
+        throw new Error('endDate must be >= startDate');
+      }
+    },
+    unlocksWithinLimit() {
+      if (this.contactUnlocksAllowed !== null &&
+          this.contactUnlocksUsed > this.contactUnlocksAllowed) {
+        throw new Error('contactUnlocksUsed cannot exceed contactUnlocksAllowed');
+      }
+    }
+  },
   indexes: [
     // For checking active subscriptions (most common query)
     { fields: ['userId', 'status', 'planType'] },

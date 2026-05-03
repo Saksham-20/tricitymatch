@@ -14,7 +14,7 @@ import { staggerContainer, fadeInUp } from '../utils/animations';
 import { API_BASE_URL } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { MatchCard } from '../components/cards';
-import ProfileCompletionMeter from '../components/profile/ProfileCompletionMeter';
+import ProfileCompletionMeter, { getCompletionData } from '../components/profile/ProfileCompletionMeter';
 import { getImageUrl } from '../utils/cloudinary';
 import UpgradeModal from '../components/common/UpgradeModal';
 
@@ -527,10 +527,12 @@ const Dashboard = () => {
           </motion.div>
         )}
 
-        {/* ── 4. Profile Completion ─────────────────────────────────────── */}
-        <motion.div variants={fadeInUp}>
-          <ProfileCompletionMeter profile={userProfile || user?.profile || {}} />
-        </motion.div>
+        {/* ── 4. Profile Completion — hidden when all important fields done ── */}
+        {!getCompletionData(userProfile || user?.profile || {}).allImportantDone && (
+          <motion.div variants={fadeInUp}>
+            <ProfileCompletionMeter profile={userProfile || user?.profile || {}} />
+          </motion.div>
+        )}
 
         {/* ── 4. Mutual Matches ─────────────────────────────────────────────── */}
         <AnimatePresence>

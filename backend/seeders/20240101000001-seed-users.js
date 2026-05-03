@@ -69,7 +69,7 @@ module.exports = {
       const age = 25 + Math.floor(Math.random() * 11);
       const dob = generateDOB(age);
       const hasSubscription = i < 5; // First 5 have subscriptions
-      const subscriptionType = hasSubscription ? (i < 2 ? 'elite' : 'premium') : null;
+      const subscriptionType = hasSubscription ? (i < 2 ? 'vip' : 'premium_plus') : null;
 
       users.push({
         id: userId,
@@ -168,7 +168,7 @@ module.exports = {
           userId: userId,
           planType: subscriptionType,
           status: 'active',
-          amount: subscriptionType === 'elite' ? 4999 : 2999,
+          amount: subscriptionType === 'vip' ? 7499 : 3000,
           startDate: startDate,
           endDate: endDate,
           autoRenew: false,
@@ -185,7 +185,7 @@ module.exports = {
       const age = 23 + Math.floor(Math.random() * 10);
       const dob = generateDOB(age);
       const hasSubscription = i < 6; // First 6 have subscriptions
-      const subscriptionType = hasSubscription ? (i < 3 ? 'elite' : 'premium') : null;
+      const subscriptionType = hasSubscription ? (i < 3 ? 'vip' : 'premium_plus') : null;
 
       users.push({
         id: userId,
@@ -284,7 +284,7 @@ module.exports = {
           userId: userId,
           planType: subscriptionType,
           status: 'active',
-          amount: subscriptionType === 'elite' ? 4999 : 2999,
+          amount: subscriptionType === 'vip' ? 7499 : 3000,
           startDate: startDate,
           endDate: endDate,
           autoRenew: false,

@@ -3,6 +3,49 @@
  * Calculates compatibility score between two profiles
  */
 
+// Simplified Rashi (Moon sign) compatibility matrix based on traditional Vedic guna scoring.
+// Score 0-3: high compatibility; 4-7: medium; 8+: low.
+// Rashis: Mesh(0), Vrishabh(1), Mithun(2), Kark(3), Simha(4), Kanya(5),
+//         Tula(6), Vrishchik(7), Dhanu(8), Makar(9), Kumbh(10), Meen(11)
+const RASHI_MAP = {
+  mesh: 0, aries: 0,
+  vrishabh: 1, taurus: 1,
+  mithun: 2, gemini: 2,
+  kark: 3, cancer: 3,
+  simha: 4, leo: 4,
+  kanya: 5, virgo: 5,
+  tula: 6, libra: 6,
+  vrishchik: 7, scorpio: 7,
+  dhanu: 8, sagittarius: 8,
+  makar: 9, capricorn: 9,
+  kumbh: 10, aquarius: 10,
+  meen: 11, pisces: 11,
+};
+
+// Distance between rashis → compatibility score (0 = best)
+const getRashiCompatibility = (rashi1, rashi2) => {
+  const r1 = RASHI_MAP[rashi1?.toLowerCase()];
+  const r2 = RASHI_MAP[rashi2?.toLowerCase()];
+  if (r1 === undefined || r2 === undefined) return null;
+  const diff = Math.min(Math.abs(r1 - r2), 12 - Math.abs(r1 - r2));
+  // diff 0 = same (90pts), 1 = adjacent (80pts), 5-6 = opposite (50pts)
+  if (diff === 0) return 100;
+  if (diff === 1) return 80;
+  if (diff === 2) return 70;
+  if (diff === 3) return 60;
+  if (diff === 4) return 55;
+  return 50;
+};
+
+// Manglik compatibility: manglik should ideally marry manglik or anshik_manglik.
+// Returns true if the pair is compatible.
+const isManglikCompatible = (m1, m2) => {
+  if (!m1 || !m2 || m1 === 'not_sure' || m2 === 'not_sure') return true;
+  if (m1 === 'non_manglik' && m2 === 'manglik') return false;
+  if (m1 === 'manglik' && m2 === 'non_manglik') return false;
+  return true;
+};
+
 // Calculate age from date of birth
 const calculateAge = (dateOfBirth) => {
   if (!dateOfBirth) return null;
@@ -139,6 +182,23 @@ const calculateCompatibility = (profile1, profile2) => {
     }
   }
 
+  // ===== HOROSCOPE COMPATIBILITY (20 points) =====
+  maxScore += 20;
+  let horoScore = 0;
+
+  // Rashi compatibility (12 pts)
+  const rashiCompat = getRashiCompatibility(profile1.rashi, profile2.rashi);
+  if (rashiCompat !== null) {
+    horoScore += Math.round((rashiCompat / 100) * 12);
+  }
+
+  // Manglik compatibility (8 pts)
+  if (profile1.manglikStatus && profile2.manglikStatus) {
+    horoScore += isManglikCompatible(profile1.manglikStatus, profile2.manglikStatus) ? 8 : 0;
+  }
+
+  score += horoScore;
+
   // ===== INTEREST TAGS COMPATIBILITY (10 points) =====
   maxScore += 10;
   if (profile1.interestTags?.length && profile2.interestTags?.length) {
@@ -237,11 +297,26 @@ const getCompatibilityBreakdown = (profile1, profile2) => {
       : 'Different lifestyle preferences'
   };
 
+  // Horoscope
+  const rashiCompat = getRashiCompatibility(profile1.rashi, profile2.rashi);
+  const manglikOk = isManglikCompatible(profile1.manglikStatus, profile2.manglikStatus);
+  if (rashiCompat !== null || profile1.manglikStatus) {
+    breakdown.categories.horoscope = {
+      score: rashiCompat !== null ? Math.round(rashiCompat * 0.6 + (manglikOk ? 40 : 0)) : (manglikOk ? 100 : 0),
+      detail: [
+        rashiCompat !== null ? `Rashi compatibility: ${rashiCompat}%` : null,
+        profile1.manglikStatus ? `Manglik: ${manglikOk ? 'Compatible' : 'Incompatible'}` : null,
+      ].filter(Boolean).join(' | ')
+    };
+  }
+
   return breakdown;
 };
 
 module.exports = {
   calculateCompatibility,
   getCompatibilityBreakdown,
-  calculateAge
+  calculateAge,
+  isManglikCompatible,
+  getRashiCompatibility,
 };

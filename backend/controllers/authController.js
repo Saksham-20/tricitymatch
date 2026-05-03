@@ -17,7 +17,9 @@ const useSecureCookies = config.isProduction && (config.server.frontendUrl || ''
 const getCookieOptions = (maxAge) => ({
   httpOnly: true,
   secure: useSecureCookies,
-  sameSite: 'lax', // lax allows cookies on same-site cross-origin (e.g. port 3000 -> 5001)
+  // 'strict' in production prevents CSRF via cross-site navigation.
+  // 'lax' in dev allows port 3000 → 5001 cross-origin requests to carry cookies.
+  sameSite: config.isProduction ? 'strict' : 'lax',
   maxAge,
   path: '/',
 });

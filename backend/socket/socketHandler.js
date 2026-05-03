@@ -175,9 +175,7 @@ const initializeSocket = (io) => {
       console.log(`Socket connected: ${userId} (${socket.id})`);
     }
 
-    // Removed aggressive subscription check here to allow non-premium users to receive real-time notifications.
-
-    // Join user's personal room for notifications
+    // Join user's personal room for notifications (all authenticated users, no premium required)
     socket.join(`user_${userId}`);
 
     // ==================== JOIN ROOM ====================
@@ -202,6 +200,20 @@ const initializeSocket = (io) => {
         const isMutual = await verifyMutualMatch(userId, otherUserId);
         if (!isMutual) {
           socket.emit('error', { code: 'NOT_MATCHED', message: 'You can only chat with mutual matches' });
+          return;
+        }
+
+        // Verify premium subscription (chat requires premium)
+        const activeSub = await Subscription.findOne({
+          where: {
+            userId,
+            status: 'active',
+            planType: { [Op.ne]: 'free' },
+            endDate: { [Op.gt]: new Date() }
+          }
+        });
+        if (!activeSub) {
+          socket.emit('error', { code: 'PREMIUM_REQUIRED', message: 'Chat requires an active premium subscription' });
           return;
         }
 

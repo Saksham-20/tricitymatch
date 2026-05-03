@@ -2,16 +2,22 @@ import { useState, useEffect } from 'react';
 import { Filter } from 'lucide-react';
 import apiClient from '../../api/apiClient';
 
+const STATUS_COLORS = {
+  converted: 'bg-green-100 text-green-700',
+  contacted: 'bg-blue-100 text-blue-700',
+  lost: 'bg-red-100 text-red-700',
+  new: 'bg-gray-100 text-gray-700',
+};
+
 export default function MarketingLeads() {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [filters, setFilters] = useState({
-    status: '',
-    paymentStatus: ''
-  });
+  const [filters, setFilters] = useState({ status: '', paymentStatus: '' });
+  const [updating, setUpdating] = useState(null);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   useEffect(() => {
     fetchLeads();
@@ -23,7 +29,6 @@ export default function MarketingLeads() {
       const params = new URLSearchParams({ page, limit: 20 });
       if (filters.status) params.append('status', filters.status);
       if (filters.paymentStatus) params.append('paymentStatus', filters.paymentStatus);
-
       const res = await apiClient.get(`/marketing/leads?${params}`);
       setLeads(res.data.leads);
       setTotalPages(res.data.pagination.pages);
@@ -32,6 +37,20 @@ export default function MarketingLeads() {
       setError(err.response?.data?.message || 'Failed to fetch leads');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleStatusChange = async (leadId, newStatus) => {
+    setUpdating(leadId);
+    try {
+      await apiClient.put(`/marketing/leads/${leadId}/status`, { status: newStatus });
+      setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: newStatus } : l));
+      setSuccess('Status updated');
+      setTimeout(() => setSuccess(''), 2000);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update status');
+    } finally {
+      setUpdating(null);
     }
   };
 
@@ -74,6 +93,7 @@ export default function MarketingLeads() {
       </div>
 
       {error && <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-4">{error}</div>}
+      {success && <div className="bg-green-100 text-green-700 p-4 rounded-lg mb-4">{success}</div>}
 
       {loading ? (
         <div className="text-center py-8">Loading...</div>
@@ -102,13 +122,17 @@ export default function MarketingLeads() {
                     <td className="border p-3">{lead.email || '-'}</td>
                     <td className="border p-3">{lead.city || '-'}</td>
                     <td className="border p-3">
-                      <span className={`px-3 py-1 rounded-full text-sm ${
-                        lead.status === 'converted' ? 'bg-green-100 text-green-700' :
-                        lead.status === 'contacted' ? 'bg-blue-100 text-blue-700' :
-                        'bg-gray-100 text-gray-700'
-                      }`}>
-                        {lead.status}
-                      </span>
+                      <select
+                        value={lead.status}
+                        onChange={(e) => handleStatusChange(lead.id, e.target.value)}
+                        disabled={updating === lead.id}
+                        className={`px-2 py-1 rounded text-sm border-0 cursor-pointer ${STATUS_COLORS[lead.status] || STATUS_COLORS.new}`}
+                      >
+                        <option value="new">New</option>
+                        <option value="contacted">Contacted</option>
+                        <option value="converted">Converted</option>
+                        <option value="lost">Lost</option>
+                      </select>
                     </td>
                     <td className="border p-3">
                       <span className={`px-3 py-1 rounded-full text-sm ${

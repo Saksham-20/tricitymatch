@@ -111,13 +111,14 @@ const config = {
     dialect: 'postgres',
     logging: isDevelopment ? console.log : false,
     pool: {
-      max: optionalNumber('DB_POOL_MAX', 10),
-      min: optionalNumber('DB_POOL_MIN', 2),
-      acquire: optionalNumber('DB_POOL_ACQUIRE', 30000),
-      idle: optionalNumber('DB_POOL_IDLE', 10000),
+      max: optionalNumber('DB_POOL_MAX', 30),
+      min: optionalNumber('DB_POOL_MIN', 5),
+      acquire: optionalNumber('DB_POOL_ACQUIRE', 60000),
+      idle: optionalNumber('DB_POOL_IDLE', 5000),
+      evictionRunIntervalMillis: optionalNumber('DB_POOL_EVICTION_INTERVAL', 10000),
     },
-    // Only use SSL when DB_SSL=true (e.g. managed cloud DB). Docker Postgres does not use SSL.
-    ssl: isProduction && optionalBoolean('DB_SSL', false) ? {
+    // SSL is ON by default in production. Set DB_DISABLE_SSL=true to opt out (e.g. Docker internal Postgres).
+    ssl: isProduction && !optionalBoolean('DB_DISABLE_SSL', false) ? {
       require: true,
       rejectUnauthorized: optionalBoolean('DB_SSL_REJECT_UNAUTHORIZED', true),
     } : false,
@@ -213,6 +214,13 @@ const config = {
     isConfigured: () => !!optionalString('GOOGLE_CLIENT_ID'),
   },
 
+  // Firebase Cloud Messaging (push notifications)
+  fcm: {
+    serviceAccountPath: optionalString('FIREBASE_SERVICE_ACCOUNT_PATH'),
+    projectId: optionalString('FIREBASE_PROJECT_ID'),
+    isConfigured: () => !!optionalString('FIREBASE_SERVICE_ACCOUNT_PATH') && !!optionalString('FIREBASE_PROJECT_ID'),
+  },
+
   // Redis (for caching and job queues)
   redis: {
     url: optionalString('REDIS_URL', ''),
@@ -245,9 +253,11 @@ if (isProduction) {
     errors.push('JWT_SECRET must be a strong secret in production (not the dev placeholder)');
   }
 
-  // Cookie secret must be set and not the dev default
+  // Cookie secret must be set, not the dev default, and at least 32 chars
   if (!config.security.cookieSecret || config.security.cookieSecret === 'dev-cookie-secret') {
     errors.push('COOKIE_SECRET must be set to a strong random value in production');
+  } else if (config.security.cookieSecret.length < 32) {
+    errors.push('COOKIE_SECRET must be at least 32 characters in production');
   }
 
   // Database password must not be the bare default 'root'
@@ -256,8 +266,13 @@ if (isProduction) {
   }
 
   // FRONTEND_URL must be a real HTTPS URL
-  if (!config.server.frontendUrl || config.server.frontendUrl.startsWith('http://localhost')) {
-    errors.push('FRONTEND_URL must be a production HTTPS URL');
+  if (!config.server.frontendUrl || !config.server.frontendUrl.startsWith('https://')) {
+    errors.push('FRONTEND_URL must use https:// in production');
+  }
+
+  // Razorpay webhook secret must be set so signature verification works
+  if (!config.razorpay.webhookSecret) {
+    errors.push('RAZORPAY_WEBHOOK_SECRET must be set in production');
   }
 
   if (errors.length > 0) {

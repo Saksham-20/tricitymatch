@@ -5,7 +5,7 @@
 
 const { Profile, User, Match, Subscription, Block, Verification } = require('../models');
 const { Op } = require('sequelize');
-const { calculateCompatibility } = require('../utils/compatibility');
+const { calculateCompatibility, isManglikCompatible } = require('../utils/compatibility');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 
 // Escape special characters for LIKE patterns to prevent injection
@@ -36,6 +36,7 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
     incomeMin,
     incomeMax,
     motherTongue,
+    manglikFilter,  // 'manglik_only' | 'non_manglik_only' | 'exclude_incompatible'
     sortBy = 'compatibility'
   } = req.query;
 
@@ -155,6 +156,20 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
   // Mother tongue filter
   if (motherTongue) {
     where.motherTongue = { [Op.iLike]: escapeLikePattern(motherTongue) };
+  }
+
+  // Manglik filter
+  if (manglikFilter === 'manglik_only') {
+    where.manglikStatus = { [Op.in]: ['manglik', 'anshik_manglik'] };
+  } else if (manglikFilter === 'non_manglik_only') {
+    where.manglikStatus = 'non_manglik';
+  } else if (manglikFilter === 'exclude_incompatible' && currentProfile.manglikStatus) {
+    // Exclude profiles that would be incompatible with the current user's manglik status
+    if (currentProfile.manglikStatus === 'non_manglik') {
+      where.manglikStatus = { [Op.ne]: 'manglik' };
+    } else if (currentProfile.manglikStatus === 'manglik') {
+      where.manglikStatus = { [Op.in]: ['manglik', 'anshik_manglik', 'not_sure'] };
+    }
   }
 
   // Get profiles — include isBoosted + boostExpiresAt for ranking

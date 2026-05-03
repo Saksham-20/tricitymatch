@@ -104,13 +104,13 @@ export default function Notifications() {
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold text-neutral-900">Notifications</h1>
             {unreadCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full bg-rose-700 text-white text-xs font-bold">{unreadCount}</span>
+              <span className="px-2 py-0.5 rounded-full bg-primary-500 text-white text-xs font-bold">{unreadCount}</span>
             )}
           </div>
           {unreadCount > 0 && (
             <button
               onClick={markAllRead}
-              className="flex items-center gap-1.5 text-sm font-medium text-rose-700 hover:text-rose-800 transition-colors"
+              className="flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"
             >
               <FiCheck className="w-4 h-4" /> Mark all read
             </button>
@@ -119,7 +119,7 @@ export default function Notifications() {
 
         {loading ? (
           <div className="flex items-center justify-center h-48">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-700" />
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500" />
           </div>
         ) : notifications.length === 0 ? (
           <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-neutral-100">
@@ -142,7 +142,7 @@ export default function Notifications() {
                       exit={{ opacity: 0, x: -20 }}
                       transition={{ duration: 0.2 }}
                       className={`flex items-start gap-3 p-4 rounded-2xl bg-white shadow-sm border transition-all cursor-pointer ${
-                        !n.isRead ? 'border-rose-200 bg-rose-50/30' : 'border-neutral-100'
+                        !n.isRead ? 'border-primary-100 bg-primary-50/30' : 'border-neutral-100'
                       }`}
                       onClick={() => !n.isRead && markRead(n.id)}
                     >
@@ -158,7 +158,7 @@ export default function Notifications() {
                       </div>
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         {!n.isRead && (
-                          <div className="w-2 h-2 rounded-full bg-rose-600" />
+                          <div className="w-2 h-2 rounded-full bg-primary-500" />
                         )}
                         <button
                           onClick={(e) => { e.stopPropagation(); deleteNotif(n.id); }}

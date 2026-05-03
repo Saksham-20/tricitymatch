@@ -196,8 +196,8 @@ const errorHandler = (err, req, res, next) => {
     },
   };
 
-  // Include details for validation errors (safe to expose)
-  if (error.code === ErrorTypes.VALIDATION_ERROR && error.details) {
+  // Include validation details in development only — prevents business logic disclosure in production
+  if (error.code === ErrorTypes.VALIDATION_ERROR && error.details && config.isDevelopment) {
     response.error.details = error.details;
   }
 

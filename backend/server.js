@@ -89,7 +89,7 @@ app.use(compression());
 // Capture raw body for webhook signature verification (before JSON parsing).
 // Must cover both /api/v1/subscription/webhook (versioned) and legacy /api/subscription/webhook.
 const rawBodyCapture = [
-  express.raw({ type: 'application/json', limit: '10kb' }),
+  express.raw({ type: 'application/json', limit: '1mb' }),
   (req, res, next) => {
     req.rawBody = req.body;
     try {

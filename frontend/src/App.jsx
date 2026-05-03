@@ -38,6 +38,7 @@ const AdminSubscriptions = lazy(() => import('./pages/admin/AdminSubscriptions')
 const AdminRevenue = lazy(() => import('./pages/admin/AdminRevenue'));
 const AdminReports = lazy(() => import('./pages/admin/AdminReports'));
 const AdminMarketingUsers = lazy(() => import('./pages/admin/AdminMarketingUsers'));
+const AdminMarketingUserDetail = lazy(() => import('./pages/admin/AdminMarketingUserDetail'));
 const AdminReferralCodes = lazy(() => import('./pages/admin/AdminReferralCodes'));
 const AdminLeads = lazy(() => import('./pages/admin/AdminLeads'));
 
@@ -286,9 +287,10 @@ const AnimatedRoutes = () => {
             <Route path="subscriptions" element={<AdminSubscriptions />} />
             <Route path="revenue"       element={<AdminRevenue />} />
             <Route path="reports"       element={<AdminReports />} />
-            <Route path="marketing-users" element={<AdminMarketingUsers />} />
-            <Route path="referral-codes"  element={<AdminReferralCodes />} />
-            <Route path="leads"           element={<AdminLeads />} />
+            <Route path="marketing-users"          element={<AdminMarketingUsers />} />
+            <Route path="marketing-users/:userId"  element={<AdminMarketingUserDetail />} />
+            <Route path="referral-codes"           element={<AdminReferralCodes />} />
+            <Route path="leads"                    element={<AdminLeads />} />
           </Route>
 
           {/* Catch-all redirect */}

@@ -6,14 +6,15 @@
 const express = require('express');
 const crypto = require('crypto');
 const router = express.Router();
-const { 
-  createOrder, 
-  verifyPayment, 
-  getMySubscription, 
-  getPlans, 
+const {
+  createOrder,
+  verifyPayment,
+  getMySubscription,
+  getPlans,
   webhook,
   getPaymentHistory,
   getInvoice,
+  cancelSubscription,
 } = require('../controllers/subscriptionController');
 const { auth } = require('../middlewares/auth');
 const { handleValidationErrors, createError } = require('../middlewares/errorHandler');
@@ -94,6 +95,9 @@ router.post('/verify-payment',
   handleValidationErrors,
   verifyPayment
 );
+
+// Cancel active subscription (with pro-rated refund attempt)
+router.delete('/current', auth, cancelSubscription);
 
 // Payment history
 router.get('/history', auth, getPaymentHistory);

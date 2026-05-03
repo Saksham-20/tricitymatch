@@ -132,21 +132,28 @@ const setupEmailProcessor = (queue) => {
 const setupNotificationProcessor = (queue) => {
   queue.process('push-notification', async (job) => {
     const { userId, title, body, data } = job.data;
-    
-    // Placeholder for push notification implementation
-    log.debug('Push notification', { userId, title });
-    
-    // TODO: Implement actual push notification (FCM, APNs, etc.)
-    
-    return { sent: true, userId };
+    const { sendPushNotification } = require('./fcm');
+    const { User } = require('../models');
+
+    const user = await User.findByPk(userId, { attributes: ['id', 'fcmTokens'] });
+    if (!user?.fcmTokens?.length) return { sent: false, reason: 'no_tokens' };
+
+    const { successCount, failedTokens } = await sendPushNotification(
+      user.fcmTokens, title, body, data || {}
+    );
+
+    if (failedTokens.length > 0) {
+      const cleaned = user.fcmTokens.filter(t => !failedTokens.includes(t));
+      await User.update({ fcmTokens: cleaned }, { where: { id: userId } });
+    }
+
+    return { sent: true, successCount, userId };
   });
 
   queue.process('in-app-notification', async (job) => {
-    const { userId, type, message, metadata } = job.data;
-    
-    // Store in-app notification
-    // TODO: Implement notification storage
-    
+    const { userId, type, title, body, relatedId } = job.data;
+    const { notify } = require('./notifyUser');
+    await notify(userId, type, title, body, relatedId);
     return { stored: true, userId };
   });
 };

@@ -9,9 +9,10 @@
  * @param {string} [relatedId] — Optional UUID of related entity
  */
 
-const { Notification } = require('../models');
+const { Notification, User } = require('../models');
 const { getIO } = require('./socket');
 const { log } = require('../middlewares/logger');
+const { sendPushNotification } = require('./fcm');
 
 const notify = async (userId, type, title, body, relatedId = null) => {
   try {
@@ -31,10 +32,29 @@ const notify = async (userId, type, title, body, relatedId = null) => {
       });
     }
 
+    // Send FCM push notification (non-blocking, best-effort)
+    setImmediate(async () => {
+      try {
+        const user = await User.findByPk(userId, { attributes: ['id', 'fcmTokens'] });
+        if (user?.fcmTokens?.length) {
+          const { failedTokens } = await sendPushNotification(
+            user.fcmTokens, title, body, { type, relatedId: relatedId || '' }
+          );
+          // Remove invalidated tokens to keep the list clean
+          if (failedTokens.length > 0) {
+            const cleanedTokens = user.fcmTokens.filter(t => !failedTokens.includes(t));
+            await User.update({ fcmTokens: cleanedTokens }, { where: { id: userId } });
+          }
+        }
+      } catch (pushErr) {
+        log.error('FCM push failed in notifyUser', { userId, error: pushErr.message });
+      }
+    });
+
     return notification;
   } catch (err) {
     // Non-fatal — log but don't crash the calling request
-    log('error', 'notifyUser failed', { userId, type, error: err.message });
+    log.error('notifyUser failed', { userId, type, error: err.message });
   }
 };
 

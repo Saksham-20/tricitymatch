@@ -132,7 +132,7 @@ router.get('/health/full', asyncHandler(async (req, res) => {
  *             schema:
  *               type: string
  */
-router.get('/metrics', (req, res) => {
+router.get('/metrics', authenticate, adminAuth, (req, res) => {
   res.set('Content-Type', 'text/plain; charset=utf-8');
   res.send(getPrometheusMetrics());
 });
@@ -147,7 +147,7 @@ router.get('/metrics', (req, res) => {
  *       200:
  *         description: JSON metrics
  */
-router.get('/metrics/json', (req, res) => {
+router.get('/metrics/json', authenticate, adminAuth, (req, res) => {
   res.json(getJsonMetrics());
 });
 
@@ -161,7 +161,7 @@ router.get('/metrics/json', (req, res) => {
  *       200:
  *         description: Application information
  */
-router.get('/info', (req, res) => {
+router.get('/info', authenticate, adminAuth, (req, res) => {
   res.json({
     name: 'TricityShadi API',
     version: process.env.npm_package_version || '1.0.0',

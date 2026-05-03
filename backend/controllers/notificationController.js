@@ -2,7 +2,7 @@
  * Notification Controller
  */
 
-const { Notification } = require('../models');
+const { Notification, User } = require('../models');
 const { Op } = require('sequelize');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 
@@ -86,4 +86,39 @@ exports.deleteNotification = asyncHandler(async (req, res) => {
   if (!deleted) throw createError.notFound('Notification not found');
 
   res.json({ success: true, message: 'Notification deleted' });
+});
+
+// @route   POST /api/notifications/fcm-token
+// @desc    Register a device FCM token for push notifications
+// @access  Private
+exports.registerFcmToken = asyncHandler(async (req, res) => {
+  const { token } = req.body;
+  if (!token || typeof token !== 'string' || token.length < 10) {
+    throw createError.badRequest('Valid FCM token required');
+  }
+
+  const user = await User.findByPk(req.user.id, { attributes: ['id', 'fcmTokens'] });
+  const existing = user.fcmTokens || [];
+
+  if (!existing.includes(token)) {
+    // Cap at 10 tokens per user (handles many devices without unbounded growth)
+    const updated = [...existing, token].slice(-10);
+    await User.update({ fcmTokens: updated }, { where: { id: req.user.id } });
+  }
+
+  res.json({ success: true, message: 'FCM token registered' });
+});
+
+// @route   DELETE /api/notifications/fcm-token
+// @desc    Remove a device FCM token (on logout or permission revoked)
+// @access  Private
+exports.removeFcmToken = asyncHandler(async (req, res) => {
+  const { token } = req.body;
+  if (!token) throw createError.badRequest('FCM token required');
+
+  const user = await User.findByPk(req.user.id, { attributes: ['id', 'fcmTokens'] });
+  const updated = (user.fcmTokens || []).filter(t => t !== token);
+  await User.update({ fcmTokens: updated }, { where: { id: req.user.id } });
+
+  res.json({ success: true, message: 'FCM token removed' });
 });

@@ -167,9 +167,11 @@ const getAllowedOrigins = () => {
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl)
+    // In production, all requests must include an Origin header.
+    // In development, allow no-origin (curl, Postman, etc.).
     if (!origin) {
-      return callback(null, true);
+      if (config.isDevelopment) return callback(null, true);
+      return callback(new Error('CORS: Origin header required'));
     }
 
     const isLocalDevelopmentOrigin =

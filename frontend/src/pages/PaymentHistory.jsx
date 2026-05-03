@@ -71,8 +71,7 @@ export default function PaymentHistory() {
           </div>
           <Link
             to="/subscription"
-            className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-xl text-sm font-medium transition-colors"
-            style={{ backgroundColor: '#8B2346' }}
+            className="btn-primary px-4 py-2 text-sm"
           >
             Upgrade Plan
           </Link>
@@ -80,7 +79,7 @@ export default function PaymentHistory() {
 
         {loading ? (
           <div className="flex items-center justify-center h-48">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500" style={{ borderBottomColor: '#8B2346' }} />
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-100 border-t-primary-500" />
           </div>
         ) : subscriptions.length === 0 ? (
           <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-neutral-100">
@@ -89,8 +88,7 @@ export default function PaymentHistory() {
             <p className="text-neutral-400 text-sm mt-1">Upgrade to a paid plan to see your transactions here.</p>
             <Link
               to="/subscription"
-              className="inline-block mt-4 px-6 py-2.5 rounded-xl text-white text-sm font-medium transition-colors"
-              style={{ backgroundColor: '#8B2346' }}
+              className="btn-primary inline-flex mt-4 px-6 py-2.5 text-sm"
             >
               View Plans
             </Link>

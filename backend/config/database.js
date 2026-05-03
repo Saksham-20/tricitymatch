@@ -16,9 +16,11 @@ const sequelize = new Sequelize(
     dialect: config.database.dialect,
     logging: config.database.logging,
     pool: config.database.pool,
-    dialectOptions: config.database.ssl ? {
-      ssl: config.database.ssl
-    } : {},
+    dialectOptions: {
+      ...(config.database.ssl ? { ssl: config.database.ssl } : {}),
+      statement_timeout: 30000,  // kill queries running longer than 30s
+      connect_timeout: 10,
+    },
     define: {
       timestamps: true,
       underscored: false,

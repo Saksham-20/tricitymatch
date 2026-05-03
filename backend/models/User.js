@@ -31,7 +31,14 @@ const User = sequelize.define('User', {
   },
   phone: {
     type: DataTypes.STRING,
-    allowNull: true
+    allowNull: true,
+    validate: {
+      isIndianPhone(value) {
+        if (value && !/^[6-9]\d{9}$/.test(value)) {
+          throw new Error('Phone must be a valid 10-digit Indian mobile number');
+        }
+      }
+    }
   },
   role: {
     type: DataTypes.ENUM('user', 'admin', 'super_admin', 'marketing_manager', 'marketing'),
@@ -72,6 +79,11 @@ const User = sequelize.define('User', {
   boostExpiresAt: {
     type: DataTypes.DATE,
     allowNull: true
+  },
+  fcmTokens: {
+    type: DataTypes.ARRAY(DataTypes.TEXT),
+    allowNull: false,
+    defaultValue: []
   }
 }, {
   hooks: {

@@ -4,16 +4,19 @@ import { useAuth } from '../../context/AuthContext';
 import {
   FiGrid, FiUsers, FiCheckCircle, FiCreditCard,
   FiTrendingUp, FiFlag, FiLogOut, FiMenu, FiX,
-  FiChevronRight,
+  FiChevronRight, FiTag, FiUserPlus, FiPhoneCall,
 } from 'react-icons/fi';
 
 const navItems = [
-  { to: '/admin/dashboard',      label: 'Dashboard',      icon: FiGrid },
-  { to: '/admin/users',          label: 'Users',          icon: FiUsers },
-  { to: '/admin/verifications',  label: 'Verifications',  icon: FiCheckCircle },
-  { to: '/admin/subscriptions',  label: 'Subscriptions',  icon: FiCreditCard },
-  { to: '/admin/revenue',        label: 'Revenue',        icon: FiTrendingUp },
-  { to: '/admin/reports',        label: 'Reports',        icon: FiFlag },
+  { to: '/admin/dashboard',        label: 'Dashboard',         icon: FiGrid },
+  { to: '/admin/users',            label: 'Users',             icon: FiUsers },
+  { to: '/admin/verifications',    label: 'Verifications',     icon: FiCheckCircle },
+  { to: '/admin/subscriptions',    label: 'Subscriptions',     icon: FiCreditCard },
+  { to: '/admin/revenue',          label: 'Revenue',           icon: FiTrendingUp },
+  { to: '/admin/reports',          label: 'Reports',           icon: FiFlag },
+  { to: '/admin/marketing-users',  label: 'Marketing Users',   icon: FiUserPlus },
+  { to: '/admin/referral-codes',   label: 'Referral Codes',    icon: FiTag },
+  { to: '/admin/leads',            label: 'Leads',             icon: FiPhoneCall },
 ];
 
 export default function AdminLayout() {
