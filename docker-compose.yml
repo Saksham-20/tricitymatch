@@ -81,6 +81,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_NAME: ${DB_NAME:-matrimony_dev}
       DB_POOL_MAX: ${DB_POOL_MAX:-20}
+      DB_DISABLE_SSL: ${DB_DISABLE_SSL:-true}
       # Redis
       REDIS_HOST: redis
       REDIS_PORT: 6379
