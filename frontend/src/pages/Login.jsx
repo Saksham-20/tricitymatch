@@ -93,8 +93,6 @@ const Login = () => {
     
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (!validatePassword(formData.password)) {
-      newErrors.password = 'Password must be at least 8 characters and include uppercase, lowercase, number, and special character';
     }
     
     setErrors(newErrors);
@@ -122,7 +120,7 @@ const Login = () => {
             : '/dashboard');
         }, 100);
       } else {
-        setApiError(result.message || 'Incorrect email or password. Please try again.');
+        setApiError(result.error || result.message || 'Incorrect email or password. Please try again.');
         setShakeTrigger(true);
         setTimeout(() => setShakeTrigger(false), 500);
       }
