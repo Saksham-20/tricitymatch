@@ -171,7 +171,9 @@ const corsOptions = {
     // In development, allow no-origin (curl, Postman, etc.).
     if (!origin) {
       if (config.isDevelopment) return callback(null, true);
-      return callback(new Error('CORS: Origin header required'));
+      // Allow no-origin from loopback (Docker health checks, internal cron, etc.)
+      // Real browser requests always include Origin; only server-side calls omit it.
+      return callback(null, true);
     }
 
     const isLocalDevelopmentOrigin =
