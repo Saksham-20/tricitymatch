@@ -193,8 +193,8 @@ const ModernProfileEditorContent = () => {
                   <FiCheck className="text-white" size={16} />
                 </div>
                 <div>
-                  <p className="text-white font-semibold">Auto-Save</p>
-                  <p className="text-neutral-400 text-sm">Changes saved automatically as you go</p>
+                  <p className="text-white font-semibold">Easy Editing</p>
+                  <p className="text-neutral-400 text-sm">Step through sections and save when ready</p>
                 </div>
               </div>
             </div>

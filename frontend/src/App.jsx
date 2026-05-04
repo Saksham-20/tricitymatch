@@ -24,6 +24,9 @@ const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const Terms = lazy(() => import('./pages/Terms'));
 const Privacy = lazy(() => import('./pages/Privacy'));
+const About = lazy(() => import('./pages/About'));
+const Contact = lazy(() => import('./pages/Contact'));
+const Safety = lazy(() => import('./pages/Safety'));
 
 // Modern Profile Editor (new)
 const ModernProfileEditor = lazy(() => import('./pages/ModernProfileEditor'));
@@ -132,6 +135,21 @@ const AnimatedRoutes = () => {
           <Route path="/privacy" element={
             <PageTransition>
               <Privacy />
+            </PageTransition>
+          } />
+          <Route path="/about" element={
+            <PageTransition>
+              <About />
+            </PageTransition>
+          } />
+          <Route path="/contact" element={
+            <PageTransition>
+              <Contact />
+            </PageTransition>
+          } />
+          <Route path="/safety" element={
+            <PageTransition>
+              <Safety />
             </PageTransition>
           } />
 
