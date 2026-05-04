@@ -69,6 +69,7 @@ const ModernOnboardingContent = () => {
     prevStep,
     goToStep,
     formData,
+    updateFormData,
     getCompletionPercentage,
     clearDraft,
     isLoading,
@@ -83,7 +84,7 @@ const ModernOnboardingContent = () => {
   const [searchParams] = useSearchParams();
   const [showQuitDialog, setShowQuitDialog] = useState(false);
   const [completionPercentage, setCompletionPercentage] = useState(0);
-  const referralCode = searchParams.get('ref');
+  const referralCodeParam = searchParams.get('ref');
 
   // Build stepComponents array based on visible steps
   const stepComponents = visibleSteps.map(step => allStepComponents[step.id]);
@@ -91,6 +92,12 @@ const ModernOnboardingContent = () => {
   useEffect(() => {
     setCompletionPercentage(getCompletionPercentage());
   }, [formData, getCompletionPercentage]);
+
+  useEffect(() => {
+    if (referralCodeParam && !formData.referralCode) {
+      updateFormData('referralCode', referralCodeParam);
+    }
+  }, [referralCodeParam]);
 
   const handleQuit = () => {
     setShowQuitDialog(true);
@@ -111,9 +118,6 @@ const ModernOnboardingContent = () => {
     try {
       if (mode === 'signup' || mode === 'create_for_other') {
         const signupData = { ...formData };
-        if (referralCode) {
-          signupData.referralCode = referralCode;
-        }
         const result = await signup(signupData);
         if (result.success) {
           clearDraft();

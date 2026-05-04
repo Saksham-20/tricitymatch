@@ -350,7 +350,7 @@ const ModernProfileEditorContent = () => {
 
             {/* Mobile save note */}
             <p className="text-xs text-neutral-500 text-center mt-4 lg:hidden">
-              Auto-saving as you edit
+              Changes saved when you click Save
             </p>
           </div>
         )}

@@ -221,6 +221,22 @@ const CreateAccountStep = () => {
           </div>
           {errors.password && <p className="text-sm text-red-600 mt-1">{errors.password}</p>}
         </div>
+
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-neutral-900">
+            Referral Code <span className="text-neutral-400 font-normal">(optional)</span>
+          </label>
+          <input
+            type="text"
+            placeholder="Enter referral code"
+            value={formData.referralCode || ''}
+            onChange={(e) => updateFormData('referralCode', e.target.value.toUpperCase())}
+            className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent uppercase tracking-wider"
+          />
+          {formData.referralCode && (
+            <p className="text-xs text-green-600">✓ Referral code applied</p>
+          )}
+        </div>
       </motion.div>
     </div>
   );

@@ -73,7 +73,10 @@ export default function AdminUserDetail() {
 
   if (!data) return <div className="text-center text-gray-500 py-20">User not found</div>;
 
-  const { user, profile, subscription, verifications, reports } = data;
+  const { user, reports } = data;
+  const profile = user?.Profile || null;
+  const subscription = user?.Subscriptions?.[0] || null;
+  const verifications = user?.Verifications || [];
 
   return (
     <div className="space-y-5">

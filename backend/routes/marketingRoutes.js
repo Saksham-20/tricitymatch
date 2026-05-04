@@ -139,4 +139,43 @@ router.get('/referral-codes', asyncHandler(async (req, res) => {
   });
 }));
 
+// @route   POST /api/marketing/referral-codes
+// @desc    Create a new referral code for self
+// @access  Private/Marketing
+router.post('/referral-codes', asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const { campaign, source } = req.body;
+
+  // Auto-generate code: username prefix + random suffix
+  const user = await require('../models').User.findByPk(userId, { attributes: ['email'] });
+  const prefix = (user.email.split('@')[0] || 'MKT').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+  const suffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+  const code = `${prefix}${suffix}`;
+
+  const existing = await ReferralCode.findOne({ where: { code } });
+  if (existing) {
+    const code2 = `${prefix}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    const referralCode = await ReferralCode.create({
+      code: code2,
+      marketingUserId: userId,
+      campaign: campaign || null,
+      source: source || null,
+      isActive: true,
+      usageCount: 0
+    });
+    return res.status(201).json({ success: true, referralCode });
+  }
+
+  const referralCode = await ReferralCode.create({
+    code,
+    marketingUserId: userId,
+    campaign: campaign || null,
+    source: source || null,
+    isActive: true,
+    usageCount: 0
+  });
+
+  res.status(201).json({ success: true, referralCode });
+}));
+
 module.exports = router;
