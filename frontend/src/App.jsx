@@ -293,8 +293,17 @@ const AnimatedRoutes = () => {
             <Route path="leads"                    element={<AdminLeads />} />
           </Route>
 
-          {/* Catch-all redirect */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* 404 */}
+          <Route path="*" element={
+            <div className="min-h-screen flex flex-col items-center justify-center gap-6 p-8 text-center">
+              <div className="text-8xl font-bold text-primary-200">404</div>
+              <h1 className="text-2xl font-semibold text-neutral-800">Page not found</h1>
+              <p className="text-neutral-500 max-w-sm">The page you're looking for doesn't exist or has been moved.</p>
+              <a href="/" className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium">
+                Go Home
+              </a>
+            </div>
+          } />
         </Routes>
       </Suspense>
     </AnimatePresence>
