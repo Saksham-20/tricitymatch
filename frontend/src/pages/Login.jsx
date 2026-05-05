@@ -224,11 +224,24 @@ const Login = () => {
           className="w-full max-w-md"
         >
           {/* Mobile Logo */}
-          <motion.div variants={fadeInUp} className="lg:hidden flex justify-center mb-8">
+          <motion.div variants={fadeInUp} className="lg:hidden flex justify-center mb-6">
             <Logo size="lg" linkTo="/" />
           </motion.div>
 
-          <motion.div variants={fadeInUp} className="text-center mb-8">
+          {/* Mobile tab switcher — Sign In / Create Profile */}
+          <motion.div variants={fadeInUp} className="lg:hidden flex rounded-2xl bg-neutral-100 p-1 mb-6">
+            <span className="flex-1 py-3 text-center text-sm font-semibold rounded-xl bg-white shadow-sm text-neutral-900">
+              Sign In
+            </span>
+            <Link
+              to="/signup"
+              className="flex-1 py-3 text-center text-sm font-semibold rounded-xl text-neutral-500 hover:text-neutral-700 transition-colors"
+            >
+              Create Profile
+            </Link>
+          </motion.div>
+
+          <motion.div variants={fadeInUp} className="text-center mb-8 hidden lg:block">
             <h1 className="text-3xl font-display font-bold text-neutral-800 mb-2">
               Sign In
             </h1>

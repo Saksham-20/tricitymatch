@@ -637,52 +637,61 @@ const Home = () => {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-          {/* Feature card */}
+          {/* Feature card — photo left, details right */}
           <motion.div key={matchIdx} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             style={{
-              height: 480, borderRadius: 6, position: 'relative', overflow: 'hidden',
-              padding: 28, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+              borderRadius: 6, overflow: 'hidden', display: 'flex', flexDirection: 'column',
               boxShadow: '0 40px 80px -30px rgba(0,0,0,.5)',
+              background: 'rgba(45,26,34,0.55)',
             }}>
-            <img src={cur.img} alt={cur.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }} />
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 30%,rgba(0,0,0,.65))' }} />
-            {/* Pct */}
-            <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'baseline', gap: 16, color: 'var(--cream)' }}>
-              <span style={{ fontFamily: 'var(--display)', fontSize: 36, lineHeight: 1, letterSpacing: '-.03em', fontStyle: 'italic' }}>
-                {cur.match}<small style={{ fontSize: 18, opacity: .7 }}>%</small>
-              </span>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.16em', textTransform: 'uppercase', opacity: .85 }}>Compatibility<br />40+ signals</span>
+            {/* Rectangular photo — full width, fixed height, no cropping of face */}
+            <div style={{ position: 'relative', width: '100%', height: 340, flexShrink: 0 }}>
+              <img
+                src={cur.img} alt={cur.name}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 15%', display: 'block' }}
+              />
+              {/* Subtle bottom gradient only */}
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 60%,rgba(0,0,0,.4))' }} />
+              {/* Match % badge */}
+              <div style={{ position: 'absolute', top: 16, left: 16, display: 'flex', alignItems: 'baseline', gap: 6, color: 'var(--cream)', background: 'rgba(0,0,0,.45)', backdropFilter: 'blur(6px)', padding: '8px 14px', borderRadius: 999 }}>
+                <span style={{ fontFamily: 'var(--display)', fontSize: 28, lineHeight: 1, letterSpacing: '-.03em', fontStyle: 'italic' }}>
+                  {cur.match}<small style={{ fontSize: 14, opacity: .7 }}>%</small>
+                </span>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '.14em', textTransform: 'uppercase', opacity: .85, lineHeight: 1.3 }}>Compat<br />score</span>
+              </div>
+              {/* Verified badge */}
+              <span style={{ position: 'absolute', top: 16, right: 16, fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gold)', background: 'rgba(0,0,0,.45)', backdropFilter: 'blur(6px)', padding: '6px 12px', borderRadius: 999 }}>✦ Verified</span>
             </div>
-            {/* Tags */}
-            <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexWrap: 'wrap', gap: 8, alignSelf: 'flex-start' }}>
-              {cur.tags.map((t, j) => (
-                <span key={j} style={{ padding: '6px 14px', border: '1px solid rgba(253,248,242,.4)', borderRadius: 999, color: 'var(--cream)', fontSize: 12, backdropFilter: 'blur(4px)', background: 'rgba(45,26,34,.2)' }}>{t}</span>
-              ))}
+            {/* Details panel */}
+            <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
+              <div>
+                <span style={{ fontFamily: 'var(--display)', fontSize: 'clamp(20px,2.4vw,32px)', lineHeight: 1.05, letterSpacing: '-.02em', color: 'var(--cream)' }}>{cur.name}, <em style={{ color: 'var(--gold)', fontStyle: 'italic' }}>{cur.age}</em></span>
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '.16em', textTransform: 'uppercase', opacity: .7, color: 'var(--cream)', marginTop: 4 }}>{cur.loc} · Tricity</div>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {cur.tags.map((t, j) => (
+                  <span key={j} style={{ padding: '5px 12px', border: '1px solid rgba(253,248,242,.3)', borderRadius: 999, color: 'var(--cream)', fontSize: 11 }}>{t}</span>
+                ))}
+              </div>
+              <Link to={`/profile/${matchIdx + 1}`} style={{
+                marginTop: 'auto',
+                fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.14em', textTransform: 'uppercase',
+                padding: '11px 20px', background: 'var(--cream)', color: 'var(--burgundy)',
+                borderRadius: 999, alignSelf: 'flex-start',
+                transition: 'all .3s', textDecoration: 'none',
+              }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--gold)'; e.currentTarget.style.color = 'var(--ink)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'var(--cream)'; e.currentTarget.style.color = 'var(--burgundy)'; e.currentTarget.style.transform = ''; }}
+              >View full profile →</Link>
             </div>
-            {/* Name */}
-            <div style={{ position: 'relative', zIndex: 1, color: 'var(--cream)', display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.16em', textTransform: 'uppercase', color: 'var(--gold)' }}>✦ ID Verified · Online now</span>
-              <span style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.8vw,40px)', lineHeight: 1, letterSpacing: '-.02em' }}>{cur.name}, <em style={{ color: 'var(--gold)', fontStyle: 'italic' }}>{cur.age}</em></span>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.16em', textTransform: 'uppercase', opacity: .8 }}>{cur.loc} · Tricity</span>
-            </div>
-            <Link to={`/profile/${matchIdx + 1}`} style={{
-              position: 'relative', zIndex: 1,
-              fontFamily: 'var(--mono)', fontSize: 12, letterSpacing: '.14em', textTransform: 'uppercase',
-              padding: '12px 20px', background: 'var(--cream)', color: 'var(--burgundy)',
-              borderRadius: 999, alignSelf: 'flex-start',
-              transition: 'all .3s', textDecoration: 'none',
-            }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--gold)'; e.currentTarget.style.color = 'var(--ink)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'var(--cream)'; e.currentTarget.style.color = 'var(--burgundy)'; e.currentTarget.style.transform = ''; }}
-            >View full profile →</Link>
           </motion.div>
 
           {/* Side rail */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {profiles.map((p, i) => (
               <div key={i} className="ms-row" onClick={() => setMatchIdx(i)}
                 style={{
-                  display: 'grid', gridTemplateColumns: '72px 1fr 20px', gap: 14, alignItems: 'center',
+                  display: 'grid', gridTemplateColumns: '56px 1fr 20px', gap: 12, alignItems: 'center',
                   padding: '10px 12px', border: `1px solid ${matchIdx === i ? 'var(--gold)' : 'var(--line-on-dk)'}`,
                   borderRadius: 4, cursor: 'pointer',
                   background: matchIdx === i ? 'rgba(253,248,242,.06)' : 'transparent',
@@ -691,13 +700,14 @@ const Home = () => {
                 onMouseEnter={e => { if (matchIdx !== i) e.currentTarget.style.borderColor = 'var(--gold)'; }}
                 onMouseLeave={e => { if (matchIdx !== i) e.currentTarget.style.borderColor = 'var(--line-on-dk)'; }}
               >
-                <div style={{ width: 72, height: 80, borderRadius: 4, position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
-                  <img src={p.img} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }} />
-                  <span style={{ position: 'absolute', bottom: 4, right: 4, background: 'var(--cream)', color: 'var(--burgundy)', padding: '3px 8px', borderRadius: 999, fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 500 }}>{p.match}%</span>
+                {/* Square thumbnail — small enough, centred on face */}
+                <div style={{ width: 56, height: 56, borderRadius: 4, position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
+                  <img src={p.img} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 10%' }} />
+                  <span style={{ position: 'absolute', bottom: 2, right: 2, background: 'var(--cream)', color: 'var(--burgundy)', padding: '2px 6px', borderRadius: 999, fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 600 }}>{p.match}%</span>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <span style={{ fontFamily: 'var(--display)', fontSize: 17, lineHeight: 1 }}>{p.name}, <em style={{ fontStyle: 'italic', opacity: .7 }}>{p.age}</em></span>
-                  <span style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '.14em', textTransform: 'uppercase', opacity: .65 }}>{p.loc}</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  <span style={{ fontFamily: 'var(--display)', fontSize: 16, lineHeight: 1 }}>{p.name}, <em style={{ fontStyle: 'italic', opacity: .7 }}>{p.age}</em></span>
+                  <span style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '.14em', textTransform: 'uppercase', opacity: .6 }}>{p.loc}</span>
                 </div>
                 <span style={{ color: 'var(--gold)', fontSize: 12 }}>{matchIdx === i ? '●' : '○'}</span>
               </div>

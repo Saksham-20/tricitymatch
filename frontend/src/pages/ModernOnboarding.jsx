@@ -273,9 +273,26 @@ const ModernOnboardingContent = () => {
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="lg:hidden flex justify-center mb-8"
+            className="lg:hidden flex justify-center mb-6"
           >
             <Logo size="lg" linkTo="/" />
+          </motion.div>
+
+          {/* Mobile tab switcher */}
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="lg:hidden flex rounded-2xl bg-neutral-100 p-1 mb-6"
+          >
+            <Link
+              to="/login"
+              className="flex-1 py-3 text-center text-sm font-semibold rounded-xl text-neutral-500 hover:text-neutral-700 transition-colors"
+            >
+              Sign In
+            </Link>
+            <span className="flex-1 py-3 text-center text-sm font-semibold rounded-xl bg-white shadow-sm text-neutral-900">
+              Create Profile
+            </span>
           </motion.div>
 
           {/* Progress stepper - Desktop */}
