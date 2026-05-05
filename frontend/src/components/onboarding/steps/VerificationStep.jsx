@@ -2,15 +2,17 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
-import CheckBox from '../../ui/CheckBox';
-import { FiCheckCircle, FiPhone, FiMail } from 'react-icons/fi';
+import { FiCheckCircle, FiPhone, FiMail, FiLoader } from 'react-icons/fi';
 import api from '../../../api/axios';
 
 const VerificationStep = () => {
   const { formData, updateFormData, errors, setStepErrors, registerStepValidator } = useOnboarding();
-  const [verificationMethod, setVerificationMethod] = useState('email');
-  const [verificationCode, setVerificationCode] = useState('');
-  const [codeVerified, setCodeVerified] = useState(false);
+  const [emailCode, setEmailCode] = useState('');
+  const [phoneCode, setPhoneCode] = useState('');
+  const [emailSent, setEmailSent] = useState(false);
+  const [phoneSent, setPhoneSent] = useState(false);
+  const [emailSending, setEmailSending] = useState(false);
+  const [phoneSending, setPhoneSending] = useState(false);
   const formDataRef = React.useRef(formData);
   formDataRef.current = formData;
 
@@ -28,32 +30,45 @@ const VerificationStep = () => {
   }, []);
 
   const handleSendCode = async (method) => {
+    const target = method === 'email' ? formData.email : formData.phoneNumber;
+    if (!target) {
+      setStepErrors({ [method]: method === 'email' ? 'No email address found' : 'Please enter a phone number first' });
+      return;
+    }
+    if (method === 'email') setEmailSending(true);
+    else setPhoneSending(true);
+
     try {
-      const target = method === 'email' ? formData.email : formData.phoneNumber;
-      if (!target) return;
       await api.post('/auth/send-otp', { type: method, target });
-      console.log(`Sending verification code to ${method}`);
+      if (method === 'email') setEmailSent(true);
+      else setPhoneSent(true);
+      setStepErrors({});
     } catch (err) {
-      console.error(err);
+      const msg = err.response?.data?.error?.message || 'Failed to send code. Please try again.';
+      setStepErrors({ [method]: msg });
+    } finally {
+      if (method === 'email') setEmailSending(false);
+      else setPhoneSending(false);
     }
   };
 
   const handleVerifyCode = async (method) => {
-    if (verificationCode.length === 6) {
-      try {
-        const target = method === 'email' ? formData.email : formData.phoneNumber;
-        await api.post('/auth/verify-otp', { type: method, target, code: verificationCode });
-        
-        if (method === 'email') {
-          updateFormData('emailVerification', true);
-        } else {
-          updateFormData('phoneVerification', true);
-        }
-        setVerificationCode('');
-        setStepErrors({});
-      } catch (err) {
-        setStepErrors({ [method]: 'Invalid verification code. Try 123456.' });
+    const code = method === 'email' ? emailCode : phoneCode;
+    if (code.length !== 6) return;
+    try {
+      const target = method === 'email' ? formData.email : formData.phoneNumber;
+      await api.post('/auth/verify-otp', { type: method, target, code });
+      if (method === 'email') {
+        updateFormData('emailVerification', true);
+        setEmailCode('');
+      } else {
+        updateFormData('phoneVerification', true);
+        setPhoneCode('');
       }
+      setStepErrors({});
+    } catch (err) {
+      const msg = err.response?.data?.error?.message || 'Invalid code. Please try again.';
+      setStepErrors({ [method]: msg });
     }
   };
 
@@ -111,30 +126,43 @@ const VerificationStep = () => {
               transition={{ delay: 0.2 }}
               className="mt-4 space-y-3 pt-4 border-t border-neutral-200"
             >
-              <FormField
-                label="Verification Code"
-                placeholder="Enter 6-digit code"
-                value={verificationCode}
-                onChange={(value) => setVerificationCode(value.replace(/\D/g, '').slice(0, 6))}
-                maxLength="6"
-              />
-              <p className="text-xs text-neutral-600">
-                Check your email for the 6-digit verification code
-              </p>
+              {!emailSent ? (
+                <p className="text-xs text-neutral-600">Click "Send Code" to get a 6-digit code at {formData.email}</p>
+              ) : (
+                <FormField
+                  label="Verification Code"
+                  placeholder="Enter 6-digit code"
+                  value={emailCode}
+                  onChange={(value) => setEmailCode(value.replace(/\D/g, '').slice(0, 6))}
+                  maxLength="6"
+                  autoComplete="one-time-code"
+                />
+              )}
+              {emailSent && (
+                <p className="text-xs text-neutral-500">
+                  Code sent to {formData.email}.{' '}
+                  <button onClick={() => handleSendCode('email')} className="underline text-primary-600">Resend</button>
+                </p>
+              )}
               <div className="flex gap-2">
-                <button
-                  onClick={() => handleSendCode('email')}
-                  className="px-4 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                >
-                  Send Code
-                </button>
-                <button
-                  onClick={() => handleVerifyCode('email')}
-                  disabled={verificationCode.length !== 6}
-                  className="px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  Verify
-                </button>
+                {!emailSent && (
+                  <button
+                    onClick={() => handleSendCode('email')}
+                    disabled={emailSending}
+                    className="px-4 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {emailSending ? 'Sending...' : 'Send Code'}
+                  </button>
+                )}
+                {emailSent && (
+                  <button
+                    onClick={() => handleVerifyCode('email')}
+                    disabled={emailCode.length !== 6}
+                    className="px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Verify
+                  </button>
+                )}
               </div>
               {errors?.email && (
                 <p className="text-sm border-l-2 border-red-500 bg-red-50 text-red-600 p-2 mt-2">{errors.email}</p>
@@ -188,27 +216,41 @@ const VerificationStep = () => {
                 value={formData.phoneNumber}
                 onChange={(value) => updateFormData('phoneNumber', value)}
               />
-              <FormField
-                label="Verification Code (Optional)"
-                placeholder="Enter 6-digit code"
-                value={verificationCode}
-                onChange={(value) => setVerificationCode(value.replace(/\D/g, '').slice(0, 6))}
-                maxLength="6"
-              />
+              {phoneSent && (
+                <FormField
+                  label="Verification Code"
+                  placeholder="Enter 6-digit code"
+                  value={phoneCode}
+                  onChange={(value) => setPhoneCode(value.replace(/\D/g, '').slice(0, 6))}
+                  maxLength="6"
+                  autoComplete="one-time-code"
+                />
+              )}
+              {phoneSent && (
+                <p className="text-xs text-neutral-500">
+                  Code sent.{' '}
+                  <button onClick={() => handleSendCode('phone')} className="underline text-primary-600">Resend</button>
+                </p>
+              )}
               <div className="flex gap-2">
-                <button
-                  onClick={() => handleSendCode('phone')}
-                  className="px-4 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                >
-                  Send OTP
-                </button>
-                <button
-                  onClick={() => handleVerifyCode('phone')}
-                  disabled={verificationCode.length !== 6}
-                  className="px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  Verify
-                </button>
+                {!phoneSent && (
+                  <button
+                    onClick={() => handleSendCode('phone')}
+                    disabled={phoneSending || !formData.phoneNumber}
+                    className="px-4 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {phoneSending ? 'Sending...' : 'Send OTP'}
+                  </button>
+                )}
+                {phoneSent && (
+                  <button
+                    onClick={() => handleVerifyCode('phone')}
+                    disabled={phoneCode.length !== 6}
+                    className="px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Verify
+                  </button>
+                )}
               </div>
               {errors?.phone && (
                 <p className="text-sm border-l-2 border-red-500 bg-red-50 text-red-600 p-2 mt-2">{errors.phone}</p>
