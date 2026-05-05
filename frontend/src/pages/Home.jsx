@@ -260,10 +260,11 @@ const Home = () => {
 
   /* ── DATA ── */
   const profiles = [
-    { name: 'Priya Sharma', age: 28, loc: 'Mohali',      tags: ['MBA · IIM', 'Family-first', 'Travel', 'Sufi'], match: 97, img: '/images/optimized/profile-priya.webp', grad: 'linear-gradient(140deg,#C9B5A6,#6E574B)' },
-    { name: 'Rahul Gupta',  age: 31, loc: 'Chandigarh',  tags: ['IIT', 'Founder', 'Trekking', 'Cinema'],        match: 95, img: '/images/optimized/profile-rahul.webp', grad: 'linear-gradient(160deg,#8B7568,#3A2F28)' },
-    { name: 'Anjali Nair',  age: 29, loc: 'Panchkula',   tags: ['Doctor · AIIMS', 'Spiritual', 'Reading'],      match: 93, img: '/images/optimized/profile-anjali.webp', grad: 'linear-gradient(150deg,#B59C82,#5C4B40)' },
-    { name: 'Karan Bedi',   age: 30, loc: 'Chandigarh',  tags: ['CA', 'Cinephile', 'Cycling'],                  match: 91, img: '/images/optimized/profile-arjun.webp', grad: 'linear-gradient(170deg,#A28D78,#4A3D34)' },
+    { name: 'Priya Sharma', age: 28, loc: 'Mohali',      tags: ['MBA · IIM', 'Family-first', 'Travel', 'Sufi'], match: 97, img: '/images/landing/profile-priya.jpg',  grad: 'linear-gradient(140deg,#C9B5A6,#6E574B)' },
+    { name: 'Rahul Gupta',  age: 31, loc: 'Chandigarh',  tags: ['IIT', 'Founder', 'Trekking', 'Cinema'],        match: 95, img: '/images/landing/profile-rahul.jpg',  grad: 'linear-gradient(160deg,#8B7568,#3A2F28)' },
+    { name: 'Anjali Nair',  age: 29, loc: 'Panchkula',   tags: ['Doctor · AIIMS', 'Spiritual', 'Reading'],      match: 93, img: '/images/landing/profile-anjali.jpg', grad: 'linear-gradient(150deg,#B59C82,#5C4B40)' },
+    { name: 'Karan Bedi',   age: 30, loc: 'Chandigarh',  tags: ['CA', 'Cinephile', 'Cycling'],                  match: 91, img: '/images/landing/profile-karan.jpg',  grad: 'linear-gradient(170deg,#A28D78,#4A3D34)' },
+    { name: 'Meera Kapoor', age: 27, loc: 'Panchkula',   tags: ['Design lead', 'Family-first', 'Yoga'],         match: 94, img: '/images/landing/profile-meera.jpg',  grad: 'linear-gradient(155deg,#BFA98E,#594336)' },
   ];
 
   const processSteps = [
@@ -274,15 +275,15 @@ const Home = () => {
   ];
 
   const cities = [
-    { tag: 'City Beautiful',       name: 'Chandigarh', count: '28K', desc: 'India\'s most planned city. Cosmopolitan, career-forward — and deeply family-rooted.',         img: '/images/optimized/wedding-ceremony.webp' },
-    { tag: "Punjab's Rising Star", name: 'Mohali',     count: '14K', desc: 'Tech parks, AIIMS, IIT. Young professionals building careers without leaving culture.',         img: '/images/optimized/couple-engagement.webp' },
-    { tag: 'Roots Run Deep',       name: 'Panchkula',  count: '8K',  desc: 'Quiet, established, close-knit. Tradition and aspiration in equal measure.',                   img: '/images/optimized/couple-testimonial.webp' },
+    { tag: 'City Beautiful',       name: 'Chandigarh', count: '28K', desc: 'India\'s most planned city. Cosmopolitan, career-forward — and deeply family-rooted.',         img: '/images/landing/city-chandigarh.jpg' },
+    { tag: "Punjab's Rising Star", name: 'Mohali',     count: '14K', desc: 'Tech parks, AIIMS, IIT. Young professionals building careers without leaving culture.',         img: '/images/landing/city-mohali.jpg' },
+    { tag: 'Roots Run Deep',       name: 'Panchkula',  count: '8K',  desc: 'Quiet, established, close-knit. Tradition and aspiration in equal measure.',                   img: '/images/landing/city-panchkula.jpg' },
   ];
 
   const stories = [
-    { quote: 'From the first message to our engagement, everything felt intentional. This platform respects both families.', who: 'Meera & Vikram', where: 'Panchkula · Married Sept 2024', tag: 'Story 042', img: '/images/optimized/couple-testimonial.webp' },
-    { quote: 'We met because of compatibility, not luck. Six months later, our families knew it was right.',                 who: 'Priya & Arjun',   where: 'Mohali · Married March 2025', tag: 'Story 067', img: '/images/optimized/wedding-ceremony.webp' },
-    { quote: 'The Incognito mode let me take my time. When I was ready, my family stepped in beautifully.',                 who: 'Anjali & Rohan',  where: 'Chandigarh · Engaged 2025',  tag: 'Story 091', img: '/images/optimized/couple-engagement.webp' },
+    { quote: 'From the first message to our engagement, everything felt intentional. This platform respects both families.', who: 'Meera & Vikram', where: 'Panchkula · Married Sept 2024', tag: 'Story 042', img: '/images/landing/story-meera-vikram.jpg' },
+    { quote: 'We met because of compatibility, not luck. Six months later, our families knew it was right.',                 who: 'Priya & Arjun',   where: 'Mohali · Married March 2025', tag: 'Story 067', img: '/images/landing/story-priya-arjun.jpg' },
+    { quote: 'The Incognito mode let me take my time. When I was ready, my family stepped in beautifully.',                 who: 'Anjali & Rohan',  where: 'Chandigarh · Engaged 2025',  tag: 'Story 091', img: '/images/landing/story-anjali-rohan.jpg' },
   ];
 
   const faqs = [
@@ -421,6 +422,7 @@ const Home = () => {
               background: 'linear-gradient(140deg,#C9B5A6,#6E574B)',
               animation: 'drift-back 8s ease-in-out infinite',
             }}>
+              <img src="/images/landing/profile-anjali.jpg" alt="Anjali Nair" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 50%,rgba(0,0,0,.45))' }} />
               <span style={{ position: 'absolute', bottom: 16, left: 16, fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.12em', textTransform: 'uppercase', color: 'rgba(253,248,242,.85)', zIndex: 3 }}>Anjali, 29 · Panchkula</span>
             </div>
@@ -431,6 +433,7 @@ const Home = () => {
               background: 'linear-gradient(160deg,#B59C82,#5C4B40)',
               animation: 'drift-mid 10s ease-in-out infinite',
             }}>
+              <img src="/images/landing/profile-rahul.jpg" alt="Rahul Gupta" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 50%,rgba(0,0,0,.45))' }} />
               <span style={{ position: 'absolute', bottom: 16, left: 16, fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.12em', textTransform: 'uppercase', color: 'rgba(253,248,242,.85)', zIndex: 3 }}>Rahul, 31 · Chandigarh</span>
             </div>
@@ -441,7 +444,7 @@ const Home = () => {
               animation: 'drift-front 12s ease-in-out infinite',
               zIndex: 2,
             }}>
-              <img src="/images/optimized/profile-priya.webp" alt="Priya Sharma" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src="/images/landing/profile-priya.jpg" alt="Priya Sharma" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 50%,rgba(0,0,0,.55))' }} />
               <span style={{ position: 'absolute', top: 14, right: 14, fontFamily: 'var(--display)', fontSize: 36, lineHeight: 1, color: 'var(--cream)', zIndex: 3, fontStyle: 'italic' }}>97<small style={{ fontSize: 16, opacity: .7 }}>%</small></span>
               <div style={{ position: 'absolute', bottom: 20, left: 20, right: 20, zIndex: 3, color: 'var(--cream)', display: 'flex', flexDirection: 'column', gap: 4 }}>
