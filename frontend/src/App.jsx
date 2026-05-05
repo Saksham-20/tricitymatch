@@ -1,5 +1,11 @@
 import React, { Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useSearchParams } from 'react-router-dom';
+
+const SignupRedirect = () => {
+  const [searchParams] = useSearchParams();
+  const ref = searchParams.get('ref');
+  return <Navigate to={ref ? `/onboarding?ref=${ref}` : '/onboarding'} replace />;
+};
 import { Toaster } from 'react-hot-toast';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -111,7 +117,7 @@ const AnimatedRoutes = () => {
               <Login />
             </PageTransition>
           } />
-          <Route path="/signup" element={<Navigate to="/onboarding" replace />} />
+          <Route path="/signup" element={<SignupRedirect />} />
           <Route path="/onboarding" element={
             <PageTransition>
               <ModernOnboarding />

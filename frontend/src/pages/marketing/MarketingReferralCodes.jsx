@@ -56,7 +56,7 @@ export default function MarketingReferralCodes() {
 
   const generateShareLink = (code) => {
     const baseUrl = window.location.origin;
-    return `${baseUrl}/signup?ref=${code}`;
+    return `${baseUrl}/onboarding?ref=${code}`;
   };
 
   const handleCopyLink = (code) => {
@@ -159,7 +159,7 @@ export default function MarketingReferralCodes() {
                   </div>
                   <div className="text-right">
                     <p className="text-2xl font-bold text-blue-600">{code.usageCount}</p>
-                    <p className="text-sm text-gray-600">Uses</p>
+                    <p className="text-sm text-gray-600">Signups</p>
                   </div>
                 </div>
 

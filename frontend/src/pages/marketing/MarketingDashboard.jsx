@@ -33,7 +33,7 @@ export default function MarketingDashboard() {
       {error && <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-4">{error}</div>}
 
       {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex items-center gap-4">
               <Users className="text-blue-600" size={28} />
@@ -87,12 +87,25 @@ export default function MarketingDashboard() {
       )}
 
       <div className="bg-white p-6 rounded-lg shadow">
-        <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
-        <div className="space-y-2 text-gray-700">
-          <p>View your leads in the "My Leads" section to manage and track conversions.</p>
-          <p>Create and manage referral codes in the "Referral Codes" section.</p>
-          <p>Track conversion rates and revenue generated from your referrals.</p>
-        </div>
+        <h2 className="text-xl font-bold mb-4">How It Works</h2>
+        <ol className="space-y-3 text-gray-700 list-none">
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-sm font-bold flex items-center justify-center">1</span>
+            <span>Go to <strong>Referral Codes</strong> and generate a code for your campaign.</span>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-sm font-bold flex items-center justify-center">2</span>
+            <span>Copy the share link — it opens the signup page with your code pre-filled.</span>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-sm font-bold flex items-center justify-center">3</span>
+            <span>Every signup via your link appears in <strong>My Leads</strong> and increments your code's signup count.</span>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-sm font-bold flex items-center justify-center">4</span>
+            <span>Track conversions and revenue in the stats above.</span>
+          </li>
+        </ol>
       </div>
     </div>
   );

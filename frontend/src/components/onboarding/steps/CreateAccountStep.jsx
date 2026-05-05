@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
@@ -8,8 +8,13 @@ import { FiEye, FiEyeOff, FiUser, FiUsers, FiHeart } from 'react-icons/fi';
 const CreateAccountStep = () => {
   const { formData, updateFormData, errors, setStepErrors, setFieldTouched, registerStepValidator } = useOnboarding();
   const [showPassword, setShowPassword] = useState(false);
+  const [showReferralInput, setShowReferralInput] = useState(false);
   const formDataRef = useRef(formData);
   formDataRef.current = formData;
+
+  useEffect(() => {
+    if (formData.referralCode) setShowReferralInput(true);
+  }, []);
 
   const creatingForOptions = [
     { value: 'self', label: 'For Me', icon: FiUser, description: 'I am creating my own profile' },
@@ -222,19 +227,34 @@ const CreateAccountStep = () => {
           {errors.password && <p className="text-sm text-red-600 mt-1">{errors.password}</p>}
         </div>
 
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-neutral-900">
-            Referral Code <span className="text-neutral-400 font-normal">(optional)</span>
-          </label>
-          <input
-            type="text"
-            placeholder="Enter referral code"
-            value={formData.referralCode || ''}
-            onChange={(e) => updateFormData('referralCode', e.target.value.toUpperCase())}
-            className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent uppercase tracking-wider"
-          />
-          {formData.referralCode && (
-            <p className="text-xs text-green-600">✓ Referral code applied</p>
+        <div className="space-y-1">
+          {!showReferralInput ? (
+            <button
+              type="button"
+              onClick={() => setShowReferralInput(true)}
+              className="text-xs text-neutral-400 hover:text-primary-600 transition-colors underline underline-offset-2"
+            >
+              Have a referral code?
+            </button>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              transition={{ duration: 0.2 }}
+              className="space-y-1"
+            >
+              <input
+                type="text"
+                placeholder="Enter referral code"
+                value={formData.referralCode || ''}
+                onChange={(e) => updateFormData('referralCode', e.target.value.toUpperCase())}
+                autoFocus
+                className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent uppercase tracking-wider text-sm"
+              />
+              {formData.referralCode && (
+                <p className="text-xs text-green-600">✓ Referral code applied</p>
+              )}
+            </motion.div>
           )}
         </div>
       </motion.div>
