@@ -354,11 +354,11 @@ const Home = () => {
           {/* Monumental stacked title */}
           <div style={{
             fontFamily: 'var(--display)',
-            fontSize: 'clamp(38px, 5.5vw, 84px)',
-            lineHeight: 0.9,
-            letterSpacing: '-0.04em',
+            fontSize: 'clamp(30px, 4vw, 64px)',
+            lineHeight: 0.92,
+            letterSpacing: '-0.035em',
             display: 'flex', flexDirection: 'column',
-            margin: '28px 0',
+            margin: '20px 0',
           }}>
             {[
               { text: 'where',                  style: { color: 'var(--ink)', animationDelay: '.1s' } },
@@ -382,7 +382,7 @@ const Home = () => {
             borderTop: '1px solid var(--line)',
             animation: 'rise 1.2s 0.9s both',
           }}>
-            <p style={{ fontSize: 17, lineHeight: 1.55, color: 'var(--ink-soft)', maxWidth: 420, fontFamily: 'var(--sans)' }}>
+            <p style={{ fontSize: 14, lineHeight: 1.5, color: 'var(--ink-soft)', maxWidth: 420, fontFamily: 'var(--sans)' }}>
               Tricity's most trusted matrimony — for Chandigarh, Mohali and Panchkula. Verified, intelligent, deeply local.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'flex-start' }}>
@@ -443,7 +443,7 @@ const Home = () => {
             }}>
               <img src="/images/optimized/profile-priya.webp" alt="Priya Sharma" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 50%,rgba(0,0,0,.55))' }} />
-              <span style={{ position: 'absolute', top: 20, right: 20, fontFamily: 'var(--display)', fontSize: 56, lineHeight: 1, color: 'var(--cream)', zIndex: 3, fontStyle: 'italic' }}>97<small style={{ fontSize: 24, opacity: .7 }}>%</small></span>
+              <span style={{ position: 'absolute', top: 14, right: 14, fontFamily: 'var(--display)', fontSize: 36, lineHeight: 1, color: 'var(--cream)', zIndex: 3, fontStyle: 'italic' }}>97<small style={{ fontSize: 16, opacity: .7 }}>%</small></span>
               <div style={{ position: 'absolute', bottom: 20, left: 20, right: 20, zIndex: 3, color: 'var(--cream)', display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <strong style={{ fontFamily: 'var(--display)', fontSize: 28, fontWeight: 400, letterSpacing: '-.01em' }}>Priya Sharma, 28</strong>
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.12em', textTransform: 'uppercase', opacity: .85 }}>Mohali · MBA · Family-first</span>
@@ -534,7 +534,7 @@ const Home = () => {
             <React.Fragment key={i}>
               {i > 0 && <span style={{ flex: '1 0 0', height: 1, background: 'var(--line-on-dk)', maxWidth: 100 }} />}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <span style={{ fontFamily: 'var(--display)', fontSize: 'clamp(36px,5vw,60px)', lineHeight: 1, letterSpacing: '-.03em', color: 'var(--cream)' }}>
+                <span style={{ fontFamily: 'var(--display)', fontSize: 'clamp(20px,2.4vw,36px)', lineHeight: 1, letterSpacing: '-.03em', color: 'var(--cream)' }}>
                   <CountUp to={s.to} suffix={s.suffix} />
                 </span>
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.18em', textTransform: 'uppercase', color: 'rgba(253,248,242,.5)', marginTop: 12 }}>{s.label}</span>
@@ -552,10 +552,10 @@ const Home = () => {
         <div style={{ position: 'sticky', top: 80, padding: '0 28px 0 40px' }}>
           <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
             <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--burgundy)', marginBottom: 24, display: 'block' }}>— Why TricityShadi</span>
-            <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(28px,3.2vw,52px)', lineHeight: .96, letterSpacing: '-.025em', marginBottom: 24 }}>
+            <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', marginBottom: 24 }}>
               Six reasons<br />this <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>isn't</em><br />another app.
             </h2>
-            <p style={{ maxWidth: 520, fontSize: 17, lineHeight: 1.55, color: 'var(--ink-soft)', fontFamily: 'var(--sans)', marginBottom: 32 }}>
+            <p style={{ maxWidth: 520, fontSize: 14, lineHeight: 1.5, color: 'var(--ink-soft)', fontFamily: 'var(--sans)', marginBottom: 32 }}>
               Scroll right to read. Each principle shapes a real product decision — not just marketing copy.
             </p>
             <div style={{ height: 2, background: 'var(--line)', borderRadius: 1, overflow: 'hidden' }}>
@@ -615,17 +615,17 @@ const Home = () => {
           MATCHES — full-bleed featured profile + side rail
       ════════════════════════════════════════════════════════ */}
       <section id="matches" className="matches-section section-dark" style={{ background: 'var(--burgundy)', color: 'var(--cream)', padding: '36px 40px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 24, marginBottom: 36, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 20, marginBottom: 24, flexWrap: 'wrap' }}>
           <div>
             <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 24, display: 'block' }}>— Smart matches</span>
-            <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(28px,3.2vw,52px)', lineHeight: .96, letterSpacing: '-.025em', color: 'var(--cream)' }}>
+            <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', color: 'var(--cream)' }}>
               Profiles matched<br /><em style={{ fontStyle: 'italic', color: 'var(--gold)' }}>just</em> for you.
             </h2>
           </div>
           <div style={{ fontFamily: 'var(--display)', display: 'flex', alignItems: 'baseline', gap: 8 }}>
             <AnimatePresence mode="wait">
               <motion.span key={matchIdx} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-                style={{ fontSize: 56, lineHeight: 1, color: 'var(--gold)', fontStyle: 'italic' }}>
+                style={{ fontSize: 36, lineHeight: 1, color: 'var(--gold)', fontStyle: 'italic' }}>
                 0{matchIdx + 1}
               </motion.span>
             </AnimatePresence>
@@ -645,8 +645,8 @@ const Home = () => {
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 30%,rgba(0,0,0,.65))' }} />
             {/* Pct */}
             <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'baseline', gap: 16, color: 'var(--cream)' }}>
-              <span style={{ fontFamily: 'var(--display)', fontSize: 52, lineHeight: 1, letterSpacing: '-.03em', fontStyle: 'italic' }}>
-                {cur.match}<small style={{ fontSize: 26, opacity: .7 }}>%</small>
+              <span style={{ fontFamily: 'var(--display)', fontSize: 36, lineHeight: 1, letterSpacing: '-.03em', fontStyle: 'italic' }}>
+                {cur.match}<small style={{ fontSize: 18, opacity: .7 }}>%</small>
               </span>
               <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.16em', textTransform: 'uppercase', opacity: .85 }}>Compatibility<br />40+ signals</span>
             </div>
@@ -659,7 +659,7 @@ const Home = () => {
             {/* Name */}
             <div style={{ position: 'relative', zIndex: 1, color: 'var(--cream)', display: 'flex', flexDirection: 'column', gap: 6 }}>
               <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.16em', textTransform: 'uppercase', color: 'var(--gold)' }}>✦ ID Verified · Online now</span>
-              <span style={{ fontFamily: 'var(--display)', fontSize: 'clamp(32px,4vw,56px)', lineHeight: 1, letterSpacing: '-.02em' }}>{cur.name}, <em style={{ color: 'var(--gold)', fontStyle: 'italic' }}>{cur.age}</em></span>
+              <span style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.8vw,40px)', lineHeight: 1, letterSpacing: '-.02em' }}>{cur.name}, <em style={{ color: 'var(--gold)', fontStyle: 'italic' }}>{cur.age}</em></span>
               <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.16em', textTransform: 'uppercase', opacity: .8 }}>{cur.loc} · Tricity</span>
             </div>
             <Link to={`/profile/${matchIdx + 1}`} style={{
@@ -714,11 +714,11 @@ const Home = () => {
       {/* ════════════════════════════════════════════════════════
           PROCESS — sticky scroll, rotating SVG dial
       ════════════════════════════════════════════════════════ */}
-      <div ref={processRef} style={{ height: '220vh', position: 'relative' }}>
+      <div ref={processRef} style={{ height: '180vh', position: 'relative' }}>
         <div style={{
-          position: 'sticky', top: 0, height: '100vh',
-          display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 40,
-          padding: '40px 40px 32px', alignItems: 'center',
+          position: 'sticky', top: 64, height: 'calc(100vh - 64px)',
+          display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 32,
+          padding: '32px 40px 24px', alignItems: 'center',
           background: 'var(--cream-3)',
           borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)',
           overflow: 'hidden',
@@ -726,10 +726,10 @@ const Home = () => {
           {/* Left */}
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--burgundy)', marginBottom: 24, display: 'block' }}>— The process</span>
-            <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(28px,3.2vw,52px)', lineHeight: .96, letterSpacing: '-.025em', marginBottom: 24 }}>
+            <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', marginBottom: 24 }}>
               From hello<br />to <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>forever.</em>
             </h2>
-            <p style={{ maxWidth: 520, fontSize: 17, lineHeight: 1.55, color: 'var(--ink-soft)', fontFamily: 'var(--sans)' }}>
+            <p style={{ maxWidth: 520, fontSize: 14, lineHeight: 1.5, color: 'var(--ink-soft)', fontFamily: 'var(--sans)' }}>
               Four steps, designed with intentionality — because finding a partner deserves more than an algorithm.
             </p>
             {/* Dial */}
@@ -755,7 +755,7 @@ const Home = () => {
                   );
                 })}
               </svg>
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--display)', fontSize: 96, lineHeight: 1, color: 'var(--burgundy)', fontStyle: 'italic' }}>
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--display)', fontSize: 52, lineHeight: 1, color: 'var(--burgundy)', fontStyle: 'italic' }}>
                 <AnimatePresence mode="wait">
                   <motion.span key={processActive} initial={{ opacity: 0, scale: .8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: .8 }}>
                     {curStep.n}
@@ -770,9 +770,9 @@ const Home = () => {
           <div style={{ padding: 24, background: 'var(--cream)', borderRadius: 4, border: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 14, minHeight: 300 }}>
             <AnimatePresence mode="wait">
               <motion.div key={processActive} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} style={{ display: 'contents' }}>
-                <div style={{ fontFamily: 'var(--display)', fontSize: 'clamp(52px,6vw,96px)', lineHeight: .8, letterSpacing: '-.05em', color: 'var(--burgundy)', fontStyle: 'italic' }}>{curStep.n}</div>
-                <div style={{ fontFamily: 'var(--display)', fontSize: 'clamp(32px,4vw,56px)', lineHeight: 1.05, letterSpacing: '-.02em' }}>{curStep.t}</div>
-                <div style={{ fontSize: 17, lineHeight: 1.55, color: 'var(--ink-soft)', maxWidth: 480, fontFamily: 'var(--sans)' }}>{curStep.b}</div>
+                <div style={{ fontFamily: 'var(--display)', fontSize: 'clamp(36px,4vw,64px)', lineHeight: .8, letterSpacing: '-.05em', color: 'var(--burgundy)', fontStyle: 'italic' }}>{curStep.n}</div>
+                <div style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.8vw,40px)', lineHeight: 1.05, letterSpacing: '-.02em' }}>{curStep.t}</div>
+                <div style={{ fontSize: 14, lineHeight: 1.5, color: 'var(--ink-soft)', maxWidth: 480, fontFamily: 'var(--sans)' }}>{curStep.b}</div>
                 <div style={{ display: 'flex', gap: 24, padding: '16px 0', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)', fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--ink-soft)', flexWrap: 'wrap' }}>
                   {curStep.meta.map((m, i) => (
                     <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -811,11 +811,11 @@ const Home = () => {
         <div style={{ padding: '48px 40px 32px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, alignItems: 'end' }}>
           <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
             <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 24, display: 'block' }}>— Made for Tricity</span>
-            <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(28px,3.2vw,52px)', lineHeight: .96, letterSpacing: '-.025em', color: 'var(--cream)' }}>
+            <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', color: 'var(--cream)' }}>
               Three cities.<br />One <em style={{ fontStyle: 'italic', color: 'var(--gold)' }}>community.</em>
             </h2>
           </motion.div>
-          <p style={{ fontSize: 17, lineHeight: 1.55, color: 'rgba(253,248,242,.75)', maxWidth: 520, fontFamily: 'var(--sans)' }}>
+          <p style={{ fontSize: 14, lineHeight: 1.5, color: 'rgba(253,248,242,.75)', maxWidth: 520, fontFamily: 'var(--sans)' }}>
             Hover a strip to expand. Mass-market apps don't understand what matters here — shared roots, family values, the comfort of proximity.
           </p>
         </div>
@@ -865,7 +865,7 @@ const Home = () => {
                     {c.count}<small style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '.18em', textTransform: 'uppercase', color: 'rgba(253,248,242,.7)', marginTop: 4, fontStyle: 'normal' }}>profiles</small>
                   </div>
                 </div>
-                <div style={{ fontFamily: 'var(--display)', fontSize: 'clamp(48px,6vw,96px)', lineHeight: .9, letterSpacing: '-.025em', color: 'var(--cream)' }}>{c.name}</div>
+                <div style={{ fontFamily: 'var(--display)', fontSize: 'clamp(32px,4vw,64px)', lineHeight: .9, letterSpacing: '-.025em', color: 'var(--cream)' }}>{c.name}</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 24 }}>
                   <p style={{ fontSize: 14, lineHeight: 1.55, color: 'rgba(253,248,242,.75)', maxWidth: 320, fontFamily: 'var(--sans)' }}>{c.desc}</p>
                   <Link to="/search" style={{
@@ -886,10 +886,10 @@ const Home = () => {
       {/* ════════════════════════════════════════════════════════
           QUOTE — giant overlapping serif
       ════════════════════════════════════════════════════════ */}
-      <section style={{ background: 'var(--cream)', padding: '72px 40px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+      <section style={{ background: 'var(--cream)', padding: '52px 40px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
         <span style={{
           position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-55%)',
-          fontFamily: 'var(--display)', fontStyle: 'italic', fontSize: 'clamp(280px,40vw,560px)', lineHeight: .7,
+          fontFamily: 'var(--display)', fontStyle: 'italic', fontSize: 'clamp(160px,22vw,320px)', lineHeight: .7,
           color: 'var(--burgundy)', opacity: .06, userSelect: 'none', pointerEvents: 'none',
         }}>"</span>
         <motion.div initial={{ opacity: 0, y: 32 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} style={{ position: 'relative' }}>
@@ -913,14 +913,14 @@ const Home = () => {
           TRUST — burgundy tile grid
       ════════════════════════════════════════════════════════ */}
       <section id="trust" className="section-dark" style={{ background: 'var(--burgundy)', color: 'var(--cream)', padding: '52px 40px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, alignItems: 'end', marginBottom: 32 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'end', marginBottom: 24 }}>
           <div>
             <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 24, display: 'block' }}>— Safety first</span>
-            <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(28px,3.2vw,52px)', lineHeight: .96, letterSpacing: '-.025em', color: 'var(--cream)' }}>
+            <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', color: 'var(--cream)' }}>
               Built on trust. Backed by <em style={{ fontStyle: 'italic', color: 'var(--gold)' }}>action.</em>
             </h2>
           </div>
-          <p style={{ fontSize: 17, lineHeight: 1.55, color: 'rgba(253,248,242,.75)', maxWidth: 520, fontFamily: 'var(--sans)' }}>
+          <p style={{ fontSize: 14, lineHeight: 1.5, color: 'rgba(253,248,242,.75)', maxWidth: 520, fontFamily: 'var(--sans)' }}>
             We don't just ask for trust — we earn it. Every feature is designed to protect your privacy, safety, and dignity.
           </p>
         </div>
@@ -948,10 +948,10 @@ const Home = () => {
       {/* ════════════════════════════════════════════════════════
           TESTIMONIALS — polaroid stack carousel with real images
       ════════════════════════════════════════════════════════ */}
-      <section style={{ background: 'var(--cream)', padding: '100px 48px' }}>
+      <section style={{ background: 'var(--cream)', padding: '56px 40px' }}>
         <div style={{ marginBottom: 40 }}>
           <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--burgundy)', marginBottom: 24, display: 'block' }}>— Real couples</span>
-          <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(28px,3.2vw,52px)', lineHeight: .96, letterSpacing: '-.025em' }}>
+          <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em' }}>
             Stories that<br />began <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>here.</em>
           </h2>
         </div>
@@ -1017,10 +1017,10 @@ const Home = () => {
         <div style={{ position: 'sticky', top: 80 }}>
           <motion.div initial={{ opacity: 0, x: -24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
             <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--burgundy)', marginBottom: 24, display: 'block' }}>— FAQ</span>
-            <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(28px,3.2vw,52px)', lineHeight: .96, letterSpacing: '-.025em', marginBottom: 24 }}>
+            <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', marginBottom: 24 }}>
               Questions?<br />We've got <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>answers.</em>
             </h2>
-            <p style={{ maxWidth: 520, fontSize: 17, lineHeight: 1.55, color: 'var(--ink-soft)', fontFamily: 'var(--sans)', marginBottom: 32 }}>
+            <p style={{ maxWidth: 520, fontSize: 14, lineHeight: 1.5, color: 'var(--ink-soft)', fontFamily: 'var(--sans)', marginBottom: 32 }}>
               If you don't find what you need, reach out — we respond within 24 hours, in English, Hindi or Punjabi.
             </p>
             <a href="mailto:support@tricityshadi.com" style={{
@@ -1069,7 +1069,7 @@ const Home = () => {
       {/* ════════════════════════════════════════════════════════
           CTA — burgundy with drifting orbs
       ════════════════════════════════════════════════════════ */}
-      <section className="cta-section section-dark" style={{ background: 'var(--burgundy)', color: 'var(--cream)', padding: '72px 40px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+      <section className="cta-section section-dark" style={{ background: 'var(--burgundy)', color: 'var(--cream)', padding: '56px 40px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
         {/* Orbs */}
         {[
           { w: 600, h: 600, color: 'rgba(184,149,42,.5)',   top: '-200px', left: '0',  dur: 18 },
@@ -1089,10 +1089,10 @@ const Home = () => {
         <div style={{ position: 'relative', zIndex: 1 }}>
           <motion.div initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
             <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 32, display: 'block' }}>★ Your story awaits ★</span>
-            <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(28px,4vw,68px)', lineHeight: .92, letterSpacing: '-.025em', marginBottom: 32 }}>
+            <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.8vw,44px)', lineHeight: .92, letterSpacing: '-.025em', marginBottom: 32 }}>
               Every great<br />love story<br />starts with <em style={{ fontStyle: 'italic', color: 'var(--gold)' }}>one step.</em>
             </h2>
-            <p style={{ maxWidth: 540, margin: '0 auto 48px', fontSize: 18, lineHeight: 1.55, color: 'rgba(253,248,242,.82)', fontFamily: 'var(--sans)' }}>
+            <p style={{ maxWidth: 540, margin: '0 auto 32px', fontSize: 14, lineHeight: 1.5, color: 'rgba(253,248,242,.82)', fontFamily: 'var(--sans)' }}>
               Join thousands of families who trusted TricityShadi to find their forever partner. Free to start.
             </p>
             <div style={{ display: 'inline-flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 32 }}>
@@ -1130,7 +1130,7 @@ const Home = () => {
       <footer style={{ background: 'var(--ink)', color: 'var(--cream)', paddingBottom: 40, overflow: 'hidden' }}>
         {/* Mega wordmark */}
         <div className="footer-mega-inner" style={{ padding: '36px 48px 24px', borderBottom: '1px solid var(--line-on-dk)' }}>
-          <div style={{ fontFamily: 'var(--display)', fontSize: 'clamp(56px,11vw,160px)', lineHeight: .85, letterSpacing: '-.04em', color: 'var(--cream)' }}>
+          <div style={{ fontFamily: 'var(--display)', fontSize: 'clamp(36px,7vw,100px)', lineHeight: .85, letterSpacing: '-.04em', color: 'var(--cream)' }}>
             TricityShadi
           </div>
         </div>
