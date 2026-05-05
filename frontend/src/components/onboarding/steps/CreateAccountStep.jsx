@@ -136,16 +136,11 @@ const CreateAccountStep = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="space-y-4 rounded-xl border-2 border-blue-100 bg-blue-50 p-5"
+          className="space-y-4"
         >
-          <div className="flex items-start gap-3">
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-white">
-              <FiUser size={14} />
-            </div>
-            <div>
-              <h3 className="font-semibold text-blue-900 text-sm">Your Details — Profile Creator</h3>
-              <p className="text-xs text-blue-700 mt-0.5">This is YOUR information as the person creating this account.</p>
-            </div>
+          <div className="pb-2 border-b border-neutral-200">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400 mb-0.5">Your details — profile creator</p>
+            <p className="text-xs text-neutral-500">This is YOUR information as the person setting up this account.</p>
           </div>
 
           <FormField
@@ -198,17 +193,12 @@ const CreateAccountStep = () => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: formData.creatingFor !== 'self' ? 0.2 : 0.15 }}
-        className={`space-y-4 ${formData.creatingFor !== 'self' ? 'rounded-xl border-2 border-purple-100 bg-purple-50 p-5' : ''}`}
+        className="space-y-4"
       >
         {formData.creatingFor !== 'self' ? (
-          <div className="flex items-start gap-3">
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-purple-600 text-white">
-              <FiUsers size={14} />
-            </div>
-            <div>
-              <h3 className="font-semibold text-purple-900 text-sm">Profile Owner's Account Details</h3>
-              <p className="text-xs text-purple-700 mt-0.5">The email and password for the person whose profile you're creating. They'll use these to log in.</p>
-            </div>
+          <div className="pb-2 border-b border-neutral-200">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400 mb-0.5">Profile owner's login details</p>
+            <p className="text-xs text-neutral-500">The email and password they'll use to sign in.</p>
           </div>
         ) : (
           <h3 className="font-semibold text-neutral-900 text-sm">Account Information</h3>
