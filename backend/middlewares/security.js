@@ -62,6 +62,14 @@ const signupLimiter = createRateLimiter({
   keyGenerator: (req) => ipKeyGenerator(req),
 });
 
+// OTP send/verify limiter — separate from auth limiter so OTP calls don't exhaust login pool
+const otpLimiter = createRateLimiter({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 10, // 10 OTP attempts per 10 min per IP (generous for real users, tight enough vs bots)
+  message: 'Too many verification attempts, please try again in 10 minutes',
+  keyGenerator: (req) => ipKeyGenerator(req),
+});
+
 // Password reset limiter
 const passwordResetLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000, // 1 hour
@@ -147,7 +155,7 @@ const securityHeaders = helmet({
 
 // ==================== CORS CONFIGURATION ====================
 
-// Build allowed origins: FRONTEND_URL, CORS_ORIGIN, and same host with other scheme (http/https)
+// Build allowed origins: FRONTEND_URL, CORS_ORIGIN, same host with other scheme, and www/non-www variants
 const getAllowedOrigins = () => {
   const list = new Set();
   const add = (url) => {
@@ -156,8 +164,17 @@ const getAllowedOrigins = () => {
     if (u) list.add(u);
     try {
       const parsed = new URL(u);
+      // Add http <-> https variant
       const other = parsed.protocol === 'https:' ? `http://${parsed.host}` : `https://${parsed.host}`;
       list.add(other);
+      // Add www <-> non-www variant for both schemes
+      const host = parsed.host;
+      const wwwHost = host.startsWith('www.') ? host : `www.${host}`;
+      const noWwwHost = host.startsWith('www.') ? host.slice(4) : host;
+      list.add(`https://${wwwHost}`);
+      list.add(`http://${wwwHost}`);
+      list.add(`https://${noWwwHost}`);
+      list.add(`http://${noWwwHost}`);
     } catch (_) { /* ignore */ }
   };
   add(config.server.frontendUrl);
@@ -195,7 +212,11 @@ const corsOptions = {
     if (allowedOrigins.includes(origin) || isLocalDevelopmentOrigin) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      const corsErr = new Error('Not allowed by CORS');
+      corsErr.statusCode = 403;
+      corsErr.code = 'FORBIDDEN';
+      corsErr.isOperational = true;
+      callback(corsErr);
     }
   },
   credentials: true,
@@ -375,6 +396,7 @@ module.exports = {
   // Rate limiters
   apiLimiter,
   authLimiter,
+  otpLimiter,
   signupLimiter,
   passwordResetLimiter,
   searchLimiter,

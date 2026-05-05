@@ -24,9 +24,10 @@ const {
 } = require('../controllers/authController');
 const { auth } = require('../middlewares/auth');
 const { handleValidationErrors } = require('../middlewares/errorHandler');
-const { 
-  authLimiter, 
-  signupLimiter, 
+const {
+  authLimiter,
+  otpLimiter,
+  signupLimiter,
   passwordResetLimiter,
   checkAccountLockout
 } = require('../middlewares/security');
@@ -85,9 +86,9 @@ router.post('/reset-password',
 // Google OAuth — verify Google ID token, sign in or register
 router.post('/google', authLimiter, googleAuth);
 
-// Dummy OTP endpoints for testing — rate limited to prevent enumeration/brute-force
-router.post('/send-otp', authLimiter, sendOtp);
-router.post('/verify-otp', authLimiter, verifyOtp);
+// OTP endpoints — use dedicated limiter (10/10min) so signup flow doesn't exhaust auth pool
+router.post('/send-otp', otpLimiter, sendOtp);
+router.post('/verify-otp', otpLimiter, verifyOtp);
 
 // ==================== PROTECTED ROUTES ====================
 
