@@ -457,8 +457,7 @@ E2E suites: `01-auth-flow`, `02-crawler`, `03-visual-ui`, `04-ux-interactions`, 
 
 | Issue | Severity | Notes |
 |-------|----------|-------|
-| Razorpay keys placeholder | 🔴 BLOCKER | Payments disabled until real keys set |
-| No `.env.production` | 🔴 BLOCKER | Cannot deploy |
+| Razorpay keys placeholder | 🔴 BLOCKER | Payments disabled until real keys set — graceful "not configured" toast shown to user |
 | Email not configured | 🟡 Risk | `EMAIL_USER` placeholder — all transactional emails fail silently |
 | Google OAuth disabled | 🟡 Risk | `GOOGLE_CLIENT_ID` placeholder — button hidden on login page |
 | OTP accepts `123456`/`000000` | 🟡 Risk | Phone verification is dummy — OK for launch but must note |
@@ -467,6 +466,9 @@ E2E suites: `01-auth-flow`, `02-crawler`, `03-visual-ui`, `04-ux-interactions`, 
 | `emailService.js` legacy duplicate | ⚪ Cleanup | Two email utils exist; chatController uses legacy one |
 | Push notifications stub | 🟠 Low | FCM/APNs not implemented — in-app + email only |
 | Redis not in dev env | 🟠 Degraded | Account lockout + job queues fall back to in-memory |
+| Profile editor "Auto-saving" text misleading | ⚪ UX | Says "Auto-saving as you edit" but only saves on final Save button click at step 10 |
+| Admin user detail "No profile created yet" | ⚪ Bug | Shows even when user has a profile — Profile association may be missing in admin detail query |
+| Account lockout is in-memory | 🟠 Degraded | Lockout resets on backend restart when Redis unavailable |
 
 ---
 
@@ -511,6 +513,19 @@ Dark mode, broken chat route, profile completion meter click, password standardi
 - `getProfileViewers` missing pagination cap
 - `RefreshToken.toJSON()` added to strip `token`/`tokenHash`
 - `console.error/warn` in controllers replaced with structured `log.*`
+
+### Full Production QA — 2026-05-04
+
+Live end-to-end QA on tricityshadi.com. 6 bugs fixed:
+
+- **CRITICAL:** Backend crash after container rebuild — new code defaults SSL=ON in production, Docker-internal Postgres has no SSL. Fixed by `DB_DISABLE_SSL: true` in `docker-compose.yml` + `.env.production`.
+- **CRITICAL:** Missing DB migrations 23–26 (ReferralCodes, MarketingLeads, indexes, FCM tokens) — container was running old image. Fixed by `docker compose build --no-cache backend && docker compose up -d --force-recreate backend`.
+- **HIGH:** CORS blocking health checks — loopback requests (no Origin header) got 500 "CORS: Origin header required". Fixed `security.js` to allow no-origin universally (real browser requests always send Origin; server-side calls never do).
+- **HIGH:** Login page ran `validatePassword()` complexity check on login form — blocked users with pre-existing simpler passwords. Removed complexity check from `Login.jsx` validate function (complexity only needed at signup).
+- **MEDIUM:** Login error not displayed — `AuthContext.login()` returns `{ error }` but `Login.jsx` read `result.message`. Fixed to `result.error || result.message || fallback`.
+- **MEDIUM:** 404 routes silently redirected to homepage. Replaced `<Navigate to="/" />` with proper 404 page in `App.jsx`.
+
+**Deployment note:** Must use `--force-recreate` flag when new backend image is built, or running container stays on old image. Regular `docker compose up -d` does NOT replace containers with new images unless they were stopped.
 
 ## gstack (REQUIRED — global install)
 
