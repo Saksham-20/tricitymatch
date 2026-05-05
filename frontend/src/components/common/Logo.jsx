@@ -36,7 +36,7 @@ const Logo = ({
 
   const textColor = isWhite
     ? 'text-white'
-    : 'bg-gradient-to-r from-primary-500 to-gold-500 bg-clip-text text-transparent';
+    : 'text-neutral-900';
 
   const wrapperLayout = isStacked
     ? `flex flex-col items-center ${s.gap}`

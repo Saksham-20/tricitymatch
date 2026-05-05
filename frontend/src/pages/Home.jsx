@@ -22,12 +22,12 @@ const FontLoader = () => (
       --cream-2: #F5EDE0;
       --cream-3: #FFFAF6;
       --ink: #2D1A22;
-      --ink-soft: #6B5C4E;
+      --ink-soft: #4A3B30;
       --gold: #B8952A;
       --gold-lt: #F0D080;
-      --mute: rgba(45,26,34,0.55);
+      --mute: rgba(45,26,34,0.65);
       --line: rgba(45,26,34,0.14);
-      --line-on-dk: rgba(253,248,242,0.18);
+      --line-on-dk: rgba(253,248,242,0.22);
       --display: 'Instrument Serif', 'Cormorant Garamond', Georgia, serif;
       --serif: 'Cormorant Garamond', Georgia, serif;
       --sans: 'Inter Tight', -apple-system, system-ui, sans-serif;
@@ -99,12 +99,12 @@ const FontLoader = () => (
     /* ── Responsive overrides ── */
     @media (max-width: 1000px) {
       .hero-section { grid-template-columns: 1fr !important; }
-      .hero-section > div:nth-child(2) { padding: 40px 24px 80px !important; }
-      .hero-section > div:nth-child(3) { padding: 18px 24px !important; }
+      .hero-section > div:nth-child(2) { padding: 48px 24px 56px !important; }
+      .hero-section > div:nth-child(3) { padding: 24px 24px 64px !important; display: flex !important; justify-content: center !important; }
       #why { grid-template-columns: 1fr !important; }
       #why > div:first-child { position: static !important; padding: 0 24px 32px !important; }
       #why > div:last-child { padding: 0 24px 24px !important; }
-      .matches-section { padding: 80px 24px !important; }
+      .matches-section { padding: 48px 24px !important; }
       .matches-section > div:last-child { grid-template-columns: 1fr !important; }
       .cities-section > div:first-child { grid-template-columns: 1fr !important; padding: 60px 24px !important; }
       .cities-section > div:last-child { flex-direction: column !important; height: auto !important; }
@@ -413,7 +413,7 @@ const Home = () => {
         </div>
 
         {/* RIGHT — fanned photo stack */}
-        <div style={{ position: 'relative', padding: '0 36px 48px 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ position: 'relative', padding: '0 36px 80px 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ position: 'relative', width: '100%', maxWidth: 240, aspectRatio: '3/4' }}>
             {/* Back card */}
             <div style={{
@@ -456,12 +456,12 @@ const Home = () => {
 
           {/* Live match pill */}
           <div style={{
-            position: 'absolute', bottom: 80, left: -40,
+            position: 'absolute', bottom: -28, left: '50%', transform: 'translateX(-50%)',
             background: 'var(--cream-3)', border: '1px solid var(--line)',
-            padding: '12px 18px', borderRadius: 999,
-            display: 'flex', alignItems: 'center', gap: 12, fontSize: 13,
+            padding: '10px 18px', borderRadius: 999,
+            display: 'flex', alignItems: 'center', gap: 10, fontSize: 13,
             boxShadow: '0 14px 36px -14px rgba(45,26,34,.18)', zIndex: 5,
-            animation: 'rise 1s 1.5s both',
+            animation: 'rise 1s 1.5s both', whiteSpace: 'nowrap',
           }}>
             <span style={{ width: 8, height: 8, background: 'var(--burgundy)', borderRadius: '50%', animation: 'pulse 1.4s ease-in-out infinite', flexShrink: 0 }} />
             <span style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--mute)' }}>Just matched</span>
@@ -491,7 +491,7 @@ const Home = () => {
         <div style={{
           gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 14,
           fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '.14em', textTransform: 'uppercase',
-          color: 'var(--mute)', padding: '12px 40px', borderTop: '1px solid var(--line)',
+          color: 'var(--ink-soft)', padding: '12px 40px', borderTop: '1px solid var(--line)',
         }}>
           {['Est. 2011', '1,190+ matches', '50K+ verified', '15 years'].map((item, i) => (
             <React.Fragment key={i}>
@@ -540,7 +540,7 @@ const Home = () => {
                 <span style={{ fontFamily: 'var(--display)', fontSize: 'clamp(20px,2.4vw,36px)', lineHeight: 1, letterSpacing: '-.03em', color: 'var(--cream)' }}>
                   <CountUp to={s.to} suffix={s.suffix} />
                 </span>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.18em', textTransform: 'uppercase', color: 'rgba(253,248,242,.5)', marginTop: 12 }}>{s.label}</span>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.18em', textTransform: 'uppercase', color: 'rgba(253,248,242,.75)', marginTop: 12 }}>{s.label}</span>
               </div>
             </React.Fragment>
           ))}
@@ -640,11 +640,11 @@ const Home = () => {
           {/* Feature card */}
           <motion.div key={matchIdx} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             style={{
-              aspectRatio: '3/2', borderRadius: 6, position: 'relative', overflow: 'hidden',
+              height: 480, borderRadius: 6, position: 'relative', overflow: 'hidden',
               padding: 28, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
               boxShadow: '0 40px 80px -30px rgba(0,0,0,.5)',
             }}>
-            <img src={cur.img} alt={cur.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src={cur.img} alt={cur.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }} />
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 30%,rgba(0,0,0,.65))' }} />
             {/* Pct */}
             <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'baseline', gap: 16, color: 'var(--cream)' }}>
@@ -682,8 +682,8 @@ const Home = () => {
             {profiles.map((p, i) => (
               <div key={i} className="ms-row" onClick={() => setMatchIdx(i)}
                 style={{
-                  display: 'grid', gridTemplateColumns: '60px 1fr 20px', gap: 12, alignItems: 'center',
-                  padding: 10, border: `1px solid ${matchIdx === i ? 'var(--gold)' : 'var(--line-on-dk)'}`,
+                  display: 'grid', gridTemplateColumns: '72px 1fr 20px', gap: 14, alignItems: 'center',
+                  padding: '10px 12px', border: `1px solid ${matchIdx === i ? 'var(--gold)' : 'var(--line-on-dk)'}`,
                   borderRadius: 4, cursor: 'pointer',
                   background: matchIdx === i ? 'rgba(253,248,242,.06)' : 'transparent',
                   transition: 'all .3s',
@@ -691,8 +691,8 @@ const Home = () => {
                 onMouseEnter={e => { if (matchIdx !== i) e.currentTarget.style.borderColor = 'var(--gold)'; }}
                 onMouseLeave={e => { if (matchIdx !== i) e.currentTarget.style.borderColor = 'var(--line-on-dk)'; }}
               >
-                <div style={{ width: 60, height: 60, borderRadius: 4, position: 'relative', overflow: 'hidden' }}>
-                  <img src={p.img} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <div style={{ width: 72, height: 80, borderRadius: 4, position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
+                  <img src={p.img} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }} />
                   <span style={{ position: 'absolute', bottom: 4, right: 4, background: 'var(--cream)', color: 'var(--burgundy)', padding: '3px 8px', borderRadius: 999, fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 500 }}>{p.match}%</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>

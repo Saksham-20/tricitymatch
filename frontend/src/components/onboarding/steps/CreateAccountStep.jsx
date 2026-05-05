@@ -136,13 +136,21 @@ const CreateAccountStep = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="space-y-4 p-5 bg-neutral-50 rounded-lg border border-neutral-200"
+          className="space-y-4 rounded-xl border-2 border-blue-100 bg-blue-50 p-5"
         >
-          <h3 className="font-semibold text-neutral-900 text-sm">Your Information (Profile Creator)</h3>
+          <div className="flex items-start gap-3">
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-white">
+              <FiUser size={14} />
+            </div>
+            <div>
+              <h3 className="font-semibold text-blue-900 text-sm">Your Details — Profile Creator</h3>
+              <p className="text-xs text-blue-700 mt-0.5">This is YOUR information as the person creating this account.</p>
+            </div>
+          </div>
 
           <FormField
             label="Your Full Name"
-            placeholder="Enter your name"
+            placeholder="Enter your own name"
             value={formData.yourName || ''}
             onChange={(value) => updateFormData('yourName', value)}
             onBlur={() => setFieldTouched('yourName')}
@@ -153,7 +161,7 @@ const CreateAccountStep = () => {
           <FormField
             label="Your Phone Number"
             type="tel"
-            placeholder="10-digit phone number"
+            placeholder="Your 10-digit phone number"
             value={formData.yourPhone || ''}
             onChange={(value) => updateFormData('yourPhone', value)}
             onBlur={() => setFieldTouched('yourPhone')}
@@ -163,7 +171,7 @@ const CreateAccountStep = () => {
 
           <div className="space-y-2">
             <label className="block text-sm font-medium text-neutral-900">
-              Your Relationship to Profile Owner *
+              Your Relationship to the Person Whose Profile This Is *
             </label>
             <select
               value={formData.relationshipToProfile || ''}
@@ -171,7 +179,7 @@ const CreateAccountStep = () => {
               onBlur={() => setFieldTouched('relationshipToProfile')}
               className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
             >
-              <option value="">Select a relationship...</option>
+              <option value="">Select your relationship to them...</option>
               {relationshipOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
@@ -190,14 +198,26 @@ const CreateAccountStep = () => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: formData.creatingFor !== 'self' ? 0.2 : 0.15 }}
-        className="space-y-4"
+        className={`space-y-4 ${formData.creatingFor !== 'self' ? 'rounded-xl border-2 border-purple-100 bg-purple-50 p-5' : ''}`}
       >
-        <h3 className="font-semibold text-neutral-900 text-sm">Account Information</h3>
+        {formData.creatingFor !== 'self' ? (
+          <div className="flex items-start gap-3">
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-purple-600 text-white">
+              <FiUsers size={14} />
+            </div>
+            <div>
+              <h3 className="font-semibold text-purple-900 text-sm">Profile Owner's Account Details</h3>
+              <p className="text-xs text-purple-700 mt-0.5">The email and password for the person whose profile you're creating. They'll use these to log in.</p>
+            </div>
+          </div>
+        ) : (
+          <h3 className="font-semibold text-neutral-900 text-sm">Account Information</h3>
+        )}
 
         <FormField
-          label="Email"
+          label={formData.creatingFor !== 'self' ? "Profile Owner's Email" : "Email"}
           type="email"
-          placeholder="email@example.com"
+          placeholder={formData.creatingFor !== 'self' ? "Their email address" : "email@example.com"}
           value={formData.email}
           onChange={(value) => updateFormData('email', value)}
           onBlur={() => setFieldTouched('email')}
@@ -206,7 +226,9 @@ const CreateAccountStep = () => {
         />
 
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-neutral-900">Password *</label>
+          <label className="block text-sm font-medium text-neutral-900">
+            {formData.creatingFor !== 'self' ? "Profile Owner's Password *" : "Password *"}
+          </label>
           <div className="relative">
             <input
               type={showPassword ? 'text' : 'password'}

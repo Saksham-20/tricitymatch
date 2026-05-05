@@ -249,10 +249,10 @@ const Navbar = () => {
         transition={{ duration: 0.45, ease: 'easeOut' }}
         role="navigation"
         aria-label="Main navigation"
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 dark:bg-[#14182a] dark:border-[#252b3b] ${
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-white dark:bg-[#14182a] dark:border-[#252b3b] ${
           isScrolled
-            ? 'bg-white/98 backdrop-blur-lg shadow-sm border-b border-neutral-100 dark:shadow-none dark:border-b'
-            : 'bg-white/95 backdrop-blur-md'
+            ? 'shadow-sm border-b border-neutral-100 dark:shadow-none dark:border-b'
+            : 'border-b border-neutral-100/60'
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
