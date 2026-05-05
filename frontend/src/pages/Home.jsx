@@ -644,11 +644,11 @@ const Home = () => {
               boxShadow: '0 40px 80px -30px rgba(0,0,0,.5)',
               background: 'rgba(45,26,34,0.55)',
             }}>
-            {/* Rectangular photo — full width, fixed height, no cropping of face */}
-            <div style={{ position: 'relative', width: '100%', height: 340, flexShrink: 0 }}>
+            {/* Rectangular photo — contain so full person is visible */}
+            <div style={{ position: 'relative', width: '100%', height: 340, flexShrink: 0, background: cur.grad }}>
               <img
                 src={cur.img} alt={cur.name}
-                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 15%', display: 'block' }}
+                style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center bottom', display: 'block' }}
               />
               {/* Subtle bottom gradient only */}
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 60%,rgba(0,0,0,.4))' }} />
@@ -700,9 +700,9 @@ const Home = () => {
                 onMouseEnter={e => { if (matchIdx !== i) e.currentTarget.style.borderColor = 'var(--gold)'; }}
                 onMouseLeave={e => { if (matchIdx !== i) e.currentTarget.style.borderColor = 'var(--line-on-dk)'; }}
               >
-                {/* Square thumbnail — small enough, centred on face */}
-                <div style={{ width: 56, height: 56, borderRadius: 4, position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
-                  <img src={p.img} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 10%' }} />
+                {/* Rectangular thumbnail — contain so full person visible */}
+                <div style={{ width: 56, height: 64, borderRadius: 4, position: 'relative', overflow: 'hidden', flexShrink: 0, background: p.grad }}>
+                  <img src={p.img} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center bottom' }} />
                   <span style={{ position: 'absolute', bottom: 2, right: 2, background: 'var(--cream)', color: 'var(--burgundy)', padding: '2px 6px', borderRadius: 999, fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 600 }}>{p.match}%</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
