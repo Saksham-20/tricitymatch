@@ -527,6 +527,30 @@ Live end-to-end QA on tricityshadi.com. 6 bugs fixed:
 
 **Deployment note:** Must use `--force-recreate` flag when new backend image is built, or running container stays on old image. Regular `docker compose up -d` does NOT replace containers with new images unless they were stopped.
 
+### Mobile Responsiveness Pass — 2026-06-02
+
+Full mobile (375px) and tablet (768px) responsiveness audit and fix on `Home.jsx`.
+
+**Breakpoints added/refined:** `≤1000px`, `≤900px`, `≤600px`, `≤480px`
+
+**Fixes applied to `frontend/src/pages/Home.jsx`:**
+- **Hero:** Single-column layout, title/desc/CTA visible in first viewport, live pill truncates with ellipsis, spinning badge hidden on mobile, photo block compact height
+- **Stats:** 2×2 CSS grid on mobile (was flex-wrap with huge gaps between rows due to separator spans)
+- **Why:** Header unsticky, horizontal scroll cards narrower (`flex: 0 0 240px`), correct scroll padding
+- **Matches:** Full-width feature card, side rail hidden (`display:none`)
+- **Process:** Sticky 180vh scroll hidden on mobile; flat 4-step card list shown instead
+- **Cities:** Stacked vertically, always-expanded content, darker gradient overlay for text readability, count number hidden, city name smaller
+- **Quote:** Attribution wraps inline with `flexWrap`
+- **Trust:** All 4 cards render (`initial={{ opacity:1 }}` — framer-motion `whileInView` doesn't fire in headless/fast scroll)
+- **Why cards:** Same framer-motion fix — `initial={{ opacity:1 }}`
+- **All `whileInView`:** Added `amount: 0` to viewport config so animations trigger as soon as any pixel enters view
+- **Testimonials:** Polaroid pile `overflow:hidden` clips side bleeds cleanly
+- **FAQ:** Single column, sticky left panel unsticky
+- **Footer:** Single column at ≤480px, 2-col at tablet
+
+**CSS class names added to JSX for targeting:**
+`hero-cta-row`, `hero-baseline`, `hero-spin-badge`, `live-pill`, `live-text`, `stats-section`, `stats-inner`, `matches-section`, `matches-grid`, `process-outer`, `process-steps-list`, `process-step-card`, `cities-section`, `city-content-bottom`, `quote-section`, `quote-attribution`, `trust-section`, `trust-header`, `trust-cards`, `testi-section`, `testi-grid`, `polaroid-pile`, `cta-section`, `footer-mega-inner`, `footer-grid-inner`, `footer-bottom-inner`
+
 ## gstack (REQUIRED — global install)
 
 **Before doing ANY work, verify gstack is installed:**

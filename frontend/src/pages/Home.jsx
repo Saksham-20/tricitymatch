@@ -98,31 +98,98 @@ const FontLoader = () => (
 
     /* ── Responsive overrides ── */
     @media (max-width: 1000px) {
-      .hero-section { grid-template-columns: 1fr !important; }
-      .hero-section > div:nth-child(2) { padding: 48px 24px 56px !important; }
-      .hero-section > div:nth-child(3) { padding: 24px 24px 64px !important; display: flex !important; justify-content: center !important; }
-      #why { grid-template-columns: 1fr !important; }
-      #why > div:first-child { position: static !important; padding: 0 24px 32px !important; }
-      #why > div:last-child { padding: 0 24px 24px !important; }
-      .matches-section { padding: 48px 24px !important; }
-      .matches-section > div:last-child { grid-template-columns: 1fr !important; }
-      .cities-section > div:first-child { grid-template-columns: 1fr !important; padding: 60px 24px !important; }
+      /* Hero: single column */
+      .hero-section { grid-template-columns: 1fr !important; min-height: auto !important; }
+      /* Text block — nth-child(1) */
+      .hero-section > div:nth-child(1) { padding: 32px 20px 24px !important; justify-content: flex-start !important; gap: 0 !important; }
+      /* Title inside text block */
+      .hero-section > div:nth-child(1) > div:nth-child(2) { margin: 16px 0 !important; }
+      /* Photo block — nth-child(2) */
+      .hero-section > div:nth-child(2) { padding: 8px 20px 72px !important; display: flex !important; justify-content: center !important; min-height: 280px !important; max-height: 380px !important; overflow: visible !important; }
+      /* Baseline strip — nth-child(3) */
+      .hero-baseline { padding: 10px 20px !important; flex-wrap: wrap !important; gap: 8px 14px !important; }
+      /* CTA row: stack description above buttons */
+      .hero-cta-row { grid-template-columns: 1fr !important; gap: 20px !important; align-items: flex-start !important; }
+      /* Live pill: truncate overflow text */
+      .live-pill { max-width: calc(100vw - 40px) !important; left: 50% !important; transform: translateX(-50%) !important; }
+      .live-pill .live-text { max-width: 140px !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; display: inline-block !important; vertical-align: middle !important; }
+      /* Spinning badge: hide on mobile */
+      .hero-spin-badge { display: none !important; }
+      /* Why section */
+      #why { grid-template-columns: 1fr !important; padding: 48px 0 32px !important; }
+      #why > div:first-child { position: static !important; padding: 0 20px 32px !important; }
+      #why-scroller { padding: 0 20px 20px !important; scroll-padding-left: 20px !important; }
+      /* why cards: slightly narrower on mobile */
+      .why-tile { flex: 0 0 240px !important; }
+      /* Matches */
+      .matches-section { padding: 36px 20px !important; }
+      .matches-section > div:first-child { flex-direction: column !important; align-items: flex-start !important; }
+      .matches-grid { grid-template-columns: 1fr !important; }
+      .matches-grid > div:last-child { display: none !important; }
+      /* Process */
+      .process-outer { display: none !important; }
+      .process-steps-list { display: flex !important; flex-direction: column !important; gap: 16px !important; padding: 40px 20px !important; background: var(--cream-3) !important; border-top: 1px solid var(--line) !important; border-bottom: 1px solid var(--line) !important; }
+      .process-step-card { padding: 20px !important; border: 1px solid var(--line) !important; border-radius: 4px !important; background: var(--cream) !important; }
+      /* Cities: stack vertically */
+      .cities-section > div:first-child { grid-template-columns: 1fr !important; padding: 40px 20px 24px !important; }
       .cities-section > div:last-child { flex-direction: column !important; height: auto !important; }
-      .cities-section > div:last-child > div { flex: 1 !important; min-height: 320px !important; border-right: none !important; border-bottom: 1px solid var(--line-on-dk) !important; }
+      .cities-section > div:last-child > div { flex: 1 !important; min-height: 260px !important; border-right: none !important; border-bottom: 1px solid var(--line-on-dk) !important; }
+      /* City: hide rotated vertical label, always show expanded content */
       .cities-section > div:last-child > div > div:nth-child(2) { display: none !important; }
-      .cities-section > div:last-child > div > div:nth-child(3) { opacity: 1 !important; padding: 32px 24px !important; }
+      .cities-section > div:last-child > div > div:nth-child(3) { opacity: 1 !important; padding: 16px 20px 20px !important; }
+      /* Darken city overlay on mobile for readability */
+      .city-strip > div:nth-child(2) { background: linear-gradient(180deg, rgba(45,26,34,0.5) 0%, rgba(45,26,34,0.92) 100%) !important; }
+      /* City name: smaller on mobile */
+      .cities-section > div:last-child > div > div:nth-child(3) > div:nth-child(2) { font-size: 28px !important; line-height: 1 !important; margin-bottom: 8px !important; }
+      /* City top row: compact, hide count */
+      .cities-section > div:last-child > div > div:nth-child(3) > div:nth-child(1) > div { display: none !important; }
+      /* City expanded content: stack desc + button vertically */
+      .city-content-bottom { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
+      /* City desc: tighter */
+      .city-content-bottom > p { font-size: 13px !important; line-height: 1.45 !important; max-width: 100% !important; }
+      /* Quote */
+      .quote-section { padding: 40px 20px !important; }
+      .quote-attribution { flex-wrap: wrap !important; gap: 8px !important; justify-content: center !important; row-gap: 4px !important; }
+      /* CTA */
+      .cta-section { padding: 48px 20px !important; }
     }
     @media (max-width: 900px) {
       nav .nav-links-wrap { display: none !important; }
       nav { padding: 16px 20px !important; }
-      #trust > div:first-child { grid-template-columns: 1fr !important; }
-      #trust > div:last-child { grid-template-columns: 1fr 1fr !important; }
-      .testi-grid { grid-template-columns: 1fr !important; }
-      #faq { grid-template-columns: 1fr !important; padding: 80px 24px !important; }
+      /* Trust */
+      .trust-section { padding: 40px 20px !important; }
+      .trust-header { grid-template-columns: 1fr !important; }
+      .trust-cards { grid-template-columns: 1fr 1fr !important; }
+      /* Testimonials */
+      .testi-section { padding: 40px 20px !important; }
+      .testi-grid { grid-template-columns: 1fr !important; gap: 0 !important; }
+      .testi-grid > div:first-child { height: 280px !important; margin-bottom: 40px !important; overflow: hidden !important; }
+      /* FAQ */
+      #faq { grid-template-columns: 1fr !important; padding: 48px 20px !important; }
       #faq > div:first-child { position: static !important; }
-      .footer-grid-inner { grid-template-columns: 1fr 1fr !important; padding: 40px 24px !important; }
-      .footer-mega-inner { padding: 40px 24px 24px !important; }
-      .footer-bottom-inner { padding: 24px 24px 0 !important; }
+      /* Footer */
+      .footer-grid-inner { grid-template-columns: 1fr 1fr !important; padding: 32px 20px !important; }
+      .footer-mega-inner { padding: 32px 20px 20px !important; }
+      .footer-bottom-inner { padding: 20px 20px 0 !important; flex-direction: column !important; align-items: flex-start !important; gap: 8px !important; }
+      /* Stats: 2x2 grid on mobile, no separators */
+      .stats-section { padding: 20px 16px !important; }
+      .stats-inner { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 1px !important; background: var(--line-on-dk) !important; border: 1px solid var(--line-on-dk) !important; }
+      .stats-inner > span { display: none !important; }
+      .stats-inner > div { padding: 16px 8px !important; text-align: center !important; background: var(--ink) !important; flex: none !important; }
+    }
+    @media (max-width: 600px) {
+      .trust-cards { grid-template-columns: 1fr !important; }
+    }
+    @media (max-width: 480px) {
+      .hero-section > div:nth-child(1) { padding: 24px 16px 20px !important; }
+      .footer-grid-inner { grid-template-columns: 1fr !important; }
+      .testi-grid > div:first-child { height: 240px !important; }
+      .matches-section { padding: 28px 16px !important; }
+      #why > div:first-child { padding: 0 16px 24px !important; }
+      #why-scroller { padding: 0 16px 16px !important; }
+    }
+    @media (min-width: 1001px) {
+      .process-steps-list { display: none !important; }
     }
 
     /* ── FAQ toggle ── */
@@ -343,7 +410,7 @@ const Home = () => {
       ════════════════════════════════════════════════════════ */}
       <section style={{
         minHeight: '100vh', display: 'grid', gridTemplateColumns: '1.1fr 0.9fr',
-        paddingTop: 64, position: 'relative'
+        paddingTop: 64, position: 'relative', boxSizing: 'border-box',
       }} className="hero-section">
 
         {/* LEFT */}
@@ -377,7 +444,7 @@ const Home = () => {
 
           {/* Gold underline on "begins" — drawn via pseudo (handled inline) */}
 
-          <div style={{
+          <div className="hero-cta-row" style={{
             display: 'grid', gridTemplateColumns: '1fr auto', gap: 24,
             alignItems: 'end', paddingTop: 24,
             borderTop: '1px solid var(--line)',
@@ -455,11 +522,11 @@ const Home = () => {
           </div>
 
           {/* Live match pill */}
-          <div style={{
+          <div className="live-pill" style={{
             position: 'absolute', bottom: -28, left: '50%', transform: 'translateX(-50%)',
             background: 'var(--cream-3)', border: '1px solid var(--line)',
             padding: '10px 18px', borderRadius: 999,
-            display: 'flex', alignItems: 'center', gap: 10, fontSize: 13,
+            display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, overflow: 'hidden',
             boxShadow: '0 14px 36px -14px rgba(45,26,34,.18)', zIndex: 5,
             animation: 'rise 1s 1.5s both', whiteSpace: 'nowrap',
           }}>
@@ -467,6 +534,7 @@ const Home = () => {
             <span style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--mute)' }}>Just matched</span>
             <AnimatePresence mode="wait">
               <motion.span key={liveIdx} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+                className="live-text"
                 style={{ fontFamily: 'var(--display)', fontSize: 16, fontStyle: 'italic' }}>
                 {curLive.who} · {curLive.where} · {curLive.pct}%
               </motion.span>
@@ -474,7 +542,7 @@ const Home = () => {
           </div>
 
           {/* Rotating badge */}
-          <div style={{ position: 'absolute', top: 20, right: 24, width: 110, height: 110, animation: 'spin 30s linear infinite' }}>
+          <div className="hero-spin-badge" style={{ position: 'absolute', top: 20, right: 24, width: 110, height: 110, animation: 'spin 30s linear infinite' }}>
             <svg viewBox="0 0 200 200" style={{ width: '100%', height: '100%' }}>
               <defs>
                 <path id="circ" d="M100,100 m-78,0 a78,78 0 1,1 156,0 a78,78 0 1,1 -156,0" />
@@ -488,7 +556,7 @@ const Home = () => {
         </div>
 
         {/* Baseline strip */}
-        <div style={{
+        <div className="hero-baseline" style={{
           gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 14,
           fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '.14em', textTransform: 'uppercase',
           color: 'var(--ink-soft)', padding: '12px 40px', borderTop: '1px solid var(--line)',
@@ -525,9 +593,9 @@ const Home = () => {
       {/* ════════════════════════════════════════════════════════
           STATS — dark horizontal strip with count-up
       ════════════════════════════════════════════════════════ */}
-      <section className="section-dark" style={{ background: 'var(--ink)', color: 'var(--cream)', padding: '32px 40px', position: 'relative', overflow: 'hidden' }}>
+      <section className="stats-section section-dark" style={{ background: 'var(--ink)', color: 'var(--cream)', padding: '32px 40px', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 100%, rgba(124,29,58,0.5), transparent 60%)' }} />
-        <div style={{ position: 'relative', maxWidth: 1280, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
+        <div className="stats-inner" style={{ position: 'relative', maxWidth: 1280, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
           {[
             { to: 1190, suffix: '+', label: 'Matches' },
             { to: 50,   suffix: 'K+', label: 'Verified' },
@@ -553,7 +621,7 @@ const Home = () => {
       <section id="why" style={{ display: 'grid', gridTemplateColumns: '0.85fr 2fr', padding: '64px 0 48px', alignItems: 'start' }}>
         {/* Sticky left */}
         <div style={{ position: 'sticky', top: 80, padding: '0 28px 0 40px' }}>
-          <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+          <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0 }}>
             <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--burgundy)', marginBottom: 24, display: 'block' }}>— Why TricityShadi</span>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', marginBottom: 24 }}>
               Six reasons<br />this <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>isn't</em><br />another app.
@@ -570,7 +638,7 @@ const Home = () => {
         {/* Horizontal scroll */}
         <div id="why-scroller" className="why-scroller" style={{ display: 'flex', gap: 16, overflowX: 'auto', padding: '0 24px 20px', scrollSnapType: 'x mandatory' }}>
           {whyCards.map((c, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            <motion.div key={i} initial={{ opacity: 1, y: 0 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0 }}
               transition={{ delay: i * 0.07 }}
               className="why-tile"
               style={{
@@ -636,7 +704,7 @@ const Home = () => {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+        <div className="matches-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
           {/* Feature card — photo left, details right */}
           <motion.div key={matchIdx} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             style={{
@@ -727,8 +795,28 @@ const Home = () => {
       {/* ════════════════════════════════════════════════════════
           PROCESS — sticky scroll, rotating SVG dial
       ════════════════════════════════════════════════════════ */}
-      <div ref={processRef} style={{ height: '180vh', position: 'relative' }}>
-        <div style={{
+      {/* Mobile process — flat list, hidden on desktop */}
+      <div className="process-steps-list" style={{ display: 'none' }}>
+        <div style={{ padding: '0 0 24px', background: 'var(--cream-3)' }}>
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--burgundy)', display: 'block', marginBottom: 12 }}>— The process</span>
+          <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,6vw,36px)', lineHeight: .96, letterSpacing: '-.025em' }}>
+            From hello<br />to <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>forever.</em>
+          </h2>
+        </div>
+        {processSteps.map((s, i) => (
+          <div key={i} className="process-step-card">
+            <div style={{ fontFamily: 'var(--display)', fontSize: 48, lineHeight: .8, color: 'var(--burgundy)', fontStyle: 'italic', marginBottom: 8 }}>{s.n}</div>
+            <div style={{ fontFamily: 'var(--display)', fontSize: 22, lineHeight: 1.1, marginBottom: 8 }}>{s.t}</div>
+            <div style={{ fontSize: 14, lineHeight: 1.55, color: 'var(--ink-soft)', marginBottom: 12 }}>{s.b}</div>
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--ink-soft)' }}>
+              {s.meta.map((m, j) => <span key={j} style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ color: 'var(--burgundy)', fontSize: 7 }}>◆</span>{m}</span>)}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div ref={processRef} className="process-outer" style={{ height: '180vh', position: 'relative' }}>
+        <div className="process-sticky" style={{
           position: 'sticky', top: 64, height: 'calc(100vh - 64px)',
           display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 32,
           padding: '32px 40px 24px', alignItems: 'center',
@@ -822,7 +910,7 @@ const Home = () => {
       ════════════════════════════════════════════════════════ */}
       <section id="cities" className="cities-section section-dark" style={{ background: 'var(--ink)', color: 'var(--cream)' }}>
         <div style={{ padding: '48px 40px 32px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, alignItems: 'end' }}>
-          <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+          <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0 }}>
             <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 24, display: 'block' }}>— Made for Tricity</span>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', color: 'var(--cream)' }}>
               Three cities.<br />One <em style={{ fontStyle: 'italic', color: 'var(--gold)' }}>community.</em>
@@ -879,7 +967,7 @@ const Home = () => {
                   </div>
                 </div>
                 <div style={{ fontFamily: 'var(--display)', fontSize: 'clamp(32px,4vw,64px)', lineHeight: .9, letterSpacing: '-.025em', color: 'var(--cream)' }}>{c.name}</div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 24 }}>
+                <div className="city-content-bottom" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 24 }}>
                   <p style={{ fontSize: 14, lineHeight: 1.55, color: 'rgba(253,248,242,.75)', maxWidth: 320, fontFamily: 'var(--sans)' }}>{c.desc}</p>
                   <Link to="/search" style={{
                     fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.16em', textTransform: 'uppercase',
@@ -899,24 +987,24 @@ const Home = () => {
       {/* ════════════════════════════════════════════════════════
           QUOTE — giant overlapping serif
       ════════════════════════════════════════════════════════ */}
-      <section style={{ background: 'var(--cream)', padding: '52px 40px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+      <section className="quote-section" style={{ background: 'var(--cream)', padding: '52px 40px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
         <span style={{
           position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-55%)',
           fontFamily: 'var(--display)', fontStyle: 'italic', fontSize: 'clamp(160px,22vw,320px)', lineHeight: .7,
           color: 'var(--burgundy)', opacity: .06, userSelect: 'none', pointerEvents: 'none',
         }}>"</span>
-        <motion.div initial={{ opacity: 0, y: 32 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} style={{ position: 'relative' }}>
+        <motion.div initial={{ opacity: 0, y: 32 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0 }} style={{ position: 'relative' }}>
           <p style={{ fontFamily: 'var(--display)', fontSize: 'clamp(28px,4vw,62px)', lineHeight: 1.05, letterSpacing: '-.02em', maxWidth: 1100, margin: '0 auto 56px' }}>
             The right match isn't a number<br />away — <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>they're a neighbourhood</em><br />
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 24 }}>
               <span style={{ display: 'inline-block', width: 80, height: 2, background: 'var(--gold)' }} />away.
             </span>
           </p>
-          <p style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--mute)', display: 'inline-flex', gap: 14, alignItems: 'center' }}>
+          <p className="quote-attribution" style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--mute)', display: 'inline-flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
             <span>— Founders, TricityShadi</span>
-            <span style={{ color: 'var(--burgundy)' }}>·</span>
+            <span className="dot" style={{ color: 'var(--burgundy)' }}>·</span>
             <span>Chandigarh</span>
-            <span style={{ color: 'var(--burgundy)' }}>·</span>
+            <span className="dot" style={{ color: 'var(--burgundy)' }}>·</span>
             <span>2026</span>
           </p>
         </motion.div>
@@ -925,8 +1013,8 @@ const Home = () => {
       {/* ════════════════════════════════════════════════════════
           TRUST — burgundy tile grid
       ════════════════════════════════════════════════════════ */}
-      <section id="trust" className="section-dark" style={{ background: 'var(--burgundy)', color: 'var(--cream)', padding: '52px 40px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'end', marginBottom: 24 }}>
+      <section id="trust" className="trust-section section-dark" style={{ background: 'var(--burgundy)', color: 'var(--cream)', padding: '52px 40px' }}>
+        <div className="trust-header" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'end', marginBottom: 24 }}>
           <div>
             <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 24, display: 'block' }}>— Safety first</span>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', color: 'var(--cream)' }}>
@@ -937,14 +1025,14 @@ const Home = () => {
             We don't just ask for trust — we earn it. Every feature is designed to protect your privacy, safety, and dignity.
           </p>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+        <div className="trust-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
           {[
             { n: '01', t: 'Identity verified',      b: 'Govt. ID required before going live.',                      Icon: FiShield },
             { n: '02', t: 'End-to-end encrypted',   b: 'Conversations encrypted in transit and at rest.',           Icon: FiLock },
             { n: '03', t: 'Human-moderated',        b: 'Safety team reviews flagged profiles daily.',               Icon: FiCheckCircle },
             { n: '04', t: 'Family approved',        b: 'Designed to include families, never pressure.',             Icon: FiUsers },
           ].map((it, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
+            <motion.div key={i} initial={{ opacity: 1, y: 0 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0 }} transition={{ delay: i * 0.05 }}
               style={{ padding: '20px 18px', border: '1px solid var(--line-on-dk)', borderRadius: 4, display: 'flex', flexDirection: 'column', gap: 12, minHeight: 200, transition: 'all .4s', cursor: 'default' }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--gold)'; e.currentTarget.style.transform = 'translateY(-4px)'; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--line-on-dk)'; e.currentTarget.style.transform = ''; }}
@@ -961,7 +1049,7 @@ const Home = () => {
       {/* ════════════════════════════════════════════════════════
           TESTIMONIALS — polaroid stack carousel with real images
       ════════════════════════════════════════════════════════ */}
-      <section style={{ background: 'var(--cream)', padding: '56px 40px' }}>
+      <section className="testi-section" style={{ background: 'var(--cream)', padding: '56px 40px', overflow: 'hidden' }}>
         <div style={{ marginBottom: 40 }}>
           <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--burgundy)', marginBottom: 24, display: 'block' }}>— Real couples</span>
           <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em' }}>
@@ -970,7 +1058,7 @@ const Home = () => {
         </div>
         <div className="testi-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'center' }}>
           {/* Polaroid pile */}
-          <div style={{ position: 'relative', height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="polaroid-pile" style={{ position: 'relative', height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
             {stories.map((s, i) => {
               const offset = i - storyIdx;
               return (
@@ -1028,7 +1116,7 @@ const Home = () => {
       ════════════════════════════════════════════════════════ */}
       <section id="faq" style={{ background: 'var(--cream)', padding: '64px 40px', display: 'grid', gridTemplateColumns: '0.9fr 1.1fr', gap: 48, alignItems: 'start' }}>
         <div style={{ position: 'sticky', top: 80 }}>
-          <motion.div initial={{ opacity: 0, x: -24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
+          <motion.div initial={{ opacity: 0, x: -24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0 }}>
             <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--burgundy)', marginBottom: 24, display: 'block' }}>— FAQ</span>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', marginBottom: 24 }}>
               Questions?<br />We've got <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>answers.</em>
@@ -1100,7 +1188,7 @@ const Home = () => {
         ))}
 
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <motion.div initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+          <motion.div initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0 }}>
             <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 32, display: 'block' }}>★ Your story awaits ★</span>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.8vw,44px)', lineHeight: .92, letterSpacing: '-.025em', marginBottom: 32 }}>
               Every great<br />love story<br />starts with <em style={{ fontStyle: 'italic', color: 'var(--gold)' }}>one step.</em>
