@@ -1251,7 +1251,7 @@ const Home = () => {
                 { icon: <FaTwitter />, label: 'Twitter' },
               ].map(s => (
                 <a key={s.label} href="#" aria-label={s.label}
-                  style={{ width: 36, height: 36, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--line-on-dk)', color: 'rgba(253,248,242,.5)', transition: 'all .3s', textDecoration: 'none' }}
+                  style={{ width: 44, height: 44, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--line-on-dk)', color: 'rgba(253,248,242,.5)', transition: 'all .3s', textDecoration: 'none' }}
                   onMouseEnter={e => { e.currentTarget.style.background = 'var(--burgundy)'; e.currentTarget.style.color = 'var(--cream)'; e.currentTarget.style.borderColor = 'var(--burgundy)'; }}
                   onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(253,248,242,.5)'; e.currentTarget.style.borderColor = 'var(--line-on-dk)'; }}
                 >{s.icon}</a>
@@ -1265,16 +1265,16 @@ const Home = () => {
           ].map(col => (
             <div key={col.title}>
               <h5 style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--gold)', fontWeight: 500, marginBottom: 20 }}>{col.title}</h5>
-              <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column' }}>
                 {col.links.map(([label, to]) => (
                   <li key={label}>
                     {to ? (
-                      <Link to={to} style={{ fontSize: 14, color: 'rgba(253,248,242,.85)', textDecoration: 'none', transition: 'color .3s, padding-left .3s', display: 'block', fontFamily: 'var(--sans)' }}
+                      <Link to={to} style={{ fontSize: 14, color: 'rgba(253,248,242,.85)', textDecoration: 'none', transition: 'color .3s, padding-left .3s', display: 'flex', alignItems: 'center', minHeight: 44, padding: '7px 0', fontFamily: 'var(--sans)' }}
                         onMouseEnter={e => { e.target.style.color = 'var(--gold)'; e.target.style.paddingLeft = '6px'; }}
                         onMouseLeave={e => { e.target.style.color = 'rgba(253,248,242,.85)'; e.target.style.paddingLeft = '0'; }}
                       >{label}</Link>
                     ) : (
-                      <span style={{ fontSize: 14, color: 'rgba(253,248,242,.85)', fontFamily: 'var(--sans)' }}>{label}</span>
+                      <span style={{ fontSize: 14, color: 'rgba(253,248,242,.85)', fontFamily: 'var(--sans)', display: 'block', padding: '7px 0' }}>{label}</span>
                     )}
                   </li>
                 ))}
