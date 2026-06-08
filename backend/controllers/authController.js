@@ -11,6 +11,7 @@ const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { recordFailedLogin, clearLoginAttempts } = require('../middlewares/security');
 const { log } = require('../middlewares/logger');
 const { OAuth2Client } = require('google-auth-library');
+const smsService = require('../utils/smsService');
 
 // Cookie configuration: use Secure only over HTTPS so cookies work when frontend is http://
 const useSecureCookies = config.isProduction && (config.server.frontendUrl || '').startsWith('https');
@@ -616,31 +617,43 @@ exports.deleteAccount = asyncHandler(async (req, res) => {
 });
 
 // @route   POST /api/auth/send-otp
-// @desc    Send dummy OTP for testing
+// @desc    Send real OTP via SMS (Fast2SMS/MSG91) or log in dev mode
 // @access  Public
 exports.sendOtp = asyncHandler(async (req, res) => {
-  const { type, target } = req.body; // type: 'email' or 'phone'
-  log.info(`[DUMMY OTP] Sending OTP to ${target} via ${type}`);
-  res.json({
-    success: true,
-    message: `OTP sent successfully to ${target}`
-  });
+  const { type, target } = req.body;
+  if (!target) throw createError.badRequest('target is required');
+
+  if (type === 'phone') {
+    const result = await smsService.sendOtp(target);
+    res.json(result);
+  } else if (type === 'email') {
+    // Email OTP: use smsService-style store but deliver via email
+    const { sendEmail } = require('../utils/email');
+    const { set: cacheSet } = require('../utils/cache');
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const payload = JSON.stringify({ code, expiresAt: Date.now() + 600 * 1000, attempts: 0 });
+    await cacheSet(`otp:${target}`, payload, 600);
+    await sendEmail({
+      to: target,
+      subject: 'Your TricityShadi verification code',
+      html: `<p>Your verification code is: <strong>${code}</strong></p><p>Valid for 10 minutes. Do not share.</p>`,
+    });
+    res.json({ success: true, message: 'OTP sent to email' });
+  } else {
+    throw createError.badRequest('type must be phone or email');
+  }
 });
 
 // @route   POST /api/auth/verify-otp
-// @desc    Verify dummy OTP for testing (accepts 123456 or 000000)
+// @desc    Verify OTP — enforces expiry, attempt limits, no bypass codes
 // @access  Public
 exports.verifyOtp = asyncHandler(async (req, res) => {
   const { type, target, code } = req.body;
-  if (code === '123456' || code === '000000') {
-    log.info(`[DUMMY OTP] Verified OTP for ${target} via ${type}`);
-    res.json({
-      success: true,
-      message: `${type} verified successfully`
-    });
-  } else {
-    throw createError.badRequest('Invalid OTP');
-  }
+  if (!target || !code) throw createError.badRequest('target and code are required');
+
+  // Use smsService verifyOtp for both phone and email (same Redis store)
+  const result = await smsService.verifyOtp(target, code);
+  res.json({ ...result, message: `${type} verified successfully` });
 });
 
 // @route   POST /api/auth/google

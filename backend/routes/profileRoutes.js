@@ -5,19 +5,23 @@
 
 const express = require('express');
 const router = express.Router();
-const { 
-  getMyProfile, 
-  updateProfile, 
-  getProfile, 
-  getProfileStats, 
-  deletePhoto, 
+const {
+  getMyProfile,
+  updateProfile,
+  getProfile,
+  getProfileStats,
+  deletePhoto,
   deleteProfilePhoto,
   updatePrivacySettings,
   unlockContact,
   getProfileViewers,
+  getCompatibilityBreakdown,
+  getHoroscopeMatch,
+  uploadVoiceIntro: uploadVoiceIntroHandler,
+  deleteVoiceIntro,
 } = require('../controllers/profileController');
 const { auth, requirePremium, checkContactUnlockLimit, verifyTargetUser } = require('../middlewares/auth');
-const { uploadPhotos, validateUploadedFiles } = require('../middlewares/upload');
+const { uploadPhotos, validateUploadedFiles, uploadVoiceIntro } = require('../middlewares/upload');
 const { handleValidationErrors } = require('../middlewares/errorHandler');
 const { profileUpdateLimiter, uploadLimiter } = require('../middlewares/security');
 const { updateProfileValidation, getProfileValidation, deletePhotoValidation } = require('../validators');
@@ -81,6 +85,17 @@ router.delete('/me/photo',
 // Delete profile photo
 router.delete('/me/profile-photo', auth, deleteProfilePhoto);
 
+// Voice intro upload (30s max, auth required, rate limited via uploadLimiter)
+router.post('/voice-intro',
+  auth,
+  uploadLimiter,
+  uploadVoiceIntro,
+  uploadVoiceIntroHandler,
+);
+
+// Delete voice intro
+router.delete('/voice-intro', auth, deleteVoiceIntro);
+
 // Update privacy settings
 router.put('/privacy', auth, updatePrivacySettings);
 
@@ -101,6 +116,12 @@ router.post('/:userId/unlock-contact',
   checkContactUnlockLimit,
   unlockContact
 );
+
+// Compatibility breakdown (APP-049 — "Why This Match")
+router.get('/:userId/compatibility', auth, getCompatibilityBreakdown);
+
+// Horoscope / Ashtakoot match (APP-055)
+router.get('/:userId/horoscope-match', auth, getHoroscopeMatch);
 
 module.exports = router;
 

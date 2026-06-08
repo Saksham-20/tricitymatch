@@ -273,7 +273,25 @@ const setupCleanupProcessor = (queue) => {
         });
 
         if (matchCount > 0) {
+          // Email digest
           await sendWeeklyDigest(user.email, profile.firstName || 'there', matchCount, '');
+
+          // Push notification (APP-047) — best-effort, non-blocking
+          if (user.fcmTokens?.length) {
+            const { sendPushNotification } = require('./fcm');
+            const pushTitle = `${matchCount} new profile${matchCount === 1 ? '' : 's'} match your preferences`;
+            const pushBody = `${profile.firstName ? `Hi ${profile.firstName}! ` : ''}Browse your weekly matches now.`;
+            sendPushNotification(user.fcmTokens, pushTitle, pushBody, {
+              type: 'weekly_digest',
+              matchCount: String(matchCount),
+            }).then(({ failedTokens }) => {
+              if (failedTokens.length > 0) {
+                const cleanedTokens = user.fcmTokens.filter((t) => !failedTokens.includes(t));
+                User.update({ fcmTokens: cleanedTokens }, { where: { id: user.id } }).catch(() => {});
+              }
+            }).catch(() => {});
+          }
+
           sent++;
         }
       } catch (err) {
@@ -283,6 +301,98 @@ const setupCleanupProcessor = (queue) => {
 
     log.info('Weekly digest sent', { sent, total: users.length });
     return { sent };
+  });
+
+  // APP-048 — Saved Search Alert: notify users when a new profile matches a saved search
+  queue.process('saved-search-alerts', async (job) => {
+    const { User, Profile } = require('../models');
+    const { Op } = require('sequelize');
+    const { get: cacheGet, set: cacheSet } = require('./cache');
+    const notify = require('./notifyUser');
+
+    // Fetch all users who have saved searches stored (as MMKV on device)
+    // Backend-side: we use profile.lifestylePreferences.savedSearches (stored during save-search API call)
+    // We check profiles created in last 24h against each user's preferences
+    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    const users = await User.findAll({
+      where: { status: 'active' },
+      include: [{
+        model: Profile,
+        where: { isActive: true, gender: { [Op.in]: ['male', 'female'] } },
+        attributes: ['gender', 'city', 'state', 'religion', 'caste', 'preferredAgeMin', 'preferredAgeMax',
+                     'preferredEducation', 'preferredProfession', 'lifestylePreferences', 'firstName'],
+      }],
+      attributes: ['id', 'fcmTokens'],
+      limit: 1000,
+    });
+
+    let notified = 0;
+
+    for (const user of users) {
+      try {
+        const profile = user.Profile;
+        if (!profile) continue;
+
+        // Extract saved searches from lifestylePreferences.savedSearches
+        const savedSearches = profile.lifestylePreferences?.savedSearches;
+        if (!Array.isArray(savedSearches) || savedSearches.length === 0) continue;
+
+        for (const search of savedSearches) {
+          const { name, filters } = search;
+          if (!filters) continue;
+
+          // Rate limit: max 1 alert per saved search per day
+          const alertKey = `search_alert:${user.id}:${name}`;
+          const alreadySent = await cacheGet(alertKey);
+          if (alreadySent) continue;
+
+          const where = {
+            isActive: true,
+            incognitoMode: { [Op.ne]: true },
+            userId: { [Op.ne]: user.id },
+            createdAt: { [Op.gte]: dayAgo },
+          };
+
+          if (filters.gender) where.gender = filters.gender;
+          if (filters.religion) where.religion = filters.religion;
+          if (filters.caste) where.caste = filters.caste;
+          if (filters.city?.length) where.city = { [Op.in]: filters.city };
+
+          if (filters.ageMin || filters.ageMax) {
+            const dobWhere = {};
+            if (filters.ageMin) {
+              const maxDob = new Date();
+              maxDob.setFullYear(maxDob.getFullYear() - filters.ageMin);
+              dobWhere[Op.lte] = maxDob;
+            }
+            if (filters.ageMax) {
+              const minDob = new Date();
+              minDob.setFullYear(minDob.getFullYear() - filters.ageMax - 1);
+              dobWhere[Op.gte] = minDob;
+            }
+            if (Object.keys(dobWhere).length) where.dateOfBirth = dobWhere;
+          }
+
+          const count = await Profile.count({ where });
+          if (count > 0) {
+            await notify(
+              user.id,
+              'system',
+              `New match for "${name}"`,
+              `${count} new profile${count === 1 ? '' : 's'} match${count === 1 ? 'es' : ''} your saved search.`,
+            );
+            await cacheSet(alertKey, '1', 86400); // 24h dedup
+            notified++;
+          }
+        }
+      } catch (err) {
+        log.warn('Saved search alert failed for user', { userId: user.id, error: err.message });
+      }
+    }
+
+    log.info('Saved search alerts sent', { notified, total: users.length });
+    return { notified };
   });
 
   queue.process('expire-subscriptions', async (job) => {
@@ -433,9 +543,14 @@ const scheduleCleanupJobs = async () => {
       repeat: { cron: '0 * * * *' }
     });
 
-    // Weekly new-matches digest — every Monday at 10 AM
+    // Weekly new-matches digest — every Monday at 10 AM (email + push, APP-047)
     await cleanupQueue.add('send-weekly-digest', {}, {
       repeat: { cron: '0 10 * * 1' }
+    });
+
+    // Saved search alerts — every day at 9 AM (APP-048)
+    await cleanupQueue.add('saved-search-alerts', {}, {
+      repeat: { cron: '0 9 * * *' }
     });
 
     log.info('Cleanup jobs scheduled');

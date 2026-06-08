@@ -30,7 +30,20 @@ if (cloudinaryConfigured) {
 // Allowed file types
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 const ALLOWED_DOCUMENT_TYPES = [...ALLOWED_IMAGE_TYPES, 'application/pdf'];
+const ALLOWED_AUDIO_TYPES = ['audio/mpeg', 'audio/mp4', 'audio/x-m4a', 'audio/aac', 'audio/ogg', 'audio/wav', 'audio/webm'];
 const MAX_FILE_SIZE = config.upload.maxFileSize;
+const MAX_AUDIO_SIZE = 5 * 1024 * 1024; // 5MB for 30s voice note
+
+// Allowed audio extensions
+const ALLOWED_AUDIO_EXTENSIONS = {
+  'audio/mpeg':   ['.mp3'],
+  'audio/mp4':    ['.m4a', '.mp4'],
+  'audio/x-m4a':  ['.m4a'],
+  'audio/aac':    ['.aac', '.m4a'],
+  'audio/ogg':    ['.ogg', '.oga'],
+  'audio/wav':    ['.wav'],
+  'audio/webm':   ['.webm'],
+};
 
 // Magic-byte signatures for allowed file types.
 // Multer sets file.mimetype from the Content-Type header which can be spoofed.
@@ -149,6 +162,43 @@ const uploadPhotos = multer({
   { name: 'photos', maxCount: config.upload.maxGalleryPhotos },
 ]);
 
+// Audio file filter for voice intros
+const audioFileFilter = (req, file, cb) => {
+  if (!ALLOWED_AUDIO_TYPES.includes(file.mimetype)) {
+    return cb(createError.badRequest(`Invalid file type: ${file.mimetype}. Only audio files are allowed.`), false);
+  }
+  const ext = path.extname(file.originalname).toLowerCase();
+  const allowed = ALLOWED_AUDIO_EXTENSIONS[file.mimetype] || [];
+  if (!allowed.includes(ext)) {
+    return cb(createError.badRequest('Audio file extension does not match the declared file type.'), false);
+  }
+  cb(null, true);
+};
+
+// Voice intro storage — Cloudinary raw resource type
+const voiceIntroStorage = config.cloudinary.isConfigured()
+  ? new CloudinaryStorage({
+      cloudinary,
+      params: {
+        folder: `${config.cloudinary.folder}/voice-intros`,
+        resource_type: 'video', // Cloudinary uses 'video' for audio
+        allowed_formats: ['mp3', 'm4a', 'aac', 'ogg', 'wav', 'webm'],
+      },
+    })
+  : multer.diskStorage({
+      destination: (req, file, cb) => cb(null, config.upload.dir),
+      filename: (req, file, cb) => {
+        const suffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        cb(null, `voice-intro-${suffix}${path.extname(file.originalname)}`);
+      },
+    });
+
+const uploadVoiceIntro = multer({
+  storage: voiceIntroStorage,
+  fileFilter: audioFileFilter,
+  limits: { fileSize: MAX_AUDIO_SIZE },
+}).single('voiceIntro');
+
 // Upload for verification documents
 const uploadDocuments = multer({
   storage: documentStorage,
@@ -248,6 +298,7 @@ module.exports = {
   uploadGalleryPhotos,
   uploadPhotos,
   uploadDocuments,
+  uploadVoiceIntro,
   validateUploadedFiles,
   deleteFromCloudinary,
   getThumbnailUrl,

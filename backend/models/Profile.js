@@ -290,6 +290,14 @@ const Profile = sequelize.define('Profile', {
   photoBlurUntilMatch: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
+  },
+  quizAnswers: {
+    type: DataTypes.JSONB,
+    allowNull: true // [{ questionId: string, answer: string }]
+  },
+  voiceIntroUrl: {
+    type: DataTypes.STRING,
+    allowNull: true
   }
 }, {
   indexes: [

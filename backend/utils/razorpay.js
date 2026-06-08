@@ -125,9 +125,34 @@ const getPlanDetails = (planType) => {
   return PLANS[planType] || null;
 };
 
+/**
+ * Create a generic Razorpay order for any amount (used by astrologer bookings etc).
+ * @param {number} amountPaise  Amount in paise (INR × 100)
+ * @param {string} userId
+ * @param {object} notes  Extra metadata stored with the order
+ */
+const createGenericOrder = async (amountPaise, userId, notes = {}) => {
+  const razorpayInstance = getRazorpayInstance();
+  if (!razorpayInstance) {
+    throw new Error('Razorpay is not configured. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.');
+  }
+  try {
+    const order = await razorpayInstance.orders.create({
+      amount: amountPaise,
+      currency: 'INR',
+      receipt: `order_${userId}_${Date.now()}`,
+      notes: { userId, ...notes },
+    });
+    return { orderId: order.id, amount: order.amount, currency: order.currency };
+  } catch (err) {
+    throw new Error(`Razorpay order creation failed: ${err.message}`);
+  }
+};
+
 module.exports = {
   getRazorpayInstance,
   createOrder,
+  createGenericOrder,
   verifyPayment,
   getPlanDetails,
   PLANS

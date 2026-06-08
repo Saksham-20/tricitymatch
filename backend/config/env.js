@@ -190,6 +190,18 @@ const config = {
     },
   },
 
+  // SMS / OTP (Fast2SMS primary, MSG91 alternative)
+  sms: {
+    provider: optionalString('SMS_PROVIDER', 'dev'), // 'fast2sms' | 'msg91' | 'dev'
+    apiKey: optionalString('SMS_API_KEY'),
+    senderId: optionalString('SMS_SENDER_ID', 'TRCSDI'),
+    msg91TemplateId: optionalString('MSG91_TEMPLATE_ID'),
+    isConfigured: () => {
+      const p = optionalString('SMS_PROVIDER', 'dev');
+      return p !== 'dev' && !!optionalString('SMS_API_KEY');
+    },
+  },
+
   // Upload
   upload: {
     dir: optionalString('UPLOAD_DIR', './uploads'),
@@ -214,6 +226,14 @@ const config = {
     isConfigured: () => !!optionalString('GOOGLE_CLIENT_ID'),
   },
 
+  // Agora RTC (voice/video calls)
+  agora: {
+    appId: optionalString('AGORA_APP_ID'),
+    appCertificate: optionalString('AGORA_APP_CERTIFICATE'),
+    tokenExpiry: optionalNumber('AGORA_TOKEN_EXPIRY_SECONDS', 3600),
+    isConfigured: () => !!optionalString('AGORA_APP_ID') && !!optionalString('AGORA_APP_CERTIFICATE'),
+  },
+
   // Firebase Cloud Messaging (push notifications)
   fcm: {
     serviceAccountPath: optionalString('FIREBASE_SERVICE_ACCOUNT_PATH'),
@@ -231,6 +251,23 @@ const config = {
     maxRetriesPerRequest: optionalNumber('REDIS_MAX_RETRIES', 3),
     isConfigured: () => {
       return !!optionalString('REDIS_URL') || !!optionalString('REDIS_HOST');
+    },
+  },
+
+  // Background Check (APP-060 — AuthBridge / Signzy)
+  bgCheck: {
+    provider: optionalString('BG_CHECK_PROVIDER', 'dev'), // 'authbridge' | 'signzy' | 'dev'
+    apiKey: optionalString('BG_CHECK_API_KEY'),
+    apiSecret: optionalString('BG_CHECK_API_SECRET'),
+    webhookSecret: optionalString('BG_CHECK_WEBHOOK_SECRET'),
+    // AuthBridge endpoints
+    authBridgeBaseUrl: optionalString('AUTHBRIDGE_BASE_URL', 'https://api.authbridge.com/v1'),
+    // Signzy endpoints
+    signzyBaseUrl: optionalString('SIGNZY_BASE_URL', 'https://api.signzy.app/api/v2'),
+    signzyPatronId: optionalString('SIGNZY_PATRON_ID'),
+    isConfigured: () => {
+      const p = optionalString('BG_CHECK_PROVIDER', 'dev');
+      return p !== 'dev' && !!optionalString('BG_CHECK_API_KEY');
     },
   },
 

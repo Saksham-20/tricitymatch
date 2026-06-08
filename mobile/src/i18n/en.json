@@ -1,0 +1,395 @@
+{
+  "common": {
+    "save": "Save",
+    "continue": "Continue",
+    "skip": "Skip for now",
+    "cancel": "Cancel",
+    "back": "Back",
+    "retry": "Retry",
+    "loading": "Loading...",
+    "error": "Something went wrong. Please try again.",
+    "networkError": "No internet connection.",
+    "upgrade": "Upgrade",
+    "done": "Done",
+    "edit": "Edit",
+    "delete": "Delete",
+    "report": "Report",
+    "block": "Block",
+    "send": "Send",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "or": "or",
+    "optional": "Optional"
+  },
+  "auth": {
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Sign in to continue",
+      "email": "Email address",
+      "password": "Password",
+      "signIn": "Sign In",
+      "forgotPassword": "Forgot password?",
+      "noAccount": "New here? Create account",
+      "googleSignIn": "Continue with Google",
+      "biometricPrompt": "Sign in with biometrics",
+      "lockoutMessage": "Account locked. Try again in {{minutes}} minutes.",
+      "invalidCredentials": "Invalid email or password."
+    },
+    "signup": {
+      "title": "Create your account",
+      "subtitle": "Find your perfect match",
+      "email": "Email address",
+      "password": "Password",
+      "confirmPassword": "Confirm password",
+      "passwordMismatch": "Passwords do not match",
+      "termsLabel": "I agree to the Terms & Privacy Policy",
+      "createAccount": "Create Account",
+      "alreadyMember": "Already a member? Sign In",
+      "passwordStrength": {
+        "weak": "Weak",
+        "medium": "Medium",
+        "strong": "Strong"
+      }
+    },
+    "forgotPassword": {
+      "title": "Forgot Password",
+      "subtitle": "Enter your email to receive a reset link",
+      "email": "Email address",
+      "sendLink": "Send Reset Link",
+      "success": "Reset link sent! Check your email.",
+      "backToLogin": "Back to Login"
+    },
+    "resetPassword": {
+      "title": "Reset Password",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm Password",
+      "reset": "Reset Password",
+      "success": "Password reset successfully."
+    }
+  },
+  "onboarding": {
+    "progress": "Step {{current}} of {{total}}",
+    "saveAndContinue": "Save & Continue",
+    "step0": {
+      "title": "Who are you registering for?",
+      "subtitle": "This helps us personalise your experience",
+      "options": {
+        "self": "Myself",
+        "son": "My Son",
+        "daughter": "My Daughter",
+        "sibling": "My Sibling",
+        "relative": "A Relative",
+        "friend": "A Friend"
+      }
+    },
+    "step1": {
+      "title": "Basic Information",
+      "subtitle": "Tell us about yourself",
+      "fullName": "Full Name",
+      "dateOfBirth": "Date of Birth",
+      "gender": "Gender",
+      "height": "Height",
+      "weight": "Weight (optional)",
+      "genderOptions": {
+        "male": "Man",
+        "female": "Woman",
+        "other": "Other"
+      }
+    },
+    "step2": {
+      "title": "Your Community",
+      "subtitle": "Helps us find compatible matches within your community",
+      "religion": "Religion",
+      "caste": "Caste",
+      "subCaste": "Sub-Caste",
+      "gotra": "Gotra",
+      "motherTongue": "Mother Tongue"
+    },
+    "step3": {
+      "title": "Manglik & Kundli",
+      "subtitle": "Kundli details are used for compatibility matching",
+      "manglikStatus": "Manglik Status",
+      "manglikOptions": {
+        "manglik": "Manglik",
+        "non_manglik": "Non-Manglik",
+        "anshik_manglik": "Partial Manglik",
+        "not_sure": "Don't Know"
+      },
+      "uploadKundli": "Upload Kundli",
+      "birthDetails": "Enter Birth Details",
+      "birthTime": "Birth Time",
+      "birthPlace": "Birth Place"
+    },
+    "step4": {
+      "title": "Education",
+      "subtitle": "Your educational background",
+      "qualification": "Highest Qualification",
+      "fieldOfStudy": "Field of Study",
+      "institution": "Institution / College"
+    },
+    "step5": {
+      "title": "Career",
+      "subtitle": "Your professional background",
+      "profession": "Profession",
+      "employer": "Employer / Company",
+      "income": "Annual Income"
+    },
+    "step6": {
+      "title": "Location",
+      "subtitle": "Where do you currently live?",
+      "city": "Current City",
+      "state": "State",
+      "nriToggle": "Living outside India?",
+      "country": "Country",
+      "visaStatus": "Visa / PR Status"
+    },
+    "step7": {
+      "title": "Marital Status",
+      "subtitle": "Your current relationship status",
+      "status": "Marital Status",
+      "statusOptions": {
+        "never_married": "Never Married",
+        "divorced": "Divorced",
+        "widowed": "Widowed",
+        "awaiting_divorce": "Awaiting Divorce"
+      },
+      "children": "Do you have children?",
+      "childrenCount": "Number of children"
+    },
+    "step8": {
+      "title": "Lifestyle",
+      "subtitle": "Your daily habits and preferences",
+      "diet": "Diet",
+      "drinking": "Drinking",
+      "smoking": "Smoking",
+      "exercise": "Exercise"
+    },
+    "step9": {
+      "title": "Family Details",
+      "subtitle": "Tell us about your family",
+      "fatherOccupation": "Father's Occupation",
+      "motherOccupation": "Mother's Occupation",
+      "brothers": "No. of Brothers",
+      "sisters": "No. of Sisters",
+      "familyType": "Family Type",
+      "familyValues": "Family Values",
+      "familyTypeOptions": {
+        "nuclear": "Nuclear",
+        "joint": "Joint"
+      }
+    },
+    "step10": {
+      "title": "About Me",
+      "subtitle": "Let your matches know you better",
+      "bioPlaceholder": "Describe yourself...",
+      "bioLimit": "{{count}}/500",
+      "interestTags": "Select your interests"
+    },
+    "step11": {
+      "title": "Partner Preferences",
+      "subtitle": "Who are you looking for?",
+      "ageRange": "Age Range",
+      "heightRange": "Height Range",
+      "maritalStatus": "Marital Status",
+      "religion": "Religion",
+      "education": "Minimum Education",
+      "profession": "Profession",
+      "income": "Minimum Income",
+      "diet": "Diet",
+      "manglik": "Manglik Preference",
+      "location": "Location",
+      "any": "Any"
+    },
+    "step12": {
+      "title": "Add Photos",
+      "subtitle": "Clear face photos get 5x more matches",
+      "addPhoto": "Add Photo",
+      "camera": "Camera",
+      "gallery": "Gallery",
+      "faceMask": "Face Mask",
+      "guidelines": "Clear face, no sunglasses, recent photo",
+      "minRequired": "At least 1 photo required"
+    },
+    "step13": {
+      "title": "Verify Mobile",
+      "subtitle": "We'll send a verification code to your number",
+      "phone": "Phone Number",
+      "sendOtp": "Send OTP",
+      "enterOtp": "Enter 6-digit OTP",
+      "resend": "Resend OTP",
+      "resendIn": "Resend in {{seconds}}s",
+      "invalidOtp": "Incorrect OTP. Please try again."
+    },
+    "step14": {
+      "title": "You're all set! 🎉",
+      "subtitle": "Your profile is ready. Here's what to do next:",
+      "getVerified": "Get ID Verified",
+      "getVerifiedSub": "Add a trust badge to your profile",
+      "completeProfile": "Complete Your Profile",
+      "completeProfileSub": "Better matches for more complete profiles",
+      "uploadKundli": "Upload Kundli",
+      "uploadKundliSub": "Enable horoscope matching",
+      "browseMatches": "Browse Matches"
+    }
+  },
+  "home": {
+    "greeting": "Welcome back, {{name}}",
+    "todayMatches": "Today's Matches",
+    "whoLikedYou": "Who liked you",
+    "profileViews": "Profile views",
+    "newProfiles": "New on TricityShadi"
+  },
+  "search": {
+    "placeholder": "Search profiles...",
+    "filters": "Filters",
+    "saved": "Saved",
+    "results": "{{count}} profiles found",
+    "sort": {
+      "label": "Sort",
+      "compatibility": "Compatibility",
+      "newest": "Newest",
+      "recentlyActive": "Recently Active"
+    },
+    "empty": {
+      "title": "No profiles found",
+      "subtitle": "Try widening your search filters"
+    }
+  },
+  "matches": {
+    "mutual": "Mutual",
+    "shortlisted": "Shortlisted",
+    "likedMe": "Liked Me",
+    "myInterests": "My Interests",
+    "mutualMatch": "It's a Match! 🎉",
+    "compatibility": "{{score}}% Compatible",
+    "chatNow": "Chat Now",
+    "status": {
+      "pending": "Pending",
+      "accepted": "Accepted",
+      "declined": "Declined"
+    },
+    "likedMeGate": "Upgrade to Plus to see who liked you",
+    "offlineSync": "Last synced: {{time}}"
+  },
+  "chat": {
+    "title": "Messages",
+    "searchPlaceholder": "Search conversations...",
+    "empty": {
+      "title": "No conversations yet",
+      "subtitle": "When you both like each other, you can start chatting"
+    },
+    "typing": "typing...",
+    "send": "Send",
+    "requestContact": "Request phone number",
+    "unlocksLeft": "{{count}} unlocks left",
+    "editMessage": "Edit message",
+    "deleteMessage": "Delete message",
+    "deleteForBoth": "Delete for both",
+    "deleteForMe": "Delete for me"
+  },
+  "calls": {
+    "incoming": "Incoming {{type}} call",
+    "calling": "Calling...",
+    "accept": "Accept",
+    "decline": "Decline",
+    "mute": "Mute",
+    "speaker": "Speaker",
+    "endCall": "End Call",
+    "switchCamera": "Switch Camera",
+    "noAnswer": "No answer",
+    "callEnded": "Call ended"
+  },
+  "profile": {
+    "about": "About",
+    "basicDetails": "Basic Details",
+    "community": "Community",
+    "education": "Education",
+    "career": "Career",
+    "location": "Location",
+    "family": "Family",
+    "lifestyle": "Lifestyle",
+    "horoscope": "Horoscope",
+    "partnerPreferences": "Partner Preferences",
+    "photos": "Photos",
+    "editProfile": "Edit Profile",
+    "previewAsOthers": "Preview as others see me",
+    "completeness": "Profile {{percent}}% complete",
+    "getVerified": "Get Verified",
+    "verification": {
+      "mobile": "Mobile Verified",
+      "id": "ID Verified",
+      "education": "Education Verified",
+      "income": "Income Verified"
+    },
+    "authenticity": "Authenticity Score",
+    "compatibility": "Compatibility",
+    "interest": "Interested",
+    "shortlist": "Shortlist",
+    "pass": "Pass"
+  },
+  "settings": {
+    "title": "Settings",
+    "account": "Account",
+    "privacy": "Privacy",
+    "notifications": "Notifications",
+    "verification": "Verification",
+    "subscription": "Subscription",
+    "appearance": "Appearance",
+    "security": "Security",
+    "familyMode": "Family Mode",
+    "support": "Support",
+    "legal": "Legal",
+    "danger": "Danger Zone",
+    "deleteAccount": "Delete Account",
+    "deleteAccountWarning": "This will permanently delete your account in 30 days. This cannot be undone.",
+    "incognito": "Incognito Mode",
+    "photoPrivacy": "Photo Privacy",
+    "language": "Language",
+    "elderMode": "Elder Mode",
+    "biometric": "Biometric Login",
+    "logout": "Log Out",
+    "languages": {
+      "en": "English",
+      "hi": "हिंदी",
+      "pa": "ਪੰਜਾਬੀ"
+    }
+  },
+  "subscription": {
+    "currentPlan": "Current Plan",
+    "upgrade": "Upgrade",
+    "plans": {
+      "free": "Free",
+      "basic_premium": "Plus",
+      "premium_plus": "Premium",
+      "vip": "Elite"
+    },
+    "features": {
+      "chat": "In-App Chat",
+      "calls": "Voice & Video Calls",
+      "likedMe": "See Who Liked You",
+      "contactUnlocks": "{{count}} Contact Unlocks/month",
+      "unlimitedContacts": "Unlimited Contact Unlocks",
+      "advancedFilters": "Advanced Filters",
+      "boost": "Profile Boost",
+      "manager": "Relationship Manager"
+    },
+    "paymentSuccess": "Plan activated! Welcome to {{plan}}.",
+    "paymentFailed": "Payment failed. Please try again."
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all read",
+    "empty": {
+      "title": "No notifications",
+      "subtitle": "You're all caught up!"
+    }
+  },
+  "errors": {
+    "networkError": "Unable to connect. Check your internet.",
+    "serverError": "Something went wrong. Please try again.",
+    "unauthorized": "Session expired. Please sign in again.",
+    "tooManyRequests": "Too many requests. Please wait {{minutes}} minutes.",
+    "upgradeRequired": "Upgrade your plan to access this feature."
+  }
+}

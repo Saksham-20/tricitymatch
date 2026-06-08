@@ -1,0 +1,395 @@
+{
+  "common": {
+    "save": "ਸੰਭਾਲੋ",
+    "continue": "ਜਾਰੀ ਰੱਖੋ",
+    "skip": "ਹੁਣੇ ਛੱਡੋ",
+    "cancel": "ਰੱਦ ਕਰੋ",
+    "back": "ਵਾਪਸ",
+    "retry": "ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ",
+    "loading": "ਲੋਡ ਹੋ ਰਿਹਾ ਹੈ...",
+    "error": "ਕੁਝ ਗਲਤ ਹੋਇਆ। ਕਿਰਪਾ ਕਰਕੇ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ।",
+    "networkError": "ਇੰਟਰਨੈੱਟ ਕਨੈਕਸ਼ਨ ਨਹੀਂ ਹੈ।",
+    "upgrade": "ਅੱਪਗ੍ਰੇਡ ਕਰੋ",
+    "done": "ਮੁਕੰਮਲ",
+    "edit": "ਸੰਪਾਦਿਤ ਕਰੋ",
+    "delete": "ਮਿਟਾਓ",
+    "report": "ਰਿਪੋਰਟ ਕਰੋ",
+    "block": "ਬਲਾਕ ਕਰੋ",
+    "send": "ਭੇਜੋ",
+    "confirm": "ਪੁਸ਼ਟੀ ਕਰੋ",
+    "yes": "ਹਾਂ",
+    "no": "ਨਹੀਂ",
+    "or": "ਜਾਂ",
+    "optional": "ਵਿਕਲਪਿਕ"
+  },
+  "auth": {
+    "login": {
+      "title": "ਵਾਪਸ ਆਪਦਾ ਸੁਆਗਤ ਹੈ",
+      "subtitle": "ਜਾਰੀ ਰੱਖਣ ਲਈ ਸਾਈਨ ਇਨ ਕਰੋ",
+      "email": "ਈਮੇਲ ਪਤਾ",
+      "password": "ਪਾਸਵਰਡ",
+      "signIn": "ਸਾਈਨ ਇਨ ਕਰੋ",
+      "forgotPassword": "ਪਾਸਵਰਡ ਭੁੱਲ ਗਏ?",
+      "noAccount": "ਨਵੇਂ ਹੋ? ਖਾਤਾ ਬਣਾਓ",
+      "googleSignIn": "Google ਨਾਲ ਜਾਰੀ ਰੱਖੋ",
+      "biometricPrompt": "ਬਾਇਓਮੈਟ੍ਰਿਕ ਨਾਲ ਸਾਈਨ ਇਨ ਕਰੋ",
+      "lockoutMessage": "ਖਾਤਾ ਲੌਕ ਹੈ। {{minutes}} ਮਿੰਟ ਬਾਅਦ ਕੋਸ਼ਿਸ਼ ਕਰੋ।",
+      "invalidCredentials": "ਗਲਤ ਈਮੇਲ ਜਾਂ ਪਾਸਵਰਡ।"
+    },
+    "signup": {
+      "title": "ਆਪਣਾ ਖਾਤਾ ਬਣਾਓ",
+      "subtitle": "ਆਪਣਾ ਸਹੀ ਜੀਵਨਸਾਥੀ ਲੱਭੋ",
+      "email": "ਈਮੇਲ ਪਤਾ",
+      "password": "ਪਾਸਵਰਡ",
+      "confirmPassword": "ਪਾਸਵਰਡ ਦੀ ਪੁਸ਼ਟੀ ਕਰੋ",
+      "passwordMismatch": "ਪਾਸਵਰਡ ਮੇਲ ਨਹੀਂ ਖਾਂਦੇ",
+      "termsLabel": "ਮੈਂ ਸ਼ਰਤਾਂ ਅਤੇ ਗੋਪਨੀਯਤਾ ਨੀਤੀ ਨਾਲ ਸਹਿਮਤ ਹਾਂ",
+      "createAccount": "ਖਾਤਾ ਬਣਾਓ",
+      "alreadyMember": "ਪਹਿਲਾਂ ਤੋਂ ਮੈਂਬਰ ਹੋ? ਸਾਈਨ ਇਨ ਕਰੋ",
+      "passwordStrength": {
+        "weak": "ਕਮਜ਼ੋਰ",
+        "medium": "ਦਰਮਿਆਨਾ",
+        "strong": "ਮਜ਼ਬੂਤ"
+      }
+    },
+    "forgotPassword": {
+      "title": "ਪਾਸਵਰਡ ਭੁੱਲ ਗਏ",
+      "subtitle": "ਰੀਸੈੱਟ ਲਿੰਕ ਪ੍ਰਾਪਤ ਕਰਨ ਲਈ ਈਮੇਲ ਦਰਜ ਕਰੋ",
+      "email": "ਈਮੇਲ ਪਤਾ",
+      "sendLink": "ਰੀਸੈੱਟ ਲਿੰਕ ਭੇਜੋ",
+      "success": "ਰੀਸੈੱਟ ਲਿੰਕ ਭੇਜਿਆ ਗਿਆ! ਆਪਣਾ ਈਮੇਲ ਦੇਖੋ।",
+      "backToLogin": "ਲੌਗਿਨ ਤੇ ਵਾਪਸ"
+    },
+    "resetPassword": {
+      "title": "ਪਾਸਵਰਡ ਰੀਸੈੱਟ ਕਰੋ",
+      "newPassword": "ਨਵਾਂ ਪਾਸਵਰਡ",
+      "confirmPassword": "ਪਾਸਵਰਡ ਦੀ ਪੁਸ਼ਟੀ ਕਰੋ",
+      "reset": "ਪਾਸਵਰਡ ਰੀਸੈੱਟ ਕਰੋ",
+      "success": "ਪਾਸਵਰਡ ਸਫਲਤਾਪੂਰਵਕ ਰੀਸੈੱਟ ਹੋਇਆ।"
+    }
+  },
+  "onboarding": {
+    "progress": "ਕਦਮ {{current}} / {{total}}",
+    "saveAndContinue": "ਸੰਭਾਲੋ ਅਤੇ ਜਾਰੀ ਰੱਖੋ",
+    "step0": {
+      "title": "ਤੁਸੀਂ ਕਿਸ ਲਈ ਰਜਿਸਟਰ ਕਰ ਰਹੇ ਹੋ?",
+      "subtitle": "ਇਹ ਸਾਨੂੰ ਤੁਹਾਡਾ ਅਨੁਭਵ ਵਿਅਕਤੀਗਤ ਬਣਾਉਣ ਵਿੱਚ ਮਦਦ ਕਰਦਾ ਹੈ",
+      "options": {
+        "self": "ਆਪਣੇ ਲਈ",
+        "son": "ਮੇਰੇ ਪੁੱਤਰ ਲਈ",
+        "daughter": "ਮੇਰੀ ਧੀ ਲਈ",
+        "sibling": "ਮੇਰੇ ਭੈਣ/ਭਰਾ ਲਈ",
+        "relative": "ਇੱਕ ਰਿਸ਼ਤੇਦਾਰ ਲਈ",
+        "friend": "ਇੱਕ ਦੋਸਤ ਲਈ"
+      }
+    },
+    "step1": {
+      "title": "ਬੁਨਿਆਦੀ ਜਾਣਕਾਰੀ",
+      "subtitle": "ਆਪਣੇ ਬਾਰੇ ਦੱਸੋ",
+      "fullName": "ਪੂਰਾ ਨਾਮ",
+      "dateOfBirth": "ਜਨਮ ਮਿਤੀ",
+      "gender": "ਲਿੰਗ",
+      "height": "ਕੱਦ",
+      "weight": "ਭਾਰ (ਵਿਕਲਪਿਕ)",
+      "genderOptions": {
+        "male": "ਮਰਦ",
+        "female": "ਔਰਤ",
+        "other": "ਹੋਰ"
+      }
+    },
+    "step2": {
+      "title": "ਤੁਹਾਡਾ ਭਾਈਚਾਰਾ",
+      "subtitle": "ਤੁਹਾਡੇ ਭਾਈਚਾਰੇ ਵਿੱਚ ਯੋਗ ਮੇਲ ਲੱਭਣ ਵਿੱਚ ਮਦਦ ਕਰਦਾ ਹੈ",
+      "religion": "ਧਰਮ",
+      "caste": "ਜਾਤ",
+      "subCaste": "ਉਪ-ਜਾਤ",
+      "gotra": "ਗੋਤ",
+      "motherTongue": "ਮਾਤ ਭਾਸ਼ਾ"
+    },
+    "step3": {
+      "title": "ਮੰਗਲਿਕ ਅਤੇ ਕੁੰਡਲੀ",
+      "subtitle": "ਕੁੰਡਲੀ ਵੇਰਵੇ ਅਨੁਕੂਲਤਾ ਮੇਲ ਲਈ ਵਰਤੇ ਜਾਂਦੇ ਹਨ",
+      "manglikStatus": "ਮੰਗਲਿਕ ਸਥਿਤੀ",
+      "manglikOptions": {
+        "manglik": "ਮੰਗਲਿਕ",
+        "non_manglik": "ਅਮੰਗਲਿਕ",
+        "anshik_manglik": "ਅੰਸ਼ਿਕ ਮੰਗਲਿਕ",
+        "not_sure": "ਪਤਾ ਨਹੀਂ"
+      },
+      "uploadKundli": "ਕੁੰਡਲੀ ਅਪਲੋਡ ਕਰੋ",
+      "birthDetails": "ਜਨਮ ਵੇਰਵੇ ਦਰਜ ਕਰੋ",
+      "birthTime": "ਜਨਮ ਸਮਾਂ",
+      "birthPlace": "ਜਨਮ ਸਥਾਨ"
+    },
+    "step4": {
+      "title": "ਸਿੱਖਿਆ",
+      "subtitle": "ਤੁਹਾਡੀ ਵਿਦਿਅਕ ਪਿਛੋਕੜ",
+      "qualification": "ਉੱਚਤਮ ਯੋਗਤਾ",
+      "fieldOfStudy": "ਅਧਿਐਨ ਦਾ ਖੇਤਰ",
+      "institution": "ਸੰਸਥਾ / ਕਾਲਜ"
+    },
+    "step5": {
+      "title": "ਕਰੀਅਰ",
+      "subtitle": "ਤੁਹਾਡੀ ਪੇਸ਼ੇਵਰ ਪਿਛੋਕੜ",
+      "profession": "ਪੇਸ਼ਾ",
+      "employer": "ਮਾਲਕ / ਕੰਪਨੀ",
+      "income": "ਸਾਲਾਨਾ ਆਮਦਨੀ"
+    },
+    "step6": {
+      "title": "ਸਥਾਨ",
+      "subtitle": "ਤੁਸੀਂ ਹੁਣ ਕਿੱਥੇ ਰਹਿੰਦੇ ਹੋ?",
+      "city": "ਮੌਜੂਦਾ ਸ਼ਹਿਰ",
+      "state": "ਰਾਜ",
+      "nriToggle": "ਭਾਰਤ ਤੋਂ ਬਾਹਰ ਰਹਿ ਰਹੇ ਹੋ?",
+      "country": "ਦੇਸ਼",
+      "visaStatus": "ਵੀਜ਼ਾ / ਪੀਆਰ ਸਥਿਤੀ"
+    },
+    "step7": {
+      "title": "ਵਿਆਹੁਤਾ ਸਥਿਤੀ",
+      "subtitle": "ਤੁਹਾਡੀ ਮੌਜੂਦਾ ਸਥਿਤੀ",
+      "status": "ਵਿਆਹੁਤਾ ਸਥਿਤੀ",
+      "statusOptions": {
+        "never_married": "ਕਦੇ ਵਿਆਹਿਆ ਨਹੀਂ",
+        "divorced": "ਤਲਾਕਸ਼ੁਦਾ",
+        "widowed": "ਵਿਧਵਾ/ਵਿਧੁਰ",
+        "awaiting_divorce": "ਤਲਾਕ ਦੀ ਉਡੀਕ ਵਿੱਚ"
+      },
+      "children": "ਕੀ ਤੁਹਾਡੇ ਬੱਚੇ ਹਨ?",
+      "childrenCount": "ਬੱਚਿਆਂ ਦੀ ਗਿਣਤੀ"
+    },
+    "step8": {
+      "title": "ਜੀਵਨਸ਼ੈਲੀ",
+      "subtitle": "ਤੁਹਾਡੀਆਂ ਰੋਜ਼ਾਨਾ ਆਦਤਾਂ",
+      "diet": "ਭੋਜਨ",
+      "drinking": "ਸ਼ਰਾਬ",
+      "smoking": "ਤਮਾਕੂਨੋਸ਼ੀ",
+      "exercise": "ਕਸਰਤ"
+    },
+    "step9": {
+      "title": "ਪਰਿਵਾਰ ਦਾ ਵੇਰਵਾ",
+      "subtitle": "ਆਪਣੇ ਪਰਿਵਾਰ ਬਾਰੇ ਦੱਸੋ",
+      "fatherOccupation": "ਪਿਤਾ ਦਾ ਪੇਸ਼ਾ",
+      "motherOccupation": "ਮਾਤਾ ਦਾ ਪੇਸ਼ਾ",
+      "brothers": "ਭਰਾਵਾਂ ਦੀ ਗਿਣਤੀ",
+      "sisters": "ਭੈਣਾਂ ਦੀ ਗਿਣਤੀ",
+      "familyType": "ਪਰਿਵਾਰ ਦੀ ਕਿਸਮ",
+      "familyValues": "ਪਾਰਿਵਾਰਿਕ ਕਦਰਾਂ-ਕੀਮਤਾਂ",
+      "familyTypeOptions": {
+        "nuclear": "ਇਕੱਲਾ",
+        "joint": "ਸਾਂਝਾ"
+      }
+    },
+    "step10": {
+      "title": "ਮੇਰੇ ਬਾਰੇ",
+      "subtitle": "ਆਪਣੇ ਮੇਲ ਨੂੰ ਚੰਗੀ ਤਰ੍ਹਾਂ ਜਾਣਨ ਦਿਓ",
+      "bioPlaceholder": "ਆਪਣੇ ਬਾਰੇ ਲਿਖੋ...",
+      "bioLimit": "{{count}}/500",
+      "interestTags": "ਆਪਣੀਆਂ ਰੁਚੀਆਂ ਚੁਣੋ"
+    },
+    "step11": {
+      "title": "ਸਾਥੀ ਦੀ ਤਰਜੀਹ",
+      "subtitle": "ਤੁਸੀਂ ਕਿਸ ਦੀ ਭਾਲ ਵਿੱਚ ਹੋ?",
+      "ageRange": "ਉਮਰ ਸੀਮਾ",
+      "heightRange": "ਕੱਦ ਸੀਮਾ",
+      "maritalStatus": "ਵਿਆਹੁਤਾ ਸਥਿਤੀ",
+      "religion": "ਧਰਮ",
+      "education": "ਘੱਟੋ-ਘੱਟ ਸਿੱਖਿਆ",
+      "profession": "ਪੇਸ਼ਾ",
+      "income": "ਘੱਟੋ-ਘੱਟ ਆਮਦਨੀ",
+      "diet": "ਭੋਜਨ",
+      "manglik": "ਮੰਗਲਿਕ ਤਰਜੀਹ",
+      "location": "ਸਥਾਨ",
+      "any": "ਕੋਈ ਵੀ"
+    },
+    "step12": {
+      "title": "ਫ਼ੋਟੋ ਜੋੜੋ",
+      "subtitle": "ਸਾਫ਼ ਚਿਹਰੇ ਦੀਆਂ ਫ਼ੋਟੋਆਂ ਨੂੰ 5 ਗੁਣਾ ਵੱਧ ਮੇਲ ਮਿਲਦੇ ਹਨ",
+      "addPhoto": "ਫ਼ੋਟੋ ਜੋੜੋ",
+      "camera": "ਕੈਮਰਾ",
+      "gallery": "ਗੈਲਰੀ",
+      "faceMask": "ਚਿਹਰਾ ਛੁਪਾਓ",
+      "guidelines": "ਸਾਫ਼ ਚਿਹਰਾ, ਧੁੱਪ ਦੀਆਂ ਐਨਕਾਂ ਨਹੀਂ, ਹਾਲੀਆ ਫ਼ੋਟੋ",
+      "minRequired": "ਘੱਟੋ-ਘੱਟ 1 ਫ਼ੋਟੋ ਜ਼ਰੂਰੀ"
+    },
+    "step13": {
+      "title": "ਮੋਬਾਈਲ ਤਸਦੀਕ ਕਰੋ",
+      "subtitle": "ਅਸੀਂ ਤੁਹਾਡੇ ਨੰਬਰ ਤੇ ਇੱਕ ਤਸਦੀਕ ਕੋਡ ਭੇਜਾਂਗੇ",
+      "phone": "ਫ਼ੋਨ ਨੰਬਰ",
+      "sendOtp": "OTP ਭੇਜੋ",
+      "enterOtp": "6 ਅੰਕਾਂ ਦਾ OTP ਦਰਜ ਕਰੋ",
+      "resend": "OTP ਮੁੜ ਭੇਜੋ",
+      "resendIn": "{{seconds}}s ਵਿੱਚ ਮੁੜ ਭੇਜੋ",
+      "invalidOtp": "ਗਲਤ OTP। ਕਿਰਪਾ ਕਰਕੇ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ।"
+    },
+    "step14": {
+      "title": "ਤੁਸੀਂ ਤਿਆਰ ਹੋ! 🎉",
+      "subtitle": "ਤੁਹਾਡੀ ਪ੍ਰੋਫਾਈਲ ਤਿਆਰ ਹੈ। ਅਗਲੇ ਕਦਮ:",
+      "getVerified": "ID ਤਸਦੀਕ ਕਰਵਾਓ",
+      "getVerifiedSub": "ਆਪਣੀ ਪ੍ਰੋਫਾਈਲ ਵਿੱਚ ਭਰੋਸੇ ਦਾ ਬੈਜ ਜੋੜੋ",
+      "completeProfile": "ਪ੍ਰੋਫਾਈਲ ਪੂਰੀ ਕਰੋ",
+      "completeProfileSub": "ਵਧੇਰੇ ਪੂਰੀਆਂ ਪ੍ਰੋਫਾਈਲਾਂ ਨੂੰ ਬਿਹਤਰ ਮੇਲ ਮਿਲਦੇ ਹਨ",
+      "uploadKundli": "ਕੁੰਡਲੀ ਅਪਲੋਡ ਕਰੋ",
+      "uploadKundliSub": "ਕੁੰਡਲੀ ਮੇਲ ਚਾਲੂ ਕਰੋ",
+      "browseMatches": "ਮੇਲ ਦੇਖੋ"
+    }
+  },
+  "home": {
+    "greeting": "ਵਾਪਸ ਆਪਦਾ ਸੁਆਗਤ ਹੈ, {{name}}",
+    "todayMatches": "ਅੱਜ ਦੇ ਮੇਲ",
+    "whoLikedYou": "ਕਿਸਨੇ ਲਾਈਕ ਕੀਤਾ",
+    "profileViews": "ਪ੍ਰੋਫਾਈਲ ਦ੍ਰਿਸ਼",
+    "newProfiles": "TricityShadi ਤੇ ਨਵੇਂ"
+  },
+  "search": {
+    "placeholder": "ਪ੍ਰੋਫਾਈਲ ਖੋਜੋ...",
+    "filters": "ਫਿਲਟਰ",
+    "saved": "ਸੁਰੱਖਿਅਤ",
+    "results": "{{count}} ਪ੍ਰੋਫਾਈਲ ਮਿਲੀਆਂ",
+    "sort": {
+      "label": "ਕ੍ਰਮਬੱਧ ਕਰੋ",
+      "compatibility": "ਅਨੁਕੂਲਤਾ",
+      "newest": "ਨਵੀਨਤਮ",
+      "recentlyActive": "ਹਾਲ ਵਿੱਚ ਸਕਿਰਿਆ"
+    },
+    "empty": {
+      "title": "ਕੋਈ ਪ੍ਰੋਫਾਈਲ ਨਹੀਂ ਮਿਲੀ",
+      "subtitle": "ਆਪਣੇ ਫਿਲਟਰ ਵਿਸ਼ਾਲ ਕਰੋ"
+    }
+  },
+  "matches": {
+    "mutual": "ਆਪਸੀ",
+    "shortlisted": "ਸ਼ਾਰਟਲਿਸਟ",
+    "likedMe": "ਜਿਸਨੇ ਲਾਈਕ ਕੀਤਾ",
+    "myInterests": "ਮੇਰੀਆਂ ਰੁਚੀਆਂ",
+    "mutualMatch": "ਮੇਲ ਹੋ ਗਿਆ! 🎉",
+    "compatibility": "{{score}}% ਅਨੁਕੂਲ",
+    "chatNow": "ਹੁਣ ਚੈਟ ਕਰੋ",
+    "status": {
+      "pending": "ਲੰਬਿਤ",
+      "accepted": "ਸਵੀਕਾਰ",
+      "declined": "ਅਸਵੀਕਾਰ"
+    },
+    "likedMeGate": "ਦੇਖਣ ਲਈ Plus ਵਿੱਚ ਅੱਪਗ੍ਰੇਡ ਕਰੋ",
+    "offlineSync": "ਆਖਰੀ ਸਿੰਕ: {{time}}"
+  },
+  "chat": {
+    "title": "ਸੁਨੇਹੇ",
+    "searchPlaceholder": "ਗੱਲਬਾਤ ਖੋਜੋ...",
+    "empty": {
+      "title": "ਹਾਲੇ ਕੋਈ ਗੱਲਬਾਤ ਨਹੀਂ",
+      "subtitle": "ਜਦੋਂ ਦੋਵੇਂ ਇੱਕ-ਦੂਜੇ ਨੂੰ ਲਾਈਕ ਕਰਨ, ਤਦ ਚੈਟ ਸ਼ੁਰੂ ਹੋਵੇਗੀ"
+    },
+    "typing": "ਟਾਈਪ ਕਰ ਰਿਹਾ ਹੈ...",
+    "send": "ਭੇਜੋ",
+    "requestContact": "ਫ਼ੋਨ ਨੰਬਰ ਅਨਲਾਕ ਕਰੋ",
+    "unlocksLeft": "{{count}} ਅਨਲਾਕ ਬਾਕੀ",
+    "editMessage": "ਸੁਨੇਹਾ ਸੰਪਾਦਿਤ ਕਰੋ",
+    "deleteMessage": "ਸੁਨੇਹਾ ਮਿਟਾਓ",
+    "deleteForBoth": "ਦੋਵਾਂ ਲਈ ਮਿਟਾਓ",
+    "deleteForMe": "ਸਿਰਫ਼ ਮੇਰੇ ਲਈ ਮਿਟਾਓ"
+  },
+  "calls": {
+    "incoming": "ਆਉਣ ਵਾਲੀ {{type}} ਕਾਲ",
+    "calling": "ਕਾਲ ਹੋ ਰਹੀ ਹੈ...",
+    "accept": "ਸਵੀਕਾਰ ਕਰੋ",
+    "decline": "ਅਸਵੀਕਾਰ ਕਰੋ",
+    "mute": "ਮਿਊਟ",
+    "speaker": "ਸਪੀਕਰ",
+    "endCall": "ਕਾਲ ਸਮਾਪਤ ਕਰੋ",
+    "switchCamera": "ਕੈਮਰਾ ਬਦਲੋ",
+    "noAnswer": "ਕੋਈ ਜਵਾਬ ਨਹੀਂ",
+    "callEnded": "ਕਾਲ ਸਮਾਪਤ"
+  },
+  "profile": {
+    "about": "ਬਾਰੇ",
+    "basicDetails": "ਬੁਨਿਆਦੀ ਵੇਰਵੇ",
+    "community": "ਭਾਈਚਾਰਾ",
+    "education": "ਸਿੱਖਿਆ",
+    "career": "ਕਰੀਅਰ",
+    "location": "ਸਥਾਨ",
+    "family": "ਪਰਿਵਾਰ",
+    "lifestyle": "ਜੀਵਨਸ਼ੈਲੀ",
+    "horoscope": "ਕੁੰਡਲੀ",
+    "partnerPreferences": "ਸਾਥੀ ਦੀ ਤਰਜੀਹ",
+    "photos": "ਫ਼ੋਟੋਆਂ",
+    "editProfile": "ਪ੍ਰੋਫਾਈਲ ਸੰਪਾਦਿਤ ਕਰੋ",
+    "previewAsOthers": "ਦੂਜਿਆਂ ਦੀ ਨਜ਼ਰ ਤੋਂ ਦੇਖੋ",
+    "completeness": "ਪ੍ਰੋਫਾਈਲ {{percent}}% ਮੁਕੰਮਲ",
+    "getVerified": "ਤਸਦੀਕ ਕਰਵਾਓ",
+    "verification": {
+      "mobile": "ਮੋਬਾਈਲ ਤਸਦੀਕ",
+      "id": "ID ਤਸਦੀਕ",
+      "education": "ਸਿੱਖਿਆ ਤਸਦੀਕ",
+      "income": "ਆਮਦਨੀ ਤਸਦੀਕ"
+    },
+    "authenticity": "ਪ੍ਰਮਾਣਿਕਤਾ ਸਕੋਰ",
+    "compatibility": "ਅਨੁਕੂਲਤਾ",
+    "interest": "ਰੁਚੀ ਦਿਖਾਓ",
+    "shortlist": "ਸ਼ਾਰਟਲਿਸਟ",
+    "pass": "ਛੱਡੋ"
+  },
+  "settings": {
+    "title": "ਸੈਟਿੰਗਾਂ",
+    "account": "ਖਾਤਾ",
+    "privacy": "ਗੋਪਨੀਯਤਾ",
+    "notifications": "ਸੂਚਨਾਵਾਂ",
+    "verification": "ਤਸਦੀਕ",
+    "subscription": "ਮੈਂਬਰਸ਼ਿਪ",
+    "appearance": "ਦਿੱਖ",
+    "security": "ਸੁਰੱਖਿਆ",
+    "familyMode": "ਪਰਿਵਾਰਕ ਮੋਡ",
+    "support": "ਸਹਾਇਤਾ",
+    "legal": "ਕਾਨੂੰਨੀ",
+    "danger": "ਖ਼ਤਰਨਾਕ ਖੇਤਰ",
+    "deleteAccount": "ਖਾਤਾ ਮਿਟਾਓ",
+    "deleteAccountWarning": "ਇਹ 30 ਦਿਨਾਂ ਵਿੱਚ ਤੁਹਾਡਾ ਖਾਤਾ ਸਥਾਈ ਤੌਰ ਤੇ ਮਿਟਾ ਦੇਵੇਗਾ। ਇਹ ਵਾਪਸ ਨਹੀਂ ਕੀਤਾ ਜਾ ਸਕਦਾ।",
+    "incognito": "ਗੁਪਤ ਮੋਡ",
+    "photoPrivacy": "ਫ਼ੋਟੋ ਗੋਪਨੀਯਤਾ",
+    "language": "ਭਾਸ਼ਾ",
+    "elderMode": "ਬਜ਼ੁਰਗ ਮੋਡ",
+    "biometric": "ਬਾਇਓਮੈਟ੍ਰਿਕ ਲੌਗਿਨ",
+    "logout": "ਲੌਗ ਆਊਟ",
+    "languages": {
+      "en": "English",
+      "hi": "हिंदी",
+      "pa": "ਪੰਜਾਬੀ"
+    }
+  },
+  "subscription": {
+    "currentPlan": "ਮੌਜੂਦਾ ਯੋਜਨਾ",
+    "upgrade": "ਅੱਪਗ੍ਰੇਡ ਕਰੋ",
+    "plans": {
+      "free": "ਮੁਫ਼ਤ",
+      "basic_premium": "ਪਲੱਸ",
+      "premium_plus": "ਪ੍ਰੀਮੀਅਮ",
+      "vip": "ਏਲੀਟ"
+    },
+    "features": {
+      "chat": "ਐਪ ਵਿੱਚ ਚੈਟ",
+      "calls": "ਵੌਇਸ ਅਤੇ ਵੀਡੀਓ ਕਾਲ",
+      "likedMe": "ਦੇਖੋ ਕਿਸਨੇ ਲਾਈਕ ਕੀਤਾ",
+      "contactUnlocks": "{{count}} ਸੰਪਰਕ ਅਨਲਾਕ/ਮਹੀਨਾ",
+      "unlimitedContacts": "ਅਸੀਮਿਤ ਸੰਪਰਕ ਅਨਲਾਕ",
+      "advancedFilters": "ਉੱਨਤ ਫਿਲਟਰ",
+      "boost": "ਪ੍ਰੋਫਾਈਲ ਬੂਸਟ",
+      "manager": "ਰਿਸ਼ਤਾ ਪ੍ਰਬੰਧਕ"
+    },
+    "paymentSuccess": "ਯੋਜਨਾ ਸਕਿਰਿਆ! {{plan}} ਵਿੱਚ ਤੁਹਾਡਾ ਸੁਆਗਤ ਹੈ।",
+    "paymentFailed": "ਭੁਗਤਾਨ ਅਸਫਲ। ਕਿਰਪਾ ਕਰਕੇ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ।"
+  },
+  "notifications": {
+    "title": "ਸੂਚਨਾਵਾਂ",
+    "markAllRead": "ਸਾਰੀਆਂ ਪੜ੍ਹੀਆਂ ਕਰੋ",
+    "empty": {
+      "title": "ਕੋਈ ਸੂਚਨਾ ਨਹੀਂ",
+      "subtitle": "ਤੁਸੀਂ ਪੂਰੀ ਤਰ੍ਹਾਂ ਅੱਪਡੇਟ ਹੋ!"
+    }
+  },
+  "errors": {
+    "networkError": "ਕਨੈਕਟ ਨਹੀਂ ਹੋ ਸਕਦਾ। ਇੰਟਰਨੈੱਟ ਜਾਂਚੋ।",
+    "serverError": "ਕੁਝ ਗਲਤ ਹੋਇਆ। ਕਿਰਪਾ ਕਰਕੇ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ।",
+    "unauthorized": "ਸੈਸ਼ਨ ਸਮਾਪਤ ਹੋ ਗਿਆ। ਕਿਰਪਾ ਕਰਕੇ ਮੁੜ ਸਾਈਨ ਇਨ ਕਰੋ।",
+    "tooManyRequests": "ਬਹੁਤ ਜ਼ਿਆਦਾ ਬੇਨਤੀਆਂ। {{minutes}} ਮਿੰਟ ਉਡੀਕ ਕਰੋ।",
+    "upgradeRequired": "ਇਸ ਸੁਵਿਧਾ ਤੱਕ ਪਹੁੰਚਣ ਲਈ ਆਪਣੀ ਯੋਜਨਾ ਅੱਪਗ੍ਰੇਡ ਕਰੋ।"
+  }
+}

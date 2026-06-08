@@ -346,6 +346,39 @@ const initializeSocket = (io) => {
       }
     });
 
+    // ==================== FAMILY GROUP CHAT (APP-053) ====================
+
+    socket.on('join-group', ({ groupId }) => {
+      if (!groupId || typeof groupId !== 'string') return;
+      // Any authenticated user can join a group they belong to.
+      // Membership enforcement is handled at REST API level (POST /chat/groups/:id/join).
+      // Socket room = `group_{groupId}`
+      socket.join(`group_${groupId}`);
+      if (config.isDevelopment) {
+        console.log(`User ${userId} joined group room group_${groupId}`);
+      }
+    });
+
+    socket.on('leave-group', ({ groupId }) => {
+      if (!groupId || typeof groupId !== 'string') return;
+      socket.leave(`group_${groupId}`);
+    });
+
+    socket.on('group-send-message', async ({ groupId, message }) => {
+      try {
+        if (!groupId || !message || !message.id) return;
+        // Rate limit with same send-message limiter
+        if (!checkRateLimit(socket.id, 'send-message')) {
+          socket.emit('error', { code: 'RATE_LIMITED', message: 'Too many messages.' });
+          return;
+        }
+        // Broadcast to group room (sender receives via optimistic UI, others via this emit)
+        socket.to(`group_${groupId}`).emit('group-message-received', { groupId, message });
+      } catch (error) {
+        log.error('Group send message error', { userId, groupId, error: error.message });
+      }
+    });
+
     // ==================== ONLINE STATUS ====================
     socket.on('get-online-status', async (userIds) => {
       // Rate limit check

@@ -6,7 +6,25 @@
 const { Profile, User, ProfileView, Subscription, Match, ContactUnlock } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
-const { calculateCompatibility } = require('../utils/compatibility');
+const { calculateCompatibility, getCompatibilityBreakdown: calcBreakdown, getAshtakootScore, isManglikCompatible, getRashiCompatibility } = require('../utils/compatibility');
+const notify = require('../utils/notifyUser');
+
+// Completion milestones and their messages
+const COMPLETION_MILESTONES = [
+  { pct: 50, title: 'Profile 50% complete!', body: 'Add your education & profession to boost your matches.' },
+  { pct: 70, title: 'Profile 70% complete!', body: 'Upload your Kundli to reach 80%+ and appear in more searches.' },
+  { pct: 80, title: 'Profile 80% complete!', body: 'Almost there — add your bio and interest tags to complete your profile.' },
+  { pct: 100, title: 'Profile 100% complete! 🎉', body: 'Congratulations! You now appear at the top of search results.' },
+];
+
+const checkMilestone = async (userId, prevPct, newPct) => {
+  for (const m of COMPLETION_MILESTONES) {
+    if (prevPct < m.pct && newPct >= m.pct) {
+      await notify(userId, 'system', m.title, m.body);
+      break; // only one milestone per save
+    }
+  }
+};
 const { deleteFromCloudinary } = require('../middlewares/upload');
 const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
@@ -155,7 +173,7 @@ exports.updateProfile = asyncHandler(async (req, res) => {
     'personalityValues', 'familyPreferences', 'lifestylePreferences',
     'bio', 'showPhone', 'showEmail', 'interestTags', 'profilePrompts',
     'spotifyPlaylist', 'socialMediaLinks', 'personalityType', 'languages',
-    'incognitoMode', 'photoBlurUntilMatch',
+    'incognitoMode', 'photoBlurUntilMatch', 'quizAnswers',
   ];
 
   // Use transaction for data consistency
@@ -167,7 +185,7 @@ exports.updateProfile = asyncHandler(async (req, res) => {
     // Fields that must be arrays in the database (excluding photos which is handled separately)
     const arrayFields = ['preferredCity', 'interestTags', 'languages'];
     // Fields that must be JSON in the database
-    const jsonFields = ['personalityValues', 'familyPreferences', 'lifestylePreferences', 'profilePrompts'];
+    const jsonFields = ['personalityValues', 'familyPreferences', 'lifestylePreferences', 'profilePrompts', 'quizAnswers'];
     
     for (const field of PROFILE_UPDATABLE_FIELDS) {
       if (Object.prototype.hasOwnProperty.call(req.body || {}, field)) {
@@ -276,10 +294,16 @@ exports.updateProfile = asyncHandler(async (req, res) => {
   // Reload and recalculate completion
   await profile.reload();
   const profileData = profile.toJSON();
+  const prevCompletion = profileData.completionPercentage || 0;
   const completion = calculateCompletion(profileData);
 
   profile.completionPercentage = completion;
   await profile.save();
+
+  // Fire milestone notification if a threshold was crossed
+  checkMilestone(req.user.id, prevCompletion, completion).catch((err) => {
+    log.error('Milestone notification failed', { error: err.message });
+  });
 
   // Reload once more so response has latest DB state; send plain object so client gets photos array
   await profile.reload();
@@ -656,6 +680,24 @@ exports.getProfileViewers = asyncHandler(async (req, res) => {
 // @route   PUT /api/profile/privacy
 // @desc    Update profile privacy settings
 // @access  Private
+// @route   GET /api/v1/profile/:userId/compatibility
+// @desc    Return detailed compatibility breakdown (APP-049 "Why This Match")
+// @access  Private
+exports.getCompatibilityBreakdown = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const [myProfile, theirProfile] = await Promise.all([
+    Profile.findOne({ where: { userId: req.user.id } }),
+    Profile.findOne({ where: { userId } }),
+  ]);
+  if (!myProfile) throw createError.notFound('Your profile not found');
+  if (!theirProfile) throw createError.notFound('Profile not found');
+
+  const overallScore = calculateCompatibility(myProfile, theirProfile);
+  const breakdown = calcBreakdown(myProfile, theirProfile);
+
+  res.json({ success: true, overallScore, breakdown });
+});
+
 exports.updatePrivacySettings = asyncHandler(async (req, res) => {
   const { profileVisibility, showOnlineStatus, showLastSeen } = req.body;
   const profile = await Profile.findOne({ where: { userId: req.user.id } });
@@ -678,4 +720,101 @@ exports.updatePrivacySettings = asyncHandler(async (req, res) => {
     showOnlineStatus: profile.showOnlineStatus,
     showLastSeen: profile.showLastSeen,
   }});
+});
+
+// @route   POST /api/v1/profile/voice-intro
+// @desc    Upload a 30-second voice intro (Premium+ viewers only on playback)
+// @access  Private
+exports.uploadVoiceIntro = asyncHandler(async (req, res) => {
+  if (!req.file) throw createError.badRequest('No audio file provided');
+
+  const profile = await Profile.findOne({ where: { userId: req.user.id } });
+  if (!profile) throw createError.notFound('Profile not found');
+
+  // Delete existing voice intro from Cloudinary
+  if (profile.voiceIntroUrl) {
+    try {
+      await deleteFromCloudinary(profile.voiceIntroUrl);
+    } catch (err) {
+      log.error('Error deleting old voice intro from Cloudinary', { error: err.message });
+    }
+  }
+
+  const audioUrl = req.file.path || req.file.secure_url || req.file.filename;
+  profile.voiceIntroUrl = audioUrl;
+  await profile.save();
+
+  res.json({ success: true, voiceIntroUrl: audioUrl });
+});
+
+// @route   DELETE /api/v1/profile/voice-intro
+// @desc    Delete voice intro
+// @access  Private
+exports.deleteVoiceIntro = asyncHandler(async (req, res) => {
+  const profile = await Profile.findOne({ where: { userId: req.user.id } });
+  if (!profile) throw createError.notFound('Profile not found');
+  if (!profile.voiceIntroUrl) throw createError.notFound('No voice intro to delete');
+
+  try {
+    await deleteFromCloudinary(profile.voiceIntroUrl);
+  } catch (err) {
+    log.error('Error deleting voice intro from Cloudinary', { error: err.message });
+  }
+
+  profile.voiceIntroUrl = null;
+  await profile.save();
+
+  res.json({ success: true, message: 'Voice intro deleted' });
+});
+
+// @route   GET /api/v1/profile/:userId/horoscope-match
+// @desc    Full Ashtakoot Guna Milan + Manglik compatibility (APP-055)
+// @access  Private
+exports.getHoroscopeMatch = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const [myProfile, theirProfile] = await Promise.all([
+    Profile.findOne({ where: { userId: req.user.id } }),
+    Profile.findOne({ where: { userId } }),
+  ]);
+  if (!myProfile) throw createError.notFound('Your profile not found');
+  if (!theirProfile) throw createError.notFound('Profile not found');
+
+  // Full Ashtakoot if both have nakshatra
+  const ashtakoot = getAshtakootScore(myProfile.nakshatra, theirProfile.nakshatra);
+
+  // Manglik
+  const manglikCompatible = isManglikCompatible(myProfile.manglikStatus, theirProfile.manglikStatus);
+  const manglikDetail = (() => {
+    if (!myProfile.manglikStatus || !theirProfile.manglikStatus) return 'Manglik status unknown for one or both profiles';
+    if (!manglikCompatible) return 'Manglik dosha present — recommend consulting a pandit for remedies';
+    if (myProfile.manglikStatus === 'anshik_manglik' || theirProfile.manglikStatus === 'anshik_manglik') return 'Anshik (partial) Manglik — minor consideration only';
+    return 'No Manglik dosha';
+  })();
+
+  // Rashi fallback score
+  const rashiScore = getRashiCompatibility(myProfile.rashi, theirProfile.rashi);
+
+  // Summary
+  let summary = '';
+  if (ashtakoot) {
+    const score = ashtakoot.rawOut36 ?? 0;
+    summary = `Guna Milan: ${score}/36 (${ashtakoot.interpretation}).`;
+    if (ashtakoot.hasNadiDosha) summary += ' ⚠️ Nadi Dosha present.';
+    if (ashtakoot.hasBhakootDosha) summary += ' ⚠️ Bhakoot Dosha present.';
+    if (!manglikCompatible) summary += ' ⚠️ Manglik incompatibility.';
+    if (score >= 28 && manglikCompatible) summary += ' Excellent match for marriage.';
+  } else if (rashiScore !== null) {
+    summary = `Rashi compatibility: ${rashiScore}%. ${manglikDetail}.`;
+  } else {
+    summary = 'Insufficient horoscope data for full analysis. Please complete nakshatra and birth details.';
+  }
+
+  res.json({
+    success: true,
+    ashtakoot: ashtakoot ? { ...ashtakoot, manglikCompatible, manglikDetail } : null,
+    manglikCompatible,
+    manglikDetail,
+    rashiScore,
+    summary,
+  });
 });

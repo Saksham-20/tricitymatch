@@ -102,6 +102,7 @@ const rawBodyCapture = [
 ];
 app.use('/api/v1/subscription/webhook', ...rawBodyCapture);
 app.use('/api/subscription/webhook', ...rawBodyCapture);
+app.use('/api/v1/verification/bg-check/webhook', ...rawBodyCapture);
 
 // JSON body parser with size limit
 app.use(express.json({

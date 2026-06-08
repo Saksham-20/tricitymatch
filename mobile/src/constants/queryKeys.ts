@@ -1,0 +1,26 @@
+import type { SearchFilters } from '../types';
+
+export const queryKeys = {
+  me:           ['user', 'me'] as const,
+  profile:      (userId: string) => ['profile', userId] as const,
+  search:       (filters: SearchFilters) => ['search', filters] as const,
+  dailyMatches: ['matches', 'daily'] as const,
+  shortlisted:  ['matches', 'shortlisted'] as const,
+  likedMe:      ['matches', 'liked-me'] as const,
+  sentInterests:['matches', 'sent'] as const,
+  mutualMatches:['matches', 'mutual'] as const,
+  conversations:['chat', 'conversations'] as const,
+  thread:       (userId: string) => ['chat', 'thread', userId] as const,
+  notifications:['notifications'] as const,
+  subscription: ['subscription'] as const,
+  callHistory:  ['calls', 'history'] as const,
+  verification: ['verification', 'me'] as const,
+  plans:        ['subscription', 'plans'] as const,
+  myProfile:    ['profile', 'me'] as const,
+  groupThread:  (groupId: string) => ['chat', 'group', groupId] as const,
+  familyGroups: ['chat', 'family-groups'] as const,
+  guardianLinks:    ['guardian', 'links'] as const,
+  guardianCandidates: ['guardian', 'candidates'] as const,
+  guardianMatches:  (candidateId: string) => ['guardian', 'matches', candidateId] as const,
+  guardianShortlist:(candidateId: string) => ['guardian', 'shortlist', candidateId] as const,
+};

@@ -13,6 +13,10 @@ const Notification = require('./Notification');
 const ContactUnlock = require('./ContactUnlock');
 const ReferralCode = require('./ReferralCode');
 const MarketingLead = require('./MarketingLead');
+const CallSession = require('./CallSession');
+const GuardianLink = require('./GuardianLink');
+const Astrologer = require('./Astrologer');
+const AstrologerBooking = require('./AstrologerBooking');
 
 // Define Relationships
 User.hasOne(Profile, { foreignKey: 'userId', onDelete: 'CASCADE' });
@@ -80,6 +84,24 @@ User.hasMany(MarketingLead, { foreignKey: 'convertedUserId', as: 'ConvertedFrom'
 MarketingLead.belongsTo(User, { foreignKey: 'assignedToMarketingUserId', as: 'AssignedMarketer' });
 MarketingLead.belongsTo(User, { foreignKey: 'convertedUserId', as: 'ConvertedUser' });
 
+// CallSession relationships
+User.hasMany(CallSession, { foreignKey: 'callerId', as: 'CallsMade', onDelete: 'CASCADE' });
+User.hasMany(CallSession, { foreignKey: 'calleeId', as: 'CallsReceived', onDelete: 'CASCADE' });
+CallSession.belongsTo(User, { foreignKey: 'callerId', as: 'Caller' });
+CallSession.belongsTo(User, { foreignKey: 'calleeId', as: 'Callee' });
+
+// GuardianLink relationships
+User.hasMany(GuardianLink, { foreignKey: 'candidateId', as: 'GuardiansInvited', onDelete: 'CASCADE' });
+User.hasMany(GuardianLink, { foreignKey: 'guardianId', as: 'GuardianOf', onDelete: 'CASCADE' });
+GuardianLink.belongsTo(User, { foreignKey: 'candidateId', as: 'Candidate' });
+GuardianLink.belongsTo(User, { foreignKey: 'guardianId', as: 'Guardian' });
+
+// Astrologer + Booking relationships
+Astrologer.hasMany(AstrologerBooking, { foreignKey: 'astrologerId', as: 'Bookings', onDelete: 'CASCADE' });
+AstrologerBooking.belongsTo(Astrologer, { foreignKey: 'astrologerId', as: 'Astrologer' });
+User.hasMany(AstrologerBooking, { foreignKey: 'userId', as: 'AstrologerBookings', onDelete: 'CASCADE' });
+AstrologerBooking.belongsTo(User, { foreignKey: 'userId', as: 'User' });
+
 module.exports = {
   sequelize,
   User,
@@ -96,5 +118,9 @@ module.exports = {
   ContactUnlock,
   ReferralCode,
   MarketingLead,
+  CallSession,
+  GuardianLink,
+  Astrologer,
+  AstrologerBooking,
 };
 

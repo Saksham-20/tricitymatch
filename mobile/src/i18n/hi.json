@@ -1,0 +1,395 @@
+{
+  "common": {
+    "save": "सहेजें",
+    "continue": "जारी रखें",
+    "skip": "अभी छोड़ें",
+    "cancel": "रद्द करें",
+    "back": "वापस",
+    "retry": "पुनः प्रयास करें",
+    "loading": "लोड हो रहा है...",
+    "error": "कुछ गलत हुआ। कृपया पुनः प्रयास करें।",
+    "networkError": "इंटरनेट कनेक्शन नहीं है।",
+    "upgrade": "अपग्रेड करें",
+    "done": "हो गया",
+    "edit": "संपादित करें",
+    "delete": "हटाएं",
+    "report": "रिपोर्ट करें",
+    "block": "ब्लॉक करें",
+    "send": "भेजें",
+    "confirm": "पुष्टि करें",
+    "yes": "हाँ",
+    "no": "नहीं",
+    "or": "या",
+    "optional": "वैकल्पिक"
+  },
+  "auth": {
+    "login": {
+      "title": "वापस आपका स्वागत है",
+      "subtitle": "जारी रखने के लिए साइन इन करें",
+      "email": "ईमेल पता",
+      "password": "पासवर्ड",
+      "signIn": "साइन इन करें",
+      "forgotPassword": "पासवर्ड भूल गए?",
+      "noAccount": "नए हैं? खाता बनाएं",
+      "googleSignIn": "Google से जारी रखें",
+      "biometricPrompt": "बायोमेट्रिक से साइन इन करें",
+      "lockoutMessage": "खाता लॉक है। {{minutes}} मिनट बाद प्रयास करें।",
+      "invalidCredentials": "अमान्य ईमेल या पासवर्ड।"
+    },
+    "signup": {
+      "title": "अपना खाता बनाएं",
+      "subtitle": "अपना सही जीवनसाथी खोजें",
+      "email": "ईमेल पता",
+      "password": "पासवर्ड",
+      "confirmPassword": "पासवर्ड की पुष्टि करें",
+      "passwordMismatch": "पासवर्ड मेल नहीं खाते",
+      "termsLabel": "मैं शर्तों और गोपनीयता नीति से सहमत हूँ",
+      "createAccount": "खाता बनाएं",
+      "alreadyMember": "पहले से सदस्य हैं? साइन इन करें",
+      "passwordStrength": {
+        "weak": "कमज़ोर",
+        "medium": "मध्यम",
+        "strong": "मज़बूत"
+      }
+    },
+    "forgotPassword": {
+      "title": "पासवर्ड भूल गए",
+      "subtitle": "रीसेट लिंक पाने के लिए ईमेल दर्ज करें",
+      "email": "ईमेल पता",
+      "sendLink": "रीसेट लिंक भेजें",
+      "success": "रीसेट लिंक भेजा गया! अपना ईमेल देखें।",
+      "backToLogin": "लॉगिन पर वापस"
+    },
+    "resetPassword": {
+      "title": "पासवर्ड रीसेट करें",
+      "newPassword": "नया पासवर्ड",
+      "confirmPassword": "पासवर्ड की पुष्टि करें",
+      "reset": "पासवर्ड रीसेट करें",
+      "success": "पासवर्ड सफलतापूर्वक रीसेट हुआ।"
+    }
+  },
+  "onboarding": {
+    "progress": "चरण {{current}} / {{total}}",
+    "saveAndContinue": "सहेजें और जारी रखें",
+    "step0": {
+      "title": "आप किसके लिए पंजीकरण कर रहे हैं?",
+      "subtitle": "यह हमें आपका अनुभव व्यक्तिगत बनाने में मदद करता है",
+      "options": {
+        "self": "स्वयं के लिए",
+        "son": "मेरे बेटे के लिए",
+        "daughter": "मेरी बेटी के लिए",
+        "sibling": "मेरे भाई/बहन के लिए",
+        "relative": "एक रिश्तेदार के लिए",
+        "friend": "एक दोस्त के लिए"
+      }
+    },
+    "step1": {
+      "title": "बुनियादी जानकारी",
+      "subtitle": "अपने बारे में बताएं",
+      "fullName": "पूरा नाम",
+      "dateOfBirth": "जन्म तिथि",
+      "gender": "लिंग",
+      "height": "कद",
+      "weight": "वज़न (वैकल्पिक)",
+      "genderOptions": {
+        "male": "पुरुष",
+        "female": "महिला",
+        "other": "अन्य"
+      }
+    },
+    "step2": {
+      "title": "आपका समुदाय",
+      "subtitle": "आपके समुदाय में उचित मेल खोजने में मदद करता है",
+      "religion": "धर्म",
+      "caste": "जाति",
+      "subCaste": "उप-जाति",
+      "gotra": "गोत्र",
+      "motherTongue": "मातृभाषा"
+    },
+    "step3": {
+      "title": "मांगलिक और कुंडली",
+      "subtitle": "कुंडली विवरण अनुकूलता मिलान के लिए उपयोग किया जाता है",
+      "manglikStatus": "मांगलिक स्थिति",
+      "manglikOptions": {
+        "manglik": "मांगलिक",
+        "non_manglik": "अमांगलिक",
+        "anshik_manglik": "आंशिक मांगलिक",
+        "not_sure": "पता नहीं"
+      },
+      "uploadKundli": "कुंडली अपलोड करें",
+      "birthDetails": "जन्म विवरण दर्ज करें",
+      "birthTime": "जन्म समय",
+      "birthPlace": "जन्म स्थान"
+    },
+    "step4": {
+      "title": "शिक्षा",
+      "subtitle": "आपकी शैक्षिक पृष्ठभूमि",
+      "qualification": "उच्चतम योग्यता",
+      "fieldOfStudy": "अध्ययन का क्षेत्र",
+      "institution": "संस्था / कॉलेज"
+    },
+    "step5": {
+      "title": "करियर",
+      "subtitle": "आपकी व्यावसायिक पृष्ठभूमि",
+      "profession": "पेशा",
+      "employer": "नियोक्ता / कंपनी",
+      "income": "वार्षिक आय"
+    },
+    "step6": {
+      "title": "स्थान",
+      "subtitle": "आप अभी कहाँ रहते हैं?",
+      "city": "वर्तमान शहर",
+      "state": "राज्य",
+      "nriToggle": "भारत के बाहर रह रहे हैं?",
+      "country": "देश",
+      "visaStatus": "वीज़ा / पीआर स्थिति"
+    },
+    "step7": {
+      "title": "वैवाहिक स्थिति",
+      "subtitle": "आपकी वर्तमान वैवाहिक स्थिति",
+      "status": "वैवाहिक स्थिति",
+      "statusOptions": {
+        "never_married": "कभी विवाहित नहीं",
+        "divorced": "तलाकशुदा",
+        "widowed": "विधवा/विधुर",
+        "awaiting_divorce": "तलाक की प्रतीक्षा में"
+      },
+      "children": "क्या आपके बच्चे हैं?",
+      "childrenCount": "बच्चों की संख्या"
+    },
+    "step8": {
+      "title": "जीवनशैली",
+      "subtitle": "आपकी दैनिक आदतें और प्राथमिकताएं",
+      "diet": "आहार",
+      "drinking": "शराब",
+      "smoking": "धूम्रपान",
+      "exercise": "व्यायाम"
+    },
+    "step9": {
+      "title": "परिवार का विवरण",
+      "subtitle": "अपने परिवार के बारे में बताएं",
+      "fatherOccupation": "पिता का पेशा",
+      "motherOccupation": "माता का पेशा",
+      "brothers": "भाइयों की संख्या",
+      "sisters": "बहनों की संख्या",
+      "familyType": "परिवार का प्रकार",
+      "familyValues": "पारिवारिक मूल्य",
+      "familyTypeOptions": {
+        "nuclear": "एकल",
+        "joint": "संयुक्त"
+      }
+    },
+    "step10": {
+      "title": "मेरे बारे में",
+      "subtitle": "अपने मेल को बेहतर जानने दें",
+      "bioPlaceholder": "अपने बारे में लिखें...",
+      "bioLimit": "{{count}}/500",
+      "interestTags": "अपनी रुचियाँ चुनें"
+    },
+    "step11": {
+      "title": "साथी की प्राथमिकताएं",
+      "subtitle": "आप किसकी तलाश में हैं?",
+      "ageRange": "आयु सीमा",
+      "heightRange": "कद की सीमा",
+      "maritalStatus": "वैवाहिक स्थिति",
+      "religion": "धर्म",
+      "education": "न्यूनतम शिक्षा",
+      "profession": "पेशा",
+      "income": "न्यूनतम आय",
+      "diet": "आहार",
+      "manglik": "मांगलिक प्राथमिकता",
+      "location": "स्थान",
+      "any": "कोई भी"
+    },
+    "step12": {
+      "title": "फ़ोटो जोड़ें",
+      "subtitle": "स्पष्ट चेहरे की फ़ोटो 5 गुना अधिक मेल पाती हैं",
+      "addPhoto": "फ़ोटो जोड़ें",
+      "camera": "कैमरा",
+      "gallery": "गैलरी",
+      "faceMask": "चेहरा छुपाएं",
+      "guidelines": "स्पष्ट चेहरा, धूप का चश्मा नहीं, हाल की फ़ोटो",
+      "minRequired": "कम से कम 1 फ़ोटो आवश्यक"
+    },
+    "step13": {
+      "title": "मोबाइल सत्यापित करें",
+      "subtitle": "हम आपके नंबर पर एक सत्यापन कोड भेजेंगे",
+      "phone": "फ़ोन नंबर",
+      "sendOtp": "OTP भेजें",
+      "enterOtp": "6 अंकों का OTP दर्ज करें",
+      "resend": "OTP फिर से भेजें",
+      "resendIn": "{{seconds}}s में फिर भेजें",
+      "invalidOtp": "गलत OTP। कृपया पुनः प्रयास करें।"
+    },
+    "step14": {
+      "title": "आप तैयार हैं! 🎉",
+      "subtitle": "आपकी प्रोफ़ाइल तैयार है। अगले कदम:",
+      "getVerified": "ID सत्यापित करें",
+      "getVerifiedSub": "अपनी प्रोफ़ाइल में विश्वास बैज जोड़ें",
+      "completeProfile": "प्रोफ़ाइल पूर्ण करें",
+      "completeProfileSub": "अधिक पूर्ण प्रोफ़ाइल बेहतर मेल देती है",
+      "uploadKundli": "कुंडली अपलोड करें",
+      "uploadKundliSub": "कुंडली मिलान सक्षम करें",
+      "browseMatches": "मेल देखें"
+    }
+  },
+  "home": {
+    "greeting": "वापस आपका स्वागत है, {{name}}",
+    "todayMatches": "आज के मेल",
+    "whoLikedYou": "किसने लाइक किया",
+    "profileViews": "प्रोफ़ाइल दृश्य",
+    "newProfiles": "TricityShadi पर नए"
+  },
+  "search": {
+    "placeholder": "प्रोफ़ाइल खोजें...",
+    "filters": "फ़िल्टर",
+    "saved": "सहेजे गए",
+    "results": "{{count}} प्रोफ़ाइल मिली",
+    "sort": {
+      "label": "क्रमबद्ध करें",
+      "compatibility": "अनुकूलता",
+      "newest": "नवीनतम",
+      "recentlyActive": "हाल में सक्रिय"
+    },
+    "empty": {
+      "title": "कोई प्रोफ़ाइल नहीं मिली",
+      "subtitle": "अपने फ़िल्टर विस्तृत करें"
+    }
+  },
+  "matches": {
+    "mutual": "परस्पर",
+    "shortlisted": "शॉर्टलिस्ट",
+    "likedMe": "जिसने लाइक किया",
+    "myInterests": "मेरी रुचियाँ",
+    "mutualMatch": "मेल हो गया! 🎉",
+    "compatibility": "{{score}}% अनुकूल",
+    "chatNow": "अभी चैट करें",
+    "status": {
+      "pending": "लंबित",
+      "accepted": "स्वीकृत",
+      "declined": "अस्वीकृत"
+    },
+    "likedMeGate": "देखने के लिए Plus में अपग्रेड करें",
+    "offlineSync": "अंतिम सिंक: {{time}}"
+  },
+  "chat": {
+    "title": "संदेश",
+    "searchPlaceholder": "बातचीत खोजें...",
+    "empty": {
+      "title": "अभी कोई बातचीत नहीं",
+      "subtitle": "जब दोनों एक-दूसरे को लाइक करें, तभी चैट शुरू होगी"
+    },
+    "typing": "टाइप कर रहे हैं...",
+    "send": "भेजें",
+    "requestContact": "फ़ोन नंबर अनलॉक करें",
+    "unlocksLeft": "{{count}} अनलॉक बचे",
+    "editMessage": "संदेश संपादित करें",
+    "deleteMessage": "संदेश हटाएं",
+    "deleteForBoth": "दोनों के लिए हटाएं",
+    "deleteForMe": "सिर्फ मेरे लिए हटाएं"
+  },
+  "calls": {
+    "incoming": "आने वाली {{type}} कॉल",
+    "calling": "कॉल हो रही है...",
+    "accept": "स्वीकार करें",
+    "decline": "अस्वीकार करें",
+    "mute": "म्यूट",
+    "speaker": "स्पीकर",
+    "endCall": "कॉल समाप्त करें",
+    "switchCamera": "कैमरा बदलें",
+    "noAnswer": "कोई जवाब नहीं",
+    "callEnded": "कॉल समाप्त"
+  },
+  "profile": {
+    "about": "परिचय",
+    "basicDetails": "बुनियादी विवरण",
+    "community": "समुदाय",
+    "education": "शिक्षा",
+    "career": "करियर",
+    "location": "स्थान",
+    "family": "परिवार",
+    "lifestyle": "जीवनशैली",
+    "horoscope": "कुंडली",
+    "partnerPreferences": "साथी की प्राथमिकताएं",
+    "photos": "फ़ोटो",
+    "editProfile": "प्रोफ़ाइल संपादित करें",
+    "previewAsOthers": "दूसरों की नज़र से देखें",
+    "completeness": "प्रोफ़ाइल {{percent}}% पूर्ण",
+    "getVerified": "सत्यापित हों",
+    "verification": {
+      "mobile": "मोबाइल सत्यापित",
+      "id": "ID सत्यापित",
+      "education": "शिक्षा सत्यापित",
+      "income": "आय सत्यापित"
+    },
+    "authenticity": "प्रामाणिकता स्कोर",
+    "compatibility": "अनुकूलता",
+    "interest": "रुचि दिखाएं",
+    "shortlist": "शॉर्टलिस्ट",
+    "pass": "छोड़ें"
+  },
+  "settings": {
+    "title": "सेटिंग्स",
+    "account": "खाता",
+    "privacy": "गोपनीयता",
+    "notifications": "सूचनाएं",
+    "verification": "सत्यापन",
+    "subscription": "सदस्यता",
+    "appearance": "दिखावट",
+    "security": "सुरक्षा",
+    "familyMode": "पारिवारिक मोड",
+    "support": "सहायता",
+    "legal": "कानूनी",
+    "danger": "खतरनाक क्षेत्र",
+    "deleteAccount": "खाता हटाएं",
+    "deleteAccountWarning": "यह 30 दिनों में आपका खाता स्थायी रूप से हटा देगा। यह पूर्ववत नहीं किया जा सकता।",
+    "incognito": "गुप्त मोड",
+    "photoPrivacy": "फ़ोटो गोपनीयता",
+    "language": "भाषा",
+    "elderMode": "एल्डर मोड",
+    "biometric": "बायोमेट्रिक लॉगिन",
+    "logout": "लॉग आउट",
+    "languages": {
+      "en": "English",
+      "hi": "हिंदी",
+      "pa": "ਪੰਜਾਬੀ"
+    }
+  },
+  "subscription": {
+    "currentPlan": "वर्तमान योजना",
+    "upgrade": "अपग्रेड करें",
+    "plans": {
+      "free": "निःशुल्क",
+      "basic_premium": "प्लस",
+      "premium_plus": "प्रीमियम",
+      "vip": "एलीट"
+    },
+    "features": {
+      "chat": "इन-ऐप चैट",
+      "calls": "वॉयस और वीडियो कॉल",
+      "likedMe": "देखें किसने लाइक किया",
+      "contactUnlocks": "{{count}} संपर्क अनलॉक/माह",
+      "unlimitedContacts": "असीमित संपर्क अनलॉक",
+      "advancedFilters": "उन्नत फ़िल्टर",
+      "boost": "प्रोफ़ाइल बूस्ट",
+      "manager": "रिश्ता प्रबंधक"
+    },
+    "paymentSuccess": "योजना सक्रिय! {{plan}} में आपका स्वागत है।",
+    "paymentFailed": "भुगतान विफल। कृपया पुनः प्रयास करें।"
+  },
+  "notifications": {
+    "title": "सूचनाएं",
+    "markAllRead": "सभी पढ़ा हुआ करें",
+    "empty": {
+      "title": "कोई सूचना नहीं",
+      "subtitle": "आप पूरी तरह अपडेट हैं!"
+    }
+  },
+  "errors": {
+    "networkError": "कनेक्ट नहीं हो पा रहा। इंटरनेट जाँचें।",
+    "serverError": "कुछ गलत हुआ। कृपया पुनः प्रयास करें।",
+    "unauthorized": "सत्र समाप्त हो गया। कृपया पुनः साइन इन करें।",
+    "tooManyRequests": "बहुत अधिक अनुरोध। {{minutes}} मिनट प्रतीक्षा करें।",
+    "upgradeRequired": "इस सुविधा तक पहुँचने के लिए अपनी योजना अपग्रेड करें।"
+  }
+}

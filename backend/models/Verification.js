@@ -51,7 +51,26 @@ const Verification = sequelize.define('Verification', {
       model: 'Users',
       key: 'id'
     }
-  }
+  },
+  // APP-060 — background check fields
+  bgCheckStatus: {
+    type: DataTypes.ENUM('not_requested', 'pending_payment', 'in_progress', 'passed', 'failed'),
+    defaultValue: 'not_requested',
+    allowNull: false,
+  },
+  bgCheckRequestedAt: { type: DataTypes.DATE, allowNull: true },
+  bgCheckCompletedAt: { type: DataTypes.DATE, allowNull: true },
+  bgCheckRazorpayOrderId: { type: DataTypes.STRING(128), allowNull: true },
+  bgCheckRazorpayPaymentId: { type: DataTypes.STRING(128), allowNull: true },
+  bgCheckReportRef: { type: DataTypes.STRING(255), allowNull: true },
+  bgCheckProviderRef: { type: DataTypes.STRING(255), allowNull: true }, // provider-assigned report/task ID for webhook correlation
+  // APP-052 — selfie liveness
+  selfieStatus: {
+    type: DataTypes.ENUM('not_submitted', 'pending', 'passed', 'failed'),
+    defaultValue: 'not_submitted',
+    allowNull: false,
+  },
+  selfieVideoUrl: { type: DataTypes.TEXT, allowNull: true },
 });
 
 module.exports = Verification;

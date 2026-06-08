@@ -28,8 +28,11 @@ const {
   getLeads,
 } = require('../controllers/adminController');
 const { auth, adminAuth } = require('../middlewares/auth');
-const { handleValidationErrors } = require('../middlewares/errorHandler');
+const { handleValidationErrors, asyncHandler } = require('../middlewares/errorHandler');
 const { adminLimiter } = require('../middlewares/security');
+const { sendPushNotification } = require('../utils/fcm');
+const { User } = require('../models');
+const { Op } = require('sequelize');
 const { 
   updateUserStatusValidation, 
   updateVerificationValidation, 
@@ -110,6 +113,44 @@ router.put('/referral-codes/:id/toggle',
 // ==================== MARKETING LEADS ====================
 
 router.get('/leads', getLeads);
+
+// ==================== PUSH NOTIFICATION SMOKE TEST ====================
+
+router.post('/push-smoke-test', [
+  body('userId').optional().isUUID(4).withMessage('Invalid userId'),
+  body('title').optional().isString().trim().isLength({ max: 100 }),
+  body('body').optional().isString().trim().isLength({ max: 200 }),
+  handleValidationErrors,
+], asyncHandler(async (req, res) => {
+  const { userId, title = 'TricityShadi Test', body: msgBody = 'Push notifications are working!' } = req.body;
+
+  if (userId) {
+    const user = await User.findByPk(userId, { attributes: ['id', 'fcmTokens'] });
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    if (!user.fcmTokens?.length) {
+      return res.json({ success: false, message: 'User has no FCM tokens registered' });
+    }
+    const result = await sendPushNotification(user.fcmTokens, title, msgBody, { type: 'smoke_test' });
+    return res.json({ success: true, userId, ...result });
+  }
+
+  // Broadcast to up to 5 recently-active users with FCM tokens
+  const users = await User.findAll({
+    where: { fcmTokens: { [Op.ne]: null } },
+    attributes: ['id', 'fcmTokens'],
+    limit: 5,
+    order: [['updatedAt', 'DESC']],
+  });
+
+  const usersWithTokens = users.filter((u) => u.fcmTokens?.length > 0);
+  if (!usersWithTokens.length) {
+    return res.json({ success: false, message: 'No users with FCM tokens found' });
+  }
+
+  const allTokens = usersWithTokens.flatMap((u) => u.fcmTokens);
+  const result = await sendPushNotification(allTokens, title, msgBody, { type: 'smoke_test' });
+  return res.json({ success: true, usersTargeted: usersWithTokens.length, tokensTargeted: allTokens.length, ...result });
+}));
 
 module.exports = router;
 

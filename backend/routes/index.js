@@ -11,6 +11,9 @@ const adminRoutes = require('./adminRoutes');
 const verificationRoutes = require('./verificationRoutes');
 const { blockRouter, reportRouter } = require('./blockReportRoutes');
 const notificationRoutes = require('./notificationRoutes');
+const callRoutes = require('./callRoutes');
+const guardianRoutes = require('./guardianRoutes');
+const astrologerRoutes = require('./astrologerRoutes');
 
 router.use('/auth', authRoutes);
 router.use('/profile', profileRoutes);
@@ -23,6 +26,9 @@ router.use('/verification', verificationRoutes);
 router.use('/block', blockRouter);
 router.use('/report', reportRouter);
 router.use('/notifications', notificationRoutes);
+router.use('/calls', callRoutes);
+router.use('/guardian', guardianRoutes);
+router.use('/astrologers', astrologerRoutes);
 
 module.exports = router;
 
