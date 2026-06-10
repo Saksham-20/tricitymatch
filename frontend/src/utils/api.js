@@ -3,7 +3,7 @@
  */
 
 // API URL with /api suffix for making API calls
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 // Base URL without /api suffix for serving static assets (uploads, etc.)
 export const API_BASE_URL = API_URL.replace(/\/api\/?$/, '');

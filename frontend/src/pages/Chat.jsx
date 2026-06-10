@@ -3,12 +3,13 @@ import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
-import { FiSend, FiMessageCircle, FiCheck, FiEdit2, FiTrash2, FiX, FiChevronLeft, FiMoreVertical, FiSmile } from 'react-icons/fi';
+import { FiSend, FiMessageCircle, FiCheck, FiEdit2, FiTrash2, FiX, FiChevronLeft, FiMoreVertical, FiSmile, FiLock } from 'react-icons/fi';
 import { BsCheck, BsCheckAll, BsEmojiSmile } from 'react-icons/bs';
 import { HiOutlinePhotograph } from 'react-icons/hi';
 import { API_BASE_URL } from '../utils/api';
 import { getImageUrl } from '../utils/cloudinary';
 import { sanitizeText } from '../utils/sanitize';
+import UpgradeModal from '../components/common/UpgradeModal';
 
 // Environment check for logging
 const isDev = import.meta.env.DEV;
@@ -124,6 +125,8 @@ const Chat = () => {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [isTyping, setIsTyping] = useState(false);
   const [showMobileSidebar, setShowMobileSidebar] = useState(true);
+  const [accessDenied, setAccessDenied] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const messagesEndRef = useRef(null);
   const editInputRef = useRef(null);
   const chatContainerRef = useRef(null);
@@ -213,10 +216,10 @@ const Chat = () => {
       if (isDev) {
         console.log('Mutual matches response:', response.data);
       }
-      
+
       const mutualMatches = response.data.mutualMatches || [];
       setMatches(mutualMatches);
-      
+
       if (mutualMatches.length > 0) {
         setSelectedMatch(mutualMatches[0]);
       }
@@ -224,8 +227,14 @@ const Chat = () => {
       if (isDev) {
         console.error('Failed to load mutual matches:', error.response?.data || error.message);
       }
-      // Don't show error toast for 403 (no subscription) - show empty state instead
-      if (error.response?.status !== 403) {
+      // 403 PREMIUM_REQUIRED or SUBSCRIPTION_EXPIRED: show upgrade modal
+      if (error.response?.status === 403) {
+        const code = error.response?.data?.error?.code;
+        if (code === 'PREMIUM_REQUIRED' || code === 'SUBSCRIPTION_EXPIRED') {
+          setAccessDenied(true);
+          setShowUpgradeModal(true);
+        }
+      } else {
         toast.error('Failed to load matches');
       }
     } finally {
@@ -473,6 +482,35 @@ const Chat = () => {
     );
   }
 
+  if (accessDenied) {
+    return (
+      <>
+        <div className="min-h-screen bg-gradient-to-br from-primary-50 via-gold-50/30 to-white flex items-center justify-center p-4">
+          <div className="text-center max-w-md">
+            <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-amber-100 to-orange-100 rounded-full flex items-center justify-center">
+              <FiLock className="w-12 h-12 text-amber-600" />
+            </div>
+            <h2 className="text-2xl font-bold font-display text-neutral-800 mb-3">Chat is a Premium Feature</h2>
+            <p className="text-neutral-500 mb-6 leading-relaxed">
+              Unlock messaging to connect with your matches. Upgrade to a premium plan today.
+            </p>
+            <button
+              onClick={() => setShowUpgradeModal(true)}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-hero text-white rounded-full font-semibold hover:shadow-burgundy hover:scale-105 transition-all duration-200"
+            >
+              Upgrade Now
+            </button>
+          </div>
+        </div>
+        <UpgradeModal
+          isOpen={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          feature="Chat & Messaging"
+        />
+      </>
+    );
+  }
+
   if (matches.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary-50 via-gold-50/30 to-white flex items-center justify-center p-4">
@@ -484,7 +522,7 @@ const Chat = () => {
           <p className="text-neutral-500 mb-6 leading-relaxed">
             When you and someone else both like each other, you'll be able to start a conversation here.
           </p>
-          <a 
+          <a
             href="/search"
             className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-hero text-white rounded-full font-semibold hover:shadow-burgundy hover:scale-105 transition-all duration-200"
           >

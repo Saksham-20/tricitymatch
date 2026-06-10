@@ -77,19 +77,23 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
   else if (gender === 'female') where.gender = 'male';
   else where.gender = { [Op.in]: ['male', 'female'] };
 
-  // Age filter
+  // Age filter: dateOfBirth in [now - (ageMax+1) years exclusive, now - ageMin years inclusive]
+  // "Age in [25, 35]" → born between 1991-01-01 (exclusive, >25 not >=26) and 2001-01-01 (inclusive, <=35)
   if (ageMin || ageMax) {
     const now = new Date();
-    const minDate = ageMax ? new Date(now.getFullYear() - ageMax - 1, now.getMonth(), now.getDate()) : null;
-    const maxDate = ageMin ? new Date(now.getFullYear() - ageMin, now.getMonth(), now.getDate()) : null;
+    const age_clause = {};
 
-    if (minDate && maxDate) {
-      where.dateOfBirth = { [Op.between]: [minDate, maxDate] };
-    } else if (minDate) {
-      where.dateOfBirth = { [Op.gte]: minDate };
-    } else if (maxDate) {
-      where.dateOfBirth = { [Op.lte]: maxDate };
+    // Older boundary (youngest in age range): dateOfBirth <= now - ageMin years
+    if (ageMin) {
+      age_clause[Op.lte] = new Date(now.getFullYear() - ageMin, now.getMonth(), now.getDate());
     }
+
+    // Younger boundary (oldest in age range): dateOfBirth > now - (ageMax+1) years
+    if (ageMax) {
+      age_clause[Op.gt] = new Date(now.getFullYear() - ageMax - 1, now.getMonth(), now.getDate());
+    }
+
+    where.dateOfBirth = age_clause;
   }
 
   // Height filter

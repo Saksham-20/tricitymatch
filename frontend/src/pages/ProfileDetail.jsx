@@ -139,6 +139,15 @@ const ProfileDetail = () => {
     }
   };
 
+  const handleMessage = () => {
+    if (!premiumAccess) {
+      setUpgradeFeature('Messaging');
+      setShowUpgradeModal(true);
+      return;
+    }
+    navigate('/chat');
+  };
+
   const handleUnlockContact = async () => {
     if (!premiumAccess) {
       setUpgradeFeature('View Contact Details');
@@ -402,10 +411,10 @@ const ProfileDetail = () => {
                         {isLiked ? <><FiCheck className="w-4 h-4" /> Interested</> : <><FiHeart className="w-4 h-4" /> Express Interest</>}
                       </button>
                       <button
-                        onClick={() => navigate('/chat')}
-                        className="flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all cursor-pointer"
+                        onClick={handleMessage}
+                        className={`flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-xl transition-all cursor-pointer ${premiumAccess ? 'border border-slate-200 text-slate-600 hover:bg-slate-50' : 'border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'}`}
                       >
-                        <FiMessageCircle className="w-4 h-4" /> Message
+                        {premiumAccess ? <FiMessageCircle className="w-4 h-4" /> : <FiLock className="w-4 h-4" />} {premiumAccess ? 'Message' : 'Message (Premium)'}
                       </button>
                     </div>
                   </div>
@@ -792,7 +801,7 @@ const ProfileDetail = () => {
         isShortlisted={isShortlisted}
         onSendInterest={() => handleAction('like')}
         onShortlist={() => handleAction('shortlist')}
-        onMessage={() => navigate('/chat')}
+        onMessage={handleMessage}
       />
 
       <ImageLightbox
