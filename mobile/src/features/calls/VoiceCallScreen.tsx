@@ -9,6 +9,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { callColours } from './callTheme';
 import { useAuthStore } from '../../stores/authStore';
 import { useCallStore } from '../../stores/callStore';
 import { useSocket } from '../../hooks/useSocket';
@@ -331,7 +332,7 @@ function CallButton({ icon, label, onPress, variant = 'default', active, testID 
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: callColours.overlay,
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.lg,
@@ -359,7 +360,7 @@ const styles = StyleSheet.create({
   status: {
     fontSize: typography.fontSize.base,
     fontFamily: typography.fontFamily.regular,
-    color: '#a0aec0',
+    color: callColours.textMuted,
     letterSpacing: 0.3,
   },
   controls: {
@@ -392,6 +393,6 @@ const styles = StyleSheet.create({
   btnLabel: {
     fontSize: typography.fontSize.xs,
     fontFamily: typography.fontFamily.medium,
-    color: '#a0aec0',
+    color: callColours.textMuted,
   },
 });

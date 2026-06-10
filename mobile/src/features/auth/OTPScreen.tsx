@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
     lineHeight: typography.fontSize.base * 1.5,
   },
   errorBanner: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: colours.errorBg,
     borderRadius: borderRadius.md,
     padding: spacing.md,
     marginBottom: spacing.lg,
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.xl,
     fontFamily: typography.fontFamily.bold,
     color: colours.textPrimary,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: colours.background,
   },
   digitBoxFilled: {
     borderColor: colours.primary,
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   },
   digitBoxError: {
     borderColor: colours.error,
-    backgroundColor: '#FEF2F2',
+    backgroundColor: colours.errorBg,
   },
   loadingRow: {
     flexDirection: 'row',

@@ -120,9 +120,9 @@ export default function AdminHomeScreen() {
         <Text style={s.sectionTitle}>Today's Overview</Text>
         <View style={s.statsGrid}>
           <StatCard icon="people" label="Signups Today" value={stats.signupsToday} />
-          <StatCard icon="card" label="Active Subs" value={stats.activeSubscriptions} color="#3B82F6" />
+          <StatCard icon="card" label="Active Subs" value={stats.activeSubscriptions} color={colours.info} />
           <StatCard icon="cash" label="Revenue Today" value={`₹${stats.revenueToday?.toLocaleString()}`} color={colours.success} />
-          <StatCard icon="person" label="Total Users" value={stats.totalUsers?.toLocaleString()} color="#8B5CF6" />
+          <StatCard icon="person" label="Total Users" value={stats.totalUsers?.toLocaleString()} color={colours.badgeEducation} />
         </View>
 
         <Text style={s.sectionTitle}>Action Queues</Text>
@@ -140,7 +140,7 @@ export default function AdminHomeScreen() {
             icon="flag-outline"
             label="Reported Users"
             count={openReports}
-            color="#EF4444"
+            color={colours.error}
             onPress={() => nav.navigate('ReportsQueue')}
             testID="queue-reports"
           />

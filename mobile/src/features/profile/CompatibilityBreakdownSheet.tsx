@@ -49,8 +49,8 @@ const sb = StyleSheet.create({
 
 function scoreColor(score: number) {
   if (score >= 75) return colours.success;
-  if (score >= 50) return colours.warning || '#f59e0b';
-  return colours.error || '#ef4444';
+  if (score >= 50) return colours.warning;
+  return colours.error;
 }
 
 function CategoryRow({ catKey, data }: { catKey: string; data: CompatibilityCategory }) {

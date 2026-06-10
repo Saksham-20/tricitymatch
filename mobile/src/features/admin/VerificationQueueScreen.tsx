@@ -76,8 +76,8 @@ function VerifCard({
           testID={`reject-btn-${item.id}`}
           accessibilityLabel="Reject verification"
         >
-          <Ionicons name="close" size={16} color="#EF4444" />
-          <Text style={[s.btnText, { color: '#EF4444' }]}>Reject</Text>
+          <Ionicons name="close" size={16} color={colours.error} />
+          <Text style={[s.btnText, { color: colours.error }]}>Reject</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[s.btn, s.approveBtn]}
@@ -286,7 +286,7 @@ const s = StyleSheet.create({
     borderRadius: borderRadius.sm,
     gap: spacing.xs,
   },
-  rejectBtn: { borderWidth: 1, borderColor: '#EF4444' },
+  rejectBtn: { borderWidth: 1, borderColor: colours.error },
   approveBtn: { backgroundColor: colours.success },
   btnText: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold },
   empty: { alignItems: 'center', justifyContent: 'center', paddingTop: 80, gap: spacing.md },
@@ -349,7 +349,7 @@ const s = StyleSheet.create({
     flex: 1,
     paddingVertical: spacing.sm,
     alignItems: 'center',
-    backgroundColor: '#EF4444',
+    backgroundColor: colours.error,
     borderRadius: borderRadius.sm,
   },
   modalConfirmText: {

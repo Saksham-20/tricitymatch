@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { callColours } from '../../features/calls/callTheme';
 import { useCallStore } from '../../stores/callStore';
 import { declineCall } from '../../api/calls';
 import type { MainStackParamList } from '../../navigation/types';
@@ -178,11 +179,11 @@ function ActionBtn({ icon, iconStyle, label, color, onPress, testID }: ActionBtn
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.65)',
+    backgroundColor: callColours.scrimDark,
     justifyContent: 'flex-end',
   },
   card: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: callColours.overlay,
     borderTopLeftRadius: borderRadius.xl,
     borderTopRightRadius: borderRadius.xl,
     paddingVertical: spacing['3xl'],
@@ -220,7 +221,7 @@ const styles = StyleSheet.create({
   countdown: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.regular,
-    color: '#a0aec0',
+    color: callColours.textMuted,
   },
   actions: {
     flexDirection: 'row',
@@ -238,7 +239,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: callColours.black,
     shadowOpacity: 0.3,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
@@ -246,6 +247,6 @@ const styles = StyleSheet.create({
   actionLabel: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.medium,
-    color: '#a0aec0',
+    color: callColours.textMuted,
   },
 });

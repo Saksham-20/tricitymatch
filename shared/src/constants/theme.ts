@@ -8,19 +8,25 @@ export const colours = {
   secondary:     '#C9A227',
   secondaryLight:'#FEFCE8',
 
-  // Neutrals — cream-based to match web
-  background:    '#FDF8F2',  // cream base
-  surfaceCard:   '#F5EDE0',  // cream 2
-  border:        '#E8D5C0',  // warm cream border
-  textPrimary:   '#1A0A0F',  // near-black with warm tint
-  textSecondary: '#6B4C57',  // warm dark muted
-  textMuted:     '#7A5560',  // decorative/caption only — #9C8089 fails WCAG AA on cream
+  // Neutrals — matches web in-app pages (Dashboard/Profile/Search/Chat)
+  background:    '#FAFAFA',  // web --background: 0 0% 98%
+  surfaceCard:   '#FFFFFF',  // web card bg
+  border:        '#E8E8E8',  // web --border / --muted
+  textPrimary:   '#2D2D2D',  // web --foreground
+  textSecondary: '#5A5A5A',  // web mid-gray body copy
+  textMuted:     '#8B8B8B',  // web --muted-foreground: 0 0% 55%
 
   // Status
   success:       '#2E7D32',
   warning:       '#F57C00',
   error:         '#C62828',
   info:          '#1565C0',
+
+  // Status light backgrounds (web: successBg #E8F5E9, warningBg #FFF3E0, errorBg #FFEBEE, infoBg #E3F2FD)
+  successBg:     '#E8F5E9',
+  warningBg:     '#FFF3E0',
+  errorBg:       '#FFEBEE',
+  infoBg:        '#E3F2FD',
 
   // Verification badge colours
   badgeMobile:    '#2E7D32',
@@ -128,17 +134,23 @@ export const darkColours = {
   secondary:     '#D4AF37',
   secondaryLight:'#1C1500',
 
-  background:    '#0F0F0F',
-  surfaceCard:   '#1A1A1A',
+  background:    '#0F1117',  // web html.dark background
+  surfaceCard:   '#1A1F2E',  // web html.dark card
   border:        '#2D2D2D',
-  textPrimary:   '#F9FAFB',
-  textSecondary: '#D1C5C9',
-  textMuted:     '#7A5560',
+  textPrimary:   '#EBEBEB',  // web html.dark foreground
+  textSecondary: '#B0B0B8',
+  textMuted:     '#9A9AA0',
 
   success:       '#2E7D32',
   warning:       '#F57C00',
   error:         '#EF5350',
   info:          '#42A5F5',
+
+  // Status light backgrounds (dark-mode friendly deep tints)
+  successBg:     '#0A2E0F',
+  warningBg:     '#3E2800',
+  errorBg:       '#3E1010',
+  infoBg:        '#0A1E3E',
 
   badgeMobile:    '#2E7D32',
   badgeID:        '#42A5F5',

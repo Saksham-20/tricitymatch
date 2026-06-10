@@ -297,7 +297,7 @@ const s = StyleSheet.create({
     gap: spacing.xs,
   },
   dismissBtn: { borderWidth: 1, borderColor: colours.border },
-  blockBtn: { backgroundColor: '#EF4444' },
+  blockBtn: { backgroundColor: colours.error },
   btnText: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold },
   empty: { alignItems: 'center', justifyContent: 'center', paddingTop: 80, gap: spacing.md },
   emptyText: {
@@ -359,7 +359,7 @@ const s = StyleSheet.create({
     flex: 1,
     paddingVertical: spacing.sm,
     alignItems: 'center',
-    backgroundColor: '#EF4444',
+    backgroundColor: colours.error,
     borderRadius: borderRadius.sm,
   },
   modalConfirmText: {

@@ -117,7 +117,7 @@ export default function HoroscopeMatchScreen() {
         {/* Manglik Section */}
         <View style={s.section}>
           <Text style={s.sectionTitle}>Manglik Compatibility</Text>
-          <View style={[s.manglikBadge, { backgroundColor: manglikCompatible ? '#ECFDF5' : '#FEF2F2' }]}>
+          <View style={[s.manglikBadge, { backgroundColor: manglikCompatible ? colours.successBg : colours.errorBg }]}>
             <Ionicons
               name={manglikCompatible ? 'checkmark-circle' : 'close-circle'}
               size={20}

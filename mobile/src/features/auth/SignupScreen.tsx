@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   errorBanner: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: colours.errorBg,
     borderRadius: borderRadius.md,
     padding: spacing.md,
     marginBottom: spacing.lg,
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.base,
     fontFamily: typography.fontFamily.regular,
     color: colours.textPrimary,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: colours.background,
     minHeight: 52,
   },
   inputError: { borderColor: colours.error },

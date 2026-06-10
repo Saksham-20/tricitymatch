@@ -22,9 +22,9 @@ type Nav = NativeStackNavigationProp<BureauStackParamList, 'BureauHome'>;
 
 const STATUS_COLOUR: Record<ProposalStatus, string> = {
   pending:  colours.warning,
-  viewed:   '#3B82F6',
+  viewed:   colours.info,
   accepted: colours.success,
-  declined: '#EF4444',
+  declined: colours.error,
 };
 
 interface SummaryCardProps {
@@ -126,7 +126,7 @@ export default function BureauHomeScreen() {
             icon="git-compare-outline"
             label="Proposals"
             value={totalProposals}
-            color="#8B5CF6"
+            color={colours.badgeEducation}
           />
           <SummaryCard
             icon="time-outline"

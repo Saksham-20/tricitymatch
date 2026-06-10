@@ -10,6 +10,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { callColours } from './callTheme';
 import { useCallStore } from '../../stores/callStore';
 import { useSocket } from '../../hooks/useSocket';
 import { getAgoraToken, initiateCall, acceptCall, endCall } from '../../api/calls';
@@ -266,7 +267,7 @@ export default function VideoCallScreen() {
   // ─── UI ─────────────────────────────────────────────────────────────────────
   return (
     <View style={styles.root} testID="VideoCallScreen">
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      <StatusBar barStyle="light-content" backgroundColor={callColours.black} />
 
       {/* Remote video / placeholder */}
       <TouchableOpacity
@@ -388,13 +389,13 @@ function VideoBtn({ icon, label, onPress, variant = 'default', active, testID }:
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: callColours.black,
   },
   remotePlaceholder: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1a1a2e',
+    backgroundColor: callColours.overlay,
     gap: spacing.md,
   },
   remoteAvatar: {
@@ -417,7 +418,7 @@ const styles = StyleSheet.create({
   remoteStatus: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.regular,
-    color: '#a0aec0',
+    color: callColours.textMuted,
   },
   pip: {
     position: 'absolute',
@@ -430,7 +431,7 @@ const styles = StyleSheet.create({
   },
   pipFallback: {
     flex: 1,
-    backgroundColor: '#2d3748',
+    backgroundColor: callColours.surfaceMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -444,7 +445,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: callColours.scrimLight,
     paddingBottom: spacing.md,
   },
   topName: {
@@ -455,14 +456,14 @@ const styles = StyleSheet.create({
   topTimer: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.regular,
-    color: '#a0aec0',
+    color: callColours.textMuted,
   },
   controls: {
     flexDirection: 'row',
     gap: spacing.xl,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: callColours.scrim,
     paddingVertical: spacing.lg,
     paddingBottom: spacing['2xl'],
   },
@@ -490,11 +491,11 @@ const styles = StyleSheet.create({
   btnLabel: {
     fontSize: typography.fontSize.xs,
     fontFamily: typography.fontFamily.medium,
-    color: '#a0aec0',
+    color: callColours.textMuted,
   },
   endedOverlay: {
     ...(StyleSheet.absoluteFill as ViewStyle),
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: callColours.scrimDeep,
     alignItems: 'center',
     justifyContent: 'center',
   },

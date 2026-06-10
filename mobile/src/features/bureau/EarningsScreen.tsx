@@ -56,9 +56,9 @@ export default function EarningsScreen() {
                 </View>
               </View>
               <View style={s.paidRow}>
-                <View style={[s.paidCard, { borderLeftColor: '#3B82F6' }]}>
+                <View style={[s.paidCard, { borderLeftColor: colours.info }]}>
                   <Text style={s.summaryLabel}>Paid Out</Text>
-                  <Text style={[s.summaryValue, { color: '#3B82F6' }]}>{fmt(data?.paid ?? 0)}</Text>
+                  <Text style={[s.summaryValue, { color: colours.info }]}>{fmt(data?.paid ?? 0)}</Text>
                 </View>
               </View>
 
