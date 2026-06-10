@@ -135,7 +135,12 @@ const sendOtp = async (phone) => {
   const provider = config.sms.provider;
 
   if (!provider || provider === 'dev' || !config.sms.isConfigured()) {
-    log.info(`[OTP DEV] Code for ${phone}: ${code}`);
+    // Production: warn about dev mode, don't log the OTP code (security)
+    if (config.server.isProduction) {
+      log.error(`[OTP PROD-DEV-MODE] SMS not configured in production. OTP for ${phone} generated but not sent.`);
+    } else {
+      log.info(`[OTP DEV] Code for ${phone}: ${code}`);
+    }
     return { success: true, message: 'OTP sent (dev mode — check server logs)', isDev: true };
   }
 

@@ -312,6 +312,19 @@ if (isProduction) {
     errors.push('RAZORPAY_WEBHOOK_SECRET must be set in production');
   }
 
+  // SMS_PROVIDER and SMS_API_KEY must be real (not dev mode) in production
+  if (!config.sms.provider || config.sms.provider === 'dev') {
+    errors.push('SMS_PROVIDER must be set to a real provider (e.g., fast2sms, msg91) in production — not dev mode');
+  }
+  if (!config.sms.apiKey) {
+    errors.push('SMS_API_KEY must be set in production for OTP delivery');
+  }
+
+  // Email must be configured (SMTP required for password reset, confirmations)
+  if (!config.email.from || !config.email.host) {
+    errors.push('SMTP email is not configured — SMTP_FROM, SMTP_HOST, SMTP_USER, SMTP_PASS required for production');
+  }
+
   if (errors.length > 0) {
     console.error('\n🚨 PRODUCTION STARTUP BLOCKED — critical env vars missing or using placeholders:\n');
     errors.forEach(e => console.error(`  ✗ ${e}`));
