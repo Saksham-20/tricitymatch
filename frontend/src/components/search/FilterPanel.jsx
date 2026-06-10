@@ -182,6 +182,15 @@ const FilterContent = ({ filters, onChange }) => {
               <option value="Other">Other</option>
             </StyledSelect>
           </div>
+          <div>
+            <FieldLabel htmlFor="manglikFilter">Manglik Preference</FieldLabel>
+            <StyledSelect id="manglikFilter" name="manglikFilter" value={filters.manglikFilter || ''} onChange={onChange}>
+              <option value="">Any</option>
+              <option value="manglik_only">Manglik only</option>
+              <option value="non_manglik_only">Non-Manglik only</option>
+              <option value="exclude_incompatible">Exclude incompatible</option>
+            </StyledSelect>
+          </div>
         </div>
       </FilterSection>
 
@@ -216,6 +225,16 @@ const FilterContent = ({ filters, onChange }) => {
               <option value="1000000">₹10 Lakh+</option>
               <option value="2000000">₹20 Lakh+</option>
               <option value="5000000">₹50 Lakh+</option>
+            </StyledSelect>
+          </div>
+          <div>
+            <FieldLabel htmlFor="incomeMax">Max Annual Income (₹)</FieldLabel>
+            <StyledSelect id="incomeMax" name="incomeMax" value={filters.incomeMax || ''} onChange={onChange}>
+              <option value="">No maximum</option>
+              <option value="500000">₹5 Lakh or less</option>
+              <option value="1000000">₹10 Lakh or less</option>
+              <option value="2000000">₹20 Lakh or less</option>
+              <option value="5000000">₹50 Lakh or less</option>
             </StyledSelect>
           </div>
         </div>

@@ -543,7 +543,8 @@ exports.getProfile = asyncHandler(async (req, res) => {
         : Math.max(0, (viewerSubscription.contactUnlocksAllowed || 0) - (viewerSubscription.contactUnlocksUsed || 0)))
       : 0,
     isLiked,
-    isShortlisted
+    isShortlisted,
+    isMutual
   });
 });
 
