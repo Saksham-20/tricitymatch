@@ -4,7 +4,8 @@
  */
 
 const { Profile, User, Match, Subscription, Block, Verification } = require('../models');
-const { Op } = require('sequelize');
+const { Op, fn, col, where: seqWhere } = require('sequelize');
+const Sequelize = require('sequelize');
 const { calculateCompatibility, isManglikCompatible } = require('../utils/compatibility');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 
@@ -131,9 +132,12 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
     };
   }
 
-  // Religion filter
+  // Religion filter (exact case-insensitive match to use LOWER() index)
   if (religion) {
-    where.religion = { [Op.iLike]: escapeLikePattern(religion) };
+    if (!where[Op.and]) where[Op.and] = [];
+    where[Op.and].push(
+      Sequelize.where(fn('LOWER', col('religion')), Op.eq, religion.toLowerCase())
+    );
   }
 
   // Caste filter
@@ -157,9 +161,12 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
     where.income = { ...(where.income || {}), [Op.lte]: parsedIncomeMax };
   }
 
-  // Mother tongue filter
+  // Mother tongue filter (exact case-insensitive match to use LOWER() index)
   if (motherTongue) {
-    where.motherTongue = { [Op.iLike]: escapeLikePattern(motherTongue) };
+    if (!where[Op.and]) where[Op.and] = [];
+    where[Op.and].push(
+      Sequelize.where(fn('LOWER', col('motherTongue')), Op.eq, motherTongue.toLowerCase())
+    );
   }
 
   // Manglik filter
