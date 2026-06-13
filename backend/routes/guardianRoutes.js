@@ -12,7 +12,7 @@ const { asyncHandler, AppError } = require('../middlewares/errorHandler');
 const { GuardianLink, Profile, User, Match } = require('../models');
 const { Op } = require('sequelize');
 const { log } = require('../middlewares/logger');
-const notify = require('../utils/notifyUser');
+const { notify } = require('../utils/notifyUser');
 
 const MAX_GUARDIANS = 3;
 

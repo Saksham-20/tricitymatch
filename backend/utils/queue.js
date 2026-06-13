@@ -308,7 +308,7 @@ const setupCleanupProcessor = (queue) => {
     const { User, Profile } = require('../models');
     const { Op } = require('sequelize');
     const { get: cacheGet, set: cacheSet } = require('./cache');
-    const notify = require('./notifyUser');
+    const { notify } = require('./notifyUser');
 
     // Fetch all users who have saved searches stored (as MMKV on device)
     // Backend-side: we use profile.lifestylePreferences.savedSearches (stored during save-search API call)

@@ -7,7 +7,7 @@ const { Profile, User, ProfileView, Subscription, Match, ContactUnlock } = requi
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const { calculateCompatibility, getCompatibilityBreakdown: calcBreakdown, getAshtakootScore, isManglikCompatible, getRashiCompatibility } = require('../utils/compatibility');
-const notify = require('../utils/notifyUser');
+const { notify } = require('../utils/notifyUser');
 
 // Completion milestones and their messages
 const COMPLETION_MILESTONES = [

@@ -12,7 +12,7 @@ const { createGenericOrder, verifyPayment } = require('../utils/razorpay');
 const { generateRtcToken } = require('../utils/agoraToken');
 const config = require('../config/env');
 const { log } = require('../middlewares/logger');
-const notify = require('../utils/notifyUser');
+const { notify } = require('../utils/notifyUser');
 
 // Seed data inserted on first request if Astrologers table is empty (dev convenience)
 const SEED_ASTROLOGERS = [

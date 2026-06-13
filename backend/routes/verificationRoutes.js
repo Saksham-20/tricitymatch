@@ -16,7 +16,7 @@ const { Verification, User, Profile } = require('../models');
 const { createGenericOrder, verifyPayment } = require('../utils/razorpay');
 const { submitBgCheck, verifyBgCheckWebhook, parseBgCheckWebhook } = require('../utils/bgCheckService');
 const { log } = require('../middlewares/logger');
-const notify = require('../utils/notifyUser');
+const { notify } = require('../utils/notifyUser');
 
 // All verification routes require authentication, EXCEPT the provider webhook
 router.use((req, res, next) => {
