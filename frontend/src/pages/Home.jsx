@@ -171,11 +171,15 @@ const FontLoader = () => (
       .footer-grid-inner { grid-template-columns: 1fr 1fr !important; padding: 32px 20px !important; }
       .footer-mega-inner { padding: 32px 20px 20px !important; }
       .footer-bottom-inner { padding: 20px 20px 0 !important; flex-direction: column !important; align-items: flex-start !important; gap: 8px !important; }
-      /* Stats: 2x2 grid on mobile, no separators */
-      .stats-section { padding: 20px 16px !important; }
-      .stats-inner { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 1px !important; background: var(--line-on-dk) !important; border: 1px solid var(--line-on-dk) !important; }
-      .stats-inner > span { display: none !important; }
-      .stats-inner > div { padding: 16px 8px !important; text-align: center !important; background: var(--ink) !important; flex: none !important; }
+      /* Trust strip: 2x2 metrics, stacked badges/momentum */
+      .trust-strip-section { padding: 28px 16px 0 !important; }
+      .ts-metrics-row { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 20px !important; }
+      .ts-badges-row, .ts-momentum-row { flex-direction: column !important; gap: 8px !important; text-align: center !important; }
+      .tsm-sep { display: none !important; }
+      /* Parents */
+      .parents-section { padding: 40px 20px !important; }
+      .parents-head { grid-template-columns: 1fr !important; gap: 16px !important; }
+      .parents-row { grid-template-columns: 1fr !important; }
     }
     @media (max-width: 600px) {
       .trust-cards { grid-template-columns: 1fr !important; }
@@ -205,6 +209,22 @@ const FontLoader = () => (
     .faq-item-open .faq-toggle::after { transform: translate(-50%,-50%) rotate(90deg); }
     .faq-a { max-height: 0; overflow: hidden; opacity: 0; transition: max-height .5s, opacity .4s, margin-top .3s; }
     .faq-item-open .faq-a { max-height: 240px; opacity: 1; margin-top: 12px; }
+
+    /* ── Sticky mobile CTA ── */
+    .sticky-cta {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 120;
+      background: rgba(253,248,242,.95); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border-top: 1px solid var(--line); padding: 12px 20px;
+      display: none; align-items: center; justify-content: space-between; gap: 16px;
+      transform: translateY(100%); transition: transform .4s cubic-bezier(.2,.8,.2,1);
+    }
+    .sticky-cta.show { transform: translateY(0); }
+    .sticky-cta .sc-text { display: flex; flex-direction: column; }
+    .sticky-cta .sc-text strong { font-size: 14px; font-family: var(--sans); color: var(--ink); }
+    .sticky-cta .sc-text span { font-family: var(--mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
+    @media (max-width: 900px) {
+      .sticky-cta { display: flex; }
+    }
   `}</style>
 );
 
@@ -263,6 +283,30 @@ const CountUp = ({ to, suffix = '', duration = 1800 }) => {
     requestAnimationFrame(tick);
   }, [inView, to, duration]);
   return <span ref={ref}>{n >= 1000 ? n.toLocaleString('en-IN') : n}<span style={{ color: 'var(--gold)', fontStyle: 'italic' }}>{suffix}</span></span>;
+};
+
+/* ── STICKY CTA — mobile-only bottom bar ─────────────────────────── */
+const StickyCTA = () => {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setShow(window.scrollY > window.innerHeight * 0.8);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+  return (
+    <div className={`sticky-cta${show ? ' show' : ''}`}>
+      <div className="sc-text">
+        <strong>Free to join</strong>
+        <span>No credit card · Verified in hours</span>
+      </div>
+      <Link to="/onboarding" style={{
+        display: 'inline-flex', alignItems: 'center', gap: 8, flexShrink: 0,
+        padding: '12px 20px', borderRadius: 999,
+        background: 'var(--burgundy)', color: 'var(--cream)',
+        fontSize: 13, fontWeight: 500, fontFamily: 'var(--sans)', textDecoration: 'none',
+      }}>Create profile <FiArrowRight /></Link>
+    </div>
+  );
 };
 
 /* ── HOME ─────────────────────────────────────────────────────── */
@@ -415,24 +459,31 @@ const Home = () => {
 
         {/* LEFT */}
         <div style={{ padding: '28px 28px 48px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative' }}>
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--mute)', display: 'flex', gap: 10 }}>
-            <span>Vol. 01</span><span>·</span><span>Spring 2026</span>
+          {/* Eyebrow chip */}
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 10,
+            padding: '8px 16px', borderRadius: 999, alignSelf: 'flex-start',
+            background: 'rgba(124,29,58,.07)', border: '1px solid rgba(124,29,58,.2)',
+            fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.14em', textTransform: 'uppercase',
+            color: 'var(--burgundy-dk)', animation: 'rise 1.2s .1s both',
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--burgundy)', animation: 'pulse 1.6s ease-in-out infinite', flexShrink: 0 }} />
+            Serious matrimony · Tricity only · Since 2011
           </div>
 
-          {/* Monumental stacked title */}
+          {/* Headline — CRO messaging */}
           <div style={{
             fontFamily: 'var(--display)',
-            fontSize: 'clamp(30px, 4vw, 64px)',
-            lineHeight: 0.92,
-            letterSpacing: '-0.035em',
+            fontSize: 'clamp(32px, 4.4vw, 70px)',
+            lineHeight: 1,
+            letterSpacing: '-0.03em',
             display: 'flex', flexDirection: 'column',
             margin: '20px 0',
           }}>
             {[
-              { text: 'where',                  style: { color: 'var(--ink)', animationDelay: '.1s' } },
-              { text: <>every <em style={{ color: 'var(--burgundy)', fontStyle: 'italic' }}>love</em></>, style: { paddingLeft: '1.2em', animationDelay: '.25s' } },
-              { text: 'story',                  style: { color: 'var(--ink)', animationDelay: '.4s' } },
-              { text: <><em style={{ fontStyle: 'italic' }}>begins</em>.</>, style: { color: 'var(--burgundy)', paddingLeft: '2em', animationDelay: '.55s', position: 'relative' } },
+              { text: 'Marry someone',                                                style: { color: 'var(--ink)', animationDelay: '.25s' } },
+              { text: 'your family can',                                              style: { color: 'var(--ink)', animationDelay: '.4s' } },
+              { text: <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>actually meet.</em>, style: { animationDelay: '.55s' } },
             ].map((line, i) => (
               <span key={i} style={{
                 display: 'inline-block',
@@ -442,7 +493,15 @@ const Home = () => {
             ))}
           </div>
 
-          {/* Gold underline on "begins" — drawn via pseudo (handled inline) */}
+          {/* Trust chips */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, animation: 'rise 1.2s .7s both' }}>
+            {['✓ 100% Govt. ID verified', '✓ 1,190+ marriages made', '✓ Every profile human-reviewed'].map((t, i) => (
+              <span key={i} style={{
+                fontSize: 13, fontWeight: 500, fontFamily: 'var(--sans)', color: 'var(--burgundy-dk)',
+                background: 'var(--cream-3)', border: '1px solid var(--line)', borderRadius: 999, padding: '7px 14px',
+              }}>{t}</span>
+            ))}
+          </div>
 
           <div className="hero-cta-row" style={{
             display: 'grid', gridTemplateColumns: '1fr auto', gap: 24,
@@ -451,9 +510,9 @@ const Home = () => {
             animation: 'rise 1.2s 0.9s both',
           }}>
             <p style={{ fontSize: 14, lineHeight: 1.5, color: 'var(--ink-soft)', maxWidth: 420, fontFamily: 'var(--sans)' }}>
-              Tricity's most trusted matrimony — for Chandigarh, Mohali and Panchkula. Verified, intelligent, deeply local.
+              Matrimony built only for Chandigarh, Mohali and Panchkula. Every profile government-ID verified, every family within driving distance — 50,000 serious local members, not 50 million strangers.
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'flex-start' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-start' }}>
               <Link to="/onboarding" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 10,
                 padding: '14px 28px', borderRadius: 999,
@@ -465,6 +524,9 @@ const Home = () => {
                 onMouseEnter={e => { e.currentTarget.style.background = 'var(--burgundy-dk)'; e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 16px 40px -12px rgba(124,29,58,.5)'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'var(--burgundy)'; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
               >Create free profile <FiArrowRight /></Link>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--mute)' }}>
+                Free to start · No credit card · Verified in hours
+              </span>
               <a href="#why" style={{
                 display: 'inline-flex', gap: 8, alignItems: 'center',
                 fontFamily: 'var(--mono)', fontSize: 13, letterSpacing: '.12em', textTransform: 'uppercase',
@@ -571,6 +633,45 @@ const Home = () => {
       </section>
 
       {/* ════════════════════════════════════════════════════════
+          TRUST STRIP — metrics + safety badges + momentum ticker
+      ════════════════════════════════════════════════════════ */}
+      <section className="trust-strip-section section-dark" style={{ background: 'var(--ink)', color: 'var(--cream)', padding: '40px 40px 0', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 120%, rgba(124,29,58,.55), transparent 60%)' }} />
+        <div className="ts-metrics-row" style={{ position: 'relative', maxWidth: 1280, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', paddingBottom: 32 }}>
+          {[
+            { to: 1190, suffix: '+',  label: 'Marriages made' },
+            { to: 50,   suffix: 'K+', label: 'Verified members' },
+            { to: 92,   suffix: '%',  label: 'Reply within 48 hrs' },
+            { to: 15,   suffix: 'yr', label: 'Serving Tricity families' },
+          ].map((s, i) => (
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, minWidth: 140 }}>
+              <span style={{ fontFamily: 'var(--display)', fontSize: 'clamp(34px,5vw,64px)', lineHeight: 1, letterSpacing: '-.03em' }}>
+                <CountUp to={s.to} suffix={s.suffix} />
+              </span>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.16em', textTransform: 'uppercase', color: 'rgba(253,248,242,.55)', marginTop: 10 }}>{s.label}</span>
+            </div>
+          ))}
+        </div>
+        <div className="ts-badges-row" style={{ position: 'relative', borderTop: '1px solid var(--line-on-dk)', maxWidth: 1280, margin: '0 auto', display: 'flex', justifyContent: 'space-between', gap: 16, padding: '18px 0 22px', flexWrap: 'wrap' }}>
+          {[
+            '◉ Government ID checked before any profile goes live',
+            '◉ Every profile manually reviewed by our safety team',
+            '◉ Conversations end-to-end encrypted · numbers never shared',
+          ].map((t, i) => (
+            <span key={i} style={{ fontSize: 13, color: 'rgba(253,248,242,.78)', fontFamily: 'var(--sans)' }}>{t}</span>
+          ))}
+        </div>
+        <div className="ts-momentum-row" style={{ position: 'relative', maxWidth: 1280, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, flexWrap: 'wrap', padding: '14px 0 22px', borderTop: '1px solid var(--line-on-dk)', fontSize: 13, color: 'rgba(253,248,242,.85)', fontFamily: 'var(--sans)' }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#4ADE80', animation: 'pulse 1.6s ease-in-out infinite', flexShrink: 0 }} />
+          <span><strong style={{ color: 'var(--gold)', fontWeight: 600 }}>214</strong> new verified profiles this week</span>
+          <span className="tsm-sep" style={{ color: 'rgba(253,248,242,.4)' }}>·</span>
+          <span><strong style={{ color: 'var(--gold)', fontWeight: 600 }}>38</strong> family introductions this month</span>
+          <span className="tsm-sep" style={{ color: 'rgba(253,248,242,.4)' }}>·</span>
+          <span><strong style={{ color: 'var(--gold)', fontWeight: 600 }}>3</strong> engagements announced in May</span>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════════════════════
           RIBBON — scrolling marquee
       ════════════════════════════════════════════════════════ */}
       <div className="ribbon-band section-dark" style={{
@@ -589,31 +690,6 @@ const Home = () => {
           ))}
         </div>
       </div>
-
-      {/* ════════════════════════════════════════════════════════
-          STATS — dark horizontal strip with count-up
-      ════════════════════════════════════════════════════════ */}
-      <section className="stats-section section-dark" style={{ background: 'var(--ink)', color: 'var(--cream)', padding: '32px 40px', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 100%, rgba(124,29,58,0.5), transparent 60%)' }} />
-        <div className="stats-inner" style={{ position: 'relative', maxWidth: 1280, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
-          {[
-            { to: 1190, suffix: '+', label: 'Matches' },
-            { to: 50,   suffix: 'K+', label: 'Verified' },
-            { to: 98,   suffix: '%',  label: 'Satisfied' },
-            { to: 15,   suffix: 'yr', label: 'Trusted' },
-          ].map((s, i) => (
-            <React.Fragment key={i}>
-              {i > 0 && <span style={{ flex: '1 0 0', height: 1, background: 'var(--line-on-dk)', maxWidth: 100 }} />}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <span style={{ fontFamily: 'var(--display)', fontSize: 'clamp(20px,2.4vw,36px)', lineHeight: 1, letterSpacing: '-.03em', color: 'var(--cream)' }}>
-                  <CountUp to={s.to} suffix={s.suffix} />
-                </span>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.18em', textTransform: 'uppercase', color: 'rgba(253,248,242,.75)', marginTop: 12 }}>{s.label}</span>
-              </div>
-            </React.Fragment>
-          ))}
-        </div>
-      </section>
 
       {/* ════════════════════════════════════════════════════════
           WHY — sticky title pane + horizontal scrolling cards
@@ -1112,6 +1188,46 @@ const Home = () => {
       </section>
 
       {/* ════════════════════════════════════════════════════════
+          PARENTS — family / guardian testimonials
+      ════════════════════════════════════════════════════════ */}
+      <section className="parents-section" style={{ background: 'var(--cream-3)', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)', padding: '64px 40px' }}>
+        <div className="parents-head" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, alignItems: 'end', maxWidth: 1328, margin: '0 auto 40px' }}>
+          <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0 }}>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--burgundy)', marginBottom: 24, display: 'block' }}>— What parents say</span>
+            <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em' }}>
+              Trusted by the<br />whole <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>family.</em>
+            </h2>
+          </motion.div>
+          <p style={{ fontSize: 14, lineHeight: 1.5, color: 'var(--ink-soft)', maxWidth: 520, fontFamily: 'var(--sans)' }}>
+            In the Tricity, marriage is a family decision. Here's what the families say.
+          </p>
+        </div>
+        <div className="parents-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, maxWidth: 1328, margin: '0 auto' }}>
+          {[
+            { quote: "We found our daughter a wonderful match. The verification gave us the confidence other sites never did.", who: 'Mrs. Harpreet Kaur', role: 'Mother of the bride · Mohali' },
+            { quote: "Within two weeks, we were having tea with their family in Sector 9. That is simply not possible on the big platforms.", who: 'Mr. R.K. Sharma', role: 'Father of the groom · Chandigarh' },
+            { quote: "Every profile we saw was a real family we could verify through our own community. That mattered more than anything.", who: 'Mrs. & Mr. Khanna', role: 'Parents · Panchkula' },
+          ].map((p, i) => (
+            <motion.div key={i} initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0 }} transition={{ delay: i * 0.07 }}
+              style={{ background: 'var(--cream)', border: '1px solid var(--line)', borderRadius: 8, padding: '28px 24px', display: 'flex', flexDirection: 'column', gap: 16, transition: 'all .35s' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 24px 50px -20px rgba(45,26,34,.18)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+            >
+              <div style={{ fontFamily: 'var(--display)', fontStyle: 'italic', fontSize: 56, lineHeight: 0.4, color: 'var(--burgundy)' }}>&ldquo;</div>
+              <p style={{ fontFamily: 'var(--display)', fontSize: 19, lineHeight: 1.3, letterSpacing: '-.01em', color: 'var(--ink)' }}>{p.quote}</p>
+              <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginTop: 'auto', paddingTop: 16, borderTop: '1px solid var(--line)' }}>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, var(--burgundy-lt), var(--burgundy-dk))', flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, fontFamily: 'var(--sans)' }}>{p.who}</div>
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 10.5, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--mute)', marginTop: 2 }}>{p.role}</div>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════════════════════
           FAQ — sticky 2-col with hairline rules
       ════════════════════════════════════════════════════════ */}
       <section id="faq" style={{ background: 'var(--cream)', padding: '64px 40px', display: 'grid', gridTemplateColumns: '0.9fr 1.1fr', gap: 48, alignItems: 'start' }}>
@@ -1293,6 +1409,8 @@ const Home = () => {
           </span>
         </div>
       </footer>
+
+      <StickyCTA />
     </div>
   );
 };
