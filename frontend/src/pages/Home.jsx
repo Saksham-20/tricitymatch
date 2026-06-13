@@ -567,7 +567,7 @@ const Home = () => {
               background: 'linear-gradient(140deg,#C9B5A6,#6E574B)',
               animation: 'drift-back 8s ease-in-out infinite',
             }}>
-              <img src="/images/landing/profile-anjali.jpg" alt="Anjali Nair" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src="/images/landing/profile-anjali.jpg" alt="Anjali Nair" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 50%,rgba(0,0,0,.45))' }} />
               <span style={{ position: 'absolute', bottom: 16, left: 16, fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.12em', textTransform: 'uppercase', color: 'rgba(253,248,242,.85)', zIndex: 3 }}>Anjali, 29 · Panchkula</span>
             </div>
@@ -578,7 +578,7 @@ const Home = () => {
               background: 'linear-gradient(160deg,#B59C82,#5C4B40)',
               animation: 'drift-mid 10s ease-in-out infinite',
             }}>
-              <img src="/images/landing/profile-rahul.jpg" alt="Rahul Gupta" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src="/images/landing/profile-rahul.jpg" alt="Rahul Gupta" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 50%,rgba(0,0,0,.45))' }} />
               <span style={{ position: 'absolute', bottom: 16, left: 16, fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.12em', textTransform: 'uppercase', color: 'rgba(253,248,242,.85)', zIndex: 3 }}>Rahul, 31 · Chandigarh</span>
             </div>
@@ -589,7 +589,7 @@ const Home = () => {
               animation: 'drift-front 12s ease-in-out infinite',
               zIndex: 2,
             }}>
-              <img src="/images/landing/profile-priya.jpg" alt="Priya Sharma" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src="/images/landing/profile-priya.jpg" alt="Priya Sharma" fetchpriority="high" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 50%,rgba(0,0,0,.55))' }} />
               <span style={{ position: 'absolute', top: 14, right: 14, fontFamily: 'var(--display)', fontSize: 36, lineHeight: 1, color: 'var(--cream)', zIndex: 3, fontStyle: 'italic' }}>97<small style={{ fontSize: 16, opacity: .7 }}>%</small></span>
               <div style={{ position: 'absolute', bottom: 20, left: 20, right: 20, zIndex: 3, color: 'var(--cream)', display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -807,7 +807,7 @@ const Home = () => {
             {/* Rectangular photo — contain so full person is visible */}
             <div style={{ position: 'relative', width: '100%', height: 340, flexShrink: 0, background: cur.grad }}>
               <img
-                src={cur.img} alt={cur.name}
+                src={cur.img} alt={cur.name} loading="lazy" decoding="async"
                 style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center bottom', display: 'block' }}
               />
               {/* Subtle bottom gradient only */}
@@ -862,7 +862,7 @@ const Home = () => {
               >
                 {/* Rectangular thumbnail — contain so full person visible */}
                 <div style={{ width: 56, height: 64, borderRadius: 4, position: 'relative', overflow: 'hidden', flexShrink: 0, background: p.grad }}>
-                  <img src={p.img} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center bottom' }} />
+                  <img src={p.img} alt={p.name} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center bottom' }} />
                   <span style={{ position: 'absolute', bottom: 2, right: 2, background: 'var(--cream)', color: 'var(--burgundy)', padding: '2px 6px', borderRadius: 999, fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 600 }}>{p.match}%</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -1026,7 +1026,7 @@ const Home = () => {
               }}
             >
               {/* Real image background */}
-              <img src={c.img} alt={c.name} className="city-bg"
+              <img src={c.img} alt={c.name} className="city-bg" loading="lazy" decoding="async"
                 style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform: activeCity === i ? 'scale(1)' : 'scale(1.05)' }}
               />
               <div style={{
@@ -1164,7 +1164,7 @@ const Home = () => {
                     opacity: Math.abs(offset) > 2 ? 0 : 1,
                   }}>
                   <div style={{ aspectRatio: '4/5', position: 'relative', overflow: 'hidden' }}>
-                    <img src={s.img} alt={s.who} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={s.img} alt={s.who} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 60%,rgba(0,0,0,.4))' }} />
                     <span style={{ position: 'absolute', top: 16, left: 16, fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '.14em', textTransform: 'uppercase', color: 'rgba(253,248,242,.85)', zIndex: 2 }}>{s.tag}</span>
                   </div>
