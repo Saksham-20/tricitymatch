@@ -227,6 +227,19 @@ const FontLoader = () => (
       /* Reserve space so the fixed sticky CTA never covers footer legal/copyright */
       footer { padding-bottom: 120px !important; }
     }
+
+    /* ── Reduced motion: honor OS-level user preference (a11y + battery) ── */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important;
+        scroll-behavior: auto !important;
+      }
+      body { cursor: auto !important; }
+      .cur-dot, .cur-ring { display: none !important; }
+      .ribbon-track { animation: none !important; }
+    }
   `}</style>
 );
 
