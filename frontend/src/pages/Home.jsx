@@ -849,7 +849,10 @@ const Home = () => {
           {/* Side rail */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {profiles.map((p, i) => (
-              <div key={i} className="ms-row" onClick={() => setMatchIdx(i)}
+              <div key={i} className="ms-row"
+                role="button" tabIndex={0} aria-pressed={matchIdx === i} aria-label={`View ${p.name}, ${p.match}% match`}
+                onClick={() => setMatchIdx(i)}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setMatchIdx(i); } }}
                 style={{
                   display: 'grid', gridTemplateColumns: '56px 1fr 20px', gap: 12, alignItems: 'center',
                   padding: '10px 12px', border: `1px solid ${matchIdx === i ? 'var(--gold)' : 'var(--line-on-dk)'}`,
@@ -1017,8 +1020,11 @@ const Home = () => {
           {cities.map((c, i) => (
             <div key={i}
               className={`city-strip${activeCity === i ? ' active' : ''}`}
+              role="button" tabIndex={0} aria-pressed={activeCity === i} aria-label={`${c.name} — ${c.count} profiles`}
               onMouseEnter={() => setActiveCity(i)}
               onClick={() => setActiveCity(i)}
+              onFocus={() => setActiveCity(i)}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveCity(i); } }}
               style={{
                 flex: activeCity === i ? 3 : 1,
                 position: 'relative', overflow: 'hidden', cursor: 'pointer',
@@ -1273,7 +1279,9 @@ const Home = () => {
         <div style={{ borderTop: '1px solid var(--line)' }}>
           {faqs.map((it, i) => (
             <div key={i} className={`faq-row${faqOpen === i ? ' faq-item-open' : ''}`}
+              role="button" tabIndex={0} aria-expanded={faqOpen === i}
               onClick={() => setFaqOpen(faqOpen === i ? -1 : i)}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setFaqOpen(faqOpen === i ? -1 : i); } }}
               style={{
                 display: 'grid', gridTemplateColumns: '60px 1fr 36px', gap: 16,
                 padding: `24px ${faqOpen === i ? '24px' : '0'} 24px ${faqOpen === i ? '8px' : '0'}`,
