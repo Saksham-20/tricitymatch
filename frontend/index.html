@@ -9,13 +9,15 @@
     <meta name="description" content="The most trusted matrimonial platform for Chandigarh, Mohali, and Panchkula. Find your perfect life partner with our smart matching algorithm." />
     <meta name="keywords" content="matrimony, tricity, chandigarh, mohali, panchkula, marriage, matchmaking, life partner" />
     <meta name="author" content="TricityShadi" />
-    
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://tricityshadi.com/" />
+
     <!-- Viewport -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
     
     <!-- Theme Color -->
-    <meta name="theme-color" content="#E11D48" />
-    <meta name="msapplication-TileColor" content="#E11D48" />
+    <meta name="theme-color" content="#7C1D3A" />
+    <meta name="msapplication-TileColor" content="#7C1D3A" />
     
     <!-- Favicons -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -67,10 +69,42 @@
       html{-webkit-text-size-adjust:100%;line-height:1.5}
       body{margin:0;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,sans-serif}
       #root{min-height:100vh}
-      .loading-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#FFF5F7 0%,#FFFFFF 50%,#FCE7F3 100%)}
-      .loading-spinner{width:48px;height:48px;border:4px solid #FCE7F3;border-top-color:#E11D48;border-radius:50%;animation:spin 1s linear infinite}
+      .loading-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#FDF8F2}
+      .loading-spinner{width:48px;height:48px;border:4px solid #EAD9C8;border-top-color:#7C1D3A;border-radius:50%;animation:spin 1s linear infinite}
       @keyframes spin{to{transform:rotate(360deg)}}
     </style>
+
+    <!-- Structured data (SEO): Organization + WebSite -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "name": "TricityShadi",
+          "url": "https://tricityshadi.com/",
+          "logo": "https://tricityshadi.com/icons/apple-touch-icon.png",
+          "description": "Hyperlocal matrimonial platform for Chandigarh, Mohali and Panchkula. Government-ID verified, human-reviewed profiles since 2011.",
+          "foundingDate": "2011",
+          "areaServed": ["Chandigarh", "Mohali", "Panchkula"],
+          "sameAs": [
+            "https://www.instagram.com/tricityshadi",
+            "https://www.facebook.com/tricityshadi"
+          ]
+        },
+        {
+          "@type": "WebSite",
+          "name": "TricityShadi",
+          "url": "https://tricityshadi.com/",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://tricityshadi.com/search?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <!-- No-JS fallback -->
