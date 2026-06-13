@@ -1,11 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useInView, AnimatePresence, useScroll, useTransform } from 'framer-motion';
-import Logo from '../components/common/Logo';
 import {
-  FiShield, FiCheckCircle, FiHeart, FiArrowRight, FiStar, FiUsers,
-  FiMessageCircle, FiLock, FiMapPin, FiBookmark, FiChevronRight,
-  FiChevronLeft, FiUser, FiX, FiZap, FiEye, FiPhone,
+  FiShield, FiCheckCircle, FiArrowRight, FiUsers,
+  FiMessageCircle, FiLock, FiX,
 } from 'react-icons/fi';
 import { FaInstagram, FaFacebook, FaTwitter, FaWhatsapp } from 'react-icons/fa';
 
@@ -589,7 +587,7 @@ const Home = () => {
               animation: 'drift-front 12s ease-in-out infinite',
               zIndex: 2,
             }}>
-              <img src="/images/landing/profile-priya.jpg" alt="Priya Sharma" fetchpriority="high" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src="/images/landing/profile-priya.jpg" alt="Priya Sharma" fetchPriority="high" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 50%,rgba(0,0,0,.55))' }} />
               <span style={{ position: 'absolute', top: 14, right: 14, fontFamily: 'var(--display)', fontSize: 36, lineHeight: 1, color: 'var(--cream)', zIndex: 3, fontStyle: 'italic' }}>97<small style={{ fontSize: 16, opacity: .7 }}>%</small></span>
               <div style={{ position: 'absolute', bottom: 20, left: 20, right: 20, zIndex: 3, color: 'var(--cream)', display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -1385,12 +1383,12 @@ const Home = () => {
             </p>
             <div style={{ display: 'flex', gap: 12 }}>
               {[
-                { icon: <FaInstagram />, label: 'Instagram' },
-                { icon: <FaFacebook />, label: 'Facebook' },
-                { icon: <FaWhatsapp />, label: 'WhatsApp' },
-                { icon: <FaTwitter />, label: 'Twitter' },
+                { icon: <FaInstagram />, label: 'Instagram', href: 'https://www.instagram.com/tricityshadi' },
+                { icon: <FaFacebook />, label: 'Facebook', href: 'https://www.facebook.com/tricityshadi' },
+                { icon: <FaWhatsapp />, label: 'WhatsApp', href: 'https://wa.me/919876543210' },
+                { icon: <FaTwitter />, label: 'Twitter', href: 'https://twitter.com/tricityshadi' },
               ].map(s => (
-                <a key={s.label} href="#" aria-label={s.label}
+                <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" aria-label={s.label}
                   style={{ width: 44, height: 44, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--line-on-dk)', color: 'rgba(253,248,242,.5)', transition: 'all .3s', textDecoration: 'none' }}
                   onMouseEnter={e => { e.currentTarget.style.background = 'var(--burgundy)'; e.currentTarget.style.color = 'var(--cream)'; e.currentTarget.style.borderColor = 'var(--burgundy)'; }}
                   onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(253,248,242,.5)'; e.currentTarget.style.borderColor = 'var(--line-on-dk)'; }}
