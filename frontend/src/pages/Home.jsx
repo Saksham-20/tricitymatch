@@ -224,6 +224,8 @@ const FontLoader = () => (
     .sticky-cta .sc-text span { font-family: var(--mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
     @media (max-width: 900px) {
       .sticky-cta { display: flex; }
+      /* Reserve space so the fixed sticky CTA never covers footer legal/copyright */
+      footer { padding-bottom: 120px !important; }
     }
   `}</style>
 );
@@ -471,12 +473,13 @@ const Home = () => {
             Serious matrimony · Tricity only · Since 2011
           </div>
 
-          {/* Headline — CRO messaging */}
-          <div style={{
+          {/* Headline — CRO messaging (h1 for SEO/a11y; one per page) */}
+          <h1 style={{
             fontFamily: 'var(--display)',
             fontSize: 'clamp(32px, 4.4vw, 70px)',
             lineHeight: 1,
             letterSpacing: '-0.03em',
+            fontWeight: 'inherit',
             display: 'flex', flexDirection: 'column',
             margin: '20px 0',
           }}>
@@ -491,7 +494,7 @@ const Home = () => {
                 ...line.style,
               }}>{line.text}</span>
             ))}
-          </div>
+          </h1>
 
           {/* Trust chips */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, animation: 'rise 1.2s .7s both' }}>
