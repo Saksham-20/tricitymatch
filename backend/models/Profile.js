@@ -298,6 +298,10 @@ const Profile = sequelize.define('Profile', {
   voiceIntroUrl: {
     type: DataTypes.STRING,
     allowNull: true
+  },
+  videoIntroUrl: {
+    type: DataTypes.STRING,
+    allowNull: true
   }
 }, {
   indexes: [

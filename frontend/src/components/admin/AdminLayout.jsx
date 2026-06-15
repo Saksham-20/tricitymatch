@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
   FiGrid, FiUsers, FiCheckCircle, FiCreditCard,
   FiTrendingUp, FiFlag, FiLogOut, FiMenu, FiX,
-  FiChevronRight, FiTag, FiUserPlus, FiPhoneCall,
+  FiChevronRight, FiTag, FiUserPlus, FiPhoneCall, FiHeart,
 } from 'react-icons/fi';
 
 const navItems = [
@@ -17,6 +17,7 @@ const navItems = [
   { to: '/admin/marketing-users',  label: 'Marketing Users',   icon: FiUserPlus },
   { to: '/admin/referral-codes',   label: 'Referral Codes',    icon: FiTag },
   { to: '/admin/leads',            label: 'Leads',             icon: FiPhoneCall },
+  { to: '/admin/success-stories',  label: 'Success Stories',   icon: FiHeart },
 ];
 
 export default function AdminLayout() {

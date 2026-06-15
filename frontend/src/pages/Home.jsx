@@ -6,6 +6,14 @@ import {
   FiMessageCircle, FiLock, FiX,
 } from 'react-icons/fi';
 import { FaInstagram, FaFacebook, FaTwitter, FaWhatsapp } from 'react-icons/fa';
+import api from '../api/axios';
+
+/* Seed testimonials — replaced by published admin success stories when available */
+const STATIC_STORIES = [
+  { quote: 'From the first message to our engagement, everything felt intentional. This platform respects both families.', who: 'Meera & Vikram', where: 'Panchkula · Married Sept 2024', tag: 'Story 042', img: '/images/landing/story-meera-vikram.jpg' },
+  { quote: 'We met because of compatibility, not luck. Six months later, our families knew it was right.',                 who: 'Priya & Arjun',   where: 'Mohali · Married March 2025', tag: 'Story 067', img: '/images/landing/story-priya-arjun.jpg' },
+  { quote: 'The Incognito mode let me take my time. When I was ready, my family stepped in beautifully.',                 who: 'Anjali & Rohan',  where: 'Chandigarh · Engaged 2025',  tag: 'Story 091', img: '/images/landing/story-anjali-rohan.jpg' },
+];
 
 /* ── FONT LOADER ─────────────────────────────────────────────── */
 const FontLoader = () => (
@@ -328,6 +336,7 @@ const Home = () => {
   const [matchIdx, setMatchIdx]           = useState(0);
   const [processActive, setProcessActive] = useState(0);
   const [storyIdx, setStoryIdx]           = useState(0);
+  const [stories, setStories]             = useState(STATIC_STORIES);
   const [faqOpen, setFaqOpen]             = useState(-1);
   const [announcementOn, setAnnouncementOn] = useState(true);
   const [liveIdx, setLiveIdx]             = useState(0);
@@ -365,8 +374,28 @@ const Home = () => {
 
   /* story auto-advance */
   useEffect(() => {
-    const t = setInterval(() => setStoryIdx(i => (i + 1) % 3), 6000);
+    const t = setInterval(() => setStoryIdx(i => (i + 1) % (stories.length || 1)), 6000);
     return () => clearInterval(t);
+  }, [stories.length]);
+
+  /* load published success stories from API; keep static seed if none */
+  useEffect(() => {
+    let active = true;
+    api.get('/success-stories')
+      .then((res) => {
+        const list = res.data?.stories || [];
+        if (!active || list.length === 0) return;
+        setStories(list.map((s) => ({
+          quote: s.quote,
+          who: s.coupleNames,
+          where: [s.location, s.marriedOn ? `Married ${new Date(s.marriedOn).getFullYear()}` : null].filter(Boolean).join(' · '),
+          tag: s.tag || '',
+          img: s.photoUrl || '/images/landing/story-meera-vikram.jpg',
+        })));
+        setStoryIdx(0);
+      })
+      .catch(() => { /* keep seed */ });
+    return () => { active = false; };
   }, []);
 
   /* why-scroller progress bar */
@@ -402,12 +431,6 @@ const Home = () => {
     { tag: 'City Beautiful',       name: 'Chandigarh', count: '28K', desc: 'India\'s most planned city. Cosmopolitan, career-forward — and deeply family-rooted.',         img: '/images/landing/city-chandigarh.jpg' },
     { tag: "Punjab's Rising Star", name: 'Mohali',     count: '14K', desc: 'Tech parks, AIIMS, IIT. Young professionals building careers without leaving culture.',         img: '/images/landing/city-mohali.jpg' },
     { tag: 'Roots Run Deep',       name: 'Panchkula',  count: '8K',  desc: 'Quiet, established, close-knit. Tradition and aspiration in equal measure.',                   img: '/images/landing/city-panchkula.jpg' },
-  ];
-
-  const stories = [
-    { quote: 'From the first message to our engagement, everything felt intentional. This platform respects both families.', who: 'Meera & Vikram', where: 'Panchkula · Married Sept 2024', tag: 'Story 042', img: '/images/landing/story-meera-vikram.jpg' },
-    { quote: 'We met because of compatibility, not luck. Six months later, our families knew it was right.',                 who: 'Priya & Arjun',   where: 'Mohali · Married March 2025', tag: 'Story 067', img: '/images/landing/story-priya-arjun.jpg' },
-    { quote: 'The Incognito mode let me take my time. When I was ready, my family stepped in beautifully.',                 who: 'Anjali & Rohan',  where: 'Chandigarh · Engaged 2025',  tag: 'Story 091', img: '/images/landing/story-anjali-rohan.jpg' },
   ];
 
   const faqs = [
@@ -587,7 +610,7 @@ const Home = () => {
               animation: 'drift-front 12s ease-in-out infinite',
               zIndex: 2,
             }}>
-              <img src="/images/landing/profile-priya.jpg" alt="Priya Sharma" fetchpriority="high" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src="/images/landing/profile-priya.jpg" alt="Priya Sharma" fetchPriority="high" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 50%,rgba(0,0,0,.55))' }} />
               <span style={{ position: 'absolute', top: 14, right: 14, fontFamily: 'var(--display)', fontSize: 36, lineHeight: 1, color: 'var(--cream)', zIndex: 3, fontStyle: 'italic' }}>97<small style={{ fontSize: 16, opacity: .7 }}>%</small></span>
               <div style={{ position: 'absolute', bottom: 20, left: 20, right: 20, zIndex: 3, color: 'var(--cream)', display: 'flex', flexDirection: 'column', gap: 4 }}>

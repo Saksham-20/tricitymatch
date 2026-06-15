@@ -21,21 +21,22 @@ Ports: backend 5001 · web 3000 · Metro 8081.
 Entry `server.js`. Key files:
 - `config/env.js` — sole env source (never read process.env elsewhere); prod guard `process.exit(1)` on dev JWT_SECRET/COOKIE_SECRET/DB_PASSWORD/FRONTEND_URL
 - `config/database.js` Sequelize+PG · `routes/index.js` mounts `/api/v1`+`/api`; marketing mounted in server.js at `/api/marketing`
-- `middlewares/`: security (helmet, CORS, 9 limiters, Redis lockout, sanitize) · auth (JWT cookie, adminAuth, requirePremium/VIP, socketAuth) · errorHandler (AppError, asyncHandler) · logger (JSON) · upload (Multer+Cloudinary, magic-byte; voice-intro resource_type=`video`)
+- `middlewares/`: security (helmet, CORS, 9 limiters, Redis lockout, sanitize) · auth (JWT cookie, adminAuth, requirePremium/VIP, socketAuth) · errorHandler (AppError, asyncHandler) · logger (JSON) · upload (Multer+Cloudinary, magic-byte; voice-intro + video-intro resource_type=`video`, MP4/MOV/WebM ≤25MB)
 - `socket/socketHandler.js` — join-room, send-message, typing, edit, delete, online-status, group rooms (join-group/leave-group/group-send-message→group-message-received)
-- `utils/`: cache (Redis+in-mem fallback; `get/set/del`,`getString/setString`,`getNumber/setNumber`) · queue (Bull: email/cleanup/push; weekly digest Mon 10AM, saved-search-alerts daily 9AM) · notifyUser `notify(userId,type,title,body,relatedId)` · razorpay (PLANS, createOrder, verifyPayment, createGenericOrder; throws on placeholder secret) · agoraToken (`DEV_STUB_TOKEN` if unset) · smsService (Fast2SMS/MSG91, dev logs OTP, 3/hr) · bgCheckService (AuthBridge+Signzy, dev stub auto-pass 5s) · email (primary) · emailService (legacy, chatController only) · compatibility (score + Vedic Ashtakoot 27-nakshatra/8-guna/dosha; `resolveNakshatra()` 50+ aliases)
+- `utils/`: cache (Redis+in-mem fallback; `get/set/del`,`getString/setString`,`getNumber/setNumber`) · queue (Bull: email/cleanup/push; weekly digest Mon 10AM, saved-search-alerts daily 9AM) · notifyUser `notify(userId,type,title,body,relatedId)` · razorpay (PLANS, createOrder, verifyPayment, createGenericOrder; throws on placeholder secret) · agoraToken (`DEV_STUB_TOKEN` if unset) · smsService (Fast2SMS/MSG91, dev logs OTP, 3/hr) · bgCheckService (AuthBridge+Signzy, dev stub auto-pass 5s) · email (primary) · emailService (legacy, chatController only) · compatibility (score + Vedic Ashtakoot 27-nakshatra/8-guna/dosha; `resolveNakshatra()` 50+ aliases) · numerology (life-path from DOB + pairwise match; in `horoscope-match`) · profileCode (deterministic `TCS-XXXXXXXX` from userId, no DB column; powers `/search/by-code`)
 - `validators/index.js` all express-validator schemas
 
 **Auth:** httpOnly accessToken(15m JWT)+refreshToken(7d hashed). Rotation+family revoke. Lockout 5/30min (Redis). Google `POST /auth/google`. Mobile biometric→refresh-token flow.
 **Limiters:** api 200/15m · auth 5/15m · signup 3/hr · pwReset 3/hr · search 30/min · message 60/min · profileUpdate 10/min · matchAction 60/min · upload 20/hr · admin 100/min · payment 10/hr
 **Plans:** free ₹0 · basic_premium ₹1500/15d/5unlock · premium_plus ₹3000/30d/10unlock · vip ₹7499/90d/unlimited+boost
-**Migrations:** 000001–000033. `npm run migrate` (backend/) before prod. `quizAnswers` JSONB on Profile has NO migration — `ALTER TABLE "Profiles" ADD COLUMN "quizAnswers" JSONB` manually.
+**Migrations:** 000001–000037. `npm run migrate` (backend/) before prod. `quizAnswers` JSONB on Profile has NO migration — `ALTER TABLE "Profiles" ADD COLUMN "quizAnswers" JSONB` manually. 000035 ProfileView (viewerId,createdAt) index for recently-viewed; 000036 SuccessStories table; 000037 Profile.videoIntroUrl (video intro).
 
 ## API (`/api/v1` unless noted; full: `docs/06_API_Reference.md`)
 - **auth** `/auth`: signup, login, refresh, forgot-password, reset-password, google, send-otp, verify-otp, GET me, logout, logout-all, change-password, GET sessions, DEL sessions/:id, DEL account
-- **profile** `/profile`: GET/PUT me, GET me/stats, GET me/viewers, DEL me/photo, DEL me/profile-photo, POST/DEL voice-intro, PUT privacy, GET :id, POST :id/unlock-contact, GET :id/compatibility, GET :id/horoscope-match
-- **search** `/search`: GET /, GET suggestions
-- **match** `/match`: POST :id {action}, GET likes, GET shortlist, GET mutual
+- **profile** `/profile`: GET/PUT me, GET me/stats, GET me/viewers, GET me/recently-viewed (all tiers), DEL me/photo, DEL me/profile-photo, POST/DEL voice-intro, POST/DEL video-intro, PUT privacy, GET :id, POST :id/unlock-contact, GET :id/compatibility, GET :id/horoscope-match (incl. `numerology` life-path block)
+- **search** `/search`: GET /, GET suggestions, GET by-code (public profile code `TCS-XXXXXXXX`→profile)
+- **match** `/match`: POST :id {action}, GET likes, GET shortlist, GET mutual, GET daily (cached IST-day set, Redis TTL→midnight, free 5/premium 15)
+- **success-stories** (public, no auth) `/api/v1/success-stories`: GET (published only)
 - **chat** `/chat` (premium): GET conversations, GET messages/:id, POST messages, POST send, PUT/DEL messages/:id
 - **subscription** `/subscription`: GET plans, POST webhook, GET my-subscription, POST create-order, POST verify-payment, DEL current, GET history, GET invoice/:id
 - **verification** `/verification`: GET status, POST submit, POST selfie, POST bg-check/initiate, POST bg-check/verify-payment, GET bg-check/status, POST bg-check/webhook (no-auth, HMAC-SHA256 via BG_CHECK_WEBHOOK_SECRET, raw body)
@@ -44,7 +45,7 @@ Entry `server.js`. Key files:
 - **guardian** `/guardian` (DB): GET my-guardians, POST invite, DEL :linkId, GET my-candidates, GET candidate/:id/matches|shortlisted, POST resolve-invite/:token
 - **astrologers** `/astrologers`: GET /, GET my-bookings, GET :id, POST book, POST book/:id/verify-payment|start-call|end-call
 - **block**/**report** `/block`,`/report`: POST :id, DEL :id, GET /
-- **admin** `/admin`: GET/POST users, GET users/:id, PUT users/:id/status|subscription, GET verifications, PUT verifications/:id {status,adminNotes}, GET analytics|revenue|reports, PUT reports/:id {status,adminNotes}, GET invoice/:id, GET/POST marketing-users, PUT marketing-users/:id/status, GET marketing-users/:id/stats, GET/POST referral-codes, PUT referral-codes/:id/toggle, GET leads, POST push-smoke-test
+- **admin** `/admin`: GET/POST users, GET users/:id, PUT users/:id/status|subscription, GET verifications, PUT verifications/:id {status,adminNotes}, GET analytics|revenue|reports, PUT reports/:id {status,adminNotes}, GET invoice/:id, GET/POST marketing-users, PUT marketing-users/:id/status, GET marketing-users/:id/stats, GET/POST referral-codes, PUT referral-codes/:id/toggle, GET leads, GET/POST success-stories, PUT/DEL success-stories/:id, POST push-smoke-test
 - **marketing** `/api/marketing` (marketing role): GET dashboard|leads, PUT leads/:id/status, GET/POST referral-codes
 
 **Flows:** Login→httpOnly cookies→`/auth/me`. Onboarding 14-step→`PUT /profile/me`. Match `POST /match/:id {action}`→mutual→notify. Chat premium+mutual (REST+Socket). Payment Razorpay order→verify→webhook fallback. Photo Multer→Cloudinary 500² face+1200² gallery max6. Boost +8 sort. Verify docs→admin→badge.
@@ -53,9 +54,10 @@ Entry `server.js`. Key files:
 `main.jsx`→`App.jsx`→AuthProvider→OnboardingProvider→SocketProvider. Contexts `useAuth/useOnboarding/useSocket`. Aliases `@`→src,@components/@pages/@context/@api/@utils/@hooks/@assets. HTTP `api/axios.js` (withCredentials, auto 401→refresh queue); `apiClient.js` alias.
 
 Routes:
-- public: `/ /login /signup /onboarding /forgot-password /reset-password /terms /privacy /about /contact /safety`
-- ProtectedRoute: `/dashboard /profile /profile/edit /profile/:id /search /chat /subscription /payment/success|failed|history /settings /notifications`
-- AdminProtectedRoute `/admin/*`: dashboard, users(+create,:id), verifications, subscriptions, revenue, reports, marketing-users(+:id), referral-codes, leads
+- public: `/ /login /signup /onboarding /forgot-password /reset-password /terms /privacy /about /contact /safety /success-stories`
+- ProtectedRoute: `/dashboard /profile /profile/edit /profile/:id /search /chat /subscription /payment/success|failed|history /settings /notifications /verification /guardian /astrologers /astrologers/bookings /astrologers/:id`
+- AdminProtectedRoute `/admin/*`: dashboard, users(+create,:id), verifications, subscriptions, revenue, reports, marketing-users(+:id), referral-codes, leads, success-stories
+- **i18n (web):** react-i18next en/hi/pa; config `src/i18n/`, `LanguageSwitcher` in Settings. New pages use `useTranslation`; existing pages still English-only.
 - MarketingProtectedRoute `/marketing/*`: dashboard, leads, referral-codes
 
 Onboarding 14: Welcome→CreatingFor→BasicInfo→CreateAccount→AboutYourself→Location→Education→MaritalStatus→Religion→Lifestyle→Family→Preferences→Photos→Verification.
@@ -131,6 +133,8 @@ Backend unit+integration Jest+Supertest `backend/tests/`. Frontend Vitest+RTL `f
 - 2026-05-04 Prod QA (6 bugs: DB SSL crash, missing migrations, CORS loopback, login complexity, error display, 404 redirect)
 - 2026-06-02 Mobile-web responsiveness (Home.jsx 375/768px)
 - 2026-06-09 Mobile re-theme (neutral palette →web #FAFAFA/#FFFFFF/#E8E8E8/#2D2D2D, errorBg/warningBg/successBg/infoBg tokens, callTheme.ts dark-navy)
+- 2026-06-14 Competitive parity R1 (benchmark vs Shaadi/Jeevansathi → `docs/07_Competitive_Benchmark.md`, spec `docs/08_Spec_Competitive_Parity.md`). Shipped: web pages for Verification/Guardian/Astrologers (booking-only, in-browser calls DEFERRED); GET /match/daily (cached IST set); GET /profile/me/recently-viewed; SuccessStory model+admin CRUD+public page (Home.jsx now fetches); web i18n scaffold en/hi/pa. Migrations 000035/000036 — run `npm run migrate`.
+- 2026-06-14 Competitive parity R2 (re-benchmark → final buildable-gap closure; spec addendum C8–C10). Shipped: **search-by-ID** (`GET /search/by-code` + shareable `TCS-XXXXXXXX` code on profile, util `profileCode`); **video intro** (`POST/DEL /profile/video-intro`, migration **000037** Profile.videoIntroUrl, web `VideoIntroManager`+playback); **numerology** (life-path + pairwise match on `horoscope-match`, util `numerology`). Unit tests `numerology.test.js`+`profileCode.test.js`. Remaining gaps intentional: web calls, kundli PDF, full web i18n, SMS match alerts (won't-do — push+email cover), settlement guarantee, RM web. Run `npm run migrate` for 000037.
 
 ## gstack Skills (REQUIRED)
 ```bash

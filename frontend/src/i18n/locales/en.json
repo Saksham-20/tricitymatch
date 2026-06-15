@@ -1,0 +1,77 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "back": "Back",
+    "viewProfile": "View Profile",
+    "language": "Language",
+    "retry": "Retry",
+    "empty": "Nothing here yet"
+  },
+  "nav": {
+    "verification": "Verification",
+    "guardian": "Guardian & Family",
+    "astrologers": "Astrologers",
+    "successStories": "Success Stories",
+    "dailyMatches": "Today's Matches",
+    "recentlyViewed": "Recently Viewed"
+  },
+  "verification": {
+    "title": "Verify your profile",
+    "subtitle": "Verified profiles get more trust and more matches.",
+    "status": "Verification status",
+    "tierDocuments": "Document verification",
+    "tierSelfie": "Selfie verification",
+    "tierBgCheck": "Background check",
+    "submitDocuments": "Submit documents",
+    "uploadSelfie": "Upload selfie",
+    "startBgCheck": "Start background check",
+    "statusPending": "Pending review",
+    "statusApproved": "Approved",
+    "statusRejected": "Rejected",
+    "statusNotStarted": "Not started"
+  },
+  "guardian": {
+    "title": "Guardian & Family",
+    "subtitle": "Invite a parent or guardian to help with your search.",
+    "myGuardians": "My Guardians",
+    "myCandidates": "I'm a Guardian For",
+    "inviteByEmail": "Invite by email",
+    "invite": "Send invite",
+    "revoke": "Revoke",
+    "noGuardians": "You haven't added any guardians yet.",
+    "noCandidates": "You aren't a guardian for anyone yet.",
+    "viewMatches": "View matches",
+    "viewShortlist": "View shortlist",
+    "readOnly": "Read-only view"
+  },
+  "astrologers": {
+    "title": "Talk to an Astrologer",
+    "subtitle": "Book a consultation for kundli and compatibility guidance.",
+    "experience": "{{years}} yrs exp",
+    "perMin": "₹{{price}}/min",
+    "book": "Book consultation",
+    "myBookings": "My bookings",
+    "online": "Online now",
+    "offline": "Offline",
+    "callInApp": "Your call is booked. Join it from the TricityShadi mobile app.",
+    "bookingConfirmed": "Booking confirmed"
+  },
+  "successStories": {
+    "title": "Success Stories",
+    "subtitle": "Real couples who found each other on TricityShadi.",
+    "married": "Married",
+    "empty": "Stories coming soon."
+  },
+  "dailyMatches": {
+    "title": "Today's Matches",
+    "subtitle": "Hand-picked for you, refreshed every day.",
+    "upgrade": "Upgrade to see more matches today",
+    "empty": "No matches today — check back tomorrow."
+  },
+  "recentlyViewed": {
+    "title": "Recently Viewed",
+    "empty": "Profiles you view will appear here."
+  }
+}

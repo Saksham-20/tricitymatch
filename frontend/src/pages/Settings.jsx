@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 import {
   FiUser, FiLock, FiBell, FiAlertTriangle, FiEye, FiEyeOff,
   FiMoon, FiShield, FiCheck, FiUpload, FiClock, FiX, FiCamera,
-  FiFileText,
+  FiFileText, FiUsers, FiStar, FiChevronRight,
 } from 'react-icons/fi';
 import useDarkMode from '../hooks/useDarkMode';
+import LanguageSwitcher from '../components/common/LanguageSwitcher';
 
 const TABS = [
   { id: 'account',       label: 'Account',      icon: FiUser,          desc: 'Password & appearance' },
@@ -160,6 +162,31 @@ const AccountTab = () => {
             label="Dark Mode"
             desc="Switch between light and dark theme"
           />
+          <div className="flex items-center justify-between p-4">
+            <div>
+              <p className="text-sm font-medium text-neutral-900">Language</p>
+              <p className="text-xs text-neutral-500">English · हिन्दी · ਪੰਜਾਬੀ</p>
+            </div>
+            <LanguageSwitcher />
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <SectionHeader title="More" desc="Verification, family & astrology services" />
+        <div className="rounded-2xl border border-neutral-100 divide-y divide-neutral-100 overflow-hidden max-w-sm">
+          {[
+            { to: '/verification', icon: FiShield, label: 'Verification' },
+            { to: '/guardian',     icon: FiUsers,  label: 'Guardian & Family' },
+            { to: '/astrologers',  icon: FiStar,   label: 'Talk to an Astrologer' },
+          ].map(({ to, icon: Icon, label }) => (
+            <Link key={to} to={to} className="flex items-center justify-between p-4 hover:bg-neutral-50 transition-colors">
+              <span className="flex items-center gap-3 text-sm font-medium text-neutral-800">
+                <Icon className="w-4 h-4 text-primary-500" /> {label}
+              </span>
+              <FiChevronRight className="w-4 h-4 text-neutral-400" />
+            </Link>
+          ))}
         </div>
       </div>
 

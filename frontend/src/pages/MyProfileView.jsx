@@ -8,11 +8,14 @@ import {
   FiMusic, FiCheck, FiMapPin, FiBook, FiBriefcase, FiUser,
   FiGlobe, FiShield, FiHome, FiSun, FiHeart, FiInfo,
   FiCamera, FiChevronRight, FiEye, FiDollarSign, FiGrid,
+  FiHash, FiCopy,
 } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 import { API_BASE_URL } from '../utils/api';
 import { getImageUrl } from '../utils/cloudinary';
 import { sanitizeText, sanitizeUrl } from '../utils/sanitize';
+import { toProfileCode } from '../utils/profileCode';
+import VideoIntroManager from '../components/profile/VideoIntroManager';
 import { ImageLightbox } from '../components/ui/ImageLightbox';
 
 // ─── Card wrapper ────────────────────────────────────────────────────────────
@@ -143,6 +146,16 @@ const MyProfileView = () => {
     : (profile.photos || []);
   const completionPct = Number(profile.completionPercentage) || 0;
   const isVerified = profile.User?.Verification?.status === 'approved';
+  const profileCode = toProfileCode(profile.userId || profile.User?.id);
+  const copyProfileCode = async () => {
+    if (!profileCode) return;
+    try {
+      await navigator.clipboard.writeText(profileCode);
+      toast.success('Profile ID copied');
+    } catch {
+      toast.error('Could not copy');
+    }
+  };
   const activeSocials = SOCIAL_PLATFORMS.filter(p => profile.socialMediaLinks?.[p.key]);
 
   const formatHeight = (cm) => {
@@ -251,6 +264,18 @@ const MyProfileView = () => {
                           <span className="text-[11px] font-bold text-emerald-600">Verified</span>
                         </div>
                       )}
+                      {profileCode && (
+                        <button
+                          type="button"
+                          onClick={copyProfileCode}
+                          title="Copy your profile ID to share"
+                          className="group flex items-center gap-1 px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-full hover:bg-slate-100 transition-colors"
+                        >
+                          <FiHash className="w-3 h-3 text-slate-400" />
+                          <span className="text-[11px] font-bold text-slate-600 tracking-wide">{profileCode}</span>
+                          <FiCopy className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                        </button>
+                      )}
                     </div>
                     <div className="flex flex-wrap gap-3 text-sm text-slate-500">
                       {location && <span className="flex items-center gap-1.5 font-medium"><FiMapPin className="w-3.5 h-3.5 text-rose-400" />{location}</span>}
@@ -282,6 +307,14 @@ const MyProfileView = () => {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Video intro */}
+            <div className="bg-white rounded-2xl border border-slate-100 p-5">
+              <VideoIntroManager
+                videoUrl={profile.videoIntroUrl}
+                onChange={(url) => setProfile((p) => ({ ...p, videoIntroUrl: url }))}
+              />
             </div>
 
             {/* Profile prompts */}

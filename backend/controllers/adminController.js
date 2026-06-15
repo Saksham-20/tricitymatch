@@ -3,7 +3,7 @@
  * Administrative operations with proper authorization
  */
 
-const { User, Profile, Subscription, Match, Verification, ProfileView, Report, ReferralCode, MarketingLead } = require('../models');
+const { User, Profile, Subscription, Match, Verification, ProfileView, Report, ReferralCode, MarketingLead, SuccessStory } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
@@ -880,5 +880,75 @@ exports.getLeads = asyncHandler(async (req, res) => {
       pages: Math.ceil(count / limit)
     }
   });
+});
+
+// ==================== SUCCESS STORIES (admin-managed) ====================
+
+// @route   GET /api/v1/admin/success-stories
+// @desc    List all success stories (any status) for moderation
+// @access  Admin
+exports.getSuccessStories = asyncHandler(async (req, res) => {
+  const stories = await SuccessStory.findAll({
+    order: [['displayOrder', 'ASC'], ['createdAt', 'DESC']],
+  });
+  res.json({ success: true, stories });
+});
+
+const sanitizeStoryInput = (body) => {
+  const { coupleNames, location, marriedOn, quote, photoUrl, tag, status, displayOrder } = body;
+  const out = {};
+  if (coupleNames !== undefined) out.coupleNames = String(coupleNames).trim();
+  if (location !== undefined) out.location = location ? String(location).trim() : null;
+  if (marriedOn !== undefined) out.marriedOn = marriedOn || null;
+  if (quote !== undefined) out.quote = String(quote).trim();
+  if (photoUrl !== undefined) out.photoUrl = photoUrl ? String(photoUrl).trim() : null;
+  if (tag !== undefined) out.tag = tag ? String(tag).trim().slice(0, 64) : null;
+  if (status !== undefined && ['draft', 'published'].includes(status)) out.status = status;
+  if (displayOrder !== undefined) out.displayOrder = parseInt(displayOrder, 10) || 0;
+  return out;
+};
+
+// @route   POST /api/v1/admin/success-stories
+// @desc    Create a success story (defaults to draft)
+// @access  Admin
+exports.createSuccessStory = asyncHandler(async (req, res) => {
+  const data = sanitizeStoryInput(req.body);
+  if (!data.coupleNames || !data.quote) {
+    throw createError.badRequest('coupleNames and quote are required');
+  }
+  const story = await SuccessStory.create(data);
+  res.status(201).json({ success: true, story });
+});
+
+// @route   PUT /api/v1/admin/success-stories/:id
+// @desc    Update / publish a success story
+// @access  Admin
+exports.updateSuccessStory = asyncHandler(async (req, res) => {
+  const story = await SuccessStory.findByPk(req.params.id);
+  if (!story) throw createError.notFound('Story not found');
+  await story.update(sanitizeStoryInput(req.body));
+  res.json({ success: true, story });
+});
+
+// @route   DELETE /api/v1/admin/success-stories/:id
+// @desc    Delete a success story
+// @access  Admin
+exports.deleteSuccessStory = asyncHandler(async (req, res) => {
+  const story = await SuccessStory.findByPk(req.params.id);
+  if (!story) throw createError.notFound('Story not found');
+  await story.destroy();
+  res.json({ success: true, message: 'Story deleted' });
+});
+
+// @route   GET /api/v1/success-stories  (public, no auth)
+// @desc    Published success stories for the public site
+// @access  Public
+exports.getPublicSuccessStories = asyncHandler(async (req, res) => {
+  const stories = await SuccessStory.findAll({
+    where: { status: 'published' },
+    attributes: ['id', 'coupleNames', 'location', 'marriedOn', 'quote', 'photoUrl', 'tag'],
+    order: [['displayOrder', 'ASC'], ['createdAt', 'DESC']],
+  });
+  res.json({ success: true, stories });
 });
 

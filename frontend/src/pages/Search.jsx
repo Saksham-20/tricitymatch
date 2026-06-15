@@ -5,7 +5,7 @@ import api from '../api/axios';
 import toast from 'react-hot-toast';
 import {
   FiSearch, FiFilter, FiUsers, FiArrowRight,
-  FiSliders, FiRefreshCw,
+  FiSliders, FiRefreshCw, FiHash,
 } from 'react-icons/fi';
 import { staggerContainer, fadeInUp } from '../utils/animations';
 import { API_BASE_URL } from '../utils/api';
@@ -50,7 +50,30 @@ const Search = () => {
 
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
 
+  const [idQuery, setIdQuery]     = useState('');
+  const [idLoading, setIdLoading] = useState(false);
+
   useEffect(() => { searchProfiles(); }, [page]);
+
+  const handleIdSearch = async (e) => {
+    e.preventDefault();
+    const code = idQuery.trim();
+    if (!code) return;
+    try {
+      setIdLoading(true);
+      const res = await api.get(`/search/by-code?code=${encodeURIComponent(code)}`);
+      const found = res.data?.profile;
+      if (found?.userId) {
+        navigate(`/profile/${found.userId}`);
+      } else {
+        toast.error('No profile found for that ID');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'No profile found for that ID');
+    } finally {
+      setIdLoading(false);
+    }
+  };
 
   const searchProfiles = async (options = {}) => {
     try {
@@ -184,6 +207,28 @@ const Search = () => {
               </select>
             </div>
           </div>
+
+          {/* ── Search by profile ID ─────────────────────────────────────── */}
+          <form onSubmit={handleIdSearch} className="mt-5 flex items-stretch gap-2 max-w-md">
+            <div className="relative flex-1">
+              <FiHash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+              <input
+                type="text"
+                value={idQuery}
+                onChange={(e) => setIdQuery(e.target.value)}
+                placeholder="Have a profile ID? e.g. TCS-A1B2C3D4"
+                className="input-field w-full pl-9 text-sm uppercase placeholder:normal-case placeholder:text-neutral-400"
+                aria-label="Search by profile ID"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={idLoading || !idQuery.trim()}
+              className="btn-primary px-4 text-sm whitespace-nowrap disabled:opacity-50"
+            >
+              {idLoading ? 'Finding…' : 'Go'}
+            </button>
+          </form>
         </motion.div>
 
         {/* ── Two-column layout ──────────────────────────────────────────── */}

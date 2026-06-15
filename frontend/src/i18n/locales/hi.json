@@ -1,0 +1,77 @@
+{
+  "common": {
+    "loading": "लोड हो रहा है...",
+    "save": "सेव करें",
+    "cancel": "रद्द करें",
+    "back": "वापस",
+    "viewProfile": "प्रोफ़ाइल देखें",
+    "language": "भाषा",
+    "retry": "पुनः प्रयास करें",
+    "empty": "अभी यहाँ कुछ नहीं है"
+  },
+  "nav": {
+    "verification": "सत्यापन",
+    "guardian": "अभिभावक और परिवार",
+    "astrologers": "ज्योतिषी",
+    "successStories": "सफलता की कहानियाँ",
+    "dailyMatches": "आज के मैच",
+    "recentlyViewed": "हाल ही में देखे गए"
+  },
+  "verification": {
+    "title": "अपनी प्रोफ़ाइल सत्यापित करें",
+    "subtitle": "सत्यापित प्रोफ़ाइल को अधिक भरोसा और अधिक मैच मिलते हैं।",
+    "status": "सत्यापन स्थिति",
+    "tierDocuments": "दस्तावेज़ सत्यापन",
+    "tierSelfie": "सेल्फी सत्यापन",
+    "tierBgCheck": "पृष्ठभूमि जाँच",
+    "submitDocuments": "दस्तावेज़ जमा करें",
+    "uploadSelfie": "सेल्फी अपलोड करें",
+    "startBgCheck": "पृष्ठभूमि जाँच शुरू करें",
+    "statusPending": "समीक्षा लंबित",
+    "statusApproved": "स्वीकृत",
+    "statusRejected": "अस्वीकृत",
+    "statusNotStarted": "शुरू नहीं हुआ"
+  },
+  "guardian": {
+    "title": "अभिभावक और परिवार",
+    "subtitle": "अपनी खोज में मदद के लिए माता-पिता या अभिभावक को आमंत्रित करें।",
+    "myGuardians": "मेरे अभिभावक",
+    "myCandidates": "मैं इनका अभिभावक हूँ",
+    "inviteByEmail": "ईमेल से आमंत्रित करें",
+    "invite": "आमंत्रण भेजें",
+    "revoke": "रद्द करें",
+    "noGuardians": "आपने अभी तक कोई अभिभावक नहीं जोड़ा है।",
+    "noCandidates": "आप अभी तक किसी के अभिभावक नहीं हैं।",
+    "viewMatches": "मैच देखें",
+    "viewShortlist": "शॉर्टलिस्ट देखें",
+    "readOnly": "केवल पढ़ने के लिए"
+  },
+  "astrologers": {
+    "title": "ज्योतिषी से बात करें",
+    "subtitle": "कुंडली और अनुकूलता मार्गदर्शन के लिए परामर्श बुक करें।",
+    "experience": "{{years}} वर्ष अनुभव",
+    "perMin": "₹{{price}}/मिनट",
+    "book": "परामर्श बुक करें",
+    "myBookings": "मेरी बुकिंग",
+    "online": "अभी ऑनलाइन",
+    "offline": "ऑफ़लाइन",
+    "callInApp": "आपकी कॉल बुक हो गई है। इसे TricityShadi मोबाइल ऐप से जॉइन करें।",
+    "bookingConfirmed": "बुकिंग पुष्ट"
+  },
+  "successStories": {
+    "title": "सफलता की कहानियाँ",
+    "subtitle": "असली जोड़े जिन्होंने TricityShadi पर एक-दूसरे को पाया।",
+    "married": "विवाहित",
+    "empty": "कहानियाँ जल्द आ रही हैं।"
+  },
+  "dailyMatches": {
+    "title": "आज के मैच",
+    "subtitle": "आपके लिए चुने गए, हर दिन नए।",
+    "upgrade": "आज और मैच देखने के लिए अपग्रेड करें",
+    "empty": "आज कोई मैच नहीं — कल फिर देखें।"
+  },
+  "recentlyViewed": {
+    "title": "हाल ही में देखे गए",
+    "empty": "आपके द्वारा देखी गई प्रोफ़ाइलें यहाँ दिखेंगी।"
+  }
+}

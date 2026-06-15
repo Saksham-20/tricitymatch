@@ -26,6 +26,10 @@ const {
   createReferralCode,
   toggleReferralCode,
   getLeads,
+  getSuccessStories,
+  createSuccessStory,
+  updateSuccessStory,
+  deleteSuccessStory,
 } = require('../controllers/adminController');
 const { auth, adminAuth } = require('../middlewares/auth');
 const { handleValidationErrors, asyncHandler } = require('../middlewares/errorHandler');
@@ -113,6 +117,13 @@ router.put('/referral-codes/:id/toggle',
 // ==================== MARKETING LEADS ====================
 
 router.get('/leads', getLeads);
+
+// ==================== SUCCESS STORIES ====================
+
+router.get('/success-stories', getSuccessStories);
+router.post('/success-stories', createSuccessStory);
+router.put('/success-stories/:id', param('id').isUUID(4), handleValidationErrors, updateSuccessStory);
+router.delete('/success-stories/:id', param('id').isUUID(4), handleValidationErrors, deleteSuccessStory);
 
 // ==================== PUSH NOTIFICATION SMOKE TEST ====================
 

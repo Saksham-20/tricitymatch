@@ -5,11 +5,12 @@
 
 const express = require('express');
 const router = express.Router();
-const { 
-  matchAction, 
-  getLikes, 
-  getShortlist, 
-  getMutualMatches 
+const {
+  matchAction,
+  getLikes,
+  getShortlist,
+  getMutualMatches,
+  getDailyMatches
 } = require('../controllers/matchController');
 const { auth, requirePremium, verifyTargetUser } = require('../middlewares/auth');
 const { handleValidationErrors } = require('../middlewares/errorHandler');
@@ -18,6 +19,9 @@ const { matchActionValidation, paginationRules } = require('../validators');
 
 // All match routes require authentication
 router.use(auth);
+
+// Matches of the day (cached daily set; free 5 / premium 15)
+router.get('/daily', getDailyMatches);
 
 // Perform match action (like/shortlist/pass) - rate limited for swiping
 router.post('/:userId', 

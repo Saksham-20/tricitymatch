@@ -230,6 +230,9 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [stats, setStats]               = useState({ viewsThisWeek: 0, totalViews: 0, likesReceived: 0 });
   const [suggestions, setSuggestions]   = useState([]);
+  const [dailyMatches, setDailyMatches] = useState([]);
+  const [dailyMeta, setDailyMeta]       = useState({ isPremium: false });
+  const [recentlyViewed, setRecentlyViewed] = useState([]);
   const [mutualMatches, setMutualMatches] = useState([]);
   const [userProfile, setUserProfile]   = useState(null);
   const [profileViewers, setProfileViewers] = useState([]);
@@ -253,13 +256,35 @@ const Dashboard = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const [statsRes, suggestionsRes, matchesRes, profileRes, subRes] = await Promise.allSettled([
+      const [statsRes, suggestionsRes, matchesRes, profileRes, subRes, dailyRes, recentRes] = await Promise.allSettled([
         api.get('/profile/me/stats').catch(() => ({ data: { stats: null } })),
         api.get('/search/suggestions?limit=8').catch(() => ({ data: { suggestions: [] } })),
         api.get('/match/mutual').catch(() => ({ data: { mutualMatches: [] } })),
         api.get('/profile/me').catch(() => ({ data: { profile: null } })),
         api.get('/subscription/my-subscription').catch(() => ({ data: { subscription: null } })),
+        api.get('/match/daily').catch(() => ({ data: { matches: [] } })),
+        api.get('/profile/me/recently-viewed?limit=8').catch(() => ({ data: { profiles: [] } })),
       ]);
+
+      const normalizeProfile = (p) => ({
+        ...p,
+        userId:       p.userId || p.id || p.User?.id,
+        firstName:    p.firstName || p.first_name || 'Unknown',
+        lastName:     p.lastName  || p.last_name  || '',
+        city:         p.city      || p.location   || 'India',
+        profilePhoto: p.profilePhoto || p.profile_photo || null,
+      });
+
+      if (dailyRes.status === 'fulfilled') {
+        const d = dailyRes.value?.data;
+        setDailyMatches((d?.matches ?? []).map(normalizeProfile).filter(p => p.userId));
+        setDailyMeta({ isPremium: !!d?.isPremium });
+      }
+
+      if (recentRes.status === 'fulfilled') {
+        const r = recentRes.value?.data;
+        setRecentlyViewed((r?.profiles ?? []).map(normalizeProfile).filter(p => p.userId));
+      }
 
       if (statsRes.status === 'fulfilled' && statsRes.value?.data?.stats) {
         setStats(statsRes.value.data.stats);
@@ -673,6 +698,83 @@ const Dashboard = () => {
             </div>
           )}
         </motion.section>
+
+        {/* ── 4c. Today's Matches (daily cached set) ───────────────────────── */}
+        {dailyMatches.length > 0 && (
+          <motion.section variants={fadeInUp}>
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <div className="flex items-center gap-2.5 mb-1">
+                  <div className="w-1 h-6 bg-gold rounded-full" />
+                  <h2 className="font-display text-2xl md:text-3xl font-bold text-neutral-900">Today's Matches</h2>
+                  <span className="px-2.5 py-0.5 bg-gold-50 text-gold-700 text-xs font-semibold rounded-full border border-gold-100">Daily</span>
+                </div>
+                <p className="text-neutral-500 text-sm ml-3.5">Hand-picked for you, refreshed every day</p>
+              </div>
+            </div>
+
+            <div className="flex gap-4 overflow-x-auto pb-3 md:pb-0 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:gap-5 scrollbar-hide snap-x snap-mandatory">
+              {dailyMatches.map((profile, i) => (
+                <div key={`daily-${profile.userId}-${i}`} className="snap-start">
+                  <SuggestionCard profile={profile} index={i} />
+                </div>
+              ))}
+            </div>
+
+            {!dailyMeta.isPremium && (
+              <div className="mt-4 text-center">
+                <button
+                  onClick={() => navigate('/subscription')}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-gold text-neutral-900 text-sm font-semibold rounded-xl hover:bg-gold-400 transition-colors shadow-gold"
+                >
+                  <FaCrown className="w-3.5 h-3.5" /> Upgrade to see more matches today
+                </button>
+              </div>
+            )}
+          </motion.section>
+        )}
+
+        {/* ── 4d. Recently Viewed ──────────────────────────────────────────── */}
+        {recentlyViewed.length > 0 && (
+          <motion.section variants={fadeInUp}>
+            <div className="flex items-center gap-2.5 mb-5">
+              <div className="w-1 h-6 bg-neutral-300 rounded-full" />
+              <h2 className="font-display text-2xl md:text-3xl font-bold text-neutral-900">Recently Viewed</h2>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              {recentlyViewed.slice(0, 6).map((p, i) => {
+                const name = `${p.firstName || ''} ${p.lastName || ''}`.trim() || 'User';
+                const initials = (p.firstName?.[0] || '') + (p.lastName?.[0] || '') || '?';
+                return (
+                  <div
+                    key={`recent-${p.userId}-${i}`}
+                    onClick={() => navigate(`/profile/${p.userId}`)}
+                    className="cursor-pointer bg-white rounded-xl border border-neutral-100 shadow-card overflow-hidden group"
+                  >
+                    <div className="h-28 bg-neutral-100 overflow-hidden">
+                      {p.profilePhoto ? (
+                        <img
+                          src={getImageUrl(p.profilePhoto, API_BASE_URL, 'profile')}
+                          alt={name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-50 to-gold-50">
+                          <span className="text-2xl font-bold text-primary-300">{initials}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-2.5 text-center">
+                      <p className="text-xs font-semibold text-neutral-800 truncate">{name}</p>
+                      {p.city && <p className="text-[10px] text-neutral-400 truncate">{p.city}</p>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </motion.section>
+        )}
 
         {/* ── 5. Suggested Profiles ─────────────────────────────────────────── */}
         {suggestions.length > 0 && (

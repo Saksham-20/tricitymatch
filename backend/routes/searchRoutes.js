@@ -5,7 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { searchProfiles, getSuggestions } = require('../controllers/searchController');
+const { searchProfiles, getSuggestions, getProfileByCode } = require('../controllers/searchController');
 const { auth } = require('../middlewares/auth');
 const { handleValidationErrors } = require('../middlewares/errorHandler');
 const { searchLimiter } = require('../middlewares/security');
@@ -35,6 +35,19 @@ router.get('/suggestions',
   ],
   handleValidationErrors,
   getSuggestions
+);
+
+// Look up a single profile by its public shareable code (TCS-XXXXXXXX)
+router.get('/by-code',
+  searchLimiter,
+  [
+    query('code')
+      .trim()
+      .isLength({ min: 8, max: 20 })
+      .withMessage('Enter a valid profile ID')
+  ],
+  handleValidationErrors,
+  getProfileByCode
 );
 
 module.exports = router;

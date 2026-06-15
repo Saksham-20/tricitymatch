@@ -7,6 +7,7 @@ const { Profile, User, Match, Subscription, Block, Verification } = require('../
 const { Op, fn, col, where: seqWhere } = require('sequelize');
 const Sequelize = require('sequelize');
 const { calculateCompatibility, isManglikCompatible } = require('../utils/compatibility');
+const { toProfileCode, parseProfileCode } = require('../utils/profileCode');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 
 // Escape special characters for LIKE patterns to prevent injection
@@ -456,5 +457,48 @@ exports.getSuggestions = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     suggestions: topMatches
+  });
+});
+
+// @route   GET /api/search/by-code?code=TCS-XXXXXXXX
+// @desc    Look up a single profile by its public shareable code
+// @access  Private
+exports.getProfileByCode = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const prefix = parseProfileCode(req.query.code);
+  if (!prefix) {
+    throw createError.badRequest('Enter a valid profile ID, e.g. TCS-A1B2C3D4');
+  }
+
+  // Exclude profiles in a block relationship with the requester
+  const blocks = await Block.findAll({
+    where: { [Op.or]: [{ blockerId: userId }, { blockedUserId: userId }] },
+    attributes: ['blockerId', 'blockedUserId'],
+  });
+  const blockedUserIds = blocks.map(b => (b.blockerId === userId ? b.blockedUserId : b.blockerId));
+
+  const profile = await Profile.findOne({
+    where: {
+      isActive: true,
+      [Op.and]: [
+        seqWhere(fn('LOWER', Sequelize.cast(col('userId'), 'text')), { [Op.like]: `${prefix}-%` }),
+      ],
+      ...(blockedUserIds.length > 0 ? { userId: { [Op.notIn]: blockedUserIds } } : {}),
+    },
+    attributes: ['userId', 'firstName', 'lastName', 'dateOfBirth', 'city', 'profession', 'profilePhoto', 'photoBlurred'],
+  });
+
+  if (!profile) {
+    throw createError.notFound('No profile found for that ID');
+  }
+
+  const raw = profile.toJSON();
+  res.json({
+    success: true,
+    profile: {
+      ...raw,
+      profileCode: toProfileCode(raw.userId),
+      isSelf: raw.userId === userId,
+    },
   });
 });

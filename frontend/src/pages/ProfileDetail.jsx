@@ -101,6 +101,7 @@ const ProfileDetail = () => {
   const { user: me } = useAuth();
   const [profile, setProfile] = useState(null);
   const [compatScore, setCompatScore] = useState(null);
+  const [numerology, setNumerology] = useState(null);
   const [premiumAccess, setPremiumAccess] = useState(false);
   const [isContactUnlocked, setIsContactUnlocked] = useState(false);
   const [contactUnlocksRemaining, setContactUnlocksRemaining] = useState(0);
@@ -136,6 +137,14 @@ const ProfileDetail = () => {
       toast.error('Failed to load profile');
     } finally {
       setLoading(false);
+    }
+
+    // Numerology (life-path) compatibility — best-effort, non-blocking
+    try {
+      const horo = await api.get(`/profile/${userId}/horoscope-match`);
+      if (horo.data?.numerology) setNumerology(horo.data.numerology);
+    } catch {
+      /* astro add-on is optional; ignore */
     }
   };
 
@@ -427,6 +436,20 @@ const ProfileDetail = () => {
                   {sanitizeText(profile.bio)}
                 </p>
               )}
+
+              {/* Video intro */}
+              {profile.videoIntroUrl && (
+                <div className="mt-4 border-t border-slate-50 pt-4">
+                  <p className="text-[11px] font-bold text-rose-400 uppercase tracking-wide mb-2">Video intro</p>
+                  <video
+                    src={getImageUrl(profile.videoIntroUrl, API_BASE_URL, 'full')}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    className="w-full max-h-80 rounded-xl bg-black"
+                  />
+                </div>
+              )}
             </div>
           </div>
 
@@ -534,6 +557,33 @@ const ProfileDetail = () => {
                             {profile.placeOfBirth && <Pill label="Place of Birth" value={profile.placeOfBirth} />}
                             {profile.birthTime && <Pill label="Birth Time" value={profile.birthTime} />}
                           </div>
+                        </Card>
+                      )}
+
+                      {/* Numerology (life-path) */}
+                      {numerology?.compatibility && (
+                        <Card title="Numerology" icon={FiSun}>
+                          <div className="flex items-center justify-between gap-4 mb-3">
+                            <div className="text-center flex-1">
+                              <div className="w-11 h-11 mx-auto rounded-full bg-rose-50 border border-rose-100 flex items-center justify-center text-lg font-black text-rose-600">
+                                {numerology.person1?.number}
+                              </div>
+                              <p className="text-[11px] text-slate-500 mt-1">You · {numerology.person1?.title}</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-2xl font-black text-rose-500">{numerology.compatibility.score}%</p>
+                              <p className="text-[11px] font-semibold text-slate-600">{numerology.compatibility.label}</p>
+                            </div>
+                            <div className="text-center flex-1">
+                              <div className="w-11 h-11 mx-auto rounded-full bg-rose-50 border border-rose-100 flex items-center justify-center text-lg font-black text-rose-600">
+                                {numerology.person2?.number}
+                              </div>
+                              <p className="text-[11px] text-slate-500 mt-1">{profile.firstName} · {numerology.person2?.title}</p>
+                            </div>
+                          </div>
+                          <p className="text-xs text-slate-500 leading-relaxed border-t border-slate-50 pt-3">
+                            {numerology.compatibility.note}
+                          </p>
                         </Card>
                       )}
                     </>

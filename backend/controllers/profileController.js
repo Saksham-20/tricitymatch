@@ -3,10 +3,11 @@
  * Handles user profile management with proper security
  */
 
-const { Profile, User, ProfileView, Subscription, Match, ContactUnlock } = require('../models');
+const { Profile, User, ProfileView, Subscription, Match, ContactUnlock, Block } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const { calculateCompatibility, getCompatibilityBreakdown: calcBreakdown, getAshtakootScore, isManglikCompatible, getRashiCompatibility } = require('../utils/compatibility');
+const { getNumerologyMatch } = require('../utils/numerology');
 const { notify } = require('../utils/notifyUser');
 
 // Completion milestones and their messages
@@ -678,6 +679,67 @@ exports.getProfileViewers = asyncHandler(async (req, res) => {
   });
 });
 
+// @route   GET /api/v1/profile/me/recently-viewed
+// @desc    Profiles the current user has recently viewed (own activity — all tiers)
+// @access  Private
+exports.getRecentlyViewed = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const page = Math.max(parseInt(req.query.page) || 1, 1);
+  const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 100);
+  const offset = (page - 1) * limit;
+
+  // Distinct viewed users, most-recent view first (dedup repeated views)
+  const grouped = await ProfileView.findAll({
+    where: { viewerId: userId },
+    attributes: [
+      'viewedUserId',
+      [sequelize.fn('MAX', sequelize.col('createdAt')), 'lastViewedAt'],
+    ],
+    group: ['viewedUserId'],
+    order: [[sequelize.fn('MAX', sequelize.col('createdAt')), 'DESC']],
+    limit,
+    offset,
+    raw: true,
+  });
+
+  const viewedIds = grouped.map(g => g.viewedUserId).filter(id => id !== userId);
+
+  // Exclude blocked users (either direction)
+  const blocks = viewedIds.length
+    ? await Block.findAll({
+        where: {
+          [Op.or]: [
+            { blockerId: userId, blockedUserId: { [Op.in]: viewedIds } },
+            { blockedUserId: userId, blockerId: { [Op.in]: viewedIds } },
+          ],
+        },
+        attributes: ['blockerId', 'blockedUserId'],
+      })
+    : [];
+  const blockedIds = new Set(blocks.map(b => (b.blockerId === userId ? b.blockedUserId : b.blockerId)));
+  const finalIds = viewedIds.filter(id => !blockedIds.has(id));
+
+  const profiles = finalIds.length
+    ? await Profile.findAll({
+        where: { userId: { [Op.in]: finalIds }, isActive: true },
+        attributes: ['userId', 'firstName', 'lastName', 'city', 'profilePhoto', 'gender', 'dateOfBirth', 'education', 'profession'],
+      })
+    : [];
+
+  // Preserve recency order + attach viewedAt timestamp
+  const lastViewedMap = Object.fromEntries(grouped.map(g => [g.viewedUserId, g.lastViewedAt]));
+  const profileMap = Object.fromEntries(profiles.map(p => [p.userId, p.toJSON()]));
+  const ordered = finalIds
+    .filter(id => profileMap[id])
+    .map(id => ({ ...profileMap[id], viewedAt: lastViewedMap[id] }));
+
+  res.json({
+    success: true,
+    profiles: ordered,
+    pagination: { page, limit },
+  });
+});
+
 // @route   PUT /api/profile/privacy
 // @desc    Update profile privacy settings
 // @access  Private
@@ -768,6 +830,51 @@ exports.deleteVoiceIntro = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Voice intro deleted' });
 });
 
+// @route   POST /api/v1/profile/video-intro
+// @desc    Upload a short (~30s) video intro
+// @access  Private
+exports.uploadVideoIntro = asyncHandler(async (req, res) => {
+  if (!req.file) throw createError.badRequest('No video file provided');
+
+  const profile = await Profile.findOne({ where: { userId: req.user.id } });
+  if (!profile) throw createError.notFound('Profile not found');
+
+  // Delete existing video intro from Cloudinary
+  if (profile.videoIntroUrl) {
+    try {
+      await deleteFromCloudinary(profile.videoIntroUrl);
+    } catch (err) {
+      log.error('Error deleting old video intro from Cloudinary', { error: err.message });
+    }
+  }
+
+  const videoUrl = req.file.path || req.file.secure_url || req.file.filename;
+  profile.videoIntroUrl = videoUrl;
+  await profile.save();
+
+  res.json({ success: true, videoIntroUrl: videoUrl });
+});
+
+// @route   DELETE /api/v1/profile/video-intro
+// @desc    Delete video intro
+// @access  Private
+exports.deleteVideoIntro = asyncHandler(async (req, res) => {
+  const profile = await Profile.findOne({ where: { userId: req.user.id } });
+  if (!profile) throw createError.notFound('Profile not found');
+  if (!profile.videoIntroUrl) throw createError.notFound('No video intro to delete');
+
+  try {
+    await deleteFromCloudinary(profile.videoIntroUrl);
+  } catch (err) {
+    log.error('Error deleting video intro from Cloudinary', { error: err.message });
+  }
+
+  profile.videoIntroUrl = null;
+  await profile.save();
+
+  res.json({ success: true, message: 'Video intro deleted' });
+});
+
 // @route   GET /api/v1/profile/:userId/horoscope-match
 // @desc    Full Ashtakoot Guna Milan + Manglik compatibility (APP-055)
 // @access  Private
@@ -795,6 +902,9 @@ exports.getHoroscopeMatch = asyncHandler(async (req, res) => {
   // Rashi fallback score
   const rashiScore = getRashiCompatibility(myProfile.rashi, theirProfile.rashi);
 
+  // Numerology (life-path) — works off DOB, independent of nakshatra
+  const numerology = getNumerologyMatch(myProfile.dateOfBirth, theirProfile.dateOfBirth);
+
   // Summary
   let summary = '';
   if (ashtakoot) {
@@ -816,6 +926,7 @@ exports.getHoroscopeMatch = asyncHandler(async (req, res) => {
     manglikCompatible,
     manglikDetail,
     rashiScore,
+    numerology,
     summary,
   });
 });

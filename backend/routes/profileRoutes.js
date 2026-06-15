@@ -15,13 +15,16 @@ const {
   updatePrivacySettings,
   unlockContact,
   getProfileViewers,
+  getRecentlyViewed,
   getCompatibilityBreakdown,
   getHoroscopeMatch,
   uploadVoiceIntro: uploadVoiceIntroHandler,
   deleteVoiceIntro,
+  uploadVideoIntro: uploadVideoIntroHandler,
+  deleteVideoIntro,
 } = require('../controllers/profileController');
 const { auth, requirePremium, checkContactUnlockLimit, verifyTargetUser } = require('../middlewares/auth');
-const { uploadPhotos, validateUploadedFiles, uploadVoiceIntro } = require('../middlewares/upload');
+const { uploadPhotos, validateUploadedFiles, uploadVoiceIntro, uploadVideoIntro } = require('../middlewares/upload');
 const { handleValidationErrors } = require('../middlewares/errorHandler');
 const { profileUpdateLimiter, uploadLimiter } = require('../middlewares/security');
 const { updateProfileValidation, getProfileValidation, deletePhotoValidation } = require('../validators');
@@ -74,6 +77,9 @@ router.get('/me/stats', auth, getProfileStats);
 // Get who viewed your profile (premium only)
 router.get('/me/viewers', auth, requirePremium, getProfileViewers);
 
+// Get profiles the current user recently viewed (all tiers — own activity)
+router.get('/me/recently-viewed', auth, getRecentlyViewed);
+
 // Delete a gallery photo
 router.delete('/me/photo', 
   auth,
@@ -95,6 +101,17 @@ router.post('/voice-intro',
 
 // Delete voice intro
 router.delete('/voice-intro', auth, deleteVoiceIntro);
+
+// Video intro upload (~30s max, auth required, rate limited via uploadLimiter)
+router.post('/video-intro',
+  auth,
+  uploadLimiter,
+  uploadVideoIntro,
+  uploadVideoIntroHandler,
+);
+
+// Delete video intro
+router.delete('/video-intro', auth, deleteVideoIntro);
 
 // Update privacy settings
 router.put('/privacy', auth, updatePrivacySettings);

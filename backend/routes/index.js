@@ -14,6 +14,10 @@ const notificationRoutes = require('./notificationRoutes');
 const callRoutes = require('./callRoutes');
 const guardianRoutes = require('./guardianRoutes');
 const astrologerRoutes = require('./astrologerRoutes');
+const { getPublicSuccessStories } = require('../controllers/adminController');
+
+// Public success stories (no auth) — social proof for the marketing site
+router.get('/success-stories', getPublicSuccessStories);
 
 router.use('/auth', authRoutes);
 router.use('/profile', profileRoutes);

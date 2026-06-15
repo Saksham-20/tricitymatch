@@ -17,6 +17,7 @@ const CallSession = require('./CallSession');
 const GuardianLink = require('./GuardianLink');
 const Astrologer = require('./Astrologer');
 const AstrologerBooking = require('./AstrologerBooking');
+const SuccessStory = require('./SuccessStory');
 
 // Define Relationships
 User.hasOne(Profile, { foreignKey: 'userId', onDelete: 'CASCADE' });
@@ -122,5 +123,6 @@ module.exports = {
   GuardianLink,
   Astrologer,
   AstrologerBooking,
+  SuccessStory,
 };
 

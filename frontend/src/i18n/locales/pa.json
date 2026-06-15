@@ -1,0 +1,77 @@
+{
+  "common": {
+    "loading": "ਲੋਡ ਹੋ ਰਿਹਾ ਹੈ...",
+    "save": "ਸੇਵ ਕਰੋ",
+    "cancel": "ਰੱਦ ਕਰੋ",
+    "back": "ਵਾਪਸ",
+    "viewProfile": "ਪ੍ਰੋਫਾਈਲ ਵੇਖੋ",
+    "language": "ਭਾਸ਼ਾ",
+    "retry": "ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ",
+    "empty": "ਇੱਥੇ ਅਜੇ ਕੁਝ ਨਹੀਂ ਹੈ"
+  },
+  "nav": {
+    "verification": "ਤਸਦੀਕ",
+    "guardian": "ਸਰਪ੍ਰਸਤ ਤੇ ਪਰਿਵਾਰ",
+    "astrologers": "ਜੋਤਸ਼ੀ",
+    "successStories": "ਸਫਲਤਾ ਦੀਆਂ ਕਹਾਣੀਆਂ",
+    "dailyMatches": "ਅੱਜ ਦੇ ਮੈਚ",
+    "recentlyViewed": "ਹਾਲ ਹੀ ਵਿੱਚ ਵੇਖੇ"
+  },
+  "verification": {
+    "title": "ਆਪਣੀ ਪ੍ਰੋਫਾਈਲ ਤਸਦੀਕ ਕਰੋ",
+    "subtitle": "ਤਸਦੀਕਸ਼ੁਦਾ ਪ੍ਰੋਫਾਈਲਾਂ ਨੂੰ ਵੱਧ ਭਰੋਸਾ ਤੇ ਵੱਧ ਮੈਚ ਮਿਲਦੇ ਹਨ।",
+    "status": "ਤਸਦੀਕ ਸਥਿਤੀ",
+    "tierDocuments": "ਦਸਤਾਵੇਜ਼ ਤਸਦੀਕ",
+    "tierSelfie": "ਸੈਲਫੀ ਤਸਦੀਕ",
+    "tierBgCheck": "ਪਿਛੋਕੜ ਜਾਂਚ",
+    "submitDocuments": "ਦਸਤਾਵੇਜ਼ ਜਮ੍ਹਾਂ ਕਰੋ",
+    "uploadSelfie": "ਸੈਲਫੀ ਅਪਲੋਡ ਕਰੋ",
+    "startBgCheck": "ਪਿਛੋਕੜ ਜਾਂਚ ਸ਼ੁਰੂ ਕਰੋ",
+    "statusPending": "ਸਮੀਖਿਆ ਬਾਕੀ",
+    "statusApproved": "ਮਨਜ਼ੂਰ",
+    "statusRejected": "ਰੱਦ",
+    "statusNotStarted": "ਸ਼ੁਰੂ ਨਹੀਂ ਹੋਇਆ"
+  },
+  "guardian": {
+    "title": "ਸਰਪ੍ਰਸਤ ਤੇ ਪਰਿਵਾਰ",
+    "subtitle": "ਆਪਣੀ ਖੋਜ ਵਿੱਚ ਮਦਦ ਲਈ ਮਾਪੇ ਜਾਂ ਸਰਪ੍ਰਸਤ ਨੂੰ ਸੱਦਾ ਦਿਓ।",
+    "myGuardians": "ਮੇਰੇ ਸਰਪ੍ਰਸਤ",
+    "myCandidates": "ਮੈਂ ਇਨ੍ਹਾਂ ਦਾ ਸਰਪ੍ਰਸਤ ਹਾਂ",
+    "inviteByEmail": "ਈਮੇਲ ਨਾਲ ਸੱਦਾ ਦਿਓ",
+    "invite": "ਸੱਦਾ ਭੇਜੋ",
+    "revoke": "ਰੱਦ ਕਰੋ",
+    "noGuardians": "ਤੁਸੀਂ ਅਜੇ ਕੋਈ ਸਰਪ੍ਰਸਤ ਨਹੀਂ ਜੋੜਿਆ।",
+    "noCandidates": "ਤੁਸੀਂ ਅਜੇ ਕਿਸੇ ਦੇ ਸਰਪ੍ਰਸਤ ਨਹੀਂ ਹੋ।",
+    "viewMatches": "ਮੈਚ ਵੇਖੋ",
+    "viewShortlist": "ਸ਼ਾਰਟਲਿਸਟ ਵੇਖੋ",
+    "readOnly": "ਸਿਰਫ਼ ਪੜ੍ਹਨ ਲਈ"
+  },
+  "astrologers": {
+    "title": "ਜੋਤਸ਼ੀ ਨਾਲ ਗੱਲ ਕਰੋ",
+    "subtitle": "ਕੁੰਡਲੀ ਤੇ ਅਨੁਕੂਲਤਾ ਸਲਾਹ ਲਈ ਸਲਾਹ-ਮਸ਼ਵਰਾ ਬੁੱਕ ਕਰੋ।",
+    "experience": "{{years}} ਸਾਲ ਤਜਰਬਾ",
+    "perMin": "₹{{price}}/ਮਿੰਟ",
+    "book": "ਸਲਾਹ ਬੁੱਕ ਕਰੋ",
+    "myBookings": "ਮੇਰੀਆਂ ਬੁਕਿੰਗਾਂ",
+    "online": "ਹੁਣ ਆਨਲਾਈਨ",
+    "offline": "ਆਫਲਾਈਨ",
+    "callInApp": "ਤੁਹਾਡੀ ਕਾਲ ਬੁੱਕ ਹੋ ਗਈ। ਇਸ ਨੂੰ TricityShadi ਮੋਬਾਈਲ ਐਪ ਤੋਂ ਜੌਇਨ ਕਰੋ।",
+    "bookingConfirmed": "ਬੁਕਿੰਗ ਪੁਸ਼ਟ"
+  },
+  "successStories": {
+    "title": "ਸਫਲਤਾ ਦੀਆਂ ਕਹਾਣੀਆਂ",
+    "subtitle": "ਅਸਲੀ ਜੋੜੇ ਜਿਨ੍ਹਾਂ ਨੇ TricityShadi 'ਤੇ ਇੱਕ-ਦੂਜੇ ਨੂੰ ਲੱਭਿਆ।",
+    "married": "ਵਿਆਹੇ",
+    "empty": "ਕਹਾਣੀਆਂ ਜਲਦੀ ਆ ਰਹੀਆਂ ਹਨ।"
+  },
+  "dailyMatches": {
+    "title": "ਅੱਜ ਦੇ ਮੈਚ",
+    "subtitle": "ਤੁਹਾਡੇ ਲਈ ਚੁਣੇ ਗਏ, ਹਰ ਰੋਜ਼ ਨਵੇਂ।",
+    "upgrade": "ਅੱਜ ਹੋਰ ਮੈਚ ਵੇਖਣ ਲਈ ਅੱਪਗ੍ਰੇਡ ਕਰੋ",
+    "empty": "ਅੱਜ ਕੋਈ ਮੈਚ ਨਹੀਂ — ਕੱਲ੍ਹ ਮੁੜ ਵੇਖੋ।"
+  },
+  "recentlyViewed": {
+    "title": "ਹਾਲ ਹੀ ਵਿੱਚ ਵੇਖੇ",
+    "empty": "ਤੁਹਾਡੇ ਵੱਲੋਂ ਵੇਖੀਆਂ ਪ੍ਰੋਫਾਈਲਾਂ ਇੱਥੇ ਦਿਖਣਗੀਆਂ।"
+  }
+}

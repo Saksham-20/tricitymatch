@@ -33,6 +33,7 @@ const Privacy = lazy(() => import('./pages/Privacy'));
 const About = lazy(() => import('./pages/About'));
 const Contact = lazy(() => import('./pages/Contact'));
 const Safety = lazy(() => import('./pages/Safety'));
+const SuccessStories = lazy(() => import('./pages/SuccessStories'));
 
 // Modern Profile Editor (new)
 const ModernProfileEditor = lazy(() => import('./pages/ModernProfileEditor'));
@@ -50,6 +51,7 @@ const AdminMarketingUsers = lazy(() => import('./pages/admin/AdminMarketingUsers
 const AdminMarketingUserDetail = lazy(() => import('./pages/admin/AdminMarketingUserDetail'));
 const AdminReferralCodes = lazy(() => import('./pages/admin/AdminReferralCodes'));
 const AdminLeads = lazy(() => import('./pages/admin/AdminLeads'));
+const AdminSuccessStories = lazy(() => import('./pages/admin/AdminSuccessStories'));
 
 // Marketing pages
 const MarketingLayout = lazy(() => import('./pages/marketing/MarketingLayout'));
@@ -70,6 +72,11 @@ const PaymentFailed = lazy(() => import('./pages/PaymentFailed'));
 const PaymentHistory = lazy(() => import('./pages/PaymentHistory'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Notifications = lazy(() => import('./pages/Notifications'));
+const Verification = lazy(() => import('./pages/Verification'));
+const Guardian = lazy(() => import('./pages/Guardian'));
+const Astrologers = lazy(() => import('./pages/Astrologers'));
+const AstrologerDetail = lazy(() => import('./pages/AstrologerDetail'));
+const AstrologerBookings = lazy(() => import('./pages/AstrologerBookings'));
 
 // ==================== PAGE TRANSITION ====================
 
@@ -156,6 +163,11 @@ const AnimatedRoutes = () => {
           <Route path="/safety" element={
             <PageTransition>
               <Safety />
+            </PageTransition>
+          } />
+          <Route path="/success-stories" element={
+            <PageTransition>
+              <SuccessStories />
             </PageTransition>
           } />
 
@@ -276,6 +288,56 @@ const AnimatedRoutes = () => {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/verification"
+            element={
+              <ProtectedRoute>
+                <PageTransition>
+                  <Verification />
+                </PageTransition>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/guardian"
+            element={
+              <ProtectedRoute>
+                <PageTransition>
+                  <Guardian />
+                </PageTransition>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/astrologers"
+            element={
+              <ProtectedRoute>
+                <PageTransition>
+                  <Astrologers />
+                </PageTransition>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/astrologers/bookings"
+            element={
+              <ProtectedRoute>
+                <PageTransition>
+                  <AstrologerBookings />
+                </PageTransition>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/astrologers/:id"
+            element={
+              <ProtectedRoute>
+                <PageTransition>
+                  <AstrologerDetail />
+                </PageTransition>
+              </ProtectedRoute>
+            }
+          />
 
           {/* Marketing Routes - bypass Navbar/BottomNav via AppContent check */}
           <Route
@@ -315,6 +377,7 @@ const AnimatedRoutes = () => {
             <Route path="marketing-users/:userId"  element={<AdminMarketingUserDetail />} />
             <Route path="referral-codes"           element={<AdminReferralCodes />} />
             <Route path="leads"                    element={<AdminLeads />} />
+            <Route path="success-stories"          element={<AdminSuccessStories />} />
           </Route>
 
           {/* 404 */}

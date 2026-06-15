@@ -31,8 +31,17 @@ if (cloudinaryConfigured) {
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 const ALLOWED_DOCUMENT_TYPES = [...ALLOWED_IMAGE_TYPES, 'application/pdf'];
 const ALLOWED_AUDIO_TYPES = ['audio/mpeg', 'audio/mp4', 'audio/x-m4a', 'audio/aac', 'audio/ogg', 'audio/wav', 'audio/webm'];
+const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm'];
 const MAX_FILE_SIZE = config.upload.maxFileSize;
 const MAX_AUDIO_SIZE = 5 * 1024 * 1024; // 5MB for 30s voice note
+const MAX_VIDEO_SIZE = 25 * 1024 * 1024; // 25MB for a short (~30s) video intro
+
+// Allowed video extensions per MIME type
+const ALLOWED_VIDEO_EXTENSIONS = {
+  'video/mp4':       ['.mp4'],
+  'video/quicktime': ['.mov'],
+  'video/webm':      ['.webm'],
+};
 
 // Allowed audio extensions
 const ALLOWED_AUDIO_EXTENSIONS = {
@@ -199,6 +208,43 @@ const uploadVoiceIntro = multer({
   limits: { fileSize: MAX_AUDIO_SIZE },
 }).single('voiceIntro');
 
+// Video file filter for video intros
+const videoFileFilter = (req, file, cb) => {
+  if (!ALLOWED_VIDEO_TYPES.includes(file.mimetype)) {
+    return cb(createError.badRequest(`Invalid file type: ${file.mimetype}. Only MP4, MOV or WebM video is allowed.`), false);
+  }
+  const ext = path.extname(file.originalname).toLowerCase();
+  const allowed = ALLOWED_VIDEO_EXTENSIONS[file.mimetype] || [];
+  if (!allowed.includes(ext)) {
+    return cb(createError.badRequest('Video file extension does not match the declared file type.'), false);
+  }
+  cb(null, true);
+};
+
+// Video intro storage — Cloudinary video resource type
+const videoIntroStorage = config.cloudinary.isConfigured()
+  ? new CloudinaryStorage({
+      cloudinary,
+      params: {
+        folder: `${config.cloudinary.folder}/video-intros`,
+        resource_type: 'video',
+        allowed_formats: ['mp4', 'mov', 'webm'],
+      },
+    })
+  : multer.diskStorage({
+      destination: (req, file, cb) => cb(null, config.upload.dir),
+      filename: (req, file, cb) => {
+        const suffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        cb(null, `video-intro-${suffix}${path.extname(file.originalname)}`);
+      },
+    });
+
+const uploadVideoIntro = multer({
+  storage: videoIntroStorage,
+  fileFilter: videoFileFilter,
+  limits: { fileSize: MAX_VIDEO_SIZE },
+}).single('videoIntro');
+
 // Upload for verification documents
 const uploadDocuments = multer({
   storage: documentStorage,
@@ -299,6 +345,7 @@ module.exports = {
   uploadPhotos,
   uploadDocuments,
   uploadVoiceIntro,
+  uploadVideoIntro,
   validateUploadedFiles,
   deleteFromCloudinary,
   getThumbnailUrl,
