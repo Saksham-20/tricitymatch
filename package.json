@@ -66,6 +66,8 @@
     "engine.io": { "ws": "^8.21.0" },
     "engine.io-client": { "ws": "^8.21.0" },
     "socket.io-adapter": { "ws": "^8.21.0" },
-    "multer-storage-cloudinary": { "cloudinary": "^2.10.0" }
+    "multer-storage-cloudinary": { "cloudinary": "^2.10.0" },
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
   }
 }
