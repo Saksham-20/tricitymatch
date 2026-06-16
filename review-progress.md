@@ -610,9 +610,12 @@ Ran `npm audit` on backend + frontend after the dependency cleanup.
 
 **Result: backend `npm audit` = 0 high, 0 critical** (30 left: 1 low + 29 moderate, all transitive uuid-chain via firebase-admin/google-gax/sequelize/jest-junit — `--force`/breaking-only).
 
-**Frontend remaining highs/criticals — all require a BREAKING major upgrade:**
-- **react-router / react-router-dom / @remix-run/router** (high, XSS via open-redirect) — runtime, but the only fix is **react-router 6 → 7** (the `@remix-run/router` package was merged into RR7; 1.23.0 is the last 1.x). Breaking migration. Practical risk low — app redirects are internal literals (`/login`, `/dashboard`), not user-controlled targets — but flagged for an RR7 migration chunk.
-- **vitest / @vitest/coverage-v8 (critical), esbuild / vite / glob / minimatch (high)** — **dev-build/test toolchain only**, absent from the production bundle (~zero runtime exposure). Fix needs breaking **vite 5 → 8 + vitest 1 → 3**. Deferred to a toolchain-upgrade chunk.
+**react-router 6 → 7 — DONE (2026-06-16):** bumped `react-router-dom` to **7.17.0**, clearing the `@remix-run/router` XSS-open-redirect high (the package was merged into RR7). App uses only the component/hook API (BrowserRouter/Routes/Route/Link/NavLink/Navigate/Outlet/useLocation/useNavigate/useParams/useSearchParams) — no data-router/loaders — so RR7 is a drop-in re-export; build + all 31 FE tests green, `@remix-run/router` gone from the tree.
+
+**Frontend remaining highs/criticals — now 100% dev-build/test toolchain (NOT shipped, ~zero runtime exposure):**
+- **vitest / @vitest/coverage-v8 (critical), esbuild / vite / glob / minimatch (high)** — vitest UI file-read + esbuild dev-server CVEs only matter in local dev/CI, never in the production bundle. Fix needs a breaking **vite 5 → 8 + vitest 1 → 3** (3-major) upgrade. Deliberately deferred: high breakage risk to the currently-green build/test pipeline for zero production-security benefit. Revisit as a standalone toolchain chunk.
+
+**Net: no runtime/shipped npm vulns remain in either workspace.** Backend 0 high/0 critical; frontend high/crit are all dev-tooling.
 
 ---
 
