@@ -46,12 +46,21 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    const isAuthCheck = originalRequest.url?.includes('/auth/me');
     const isRefresh = originalRequest.url?.includes('/auth/refresh');
 
-    // 401 on auth check (e.g. not logged in): reject so AuthContext can set unauthenticated.
-    // Do NOT refresh or redirect — that would cause an infinite loop on /login.
-    if (error.response?.status === 401 && isAuthCheck) {
+    // Unauthenticated auth entrypoints: a 401/4xx here is a DOMAIN response
+    // (wrong password, taken email, bad OTP), not an expired session. Never
+    // trigger refresh+redirect for them — that hard-reloads the page and wipes
+    // the form + inline error, so the user sees their failed submit do nothing.
+    const noRefreshPaths = [
+      '/auth/me', '/auth/login', '/auth/signup', '/auth/refresh',
+      '/auth/forgot-password', '/auth/reset-password', '/auth/google',
+      '/auth/send-otp', '/auth/verify-otp',
+    ];
+    const skipRefresh = noRefreshPaths.some((p) => originalRequest.url?.includes(p));
+
+    // Reject straight through so the calling component can render the error.
+    if (error.response?.status === 401 && skipRefresh) {
       return Promise.reject(error);
     }
 

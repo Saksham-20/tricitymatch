@@ -142,7 +142,11 @@ export const AuthProvider = ({ children }) => {
       toast.success('Welcome back!');
       return { success: true, role: userData?.role };
     } catch (error) {
-      const message = error.response?.data?.message || error.message || 'Login failed';
+      // Backend error shape is { success:false, error:{ code, message } }.
+      const message = error.response?.data?.error?.message
+        || error.response?.data?.message
+        || error.message
+        || 'Login failed';
       toast.error(message);
       return { success: false, error: message };
     }
