@@ -84,8 +84,15 @@ app.use(securityHeaders);
 // so the strict policy below can safely reject no-origin requests to the API.
 const monitoringCors = cors({ origin: true, credentials: true });
 const strictCors = cors(corsOptions);
+// Provider webhooks are server-to-server (no Origin header) and authenticated by
+// HMAC signature, not CORS. Strict CORS would 403 them, dropping payment/BG-check
+// callbacks — so exempt webhook paths (they still verify signatures downstream).
+const isWebhookPath = (p) => /\/(subscription\/webhook|bg-check\/webhook)$/.test(p);
 app.use((req, res, next) => {
   if (req.path.startsWith('/monitoring') || req.path.startsWith('/api/monitoring')) {
+    return monitoringCors(req, res, next);
+  }
+  if (isWebhookPath(req.path)) {
     return monitoringCors(req, res, next);
   }
   return strictCors(req, res, next);
