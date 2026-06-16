@@ -13,8 +13,8 @@ export default function AdminProtectedRoute({ children }) {
     );
   }
 
-  if (!isAuthenticated || user?.role !== 'admin') {
-    return <Navigate to="/admin/login" replace />;
+  if (!isAuthenticated || !['admin', 'super_admin'].includes(user?.role)) {
+    return <Navigate to="/login" replace />;
   }
 
   return children;

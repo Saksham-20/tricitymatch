@@ -123,21 +123,20 @@ export const AuthProvider = ({ children }) => {
       if (!userData) {
         throw new Error('Invalid response from server');
       }
-      
-      // Fetch full user data including profile
-      try {
-        const meResponse = await api.get('/auth/me');
-        const fullUserData = meResponse.data.user || meResponse.data;
-        if (fullUserData) {
-          setUser(fullUserData);
-        } else {
+
+      // FE-2: login now returns the full user (with Profile), so use it directly.
+      // Only fall back to /auth/me for older responses that lack the profile shape.
+      if ('Profile' in userData) {
+        setUser(userData);
+      } else {
+        try {
+          const meResponse = await api.get('/auth/me');
+          setUser(meResponse.data.user || meResponse.data || userData);
+        } catch {
           setUser(userData);
         }
-      } catch {
-        // If /auth/me fails, use the basic user data from login
-        setUser(userData);
       }
-      
+
       setIsAuthenticated(true);
       setStoredAuthHint(true);
       toast.success('Welcome back!');
@@ -157,21 +156,20 @@ export const AuthProvider = ({ children }) => {
       if (!newUser) {
         throw new Error('Invalid response from server');
       }
-      
-      // Fetch full user data including profile
-      try {
-        const meResponse = await api.get('/auth/me');
-        const fullUserData = meResponse.data.user || meResponse.data;
-        if (fullUserData) {
-          setUser(fullUserData);
-        } else {
+
+      // FE-2: signup now returns the full user (with Profile) — use it directly,
+      // falling back to /auth/me only for older responses lacking the profile shape.
+      if ('Profile' in newUser) {
+        setUser(newUser);
+      } else {
+        try {
+          const meResponse = await api.get('/auth/me');
+          setUser(meResponse.data.user || meResponse.data || newUser);
+        } catch {
           setUser(newUser);
         }
-      } catch {
-        // If /auth/me fails, use the basic user data from signup
-        setUser(newUser);
       }
-      
+
       setIsAuthenticated(true);
       setStoredAuthHint(true);
       toast.success('Account created successfully!');

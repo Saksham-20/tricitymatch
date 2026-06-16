@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useInView, AnimatePresence, useScroll, useTransform } from 'framer-motion';
+import Seo from '../components/common/Seo';
 import {
   FiShield, FiCheckCircle, FiArrowRight, FiUsers,
   FiMessageCircle, FiLock, FiX,
@@ -459,6 +460,7 @@ const Home = () => {
   /* ════════════════════════════════════════════════════════════ */
   return (
     <div style={{ background: 'var(--cream)', fontFamily: 'var(--sans)', color: 'var(--ink)' }}>
+      <Seo path="/" />
       <FontLoader />
       <Cursor />
 

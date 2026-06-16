@@ -6,6 +6,9 @@
  */
 
 const config = require('../config/env');
+// ERR-1: use the structured single-line JSON logger so log aggregators (Loki/
+// CloudWatch/Docker json-file) parse each error as one record.
+const { log } = require('./logger');
 
 // Custom Application Error class
 class AppError extends Error {
@@ -55,26 +58,22 @@ const sanitizeErrorMessage = (error) => {
 
 // Log error with appropriate level
 const logError = (error, req) => {
-  const errorLog = {
-    timestamp: new Date().toISOString(),
+  const meta = {
     requestId: req.id || 'unknown',
     method: req.method,
     url: req.originalUrl,
     ip: req.ip,
     userId: req.user?.id || 'anonymous',
-    error: {
-      message: error.message,
-      code: error.code,
-      statusCode: error.statusCode,
-      stack: config.isDevelopment ? error.stack : undefined,
-    },
+    code: error.code,
+    statusCode: error.statusCode,
+    stack: config.isDevelopment ? error.stack : undefined,
   };
 
-  // Always log errors
+  // Always log errors — single-line JSON via the structured logger.
   if (error.statusCode >= 500 || !error.isOperational) {
-    console.error('ERROR:', JSON.stringify(errorLog, null, 2));
+    log.error(error.message, meta);
   } else if (config.isDevelopment) {
-    console.warn('WARN:', JSON.stringify(errorLog, null, 2));
+    log.warn(error.message, meta);
   }
 };
 
@@ -136,9 +135,10 @@ const handleMulterError = (err) => {
 
 // Main error handler middleware
 const errorHandler = (err, req, res, next) => {
-  let error = { ...err };
-  error.message = err.message;
-  error.stack = err.stack;
+  // ERR-2: don't shallow-spread the caught Error — message/stack/name are
+  // non-enumerable and would be lost. Operate on the original error; each handler
+  // below reassigns `error` to a fresh AppError when it matches.
+  let error = err;
 
   // Handle specific error types
   if (err.name === 'SequelizeValidationError') {
@@ -166,9 +166,15 @@ const errorHandler = (err, req, res, next) => {
     error = new AppError('Request body too large', 413, ErrorTypes.BAD_REQUEST);
   }
 
-  // Cloudinary errors (invalid cloud name, auth, etc.) — return 502 and safe message
-  const msg = (err.message || '').toLowerCase();
-  if (msg.includes('invalid cloud_name') || msg.includes('cloudinary') || (err.http_code === 401 && msg.includes('cloud'))) {
+  // Cloudinary errors — ERR-3: classify by the SDK's own fields (http_code /
+  // error name), not a substring match on the message, so unrelated app errors
+  // that merely mention "cloudinary" aren't masked as a 502.
+  const isCloudinaryError =
+    typeof err.http_code === 'number' &&
+    (err.name === 'Error' || err.name === 'TimeoutError') &&
+    !err.isOperational &&
+    !err.statusCode;
+  if (isCloudinaryError) {
     if (config.isProduction) {
       console.error('Cloudinary configuration error. Ensure CLOUDINARY_CLOUD_NAME is the exact cloud name from your Cloudinary dashboard (e.g. the subdomain), not a placeholder. Original:', err.message);
     }

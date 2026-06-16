@@ -459,15 +459,22 @@ exports.getProfile = asyncHandler(async (req, res) => {
   });
   const isContactUnlocked = !!existingUnlock;
 
-  // Record profile view
-  try {
-    await ProfileView.create({ viewerId, viewedUserId: userId });
-  } catch (err) {
-    // Ignore duplicate errors
+  // Calculate compatibility (also tells us the viewer's incognito preference)
+  const viewerProfile = await Profile.findOne({ where: { userId: viewerId } });
+
+  // Record profile view — CTRL-1: incognito is the VIEWER's "browse privately"
+  // choice, so when the viewer is incognito we simply don't record the visit
+  // (no create-then-destroy round-trip, no race where the target briefly sees it).
+  if (!viewerProfile?.incognitoMode) {
+    try {
+      await ProfileView.create({ viewerId, viewedUserId: userId });
+    } catch (err) {
+      // CTRL-2: only the unique-constraint (already-viewed) case is expected;
+      // surface anything else instead of silently swallowing it.
+      if (err.name !== 'SequelizeUniqueConstraintError') throw err;
+    }
   }
 
-  // Calculate compatibility
-  const viewerProfile = await Profile.findOne({ where: { userId: viewerId } });
   let compatibilityScore = null;
   if (viewerProfile) {
     compatibilityScore = calculateCompatibility(viewerProfile, profile);
@@ -484,14 +491,8 @@ exports.getProfile = asyncHandler(async (req, res) => {
   // Prepare response with privacy checks
   const profileData = profile.toJSON();
 
-  // Enforce incognito mode: if target user has incognito on and viewer is not a mutual match, skip recording view
-  // (view was already recorded above; nothing to undo — incognito only hides the viewer from the target's list)
-  // We enforce it by removing the view record we just created
-  if (profile.incognitoMode) {
-    try {
-      await ProfileView.destroy({ where: { viewerId, viewedUserId: userId }, limit: 1 });
-    } catch (_) {}
-  }
+  // (Incognito handling moved up — the view is simply not recorded when the
+  // viewer browses in incognito mode. See CTRL-1.)
 
   // Enforce photo blur: replace photo URLs with null for non-mutual viewers when photoBlurUntilMatch is set
   if (profile.photoBlurUntilMatch && !isMutual) {

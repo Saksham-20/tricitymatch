@@ -7,6 +7,10 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Package manager caches
+# REF-3: workspaces hoist to the root lockfile — nested lockfiles caused version
+# drift / non-reproducible installs. Keep only the root package-lock.json.
+backend/package-lock.json
+frontend/package-lock.json
 .npm/
 .pnpm-store/
 .yarn/cache/

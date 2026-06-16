@@ -1,9 +1,15 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import Seo from '../components/common/Seo';
 
 export default function About() {
   return (
     <div className="min-h-screen bg-neutral-50 pt-20 pb-16 px-4">
+      <Seo
+        title="About Us"
+        description="Learn about TricityShadi — the trusted hyperlocal matrimonial platform for Chandigarh, Mohali and Panchkula."
+        path="/about"
+      />
       <div className="max-w-3xl mx-auto">
         <Link to="/" className="text-sm text-primary-600 hover:text-primary-700 mb-6 inline-block">← Back to Home</Link>
 

@@ -11,7 +11,7 @@ const { createError, asyncHandler } = require('./errorHandler');
 
 /**
  * Extract token from request
- * Priority: Authorization header > Cookie > Query param (for WebSocket)
+ * Priority: Authorization header > Cookie. (No query-param fallback — see SEC-1.)
  */
 const extractToken = (req) => {
   // Check Authorization header
@@ -25,10 +25,10 @@ const extractToken = (req) => {
     return req.cookies.accessToken;
   }
 
-  // Check query param (for WebSocket handshake)
-  if (req.query?.token) {
-    return req.query.token;
-  }
+  // NOTE: query-param tokens are intentionally NOT accepted on REST routes (SEC-1).
+  // Tokens in URLs leak into access/proxy logs, browser history and the Referer
+  // header. The Socket.io handshake uses its own token source (handshake.auth.token
+  // in socketHandler.js / socketAuth), not this function.
 
   return null;
 };
@@ -243,22 +243,6 @@ const checkContactUnlockLimit = asyncHandler(async (req, res, next) => {
 });
 
 /**
- * Check if user owns the resource
- * Used to prevent IDOR vulnerabilities
- */
-const ownsResource = (getResourceUserId) => {
-  return asyncHandler(async (req, res, next) => {
-    const resourceUserId = await getResourceUserId(req);
-    
-    if (resourceUserId !== req.user?.id && req.user?.role !== 'admin') {
-      throw createError.forbidden('You do not have permission to access this resource');
-    }
-    
-    next();
-  });
-};
-
-/**
  * Verify user exists and is active
  * Used to verify target users in operations like matching, messaging
  */
@@ -369,7 +353,6 @@ module.exports = {
   requirePremium,
   requireVIP,
   checkContactUnlockLimit,
-  ownsResource,
   verifyTargetUser,
   socketAuth,
   socketRequirePremium,

@@ -184,13 +184,17 @@ const getAllowedOrigins = () => {
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // In production, all requests must include an Origin header.
-    // In development, allow no-origin (curl, Postman, etc.).
+    // SEC-2: real browser requests always send Origin; only server-side/scripted
+    // callers omit it. In production we no longer blanket-allow no-origin against
+    // the whole API — health/monitoring probes are exempted separately (see
+    // monitoringCors in server.js) before this strict policy applies.
     if (!origin) {
       if (config.isDevelopment) return callback(null, true);
-      // Allow no-origin from loopback (Docker health checks, internal cron, etc.)
-      // Real browser requests always include Origin; only server-side calls omit it.
-      return callback(null, true);
+      const noOriginErr = new Error('Not allowed by CORS');
+      noOriginErr.statusCode = 403;
+      noOriginErr.code = 'FORBIDDEN';
+      noOriginErr.isOperational = true;
+      return callback(noOriginErr);
     }
 
     const isLocalDevelopmentOrigin =

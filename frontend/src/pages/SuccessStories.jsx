@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../api/axios';
 import { FiHeart } from 'react-icons/fi';
+import Seo from '../components/common/Seo';
 
 export default function SuccessStories() {
   const { t } = useTranslation();
@@ -23,6 +24,11 @@ export default function SuccessStories() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-12">
+      <Seo
+        title="Success Stories"
+        description="Real couples who found their life partner on TricityShadi across Chandigarh, Mohali and Panchkula."
+        path="/success-stories"
+      />
       <div className="text-center mb-10">
         <h1 className="text-3xl font-semibold text-neutral-800">{t('successStories.title')}</h1>
         <p className="text-neutral-500 mt-2">{t('successStories.subtitle')}</p>

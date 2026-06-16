@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /marketing
+Disallow: /marketing/
+Disallow: /api
+Disallow: /api/
+Disallow: /dashboard
+Disallow: /chat
+Disallow: /settings
+Disallow: /notifications
+
+Sitemap: https://tricityshadi.com/sitemap.xml

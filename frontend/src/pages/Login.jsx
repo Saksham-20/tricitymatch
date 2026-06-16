@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import Seo from '../components/common/Seo';
 import { validateEmail, validatePassword } from '../utils/validators';
 import Logo from '../components/common/Logo';
 import { FiMail, FiLock, FiEye, FiEyeOff, FiHeart, FiShield, FiArrowRight } from 'react-icons/fi';
@@ -132,6 +133,11 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-neutral-50 via-primary-50/20 to-gold-50/30">
+      <Seo
+        title="Login"
+        description="Log in to your TricityShadi account to continue your match journey."
+        path="/login"
+      />
       {/* Left Side — Editorial panel */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-neutral-900">
         {/* Warm gradient wash */}

@@ -22,7 +22,7 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
   }
 
   // Redirect non-admin users trying to access admin routes
-  if (adminOnly && user?.role !== 'admin') {
+  if (adminOnly && !['admin', 'super_admin'].includes(user?.role)) {
     return <Navigate to="/dashboard" replace />;
   }
 

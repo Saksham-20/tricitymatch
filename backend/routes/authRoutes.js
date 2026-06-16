@@ -86,9 +86,35 @@ router.post('/reset-password',
 // Google OAuth — verify Google ID token, sign in or register
 router.post('/google', authLimiter, googleAuth);
 
-// OTP endpoints — use dedicated limiter (10/10min) so signup flow doesn't exhaust auth pool
-router.post('/send-otp', otpLimiter, sendOtp);
-router.post('/verify-otp', otpLimiter, verifyOtp);
+// OTP endpoints — use dedicated limiter (10/10min) so signup flow doesn't exhaust auth pool.
+// VAL-1: validate target format so the email path can't be used as an open mailer and
+// garbage phone numbers never reach the SMS provider.
+const otpTargetValidation = [
+  body('type').isIn(['email', 'phone']).withMessage('type must be "email" or "phone"'),
+  body('target')
+    .custom((value, { req }) => {
+      if (req.body.type === 'email') {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || ''))) {
+          throw new Error('A valid email is required');
+        }
+      } else {
+        // E.164-ish: optional +, 10–15 digits
+        if (!/^\+?[0-9]{10,15}$/.test(String(value || '').replace(/[\s-]/g, ''))) {
+          throw new Error('A valid phone number is required');
+        }
+      }
+      return true;
+    }),
+];
+router.post('/send-otp', otpLimiter, otpTargetValidation, handleValidationErrors, sendOtp);
+router.post(
+  '/verify-otp',
+  otpLimiter,
+  otpTargetValidation,
+  body('code').isLength({ min: 6, max: 6 }).isNumeric().withMessage('code must be 6 digits'),
+  handleValidationErrors,
+  verifyOtp
+);
 
 // ==================== PROTECTED ROUTES ====================
 

@@ -57,6 +57,9 @@ const io = new Server(server, {
 });
 
 initializeSocket(io);
+// Expose io to REST controllers so they can emit authoritative realtime events
+// (e.g. server-side message-deleted — SOCK-3) without trusting client sockets.
+app.set('io', io);
 
 // Make io accessible to other modules (notifyUser helper, etc.)
 require('./utils/socket').setIO(io);
@@ -75,8 +78,18 @@ app.use(extractIp);
 // Security headers (Helmet)
 app.use(securityHeaders);
 
-// CORS configuration
-app.use(cors(corsOptions));
+// CORS configuration.
+// SEC-2: health/monitoring probes legitimately arrive with no Origin header
+// (Docker healthcheck, internal cron). Exempt those paths with a permissive CORS
+// so the strict policy below can safely reject no-origin requests to the API.
+const monitoringCors = cors({ origin: true, credentials: true });
+const strictCors = cors(corsOptions);
+app.use((req, res, next) => {
+  if (req.path.startsWith('/monitoring') || req.path.startsWith('/api/monitoring')) {
+    return monitoringCors(req, res, next);
+  }
+  return strictCors(req, res, next);
+});
 
 // Cookie parser with secret
 app.use(cookieParser(config.security.cookieSecret));
@@ -103,6 +116,7 @@ const rawBodyCapture = [
 app.use('/api/v1/subscription/webhook', ...rawBodyCapture);
 app.use('/api/subscription/webhook', ...rawBodyCapture);
 app.use('/api/v1/verification/bg-check/webhook', ...rawBodyCapture);
+app.use('/api/verification/bg-check/webhook', ...rawBodyCapture); // legacy double-mount (BE-1/WH-2)
 
 // JSON body parser with size limit
 app.use(express.json({
@@ -413,15 +427,22 @@ process.on('uncaughtException', (error) => {
   gracefulShutdown('uncaughtException');
 });
 
-// Handle unhandled promise rejections (e.g. from multer-storage-cloudinary)
+// Handle unhandled promise rejections.
+// ERR-4: only the known multer-storage-cloudinary rejection is safe to swallow
+// (it can't be caught at the call site). Any other unhandled rejection leaves the
+// process in an undefined state, so treat it like uncaughtException and shut down.
 process.on('unhandledRejection', (reason, promise) => {
   const msg = (reason?.message || String(reason)).toLowerCase();
-  if (msg.includes('invalid cloud_name') || (reason?.http_code === 401 && msg.includes('cloud'))) {
+  const isKnownCloudinaryRejection =
+    msg.includes('invalid cloud_name') || (reason?.http_code === 401 && msg.includes('cloud'));
+  if (isKnownCloudinaryRejection) {
     console.error(
       'Unhandled Rejection (Cloudinary): Invalid cloud name. Set CLOUDINARY_CLOUD_NAME to the exact cloud name from your Cloudinary dashboard (Dashboard URL or API keys), not a placeholder like "tricitymatch-prod".'
     );
+    return; // recoverable — keep running
   }
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  gracefulShutdown('unhandledRejection');
 });
 
 // Start the server

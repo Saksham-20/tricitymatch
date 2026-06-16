@@ -187,6 +187,20 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
   // Get profiles — include isBoosted + boostExpiresAt for ranking
   const profiles = await Profile.findAll({
     where,
+    // PERF-1: exclude heavy JSONB columns that search cards never render and
+    // calculateCompatibility never reads — they're detail-page/internal-only.
+    // Cuts query cost + JSON serialization + response bandwidth on this 30/min endpoint.
+    attributes: {
+      exclude: [
+        'quizAnswers',
+        'profilePrompts',
+        'socialMediaLinks',
+        'personalityValues',
+        'familyPreferences',
+        'lifestylePreferences',
+        'spotifyPlaylist',
+      ],
+    },
     include: [
       {
         model: User,
@@ -477,20 +491,34 @@ exports.getProfileByCode = asyncHandler(async (req, res) => {
   });
   const blockedUserIds = blocks.map(b => (b.blockerId === userId ? b.blockedUserId : b.blockerId));
 
-  const profile = await Profile.findOne({
+  // UTIL-2: the 8-hex code is the first 4 bytes (time_low) of the userId UUID, so
+  // match an indexed UUID range instead of LOWER(CAST(userId AS text)) LIKE — the
+  // function-wrapped cast defeated the PK btree and forced a seq scan.
+  const uuidLo = `${prefix}-0000-0000-0000-000000000000`;
+  const uuidHi = `${prefix}-ffff-ffff-ffff-ffffffffffff`;
+
+  // Fetch up to 2 to detect (extremely rare) prefix collisions instead of silently
+  // returning an arbitrary row, as the old findOne did.
+  const matches = await Profile.findAll({
     where: {
       isActive: true,
-      [Op.and]: [
-        seqWhere(fn('LOWER', Sequelize.cast(col('userId'), 'text')), { [Op.like]: `${prefix}-%` }),
-      ],
-      ...(blockedUserIds.length > 0 ? { userId: { [Op.notIn]: blockedUserIds } } : {}),
+      userId: {
+        [Op.between]: [uuidLo, uuidHi],
+        ...(blockedUserIds.length > 0 ? { [Op.notIn]: blockedUserIds } : {}),
+      },
     },
     attributes: ['userId', 'firstName', 'lastName', 'dateOfBirth', 'city', 'profession', 'profilePhoto', 'photoBlurred'],
+    limit: 2,
   });
 
-  if (!profile) {
+  if (matches.length === 0) {
     throw createError.notFound('No profile found for that ID');
   }
+  if (matches.length > 1) {
+    // Code prefix collision — ambiguous; refuse rather than guess.
+    throw createError.notFound('No profile found for that ID');
+  }
+  const profile = matches[0];
 
   const raw = profile.toJSON();
   res.json({

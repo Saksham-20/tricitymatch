@@ -10,7 +10,15 @@ const { auth } = require('../middlewares/auth');
 const { uploadDocuments } = require('../middlewares/upload');
 const { asyncHandler, AppError } = require('../middlewares/errorHandler');
 const { handleValidationErrors } = require('../middlewares/errorHandler');
-const { uploadLimiter } = require('../middlewares/security');
+const { uploadLimiter, createRateLimiter } = require('../middlewares/security');
+const config = require('../config/env');
+
+// BE-5: payment-order creation limiter (mirror subscription routes — 10/hr)
+const paymentLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  message: 'Too many payment attempts, please try again later',
+});
 const { submitVerificationValidation } = require('../validators');
 const { Verification, User, Profile } = require('../models');
 const { createGenericOrder, verifyPayment } = require('../utils/razorpay');
@@ -77,7 +85,7 @@ router.post('/selfie', uploadLimiter, asyncHandler(async (req, res) => {
 const BG_CHECK_PRICE_PAISE = 49900; // ₹499 in paise
 
 // POST /verification/bg-check/initiate — consent + create Razorpay order
-router.post('/bg-check/initiate', asyncHandler(async (req, res) => {
+router.post('/bg-check/initiate', paymentLimiter, asyncHandler(async (req, res) => {
   const { consent } = req.body;
   if (consent !== true) throw new AppError('Explicit consent (consent: true) required', 400);
 
@@ -204,13 +212,25 @@ router.get('/bg-check/status', asyncHandler(async (req, res) => {
 
 // POST /verification/bg-check/webhook — async result from provider (no auth middleware)
 router.post('/bg-check/webhook', asyncHandler(async (req, res) => {
+  // WH-4: read only the header matching the configured provider, falling back to
+  // the generic x-signature — don't accept any provider's header regardless of config.
+  const providerHeader = {
+    authbridge: 'x-authbridge-signature',
+    signzy: 'x-signzy-signature',
+  }[config.bgCheck.provider];
   const signature =
-    req.headers['x-authbridge-signature'] ||
-    req.headers['x-signzy-signature'] ||
+    (providerHeader && req.headers[providerHeader]) ||
     req.headers['x-signature'] ||
     '';
 
-  const rawBody = req.rawBody || Buffer.from(JSON.stringify(req.body));
+  // WH-2: require the captured raw bytes. Re-serializing req.body can never
+  // reproduce the provider's exact signature (key order/whitespace differ), so
+  // a JSON.stringify fallback would only ever fail — reject if rawBody is absent.
+  const rawBody = req.rawBody;
+  if (!rawBody) {
+    log.error('[BGC-WEBHOOK] Missing raw body — rawBodyCapture not applied to this path');
+    return res.status(500).json({ error: 'Webhook misconfigured' });
+  }
 
   if (!verifyBgCheckWebhook(rawBody, signature)) {
     log.warn('[BGC-WEBHOOK] Invalid signature');

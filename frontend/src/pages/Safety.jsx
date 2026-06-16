@@ -1,9 +1,15 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import Seo from '../components/common/Seo';
 
 export default function Safety() {
   return (
     <div className="min-h-screen bg-neutral-50 pt-20 pb-16 px-4">
+      <Seo
+        title="Safety & Trust"
+        description="How TricityShadi keeps members safe — verification, privacy controls, and dating-safety guidance."
+        path="/safety"
+      />
       <div className="max-w-3xl mx-auto">
         <Link to="/" className="text-sm text-primary-600 hover:text-primary-700 mb-6 inline-block">← Back to Home</Link>
 

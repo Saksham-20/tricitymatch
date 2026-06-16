@@ -21,7 +21,7 @@ Ports: backend 5001 · web 3000 · Metro 8081.
 Entry `server.js`. Key files:
 - `config/env.js` — sole env source (never read process.env elsewhere); prod guard `process.exit(1)` on dev JWT_SECRET/COOKIE_SECRET/DB_PASSWORD/FRONTEND_URL
 - `config/database.js` Sequelize+PG · `routes/index.js` mounts `/api/v1`+`/api`; marketing mounted in server.js at `/api/marketing`
-- `middlewares/`: security (helmet, CORS, 9 limiters, Redis lockout, sanitize) · auth (JWT cookie, adminAuth, requirePremium/VIP, socketAuth) · errorHandler (AppError, asyncHandler) · logger (JSON) · upload (Multer+Cloudinary, magic-byte; voice-intro + video-intro resource_type=`video`, MP4/MOV/WebM ≤25MB)
+- `middlewares/`: security (helmet, CORS, 9 limiters, Redis lockout, sanitize) · auth (JWT cookie, adminAuth, requirePremium/VIP, socketAuth) · errorHandler (AppError, asyncHandler) · logger (JSON) · upload (Multer+Cloudinary; MIME+extension filter + Cloudinary `allowed_formats` content-validation + pinned `resource_type` per endpoint — no buffered magic-byte check since storage streams straight to Cloudinary; voice-intro + video-intro resource_type=`video`, MP4/MOV/WebM ≤25MB)
 - `socket/socketHandler.js` — join-room, send-message, typing, edit, delete, online-status, group rooms (join-group/leave-group/group-send-message→group-message-received)
 - `utils/`: cache (Redis+in-mem fallback; `get/set/del`,`getString/setString`,`getNumber/setNumber`) · queue (Bull: email/cleanup/push; weekly digest Mon 10AM, saved-search-alerts daily 9AM) · notifyUser `notify(userId,type,title,body,relatedId)` · razorpay (PLANS, createOrder, verifyPayment, createGenericOrder; throws on placeholder secret) · agoraToken (`DEV_STUB_TOKEN` if unset) · smsService (Fast2SMS/MSG91, dev logs OTP, 3/hr) · bgCheckService (AuthBridge+Signzy, dev stub auto-pass 5s) · email (primary) · emailService (legacy, chatController only) · compatibility (score + Vedic Ashtakoot 27-nakshatra/8-guna/dosha; `resolveNakshatra()` 50+ aliases) · numerology (life-path from DOB + pairwise match; in `horoscope-match`) · profileCode (deterministic `TCS-XXXXXXXX` from userId, no DB column; powers `/search/by-code`)
 - `validators/index.js` all express-validator schemas
@@ -29,7 +29,7 @@ Entry `server.js`. Key files:
 **Auth:** httpOnly accessToken(15m JWT)+refreshToken(7d hashed). Rotation+family revoke. Lockout 5/30min (Redis). Google `POST /auth/google`. Mobile biometric→refresh-token flow.
 **Limiters:** api 200/15m · auth 5/15m · signup 3/hr · pwReset 3/hr · search 30/min · message 60/min · profileUpdate 10/min · matchAction 60/min · upload 20/hr · admin 100/min · payment 10/hr
 **Plans:** free ₹0 · basic_premium ₹1500/15d/5unlock · premium_plus ₹3000/30d/10unlock · vip ₹7499/90d/unlimited+boost
-**Migrations:** 000001–000037. `npm run migrate` (backend/) before prod. `quizAnswers` JSONB on Profile has NO migration — `ALTER TABLE "Profiles" ADD COLUMN "quizAnswers" JSONB` manually. 000035 ProfileView (viewerId,createdAt) index for recently-viewed; 000036 SuccessStories table; 000037 Profile.videoIntroUrl (video intro).
+**Migrations:** 000001–000038. `npm run migrate` (backend/) before prod. (`quizAnswers` JSONB IS created by migration 000028 — no manual ALTER needed.) 000035 ProfileView (viewerId,createdAt) index for recently-viewed; 000036 SuccessStories table; 000037 Profile.videoIntroUrl (video intro); 000038 search-index tuning (income/height/manglikStatus btree + interestTags GIN; drops duplicate Messages index).
 
 ## API (`/api/v1` unless noted; full: `docs/06_API_Reference.md`)
 - **auth** `/auth`: signup, login, refresh, forgot-password, reset-password, google, send-otp, verify-otp, GET me, logout, logout-all, change-password, GET sessions, DEL sessions/:id, DEL account
@@ -123,7 +123,7 @@ Checklist: real Razorpay → Email → Google OAuth → `.env.production` → st
 Backend unit+integration Jest+Supertest `backend/tests/`. Frontend Vitest+RTL `frontend/src/tests/`. E2E Playwright `e2e/tests/` (9).
 
 ## Known Issues
-🔴 Razorpay placeholder · 🟡 Email/GoogleOAuth off · 🟡 SMS OTP needs SMS_API_KEY · 🟡 quizAnswers no migration (ALTER manually) · 🟠 Push stub (FCM creds+native build) · 🟠 Redis not in dev · ⚪ `pages/Profile.jsx`+`emailService.js` dead/legacy · ⚪ admin user detail "No profile created yet"
+🔴 Razorpay placeholder · 🟡 Email/GoogleOAuth off · 🟡 SMS OTP needs SMS_API_KEY · 🟠 Push stub (FCM creds+native build) · 🟠 Redis not in dev · ⚪ `emailService.js` legacy (chat+match) · ⚪ admin user detail "No profile created yet" · ⚪ family-group chat backend not built (socket events disabled — see review-progress MF-1) · ⚪ kundli PDF missing
 
 ## Audit History
 - 2026-03-12 Security audit — all critical/high/med resolved, CORS hardened
@@ -135,6 +135,9 @@ Backend unit+integration Jest+Supertest `backend/tests/`. Frontend Vitest+RTL `f
 - 2026-06-09 Mobile re-theme (neutral palette →web #FAFAFA/#FFFFFF/#E8E8E8/#2D2D2D, errorBg/warningBg/successBg/infoBg tokens, callTheme.ts dark-navy)
 - 2026-06-14 Competitive parity R1 (benchmark vs Shaadi/Jeevansathi → `docs/07_Competitive_Benchmark.md`, spec `docs/08_Spec_Competitive_Parity.md`). Shipped: web pages for Verification/Guardian/Astrologers (booking-only, in-browser calls DEFERRED); GET /match/daily (cached IST set); GET /profile/me/recently-viewed; SuccessStory model+admin CRUD+public page (Home.jsx now fetches); web i18n scaffold en/hi/pa. Migrations 000035/000036 — run `npm run migrate`.
 - 2026-06-14 Competitive parity R2 (re-benchmark → final buildable-gap closure; spec addendum C8–C10). Shipped: **search-by-ID** (`GET /search/by-code` + shareable `TCS-XXXXXXXX` code on profile, util `profileCode`); **video intro** (`POST/DEL /profile/video-intro`, migration **000037** Profile.videoIntroUrl, web `VideoIntroManager`+playback); **numerology** (life-path + pairwise match on `horoscope-match`, util `numerology`). Unit tests `numerology.test.js`+`profileCode.test.js`. Remaining gaps intentional: web calls, kundli PDF, full web i18n, SMS match alerts (won't-do — push+email cover), settlement guarantee, RM web. Run `npm run migrate` for 000037.
+
+## Audit System
+Full-project audit runs chunked, never one pass. **Tracker = single source of truth: `review-progress.md` (repo root).** Read before any review chunk, update after. Methodology + phase→skill map: `docs/09_Audit_System.md`. Rules: evidence (`file:line`) for every finding · never assume/hallucinate code · severity Critical/High/Medium/Low · report-only skill first (`/qa-only`,`/code-review`), fix in separate chunk. 9 phases (Architecture→Backend→DB→Security[OWASP]→Frontend→SEO→Performance→QA→Missing Features); skills: `/health`,`/code-review`,`/security-review`,`/cso`,`/design-review`,`/browse`,`/benchmark`,`/qa-only`→`/qa`,`/spec`. Resume after context loss: open tracker → first non-✅ phase → first `[ ]` item. Seeded gaps (2026-06-15): no robots.txt/sitemap (SEO Medium), frontend has no component tests (QA High).
 
 ## gstack Skills (REQUIRED)
 ```bash

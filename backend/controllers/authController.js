@@ -174,15 +174,17 @@ exports.signup = asyncHandler(async (req, res) => {
   // Set cookies
   setAuthCookies(res, accessToken, refreshToken);
 
+  // FE-2: return the full user (with Profile) so the client can skip the
+  // follow-up /auth/me round-trip. Mirrors getMe's shape.
+  const fullUser = await User.findByPk(result.id, {
+    attributes: { exclude: ['password'] },
+    include: [{ model: Profile }],
+  });
+
   res.status(201).json({
     success: true,
     message: 'Account created successfully',
-    user: {
-      id: result.id,
-      email: result.email,
-      role: result.role,
-      isBoosted: result.isBoosted || false
-    },
+    user: fullUser,
     // Access token returned for non-cookie clients; refresh token is httpOnly cookie only
     tokens: {
       accessToken,
@@ -241,14 +243,17 @@ exports.login = asyncHandler(async (req, res) => {
   // Set cookies
   setAuthCookies(res, accessToken, refreshToken);
 
+  // FE-2: return the full user (with Profile) so the client doesn't need a second
+  // /auth/me round-trip right after login. Mirrors getMe's shape.
+  const fullUser = await User.findByPk(user.id, {
+    attributes: { exclude: ['password'] },
+    include: [{ model: Profile }],
+  });
+
   res.json({
     success: true,
     message: 'Login successful',
-    user: {
-      id: user.id,
-      email: user.email,
-      role: user.role
-    },
+    user: fullUser,
     // Access token returned for non-cookie clients; refresh token is httpOnly cookie only
     tokens: {
       accessToken,

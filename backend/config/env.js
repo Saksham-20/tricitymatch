@@ -312,6 +312,13 @@ if (isProduction) {
     errors.push('RAZORPAY_WEBHOOK_SECRET must be set in production');
   }
 
+  // Background-check webhook secret must be set when a real BG-check provider is
+  // enabled — otherwise the webhook fails open and a forged payload could
+  // self-grant the Background Verified badge.
+  if (config.bgCheck.isConfigured() && !config.bgCheck.webhookSecret) {
+    errors.push('BG_CHECK_WEBHOOK_SECRET must be set in production when a BG_CHECK_PROVIDER is enabled');
+  }
+
   // SMS_PROVIDER and SMS_API_KEY must be real (not dev mode) in production
   if (!config.sms.provider || config.sms.provider === 'dev') {
     errors.push('SMS_PROVIDER must be set to a real provider (e.g., fast2sms, msg91) in production — not dev mode');

@@ -118,7 +118,15 @@ const verifyPayment = (razorpayOrderId, razorpayPaymentId, razorpaySignature) =>
     .update(body.toString())
     .digest('hex');
 
-  return expectedSignature === razorpaySignature;
+  // Timing-safe compare (mirrors the webhook path). Length guard prevents
+  // timingSafeEqual from throwing on a mismatched-length attacker signature.
+  if (typeof razorpaySignature !== 'string' || razorpaySignature.length !== expectedSignature.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(
+    Buffer.from(expectedSignature, 'hex'),
+    Buffer.from(razorpaySignature, 'hex')
+  );
 };
 
 const getPlanDetails = (planType) => {

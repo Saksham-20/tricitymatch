@@ -405,6 +405,15 @@ exports.deleteMessage = asyncHandler(async (req, res) => {
 
   await message.destroy();
 
+  // SOCK-3: emit the deletion authoritatively from the server (ownership already
+  // verified above) instead of trusting a client `message-deleted` socket event.
+  const io = req.app.get('io');
+  if (io) {
+    const roomId = [userId, receiverId].sort().join('_room_');
+    io.to(roomId).emit('message-deleted', { messageId: deletedMessageId });
+    io.to(`user_${receiverId}`).emit('message-deleted', { messageId: deletedMessageId });
+  }
+
   res.json({
     success: true,
     deletedMessageId,

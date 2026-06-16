@@ -86,16 +86,21 @@ async function authBridgeSubmit({ userId, name, phone, aadhaarLast4 }) {
   return { providerRef: response.report_id, status: 'submitted' };
 }
 
+// WH-3: hex-aware, length-guarded HMAC compare. timingSafeEqual throws a
+// RangeError on length mismatch, so guard lengths first and return false on any
+// malformed signature instead of letting it bubble to a 500.
+function safeHexEqual(expectedHex, providedHex) {
+  if (typeof providedHex !== 'string' || !/^[0-9a-f]*$/i.test(providedHex)) return false;
+  if (providedHex.length !== expectedHex.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(expectedHex, 'hex'), Buffer.from(providedHex, 'hex'));
+}
+
 function authBridgeVerifyWebhook(rawBody, signature) {
   const expected = crypto
     .createHmac('sha256', config.bgCheck.webhookSecret)
     .update(rawBody)
     .digest('hex');
-  const safe = crypto.timingSafeEqual(
-    Buffer.from(expected, 'hex'),
-    Buffer.from(signature.replace('sha256=', ''), 'hex')
-  );
-  return safe;
+  return safeHexEqual(expected, String(signature || '').replace('sha256=', ''));
 }
 
 function authBridgeParseWebhook(body) {
@@ -144,11 +149,7 @@ function signzyVerifyWebhook(rawBody, signature) {
     .createHmac('sha256', config.bgCheck.webhookSecret)
     .update(rawBody)
     .digest('hex');
-  const safe = crypto.timingSafeEqual(
-    Buffer.from(expected, 'hex'),
-    Buffer.from(signature, 'hex')
-  );
-  return safe;
+  return safeHexEqual(expected, String(signature || ''));
 }
 
 function signzyParseWebhook(body) {
@@ -201,6 +202,12 @@ async function submitBgCheck(candidate) {
  */
 function verifyBgCheckWebhook(rawBody, signature) {
   if (!config.bgCheck.webhookSecret) {
+    // Fail CLOSED in production — an unsigned webhook must never self-grant a
+    // Background Verified badge. Only dev/test may skip signature verification.
+    if (config.isProduction) {
+      log.error('[BGC] BG_CHECK_WEBHOOK_SECRET unset in production — rejecting webhook (fail-closed)');
+      return false;
+    }
     log.warn('[BGC] No BG_CHECK_WEBHOOK_SECRET set — skipping webhook sig verification (dev only)');
     return true;
   }

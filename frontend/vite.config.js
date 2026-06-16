@@ -46,13 +46,12 @@ export default defineConfig(({ mode }) => {
       host: true,
     },
 
-    // Path aliases (include workspace root node_modules for hoisted deps like dompurify)
     resolve: {
-      // dedupe forces a single instance of these packages even in a monorepo
-      dedupe: ['react', 'react-dom', 'react-router-dom', 'recharts'],
+      // dedupe forces a single instance of these packages even in a monorepo —
+      // path-agnostic, so it works regardless of whether npm hoists them to the
+      // root or keeps them in frontend/node_modules (no hardcoded paths).
+      dedupe: ['react', 'react-dom', 'react-router-dom', 'recharts', 'dompurify', 'clsx'],
       alias: {
-        dompurify: path.resolve(__dirname, '../node_modules/dompurify'),
-        clsx: path.resolve(__dirname, '../node_modules/clsx'),
         '@': path.resolve(__dirname, './src'),
         '@components': path.resolve(__dirname, './src/components'),
         '@pages': path.resolve(__dirname, './src/pages'),

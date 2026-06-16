@@ -203,15 +203,9 @@ const initializeSocket = (io) => {
           return;
         }
 
-        // Verify premium subscription (chat requires premium)
-        const activeSub = await Subscription.findOne({
-          where: {
-            userId,
-            status: 'active',
-            planType: { [Op.ne]: 'free' },
-            endDate: { [Op.gt]: new Date() }
-          }
-        });
+        // Verify premium subscription (chat requires premium) — SOCK-5: use the
+        // shared checkSubscription so the "premium" definition stays single-sourced.
+        const activeSub = await checkSubscription(userId);
         if (!activeSub) {
           socket.emit('error', { code: 'PREMIUM_REQUIRED', message: 'Chat requires an active premium subscription' });
           return;
@@ -285,13 +279,18 @@ const initializeSocket = (io) => {
     });
 
     // ==================== TYPING INDICATOR ====================
-    socket.on('typing', ({ receiverId, isTyping }) => {
+    socket.on('typing', async ({ receiverId, isTyping }) => {
       // Rate limit check
       if (!checkRateLimit(socket.id, 'typing')) {
         return; // Silently drop typing events when rate limited
       }
 
       if (!receiverId) return;
+
+      // SOCK-6: only relay typing to a mutual match — otherwise any user could
+      // push fake typing indicators by computing the deterministic room id.
+      const isMutual = await verifyMutualMatch(userId, receiverId);
+      if (!isMutual) return;
 
       const roomId = getRoomId(userId, receiverId);
       socket.to(roomId).emit('user_typing', {
@@ -327,57 +326,29 @@ const initializeSocket = (io) => {
     });
 
     // ==================== MESSAGE DELETED ====================
-    socket.on('message-deleted', async ({ roomId, messageId, receiverId }) => {
-      try {
-        if (!messageId) return;
+    // SOCK-3: deletion is now broadcast authoritatively by the REST DELETE handler
+    // (chatController.deleteMessage) after verifying ownership. The client event is
+    // intentionally ignored so a room member can't spoof deletion of arbitrary
+    // message ids in the partner's UI.
+    socket.on('message-deleted', () => {});
 
-        // We can't verify ownership here since the message is deleted
-        // The REST API already verified ownership before deletion
-
-        // Broadcast to room
-        socket.to(roomId).emit('message-deleted', { messageId });
-
-        // Notify receiver's personal room
-        if (receiverId) {
-          socket.to(`user_${receiverId}`).emit('message-deleted', { messageId });
-        }
-      } catch (error) {
-        log.error('Message deleted error', { userId, error: error.message });
-      }
-    });
-
-    // ==================== FAMILY GROUP CHAT (APP-053) ====================
-
-    socket.on('join-group', ({ groupId }) => {
-      if (!groupId || typeof groupId !== 'string') return;
-      // Any authenticated user can join a group they belong to.
-      // Membership enforcement is handled at REST API level (POST /chat/groups/:id/join).
-      // Socket room = `group_{groupId}`
-      socket.join(`group_${groupId}`);
-      if (config.isDevelopment) {
-        console.log(`User ${userId} joined group room group_${groupId}`);
-      }
-    });
-
-    socket.on('leave-group', ({ groupId }) => {
-      if (!groupId || typeof groupId !== 'string') return;
-      socket.leave(`group_${groupId}`);
-    });
-
-    socket.on('group-send-message', async ({ groupId, message }) => {
-      try {
-        if (!groupId || !message || !message.id) return;
-        // Rate limit with same send-message limiter
-        if (!checkRateLimit(socket.id, 'send-message')) {
-          socket.emit('error', { code: 'RATE_LIMITED', message: 'Too many messages.' });
-          return;
-        }
-        // Broadcast to group room (sender receives via optimistic UI, others via this emit)
-        socket.to(`group_${groupId}`).emit('group-message-received', { groupId, message });
-      } catch (error) {
-        log.error('Group send message error', { userId, groupId, error: error.message });
-      }
-    });
+    // ==================== FAMILY GROUP CHAT (APP-053) — DISABLED ====================
+    // SECURITY (SOCK-1/SOCK-2/MF-1): family-group chat has NO backend — no Group/
+    // GroupMember model and no `/chat/family-groups*` routes exist, so there is no
+    // server-side membership concept to authorize against. The previous handlers
+    // let any authenticated user join + read + write ANY group by id (IDOR) and
+    // inject forged messages. Until the group backend is built (REF-51), these
+    // events are rejected rather than relayed. Do NOT re-enable without a
+    // membership check that mirrors join-room's mutual-match gate.
+    const rejectGroupEvent = () => {
+      socket.emit('error', {
+        code: 'FEATURE_UNAVAILABLE',
+        message: 'Family group chat is not available yet.',
+      });
+    };
+    socket.on('join-group', rejectGroupEvent);
+    socket.on('group-send-message', rejectGroupEvent);
+    socket.on('leave-group', () => {}); // no-op (no rooms are joined)
 
     // ==================== ONLINE STATUS ====================
     socket.on('get-online-status', async (userIds) => {

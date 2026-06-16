@@ -55,7 +55,10 @@ module.exports = {
       },
     });
 
-    await queryInterface.addIndex('SuccessStories', ['status', 'displayOrder']);
+    // Idempotent: a prior partial run / sync may have created this already.
+    await queryInterface.sequelize.query(
+      'CREATE INDEX IF NOT EXISTS "success_stories_status_display_order" ON "SuccessStories" ("status", "displayOrder");'
+    );
   },
 
   async down(queryInterface) {

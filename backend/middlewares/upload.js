@@ -103,8 +103,15 @@ const documentFileFilter = (req, file, cb) => {
   cb(null, true);
 };
 
-// Create Cloudinary storage configuration
-const createCloudinaryStorage = (folder, transformation = []) => {
+// Create Cloudinary storage configuration.
+// SEC-4: pin resource_type per endpoint (never 'auto') and scope allowed_formats
+// tightly. Cloudinary content-validates uploads against allowed_formats by actually
+// decoding the file, so a spoofed Content-Type that isn't really the claimed format
+// is rejected server-side. resource_type:'image' also prevents a disguised
+// raw/video polyglot from being stored on an image endpoint.
+const createCloudinaryStorage = (folder, transformation = [], opts = {}) => {
+  const { resourceType = 'image', formats = ['jpg', 'jpeg', 'png', 'webp'] } = opts;
+
   if (!config.cloudinary.isConfigured()) {
     // Fallback to local storage if Cloudinary not configured
     return multer.diskStorage({
@@ -122,27 +129,29 @@ const createCloudinaryStorage = (folder, transformation = []) => {
     cloudinary: cloudinary,
     params: {
       folder: `${config.cloudinary.folder}/${folder}`,
-      allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'pdf'],
+      allowed_formats: formats,
       transformation: transformation.length > 0 ? transformation : undefined,
-      resource_type: 'auto',
+      resource_type: resourceType,
     },
   });
 };
 
-// Profile photo storage with optimization
+// Profile photo storage with optimization (images only)
 const profilePhotoStorage = createCloudinaryStorage('profile-photos', [
   { width: 500, height: 500, crop: 'fill', gravity: 'face', quality: 'auto:best' },
 ]);
 
-// Gallery photos storage
+// Gallery photos storage (images only)
 const galleryPhotoStorage = createCloudinaryStorage('gallery', [
   { width: 1200, height: 1200, crop: 'limit', quality: 'auto:good' },
 ]);
 
-// Verification documents storage
+// Verification documents storage (images + PDF). Cloudinary stores PDFs under the
+// 'image' resource type, so PDFs remain supported while still being pinned away
+// from 'auto'/raw/video.
 const documentStorage = createCloudinaryStorage('verification-docs', [
   { quality: 'auto:eco' },
-]);
+], { resourceType: 'image', formats: ['jpg', 'jpeg', 'png', 'webp', 'pdf'] });
 
 // Create multer upload instances
 const uploadProfilePhoto = multer({
