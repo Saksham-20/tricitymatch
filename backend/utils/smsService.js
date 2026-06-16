@@ -8,7 +8,7 @@ const https = require('https');
 const { get: cacheGet, set: cacheSet, del: cacheDel } = require('./cache');
 const config = require('../config/env');
 const { AppError } = require('../middlewares/errorHandler');
-const log = require('../middlewares/logger');
+const { log } = require('../middlewares/logger');
 
 const OTP_TTL_SECONDS = 600; // 10 minutes
 const MAX_VERIFY_ATTEMPTS = 5;
