@@ -120,6 +120,14 @@ Nginx upstream `backend:5000` (host maps 5001:5000). **CRITICAL:** `--force-recr
 Pre-launch `bash scripts/prelaunch-check.sh` (`ENV_FILE=.env BASE_URL=https://tricityshadi.com`). Load `k6 run scripts/load-test.js --env BASE_URL=...`. FCM smoke `POST /api/v1/admin/push-smoke-test`.
 Checklist: real Razorpay → Email → Google OAuth → `.env.production` → strong secrets → migrate(→000039) → seed admin → PWA icons → HTTPS → SMS/Agora/BG_CHECK/FCM env (+ `VITE_AGORA_APP_ID` for web calls).
 
+### VPS / Server access
+Production VPS: `178.16.138.82` (Ubuntu 24, root). Key-only SSH (no private key or password in repo — keys live in `~/.ssh/`):
+```bash
+ssh tricityshadi-vps          # alias in ~/.ssh/config
+ssh -i ~/.ssh/tricityshadi_vps root@178.16.138.82   # explicit
+```
+Pubkey installed in server `~/.ssh/authorized_keys` (comment `claude-code@tricityshadi-vps`). To revoke: remove that line on the server + `rm ~/.ssh/tricityshadi_vps*` locally. Rotate any password-auth creds; prefer disabling `PasswordAuthentication` in `sshd_config` now that key auth works.
+
 ## Admin
 `admin@tricitymatch.com` / `Pass@1234` (or `ADMIN_EMAIL`/`ADMIN_PASSWORD`). Login `/login` (not /admin/login). Re-seed `node backend/seeders/adminSeeder.js`.
 
