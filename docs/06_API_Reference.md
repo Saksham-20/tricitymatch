@@ -900,13 +900,11 @@ On connect, user is automatically joined to `user_{userId}` room for notificatio
 | `join-room` | `roomId: string` | Join 1:1 chat room (`userId1_room_userId2`, sorted). Requires mutual match + premium. |
 | `leave-room` | `roomId: string` | Leave 1:1 chat room. |
 | `send-message` | `{ roomId, message: Message }` | Broadcast a message (must be DB-persisted first via REST). |
-| `typing` | `{ receiverId: string, isTyping: boolean }` | Typing indicator. |
+| `typing` | `{ receiverId: string, isTyping: boolean }` | Typing indicator (gated on mutual match). |
 | `message-edited` | `{ roomId, message: Message }` | Broadcast edit. |
-| `message-deleted` | `{ roomId, messageId, receiverId }` | Broadcast delete. |
+| `message-deleted` | — | **Server-authoritative**: deletion is broadcast by the REST `DELETE /chat/messages/:id` handler after verifying ownership. The client-emitted `message-deleted` event is ignored (anti-spoof). |
 | `get-online-status` | `userIds: string[]` (max 50) | Check online status. |
-| `join-group` | `{ groupId: string }` | Join family group chat room (`group_{groupId}`). |
-| `leave-group` | `{ groupId: string }` | Leave group room. |
-| `group-send-message` | `{ groupId, message: Message }` | Send to family group. |
+| `join-group` / `group-send-message` / `leave-group` | — | **DISABLED.** No Group backend exists (no model/routes); these events reject with `FEATURE_UNAVAILABLE` to prevent IDOR. Re-enable only after building Group/GroupMember + membership authz. See review-progress SOCK-1/MF-1. |
 
 ### Server → Client
 
