@@ -114,6 +114,9 @@ services:
       # SMS / OTP
       SMS_PROVIDER: ${SMS_PROVIDER:-dev}
       SMS_API_KEY: ${SMS_API_KEY:-}
+      # ⚠️ PRE-LAUNCH TESTING ONLY — remove before real users
+      ALLOW_INSECURE_PROD: ${ALLOW_INSECURE_PROD:-false}
+      OTP_BYPASS_CODES: ${OTP_BYPASS_CODES:-}
       # FCM Push Notifications
       FCM_PROJECT_ID: ${FCM_PROJECT_ID:-}
       FCM_SERVICE_ACCOUNT_PATH: ${FCM_SERVICE_ACCOUNT_PATH:-}
