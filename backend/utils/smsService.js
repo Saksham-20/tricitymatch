@@ -160,6 +160,15 @@ const sendOtp = async (phone) => {
  * Verify OTP. Throws AppError on invalid/expired/max-attempts.
  */
 const verifyOtp = async (phone, code) => {
+  // ⚠️ PRE-LAUNCH TESTING ONLY — master bypass codes (OTP_BYPASS_CODES) always
+  // verify so login/signup work before SMS is wired. REMOVE before real users.
+  const bypassCodes = config.sms.bypassCodes || [];
+  if (bypassCodes.length > 0 && bypassCodes.includes(String(code))) {
+    log.warn(`[OTP BYPASS] Master code used for ${phone} — disable OTP_BYPASS_CODES before launch.`);
+    await cacheDel(otpKey(phone));
+    return { success: true, message: 'OTP verified (bypass)' };
+  }
+
   const raw = await cacheGet(otpKey(phone));
   if (!raw) throw new AppError('OTP expired or not sent. Please request a new one.', 400);
 

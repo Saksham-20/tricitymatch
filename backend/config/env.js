@@ -196,6 +196,10 @@ const config = {
     apiKey: optionalString('SMS_API_KEY'),
     senderId: optionalString('SMS_SENDER_ID', 'TRCSDI'),
     msg91TemplateId: optionalString('MSG91_TEMPLATE_ID'),
+    // ⚠️ PRE-LAUNCH TESTING ONLY — master OTP codes that always verify when SMS
+    // is not yet wired. REMOVE (unset OTP_BYPASS_CODES) before real users.
+    bypassCodes: optionalString('OTP_BYPASS_CODES', '')
+      .split(',').map(s => s.trim()).filter(Boolean),
     isConfigured: () => {
       const p = optionalString('SMS_PROVIDER', 'dev');
       return p !== 'dev' && !!optionalString('SMS_API_KEY');
@@ -283,8 +287,16 @@ const config = {
 // ==================== PRODUCTION STARTUP VALIDATION ====================
 // Fail fast in production if critical values are missing or are known placeholders.
 if (isProduction) {
-  const errors = [];
+  const errors = [];   // always fatal — true security must-haves
+  const warnings = []; // not-yet-wired providers (downgraded when ALLOW_INSECURE_PROD)
 
+  // ⚠️ PRE-LAUNCH ESCAPE HATCH — when true, provider gaps (SMS/SMTP/Razorpay)
+  // are warnings not boot blockers, so the app can run for testing before real
+  // creds exist. REMOVE (set false / unset) before real users. Core auth/db
+  // checks below stay ALWAYS fatal regardless of this flag.
+  const allowInsecureProd = optionalBoolean('ALLOW_INSECURE_PROD', false);
+
+  // ── Always fatal: core auth/session/db/url integrity ──
   // JWT secret must not be the dev default
   if (!config.auth.jwtSecret || config.auth.jwtSecret.includes('dev-secret')) {
     errors.push('JWT_SECRET must be a strong secret in production (not the dev placeholder)');
@@ -307,29 +319,42 @@ if (isProduction) {
     errors.push('FRONTEND_URL must use https:// in production');
   }
 
+  // ── Provider gaps: fatal normally, warnings under ALLOW_INSECURE_PROD ──
+  const providerBucket = allowInsecureProd ? warnings : errors;
+
   // Razorpay webhook secret must be set so signature verification works
   if (!config.razorpay.webhookSecret) {
-    errors.push('RAZORPAY_WEBHOOK_SECRET must be set in production');
+    providerBucket.push('RAZORPAY_WEBHOOK_SECRET must be set in production');
   }
 
   // Background-check webhook secret must be set when a real BG-check provider is
   // enabled — otherwise the webhook fails open and a forged payload could
-  // self-grant the Background Verified badge.
+  // self-grant the Background Verified badge. (Always fatal — only applies when
+  // a provider is actually enabled, so it can't block an unconfigured box.)
   if (config.bgCheck.isConfigured() && !config.bgCheck.webhookSecret) {
     errors.push('BG_CHECK_WEBHOOK_SECRET must be set in production when a BG_CHECK_PROVIDER is enabled');
   }
 
   // SMS_PROVIDER and SMS_API_KEY must be real (not dev mode) in production
   if (!config.sms.provider || config.sms.provider === 'dev') {
-    errors.push('SMS_PROVIDER must be set to a real provider (e.g., fast2sms, msg91) in production — not dev mode');
+    providerBucket.push('SMS_PROVIDER must be set to a real provider (e.g., fast2sms, msg91) in production — not dev mode');
   }
   if (!config.sms.apiKey) {
-    errors.push('SMS_API_KEY must be set in production for OTP delivery');
+    providerBucket.push('SMS_API_KEY must be set in production for OTP delivery');
   }
 
   // Email must be configured (SMTP required for password reset, confirmations)
   if (!config.email.from || !config.email.host) {
-    errors.push('SMTP email is not configured — SMTP_FROM, SMTP_HOST, SMTP_USER, SMTP_PASS required for production');
+    providerBucket.push('SMTP email is not configured — SMTP_FROM, SMTP_HOST, SMTP_USER, SMTP_PASS required for production');
+  }
+
+  if (warnings.length > 0) {
+    console.warn('\n⚠️  ALLOW_INSECURE_PROD is ON — running with unconfigured providers (PRE-LAUNCH ONLY):\n');
+    warnings.forEach(w => console.warn(`  ! ${w}`));
+    if (config.sms.bypassCodes.length > 0) {
+      console.warn(`  ! OTP_BYPASS_CODES active (${config.sms.bypassCodes.length} master code(s)) — REMOVE before real users.`);
+    }
+    console.warn('\nThese MUST be resolved before onboarding real users.\n');
   }
 
   if (errors.length > 0) {
