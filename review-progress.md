@@ -631,7 +631,7 @@ Updated everything safely-updatable in verified tiers (build + tests after each)
 **Result:** build ✅, FE 31/31, BE 99 pass (9 pre-existing/stale). **Backend audit 0 high/0 critical** (27 moderate transitive uuid-chain). **Frontend** only 2 dev-only highs (glob/minimatch — no patched in-range version; needs glob 11/minimatch 10 forced on dev tooling, not worth the risk).
 
 **Held — need a running-app migration, not a blind bump (each a focused chunk):**
-- **react 18 → 19** (+ @types/react 19) — cascades across 48 components; runtime-only breakage (refs/StrictMode) that the build can't catch — needs live verification.
+- **react 18 → 19** (+ @types/react 19) — **ATTEMPTED 2026-06-16, reverted. Blocked at the monorepo level:** mobile (RN 0.74) hard-pins `react@18.2.0`, so npm workspace hoisting keeps 18.2.0 at root for mobile while frontend gets a nested `react@19` → **dual-React** ("Invalid hook call" / "Cannot read properties of null (reading 'useRef')" in tests; the bundle build masked it via vite dedupe). Frontend code itself is React-19-clean (no legacy ReactDOM.render/defaultProps/propTypes/string-refs; helmet-async 3 + framer 12 + RR7 all support 19). To upgrade web to 19 you must first decouple it from the RN workspace (separate install / move mobile out of `workspaces`, or wait for an RN version that supports React 19). Reverted to react 18.3.1→18.2.0 (single deduped copy); build + 31/31 tests green.
 - **tailwindcss 3 → 4** — CSS-first config rewrite (drop `tailwind.config.js` → `@theme`); visual-regression risk.
 - **express 4 → 5** — routing/middleware + path-to-regexp v8 breaking across 16 route files.
 - **multer 1 → 2** — upload-pipeline breaking (pairs with the deferred memory-storage/magic-byte refactor).
