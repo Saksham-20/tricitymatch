@@ -619,6 +619,28 @@ Ran `npm audit` on backend + frontend after the dependency cleanup.
 
 ---
 
+# Full dependency-update sweep (2026-06-16)
+
+Updated everything safely-updatable in verified tiers (build + tests after each).
+
+**Updated:**
+- *Dev toolchain (clears FE critical CVEs):* vite 5→8 (rolldown — `manualChunks` converted to function form in vite.config), vitest 1→4, @vitejs/plugin-react 4→6, @vitest/coverage-v8 1→4, jsdom 23→29, @testing-library/react 14→16.
+- *Frontend libs:* react-router-dom 6→7, react-icons 4→5, lucide-react 0.344→1, framer-motion 10→12, typescript 5→6, axios→1.18, postcss→8.5.15, radix-ui, autoprefixer, tailwind-merge (2.x), tailwindcss (3.4.19), @types/*.
+- *Backend libs:* helmet 7→8, bcryptjs 2→3 (hash/compare smoke-verified), dotenv 16→17, cross-env 7→10, jest 29→30, jest-junit 16→17, supertest 6→7, express-validator 7.3.2, morgan 1.11, nodemon 3.1.14, sequelize-cli 6.6.5, pdfkit 0.19.1; removed unused direct `cookie`.
+
+**Result:** build ✅, FE 31/31, BE 99 pass (9 pre-existing/stale). **Backend audit 0 high/0 critical** (27 moderate transitive uuid-chain). **Frontend** only 2 dev-only highs (glob/minimatch — no patched in-range version; needs glob 11/minimatch 10 forced on dev tooling, not worth the risk).
+
+**Held — need a running-app migration, not a blind bump (each a focused chunk):**
+- **react 18 → 19** (+ @types/react 19) — cascades across 48 components; runtime-only breakage (refs/StrictMode) that the build can't catch — needs live verification.
+- **tailwindcss 3 → 4** — CSS-first config rewrite (drop `tailwind.config.js` → `@theme`); visual-regression risk.
+- **express 4 → 5** — routing/middleware + path-to-regexp v8 breaking across 16 route files.
+- **multer 1 → 2** — upload-pipeline breaking (pairs with the deferred memory-storage/magic-byte refactor).
+- **umzug 2 → 3** — `server.js:303-317` uses the v2 API; v3 is a full rewrite of the constructor/storage.
+- **eslint 8 → 10** (+ eslint-plugin-react-hooks 7) — flat-config (`eslint.config.js`) migration.
+- **react-helmet-async 2 → 3** — just integrated v2; defer to avoid re-breaking SEO without testing.
+
+---
+
 # Remediation Log (2026-06-15) — "fix all the problems" pass
 
 All backend changes syntax-checked (`node --check`) clean. Pre-existing unit-test
