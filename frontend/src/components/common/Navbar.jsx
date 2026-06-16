@@ -240,13 +240,8 @@ const Navbar = () => {
 
   return (
     <>
-      <a
-        href="#main-content"
-        className="skip-link focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary-500 focus:text-white focus:rounded-lg focus:font-semibold focus:shadow-lg"
-      >
-        {t('navbar.skipToContent')}
-      </a>
-
+      {/* Skip-to-content link is rendered once globally in App.jsx; removed the
+          duplicate here so keyboard/SR users get a single skip target (a11y). */}
       <motion.nav
         initial={{ y: -100 }}
         animate={{ y: 0 }}
@@ -323,6 +318,7 @@ const Navbar = () => {
 
               {/* Mobile hamburger */}
               <motion.button
+                type="button"
                 whileTap={{ scale: 0.93 }}
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 aria-expanded={isMobileMenuOpen}

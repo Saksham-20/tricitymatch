@@ -7,6 +7,7 @@ import { FiLock, FiEye, FiEyeOff, FiCheck, FiArrowLeft, FiShield, FiHeart } from
 import { fadeInUp, staggerContainer } from '../utils/animations';
 import { validatePassword } from '../utils/validators';
 import Logo from '../components/common/Logo';
+import Seo from '../components/common/Seo';
 
 // ─── Shared left editorial panel ─────────────────────────────────────────────
 const EditorialPanel = ({ headline, sub }) => (
@@ -52,6 +53,7 @@ const ResetPassword = () => {
   if (!token) {
     return (
       <div className="min-h-screen flex bg-gradient-to-br from-neutral-50 via-primary-50/20 to-gold-50/30">
+        <Seo title="Reset Password" description="Set a new password for your TricityShadi account." path="/reset-password" />
         <EditorialPanel
           headline={"Invalid link."}
           sub="This password reset link is invalid or has expired. Please request a new one."
@@ -102,6 +104,7 @@ const ResetPassword = () => {
   if (success) {
     return (
       <div className="min-h-screen flex bg-gradient-to-br from-neutral-50 via-primary-50/20 to-gold-50/30">
+        <Seo title="Reset Password" description="Set a new password for your TricityShadi account." path="/reset-password" />
         <EditorialPanel
           headline={"You're all set."}
           sub="Your password has been updated. Sign in with your new credentials."
@@ -128,6 +131,7 @@ const ResetPassword = () => {
 
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-neutral-50 via-primary-50/20 to-gold-50/30">
+      <Seo title="Reset Password" description="Set a new password for your TricityShadi account." path="/reset-password" />
       <EditorialPanel
         headline={"Create your new password."}
         sub="Choose a strong password to protect your TricityShadi account."

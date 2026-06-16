@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { FiMail, FiArrowLeft, FiCheck, FiShield, FiHeart } from 'react-icons/fi';
 import { fadeInUp, staggerContainer } from '../utils/animations';
 import Logo from '../components/common/Logo';
+import Seo from '../components/common/Seo';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
@@ -29,6 +30,11 @@ const ForgotPassword = () => {
   if (submitted) {
     return (
       <div className="min-h-screen flex bg-gradient-to-br from-neutral-50 via-primary-50/20 to-gold-50/30">
+        <Seo
+          title="Forgot Password"
+          description="Reset your TricityShadi password — we'll email you a secure recovery link."
+          path="/forgot-password"
+        />
         <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-neutral-900">
           <div className="absolute inset-0 bg-gradient-to-br from-primary-900/90 via-neutral-900 to-neutral-900" />
           <motion.div animate={{ rotate: 360 }} transition={{ duration: 80, repeat: Infinity, ease: 'linear' }}
@@ -78,6 +84,11 @@ const ForgotPassword = () => {
 
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-neutral-50 via-primary-50/20 to-gold-50/30">
+      <Seo
+        title="Forgot Password"
+        description="Reset your TricityShadi password — we'll email you a secure recovery link."
+        path="/forgot-password"
+      />
       {/* Left editorial panel */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-neutral-900">
         <div className="absolute inset-0 bg-gradient-to-br from-primary-900/90 via-neutral-900 to-neutral-900" />
