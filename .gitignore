@@ -134,3 +134,9 @@ buck-out/
 web-build/
 
 # @end expo-cli
+# UX audit scratch artifacts
+.playwright-mcp/
+/home-desktop.jpeg
+/home-mobile.jpeg
+/subscription.jpeg
+audit/screenshots/

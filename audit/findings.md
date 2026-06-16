@@ -1,0 +1,65 @@
+# UI/UX/CRO Audit — Findings (living source of truth)
+
+**Target:** https://tricityshadi.com (prod) · **Method:** real-viewport Playwright capture + computed-style/contrast measurement + source read. Continuous-improvement mode (chunked).
+**Severity:** 🔴 Critical · 🟠 High · 🟡 Medium · ⚪ Low/Cosmetic
+**Status:** OPEN · FIXING · FIXED-VERIFIED · DEFERRED · RECOMMENDATION · NOT-A-BUG · NOT VERIFIED
+
+> **Evidence rule:** nothing marked FIXED unless re-tested in a real browser viewport. Full-page screenshots are NOT valid evidence for scroll-triggered content (see Chunk 1 corrections).
+
+---
+
+## CHUNK 1 — Landing / Homepage / Marketing  ✅ COMPLETE
+
+**Verdict: world-class-adjacent. Zero shippable bugs after verification.** One design-direction recommendation. The editorial serif + gold-on-burgundy system is genuinely premium and cohesive; positioning ("hyperlocal, family-meetable, ID-verified, Tricity-only vs 50M strangers") is category-leading.
+
+### ⚠️ First-pass corrections (anti-hallucination log)
+My initial audit was run off a **full-page screenshot** and produced 4 "critical/high" findings that ALL proved false under real-viewport verification. Recorded here so they are not re-raised:
+
+| First-pass claim | Reality (verified) | Evidence |
+|---|---|---|
+| C1 🔴 Hero stats render `0+/0K+/0%/0yr` | **NOT-A-BUG.** `CountUp` uses `useInView`; full-page capture paints off-screen counters at initial `useState(0)`. Scrolled into a real viewport they animate to `1,190+ / 50K+ / 92% / 15yr`. | `Home.jsx:292-307`; eval read of `.ts-metrics-row` |
+| C3 🔴 Dead white-space mid-page | **NOT-A-BUG.** "Process" section is scroll-pinned (`process-outer` 180vh, `processActive` scroll state). Pinned sections render tall/empty in full-page capture; fine while scrolling. | `Home.jsx:936`; screenshot `before/02-home-process-steps.jpeg` |
+| C5 🟠 Inconsistent stats across pages | **MOSTLY NOT-A-BUG.** 1,190 + 50K consistent everywhere. Login "98% satisfaction" vs home "92% reply within 48hrs" are *different metrics*, both legitimate. | eval contrast/text dump |
+| Announcement bar truncates offer on mobile | **NOT-A-BUG.** Full text present, wraps to 2 lines, no overflow at 375 (x+w=320<375). | eval `getBoundingClientRect` |
+| Low-contrast gray labels (A11y High) | **NOT-A-BUG.** Alpha-composited WCAG ratios all pass AA: lowest = 5.57:1 (`.55`-alpha mono labels, 11px). | eval alpha-composite contrast calc |
+| Hidden duplicate `<h2>` not aria-hidden | **NOT-A-BUG.** The duplicate sits under `.process-outer { display:none }` in the mobile media query → removed from a11y tree, screen readers skip it. | `Home.jsx:137` |
+| Broken landing images | **NOT-A-BUG.** 16 imgs, 0 broken (naturalWidth check). | eval image audit |
+
+**Lesson (also saved to deploy memory):** scroll-triggered content (count-up, pinned sections, in-view reveals) MUST be verified in a scrolled real viewport — full-page screenshots are false evidence.
+
+### Real findings (Chunk 1)
+| ID | Sev | Status | Issue |
+|----|-----|--------|-------|
+| H1-1 | 🟡 Medium | RECOMMENDATION | **Desktop "process" section uses scroll-jacking** (`process-outer` 180vh sticky, 4 steps advance on scroll). Works + looks premium, but scroll-jacking is a pattern Linear/Stripe deliberately avoid now: a quick scroll blows past steps, and the tall pinned track shows large empty viewports if a user pauses mid-section. Mobile already degrades to a clean flat list (`process-steps-list`). **Recommend** (needs design sign-off, not a bug): convert desktop to a static 4-up step grid OR shorten the pin track to ~120vh so each step gets less dead scroll. NOT auto-changed — live premium page, regression risk, arguably intentional. |
+| H1-2 | ⚪ Low | DEFERRED | FAQ accordion answer region has no `aria-controls` linking trigger→panel (trigger itself is correct: `role=button`, `tabIndex=0`, `aria-expanded`, Enter/Space handled). Cosmetic SR nicety. `Home.jsx:1303-1329`. |
+
+### Verified-clean (Chunk 1)
+Single `<h1>` ✓ · counters animate ✓ · 0 broken images ✓ · AA contrast ✓ · mobile hero/announcement/trust-chips render ✓ · keyboard-operable FAQ ✓ · success-stories falls back to static seed so no empty state ✓ · live match ticker + momentum ticker animate ✓.
+
+---
+
+## CHUNK 2 — Login / Password reset  ✅ COMPLETE
+*(`/signup` → redirects to `/onboarding` by design; covered in Chunk 3.)*
+
+**Verdict: excellent, secure, on-brand.** Forms are properly labeled with correct `autocomplete`/`type`/`required`; password-reveal has `aria-label`; split-panel design + trust stats consistent with login. Forgot-password success state is **world-class**: green check, "Check Your Email", **enumeration-safe wording** ("If an account with X exists…"), mentions spam folder, clear "Back to Login". Reset-password invalid state is clear and **not a dead end** (has "Request New Link" → /forgot-password). Skip-to-content link present (good a11y baseline). 0 console errors.
+
+### Findings + fixes
+| ID | Sev | Status | Issue → Fix |
+|----|-----|--------|-------------|
+| C2-1 | ⚪ Low | ✅ FIXED-VERIFIED | `/forgot-password` + `/reset-password` fell back to the **generic site `<title>`** (Login already had a per-route one). → Added `<Seo>` to both (all 3 reset states). Verified live: titles now "Forgot Password / Reset Password \| TricityShadi". |
+| C2-2 | ⚪ Low | ✅ FIXED-VERIFIED | **Duplicate "Skip to main content"** link (App.jsx:428 *and* Navbar.jsx:244, both → `#main-content`) — two skip targets confuse keyboard/SR users. → Removed the Navbar duplicate (App's renders first in DOM = canonical). Verified live: skipLinkCount 2→1. |
+| C2-3 | ⚪ Low | ✅ FIXED-VERIFIED | Navbar mobile **hamburger had no `type`** → defaults to `type=submit` (harmless here — not inside the login form — but wrong semantics). → Added `type="button"`. Verified live: hamburgerType now "button". |
+
+### Verified-clean (Chunk 2)
+Login form labels/autocomplete/required ✓ · password reveal a11y ✓ · enumeration-safe reset email ✓ · reset invalid-state CTA ✓ · success states ✓ · single `<form>` per page ✓ · 0 console errors ✓ · regression: build + 31/31 FE tests green.
+
+### Backlog (Chunk 2, deferred)
+- Other Navbar buttons (lines 38/67/124/179/303/440) likely also lack explicit `type` — harmless (not in forms) but a `type="button"` sweep would be correct hygiene. Defer to Chunk 10 polish.
+## CHUNK 3 — Onboarding  ⏳ PENDING
+## CHUNK 4 — Dashboard  ⏳ PENDING
+## CHUNK 5 — Core product (search/profile/chat/match)  ⏳ PENDING
+## CHUNK 6 — Settings  ⏳ PENDING
+## CHUNK 7 — Billing / Subscription  ⏳ PENDING
+## CHUNK 8 — Mobile experience  ⏳ PENDING
+## CHUNK 9 — Accessibility review  ⏳ PENDING
+## CHUNK 10 — Final polish pass  ⏳ PENDING
