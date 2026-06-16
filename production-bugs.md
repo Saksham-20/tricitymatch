@@ -12,6 +12,14 @@ _(none)_
 
 ## Fixed & Verified
 
+### BUG-P005 🔴 Critical — Entire authenticated read path 403'd in real browser (same-origin no-Origin GET) — FIXED-VERIFIED
+- **URL:** every GET API call from the SPA — e.g. GET /api/notifications/unread-count, /api/admin/analytics, /api/success-stories, /api/v1/auth/me, /api/v1/search …
+- **Repro (real browser, Playwright):** logged in as admin → redirected to /admin/dashboard; network showed `POST /api/auth/login → 200` but `GET /api/notifications/unread-count → 403` and `GET /api/admin/analytics → 403`. `curl` (no Origin) `GET /api/success-stories → 403 {"code":"FORBIDDEN","message":"Not allowed by CORS"}`; with `-H "Origin: https://tricityshadi.com"` → 200. Homepage console showed the success-stories 403 on first load.
+- **Impact:** **THE launch blocker.** Browsers do NOT attach an `Origin` header to same-origin GET/HEAD requests. The SPA and API share the prod origin (tricityshadi.com), so *every* data-fetch GET arrived with no Origin and was rejected by SEC-2's strict no-Origin policy. Users could sign up / log in (POST carries Origin) but then saw **zero data** — dashboard, search, matches, chat, notifications, profile all dead. My earlier curl "passes" were false positives because curl was sending an Origin header the real browser omits.
+- **Root cause:** [security.js:191](backend/middlewares/security.js#L191) (`if (!origin)`) 403'd all no-Origin requests in prod, on the false premise "real browser requests always send Origin." True for cross-origin and for writes; **false for same-origin GET/HEAD.**
+- **Fix:** switched `strictCors` to a `cors()` per-request **delegate** (`corsDelegate`, sees `req.method`): allow no-Origin for safe methods (GET/HEAD/OPTIONS) + preflight; keep rejecting no-Origin on state-changing methods (browser writes always send Origin; provider webhooks already exempted via monitoringCors). Explicit cross-origin still validated against allow-list. Commit 055a1a6.
+- **Validation (live prod):** no-Origin GET → 200 · no-Origin POST → 403 · evil cross-origin GET → 403 · legit-Origin GET → 200. **Real browser re-test:** re-login → `GET /api/notifications/unread-count → 200`, `GET /api/admin/analytics → 200`, dashboard rendered with data, console clean (only the expected pre-login /auth/me 401 probe). **FIXED-VERIFIED**
+
 ### BUG-P003 🟠 High — Provider webhooks 403'd by strict CORS (no-Origin) — FIXED-VERIFIED
 - **URL:** POST /api/v1/subscription/webhook, /api/v1/verification/bg-check/webhook
 - **Repro (prod):** POST with no Origin header → 403 `{"code":"FORBIDDEN","message":"Not allowed by CORS"}`.
