@@ -18,6 +18,7 @@ const config = require('./config/env');
 const {
   securityHeaders,
   corsOptions,
+  corsDelegate,
   apiLimiter,
   sanitizeRequest,
   requestId,
@@ -83,7 +84,10 @@ app.use(securityHeaders);
 // (Docker healthcheck, internal cron). Exempt those paths with a permissive CORS
 // so the strict policy below can safely reject no-origin requests to the API.
 const monitoringCors = cors({ origin: true, credentials: true });
-const strictCors = cors(corsOptions);
+// BUG-P005: use the per-request delegate so the no-Origin policy can vary by
+// method — same-origin browser GET/HEAD carry no Origin and must be allowed,
+// while no-Origin writes stay rejected. corsOptions kept for any legacy import.
+const strictCors = cors(corsDelegate);
 // Provider webhooks are server-to-server (no Origin header) and authenticated by
 // HMAC signature, not CORS. Strict CORS would 403 them, dropping payment/BG-check
 // callbacks — so exempt webhook paths (they still verify signatures downstream).

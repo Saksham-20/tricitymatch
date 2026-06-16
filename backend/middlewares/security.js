@@ -182,12 +182,80 @@ const getAllowedOrigins = () => {
   return Array.from(list);
 };
 
+// Returns true if an explicit Origin header value is on the allow-list.
+const isAllowedOrigin = (origin) => {
+  const isLocalDevelopmentOrigin =
+    config.isDevelopment &&
+    /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+
+  const allowedOrigins = getAllowedOrigins();
+
+  // In development, allow localhost variants on any port
+  if (config.isDevelopment) {
+    allowedOrigins.push(
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:5173'
+    );
+  }
+
+  return allowedOrigins.includes(origin) || isLocalDevelopmentOrigin;
+};
+
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+// Per-request CORS delegate (cors() supports `(req, callback)` form, which —
+// unlike the bare origin callback — exposes the HTTP method so we can vary the
+// no-Origin policy by method.
+const corsDelegate = (req, callback) => {
+  const origin = req.headers.origin;
+  const baseOptions = {
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: corsAllowedHeaders,
+    exposedHeaders: ['X-Total-Count', 'X-Page', 'X-Per-Page'],
+    maxAge: 86400,
+  };
+
+  // SEC-2 / BUG-P005: browsers DO NOT attach an Origin header to same-origin
+  // GET/HEAD requests. Since the SPA and API share the production origin
+  // (tricityshadi.com), the entire read path of the app arrives with no Origin.
+  // Allow no-Origin for safe (non-mutating) methods + preflight; keep rejecting
+  // no-Origin on state-changing methods (real browser writes always carry
+  // Origin; provider webhooks are exempted earlier via monitoringCors).
+  if (!origin) {
+    if (config.isDevelopment || SAFE_METHODS.has((req.method || '').toUpperCase())) {
+      return callback(null, { ...baseOptions, origin: true });
+    }
+    const noOriginErr = new Error('Not allowed by CORS');
+    noOriginErr.statusCode = 403;
+    noOriginErr.code = 'FORBIDDEN';
+    noOriginErr.isOperational = true;
+    return callback(noOriginErr);
+  }
+
+  if (isAllowedOrigin(origin)) {
+    return callback(null, { ...baseOptions, origin: true });
+  }
+  const corsErr = new Error('Not allowed by CORS');
+  corsErr.statusCode = 403;
+  corsErr.code = 'FORBIDDEN';
+  corsErr.isOperational = true;
+  return callback(corsErr);
+};
+
+const corsAllowedHeaders = [
+  'Content-Type',
+  'Authorization',
+  'X-Requested-With',
+  'X-CSRF-Token',
+  'Accept',
+  'Origin',
+];
+
 const corsOptions = {
   origin: (origin, callback) => {
-    // SEC-2: real browser requests always send Origin; only server-side/scripted
-    // callers omit it. In production we no longer blanket-allow no-origin against
-    // the whole API — health/monitoring probes are exempted separately (see
-    // monitoringCors in server.js) before this strict policy applies.
     if (!origin) {
       if (config.isDevelopment) return callback(null, true);
       const noOriginErr = new Error('Not allowed by CORS');
@@ -196,24 +264,7 @@ const corsOptions = {
       noOriginErr.isOperational = true;
       return callback(noOriginErr);
     }
-
-    const isLocalDevelopmentOrigin =
-      config.isDevelopment &&
-      /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
-
-    const allowedOrigins = getAllowedOrigins();
-
-    // In development, allow localhost variants on any port
-    if (config.isDevelopment) {
-      allowedOrigins.push(
-        'http://localhost:3000',
-        'http://localhost:5173',
-        'http://127.0.0.1:3000',
-        'http://127.0.0.1:5173'
-      );
-    }
-
-    if (allowedOrigins.includes(origin) || isLocalDevelopmentOrigin) {
+    if (isAllowedOrigin(origin)) {
       callback(null, true);
     } else {
       const corsErr = new Error('Not allowed by CORS');
@@ -413,6 +464,7 @@ module.exports = {
   // Security
   securityHeaders,
   corsOptions,
+  corsDelegate,
   sanitizeRequest,
   // Account lockout
   checkAccountLockout,
