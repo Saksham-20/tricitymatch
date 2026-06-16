@@ -6,8 +6,8 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package files (+ .npmrc for legacy-peer-deps resolution)
+COPY package*.json .npmrc ./
 
 # Install production dependencies (npm install tolerates lock file out of sync)
 RUN npm install --omit=dev
