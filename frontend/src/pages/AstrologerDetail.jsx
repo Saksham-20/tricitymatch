@@ -85,7 +85,7 @@ export default function AstrologerDetail() {
 
       <div className="flex gap-5 items-start mb-6">
         <img
-          src={ast.avatarUrl || '/images/avatar-placeholder.png'}
+          src={ast.avatarUrl || '/images/avatar-placeholder.svg'}
           alt={ast.name}
           className="w-20 h-20 rounded-full object-cover bg-neutral-100"
           onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}

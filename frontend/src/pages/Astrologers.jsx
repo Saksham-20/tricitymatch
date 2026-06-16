@@ -43,7 +43,7 @@ export default function Astrologers() {
               className="flex gap-4 bg-white border border-neutral-200 rounded-2xl p-4 hover:border-primary-300 transition-colors"
             >
               <img
-                src={a.avatarUrl || '/images/avatar-placeholder.png'}
+                src={a.avatarUrl || '/images/avatar-placeholder.svg'}
                 alt={a.name}
                 className="w-16 h-16 rounded-full object-cover bg-neutral-100"
                 onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
