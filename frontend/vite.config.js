@@ -93,12 +93,14 @@ export default defineConfig(({ mode }) => {
       // Rollup options for code splitting
       rollupOptions: {
         output: {
-          // Manual chunk splitting for better caching
-          manualChunks: {
-            // Vendor chunks - rarely change, cached long-term
-            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-            'vendor-ui': ['framer-motion', 'react-hot-toast', 'lucide-react', 'react-icons'],
-            'vendor-utils': ['axios', 'socket.io-client', 'dompurify', 'clsx'],
+          // Manual chunk splitting for better caching (function form — required by
+          // vite 8 / rolldown; the object form is no longer supported).
+          manualChunks: (id) => {
+            if (!id.includes('node_modules')) return undefined;
+            if (/[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom)[\\/]/.test(id)) return 'vendor-react';
+            if (/[\\/]node_modules[\\/](framer-motion|react-hot-toast|lucide-react|react-icons)[\\/]/.test(id)) return 'vendor-ui';
+            if (/[\\/]node_modules[\\/](axios|socket\.io-client|dompurify|clsx)[\\/]/.test(id)) return 'vendor-utils';
+            return undefined;
           },
           
           // Asset file naming
