@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import Seo from '../components/common/Seo';
 import { validateEmail, validatePassword } from '../utils/validators';
@@ -23,6 +24,7 @@ const Login = () => {
   const [shakeTrigger, setShakeTrigger] = useState(false);
   const { login, setUser } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleGoogleCredential = useCallback(async (response) => {
     setGoogleLoading(true);
@@ -237,22 +239,22 @@ const Login = () => {
           {/* Mobile tab switcher — Sign In / Create Profile */}
           <motion.div variants={fadeInUp} className="lg:hidden flex rounded-2xl bg-neutral-100 p-1 mb-6">
             <span className="flex-1 py-3 text-center text-sm font-semibold rounded-xl bg-white shadow-sm text-neutral-900">
-              Sign In
+              {t('navbar.signIn')}
             </span>
             <Link
               to="/signup"
               className="flex-1 py-3 text-center text-sm font-semibold rounded-xl text-neutral-500 hover:text-neutral-700 transition-colors"
             >
-              Create Profile
+              {t('navbar.createProfile')}
             </Link>
           </motion.div>
 
           <motion.div variants={fadeInUp} className="text-center mb-8 hidden lg:block">
             <h1 className="text-3xl font-display font-bold text-neutral-800 mb-2">
-              Sign In
+              {t('auth.welcomeBack')}
             </h1>
             <p className="text-neutral-600">
-              Enter your details to access your profile.
+              {t('auth.loginSubtitle')}
             </p>
           </motion.div>
 
@@ -279,7 +281,7 @@ const Login = () => {
             {/* Email Field */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-neutral-700 mb-2">
-                Email Address
+                {t('auth.email')}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -314,7 +316,7 @@ const Login = () => {
             {/* Password Field */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-neutral-700 mb-2">
-                Password
+                {t('auth.password')}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -327,7 +329,7 @@ const Login = () => {
                   autoComplete="current-password"
                   required
                   className={`input-field pl-12 pr-12 ${errors.password ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : ''}`}
-                  placeholder="Enter your password"
+                  placeholder={t('auth.passwordPlaceholder')}
                   value={formData.password}
                   onChange={handleChange}
                 />
@@ -364,11 +366,11 @@ const Login = () => {
                 />
                 <span className="text-sm text-neutral-700">Remember me</span>
               </label>
-              <Link 
-                to="/forgot-password" 
+              <Link
+                to="/forgot-password"
                 className="text-sm font-medium text-primary-500 hover:text-primary-600 transition-colors"
               >
-                Forgot password?
+                {t('auth.forgotPassword')}
               </Link>
             </div>
 
@@ -383,11 +385,11 @@ const Login = () => {
               {loading ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Signing in...
+                  {t('auth.signingIn')}
                 </>
               ) : (
                 <>
-                  Sign In
+                  {t('auth.signIn')}
                   <FiArrowRight className="w-5 h-5" />
                 </>
               )}
@@ -401,7 +403,7 @@ const Login = () => {
                     <div className="w-full border-t border-neutral-200" />
                   </div>
                   <div className="relative flex justify-center text-sm">
-                    <span className="px-4 bg-white text-neutral-500">or continue with</span>
+                    <span className="px-4 bg-white text-neutral-500">{t('auth.orContinueWith')}</span>
                   </div>
                 </div>
                 <div className={`w-full overflow-hidden rounded-xl ${googleLoading ? 'opacity-60 pointer-events-none' : ''}`}>
@@ -425,7 +427,7 @@ const Login = () => {
               to="/signup"
               className="btn-secondary w-full flex items-center justify-center gap-2"
             >
-              Create Your Profile
+              {t('navbar.createProfile')}
             </Link>
           </motion.form>
 

@@ -260,9 +260,8 @@ describe('Validators', () => {
     it('should pass with valid search parameters', async () => {
       const result = await runValidation(validators.searchValidation, {
         query: {
-          minAge: '25',
-          maxAge: '35',
-          gender: 'female',
+          ageMin: '25',
+          ageMax: '35',
           city: 'Chandigarh'
         }
       });
@@ -270,11 +269,11 @@ describe('Validators', () => {
       expect(result.isEmpty()).toBe(true);
     });
 
-    it('should fail with minAge greater than maxAge', async () => {
+    it('should fail with ageMin greater than ageMax', async () => {
       const result = await runValidation(validators.searchValidation, {
         query: {
-          minAge: '40',
-          maxAge: '30'
+          ageMin: '40',
+          ageMax: '30'
         }
       });
 
@@ -284,7 +283,7 @@ describe('Validators', () => {
     it('should fail with negative age', async () => {
       const result = await runValidation(validators.searchValidation, {
         query: {
-          minAge: '-5'
+          ageMin: '-5'
         }
       });
 

@@ -18,6 +18,7 @@ const {
   getRecentlyViewed,
   getCompatibilityBreakdown,
   getHoroscopeMatch,
+  downloadKundliReport,
   uploadVoiceIntro: uploadVoiceIntroHandler,
   deleteVoiceIntro,
   uploadVideoIntro: uploadVideoIntroHandler,
@@ -139,6 +140,9 @@ router.get('/:userId/compatibility', auth, getCompatibilityBreakdown);
 
 // Horoscope / Ashtakoot match (APP-055)
 router.get('/:userId/horoscope-match', auth, getHoroscopeMatch);
+
+// Downloadable Kundli matchmaking report PDF (premium)
+router.get('/:userId/horoscope-match/pdf', auth, requirePremium, downloadKundliReport);
 
 module.exports = router;
 

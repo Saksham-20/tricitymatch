@@ -11,6 +11,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { OnboardingProvider } from './context/OnboardingContext';
 import { SocketProvider } from './context/SocketContext';
+import { CallProvider } from './context/CallContext';
+import CallOverlay from './components/calls/CallOverlay';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import LoadingSpinner, { PageSkeleton } from './components/common/LoadingSpinner';
 import ProtectedRoute from './components/common/ProtectedRoute';
@@ -478,11 +480,14 @@ function App() {
       <AuthProvider>
         <OnboardingProvider>
           <SocketProvider>
-            <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-              <div className="min-h-screen bg-background">
-                <AppContent />
-              </div>
-            </Router>
+            <CallProvider>
+              <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                <div className="min-h-screen bg-background">
+                  <AppContent />
+                  <CallOverlay />
+                </div>
+              </Router>
+            </CallProvider>
           </SocketProvider>
         </OnboardingProvider>
       </AuthProvider>

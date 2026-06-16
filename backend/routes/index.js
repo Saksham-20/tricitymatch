@@ -14,6 +14,7 @@ const notificationRoutes = require('./notificationRoutes');
 const callRoutes = require('./callRoutes');
 const guardianRoutes = require('./guardianRoutes');
 const astrologerRoutes = require('./astrologerRoutes');
+const groupRoutes = require('./groupRoutes');
 const { getPublicSuccessStories } = require('../controllers/adminController');
 
 // Public success stories (no auth) — social proof for the marketing site
@@ -33,6 +34,7 @@ router.use('/notifications', notificationRoutes);
 router.use('/calls', callRoutes);
 router.use('/guardian', guardianRoutes);
 router.use('/astrologers', astrologerRoutes);
+router.use('/groups', groupRoutes);
 
 module.exports = router;
 

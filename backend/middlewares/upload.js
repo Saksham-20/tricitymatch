@@ -7,6 +7,7 @@ const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const cloudinary = require('cloudinary').v2;
 const path = require('path');
+const fs = require('fs');
 const config = require('../config/env');
 const { createError } = require('./errorHandler');
 
@@ -265,17 +266,61 @@ const uploadDocuments = multer({
   { name: 'selfiePhoto', maxCount: 1 },
 ]);
 
+// SEC-4 (full): magic-byte content validation.
+// Read the leading bytes of a file and confirm they match the signature for the
+// declared MIME type. Defeats a spoofed Content-Type + matching extension on a
+// file whose real bytes are something else (e.g. a script renamed to .jpg).
+const matchesMagicBytes = (header, mimetype) => {
+  const signatures = MAGIC_BYTES[mimetype];
+  if (!signatures) return true; // unknown type already rejected by the file filter
+  const ok = signatures.some((sig) => sig.every((byte, i) => header[i] === byte));
+  if (!ok) return false;
+  // WebP is RIFF (....) followed by 'WEBP' at offset 8 — verify the form type too.
+  if (mimetype === 'image/webp') {
+    return header[8] === 0x57 && header[9] === 0x45 && header[10] === 0x42 && header[11] === 0x50;
+  }
+  return true;
+};
+
+// Collect every uploaded file from req.file / req.files into a flat list.
+const collectFiles = (req) => {
+  const files = [];
+  if (req.file) files.push(req.file);
+  if (req.files) {
+    if (Array.isArray(req.files)) files.push(...req.files);
+    else for (const field of Object.keys(req.files)) files.push(...(req.files[field] || []));
+  }
+  return files;
+};
+
 // Validate uploaded files middleware
 const validateUploadedFiles = (req, res, next) => {
-  // Check if any files were uploaded
-  if (req.files) {
-    // Validate each file
-    for (const fieldName in req.files) {
-      for (const file of req.files[fieldName]) {
-        // Additional security check on file type
-        if (!ALLOWED_IMAGE_TYPES.includes(file.mimetype) && !ALLOWED_DOCUMENT_TYPES.includes(file.mimetype)) {
-          return next(createError.badRequest('Invalid file type detected'));
-        }
+  const files = collectFiles(req);
+  for (const file of files) {
+    // Additional security check on file type
+    if (!ALLOWED_IMAGE_TYPES.includes(file.mimetype) && !ALLOWED_DOCUMENT_TYPES.includes(file.mimetype)) {
+      return next(createError.badRequest('Invalid file type detected'));
+    }
+
+    // Magic-byte check for locally-stored files. Cloudinary-streamed uploads
+    // (file.path is a cloudinary URL, no local bytes to read) are content-validated
+    // server-side by Cloudinary's allowed_formats decode, so we only inspect files
+    // that actually landed on disk via the diskStorage fallback.
+    const onDisk = file.path && !String(file.path).includes('cloudinary') && fs.existsSync(file.path);
+    if (onDisk && MAGIC_BYTES[file.mimetype]) {
+      let header;
+      try {
+        const fd = fs.openSync(file.path, 'r');
+        header = Buffer.alloc(12);
+        fs.readSync(fd, header, 0, 12, 0);
+        fs.closeSync(fd);
+      } catch {
+        return next(createError.badRequest('Could not verify uploaded file.'));
+      }
+      if (!matchesMagicBytes(header, file.mimetype)) {
+        // Remove the rejected file so spoofed content never persists.
+        try { fs.unlinkSync(file.path); } catch { /* best-effort cleanup */ }
+        return next(createError.badRequest('File content does not match its declared type.'));
       }
     }
   }

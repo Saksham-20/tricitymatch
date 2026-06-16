@@ -8,10 +8,12 @@ import {
   FiMusic, FiLock, FiCheck, FiMapPin, FiCalendar, FiBook, FiBriefcase,
   FiGlobe, FiChevronLeft, FiMessageCircle, FiShield, FiPhone, FiMail,
   FiUnlock, FiUser, FiGrid, FiSun, FiHome, FiHeart as FiHeartOutline,
-  FiInfo, FiDollarSign,
+  FiInfo, FiDollarSign, FiDownload, FiVideo,
 } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
+import { useCall } from '../context/CallContext';
+import { agora as agoraConfig } from '../config';
 import { API_BASE_URL } from '../utils/api';
 import { getImageUrl } from '../utils/cloudinary';
 import { sanitizeText, sanitizeUrl } from '../utils/sanitize';
@@ -99,6 +101,7 @@ const ProfileDetail = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
   const { user: me } = useAuth();
+  const { startCall } = useCall();
   const [profile, setProfile] = useState(null);
   const [compatScore, setCompatScore] = useState(null);
   const [numerology, setNumerology] = useState(null);
@@ -110,6 +113,7 @@ const ProfileDetail = () => {
   const [isShortlisted, setIsShortlisted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [unlockLoading, setUnlockLoading] = useState(false);
+  const [kundliLoading, setKundliLoading] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState('');
   const [lightbox, setLightbox] = useState({ open: false, src: null, alt: '' });
@@ -157,6 +161,22 @@ const ProfileDetail = () => {
     navigate('/chat');
   };
 
+  const handleCall = (type) => {
+    if (!premiumAccess) {
+      setUpgradeFeature(type === 'video' ? 'Video Calls' : 'Voice Calls');
+      setShowUpgradeModal(true);
+      return;
+    }
+    if (!agoraConfig.isConfigured) {
+      toast.error('Calling is not available right now.');
+      return;
+    }
+    startCall(
+      { id: userId, name: profile?.firstName ? `${profile.firstName} ${profile.lastName || ''}`.trim() : 'Member', photo: profile?.profilePhoto || null },
+      type
+    );
+  };
+
   const handleUnlockContact = async () => {
     if (!premiumAccess) {
       setUpgradeFeature('View Contact Details');
@@ -186,6 +206,36 @@ const ProfileDetail = () => {
       }
     } finally {
       setUnlockLoading(false);
+    }
+  };
+
+  const handleDownloadKundli = async () => {
+    if (!premiumAccess) {
+      setUpgradeFeature('Kundli Report');
+      setShowUpgradeModal(true);
+      return;
+    }
+    try {
+      setKundliLoading(true);
+      const res = await api.get(`/profile/${userId}/horoscope-match/pdf`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `kundli-match-${profile?.firstName || 'report'}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      const code = err.response?.data?.error?.code;
+      if (code === 'PREMIUM_REQUIRED') {
+        setUpgradeFeature('Kundli Report');
+        setShowUpgradeModal(true);
+      } else {
+        toast.error('Failed to generate Kundli report');
+      }
+    } finally {
+      setKundliLoading(false);
     }
   };
 
@@ -426,6 +476,22 @@ const ProfileDetail = () => {
                         {premiumAccess ? <FiMessageCircle className="w-4 h-4" /> : <FiLock className="w-4 h-4" />} {premiumAccess ? 'Message' : 'Message (Premium)'}
                       </button>
                     </div>
+                    {agoraConfig.isConfigured && (
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        <button
+                          onClick={() => handleCall('voice')}
+                          className="flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all cursor-pointer"
+                        >
+                          {premiumAccess ? <FiPhone className="w-4 h-4" /> : <FiLock className="w-4 h-4" />} Voice Call
+                        </button>
+                        <button
+                          onClick={() => handleCall('video')}
+                          className="flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all cursor-pointer"
+                        >
+                          {premiumAccess ? <FiVideo className="w-4 h-4" /> : <FiLock className="w-4 h-4" />} Video Call
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -557,6 +623,19 @@ const ProfileDetail = () => {
                             {profile.placeOfBirth && <Pill label="Place of Birth" value={profile.placeOfBirth} />}
                             {profile.birthTime && <Pill label="Birth Time" value={profile.birthTime} />}
                           </div>
+                          <button
+                            type="button"
+                            onClick={handleDownloadKundli}
+                            disabled={kundliLoading}
+                            className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-100 text-rose-700 text-sm font-semibold transition disabled:opacity-60"
+                          >
+                            {kundliLoading ? (
+                              <span className="w-4 h-4 border-2 border-rose-300 border-t-rose-600 rounded-full animate-spin" />
+                            ) : (
+                              <FiDownload className="w-4 h-4" />
+                            )}
+                            {kundliLoading ? 'Generating…' : 'Download Kundli Match Report (PDF)'}
+                          </button>
                         </Card>
                       )}
 

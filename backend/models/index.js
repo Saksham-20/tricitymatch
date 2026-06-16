@@ -18,6 +18,9 @@ const GuardianLink = require('./GuardianLink');
 const Astrologer = require('./Astrologer');
 const AstrologerBooking = require('./AstrologerBooking');
 const SuccessStory = require('./SuccessStory');
+const Group = require('./Group');
+const GroupMember = require('./GroupMember');
+const GroupMessage = require('./GroupMessage');
 
 // Define Relationships
 User.hasOne(Profile, { foreignKey: 'userId', onDelete: 'CASCADE' });
@@ -103,6 +106,21 @@ AstrologerBooking.belongsTo(Astrologer, { foreignKey: 'astrologerId', as: 'Astro
 User.hasMany(AstrologerBooking, { foreignKey: 'userId', as: 'AstrologerBookings', onDelete: 'CASCADE' });
 AstrologerBooking.belongsTo(User, { foreignKey: 'userId', as: 'User' });
 
+// Family Group relationships
+User.hasMany(Group, { foreignKey: 'createdBy', as: 'GroupsCreated', onDelete: 'CASCADE' });
+Group.belongsTo(User, { foreignKey: 'createdBy', as: 'Creator' });
+Group.belongsTo(User, { foreignKey: 'candidateUserId', as: 'Candidate' });
+
+Group.hasMany(GroupMember, { foreignKey: 'groupId', as: 'Members', onDelete: 'CASCADE' });
+GroupMember.belongsTo(Group, { foreignKey: 'groupId', as: 'Group' });
+User.hasMany(GroupMember, { foreignKey: 'userId', as: 'GroupMemberships', onDelete: 'CASCADE' });
+GroupMember.belongsTo(User, { foreignKey: 'userId', as: 'User' });
+
+Group.hasMany(GroupMessage, { foreignKey: 'groupId', as: 'GroupMessages', onDelete: 'CASCADE' });
+GroupMessage.belongsTo(Group, { foreignKey: 'groupId', as: 'Group' });
+User.hasMany(GroupMessage, { foreignKey: 'senderId', as: 'GroupMessagesSent', onDelete: 'CASCADE' });
+GroupMessage.belongsTo(User, { foreignKey: 'senderId', as: 'Sender' });
+
 module.exports = {
   sequelize,
   User,
@@ -124,5 +142,8 @@ module.exports = {
   Astrologer,
   AstrologerBooking,
   SuccessStory,
+  Group,
+  GroupMember,
+  GroupMessage,
 };
 

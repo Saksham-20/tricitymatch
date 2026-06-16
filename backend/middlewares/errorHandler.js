@@ -12,7 +12,7 @@ const { log } = require('./logger');
 
 // Custom Application Error class
 class AppError extends Error {
-  constructor(message, statusCode, code = 'ERROR', details = null) {
+  constructor(message, statusCode = 500, code = 'ERROR', details = null) {
     super(message);
     this.statusCode = statusCode;
     this.code = code;

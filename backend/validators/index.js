@@ -332,7 +332,15 @@ const searchValidation = [
     .optional()
     .isInt({ min: 18, max: 99 })
     .withMessage('Age max must be 18-99')
-    .toInt(),
+    .toInt()
+    .custom((value, { req }) => {
+      // Cross-field: reject inverted range (ageMin must not exceed ageMax).
+      const min = req.query.ageMin;
+      if (min !== undefined && min !== '' && Number(min) > Number(value)) {
+        throw new Error('ageMin must not exceed ageMax');
+      }
+      return true;
+    }),
   query('heightMin')
     .optional()
     .isInt({ min: 100, max: 250 })
@@ -342,7 +350,14 @@ const searchValidation = [
     .optional()
     .isInt({ min: 100, max: 250 })
     .withMessage('Height max must be 100-250')
-    .toInt(),
+    .toInt()
+    .custom((value, { req }) => {
+      const min = req.query.heightMin;
+      if (min !== undefined && min !== '' && Number(min) > Number(value)) {
+        throw new Error('heightMin must not exceed heightMax');
+      }
+      return true;
+    }),
   query('city')
     .optional()
     .trim()

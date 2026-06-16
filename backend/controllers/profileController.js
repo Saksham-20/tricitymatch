@@ -8,6 +8,7 @@ const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const { calculateCompatibility, getCompatibilityBreakdown: calcBreakdown, getAshtakootScore, isManglikCompatible, getRashiCompatibility } = require('../utils/compatibility');
 const { getNumerologyMatch } = require('../utils/numerology');
+const { generateKundliPDF } = require('../utils/kundli');
 const { notify } = require('../utils/notifyUser');
 
 // Completion milestones and their messages
@@ -929,5 +930,47 @@ exports.getHoroscopeMatch = asyncHandler(async (req, res) => {
     rashiScore,
     numerology,
     summary,
+  });
+});
+
+// @route   GET /api/v1/profile/:userId/horoscope-match/pdf
+// @desc    Downloadable Kundli matchmaking report (Ashtakoot + Manglik + numerology)
+// @access  Private (premium)
+exports.downloadKundliReport = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const [myProfile, theirProfile] = await Promise.all([
+    Profile.findOne({ where: { userId: req.user.id } }),
+    Profile.findOne({ where: { userId } }),
+  ]);
+  if (!myProfile) throw createError.notFound('Your profile not found');
+  if (!theirProfile) throw createError.notFound('Profile not found');
+
+  const ashtakoot = getAshtakootScore(myProfile.nakshatra, theirProfile.nakshatra);
+  const manglikCompatible = isManglikCompatible(myProfile.manglikStatus, theirProfile.manglikStatus);
+  const manglikDetail = (() => {
+    if (!myProfile.manglikStatus || !theirProfile.manglikStatus) return 'Manglik status unknown for one or both profiles';
+    if (!manglikCompatible) return 'Manglik dosha present — recommend consulting a pandit for remedies';
+    if (myProfile.manglikStatus === 'anshik_manglik' || theirProfile.manglikStatus === 'anshik_manglik') return 'Anshik (partial) Manglik — minor consideration only';
+    return 'No Manglik dosha';
+  })();
+  const rashiScore = getRashiCompatibility(myProfile.rashi, theirProfile.rashi);
+  const numerology = getNumerologyMatch(myProfile.dateOfBirth, theirProfile.dateOfBirth);
+
+  let summary = '';
+  if (ashtakoot) {
+    const score = ashtakoot.rawOut36 ?? 0;
+    summary = `Guna Milan: ${score}/36 (${ashtakoot.interpretation}).`;
+    if (ashtakoot.hasNadiDosha) summary += ' Nadi Dosha present.';
+    if (ashtakoot.hasBhakootDosha) summary += ' Bhakoot Dosha present.';
+    if (!manglikCompatible) summary += ' Manglik incompatibility.';
+    if (score >= 28 && manglikCompatible) summary += ' Excellent match for marriage.';
+  } else if (rashiScore !== null) {
+    summary = `Rashi compatibility: ${rashiScore}%. ${manglikDetail}.`;
+  } else {
+    summary = 'Insufficient horoscope data for full analysis. Please complete nakshatra and birth details.';
+  }
+
+  generateKundliPDF(res, {
+    myProfile, theirProfile, ashtakoot, manglikCompatible, manglikDetail, rashiScore, numerology, summary,
   });
 });

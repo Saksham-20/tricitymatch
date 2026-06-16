@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import Logo from './Logo';
 import api from '../../api/axios';
@@ -14,6 +15,7 @@ import { FaCrown } from 'react-icons/fa';
 
 // ─── Notification Bell ───────────────────────
 const NotificationBell = ({ count = 0 }) => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -60,20 +62,20 @@ const NotificationBell = ({ count = 0 }) => {
             className="absolute right-0 top-12 w-80 bg-white dark:bg-[#1a1f2e] rounded-2xl shadow-2xl dark:shadow-[0_25px_50px_rgba(0,0,0,0.6)] border border-neutral-100 dark:border-[#252b3b] overflow-hidden z-50"
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-100 dark:border-[#252b3b]">
-              <span className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">Notifications</span>
+              <span className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">{t('navbar.notifications')}</span>
               {count > 0 && (
                 <button
                   onClick={handleMarkAllRead}
                   className="text-xs text-primary-500 font-medium hover:text-primary-700 transition-colors"
                 >
-                  Mark all read
+                  {t('navbar.markAllRead')}
                 </button>
               )}
             </div>
 
             <div className="divide-y divide-neutral-100 max-h-72 overflow-y-auto">
               <div className="px-4 py-8 text-center">
-                <p className="text-sm text-neutral-500">View all notifications below</p>
+                <p className="text-sm text-neutral-500">{t('navbar.viewAllBelow')}</p>
               </div>
             </div>
 
@@ -83,7 +85,7 @@ const NotificationBell = ({ count = 0 }) => {
                 onClick={() => setOpen(false)}
                 className="text-xs text-primary-500 hover:text-primary-700 font-medium transition-colors"
               >
-                View all notifications
+                {t('navbar.viewAll')}
               </Link>
             </div>
           </motion.div>
@@ -95,6 +97,7 @@ const NotificationBell = ({ count = 0 }) => {
 
 // ─── Profile Dropdown ────────────────────────
 const ProfileDropdown = ({ user, onLogout }) => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -110,10 +113,10 @@ const ProfileDropdown = ({ user, onLogout }) => {
     ((user?.firstName?.[0] || '') + (user?.lastName?.[0] || '')).toUpperCase() || 'U';
 
   const menuItems = [
-    { icon: FiUser,       label: 'My Profile',      to: '/profile' },
-    { icon: FiSettings,   label: 'Settings',         to: '/settings' },
-    { icon: FiCreditCard, label: 'Subscription',     to: '/subscription' },
-    { icon: FiClock,      label: 'Payment History',  to: '/payment/history' },
+    { icon: FiUser,       label: t('navbar.myProfile'),      to: '/profile' },
+    { icon: FiSettings,   label: t('navbar.settings'),       to: '/settings' },
+    { icon: FiCreditCard, label: t('navbar.subscription'),   to: '/subscription' },
+    { icon: FiClock,      label: t('navbar.paymentHistory'), to: '/payment/history' },
   ];
 
   return (
@@ -127,7 +130,7 @@ const ProfileDropdown = ({ user, onLogout }) => {
           {initials}
         </div>
         <span className="hidden lg:block text-sm font-medium text-neutral-700 max-w-[100px] truncate">
-          {user?.firstName || 'My Account'}
+          {user?.firstName || t('navbar.myAccount')}
         </span>
         <FiChevronDown
           className={`hidden lg:block w-3.5 h-3.5 text-neutral-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
@@ -152,7 +155,7 @@ const ProfileDropdown = ({ user, onLogout }) => {
               {user?.isPremium && (
                 <div className="flex items-center gap-1 mt-1.5">
                   <FaCrown className="w-3 h-3 text-gold" />
-                  <span className="text-xs font-semibold text-gold-700">Premium Member</span>
+                  <span className="text-xs font-semibold text-gold-700">{t('navbar.premiumMember')}</span>
                 </div>
               )}
             </div>
@@ -178,7 +181,7 @@ const ProfileDropdown = ({ user, onLogout }) => {
                 className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
               >
                 <FiLogOut className="w-4 h-4" />
-                Sign Out
+                {t('navbar.signOut')}
               </button>
             </div>
           </motion.div>
@@ -190,6 +193,7 @@ const ProfileDropdown = ({ user, onLogout }) => {
 
 // ─── Navbar ──────────────────────────────────
 const Navbar = () => {
+  const { t } = useTranslation();
   const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -229,9 +233,9 @@ const Navbar = () => {
   const isActive = (path) => location.pathname === path;
 
   const navLinks = [
-    { path: '/dashboard', label: 'Dashboard', icon: FiHome },
-    { path: '/search',    label: 'Find Match', icon: FiSearch },
-    { path: '/chat',      label: 'Messages',   icon: FiMessageCircle },
+    { path: '/dashboard', label: t('navbar.dashboard'), icon: FiHome },
+    { path: '/search',    label: t('navbar.findMatch'), icon: FiSearch },
+    { path: '/chat',      label: t('navbar.messages'),  icon: FiMessageCircle },
   ];
 
   return (
@@ -240,7 +244,7 @@ const Navbar = () => {
         href="#main-content"
         className="skip-link focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary-500 focus:text-white focus:rounded-lg focus:font-semibold focus:shadow-lg"
       >
-        Skip to main content
+        {t('navbar.skipToContent')}
       </a>
 
       <motion.nav
@@ -286,13 +290,13 @@ const Navbar = () => {
                   to="/login"
                   className="text-sm font-semibold text-neutral-600 hover:text-primary-500 transition-colors px-3 py-2.5 rounded-xl hover:bg-primary-50 min-h-[44px] inline-flex items-center"
                 >
-                  Sign In
+                  {t('navbar.signIn')}
                 </Link>
                 <Link
                   to="/signup"
                   className="text-sm font-semibold px-5 py-2.5 bg-primary-500 text-white rounded-xl hover:bg-primary-600 transition-all duration-200 shadow-burgundy hover:-translate-y-0.5"
                 >
-                  Create Profile
+                  {t('navbar.createProfile')}
                 </Link>
               </div>
             )}
@@ -304,7 +308,7 @@ const Navbar = () => {
                   <button
                     onClick={toggleDark}
                     className="hidden md:flex w-10 h-10 items-center justify-center rounded-xl text-neutral-600 hover:text-primary-500 hover:bg-primary-50 transition-all duration-200"
-                    aria-label="Toggle dark mode"
+                    aria-label={t('navbar.toggleDark')}
                   >
                     {isDark ? <FiSun className="w-5 h-5" /> : <FiMoon className="w-5 h-5" />}
                   </button>
@@ -381,7 +385,7 @@ const Navbar = () => {
                     {user.isPremium && (
                       <div className="flex items-center gap-1">
                         <FaCrown className="w-3 h-3 text-gold" />
-                        <span className="text-xs text-gold-700 font-medium">Premium</span>
+                        <span className="text-xs text-gold-700 font-medium">{t('navbar.premium')}</span>
                       </div>
                     )}
                   </div>
@@ -422,9 +426,9 @@ const Navbar = () => {
                     {/* Extra links */}
                     <div className="pt-3 mt-3 border-t border-neutral-100 space-y-0.5">
                       {[
-                        { path: '/profile', label: 'My Profile', icon: FiUser },
-                        { path: '/settings', label: 'Settings', icon: FiSettings },
-                        { path: '/subscription', label: 'Subscription', icon: FiCreditCard },
+                        { path: '/profile', label: t('navbar.myProfile'), icon: FiUser },
+                        { path: '/settings', label: t('navbar.settings'), icon: FiSettings },
+                        { path: '/subscription', label: t('navbar.subscription'), icon: FiCreditCard },
                       ].map(({ path, label, icon: Icon }) => (
                         <Link
                           key={path}
@@ -443,7 +447,7 @@ const Navbar = () => {
                         className="flex items-center gap-3 w-full px-4 py-3 rounded-xl font-medium text-sm text-red-600 hover:bg-red-50 transition-colors"
                       >
                         <FiLogOut className="w-5 h-5" />
-                        Sign Out
+                        {t('navbar.signOut')}
                       </button>
                     </div>
                   </motion.nav>
@@ -453,13 +457,13 @@ const Navbar = () => {
                       to="/login"
                       className="block w-full py-3 text-center rounded-xl font-semibold text-sm text-neutral-700 border-2 border-neutral-200 hover:border-primary-400 hover:text-primary-500 transition-all duration-200"
                     >
-                      Sign In
+                      {t('navbar.signIn')}
                     </Link>
                     <Link
                       to="/signup"
                       className="block w-full py-3 text-center rounded-xl font-semibold text-sm bg-primary-500 text-white hover:bg-primary-600 transition-all duration-200 shadow-burgundy"
                     >
-                      Create Free Profile
+                      {t('navbar.createFreeProfile')}
                     </Link>
                   </div>
                 )}
@@ -468,7 +472,7 @@ const Navbar = () => {
               {/* Footer */}
               <div className="px-5 py-4 border-t border-neutral-100 bg-neutral-50">
                 <p className="text-xs text-neutral-400 text-center">
-                  Chandigarh · Mohali · Panchkula
+                  {t('navbar.region')}
                 </p>
               </div>
             </motion.div>

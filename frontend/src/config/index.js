@@ -47,6 +47,12 @@ export const google = {
   isConfigured: isRealGoogleClientId(import.meta.env.VITE_GOOGLE_CLIENT_ID),
 };
 
+// Agora (in-browser voice/video calls) Configuration
+export const agora = {
+  appId: import.meta.env.VITE_AGORA_APP_ID || '',
+  isConfigured: !!(import.meta.env.VITE_AGORA_APP_ID && String(import.meta.env.VITE_AGORA_APP_ID).trim()),
+};
+
 // Cloudinary Configuration
 export const cloudinary = {
   cloudName: import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '',

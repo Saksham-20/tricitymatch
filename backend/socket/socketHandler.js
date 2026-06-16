@@ -3,7 +3,7 @@
  * Real-time communication with proper security
  */
 
-const { Message, Match, Subscription } = require('../models');
+const { Message, Match, Subscription, GroupMember } = require('../models');
 const { Op } = require('sequelize');
 const jwt = require('jsonwebtoken');
 const cookie = require('cookie');
@@ -332,23 +332,41 @@ const initializeSocket = (io) => {
     // message ids in the partner's UI.
     socket.on('message-deleted', () => {});
 
-    // ==================== FAMILY GROUP CHAT (APP-053) — DISABLED ====================
-    // SECURITY (SOCK-1/SOCK-2/MF-1): family-group chat has NO backend — no Group/
-    // GroupMember model and no `/chat/family-groups*` routes exist, so there is no
-    // server-side membership concept to authorize against. The previous handlers
-    // let any authenticated user join + read + write ANY group by id (IDOR) and
-    // inject forged messages. Until the group backend is built (REF-51), these
-    // events are rejected rather than relayed. Do NOT re-enable without a
-    // membership check that mirrors join-room's mutual-match gate.
-    const rejectGroupEvent = () => {
-      socket.emit('error', {
-        code: 'FEATURE_UNAVAILABLE',
-        message: 'Family group chat is not available yet.',
-      });
-    };
-    socket.on('join-group', rejectGroupEvent);
-    socket.on('group-send-message', rejectGroupEvent);
-    socket.on('leave-group', () => {}); // no-op (no rooms are joined)
+    // ==================== FAMILY GROUP CHAT (APP-053 / REF-51) ====================
+    // The group backend now exists (Group/GroupMember/GroupMessage). Membership is
+    // the authorization boundary: a socket may only join a group room it actually
+    // belongs to. Message creation/edit/delete go through the REST endpoints, which
+    // are server-authoritative and broadcast over these rooms — clients never emit
+    // group writes directly (mirrors the message-deleted hardening, SOCK-3).
+    socket.on('join-group', async (payload) => {
+      try {
+        // Accept either a bare id string or an { groupId } object.
+        const groupId = typeof payload === 'string' ? payload : payload && payload.groupId;
+        if (!groupId || typeof groupId !== 'string') {
+          socket.emit('error', { code: 'INVALID_GROUP', message: 'Invalid group id' });
+          return;
+        }
+        const membership = await GroupMember.findOne({ where: { groupId, userId } });
+        if (!membership) {
+          logSecurityEvent('group_join_denied', { userId, groupId });
+          socket.emit('error', { code: 'NOT_A_MEMBER', message: 'You are not a member of this group' });
+          return;
+        }
+        socket.join(`group_${groupId}`);
+        if (config.isDevelopment) console.log(`User ${userId} joined group_${groupId}`);
+      } catch (error) {
+        log.error('Join group error', { userId, error: error.message });
+        socket.emit('error', { code: 'JOIN_FAILED', message: 'Failed to join group' });
+      }
+    });
+
+    socket.on('leave-group', (groupId) => {
+      if (groupId && typeof groupId === 'string') socket.leave(`group_${groupId}`);
+    });
+
+    // Group message writes are REST-only (server-authoritative). Ignore any direct
+    // client emit so a member can't forge messages or spoof another sender.
+    socket.on('group-send-message', () => {});
 
     // ==================== ONLINE STATUS ====================
     socket.on('get-online-status', async (userIds) => {

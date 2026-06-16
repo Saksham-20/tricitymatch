@@ -7,7 +7,7 @@ const express = require('express');
 const router = express.Router();
 const { submitVerification, getVerificationStatus } = require('../controllers/verificationController');
 const { auth } = require('../middlewares/auth');
-const { uploadDocuments } = require('../middlewares/upload');
+const { uploadDocuments, validateUploadedFiles } = require('../middlewares/upload');
 const { asyncHandler, AppError } = require('../middlewares/errorHandler');
 const { handleValidationErrors } = require('../middlewares/errorHandler');
 const { uploadLimiter, createRateLimiter } = require('../middlewares/security');
@@ -39,6 +39,7 @@ router.get('/status', getVerificationStatus);
 router.post('/submit',
   uploadLimiter,
   uploadDocuments,
+  validateUploadedFiles,
   submitVerificationValidation,
   handleValidationErrors,
   submitVerification
