@@ -24,14 +24,18 @@ const CheckBox = ({
 
   return (
     <div className="flex flex-col gap-2">
-      <label className={`flex items-center gap-3 cursor-pointer ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
+      {/* Toggle on the whole label (box + text), not just the box — users
+          naturally click the label text and expect it to check. */}
+      <label
+        className={`flex items-center gap-3 cursor-pointer ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+        onClick={() => !disabled && onChange(!checked)}
+      >
         <div
           className={`${sizeClasses[size]} rounded border-2 flex items-center justify-center transition-all flex-shrink-0 ${
             checked
               ? 'bg-primary-600 border-primary-600'
               : 'border-neutral-300 bg-white hover:border-neutral-400'
           }`}
-          onClick={() => !disabled && onChange(!checked)}
         >
           {checked && <FiCheck className="text-white" strokeWidth={3} size={16} />}
         </div>
