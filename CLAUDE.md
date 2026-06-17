@@ -31,7 +31,7 @@ Entry `server.js`. Key files:
 **Auth:** httpOnly accessToken(15m JWT)+refreshToken(7d hashed). Rotation+family revoke. Lockout 5/30min (Redis). Google `POST /auth/google`. Mobile biometric→refresh-token flow.
 **Limiters:** api 200/15m · auth 5/15m · signup 3/hr · pwReset 3/hr · search 30/min · message 60/min · profileUpdate 10/min · matchAction 60/min · upload 20/hr · admin 100/min · payment 10/hr
 **Plans:** free ₹0 · basic_premium ₹1500/15d/5unlock · premium_plus ₹3000/30d/10unlock · vip ₹7499/90d/unlimited+boost
-**Migrations:** 000001–000039. `npm run migrate` (backend/) before prod. (`quizAnswers` JSONB IS created by migration 000028 — no manual ALTER needed.) 000035 ProfileView (viewerId,createdAt) index for recently-viewed; 000036 SuccessStories table; 000037 Profile.videoIntroUrl (video intro); 000038 search-index tuning (income/height/manglikStatus btree + interestTags GIN; drops duplicate Messages index); 000039 family-group chat (Groups/GroupMembers/GroupMessages + indexes).
+**Migrations:** 000001–000040. `npm run migrate` (backend/) before prod (prod also auto-runs pending migrations on boot via server.js umzug). (`quizAnswers` JSONB IS created by migration 000028 — no manual ALTER needed.) 000035 ProfileView (viewerId,createdAt) index for recently-viewed; 000036 SuccessStories table; 000037 Profile.videoIntroUrl (video intro); 000038 search-index tuning (income/height/manglikStatus btree + interestTags GIN; drops duplicate Messages index); 000039 family-group chat (Groups/GroupMembers/GroupMessages + indexes); 000040 ContactMessages table (public contact form).
 
 ## API (`/api/v1` unless noted; full: `docs/06_API_Reference.md`)
 - **auth** `/auth`: signup, login, refresh, forgot-password, reset-password, google, send-otp, verify-otp, GET me, logout, logout-all, change-password, GET sessions, DEL sessions/:id, DEL account
@@ -41,6 +41,7 @@ Entry `server.js`. Key files:
 - **search** `/search`: GET /, GET suggestions, GET by-code (public profile code `TCS-XXXXXXXX`→profile)
 - **match** `/match`: POST :id {action}, GET likes, GET shortlist, GET mutual, GET daily (cached IST-day set, Redis TTL→midnight, free 5/premium 15)
 - **success-stories** (public, no auth) `/api/v1/success-stories`: GET (published only)
+- **contact** (public, no auth) `/api/v1/contact`: POST (contactLimiter 5/hr/IP, sanitized; stores ContactMessage + best-effort emails SUPPORT_EMAIL)
 - **chat** `/chat` (premium): GET conversations, GET messages/:id, POST messages, POST send, PUT/DEL messages/:id
 - **subscription** `/subscription`: GET plans, POST webhook, GET my-subscription, POST create-order, POST verify-payment, DEL current, GET history, GET invoice/:id
 - **verification** `/verification`: GET status, POST submit, POST selfie, POST bg-check/initiate, POST bg-check/verify-payment, GET bg-check/status, POST bg-check/webhook (no-auth, HMAC-SHA256 via BG_CHECK_WEBHOOK_SECRET, raw body)

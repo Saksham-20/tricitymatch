@@ -18,7 +18,7 @@
 | ID | Sev | Issue | Note |
 |----|-----|-------|------|
 | C1-M1 | 🟡 Med CRO | **No public pricing.** Footer "Pricing Plans" → `/subscription` and "Browse Profiles" → `/search` both route logged-out visitors to a **login wall**. Plans (₹1500/₹3000/₹7499) are invisible pre-signup. | Highest-CRO item, but exposing pricing is a **pricing-strategy decision** (some matrimony sites gate it to capture leads first). Recommend a public `/pricing` page OR a homepage pricing section. **Needs user's product call.** |
-| C1-M2 | 🟡 Med CRO | **/contact has no form** (0 inputs) — email-only via `mailto:support@tricityshadi.com`. | A real enquiry form needs a backend contact/lead endpoint (feature, not safe unilateral prod change). Functional today. **Needs backend + product decision.** |
+| C1-M2 | 🟡 Med CRO | **/contact had no form** (0 inputs) — email-only. → **BUILT** (user approved): `ContactMessage` model + migration 000040, public rate-limited `POST /api/v1/contact` (sanitized, durable store + best-effort email), Contact.jsx form (FormField reuse, client validation, success state). **Verified live end-to-end: submit→201→DB row; empty submit→inline errors; migration applied on prod; test row cleaned.** Commit b7ef83f. Follow-up: admin UI to read enquiries (stored + queryable now). |
 | C1-M3 | ⚪ Low | **/success-stories empty** — "Stories coming soon." (graceful empty state; homepage shows static seed stories instead). | Data/content, not code. Publish real stories via admin. |
 
 ### ⚠️ First-pass corrections (anti-hallucination log)

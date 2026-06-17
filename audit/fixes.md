@@ -12,6 +12,7 @@ One row per fix. Nothing here without real-viewport verification + commit hash.
 | 3 | C3-3 | FormField label-association + autoComplete + aria | ui/FormField.jsx | 9b13ecd | ✅ live: email label-assoc + autocomplete=email |
 | 3 | C3-4 | Password id/name/autocomplete + upfront hint + toggle aria | onboarding/steps/CreateAccountStep.jsx | 9b13ecd | ✅ live: autocomplete=new-password, hint visible |
 | 1 | H1-2 | FAQ trigger→answer `aria-controls` link | pages/Home.jsx | 76af7c4 | ✅ live: all 6 rows linked, targets exist |
+| 1 | C1-M2 | Working contact form + public enquiry endpoint (model+migration 000040+route+form) | backend/{models,migrations,controllers,validators,middlewares,routes,config}, pages/Contact.jsx | b7ef83f | ✅ live e2e: submit→201→DB; validation blocks; migration applied; test row cleaned |
 
 ## Chunk 1 — Landing/Homepage
 **No code fixes applied.** Page verified clean; all first-pass "bugs" were full-page-screenshot artifacts (see findings.md correction table). The one real item (H1-1 scroll-jack) is a design-direction RECOMMENDATION requiring sign-off, not auto-changed on a live premium page. H1-2 (FAQ aria-controls) deferred as cosmetic.
