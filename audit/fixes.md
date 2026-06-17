@@ -36,6 +36,8 @@ One row per fix. Nothing here without real-viewport verification + commit hash.
 | 9 | C9-3 | Heading order — trust h4→h3, footer h5→h3 | pages/Home.jsx | c769a9b | ✅ axe: gone |
 | 9 | C9-4 | Homepage contrast — process-step opacity floor, trust/ticker label bumps | pages/Home.jsx | c769a9b | ✅ axe: 15→0 |
 | 9 | C9-5/6 | Auth+content contrast (neutral-400/500→600) + mailto link-in-text underline | pages/{Login,Contact,About,Safety,Terms,Privacy,SuccessStories}.jsx | 4e7cb8f | ✅ axe re-run: all 7 public pages 0 violations |
+| 10 | C10-1 | Static og:image/title/desc + twitter tags in index.html (non-JS crawler social preview) | frontend/index.html | 5ab6b1e | ✅ curl prod: og:image/title/desc served |
+| 10 | C10-2 | 404 page Seo noindex/title + SPA Link | App.jsx | 5ab6b1e | ✅ live: 404 renders + noindex |
 ## Chunk 1 — Landing/Homepage
 **No code fixes applied.** Page verified clean; all first-pass "bugs" were full-page-screenshot artifacts (see findings.md correction table). The one real item (H1-1 scroll-jack) is a design-direction RECOMMENDATION requiring sign-off, not auto-changed on a live premium page. H1-2 (FAQ aria-controls) deferred as cosmetic.
 

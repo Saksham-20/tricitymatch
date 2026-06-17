@@ -173,4 +173,24 @@ Holistic **axe-core 4.10** sweep on live prod (homepage + all public pages). Per
 ### NOT VERIFIED (Chunk 9)
 Authed pages (dashboard/search/profile/chat/settings/subscription) not run through axe — require a logged-in session; their per-component a11y was hardened + spot-checked in Chunks 4–7. axe catches ~30–50% of WCAG issues (automated); manual SR walkthrough of full authed flows not done this pass. Mobile RN app a11y (Chunk 8) deferred.
 ## CHUNK 9 — Accessibility review  ⏳ PENDING
-## CHUNK 10 — Final polish pass  ⏳ PENDING
+## CHUNK 10 — Final polish pass  ✅ DONE
+
+Final cross-cutting sweep on live prod: console, network, 404, redirects, SEO/social, assets.
+
+| ID | Sev | Status | Finding → Fix |
+|----|-----|--------|-------------|
+| C10-1 | 🟡 Med | ✅ FIXED-VERIFIED | **No social-preview image** — `og:image`/`og:title`/`og:description`/`twitter:image` were only injected client-side via react-helmet, so non-JS social crawlers (WhatsApp/Facebook/Twitter — the primary share channel for matrimony) saw NO preview when a link was shared. → added static defaults to `index.html` (Seo.jsx still overrides per route). **Verified: `curl` of prod `/` now returns og:image/title/description + twitter:image** (crawler view). og:image asset 200. |
+| C10-2 | ⚪ Low | ✅ FIXED-VERIFIED | **404 page** inherited the generic site `<title>`, was indexable, and "Go Home" was a full-reload `<a>`. → `<Seo title="Page Not Found" noindex>` + SPA `<Link>`. **Verified live: 404 renders "Page not found" + working Go-Home; redirect + content correct.** |
+
+### Verified-clean (Chunk 10)
+Homepage console **0 errors / 0 warnings** ✓ · only API call (`/api/success-stories`) 200 ✓ · **404 route** shows proper "Page not found" + recovery (not blank) ✓ · **protected route logged-out → redirects to `/login`** ✓ (the `/api/auth/me` 401 is expected + handled) ✓ · robots.txt 200 (correct Disallow for /admin /marketing /api /dashboard /chat) ✓ · sitemap.xml 200 ✓ · favicon.svg + 16/32 png 200 ✓ · theme-color + apple-mobile meta present ✓ · 0 broken homepage images ✓.
+
+### NOT VERIFIED / minor (Chunk 10)
+`/favicon.ico` 404 (legacy fallback; SVG + PNG icons present & referenced, so modern browsers fine — cosmetic). SPA soft-404 returns HTTP 200 (server serves index for all routes; client renders 404 UI + JS-noindex) — acceptable for an SPA, true-404 status would need nginx changes. Authed-page console/network not swept (need session).
+
+---
+
+## 🏁 AUDIT COMPLETE — Web (9 of 10 chunks; mobile deferred)
+**Chunks 1–7, 9, 10 ✅ done · Chunk 8 (mobile RN) ⏭️ deferred by user.**
+Net: keyboard operability + accessible names across the whole web app (custom Select, all profile cards, form controls, toggles, dialogs); two no-op affordances resolved (dashboard heart wired to `/match`, dead chat buttons removed); real payment-prefill bug fixed (was hardcoded fake user); wrong-domain support emails corrected; near-clean axe (homepage 23→2, all public pages 0); social-preview + 404 polish. ~30 fixes shipped + verified live, each deployed and bundle/axe-confirmed.
+**Open (need user sign-off, NOT auto-changed):** C9-7 (lighten brand-gold eyebrows for AA, 3.52→4.5) · H1-1 (homepage desktop scroll-jacking). **Deferred:** Chunk 8 mobile RN a11y; C5-4 ProfileDetail tab `role=tablist`; PaymentHistory legacy plan-badge cosmetic.
