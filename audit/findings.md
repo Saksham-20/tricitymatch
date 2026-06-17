@@ -155,7 +155,22 @@ Live end-to-end payment (needs real Razorpay creds — config-gated in prod) so 
 ## CHUNK 8 — Mobile experience (RN app)  ⏭️ SKIPPED (deferred by user 2026-06-17)
 Native Expo/RN app in `mobile/` — different stack, not browser-verifiable like the deployed web app. Audit method there = static read + `node_modules/.bin/tsc -p tsconfig.json`. Revisit after web chunks.
 
-## CHUNK 9 — Accessibility deep-pass (web)  🔧 IN PROGRESS
-Holistic automated sweep (axe-core on live prod) to catch cross-cutting a11y the per-chunk passes missed (landmarks, heading order, contrast, lang, alt, focus order). Per-component a11y already hardened in Chunks 2–7.
+## CHUNK 9 — Accessibility deep-pass (web)  ✅ DONE (public surface)
+Holistic **axe-core 4.10** sweep on live prod (homepage + all public pages). Per-component keyboard/label a11y already hardened in Chunks 2–7; this caught cross-cutting issues.
+
+**Result: homepage 23 violations → 2; all 7 other public pages 0 violations.** `lang=en` set, per-route titles ✓.
+
+| ID | Sev | Status | Finding → Fix |
+|----|-----|--------|-------------|
+| C9-1 | 🟠 Serious | ✅ FIXED-VERIFIED | **Homepage city-strip cards `nested-interactive`** — `role=button`+`tabIndex` wrapping a focusable `<Link>` (3 nodes). → strip is now a non-interactive visual container; keyboard entry on the inner "Browse {city}" Link (`aria-label`+`onFocus` expands). **axe re-run: gone.** |
+| C9-2 | 🟠 Serious | ✅ FIXED-VERIFIED | **`#why-scroller` horizontal region not keyboard-scrollable** (`scrollable-region-focusable`). → `tabIndex=0`+`role=group`+`aria-label`. **axe: gone.** |
+| C9-3 | 🟡 Mod | ✅ FIXED-VERIFIED | **Heading order skips** — trust-card titles `<h4>` under `<h2>` (skipped h3); footer columns `<h5>`. → both `<h3>`. **axe: gone.** |
+| C9-4 | 🟠 Serious | ✅ FIXED-VERIFIED | **Contrast (15 nodes)** — process-step preview text faded to opacity .35 (**2.14:1**, real step titles); trust-card numbers (3.87); match-ticker location (4.0). → opacity floors .7/.85 + .55→.75 + .6→.8. **axe: 15→0 of these.** |
+| C9-5 | 🟠 Serious | ✅ FIXED-VERIFIED | **Auth/content contrast** — Login dividers `text-neutral-500` (3.4); About/Safety/Terms/Privacy subtitles `text-neutral-400` (**2.52**); Contact + SuccessStories subtitles/states (2.4–3.3). → all → `text-neutral-600`. **axe re-run: all 7 pages 0 violations.** |
+| C9-6 | 🟠 Serious | ✅ FIXED-VERIFIED | **`link-in-text-block`** — About/Safety inline mailto links were colour-only (1.08 non-text contrast vs body). → always-underlined. **axe: gone.** |
+| C9-7 | ⚪ Low | ⏳ RECOMMENDATION | **2 remaining homepage contrast nodes** — signature gold-on-burgundy eyebrow kickers ("— Live matches", "— Safety first") at **3.52:1** (need 4.5). Fix = a slightly lighter gold for small on-dark text, but that touches the brand accent token → **needs design sign-off**, not auto-changed (same stance as H1-1). Exact: `var(--gold)` #C9A227 on burgundy #7c1d3a. |
+
+### NOT VERIFIED (Chunk 9)
+Authed pages (dashboard/search/profile/chat/settings/subscription) not run through axe — require a logged-in session; their per-component a11y was hardened + spot-checked in Chunks 4–7. axe catches ~30–50% of WCAG issues (automated); manual SR walkthrough of full authed flows not done this pass. Mobile RN app a11y (Chunk 8) deferred.
 ## CHUNK 9 — Accessibility review  ⏳ PENDING
 ## CHUNK 10 — Final polish pass  ⏳ PENDING
