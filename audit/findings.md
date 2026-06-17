@@ -55,7 +55,23 @@ Login form labels/autocomplete/required ✓ · password reveal a11y ✓ · enume
 
 ### Backlog (Chunk 2, deferred)
 - Other Navbar buttons (lines 38/67/124/179/303/440) likely also lack explicit `type` — harmless (not in forms) but a `type="button"` sweep would be correct hygiene. Defer to Chunk 10 polish.
-## CHUNK 3 — Onboarding  ⏳ PENDING
+## CHUNK 3 — Onboarding  ◑ IN PROGRESS (Welcome + Create Account audited & fixed)
+
+**Verdict: strong flow, premium + consistent. Real a11y/autofill gaps found and fixed** (systemic, benefiting every wizard step). 4 macro-steps (Welcome / Create Account / Basic Information / Verification) with clear numbered progress; resume-from-draft works (localStorage `onboarding_draft`/`onboarding_step`). Per-step validation blocks Next + shows inline errors (verified: Welcome blocks without agree).
+
+### Findings + fixes
+| ID | Sev | Status | Issue → Fix |
+|----|-----|--------|-------------|
+| C3-1 | 🟠 Med | ✅ FIXED-VERIFIED | **`CheckBox` not keyboard/SR accessible** — was a `<label>`+`<div>` with `onClick` (mouse-only, no native input, no role/aria-checked/tabindex). Used by Welcome "agree" + Preferences city multiselect. → Rewrote with a visually-hidden native `<input type=checkbox>` (keyboard Tab+Space, SR announces, focus-visible ring, label association). **Verified live: native checkbox focusable, Space toggles + shows check.** |
+| C3-2 | 🟡 Med | ✅ FIXED-VERIFIED | **"Terms & Conditions" was plain text, not a link** — users agreed to terms they couldn't read (legal + UX). → Added real Terms (`/terms`) + Privacy (`/privacy`) links, `target=_blank rel=noopener` so onboarding progress is preserved. **Verified live.** |
+| C3-3 | 🟡 Med | ✅ FIXED-VERIFIED | **`FormField` label not associated with input** (no `htmlFor`/`id`) — clicking label didn't focus field, SR didn't announce the name; no `autocomplete`. Systemic across ALL wizard steps (BasicInfo/Location/Education/etc.). → Added id + `<label htmlFor>`, `autoComplete`/`name`/`inputMode` props, `aria-invalid` + `aria-describedby` → error/hint. **Verified live: email label-assoc + autocomplete=email.** |
+| C3-4 | ⚪ Low | ✅ FIXED-VERIFIED | CreateAccount **password rules only shown as a post-submit red error** (friction) + no `id`/`name`/`autocomplete` (weak password managers) + show/hide button had no `aria-label`. → Added upfront requirements hint, `id`/`name`/`autocomplete=new-password`, label assoc, aria-describedby, `aria-label` on toggle. **Verified live: hint visible, autocomplete=new-password.** |
+
+### Verified-clean (Chunk 3, so far)
+4-step progress indicator ✓ · resume-from-draft ✓ · per-step validation gates Next + inline errors ✓ · `creatingFor` cards are real `<button type=button>` (keyboard-ok) ✓ · split-panel design consistent with auth ✓ · regression build + 31/31 FE green · keyboard checkbox toggle + step-advance no regression ✓.
+
+### Remaining (Chunk 3, not yet audited — NOT VERIFIED)
+BasicInfo, AboutYourself, Location, Education, MaritalStatus, Religion, Lifestyle, Family, Preferences, Photos, Verification step content (they inherit the FormField a11y fix, but step-specific UX not individually reviewed). `creatingFor` cards could use `role=radio`/`aria-checked` (Low, deferred). Possible CreatingForStep vs CreateAccountStep duplication — flagged, NOT VERIFIED.
 ## CHUNK 4 — Dashboard  ⏳ PENDING
 ## CHUNK 5 — Core product (search/profile/chat/match)  ⏳ PENDING
 ## CHUNK 6 — Settings  ⏳ PENDING
