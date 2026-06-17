@@ -38,6 +38,8 @@ One row per fix. Nothing here without real-viewport verification + commit hash.
 | 9 | C9-5/6 | Auth+content contrast (neutral-400/500→600) + mailto link-in-text underline | pages/{Login,Contact,About,Safety,Terms,Privacy,SuccessStories}.jsx | 4e7cb8f | ✅ axe re-run: all 7 public pages 0 violations |
 | 10 | C10-1 | Static og:image/title/desc + twitter tags in index.html (non-JS crawler social preview) | frontend/index.html | 5ab6b1e | ✅ curl prod: og:image/title/desc served |
 | 10 | C10-2 | 404 page Seo noindex/title + SPA Link | App.jsx | 5ab6b1e | ✅ live: 404 renders + noindex |
+| 9 | C9-7 | AA gold for small eyebrows on dark (--gold-text #D4B048, 4.8:1) | pages/Home.jsx | adbcabc | ✅ live: homepage axe 0 violations (was 2) |
+| 1 | H1-1 | Shorten process scroll-jack pin 180vh→150vh | pages/Home.jsx | adbcabc | ✅ live: height=150vh, section advances, step text legible (screenshot) |
 ## Chunk 1 — Landing/Homepage
 **No code fixes applied.** Page verified clean; all first-pass "bugs" were full-page-screenshot artifacts (see findings.md correction table). The one real item (H1-1 scroll-jack) is a design-direction RECOMMENDATION requiring sign-off, not auto-changed on a live premium page. H1-2 (FAQ aria-controls) deferred as cosmetic.
 
