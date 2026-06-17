@@ -19,6 +19,7 @@ One row per fix. Nothing here without real-viewport verification + commit hash.
 | 3 | C3-8 | CreateAccount relationship select label-assoc + Photos buttons `type=button`/`aria-label` | onboarding/steps/CreateAccountStep.jsx, PhotosStep.jsx | 990612f | ✅ build+31/31 green |
 | 4 | C4-1 | Keyboard-accessible profile cards (div onClick → Link / role=button+key handler) | pages/Dashboard.jsx, components/cards/MatchCard.jsx | c1c7b64 | ✅ live: MatchCard name = focusable `<a href>`, receives focus, navigates; build+31/31 green |
 | 4 | C4-2 | Shortlist heart `aria-label` + `aria-pressed` + `type=button` + focus ring | pages/Dashboard.jsx | c1c7b64 | ✅ build+31/31 green |
+| 4 | C4-3 | Wire dashboard heart to `POST /match/:id` (was local no-op) — optimistic+revert+toast+disabled | pages/Dashboard.jsx | _pending_ | ✅ build+31/31 green; reuses prod Search like pattern; live DB-persist e2e deferred to authed pass |
 
 ## Chunk 1 — Landing/Homepage
 **No code fixes applied.** Page verified clean; all first-pass "bugs" were full-page-screenshot artifacts (see findings.md correction table). The one real item (H1-1 scroll-jack) is a design-direction RECOMMENDATION requiring sign-off, not auto-changed on a live premium page. H1-2 (FAQ aria-controls) deferred as cosmetic.

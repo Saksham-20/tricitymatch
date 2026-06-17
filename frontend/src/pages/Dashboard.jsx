@@ -46,6 +46,26 @@ const CardSkeleton = () => (
 // ─── Suggestion card — premium inline component ────────────────────────────
 const SuggestionCard = ({ profile, index }) => {
   const [isLiked, setIsLiked] = useState(profile.matchStatus === 'like');
+  const [likeBusy, setLikeBusy] = useState(false);
+
+  // Persist the shortlist/interest to the backend (optimistic + revert on error).
+  const toggleLike = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (likeBusy || !profile.userId) return;
+    const next = !isLiked;
+    setIsLiked(next);
+    setLikeBusy(true);
+    try {
+      await api.post(`/match/${profile.userId}`, { action: next ? 'like' : 'pass' });
+      toast.success(next ? 'Interest expressed!' : 'Removed from your interests');
+    } catch (err) {
+      setIsLiked(!next); // revert optimistic update
+      toast.error(err.response?.data?.message || 'Could not update — please try again');
+    } finally {
+      setLikeBusy(false);
+    }
+  };
 
   const fullName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'Profile';
   const initials  = (profile.firstName?.[0] || '') + (profile.lastName?.[0] || '') || '?';
@@ -93,10 +113,11 @@ const SuggestionCard = ({ profile, index }) => {
         <motion.button
           type="button"
           whileTap={{ scale: 0.9 }}
-          onClick={(e) => { e.stopPropagation(); setIsLiked(!isLiked); }}
+          onClick={toggleLike}
+          disabled={likeBusy}
           aria-pressed={isLiked}
-          aria-label={isLiked ? `Remove ${fullName} from shortlist` : `Shortlist ${fullName}`}
-          className={`absolute top-3 right-3 z-10 w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 ${
+          aria-label={isLiked ? `Remove ${fullName} from your interests` : `Express interest in ${fullName}`}
+          className={`absolute top-3 right-3 z-10 w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 disabled:opacity-60 ${
             isLiked ? 'bg-primary-500 text-white' : 'bg-white/90 backdrop-blur-sm text-neutral-500 hover:text-primary-500'
           }`}
         >
