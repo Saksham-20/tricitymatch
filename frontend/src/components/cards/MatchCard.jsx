@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiHeart, FiMessageCircle, FiMapPin } from 'react-icons/fi';
 import { API_BASE_URL } from '../../utils/api';
@@ -78,7 +78,17 @@ const MatchCard = ({ match, userId, index = 0, onChat }) => {
         </div>
         
         <h3 className="text-lg font-semibold text-neutral-800 mb-1 group-hover:text-primary-500 transition-colors">
-          {fullName}
+          {userId ? (
+            <Link
+              to={`/profile/${userId}`}
+              onClick={(e) => e.stopPropagation()}
+              className="rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 hover:underline"
+            >
+              {fullName}
+            </Link>
+          ) : (
+            fullName
+          )}
         </h3>
         <p className="text-neutral-600 text-sm flex items-center justify-center gap-1 mb-3">
           <FiMapPin className="w-3.5 h-3.5" aria-hidden="true" />

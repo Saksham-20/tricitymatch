@@ -45,7 +45,6 @@ const CardSkeleton = () => (
 
 // ─── Suggestion card — premium inline component ────────────────────────────
 const SuggestionCard = ({ profile, index }) => {
-  const navigate = useNavigate();
   const [isLiked, setIsLiked] = useState(profile.matchStatus === 'like');
 
   const fullName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'Profile';
@@ -62,8 +61,7 @@ const SuggestionCard = ({ profile, index }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.06 }}
       whileHover={{ y: -5, transition: { duration: 0.2 } }}
-      onClick={() => profile.userId && navigate(`/profile/${profile.userId}`)}
-      className="cursor-pointer bg-white rounded-2xl border border-neutral-100 shadow-card overflow-hidden group flex-shrink-0 w-56 sm:w-auto"
+      className="relative bg-white rounded-2xl border border-neutral-100 shadow-card overflow-hidden group flex-shrink-0 w-56 sm:w-auto"
     >
       {/* Photo */}
       <div className="relative h-52 overflow-hidden bg-neutral-100">
@@ -93,18 +91,31 @@ const SuggestionCard = ({ profile, index }) => {
 
         {/* Shortlist / heart overlay */}
         <motion.button
+          type="button"
           whileTap={{ scale: 0.9 }}
           onClick={(e) => { e.stopPropagation(); setIsLiked(!isLiked); }}
-          className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-all ${
+          aria-pressed={isLiked}
+          aria-label={isLiked ? `Remove ${fullName} from shortlist` : `Shortlist ${fullName}`}
+          className={`absolute top-3 right-3 z-10 w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 ${
             isLiked ? 'bg-primary-500 text-white' : 'bg-white/90 backdrop-blur-sm text-neutral-500 hover:text-primary-500'
           }`}
         >
           <FiHeart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
         </motion.button>
 
-        {/* Name on image */}
+        {/* Name on image — stretched Link makes the whole card a single
+            keyboard-focusable navigation target (no nested-interactive issue). */}
         <div className="absolute bottom-0 left-0 right-0 p-3">
-          <p className="text-white font-semibold text-sm leading-tight">{fullName}</p>
+          {profile.userId ? (
+            <Link
+              to={`/profile/${profile.userId}`}
+              className="text-white font-semibold text-sm leading-tight rounded after:absolute after:inset-0 after:content-[''] focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-1"
+            >
+              {fullName}
+            </Link>
+          ) : (
+            <p className="text-white font-semibold text-sm leading-tight">{fullName}</p>
+          )}
           {age && <p className="text-white/80 text-xs">{age} yrs · {profile.city || 'India'}</p>}
         </div>
       </div>
@@ -640,8 +651,12 @@ const Dashboard = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}
                     whileHover={{ y: -3 }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`View ${viewerName}'s profile`}
                     onClick={() => viewer.userId && navigate(`/profile/${viewer.userId}`)}
-                    className="cursor-pointer bg-white rounded-xl border border-neutral-100 shadow-card overflow-hidden group"
+                    onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && viewer.userId) { e.preventDefault(); navigate(`/profile/${viewer.userId}`); } }}
+                    className="cursor-pointer bg-white rounded-xl border border-neutral-100 shadow-card overflow-hidden group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1"
                   >
                     <div className="h-28 bg-neutral-100 overflow-hidden">
                       {viewer.profilePhoto ? (
@@ -748,8 +763,12 @@ const Dashboard = () => {
                 return (
                   <div
                     key={`recent-${p.userId}-${i}`}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`View ${name}'s profile`}
                     onClick={() => navigate(`/profile/${p.userId}`)}
-                    className="cursor-pointer bg-white rounded-xl border border-neutral-100 shadow-card overflow-hidden group"
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/profile/${p.userId}`); } }}
+                    className="cursor-pointer bg-white rounded-xl border border-neutral-100 shadow-card overflow-hidden group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1"
                   >
                     <div className="h-28 bg-neutral-100 overflow-hidden">
                       {p.profilePhoto ? (

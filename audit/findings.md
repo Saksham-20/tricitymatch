@@ -89,7 +89,21 @@ Login form labels/autocomplete/required ✓ · password reveal a11y ✓ · enume
 **Reviewed this pass:** BasicInfo (C3-6), AboutYourself (C3-7), CreateAccount relationship select + Photos (C3-8), and the shared `ui/Select` powering Location/Religion/MaritalStatus/Education/Family/Lifestyle/Preferences (C3-5). VerificationStep (OTP boxes/resend) **not individually a11y-reviewed** — NOT VERIFIED. `creatingFor` cards could use `role=radio`/`aria-checked` (Low, deferred). Possible CreatingForStep vs CreateAccountStep duplication — flagged, NOT VERIFIED. Step-specific *content/copy* UX (vs a11y plumbing) not exhaustively reviewed.
 
 **Chunk 3 a11y plumbing: COMPLETE.** Every onboarding form control now has an accessible name + keyboard operability (native inputs via FormField/CheckBox, native `<select>`s associated, custom `ui/Select` fully keyboard+ARIA). Onboarding is now completable without a mouse.
-## CHUNK 4 — Dashboard  ⏳ PENDING
+## CHUNK 4 — Dashboard  🔧 IN PROGRESS
+
+Design quality high (greeting hero, stat cards, premium gating, skeletons, empty state all strong). Real defects = keyboard accessibility of the content cards, which are the primary navigation affordance.
+
+| ID | Sev | Status | Finding → Fix |
+|----|-----|--------|-------------|
+| C4-1 | 🟠 **High** | ✅ FIXED-VERIFIED | **Every clickable profile card was a `<div onClick>`** — no `role`/`tabIndex`/key handler → keyboard & SR users could not open ANY profile from the dashboard (Suggestion/Curated cards, Who-Viewed-You, Recently-Viewed, and MatchCard's card-level nav). → SuggestionCard + MatchCard: card-nav moved to a real `<Link to=/profile/:id>` (stretched-link on SuggestionCard so the whole card stays clickable; name-Link on MatchCard, which has a nested chat button). Who-Viewed-You + Recently-Viewed cards (no nested interactive): `role=button` + `tabIndex=0` + Enter/Space `onKeyDown` + `aria-label` + focus-visible ring. **Verified live (MatchCard mounted via Vite in MemoryRouter): name renders as focusable `<a href="/profile/abc123">`, receives focus, chat button keeps its `aria-label`; 2 keyboard targets.** SuggestionCard + the two role=button cards: build-verified + identical pattern (live-keyboard re-test deferred to authed-dashboard pass). |
+| C4-2 | 🟡 Med | ✅ FIXED-VERIFIED | **Shortlist heart button had no accessible name** (icon-only) and no pressed-state semantics. → added `type=button`, `aria-label` (Shortlist/Remove + name), `aria-pressed`, focus-visible ring. NOTE: the heart still only toggles **local** state (no `/match` API call) — logged as C4-3. |
+| C4-3 | 🟡 Med | ⏳ OPEN (NOT FIXED) | **Dashboard shortlist heart is a no-op** — `onClick` toggles local `isLiked` only; nothing persists to the backend. User believes they shortlisted someone but nothing is saved. Deferred: needs `/match/:id {action:'shortlist'}` wiring + optimistic/error handling (out of a11y scope this pass). NOT VERIFIED beyond code read. |
+
+### Verified-clean (Chunk 4)
+Greeting hero + time-based copy ✓ · stat cards (mutual count is live) ✓ · premium-gated "Who Viewed You" blur+CTA (`aria-hidden` on blurred placeholder) ✓ · skeleton loaders ✓ · `Promise.allSettled` resilient data load (each call has its own catch) ✓ · empty state with two real CTAs ✓ · build + 31/31 FE green.
+
+### NOT VERIFIED (Chunk 4)
+Live authed dashboard render (real data, tab-order across full page, premium vs free states) — needs a logged-in account; only component-level live checks done. C4-3 fix. Minor: SuggestionCard `age` uses crude year-diff (off by ≤1yr); one nested card uses `dark:` classes while the rest of the dashboard doesn't (cosmetic inconsistency).
 ## CHUNK 5 — Core product (search/profile/chat/match)  ⏳ PENDING
 ## CHUNK 6 — Settings  ⏳ PENDING
 ## CHUNK 7 — Billing / Subscription  ⏳ PENDING
