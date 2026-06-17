@@ -66,6 +66,7 @@ const PhotosStep = () => {
 
         {!imagePreview ? (
           <motion.button
+            type="button"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => fileInputRef.current?.click()}
@@ -92,13 +93,16 @@ const PhotosStep = () => {
                 className="w-full h-full object-cover"
               />
               <button
+                type="button"
                 onClick={removePhoto}
+                aria-label="Remove photo"
                 className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
               >
                 <FiX size={20} />
               </button>
             </div>
             <button
+              type="button"
               onClick={() => fileInputRef.current?.click()}
               className="mt-4 w-full py-2 text-primary-600 font-medium hover:text-primary-700"
             >

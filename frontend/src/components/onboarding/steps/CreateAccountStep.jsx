@@ -170,10 +170,12 @@ const CreateAccountStep = () => {
           />
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-neutral-900">
+            <label htmlFor="onboarding-relationship" className="block text-sm font-medium text-neutral-900">
               Your Relationship to the Person Whose Profile This Is *
             </label>
             <select
+              id="onboarding-relationship"
+              name="relationshipToProfile"
               value={formData.relationshipToProfile || ''}
               onChange={(e) => updateFormData('relationshipToProfile', e.target.value)}
               onBlur={() => setFieldTouched('relationshipToProfile')}

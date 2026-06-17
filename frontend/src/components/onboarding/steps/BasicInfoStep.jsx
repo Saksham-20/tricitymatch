@@ -75,13 +75,18 @@ const BasicInfoStep = () => {
 
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-neutral-900">
+          <label htmlFor="onboarding-gender" className="block text-sm font-medium text-neutral-900">
             Gender <span className="text-red-500 ml-1">*</span>
           </label>
           <select
+            id="onboarding-gender"
+            name="gender"
             value={formData.gender || ''}
             onChange={(e) => updateFormData('gender', e.target.value)}
             onBlur={() => setFieldTouched('gender')}
+            required
+            aria-invalid={errors.gender ? true : undefined}
+            aria-describedby={errors.gender ? 'onboarding-gender-error' : undefined}
             className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
               errors.gender
                 ? 'border-red-500 focus:ring-red-500/20 focus:ring-red-500'
@@ -93,7 +98,7 @@ const BasicInfoStep = () => {
             <option value="female">Female</option>
             <option value="other">Other</option>
           </select>
-          {errors.gender && <p className="text-sm text-red-600 font-medium">{errors.gender}</p>}
+          {errors.gender && <p id="onboarding-gender-error" className="text-sm text-red-600 font-medium">{errors.gender}</p>}
         </div>
       </motion.div>
 

@@ -43,10 +43,13 @@ const AboutYourselfStep = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        <label className="block text-sm font-medium text-neutral-900 mb-2">
+        <label htmlFor="onboarding-bio" className="block text-sm font-medium text-neutral-900 mb-2">
           About Yourself
         </label>
         <textarea
+          id="onboarding-bio"
+          name="bio"
+          aria-describedby="onboarding-bio-count"
           placeholder="Tell us about yourself, your values, and what makes you unique... (max 500 characters)"
           value={formData.bio}
           onChange={(e) => updateFormData('bio', e.target.value.slice(0, 500))}
@@ -54,7 +57,7 @@ const AboutYourselfStep = () => {
           rows={4}
           className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all resize-none"
         />
-        <p className="text-xs text-neutral-500 mt-2">
+        <p id="onboarding-bio-count" className="text-xs text-neutral-500 mt-2">
           {formData.bio?.length || 0}/500 characters
         </p>
       </motion.div>
@@ -81,7 +84,9 @@ const AboutYourselfStep = () => {
               >
                 {interest}
                 <button
+                  type="button"
                   onClick={() => removeInterest(interest)}
+                  aria-label={`Remove ${interest}`}
                   className="hover:text-primary-900 transition-colors"
                 >
                   <FiX size={16} />
@@ -96,6 +101,7 @@ const AboutYourselfStep = () => {
           {INTERESTS.map((interest, idx) => (
             <motion.button
               key={idx}
+              type="button"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 + idx * 0.02 }}
