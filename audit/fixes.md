@@ -21,7 +21,7 @@ One row per fix. Nothing here without real-viewport verification + commit hash.
 | 4 | C4-2 | Shortlist heart `aria-label` + `aria-pressed` + `type=button` + focus ring | pages/Dashboard.jsx | c1c7b64 | ✅ build+31/31 green |
 | 4 | C4-3 | Wire dashboard heart to `POST /match/:id` (was local no-op) — optimistic+revert+toast+disabled | pages/Dashboard.jsx | e591f99 | ✅ build+31/31 green; reuses prod Search like pattern; live DB-persist e2e deferred to authed pass |
 | 5 | C5-1 | Search sort `<select>` accessible name (`aria-label`) | pages/Search.jsx | 731a0bb | ✅ build+31/31 green |
-| 5 | C5-2 | Remove dead chat emoji + attachment buttons (no handler) + unused imports | pages/Chat.jsx | PENDINGHASH | ✅ build+31/31 green; user-approved removal |
+| 5 | C5-2 | Remove dead chat emoji + attachment buttons (no handler) + unused imports | pages/Chat.jsx | 11b341e | ✅ build+31/31 green; user-approved removal |
 | 5 | C5-3 | Chat inline-edit input `aria-label` + save/cancel `aria-label`/`type=button` | pages/Chat.jsx | 731a0bb | ✅ build+31/31 green |
 
 ## Chunk 1 — Landing/Homepage
