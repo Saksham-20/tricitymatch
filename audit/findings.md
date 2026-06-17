@@ -194,3 +194,19 @@ Homepage console **0 errors / 0 warnings** ✓ · only API call (`/api/success-s
 **Chunks 1–7, 9, 10 ✅ done · Chunk 8 (mobile RN) ⏭️ deferred by user.**
 Net: keyboard operability + accessible names across the whole web app (custom Select, all profile cards, form controls, toggles, dialogs); two no-op affordances resolved (dashboard heart wired to `/match`, dead chat buttons removed); real payment-prefill bug fixed (was hardcoded fake user); wrong-domain support emails corrected; near-clean axe (homepage 23→2, all public pages 0); social-preview + 404 polish. ~30 fixes shipped + verified live, each deployed and bundle/axe-confirmed.
 **Open (need user sign-off, NOT auto-changed):** C9-7 (lighten brand-gold eyebrows for AA, 3.52→4.5) · H1-1 (homepage desktop scroll-jacking). **Deferred:** Chunk 8 mobile RN a11y; C5-4 ProfileDetail tab `role=tablist`; PaymentHistory legacy plan-badge cosmetic.
+
+---
+
+# 🔁 WORKFLOW QA + PREMIUM-LIFT PASS (2026-06-17) — local dev loop, every workflow walked end-to-end
+Method: `npm run dev` localhost, Playwright MCP @1440×900, computed-style verification, before/after screenshots. Boldness: polish + premium lift. Scope: member + auth + admin/marketing.
+
+## W1 — Auth (login · forgot · reset)  ✅ DONE
+| ID | Sev | Status | Finding → Fix |
+|----|-----|--------|---------------|
+| W1-1 | 🟠 High | ✅ FIXED-VERIFIED | **Login left-panel hero headline invisible** — "Your journey continues here." computed `rgb(46,46,46)` on near-black panel (~1.1:1, unreadable). Root cause: global base rule `h1,h2,h3 { color: hsl(var(--foreground)) }` (index.css:83-88) sets an explicit dark color, overriding the `text-white` *inherited* from the dark panel wrapper; headline had no own color class. → added `text-white` to the headline ([Login.jsx:183](frontend/src/pages/Login.jsx#L183)). **Re-verified: computed `rgb(255,255,255)`; screenshot bright white.** |
+| W1-2 | 🟠 High | ✅ FIXED-VERIFIED | **Same dark-on-dark headline bug on Forgot + Reset editorial panels** — "Reset your access." / "Back in minutes." / "Create your new password." all `rgb(46,46,46)`. → added `text-white` to all 3 ([ForgotPassword.jsx:52,109](frontend/src/pages/ForgotPassword.jsx), [ResetPassword.jsx:30](frontend/src/pages/ResetPassword.jsx#L30)). **Re-verified: computed white; screenshots bright.** |
+
+**Verified-clean (W1):** login console 0 errors (only expected 401 on bad creds); invalid-credentials error alert renders premium (red box, role=alert, "N attempts remaining"); native `required` blocks empty submit; forgot-password submit → premium "Check Your Email" success card; reset-password form renders (token-gated). Google sign-in correctly hidden (config-gated off). **Systemic note:** the base-rule heading-color bug recurs on any dark panel whose heading relies on inherited color — root fix (`color: inherit` on base headings) deferred as too broad to land mid-walk; catching per-page instead.
+
+### NOT VERIFIED (W1)
+OTP 6-box (lives in onboarding/phone flow → W2), logout / logout-all (needs authed session → W8), Google credential flow (OAuth off locally), live reset-token redemption (email off locally).

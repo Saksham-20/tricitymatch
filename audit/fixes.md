@@ -44,3 +44,6 @@ One row per fix. Nothing here without real-viewport verification + commit hash.
 **No code fixes applied.** Page verified clean; all first-pass "bugs" were full-page-screenshot artifacts (see findings.md correction table). The one real item (H1-1 scroll-jack) is a design-direction RECOMMENDATION requiring sign-off, not auto-changed on a live premium page. H1-2 (FAQ aria-controls) deferred as cosmetic.
 
 _Decision rationale:_ anti-hallucination + "would Linear ship this?" → **yes**, the homepage ships as-is. Manufacturing a deploy for a non-bug would add regression risk for zero user value.
+
+| W1 | W1-1 | Login hero headline dark-on-dark → text-white (was rgb(46,46,46) ~1.1:1) | pages/Login.jsx | (pending) | ✅ computed rgb(255,255,255) + screenshot; build green |
+| W1 | W1-2 | Forgot/Reset editorial headlines dark-on-dark → text-white (3 headings) | pages/ForgotPassword.jsx, ResetPassword.jsx | (pending) | ✅ computed white + screenshots; build green |

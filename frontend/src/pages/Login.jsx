@@ -180,7 +180,7 @@ const Login = () => {
             <p className="text-xs font-semibold text-primary-400 uppercase tracking-widest mb-5">
               Welcome back
             </p>
-            <h2 className="font-display text-5xl font-bold leading-tight mb-5">
+            <h2 className="font-display text-5xl font-bold leading-tight mb-5 text-white">
               Your journey<br />continues here.
             </h2>
             <p className="text-white/60 text-base leading-relaxed">

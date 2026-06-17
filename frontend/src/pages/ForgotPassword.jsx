@@ -49,7 +49,7 @@ const ForgotPassword = () => {
             </div>
             <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }} className="max-w-sm">
               <p className="text-xs font-semibold text-primary-400 uppercase tracking-widest mb-5">Account Recovery</p>
-              <h2 className="font-display text-5xl font-bold leading-tight mb-5">Back in<br />minutes.</h2>
+              <h2 className="font-display text-5xl font-bold leading-tight mb-5 text-white">Back in<br />minutes.</h2>
               <p className="text-white/60 text-base leading-relaxed">Check your inbox — we've sent a secure link to reset your password.</p>
             </motion.div>
             <div className="flex items-center gap-5 text-xs text-white/40">
@@ -106,7 +106,7 @@ const ForgotPassword = () => {
 
           <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }} className="max-w-sm">
             <p className="text-xs font-semibold text-primary-400 uppercase tracking-widest mb-5">Account Recovery</p>
-            <h2 className="font-display text-5xl font-bold leading-tight mb-5">Reset your<br />access.</h2>
+            <h2 className="font-display text-5xl font-bold leading-tight mb-5 text-white">Reset your<br />access.</h2>
             <p className="text-white/60 text-base leading-relaxed">
               Enter your email and we'll send a secure link. You'll be back in under two minutes.
             </p>
