@@ -120,7 +120,23 @@ ProfileCard full variant: like/shortlist buttons have `aria-label`, callbacks pe
 
 ### NOT VERIFIED (Chunk 5)
 Live authed Search/ProfileDetail/Chat render + real socket messaging flow (needs logged-in account + a mutual match). C5-2/C5-4 decisions. ProfileDetail accordion/gallery deeper interactions, voice-intro playback, compatibility/horoscope sheets not individually exercised.
-## CHUNK 6 — Settings  ⏳ PENDING
+## CHUNK 6 — Settings  ✅ DONE (a11y plumbing)
+
+Well-structured page (sidebar tabs, toggles, two-step delete). Gaps were accessible names + dialog semantics.
+
+| ID | Sev | Status | Finding → Fix |
+|----|-----|--------|-------------|
+| C6-1 | 🟡 Med | ✅ FIXED | **Shared `Toggle` switch had no accessible name** — `role=switch`+`aria-checked` but the label was an unassociated sibling `<p>`, so SR announced "switch, checked" with no name. Affects every toggle (dark mode, incognito, elder mode, all notification prefs). → `aria-label={label}` on the switch button. |
+| C6-2 | ⚪ Low | ✅ FIXED | **Two `<select>`s (profile visibility, document type) + change-password inputs had unassociated labels** (no `htmlFor`/`id`). → added `id`/`name` + `<label htmlFor>` on all. |
+| C6-3 | ⚪ Low | ✅ FIXED | **Delete-account modal lacked dialog semantics**; its password input + eye toggle were unlabeled; no Escape-to-close. → `role=dialog` + `aria-modal` + `aria-labelledby`, `aria-label`/`autoComplete`/`autoFocus` on password, `aria-label` on eye toggle, Escape closes. (Two-step password-gated delete flow itself already solid.) |
+| C6-4 | ⚪ Low | ✅ FIXED | **FileUploadBox remove button** (FiX, icon-only) had no accessible name. → `aria-label="Remove file"`. |
+
+### Verified-clean (Chunk 6)
+Sidebar tab buttons have visible text (keyboard-focusable) ✓ · change-password eye toggles already had `aria-label` + `autoComplete` ✓ · file-upload trigger is a real `<button>` ✓ · delete flow = button→modal→password→DELETE `/auth/account` (guarded) ✓ · build + 31/31 FE green.
+
+### NOT VERIFIED (Chunk 6)
+Live authed Settings render (toggle persistence, password change, account deletion, file upload to Cloudinary) — all static attribute additions, build-verified only; no behavior change. Tab nav lacks `role=tablist` ARIA (Low, same as C5-4); modal has no focus-trap (Low enhancement).
+
 ## CHUNK 7 — Billing / Subscription  ⏳ PENDING
 ## CHUNK 8 — Mobile experience  ⏳ PENDING
 ## CHUNK 9 — Accessibility review  ⏳ PENDING

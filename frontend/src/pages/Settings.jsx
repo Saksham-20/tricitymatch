@@ -31,6 +31,7 @@ const Toggle = ({ value, onChange, label, desc, disabled }) => (
       onClick={() => !disabled && onChange(!value)}
       disabled={disabled}
       aria-checked={value}
+      aria-label={label}
       role="switch"
       className={`relative inline-flex w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 flex-shrink-0 ${
         value ? 'bg-primary-500' : 'bg-neutral-200'
@@ -78,6 +79,7 @@ const FileUploadBox = ({ label, sublabel, required, file, onFile, accept = 'imag
           <button
             type="button"
             onClick={() => onFile(null)}
+            aria-label="Remove file"
             className="text-neutral-400 hover:text-destructive transition-colors cursor-pointer"
           >
             <FiX className="w-4 h-4" />
@@ -195,9 +197,11 @@ const AccountTab = () => {
         <form onSubmit={handleChangePassword} className="space-y-4 max-w-sm">
           {pwFields.map(({ key, label, field }) => (
             <div key={key}>
-              <label className="block text-sm font-medium text-neutral-700 mb-1.5">{label}</label>
+              <label htmlFor={`settings-pw-${key}`} className="block text-sm font-medium text-neutral-700 mb-1.5">{label}</label>
               <div className="relative">
                 <input
+                  id={`settings-pw-${key}`}
+                  name={field}
                   type={show[key] ? 'text' : 'password'}
                   value={form[field]}
                   onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
@@ -274,8 +278,10 @@ const PrivacyTab = () => {
       <div>
         <SectionHeader title="Profile Visibility" desc="Control who can discover and view your profile" />
         <div className="max-w-sm">
-          <label className="block text-sm font-medium text-neutral-700 mb-1.5">Who can see your profile</label>
+          <label htmlFor="setting-profile-visibility" className="block text-sm font-medium text-neutral-700 mb-1.5">Who can see your profile</label>
           <select
+            id="setting-profile-visibility"
+            name="profileVisibility"
             value={settings.profileVisibility}
             onChange={(e) => setSettings((s) => ({ ...s, profileVisibility: e.target.value }))}
             className="input-field"
@@ -492,10 +498,12 @@ const VerificationTab = () => {
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-5 max-w-lg">
         <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+          <label htmlFor="setting-document-type" className="block text-sm font-medium text-neutral-700 mb-1.5">
             Document Type <span className="text-destructive">*</span>
           </label>
           <select
+            id="setting-document-type"
+            name="documentType"
             value={form.documentType}
             onChange={(e) => setForm((f) => ({ ...f, documentType: e.target.value }))}
             className="input-field max-w-sm"
@@ -592,9 +600,17 @@ const DangerTab = () => {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
-            <h3 className="text-lg font-bold text-neutral-900 mb-1">Confirm Account Deletion</h3>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          onKeyDown={(e) => { if (e.key === 'Escape') { setShowModal(false); setPassword(''); } }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-account-title"
+            className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl"
+          >
+            <h3 id="delete-account-title" className="text-lg font-bold text-neutral-900 mb-1">Confirm Account Deletion</h3>
             <p className="text-sm text-neutral-500 mb-5">Enter your password to confirm. This action is permanent.</p>
             <div className="relative mb-5">
               <input
@@ -602,11 +618,15 @@ const DangerTab = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Your current password"
+                aria-label="Current password"
+                autoComplete="current-password"
+                autoFocus
                 className="input-field pr-10"
               />
               <button
                 type="button"
                 onClick={() => setShowPw(!showPw)}
+                aria-label={showPw ? 'Hide password' : 'Show password'}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 cursor-pointer"
               >
                 {showPw ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
