@@ -247,3 +247,16 @@ Leaving an authed tab open past token expiry makes the navbar unread-count polle
 
 ### Note (UX, not fixed)
 Editor "Save Profile" only appears on the last step (step 10); step tabs are jump-able + there's a "saved when you click Save" hint, so it's reachable. Candidate polish: a persistent Save in the header.
+
+## W6 — Chat (premium + mutual match)  ✅ DONE — no code bugs
+**Verified-clean:** conversations list + premium gate; thread loads seeded history; **send message persists** (single check = delivered) under "Today" divider; read receipts (double-check); online status; edit/delete affordances present with aria-labels (Edit/Delete message); 0 console errors when premium-gated correctly.
+
+### Testing note (NOT a product bug)
+The seeder writes legacy `Subscription.planType = 'premium'`/`'elite'`, but `requirePremium` ([middlewares/auth.js:160](backend/middlewares/auth.js#L160)) only accepts `['basic_premium','premium_plus','vip']` — so seeded "premium" users are gated out of chat locally. Prod is unaffected (Razorpay creates subs with the correct enum). Locally set a test user's sub to `premium_plus`+active to exercise chat. (Web family-group chat UI is not exposed on web — backend/mobile only — so out of scope here.)
+
+## W7 — Subscription + payment  ✅ DONE
+| ID | Sev | Status | Finding → Fix |
+|----|-----|--------|---------------|
+| W7-1 | ⚪ Low | ✅ FIXED-VERIFIED | **Payment History showed raw plan enum** "Premium_plus" (legacy color-map keys `free/basic/premium/gold` didn't match real `basic_premium/premium_plus/vip`, so no friendly label + default gray). → enum→label+color map ([PaymentHistory.jsx:8](frontend/src/pages/PaymentHistory.jsx#L8)). **Re-verified: renders "Premium Plus".** |
+
+**Verified-clean (W7):** Subscription page premium; active-plan green banner ("Premium Plus · valid until … · 999/999 unlocks") accurate; 4 plan cards with Most-Popular/Best-Value; current plan disabled "Current Plan"; **payment config-gated gracefully** — Get VIP/Basic shows clear toast "Payments are not configured … Set VITE_RAZORPAY_KEY_ID" (no crash); Razorpay prefill now uses the real signed-in name (via W3-1 AuthContext normalize); Payment Success page premium (unlocked list + redirect); 0 console errors.

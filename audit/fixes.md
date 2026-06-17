@@ -55,3 +55,5 @@ _Decision rationale:_ anti-hallucination + "would Linear ship this?" → **yes**
 
 | W5 | W5-1 | Stray "0" on profile (boolean-guard numberOfSiblings) | pages/MyProfileView.jsx | (pending) | ✅ 0 stray nodes; build green |
 | W5 | W5-2/3 | Graceful initials+gradient fallback for broken profile photos (onError) | pages/MyProfileView.jsx, pages/ProfileDetail.jsx | (pending) | ✅ initials show on img error; build green |
+
+| W7 | W7-1 | Payment History friendly plan labels+colors (was raw "Premium_plus") | pages/PaymentHistory.jsx | (pending) | ✅ renders "Premium Plus"; build green |
