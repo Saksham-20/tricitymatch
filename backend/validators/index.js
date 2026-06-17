@@ -384,7 +384,7 @@ const searchValidation = [
     .isIn(['never', 'occasionally', 'regularly']),
   query('sortBy')
     .optional()
-    .isIn(['compatibility', 'createdAt', 'lastLogin'])
+    .isIn(['compatibility', 'age', 'location', 'recent', 'createdAt', 'lastLogin'])
     .withMessage('Invalid sort option'),
   query('religion')
     .optional()

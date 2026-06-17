@@ -184,6 +184,13 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
     }
   }
 
+  // Column-backed sorts run at the DB level so they paginate correctly;
+  // 'compatibility' is computed in JS below, so it keeps the default order.
+  const orderClause =
+    sortBy === 'age'      ? [['dateOfBirth', 'DESC']]  // youngest first
+    : sortBy === 'location' ? [['city', 'ASC']]
+    : [['createdAt', 'DESC']];                          // recent / compatibility / default
+
   // Get profiles — include isBoosted + boostExpiresAt for ranking
   const profiles = await Profile.findAll({
     where,
@@ -210,7 +217,7 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
     ],
     limit: parseInt(limit),
     offset: parseInt(offset),
-    order: [['createdAt', 'DESC']]
+    order: orderClause
   });
 
   // Batch query for match statuses (fixes N+1)

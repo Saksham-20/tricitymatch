@@ -50,3 +50,5 @@ _Decision rationale:_ anti-hallucination + "would Linear ship this?" → **yes**
 
 | W2 | W2-1 | Onboarding hero headline → text-white (dark-on-dark) | pages/ModernOnboarding.jsx | (pending) | ✅ computed white; build green |
 | W3 | W3-1 | Hoist Profile.firstName/lastName/profilePhoto in AuthContext so name shows app-wide (greeting/navbar/prefill) | context/AuthContext.jsx, pages/Dashboard.jsx | (pending) | ✅ "Good afternoon, Aarav" + navbar "Aarav"; like POST 200; build green |
+
+| W4 | W4-1 | Fix 3/4 search sorts returning 400 (validator enum + DB order clause for age/location/recent) | backend/validators/index.js, backend/controllers/searchController.js | (pending) | ✅ all sorts 200; ages 23→27 asc; validator tests 25/25 |

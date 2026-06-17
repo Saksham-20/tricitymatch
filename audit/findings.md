@@ -225,3 +225,13 @@ NOTE: live flow is **4 steps**, not the 14 in CLAUDE.md (stale). Walked end-to-e
 | W3-1 | 🟡 Med | ✅ FIXED-VERIFIED | **Greeting + navbar never show the user's name** — UI reads top-level `user.firstName`, but the API nests it under `user.Profile.firstName`, so greeting was "Good afternoon, **there**" and navbar showed "U"/"My Account" for every logged-in member. Root fix: hoist `Profile.firstName/lastName/profilePhoto` to top level in `AuthContext` `setUser` ([AuthContext.jsx:70-88](frontend/src/context/AuthContext.jsx#L70)) + defensive fallback in greeting. **Re-verified: "Good afternoon, Aarav" + navbar "AQ"/"Aarav".** Also fixes Subscription Razorpay name prefill + MatchPopup + admin layouts (all read `user.firstName`). |
 
 **Verified-clean (W3):** fixed navbar (z-50) does not overlap content — the earlier "overlap" was a full-page-capture artifact (viewport clean); stats cards (0s for new user) render; premium upsell + who-viewed lock correct for free tier; Today's Matches + Curated populate with real profiles; **like-heart persists** (`POST /api/match/:id` → 200); 0 console errors.
+
+## W4 — Search + filters  ✅ DONE
+| ID | Sev | Status | Finding → Fix |
+|----|-----|--------|---------------|
+| W4-1 | 🟠 High | ✅ FIXED-VERIFIED | **3 of 4 sort options returned HTTP 400** — UI sends `sortBy=age\|location\|recent` but the validator only allowed `['compatibility','createdAt','lastLogin']`, and the controller only handled `compatibility`. "By Age"/"By Location"/"Most Recent" all 400'd (silent broken sort). → extended validator enum ([validators/index.js:387](backend/validators/index.js#L387)) + DB-level `order` clause for age(dateOfBirth DESC)/location(city ASC)/recent(createdAt DESC) in the search controller ([searchController.js:188](backend/controllers/searchController.js#L188)). **Re-verified: all 4 sorts → 200; By Age renders ages ascending 23→27; validator tests 25/25 green.** |
+
+**Verified-clean (W4):** premium empty-state ("No profiles found" + helpful copy + Clear Filters/Refresh + "1 filter active"); city filter applies + clears; by-code invalid → graceful "No profile found for that ID" toast (expected 404); "Interest Sent" state persists from dashboard like; cards show match% + chips; 0 console errors (besides expected 404).
+
+### Observation (not fixed — idle-session artifact)
+Leaving an authed tab open past token expiry makes the navbar unread-count poller spam repeated 401s instead of backing off. Rare under normal use (needs a long-idle tab); low priority. Candidate: stop polling on first 401 until re-auth.
