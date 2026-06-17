@@ -145,6 +145,8 @@ const CreateAccountStep = () => {
 
           <FormField
             label="Your Full Name"
+            name="yourName"
+            autoComplete="name"
             placeholder="Enter your own name"
             value={formData.yourName || ''}
             onChange={(value) => updateFormData('yourName', value)}
@@ -156,6 +158,9 @@ const CreateAccountStep = () => {
           <FormField
             label="Your Phone Number"
             type="tel"
+            name="yourPhone"
+            autoComplete="tel"
+            inputMode="numeric"
             placeholder="Your 10-digit phone number"
             value={formData.yourPhone || ''}
             onChange={(value) => updateFormData('yourPhone', value)}
@@ -207,6 +212,9 @@ const CreateAccountStep = () => {
         <FormField
           label={formData.creatingFor !== 'self' ? "Profile Owner's Email" : "Email"}
           type="email"
+          name="email"
+          autoComplete="email"
+          inputMode="email"
           placeholder={formData.creatingFor !== 'self' ? "Their email address" : "email@example.com"}
           value={formData.email}
           onChange={(value) => updateFormData('email', value)}
@@ -216,27 +224,39 @@ const CreateAccountStep = () => {
         />
 
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-neutral-900">
+          <label htmlFor="onboarding-password" className="block text-sm font-medium text-neutral-900">
             {formData.creatingFor !== 'self' ? "Profile Owner's Password *" : "Password *"}
           </label>
           <div className="relative">
             <input
+              id="onboarding-password"
+              name="password"
+              autoComplete="new-password"
               type={showPassword ? 'text' : 'password'}
               placeholder="••••••••"
               value={formData.password}
               onChange={(e) => updateFormData('password', e.target.value)}
               onBlur={() => setFieldTouched('password')}
-              className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              aria-invalid={errors.password ? true : undefined}
+              aria-describedby={errors.password ? 'onboarding-password-error' : 'onboarding-password-hint'}
+              className="w-full px-4 py-2.5 pr-11 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500"
             >
               {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
             </button>
           </div>
-          {errors.password && <p className="text-sm text-red-600 mt-1">{errors.password}</p>}
+          {errors.password ? (
+            <p id="onboarding-password-error" className="text-sm text-red-600 mt-1">{errors.password}</p>
+          ) : (
+            <p id="onboarding-password-hint" className="text-xs text-neutral-500 mt-1">
+              At least 8 characters with uppercase, lowercase, a number, and a symbol.
+            </p>
+          )}
         </div>
 
         <div className="space-y-1">
