@@ -47,3 +47,6 @@ _Decision rationale:_ anti-hallucination + "would Linear ship this?" → **yes**
 
 | W1 | W1-1 | Login hero headline dark-on-dark → text-white (was rgb(46,46,46) ~1.1:1) | pages/Login.jsx | (pending) | ✅ computed rgb(255,255,255) + screenshot; build green |
 | W1 | W1-2 | Forgot/Reset editorial headlines dark-on-dark → text-white (3 headings) | pages/ForgotPassword.jsx, ResetPassword.jsx | (pending) | ✅ computed white + screenshots; build green |
+
+| W2 | W2-1 | Onboarding hero headline → text-white (dark-on-dark) | pages/ModernOnboarding.jsx | (pending) | ✅ computed white; build green |
+| W3 | W3-1 | Hoist Profile.firstName/lastName/profilePhoto in AuthContext so name shows app-wide (greeting/navbar/prefill) | context/AuthContext.jsx, pages/Dashboard.jsx | (pending) | ✅ "Good afternoon, Aarav" + navbar "Aarav"; like POST 200; build green |

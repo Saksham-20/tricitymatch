@@ -188,7 +188,7 @@ const ModernOnboardingContent = () => {
             <p className="text-xs font-semibold text-primary-400 uppercase tracking-widest mb-5">
               Begin your journey
             </p>
-            <h2 className="font-display text-5xl font-bold leading-tight mb-5">
+            <h2 className="font-display text-5xl font-bold leading-tight mb-5 text-white">
               Your forever<br />starts here.
             </h2>
             <p className="text-white/60 text-base leading-relaxed mb-8">

@@ -276,7 +276,7 @@ const Dashboard = () => {
   // Time-based greeting
   const greeting = useMemo(() => {
     const hour      = new Date().getHours();
-    const firstName = user?.firstName || 'there';
+    const firstName = user?.firstName || user?.Profile?.firstName || user?.profile?.firstName || 'there';
     if (hour >= 5  && hour < 12) return { text: `Good morning, ${firstName}`, icon: FiCoffee, subtext: 'Start your day with meaningful connections' };
     if (hour >= 12 && hour < 17) return { text: `Good afternoon, ${firstName}`, icon: FiSun,    subtext: 'Perfect time to explore new profiles' };
     if (hour >= 17 && hour < 21) return { text: `Good evening, ${firstName}`, icon: FiSun,    subtext: 'Wind down with some profile browsing' };

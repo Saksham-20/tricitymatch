@@ -67,8 +67,26 @@ export const useAuth = () => {
   return context;
 };
 
+// The API nests profile fields under `Profile`; most of the UI reads
+// `user.firstName`/`user.lastName`/`user.profilePhoto`. Hoist them so the
+// whole app (navbar, dashboard greeting, payment prefill, …) shows the name.
+const normalizeUser = (u) => {
+  if (!u || typeof u !== 'object') return u;
+  const p = u.Profile || u.profile;
+  if (!p) return u;
+  return {
+    ...u,
+    firstName: u.firstName ?? p.firstName,
+    lastName: u.lastName ?? p.lastName,
+    profilePhoto: u.profilePhoto ?? p.profilePhoto,
+  };
+};
+
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUserState] = useState(null);
+  const setUser = useCallback((u) => {
+    setUserState((prev) => normalizeUser(typeof u === 'function' ? u(prev) : u));
+  }, []);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 

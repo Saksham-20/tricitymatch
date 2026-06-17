@@ -210,3 +210,18 @@ Method: `npm run dev` localhost, Playwright MCP @1440×900, computed-style verif
 
 ### NOT VERIFIED (W1)
 OTP 6-box (lives in onboarding/phone flow → W2), logout / logout-all (needs authed session → W8), Google credential flow (OAuth off locally), live reset-token redemption (email off locally).
+
+## W2 — Onboarding (4-step: Welcome · Create Account · Basic Info · Verification)  ✅ DONE
+NOTE: live flow is **4 steps**, not the 14 in CLAUDE.md (stale). Walked end-to-end: created account, email-OTP verified, completed → /dashboard.
+| ID | Sev | Status | Finding → Fix |
+|----|-----|--------|---------------|
+| W2-1 | 🟠 High | ✅ FIXED-VERIFIED | **Onboarding hero "Your forever starts here." dark-on-dark** (same base-rule bug as W1). → `text-white` ([ModernOnboarding.jsx:191](frontend/src/pages/ModernOnboarding.jsx#L191)). Swept all `font-display text-5xl` headings repo-wide → 0 remaining without text-white. **Re-verified computed white.** |
+
+**Verified-clean (W2):** step validation + Next/Back + stepper progress (25→50→75→100%) work; T&C gate; email OTP send (dev code logged) → verify → green check; phone OTP optional; Complete → /dashboard; 0 console errors across the whole flow.
+
+## W3 — Dashboard  ✅ DONE
+| ID | Sev | Status | Finding → Fix |
+|----|-----|--------|---------------|
+| W3-1 | 🟡 Med | ✅ FIXED-VERIFIED | **Greeting + navbar never show the user's name** — UI reads top-level `user.firstName`, but the API nests it under `user.Profile.firstName`, so greeting was "Good afternoon, **there**" and navbar showed "U"/"My Account" for every logged-in member. Root fix: hoist `Profile.firstName/lastName/profilePhoto` to top level in `AuthContext` `setUser` ([AuthContext.jsx:70-88](frontend/src/context/AuthContext.jsx#L70)) + defensive fallback in greeting. **Re-verified: "Good afternoon, Aarav" + navbar "AQ"/"Aarav".** Also fixes Subscription Razorpay name prefill + MatchPopup + admin layouts (all read `user.firstName`). |
+
+**Verified-clean (W3):** fixed navbar (z-50) does not overlap content — the earlier "overlap" was a full-page-capture artifact (viewport clean); stats cards (0s for new user) render; premium upsell + who-viewed lock correct for free tier; Today's Matches + Curated populate with real profiles; **like-heart persists** (`POST /api/match/:id` → 200); 0 console errors.
