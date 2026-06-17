@@ -8,9 +8,18 @@
 
 ---
 
-## CHUNK 1 — Landing / Homepage / Marketing  ✅ COMPLETE
+## CHUNK 1 — Landing / Homepage / Marketing  ✅ COMPLETE (full coverage)
 
-**Verdict: world-class-adjacent. Zero shippable bugs after verification.** One design-direction recommendation. The editorial serif + gold-on-burgundy system is genuinely premium and cohesive; positioning ("hyperlocal, family-meetable, ID-verified, Tricity-only vs 50M strangers") is category-leading.
+**Verdict: world-class-adjacent. Zero shippable code bugs after verification.** Editorial serif + gold-on-burgundy system is genuinely premium and cohesive; positioning ("hyperlocal, family-meetable, ID-verified, Tricity-only vs 50M strangers") is category-leading.
+
+**Coverage completed this pass:** homepage every section verified in a **real viewport** (hero, trust strip, scroll process, cities accordion, quote, FAQ, footer) + interactions (FAQ expands, counters animate) + **mobile 375 no horizontal overflow** (docScrollWidth 360). Marketing pages swept: **/about, /safety, /terms, /privacy, /success-stories** all clean (proper per-route titles, single `<h1>`, no overflow, 0 broken images). `/signup` redirects → `/onboarding` (by design).
+
+### Product/strategy recommendations (NOT code bugs — need a decision, not a fix)
+| ID | Sev | Issue | Note |
+|----|-----|-------|------|
+| C1-M1 | 🟡 Med CRO | **No public pricing.** Footer "Pricing Plans" → `/subscription` and "Browse Profiles" → `/search` both route logged-out visitors to a **login wall**. Plans (₹1500/₹3000/₹7499) are invisible pre-signup. | Highest-CRO item, but exposing pricing is a **pricing-strategy decision** (some matrimony sites gate it to capture leads first). Recommend a public `/pricing` page OR a homepage pricing section. **Needs user's product call.** |
+| C1-M2 | 🟡 Med CRO | **/contact has no form** (0 inputs) — email-only via `mailto:support@tricityshadi.com`. | A real enquiry form needs a backend contact/lead endpoint (feature, not safe unilateral prod change). Functional today. **Needs backend + product decision.** |
+| C1-M3 | ⚪ Low | **/success-stories empty** — "Stories coming soon." (graceful empty state; homepage shows static seed stories instead). | Data/content, not code. Publish real stories via admin. |
 
 ### ⚠️ First-pass corrections (anti-hallucination log)
 My initial audit was run off a **full-page screenshot** and produced 4 "critical/high" findings that ALL proved false under real-viewport verification. Recorded here so they are not re-raised:
@@ -31,15 +40,17 @@ My initial audit was run off a **full-page screenshot** and produced 4 "critical
 | ID | Sev | Status | Issue |
 |----|-----|--------|-------|
 | H1-1 | 🟡 Medium | RECOMMENDATION | **Desktop "process" section uses scroll-jacking** (`process-outer` 180vh sticky, 4 steps advance on scroll). Works + looks premium, but scroll-jacking is a pattern Linear/Stripe deliberately avoid now: a quick scroll blows past steps, and the tall pinned track shows large empty viewports if a user pauses mid-section. Mobile already degrades to a clean flat list (`process-steps-list`). **Recommend** (needs design sign-off, not a bug): convert desktop to a static 4-up step grid OR shorten the pin track to ~120vh so each step gets less dead scroll. NOT auto-changed — live premium page, regression risk, arguably intentional. |
-| H1-2 | ⚪ Low | DEFERRED | FAQ accordion answer region has no `aria-controls` linking trigger→panel (trigger itself is correct: `role=button`, `tabIndex=0`, `aria-expanded`, Enter/Space handled). Cosmetic SR nicety. `Home.jsx:1303-1329`. |
+| H1-2 | ⚪ Low | ✅ FIXED-VERIFIED | FAQ accordion answer region had no `aria-controls` linking trigger→panel. → Added `aria-controls={faq-answer-i}` + matching `id` on each answer. **Verified live: all 6 rows linked, targets exist.** Commit 76af7c4. |
 
 ### Verified-clean (Chunk 1)
 Single `<h1>` ✓ · counters animate ✓ · 0 broken images ✓ · AA contrast ✓ · mobile hero/announcement/trust-chips render ✓ · keyboard-operable FAQ ✓ · success-stories falls back to static seed so no empty state ✓ · live match ticker + momentum ticker animate ✓.
 
 ---
 
-## CHUNK 2 — Login / Password reset  ✅ COMPLETE
-*(`/signup` → redirects to `/onboarding` by design; covered in Chunk 3.)*
+## CHUNK 2 — Login / Password reset  ✅ COMPLETE (full coverage)
+*(`/signup` → redirects to `/onboarding` by design — verified live; account creation is onboarding Step 2, covered in Chunk 3.)*
+
+**Coverage completed this pass:** desktop + **mobile 375** for login/forgot/reset — all no horizontal overflow (docScrollWidth 360), primary submit buttons 54px tap height; reset invalid-state has "Request New Link" CTA on mobile too. Per-route titles confirmed live on mobile.
 
 **Verdict: excellent, secure, on-brand.** Forms are properly labeled with correct `autocomplete`/`type`/`required`; password-reveal has `aria-label`; split-panel design + trust stats consistent with login. Forgot-password success state is **world-class**: green check, "Check Your Email", **enumeration-safe wording** ("If an account with X exists…"), mentions spam folder, clear "Back to Login". Reset-password invalid state is clear and **not a dead end** (has "Request New Link" → /forgot-password). Skip-to-content link present (good a11y baseline). 0 console errors.
 
