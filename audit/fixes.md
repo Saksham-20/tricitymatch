@@ -24,10 +24,10 @@ One row per fix. Nothing here without real-viewport verification + commit hash.
 | 5 | C5-2 | Remove dead chat emoji + attachment buttons (no handler) + unused imports | pages/Chat.jsx | 11b341e | ✅ build+31/31 green; user-approved removal |
 | 5 | C5-3 | Chat inline-edit input `aria-label` + save/cancel `aria-label`/`type=button` | pages/Chat.jsx | 731a0bb | ✅ build+31/31 green |
 
-| 6 | C6-1 | Toggle switch accessible name (`aria-label`) — all settings toggles | pages/Settings.jsx | PH | ✅ build+31/31 green |
-| 6 | C6-2 | Settings selects + change-pw inputs label-assoc (`htmlFor`/`id`/`name`) | pages/Settings.jsx | PH | ✅ build+31/31 green |
-| 6 | C6-3 | Delete-account modal `role=dialog`/`aria-modal`/labels/Escape | pages/Settings.jsx | PH | ✅ build+31/31 green |
-| 6 | C6-4 | FileUploadBox remove button `aria-label` | pages/Settings.jsx | PH | ✅ build+31/31 green |
+| 6 | C6-1 | Toggle switch accessible name (`aria-label`) — all settings toggles | pages/Settings.jsx | 9c6c590 | ✅ build+31/31 green |
+| 6 | C6-2 | Settings selects + change-pw inputs label-assoc (`htmlFor`/`id`/`name`) | pages/Settings.jsx | 9c6c590 | ✅ build+31/31 green |
+| 6 | C6-3 | Delete-account modal `role=dialog`/`aria-modal`/labels/Escape | pages/Settings.jsx | 9c6c590 | ✅ build+31/31 green |
+| 6 | C6-4 | FileUploadBox remove button `aria-label` | pages/Settings.jsx | 9c6c590 | ✅ build+31/31 green |
 ## Chunk 1 — Landing/Homepage
 **No code fixes applied.** Page verified clean; all first-pass "bugs" were full-page-screenshot artifacts (see findings.md correction table). The one real item (H1-1 scroll-jack) is a design-direction RECOMMENDATION requiring sign-off, not auto-changed on a live premium page. H1-2 (FAQ aria-controls) deferred as cosmetic.
 
