@@ -28,6 +28,9 @@ One row per fix. Nothing here without real-viewport verification + commit hash.
 | 6 | C6-2 | Settings selects + change-pw inputs label-assoc (`htmlFor`/`id`/`name`) | pages/Settings.jsx | 9c6c590 | ✅ build+31/31 green |
 | 6 | C6-3 | Delete-account modal `role=dialog`/`aria-modal`/labels/Escape | pages/Settings.jsx | 9c6c590 | ✅ build+31/31 green |
 | 6 | C6-4 | FileUploadBox remove button `aria-label` | pages/Settings.jsx | 9c6c590 | ✅ build+31/31 green |
+| 7 | C7-1 | Razorpay prefill uses real signed-in user (was hardcoded user@example.com/9876543210) | pages/Subscription.jsx | PH | ✅ build+31/31; bundle-verified fake values gone |
+| 7 | C7-2 | Load checkout SDK once (memoized) + double-submit guard (processingPlan + aria-busy) | pages/Subscription.jsx | PH | ✅ build+31/31 green |
+| 7 | C7-3 | Fix wrong-domain support/privacy/legal emails → @tricityshadi.com | pages/PaymentFailed.jsx, Privacy.jsx, Terms.jsx | PH | ✅ build+31/31; grep-verified only admin seed remains |
 ## Chunk 1 — Landing/Homepage
 **No code fixes applied.** Page verified clean; all first-pass "bugs" were full-page-screenshot artifacts (see findings.md correction table). The one real item (H1-1 scroll-jack) is a design-direction RECOMMENDATION requiring sign-off, not auto-changed on a live premium page. H1-2 (FAQ aria-controls) deferred as cosmetic.
 

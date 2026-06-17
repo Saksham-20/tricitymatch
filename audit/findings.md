@@ -137,7 +137,21 @@ Sidebar tab buttons have visible text (keyboard-focusable) ✓ · change-passwor
 ### NOT VERIFIED (Chunk 6)
 Live authed Settings render (toggle persistence, password change, account deletion, file upload to Cloudinary) — all static attribute additions, build-verified only; no behavior change. Tab nav lacks `role=tablist` ARIA (Low, same as C5-4); modal has no focus-trap (Low enhancement).
 
-## CHUNK 7 — Billing / Subscription  ⏳ PENDING
+## CHUNK 7 — Billing / Subscription  ✅ DONE
+
+Plan cards + payment-result pages are well-built and accessible. Real defects were in the Razorpay payment flow + a wrong-domain support email.
+
+| ID | Sev | Status | Finding → Fix |
+|----|-----|--------|-------------|
+| C7-1 | 🟠 High | ✅ FIXED | **Razorpay checkout prefilled HARDCODED fake values** — `prefill: { email: 'user@example.com', contact: '9876543210' }`. Real users saw a stranger's fake email/phone at the payment step (confusing + receipts/identity could go to a fake address). → prefill now uses the signed-in user from `useAuth` (name/email/phone, `undefined` fallbacks). |
+| C7-2 | 🟡 Med | ✅ FIXED | **Checkout SDK `<script>` appended on every subscribe click** — multiple clicks/plans stacked duplicate `<script>` tags + `onload` handlers; **no double-submit guard** → could fire two `create-order`s. → load SDK once via a memoized promise (`loadRazorpayScript`, reuses `window.Razorpay`), added `processingPlan` state that disables the clicked plan's button (spinner + `aria-busy`) and blocks re-entry; cleared on success/dismiss/`payment.failed`/error. |
+| C7-3 | 🟡 Med | ✅ FIXED | **Wrong-domain support emails** — `support@tricitymatch.com` (PaymentFailed), `privacy@tricitymatch.com` ×2 (Privacy), `legal@tricitymatch.com` (Terms). Brand domain is **tricityshadi.com** (Contact + SUPPORT_EMAIL already use it) → mail to the old domain bounces. → all 4 user-facing addresses switched to `@tricityshadi.com`. (AdminLogin placeholder `admin@tricitymatch.com` left — it's the real admin seed login.) |
+
+### Verified-clean (Chunk 7)
+PlanCard CTA is a real `<button>` (keyboard ok), plan names are `<h3>`, features in `<ul>`, current-plan disabled, price formatting `toLocaleString('en-IN')` ✓ · payment-not-configured path toasts cleanly (prod Razorpay gated) ✓ · PaymentHistory: semantic `<table>` w/ `<th>`, labeled invoice button, good empty + loading states ✓ · PaymentFailed/Success: clear recovery CTAs, no dead ends ✓ · build + 31/31 FE green.
+
+### NOT VERIFIED (Chunk 7)
+Live end-to-end payment (needs real Razorpay creds — config-gated in prod) so the prefill/processing-state path is build- + bundle-verified, not exercised against live checkout. PaymentHistory `PlanBadge` uses legacy plan keys (free/basic/premium/gold) so real plan types (basic_premium/...) render default-gray with an underscored label — Low cosmetic, not fixed.
 ## CHUNK 8 — Mobile experience  ⏳ PENDING
 ## CHUNK 9 — Accessibility review  ⏳ PENDING
 ## CHUNK 10 — Final polish pass  ⏳ PENDING

@@ -5,6 +5,29 @@ import toast from 'react-hot-toast';
 import { FiCheck, FiArrowRight, FiZap, FiShield } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 import { razorpay } from '../config';
+import { useAuth } from '../context/AuthContext';
+
+// Load the Razorpay checkout SDK once and reuse it (avoids stacking a new
+// <script> + onload handler on every subscribe click).
+let razorpayScriptPromise = null;
+const loadRazorpayScript = () => {
+  if (window.Razorpay) return Promise.resolve();
+  if (razorpayScriptPromise) return razorpayScriptPromise;
+  razorpayScriptPromise = new Promise((resolve, reject) => {
+    const existing = document.querySelector('script[src*="checkout.razorpay.com"]');
+    if (existing) {
+      existing.addEventListener('load', () => resolve());
+      existing.addEventListener('error', () => { razorpayScriptPromise = null; reject(new Error('Failed to load payment SDK')); });
+      return;
+    }
+    const s = document.createElement('script');
+    s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    s.onload = () => resolve();
+    s.onerror = () => { razorpayScriptPromise = null; reject(new Error('Failed to load payment SDK')); };
+    document.body.appendChild(s);
+  });
+  return razorpayScriptPromise;
+};
 
 // ─── Plan feature lists ───────────────────────
 const PLAN_FEATURES = {
@@ -47,7 +70,7 @@ const PLAN_CONFIG = {
 };
 
 // ─── Single plan card ─────────────────────────
-const PlanCard = ({ planKey, plan, isPopular, isCurrent, onSubscribe }) => {
+const PlanCard = ({ planKey, plan, isPopular, isCurrent, isProcessing, onSubscribe }) => {
   const cfg = PLAN_CONFIG[planKey] || PLAN_CONFIG.free;
   const Icon = cfg.icon;
   const features = PLAN_FEATURES[planKey] || plan.features || [];
@@ -163,9 +186,10 @@ const PlanCard = ({ planKey, plan, isPopular, isCurrent, onSubscribe }) => {
       {/* CTA */}
       <div className="px-6 pb-6">
         <button
-          onClick={() => !free && !isCurrent && onSubscribe(planKey)}
-          disabled={isCurrent || free}
-          className={`w-full py-3 text-sm font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
+          onClick={() => !free && !isCurrent && !isProcessing && onSubscribe(planKey)}
+          disabled={isCurrent || free || isProcessing}
+          aria-busy={isProcessing || undefined}
+          className={`w-full py-3 text-sm font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 disabled:cursor-not-allowed ${
             isCurrent
               ? 'bg-neutral-100 text-neutral-500 cursor-default'
               : free
@@ -173,9 +197,11 @@ const PlanCard = ({ planKey, plan, isPopular, isCurrent, onSubscribe }) => {
               : planKey === 'vip'
               ? 'bg-gold text-neutral-900 hover:bg-gold-400 shadow-gold hover:-translate-y-0.5'
               : 'bg-primary-500 text-white hover:bg-primary-600 shadow-burgundy hover:-translate-y-0.5'
-          }`}
+          } ${isProcessing ? 'opacity-70' : ''}`}
         >
-          {isCurrent
+          {isProcessing
+            ? <><span className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" /> Processing…</>
+            : isCurrent
             ? <><FiCheck className="w-4 h-4" /> Current Plan</>
             : free
             ? 'Free Forever'
@@ -188,9 +214,11 @@ const PlanCard = ({ planKey, plan, isPopular, isCurrent, onSubscribe }) => {
 
 // ─────────────────────────────────────────────
 const Subscription = () => {
+  const { user } = useAuth();
   const [plans, setPlans] = useState({});
   const [currentSub, setCurrentSub] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [processingPlan, setProcessingPlan] = useState(null);
 
   useEffect(() => { loadData(); }, []);
 
@@ -210,44 +238,55 @@ const Subscription = () => {
   };
 
   const handleSubscribe = async (planType) => {
-    try {
-      if (!razorpay.isConfigured) {
-        toast.error('Payments are not configured for this environment. Set VITE_RAZORPAY_KEY_ID in the frontend env.');
-        return;
-      }
+    if (!razorpay.isConfigured) {
+      toast.error('Payments are not configured for this environment. Set VITE_RAZORPAY_KEY_ID in the frontend env.');
+      return;
+    }
+    if (processingPlan) return; // guard against double-submit / double order
 
+    setProcessingPlan(planType);
+    try {
       const res = await api.post('/subscription/create-order', { planType });
       const { order } = res.data;
 
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.onload = () => {
-        const rzp = new window.Razorpay({
-          key: razorpay.keyId,
-          amount: order.amount,
-          currency: order.currency,
-          name: 'TricityShadi',
-          description: `${planType} Subscription`,
-          order_id: order.id,
-          handler: async (response) => {
-            try {
-              await api.post('/subscription/verify-payment', {
-                razorpayOrderId:   response.razorpay_order_id,
-                razorpayPaymentId: response.razorpay_payment_id,
-                razorpaySignature: response.razorpay_signature,
-              });
-              toast.success('Subscription activated!');
-              loadData();
-            } catch {
-              toast.error('Payment verification failed');
-            }
-          },
-          prefill: { email: 'user@example.com', contact: '9876543210' },
-          theme: { color: '#8B2346' },
-        });
-        rzp.open();
-      };
-      document.body.appendChild(script);
+      await loadRazorpayScript();
+
+      const rzp = new window.Razorpay({
+        key: razorpay.keyId,
+        amount: order.amount,
+        currency: order.currency,
+        name: 'TricityShadi',
+        description: `${planDisplayName(planType)} Subscription`,
+        order_id: order.id,
+        handler: async (response) => {
+          try {
+            await api.post('/subscription/verify-payment', {
+              razorpayOrderId:   response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature,
+            });
+            toast.success('Subscription activated!');
+            loadData();
+          } catch {
+            toast.error('Payment verification failed');
+          } finally {
+            setProcessingPlan(null);
+          }
+        },
+        // Prefill with the actual signed-in user (was hardcoded fake values).
+        prefill: {
+          name: [user?.firstName, user?.lastName].filter(Boolean).join(' ') || undefined,
+          email: user?.email || undefined,
+          contact: user?.phone || user?.phoneNumber || undefined,
+        },
+        theme: { color: '#8B2346' },
+        modal: { ondismiss: () => setProcessingPlan(null) },
+      });
+      rzp.on('payment.failed', () => {
+        toast.error('Payment failed. Please try again.');
+        setProcessingPlan(null);
+      });
+      rzp.open();
     } catch (error) {
       toast.error(
         error.response?.data?.error?.message ||
@@ -255,6 +294,7 @@ const Subscription = () => {
         error.message ||
         'Failed to create order'
       );
+      setProcessingPlan(null);
     }
   };
 
@@ -340,6 +380,7 @@ const Subscription = () => {
                   plan={plan}
                   isPopular={key === 'premium_plus' || plan.popular}
                   isCurrent={currentSub?.planType === key && currentSub?.status === 'active'}
+                  isProcessing={processingPlan === key}
                   onSubscribe={handleSubscribe}
                 />
               </motion.div>
@@ -364,6 +405,7 @@ const Subscription = () => {
                   }}
                   isPopular={key === 'premium_plus'}
                   isCurrent={currentSub?.planType === key && currentSub?.status === 'active'}
+                  isProcessing={processingPlan === key}
                   onSubscribe={handleSubscribe}
                 />
               </motion.div>

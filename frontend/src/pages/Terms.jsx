@@ -73,7 +73,7 @@ export default function Terms() {
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">10. Contact</h2>
-              <p>For questions about these Terms, contact us at <a href="mailto:legal@tricitymatch.com" className="text-primary-600 underline hover:text-primary-700">legal@tricitymatch.com</a>.</p>
+              <p>For questions about these Terms, contact us at <a href="mailto:legal@tricityshadi.com" className="text-primary-600 underline hover:text-primary-700">legal@tricityshadi.com</a>.</p>
             </section>
           </div>
         </div>

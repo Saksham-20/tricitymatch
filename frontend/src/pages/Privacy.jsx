@@ -62,7 +62,7 @@ export default function Privacy() {
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">7. Your Rights</h2>
-              <p>You have the right to access, correct, or delete your personal data. You can manage this through your profile settings or by contacting us at <a href="mailto:privacy@tricitymatch.com" className="text-primary-600 underline hover:text-primary-700">privacy@tricitymatch.com</a>.</p>
+              <p>You have the right to access, correct, or delete your personal data. You can manage this through your profile settings or by contacting us at <a href="mailto:privacy@tricityshadi.com" className="text-primary-600 underline hover:text-primary-700">privacy@tricityshadi.com</a>.</p>
             </section>
 
             <section>
@@ -77,7 +77,7 @@ export default function Privacy() {
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">10. Contact</h2>
-              <p>For privacy-related enquiries, contact us at <a href="mailto:privacy@tricitymatch.com" className="text-primary-600 underline hover:text-primary-700">privacy@tricitymatch.com</a>.</p>
+              <p>For privacy-related enquiries, contact us at <a href="mailto:privacy@tricityshadi.com" className="text-primary-600 underline hover:text-primary-700">privacy@tricityshadi.com</a>.</p>
             </section>
           </div>
         </div>

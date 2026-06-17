@@ -56,7 +56,7 @@ export default function PaymentFailed() {
                 <FiRefreshCw className="w-4 h-4" /> Try Again
               </Link>
               <a
-                href="mailto:support@tricitymatch.com"
+                href="mailto:support@tricityshadi.com"
                 className="btn-secondary w-full flex items-center justify-center gap-2"
               >
                 <FiMail className="w-4 h-4" /> Contact Support
