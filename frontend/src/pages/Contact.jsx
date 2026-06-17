@@ -62,7 +62,7 @@ export default function Contact() {
           {/* Form */}
           <div className="lg:col-span-3 bg-white rounded-2xl shadow-sm border border-neutral-100 p-8 md:p-10">
             <h1 className="text-3xl font-bold text-neutral-900 mb-2">Contact Us</h1>
-            <p className="text-sm text-neutral-500 mb-8">Have a question, concern, or feedback? Send us a message and we'll get back to you.</p>
+            <p className="text-sm text-neutral-600 mb-8">Have a question, concern, or feedback? Send us a message and we'll get back to you.</p>
 
             {submitted ? (
               <div className="text-center py-10" role="status" aria-live="polite">

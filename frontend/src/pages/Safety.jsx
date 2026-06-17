@@ -15,7 +15,7 @@ export default function Safety() {
 
         <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-8 md:p-12">
           <h1 className="text-3xl font-bold text-neutral-900 mb-2">Safety Centre</h1>
-          <p className="text-sm text-neutral-400 mb-8">Your safety is our top priority</p>
+          <p className="text-sm text-neutral-600 mb-8">Your safety is our top priority</p>
 
           <div className="prose prose-sm max-w-none text-neutral-700 space-y-6">
             <section>
@@ -49,7 +49,7 @@ export default function Safety() {
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">Emergency Contact</h2>
-              <p>If you believe you are in immediate danger, please contact local emergency services (112). For platform safety concerns, email <a href="mailto:support@tricityshadi.com" className="text-primary-600 hover:underline">support@tricityshadi.com</a>.</p>
+              <p>If you believe you are in immediate danger, please contact local emergency services (112). For platform safety concerns, email <a href="mailto:support@tricityshadi.com" className="text-primary-600 underline hover:text-primary-700">support@tricityshadi.com</a>.</p>
             </section>
           </div>
         </div>

@@ -31,13 +31,13 @@ export default function SuccessStories() {
       />
       <div className="text-center mb-10">
         <h1 className="text-3xl font-semibold text-neutral-800">{t('successStories.title')}</h1>
-        <p className="text-neutral-500 mt-2">{t('successStories.subtitle')}</p>
+        <p className="text-neutral-600 mt-2">{t('successStories.subtitle')}</p>
       </div>
 
       {loading ? (
-        <p className="text-center text-neutral-400">{t('common.loading')}</p>
+        <p className="text-center text-neutral-600">{t('common.loading')}</p>
       ) : stories.length === 0 ? (
-        <p className="text-center text-neutral-400">{t('successStories.empty')}</p>
+        <p className="text-center text-neutral-600">{t('successStories.empty')}</p>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {stories.map((s) => (

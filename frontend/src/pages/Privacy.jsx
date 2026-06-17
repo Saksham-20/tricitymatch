@@ -15,7 +15,7 @@ export default function Privacy() {
 
         <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-8 md:p-12">
           <h1 className="text-3xl font-bold text-neutral-900 mb-2">Privacy Policy</h1>
-          <p className="text-sm text-neutral-400 mb-8">Last updated: January 2025</p>
+          <p className="text-sm text-neutral-600 mb-8">Last updated: January 2025</p>
 
           <div className="prose prose-sm max-w-none text-neutral-700 space-y-6">
             <section>

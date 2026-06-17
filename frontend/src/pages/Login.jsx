@@ -403,7 +403,7 @@ const Login = () => {
                     <div className="w-full border-t border-neutral-200" />
                   </div>
                   <div className="relative flex justify-center text-sm">
-                    <span className="px-4 bg-white text-neutral-500">{t('auth.orContinueWith')}</span>
+                    <span className="px-4 bg-white text-neutral-600">{t('auth.orContinueWith')}</span>
                   </div>
                 </div>
                 <div className={`w-full overflow-hidden rounded-xl ${googleLoading ? 'opacity-60 pointer-events-none' : ''}`}>
@@ -418,7 +418,7 @@ const Login = () => {
                 <div className="w-full border-t border-neutral-200" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white text-neutral-500">New to TricityShadi?</span>
+                <span className="px-4 bg-white text-neutral-600">New to TricityShadi?</span>
               </div>
             </div>
 
