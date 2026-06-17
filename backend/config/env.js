@@ -172,6 +172,7 @@ const config = {
     user: optionalString('EMAIL_USER'),
     password: optionalString('EMAIL_PASSWORD'),
     from: optionalString('EMAIL_FROM', 'noreply@tricityshadi.com'),
+    support: optionalString('SUPPORT_EMAIL', 'support@tricityshadi.com'),
     isConfigured: () => {
       return !!optionalString('EMAIL_USER') && !!optionalString('EMAIL_PASSWORD');
     },

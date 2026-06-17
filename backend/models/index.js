@@ -21,6 +21,7 @@ const SuccessStory = require('./SuccessStory');
 const Group = require('./Group');
 const GroupMember = require('./GroupMember');
 const GroupMessage = require('./GroupMessage');
+const ContactMessage = require('./ContactMessage');
 
 // Define Relationships
 User.hasOne(Profile, { foreignKey: 'userId', onDelete: 'CASCADE' });
@@ -145,5 +146,6 @@ module.exports = {
   Group,
   GroupMember,
   GroupMessage,
+  ContactMessage,
 };
 

@@ -494,9 +494,39 @@ const deletePhotoValidation = [
     .withMessage('Invalid photo URL'),
 ];
 
+// ==================== CONTACT VALIDATOR ====================
+// Public contact form. Sanitize free-text (escape) since the message is stored
+// and surfaced to admins / emailed — prevents stored XSS.
+const contactValidation = [
+  body('name')
+    .trim()
+    .notEmpty().withMessage('Name is required')
+    .isLength({ min: 2, max: 100 }).withMessage('Name must be 2–100 characters')
+    .escape(),
+  body('email')
+    .isEmail().withMessage('Please provide a valid email')
+    .normalizeEmail(),
+  body('phone')
+    .optional({ checkFalsy: true })
+    .trim()
+    .isLength({ max: 20 }).withMessage('Phone is too long')
+    .escape(),
+  body('subject')
+    .optional({ checkFalsy: true })
+    .trim()
+    .isLength({ max: 150 }).withMessage('Subject is too long')
+    .escape(),
+  body('message')
+    .trim()
+    .notEmpty().withMessage('Message is required')
+    .isLength({ min: 10, max: 2000 }).withMessage('Message must be 10–2000 characters')
+    .escape(),
+];
+
 module.exports = {
   // Auth
   signupValidation,
+  contactValidation,
   loginValidation,
   forgotPasswordValidation,
   resetPasswordValidation,

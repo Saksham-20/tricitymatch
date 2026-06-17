@@ -62,6 +62,14 @@ const signupLimiter = createRateLimiter({
   keyGenerator: (req) => ipKeyGenerator(req),
 });
 
+// Public contact form limiter — anti-spam without blocking genuine enquiries
+const contactLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // 5 enquiries per hour per IP
+  message: 'Too many messages sent, please try again after an hour',
+  keyGenerator: (req) => ipKeyGenerator(req),
+});
+
 // OTP send/verify limiter — separate from auth limiter so OTP calls don't exhaust login pool
 const otpLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000, // 10 minutes
@@ -453,6 +461,7 @@ module.exports = {
   authLimiter,
   otpLimiter,
   signupLimiter,
+  contactLimiter,
   passwordResetLimiter,
   searchLimiter,
   messageLimiter,
