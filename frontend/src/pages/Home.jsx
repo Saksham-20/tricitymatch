@@ -1302,7 +1302,7 @@ const Home = () => {
         <div style={{ borderTop: '1px solid var(--line)' }}>
           {faqs.map((it, i) => (
             <div key={i} className={`faq-row${faqOpen === i ? ' faq-item-open' : ''}`}
-              role="button" tabIndex={0} aria-expanded={faqOpen === i}
+              role="button" tabIndex={0} aria-expanded={faqOpen === i} aria-controls={`faq-answer-${i}`}
               onClick={() => setFaqOpen(faqOpen === i ? -1 : i)}
               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setFaqOpen(faqOpen === i ? -1 : i); } }}
               style={{
@@ -1317,7 +1317,7 @@ const Home = () => {
               <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.16em', color: 'var(--burgundy)', paddingTop: 6 }}>0{i + 1}</span>
               <div>
                 <div style={{ fontFamily: 'var(--display)', fontSize: 20, lineHeight: 1.15, letterSpacing: '-.01em' }}>{it.q}</div>
-                <div className="faq-a" style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--ink-soft)', fontFamily: 'var(--sans)' }}>{it.a}</div>
+                <div id={`faq-answer-${i}`} className="faq-a" style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--ink-soft)', fontFamily: 'var(--sans)' }}>{it.a}</div>
               </div>
               <div className="faq-toggle" style={{
                 width: 36, height: 36, border: '1px solid var(--line)', borderRadius: '50%',
