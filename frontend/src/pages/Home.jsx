@@ -751,7 +751,7 @@ const Home = () => {
         </div>
 
         {/* Horizontal scroll */}
-        <div id="why-scroller" className="why-scroller" style={{ display: 'flex', gap: 16, overflowX: 'auto', padding: '0 24px 20px', scrollSnapType: 'x mandatory' }}>
+        <div id="why-scroller" className="why-scroller" tabIndex={0} role="group" aria-label="Why TricityShadi — scroll horizontally to read" style={{ display: 'flex', gap: 16, overflowX: 'auto', padding: '0 24px 20px', scrollSnapType: 'x mandatory' }}>
           {whyCards.map((c, i) => (
             <motion.div key={i} initial={{ opacity: 1, y: 0 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0 }}
               transition={{ delay: i * 0.07 }}
@@ -893,7 +893,7 @@ const Home = () => {
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                   <span style={{ fontFamily: 'var(--display)', fontSize: 16, lineHeight: 1 }}>{p.name}, <em style={{ fontStyle: 'italic', opacity: .7 }}>{p.age}</em></span>
-                  <span style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '.14em', textTransform: 'uppercase', opacity: .6 }}>{p.loc}</span>
+                  <span style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '.14em', textTransform: 'uppercase', opacity: .8 }}>{p.loc}</span>
                 </div>
                 <span style={{ color: 'var(--gold)', fontSize: 12 }}>{matchIdx === i ? '●' : '○'}</span>
               </div>
@@ -1006,7 +1006,7 @@ const Home = () => {
                 <div key={i} style={{
                   display: 'grid', gridTemplateColumns: '32px 1fr 60px', gap: 12,
                   alignItems: 'center', padding: '8px 0',
-                  opacity: i === processActive ? 1 : i < processActive ? 0.65 : 0.35,
+                  opacity: i === processActive ? 1 : i < processActive ? 0.85 : 0.7,
                   transition: 'opacity .3s',
                 }}>
                   <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.14em' }}>0{i + 1}</span>
@@ -1043,11 +1043,8 @@ const Home = () => {
           {cities.map((c, i) => (
             <div key={i}
               className={`city-strip${activeCity === i ? ' active' : ''}`}
-              role="button" tabIndex={0} aria-pressed={activeCity === i} aria-label={`${c.name} — ${c.count} profiles`}
               onMouseEnter={() => setActiveCity(i)}
               onClick={() => setActiveCity(i)}
-              onFocus={() => setActiveCity(i)}
-              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveCity(i); } }}
               style={{
                 flex: activeCity === i ? 3 : 1,
                 position: 'relative', overflow: 'hidden', cursor: 'pointer',
@@ -1090,7 +1087,7 @@ const Home = () => {
                 <div style={{ fontFamily: 'var(--display)', fontSize: 'clamp(32px,4vw,64px)', lineHeight: .9, letterSpacing: '-.025em', color: 'var(--cream)' }}>{c.name}</div>
                 <div className="city-content-bottom" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 24 }}>
                   <p style={{ fontSize: 14, lineHeight: 1.55, color: 'rgba(253,248,242,.75)', maxWidth: 320, fontFamily: 'var(--sans)' }}>{c.desc}</p>
-                  <Link to="/search" style={{
+                  <Link to="/search" aria-label={`Browse ${c.name} profiles — ${c.count} listed`} onFocus={() => setActiveCity(i)} style={{
                     fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.16em', textTransform: 'uppercase',
                     padding: '10px 18px', border: '1px solid rgba(253,248,242,.4)', borderRadius: 999, color: 'var(--cream)',
                     textDecoration: 'none', transition: 'all .3s', whiteSpace: 'nowrap',
@@ -1158,9 +1155,9 @@ const Home = () => {
               onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--gold)'; e.currentTarget.style.transform = 'translateY(-4px)'; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--line-on-dk)'; e.currentTarget.style.transform = ''; }}
             >
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.18em', color: 'rgba(253,248,242,.55)' }}>{it.n}</span>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.18em', color: 'rgba(253,248,242,.75)' }}>{it.n}</span>
               <it.Icon style={{ width: 36, height: 36, color: 'var(--gold)' }} />
-              <h4 style={{ fontFamily: 'var(--display)', fontSize: 20, lineHeight: 1.1, letterSpacing: '-.01em', fontWeight: 400, marginTop: 'auto', color: 'var(--cream)' }}>{it.t}</h4>
+              <h3 style={{ fontFamily: 'var(--display)', fontSize: 20, lineHeight: 1.1, letterSpacing: '-.01em', fontWeight: 400, marginTop: 'auto', color: 'var(--cream)' }}>{it.t}</h3>
               <p style={{ fontSize: 13, color: 'rgba(253,248,242,.75)', lineHeight: 1.5, fontFamily: 'var(--sans)' }}>{it.b}</p>
             </motion.div>
           ))}
@@ -1427,7 +1424,7 @@ const Home = () => {
             { title: 'Contact',  links: [['support@tricityshadi.com', null], ['+91 98765 43210', null], ['Sector 17, Chandigarh', null]] },
           ].map(col => (
             <div key={col.title}>
-              <h5 style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--gold)', fontWeight: 500, marginBottom: 20 }}>{col.title}</h5>
+              <h3 style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--gold)', fontWeight: 500, marginBottom: 20 }}>{col.title}</h3>
               <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column' }}>
                 {col.links.map(([label, to]) => (
                   <li key={label}>

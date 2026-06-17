@@ -152,6 +152,10 @@ PlanCard CTA is a real `<button>` (keyboard ok), plan names are `<h3>`, features
 
 ### NOT VERIFIED (Chunk 7)
 Live end-to-end payment (needs real Razorpay creds — config-gated in prod) so the prefill/processing-state path is build- + bundle-verified, not exercised against live checkout. PaymentHistory `PlanBadge` uses legacy plan keys (free/basic/premium/gold) so real plan types (basic_premium/...) render default-gray with an underscored label — Low cosmetic, not fixed.
-## CHUNK 8 — Mobile experience  ⏳ PENDING
+## CHUNK 8 — Mobile experience (RN app)  ⏭️ SKIPPED (deferred by user 2026-06-17)
+Native Expo/RN app in `mobile/` — different stack, not browser-verifiable like the deployed web app. Audit method there = static read + `node_modules/.bin/tsc -p tsconfig.json`. Revisit after web chunks.
+
+## CHUNK 9 — Accessibility deep-pass (web)  🔧 IN PROGRESS
+Holistic automated sweep (axe-core on live prod) to catch cross-cutting a11y the per-chunk passes missed (landmarks, heading order, contrast, lang, alt, focus order). Per-component a11y already hardened in Chunks 2–7.
 ## CHUNK 9 — Accessibility review  ⏳ PENDING
 ## CHUNK 10 — Final polish pass  ⏳ PENDING
