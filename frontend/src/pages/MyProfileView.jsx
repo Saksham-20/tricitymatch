@@ -240,9 +240,10 @@ const MyProfileView = () => {
                         key={photo}
                         type="button"
                         onClick={() => setLightbox({ open: true, src, alt })}
-                        className={`relative overflow-hidden bg-slate-100 hover:brightness-90 transition-all focus:outline-none focus:ring-2 focus:ring-rose-400 focus:ring-inset cursor-pointer ${i === 0 && allPhotos.length >= 3 ? 'row-span-2 col-span-1' : ''}`}
+                        className={`relative overflow-hidden bg-gradient-to-br from-rose-50 to-amber-50 hover:brightness-95 transition-all focus:outline-none focus:ring-2 focus:ring-rose-400 focus:ring-inset cursor-pointer ${i === 0 && allPhotos.length >= 3 ? 'row-span-2 col-span-1' : ''}`}
                       >
-                        <img src={src} alt={alt} className="w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" />
+                        <span className="absolute inset-0 flex items-center justify-center text-6xl font-black text-rose-200 select-none">{profile.firstName?.[0] || '?'}</span>
+                        <img src={src} alt={alt} className="relative w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                       </button>
                     );
                   })}
@@ -466,7 +467,7 @@ const MyProfileView = () => {
             )}
 
             {/* Family */}
-            {(profile.familyType || profile.familyStatus || profile.fatherOccupation || profile.motherOccupation || profile.numberOfSiblings) && (
+            {(profile.familyType || profile.familyStatus || profile.fatherOccupation || profile.motherOccupation || profile.numberOfSiblings > 0) && (
               <Card title="Family Background" icon={FiHome} action={<EditBtn small />}>
                 <div className="grid grid-cols-2 gap-2 mb-3">
                   {profile.familyType && <Pill label="Family Type" value={profile.familyType} />}

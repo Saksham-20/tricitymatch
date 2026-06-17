@@ -52,3 +52,6 @@ _Decision rationale:_ anti-hallucination + "would Linear ship this?" → **yes**
 | W3 | W3-1 | Hoist Profile.firstName/lastName/profilePhoto in AuthContext so name shows app-wide (greeting/navbar/prefill) | context/AuthContext.jsx, pages/Dashboard.jsx | (pending) | ✅ "Good afternoon, Aarav" + navbar "Aarav"; like POST 200; build green |
 
 | W4 | W4-1 | Fix 3/4 search sorts returning 400 (validator enum + DB order clause for age/location/recent) | backend/validators/index.js, backend/controllers/searchController.js | (pending) | ✅ all sorts 200; ages 23→27 asc; validator tests 25/25 |
+
+| W5 | W5-1 | Stray "0" on profile (boolean-guard numberOfSiblings) | pages/MyProfileView.jsx | (pending) | ✅ 0 stray nodes; build green |
+| W5 | W5-2/3 | Graceful initials+gradient fallback for broken profile photos (onError) | pages/MyProfileView.jsx, pages/ProfileDetail.jsx | (pending) | ✅ initials show on img error; build green |

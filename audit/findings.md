@@ -235,3 +235,15 @@ NOTE: live flow is **4 steps**, not the 14 in CLAUDE.md (stale). Walked end-to-e
 
 ### Observation (not fixed — idle-session artifact)
 Leaving an authed tab open past token expiry makes the navbar unread-count poller spam repeated 401s instead of backing off. Rare under normal use (needs a long-idle tab); low priority. Candidate: stop polling on first 401 until re-auth.
+
+## W5 — Profile (own view · detail · editor)  ✅ DONE
+| ID | Sev | Status | Finding → Fix |
+|----|-----|--------|---------------|
+| W5-1 | 🟡 Med | ✅ FIXED-VERIFIED | **Stray "0" rendered** on own profile between Lifestyle and Languages — Family card guard `(... || profile.numberOfSiblings) && (…)` returns the number `0` when siblings=0 + other family fields empty, and React renders `0`. → guard made boolean `numberOfSiblings > 0` ([MyProfileView.jsx:469](frontend/src/pages/MyProfileView.jsx#L469)). **Re-verified: 0 stray "0" text nodes.** |
+| W5-2 | 🟡 Med | ✅ FIXED-VERIFIED | **Broken-image glyph on own profile photo** — when a profilePhoto URL 404s, the `<img>` had no fallback → ugly broken-image icon. → initials-on-gradient fallback behind the img + `onError` hides the broken img ([MyProfileView.jsx:243](frontend/src/pages/MyProfileView.jsx#L243)). **Re-verified: img display:none, "K" initial shows on gradient.** |
+| W5-3 | 🟡 Med | ✅ FIXED-VERIFIED | **Same broken-image glyph on ProfileDetail hero** (other people's profiles). → same initials+gradient+onError fallback ([ProfileDetail.jsx:380](frontend/src/pages/ProfileDetail.jsx#L380)). **Re-verified: "A" initial on gradient.** |
+
+**Verified-clean (W5):** MyProfileView completeness strip + add-field nudges; ProfileDetail tabs/compat ring/numerology/Express-Interest/Message-gate; Contact "Upgrade to Premium" gate is **correct** (karan's seeded subscription is `status:expired`, so free-tier gating applies — not a bug); editor loads, custom Select dropdown opens with full a11y, step nav works, **Save → PUT /profile/me 200 → redirect to /profile** (persists). Build green.
+
+### Note (UX, not fixed)
+Editor "Save Profile" only appears on the last step (step 10); step tabs are jump-able + there's a "saved when you click Save" hint, so it's reachable. Candidate polish: a persistent Save in the header.

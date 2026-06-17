@@ -377,9 +377,10 @@ const ProfileDetail = () => {
                       key={photo}
                       type="button"
                       onClick={() => setLightbox({ open: true, src: url, alt: `${firstName} ${i + 1}` })}
-                      className={`relative overflow-hidden bg-slate-100 hover:brightness-90 transition-all focus:outline-none focus:ring-2 focus:ring-rose-400 focus:ring-inset cursor-pointer ${isFirst && allPhotos.length >= 3 ? 'row-span-2 col-span-1' : ''}`}
+                      className={`relative overflow-hidden bg-gradient-to-br from-rose-100 via-rose-50 to-pink-50 hover:brightness-95 transition-all focus:outline-none focus:ring-2 focus:ring-rose-400 focus:ring-inset cursor-pointer ${isFirst && allPhotos.length >= 3 ? 'row-span-2 col-span-1' : ''}`}
                     >
-                      <img src={url} alt={`${firstName} ${i + 1}`} className="w-full h-full object-cover" loading={i === 0 ? 'eager' : 'lazy'} />
+                      <span className="absolute inset-0 flex items-center justify-center text-7xl font-bold text-rose-200 select-none">{firstName[0]}</span>
+                      <img src={url} alt={`${firstName} ${i + 1}`} className="relative w-full h-full object-cover" loading={i === 0 ? 'eager' : 'lazy'} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                       {isOverlay && (
                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
                           <span className="text-white text-xl font-bold">+{allPhotos.length - 5}</span>
