@@ -32,6 +32,7 @@ const FontLoader = () => (
       --ink-soft: #4A3B30;
       --gold: #B8952A;
       --gold-lt: #F0D080;
+      --gold-text: #D4B048; /* AA-compliant gold for small text on burgundy/ink (4.8:1) */
       --mute: rgba(45,26,34,0.65);
       --line: rgba(45,26,34,0.14);
       --line-on-dk: rgba(253,248,242,0.22);
@@ -803,7 +804,7 @@ const Home = () => {
       <section id="matches" className="matches-section section-dark" style={{ background: 'var(--burgundy)', color: 'var(--cream)', padding: '36px 40px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 20, marginBottom: 24, flexWrap: 'wrap' }}>
           <div>
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 24, display: 'block' }}>— Smart matches</span>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--gold-text)', marginBottom: 24, display: 'block' }}>— Smart matches</span>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', color: 'var(--cream)' }}>
               Profiles matched<br /><em style={{ fontStyle: 'italic', color: 'var(--gold)' }}>just</em> for you.
             </h2>
@@ -843,7 +844,7 @@ const Home = () => {
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '.14em', textTransform: 'uppercase', opacity: .85, lineHeight: 1.3 }}>Compat<br />score</span>
               </div>
               {/* Verified badge */}
-              <span style={{ position: 'absolute', top: 16, right: 16, fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gold)', background: 'rgba(0,0,0,.45)', backdropFilter: 'blur(6px)', padding: '6px 12px', borderRadius: 999 }}>✦ Verified</span>
+              <span style={{ position: 'absolute', top: 16, right: 16, fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gold-text)', background: 'rgba(0,0,0,.45)', backdropFilter: 'blur(6px)', padding: '6px 12px', borderRadius: 999 }}>✦ Verified</span>
             </div>
             {/* Details panel */}
             <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
@@ -933,7 +934,9 @@ const Home = () => {
         ))}
       </div>
 
-      <div ref={processRef} className="process-outer" style={{ height: '180vh', position: 'relative' }}>
+      {/* Pin track shortened 180vh→150vh (UX audit H1-1): less dead scroll per
+          step + less chance of overshooting; step mapping self-adjusts off offsetHeight. */}
+      <div ref={processRef} className="process-outer" style={{ height: '150vh', position: 'relative' }}>
         <div className="process-sticky" style={{
           position: 'sticky', top: 64, height: 'calc(100vh - 64px)',
           display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 32,
@@ -1029,7 +1032,7 @@ const Home = () => {
       <section id="cities" className="cities-section section-dark" style={{ background: 'var(--ink)', color: 'var(--cream)' }}>
         <div style={{ padding: '48px 40px 32px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, alignItems: 'end' }}>
           <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0 }}>
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 24, display: 'block' }}>— Made for Tricity</span>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--gold-text)', marginBottom: 24, display: 'block' }}>— Made for Tricity</span>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', color: 'var(--cream)' }}>
               Three cities.<br />One <em style={{ fontStyle: 'italic', color: 'var(--gold)' }}>community.</em>
             </h2>
@@ -1069,7 +1072,7 @@ const Home = () => {
                 transformOrigin: 'left bottom', transform: 'rotate(-90deg) translateY(0)',
                 whiteSpace: 'nowrap', opacity: activeCity === i ? 0 : 1, transition: 'opacity .4s', zIndex: 2,
               }}>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--gold)' }}>{c.tag}</span>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--gold-text)' }}>{c.tag}</span>
               </div>
 
               {/* Expanded content */}
@@ -1079,7 +1082,7 @@ const Home = () => {
                 opacity: activeCity === i ? 1 : 0, transition: 'opacity .5s .2s', zIndex: 1,
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--gold)' }}>{c.tag}</span>
+                  <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--gold-text)' }}>{c.tag}</span>
                   <div style={{ fontFamily: 'var(--display)', fontSize: 64, lineHeight: 1, color: 'var(--gold)', fontStyle: 'italic', textAlign: 'right' }}>
                     {c.count}<small style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '.18em', textTransform: 'uppercase', color: 'rgba(253,248,242,.7)', marginTop: 4, fontStyle: 'normal' }}>profiles</small>
                   </div>
@@ -1134,7 +1137,7 @@ const Home = () => {
       <section id="trust" className="trust-section section-dark" style={{ background: 'var(--burgundy)', color: 'var(--cream)', padding: '52px 40px' }}>
         <div className="trust-header" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'end', marginBottom: 24 }}>
           <div>
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 24, display: 'block' }}>— Safety first</span>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--gold-text)', marginBottom: 24, display: 'block' }}>— Safety first</span>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', color: 'var(--cream)' }}>
               Built on trust. Backed by <em style={{ fontStyle: 'italic', color: 'var(--gold)' }}>action.</em>
             </h2>
@@ -1349,7 +1352,7 @@ const Home = () => {
 
         <div style={{ position: 'relative', zIndex: 1 }}>
           <motion.div initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0 }}>
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 32, display: 'block' }}>★ Your story awaits ★</span>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--gold-text)', marginBottom: 32, display: 'block' }}>★ Your story awaits ★</span>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.8vw,44px)', lineHeight: .92, letterSpacing: '-.025em', marginBottom: 32 }}>
               Every great<br />love story<br />starts with <em style={{ fontStyle: 'italic', color: 'var(--gold)' }}>one step.</em>
             </h2>
@@ -1399,7 +1402,7 @@ const Home = () => {
         {/* Grid */}
         <div className="footer-grid-inner" style={{ padding: '36px 48px', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 36, borderBottom: '1px solid var(--line-on-dk)' }}>
           <div>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 20 }}>Chandigarh · Mohali · Panchkula</div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--gold-text)', marginBottom: 20 }}>Chandigarh · Mohali · Panchkula</div>
             <p style={{ fontSize: 14, color: 'rgba(253,248,242,.7)', lineHeight: 1.55, maxWidth: 320, fontFamily: 'var(--sans)', marginBottom: 24 }}>
               Tricity's most trusted matrimonial platform. Connecting families through verified profiles and intelligent matching since 2011.
             </p>
@@ -1424,7 +1427,7 @@ const Home = () => {
             { title: 'Contact',  links: [['support@tricityshadi.com', null], ['+91 98765 43210', null], ['Sector 17, Chandigarh', null]] },
           ].map(col => (
             <div key={col.title}>
-              <h3 style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--gold)', fontWeight: 500, marginBottom: 20 }}>{col.title}</h3>
+              <h3 style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--gold-text)', fontWeight: 500, marginBottom: 20 }}>{col.title}</h3>
               <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column' }}>
                 {col.links.map(([label, to]) => (
                   <li key={label}>
