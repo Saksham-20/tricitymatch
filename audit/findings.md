@@ -104,7 +104,22 @@ Greeting hero + time-based copy ✓ · stat cards (mutual count is live) ✓ · 
 
 ### NOT VERIFIED (Chunk 4)
 Live authed dashboard render (real data, tab-order across full page, premium vs free states) — needs a logged-in account; only component-level live checks done. C4-3 fix. Minor: SuggestionCard `age` uses crude year-diff (off by ≤1yr); one nested card uses `dark:` classes while the rest of the dashboard doesn't (cosmetic inconsistency).
-## CHUNK 5 — Core product (search/profile/chat/match)  ⏳ PENDING
+## CHUNK 5 — Core product (search/profile/chat/match)  🔧 IN PROGRESS
+
+Core product is in much better a11y shape than dashboard/onboarding were — most interactive controls already have accessible names. Sweep found few gaps.
+
+| ID | Sev | Status | Finding → Fix |
+|----|-----|--------|-------------|
+| C5-1 | ⚪ Low | ✅ FIXED-VERIFIED | **Search sort `<select>` had no accessible name** (no label/aria-label) — SR announced only "combobox". → `aria-label="Sort profiles by"`. Build+31/31 green. |
+| C5-2 | 🟡 Med | ⏳ OPEN (product decision) | **Chat composer emoji + attachment buttons are dead** — both `type=button` with NO `onClick`; they have hover states + aria-labels so they look functional but do nothing on click (dead affordance, same class of issue as the old dashboard heart). Photo-sharing has no backend support. Needs a call: remove, mark "coming soon", or build photo upload. NOT auto-changed. |
+| C5-3 | ⚪ Low | ✅ FIXED-VERIFIED | **Chat inline-edit input unlabeled** + edit save/cancel buttons had only `title` (weak SR name) and no `type`. → added `aria-label` to edit input + save/cancel buttons + `type=button`. Build+31/31 green. |
+| C5-4 | ⚪ Low | ⏳ OPEN (note) | ProfileDetail content **tab nav uses plain `<button>`s** (keyboard-focusable + activatable, so functional) but lacks `role=tablist`/`role=tab`/`aria-selected` + arrow-key roving. Enhancement, not a blocker. NOT changed. |
+
+### Verified-clean (Chunk 5)
+ProfileCard full variant: like/shortlist buttons have `aria-label`, callbacks persist to `/match`, keyboard "View Profile" button present, `role=article` ✓ (compact variant is **dead code** — `variant="compact"` used nowhere). FilterPanel: every select/input paired `FieldLabel htmlFor` ↔ `id`/`name` ✓. Search-by-ID input has `aria-label` ✓. ProfileDetail top-bar + hero action buttons (Back/Save/Interest/Message/Voice/Video/Kundli) all have visible text ✓. Chat message edit/delete buttons have `aria-label`; composer emoji/attach/send + message input all have `aria-label` ✓ (functionality of emoji/attach = C5-2). MatchCard fixed in Chunk 4. Match action API (`POST /match/:id like|shortlist|pass`) sound. Build + 31/31 FE green.
+
+### NOT VERIFIED (Chunk 5)
+Live authed Search/ProfileDetail/Chat render + real socket messaging flow (needs logged-in account + a mutual match). C5-2/C5-4 decisions. ProfileDetail accordion/gallery deeper interactions, voice-intro playback, compatibility/horoscope sheets not individually exercised.
 ## CHUNK 6 — Settings  ⏳ PENDING
 ## CHUNK 7 — Billing / Subscription  ⏳ PENDING
 ## CHUNK 8 — Mobile experience  ⏳ PENDING

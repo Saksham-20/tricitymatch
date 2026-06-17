@@ -198,6 +198,7 @@ const Search = () => {
               <select
                 value={sortBy}
                 onChange={handleSortChange}
+                aria-label="Sort profiles by"
                 className="input-field text-sm min-w-[160px]"
               >
                 <option value="compatibility">Best Match %</option>

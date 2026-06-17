@@ -773,6 +773,7 @@ const Chat = () => {
                               type="text"
                               value={editContent}
                               onChange={(e) => setEditContent(e.target.value)}
+                              aria-label="Edit message text"
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
                                   e.preventDefault();
@@ -786,16 +787,20 @@ const Chat = () => {
                             />
                             <div className="flex justify-end gap-1">
                               <button
+                                type="button"
                                 onClick={cancelEditing}
                                 className="p-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
                                 title="Cancel (Esc)"
+                                aria-label="Cancel edit"
                               >
                                 <FiX className="w-4 h-4" />
                               </button>
                               <button
+                                type="button"
                                 onClick={() => saveEdit(message.id)}
                                 className="p-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
                                 title="Save (Enter)"
+                                aria-label="Save edit"
                               >
                                 <FiCheck className="w-4 h-4" />
                               </button>
