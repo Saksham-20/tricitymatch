@@ -4,8 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 import { FiSend, FiMessageCircle, FiCheck, FiEdit2, FiTrash2, FiX, FiChevronLeft, FiMoreVertical, FiSmile, FiLock } from 'react-icons/fi';
-import { BsCheck, BsCheckAll, BsEmojiSmile } from 'react-icons/bs';
-import { HiOutlinePhotograph } from 'react-icons/hi';
+import { BsCheck, BsCheckAll } from 'react-icons/bs';
 import { API_BASE_URL } from '../utils/api';
 import { getImageUrl } from '../utils/cloudinary';
 import { sanitizeText } from '../utils/sanitize';
@@ -844,15 +843,6 @@ const Chat = () => {
             {/* Message Input */}
             <div className="flex-shrink-0 p-4 bg-white border-t border-neutral-200">
               <form onSubmit={sendMessage} className="flex items-end gap-3">
-                {/* Emoji button */}
-                <button 
-                  type="button"
-                  aria-label="Add emoji"
-                  className="p-2.5 text-neutral-400 hover:text-primary-500 hover:bg-primary-50 rounded-full transition-colors"
-                >
-                  <BsEmojiSmile className="w-6 h-6" />
-                </button>
-
                 {/* Input container */}
                 <div className="flex-1 relative">
                   <input
@@ -865,15 +855,6 @@ const Chat = () => {
                     disabled={sending}
                   />
                 </div>
-
-                {/* Attachment button */}
-                <button 
-                  type="button"
-                  aria-label="Attach photo"
-                  className="p-2.5 text-neutral-400 hover:text-primary-500 hover:bg-primary-50 rounded-full transition-colors"
-                >
-                  <HiOutlinePhotograph className="w-6 h-6" />
-                </button>
 
                 {/* Send button */}
                 <button 

@@ -111,7 +111,7 @@ Core product is in much better a11y shape than dashboard/onboarding were — mos
 | ID | Sev | Status | Finding → Fix |
 |----|-----|--------|-------------|
 | C5-1 | ⚪ Low | ✅ FIXED-VERIFIED | **Search sort `<select>` had no accessible name** (no label/aria-label) — SR announced only "combobox". → `aria-label="Sort profiles by"`. Build+31/31 green. |
-| C5-2 | 🟡 Med | ⏳ OPEN (product decision) | **Chat composer emoji + attachment buttons are dead** — both `type=button` with NO `onClick`; they have hover states + aria-labels so they look functional but do nothing on click (dead affordance, same class of issue as the old dashboard heart). Photo-sharing has no backend support. Needs a call: remove, mark "coming soon", or build photo upload. NOT auto-changed. |
+| C5-2 | 🟡 Med | ✅ FIXED | **Chat composer emoji + attachment buttons were dead** — both `type=button` with NO `onClick`; looked functional but did nothing. **User decision: remove both.** → deleted both buttons + their now-unused icon imports (`BsEmojiSmile`, `HiOutlinePhotograph`). Text chat fully functional without them; reversible when features are built. Build+31/31 green. |
 | C5-3 | ⚪ Low | ✅ FIXED-VERIFIED | **Chat inline-edit input unlabeled** + edit save/cancel buttons had only `title` (weak SR name) and no `type`. → added `aria-label` to edit input + save/cancel buttons + `type=button`. Build+31/31 green. |
 | C5-4 | ⚪ Low | ⏳ OPEN (note) | ProfileDetail content **tab nav uses plain `<button>`s** (keyboard-focusable + activatable, so functional) but lacks `role=tablist`/`role=tab`/`aria-selected` + arrow-key roving. Enhancement, not a blocker. NOT changed. |
 
