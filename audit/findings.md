@@ -260,3 +260,21 @@ The seeder writes legacy `Subscription.planType = 'premium'`/`'elite'`, but `req
 | W7-1 | ⚪ Low | ✅ FIXED-VERIFIED | **Payment History showed raw plan enum** "Premium_plus" (legacy color-map keys `free/basic/premium/gold` didn't match real `basic_premium/premium_plus/vip`, so no friendly label + default gray). → enum→label+color map ([PaymentHistory.jsx:8](frontend/src/pages/PaymentHistory.jsx#L8)). **Re-verified: renders "Premium Plus".** |
 
 **Verified-clean (W7):** Subscription page premium; active-plan green banner ("Premium Plus · valid until … · 999/999 unlocks") accurate; 4 plan cards with Most-Popular/Best-Value; current plan disabled "Current Plan"; **payment config-gated gracefully** — Get VIP/Basic shows clear toast "Payments are not configured … Set VITE_RAZORPAY_KEY_ID" (no crash); Razorpay prefill now uses the real signed-in name (via W3-1 AuthContext normalize); Payment Success page premium (unlocked list + redirect); 0 console errors.
+
+## W8 — Settings  ✅ DONE — no code bugs
+**Verified-clean:** tabbed layout (Account/Privacy/Notifications/Verification/Danger Zone); **dark mode toggle works** (html.dark + dark bg, premium contrast); language select (en/hi/pa); change-password form with rule hint + labeled inputs; Privacy visibility select + Online/Last-Seen toggles + Save; **Delete-account modal safe + accessible** (role=dialog, aria-modal, aria-labelledby, password-gated, "permanent" warning, Escape closes — C6-3 fix holds); 0 console errors.
+
+## W9 — Notifications · Verification · Guardian · Astrologers  ✅ DONE — no code bugs
+**Verified-clean:** Notifications premium empty state ("No notifications yet"); Verification page (status tiles, doc-type select, front/back/selfie uploads, bg-check ₹499 + consent gate); Guardian & Family (My Guardians / I'm a Guardian For tabs, invite-by-email, empty state); Astrologers list (cards w/ rating/exp/₹-per-min/online status, avatar placeholders not broken) → detail (booking widget, duration selector, date-time, correct total ₹375=15min×₹25, Book consultation). 0 console errors across all four.
+
+## W10 — Admin + Marketing panels  ✅ DONE — functional, internal cosmetics deferred
+**Verified-clean (functional):** admin login → /admin/dashboard (stats 32 users/30 verified/1 sub, registration + revenue charts, plan pie, quick actions); Users table (search, status/role filters, status dropdowns, View, Create User); User detail (account + profile + subscription + verification sections + Override Plan); Verifications (Pending/Approved/Rejected/All tabs, empty state). 0 console errors.
+
+### Observations — admin-internal cosmetics (DEFERRED; plan set admin to lower polish bar)
+- Dashboard "Subscription Plans" pie labels overlap/truncate (`premium_plus` clipped) — readability.
+- User-detail Date of Birth shows raw ISO `1995-01-15T00:00:00.000Z` (should format).
+- Admin avatars show "U" (admin reads `user.firstName`, nested under Profile — same root as W3-1 but admin layouts weren't in the AuthContext-normalized path).
+- Admin panel still branded "TricityMatch" (old name) vs "TricityShadi" elsewhere.
+
+### Not tested
+Marketing panel (`/marketing/*`) needs a marketing-role account — none seeded locally. Admin Reports/Revenue/Subscriptions/Referral/Leads/Success-Stories list pages not individually screenshotted (nav + dashboard counts confirm they're wired); deeper marketing pass deferred.
