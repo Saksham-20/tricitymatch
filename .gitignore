@@ -140,3 +140,11 @@ web-build/
 /home-mobile.jpeg
 /subscription.jpeg
 audit/screenshots/
+# QA / mobile-view screenshot scratch at repo root — never commit
+/*-375.png
+/*-375.jpeg
+/*-375.jpg
+/*-768.png
+/*-768.jpeg
+/*-1440.png
+/*-1440.jpeg
