@@ -259,7 +259,7 @@ const ModernProfileEditorContent = () => {
                   ? 'text-green-600'
                   : 'text-neutral-600'
               }`}>
-                {idx < currentStep ? '✓' : `${idx + 1}`}
+                {idx < currentStep ? <FiCheck className="inline w-3.5 h-3.5" /> : `${idx + 1}`}
               </span>
               <span className={`text-xs hidden xl:block ${
                 idx === currentStep

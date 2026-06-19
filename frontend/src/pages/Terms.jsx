@@ -20,12 +20,12 @@ export default function Terms() {
           <div className="prose prose-sm max-w-none text-neutral-700 space-y-6">
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">1. Acceptance of Terms</h2>
-              <p>By accessing or using TricityMatch ("the Service"), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the Service.</p>
+              <p>By accessing or using TricityShadi ("the Service"), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the Service.</p>
             </section>
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">2. Eligibility</h2>
-              <p>You must be at least 18 years of age to use this Service. By using TricityMatch, you represent and warrant that you are 18 years or older, and that you have the legal capacity to enter into a binding agreement.</p>
+              <p>You must be at least 18 years of age to use this Service. By using TricityShadi, you represent and warrant that you are 18 years or older, and that you have the legal capacity to enter into a binding agreement.</p>
             </section>
 
             <section>
@@ -68,7 +68,7 @@ export default function Terms() {
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">9. Limitation of Liability</h2>
-              <p>To the maximum extent permitted by law, TricityMatch shall not be liable for any indirect, incidental, or consequential damages arising from your use of the Service.</p>
+              <p>To the maximum extent permitted by law, TricityShadi shall not be liable for any indirect, incidental, or consequential damages arising from your use of the Service.</p>
             </section>
 
             <section>

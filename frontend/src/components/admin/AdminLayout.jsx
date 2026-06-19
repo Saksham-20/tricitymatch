@@ -35,11 +35,11 @@ export default function AdminLayout() {
       {/* Logo */}
       <div className="px-6 py-5 border-b border-gray-800">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-rose-700 flex items-center justify-center">
-            <span className="text-white text-xs font-black">TC</span>
+          <div className="w-8 h-8 rounded-lg bg-primary-700 flex items-center justify-center">
+            <span className="text-white text-xs font-black">TS</span>
           </div>
           <div>
-            <p className="text-white font-bold text-sm leading-tight">TricityMatch</p>
+            <p className="text-white font-bold text-sm leading-tight">TricityShadi</p>
             <p className="text-gray-400 text-[10px] uppercase tracking-widest">Admin Panel</p>
           </div>
         </div>
@@ -55,7 +55,7 @@ export default function AdminLayout() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group ${
                 isActive
-                  ? 'bg-rose-700 text-white'
+                  ? 'bg-primary-700 text-white'
                   : 'text-gray-400 hover:bg-gray-800 hover:text-white'
               }`
             }
@@ -118,7 +118,7 @@ export default function AdminLayout() {
           >
             <FiMenu className="w-6 h-6" />
           </button>
-          <span className="text-white text-sm font-semibold">TricityMatch Admin</span>
+          <span className="text-white text-sm font-semibold">TricityShadi Admin</span>
           <div className="w-6" />
         </div>
 

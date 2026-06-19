@@ -61,7 +61,7 @@ const Pill = ({ icon: Icon, label, value }) => {
   if (!value) return null;
   return (
     <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-xl border border-slate-100">
-      {Icon && <Icon className="w-3.5 h-3.5 text-rose-400 flex-shrink-0" />}
+      {Icon && <Icon className="w-3.5 h-3.5 text-primary-400 flex-shrink-0" />}
       <div className="min-w-0">
         <p className="text-[10px] text-slate-400 uppercase tracking-wide font-semibold leading-none mb-0.5">{label}</p>
         <p className="text-xs font-semibold text-slate-700 capitalize truncate">{value}</p>
@@ -75,8 +75,8 @@ const Card = ({ title, icon: Icon, children, className = '' }) => (
   <div className={`bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden ${className}`}>
     {title && (
       <div className="px-5 pt-4 pb-3 border-b border-slate-50 flex items-center gap-2.5">
-        {Icon && <div className="w-7 h-7 rounded-lg bg-rose-50 flex items-center justify-center flex-shrink-0">
-          <Icon className="w-3.5 h-3.5 text-rose-500" />
+        {Icon && <div className="w-7 h-7 rounded-lg bg-primary-50 flex items-center justify-center flex-shrink-0">
+          <Icon className="w-3.5 h-3.5 text-primary-500" />
         </div>}
         <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wide">{title}</h2>
       </div>
@@ -258,7 +258,7 @@ const ProfileDetail = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-9 h-9 rounded-full border-2 border-rose-200 border-t-rose-500 animate-spin" />
+          <div className="w-9 h-9 rounded-full border-2 border-primary-200 border-t-primary-500 animate-spin" />
           <p className="text-sm text-slate-400 font-medium">Loading profile…</p>
         </div>
       </div>
@@ -269,11 +269,11 @@ const ProfileDetail = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="text-center">
-          <div className="w-16 h-16 rounded-2xl bg-rose-50 flex items-center justify-center mx-auto mb-4">
-            <FiUser className="w-8 h-8 text-rose-300" />
+          <div className="w-16 h-16 rounded-2xl bg-primary-50 flex items-center justify-center mx-auto mb-4">
+            <FiUser className="w-8 h-8 text-primary-300" />
           </div>
           <h2 className="text-xl font-bold text-slate-800 mb-2">Profile not found</h2>
-          <Link to="/search" className="text-rose-500 hover:text-rose-700 font-semibold text-sm transition-colors">
+          <Link to="/search" className="text-primary-500 hover:text-primary-700 font-semibold text-sm transition-colors">
             ← Back to search
           </Link>
         </div>
@@ -335,7 +335,7 @@ const ProfileDetail = () => {
           <div className="max-w-5xl mx-auto flex items-center justify-between">
             <button
               onClick={() => navigate(-1)}
-              className="flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-rose-500 transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-primary-500 transition-colors cursor-pointer"
             >
               <FiChevronLeft className="w-4 h-4" />
               Back
@@ -351,7 +351,7 @@ const ProfileDetail = () => {
               <button
                 onClick={() => handleAction('like')}
                 disabled={isLiked}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all cursor-pointer ${isLiked ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-rose-500 text-white hover:bg-rose-600 shadow-sm hover:-translate-y-0.5'}`}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all cursor-pointer ${isLiked ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-primary-500 text-white hover:bg-primary-600 shadow-sm hover:-translate-y-0.5'}`}
               >
                 {isLiked ? <><FiCheck className="w-3.5 h-3.5" /> Interested</> : <><FiHeart className="w-3.5 h-3.5" /> Express Interest</>}
               </button>
@@ -377,9 +377,9 @@ const ProfileDetail = () => {
                       key={photo}
                       type="button"
                       onClick={() => setLightbox({ open: true, src: url, alt: `${firstName} ${i + 1}` })}
-                      className={`relative overflow-hidden bg-gradient-to-br from-rose-100 via-rose-50 to-pink-50 hover:brightness-95 transition-all focus:outline-none focus:ring-2 focus:ring-rose-400 focus:ring-inset cursor-pointer ${isFirst && allPhotos.length >= 3 ? 'row-span-2 col-span-1' : ''}`}
+                      className={`relative overflow-hidden bg-gradient-to-br from-primary-100 via-primary-50 to-gold-50 hover:brightness-95 transition-all focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-inset cursor-pointer ${isFirst && allPhotos.length >= 3 ? 'row-span-2 col-span-1' : ''}`}
                     >
-                      <span className="absolute inset-0 flex items-center justify-center text-7xl font-bold text-rose-200 select-none">{firstName[0]}</span>
+                      <span className="absolute inset-0 flex items-center justify-center text-7xl font-bold text-primary-200 select-none">{firstName[0]}</span>
                       <img src={url} alt={`${firstName} ${i + 1}`} className="relative w-full h-full object-cover" loading={i === 0 ? 'eager' : 'lazy'} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                       {isOverlay && (
                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
@@ -391,8 +391,8 @@ const ProfileDetail = () => {
                 })}
               </div>
             ) : (
-              <div className="h-64 bg-gradient-to-br from-rose-100 via-rose-50 to-pink-50 flex items-center justify-center">
-                <span className="text-8xl font-bold text-rose-200 select-none">{firstName[0]}</span>
+              <div className="h-64 bg-gradient-to-br from-primary-100 via-primary-50 to-gold-50 flex items-center justify-center">
+                <span className="text-8xl font-bold text-primary-200 select-none">{firstName[0]}</span>
               </div>
             )}
 
@@ -423,25 +423,25 @@ const ProfileDetail = () => {
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500 mb-4">
                     {(profile.city || profile.state) && (
                       <span className="flex items-center gap-1.5 font-medium">
-                        <FiMapPin className="w-3.5 h-3.5 text-rose-400" />
+                        <FiMapPin className="w-3.5 h-3.5 text-primary-400" />
                         {[profile.city, profile.state].filter(Boolean).join(', ')}
                       </span>
                     )}
                     {profile.profession && (
                       <span className="flex items-center gap-1.5">
-                        <FiBriefcase className="w-3.5 h-3.5 text-rose-400" />
+                        <FiBriefcase className="w-3.5 h-3.5 text-primary-400" />
                         {profile.profession}
                       </span>
                     )}
                     {profile.education && (
                       <span className="flex items-center gap-1.5">
-                        <FiBook className="w-3.5 h-3.5 text-rose-400" />
+                        <FiBook className="w-3.5 h-3.5 text-primary-400" />
                         {profile.education}
                       </span>
                     )}
                     {profile.income && (
                       <span className="flex items-center gap-1.5">
-                        <FiDollarSign className="w-3.5 h-3.5 text-rose-400" />
+                        <FiDollarSign className="w-3.5 h-3.5 text-primary-400" />
                         {formatIncome(profile.income)}
                       </span>
                     )}
@@ -466,7 +466,7 @@ const ProfileDetail = () => {
                       <button
                         onClick={() => handleAction('like')}
                         disabled={isLiked}
-                        className={`flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-bold rounded-xl transition-all cursor-pointer ${isLiked ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-rose-500 text-white hover:bg-rose-600 shadow-sm hover:-translate-y-0.5'}`}
+                        className={`flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-bold rounded-xl transition-all cursor-pointer ${isLiked ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-primary-500 text-white hover:bg-primary-600 shadow-sm hover:-translate-y-0.5'}`}
                       >
                         {isLiked ? <><FiCheck className="w-4 h-4" /> Interested</> : <><FiHeart className="w-4 h-4" /> Express Interest</>}
                       </button>
@@ -507,7 +507,7 @@ const ProfileDetail = () => {
               {/* Video intro */}
               {profile.videoIntroUrl && (
                 <div className="mt-4 border-t border-slate-50 pt-4">
-                  <p className="text-[11px] font-bold text-rose-400 uppercase tracking-wide mb-2">Video intro</p>
+                  <p className="text-[11px] font-bold text-primary-400 uppercase tracking-wide mb-2">Video intro</p>
                   <video
                     src={getImageUrl(profile.videoIntroUrl, API_BASE_URL, 'full')}
                     controls
@@ -532,7 +532,7 @@ const ProfileDetail = () => {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === tab.id ? 'bg-rose-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === tab.id ? 'bg-primary-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
                   >
                     {tab.label}
                   </button>
@@ -557,8 +557,8 @@ const ProfileDetail = () => {
                         <Card title="Get to Know Me" icon={FiUser}>
                           <div className="space-y-3">
                             {profilePrompts.map(({ q, a }, i) => (
-                              <div key={i} className="p-4 bg-rose-50/60 rounded-xl border border-rose-100">
-                                <p className="text-[11px] font-bold text-rose-400 uppercase tracking-wide mb-1.5">{sanitizeText(q)}</p>
+                              <div key={i} className="p-4 bg-primary-50/60 rounded-xl border border-primary-100">
+                                <p className="text-[11px] font-bold text-primary-400 uppercase tracking-wide mb-1.5">{sanitizeText(q)}</p>
                                 <p className="text-sm text-slate-700 leading-relaxed">{sanitizeText(a)}</p>
                               </div>
                             ))}
@@ -571,7 +571,7 @@ const ProfileDetail = () => {
                         <Card title="Interests & Hobbies" icon={FiGrid}>
                           <div className="flex flex-wrap gap-2">
                             {profile.interestTags.map((tag, i) => (
-                              <span key={i} className="px-3 py-1.5 bg-rose-50 text-rose-700 border border-rose-100 rounded-full text-xs font-semibold cursor-default">
+                              <span key={i} className="px-3 py-1.5 bg-primary-50 text-primary-700 border border-primary-100 rounded-full text-xs font-semibold cursor-default">
                                 {tag}
                               </span>
                             ))}
@@ -628,10 +628,10 @@ const ProfileDetail = () => {
                             type="button"
                             onClick={handleDownloadKundli}
                             disabled={kundliLoading}
-                            className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-100 text-rose-700 text-sm font-semibold transition disabled:opacity-60"
+                            className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary-50 hover:bg-primary-100 border border-primary-100 text-primary-700 text-sm font-semibold transition disabled:opacity-60"
                           >
                             {kundliLoading ? (
-                              <span className="w-4 h-4 border-2 border-rose-300 border-t-rose-600 rounded-full animate-spin" />
+                              <span className="w-4 h-4 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin" />
                             ) : (
                               <FiDownload className="w-4 h-4" />
                             )}
@@ -645,17 +645,17 @@ const ProfileDetail = () => {
                         <Card title="Numerology" icon={FiSun}>
                           <div className="flex items-center justify-between gap-4 mb-3">
                             <div className="text-center flex-1">
-                              <div className="w-11 h-11 mx-auto rounded-full bg-rose-50 border border-rose-100 flex items-center justify-center text-lg font-black text-rose-600">
+                              <div className="w-11 h-11 mx-auto rounded-full bg-primary-50 border border-primary-100 flex items-center justify-center text-lg font-black text-primary-600">
                                 {numerology.person1?.number}
                               </div>
                               <p className="text-[11px] text-slate-500 mt-1">You · {numerology.person1?.title}</p>
                             </div>
                             <div className="text-center">
-                              <p className="text-2xl font-black text-rose-500">{numerology.compatibility.score}%</p>
+                              <p className="text-2xl font-black text-primary-500">{numerology.compatibility.score}%</p>
                               <p className="text-[11px] font-semibold text-slate-600">{numerology.compatibility.label}</p>
                             </div>
                             <div className="text-center flex-1">
-                              <div className="w-11 h-11 mx-auto rounded-full bg-rose-50 border border-rose-100 flex items-center justify-center text-lg font-black text-rose-600">
+                              <div className="w-11 h-11 mx-auto rounded-full bg-primary-50 border border-primary-100 flex items-center justify-center text-lg font-black text-primary-600">
                                 {numerology.person2?.number}
                               </div>
                               <p className="text-[11px] text-slate-500 mt-1">{profile.firstName} · {numerology.person2?.title}</p>
@@ -688,7 +688,7 @@ const ProfileDetail = () => {
                             {Object.entries(profile.lifestylePreferences).map(([k, v]) => {
                               if (!v && v !== 0) return null;
                               if (typeof v === 'boolean') return v ? (
-                                <span key={k} className="px-3 py-1.5 bg-rose-50 text-rose-700 border border-rose-100 rounded-full text-xs font-semibold capitalize">
+                                <span key={k} className="px-3 py-1.5 bg-primary-50 text-primary-700 border border-primary-100 rounded-full text-xs font-semibold capitalize">
                                   {k.replace(/([A-Z])/g, ' $1').trim()}
                                 </span>
                               ) : null;
@@ -730,7 +730,7 @@ const ProfileDetail = () => {
                             {Object.entries(profile.familyPreferences).map(([k, v]) => {
                               if (!v && v !== 0) return null;
                               const label = k.replace(/([A-Z])/g, ' $1').trim();
-                              if (typeof v === 'boolean') return v ? <span key={k} className="px-3 py-1.5 bg-rose-50 text-rose-700 border border-rose-100 rounded-full text-xs font-semibold capitalize">{label}</span> : null;
+                              if (typeof v === 'boolean') return v ? <span key={k} className="px-3 py-1.5 bg-primary-50 text-primary-700 border border-primary-100 rounded-full text-xs font-semibold capitalize">{label}</span> : null;
                               return <span key={k} className="px-3 py-1.5 bg-slate-100 rounded-full text-xs font-semibold text-slate-700 capitalize">{label}: {v}</span>;
                             })}
                           </div>
@@ -776,7 +776,7 @@ const ProfileDetail = () => {
                             <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Preferred Cities</p>
                             <div className="flex flex-wrap gap-1.5">
                               {profile.preferredCity.map((c, i) => (
-                                <span key={i} className="px-3 py-1.5 bg-rose-50 text-rose-700 border border-rose-100 rounded-full text-xs font-semibold">{c}</span>
+                                <span key={i} className="px-3 py-1.5 bg-primary-50 text-primary-700 border border-primary-100 rounded-full text-xs font-semibold">{c}</span>
                               ))}
                             </div>
                           </div>
@@ -788,7 +788,7 @@ const ProfileDetail = () => {
                               {Object.entries(profile.personalityValues).map(([k, v]) => {
                                 if (!v) return null;
                                 const label = k.replace(/([A-Z])/g, ' $1').trim();
-                                if (typeof v === 'boolean') return <span key={k} className="px-3 py-1.5 bg-rose-50 text-rose-700 border border-rose-100 rounded-full text-xs font-semibold capitalize">{label}</span>;
+                                if (typeof v === 'boolean') return <span key={k} className="px-3 py-1.5 bg-primary-50 text-primary-700 border border-primary-100 rounded-full text-xs font-semibold capitalize">{label}</span>;
                                 return <span key={k} className="px-3 py-1.5 bg-slate-100 rounded-full text-xs font-semibold text-slate-700 capitalize">{label}: {v}</span>;
                               })}
                             </div>
@@ -898,7 +898,7 @@ const ProfileDetail = () => {
                         : 'Upgrade to Premium to view phone, email, and social links'}
                     </p>
                     {premiumAccess && contactUnlocksRemaining > 0 && (
-                      <p className="text-xs font-bold text-rose-400 mb-3">{contactUnlocksRemaining} unlock{contactUnlocksRemaining !== 1 ? 's' : ''} remaining</p>
+                      <p className="text-xs font-bold text-primary-400 mb-3">{contactUnlocksRemaining} unlock{contactUnlocksRemaining !== 1 ? 's' : ''} remaining</p>
                     )}
                     <motion.button
                       whileHover={{ scale: 1.02 }}
@@ -906,7 +906,7 @@ const ProfileDetail = () => {
                       onClick={handleUnlockContact}
                       disabled={unlockLoading}
                       className={`w-full flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-xl transition-all cursor-pointer ${premiumAccess
-                          ? 'bg-rose-500 text-white hover:bg-rose-600 shadow-sm'
+                          ? 'bg-primary-500 text-white hover:bg-primary-600 shadow-sm'
                           : 'bg-amber-400 text-amber-900 hover:bg-amber-500 shadow-sm'
                         }`}
                     >

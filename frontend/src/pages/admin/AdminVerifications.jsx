@@ -86,7 +86,7 @@ export default function AdminVerifications() {
       {/* Cards */}
       {loading ? (
         <div className="flex items-center justify-center h-48">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-600" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
         </div>
       ) : verifications.length === 0 ? (
         <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-gray-100 text-gray-400 text-sm">
@@ -116,7 +116,7 @@ export default function AdminVerifications() {
                   href={v.documentUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs text-rose-600 hover:text-rose-700 font-medium"
+                  className="inline-flex items-center gap-1.5 text-xs text-primary-600 hover:text-primary-700 font-medium"
                 >
                   <FiExternalLink className="w-3.5 h-3.5" /> View Document
                 </a>
@@ -131,7 +131,7 @@ export default function AdminVerifications() {
                 {v.status === 'pending' && (
                   <button
                     onClick={() => openReview(v)}
-                    className="px-3 py-1.5 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-700 font-medium text-xs transition-colors"
+                    className="px-3 py-1.5 rounded-lg bg-primary-100 hover:bg-primary-200 text-primary-700 font-medium text-xs transition-colors"
                   >
                     Review
                   </button>
@@ -156,7 +156,7 @@ export default function AdminVerifications() {
                 href={reviewModal.documentUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-sm text-rose-600 hover:text-rose-700 font-medium mb-4"
+                className="inline-flex items-center gap-1.5 text-sm text-primary-600 hover:text-primary-700 font-medium mb-4"
               >
                 <FiExternalLink className="w-4 h-4" /> View Document
               </a>
@@ -168,7 +168,7 @@ export default function AdminVerifications() {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Add notes or reason for rejection…"
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-rose-500 mb-4"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-500 mb-4"
             />
 
             <div className="flex gap-3">

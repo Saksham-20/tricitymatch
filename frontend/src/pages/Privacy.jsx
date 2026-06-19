@@ -72,7 +72,7 @@ export default function Privacy() {
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">9. Children's Privacy</h2>
-              <p>TricityMatch is not intended for users under 18 years of age. We do not knowingly collect information from minors.</p>
+              <p>TricityShadi is not intended for users under 18 years of age. We do not knowingly collect information from minors.</p>
             </section>
 
             <section>

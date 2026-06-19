@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   FiHeart, FiBookmark, FiMapPin, FiBook, FiBriefcase,
-  FiLock, FiCheckCircle, FiArrowRight,
+  FiLock, FiCheckCircle, FiArrowRight, FiCheck,
 } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 import { API_BASE_URL } from '../../utils/api';
@@ -189,10 +189,10 @@ const ProfileCard = ({
                 <FaCrown
                   className={`w-3 h-3 flex-shrink-0 ${
                     profile.premiumPlan === 'vip'
-                      ? 'text-amber-400'
+                      ? 'text-gold-500'
                       : profile.premiumPlan === 'premium_plus'
-                      ? 'text-purple-500'
-                      : 'text-rose-400'
+                      ? 'text-primary-500'
+                      : 'text-primary-400'
                   }`}
                   title={
                     profile.premiumPlan === 'vip'
@@ -341,10 +341,10 @@ const ProfileCard = ({
             transition={{ delay: 0.4, type: 'spring' }}
             className={`absolute top-3.5 right-14 flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold text-white shadow-lg ${
               profile.premiumPlan === 'vip'
-                ? 'bg-gradient-to-r from-amber-400 to-yellow-500'
+                ? 'bg-gold-500'
                 : profile.premiumPlan === 'premium_plus'
-                ? 'bg-gradient-to-r from-purple-500 to-indigo-500'
-                : 'bg-gradient-to-r from-rose-400 to-pink-500'
+                ? 'bg-primary-600'
+                : 'bg-primary-400'
             }`}
           >
             <FaCrown className="w-3 h-3" />
@@ -465,7 +465,9 @@ const ProfileCard = ({
                       : 'bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:from-primary-600 hover:to-primary-700 shadow-burgundy'
                     }`}
                 >
-                  {isLiked ? '✓ Interest Sent' : 'Express Interest'}
+                  {isLiked ? (
+                    <span className="inline-flex items-center justify-center gap-1.5"><FiCheck className="w-4 h-4" /> Interest Sent</span>
+                  ) : 'Express Interest'}
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.02 }}

@@ -94,7 +94,7 @@ export default function AdminSubscriptions() {
           placeholder="Search users…"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
+          className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
         />
       </div>
 
@@ -118,7 +118,7 @@ export default function AdminSubscriptions() {
                 <tr>
                   <td colSpan={7} className="text-center py-12">
                     <div className="flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-rose-600" />
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600" />
                     </div>
                   </td>
                 </tr>
@@ -192,13 +192,13 @@ export default function AdminSubscriptions() {
             <select
               value={newPlan}
               onChange={(e) => setNewPlan(e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 mb-4"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 mb-4"
             >
               {PLAN_OPTIONS.map((p) => <option key={p} value={p} className="capitalize">{p}</option>)}
             </select>
             <div className="flex gap-3">
               <button onClick={() => setModal(null)} className="flex-1 py-2.5 rounded-xl bg-gray-100 text-gray-700 text-sm font-medium">Cancel</button>
-              <button onClick={handleOverride} disabled={submitting} className="flex-1 py-2.5 rounded-xl bg-rose-700 hover:bg-rose-600 text-white text-sm font-medium disabled:opacity-60">
+              <button onClick={handleOverride} disabled={submitting} className="flex-1 py-2.5 rounded-xl bg-primary-700 hover:bg-primary-600 text-white text-sm font-medium disabled:opacity-60">
                 {submitting ? 'Saving…' : 'Update'}
               </button>
             </div>

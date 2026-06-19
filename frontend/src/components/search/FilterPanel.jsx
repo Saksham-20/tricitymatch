@@ -423,7 +423,7 @@ const FilterPanel = ({
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               onClick={() => setSheetOpen(false)}
-              className="fixed inset-0 bg-black/35 backdrop-blur-sm z-40 lg:hidden"
+              className="fixed inset-0 bg-black/35 backdrop-blur-sm z-[55] lg:hidden"
             />
 
             {/* Sheet */}
@@ -434,7 +434,7 @@ const FilterPanel = ({
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 32, stiffness: 280 }}
-              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 lg:hidden flex flex-col"
+              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[60] lg:hidden flex flex-col"
               style={{ maxHeight: '90vh' }}
             >
               {/* Drag handle */}

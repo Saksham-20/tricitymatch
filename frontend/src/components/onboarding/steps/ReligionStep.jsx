@@ -74,9 +74,9 @@ const ReligionStep = () => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25 }}
-        className="bg-purple-50 border border-purple-200 rounded-lg p-4 text-sm text-purple-900"
+        className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600"
       >
-        <p className="font-medium mb-1">🙏 Cultural values matter</p>
+        <p className="font-medium text-neutral-800 mb-1">Cultural compatibility</p>
         <p>Your religious and cultural background helps us find compatible matches who share your values.</p>
       </motion.div>
     </div>

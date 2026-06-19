@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
-import { FiUser, FiUsers, FiHeart } from 'react-icons/fi';
+import { FiUser, FiUsers, FiHeart, FiCheck } from 'react-icons/fi';
 
 /**
  * CreatingForStep - Select who the profile is being created for
@@ -92,7 +92,7 @@ const CreatingForStep = () => {
                   <p className="text-sm text-neutral-600">{rel.description}</p>
                 </div>
                 {isSelected && (
-                  <div className="text-primary-600 text-xl">✓</div>
+                  <FiCheck className="w-5 h-5 text-primary-600" />
                 )}
               </motion.button>
             );

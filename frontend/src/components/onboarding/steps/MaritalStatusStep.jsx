@@ -68,9 +68,9 @@ const MaritalStatusStep = () => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="bg-green-50 border border-green-200 rounded-lg p-4 text-sm text-green-900"
+        className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600"
       >
-        <p className="font-medium mb-1">💚 All statuses welcome</p>
+        <p className="font-medium text-neutral-800 mb-1">All statuses welcome</p>
         <p>TricityShadi is for everyone. Your marital status helps us find the right matches for you.</p>
       </motion.div>
     </div>

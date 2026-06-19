@@ -93,9 +93,9 @@ const EducationStep = () => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 text-sm text-indigo-900"
+        className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600"
       >
-        <p className="font-medium mb-1">📚 Career matters</p>
+        <p className="font-medium text-neutral-800 mb-1">Education &amp; career</p>
         <p>Your education and career help us find someone with similar professional background and goals.</p>
       </motion.div>
     </div>

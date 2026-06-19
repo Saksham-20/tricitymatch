@@ -73,7 +73,7 @@ export default function AdminSuccessStories() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold text-white">Success Stories</h1>
-        <button onClick={openCreate} className="inline-flex items-center gap-2 px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700">
+        <button onClick={openCreate} className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
           <Plus className="w-4 h-4" /> New Story
         </button>
       </div>
@@ -153,7 +153,7 @@ export default function AdminSuccessStories() {
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-gray-300 hover:text-white">Cancel</button>
-              <button type="submit" className="px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700">Save</button>
+              <button type="submit" className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Save</button>
             </div>
           </form>
         </div>

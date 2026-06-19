@@ -94,7 +94,7 @@ export default function AdminReports() {
             placeholder="Search reports…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
+            className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
         </div>
       </div>
@@ -118,7 +118,7 @@ export default function AdminReports() {
                 <tr>
                   <td colSpan={6} className="text-center py-12">
                     <div className="flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-rose-600" />
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600" />
                     </div>
                   </td>
                 </tr>
@@ -143,7 +143,7 @@ export default function AdminReports() {
                     <td className="px-4 py-3 text-right">
                       <button
                         onClick={() => openModal(r)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-rose-100 text-gray-600 hover:text-rose-700 text-xs font-medium transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-primary-100 text-gray-600 hover:text-primary-700 text-xs font-medium transition-colors"
                       >
                         <FiEye className="w-3.5 h-3.5" /> Review
                       </button>
@@ -174,7 +174,7 @@ export default function AdminReports() {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Add notes about this report…"
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-rose-500 mb-4"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-500 mb-4"
             />
 
             <div className="flex gap-2 flex-wrap">

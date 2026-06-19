@@ -66,7 +66,7 @@ export default function AdminUserDetail() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-600" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
       </div>
     );
   }
@@ -83,14 +83,14 @@ export default function AdminUserDetail() {
       {/* Back */}
       <Link
         to="/admin/users"
-        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-rose-600 transition-colors"
+        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary-600 transition-colors"
       >
         <FiArrowLeft className="w-4 h-4" /> Back to Users
       </Link>
 
       {/* Profile header */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-start gap-5">
-        <div className="w-16 h-16 rounded-2xl bg-rose-100 flex items-center justify-center text-rose-700 text-xl font-bold flex-shrink-0">
+        <div className="w-16 h-16 rounded-2xl bg-primary-100 flex items-center justify-center text-primary-700 text-xl font-bold flex-shrink-0">
           {((user.firstName?.[0] || '') + (user.lastName?.[0] || '')).toUpperCase() || 'U'}
         </div>
         <div className="flex-1">
@@ -134,7 +134,7 @@ export default function AdminUserDetail() {
           {profile ? (
             <>
               <InfoRow label="Gender"       value={profile.gender} />
-              <InfoRow label="Date of Birth" value={profile.dateOfBirth} />
+              <InfoRow label="Date of Birth" value={profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : null} />
               <InfoRow label="City"         value={profile.city} />
               <InfoRow label="Religion"     value={profile.religion} />
               <InfoRow label="Caste"        value={profile.caste} />
@@ -238,7 +238,7 @@ export default function AdminUserDetail() {
             <select
               value={newPlan}
               onChange={(e) => setNewPlan(e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 mb-4"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 mb-4"
             >
               {PLAN_OPTIONS.map((p) => (
                 <option key={p} value={p} className="capitalize">{p}</option>
@@ -253,7 +253,7 @@ export default function AdminUserDetail() {
               </button>
               <button
                 onClick={handleUpdateSubscription}
-                className="flex-1 py-2.5 rounded-xl bg-rose-700 hover:bg-rose-600 text-white text-sm font-medium transition-colors"
+                className="flex-1 py-2.5 rounded-xl bg-primary-700 hover:bg-primary-600 text-white text-sm font-medium transition-colors"
               >
                 Update Plan
               </button>

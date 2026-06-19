@@ -486,8 +486,8 @@ const Chat = () => {
       <>
         <div className="min-h-screen bg-gradient-to-br from-primary-50 via-gold-50/30 to-white flex items-center justify-center p-4">
           <div className="text-center max-w-md">
-            <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-amber-100 to-orange-100 rounded-full flex items-center justify-center">
-              <FiLock className="w-12 h-12 text-amber-600" />
+            <div className="w-24 h-24 mx-auto mb-6 bg-gold-50 border border-gold-100 rounded-full flex items-center justify-center">
+              <FiLock className="w-12 h-12 text-gold-600" />
             </div>
             <h2 className="text-2xl font-bold font-display text-neutral-800 mb-3">Chat is a Premium Feature</h2>
             <p className="text-neutral-500 mb-6 leading-relaxed">

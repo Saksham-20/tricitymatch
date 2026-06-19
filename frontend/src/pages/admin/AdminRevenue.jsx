@@ -61,7 +61,7 @@ export default function AdminRevenue() {
           <select
             value={year}
             onChange={(e) => setYear(Number(e.target.value))}
-            className="px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
+            className="px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
             {yearRange.map((y) => <option key={y} value={y}>{y}</option>)}
           </select>
@@ -87,7 +87,7 @@ export default function AdminRevenue() {
           <h3 className="text-sm font-semibold text-gray-700 mb-4">Monthly Revenue (₹)</h3>
           {loading ? (
             <div className="h-[220px] flex items-center justify-center">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-rose-600" />
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600" />
             </div>
           ) : monthly.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>

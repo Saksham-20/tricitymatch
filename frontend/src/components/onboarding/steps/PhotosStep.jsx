@@ -129,12 +129,12 @@ const PhotosStep = () => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="bg-blue-50 border border-blue-200 rounded-lg p-4"
+        className="bg-neutral-50 border border-neutral-200 rounded-lg p-4"
       >
         <div className="flex gap-3">
-          <FiImage className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-          <div className="text-sm text-blue-900">
-            <p className="font-medium mb-1">📸 Add more photos later</p>
+          <FiImage className="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" />
+          <div className="text-sm text-neutral-600">
+            <p className="font-medium text-neutral-800 mb-1">Add more photos later</p>
             <p>You can add more photos to your gallery after completing the profile. Multiple photos increase your chances of finding a great match!</p>
           </div>
         </div>
@@ -145,9 +145,9 @@ const PhotosStep = () => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="bg-green-50 border border-green-200 rounded-lg p-4 text-sm text-green-900"
+        className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600"
       >
-        <p className="font-medium mb-2">💡 Photo tips for success:</p>
+        <p className="font-medium text-neutral-800 mb-2">Photo tips</p>
         <ul className="list-disc list-inside space-y-1 text-xs">
           <li>Use a recent, clear photo of just you</li>
           <li>Good lighting shows you at your best</li>

@@ -59,7 +59,7 @@ export default function AdminMarketingUserDetail() {
       {stats && (
         <div className="grid grid-cols-3 gap-4 mb-8">
           <div className="bg-white p-6 rounded-lg shadow flex items-center gap-4">
-            <Users className="text-blue-600" size={28} />
+            <Users className="text-primary-600" size={28} />
             <div>
               <p className="text-gray-600 text-sm">Total Leads</p>
               <p className="text-2xl font-bold">{stats.totalLeads}</p>
@@ -96,7 +96,7 @@ export default function AdminMarketingUserDetail() {
                     {code.campaign && <p className="text-sm text-gray-600">{code.campaign}</p>}
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-blue-600">{code.usageCount} uses</p>
+                    <p className="font-bold text-primary-600">{code.usageCount} uses</p>
                     <span className={`text-xs px-2 py-0.5 rounded-full ${code.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
                       {code.isActive ? 'Active' : 'Inactive'}
                     </span>

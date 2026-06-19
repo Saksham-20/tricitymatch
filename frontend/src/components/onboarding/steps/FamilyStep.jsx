@@ -99,9 +99,9 @@ const FamilyStep = () => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="bg-pink-50 border border-pink-200 rounded-lg p-4 text-sm text-pink-900"
+        className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600"
       >
-        <p className="font-medium mb-1">👨‍👩‍👧‍👦 Family background</p>
+        <p className="font-medium text-neutral-800 mb-1">Family background</p>
         <p>Your family values help us find someone with similar family expectations and beliefs.</p>
       </motion.div>
     </div>

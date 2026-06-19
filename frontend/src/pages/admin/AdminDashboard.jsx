@@ -11,7 +11,7 @@ const COLORS = ['#be123c', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'];
 
 const KpiCard = ({ icon: Icon, label, value, sub, color = 'rose' }) => {
   const colorMap = {
-    rose: 'bg-rose-100 text-rose-700',
+    rose: 'bg-primary-100 text-primary-700',
     amber: 'bg-amber-100 text-amber-700',
     green: 'bg-green-100 text-green-700',
     blue: 'bg-blue-100 text-blue-700',
@@ -44,7 +44,7 @@ export default function AdminDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-600" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
       </div>
     );
   }
@@ -59,7 +59,7 @@ export default function AdminDashboard() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-500 text-sm mt-0.5">Overview of TricityMatch platform</p>
+        <p className="text-gray-500 text-sm mt-0.5">Overview of TricityShadi platform</p>
       </div>
 
       {/* KPI cards */}
@@ -143,11 +143,11 @@ export default function AdminDashboard() {
               <Link
                 key={to}
                 to={to}
-                className="flex items-center justify-between px-4 py-3 rounded-xl border border-gray-200 hover:border-rose-300 hover:bg-rose-50 transition-all text-sm font-medium text-gray-700 hover:text-rose-700"
+                className="flex items-center justify-between px-4 py-3 rounded-xl border border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-all text-sm font-medium text-gray-700 hover:text-primary-700"
               >
                 <span>{label}</span>
                 {badge != null && (
-                  <span className="ml-2 px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-xs font-bold">
+                  <span className="ml-2 px-2 py-0.5 rounded-full bg-primary-100 text-primary-700 text-xs font-bold">
                     {badge}
                   </span>
                 )}

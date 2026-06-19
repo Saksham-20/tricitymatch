@@ -8,7 +8,7 @@ import {
   FiMusic, FiCheck, FiMapPin, FiBook, FiBriefcase, FiUser,
   FiGlobe, FiShield, FiHome, FiSun, FiHeart, FiInfo,
   FiCamera, FiChevronRight, FiEye, FiDollarSign, FiGrid,
-  FiHash, FiCopy,
+  FiHash, FiCopy, FiAlertCircle,
 } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 import { API_BASE_URL } from '../utils/api';
@@ -25,8 +25,8 @@ const Card = ({ title, icon: Icon, children, action, className = '' }) => (
       <div className="px-5 pt-4 pb-3 border-b border-slate-50 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           {Icon && (
-            <div className="w-7 h-7 rounded-lg bg-rose-50 flex items-center justify-center flex-shrink-0">
-              <Icon className="w-3.5 h-3.5 text-rose-500" />
+            <div className="w-7 h-7 rounded-lg bg-primary-50 flex items-center justify-center flex-shrink-0">
+              <Icon className="w-3.5 h-3.5 text-primary-500" />
             </div>
           )}
           <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wide">{title}</h2>
@@ -42,9 +42,9 @@ const Card = ({ title, icon: Icon, children, action, className = '' }) => (
 const Pill = ({ label, value, highlight }) => {
   if (!value && value !== 0) return null;
   return (
-    <div className={`flex flex-col px-3 py-2.5 rounded-xl border ${highlight ? 'bg-rose-50 border-rose-100' : 'bg-slate-50 border-slate-100'}`}>
+    <div className={`flex flex-col px-3 py-2.5 rounded-xl border ${highlight ? 'bg-primary-50 border-primary-100' : 'bg-slate-50 border-slate-100'}`}>
       <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-0.5">{label}</span>
-      <span className={`text-xs font-bold capitalize ${highlight ? 'text-rose-700' : 'text-slate-700'}`}>{String(value).replace(/_/g, ' ')}</span>
+      <span className={`text-xs font-bold capitalize ${highlight ? 'text-primary-700' : 'text-slate-700'}`}>{String(value).replace(/_/g, ' ')}</span>
     </div>
   );
 };
@@ -62,8 +62,8 @@ const DetailRow = ({ label, value, isLast }) => {
 
 // ─── Stat Badge ──────────────────────────────────────────────────────────────
 const StatBadge = ({ label, value, color = 'rose' }) => (
-  <div className={`flex flex-col items-center px-4 py-3 rounded-2xl border ${color === 'rose' ? 'bg-rose-50 border-rose-100' : color === 'amber' ? 'bg-amber-50 border-amber-100' : 'bg-emerald-50 border-emerald-100'}`}>
-    <span className={`text-xl font-black ${color === 'rose' ? 'text-rose-600' : color === 'amber' ? 'text-amber-600' : 'text-emerald-600'}`}>{value}</span>
+  <div className={`flex flex-col items-center px-4 py-3 rounded-2xl border ${color === 'rose' ? 'bg-primary-50 border-primary-100' : color === 'amber' ? 'bg-amber-50 border-amber-100' : 'bg-emerald-50 border-emerald-100'}`}>
+    <span className={`text-xl font-black ${color === 'rose' ? 'text-primary-600' : color === 'amber' ? 'text-amber-600' : 'text-emerald-600'}`}>{value}</span>
     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mt-0.5">{label}</span>
   </div>
 );
@@ -78,7 +78,7 @@ const SOCIAL_PLATFORMS = [
 const EditBtn = ({ to, small }) => (
   <Link
     to={to || '/profile/edit'}
-    className={`inline-flex items-center gap-1.5 font-semibold text-rose-500 hover:text-rose-700 transition-colors cursor-pointer ${small ? 'text-xs' : 'text-sm'}`}
+    className={`inline-flex items-center gap-1.5 font-semibold text-primary-500 hover:text-primary-700 transition-colors cursor-pointer ${small ? 'text-xs' : 'text-sm'}`}
   >
     <FiEdit2 className="w-3 h-3" />
     Edit
@@ -107,7 +107,7 @@ const MyProfileView = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-3">
-        <div className="w-9 h-9 rounded-full border-2 border-rose-200 border-t-rose-500 animate-spin" />
+        <div className="w-9 h-9 rounded-full border-2 border-primary-200 border-t-primary-500 animate-spin" />
         <p className="text-sm text-slate-400 font-medium">Loading your profile…</p>
       </div>
     );
@@ -117,15 +117,15 @@ const MyProfileView = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
         <div className="text-center max-w-md">
-          <div className="w-16 h-16 rounded-2xl bg-rose-50 flex items-center justify-center mx-auto mb-4">
-            <FiUser className="w-8 h-8 text-rose-300" />
+          <div className="w-16 h-16 rounded-2xl bg-primary-50 flex items-center justify-center mx-auto mb-4">
+            <FiUser className="w-8 h-8 text-primary-300" />
           </div>
           <h2 className="text-2xl font-bold text-slate-900 mb-2">Set up your profile</h2>
           <p className="text-slate-500 mb-6 text-sm leading-relaxed">
             Add your details and photos so potential matches can find you.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/profile/edit" className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-rose-500 text-white font-semibold text-sm hover:bg-rose-600 transition-colors shadow-sm cursor-pointer">
+            <Link to="/profile/edit" className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-primary-500 text-white font-semibold text-sm hover:bg-primary-600 transition-colors shadow-sm cursor-pointer">
               <FiEdit2 className="w-4 h-4" /> Build your profile
             </Link>
             <Link to="/dashboard" className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-medium text-sm hover:bg-slate-50 transition-colors cursor-pointer">
@@ -186,7 +186,7 @@ const MyProfileView = () => {
       {/* ── Sticky top bar ──────────────────────────────────────────── */}
       <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-slate-100 px-4 py-3">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <Link to="/dashboard" className="text-sm font-semibold text-slate-500 hover:text-rose-500 transition-colors flex items-center gap-1.5 cursor-pointer">
+          <Link to="/dashboard" className="text-sm font-semibold text-slate-500 hover:text-primary-500 transition-colors flex items-center gap-1.5 cursor-pointer">
             ← Dashboard
           </Link>
           <div className="flex items-center gap-2">
@@ -194,7 +194,7 @@ const MyProfileView = () => {
               <FiEye className="inline w-3 h-3 mr-1" />
               This is how matches see you
             </span>
-            <Link to="/profile/edit" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-500 text-white font-semibold text-sm hover:bg-rose-600 transition-colors shadow-sm cursor-pointer">
+            <Link to="/profile/edit" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary-500 text-white font-semibold text-sm hover:bg-primary-600 transition-colors shadow-sm cursor-pointer">
               <FiEdit2 className="w-3.5 h-3.5" />
               Edit Profile
             </Link>
@@ -219,13 +219,13 @@ const MyProfileView = () => {
 
               {/* Photos */}
               {allPhotos.length === 0 ? (
-                <div className="relative h-48 bg-gradient-to-br from-rose-100 via-rose-50 to-pink-50 flex items-center justify-center">
-                  <span className="text-7xl font-black text-rose-200 select-none">{profile.firstName?.[0] || '?'}</span>
+                <div className="relative h-48 bg-gradient-to-br from-primary-100 via-primary-50 to-gold-50 flex items-center justify-center">
+                  <span className="text-7xl font-black text-primary-200 select-none">{profile.firstName?.[0] || '?'}</span>
                   <Link
                     to="/profile/edit"
                     className="absolute bottom-4 right-4 flex items-center gap-1.5 px-3 py-2 bg-white/90 backdrop-blur-sm rounded-xl text-xs font-bold text-slate-700 hover:bg-white shadow-sm border border-slate-100 transition-all cursor-pointer"
                   >
-                    <FiCamera className="w-3.5 h-3.5 text-rose-500" />
+                    <FiCamera className="w-3.5 h-3.5 text-primary-500" />
                     Add Photos
                   </Link>
                 </div>
@@ -240,9 +240,9 @@ const MyProfileView = () => {
                         key={photo}
                         type="button"
                         onClick={() => setLightbox({ open: true, src, alt })}
-                        className={`relative overflow-hidden bg-gradient-to-br from-rose-50 to-amber-50 hover:brightness-95 transition-all focus:outline-none focus:ring-2 focus:ring-rose-400 focus:ring-inset cursor-pointer ${i === 0 && allPhotos.length >= 3 ? 'row-span-2 col-span-1' : ''}`}
+                        className={`relative overflow-hidden bg-gradient-to-br from-primary-50 to-gold-50 hover:brightness-95 transition-all focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-inset cursor-pointer ${i === 0 && allPhotos.length >= 3 ? 'row-span-2 col-span-1' : ''}`}
                       >
-                        <span className="absolute inset-0 flex items-center justify-center text-6xl font-black text-rose-200 select-none">{profile.firstName?.[0] || '?'}</span>
+                        <span className="absolute inset-0 flex items-center justify-center text-6xl font-black text-primary-200 select-none">{profile.firstName?.[0] || '?'}</span>
                         <img src={src} alt={alt} className="relative w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                       </button>
                     );
@@ -279,10 +279,10 @@ const MyProfileView = () => {
                       )}
                     </div>
                     <div className="flex flex-wrap gap-3 text-sm text-slate-500">
-                      {location && <span className="flex items-center gap-1.5 font-medium"><FiMapPin className="w-3.5 h-3.5 text-rose-400" />{location}</span>}
-                      {profile.profession && <span className="flex items-center gap-1.5"><FiBriefcase className="w-3.5 h-3.5 text-rose-400" />{profile.profession}</span>}
-                      {profile.education && <span className="flex items-center gap-1.5"><FiBook className="w-3.5 h-3.5 text-rose-400" />{profile.education}</span>}
-                      {profile.income && <span className="flex items-center gap-1.5"><FiDollarSign className="w-3.5 h-3.5 text-rose-400" />{formatIncome(profile.income)}</span>}
+                      {location && <span className="flex items-center gap-1.5 font-medium"><FiMapPin className="w-3.5 h-3.5 text-primary-400" />{location}</span>}
+                      {profile.profession && <span className="flex items-center gap-1.5"><FiBriefcase className="w-3.5 h-3.5 text-primary-400" />{profile.profession}</span>}
+                      {profile.education && <span className="flex items-center gap-1.5"><FiBook className="w-3.5 h-3.5 text-primary-400" />{profile.education}</span>}
+                      {profile.income && <span className="flex items-center gap-1.5"><FiDollarSign className="w-3.5 h-3.5 text-primary-400" />{formatIncome(profile.income)}</span>}
                     </div>
                   </div>
                   <EditBtn to="/profile/edit" />
@@ -292,7 +292,7 @@ const MyProfileView = () => {
                 <div className="grid grid-cols-3 gap-3 mb-4">
                   <StatBadge label="Profile" value={`${completionPct}%`} color="rose" />
                   <StatBadge label="Photos" value={allPhotos.length} color="amber" />
-                  <StatBadge label={isVerified ? 'Verified' : 'Unverified'} value={isVerified ? '✓' : '!'} color={isVerified ? 'emerald' : 'rose'} />
+                  <StatBadge label={isVerified ? 'Verified' : 'Unverified'} value={isVerified ? <FiCheck className="w-5 h-5" /> : <FiAlertCircle className="w-5 h-5" />} color={isVerified ? 'emerald' : 'rose'} />
                 </div>
 
                 {/* Bio */}
@@ -302,7 +302,7 @@ const MyProfileView = () => {
                   </p>
                 ) : (
                   <div className="border-t border-slate-50 pt-4">
-                    <Link to="/profile/edit" className="text-sm text-slate-400 hover:text-rose-500 transition-colors cursor-pointer">
+                    <Link to="/profile/edit" className="text-sm text-slate-400 hover:text-primary-500 transition-colors cursor-pointer">
                       + Add a bio to help matches get to know you
                     </Link>
                   </div>
@@ -323,8 +323,8 @@ const MyProfileView = () => {
               <Card title="Get to Know Me" icon={FiUser} action={<EditBtn small />}>
                 <div className="space-y-3">
                   {profilePrompts.map(({ q, a }, i) => (
-                    <div key={i} className="p-4 bg-rose-50/60 rounded-xl border border-rose-100">
-                      <p className="text-[11px] font-bold text-rose-400 uppercase tracking-wide mb-1.5">{sanitizeText(q)}</p>
+                    <div key={i} className="p-4 bg-primary-50/60 rounded-xl border border-primary-100">
+                      <p className="text-[11px] font-bold text-primary-400 uppercase tracking-wide mb-1.5">{sanitizeText(q)}</p>
                       <p className="text-sm text-slate-700 leading-relaxed">{sanitizeText(a)}</p>
                     </div>
                   ))}
@@ -336,7 +336,7 @@ const MyProfileView = () => {
                   <p className="text-sm font-semibold text-slate-700">Add profile prompts</p>
                   <p className="text-xs text-slate-400 mt-0.5">Answer fun questions to stand out</p>
                 </div>
-                <Link to="/profile/edit" className="flex items-center gap-1.5 px-3 py-2 bg-rose-500 text-white rounded-xl text-xs font-bold hover:bg-rose-600 transition-colors cursor-pointer">
+                <Link to="/profile/edit" className="flex items-center gap-1.5 px-3 py-2 bg-primary-500 text-white rounded-xl text-xs font-bold hover:bg-primary-600 transition-colors cursor-pointer">
                   <FiEdit2 className="w-3 h-3" /> Add
                 </Link>
               </div>
@@ -347,7 +347,7 @@ const MyProfileView = () => {
               <Card title="Interests & Hobbies" icon={FiGrid} action={<EditBtn small />}>
                 <div className="flex flex-wrap gap-2">
                   {profile.interestTags.map((tag, i) => (
-                    <span key={i} className="px-3 py-1.5 bg-rose-50 text-rose-700 border border-rose-100 rounded-full text-xs font-semibold cursor-default">
+                    <span key={i} className="px-3 py-1.5 bg-primary-50 text-primary-700 border border-primary-100 rounded-full text-xs font-semibold cursor-default">
                       {tag}
                     </span>
                   ))}
@@ -359,7 +359,7 @@ const MyProfileView = () => {
                   <p className="text-sm font-semibold text-slate-700">Add interests</p>
                   <p className="text-xs text-slate-400 mt-0.5">Help matches find common ground</p>
                 </div>
-                <Link to="/profile/edit" className="flex items-center gap-1.5 px-3 py-2 bg-rose-500 text-white rounded-xl text-xs font-bold hover:bg-rose-600 transition-colors cursor-pointer">
+                <Link to="/profile/edit" className="flex items-center gap-1.5 px-3 py-2 bg-primary-500 text-white rounded-xl text-xs font-bold hover:bg-primary-600 transition-colors cursor-pointer">
                   <FiEdit2 className="w-3 h-3" /> Add
                 </Link>
               </div>
@@ -511,7 +511,7 @@ const MyProfileView = () => {
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2">Cities</p>
                     <div className="flex flex-wrap gap-1.5">
                       {profile.preferredCity.map((c, i) => (
-                        <span key={i} className="px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-100 rounded-full text-xs font-semibold">{c}</span>
+                        <span key={i} className="px-2.5 py-1 bg-primary-50 text-primary-700 border border-primary-100 rounded-full text-xs font-semibold">{c}</span>
                       ))}
                     </div>
                   </div>

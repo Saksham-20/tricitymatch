@@ -55,7 +55,7 @@ const InterestTags = ({ tags = [], onChange, maxTags = 10 }) => {
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
-              className="inline-flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-pink-100 to-purple-100 text-purple-700 rounded-full text-sm font-medium"
+              className="inline-flex items-center gap-1 px-3 py-1 bg-primary-50 text-primary-700 border border-primary-100 rounded-full text-sm font-medium"
             >
               {tag}
               <button

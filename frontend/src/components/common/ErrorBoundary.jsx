@@ -70,7 +70,7 @@ class ErrorBoundary extends Component {
       }
 
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-rose-50 via-white to-pink-50 p-4">
+        <div className="min-h-screen flex items-center justify-center bg-neutral-50 p-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -116,7 +116,7 @@ class ErrorBoundary extends Component {
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button
                 onClick={this.handleRetry}
-                className="px-6 py-3 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-xl font-medium hover:shadow-lg transition-all"
+                className="px-6 py-3 bg-primary-500 text-white rounded-xl font-medium hover:bg-primary-600 hover:shadow-lg transition-all"
               >
                 Try Again
               </button>

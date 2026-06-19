@@ -79,10 +79,10 @@ const VerificationStep = () => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-purple-50 border border-purple-200 rounded-lg p-4"
+        className="bg-neutral-50 border border-neutral-200 rounded-lg p-4"
       >
-        <p className="text-sm text-purple-900">
-          <span className="font-medium">🔐 Account Security:</span><br />
+        <p className="text-sm text-neutral-600">
+          <span className="font-medium text-neutral-800">Account security:</span><br />
           We'll send you a verification code to confirm your email and phone number. This keeps your profile secure.
         </p>
       </motion.div>
@@ -265,9 +265,9 @@ const VerificationStep = () => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.35 }}
-        className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-900"
+        className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600"
       >
-        <p className="font-medium mb-2">🛡️ Why we verify:</p>
+        <p className="font-medium text-neutral-800 mb-2">Why we verify</p>
         <ul className="list-disc list-inside space-y-1 text-xs">
           <li>Protects you from fake profiles</li>
           <li>Ensures community safety</li>

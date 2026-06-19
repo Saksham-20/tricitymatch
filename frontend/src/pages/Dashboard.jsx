@@ -157,8 +157,8 @@ const SuggestionCard = ({ profile, index }) => {
 // ─── Subscription Status Card ─────────────────────────────────────────────
 const PLAN_META = {
   free:          { label: 'Free Plan',      color: 'text-neutral-500', bg: 'bg-neutral-100',      crown: null },
-  basic_premium: { label: 'Basic Premium',  color: 'text-rose-600',    bg: 'bg-rose-50',           crown: 'text-rose-400' },
-  premium_plus:  { label: 'Premium Plus',   color: 'text-purple-600',  bg: 'bg-purple-50',         crown: 'text-purple-500' },
+  basic_premium: { label: 'Basic Premium',  color: 'text-primary-600', bg: 'bg-primary-50',        crown: 'text-primary-400' },
+  premium_plus:  { label: 'Premium Plus',   color: 'text-gold-700',    bg: 'bg-gold-50',           crown: 'text-gold-500' },
   vip:           { label: 'VIP Member',     color: 'text-amber-600',   bg: 'bg-amber-50',          crown: 'text-amber-400' },
 };
 

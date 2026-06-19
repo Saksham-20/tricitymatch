@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
 import { validateEmail, validatePassword } from '../../../utils/validators';
-import { FiEye, FiEyeOff, FiUser, FiUsers, FiHeart } from 'react-icons/fi';
+import { FiEye, FiEyeOff, FiUser, FiUsers, FiHeart, FiCheck } from 'react-icons/fi';
 
 const CreateAccountStep = () => {
   const { formData, updateFormData, errors, setStepErrors, setFieldTouched, registerStepValidator } = useOnboarding();
@@ -118,7 +118,7 @@ const CreateAccountStep = () => {
                   <p className="text-xs text-neutral-600">{option.description}</p>
                 </div>
                 {isSelected && (
-                  <div className="text-primary-600 text-lg">✓</div>
+                  <FiCheck className="w-5 h-5 text-primary-600" />
                 )}
               </motion.button>
             );
@@ -286,7 +286,7 @@ const CreateAccountStep = () => {
                 className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent uppercase tracking-wider text-sm"
               />
               {formData.referralCode && (
-                <p className="text-xs text-green-600">✓ Referral code applied</p>
+                <p className="text-xs text-green-600 flex items-center gap-1"><FiCheck className="w-3.5 h-3.5" /> Referral code applied</p>
               )}
             </motion.div>
           )}

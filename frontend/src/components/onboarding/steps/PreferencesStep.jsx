@@ -104,9 +104,9 @@ const PreferencesStep = () => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.35 }}
-        className="bg-cyan-50 border border-cyan-200 rounded-lg p-4 text-sm text-cyan-900"
+        className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600"
       >
-        <p className="font-medium mb-1">🎯 Find your perfect match</p>
+        <p className="font-medium text-neutral-800 mb-1">Smarter match recommendations</p>
         <p>Your preferences help our algorithm find the most compatible matches for you.</p>
       </motion.div>
     </div>

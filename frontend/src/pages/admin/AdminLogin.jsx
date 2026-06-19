@@ -39,11 +39,11 @@ export default function AdminLogin() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-rose-700 mb-4 shadow-lg">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary-700 mb-4 shadow-lg">
             <span className="text-white text-xl font-black">TC</span>
           </div>
           <h1 className="text-2xl font-bold text-white">Admin Panel</h1>
-          <p className="text-gray-400 text-sm mt-1">Sign in to manage TricityMatch</p>
+          <p className="text-gray-400 text-sm mt-1">Sign in to manage TricityShadi</p>
         </div>
 
         <form
@@ -64,7 +64,7 @@ export default function AdminLogin() {
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   placeholder="admin@tricitymatch.com"
-                  className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-rose-600 focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent transition-all"
                 />
               </div>
             </div>
@@ -82,7 +82,7 @@ export default function AdminLogin() {
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
                   placeholder="Enter admin password"
-                  className="w-full pl-10 pr-10 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-rose-600 focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-10 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent transition-all"
                 />
                 <button
                   type="button"
@@ -98,7 +98,7 @@ export default function AdminLogin() {
           <button
             type="submit"
             disabled={loading}
-            className="mt-6 w-full py-3 px-4 bg-rose-700 hover:bg-rose-600 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all duration-200 text-sm"
+            className="mt-6 w-full py-3 px-4 bg-primary-700 hover:bg-primary-600 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all duration-200 text-sm"
           >
             {loading ? (
               <span className="flex items-center justify-center gap-2">
@@ -112,7 +112,7 @@ export default function AdminLogin() {
         </form>
 
         <p className="text-center text-gray-600 text-xs mt-6">
-          TricityMatch Admin — Authorized access only
+          TricityShadi Admin — Authorized access only
         </p>
       </div>
     </div>

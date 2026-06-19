@@ -44,9 +44,9 @@ const LocationStep = () => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-900"
+        className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600"
       >
-        <p className="font-medium mb-1">📍 Location-based matching</p>
+        <p className="font-medium text-neutral-800 mb-1">Location-based matching</p>
         <p>We'll show you matches from your city and nearby areas.</p>
       </motion.div>
     </div>

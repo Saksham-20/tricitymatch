@@ -156,7 +156,7 @@ export default function AdminLeads() {
               <button
                 key={p}
                 onClick={() => setPage(p)}
-                className={`px-3 py-1 rounded ${page === p ? 'bg-blue-600 text-white' : 'border'}`}
+                className={`px-3 py-1 rounded ${page === p ? 'bg-primary-500 text-white' : 'border'}`}
               >
                 {p}
               </button>

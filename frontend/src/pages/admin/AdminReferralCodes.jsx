@@ -83,7 +83,7 @@ export default function AdminReferralCodes() {
         <h1 className="text-3xl font-bold">Referral Codes</h1>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          className="flex items-center gap-2 bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600"
         >
           <Plus size={20} /> Create Code
         </button>
@@ -125,7 +125,7 @@ export default function AdminReferralCodes() {
                     <td className="border p-3 flex gap-2">
                       <button
                         onClick={() => handleCopyCode(code.code)}
-                        className="text-blue-600 hover:text-blue-800"
+                        className="text-primary-600 hover:text-primary-700"
                         title="Copy code"
                       >
                         <Copy size={18} />
@@ -148,7 +148,7 @@ export default function AdminReferralCodes() {
               <button
                 key={p}
                 onClick={() => setPage(p)}
-                className={`px-3 py-1 rounded ${page === p ? 'bg-blue-600 text-white' : 'border'}`}
+                className={`px-3 py-1 rounded ${page === p ? 'bg-primary-500 text-white' : 'border'}`}
               >
                 {p}
               </button>
@@ -198,7 +198,7 @@ export default function AdminReferralCodes() {
                 className="w-full border px-3 py-2 rounded"
               />
               <div className="flex gap-2">
-                <button type="submit" className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+                <button type="submit" className="flex-1 bg-primary-500 text-white py-2 rounded hover:bg-primary-600">
                   Create
                 </button>
                 <button

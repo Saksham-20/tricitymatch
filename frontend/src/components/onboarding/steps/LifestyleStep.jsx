@@ -97,9 +97,9 @@ const LifestyleStep = () => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-900"
+        className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600"
       >
-        <p className="font-medium mb-1">🌟 Lifestyle compatibility</p>
+        <p className="font-medium text-neutral-800 mb-1">Lifestyle compatibility</p>
         <p>These details help us find someone with a compatible lifestyle and habits.</p>
       </motion.div>
     </div>

@@ -70,7 +70,7 @@ export default function AdminUsers() {
         </div>
         <Link
           to="/admin/users/create"
-          className="flex items-center gap-2 px-4 py-2 bg-rose-700 hover:bg-rose-600 text-white rounded-xl text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-primary-700 hover:bg-primary-600 text-white rounded-xl text-sm font-medium transition-colors"
         >
           <FiPlus className="w-4 h-4" /> Create User
         </Link>
@@ -85,13 +85,13 @@ export default function AdminUsers() {
             placeholder="Search by name or email…"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
+            className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
         </div>
         <select
           value={statusFilter}
           onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-          className="px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
+          className="px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
         >
           {STATUS_OPTIONS.map((s) => (
             <option key={s} value={s}>{s === 'all' ? 'All Statuses' : s}</option>
@@ -100,7 +100,7 @@ export default function AdminUsers() {
         <select
           value={roleFilter}
           onChange={(e) => { setRole(e.target.value); setPage(1); }}
-          className="px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
+          className="px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
         >
           {ROLE_OPTIONS.map((r) => (
             <option key={r} value={r}>{r === 'all' ? 'All Roles' : r}</option>
@@ -127,7 +127,7 @@ export default function AdminUsers() {
                 <tr>
                   <td colSpan={6} className="text-center py-12 text-gray-400">
                     <div className="flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-rose-600" />
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600" />
                     </div>
                   </td>
                 </tr>
@@ -140,7 +140,7 @@ export default function AdminUsers() {
                   <tr key={u.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-700 text-xs font-bold flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xs font-bold flex-shrink-0">
                           {((u.firstName?.[0] || '') + (u.lastName?.[0] || '')).toUpperCase() || 'U'}
                         </div>
                         <div>
@@ -154,7 +154,7 @@ export default function AdminUsers() {
                       <select
                         value={u.status}
                         onChange={(e) => handleStatusChange(u.id, e.target.value)}
-                        className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-rose-500"
+                        className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-500"
                       >
                         {['active', 'inactive', 'suspended', 'deleted'].map((s) => (
                           <option key={s} value={s}>{s}</option>
@@ -176,7 +176,7 @@ export default function AdminUsers() {
                     <td className="px-4 py-3 text-right">
                       <Link
                         to={`/admin/users/${u.id}`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-rose-100 text-gray-600 hover:text-rose-700 text-xs font-medium transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-primary-100 text-gray-600 hover:text-primary-700 text-xs font-medium transition-colors"
                       >
                         <FiEye className="w-3.5 h-3.5" /> View
                       </Link>

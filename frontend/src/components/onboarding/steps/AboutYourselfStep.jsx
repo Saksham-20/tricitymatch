@@ -123,9 +123,9 @@ const AboutYourselfStep = () => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="bg-orange-50 border border-orange-200 rounded-lg p-4 text-sm text-orange-900"
+        className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600"
       >
-        <p className="font-medium mb-1">✨ Make yourself shine</p>
+        <p className="font-medium text-neutral-800 mb-1">A complete profile stands out</p>
         <p>A great bio and interests help matches get to know you and find common ground.</p>
       </motion.div>
     </div>

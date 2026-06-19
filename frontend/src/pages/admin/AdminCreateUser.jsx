@@ -45,7 +45,7 @@ export default function AdminCreateUser() {
           value={form[name]}
           onChange={(e) => set(name, e.target.value)}
           required={required}
-          className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
+          className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
         />
       )}
     </div>
@@ -55,7 +55,7 @@ export default function AdminCreateUser() {
     <div className="max-w-xl space-y-5">
       <button
         onClick={() => navigate(-1)}
-        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-rose-600 transition-colors"
+        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary-600 transition-colors"
       >
         <FiArrowLeft className="w-4 h-4" /> Back
       </button>
@@ -80,7 +80,7 @@ export default function AdminCreateUser() {
             required
             minLength={8}
             placeholder="Min. 8 characters"
-            className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
+            className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
         </Field>
 
@@ -89,7 +89,7 @@ export default function AdminCreateUser() {
             <select
               value={form.role}
               onChange={(e) => set('role', e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               {ROLES.map((r) => <option key={r} value={r} className="capitalize">{r}</option>)}
             </select>
@@ -98,7 +98,7 @@ export default function AdminCreateUser() {
             <select
               value={form.status}
               onChange={(e) => set('status', e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               {STATUSES.map((s) => <option key={s} value={s} className="capitalize">{s}</option>)}
             </select>
@@ -116,7 +116,7 @@ export default function AdminCreateUser() {
           <button
             type="submit"
             disabled={loading}
-            className="flex-1 py-2.5 rounded-xl bg-rose-700 hover:bg-rose-600 disabled:opacity-60 text-white text-sm font-medium transition-colors"
+            className="flex-1 py-2.5 rounded-xl bg-primary-700 hover:bg-primary-600 disabled:opacity-60 text-white text-sm font-medium transition-colors"
           >
             {loading ? 'Creating…' : 'Create User'}
           </button>

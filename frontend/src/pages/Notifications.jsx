@@ -19,9 +19,9 @@ const TYPE_ICONS = {
 };
 
 const TYPE_COLORS = {
-  match:        'bg-rose-100 text-rose-600',
+  match:        'bg-primary-100 text-primary-600',
   message:      'bg-blue-100 text-blue-600',
-  profile_view: 'bg-purple-100 text-purple-600',
+  profile_view: 'bg-slate-100 text-slate-600',
   interest:     'bg-amber-100 text-amber-600',
   verification: 'bg-green-100 text-green-600',
   subscription: 'bg-indigo-100 text-indigo-600',
