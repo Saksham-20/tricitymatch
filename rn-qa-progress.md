@@ -85,3 +85,29 @@ Root cause: RN `api/*.ts` never integration-tested → wrong **paths** + wrong *
 - Native modules (Agora/Razorpay/Firebase/camera/biometric) dynamic-require; unconfigured = config-gated stub, not a bug.
 - No `.env` edits made (used `adb reverse`). Regression after Phase 3: BE 116 unit + FE 31 green; mobile `tsc` 0 errors. No commit (not requested).
 - Scope = member app (Admin/Bureau stacks deferred). Residual i18n: 6 member screens still hardcoded EN (Notifications/Astrologer×2/Horoscope/Support/SuccessStory).
+
+## 2026-06-21 — "Work like the website" finish pass (committed to `main`)
+Committed the prior uncommitted RN work (~95 files) + closed remaining gaps via a live **Android dev-build** walkthrough (iOS build verified + Welcome spot-checked; iOS has no programmatic tap so visual-only).
+
+**API contract (modules the earlier pass missed):**
+- `auth.ts`: `/auth/refresh-token`→`/refresh`; `getMe` unwrap `.user`; `deleteAccount`→`/auth/account`; read `tokens.{accessToken,refreshToken}` from body; dropped dead `/auth/device-token` (FCM = `notifications/fcm-token`). `client.ts` interceptor matched + persists rotated refresh token.
+- `profile.ts`: `uploadPhoto`→multipart `PUT /profile/me` (no standalone route); `deletePhoto` by `photoUrl`→`DELETE /profile/me/photo`.
+- `block.ts`: report→`POST /report/:userId { reason }` (enum-mapped in BlockReportSheet).
+
+**Backend (additive, web unaffected):** login/signup/refresh/google return `refreshToken` in body (+ `user` on refresh) → native cold-start restore works (verified: force-stop → auto-relogin). Public `POST /success-stories` (rate-limited, `draft`) wires the dead RN submit screen.
+
+**🔴 Real bugs found in live QA (prod-affecting, incl. web):**
+- B9 `chatController.getConversations`: `= ANY(:ids)` + Sequelize replacements → `malformed array literal` crash for any user with mutual matches → `IN (:ids)`. (Web chat hit this too.)
+- B10 RN `chat.ts`: backend conversation `{ user:{name} }` ≠ screen `{ profile }` → "Cannot read firstName of undefined" crash → mapper added.
+- B11 RN `matches.ts`: flat `/match` list items ≠ `{ MatchedProfile }` → Matches showed "Unknown" + missing react keys → mapper added.
+- B12 RN `subscription.getPlans`: spread marketing-only API object over `planType`, shadowing shared `PLANS` capability flags → **every plan showed all features excluded (even VIP)** → use `PLANS` + overlay live price.
+
+**Visual parity (native idioms ~85-90%):** gradient `Button` (primary + `gold`) via `expo-linear-gradient` (added; re-link `mobile/node_modules/react-native` symlink after `expo install`); ProfileCard burgundy shadow + photo scrim + gold high-compat star + score-coloured bar; CompatibilityMeter green/gold/burgundy; Subscription "Most Popular"/"Best Value" badges; raw `<Image>` avatars (Matches/Chat/OwnProfile)→`SmartImage`; web `ProfileCompletionMeter` rose `#be123c`→brand.
+
+**Dead-ends removed:** Step3 kundli upload (no backend).
+
+**Verified live (Android):** Welcome/Login (gradient)→cold-start restore→Home (VIP/86%/matches)→Search (15 found, scrim+compat colour)→Matches (3 tabs, real names)→Chat (list+thread+send)→Settings→Subscription (badges + correct per-plan features). **iOS:** Build Succeeded, gradient module links, Welcome renders.
+
+**Dev-seed quirk (not app bug):** premium test accounts had invalid planType `elite` + expired `endDate` → `requirePremium` 403; set `vip` + future `endDate` for premium QA.
+
+Regression: BE **116 unit** + FE **35** + mobile `tsc` **0**. Commits on `main`.
