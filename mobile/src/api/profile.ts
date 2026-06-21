@@ -51,8 +51,15 @@ export interface SuccessStoryPayload {
   photoUri?: string;
 }
 
+// Public submission — lands as a draft for admin review (GET /success-stories
+// returns published only). Maps the form fields to the backend story shape.
 export const submitSuccessStory = async (payload: SuccessStoryPayload): Promise<void> => {
-  await apiClient.post('/stories', payload);
+  await apiClient.post('/success-stories', {
+    groomName: payload.groomName,
+    brideName: payload.brideName,
+    weddingDate: payload.weddingDate,
+    story: payload.story,
+  });
 };
 
 export interface CompatibilityCategory {

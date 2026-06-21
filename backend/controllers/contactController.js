@@ -1,5 +1,5 @@
-const { ContactMessage } = require('../models');
-const { asyncHandler } = require('../middlewares/errorHandler');
+const { ContactMessage, SuccessStory } = require('../models');
+const { asyncHandler, createError } = require('../middlewares/errorHandler');
 const { log } = require('../middlewares/logger');
 const { sendEmail } = require('../utils/email');
 const config = require('../config/env');
@@ -47,4 +47,36 @@ const submitContact = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { submitContact };
+// POST /api/v1/success-stories  (public, rate-limited)
+// Members submit their own story; it lands as a `draft` for an admin to review
+// and publish (admins manage these via /admin/success-stories). Accepts either a
+// pre-joined `coupleNames` or separate groom/bride names.
+const submitSuccessStory = asyncHandler(async (req, res) => {
+  const { coupleNames, groomName, brideName, quote, story, marriedOn, weddingDate, location } = req.body;
+
+  const names = coupleNames
+    ? String(coupleNames).trim()
+    : [brideName, groomName].map((n) => (n ? String(n).trim() : '')).filter(Boolean).join(' & ');
+  const text = String(quote ?? story ?? '').trim();
+
+  if (!names || !text) {
+    throw createError.badRequest('Couple names and your story are required');
+  }
+
+  const record = await SuccessStory.create({
+    coupleNames: names.slice(0, 255),
+    quote: text,
+    marriedOn: marriedOn || weddingDate || null,
+    location: location ? String(location).trim().slice(0, 255) : null,
+    status: 'draft', // never auto-publish user-submitted content
+  });
+
+  log.info('Success story submitted (pending review)', { id: record.id });
+
+  res.status(201).json({
+    success: true,
+    message: "Thank you for sharing your story! Our team will review it before publishing.",
+  });
+});
+
+module.exports = { submitContact, submitSuccessStory };

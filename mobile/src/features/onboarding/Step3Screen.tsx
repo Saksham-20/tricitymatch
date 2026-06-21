@@ -1,13 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import * as DocumentPicker from 'expo-document-picker';
-import * as ImagePicker from 'expo-image-picker';
-import { Ionicons } from '@expo/vector-icons';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
 import OnboardingLayout from './OnboardingLayout';
 import { useOnboarding } from './OnboardingContext';
-import { uploadPhoto } from '../../api/profile';
 import type { ManglikStatus } from '../../types';
 
 const MANGLIK_OPTIONS: { key: ManglikStatus; tKey: string }[] = [
@@ -24,60 +20,12 @@ export default function Step3Screen() {
   const [manglikStatus, setManglikStatus] = useState<ManglikStatus | null>(data.manglikStatus);
   const [birthTime, setBirthTime] = useState(data.birthTime);
   const [placeOfBirth, setPlaceOfBirth] = useState(data.placeOfBirth);
-  const [kundliUrl, setKundliUrl] = useState(data.kundliUrl);
-  const [kundliFileName, setKundliFileName] = useState('');
-  const [uploading, setUploading] = useState(false);
 
   const isValid = !!manglikStatus;
 
-  const handlePickKundli = () => {
-    Alert.alert(t('onboarding.step3.uploadKundli'), '', [
-      {
-        text: 'Image',
-        onPress: async () => {
-          const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            quality: 0.8,
-          });
-          if (!result.canceled && result.assets[0]) {
-            await uploadKundliAsset(result.assets[0].uri, result.assets[0].fileName ?? 'kundli.jpg');
-          }
-        },
-      },
-      {
-        text: 'PDF',
-        onPress: async () => {
-          const result = await DocumentPicker.getDocumentAsync({
-            type: 'application/pdf',
-            copyToCacheDirectory: true,
-          });
-          if (result.assets && result.assets[0]) {
-            await uploadKundliAsset(result.assets[0].uri, result.assets[0].name);
-          }
-        },
-      },
-      { text: t('common.cancel'), style: 'cancel' },
-    ]);
-  };
-
-  const uploadKundliAsset = async (uri: string, name: string) => {
-    setUploading(true);
-    try {
-      const form = new FormData();
-      form.append('photo', { uri, name, type: 'application/octet-stream' } as any);
-      const res = await uploadPhoto(form);
-      setKundliUrl(res.url);
-      setKundliFileName(name);
-    } catch {
-      Alert.alert('Upload failed', 'Please try again.');
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const handleContinue = async () => {
     await saveAndNext(
-      { manglikStatus, birthTime, placeOfBirth, kundliUrl },
+      { manglikStatus, birthTime, placeOfBirth },
       { manglikStatus, birthTime, placeOfBirth } as any,
     );
   };
@@ -113,26 +61,6 @@ export default function Step3Screen() {
             );
           })}
         </View>
-      </View>
-
-      {/* Kundli upload */}
-      <View>
-        <Text style={styles.label}>
-          {t('onboarding.step3.uploadKundli')}
-          <Text style={styles.optional}> ({t('common.optional')})</Text>
-        </Text>
-        <TouchableOpacity
-          style={styles.uploadBtn}
-          onPress={handlePickKundli}
-          disabled={uploading}
-          testID="btn-uploadKundli"
-          accessibilityLabel={t('onboarding.step3.uploadKundli')}
-        >
-          <Ionicons name="document-attach-outline" size={20} color={colours.primary} />
-          <Text style={styles.uploadBtnText}>
-            {uploading ? 'Uploading...' : kundliFileName || 'Upload image or PDF'}
-          </Text>
-        </TouchableOpacity>
       </View>
 
       {/* Birth details */}
@@ -217,22 +145,5 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.base,
     color: colours.textPrimary,
     minHeight: 48,
-  },
-  uploadBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    borderWidth: 1.5,
-    borderColor: colours.primary,
-    borderStyle: 'dashed',
-    borderRadius: borderRadius.sm,
-    padding: spacing.md,
-    minHeight: 52,
-  },
-  uploadBtnText: {
-    fontSize: typography.fontSize.sm,
-    color: colours.primary,
-    fontFamily: typography.fontFamily.medium,
-    flex: 1,
   },
 });
