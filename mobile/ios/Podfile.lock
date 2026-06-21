@@ -36,6 +36,8 @@ PODS:
     - ExpoModulesCore
   - ExpoKeepAwake (13.0.2):
     - ExpoModulesCore
+  - ExpoLinearGradient (13.0.2):
+    - ExpoModulesCore
   - ExpoLocalAuthentication (14.0.1):
     - ExpoModulesCore
   - ExpoModulesCore (1.12.26):
@@ -1426,6 +1428,7 @@ DEPENDENCIES:
   - ExpoImageManipulator (from `../../node_modules/expo-image-manipulator/ios`)
   - ExpoImagePicker (from `../../node_modules/expo-image-picker/ios`)
   - ExpoKeepAwake (from `../../node_modules/expo-keep-awake/ios`)
+  - ExpoLinearGradient (from `../../node_modules/expo-linear-gradient/ios`)
   - ExpoLocalAuthentication (from `../../node_modules/expo-local-authentication/ios`)
   - ExpoModulesCore (from `../../node_modules/expo-modules-core`)
   - ExpoSecureStore (from `../../node_modules/expo-secure-store/ios`)
@@ -1543,6 +1546,8 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/expo-image-picker/ios"
   ExpoKeepAwake:
     :path: "../../node_modules/expo-keep-awake/ios"
+  ExpoLinearGradient:
+    :path: "../../node_modules/expo-linear-gradient/ios"
   ExpoLocalAuthentication:
     :path: "../../node_modules/expo-local-authentication/ios"
   ExpoModulesCore:
@@ -1697,6 +1702,7 @@ SPEC CHECKSUMS:
   ExpoImageManipulator: eb92d3ac4bad0fe96258f17273b9e295e87447be
   ExpoImagePicker: 7038c1740853c170002c491de63f9f9780c8139b
   ExpoKeepAwake: dd02e65d49f1cfd9194640028ae2857e536eb1c9
+  ExpoLinearGradient: 4c44b3803b441724874b232e6520b51ca6a50db1
   ExpoLocalAuthentication: b94db59f55df95350223200c746b4ddf0cb7cfc0
   ExpoModulesCore: 9ac73e2f60e0ea1d30137ca96cfc8c2aa34ef2b2
   ExpoSecureStore: 6506992a9f53c94ea716c54d4a63144965945c2c
