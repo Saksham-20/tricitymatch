@@ -105,7 +105,7 @@ exports.getConversations = asyncHandler(async (req, res) => {
         m."isRead"
       FROM "Messages" m
       WHERE (m."senderId" = :userId OR m."receiverId" = :userId)
-        AND (m."senderId" = ANY(:matchedUserIds) OR m."receiverId" = ANY(:matchedUserIds))
+        AND (m."senderId" IN (:matchedUserIds) OR m."receiverId" IN (:matchedUserIds))
       ORDER BY
         LEAST(m."senderId", m."receiverId"),
         GREATEST(m."senderId", m."receiverId"),

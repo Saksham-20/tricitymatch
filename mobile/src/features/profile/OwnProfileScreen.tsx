@@ -13,6 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import { resolveImageUri } from '../../components/common/SmartImage';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
 import { getMyProfile } from '../../api/profile';
@@ -412,7 +413,7 @@ export default function OwnProfileScreen() {
           photos.map((uri, i) => (
             <Image
               key={i}
-              source={{ uri: previewMode ? uri + '?blur=20' : uri }}
+              source={{ uri: resolveImageUri(previewMode ? uri + '?blur=20' : uri) ?? undefined }}
               style={styles.photo}
               resizeMode="cover"
               blurRadius={previewMode ? 20 : 0}

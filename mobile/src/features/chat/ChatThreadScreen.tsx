@@ -1,8 +1,9 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
-  View, Text, FlatList, TextInput, TouchableOpacity, Image, StyleSheet,
+  View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Modal, Pressable,
 } from 'react-native';
+import SmartImage from '../../components/common/SmartImage';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
@@ -463,13 +464,8 @@ export default function ChatThreadScreen() {
           accessibilityLabel={`View ${name}'s profile`}
           testID="HeaderProfile"
         >
-          {photo ? (
-            <Image source={{ uri: photo }} style={s.headerAvatar} />
-          ) : (
-            <View style={[s.headerAvatar, s.headerAvatarFallback]}>
-              <Text style={s.headerAvatarInitial}>{name[0]}</Text>
-            </View>
-          )}
+          <SmartImage uri={photo} name={name} style={s.headerAvatar} initialSize={16} />
+
           <Text style={s.headerName} numberOfLines={1}>{name}</Text>
         </TouchableOpacity>
 

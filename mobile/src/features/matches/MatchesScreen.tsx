@@ -5,10 +5,10 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Image,
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import SmartImage from '../../components/common/SmartImage';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -161,13 +161,7 @@ function MatchRow({ match, mode, onPress, onChat, onAccept, onDecline, onRemove 
   return (
     <TouchableOpacity style={mr.row} onPress={onPress} activeOpacity={0.85} accessibilityLabel={`${name} match`}>
       <View style={mr.photoWrap}>
-        {photoUri ? (
-          <Image source={{ uri: photoUri }} style={mr.photo} />
-        ) : (
-          <View style={[mr.photo, mr.photoEmpty]}>
-            <Ionicons name="person" size={28} color={colours.textMuted} />
-          </View>
-        )}
+        <SmartImage uri={photoUri} name={name} style={mr.photo} initialSize={24} />
         {profile?.isVerified && (
           <View style={mr.verifiedDot}>
             <Ionicons name="checkmark-circle" size={14} color={colours.success} />

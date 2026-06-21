@@ -1,8 +1,9 @@
 import React, { useCallback } from 'react';
 import {
-  View, Text, FlatList, TouchableOpacity, Image, StyleSheet,
+  View, Text, FlatList, TouchableOpacity, StyleSheet,
   ActivityIndicator, RefreshControl,
 } from 'react-native';
+import SmartImage from '../../components/common/SmartImage';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -82,13 +83,7 @@ function ConversationCard({ item, onPress }: ConversationCardProps) {
       testID={`ConversationCard-${item.userId}`}
     >
       <View style={s.avatarWrap}>
-        {profile.profilePhoto ? (
-          <Image source={{ uri: profile.profilePhoto }} style={s.avatar} />
-        ) : (
-          <View style={[s.avatar, s.avatarFallback]}>
-            <Text style={s.avatarInitial}>{profile.firstName[0]}</Text>
-          </View>
-        )}
+        <SmartImage uri={profile.profilePhoto} name={name} style={s.avatar} initialSize={20} />
         {isOnline && <View style={s.onlineDot} />}
         {profile.isVerified && (
           <View style={s.verifiedDot}>

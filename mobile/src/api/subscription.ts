@@ -1,11 +1,19 @@
 import { apiClient } from './client';
+import { PLANS, PLAN_ORDER } from '@shared/constants/plans';
 import type { PlanFeatures, Subscription } from '../types';
 
-// Backend returns plans as an object keyed by planType; flatten to the array the screen expects.
+// The /subscription/plans endpoint only returns marketing copy (name/price/
+// duration/feature-strings) — NOT the capability flags (canChat, etc.) the plan
+// cards render. The shared PLANS constant is the source of truth for those, so
+// use it and overlay the live price from the API.
 export const getPlans = async (): Promise<PlanFeatures[]> => {
-  const res = await apiClient.get<{ plans: Record<string, Omit<PlanFeatures, 'planType'>> }>('/subscription/plans');
-  const plans = res.data.plans ?? {};
-  return Object.entries(plans).map(([planType, p]) => ({ planType, ...p } as PlanFeatures));
+  const res = await apiClient.get<{ plans: Record<string, { price?: number }> }>('/subscription/plans');
+  const live = res.data.plans ?? {};
+  return PLAN_ORDER.map((planType) => {
+    const base = PLANS[planType];
+    const livePrice = live[planType]?.price;
+    return { ...base, price: typeof livePrice === 'number' ? livePrice : base.price };
+  });
 };
 
 export const createOrder = async (planType: string): Promise<{ orderId: string; amount: number; currency: string }> => {

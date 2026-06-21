@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { Conversation, Message } from '../types';
+import type { Conversation, Message, ProfileSummary } from '../types';
 
 // ─── Family group chat types ──────────────────────────────────────────────────
 export interface FamilyGroup {
@@ -27,9 +27,42 @@ export interface GroupMessage {
   editedAt: string | null;
 }
 
+// The backend returns each conversation as { userId, user: { id, name,
+// profilePhoto }, lastMessage, unreadCount }. Screens consume the shared
+// Conversation shape (profile: ProfileSummary), so map it here.
+interface RawConversation {
+  userId: string;
+  user: { id: string; name: string; profilePhoto: string | null };
+  lastMessage: { content: string; createdAt: string; isRead: boolean } | null;
+  unreadCount: number;
+}
+
 export const getConversations = async (): Promise<Conversation[]> => {
-  const res = await apiClient.get<{ conversations: Conversation[] }>('/chat/conversations');
-  return res.data.conversations ?? [];
+  const res = await apiClient.get<{ conversations: RawConversation[] }>('/chat/conversations');
+  return (res.data.conversations ?? []).map((c) => {
+    const parts = (c.user?.name ?? '').trim().split(' ');
+    const profile = {
+      id: c.user?.id ?? c.userId,
+      firstName: parts[0] ?? '',
+      lastName: parts.slice(1).join(' '),
+      profilePhoto: c.user?.profilePhoto ?? null,
+      isVerified: false,
+    } as unknown as ProfileSummary;
+    return {
+      userId: c.userId,
+      profile,
+      lastMessage: c.lastMessage
+        ? ({
+            content: c.lastMessage.content,
+            createdAt: c.lastMessage.createdAt,
+            isRead: c.lastMessage.isRead,
+          } as unknown as Message)
+        : null,
+      unreadCount: c.unreadCount ?? 0,
+      isOnline: false,
+      lastActive: null,
+    };
+  });
 };
 
 export const getThread = async (userId: string, cursor?: string): Promise<{
