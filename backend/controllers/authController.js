@@ -4,7 +4,7 @@
  */
 
 const jwt = require('jsonwebtoken');
-const { User, Profile, RefreshToken, ReferralCode, MarketingLead } = require('../models');
+const { User, Profile, Subscription, RefreshToken, ReferralCode, MarketingLead } = require('../models');
 const { sendWelcomeEmail, sendPasswordResetEmail, sendEmail } = require('../utils/email');
 const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
@@ -24,6 +24,22 @@ const getCookieOptions = (maxAge) => ({
   maxAge,
   path: '/',
 });
+
+// Attach the derived AuthUser fields the clients (mobile RootNavigator + premium
+// gates, web) expect but which aren't columns on Users: `subscriptionPlan` (from the
+// active subscription, else 'free') and `onboardingComplete` (the user has filled the
+// Step-1 basics). Kept in one place so login/signup/getMe stay in sync.
+const withDerivedUserFields = async (userInstance) => {
+  const user = userInstance.toJSON();
+  const activeSub = await Subscription.findOne({
+    where: { userId: user.id, status: 'active' },
+    order: [['createdAt', 'DESC']],
+  });
+  user.subscriptionPlan = activeSub?.planType || 'free';
+  const profile = user.Profile;
+  user.onboardingComplete = Boolean(profile && profile.gender && profile.dateOfBirth);
+  return user;
+};
 
 // Generate short-lived access token
 const generateAccessToken = (userId) => {
@@ -184,7 +200,7 @@ exports.signup = asyncHandler(async (req, res) => {
   res.status(201).json({
     success: true,
     message: 'Account created successfully',
-    user: fullUser,
+    user: await withDerivedUserFields(fullUser),
     // Access token returned for non-cookie clients; refresh token is httpOnly cookie only
     tokens: {
       accessToken,
@@ -253,7 +269,7 @@ exports.login = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     message: 'Login successful',
-    user: fullUser,
+    user: await withDerivedUserFields(fullUser),
     // Access token returned for non-cookie clients; refresh token is httpOnly cookie only
     tokens: {
       accessToken,
@@ -376,7 +392,7 @@ exports.getMe = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    user
+    user: await withDerivedUserFields(user)
   });
 });
 
