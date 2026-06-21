@@ -1,19 +1,20 @@
 import { apiClient } from './client';
 import type { Profile, ProfileSummary } from '../types';
 
+// Profile endpoints wrap the record in `{ success, profile }`; unwrap to the record.
 export const getMyProfile = async (): Promise<Profile> => {
-  const res = await apiClient.get<Profile>('/profile/me');
-  return res.data;
+  const res = await apiClient.get<{ profile: Profile }>('/profile/me');
+  return res.data.profile;
 };
 
 export const getProfile = async (userId: string): Promise<Profile> => {
-  const res = await apiClient.get<Profile>(`/profile/${userId}`);
-  return res.data;
+  const res = await apiClient.get<{ profile: Profile }>(`/profile/${userId}`);
+  return res.data.profile;
 };
 
 export const updateMyProfile = async (data: Partial<Profile>): Promise<Profile> => {
-  const res = await apiClient.put<Profile>('/profile/me', data);
-  return res.data;
+  const res = await apiClient.put<{ profile: Profile }>('/profile/me', data);
+  return res.data.profile;
 };
 
 export const uploadPhoto = async (formData: FormData): Promise<{ url: string; publicId: string }> => {
@@ -161,8 +162,8 @@ export interface ConsultBooking {
 }
 
 export const getAstrologers = async (): Promise<Astrologer[]> => {
-  const res = await apiClient.get<Astrologer[]>('/astrologers');
-  return res.data;
+  const res = await apiClient.get<{ astrologers: Astrologer[] }>('/astrologers');
+  return res.data.astrologers ?? [];
 };
 
 export const bookAstrologer = async (payload: {
@@ -175,6 +176,6 @@ export const bookAstrologer = async (payload: {
 };
 
 export const getMyConsultations = async (): Promise<ConsultBooking[]> => {
-  const res = await apiClient.get<ConsultBooking[]>('/astrologers/my-bookings');
-  return res.data;
+  const res = await apiClient.get<{ bookings: ConsultBooking[] }>('/astrologers/my-bookings');
+  return res.data.bookings ?? [];
 };

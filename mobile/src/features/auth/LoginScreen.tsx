@@ -15,6 +15,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
 import * as LocalAuthentication from 'expo-local-authentication';
 import type { AuthStackParamList } from '../../navigation/types';
 import { useAuthStore } from '../../stores/authStore';
@@ -269,7 +270,7 @@ export default function LoginScreen() {
               accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
               testID="LoginScreen-togglePassword"
             >
-              <Text style={styles.eyeText}>{showPassword ? '🙈' : '👁️'}</Text>
+              <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colours.textMuted} />
             </TouchableOpacity>
           </View>
         </View>
@@ -303,7 +304,10 @@ export default function LoginScreen() {
           accessibilityLabel={t('auth.login.googleSignIn')}
           testID="LoginScreen-google"
         >
-          <Text style={styles.googleBtnText}>🔍  {t('auth.login.googleSignIn')}</Text>
+          <View style={styles.btnRow}>
+            <Ionicons name="logo-google" size={18} color={colours.textPrimary} />
+            <Text style={styles.googleBtnText}>{t('auth.login.googleSignIn')}</Text>
+          </View>
         </TouchableOpacity>
 
         {/* Biometric — only shown when hardware available */}
@@ -315,9 +319,12 @@ export default function LoginScreen() {
             accessibilityLabel="Sign in with biometrics"
             testID="LoginScreen-biometric"
           >
-            <Text style={[styles.biometricBtnText, bioAttempts >= BIO_MAX_ATTEMPTS && { color: colours.textMuted }]}>
-              🔐  {biometricEnabled ? 'Sign in with Face ID / Touch ID' : 'Use biometric login'}
-            </Text>
+            <View style={styles.btnRow}>
+              <Ionicons name="finger-print" size={18} color={bioAttempts >= BIO_MAX_ATTEMPTS ? colours.textMuted : colours.primary} />
+              <Text style={[styles.biometricBtnText, bioAttempts >= BIO_MAX_ATTEMPTS && { color: colours.textMuted }]}>
+                {biometricEnabled ? 'Sign in with Face ID / Touch ID' : 'Use biometric login'}
+              </Text>
+            </View>
           </TouchableOpacity>
         )}
 
@@ -342,7 +349,9 @@ export default function LoginScreen() {
       >
         <View style={styles.bioModalBackdrop}>
           <View style={styles.bioModalCard}>
-            <Text style={styles.bioModalIcon}>🔐</Text>
+            <View style={styles.bioModalIconWrap}>
+              <Ionicons name="finger-print" size={32} color={colours.primary} />
+            </View>
             <Text style={styles.bioModalTitle}>Enable Face ID / Touch ID?</Text>
             <Text style={styles.bioModalBody}>
               Sign in faster next time using biometrics instead of your password.
@@ -525,8 +534,18 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     width: '100%',
   },
-  bioModalIcon: {
-    fontSize: 48,
+  btnRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  bioModalIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colours.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: spacing.sm,
   },
   bioModalTitle: {

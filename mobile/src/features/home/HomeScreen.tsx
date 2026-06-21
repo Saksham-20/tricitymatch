@@ -15,6 +15,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import SmartImage from '../../components/common/SmartImage';
 import { getDailyFeed } from '../../api/matches';
 import { getNotifications } from '../../api/notifications';
 import { queryKeys } from '../../constants/queryKeys';
@@ -73,13 +74,7 @@ function MatchCard({ profile, onPress }: MatchCardProps) {
       testID={`match-card-${profile.userId}`}
       accessibilityLabel={`View profile of ${title}`}
     >
-      {profile.profilePhoto ? (
-        <Image source={{ uri: profile.profilePhoto }} style={styles.matchPhoto} resizeMode="cover" />
-      ) : (
-        <View style={[styles.matchPhoto, styles.photoFallback]}>
-          <Ionicons name="person" size={36} color={colours.textMuted} />
-        </View>
-      )}
+      <SmartImage uri={profile.profilePhoto} name={title} style={styles.matchPhoto} initialSize={40} />
       {profile.isVerified && (
         <View style={styles.verifiedBadge}>
           <Ionicons name="checkmark-circle" size={16} color={colours.success} />
@@ -122,13 +117,7 @@ function NewProfileItem({ profile, onPress }: NewProfileItemProps) {
       testID={`new-profile-${profile.userId}`}
       accessibilityLabel={`View profile of ${name}`}
     >
-      {profile.profilePhoto ? (
-        <Image source={{ uri: profile.profilePhoto }} style={styles.newAvatar} resizeMode="cover" />
-      ) : (
-        <View style={[styles.newAvatar, styles.photoFallback]}>
-          <Ionicons name="person" size={20} color={colours.textMuted} />
-        </View>
-      )}
+      <SmartImage uri={profile.profilePhoto} name={name} style={styles.newAvatar} initialSize={18} />
       <View style={{ flex: 1 }}>
         <Text style={styles.newName} numberOfLines={1}>{name}</Text>
         {!!detail && <Text style={styles.newDetail} numberOfLines={1}>{detail}</Text>}
@@ -219,7 +208,7 @@ export default function HomeScreen() {
 
       {/* Welcome + plan badge */}
       <View style={styles.welcomeRow}>
-        <Text style={styles.welcomeText}>Welcome back, {firstName} 👋</Text>
+        <Text style={styles.welcomeText}>Welcome back, {firstName}</Text>
         {planLabel && (
           <View style={styles.planBadge}>
             <Text style={styles.planBadgeText}>{planLabel}</Text>

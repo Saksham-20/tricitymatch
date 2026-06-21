@@ -30,6 +30,6 @@ export const endCall = async (callId: string): Promise<void> => {
 };
 
 export const getCallHistory = async (): Promise<CallSession[]> => {
-  const res = await apiClient.get<CallSession[]>('/calls/history');
-  return res.data;
+  const res = await apiClient.get<{ calls: CallSession[] }>('/calls/history');
+  return res.data.calls ?? [];
 };

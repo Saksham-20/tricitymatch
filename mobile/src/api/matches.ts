@@ -1,6 +1,8 @@
 import { apiClient } from './client';
 import type { Match, MatchAction, MatchActionResponse, ProfileSummary } from '../types';
 
+// Backend wraps list responses as { success, <key>, pagination } — unwrap to the inner key.
+
 export const performMatchAction = async (
   userId: string,
   action: MatchAction
@@ -10,31 +12,26 @@ export const performMatchAction = async (
 };
 
 export const getDailyFeed = async (): Promise<ProfileSummary[]> => {
-  const res = await apiClient.get<ProfileSummary[]>('/matches/feed');
-  return res.data;
+  const res = await apiClient.get<{ matches: ProfileSummary[] }>('/match/daily');
+  return res.data.matches ?? [];
 };
 
 export const getMutualMatches = async (): Promise<Match[]> => {
-  const res = await apiClient.get<Match[]>('/match/matches');
-  return res.data;
+  const res = await apiClient.get<{ mutualMatches: Match[] }>('/match/mutual');
+  return res.data.mutualMatches ?? [];
 };
 
 export const getShortlisted = async (): Promise<Match[]> => {
-  const res = await apiClient.get<Match[]>('/match/shortlisted');
-  return res.data;
+  const res = await apiClient.get<{ shortlisted: Match[] }>('/match/shortlist');
+  return res.data.shortlisted ?? [];
 };
 
 export const getLikedMe = async (): Promise<Match[]> => {
-  const res = await apiClient.get<Match[]>('/match/liked-me');
-  return res.data;
-};
-
-export const getSentInterests = async (): Promise<Match[]> => {
-  const res = await apiClient.get<Match[]>('/match/sent');
-  return res.data;
+  const res = await apiClient.get<{ likes: Match[] }>('/match/likes');
+  return res.data.likes ?? [];
 };
 
 export const unlockContact = async (userId: string): Promise<{ phone: string }> => {
-  const res = await apiClient.post<{ phone: string }>(`/match/${userId}/unlock-contact`);
-  return res.data;
+  const res = await apiClient.post<{ contact: { phone: string } }>(`/profile/${userId}/unlock-contact`);
+  return res.data.contact;
 };

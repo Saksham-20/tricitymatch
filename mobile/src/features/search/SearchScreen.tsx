@@ -16,7 +16,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
-import { search, getSavedSearches, saveSearch } from '../../api/search';
+import { search } from '../../api/search';
 import { performMatchAction } from '../../api/matches';
 import { queryKeys } from '../../constants/queryKeys';
 import ProfileCard from '../../components/cards/ProfileCard';
@@ -232,16 +232,7 @@ export default function SearchScreen() {
   const profiles: ProfileSummary[] = data?.pages.flatMap((p) => p.profiles) ?? [];
   const total: number = data?.pages[0]?.total ?? 0;
 
-  // ── Saved searches ──────────────────────────────────────────────────────
-  const { data: savedSearches = [] } = useQuery({
-    queryKey: ['savedSearches'],
-    queryFn: getSavedSearches,
-  });
-
-  const saveMutation = useMutation({
-    mutationFn: ({ name, f }: { name: string; f: SearchFilters }) => saveSearch(name, f),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['savedSearches'] }),
-  });
+  // Saved-searches have no backend yet — the save UI is hidden. See CLAUDE.md Known Issues.
 
   // ── Match actions ───────────────────────────────────────────────────────
   const actionMutation = useMutation({
@@ -327,22 +318,6 @@ export default function SearchScreen() {
             </Text>
           </TouchableOpacity>
 
-          {savedSearches.length > 0 && (
-            <TouchableOpacity
-              style={s.toolBtn}
-              onPress={() => Alert.alert('Saved Searches', 'Select a saved search', [
-                ...savedSearches.map((sv: any) => ({
-                  text: sv.name,
-                  onPress: () => setFilters({ ...sv.filters, sort: currentSort }),
-                })),
-                { text: 'Cancel', style: 'cancel' },
-              ])}
-              accessibilityLabel="Saved searches"
-            >
-              <Ionicons name="bookmark" size={16} color={colours.textSecondary} />
-              <Text style={s.toolBtnText}>Saved ({savedSearches.length})</Text>
-            </TouchableOpacity>
-          )}
         </View>
 
         <TouchableOpacity
@@ -401,7 +376,6 @@ export default function SearchScreen() {
         resultCount={total}
         onApply={() => refetch()}
         onReset={() => setFilters(DEFAULT_FILTERS)}
-        onSaveSearch={() => setShowSaveModal(true)}
       />
 
       {/* Sort Picker */}
@@ -415,15 +389,6 @@ export default function SearchScreen() {
         onClose={() => setShowSort(false)}
       />
 
-      {/* Save Search Modal */}
-      <SaveSearchModal
-        visible={showSaveModal}
-        onSave={(name) => {
-          saveMutation.mutate({ name, f: filters });
-          setShowSaveModal(false);
-        }}
-        onClose={() => setShowSaveModal(false)}
-      />
     </View>
   );
 }

@@ -39,6 +39,9 @@ export const colours = {
   planPlus:    '#1565C0',
   planPremium: '#6A1B9A',
   planElite:   '#C9A227',
+
+  // Foreground on the primary brand colour (e.g. button labels/spinners)
+  onPrimary:   '#FFFFFF',
 } as const;
 
 export const typography = {
@@ -64,6 +67,10 @@ export const typography = {
     tight:   1.25,
     normal:  1.5,
     relaxed: 1.75,
+  },
+  // Tracking for uppercase eyebrow/section labels
+  letterSpacing: {
+    eyebrow: 1.2,
   },
 } as const;
 
@@ -161,4 +168,6 @@ export const darkColours = {
   planPlus:    '#42A5F5',
   planPremium: '#AB47BC',
   planElite:   '#D4AF37',
+
+  onPrimary:   '#FFFFFF',
 } as const;

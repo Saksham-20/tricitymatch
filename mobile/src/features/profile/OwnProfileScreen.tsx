@@ -102,7 +102,7 @@ function CompletionRing({ pct }: { pct: number }) {
             key={i}
             style={[
               ring.segment,
-              { transform: [{ translateY: 25 }, { rotate: `${i * 36}deg` }, { translateY: -25 }] },
+              { transform: [{ translateY: 37 }, { rotate: `${i * 36}deg` }, { translateY: -37 }] },
               i < filled ? ring.segmentFilled : ring.segmentEmpty,
             ]}
           />
@@ -131,14 +131,14 @@ const ring = StyleSheet.create({
   segment: {
     position: 'absolute',
     width: 4,
-    height: 50,
-    top: 0,
+    height: 14,
+    top: 6,
     left: '50%',
     marginLeft: -2,
     borderRadius: 2,
   },
   segmentFilled: { backgroundColor: colours.primary },
-  segmentEmpty: { backgroundColor: 'transparent' },
+  segmentEmpty: { backgroundColor: colours.border },
   inner: { alignItems: 'center' },
   pct: {
     fontSize: typography.fontSize.xl,

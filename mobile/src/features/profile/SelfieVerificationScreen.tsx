@@ -218,7 +218,9 @@ export default function SelfieVerificationScreen() {
               <Text style={s.recordingLabel}>Recording…</Text>
             </View>
             <View style={s.countdownCircle}>
-              <Text style={s.countdownNumber}>{countdown > 0 ? countdown : '✓'}</Text>
+              {countdown > 0
+                ? <Text style={s.countdownNumber}>{countdown}</Text>
+                : <Ionicons name="checkmark" size={32} color="#FFFFFF" />}
             </View>
             <Text style={s.recordingHint}>Look straight, then slowly turn your head left and right</Text>
           </View>

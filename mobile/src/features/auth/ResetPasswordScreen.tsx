@@ -14,6 +14,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
 import type { AuthStackParamList } from '../../navigation/types';
 import { resetPassword } from '../../api/auth';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
@@ -73,7 +74,7 @@ export default function ResetPasswordScreen() {
   if (success) {
     return (
       <View style={styles.successContainer} testID="ResetPasswordScreen-success">
-        <Text style={styles.successEmoji}>✅</Text>
+        <Ionicons name="checkmark-circle" size={56} color={colours.success} style={{ marginBottom: spacing.md }} />
         <Text style={styles.successTitle}>{t('auth.resetPassword.success')}</Text>
         <Text style={styles.successSubtitle}>You can now sign in with your new password.</Text>
         <TouchableOpacity
@@ -102,7 +103,9 @@ export default function ResetPasswordScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.emoji}>🔒</Text>
+          <View style={styles.iconWrap}>
+            <Ionicons name="lock-closed-outline" size={28} color={colours.primary} />
+          </View>
           <Text style={styles.title}>{t('auth.resetPassword.title')}</Text>
           <Text style={styles.subtitle}>Choose a new password for your account.</Text>
         </View>
@@ -136,7 +139,7 @@ export default function ResetPasswordScreen() {
               accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
               testID="ResetPasswordScreen-togglePassword"
             >
-              <Text style={styles.eyeText}>{showPassword ? '🙈' : '👁️'}</Text>
+              <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colours.textMuted} />
             </TouchableOpacity>
           </View>
           {fieldErrors.password ? (
@@ -167,7 +170,7 @@ export default function ResetPasswordScreen() {
               accessibilityLabel={showConfirm ? 'Hide password' : 'Show password'}
               testID="ResetPasswordScreen-toggleConfirm"
             >
-              <Text style={styles.eyeText}>{showConfirm ? '🙈' : '👁️'}</Text>
+              <Ionicons name={showConfirm ? 'eye-off-outline' : 'eye-outline'} size={20} color={colours.textMuted} />
             </TouchableOpacity>
           </View>
           {fieldErrors.confirmPassword ? (
@@ -199,7 +202,15 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { padding: spacing['2xl'], paddingTop: 60 },
   header: { marginBottom: spacing['2xl'], alignItems: 'flex-start' },
-  emoji: { fontSize: 40, marginBottom: spacing.md },
+  iconWrap: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: colours.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
   title: {
     fontSize: typography.fontSize['3xl'],
     fontFamily: typography.fontFamily.bold,

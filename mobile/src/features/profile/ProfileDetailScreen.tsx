@@ -103,10 +103,10 @@ const cb = StyleSheet.create({
 // ─── Verification Badges ─────────────────────────────────────────────────────
 
 const BADGES = [
-  { key: 'mobile', label: '✓ Mobile', color: colours.badgeMobile },
-  { key: 'id', label: '✓ ID', color: colours.badgeID },
-  { key: 'education', label: '✓ Education', color: colours.badgeEducation },
-  { key: 'income', label: '✓ Income', color: colours.badgeIncome },
+  { key: 'mobile', label: 'Mobile', color: colours.badgeMobile },
+  { key: 'id', label: 'ID', color: colours.badgeID },
+  { key: 'education', label: 'Education', color: colours.badgeEducation },
+  { key: 'income', label: 'Income', color: colours.badgeIncome },
 ] as const;
 
 function VerificationRow({ phoneVerified }: { phoneVerified?: boolean }) {
@@ -114,7 +114,8 @@ function VerificationRow({ phoneVerified }: { phoneVerified?: boolean }) {
   return (
     <View style={vr.row}>
       <View style={[vr.badge, { borderColor: colours.badgeMobile }]}>
-        <Text style={[vr.text, { color: colours.badgeMobile }]}>✓ Mobile</Text>
+        <Ionicons name="checkmark-circle" size={12} color={colours.badgeMobile} />
+        <Text style={[vr.text, { color: colours.badgeMobile }]}>Mobile</Text>
       </View>
     </View>
   );
@@ -123,6 +124,9 @@ function VerificationRow({ phoneVerified }: { phoneVerified?: boolean }) {
 const vr = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
   badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
     borderWidth: 1,
     borderRadius: borderRadius.full,
     paddingHorizontal: 10,
@@ -223,7 +227,7 @@ function MutualMatchOverlay({ name, onDismiss }: { name: string; onDismiss: () =
     <View style={mm.overlay}>
       <View style={mm.card}>
         <Ionicons name="heart" size={56} color={colours.primary} />
-        <Text style={mm.title}>It's a Match! 🎉</Text>
+        <Text style={mm.title}>It's a Match</Text>
         <Text style={mm.sub}>You and {name} liked each other.</Text>
         <TouchableOpacity style={mm.btn} onPress={onDismiss} testID="mutual-match-dismiss">
           <Text style={mm.btnText}>Continue Browsing</Text>

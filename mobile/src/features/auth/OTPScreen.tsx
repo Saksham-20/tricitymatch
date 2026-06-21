@@ -15,6 +15,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
 import type { AuthStackParamList } from '../../navigation/types';
 import { verifyOtp } from '../../api/auth';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
@@ -136,7 +137,9 @@ export default function OTPScreen() {
       <View style={styles.content}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.emoji}>📱</Text>
+          <View style={styles.iconWrap}>
+            <Ionicons name="phone-portrait-outline" size={30} color={colours.primary} />
+          </View>
           <Text style={styles.title}>Verify Your Number</Text>
           <Text style={styles.subtitle}>
             We sent a 6-digit code to {maskedPhone}
@@ -227,7 +230,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: { alignItems: 'center', marginBottom: spacing['3xl'] },
-  emoji: { fontSize: 48, marginBottom: spacing.lg },
+  iconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colours.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.lg,
+  },
   title: {
     fontSize: typography.fontSize['2xl'],
     fontFamily: typography.fontFamily.bold,

@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
 import type { ProfileSummary } from '../../types';
+import SmartImage from '../common/SmartImage';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -54,13 +55,7 @@ export default function ProfileCard({
         accessibilityLabel={`${name} profile`}
       >
         <View style={s.compactPhotoWrapper}>
-          {photoUri ? (
-            <Image source={{ uri: photoUri }} style={s.compactPhoto} />
-          ) : (
-            <View style={[s.compactPhoto, s.photoPlaceholder]}>
-              <Ionicons name="person" size={32} color={colours.textMuted} />
-            </View>
-          )}
+          <SmartImage uri={photoUri} name={name} style={s.compactPhoto} initialSize={22} />
           {profile.isVerified && (
             <View style={s.verifiedBadge}>
               <Ionicons name="checkmark-circle" size={16} color={colours.success} />
@@ -103,13 +98,7 @@ export default function ProfileCard({
     >
       {/* Photo */}
       <View style={s.photoWrapper}>
-        {photoUri ? (
-          <Image source={{ uri: photoUri }} style={s.photo} />
-        ) : (
-          <View style={[s.photo, s.photoPlaceholder]}>
-            <Ionicons name="person" size={56} color={colours.textMuted} />
-          </View>
-        )}
+        <SmartImage uri={photoUri} name={name} style={s.photo} initialSize={64} />
         {profile.isBoosted && (
           <View style={s.boostedTag}>
             <Ionicons name="flash" size={12} color="#fff" />

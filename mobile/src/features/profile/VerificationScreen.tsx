@@ -27,14 +27,14 @@ const TIER_CONFIG: {
   tier: 1 | 2 | 3 | 4;
   name: string;
   description: string;
-  badge: string;
+  badge: keyof typeof Ionicons.glyphMap;
   docHint: string;
   badgeColor: string;
 }[] = [
-  { tier: 1, name: 'Mobile Verified',  description: 'Verify your phone number',          badge: '📱', docHint: 'Phone OTP already verified', badgeColor: colours.badgeMobile },
-  { tier: 2, name: 'ID Verified',      description: 'Upload Aadhaar or PAN card',         badge: '🪪', docHint: 'Photo of Aadhaar / PAN / Passport', badgeColor: colours.badgeID },
-  { tier: 3, name: 'Education Verified', description: 'Upload your degree or offer letter', badge: '🎓', docHint: 'Degree certificate or employer offer letter', badgeColor: colours.badgeEducation },
-  { tier: 4, name: 'Income Verified',  description: 'Upload ITR or salary slip',          badge: '💰', docHint: 'ITR acknowledgement or 3-month salary slip', badgeColor: colours.badgeIncome },
+  { tier: 1, name: 'Mobile Verified',  description: 'Verify your phone number',          badge: 'phone-portrait-outline', docHint: 'Phone OTP already verified', badgeColor: colours.badgeMobile },
+  { tier: 2, name: 'ID Verified',      description: 'Upload Aadhaar or PAN card',         badge: 'card-outline', docHint: 'Photo of Aadhaar / PAN / Passport', badgeColor: colours.badgeID },
+  { tier: 3, name: 'Education Verified', description: 'Upload your degree or offer letter', badge: 'school-outline', docHint: 'Degree certificate or employer offer letter', badgeColor: colours.badgeEducation },
+  { tier: 4, name: 'Income Verified',  description: 'Upload ITR or salary slip',          badge: 'cash-outline', docHint: 'ITR acknowledgement or 3-month salary slip', badgeColor: colours.badgeIncome },
 ];
 
 type PickedFile = { uri: string; name: string; type: string };
@@ -96,7 +96,7 @@ function TierCard({ config, tierData, onUpload, uploading }: TierCardProps) {
   return (
     <View style={[tc.card, isEarned && tc.cardEarned]} testID={`tier-card-${config.tier}`}>
       <View style={tc.header}>
-        <Text style={tc.badge}>{config.badge}</Text>
+        <Ionicons name={config.badge} size={26} color={config.badgeColor} style={tc.badge} />
         <View style={tc.info}>
           <Text style={[tc.name, isEarned && { color: config.badgeColor }]}>{config.name}</Text>
           <Text style={tc.desc}>{config.description}</Text>
@@ -119,7 +119,8 @@ function TierCard({ config, tierData, onUpload, uploading }: TierCardProps) {
         </View>
       )}
 
-      {config.tier > 1 && !isEarned && !isPending && (
+      {/* Only ID verification (tier 2) is backed server-side; education/income are not yet. */}
+      {config.tier === 2 && !isEarned && !isPending && (
         <View style={tc.footer}>
           <Text style={tc.hint}>{config.docHint}</Text>
           <TouchableOpacity
@@ -138,6 +139,12 @@ function TierCard({ config, tierData, onUpload, uploading }: TierCardProps) {
               </>
             )}
           </TouchableOpacity>
+        </View>
+      )}
+
+      {config.tier > 2 && !isEarned && (
+        <View style={tc.footer}>
+          <Text style={tc.hint}>Coming soon</Text>
         </View>
       )}
 
@@ -194,8 +201,9 @@ export default function VerificationScreen() {
     if (!file) return;
     setUploadingTier(tier);
     const form = new FormData();
-    form.append('tier', String(tier));
-    form.append('document', { uri: file.uri, name: file.name, type: file.type } as any);
+    // Backend supports ID-document verification: documentType + documentFront file.
+    form.append('documentType', 'aadhaar');
+    form.append('documentFront', { uri: file.uri, name: file.name, type: file.type } as any);
     submitMutation.mutate(form);
   };
 

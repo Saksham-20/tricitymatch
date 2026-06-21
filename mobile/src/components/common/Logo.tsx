@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, Image, StyleSheet } from 'react-native';
 import { colours, typography } from '@shared/constants/theme';
 
 type Variant = 'default' | 'stacked' | 'white' | 'icon';
@@ -10,6 +10,9 @@ interface LogoProps {
   size?: Size;
   showText?: boolean;
 }
+
+// The real TricityShadi brand mark, shared with the website (frontend/public/images/logo.svg).
+const LOGO = require('../../../assets/logo.png');
 
 const badgeSizes = {
   sm: 32,
@@ -25,13 +28,6 @@ const textSizes = {
   xl: typography.fontSize['3xl'],
 };
 
-const initialSizes = {
-  sm: typography.fontSize.sm,
-  md: typography.fontSize.base,
-  lg: typography.fontSize.lg,
-  xl: typography.fontSize.xl,
-};
-
 export default function Logo({ variant = 'default', size = 'md', showText = true }: LogoProps) {
   const isWhite = variant === 'white';
   const isStacked = variant === 'stacked';
@@ -39,40 +35,20 @@ export default function Logo({ variant = 'default', size = 'md', showText = true
 
   const badgeSize = badgeSizes[size];
   const textColor = isWhite ? '#FFFFFF' : colours.textPrimary;
-  const badgeBg = isWhite ? 'rgba(255,255,255,0.2)' : colours.primary;
-  const initialColor = '#FFFFFF';
 
-  const badge = (
-    <View
-      style={[
-        styles.badge,
-        {
-          width: badgeSize,
-          height: badgeSize,
-          borderRadius: badgeSize * 0.22,
-          backgroundColor: badgeBg,
-        },
-        isWhite && styles.badgeWhiteBorder,
-      ]}
-      // Accessibility handled by outer container
+  const mark = (
+    <Image
+      source={LOGO}
+      style={{ width: badgeSize, height: badgeSize, borderRadius: badgeSize * 0.22 }}
+      resizeMode="contain"
       importantForAccessibility="no"
       accessibilityElementsHidden
-    >
-      <Text style={[styles.badgeInitials, { fontSize: initialSizes[size], color: initialColor }]}
-        importantForAccessibility="no"
-        accessibilityElementsHidden
-      >
-        TS
-      </Text>
-    </View>
+    />
   );
 
   const label = showText && !isIcon ? (
     <Text
-      style={[
-        styles.name,
-        { fontSize: textSizes[size], color: textColor },
-      ]}
+      style={[styles.name, { fontSize: textSizes[size], color: textColor }]}
       numberOfLines={1}
       importantForAccessibility="no"
       accessibilityElementsHidden
@@ -87,7 +63,7 @@ export default function Logo({ variant = 'default', size = 'md', showText = true
       accessibilityRole="image"
       accessibilityLabel="TricityShadi"
     >
-      {badge}
+      {mark}
       {label}
     </View>
   );
@@ -103,21 +79,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  badge: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badgeWhiteBorder: {
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.5)',
-  },
-  badgeInitials: {
-    fontFamily: typography.fontFamily.display,
-    letterSpacing: 0.5,
-  },
   name: {
     fontFamily: typography.fontFamily.display,
     letterSpacing: 0.3,
   },
-  // nameStacked intentionally removed — stackedContainer gap handles spacing
 });

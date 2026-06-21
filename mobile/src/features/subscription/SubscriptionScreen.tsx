@@ -64,11 +64,11 @@ const PLAN_COLOUR: Record<SubscriptionPlanType, string> = {
   vip:           colours.planElite,
 };
 
-const PLAN_ICON: Record<SubscriptionPlanType, string> = {
-  free:          '👤',
-  basic_premium: '⭐',
-  premium_plus:  '💎',
-  vip:           '👑',
+const PLAN_ICON: Record<SubscriptionPlanType, keyof typeof Ionicons.glyphMap> = {
+  free:          'person-outline',
+  basic_premium: 'star-outline',
+  premium_plus:  'diamond-outline',
+  vip:           'trophy-outline',
 };
 
 // ─── Feature row ─────────────────────────────────────────────────────────────
@@ -128,7 +128,7 @@ function PlanCard({ plan, isCurrent, isSelected, onSelect }: PlanCardProps) {
         </View>
       )}
       <View style={pc.header}>
-        <Text style={pc.icon}>{icon}</Text>
+        <Ionicons name={icon} size={26} color={colour} style={pc.icon} />
         <View style={pc.titleCol}>
           <Text style={[pc.label, { color: colour }]}>{plan.label}</Text>
           {plan.price > 0 ? (

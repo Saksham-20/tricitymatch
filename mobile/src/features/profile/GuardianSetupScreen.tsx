@@ -32,16 +32,14 @@ type Nav = NativeStackNavigationProp<MainStackParamList>;
 function InviteGuardianModal({ visible, onClose, onCreate }: {
   visible: boolean;
   onClose: () => void;
-  onCreate: (phone: string, name: string) => void;
+  onCreate: (email: string) => void;
 }) {
-  const [phone, setPhone] = useState('');
-  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
 
   const handleSend = () => {
-    if (phone.trim().length < 10) { Alert.alert('Invalid', 'Enter a valid 10-digit phone number.'); return; }
-    if (!name.trim()) { Alert.alert('Required', 'Enter guardian name.'); return; }
-    onCreate(phone.trim(), name.trim());
-    setPhone(''); setName('');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { Alert.alert('Invalid', 'Enter a valid email address.'); return; }
+    onCreate(email.trim());
+    setEmail('');
     onClose();
   };
 
@@ -55,31 +53,21 @@ function InviteGuardianModal({ visible, onClose, onCreate }: {
             Your guardian gets read-only access to your match list and shortlist. They cannot message or take any match actions.
           </Text>
 
-          <Text style={im.label}>Guardian's Name</Text>
+          <Text style={im.label}>Guardian's Email</Text>
           <TextInput
             style={im.input}
-            value={name}
-            onChangeText={setName}
-            placeholder="e.g. Rajesh Sharma (Father)"
-            maxLength={60}
-            testID="guardian-name-input"
-            accessibilityLabel="Guardian name"
-          />
-
-          <Text style={im.label}>Guardian's Phone</Text>
-          <TextInput
-            style={im.input}
-            value={phone}
-            onChangeText={setPhone}
-            placeholder="+91 98765 43210"
-            keyboardType="phone-pad"
-            maxLength={13}
-            testID="guardian-phone-input"
-            accessibilityLabel="Guardian phone number"
+            value={email}
+            onChangeText={setEmail}
+            placeholder="guardian@example.com"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            maxLength={120}
+            testID="guardian-email-input"
+            accessibilityLabel="Guardian email"
           />
 
           <TouchableOpacity style={im.sendBtn} onPress={handleSend} testID="send-guardian-invite-btn" accessibilityLabel="Send invite">
-            <Text style={im.sendText}>Send Invite via SMS</Text>
+            <Text style={im.sendText}>Send Invite</Text>
           </TouchableOpacity>
           <TouchableOpacity style={im.cancelBtn} onPress={onClose} testID="cancel-guardian-invite-btn">
             <Text style={im.cancelText}>Cancel</Text>
@@ -139,10 +127,10 @@ export default function GuardianSetupScreen() {
   });
 
   const inviteMutation = useMutation({
-    mutationFn: ({ phone, name }: { phone: string; name: string }) => inviteGuardian(phone, name),
+    mutationFn: (email: string) => inviteGuardian(email),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.guardianLinks });
-      Alert.alert('Invited!', 'Guardian invite sent via SMS. They can log in with their phone to access your match list.');
+      Alert.alert('Invited!', 'Guardian invite sent. They can log in with their email to access your match list.');
     },
     onError: () => Alert.alert('Error', 'Failed to send invite.'),
   });
@@ -243,7 +231,6 @@ export default function GuardianSetupScreen() {
                 </View>
                 <View style={s.linkInfo}>
                   <Text style={s.linkName}>{link.guardianName}</Text>
-                  <Text style={s.linkPhone}>{link.guardianPhone}</Text>
                 </View>
                 <StatusPill status={link.status} />
                 {link.status !== 'revoked' && (
@@ -269,7 +256,7 @@ export default function GuardianSetupScreen() {
       <InviteGuardianModal
         visible={showInvite}
         onClose={() => setShowInvite(false)}
-        onCreate={(phone, name) => inviteMutation.mutate({ phone, name })}
+        onCreate={(email) => inviteMutation.mutate(email)}
       />
     </View>
   );

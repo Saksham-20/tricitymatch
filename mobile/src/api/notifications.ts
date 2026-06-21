@@ -3,10 +3,21 @@ import type { Notification } from '../types';
 
 export const getNotifications = async (cursor?: string): Promise<{
   notifications: Notification[];
+  unreadCount: number;
   nextCursor: string | null;
 }> => {
-  const res = await apiClient.get('/notifications', { params: { cursor, limit: 20 } });
-  return res.data;
+  const page = cursor ? Number(cursor) : 1;
+  const res = await apiClient.get<{
+    notifications: Notification[];
+    unreadCount: number;
+    pagination: { page: number; pages: number };
+  }>('/notifications', { params: { page, limit: 20 } });
+  const { page: cur, pages } = res.data.pagination ?? { page: 1, pages: 1 };
+  return {
+    notifications: res.data.notifications ?? [],
+    unreadCount: res.data.unreadCount ?? 0,
+    nextCursor: cur < pages ? String(cur + 1) : null,
+  };
 };
 
 export const markRead = async (id: string): Promise<void> => {

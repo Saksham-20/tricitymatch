@@ -12,6 +12,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
 import type { AuthStackParamList } from '../../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUIStore } from '../../stores/uiStore';
@@ -22,30 +23,33 @@ type Nav = NativeStackNavigationProp<AuthStackParamList, 'Welcome'>;
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const VALUE_PROPS = [
+const VALUE_PROPS: {
+  icon: keyof typeof Ionicons.glyphMap;
+  titleKey: string;
+  titleFallback: string;
+  subtitleKey: string;
+  subtitleFallback: string;
+}[] = [
   {
-    emoji: '✅',
+    icon: 'shield-checkmark-outline',
     titleKey: 'welcome.verified.title',
     titleFallback: 'Verified Profiles',
     subtitleKey: 'welcome.verified.subtitle',
     subtitleFallback: 'Every profile is manually reviewed and verified for authenticity.',
-    bg: '#FDF2F5',  // primaryLight cream
   },
   {
-    emoji: '🔒',
+    icon: 'lock-closed-outline',
     titleKey: 'welcome.private.title',
     titleFallback: 'Private & Safe',
     subtitleKey: 'welcome.private.subtitle',
     subtitleFallback: 'Your photos and contact are protected. Share only when you choose.',
-    bg: '#F0FDF4',
   },
   {
-    emoji: '💑',
+    icon: 'heart-outline',
     titleKey: 'welcome.match.title',
     titleFallback: 'Find Your Match',
     subtitleKey: 'welcome.match.subtitle',
     subtitleFallback: 'Hyperlocal matching for Chandigarh, Mohali & Panchkula families.',
-    bg: '#FEFCE8',  // secondaryLight gold cream
   },
 ];
 
@@ -116,10 +120,12 @@ export default function WelcomeScreen() {
         {VALUE_PROPS.map((card, i) => (
           <View
             key={i}
-            style={[styles.card, { backgroundColor: card.bg }]}
+            style={styles.card}
             testID={`WelcomeScreen-card-${i}`}
           >
-            <Text style={styles.cardEmoji}>{card.emoji}</Text>
+            <View style={styles.cardIconWrap}>
+              <Ionicons name={card.icon} size={26} color={colours.primary} />
+            </View>
             <Text style={styles.cardTitle}>{t(card.titleKey, card.titleFallback)}</Text>
             <Text style={styles.cardSubtitle}>{t(card.subtitleKey, card.subtitleFallback)}</Text>
           </View>
@@ -213,9 +219,17 @@ const styles = StyleSheet.create({
     minHeight: 200,
     justifyContent: 'center',
     marginRight: 0,
+    backgroundColor: colours.surfaceCard,
+    borderWidth: 1,
+    borderColor: colours.border,
   },
-  cardEmoji: {
-    fontSize: 40,
+  cardIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colours.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: spacing.md,
   },
   cardTitle: {

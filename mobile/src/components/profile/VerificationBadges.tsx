@@ -36,7 +36,7 @@ export default function VerificationBadges({ mobile, id, education, income }: Pr
         return (
           <View key={key} style={[s.badge, { backgroundColor: cfg.color + '18' }]}>
             <Ionicons name={cfg.icon} size={11} color={cfg.color} />
-            <Text style={[s.label, { color: cfg.color }]}>{cfg.label} ✓</Text>
+            <Text style={[s.label, { color: cfg.color }]}>{cfg.label}</Text>
           </View>
         );
       })}

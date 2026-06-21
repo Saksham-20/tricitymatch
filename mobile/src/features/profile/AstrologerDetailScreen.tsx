@@ -75,7 +75,7 @@ export default function AstrologerDetailScreen() {
         durationMin: selectedDuration,
       });
       Alert.alert(
-        'Booking Confirmed! 🎉',
+        'Booking Confirmed',
         `Your consultation with ${astrologerName} has been booked for ${selectedSlot}.\n\nYou'll receive a confirmation on your registered email.`,
         [{ text: 'OK', onPress: () => nav.goBack() }],
       );

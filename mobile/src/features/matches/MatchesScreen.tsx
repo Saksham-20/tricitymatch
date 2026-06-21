@@ -19,7 +19,6 @@ import {
   getMutualMatches,
   getShortlisted,
   getLikedMe,
-  getSentInterests,
   performMatchAction,
 } from '../../api/matches';
 import { queryKeys } from '../../constants/queryKeys';
@@ -27,15 +26,15 @@ import { useOfflineShortlist } from '../../hooks/useOfflineShortlist';
 import OfflineBanner from '../../components/common/OfflineBanner';
 import type { MainStackParamList } from '../../navigation/types';
 import type { Match, MatchAction } from '../../types';
+import { useAuthStore, selectPlan } from '../../stores/authStore';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 
-type TabKey = 'mutual' | 'shortlisted' | 'liked_me' | 'sent';
+type TabKey = 'mutual' | 'shortlisted' | 'liked_me';
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'mutual',      label: 'Mutual' },
   { key: 'shortlisted', label: 'Shortlisted' },
   { key: 'liked_me',    label: 'Liked Me' },
-  { key: 'sent',        label: 'My Interests' },
 ];
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
@@ -181,7 +180,7 @@ function MatchRow({ match, mode, onPress, onChat, onAccept, onDecline, onRemove 
         <Text style={mr.sub} numberOfLines={1}>
           {[profile?.profession, profile?.city].filter(Boolean).join(' · ')}
         </Text>
-        {compat > 0 && mode !== 'sent' && (
+        {compat > 0 && (
           <View style={mr.compatRow}>
             <View style={mr.compatBar}>
               <View style={[mr.compatFill, { width: `${compat}%` }]} />
@@ -189,7 +188,6 @@ function MatchRow({ match, mode, onPress, onChat, onAccept, onDecline, onRemove 
             <Text style={mr.compatPct}>{compat}%</Text>
           </View>
         )}
-        {mode === 'sent' && <StatusBadge status={match.action === 'like' ? 'pending' : match.action} />}
       </View>
 
       <View style={mr.actions}>
@@ -278,10 +276,11 @@ const mr = StyleSheet.create({
 function TabContent({ activeTab }: { activeTab: TabKey }) {
   const navigation = useNavigation<Nav>();
   const queryClient = useQueryClient();
+  // "Liked Me" reveal is gated to paid plans (mirrors web). Any non-free tier unlocks it.
+  const hasPlus = useAuthStore(selectPlan) !== 'free';
 
   const mutualQuery   = useQuery({ queryKey: queryKeys.mutualMatches,  queryFn: getMutualMatches,  enabled: activeTab === 'mutual' });
   const likedMeQuery  = useQuery({ queryKey: queryKeys.likedMe,        queryFn: getLikedMe,        enabled: activeTab === 'liked_me' });
-  const sentQuery     = useQuery({ queryKey: queryKeys.sentInterests,  queryFn: getSentInterests,  enabled: activeTab === 'sent' });
 
   // Shortlisted uses offline-aware hook
   const {
@@ -310,7 +309,6 @@ function TabContent({ activeTab }: { activeTab: TabKey }) {
   const queryMap = {
     mutual:   mutualQuery,
     liked_me: likedMeQuery,
-    sent:     sentQuery,
   };
 
   // For shortlisted tab, use offline hook data; for others use React Query
@@ -333,16 +331,12 @@ function TabContent({ activeTab }: { activeTab: TabKey }) {
     mutual:      { icon: 'heart-circle',    title: 'No mutual matches yet',       sub: 'When you both like each other, you\'ll appear here.' },
     shortlisted: { icon: 'bookmark',        title: 'Your shortlist is empty',     sub: 'Shortlist profiles to revisit them anytime.' },
     liked_me:    { icon: 'heart',           title: 'No one has liked you yet',    sub: 'Improve your profile to attract more attention.' },
-    sent:        { icon: 'paper-plane',     title: 'No interests sent',           sub: 'Like profiles to send interest and connect.' },
   };
 
-  if (activeTab === 'liked_me' && !isLoading && matches.length === 0) {
-    const hasPlus = false;
-    if (!hasPlus) {
-      return (
-        <UpgradeGate onUpgrade={() => navigation.navigate('Subscription')} />
-      );
-    }
+  if (activeTab === 'liked_me' && !hasPlus) {
+    return (
+      <UpgradeGate onUpgrade={() => navigation.navigate('Subscription')} />
+    );
   }
 
   if (isLoading) {

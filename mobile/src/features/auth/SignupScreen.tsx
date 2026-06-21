@@ -13,6 +13,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
 import type { AuthStackParamList } from '../../navigation/types';
 import { useAuthStore } from '../../stores/authStore';
 import { signup } from '../../api/auth';
@@ -184,7 +185,7 @@ export default function SignupScreen() {
               accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
               testID="SignupScreen-togglePassword"
             >
-              <Text style={styles.eyeText}>{showPassword ? '🙈' : '👁️'}</Text>
+              <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colours.textMuted} />
             </TouchableOpacity>
           </View>
           {/* Password strength indicator */}
@@ -231,7 +232,7 @@ export default function SignupScreen() {
               accessibilityLabel={showConfirm ? 'Hide password' : 'Show password'}
               testID="SignupScreen-toggleConfirm"
             >
-              <Text style={styles.eyeText}>{showConfirm ? '🙈' : '👁️'}</Text>
+              <Ionicons name={showConfirm ? 'eye-off-outline' : 'eye-outline'} size={20} color={colours.textMuted} />
             </TouchableOpacity>
           </View>
           {fieldErrors.confirmPassword ? (
@@ -249,7 +250,7 @@ export default function SignupScreen() {
             accessibilityLabel={t('auth.signup.termsLabel')}
             testID="SignupScreen-terms"
           >
-            {termsAccepted && <Text style={styles.checkmark}>✓</Text>}
+            {termsAccepted && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
           </TouchableOpacity>
           <Text style={styles.termsText}>{t('auth.signup.termsLabel')}</Text>
         </View>

@@ -19,13 +19,13 @@ import type { MainStackParamList } from '../../navigation/types';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 
-const SPECIALITY_ICONS: Record<string, string> = {
-  'Kundli Matching': '🔮',
-  'Marriage Timing': '💍',
-  'Career': '💼',
-  'Numerology': '🔢',
-  'Vastu': '🏠',
-  'Gemstone': '💎',
+const SPECIALITY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  'Kundli Matching': 'planet-outline',
+  'Marriage Timing': 'heart-outline',
+  'Career': 'briefcase-outline',
+  'Numerology': 'calculator-outline',
+  'Vastu': 'home-outline',
+  'Gemstone': 'diamond-outline',
 };
 
 // Stub data (backend returns [] until implemented)
@@ -106,7 +106,8 @@ function AstrologerCard({ item, onPress }: { item: Astrologer; onPress: () => vo
         <View style={c.chips}>
           {item.speciality.slice(0, 2).map(s => (
             <View key={s} style={c.chip}>
-              <Text style={c.chipText}>{SPECIALITY_ICONS[s] ?? '⭐'} {s}</Text>
+              <Ionicons name={SPECIALITY_ICONS[s] ?? 'star-outline'} size={11} color={colours.primary} />
+              <Text style={c.chipText}>{s}</Text>
             </View>
           ))}
         </View>
@@ -165,7 +166,7 @@ export default function AstrologerMarketplaceScreen() {
 
       {/* Banner */}
       <View style={s.banner}>
-        <Text style={s.bannerEmoji}>🔮</Text>
+        <Ionicons name="planet-outline" size={28} color={colours.primary} style={s.bannerEmoji} />
         <View style={s.bannerText}>
           <Text style={s.bannerTitle}>Get a Kundli reading</Text>
           <Text style={s.bannerBody}>Consult certified Vedic astrologers for marriage timing and compatibility.</Text>
@@ -250,7 +251,7 @@ const c = StyleSheet.create({
   experience: { fontSize: typography.fontSize.xs, color: colours.textSecondary, marginTop: 1 },
 
   chips:      { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
-  chip:       { backgroundColor: colours.primaryLight, borderRadius: borderRadius.sm, paddingHorizontal: 6, paddingVertical: 2 },
+  chip:       { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: colours.primaryLight, borderRadius: borderRadius.sm, paddingHorizontal: 6, paddingVertical: 2 },
   chipText:   { fontSize: 10, color: colours.primary },
 
   footer:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },

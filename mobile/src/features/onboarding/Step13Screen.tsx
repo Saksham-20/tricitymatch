@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily.regular,
   },
   errorBanner: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: colours.errorBg,
     borderRadius: borderRadius.md,
     padding: spacing.md,
     marginBottom: spacing.lg,
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FAFAFA',
   },
   digitBoxFilled: { borderColor: colours.primary, backgroundColor: colours.primaryLight },
-  digitBoxError: { borderColor: colours.error, backgroundColor: '#FEF2F2' },
+  digitBoxError: { borderColor: colours.error, backgroundColor: colours.errorBg },
   loadingRow: {
     flexDirection: 'row',
     alignItems: 'center',

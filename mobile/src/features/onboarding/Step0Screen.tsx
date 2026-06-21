@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
 import OnboardingLayout from './OnboardingLayout';
 import { useOnboarding, type RegisteringFor } from './OnboardingContext';
 
-const OPTIONS: { key: RegisteringFor; icon: string }[] = [
-  { key: 'self', icon: '🙋' },
-  { key: 'son', icon: '👦' },
-  { key: 'daughter', icon: '👧' },
-  { key: 'sibling', icon: '🧑‍🤝‍🧑' },
-  { key: 'relative', icon: '👨‍👩‍👧' },
-  { key: 'friend', icon: '🤝' },
+const OPTIONS: { key: RegisteringFor; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: 'self', icon: 'person-outline' },
+  { key: 'son', icon: 'man-outline' },
+  { key: 'daughter', icon: 'woman-outline' },
+  { key: 'sibling', icon: 'people-outline' },
+  { key: 'relative', icon: 'people-circle-outline' },
+  { key: 'friend', icon: 'happy-outline' },
 ];
 
 export default function Step0Screen() {
@@ -45,7 +46,7 @@ export default function Step0Screen() {
               accessibilityRole="radio"
               accessibilityState={{ selected: isActive }}
             >
-              <Text style={styles.tileIcon}>{opt.icon}</Text>
+              <Ionicons name={opt.icon} size={28} color={isActive ? colours.primary : colours.textSecondary} />
               <Text style={[styles.tileLabel, isActive && styles.tileLabelActive]}>
                 {t(`onboarding.step0.options.${opt.key}`)}
               </Text>

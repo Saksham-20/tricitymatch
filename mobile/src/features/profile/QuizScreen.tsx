@@ -173,7 +173,7 @@ export default function QuizScreen() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.me });
       Alert.alert(
-        'Quiz Saved! 🎉',
+        'Quiz Saved',
         'Your answers help us find better matches for you.',
         [{ text: 'View Profile', onPress: () => navigation.goBack() }],
       );
@@ -276,7 +276,7 @@ export default function QuizScreen() {
             {saveMutation.isPending ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
-              <Text style={styles.nextBtnText}>Submit Quiz ✓</Text>
+              <Text style={styles.nextBtnText}>Submit Quiz</Text>
             )}
           </TouchableOpacity>
         )}

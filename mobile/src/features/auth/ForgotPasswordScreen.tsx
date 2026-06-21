@@ -13,6 +13,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
 import type { AuthStackParamList } from '../../navigation/types';
 import { forgotPassword } from '../../api/auth';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
@@ -60,7 +61,7 @@ export default function ForgotPasswordScreen() {
     return (
       <View style={styles.successContainer} testID="ForgotPasswordScreen-success">
         <View style={styles.successIcon}>
-          <Text style={styles.successEmoji}>📧</Text>
+          <Ionicons name="mail-outline" size={30} color={colours.primary} />
         </View>
         <Text style={styles.successTitle}>{t('auth.forgotPassword.success')}</Text>
         <Text style={styles.successSubtitle}>
@@ -97,12 +98,15 @@ export default function ForgotPasswordScreen() {
           accessibilityLabel={t('common.back')}
           testID="ForgotPasswordScreen-back"
         >
-          <Text style={styles.backText}>← {t('common.back')}</Text>
+          <Ionicons name="chevron-back" size={18} color={colours.textSecondary} />
+          <Text style={styles.backText}>{t('common.back')}</Text>
         </TouchableOpacity>
 
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.emoji}>🔑</Text>
+          <View style={styles.iconWrap}>
+            <Ionicons name="key-outline" size={28} color={colours.primary} />
+          </View>
           <Text style={styles.title}>{t('auth.forgotPassword.title')}</Text>
           <Text style={styles.subtitle}>{t('auth.forgotPassword.subtitle')}</Text>
         </View>
@@ -156,10 +160,18 @@ const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colours.background },
   scroll: { flex: 1 },
   content: { padding: spacing['2xl'], paddingTop: 48 },
-  backBtn: { marginBottom: spacing.lg, minHeight: 40, justifyContent: 'center', alignSelf: 'flex-start' },
-  backText: { fontSize: typography.fontSize.base, color: colours.primary, fontFamily: typography.fontFamily.medium },
+  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, marginBottom: spacing.lg, minHeight: 40, alignSelf: 'flex-start' },
+  backText: { fontSize: typography.fontSize.base, color: colours.textSecondary, fontFamily: typography.fontFamily.medium },
   header: { marginBottom: spacing['2xl'], alignItems: 'flex-start' },
-  emoji: { fontSize: 40, marginBottom: spacing.md },
+  iconWrap: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: colours.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
   title: {
     fontSize: typography.fontSize['3xl'],
     fontFamily: typography.fontFamily.bold,

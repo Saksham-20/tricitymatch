@@ -28,30 +28,35 @@ export interface GroupMessage {
 }
 
 export const getConversations = async (): Promise<Conversation[]> => {
-  const res = await apiClient.get<Conversation[]>('/chat/conversations');
-  return res.data;
+  const res = await apiClient.get<{ conversations: Conversation[] }>('/chat/conversations');
+  return res.data.conversations ?? [];
 };
 
 export const getThread = async (userId: string, cursor?: string): Promise<{
   messages: Message[];
   nextCursor: string | null;
 }> => {
-  const res = await apiClient.get(`/chat/${userId}`, { params: { cursor, limit: 30 } });
-  return res.data;
+  const page = cursor ? Number(cursor) : 1;
+  const res = await apiClient.get<{ messages: Message[]; pagination: { page: number; pages: number } }>(
+    `/chat/messages/${userId}`,
+    { params: { page, limit: 30 } }
+  );
+  const { page: cur, pages } = res.data.pagination ?? { page: 1, pages: 1 };
+  return { messages: res.data.messages ?? [], nextCursor: cur < pages ? String(cur + 1) : null };
 };
 
 export const sendMessage = async (receiverId: string, content: string): Promise<Message> => {
-  const res = await apiClient.post<Message>('/chat/send', { receiverId, content });
-  return res.data;
+  const res = await apiClient.post<{ message: Message }>('/chat/send', { receiverId, content });
+  return res.data.message;
 };
 
 export const editMessage = async (messageId: string, content: string): Promise<Message> => {
-  const res = await apiClient.put<Message>(`/chat/message/${messageId}`, { content });
-  return res.data;
+  const res = await apiClient.put<{ message: Message }>(`/chat/messages/${messageId}`, { content });
+  return res.data.message;
 };
 
 export const deleteMessage = async (messageId: string, forBoth: boolean): Promise<void> => {
-  await apiClient.delete(`/chat/message/${messageId}`, { params: { forBoth } });
+  await apiClient.delete(`/chat/messages/${messageId}`, { params: { forBoth } });
 };
 
 // ─── Family group chat APIs ───────────────────────────────────────────────────

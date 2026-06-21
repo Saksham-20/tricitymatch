@@ -391,5 +391,21 @@
     "unauthorized": "Session expired. Please sign in again.",
     "tooManyRequests": "Too many requests. Please wait {{minutes}} minutes.",
     "upgradeRequired": "Upgrade your plan to access this feature."
+  },
+  "welcome": {
+    "verified": {
+      "title": "Verified Profiles",
+      "subtitle": "Every profile is manually reviewed and verified for authenticity."
+    },
+    "private": {
+      "title": "Private & Safe",
+      "subtitle": "Your photos and contact are protected. Share only when you choose."
+    },
+    "match": {
+      "title": "Find Your Match",
+      "subtitle": "Hyperlocal matching for Chandigarh, Mohali & Panchkula families."
+    },
+    "getStarted": "Get Started",
+    "signIn": "Already a member? Sign In"
   }
 }

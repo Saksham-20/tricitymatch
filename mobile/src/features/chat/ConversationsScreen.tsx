@@ -9,7 +9,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
-import { useAuthStore } from '../../stores/authStore';
+import { useAuthStore, selectPlan } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
 import { useSocket } from '../../hooks/useSocket';
 import { getConversations } from '../../api/chat';
@@ -130,8 +130,8 @@ export default function ConversationsScreen() {
   const navigation = useNavigation<Nav>();
   const queryClient = useQueryClient();
 
-  // Placeholder: real subscription check wired in session 11
-  const hasPlus = false;
+  // Chat is gated to paid plans (mirrors web's requirePremium). Any non-free tier unlocks it.
+  const hasPlus = useAuthStore(selectPlan) !== 'free';
 
   const { data: conversations = [], isLoading, isRefetching, refetch } = useQuery({
     queryKey: queryKeys.conversations,

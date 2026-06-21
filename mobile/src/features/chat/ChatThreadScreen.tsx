@@ -59,9 +59,9 @@ function TypingIndicator() {
 
 // ─── Read receipt ────────────────────────────────────────────────────────────
 function ReadReceipt({ msg }: { msg: Message }) {
-  if (msg.readAt) return <Text style={s.receipt}>✓✓</Text>;
-  if (msg.deliveredAt) return <Text style={s.receipt}>✓✓</Text>;
-  return <Text style={[s.receipt, s.receiptGray]}>✓</Text>;
+  if (msg.readAt) return <Ionicons name="checkmark-done" size={15} color="#fff" />;
+  if (msg.deliveredAt) return <Ionicons name="checkmark-done" size={15} color="rgba(255,255,255,0.6)" />;
+  return <Ionicons name="checkmark" size={15} color="rgba(255,255,255,0.6)" />;
 }
 
 // ─── Message bubble ──────────────────────────────────────────────────────────
