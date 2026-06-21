@@ -344,12 +344,12 @@ export default function SettingsScreen() {
           />
           <Divider />
           <SettingRow
-            icon="images-outline"
+            icon="lock-closed-outline"
             iconColor={colours.secondary}
-            label="Photo Privacy"
-            sublabel="Control who sees your photos"
-            onPress={() => Alert.alert('Photo Privacy', 'Coming soon')}
-            testID="setting-photo-privacy"
+            label="Privacy Controls"
+            sublabel="Profile visibility, online status & last seen"
+            onPress={() => navigation.navigate('PrivacySettings')}
+            testID="setting-privacy-controls"
           />
         </Section>
 
@@ -467,10 +467,19 @@ export default function SettingsScreen() {
           />
           <Divider />
           <SettingRow
+            icon="heart-outline"
+            iconColor={colours.secondary}
+            label="Success Stories"
+            sublabel="Read couples who found their match"
+            onPress={() => navigation.navigate('SuccessStoriesBrowse')}
+            testID="setting-success-stories-browse"
+          />
+          <Divider />
+          <SettingRow
             icon="star-outline"
             iconColor={colours.secondary}
-            label="Success Story"
-            sublabel="Found your match? Share your story!"
+            label="Share Your Story"
+            sublabel="Found your match? Inspire others!"
             onPress={() => navigation.navigate('SuccessStory')}
             testID="setting-success-story"
           />

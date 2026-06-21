@@ -1,6 +1,36 @@
 import { apiClient } from './client';
 import type { Profile, ProfileSummary } from '../types';
 
+// Viewers / recently-viewed return a FLAT profile-ish item (userId + a subset of
+// profile fields + a viewedAt timestamp), not the full ProfileSummary the cards
+// read. Map it to a card-friendly summary — same idiom as matches.ts:toMatch.
+interface RawViewedItem {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  city?: string;
+  profilePhoto?: string | null;
+  gender?: string;
+  dateOfBirth?: string | null;
+  education?: string;
+  profession?: string;
+  viewedAt?: string;
+}
+
+const toSummary = (v: RawViewedItem): ProfileSummary =>
+  ({
+    id: v.userId,
+    userId: v.userId,
+    firstName: v.firstName,
+    lastName: v.lastName,
+    city: v.city,
+    profilePhoto: v.profilePhoto ?? null,
+    gender: v.gender,
+    dateOfBirth: v.dateOfBirth ?? null,
+    education: v.education,
+    profession: v.profession,
+  }) as unknown as ProfileSummary;
+
 // Profile endpoints wrap the record in `{ success, profile }`; unwrap to the record.
 export const getMyProfile = async (): Promise<Profile> => {
   const res = await apiClient.get<{ profile: Profile }>('/profile/me');
@@ -196,4 +226,47 @@ export const bookAstrologer = async (payload: {
 export const getMyConsultations = async (): Promise<ConsultBooking[]> => {
   const res = await apiClient.get<{ bookings: ConsultBooking[] }>('/astrologers/my-bookings');
   return res.data.bookings ?? [];
+};
+
+// ─── Profile activity (visitors / recently viewed) ──────────────────────────────
+
+// Premium-gated. A 403 propagates so the screen can show an upsell.
+export const getProfileViewers = async (): Promise<ProfileSummary[]> => {
+  const res = await apiClient.get<{ viewers: RawViewedItem[] }>('/profile/me/viewers?limit=20');
+  return (res.data.viewers ?? []).map(toSummary);
+};
+
+// All tiers — profiles the current user recently opened.
+export const getRecentlyViewed = async (): Promise<ProfileSummary[]> => {
+  const res = await apiClient.get<{ profiles: RawViewedItem[] }>('/profile/me/recently-viewed?limit=20');
+  return (res.data.profiles ?? []).map(toSummary);
+};
+
+// ─── Privacy ────────────────────────────────────────────────────────────────
+
+export interface PrivacySettings {
+  profileVisibility?: 'everyone' | 'matches_only';
+  showOnlineStatus?: boolean;
+  showLastSeen?: boolean;
+}
+
+export const updatePrivacy = async (settings: PrivacySettings): Promise<void> => {
+  await apiClient.put('/profile/privacy', settings);
+};
+
+// ─── Success stories (public read) ──────────────────────────────────────────
+
+export interface SuccessStory {
+  id: string;
+  coupleNames: string;
+  location: string | null;
+  marriedOn: string | null;
+  quote: string;
+  photoUrl: string | null;
+  tag: string | null;
+}
+
+export const getSuccessStories = async (): Promise<SuccessStory[]> => {
+  const res = await apiClient.get<{ stories: SuccessStory[] }>('/success-stories');
+  return res.data.stories ?? [];
 };

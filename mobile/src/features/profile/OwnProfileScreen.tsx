@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  FlatList,
   TouchableOpacity,
   Image,
   Switch,
@@ -13,17 +14,132 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import { resolveImageUri } from '../../components/common/SmartImage';
+import SmartImage, { resolveImageUri } from '../../components/common/SmartImage';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
-import { getMyProfile } from '../../api/profile';
+import { getMyProfile, getProfileViewers, getRecentlyViewed } from '../../api/profile';
 import { queryKeys } from '../../constants/queryKeys';
 import { useAuthStore } from '../../stores/authStore';
 import type { MainStackParamList } from '../../navigation/types';
-import type { Profile } from '../../types';
+import type { Profile, ProfileSummary } from '../../types';
 import VoiceIntroRecorder from '../../components/profile/VoiceIntroRecorder';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
+
+// ─── Activity Rail (Visitors / Recently Viewed) ──────────────────────────────
+
+function ageFromDob(dob?: string | null): number | null {
+  if (!dob) return null;
+  return Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 3600 * 1000));
+}
+
+function ActivityRail({
+  title,
+  profiles,
+  onPressProfile,
+}: {
+  title: string;
+  profiles: ProfileSummary[];
+  onPressProfile: (userId: string) => void;
+}) {
+  if (profiles.length === 0) return null;
+  return (
+    <View style={ar.section}>
+      <Text style={ar.heading}>{title}</Text>
+      <FlatList
+        horizontal
+        data={profiles}
+        keyExtractor={(p) => p.userId}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={ar.list}
+        renderItem={({ item }) => {
+          const age = ageFromDob(item.dateOfBirth);
+          const name = `${item.firstName} ${item.lastName ?? ''}`.trim();
+          return (
+            <TouchableOpacity
+              style={ar.card}
+              onPress={() => onPressProfile(item.userId)}
+              testID={`activity-card-${item.userId}`}
+              accessibilityLabel={`View ${name}`}
+            >
+              <SmartImage uri={item.profilePhoto} name={item.firstName} style={ar.avatar} initialSize={28} />
+              <Text style={ar.name} numberOfLines={1}>{item.firstName}</Text>
+              <Text style={ar.meta} numberOfLines={1}>
+                {[age ? `${age}` : null, item.city].filter(Boolean).join(' · ')}
+              </Text>
+            </TouchableOpacity>
+          );
+        }}
+      />
+    </View>
+  );
+}
+
+function ViewersUpsell({ onUpgrade }: { onUpgrade: () => void }) {
+  return (
+    <View style={ar.section}>
+      <Text style={ar.heading}>Profile Visitors</Text>
+      <TouchableOpacity
+        style={ar.upsell}
+        onPress={onUpgrade}
+        testID="viewers-upsell"
+        accessibilityLabel="Upgrade to see who viewed you"
+      >
+        <Ionicons name="eye-outline" size={20} color={colours.primary} />
+        <View style={{ flex: 1 }}>
+          <Text style={ar.upsellTitle}>See who viewed your profile</Text>
+          <Text style={ar.upsellSub}>Upgrade to Premium to unlock visitors</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={colours.textMuted} />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const ar = StyleSheet.create({
+  section: { marginBottom: spacing.lg },
+  heading: {
+    fontSize: typography.fontSize.xs,
+    fontFamily: typography.fontFamily.semiBold,
+    color: colours.textSecondary,
+    marginBottom: spacing.sm,
+    marginHorizontal: spacing.lg,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  list: { paddingHorizontal: spacing.lg, gap: spacing.md },
+  card: { width: 88, alignItems: 'center' },
+  avatar: {
+    width: 88,
+    height: 88,
+    borderRadius: borderRadius.md,
+    backgroundColor: colours.surfaceCard,
+    marginBottom: 6,
+  },
+  name: {
+    fontSize: typography.fontSize.sm,
+    fontFamily: typography.fontFamily.semiBold,
+    color: colours.textPrimary,
+  },
+  meta: { fontSize: typography.fontSize.xs, color: colours.textMuted },
+  upsell: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginHorizontal: spacing.lg,
+    padding: spacing.md,
+    backgroundColor: colours.primaryLight,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colours.primary + '40',
+  },
+  upsellTitle: {
+    fontSize: typography.fontSize.sm,
+    fontFamily: typography.fontFamily.semiBold,
+    color: colours.textPrimary,
+  },
+  upsellSub: { fontSize: typography.fontSize.xs, color: colours.textMuted },
+});
 
 // ─── Milestone Strip ─────────────────────────────────────────────────────────
 
@@ -342,6 +458,21 @@ export default function OwnProfileScreen() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const isPremium = !!user?.subscriptionPlan && user.subscriptionPlan !== 'free';
+
+  const { data: recentlyViewed = [] } = useQuery({
+    queryKey: ['profile', 'recently-viewed'],
+    queryFn: getRecentlyViewed,
+    staleTime: 60 * 1000,
+  });
+
+  const { data: viewers = [] } = useQuery({
+    queryKey: ['profile', 'viewers'],
+    queryFn: getProfileViewers,
+    enabled: isPremium,
+    staleTime: 60 * 1000,
+  });
+
   const handleVoiceIntroSaved = (url: string | null) => {
     queryClient.setQueryData<Profile>(queryKeys.me, (old) =>
       old ? { ...old, voiceIntroUrl: url } : old,
@@ -496,6 +627,26 @@ export default function OwnProfileScreen() {
 
       {/* Milestone strip */}
       <MilestoneStrip currentPct={profile?.completionPercentage ?? 0} />
+
+      {/* Profile activity (mirrors web Dashboard) */}
+      {!previewMode && (
+        <>
+          {isPremium ? (
+            <ActivityRail
+              title="Profile Visitors"
+              profiles={viewers}
+              onPressProfile={(userId) => navigation.navigate('ProfileDetail', { userId })}
+            />
+          ) : (
+            <ViewersUpsell onUpgrade={goToSubscription} />
+          )}
+          <ActivityRail
+            title="Recently Viewed"
+            profiles={recentlyViewed}
+            onPressProfile={(userId) => navigation.navigate('ProfileDetail', { userId })}
+          />
+        </>
+      )}
 
       {/* Verification badges */}
       <VerificationBadges

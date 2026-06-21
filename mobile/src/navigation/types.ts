@@ -67,8 +67,10 @@ export type MainStackParamList = {
   Verification: undefined;
   SelfieVerification: undefined;
   Settings: undefined;
+  PrivacySettings: undefined;
   Notifications: undefined;
   SuccessStory: undefined;
+  SuccessStoriesBrowse: undefined;
   Support: undefined;
   Quiz: undefined;
   // Family group chat

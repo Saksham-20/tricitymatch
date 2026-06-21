@@ -24,9 +24,11 @@ import SubscriptionScreen from '../features/subscription/SubscriptionScreen';
 import EditProfileScreen from '../features/profile/EditProfileScreen';
 import VerificationScreen from '../features/profile/VerificationScreen';
 import SettingsScreen from '../features/profile/SettingsScreen';
+import PrivacySettingsScreen from '../features/profile/PrivacySettingsScreen';
 import NotificationsScreen from '../features/notifications/NotificationsScreen';
 import SupportScreen from '../features/profile/SupportScreen';
 import SuccessStoryScreen from '../features/profile/SuccessStoryScreen';
+import SuccessStoriesBrowseScreen from '../features/profile/SuccessStoriesBrowseScreen';
 import QuizScreen from '../features/profile/QuizScreen';
 import HoroscopeMatchScreen from '../features/profile/HoroscopeMatchScreen';
 
@@ -162,8 +164,10 @@ export default function MainNavigator() {
       <Stack.Screen name="Verification" component={VerificationScreen} />
       <Stack.Screen name="SelfieVerification" component={SelfieVerificationScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="PrivacySettings" component={PrivacySettingsScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="SuccessStory" component={SuccessStoryScreen} />
+      <Stack.Screen name="SuccessStoriesBrowse" component={SuccessStoriesBrowseScreen} />
       <Stack.Screen name="Support" component={SupportScreen} />
       <Stack.Screen name="Quiz" component={QuizScreen} />
 
