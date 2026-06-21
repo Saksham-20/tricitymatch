@@ -61,7 +61,10 @@ export const OnboardingProvider = ({ children, mode = 'signup', existingProfile 
   const updateFormData = useCallback((field, value) => {
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [field]: value,
+      // Changing the email invalidates any prior email verification, so a typo
+      // fixed late in the flow can never submit with a stale "verified" flag.
+      ...(field === 'email' && prev.email !== value ? { emailVerification: false } : {}),
     }));
     // Clear error for this field when user starts typing
     if (errors[field]) {

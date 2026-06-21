@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
-import { FiCheckCircle, FiPhone, FiMail, FiLoader } from 'react-icons/fi';
+import { FiCheckCircle, FiPhone, FiMail, FiLoader, FiEdit2 } from 'react-icons/fi';
 import api from '../../../api/axios';
+import { validateEmail } from '../../../utils/validators';
 
 const VerificationStep = () => {
   const { formData, updateFormData, errors, setStepErrors, registerStepValidator } = useOnboarding();
@@ -13,8 +14,38 @@ const VerificationStep = () => {
   const [phoneSent, setPhoneSent] = useState(false);
   const [emailSending, setEmailSending] = useState(false);
   const [phoneSending, setPhoneSending] = useState(false);
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [emailDraft, setEmailDraft] = useState('');
+  const [emailEditError, setEmailEditError] = useState('');
   const formDataRef = React.useRef(formData);
   formDataRef.current = formData;
+
+  const startEditEmail = () => {
+    setEmailDraft(formData.email || '');
+    setEmailEditError('');
+    setEditingEmail(true);
+  };
+
+  const saveEmail = () => {
+    const next = emailDraft.trim().toLowerCase();
+    if (!next) {
+      setEmailEditError('Email is required');
+      return;
+    }
+    if (!validateEmail(next)) {
+      setEmailEditError('Please enter a valid email address');
+      return;
+    }
+    // New address ⇒ any prior code/verification is void. Reset the OTP state so
+    // the user re-sends to the corrected inbox. updateFormData also clears the
+    // emailVerification flag centrally (see OnboardingContext).
+    updateFormData('email', next);
+    updateFormData('emailVerification', false);
+    setEmailSent(false);
+    setEmailCode('');
+    setEditingEmail(false);
+    setStepErrors({});
+  };
 
   const validateStep = () => {
     const newErrors = {};
@@ -108,7 +139,7 @@ const VerificationStep = () => {
                 <p className="text-sm text-neutral-600">{formData.email}</p>
               </div>
             </div>
-            {formData.emailVerification && (
+            {formData.emailVerification ? (
               <motion.div
                 initial={{ scale: 0.8 }}
                 animate={{ scale: 1 }}
@@ -116,10 +147,57 @@ const VerificationStep = () => {
               >
                 <FiCheckCircle className="w-5 h-5" />
               </motion.div>
+            ) : (
+              !editingEmail && (
+                <button
+                  type="button"
+                  onClick={startEditEmail}
+                  className="flex items-center gap-1 text-xs font-medium text-primary-600 hover:text-primary-700"
+                >
+                  <FiEdit2 className="w-3.5 h-3.5" /> Change
+                </button>
+              )
             )}
           </div>
 
-          {!formData.emailVerification && (
+          {/* Inline email editor — fix a wrong/typo'd address without leaving this step */}
+          {editingEmail && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="mt-4 space-y-3 pt-4 border-t border-neutral-200"
+            >
+              <FormField
+                label="Update Email Address"
+                type="email"
+                name="editEmail"
+                autoComplete="email"
+                inputMode="email"
+                placeholder="email@example.com"
+                value={emailDraft}
+                onChange={(value) => { setEmailDraft(value); setEmailEditError(''); }}
+                error={emailEditError}
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={saveEmail}
+                  className="px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                >
+                  Save Email
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setEditingEmail(false); setEmailEditError(''); }}
+                  className="px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {!formData.emailVerification && !editingEmail && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
