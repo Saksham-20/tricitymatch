@@ -287,6 +287,23 @@ const Profile = sequelize.define('Profile', {
     type: DataTypes.BOOLEAN,
     defaultValue: false
   },
+  // Privacy settings (DB columns added by migration 20240101000014; declared here
+  // so they actually persist on save() and round-trip through getMyProfile).
+  profileVisibility: {
+    type: DataTypes.ENUM('everyone', 'matches_only'),
+    defaultValue: 'everyone',
+    allowNull: false
+  },
+  showOnlineStatus: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
+    allowNull: false
+  },
+  showLastSeen: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
+    allowNull: false
+  },
   photoBlurUntilMatch: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
