@@ -111,3 +111,21 @@ Committed the prior uncommitted RN work (~95 files) + closed remaining gaps via 
 **Dev-seed quirk (not app bug):** premium test accounts had invalid planType `elite` + expired `endDate` → `requirePremium` 403; set `vip` + future `endDate` for premium QA.
 
 Regression: BE **116 unit** + FE **35** + mobile `tsc` **0**. Commits on `main`.
+
+---
+
+## 2026-06-21 (pass 3) — remaining mobile→web parity workflows
+
+Explore sweep + per-endpoint verification found 4 member workflows present on the website but missing/stubbed on mobile — all backed by shipped endpoints (≈zero backend change). Built (member app, native idioms):
+
+1. **Profile Visitors + Recently Viewed** rails on OwnProfile (mirrors web Dashboard). `GET /profile/me/viewers` (premium → upsell card for free tier) + `GET /profile/me/recently-viewed` (all tiers). Horizontal `FlatList` of `SmartImage` avatar cards; tap→ProfileDetail. New `api/profile.ts` `getProfileViewers`/`getRecentlyViewed` (flat item→ProfileSummary mapper, same idiom as `matches.ts`).
+2. **Privacy Controls** — new `PrivacySettingsScreen`, replaces the dead `Alert('Photo Privacy','Coming soon')` at `SettingsScreen:351`. Visibility segmented (everyone/matches_only) + online-status + last-seen toggles; hydrates from `getMyProfile`, saves via `PUT /profile/privacy` (`updatePrivacy`).
+3. **Success Stories browse** — new `SuccessStoriesBrowseScreen` reads public `GET /success-stories`; linked from Settings ("Success Stories"), submit via header +. New `getSuccessStories`.
+
+**🔴 Real bug found + fixed (web-affecting):** migration `20240101000014` added `profileVisibility`/`showOnlineStatus`/`showLastSeen` columns, but `models/Profile.js` **never declared them** → `save()` silently dropped them and `GET /profile/me` never serialized them → privacy settings never persisted (web + mobile). Declared the 3 columns on the model → persists + round-trips. (nodemon auto-restarted; verified via curl: PUT→GET returns the values.)
+
+**Verified live on Android (seeded VIP, adb):** seeded 3 viewers (GET /profile/:id logs the view) → Visitors rail shows Rohit/Arjun/Karan; Recently-Viewed shows Simran/Priya; card tap→ProfileDetail (Rohit Gupta 25, 85%). Privacy: set server everyone/online-off/lastSeen-off → cold-start → screen hydrates to that exact state; toggle+save shows "Saved ✓". Success Stories: seeded a published story → list renders (tag/quote/names/location). adb tip: pixel-math from scaled screenshots is unreliable — use `uiautomator dump` + element `bounds` for exact tap centers.
+
+**Out of scope (verified not buildable):** saved-searches/sent-interests (no backend), education/income verification tiers (enum ID-only), astrologer reviews/slots stubs (no data), horoscope-match PDF (RN cookie-auth + file-share heavy, deferred).
+
+Regression: BE **116 unit** + FE **35** + mobile `tsc` **0**. 2 commits on `main` (model fix + mobile features).
