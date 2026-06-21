@@ -103,6 +103,12 @@ const fr = StyleSheet.create({
 
 // ─── Plan Card ────────────────────────────────────────────────────────────────
 
+// Which plan to spotlight, mirroring the web (premium_plus = Most Popular, vip = Best Value).
+const PLAN_HIGHLIGHT: Partial<Record<SubscriptionPlanType, string>> = {
+  premium_plus: 'Most Popular',
+  vip:          'Best Value',
+};
+
 interface PlanCardProps {
   plan: PlanFeatures;
   isCurrent: boolean;
@@ -113,15 +119,26 @@ interface PlanCardProps {
 function PlanCard({ plan, isCurrent, isSelected, onSelect }: PlanCardProps) {
   const colour = PLAN_COLOUR[plan.planType];
   const icon = PLAN_ICON[plan.planType];
+  const highlight = PLAN_HIGHLIGHT[plan.planType];
 
   return (
     <TouchableOpacity
-      style={[pc.card, isSelected && pc.cardSelected, { borderColor: isSelected ? colour : colours.border }]}
+      style={[
+        pc.card,
+        highlight ? { marginTop: spacing.lg } : null,
+        isSelected && pc.cardSelected,
+        { borderColor: isSelected || highlight ? colour : colours.border },
+      ]}
       onPress={onSelect}
       testID={`plan-card-${plan.planType}`}
       accessibilityLabel={`Select ${plan.label} plan`}
       accessibilityRole="button"
     >
+      {highlight && (
+        <View style={[pc.highlightBadge, { backgroundColor: colour }]}>
+          <Text style={pc.highlightText}>{highlight}</Text>
+        </View>
+      )}
       {isCurrent && (
         <View style={[pc.badge, { backgroundColor: colour }]}>
           <Text style={pc.badgeText}>Current</Text>
@@ -192,6 +209,17 @@ const pc = StyleSheet.create({
     borderBottomRightRadius: borderRadius.sm,
   },
   badgeText: { fontSize: typography.fontSize.xs, color: '#fff', fontFamily: typography.fontFamily.semiBold },
+  highlightBadge: {
+    position: 'absolute',
+    top: -12,
+    left: '50%',
+    width: 110,
+    marginLeft: -55,
+    paddingVertical: 4,
+    borderRadius: borderRadius.full,
+    alignItems: 'center',
+  },
+  highlightText: { fontSize: typography.fontSize.xs, color: '#fff', fontFamily: typography.fontFamily.bold, letterSpacing: 0.3 },
   header:    { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.sm },
   icon:      { fontSize: 28 },
   titleCol:  { flex: 1 },

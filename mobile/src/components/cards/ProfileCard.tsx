@@ -8,11 +8,16 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
 import type { ProfileSummary } from '../../types';
 import SmartImage from '../common/SmartImage';
 
 const { width: SCREEN_W } = Dimensions.get('window');
+
+// Mirror the web score colouring (green / gold / burgundy).
+const scoreColour = (pct: number): string =>
+  pct >= 90 ? colours.success : pct >= 75 ? colours.secondary : colours.primary;
 
 export interface ProfileCardProps {
   profile: ProfileSummary;
@@ -99,6 +104,18 @@ export default function ProfileCard({
       {/* Photo */}
       <View style={s.photoWrapper}>
         <SmartImage uri={photoUri} name={name} style={s.photo} initialSize={64} />
+        {/* Bottom scrim for legibility, matching the web card overlay */}
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.45)']}
+          style={s.scrim}
+          pointerEvents="none"
+        />
+        {showCompatibility && compat >= 75 && (
+          <View style={s.starBadge}>
+            <Ionicons name="star" size={11} color="#2D2D2D" />
+            <Text style={s.starText}>{compat}%</Text>
+          </View>
+        )}
         {profile.isBoosted && (
           <View style={s.boostedTag}>
             <Ionicons name="flash" size={12} color="#fff" />
@@ -135,7 +152,7 @@ export default function ProfileCard({
         {showCompatibility && compat > 0 && (
           <View style={s.compatContainer}>
             <View style={s.compatBarFull}>
-              <View style={[s.compatFillFull, { width: `${compat}%` }]} />
+              <View style={[s.compatFillFull, { width: `${compat}%`, backgroundColor: scoreColour(compat) }]} />
             </View>
             <Text style={s.compatLabel}>Compatibility: {compat}%</Text>
           </View>
@@ -186,13 +203,37 @@ const s = StyleSheet.create({
     marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowColor: colours.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.16,
+    shadowRadius: 12,
+    elevation: 4,
   },
   photoWrapper: { position: 'relative' },
+  scrim: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 64,
+  },
+  starBadge: {
+    position: 'absolute',
+    top: spacing.sm,
+    left: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: colours.secondary,
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+  },
+  starText: {
+    fontSize: typography.fontSize.xs,
+    color: '#2D2D2D',
+    fontFamily: typography.fontFamily.bold,
+  },
   photo: {
     width: '100%',
     height: CARD_W * 1.1,

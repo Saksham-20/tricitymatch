@@ -6,16 +6,24 @@ interface Props {
   score: number;
 }
 
+// Mirror the web score colouring: green (excellent) / gold (strong) / burgundy.
+const scoreColour = (pct: number): string => {
+  if (pct >= 90) return colours.success;
+  if (pct >= 75) return colours.secondary;
+  return colours.primary;
+};
+
 export default function CompatibilityMeter({ score }: Props) {
   const clamp = Math.max(0, Math.min(100, score));
+  const colour = scoreColour(clamp);
   return (
     <View style={s.container} testID="CompatibilityMeter">
       <View style={s.row}>
         <Text style={s.label}>Compatibility</Text>
-        <Text style={s.pct}>{clamp}%</Text>
+        <Text style={[s.pct, { color: colour }]}>{clamp}%</Text>
       </View>
       <View style={s.bar}>
-        <View style={[s.fill, { width: `${clamp}%` }]} />
+        <View style={[s.fill, { width: `${clamp}%`, backgroundColor: colour }]} />
       </View>
       <Text style={s.hint}>Based on community, lifestyle & preferences</Text>
     </View>

@@ -188,8 +188,8 @@ export const DashboardCompletionBanner = ({ profile = {} }) => {
   const topMissing = pending.slice(0, 3);
   const remaining = pending.length;
 
-  const barColor = percent >= 70 ? '#16a34a' : percent >= 45 ? '#d97706' : '#be123c';
-  const bgColor  = percent >= 70 ? 'bg-emerald-50 border-emerald-100' : percent >= 45 ? 'bg-amber-50 border-amber-100' : 'bg-rose-50 border-rose-100';
+  const barColor = percent >= 70 ? '#16a34a' : percent >= 45 ? '#d97706' : '#8B2346';
+  const bgColor  = percent >= 70 ? 'bg-emerald-50 border-emerald-100' : percent >= 45 ? 'bg-amber-50 border-amber-100' : 'bg-primary-50 border-primary-100';
   const textColor = percent >= 70 ? 'text-emerald-700' : percent >= 45 ? 'text-amber-700' : 'text-rose-700';
 
   return (
