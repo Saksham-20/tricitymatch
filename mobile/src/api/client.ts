@@ -72,12 +72,17 @@ apiClient.interceptors.response.use(
         const refreshToken = await secureStorage.getRefreshToken();
         if (!refreshToken) throw new Error('No refresh token');
 
-        const response = await axios.post<{ accessToken: string }>(
-          `${BASE_URL}/auth/refresh-token`,
+        const response = await axios.post<{ tokens: { accessToken: string; refreshToken: string } }>(
+          `${BASE_URL}/auth/refresh`,
           { refreshToken },
           { timeout: 10000 }
         );
-        const newToken = response.data.accessToken;
+        const newToken = response.data.tokens.accessToken;
+        // Refresh tokens rotate server-side — persist the new one so the next
+        // refresh doesn't replay a revoked token (which would trip reuse-detection).
+        if (response.data.tokens.refreshToken) {
+          await secureStorage.setRefreshToken(response.data.tokens.refreshToken);
+        }
         const { useAuthStore } = require('../stores/authStore');
         useAuthStore.getState().setAccessToken(newToken);
         processQueue(null, newToken);

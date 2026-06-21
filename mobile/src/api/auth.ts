@@ -2,50 +2,50 @@ import { apiClient } from './client';
 import { secureStorage } from '../utils/secureStorage';
 import type { AuthUser } from '../types';
 
-interface AuthResponse {
+// Backend returns `{ success, user, tokens: { accessToken, refreshToken } }`.
+// Native clients can't rely on the httpOnly cookies, so we read the tokens from
+// the body and persist the refresh token in the device keychain.
+interface AuthEnvelope {
+  user: AuthUser;
+  tokens: { accessToken: string; refreshToken: string };
+}
+
+export interface AuthResult {
   accessToken: string;
-  refreshToken: string;
   user: AuthUser;
 }
 
-interface RefreshResponse {
-  accessToken: string;
-  user: AuthUser;
-}
-
-export const login = async (email: string, password: string): Promise<AuthResponse> => {
-  const res = await apiClient.post<AuthResponse>('/auth/login', { email, password });
-  if (res.data.refreshToken) {
-    await secureStorage.setRefreshToken(res.data.refreshToken);
+const persistTokens = async (env: AuthEnvelope): Promise<AuthResult> => {
+  if (env.tokens?.refreshToken) {
+    await secureStorage.setRefreshToken(env.tokens.refreshToken);
   }
-  return res.data;
+  return { accessToken: env.tokens?.accessToken, user: env.user };
 };
 
-export const signup = async (email: string, password: string): Promise<AuthResponse> => {
-  const res = await apiClient.post<AuthResponse>('/auth/signup', { email, password });
-  if (res.data.refreshToken) {
-    await secureStorage.setRefreshToken(res.data.refreshToken);
-  }
-  return res.data;
+export const login = async (email: string, password: string): Promise<AuthResult> => {
+  const res = await apiClient.post<AuthEnvelope>('/auth/login', { email, password });
+  return persistTokens(res.data);
+};
+
+export const signup = async (email: string, password: string): Promise<AuthResult> => {
+  const res = await apiClient.post<AuthEnvelope>('/auth/signup', { email, password });
+  return persistTokens(res.data);
 };
 
 export const logout = async (): Promise<void> => {
   await apiClient.post('/auth/logout').catch(() => {});
 };
 
-export const refreshAccessToken = async (): Promise<RefreshResponse> => {
+export const refreshAccessToken = async (): Promise<AuthResult> => {
   const refreshToken = await secureStorage.getRefreshToken();
   if (!refreshToken) throw new Error('No refresh token stored');
-  const res = await apiClient.post<RefreshResponse>('/auth/refresh-token', { refreshToken });
-  return res.data;
+  const res = await apiClient.post<AuthEnvelope>('/auth/refresh', { refreshToken });
+  return persistTokens(res.data);
 };
 
-export const googleLogin = async (idToken: string): Promise<AuthResponse> => {
-  const res = await apiClient.post<AuthResponse>('/auth/google', { idToken });
-  if (res.data.refreshToken) {
-    await secureStorage.setRefreshToken(res.data.refreshToken);
-  }
-  return res.data;
+export const googleLogin = async (idToken: string): Promise<AuthResult> => {
+  const res = await apiClient.post<AuthEnvelope>('/auth/google', { idToken });
+  return persistTokens(res.data);
 };
 
 export const forgotPassword = async (email: string): Promise<void> => {
@@ -61,18 +61,10 @@ export const verifyOtp = async (phone: string, otp: string): Promise<void> => {
 };
 
 export const getMe = async (): Promise<AuthUser> => {
-  const res = await apiClient.get<AuthUser>('/auth/me');
-  return res.data;
-};
-
-export const registerDeviceToken = async (token: string, platform: 'ios' | 'android'): Promise<void> => {
-  await apiClient.post('/auth/device-token', { token, platform });
-};
-
-export const removeDeviceToken = async (): Promise<void> => {
-  await apiClient.delete('/auth/device-token');
+  const res = await apiClient.get<{ user: AuthUser }>('/auth/me');
+  return res.data.user;
 };
 
 export const deleteAccount = async (): Promise<void> => {
-  await apiClient.delete('/auth/delete-account');
+  await apiClient.delete('/auth/account');
 };

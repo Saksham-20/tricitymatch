@@ -15,7 +15,7 @@ import {
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
-import { blockUser, reportUser } from '../../api/block';
+import { blockUser, reportUser, type ReportReason } from '../../api/block';
 import { queryKeys } from '../../constants/queryKeys';
 
 const REPORT_CATEGORIES = [
@@ -28,6 +28,16 @@ const REPORT_CATEGORIES = [
 ] as const;
 
 type ReportCategory = typeof REPORT_CATEGORIES[number];
+
+// Display labels → the reason enum the backend accepts.
+const REASON_BY_LABEL: Record<ReportCategory, ReportReason> = {
+  'Fake profile': 'fake_profile',
+  'Inappropriate photos': 'inappropriate_content',
+  'Harassment or abuse': 'harassment',
+  'Spam or scam': 'spam',
+  'Underage user': 'underage',
+  Other: 'other',
+};
 
 interface Props {
   visible: boolean;
@@ -69,7 +79,7 @@ export default function BlockReportSheet({ visible, userId, userName, onClose, o
 
   const reportMutation = useMutation({
     mutationFn: () =>
-      reportUser({ userId, category: category!, description: description.trim() || undefined }),
+      reportUser({ userId, reason: REASON_BY_LABEL[category!], description: description.trim() || undefined }),
     onSuccess: () => {
       handleClose();
       Alert.alert('Report Submitted', 'Thank you. Our team will review this within 24 hours.');

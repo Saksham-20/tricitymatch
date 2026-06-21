@@ -201,9 +201,11 @@ exports.signup = asyncHandler(async (req, res) => {
     success: true,
     message: 'Account created successfully',
     user: await withDerivedUserFields(fullUser),
-    // Access token returned for non-cookie clients; refresh token is httpOnly cookie only
+    // Tokens returned for non-cookie (native) clients; both are also set as
+    // httpOnly cookies for the web client.
     tokens: {
       accessToken,
+      refreshToken,
       expiresIn: config.auth.jwtExpiry
     }
   });
@@ -270,9 +272,11 @@ exports.login = asyncHandler(async (req, res) => {
     success: true,
     message: 'Login successful',
     user: await withDerivedUserFields(fullUser),
-    // Access token returned for non-cookie clients; refresh token is httpOnly cookie only
+    // Tokens returned for non-cookie (native) clients; both are also set as
+    // httpOnly cookies for the web client.
     tokens: {
       accessToken,
+      refreshToken,
       expiresIn: config.auth.jwtExpiry
     }
   });
@@ -332,11 +336,20 @@ exports.refreshToken = asyncHandler(async (req, res) => {
   // Set cookies
   setAuthCookies(res, newAccessToken, newRefreshToken);
 
+  // Return the full user so native clients can restore their session on cold
+  // start without a second /auth/me round-trip (mirrors login/getMe shape).
+  const fullUser = await User.findByPk(user.id, {
+    attributes: { exclude: ['password'] },
+    include: [{ model: Profile }],
+  });
+
   res.json({
     success: true,
     message: 'Token refreshed',
+    user: await withDerivedUserFields(fullUser),
     tokens: {
       accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
       expiresIn: config.auth.jwtExpiry
     }
   });
@@ -756,7 +769,7 @@ exports.googleAuth = asyncHandler(async (req, res) => {
     message: isNewUser ? 'Account created successfully' : 'Logged in successfully',
     isNewUser,
     user: { id: user.id, email: user.email, role: user.role },
-    tokens: { accessToken, expiresIn: config.auth.jwtExpiry },
+    tokens: { accessToken, refreshToken, expiresIn: config.auth.jwtExpiry },
   });
 });
 

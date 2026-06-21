@@ -17,15 +17,26 @@ export const updateMyProfile = async (data: Partial<Profile>): Promise<Profile> 
   return res.data.profile;
 };
 
-export const uploadPhoto = async (formData: FormData): Promise<{ url: string; publicId: string }> => {
-  const res = await apiClient.post('/profile/photo', formData, {
+// The backend has no standalone photo endpoint — photos are set through the
+// multipart `PUT /profile/me` route (fields `profilePhoto` and `photos`). The
+// caller passes a FormData already keyed with the right field; we return the
+// newly-stored URL out of the updated profile.
+export const uploadPhoto = async (
+  formData: FormData,
+  field: 'profilePhoto' | 'photos' = 'photos',
+): Promise<{ url: string }> => {
+  const res = await apiClient.put<{ profile: Profile }>('/profile/me', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
-  return res.data;
+  const profile = res.data.profile;
+  if (field === 'profilePhoto') return { url: profile.profilePhoto ?? '' };
+  const photos = profile.photos ?? [];
+  return { url: photos[photos.length - 1] ?? '' };
 };
 
-export const deletePhoto = async (photoId: string): Promise<void> => {
-  await apiClient.delete(`/profile/gallery/${photoId}`);
+// Backend deletes a gallery photo by its URL (`DELETE /profile/me/photo` body `{ photoUrl }`).
+export const deletePhoto = async (photoUrl: string): Promise<void> => {
+  await apiClient.delete('/profile/me/photo', { data: { photoUrl } });
 };
 
 export const logProfileView = async (userId: string): Promise<void> => {

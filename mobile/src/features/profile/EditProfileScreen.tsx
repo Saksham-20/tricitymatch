@@ -414,10 +414,8 @@ export default function EditProfileScreen() {
         style: 'destructive',
         onPress: () => {
           setPhotos((prev) => prev.filter((p) => p !== uri));
-          // Extract publicId from Cloudinary URL to delete
-          const parts = uri.split('/');
-          const publicId = parts.slice(-2).join('/').replace(/\.[^/.]+$/, '');
-          deletePhoto(publicId).catch(() => {});
+          // Backend deletes by photo URL.
+          deletePhoto(uri).catch(() => {});
         },
       },
       { text: 'Cancel', style: 'cancel' },

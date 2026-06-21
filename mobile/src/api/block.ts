@@ -8,12 +8,20 @@ export const unblockUser = async (userId: string): Promise<void> => {
   await apiClient.delete(`/block/${userId}`);
 };
 
+export type ReportReason =
+  | 'fake_profile'
+  | 'harassment'
+  | 'spam'
+  | 'inappropriate_content'
+  | 'underage'
+  | 'other';
+
 export interface ReportPayload {
   userId: string;
-  category: string;
+  reason: ReportReason;
   description?: string;
 }
 
-export const reportUser = async (payload: ReportPayload): Promise<void> => {
-  await apiClient.post('/report', payload);
+export const reportUser = async ({ userId, reason, description }: ReportPayload): Promise<void> => {
+  await apiClient.post(`/report/${userId}`, { reason, description });
 };

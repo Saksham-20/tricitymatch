@@ -45,12 +45,12 @@ export default function Step12Screen() {
     try {
       const asset = result.assets[0];
       const formData = new FormData();
-      formData.append('photo', {
+      formData.append('photos', {
         uri: asset.uri,
         type: asset.mimeType ?? 'image/jpeg',
         name: `photo_${slotIndex}.jpg`,
       } as any);
-      const { url } = await uploadPhoto(formData);
+      const { url } = await uploadPhoto(formData, 'photos');
       setPhotos((prev) => [...prev, url]);
     } catch {
       Alert.alert(t('common.error'), t('onboarding.step12.uploadError'));
