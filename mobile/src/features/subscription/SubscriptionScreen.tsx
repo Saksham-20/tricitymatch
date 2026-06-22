@@ -8,6 +8,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -267,6 +268,7 @@ const hi = StyleSheet.create({
 export default function SubscriptionScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
 
@@ -331,7 +333,7 @@ export default function SubscriptionScreen() {
   const planList = (plans ?? Object.values(PLANS)) as PlanFeatures[];
 
   return (
-    <View style={s.wrapper} testID="SubscriptionScreen">
+    <View style={[s.wrapper, { paddingTop: insets.top }]} testID="SubscriptionScreen">
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} testID="back-btn" accessibilityLabel="Go back">

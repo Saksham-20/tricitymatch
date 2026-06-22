@@ -10,6 +10,7 @@ import {
   AppState,
   type AppStateStatus,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -54,6 +55,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string; icon: string
 };
 
 export const BackgroundCheckScreen: React.FC = () => {
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const queryClient = useQueryClient();
@@ -129,7 +131,7 @@ export const BackgroundCheckScreen: React.FC = () => {
   const isBusy = initiateMutation.isPending || verifyMutation.isPending;
 
   return (
-    <View style={s.wrapper}>
+    <View style={[s.wrapper, { paddingTop: insets.top }]}>
       <View style={s.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={24} color={colours.textPrimary} />

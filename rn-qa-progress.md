@@ -129,3 +129,46 @@ Explore sweep + per-endpoint verification found 4 member workflows present on th
 **Out of scope (verified not buildable):** saved-searches/sent-interests (no backend), education/income verification tiers (enum ID-only), astrologer reviews/slots stubs (no data), horoscope-match PDF (RN cookie-auth + file-share heavy, deferred).
 
 Regression: BE **116 unit** + FE **35** + mobile `tsc` **0**. 2 commits on `main` (model fix + mobile features).
+
+---
+
+## 2026-06-22 — FULL live QA pass, iOS + Android (real taps both platforms)
+
+First pass driving **both** sims programmatically: Android via adb `input`/`uiautomator`, **iOS via `fb-idb`** (`idb ui tap/text` + `describe-all` for bounds — pip `fb-idb` on Python 3.12; 3.14 breaks asyncio). Method: per screen render → "professional? 1000-user-safe?" → fix-on-discovery → re-verify both. Test user `aman.singh2@example.com`/`Pass@1234` (VIP).
+
+**Env:** iOS dev build rebuilt fresh (`expo run:ios`, Build Succeeded) on iPhone 17 Pro; Android dev client **rebuilt + reinstalled** (gradle BUILD SUCCESSFUL, fresh APK) on `qa_pixel`. Metro on 8081, `adb reverse` 8081+5001, backend `:5001`.
+
+| # | Bug (sev) | Platform | Root cause | Fix | Verified |
+|---|-----------|----------|-----------|-----|----------|
+| F1 | 🟠 `ExpoLinearGradient` native view manager not exported → gradient `Button` may not render | Android (stale dev client) | `expo-linear-gradient` added to JS but installed Android dev client predated the native module | Rebuilt + reinstalled Android dev client (native module now linked); **+ defensive solid-brand `backgroundColor` behind the gradient** in `Button.tsx` so it degrades gracefully on any device/stale build | ✅ warning gone on Android; gradient renders both platforms |
+| F2 | 🟡 ProfileDetail hero photo **blank white** for photoless/seed profiles | iOS + Android | hero used raw `<Image>` with relative `/uploads/*` URI (native can't resolve); fallback branch only fired when `photos` array was empty, not on load failure | new `HeroPhoto` component: `resolveImageUri` + `onError`→person-icon fallback, keeps blur + lock overlay (`ProfileDetailScreen.tsx`) | ✅ person-icon fallback both platforms |
+| F3 | 🟠 ProfileDetail compatibility **fabricated** (`completionPercentage * 0.85`) → showed 85% while Home/Search card showed real 57% for same profile | iOS + Android | screen never fetched real compat; faked a number from profile completeness | added `useQuery(['compatibility', userId], getCompatibilityBreakdown)` (shares breakdown-sheet key) → render real `overallScore` | ✅ shows 57% matching cards, both platforms |
+
+**Verified clean both platforms so far:** Welcome (brand/logo/lang switch, gradient btn, no emoji, safe areas), Login (validation "Email address is required", gradient Sign In, Google, eye toggle), Home (VIP badge, 86% ring, Today's Matches w/ real compat bars, SmartImage initials, Quick Actions, New-on list, 5 tabs incl Chat for paid user — B4/B5 hold), ProfileDetail (after fix). Android status bar light + dark icons (B1 holds). iOS keychain "Save Password?" = benign OS dialog.
+
+| F4 | 🟡 Tab screens (**Search, Matches, Notifications**) render under the status bar / Dynamic Island on iOS (no top safe-area inset) — header/search-bar overlapped by clock + notch | iOS | screens had no `useSafeAreaInsets`; Home/OwnProfile used a hardcoded `paddingTop: 52` but these three had nothing | added `useSafeAreaInsets()` → `paddingTop: insets.top` on container (`SearchScreen.tsx`, `MatchesScreen.tsx`; Notifications pending its own visit) | ✅ Search + Matches clear the notch, both platforms |
+| F5 | 🟡 Conversations list jammed under the notch on iOS + **no header/title at all** (bare list, looked unfinished) | iOS (safe-area) + both (missing header) | `ConversationsScreen` rendered a raw `FlatList` from y=0, no safe-area, no title | added safe-area inset + a **"Messages" header** with a Family Groups shortcut icon (route exists, was only reachable from Settings) | ✅ header + clears notch both platforms |
+
+**Verified working both platforms:** Search (15 profiles, real compat, sort/filter), FilterPanel (gorhom v4 accordions/ranges/chips — B2 holds), Matches (Mutual/Shortlisted/Liked Me tabs, real names+compat), Conversations (Messages header, real list), **ChatThread (date separators, burgundy sent bubbles + read-receipt icons, optimistic send verified — "Hello from QA test" sent + synced cross-platform iOS→Android), request-phone action, call/video header icons**. iOS dev HMR websocket flaky → disabled Fast Refresh + reload via Cmd+R (dev-tooling only, not an app bug). Android emulator crashed once under build load → rebooted.
+
+| F6 | 🟡 OwnProfile photo header **blank white** (~480px) for photoless/seed user | iOS + Android | own gallery used raw `<Image>` (relative seed path 404s), empty branch only on `photos.length===0` | `OwnGalleryPhoto` component: `resolveImageUri` + `onError` → "Add photos" camera prompt (`OwnProfileScreen.tsx`) | ✅ shows "Add photos" prompt |
+| F7 | 🟠 **Dark Mode toggle 100% dead** — flips state but nothing re-themes (0 of 61 files consume `useTheme()`; all bake static light `colours` into `StyleSheet.create()`) | both | dark mode never wired app-wide; `useTheme`/`darkColours` are dead code | **per user decision: removed the dead toggle** from Settings (no dead UI) — full theming deferred to a feature pass. Elder Mode kept (partially wired: tab bar size, hides Chat tab) | ✅ toggle gone; Settings clean |
+| F8 | 🔴 **Notifications screen crashes** on open — RedBox `Cannot read property 'length' of undefined` (`infiniteQueryBehavior` `pages.length`) | both | **query-key collision**: HomeScreen `useQuery(['notifications'])` stores a flat shape for the bell badge; NotificationsScreen `useInfiniteQuery(['notifications'])` then reads it as `InfiniteData` → `data.pages` undefined. Home always loads first → always crashes | Home now uses the dedicated `getUnreadCount` endpoint with its own `queryKeys.unreadCount` key (also lighter at scale); wired `unreadCount` into socket + mark-read invalidations (the old `['unreadCount']` invalidation key was also wrong) | ✅ Notifications renders ("It's a Match!" item); badge still works |
+
+**Safe-area sweep (F4/F5 class).** Source-audited every screen: OnboardingLayout (`SafeAreaView`), auth (`paddingTop:60`), ChatThread (`paddingTop:56`), Home/OwnProfile (`paddingTop:52`), FamilyGroups/Guardian-view (`paddingTop:80`) all already handle the notch. The genuinely-bare screens got `useSafeAreaInsets()` → `paddingTop: insets.top`:
+`SearchScreen`, `MatchesScreen`, `ConversationsScreen`, `NotificationsScreen`, `SubscriptionScreen`, `VerificationScreen`, `SelfieVerificationScreen`, `BackgroundCheckScreen`, `HoroscopeMatchScreen`, `QuizScreen`, `GuardianSetupScreen`, `AstrologerMarketplaceScreen`, `AstrologerDetailScreen`, `EditProfileScreen`. Live-verified clean (no double-padding) on Search/Matches/Conversations/Notifications/Subscription/Verification.
+
+**Also noted (not fixed):** ⚪ "It's a Match! 🎉" notification copy contains an emoji (backend-generated `notify()` title — affects web too; debatable for a celebratory match alert). ⚪ Subscription "Plus" tier uses a blue accent vs brand gold (cosmetic tier-coding). ⚪ ProfileCard initials + grey photo-scrim looks slightly off (scrim designed for real photos; fine at scale).
+
+### Verified live this pass (iOS primary w/ real taps, Android parity spot-checks)
+Welcome, Login (+empty validation), Home, Search, FilterPanel, Matches (3 tabs), Conversations, ChatThread (send verified, synced iOS→Android), ProfileDetail, OwnProfile (all sections), Settings (+Language picker, Dark removed), Notifications, Subscription (per-plan features), Verification, FamilyGroups (empty state). Cold-start session restore works both platforms.
+
+### NOT live-tested this pass (documented, deferred)
+- **Onboarding** 14-step signup flow (wrapper safe-area confirmed via source; not walked live).
+- **Calls** (Voice/Video/IncomingCall) — config-gated on Agora (stub; not exercised).
+- **Horoscope match / Quiz / Guardian (setup/view/candidates)** — safe-area fixed via source; screens not walked live.
+- **Admin stack** (AdminHome/VerificationQueue/ReportsQueue) — needs an admin-role test user (seed `aman.singh2` is a member).
+- **Bureau stack** (Home/ClientRoster/MatchProposal/Earnings/Support/SuccessStory) — needs a bureau-role test user.
+- **i18n** hi/pa beyond the picker (verified working in prior passes); **Elder mode** larger-type pass.
+
+Regression at checkpoint: mobile `tsc` **0**, BE unit **116/116**, FE untouched (**35**).

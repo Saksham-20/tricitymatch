@@ -10,7 +10,6 @@ import {
   Modal,
   ActivityIndicator,
   SafeAreaView,
-  useColorScheme,
 } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { useNavigation } from '@react-navigation/native';
@@ -224,9 +223,7 @@ export default function SettingsScreen() {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
-  const { language, elderMode, darkModeOverride, setLanguage, setElderMode, setDarkModeOverride } = useUIStore();
-  const systemScheme = useColorScheme();
-  const isDark = darkModeOverride !== null ? darkModeOverride : systemScheme === 'dark';
+  const { language, elderMode, setLanguage, setElderMode } = useUIStore();
 
   const [incognito, setIncognito] = useState(false);
   const [showLangPicker, setShowLangPicker] = useState(false);
@@ -353,19 +350,10 @@ export default function SettingsScreen() {
           />
         </Section>
 
-        {/* Appearance */}
+        {/* Appearance — Dark Mode intentionally omitted: not yet themed app-wide
+            (every screen uses the static light palette). Re-add when useTheme()
+            is wired across screens. */}
         <Section title="Appearance">
-          <SettingRow
-            icon="moon-outline"
-            iconColor={colours.info}
-            label="Dark Mode"
-            sublabel={darkModeOverride === null ? 'Following system setting' : undefined}
-            toggle
-            toggleValue={isDark}
-            onToggle={(v) => setDarkModeOverride(v)}
-            testID="setting-dark-mode"
-          />
-          <Divider />
           <SettingRow
             icon="text-outline"
             iconColor={colours.info}

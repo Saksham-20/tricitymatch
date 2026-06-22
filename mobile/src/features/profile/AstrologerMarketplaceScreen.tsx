@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Image,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -137,6 +138,7 @@ function AstrologerCard({ item, onPress }: { item: Astrologer; onPress: () => vo
 }
 
 export default function AstrologerMarketplaceScreen() {
+  const insets = useSafeAreaInsets();
   const nav = useNavigation<Nav>();
   const [filter, setFilter] = useState<'all' | 'online'>('all');
 
@@ -151,7 +153,7 @@ export default function AstrologerMarketplaceScreen() {
   const filtered = filter === 'online' ? (data ?? []).filter(a => a.isOnline) : (data ?? []);
 
   return (
-    <View style={s.container}>
+    <View style={[s.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => nav.goBack()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>

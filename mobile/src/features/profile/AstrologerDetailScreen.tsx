@@ -8,6 +8,7 @@ import {
   Alert,
   Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
@@ -50,6 +51,7 @@ function StarRow({ rating }: { rating: number }) {
 }
 
 export default function AstrologerDetailScreen() {
+  const insets = useSafeAreaInsets();
   const nav = useNavigation();
   const route = useRoute<Route>();
   const { astrologerName } = route.params;
@@ -96,7 +98,7 @@ export default function AstrologerDetailScreen() {
   };
 
   return (
-    <View style={s.container}>
+    <View style={[s.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => nav.goBack()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>

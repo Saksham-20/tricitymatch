@@ -9,6 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import SmartImage from '../../components/common/SmartImage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -405,10 +406,11 @@ function TabContent({ activeTab }: { activeTab: TabKey }) {
 
 export default function MatchesScreen() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabKey>('mutual');
 
   return (
-    <View style={s.container} testID="MatchesScreen">
+    <View style={[s.container, { paddingTop: insets.top }]} testID="MatchesScreen">
       {/* Tab bar */}
       <View style={s.tabBar}>
         {TABS.map((tab) => (

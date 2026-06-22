@@ -61,6 +61,10 @@ export default function Button({
       style={[
         gradient ? styles.gradientWrap : styles.base,
         gradient ? variantStyle.shadow : variantStyle.container,
+        // Solid brand fallback behind the gradient: if expo-linear-gradient's
+        // native view manager is unavailable (stale dev client, odd device),
+        // the button still shows its brand colour instead of going transparent.
+        gradient ? { backgroundColor: gradient[0] } : undefined,
         isDisabled && styles.disabled,
         style,
       ]}

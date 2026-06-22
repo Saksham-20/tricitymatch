@@ -443,6 +443,31 @@ const sc = StyleSheet.create({
   },
 });
 
+// Own gallery photo: resolves relative/seed paths and, when a photo fails to
+// load (unresolved seed path, deleted Cloudinary asset), falls back to the same
+// "Add photos" prompt instead of a blank white box.
+function OwnGalleryPhoto({ uri, previewMode }: { uri: string; previewMode: boolean }) {
+  const [failed, setFailed] = useState(false);
+  const resolved = resolveImageUri(previewMode ? uri + '?blur=20' : uri);
+  if (!resolved || failed) {
+    return (
+      <View style={[styles.photo, styles.photoEmpty]}>
+        <Ionicons name="camera-outline" size={48} color={colours.textMuted} />
+        <Text style={styles.photoEmptyText}>Add photos</Text>
+      </View>
+    );
+  }
+  return (
+    <Image
+      source={{ uri: resolved }}
+      style={styles.photo}
+      resizeMode="cover"
+      blurRadius={previewMode ? 20 : 0}
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 export default function OwnProfileScreen() {
@@ -542,13 +567,7 @@ export default function OwnProfileScreen() {
       >
         {photos.length > 0 ? (
           photos.map((uri, i) => (
-            <Image
-              key={i}
-              source={{ uri: resolveImageUri(previewMode ? uri + '?blur=20' : uri) ?? undefined }}
-              style={styles.photo}
-              resizeMode="cover"
-              blurRadius={previewMode ? 20 : 0}
-            />
+            <OwnGalleryPhoto key={i} uri={uri} previewMode={previewMode} />
           ))
         ) : (
           <View style={[styles.photo, styles.photoEmpty]}>

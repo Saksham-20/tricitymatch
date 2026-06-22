@@ -10,6 +10,7 @@ import {
   Alert,
   Modal,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -204,6 +205,7 @@ const ss = StyleSheet.create({
 
 export default function SearchScreen() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const filterRef = useRef<FilterPanelHandle>(null);
@@ -282,7 +284,7 @@ export default function SearchScreen() {
   }, [isFetchingNextPage]);
 
   return (
-    <View style={s.container} testID="SearchScreen">
+    <View style={[s.container, { paddingTop: insets.top }]} testID="SearchScreen">
       {/* Search Bar */}
       <View style={s.searchBar}>
         <Ionicons name="search" size={18} color={colours.textMuted} style={s.searchIcon} />

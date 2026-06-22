@@ -12,6 +12,7 @@ export const queryKeys = {
   conversations:['chat', 'conversations'] as const,
   thread:       (userId: string) => ['chat', 'thread', userId] as const,
   notifications:['notifications'] as const,
+  unreadCount:  ['notifications', 'unread-count'] as const,
   subscription: ['subscription'] as const,
   callHistory:  ['calls', 'history'] as const,
   verification: ['verification', 'me'] as const,

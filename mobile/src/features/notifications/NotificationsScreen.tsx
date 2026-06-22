@@ -9,6 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
@@ -108,6 +109,7 @@ function formatRelativeTime(iso: string): string {
 
 export default function NotificationsScreen() {
   const navigation = useNavigation<NavProp>();
+  const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -140,6 +142,7 @@ export default function NotificationsScreen() {
           })),
         };
       });
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] });
     },
   });
 
@@ -156,7 +159,7 @@ export default function NotificationsScreen() {
           })),
         };
       });
-      queryClient.invalidateQueries({ queryKey: ['unreadCount'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] });
     },
   });
 
@@ -186,7 +189,7 @@ export default function NotificationsScreen() {
   }
 
   return (
-    <View style={styles.container} testID="NotificationsScreen">
+    <View style={[styles.container, { paddingTop: insets.top }]} testID="NotificationsScreen">
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Notifications</Text>

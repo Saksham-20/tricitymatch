@@ -17,7 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
 import SmartImage from '../../components/common/SmartImage';
 import { getDailyFeed } from '../../api/matches';
-import { getNotifications } from '../../api/notifications';
+import { getUnreadCount } from '../../api/notifications';
 import { queryKeys } from '../../constants/queryKeys';
 import { useAuthStore } from '../../stores/authStore';
 import type { MainStackParamList } from '../../navigation/types';
@@ -148,13 +148,17 @@ export default function HomeScreen() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: notifData } = useQuery({
-    queryKey: queryKeys.notifications,
-    queryFn: () => getNotifications(),
+  // Use the dedicated unread-count endpoint with its own query key. (Previously
+  // this shared the ['notifications'] key with NotificationsScreen's
+  // useInfiniteQuery — Home stored a flat shape there, so opening Notifications
+  // read it as InfiniteData and crashed on `data.pages`.)
+  const { data: countData } = useQuery({
+    queryKey: queryKeys.unreadCount,
+    queryFn: getUnreadCount,
     staleTime: 60 * 1000,
   });
 
-  const unreadCount = notifData?.notifications.filter((n) => !n.isRead).length ?? 0;
+  const unreadCount = countData?.count ?? 0;
   const completionPct = user?.Profile?.completionPercentage ?? 0;
   const firstName = user?.Profile?.firstName ?? user?.email?.split('@')[0] ?? 'there';
   const planLabel =

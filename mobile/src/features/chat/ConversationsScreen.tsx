@@ -4,6 +4,7 @@ import {
   ActivityIndicator, RefreshControl,
 } from 'react-native';
 import SmartImage from '../../components/common/SmartImage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -123,6 +124,7 @@ function ConversationCard({ item, onPress }: ConversationCardProps) {
 export default function ConversationsScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
 
   // Chat is gated to paid plans (mirrors web's requirePremium). Any non-free tier unlocks it.
@@ -167,7 +169,17 @@ export default function ConversationsScreen() {
   }
 
   return (
-    <View style={s.container} testID="ConversationsScreen">
+    <View style={[s.container, { paddingTop: insets.top }]} testID="ConversationsScreen">
+      <View style={s.header}>
+        <Text style={s.headerTitle}>Messages</Text>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('FamilyGroups')}
+          accessibilityLabel="Family groups"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="people-outline" size={24} color={colours.primary} />
+        </TouchableOpacity>
+      </View>
       <FlatList
         data={conversations}
         keyExtractor={(item) => item.userId}
@@ -197,6 +209,18 @@ const s = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colours.background,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  headerTitle: {
+    fontSize: typography.fontSize.xl,
+    fontFamily: typography.fontFamily.bold,
+    color: colours.primary,
   },
   center: {
     flex: 1,

@@ -61,6 +61,7 @@ export function useSocket(handlers?: SocketEventHandlers) {
 
     socketInstance.on('new-notification', () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.notifications });
+      queryClient.invalidateQueries({ queryKey: queryKeys.unreadCount });
       handlersRef.current?.onNewNotification?.();
     });
 

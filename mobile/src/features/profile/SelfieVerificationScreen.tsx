@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Animated,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -117,6 +118,7 @@ const rd = StyleSheet.create({
 type Stage = 'instructions' | 'recording' | 'processing' | 'success' | 'failed';
 
 export default function SelfieVerificationScreen() {
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const queryClient = useQueryClient();
@@ -168,7 +170,7 @@ export default function SelfieVerificationScreen() {
   };
 
   return (
-    <View style={s.wrapper} testID="SelfieVerificationScreen">
+    <View style={[s.wrapper, { paddingTop: insets.top }]} testID="SelfieVerificationScreen">
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} testID="back-btn" accessibilityLabel="Go back">

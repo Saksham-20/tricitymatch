@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
 import { getProfile, logProfileView, getCompatibilityBreakdown } from '../../api/profile';
 import VoiceIntroRecorder from '../../components/profile/VoiceIntroRecorder';
+import { resolveImageUri } from '../../components/common/SmartImage';
 import { performMatchAction } from '../../api/matches';
 import { queryKeys } from '../../constants/queryKeys';
 import { useAuthStore } from '../../stores/authStore';
@@ -52,6 +53,38 @@ function CompatibilityBar({ score, onWhyPress }: { score: number; onWhyPress: ()
       </View>
       <Text style={cb.hint}>Tap to see breakdown</Text>
     </TouchableOpacity>
+  );
+}
+
+// ─── Hero photo (resolves relative/seed paths, graceful fallback) ─────────────
+// Mirrors SmartImage's resolve + onError fallback but keeps the gallery's blur +
+// "Upgrade to view" lock overlay for non-premium viewers' secondary photos.
+function HeroPhoto({ uri, locked }: { uri: string; locked: boolean }) {
+  const [failed, setFailed] = useState(false);
+  const resolved = resolveImageUri(uri);
+  if (!resolved || failed) {
+    return (
+      <View style={[styles.photoContainer, styles.photoFallback]}>
+        <Ionicons name="person" size={64} color={colours.textMuted} />
+      </View>
+    );
+  }
+  return (
+    <View style={styles.photoContainer}>
+      <Image
+        source={{ uri: resolved }}
+        style={styles.photo}
+        resizeMode="cover"
+        blurRadius={locked ? 40 : 0}
+        onError={() => setFailed(true)}
+      />
+      {locked && (
+        <View style={styles.blurOverlay}>
+          <Ionicons name="lock-closed" size={28} color="#fff" />
+          <Text style={styles.blurText}>Upgrade to view</Text>
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -292,6 +325,15 @@ export default function ProfileDetailScreen() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // Real compatibility (was previously faked from completionPercentage). Shares
+  // the breakdown sheet's query key so it's fetched once and stays consistent
+  // with the score shown on the Home/Search cards.
+  const { data: compat } = useQuery({
+    queryKey: ['compatibility', userId],
+    queryFn: () => getCompatibilityBreakdown(userId),
+    staleTime: 5 * 60 * 1000,
+  });
+
   // Log profile view
   useEffect(() => {
     logProfileView(userId).catch(() => {});
@@ -380,20 +422,7 @@ export default function ProfileDetailScreen() {
         >
           {photos.length > 0 ? (
             photos.map((uri, i) => (
-              <View key={i} style={styles.photoContainer}>
-                <Image
-                  source={{ uri }}
-                  style={styles.photo}
-                  resizeMode="cover"
-                  blurRadius={!isMutualOrPremium && i > 0 ? 40 : 0}
-                />
-                {!isMutualOrPremium && i > 0 && (
-                  <View style={styles.blurOverlay}>
-                    <Ionicons name="lock-closed" size={28} color="#fff" />
-                    <Text style={styles.blurText}>Upgrade to view</Text>
-                  </View>
-                )}
-              </View>
+              <HeroPhoto key={i} uri={uri} locked={!isMutualOrPremium && i > 0} />
             ))
           ) : (
             <View style={[styles.photoContainer, styles.photoFallback]}>
@@ -422,9 +451,9 @@ export default function ProfileDetailScreen() {
         <VerificationRow />
 
         {/* Compatibility */}
-        {typeof profile.completionPercentage === 'number' && (
+        {typeof compat?.overallScore === 'number' && (
           <CompatibilityBar
-            score={Math.round(profile.completionPercentage * 0.85)}
+            score={compat.overallScore}
             onWhyPress={() => setBreakdownVisible(true)}
           />
         )}

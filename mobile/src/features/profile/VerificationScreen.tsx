@@ -8,6 +8,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -175,6 +176,7 @@ const tc = StyleSheet.create({
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function VerificationScreen() {
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const queryClient = useQueryClient();
@@ -208,7 +210,7 @@ export default function VerificationScreen() {
   };
 
   return (
-    <View style={s.wrapper} testID="VerificationScreen">
+    <View style={[s.wrapper, { paddingTop: insets.top }]} testID="VerificationScreen">
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} testID="back-btn" accessibilityLabel="Go back">

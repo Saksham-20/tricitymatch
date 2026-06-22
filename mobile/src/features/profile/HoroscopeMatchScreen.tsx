@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
@@ -65,6 +66,7 @@ function DoshaTag({ label, present }: { label: string; present: boolean }) {
 }
 
 export default function HoroscopeMatchScreen() {
+  const insets = useSafeAreaInsets();
   const nav = useNavigation();
   const route = useRoute<Route>();
   const { userId, name } = route.params;
@@ -175,7 +177,7 @@ export default function HoroscopeMatchScreen() {
   };
 
   return (
-    <View style={s.container}>
+    <View style={[s.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => nav.goBack()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
