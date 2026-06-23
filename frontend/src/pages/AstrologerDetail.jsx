@@ -94,7 +94,7 @@ export default function AstrologerDetail() {
           <h1 className="text-2xl font-semibold text-neutral-800">{ast.name}</h1>
           <p className="text-neutral-500">{(ast.speciality || []).join(', ')}</p>
           <div className="flex items-center gap-4 mt-2 text-sm text-neutral-600">
-            <span className="inline-flex items-center gap-1"><FiStar className="w-4 h-4 text-amber-500" /> {ast.rating} ({ast.reviewCount})</span>
+            <span className="inline-flex items-center gap-1"><FiStar className="w-4 h-4 text-gold-500 fill-gold-500" /> {ast.rating} ({ast.reviewCount})</span>
             <span className="inline-flex items-center gap-1"><FiClock className="w-4 h-4" /> {t('astrologers.experience', { years: ast.experience })}</span>
           </div>
           <p className="mt-1 text-sm text-neutral-500">{(ast.languages || []).join(' · ')}</p>
@@ -104,8 +104,8 @@ export default function AstrologerDetail() {
       {ast.bio && <p className="text-neutral-600 mb-6">{ast.bio}</p>}
 
       {confirmed ? (
-        <div className="bg-green-50 border border-green-200 rounded-2xl p-6 text-center">
-          <FiCheckCircle className="w-10 h-10 text-green-600 mx-auto mb-3" />
+        <div className="bg-success-50 border border-success-100 rounded-2xl p-6 text-center">
+          <FiCheckCircle className="w-10 h-10 text-success mx-auto mb-3" />
           <p className="font-medium text-neutral-800 mb-2">{t('astrologers.bookingConfirmed')}</p>
           <p className="text-sm text-neutral-600 inline-flex items-center gap-2">
             <FiSmartphone className="w-4 h-4" /> {t('astrologers.callInApp')}

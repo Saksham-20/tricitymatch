@@ -20,13 +20,13 @@ const TYPE_ICONS = {
 
 const TYPE_COLORS = {
   match:        'bg-primary-100 text-primary-600',
-  message:      'bg-blue-100 text-blue-600',
-  profile_view: 'bg-slate-100 text-slate-600',
-  interest:     'bg-amber-100 text-amber-600',
-  verification: 'bg-green-100 text-green-600',
-  subscription: 'bg-indigo-100 text-indigo-600',
-  system:       'bg-gray-100 text-gray-600',
-  admin:        'bg-red-100 text-red-600',
+  message:      'bg-info-light text-info',
+  profile_view: 'bg-neutral-100 text-neutral-600',
+  interest:     'bg-gold-100 text-gold-700',
+  verification: 'bg-success-50 text-success',
+  subscription: 'bg-primary-100 text-primary-600',
+  system:       'bg-neutral-100 text-neutral-600',
+  admin:        'bg-destructive-light text-destructive',
 };
 
 function timeAgo(date) {
@@ -97,12 +97,12 @@ export default function Notifications() {
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
-    <div className="min-h-screen bg-neutral-50 pt-20 pb-24 md:pb-8 px-4">
+    <div className="min-h-screen bg-neutral-50 dark:bg-[#0f1117] pt-20 pb-24 md:pb-8 px-4">
       <div className="max-w-xl mx-auto space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-neutral-900">Notifications</h1>
+            <h1 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100">Notifications</h1>
             {unreadCount > 0 && (
               <span className="px-2 py-0.5 rounded-full bg-primary-500 text-white text-xs font-bold">{unreadCount}</span>
             )}
@@ -122,9 +122,9 @@ export default function Notifications() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500" />
           </div>
         ) : notifications.length === 0 ? (
-          <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-neutral-100">
+          <div className="bg-white dark:bg-[#1a1f2e] rounded-2xl p-12 text-center shadow-card border border-neutral-100 dark:border-neutral-800">
             <FiBell className="w-10 h-10 text-neutral-300 mx-auto mb-3" />
-            <p className="font-semibold text-neutral-700">No notifications yet</p>
+            <p className="font-semibold text-neutral-700 dark:text-neutral-200">No notifications yet</p>
             <p className="text-sm text-neutral-400 mt-1">We'll notify you when something happens</p>
           </div>
         ) : (
@@ -133,7 +133,7 @@ export default function Notifications() {
               <AnimatePresence>
                 {notifications.map((n) => {
                   const Icon  = TYPE_ICONS[n.type]  || FiBell;
-                  const color = TYPE_COLORS[n.type] || 'bg-gray-100 text-gray-600';
+                  const color = TYPE_COLORS[n.type] || 'bg-neutral-100 text-neutral-600';
                   return (
                     <motion.div
                       key={n.id}
@@ -141,8 +141,8 @@ export default function Notifications() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, x: -20 }}
                       transition={{ duration: 0.2 }}
-                      className={`flex items-start gap-3 p-4 rounded-2xl bg-white shadow-sm border transition-all cursor-pointer ${
-                        !n.isRead ? 'border-primary-100 bg-primary-50/30' : 'border-neutral-100'
+                      className={`flex items-start gap-3 p-4 rounded-2xl shadow-card border transition-all cursor-pointer ${
+                        !n.isRead ? 'border-primary-100 dark:border-primary-800 bg-primary-50/40 dark:bg-primary-900/20' : 'border-neutral-100 dark:border-neutral-800 bg-white dark:bg-[#1a1f2e]'
                       }`}
                       onClick={() => !n.isRead && markRead(n.id)}
                     >

@@ -170,7 +170,7 @@ const ProfileCard = ({
                 onError={() => setImgError(true)}
               />
             ) : (
-              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center text-primary-500 font-bold text-lg ring-2 ring-white shadow-md">
+              <div className="w-14 h-14 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center text-primary-700 dark:text-primary-300 font-display font-semibold text-lg ring-2 ring-white dark:ring-[#1a1f2e] shadow-md">
                 {initials}
               </div>
             )}
@@ -264,21 +264,10 @@ const ProfileCard = ({
             onError={() => setImgError(true)}
           />
         ) : (
-          /* ── Premium no-photo placeholder ─────────── */
-          <div className="w-full h-full bg-gradient-to-br from-primary-50 via-primary-100 to-gold-50 flex items-center justify-center relative">
-            {/* decorative circles */}
-            <div className="absolute top-4 right-6 w-20 h-20 rounded-full bg-primary-200/30" />
-            <div className="absolute bottom-6 left-4 w-14 h-14 rounded-full bg-gold-200/40" />
-            {/* frosted avatar */}
-            <div
-              className="w-20 h-20 rounded-full flex items-center justify-center shadow-lg relative z-[1]"
-              style={{
-                background: 'rgba(255, 255, 255, 0.65)',
-                backdropFilter: 'blur(8px)',
-                border: '2px solid rgba(255,255,255,0.8)',
-              }}
-            >
-              <span className="text-3xl font-display font-bold text-primary-400">
+          /* ── Refined no-photo placeholder (design-handoff avatar) ─── */
+          <div className="w-full h-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center relative">
+            <div className="w-20 h-20 rounded-full flex items-center justify-center bg-white/70 dark:bg-white/10 ring-1 ring-primary-500/15">
+              <span className="text-3xl font-display font-semibold text-primary-700 dark:text-primary-300">
                 {initials}
               </span>
             </div>

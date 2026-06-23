@@ -49,29 +49,15 @@ const Avatar = ({
       .slice(0, 2);
   };
 
-  const getColorFromName = (name) => {
-    if (!name) return 'bg-neutral-400';
-    const colors = [
-      'bg-primary-500',
-      'bg-primary-600',
-      'bg-gold-500',
-      'bg-success',
-      'bg-info',
-      'bg-primary-400',
-      'bg-gold-600',
-      'bg-success-700',
-    ];
-    const index = name.charCodeAt(0) % colors.length;
-    return colors[index];
-  };
-
   return (
     <div className={cn('relative inline-block', className)} {...props}>
       <div
         className={cn(
-          'rounded-full overflow-hidden flex items-center justify-center font-semibold text-white',
+          'rounded-full overflow-hidden flex items-center justify-center',
           sizes[size],
-          !src && getColorFromName(name)
+          // Refined empty-photo fallback (design-handoff): solid primary-100 +
+          // Playfair initials in primary-700. Dark: accent-soft + primary-300.
+          !src && 'bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 font-display font-semibold ring-1 ring-primary-500/10'
         )}
       >
         {src ? (
@@ -93,7 +79,7 @@ const Avatar = ({
       {online !== undefined && (
         <span
           className={cn(
-            'absolute bottom-0 right-0 rounded-full border-white',
+            'absolute bottom-0 right-0 rounded-full border-white dark:border-[#1a1f2e]',
             online ? 'bg-success' : 'bg-neutral-400',
             indicatorSizes[size]
           )}
@@ -101,11 +87,11 @@ const Avatar = ({
         />
       )}
 
-      {/* Verified badge */}
+      {/* Verified badge — success green w/ check (trust signal) */}
       {verified && (
         <span
           className={cn(
-            'absolute -bottom-0.5 -right-0.5 bg-primary-500 rounded-full p-0.5',
+            'absolute -bottom-0.5 -right-0.5 bg-success rounded-full p-0.5 border-2 border-white dark:border-[#1a1f2e]',
             size === 'xs' && 'hidden',
             (size === 'sm' || size === 'md') && 'p-0.5',
             size === 'lg' && 'p-1',

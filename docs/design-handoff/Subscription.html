@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-elder="off">
+<head>
+<meta charset="utf-8" />
+<title>TricityShadi — Subscription</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="ts-system.css" />
+<template id="__bundler_thumbnail">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#FDF6E3"/><path d="M50 130h100l-12-50-26 22-12-38-12 38-26-22z" fill="#C9A227"/></svg>
+</template>
+<style>
+body{background:var(--surface-2);}
+.harness{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;
+  padding:.6rem 1rem;background:color-mix(in srgb,var(--card) 90%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);font-size:.8rem;}
+.harness .ttl{font-family:'Playfair Display',serif;font-weight:600;color:var(--fg-strong);}
+.harness .spacer{flex:1;}
+.seg{display:flex;background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:3px;gap:2px;}
+.seg button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:.76rem;font-weight:600;padding:.32rem .7rem;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:.3rem;}
+.seg button[aria-pressed="true"]{background:var(--card);color:var(--accent);box-shadow:var(--sh-sm);}
+.harness .lab{font-size:.66rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+
+.stage{padding:4.6rem 1.2rem 3rem;min-height:100vh;display:flex;justify-content:center;}
+.device{width:100%;max-width:1180px;background:var(--bg);border:1px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.12);transition:max-width .35s ease;}
+body[data-vp="mobile"] .device{max-width:402px;border-radius:34px;}
+
+.wrap{padding:3rem 2rem 3.5rem;}
+body[data-vp="mobile"] .wrap{padding:2rem 1.1rem 2.5rem;}
+
+/* header */
+.head{text-align:center;max-width:560px;margin:0 auto 2.5rem;}
+.pill{display:inline-flex;align-items:center;gap:.45rem;font-size:.7rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--g-600);background:var(--gold-soft);border:1px solid color-mix(in srgb,var(--g-500) 30%,transparent);padding:.35rem .85rem;border-radius:999px;margin-bottom:1.1rem;}
+.head h1{font-size:clamp(2rem,4.5vw,2.9rem);font-weight:700;line-height:1.08;}
+.head p{color:var(--muted);font-size:1.05rem;margin-top:.7rem;}
+
+/* active banner */
+.banner{display:flex;align-items:center;gap:.8rem;background:var(--success-l);border:1px solid color-mix(in srgb,var(--success) 25%,transparent);
+  border-radius:16px;padding:.9rem 1.2rem;margin-bottom:2rem;font-size:.9rem;color:var(--success);}
+.banner .bi{width:34px;height:34px;border-radius:50%;background:var(--success);color:#fff;display:grid;place-items:center;flex:none;}
+.banner b{font-weight:700;}.banner .dim{opacity:.8;}
+
+/* plan grid */
+.plans{display:grid;grid-template-columns:repeat(4,1fr);gap:1.1rem;align-items:start;margin-top:1rem;}
+@media(max-width:1100px){body[data-vp="desktop"] .plans{grid-template-columns:repeat(2,1fr);gap:1.4rem;}}
+body[data-vp="mobile"] .plans{grid-template-columns:1fr;gap:1.6rem;}
+
+.plan{position:relative;background:var(--card);border:1.5px solid var(--border);border-radius:18px;padding:1.6rem 1.4rem;
+  box-shadow:var(--sh-card);display:flex;flex-direction:column;transition:transform .25s,box-shadow .25s;}
+.plan:hover{transform:translateY(-5px);box-shadow:var(--sh-card-hover);}
+.plan .bar-top{position:absolute;top:0;left:0;right:0;height:4px;border-radius:18px 18px 0 0;}
+.plan .pn{display:flex;align-items:center;gap:.55rem;font-size:1rem;font-weight:700;color:var(--fg-strong);}
+.plan .pn .pic{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;flex:none;}
+.plan .pn .act{margin-left:auto;font-size:.6rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--success);
+  background:var(--success-l);border:1px solid color-mix(in srgb,var(--success) 25%,transparent);padding:.15rem .45rem;border-radius:999px;}
+.plan .price{font-family:'Playfair Display',serif;font-size:2.3rem;font-weight:700;color:var(--fg-strong);line-height:1;margin-top:1rem;}
+.plan .price small{font-family:'Inter';font-size:.85rem;font-weight:500;color:var(--muted);}
+.plan .per{font-size:.76rem;color:var(--muted);margin-top:.4rem;min-height:1rem;}
+.plan .feat{list-style:none;margin:1.2rem 0 1.4rem;display:grid;gap:.7rem;flex:1;}
+.plan .feat li{display:flex;gap:.6rem;font-size:.86rem;color:var(--fg);align-items:flex-start;line-height:1.35;}
+.plan .feat .ck{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;flex:none;margin-top:.08rem;background:var(--surface-2);color:var(--muted);}
+.plan .feat .ck svg{width:11px;height:11px;}
+.plan .feat .everything{font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;
+  padding-bottom:.5rem;margin-bottom:.1rem;border-bottom:1px dashed var(--border);display:block;}
+.plan .cta{width:100%;}
+
+/* tier accents */
+.plan .pn .pic{background:var(--surface-2);color:var(--muted);}
+.plan.basic{border-color:color-mix(in srgb,var(--p-500) 35%,var(--border));}
+.plan.basic .pn .pic{background:var(--accent-soft);color:var(--accent);}
+.plan.basic .feat .ck{background:var(--accent-soft);color:var(--accent);}
+.plan.basic .price{color:var(--accent);}
+.plan.plus{border-color:var(--accent);box-shadow:var(--sh-burgundy);}
+@media(min-width:1101px){body[data-vp="desktop"] .plan.plus{transform:scale(1.04);z-index:2;}body[data-vp="desktop"] .plan.plus:hover{transform:scale(1.04) translateY(-5px);}}
+.plan.plus .bar-top{background:linear-gradient(90deg,var(--p-500),var(--p-700));}
+.plan.plus .pn .pic{background:var(--accent);color:#fff;}
+.plan.plus .feat .ck{background:var(--accent);color:#fff;}
+.plan.plus .price{color:var(--accent);}
+.plan.vip{border-color:var(--g-500);box-shadow:var(--sh-gold);background:linear-gradient(165deg,var(--card) 60%,var(--gold-soft));}
+.plan.vip .bar-top{background:linear-gradient(90deg,var(--g-400),var(--g-600));}
+.plan.vip .pn .pic{background:var(--gold-soft);color:var(--g-600);}
+.plan.vip .feat .ck{background:var(--gold-soft);color:var(--g-600);}
+.plan.vip .price{color:var(--g-600);}
+
+/* badge tab — sits cleanly above the card */
+.ptab{position:absolute;top:-13px;left:50%;transform:translateX(-50%);display:inline-flex;align-items:center;gap:.35rem;
+  font-size:.66rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:.32rem .8rem;border-radius:999px;white-space:nowrap;box-shadow:var(--sh-sm);}
+.ptab svg{width:11px;height:11px;}
+.ptab.pop{background:linear-gradient(135deg,var(--p-500),var(--p-600));color:#fff;}
+.ptab.best{background:linear-gradient(135deg,var(--g-500),var(--g-600));color:#3D2914;}
+.plan.plus,.plan.vip{padding-top:1.9rem;}
+
+/* CTA variants */
+.cta-current{width:100%;background:var(--surface-2)!important;color:var(--muted)!important;border-color:var(--border)!important;box-shadow:none!important;}
+
+.footnote{text-align:center;font-size:.78rem;color:var(--muted);margin-top:2.5rem;}
+.footnote svg{width:13px;height:13px;vertical-align:-2px;color:var(--success);}
+
+body:not(.ready) [data-show]{display:none;}
+.skp{padding:1.6rem 1.4rem;}
+</style>
+</head>
+<body data-vp="desktop" data-state="default">
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<g id="i-check"><polyline points="20 6 9 17 4 12"/></g>
+<g id="i-arr"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></g>
+<g id="i-zap"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></g>
+<g id="i-crown"><path d="M2 18h20l-2-9-5 4-3-7-3 7-5-4-2 9z"/></g>
+<g id="i-shield"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></g>
+<g id="i-user"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></g>
+<g id="i-lock"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></g>
+<g id="i-alert"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></g>
+<g id="i-sun"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.2" y1="4.2" x2="5.6" y2="5.6"/><line x1="18.4" y1="18.4" x2="19.8" y2="19.8"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.2" y1="19.8" x2="5.6" y2="18.4"/><line x1="18.4" y1="5.6" x2="19.8" y2="4.2"/></g>
+<g id="i-moon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></g>
+</defs></svg>
+
+<div class="harness">
+  <span class="ttl">Subscription</span>
+  <span class="lab">View</span>
+  <div class="seg"><button id="vp-d" aria-pressed="true" onclick="setVp('desktop')">Desktop</button><button id="vp-m" aria-pressed="false" onclick="setVp('mobile')">Mobile</button></div>
+  <span class="lab">Theme</span>
+  <div class="seg"><button id="th-l" aria-pressed="true" onclick="setTh('light')"><svg class="i"><use href="#i-sun"/></svg>Light</button><button id="th-d" aria-pressed="false" onclick="setTh('dark')"><svg class="i"><use href="#i-moon"/></svg>Dark</button></div>
+  <span class="lab">Elder</span>
+  <div class="seg"><button id="el-off" aria-pressed="true" onclick="setEl('off')">Std</button><button id="el-on" aria-pressed="false" onclick="setEl('on')">Elder</button></div>
+  <span class="spacer"></span>
+  <span class="lab">State</span>
+  <div class="seg">
+    <button id="s-default" aria-pressed="true" onclick="setSt('default')">Default</button>
+    <button id="s-member" aria-pressed="false" onclick="setSt('member')">Active member</button>
+    <button id="s-loading" aria-pressed="false" onclick="setSt('loading')">Loading</button>
+    <button id="s-error" aria-pressed="false" onclick="setSt('error')">Error</button>
+  </div>
+</div>
+
+<div class="stage">
+<div class="device">
+  <div class="wrap">
+
+    <div class="head">
+      <span class="pill"><svg class="i" style="width:.9em;height:.9em"><use href="#i-crown"/></svg>Membership Plans</span>
+      <h1>Choose your plan</h1>
+      <p>Unlock premium features and find your perfect match faster.</p>
+    </div>
+
+    <!-- active member banner -->
+    <div class="banner" data-show="member">
+      <div class="bi"><svg class="i" style="width:17px;height:17px"><use href="#i-check"/></svg></div>
+      <div>You have an active <b>Premium Plus</b> subscription <span class="dim">· valid until 14 Jul 2026 · 6 of 10 unlocks remaining</span></div>
+    </div>
+
+    <!-- ERROR -->
+    <div data-show="error">
+      <div class="empty error" style="max-width:460px;margin:1rem auto">
+        <div class="ei"><svg class="i"><use href="#i-alert"/></svg></div>
+        <h3>Couldn't load plans</h3>
+        <p>We weren't able to fetch membership plans right now. Please try again.</p>
+        <button class="btn btn-secondary btn-sm">Retry</button>
+      </div>
+    </div>
+
+    <!-- LOADING skeleton -->
+    <div class="plans" data-show="loading">
+      <div class="plan skp"><div class="sk" style="height:18px;width:55%;margin-bottom:1rem"></div><div class="sk" style="height:34px;width:60%;margin-bottom:1.4rem"></div><div class="sk" style="height:11px;width:90%;margin-bottom:.6rem"></div><div class="sk" style="height:11px;width:80%;margin-bottom:.6rem"></div><div class="sk" style="height:11px;width:85%;margin-bottom:1.4rem"></div><div class="sk" style="height:42px;width:100%;border-radius:12px"></div></div>
+      <div class="plan skp"><div class="sk" style="height:18px;width:55%;margin-bottom:1rem"></div><div class="sk" style="height:34px;width:60%;margin-bottom:1.4rem"></div><div class="sk" style="height:11px;width:90%;margin-bottom:.6rem"></div><div class="sk" style="height:11px;width:80%;margin-bottom:.6rem"></div><div class="sk" style="height:11px;width:85%;margin-bottom:1.4rem"></div><div class="sk" style="height:42px;width:100%;border-radius:12px"></div></div>
+      <div class="plan skp"><div class="sk" style="height:18px;width:55%;margin-bottom:1rem"></div><div class="sk" style="height:34px;width:60%;margin-bottom:1.4rem"></div><div class="sk" style="height:11px;width:90%;margin-bottom:.6rem"></div><div class="sk" style="height:11px;width:80%;margin-bottom:.6rem"></div><div class="sk" style="height:11px;width:85%;margin-bottom:1.4rem"></div><div class="sk" style="height:42px;width:100%;border-radius:12px"></div></div>
+      <div class="plan skp"><div class="sk" style="height:18px;width:55%;margin-bottom:1rem"></div><div class="sk" style="height:34px;width:60%;margin-bottom:1.4rem"></div><div class="sk" style="height:11px;width:90%;margin-bottom:.6rem"></div><div class="sk" style="height:11px;width:80%;margin-bottom:.6rem"></div><div class="sk" style="height:11px;width:85%;margin-bottom:1.4rem"></div><div class="sk" style="height:42px;width:100%;border-radius:12px"></div></div>
+    </div>
+
+    <!-- DEFAULT / MEMBER plan grid -->
+    <div class="plans" data-show="default member">
+
+      <!-- FREE -->
+      <div class="plan free">
+        <div class="pn"><span class="pic"><svg class="i" style="width:16px;height:16px"><use href="#i-user"/></svg></span>Free</div>
+        <div class="price">Free</div>
+        <div class="per">Free forever</div>
+        <ul class="feat">
+          <li><span class="ck"><svg class="i"><use href="#i-check"/></svg></span>Create profile</li>
+          <li><span class="ck"><svg class="i"><use href="#i-check"/></svg></span>Browse matches</li>
+          <li><span class="ck"><svg class="i"><use href="#i-check"/></svg></span>Send interest</li>
+          <li><span class="ck"><svg class="i"><use href="#i-check"/></svg></span>Basic search filters</li>
+        </ul>
+        <button class="btn btn-ghost cta" disabled>Free Forever</button>
+      </div>
+
+      <!-- BASIC -->
+      <div class="plan basic">
+        <div class="pn"><span class="pic"><svg class="i" style="width:16px;height:16px"><use href="#i-zap"/></svg></span>Basic Premium</div>
+        <div class="price">₹1,500<small> /15 days</small></div>
+        <div class="per">Get started with premium</div>
+        <ul class="feat">
+          <li><span class="ck"><svg class="i"><use href="#i-check"/></svg></span>View contact details</li>
+          <li><span class="ck"><svg class="i"><use href="#i-check"/></svg></span>Unlimited messages</li>
+          <li><span class="ck"><svg class="i"><use href="#i-check"/></svg></span>See who viewed profile</li>
+          <li><span class="ck"><svg class="i"><use href="#i-check"/></svg></span>Advanced search filters</li>
+          <li><span class="ck"><svg class="i"><use href="#i-check"/></svg></span>5 contact unlocks</li>
+        </ul>
+        <button class="btn btn-secondary cta">Get Basic <svg class="i"><use href="#i-arr"/></svg></button>
+      </div>
+
+      <!-- PREMIUM PLUS -->
+      <div class="plan plus">
+        <span class="ptab pop"><svg class="i"><use href="#i-zap"/></svg>Most Popular</span>
+        <div class="bar-top"></div>
+        <div class="pn"><span class="pic"><svg class="i" style="width:16px;height:16px"><use href="#i-crown"/></svg></span>Premium Plus<span class="act" data-show="member">Active</span></div>
+        <div class="price">₹3,000<small> /month</small></div>
+        <div class="per">Best for a serious search</div>
+        <ul class="feat">
+          <li class="everything">Everything in Basic, plus</li>
+          <li><span class="ck"><svg class="i"><use href="#i-check"/></svg></span>10 contact unlocks</li>
+          <li><span class="ck"><svg class="i"><use href="#i-check"/></svg></span>Profile boost</li>
+          <li><span class="ck"><svg class="i"><use href="#i-check"/></svg></span>Spotlight listing</li>
+          <li><span class="ck"><svg class="i"><use href="#i-check"/></svg></span>Priority customer support</li>
+        </ul>
+        <button class="btn btn-primary cta" data-show="default">Get Premium+ <svg class="i"><use href="#i-arr"/></svg></button>
+        <button class="btn cta cta-current" data-show="member" disabled><svg class="i"><use href="#i-check"/></svg>Current Plan</button>
+      </div>
+
+      <!-- VIP -->
+      <div class="plan vip">
+        <span class="ptab best"><svg class="i"><use href="#i-crown"/></svg>Best Value</span>
+        <div class="bar-top"></div>
+        <div class="pn"><span class="pic"><svg class="i" style="width:16px;height:16px"><use href="#i-shield"/></svg></span>VIP</div>
+        <div class="price">₹7,499<small> /3 months</small></div>
+        <div class="per">Just ₹2,500/month · Billed once</div>
+        <ul class="feat">
+          <li class="everything">Everything in Premium Plus, plus</li>
+          <li><span class="ck"><svg class="i"><use href="#i-check"/></svg></span>Unlimited contact unlocks</li>
+          <li><span class="ck"><svg class="i"><use href="#i-check"/></svg></span>Priority ranking in search</li>
+          <li><span class="ck"><svg class="i"><use href="#i-check"/></svg></span>Verified badge</li>
+          <li><span class="ck"><svg class="i"><use href="#i-check"/></svg></span>Dedicated relationship advisor</li>
+          <li><span class="ck"><svg class="i"><use href="#i-check"/></svg></span>Exclusive member events</li>
+        </ul>
+        <button class="btn btn-gold cta">Get VIP <svg class="i"><use href="#i-arr"/></svg></button>
+      </div>
+
+    </div>
+
+    <p class="footnote" data-show="default member"><svg class="i"><use href="#i-lock"/></svg> All plans include SSL-secured payments via Razorpay · 100% privacy guaranteed · Cancel anytime</p>
+
+  </div>
+</div>
+</div>
+
+<script>
+function press(ids,on){ids.forEach(id=>document.getElementById(id).setAttribute('aria-pressed',id===on));}
+function setVp(v){document.body.dataset.vp=v;press(['vp-d','vp-m'],v==='desktop'?'vp-d':'vp-m');}
+function setTh(t){document.documentElement.setAttribute('data-theme',t);press(['th-l','th-d'],t==='light'?'th-l':'th-d');}
+function setEl(e){document.documentElement.setAttribute('data-elder',e);press(['el-off','el-on'],e==='off'?'el-off':'el-on');}
+function toggleState(s){document.querySelectorAll('[data-show]').forEach(el=>{el.style.display=el.getAttribute('data-show').split(/\s+/).includes(s)?'':'none';});}
+function setSt(s){document.body.dataset.state=s;press(['s-default','s-member','s-loading','s-error'],'s-'+s);toggleState(s);}
+document.body.classList.add('ready');setSt('default');
+</script>
+</body>
+</html>

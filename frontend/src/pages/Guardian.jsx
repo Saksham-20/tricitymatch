@@ -99,9 +99,9 @@ export default function Guardian() {
                 <li key={g.linkId} className="flex items-center justify-between bg-white border border-neutral-200 rounded-xl px-4 py-3">
                   <div>
                     <p className="text-neutral-800 font-medium">{g.email}</p>
-                    <span className={`text-xs ${g.status === 'active' ? 'text-green-600' : 'text-amber-600'}`}>{g.status}</span>
+                    <span className={`text-xs capitalize ${g.status === 'active' ? 'text-success' : 'text-warning'}`}>{g.status}</span>
                   </div>
-                  <button onClick={() => revoke(g.linkId)} className="inline-flex items-center gap-1.5 text-red-600 hover:text-red-700 text-sm">
+                  <button onClick={() => revoke(g.linkId)} className="inline-flex items-center gap-1.5 text-destructive hover:opacity-80 text-sm">
                     <FiTrash2 className="w-4 h-4" /> {t('guardian.revoke')}
                   </button>
                 </li>
@@ -169,10 +169,10 @@ function CandidateCard({ candidate }) {
           <p className="text-xs text-neutral-400">{candidate.city} · {t('guardian.readOnly')}</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => toggle('matches')} className="inline-flex items-center gap-1.5 text-sm text-rose-600">
+          <button onClick={() => toggle('matches')} className="inline-flex items-center gap-1.5 text-sm text-primary-600">
             <FiHeart className="w-4 h-4" /> {t('guardian.viewMatches')}
           </button>
-          <button onClick={() => toggle('shortlist')} className="inline-flex items-center gap-1.5 text-sm text-amber-600">
+          <button onClick={() => toggle('shortlist')} className="inline-flex items-center gap-1.5 text-sm text-gold-600">
             <FiStar className="w-4 h-4" /> {t('guardian.viewShortlist')}
           </button>
         </div>

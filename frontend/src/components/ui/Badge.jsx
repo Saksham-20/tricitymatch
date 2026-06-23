@@ -21,16 +21,16 @@ const Badge = ({
   ...props
 }) => {
   const variants = {
-    default: 'bg-gray-100 text-gray-700',
-    primary: 'bg-rose-100 text-rose-700',
-    secondary: 'bg-pink-100 text-pink-700',
-    success: 'bg-green-100 text-green-700',
-    warning: 'bg-amber-100 text-amber-700',
-    danger: 'bg-red-100 text-red-700',
-    info: 'bg-blue-100 text-blue-700',
-    premium: 'bg-gradient-to-r from-amber-400 to-orange-400 text-white',
-    elite: 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white',
-    vip: 'bg-gradient-to-r from-yellow-400 via-amber-400 to-orange-500 text-white shadow-sm',
+    default: 'bg-neutral-100 text-neutral-700',
+    primary: 'bg-primary-100 text-primary-700',
+    secondary: 'bg-neutral-100 text-neutral-600',
+    success: 'bg-success-50 text-success',
+    warning: 'bg-warning-light text-warning',
+    danger: 'bg-destructive-light text-destructive',
+    info: 'bg-info-light text-info',
+    premium: 'bg-gradient-to-r from-gold-400 to-gold-600 text-neutral-900',
+    elite: 'bg-gradient-to-r from-primary-500 to-primary-700 text-white',
+    vip: 'bg-gradient-to-r from-gold-400 via-gold-500 to-gold-600 text-neutral-900 shadow-sm',
   };
 
   const sizes = {
@@ -41,13 +41,13 @@ const Badge = ({
   };
 
   const dotColors = {
-    default: 'bg-gray-500',
-    primary: 'bg-rose-500',
-    secondary: 'bg-pink-500',
-    success: 'bg-green-500',
-    warning: 'bg-amber-500',
-    danger: 'bg-red-500',
-    info: 'bg-blue-500',
+    default: 'bg-neutral-500',
+    primary: 'bg-primary-500',
+    secondary: 'bg-neutral-400',
+    success: 'bg-success',
+    warning: 'bg-warning',
+    danger: 'bg-destructive',
+    info: 'bg-info',
     premium: 'bg-white',
     elite: 'bg-white',
     vip: 'bg-white',

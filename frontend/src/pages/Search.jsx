@@ -169,7 +169,7 @@ const Search = () => {
       initial="initial"
       animate="animate"
       variants={staggerContainer}
-      className="min-h-screen bg-neutral-50 pb-16"
+      className="min-h-screen bg-neutral-50 dark:bg-[#0f1117] pb-16"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
@@ -179,7 +179,7 @@ const Search = () => {
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-1 h-7 bg-primary-500 rounded-full" />
-                <h1 className="font-display text-3xl md:text-4xl font-bold text-neutral-900">
+                <h1 className="font-display text-3xl md:text-4xl font-bold text-neutral-900 dark:text-neutral-100">
                   Find Your Match
                 </h1>
               </div>
@@ -249,7 +249,7 @@ const Search = () => {
           <motion.div variants={fadeInUp} className="lg:col-span-3">
 
             {/* Results meta bar */}
-            <div className="flex items-center justify-between mb-5 py-3 px-4 bg-white rounded-2xl border border-neutral-100 shadow-card">
+            <div className="flex items-center justify-between mb-5 py-3 px-4 bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card">
               <p className="text-sm text-neutral-600">
                 {loading && profiles.length === 0 ? (
                   <span className="text-neutral-400">Loading profiles…</span>
@@ -287,12 +287,12 @@ const Search = () => {
               <motion.div
                 initial={{ opacity: 0, scale: 0.97 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="text-center py-16 bg-white rounded-3xl border border-neutral-100 shadow-card"
+                className="text-center py-16 bg-white dark:bg-[#1a1f2e] rounded-3xl border border-neutral-100 dark:border-neutral-800 shadow-card"
               >
-                <div className="w-16 h-16 bg-gradient-to-br from-primary-50 to-gold-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
+                <div className="w-16 h-16 bg-primary-50 dark:bg-primary-900/30 rounded-2xl flex items-center justify-center mx-auto mb-5">
                   <FiUsers className="w-8 h-8 text-primary-400" />
                 </div>
-                <h3 className="font-display text-xl font-bold text-neutral-900 mb-2">
+                <h3 className="font-display text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">
                   No profiles found
                 </h3>
                 <p className="text-neutral-500 text-sm mb-6 max-w-xs mx-auto">

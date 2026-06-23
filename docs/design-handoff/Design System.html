@@ -1,0 +1,792 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<title>TricityShadi — Design System</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+/* ============================================================= TOKENS */
+:root{
+  --p-50:#FDF2F5;--p-100:#F8E8EC;--p-200:#F0CDD7;--p-300:#E5A3B8;--p-400:#D66E8E;
+  --p-500:#8B2346;--p-600:#6B1D3A;--p-700:#55172E;--p-800:#401123;--p-900:#2A0B17;
+  --g-50:#FEFCF3;--g-100:#FDF6E3;--g-200:#F9EABC;--g-300:#F2D88A;--g-400:#E8C34A;
+  --g-500:#C9A227;--g-600:#B8941F;--g-700:#96781A;
+  --n-50:#FAFAFA;--n-100:#F5F5F5;--n-200:#E8E8E8;--n-300:#D4D4D4;--n-400:#A3A3A3;
+  --n-500:#8B8B8B;--n-600:#5A5A5A;--n-700:#404040;--n-800:#2D2D2D;--n-900:#1A1A1A;
+  --success:#2E7D32;--success-l:#E8F5E9;--info:#1565C0;--info-l:#E3F2FD;
+  --warning:#F57C00;--warning-l:#FFF3E0;--destructive:#C62828;--destructive-l:#FFEBEE;
+  --radius:0.75rem;
+
+  /* semantic */
+  --bg:var(--n-50);--card:#FFFFFF;--fg:var(--n-800);--fg-strong:var(--n-900);
+  --muted:var(--n-500);--border:var(--n-200);--surface-2:var(--n-100);
+  --accent:var(--p-500);--accent-soft:var(--p-50);--accent-soft-2:var(--p-100);
+  --gold-soft:var(--g-100);
+  --sh-card:0 4px 20px rgba(139,35,70,.08);
+  --sh-card-hover:0 8px 30px rgba(139,35,70,.15);
+  --sh-burgundy:0 10px 30px rgba(139,35,70,.2);
+  --sh-gold:0 10px 30px rgba(201,162,39,.2);
+  --sh-sm:0 1px 3px rgba(139,35,70,.1);
+  --base:16px;--lem:1;
+}
+html[data-theme="dark"]{
+  --bg:#0f1117;--card:#1a1f2e;--fg:#e2e8f0;--fg-strong:#f1f5f9;
+  --muted:#94a3b8;--border:#303748;--surface-2:#252b3b;
+  --accent:#c75d7e;--accent-soft:#2a1020;--accent-soft-2:#3a1626;
+  --gold-soft:#221c0d;
+  --p-100:#3a1626;--p-200:#4a1c30;--n-50:#0f1117;--n-100:#1a1f2e;--n-200:#303748;
+  --success-l:#13251a;--info-l:#0e2236;--warning-l:#2a1d0c;--destructive-l:#2a1113;
+  --sh-card:0 4px 20px rgba(0,0,0,.45);--sh-card-hover:0 8px 30px rgba(0,0,0,.6);
+  --sh-sm:0 1px 3px rgba(0,0,0,.4);
+}
+html[data-elder="on"]{--base:18.5px;--muted:var(--n-700);}
+html[data-theme="dark"][data-elder="on"]{--muted:#c5cfdb;}
+
+*{box-sizing:border-box;margin:0;padding:0;border-color:var(--border);}
+html{font-size:var(--base);scroll-behavior:smooth;}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--fg);
+  line-height:1.6;-webkit-font-smoothing:antialiased;transition:background .3s,color .3s;}
+h1,h2,h3,.serif{font-family:'Playfair Display',Georgia,serif;letter-spacing:-.01em;color:var(--fg-strong);}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace;}
+svg.i{width:1em;height:1em;stroke:currentColor;stroke-width:2;stroke-linecap:round;
+  stroke-linejoin:round;fill:none;flex:none;}
+
+/* ============================================================= LAYOUT */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:1rem;
+  padding:.85rem 1.5rem;background:color-mix(in srgb,var(--card) 88%,transparent);
+  backdrop-filter:blur(12px);border-bottom:1px solid var(--border);}
+.brand{display:flex;align-items:center;gap:.6rem;font-family:'Playfair Display',serif;
+  font-weight:600;font-size:1.15rem;color:var(--fg-strong);}
+.brand .mk{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;
+  background:var(--p-500);color:#fff;font-weight:700;font-size:.95rem;letter-spacing:.02em;
+  box-shadow:var(--sh-sm);}
+html[data-theme="dark"] .brand .mk{background:var(--accent);}
+.spacer{flex:1;}
+.seg{display:flex;background:var(--surface-2);border-radius:10px;padding:3px;gap:2px;
+  border:1px solid var(--border);}
+.seg button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:.82rem;
+  font-weight:600;padding:.4rem .8rem;border-radius:7px;cursor:pointer;display:flex;
+  align-items:center;gap:.35rem;transition:.15s;}
+.seg button[aria-pressed="true"]{background:var(--card);color:var(--accent);box-shadow:var(--sh-sm);}
+
+main{max-width:1180px;margin:0 auto;padding:2.5rem 1.5rem 6rem;}
+.intro{margin:1.5rem 0 3rem;}
+.intro .kick{font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:.7rem;display:flex;align-items:center;gap:.5rem;}
+.intro .kick::before{content:"";width:26px;height:2px;background:var(--g-500);border-radius:2px;}
+.intro h1{font-size:clamp(2.1rem,5vw,3.1rem);font-weight:700;line-height:1.08;}
+.intro p{max-width:60ch;margin-top:.9rem;color:var(--muted);font-size:1.05rem;}
+
+/* SectionHeader component */
+.sh{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;
+  margin:3.5rem 0 1.4rem;padding-top:2rem;border-top:1px solid var(--border);}
+.sh:first-of-type{border-top:0;padding-top:0;}
+.sh .tick{width:4px;align-self:stretch;border-radius:4px;background:var(--accent);min-height:42px;}
+.sh.gold .tick{background:var(--g-500);}
+.sh-l{display:flex;gap:.95rem;align-items:stretch;}
+.sh h2{font-size:1.7rem;font-weight:600;line-height:1.15;}
+.sh .sub{color:var(--muted);font-size:.92rem;margin-top:.15rem;}
+.chip-count{font-size:.75rem;font-weight:700;color:var(--accent);background:var(--accent-soft);
+  padding:.25rem .6rem;border-radius:999px;border:1px solid var(--accent-soft-2);align-self:center;}
+
+.grid{display:grid;gap:1rem;}
+.lbl{font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:.7rem;}
+.card-demo{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  box-shadow:var(--sh-card);padding:1.5rem;}
+
+/* ============================================================= COLOR */
+.swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:.55rem;}
+.sw{border-radius:10px;overflow:hidden;border:1px solid var(--border);background:var(--card);}
+.sw .chip{height:62px;}
+.sw .meta{padding:.45rem .5rem;font-size:.68rem;line-height:1.35;}
+.sw .meta b{display:block;font-weight:600;color:var(--fg-strong);font-size:.72rem;}
+.sw .meta span{color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:.64rem;}
+.scale-row{margin-bottom:1.6rem;}
+
+/* ============================================================= TYPE */
+.type-row{display:flex;align-items:baseline;gap:1.2rem;padding:.7rem 0;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.type-row:last-child{border-bottom:0;}
+.type-row .tag{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--muted);
+  width:130px;flex:none;}
+.type-sample{line-height:1.1;color:var(--fg-strong);}
+
+/* ============================================================= BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;font:inherit;
+  font-weight:600;border-radius:var(--radius);padding:.7rem 1.4rem;cursor:pointer;border:2px solid transparent;
+  transition:transform .18s,box-shadow .18s,background .18s;white-space:nowrap;font-size:.95rem;}
+.btn:active{transform:translateY(0) scale(.98);}
+.btn-primary{background:linear-gradient(135deg,var(--p-500),var(--p-600));color:#fff;
+  box-shadow:0 4px 15px rgba(139,35,70,.25);}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(139,35,70,.35);}
+.btn-gold{background:linear-gradient(135deg,var(--g-500),var(--g-600));color:#3D2914;
+  box-shadow:0 4px 15px rgba(201,162,39,.3);}
+.btn-gold:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(201,162,39,.4);}
+.btn-secondary{background:var(--card);color:var(--accent);border-color:var(--accent);}
+.btn-secondary:hover{background:var(--accent-soft);transform:translateY(-2px);}
+.btn-ghost{background:transparent;color:var(--fg);border-color:var(--border);}
+.btn-ghost:hover{background:var(--surface-2);}
+.btn-link{background:none;border:0;color:var(--accent);padding:.7rem .3rem;text-underline-offset:4px;}
+.btn-link:hover{text-decoration:underline;}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none;}
+.btn-sm{padding:.45rem .9rem;font-size:.85rem;border-radius:9px;}
+.btn-row{display:flex;flex-wrap:wrap;gap:.8rem;align-items:center;}
+.spin{width:1em;height:1em;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;
+  border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ============================================================= FORMS */
+.field{margin-bottom:1.1rem;}
+.field label{display:block;font-size:.82rem;font-weight:600;color:var(--fg-strong);margin-bottom:.4rem;}
+.inp{width:100%;padding:.7rem .9rem;border-radius:var(--radius);background:var(--card);
+  border:2px solid var(--border);color:var(--fg);font:inherit;font-size:1rem;transition:.2s;}
+.inp::placeholder{color:var(--muted);}
+.inp:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px rgba(139,35,70,.12);}
+.inp.err{border-color:var(--destructive);box-shadow:0 0 0 4px rgba(198,40,40,.1);}
+.inp:disabled{background:var(--surface-2);opacity:.6;cursor:not-allowed;}
+.help{font-size:.76rem;margin-top:.35rem;color:var(--muted);display:flex;align-items:center;gap:.3rem;}
+.help.err{color:var(--destructive);}
+.sel{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%238B8B8B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='4 6 8 10 12 6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right .9rem center;padding-right:2.3rem;}
+.check{display:flex;align-items:center;gap:.6rem;cursor:pointer;font-size:.95rem;margin-bottom:.6rem;}
+.check input{position:absolute;opacity:0;}
+.box{width:22px;height:22px;border-radius:6px;border:2px solid var(--border);display:grid;
+  place-items:center;color:#fff;transition:.15s;flex:none;background:var(--card);}
+.check input:checked+.box{background:var(--accent);border-color:var(--accent);}
+.box svg{width:13px;height:13px;opacity:0;}
+.check input:checked+.box svg{opacity:1;}
+.radio .box{border-radius:50%;}
+.check input:focus-visible+.box{box-shadow:0 0 0 4px rgba(139,35,70,.15);}
+.toggle{width:46px;height:26px;border-radius:999px;background:var(--n-300);position:relative;
+  transition:.2s;flex:none;cursor:pointer;border:0;}
+.toggle::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;
+  background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+.toggle[aria-pressed="true"]{background:var(--accent);}
+.toggle[aria-pressed="true"]::after{transform:translateX(20px);}
+.otp{display:flex;gap:.5rem;}
+.otp .inp{width:48px;text-align:center;font-weight:700;font-size:1.2rem;padding:.6rem 0;}
+.otp .inp.fill{border-color:var(--accent);background:var(--accent-soft);}
+
+/* ============================================================= BADGES */
+.badge{display:inline-flex;align-items:center;gap:.35rem;font-size:.72rem;font-weight:700;
+  padding:.25rem .6rem;border-radius:999px;border:1px solid transparent;}
+.b-verified{background:var(--success-l);color:var(--success);border-color:color-mix(in srgb,var(--success) 30%,transparent);}
+.b-premium{background:var(--gold-soft);color:var(--g-600);border-color:color-mix(in srgb,var(--g-500) 35%,transparent);}
+.b-new{background:var(--accent);color:#fff;}
+.b-online{background:var(--surface-2);color:var(--fg);}
+.b-online .dot{width:7px;height:7px;border-radius:50%;background:var(--success);}
+.b-vip{background:linear-gradient(135deg,var(--g-500),var(--g-600));color:#3D2914;border:0;box-shadow:var(--sh-gold);}
+.tier{display:inline-flex;align-items:center;gap:.4rem;font-size:.74rem;font-weight:700;
+  padding:.3rem .7rem;border-radius:8px;}
+.tier.free{background:var(--surface-2);color:var(--muted);}
+.tier.basic{background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-soft-2);}
+.tier.plus{background:var(--accent);color:#fff;}
+.status{display:inline-flex;align-items:center;gap:.35rem;font-size:.72rem;font-weight:700;padding:.25rem .6rem;border-radius:999px;}
+.s-pending{background:var(--warning-l);color:var(--warning);}
+.s-accept{background:var(--success-l);color:var(--success);}
+.s-decline{background:var(--destructive-l);color:var(--destructive);}
+
+/* ============================================================= AVATAR */
+.av{border-radius:50%;display:grid;place-items:center;font-family:'Playfair Display',serif;
+  font-weight:600;color:var(--p-700);background:var(--p-100);flex:none;position:relative;
+  border:1px solid color-mix(in srgb,var(--p-500) 14%,transparent);}
+html[data-theme="dark"] .av{color:var(--p-300);background:var(--accent-soft);}
+.av.sq{border-radius:14px;}
+.av-56{width:56px;height:56px;font-size:1.25rem;}
+.av-72{width:72px;height:72px;font-size:1.6rem;}
+.av-ring{position:relative;padding:3px;border-radius:50%;
+  background:conic-gradient(var(--p-500) calc(var(--pct,86)*1%),var(--n-200) 0);}
+.av-ring .av{border:3px solid var(--card);}
+.av-ring .pct{position:absolute;bottom:-6px;right:-6px;background:var(--card);border:2px solid var(--p-500);
+  color:var(--p-600);font-size:.62rem;font-weight:800;padding:.1rem .35rem;border-radius:999px;}
+.vbadge{position:absolute;bottom:-2px;right:-2px;width:22px;height:22px;border-radius:50%;
+  background:var(--success);color:#fff;display:grid;place-items:center;border:2px solid var(--card);}
+.vbadge svg{width:12px;height:12px;}
+
+/* ============================================================= RING/METER */
+.cring{position:relative;width:120px;height:120px;}
+.cring svg{transform:rotate(-90deg);}
+.cring .vt{position:absolute;inset:0;display:grid;place-content:center;text-align:center;}
+.cring .vt b{font-family:'Playfair Display',serif;font-size:1.9rem;font-weight:700;color:var(--fg-strong);line-height:1;}
+.cring .vt span{font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+.guna{display:grid;gap:.7rem;}
+.guna-row{display:grid;grid-template-columns:90px 1fr 42px;align-items:center;gap:.8rem;font-size:.85rem;}
+.guna-row .nm{color:var(--fg);font-weight:500;}
+.track{height:8px;border-radius:999px;background:var(--n-200);overflow:hidden;}
+.track .fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--p-500),var(--p-600));}
+.track.grad .fill{background:linear-gradient(90deg,var(--p-500),var(--g-500));}
+.guna-row .vv{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;color:var(--fg-strong);}
+
+/* ============================================================= CARDS */
+.pcard{background:var(--card);border:1px solid var(--border);border-radius:1rem;overflow:hidden;
+  box-shadow:var(--sh-card);transition:.25s;max-width:300px;}
+.pcard:hover{transform:translateY(-4px);box-shadow:var(--sh-card-hover);}
+.pcard .ph{height:180px;background:repeating-linear-gradient(135deg,var(--p-50),var(--p-50) 14px,var(--p-100) 14px,var(--p-100) 28px);
+  display:grid;place-items:center;position:relative;}
+html[data-theme="dark"] .pcard .ph{background:repeating-linear-gradient(135deg,#20131a,#20131a 14px,#2a1722 14px,#2a1722 28px);}
+.pcard .ph .av{width:74px;height:74px;font-size:1.7rem;}
+.pcard .body{padding:1.1rem;}
+.pcard h4{font-size:1.05rem;font-weight:600;color:var(--fg-strong);font-family:'Playfair Display',serif;
+  display:flex;align-items:center;gap:.4rem;}
+.pcard .meta{color:var(--muted);font-size:.85rem;margin:.2rem 0 .8rem;}
+.pcard .tags{display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.9rem;}
+.pcard .tags span{font-size:.72rem;background:var(--surface-2);color:var(--fg);padding:.2rem .55rem;border-radius:6px;}
+.infopanel{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:1rem 1.1rem;display:flex;gap:.7rem;align-items:flex-start;color:var(--fg);font-size:.9rem;}
+.infopanel svg{color:var(--accent);width:18px;height:18px;margin-top:.15rem;flex:none;}
+
+/* stat tile */
+.stat{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.1rem;box-shadow:var(--sh-card);}
+.stat .ic{width:38px;height:38px;border-radius:10px;background:var(--accent-soft);color:var(--accent);
+  display:grid;place-items:center;margin-bottom:.7rem;}
+.stat .num{font-family:'Playfair Display',serif;font-size:1.85rem;font-weight:700;color:var(--fg-strong);line-height:1;}
+.stat .lab{font-size:.78rem;color:var(--muted);margin-top:.3rem;}
+.stat .trend{font-size:.7rem;font-weight:700;color:var(--success);margin-top:.4rem;display:inline-flex;gap:.2rem;align-items:center;}
+
+/* ============================================================= TABS */
+.tabs{display:flex;gap:.3rem;border-bottom:1px solid var(--border);}
+.tabs button{border:0;background:none;font:inherit;font-weight:600;font-size:.9rem;color:var(--muted);
+  padding:.7rem 1rem;cursor:pointer;position:relative;}
+.tabs button[aria-selected="true"]{color:var(--accent);}
+.tabs button[aria-selected="true"]::after{content:"";position:absolute;left:.6rem;right:.6rem;bottom:-1px;
+  height:2.5px;background:var(--accent);border-radius:3px;}
+
+/* ============================================================= ACCORDION */
+.acc{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--card);}
+.acc details{border-bottom:1px solid var(--border);}
+.acc details:last-child{border-bottom:0;}
+.acc summary{list-style:none;cursor:pointer;padding:1rem 1.1rem;display:flex;align-items:center;
+  justify-content:space-between;font-weight:600;color:var(--fg-strong);}
+.acc summary::-webkit-details-marker{display:none;}
+.acc summary .chev{transition:.2s;color:var(--muted);}
+.acc details[open] summary .chev{transform:rotate(90deg);color:var(--accent);}
+.acc .ac-body{padding:0 1.1rem 1.1rem;color:var(--muted);font-size:.9rem;}
+
+/* ============================================================= STEPPER */
+.pring{position:relative;width:64px;height:64px;flex:none;}
+.pring svg{transform:rotate(-90deg);}
+.pring .ct{position:absolute;inset:0;display:grid;place-content:center;font-weight:700;font-size:.85rem;color:var(--accent);}
+.stepper{display:flex;align-items:center;gap:0;}
+.stepper .st{display:flex;flex-direction:column;align-items:center;gap:.4rem;}
+.stepper .dot{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:.78rem;
+  font-weight:700;background:var(--surface-2);color:var(--muted);border:2px solid var(--border);}
+.stepper .st.done .dot{background:var(--accent);color:#fff;border-color:var(--accent);}
+.stepper .st.now .dot{background:var(--card);color:var(--accent);border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft);}
+.stepper .st small{font-size:.68rem;color:var(--muted);}
+.stepper .st.now small,.stepper .st.done small{color:var(--fg);}
+.stepper .bar{flex:1;height:2px;background:var(--border);margin:0 .2rem;margin-bottom:1.2rem;}
+.stepper .bar.fill{background:var(--accent);}
+
+/* ============================================================= PLANS */
+.plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;align-items:start;}
+.plan{background:var(--card);border:1.5px solid var(--border);border-radius:1rem;padding:1.4rem 1.3rem;
+  position:relative;box-shadow:var(--sh-card);display:flex;flex-direction:column;}
+.plan .pn{font-size:.95rem;font-weight:700;color:var(--fg-strong);display:flex;align-items:center;gap:.45rem;}
+.plan .pn svg{color:var(--accent);}
+.plan .price{font-family:'Playfair Display',serif;font-size:2rem;font-weight:700;color:var(--fg-strong);margin-top:.7rem;line-height:1;}
+.plan .price small{font-family:'Inter';font-size:.82rem;font-weight:500;color:var(--muted);}
+.plan .per{font-size:.76rem;color:var(--muted);margin-top:.25rem;}
+.plan .feat{list-style:none;margin:1.1rem 0;display:grid;gap:.6rem;flex:1;}
+.plan .feat li{display:flex;gap:.5rem;font-size:.85rem;color:var(--fg);align-items:flex-start;}
+.plan .feat .ck{width:18px;height:18px;border-radius:50%;background:var(--accent-soft);color:var(--accent);
+  display:grid;place-items:center;flex:none;margin-top:.05rem;}
+.plan .feat .ck svg{width:11px;height:11px;}
+.plan .everything{font-size:.74rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;
+  padding-top:.3rem;border-top:1px dashed var(--border);}
+.plan.plus{border-color:var(--accent);box-shadow:var(--sh-burgundy);transform:scale(1.03);z-index:2;}
+.plan.plus .bar-top{position:absolute;top:0;left:0;right:0;height:4px;background:var(--accent);border-radius:1rem 1rem 0 0;}
+.plan.vip{border-color:var(--g-500);box-shadow:var(--sh-gold);background:linear-gradient(160deg,var(--card),var(--gold-soft));}
+.plan.vip .bar-top{position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--g-400),var(--g-600));border-radius:1rem 1rem 0 0;}
+.plan.vip .pn svg,.plan.vip .feat .ck{color:var(--g-600);}
+.plan.vip .feat .ck{background:var(--gold-soft);}
+.ptab{position:absolute;top:-12px;left:50%;transform:translateX(-50%);font-size:.68rem;font-weight:800;
+  letter-spacing:.04em;text-transform:uppercase;padding:.3rem .8rem;border-radius:999px;white-space:nowrap;box-shadow:var(--sh-sm);}
+.ptab.pop{background:var(--accent);color:#fff;}
+.ptab.best{background:linear-gradient(135deg,var(--g-500),var(--g-600));color:#3D2914;}
+
+/* ============================================================= CHAT */
+.chat{display:grid;gap:.5rem;max-width:340px;}
+.bub{padding:.6rem .9rem;border-radius:16px;font-size:.9rem;max-width:80%;line-height:1.45;}
+.bub.recv{background:var(--surface-2);color:var(--fg);border-bottom-left-radius:5px;align-self:flex-start;}
+.bub.sent{background:linear-gradient(135deg,var(--p-500),var(--p-600));color:#fff;border-bottom-right-radius:5px;align-self:flex-end;}
+.bub .tm{display:block;font-size:.62rem;opacity:.7;margin-top:.25rem;text-align:right;}
+.bub.sent .tm svg{width:12px;height:12px;vertical-align:-2px;color:var(--g-300);}
+.typing{display:inline-flex;gap:4px;padding:.7rem .9rem;background:var(--surface-2);border-radius:16px;border-bottom-left-radius:5px;align-self:flex-start;}
+.typing span{width:7px;height:7px;border-radius:50%;background:var(--n-400);animation:tb 1.4s infinite ease-in-out;}
+.typing span:nth-child(2){animation-delay:.2s;}.typing span:nth-child(3){animation-delay:.4s;}
+@keyframes tb{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
+
+/* ============================================================= SKELETON */
+.sk{border-radius:8px;background:linear-gradient(90deg,var(--n-200) 0%,var(--n-100) 50%,var(--n-200) 100%);
+  background-size:200% 100%;animation:shim 1.6s infinite linear;}
+@keyframes shim{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* ============================================================= EMPTY */
+.empty{text-align:center;padding:2.5rem 1.5rem;border:1px dashed var(--border);border-radius:var(--radius);background:var(--card);}
+.empty .ei{width:60px;height:60px;border-radius:50%;background:var(--accent-soft);color:var(--accent);
+  display:grid;place-items:center;margin:0 auto 1rem;}
+.empty .ei svg{width:26px;height:26px;}
+.empty h4{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--fg-strong);}
+.empty p{color:var(--muted);font-size:.9rem;margin:.4rem auto 1.2rem;max-width:36ch;}
+.error .ei{background:var(--destructive-l);color:var(--destructive);}
+
+/* ============================================================= MISC */
+.stickybar{display:flex;gap:.6rem;align-items:center;background:var(--card);border:1px solid var(--border);
+  border-radius:14px;padding:.7rem .8rem;box-shadow:var(--sh-card-hover);}
+.stickybar .btn{flex:1;}
+.toast{display:flex;gap:.7rem;align-items:center;background:var(--card);border:1px solid var(--border);
+  border-left:4px solid var(--success);border-radius:12px;padding:.8rem 1rem;box-shadow:var(--sh-card-hover);max-width:360px;}
+.toast .ti{width:30px;height:30px;border-radius:8px;background:var(--success-l);color:var(--success);display:grid;place-items:center;flex:none;}
+.toast.err{border-left-color:var(--destructive);}
+.toast.err .ti{background:var(--destructive-l);color:var(--destructive);}
+.toast b{font-size:.88rem;color:var(--fg-strong);}.toast p{font-size:.78rem;color:var(--muted);}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:1rem;box-shadow:var(--sh-card-hover);
+  max-width:380px;overflow:hidden;}
+.modal .mh{padding:1.3rem 1.3rem .3rem;}
+.modal .mh h3{font-size:1.2rem;}.modal .mb{padding:.5rem 1.3rem 1rem;color:var(--muted);font-size:.9rem;}
+.modal .mf{padding:1rem 1.3rem;display:flex;gap:.6rem;justify-content:flex-end;background:var(--surface-2);}
+.sheet{background:var(--card);border:1px solid var(--border);border-radius:18px 18px 0 0;box-shadow:var(--sh-card-hover);
+  max-width:380px;padding:1.3rem;}
+.sheet .grab{width:38px;height:4px;border-radius:999px;background:var(--n-300);margin:0 auto 1.1rem;}
+.lock{position:relative;border-radius:12px;overflow:hidden;}
+.lock .blur{filter:blur(7px);user-select:none;}
+.lock .ov{position:absolute;inset:0;display:grid;place-content:center;gap:.7rem;text-align:center;
+  background:color-mix(in srgb,var(--card) 55%,transparent);backdrop-filter:blur(2px);padding:1rem;}
+.lock .ov .lk{width:40px;height:40px;border-radius:50%;background:var(--gold-soft);color:var(--g-600);display:grid;place-items:center;margin:0 auto;}
+
+.note{font-size:.82rem;color:var(--muted);background:var(--surface-2);border-left:3px solid var(--g-500);
+  padding:.7rem .9rem;border-radius:0 8px 8px 0;margin-top:1rem;}
+.note b{color:var(--fg-strong);}
+.cols{display:grid;gap:1.5rem;}
+@media(min-width:720px){.cols.two{grid-template-columns:1fr 1fr;}.cols.three{grid-template-columns:repeat(3,1fr);}}
+.flexwrap{display:flex;flex-wrap:wrap;gap:1.5rem;align-items:flex-start;}
+.statrow{display:grid;grid-template-columns:repeat(2,1fr);gap:.8rem;}
+@media(min-width:720px){.statrow{grid-template-columns:repeat(4,1fr);}}
+</style>
+</head>
+<body>
+<!-- icon sprite -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<defs>
+<g id="i-check"><polyline points="20 6 9 17 4 12"/></g>
+<g id="i-x"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></g>
+<g id="i-heart"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></g>
+<g id="i-star"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></g>
+<g id="i-shield"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></g>
+<g id="i-lock"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></g>
+<g id="i-bell"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></g>
+<g id="i-chevd"><polyline points="6 9 12 15 18 9"/></g>
+<g id="i-chevr"><polyline points="9 18 15 12 9 6"/></g>
+<g id="i-phone"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></g>
+<g id="i-msg"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></g>
+<g id="i-pin"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></g>
+<g id="i-mic"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></g>
+<g id="i-dots"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></g>
+<g id="i-search"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></g>
+<g id="i-edit"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></g>
+<g id="i-user"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></g>
+<g id="i-users"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></g>
+<g id="i-eye"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></g>
+<g id="i-sliders"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></g>
+<g id="i-arr"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></g>
+<g id="i-crown"><path d="M2 18h20l-2-9-5 4-3-7-3 7-5-4-2 9z"/></g>
+<g id="i-zap"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></g>
+<g id="i-sun"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.2" y1="4.2" x2="5.6" y2="5.6"/><line x1="18.4" y1="18.4" x2="19.8" y2="19.8"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.2" y1="19.8" x2="5.6" y2="18.4"/><line x1="18.4" y1="5.6" x2="19.8" y2="4.2"/></g>
+<g id="i-moon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></g>
+<g id="i-info"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></g>
+<g id="i-alert"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></g>
+<g id="i-type"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></g>
+</defs>
+</svg>
+
+<div class="topbar">
+  <div class="brand"><span class="mk">TS</span> TricityShadi</div>
+  <span class="spacer"></span>
+  <div class="seg" role="group" aria-label="Theme">
+    <button id="t-light" aria-pressed="true" onclick="setTheme('light')"><svg class="i"><use href="#i-sun"/></svg>Light</button>
+    <button id="t-dark" aria-pressed="false" onclick="setTheme('dark')"><svg class="i"><use href="#i-moon"/></svg>Dark</button>
+  </div>
+  <div class="seg" role="group" aria-label="Elder mode">
+    <button id="e-off" aria-pressed="true" onclick="setElder('off')">Standard</button>
+    <button id="e-on" aria-pressed="false" onclick="setElder('on')"><svg class="i"><use href="#i-type"/></svg>Elder</button>
+  </div>
+</div>
+
+<main>
+  <div class="intro">
+    <div class="kick">Design System · v1</div>
+    <h1>The TricityShadi system.</h1>
+    <p>A premium, trustworthy, family-safe language for Tricity's matrimony platform. Burgundy is an <b>accent</b>, never a flat fill; gold marks premium. Playfair for headings, Inter for everything else. Every token below maps 1:1 to <span class="mono" style="font-size:.85em">tailwind.config.js</span> and <span class="mono" style="font-size:.85em">index.css</span>.</p>
+  </div>
+
+  <!-- ===================== COLOR ===================== -->
+  <div class="sh"><div class="sh-l"><div class="tick"></div><div><h2>Color</h2><div class="sub">Burgundy Rose · Royal Gold · Neutrals · Status</div></div></div><span class="chip-count">5 scales</span></div>
+
+  <div class="scale-row"><div class="lbl">Primary — Burgundy Rose</div>
+    <div class="swatches" id="sc-p"></div></div>
+  <div class="scale-row"><div class="lbl">Gold — Royal Gold (premium / VIP only)</div>
+    <div class="swatches" id="sc-g"></div></div>
+  <div class="scale-row"><div class="lbl">Neutrals</div>
+    <div class="swatches" id="sc-n"></div></div>
+  <div class="scale-row"><div class="lbl">Status</div>
+    <div class="swatches" id="sc-s"></div></div>
+  <div class="note"><b>Usage rule.</b> Large surfaces stay neutral-50 / white (dark: ink). Burgundy appears as accents, thin rails, tonal 600→800 gradients on small elements. Gold is reserved for premium / VIP. No pastel rainbow panels — one muted neutral info panel standard.</div>
+
+  <!-- ===================== TYPE ===================== -->
+  <div class="sh"><div class="sh-l"><div class="tick"></div><div><h2>Typography</h2><div class="sub">Playfair Display headings · Inter body & UI</div></div></div><span class="chip-count">10 sizes</span></div>
+  <div class="cols two">
+    <div class="card-demo">
+      <div class="lbl">Playfair Display — headings</div>
+      <div class="type-row"><span class="tag">6xl / 56 · 700</span><span class="type-sample serif" style="font-size:3.5rem;font-weight:700">Love</span></div>
+      <div class="type-row"><span class="tag">4xl / 36 · 600</span><span class="type-sample serif" style="font-size:2.25rem;font-weight:600">Find your match</span></div>
+      <div class="type-row"><span class="tag">2xl / 24 · 600</span><span class="type-sample serif" style="font-size:1.5rem;font-weight:600">Mutual Matches</span></div>
+      <div class="type-row"><span class="tag">xl / 20 · 500</span><span class="type-sample serif" style="font-size:1.25rem;font-weight:500">About Priya</span></div>
+    </div>
+    <div class="card-demo">
+      <div class="lbl">Inter — body & UI</div>
+      <div class="type-row"><span class="tag">lg / 18 · 400</span><span class="type-sample" style="font-size:1.125rem">Trusted by Tricity families.</span></div>
+      <div class="type-row"><span class="tag">base / 16 · 400</span><span class="type-sample" style="font-size:1rem">Connecting hearts across Chandigarh, Mohali & Panchkula with verified profiles.</span></div>
+      <div class="type-row"><span class="tag">sm / 14 · 500</span><span class="type-sample" style="font-size:.875rem;font-weight:500">Software Engineer · Mohali</span></div>
+      <div class="type-row"><span class="tag">xs / 12 · 700</span><span class="type-sample" style="font-size:.75rem;font-weight:700;letter-spacing:.02em">VERIFIED PROFILE</span></div>
+    </div>
+  </div>
+  <div class="note"><b>Elder mode.</b> Toggle above. Base type steps 16→18.5px (≈+15%), muted text darkens to neutral-700 for AA+ contrast, all hit targets stay ≥44px. Hierarchy & layout are unchanged — only scale & contrast shift.</div>
+
+  <!-- ===================== SPACING / RADIUS / SHADOW ===================== -->
+  <div class="sh"><div class="sh-l"><div class="tick"></div><div><h2>Spacing, radius & shadow</h2><div class="sub">Strict 4 / 8px rhythm · burgundy-tinted shadows</div></div></div></div>
+  <div class="cols three">
+    <div class="card-demo"><div class="lbl">Spacing — 4/8 rhythm</div>
+      <div id="spaces" style="display:grid;gap:.5rem"></div></div>
+    <div class="card-demo"><div class="lbl">Radius</div>
+      <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end">
+        <div style="text-align:center"><div style="width:56px;height:56px;background:var(--accent-soft);border:2px solid var(--accent);border-radius:.5rem"></div><small class="mono" style="font-size:.62rem;color:var(--muted)">md .5</small></div>
+        <div style="text-align:center"><div style="width:56px;height:56px;background:var(--accent-soft);border:2px solid var(--accent);border-radius:.75rem"></div><small class="mono" style="font-size:.62rem;color:var(--muted)">lg .75</small></div>
+        <div style="text-align:center"><div style="width:56px;height:56px;background:var(--accent-soft);border:2px solid var(--accent);border-radius:1rem"></div><small class="mono" style="font-size:.62rem;color:var(--muted)">2xl 1</small></div>
+        <div style="text-align:center"><div style="width:56px;height:56px;background:var(--accent-soft);border:2px solid var(--accent);border-radius:1.5rem"></div><small class="mono" style="font-size:.62rem;color:var(--muted)">3xl 1.5</small></div>
+      </div></div>
+    <div class="card-demo"><div class="lbl">Shadow — burgundy tinted</div>
+      <div style="display:flex;gap:1rem;flex-wrap:wrap">
+        <div style="text-align:center"><div style="width:60px;height:60px;background:var(--card);border-radius:12px;box-shadow:var(--sh-card)"></div><small class="mono" style="font-size:.62rem;color:var(--muted)">card</small></div>
+        <div style="text-align:center"><div style="width:60px;height:60px;background:var(--card);border-radius:12px;box-shadow:var(--sh-card-hover)"></div><small class="mono" style="font-size:.62rem;color:var(--muted)">hover</small></div>
+        <div style="text-align:center"><div style="width:60px;height:60px;background:var(--card);border-radius:12px;box-shadow:var(--sh-burgundy)"></div><small class="mono" style="font-size:.62rem;color:var(--muted)">burgundy</small></div>
+        <div style="text-align:center"><div style="width:60px;height:60px;background:var(--card);border-radius:12px;box-shadow:var(--sh-gold)"></div><small class="mono" style="font-size:.62rem;color:var(--muted)">gold</small></div>
+      </div></div>
+  </div>
+
+  <!-- ===================== BUTTONS ===================== -->
+  <div class="sh"><div class="sh-l"><div class="tick"></div><div><h2>Buttons</h2><div class="sub">Primary · Gold · Secondary · Ghost · Link — with states</div></div></div></div>
+  <div class="card-demo">
+    <div class="btn-row" style="margin-bottom:1.2rem">
+      <button class="btn btn-primary"><svg class="i"><use href="#i-heart"/></svg>Express Interest</button>
+      <button class="btn btn-gold"><svg class="i"><use href="#i-lock"/></svg>Unlock Contact</button>
+      <button class="btn btn-secondary"><svg class="i"><use href="#i-star"/></svg>Shortlist</button>
+      <button class="btn btn-ghost"><svg class="i"><use href="#i-msg"/></svg>Message</button>
+      <button class="btn btn-link">View all matches</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary"><span class="spin"></span>Processing</button>
+      <button class="btn btn-primary" disabled>Disabled</button>
+      <button class="btn btn-secondary btn-sm">Small</button>
+      <button class="btn btn-primary btn-sm"><svg class="i"><use href="#i-arr"/></svg>Continue</button>
+    </div>
+  </div>
+
+  <!-- ===================== FORMS ===================== -->
+  <div class="sh"><div class="sh-l"><div class="tick"></div><div><h2>Form controls</h2><div class="sub">Inputs · select · checkbox · radio · toggle · OTP — focus / error / disabled</div></div></div></div>
+  <div class="cols two">
+    <div class="card-demo">
+      <div class="field"><label>Full name</label><input class="inp" placeholder="e.g. Priya Sharma" value="Priya Sharma"></div>
+      <div class="field"><label>City</label>
+        <select class="inp sel"><option>Chandigarh</option><option>Mohali</option><option>Panchkula</option></select></div>
+      <div class="field"><label>Email</label><input class="inp err" value="priya@"><div class="help err"><svg class="i" style="width:13px;height:13px"><use href="#i-alert"/></svg>Enter a valid email address.</div></div>
+      <div class="field"><label>Member ID</label><input class="inp" value="TS-100482" disabled></div>
+    </div>
+    <div class="card-demo">
+      <div class="lbl">Selection controls</div>
+      <label class="check"><input type="checkbox" checked><span class="box"><svg class="i"><use href="#i-check"/></svg></span>Show verified profiles only</label>
+      <label class="check"><input type="checkbox"><span class="box"><svg class="i"><use href="#i-check"/></svg></span>Same community preferred</label>
+      <label class="check radio"><input type="radio" name="r" checked><span class="box"><svg class="i"><use href="#i-check"/></svg></span>Never married</label>
+      <label class="check radio"><input type="radio" name="r"><span class="box"><svg class="i"><use href="#i-check"/></svg></span>Divorced</label>
+      <div style="display:flex;align-items:center;gap:.7rem;margin:1rem 0 1.3rem">
+        <button class="toggle" aria-pressed="true" onclick="this.setAttribute('aria-pressed',this.getAttribute('aria-pressed')==='true'?'false':'true')"></button>
+        <span style="font-size:.9rem">Manglik match required</span>
+      </div>
+      <div class="lbl">OTP — 6 box</div>
+      <div class="otp"><input class="inp fill" value="4"><input class="inp fill" value="9"><input class="inp fill" value="2"><input class="inp" value=""><input class="inp" value=""><input class="inp" value=""></div>
+    </div>
+  </div>
+
+  <!-- ===================== BADGES ===================== -->
+  <div class="sh"><div class="sh-l"><div class="tick"></div><div><h2>Badges, tiers & status</h2><div class="sub">Trust signals · membership tiers · connection states</div></div></div></div>
+  <div class="card-demo">
+    <div class="flexwrap" style="gap:.6rem;margin-bottom:1.1rem">
+      <span class="badge b-verified"><svg class="i"><use href="#i-check"/></svg>Verified</span>
+      <span class="badge b-premium"><svg class="i"><use href="#i-star"/></svg>Premium</span>
+      <span class="badge b-new">New</span>
+      <span class="badge b-online"><span class="dot"></span>Online</span>
+      <span class="badge b-vip"><svg class="i"><use href="#i-shield"/></svg>VIP</span>
+    </div>
+    <div class="flexwrap" style="gap:.6rem;margin-bottom:1.1rem">
+      <span class="tier free">Free</span>
+      <span class="tier basic"><svg class="i"><use href="#i-zap"/></svg>Basic Premium</span>
+      <span class="tier plus"><svg class="i"><use href="#i-crown"/></svg>Premium Plus</span>
+      <span class="badge b-vip"><svg class="i"><use href="#i-shield"/></svg>VIP</span>
+    </div>
+    <div class="flexwrap" style="gap:.6rem">
+      <span class="status s-pending">Interest sent</span>
+      <span class="status s-accept"><svg class="i" style="width:12px;height:12px"><use href="#i-check"/></svg>Accepted</span>
+      <span class="status s-decline">Declined</span>
+    </div>
+  </div>
+
+  <!-- ===================== AVATAR / RINGS ===================== -->
+  <div class="sh"><div class="sh-l"><div class="tick"></div><div><h2>Avatar & compatibility</h2><div class="sub">Refined photo fallback · verified badge · compatibility ring & Ashtakoot bars</div></div></div></div>
+  <div class="cols two">
+    <div class="card-demo">
+      <div class="lbl">Avatar / empty-photo fallback</div>
+      <div class="flexwrap" style="align-items:center;gap:1.4rem">
+        <div style="text-align:center"><div class="av av-72">RQ</div><small style="font-size:.66rem;color:var(--muted);display:block;margin-top:.4rem">circle</small></div>
+        <div style="text-align:center"><div class="av av-72 sq">PS</div><small style="font-size:.66rem;color:var(--muted);display:block;margin-top:.4rem">block</small></div>
+        <div style="text-align:center"><div style="position:relative;display:inline-block"><div class="av av-72">AK</div><span class="vbadge"><svg class="i"><use href="#i-check"/></svg></span></div><small style="font-size:.66rem;color:var(--muted);display:block;margin-top:.4rem">verified</small></div>
+        <div style="text-align:center"><div class="av-ring" style="--pct:86"><div class="av av-72">SV</div><span class="pct">86%</span></div><small style="font-size:.66rem;color:var(--muted);display:block;margin-top:.4rem">match ring</small></div>
+      </div>
+      <div class="note" style="margin-top:1.2rem"><b>Replaces</b> the pastel <span class="mono" style="font-size:.82em">primary-100→gold-50</span> gradient + faded initials. Solid burgundy-100 fill, Playfair initials in burgundy-700. Applied everywhere initials render.</div>
+    </div>
+    <div class="card-demo">
+      <div style="display:flex;gap:1.5rem;align-items:center;flex-wrap:wrap">
+        <div class="cring">
+          <svg width="120" height="120"><circle cx="60" cy="60" r="52" stroke="var(--n-200)" stroke-width="9" fill="none"/>
+          <circle cx="60" cy="60" r="52" stroke="url(#cg)" stroke-width="9" fill="none" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="45.7"/>
+          <defs><linearGradient id="cg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8B2346"/><stop offset="1" stop-color="#C9A227"/></linearGradient></defs></svg>
+          <div class="vt"><b>86%</b><span>Match</span></div>
+        </div>
+        <div style="flex:1;min-width:170px">
+          <div class="lbl">Ashtakoot guna</div>
+          <div class="guna">
+            <div class="guna-row"><span class="nm">Varna</span><span class="track"><span class="fill" style="width:100%"></span></span><span class="vv">1/1</span></div>
+            <div class="guna-row"><span class="nm">Bhakoot</span><span class="track"><span class="fill" style="width:85%"></span></span><span class="vv">6/7</span></div>
+            <div class="guna-row"><span class="nm">Nadi</span><span class="track"><span class="fill" style="width:100%"></span></span><span class="vv">8/8</span></div>
+          </div>
+          <div style="margin-top:.9rem;display:flex;gap:.5rem;flex-wrap:wrap">
+            <span class="status s-accept">Non-Manglik</span><span class="tier basic">Total 28/36</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== SECTION HEADER / TABS / ACCORDION ===================== -->
+  <div class="sh gold"><div class="sh-l"><div class="tick"></div><div><h2>SectionHeader, tabs & accordion</h2><div class="sub">Reusable patterns · gold tick = premium section, burgundy = standard</div></div></div><span class="chip-count">reusable</span></div>
+  <div class="cols two">
+    <div>
+      <div class="card-demo" style="margin-bottom:1rem">
+        <div class="lbl">Tabs (Matches)</div>
+        <div class="tabs" id="tabs">
+          <button aria-selected="true" onclick="selTab(this)">Mutual</button>
+          <button aria-selected="false" onclick="selTab(this)">Shortlisted</button>
+          <button aria-selected="false" onclick="selTab(this)">Liked Me</button>
+        </div>
+      </div>
+      <div class="card-demo">
+        <div class="lbl">SectionHeader variants</div>
+        <div class="sh" style="margin:.5rem 0 0;border:0;padding:0"><div class="sh-l"><div class="tick"></div><div><h2 style="font-size:1.2rem">Mutual Matches</h2><div class="sub">People who liked you back</div></div></div><span class="chip-count">12</span></div>
+        <div class="sh gold" style="margin:1.3rem 0 0;border:0;padding:0"><div class="sh-l"><div class="tick"></div><div><h2 style="font-size:1.2rem">Who Viewed You</h2><div class="sub">Premium feature</div></div></div><span class="chip-count" style="color:var(--g-600);background:var(--gold-soft);border-color:color-mix(in srgb,var(--g-500) 30%,transparent)">Premium</span></div>
+      </div>
+    </div>
+    <div class="acc">
+      <details open><summary>About <svg class="i chev"><use href="#i-chevr"/></svg></summary><div class="ac-body">Warm, family-oriented professional based in Mohali. Enjoys classical music and weekend treks to the hills.</div></details>
+      <details><summary>Family <svg class="i chev"><use href="#i-chevr"/></svg></summary><div class="ac-body">Father — retired civil servant. Mother — homemaker. One elder sibling, married.</div></details>
+      <details><summary>Education & Career <svg class="i chev"><use href="#i-chevr"/></svg></summary><div class="ac-body">B.Tech, Panjab University · Senior Software Engineer at a Mohali product firm.</div></details>
+      <details><summary>Lifestyle <svg class="i chev"><use href="#i-chevr"/></svg></summary><div class="ac-body">Vegetarian · Non-smoker · Occasional traveller.</div></details>
+    </div>
+  </div>
+
+  <!-- ===================== STEPPER / PROGRESS ===================== -->
+  <div class="sh"><div class="sh-l"><div class="tick"></div><div><h2>Stepper & progress ring</h2><div class="sub">14-step onboarding rail · profile completion</div></div></div></div>
+  <div class="card-demo">
+    <div class="stepper" style="margin-bottom:1.6rem">
+      <div class="st done"><div class="dot"><svg class="i"><use href="#i-check"/></svg></div><small>Basics</small></div>
+      <div class="bar fill"></div>
+      <div class="st done"><div class="dot"><svg class="i"><use href="#i-check"/></svg></div><small>Account</small></div>
+      <div class="bar fill"></div>
+      <div class="st now"><div class="dot">3</div><small>About</small></div>
+      <div class="bar"></div>
+      <div class="st"><div class="dot">4</div><small>Location</small></div>
+      <div class="bar"></div>
+      <div class="st"><div class="dot">5</div><small>Family</small></div>
+    </div>
+    <div style="display:flex;gap:1.4rem;align-items:center;flex-wrap:wrap">
+      <div class="pring"><svg width="64" height="64"><circle cx="32" cy="32" r="27" stroke="var(--n-200)" stroke-width="6" fill="none"/><circle cx="32" cy="32" r="27" stroke="var(--accent)" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="169.6" stroke-dashoffset="50.9"/></svg><div class="ct">70%</div></div>
+      <div><div style="font-weight:600;color:var(--fg-strong)">Profile completion</div><div style="font-size:.85rem;color:var(--muted)">Add photos & verification to reach 100%.</div></div>
+    </div>
+  </div>
+
+  <!-- ===================== PLAN CARDS ===================== -->
+  <div class="sh gold"><div class="sh-l"><div class="tick"></div><div><h2>Plan cards</h2><div class="sub">Free → Basic → Premium Plus (recommended) → VIP (luxe)</div></div></div><span class="chip-count" style="color:var(--g-600);background:var(--gold-soft);border-color:color-mix(in srgb,var(--g-500) 30%,transparent)">4 tiers</span></div>
+  <div class="plans">
+    <div class="plan">
+      <div class="pn"><svg class="i"><use href="#i-user"/></svg>Free</div>
+      <div class="price">₹0</div><div class="per">Free forever</div>
+      <ul class="feat">
+        <li><span class="ck"><svg class="i"><use href="#i-check"/></svg></span>Create profile</li>
+        <li><span class="ck"><svg class="i"><use href="#i-check"/></svg></span>Browse matches</li>
+        <li><span class="ck"><svg class="i"><use href="#i-check"/></svg></span>5 interests / month</li>
+      </ul>
+      <button class="btn btn-ghost" disabled>Current plan</button>
+    </div>
+    <div class="plan">
+      <div class="pn"><svg class="i"><use href="#i-zap"/></svg>Basic Premium</div>
+      <div class="price">₹1,500<small> /15d</small></div><div class="per">Unlock 10 contacts</div>
+      <ul class="feat">
+        <li class="everything">Everything in Free, plus</li>
+        <li><span class="ck"><svg class="i"><use href="#i-check"/></svg></span>10 contact unlocks</li>
+        <li><span class="ck"><svg class="i"><use href="#i-check"/></svg></span>See who viewed you</li>
+        <li><span class="ck"><svg class="i"><use href="#i-check"/></svg></span>Unlimited interests</li>
+      </ul>
+      <button class="btn btn-secondary">Choose Basic</button>
+    </div>
+    <div class="plan plus">
+      <span class="ptab pop">Most Popular</span><div class="bar-top"></div>
+      <div class="pn"><svg class="i"><use href="#i-crown"/></svg>Premium Plus</div>
+      <div class="price">₹3,000<small> /month</small></div><div class="per">Best for serious search</div>
+      <ul class="feat">
+        <li class="everything">Everything in Basic, plus</li>
+        <li><span class="ck"><svg class="i"><use href="#i-check"/></svg></span>25 contact unlocks</li>
+        <li><span class="ck"><svg class="i"><use href="#i-check"/></svg></span>Priority in search</li>
+        <li><span class="ck"><svg class="i"><use href="#i-check"/></svg></span>Kundli & horoscope match</li>
+      </ul>
+      <button class="btn btn-primary">Choose Premium Plus</button>
+    </div>
+    <div class="plan vip">
+      <span class="ptab best">Best Value</span><div class="bar-top"></div>
+      <div class="pn"><svg class="i"><use href="#i-shield"/></svg>VIP</div>
+      <div class="price">₹7,499<small> /90d</small></div><div class="per">Just ₹2,500/mo · billed once</div>
+      <ul class="feat">
+        <li class="everything">Everything in Plus, plus</li>
+        <li><span class="ck"><svg class="i"><use href="#i-check"/></svg></span>Unlimited unlocks</li>
+        <li><span class="ck"><svg class="i"><use href="#i-check"/></svg></span>Dedicated relationship manager</li>
+        <li><span class="ck"><svg class="i"><use href="#i-check"/></svg></span>Astrologer consults</li>
+      </ul>
+      <button class="btn btn-gold">Go VIP</button>
+    </div>
+  </div>
+
+  <!-- ===================== CARDS / STATS / CHAT ===================== -->
+  <div class="sh"><div class="sh-l"><div class="tick"></div><div><h2>Cards, stats & chat</h2><div class="sub">Profile card · stat tile · info panel · chat bubbles</div></div></div></div>
+  <div class="flexwrap">
+    <div class="pcard">
+      <div class="ph"><div class="av">RV</div><span class="badge b-verified" style="position:absolute;top:.7rem;left:.7rem"><svg class="i"><use href="#i-check"/></svg>Verified</span></div>
+      <div class="body">
+        <h4>Riya Verma, 27 <span class="badge b-online" style="background:none;padding:0"><span class="dot"></span></span></h4>
+        <div class="meta">Software Engineer · Chandigarh</div>
+        <div class="tags"><span>Hindu</span><span>5'4"</span><span>Non-Manglik</span></div>
+        <div class="btn-row"><button class="btn btn-primary btn-sm" style="flex:1"><svg class="i"><use href="#i-heart"/></svg>Interest</button><button class="btn btn-ghost btn-sm"><svg class="i"><use href="#i-star"/></svg></button></div>
+      </div>
+    </div>
+    <div style="flex:1;min-width:280px;display:grid;gap:1rem">
+      <div class="statrow">
+        <div class="stat"><div class="ic"><svg class="i"><use href="#i-eye"/></svg></div><div class="num">248</div><div class="lab">Profile Views</div><div class="trend"><svg class="i" style="width:11px;height:11px"><use href="#i-arr"/></svg>+12%</div></div>
+        <div class="stat"><div class="ic"><svg class="i"><use href="#i-heart"/></svg></div><div class="num">36</div><div class="lab">Interests</div><div class="trend"><svg class="i" style="width:11px;height:11px"><use href="#i-arr"/></svg>+5</div></div>
+        <div class="stat"><div class="ic"><svg class="i"><use href="#i-users"/></svg></div><div class="num">12</div><div class="lab">Mutual Matches</div></div>
+        <div class="stat"><div class="ic"><svg class="i"><use href="#i-star"/></svg></div><div class="num">9</div><div class="lab">Shortlisted</div></div>
+      </div>
+      <div class="infopanel"><svg class="i"><use href="#i-info"/></svg><div>One muted info panel standard — no rainbow boxes. Use for guidance, eligibility notes, and gentle nudges.</div></div>
+      <div class="card-demo" style="padding:1rem">
+        <div class="chat">
+          <div class="bub recv">Namaste! Thank you for the interest 🙏</div>
+          <div class="bub sent">Likewise! Would your family like to connect this weekend?<span class="tm">10:24 <svg class="i"><use href="#i-check"/></svg></span></div>
+          <div class="typing"><span></span><span></span><span></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== STATES ===================== -->
+  <div class="sh"><div class="sh-l"><div class="tick"></div><div><h2>Data states</h2><div class="sub">Loading (skeleton) · empty · error · locked — every data view ships all four</div></div></div></div>
+  <div class="cols three">
+    <div class="card-demo">
+      <div class="lbl">Loading — skeleton</div>
+      <div style="display:flex;gap:.8rem;align-items:center;margin-bottom:1rem"><div class="sk" style="width:56px;height:56px;border-radius:50%"></div><div style="flex:1"><div class="sk" style="height:14px;width:70%;margin-bottom:.5rem"></div><div class="sk" style="height:11px;width:45%"></div></div></div>
+      <div class="sk" style="height:90px;margin-bottom:.7rem"></div>
+      <div class="sk" style="height:11px;width:90%;margin-bottom:.4rem"></div>
+      <div class="sk" style="height:11px;width:60%"></div>
+    </div>
+    <div class="empty">
+      <div class="ei"><svg class="i"><use href="#i-search"/></svg></div>
+      <h4>No profiles yet</h4>
+      <p>Widen your preferences or check back soon — new Tricity members join daily.</p>
+      <button class="btn btn-primary btn-sm">Adjust filters</button>
+    </div>
+    <div class="empty error">
+      <div class="ei"><svg class="i"><use href="#i-alert"/></svg></div>
+      <h4>Couldn't load</h4>
+      <p>Something went wrong fetching matches. Please try again.</p>
+      <button class="btn btn-secondary btn-sm">Retry</button>
+    </div>
+  </div>
+  <div class="cols two" style="margin-top:1.5rem">
+    <div class="card-demo">
+      <div class="lbl">Locked — premium gate</div>
+      <div class="lock">
+        <div class="blur" style="display:flex;gap:.8rem"><div class="av av-56">98</div><div class="av av-56">88</div><div class="av av-56">76</div><div class="av av-56">71</div></div>
+        <div class="ov"><div class="lk"><svg class="i"><use href="#i-lock"/></svg></div><div style="font-weight:600;color:var(--fg-strong);font-size:.9rem">4 people viewed you</div><button class="btn btn-gold btn-sm">Upgrade to unlock</button></div>
+      </div>
+    </div>
+    <div class="card-demo">
+      <div class="lbl">Sticky action bar · toast</div>
+      <div class="stickybar" style="margin-bottom:1rem">
+        <button class="btn btn-primary"><svg class="i"><use href="#i-heart"/></svg>Express Interest</button>
+        <button class="btn btn-ghost"><svg class="i"><use href="#i-star"/></svg></button>
+        <button class="btn btn-gold"><svg class="i"><use href="#i-lock"/></svg>Unlock</button>
+        <button class="btn btn-ghost" style="flex:none;padding:.7rem"><svg class="i"><use href="#i-dots"/></svg></button>
+      </div>
+      <div class="toast" style="margin-bottom:.7rem"><div class="ti"><svg class="i"><use href="#i-check"/></svg></div><div><b>Interest sent</b><p>Riya will be notified. We'll let you know if she accepts.</p></div></div>
+      <div class="toast err"><div class="ti"><svg class="i"><use href="#i-x"/></svg></div><div><b>Payment failed</b><p>Your card was declined. Try another method.</p></div></div>
+    </div>
+  </div>
+
+  <!-- ===================== OVERLAYS ===================== -->
+  <div class="sh"><div class="sh-l"><div class="tick"></div><div><h2>Overlays</h2><div class="sub">Modal (desktop) · bottom sheet (mobile)</div></div></div></div>
+  <div class="flexwrap">
+    <div class="modal">
+      <div class="mh"><h3>Block & report</h3></div>
+      <div class="mb">You won't see Riya's profile and she won't be able to contact you. Reports are reviewed by our trust team.</div>
+      <div class="mf"><button class="btn btn-ghost btn-sm">Cancel</button><button class="btn btn-sm" style="background:var(--destructive);color:#fff">Block</button></div>
+    </div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <h3 style="font-size:1.15rem;margin-bottom:.3rem">Filters</h3>
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem">Refine your Tricity search</p>
+      <label class="check"><input type="checkbox" checked><span class="box"><svg class="i"><use href="#i-check"/></svg></span>Verified only</label>
+      <label class="check"><input type="checkbox"><span class="box"><svg class="i"><use href="#i-check"/></svg></span>Within 25 km</label>
+      <button class="btn btn-primary" style="width:100%;margin-top:.8rem">Apply filters</button>
+    </div>
+  </div>
+
+  <div class="note" style="margin-top:3rem"><b>Next.</b> This system page is the reference. We proceed page-by-page on core workflow screens — Dashboard first — each at desktop + mobile, in light + dark, with default/loading/empty/error states built on exactly these components.</div>
+</main>
+
+<script>
+const P={50:'#FDF2F5',100:'#F8E8EC',200:'#F0CDD7',300:'#E5A3B8',400:'#D66E8E',500:'#8B2346',600:'#6B1D3A',700:'#55172E',800:'#401123',900:'#2A0B17'};
+const G={50:'#FEFCF3',100:'#FDF6E3',200:'#F9EABC',300:'#F2D88A',400:'#E8C34A',500:'#C9A227',600:'#B8941F',700:'#96781A'};
+const N={50:'#FAFAFA',100:'#F5F5F5',200:'#E8E8E8',300:'#D4D4D4',400:'#A3A3A3',500:'#8B8B8B',600:'#5A5A5A',700:'#404040',800:'#2D2D2D',900:'#1A1A1A'};
+const S=[['success','#2E7D32'],['success-l','#E8F5E9'],['info','#1565C0'],['info-l','#E3F2FD'],['warning','#F57C00'],['warning-l','#FFF3E0'],['destructive','#C62828'],['destructive-l','#FFEBEE']];
+function fillScale(id,obj,name){const el=document.getElementById(id);el.innerHTML=Object.entries(obj).map(([k,v])=>{
+  const dark=parseInt(k)>=400;return `<div class="sw"><div class="chip" style="background:${v}"></div><div class="meta"><b>${name} ${k}</b><span>${v}</span></div></div>`;}).join('');}
+fillScale('sc-p',P,'p');fillScale('sc-g',G,'g');fillScale('sc-n',N,'n');
+document.getElementById('sc-s').innerHTML=S.map(([k,v])=>`<div class="sw"><div class="chip" style="background:${v}"></div><div class="meta"><b>${k}</b><span>${v}</span></div></div>`).join('');
+document.getElementById('spaces').innerHTML=[4,8,12,16,24,32].map(n=>`<div style="display:flex;align-items:center;gap:.7rem"><div style="height:14px;width:${n}px;background:var(--accent);border-radius:3px"></div><small class="mono" style="font-size:.7rem;color:var(--muted)">${n}px</small></div>`).join('');
+
+function setTheme(t){document.documentElement.setAttribute('data-theme',t);
+  t1.setAttribute('aria-pressed',t==='light');t2.setAttribute('aria-pressed',t==='dark');localStorage.dsTheme=t;}
+function setElder(e){document.documentElement.setAttribute('data-elder',e);
+  e1.setAttribute('aria-pressed',e==='off');e2.setAttribute('aria-pressed',e==='on');localStorage.dsElder=e;}
+const t1=document.getElementById('t-light'),t2=document.getElementById('t-dark'),e1=document.getElementById('e-off'),e2=document.getElementById('e-on');
+function selTab(b){[...b.parentNode.children].forEach(c=>c.setAttribute('aria-selected','false'));b.setAttribute('aria-selected','true');}
+setTheme(localStorage.dsTheme||'light');setElder(localStorage.dsElder||'off');
+</script>
+</body>
+</html>

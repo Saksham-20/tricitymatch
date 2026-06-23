@@ -90,7 +90,7 @@ const CallOverlay = () => {
                 <FiPhoneOff className="w-6 h-6" />
               </RoundButton>
               <RoundButton onClick={acceptIncoming} label="Accept">
-                <FiPhone className="w-6 h-6 text-green-400" />
+                <FiPhone className="w-6 h-6 text-success" />
               </RoundButton>
             </>
           ) : (

@@ -144,74 +144,57 @@ const ModernProfileEditorContent = () => {
   const isLastStep = currentStep === EditStepComponents.length - 1;
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-neutral-50 via-primary-50/20 to-gold-50/30">
-      {/* Left Panel - Desktop Only */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-neutral-900">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary-900/90 via-neutral-900 to-neutral-900" />
-
-        {/* Orbital rings */}
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 80, repeat: Infinity, ease: 'linear' }}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[38rem] h-[38rem] rounded-full border border-white/5 pointer-events-none"
-        />
+    <div className="min-h-screen flex bg-neutral-50 dark:bg-[#0f1117]">
+      {/* Left Panel — LIGHT brand rail (burgundy accent, not a slab) */}
+      <div className="hidden lg:flex lg:w-[24rem] xl:w-[28rem] relative overflow-hidden bg-white dark:bg-[#1a1f2e] border-r border-neutral-100 dark:border-neutral-800">
+        <div className="absolute inset-0 bg-gradient-to-b from-primary-50/70 dark:from-primary-900/20 via-white dark:via-[#1a1f2e] to-white dark:to-[#1a1f2e] pointer-events-none" />
+        <div className="absolute -top-24 -left-24 w-72 h-72 border border-neutral-200/60 dark:border-neutral-700/40 rounded-full pointer-events-none" />
 
         {/* Content */}
         <div className="relative z-10 w-full h-full flex flex-col justify-between p-10">
           <div>
-            <h2 className="text-4xl font-bold text-white mb-4">
+            <div className="inline-flex items-center gap-2 mb-4 px-3 py-1 bg-gold-50 border border-gold-200 rounded-full">
+              <span className="text-gold-700 text-xs font-semibold uppercase tracking-wide">Your Profile</span>
+            </div>
+            <h2 className="font-display text-4xl font-bold text-neutral-900 dark:text-neutral-100 mb-3">
               Update Your Profile
             </h2>
-            <p className="text-lg text-neutral-300 mb-8">
+            <p className="text-base text-neutral-500 mb-8">
               Keep your profile fresh and complete to get better matches
             </p>
 
             {/* Benefits */}
             <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-primary-500 flex items-center justify-center flex-shrink-0 mt-1">
-                  <FiCheck className="text-white" size={16} />
+              {[
+                { t: 'More Visibility', d: 'Complete profiles get 3x more matches' },
+                { t: 'Better Matches', d: 'Detailed info helps us suggest perfect matches' },
+                { t: 'Easy Editing', d: 'Step through sections and save when ready' },
+              ].map(({ t, d }) => (
+                <div key={t} className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <FiCheck className="text-primary-600 dark:text-primary-300" size={14} />
+                  </div>
+                  <div>
+                    <p className="text-neutral-900 dark:text-neutral-100 font-semibold">{t}</p>
+                    <p className="text-neutral-500 text-sm">{d}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-white font-semibold">More Visibility</p>
-                  <p className="text-neutral-400 text-sm">Complete profiles get 3x more matches</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-primary-500 flex items-center justify-center flex-shrink-0 mt-1">
-                  <FiCheck className="text-white" size={16} />
-                </div>
-                <div>
-                  <p className="text-white font-semibold">Better Matches</p>
-                  <p className="text-neutral-400 text-sm">Detailed info helps us suggest perfect matches</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-primary-500 flex items-center justify-center flex-shrink-0 mt-1">
-                  <FiCheck className="text-white" size={16} />
-                </div>
-                <div>
-                  <p className="text-white font-semibold">Easy Editing</p>
-                  <p className="text-neutral-400 text-sm">Step through sections and save when ready</p>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
 
           {/* Progress */}
           <div>
-            <p className="text-neutral-400 text-sm mb-2">Profile Completion</p>
+            <p className="text-neutral-500 text-sm mb-2">Profile Completion</p>
             <Progress value={completionPercentage} max={100} showLabel />
           </div>
         </div>
       </div>
 
       {/* Right Panel - Form */}
-      <div className="w-full lg:w-1/2 flex flex-col">
+      <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="bg-white border-b border-neutral-200 px-6 py-4 flex justify-between items-center">
+        <div className="bg-white dark:bg-[#1a1f2e] border-b border-neutral-200 dark:border-neutral-800 px-6 py-4 flex justify-between items-center">
           <div className="flex-1">
             <h1 className="text-xl font-bold text-neutral-900 lg:hidden">Edit Profile</h1>
           </div>
@@ -225,7 +208,7 @@ const ModernProfileEditorContent = () => {
         </div>
 
         {/* Progress bar for mobile */}
-        <div className="lg:hidden bg-white px-6 py-4 border-b border-neutral-200">
+        <div className="lg:hidden bg-white dark:bg-[#1a1f2e] px-6 py-4 border-b border-neutral-200 dark:border-neutral-800">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-semibold text-neutral-900">
               {EDIT_STEPS[currentStep].title}
@@ -238,7 +221,7 @@ const ModernProfileEditorContent = () => {
         </div>
 
         {/* Desktop stepper */}
-        <div className="hidden lg:flex bg-white border-b border-neutral-200 overflow-x-auto">
+        <div className="hidden lg:flex bg-white dark:bg-[#1a1f2e] border-b border-neutral-200 dark:border-neutral-800 overflow-x-auto">
           {EDIT_STEPS.map((step, idx) => (
             <motion.button
               key={idx}
@@ -247,7 +230,7 @@ const ModernProfileEditorContent = () => {
                 idx === currentStep
                   ? 'border-b-primary-600'
                   : idx < currentStep
-                  ? 'border-b-green-500'
+                  ? 'border-b-success'
                   : 'border-b-neutral-200 hover:border-b-neutral-300'
               }`}
               whileHover={{ backgroundColor: idx === currentStep ? 'transparent' : '#f5f5f5' }}
@@ -256,7 +239,7 @@ const ModernProfileEditorContent = () => {
                 idx === currentStep
                   ? 'text-primary-600'
                   : idx < currentStep
-                  ? 'text-green-600'
+                  ? 'text-success'
                   : 'text-neutral-600'
               }`}>
                 {idx < currentStep ? <FiCheck className="inline w-3.5 h-3.5" /> : `${idx + 1}`}
@@ -281,10 +264,10 @@ const ModernProfileEditorContent = () => {
               className="h-full flex flex-col items-center justify-center"
             >
               <div className="text-center">
-                <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-                  <FiCheck className="text-green-600" size={32} />
+                <div className="w-16 h-16 rounded-full bg-success-50 flex items-center justify-center mx-auto mb-4">
+                  <FiCheck className="text-success" size={32} />
                 </div>
-                <h2 className="text-2xl font-bold text-neutral-900 mb-2">Profile Updated!</h2>
+                <h2 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">Profile Updated!</h2>
                 <p className="text-neutral-600">
                   Your profile has been successfully updated.
                 </p>
@@ -307,7 +290,7 @@ const ModernProfileEditorContent = () => {
 
         {/* Footer with navigation */}
         {!saveSuccess && (
-          <div className="bg-white border-t border-neutral-200 p-6 lg:p-8">
+          <div className="bg-white dark:bg-[#1a1f2e] border-t border-neutral-200 dark:border-neutral-800 p-6 lg:p-8">
             <div className="flex gap-3 justify-between max-w-2xl mx-auto">
               <Button
                 variant="outline"
@@ -369,10 +352,10 @@ const ModernProfileEditorContent = () => {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-white rounded-lg p-6 max-w-sm"
+              className="bg-white dark:bg-[#1a1f2e] rounded-2xl p-6 max-w-sm shadow-card"
             >
-              <h3 className="text-lg font-bold text-neutral-900 mb-2 flex items-center gap-2">
-                <FiAlertCircle className="text-orange-500" />
+              <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-2 flex items-center gap-2">
+                <FiAlertCircle className="text-warning" />
                 Exit Editor?
               </h3>
               <p className="text-neutral-600 mb-6">

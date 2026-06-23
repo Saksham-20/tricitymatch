@@ -12,18 +12,18 @@ const DOCUMENT_TYPES = [
 ];
 
 const STATUS_META = {
-  approved:      { icon: FiCheckCircle, cls: 'text-green-600 bg-green-50',  key: 'statusApproved' },
-  passed:        { icon: FiCheckCircle, cls: 'text-green-600 bg-green-50',  key: 'statusApproved' },
-  pending:       { icon: FiClock,       cls: 'text-amber-600 bg-amber-50',  key: 'statusPending' },
-  in_progress:   { icon: FiClock,       cls: 'text-amber-600 bg-amber-50',  key: 'statusPending' },
-  pending_payment:{ icon: FiClock,      cls: 'text-amber-600 bg-amber-50',  key: 'statusPending' },
-  rejected:      { icon: FiXCircle,     cls: 'text-red-600 bg-red-50',      key: 'statusRejected' },
-  failed:        { icon: FiXCircle,     cls: 'text-red-600 bg-red-50',      key: 'statusRejected' },
+  approved:      { icon: FiCheckCircle, cls: 'text-success bg-success-50 border border-success-100',         key: 'statusApproved' },
+  passed:        { icon: FiCheckCircle, cls: 'text-success bg-success-50 border border-success-100',         key: 'statusApproved' },
+  pending:       { icon: FiClock,       cls: 'text-warning bg-warning-light border border-warning/20',       key: 'statusPending' },
+  in_progress:   { icon: FiClock,       cls: 'text-warning bg-warning-light border border-warning/20',       key: 'statusPending' },
+  pending_payment:{ icon: FiClock,      cls: 'text-warning bg-warning-light border border-warning/20',       key: 'statusPending' },
+  rejected:      { icon: FiXCircle,     cls: 'text-destructive bg-destructive-light border border-destructive/20', key: 'statusRejected' },
+  failed:        { icon: FiXCircle,     cls: 'text-destructive bg-destructive-light border border-destructive/20', key: 'statusRejected' },
 };
 
 function StatusPill({ status }) {
   const { t } = useTranslation();
-  const meta = STATUS_META[status] || { icon: FiClock, cls: 'text-gray-500 bg-gray-100', key: 'statusNotStarted' };
+  const meta = STATUS_META[status] || { icon: FiClock, cls: 'text-neutral-500 bg-neutral-100 border border-neutral-200', key: 'statusNotStarted' };
   const Icon = meta.icon;
   return (
     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium ${meta.cls}`}>
@@ -120,16 +120,39 @@ export default function Verification() {
     }
   };
 
+  // Trust score from completed tiers
+  const trustScore =
+    (['approved', 'pending'].includes(docStatus) ? 50 : 0) +
+    (['passed', 'in_progress'].includes(bgStatus) ? 50 : 0);
+  const ringC = 2 * Math.PI * 30;
+
   return (
+    <div className="min-h-screen bg-neutral-50 dark:bg-[#0f1117]">
     <div className="max-w-3xl mx-auto px-4 py-8">
       <div className="flex items-center gap-3 mb-1">
         <FiShield className="w-7 h-7 text-primary-600" />
-        <h1 className="text-2xl font-semibold text-neutral-800">{t('verification.title')}</h1>
+        <h1 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100">{t('verification.title')}</h1>
       </div>
-      <p className="text-neutral-500 mb-8">{t('verification.subtitle')}</p>
+      <p className="text-neutral-500 mb-6">{t('verification.subtitle')}</p>
+
+      {/* Trust-score ring header */}
+      <div className="bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-6 mb-6 flex items-center gap-5">
+        <div className="relative w-20 h-20 flex-shrink-0">
+          <svg width="80" height="80" viewBox="0 0 80 80" className="-rotate-90">
+            <circle cx="40" cy="40" r="30" fill="none" stroke="currentColor" className="text-neutral-200 dark:text-neutral-700" strokeWidth="6" />
+            <circle cx="40" cy="40" r="30" fill="none" stroke="#C9A227" strokeWidth="6" strokeLinecap="round"
+              strokeDasharray={ringC} strokeDashoffset={ringC - (trustScore / 100) * ringC} />
+          </svg>
+          <span className="absolute inset-0 flex items-center justify-center font-display text-lg font-bold text-gold-600">{trustScore}%</span>
+        </div>
+        <div>
+          <p className="font-display text-lg font-bold text-neutral-900 dark:text-neutral-100">Trust Score</p>
+          <p className="text-sm text-neutral-500">Complete each tier to boost your trust and get more responses.</p>
+        </div>
+      </div>
 
       {/* Status overview */}
-      <div className="bg-white rounded-2xl border border-neutral-200 p-6 mb-6">
+      <div className="bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-6 mb-6">
         <h2 className="text-sm font-medium text-neutral-500 mb-4">{t('verification.status')}</h2>
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -142,13 +165,13 @@ export default function Verification() {
           </div>
         </div>
         {adminNotes && (
-          <p className="mt-4 text-sm text-red-600 bg-red-50 rounded-lg p-3">{adminNotes}</p>
+          <p className="mt-4 text-sm text-destructive bg-destructive-light border border-destructive/20 rounded-lg p-3">{adminNotes}</p>
         )}
       </div>
 
       {/* Document submission */}
       {docStatus !== 'approved' && docStatus !== 'pending' && (
-        <form onSubmit={submitDocuments} className="bg-white rounded-2xl border border-neutral-200 p-6 mb-6">
+        <form onSubmit={submitDocuments} className="bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-6 mb-6">
           <h2 className="font-semibold text-neutral-800 mb-4">{t('verification.submitDocuments')}</h2>
           <label className="block text-sm text-neutral-600 mb-1">Document type</label>
           <select
@@ -175,8 +198,8 @@ export default function Verification() {
 
       {/* Background check */}
       {bgStatus !== 'passed' && bgStatus !== 'in_progress' && (
-        <div className="bg-white rounded-2xl border border-neutral-200 p-6">
-          <h2 className="font-semibold text-neutral-800 mb-2">{t('verification.tierBgCheck')}</h2>
+        <div className="bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-6">
+          <h2 className="font-semibold text-neutral-800 dark:text-neutral-200 mb-2">{t('verification.tierBgCheck')}</h2>
           <p className="text-sm text-neutral-500 mb-4">
             A professional background verification (₹499). Adds a trust badge to your profile.
           </p>
@@ -193,6 +216,7 @@ export default function Verification() {
           </button>
         </div>
       )}
+    </div>
     </div>
   );
 }

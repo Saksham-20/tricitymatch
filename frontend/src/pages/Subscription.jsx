@@ -91,7 +91,7 @@ const PlanCard = ({ planKey, plan, isPopular, isCurrent, isProcessing, onSubscri
         isPopular
           ? 'border-primary-300 shadow-burgundy-lg ring-1 ring-primary-200 scale-[1.03]'
           : planKey === 'vip'
-          ? 'border-gold-300 shadow-md'
+          ? 'border-gold-300 shadow-gold ring-1 ring-gold-200'
           : 'border-neutral-200 shadow-card'
       }`}
     >
@@ -306,9 +306,30 @@ const Subscription = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-neutral-50 gap-3">
-        <div className="w-10 h-10 rounded-full border-2 border-primary-200 border-t-primary-500 animate-spin" />
-        <p className="text-sm text-neutral-500">Loading plans…</p>
+      <div className="min-h-screen bg-neutral-50 dark:bg-[#0f1117]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          {/* Header skeleton */}
+          <div className="text-center mb-12 flex flex-col items-center gap-3">
+            <div className="h-7 w-40 bg-neutral-200 dark:bg-neutral-800 rounded-full animate-pulse" />
+            <div className="h-10 w-72 bg-neutral-200 dark:bg-neutral-800 rounded-xl animate-pulse" />
+            <div className="h-4 w-96 max-w-full bg-neutral-100 dark:bg-neutral-800/60 rounded animate-pulse" />
+          </div>
+          {/* Plan card skeletons */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-card p-6 space-y-4 animate-pulse">
+                <div className="h-6 w-28 bg-neutral-200 dark:bg-neutral-800 rounded-lg" />
+                <div className="h-10 w-32 bg-neutral-200 dark:bg-neutral-800 rounded-lg" />
+                <div className="space-y-2.5 pt-2">
+                  {[0, 1, 2, 3, 4].map((j) => (
+                    <div key={j} className="h-3.5 w-full bg-neutral-100 dark:bg-neutral-800/60 rounded" />
+                  ))}
+                </div>
+                <div className="h-11 w-full bg-neutral-200 dark:bg-neutral-800 rounded-xl mt-4" />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }

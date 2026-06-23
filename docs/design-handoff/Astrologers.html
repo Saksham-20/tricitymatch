@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-elder="off">
+<head>
+<meta charset="utf-8" />
+<title>TricityShadi — Astrologers</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="ts-system.css" />
+<template id="__bundler_thumbnail">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#FDF6E3"/><circle cx="100" cy="100" r="46" fill="none" stroke="#C9A227" stroke-width="8"/><polygon points="100 70 108 92 132 92 112 106 120 130 100 116 80 130 88 106 68 92 92 92" fill="#C9A227"/></svg>
+</template>
+<style>
+body{background:var(--surface-2);}
+.harness{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;padding:.6rem 1rem;background:color-mix(in srgb,var(--card) 90%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);font-size:.8rem;}
+.harness .ttl{font-family:'Playfair Display',serif;font-weight:600;color:var(--fg-strong);}
+.harness .spacer{flex:1;}
+.seg{display:flex;background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:3px;gap:2px;}
+.seg button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:.76rem;font-weight:600;padding:.32rem .7rem;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:.3rem;}
+.seg button[aria-pressed="true"]{background:var(--card);color:var(--accent);box-shadow:var(--sh-sm);}
+.harness .lab{font-size:.66rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+
+.stage{padding:4.6rem 1.2rem 3rem;min-height:100vh;display:flex;justify-content:center;}
+.device{width:100%;max-width:960px;background:var(--bg);border:1px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.12);transition:max-width .35s ease;}
+body[data-vp="mobile"] .device{max-width:402px;border-radius:34px;}
+body[data-vp="mobile"] .desktop-only{display:none!important;}
+
+.wrap{padding:1.7rem;}
+body[data-vp="mobile"] .wrap{padding:1.1rem;}
+.phead h1{font-size:1.7rem;font-weight:700;display:flex;align-items:center;gap:.55rem;}
+.phead h1 .bar{width:5px;height:1.3em;background:var(--g-500);border-radius:3px;}
+.phead p{color:var(--muted);font-size:.88rem;margin:.3rem 0 0 1.05rem;}
+.back{display:flex;align-items:center;gap:.35rem;background:none;border:0;font:inherit;font-weight:600;font-size:.88rem;color:var(--muted);cursor:pointer;margin-bottom:1rem;}
+.back:hover{color:var(--accent);}
+
+/* filters */
+.afilter{display:flex;gap:.5rem;margin:1.2rem 0;overflow-x:auto;-ms-overflow-style:none;scrollbar-width:none;}
+.afilter::-webkit-scrollbar{display:none;}
+.achip{font-size:.8rem;font-weight:600;padding:.4rem .8rem;border-radius:999px;background:var(--card);border:1px solid var(--border);color:var(--fg);cursor:pointer;white-space:nowrap;}
+.achip.on{background:var(--gold-soft);border-color:var(--g-500);color:var(--g-600);}
+
+/* list grid */
+.agrid{display:grid;grid-template-columns:1fr 1fr;gap:1.1rem;}
+body[data-vp="mobile"] .agrid{grid-template-columns:1fr;}
+.acard{background:var(--card);border:1px solid var(--border);border-radius:18px;box-shadow:var(--sh-card);padding:1.3rem;display:flex;gap:1.1rem;transition:.2s;cursor:pointer;}
+.acard:hover{transform:translateY(-3px);box-shadow:var(--sh-card-hover);}
+.acard .av{width:72px;height:72px;font-size:1.5rem;flex:none;background:var(--gold-soft);color:var(--g-600);}
+html[data-theme="dark"] .acard .av{background:#221c0d;color:var(--g-300);}
+.acard .av .on-dot{position:absolute;bottom:2px;right:2px;width:13px;height:13px;border-radius:50%;background:var(--success);border:2px solid var(--card);}
+.acard .ab{flex:1;min-width:0;}
+.acard h3{font-size:1.05rem;font-weight:600;display:flex;align-items:center;gap:.4rem;}
+.acard .spec{font-size:.82rem;color:var(--muted);margin:.1rem 0 .5rem;}
+.acard .meta{display:flex;flex-wrap:wrap;gap:.4rem .9rem;font-size:.78rem;color:var(--fg);margin-bottom:.7rem;}
+.acard .meta span{display:flex;align-items:center;gap:.3rem;}
+.acard .meta svg{width:13px;height:13px;color:var(--g-500);}
+.acard .rate{display:flex;align-items:center;gap:.3rem;font-size:.74rem;font-weight:700;color:var(--g-600);}
+.acard .rate svg{width:13px;height:13px;fill:var(--g-500);color:var(--g-500);}
+.acard .foot{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-top:.5rem;}
+.acard .price{font-size:.85rem;color:var(--fg-strong);font-weight:700;}
+.acard .price small{font-weight:500;color:var(--muted);}
+
+/* detail */
+.dhero{background:var(--card);border:1px solid var(--border);border-radius:20px;box-shadow:var(--sh-card);overflow:hidden;margin-bottom:1.2rem;}
+.dhero .top{display:flex;gap:1.3rem;padding:1.5rem;background:linear-gradient(105deg,var(--gold-soft),var(--card) 60%);align-items:center;}
+body[data-vp="mobile"] .dhero .top{flex-direction:column;text-align:center;}
+.dhero .av{width:96px;height:96px;font-size:2rem;flex:none;background:var(--card);color:var(--g-600);border:3px solid var(--card);box-shadow:var(--sh-card);}
+.dhero h2{font-size:1.6rem;font-weight:700;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;}
+body[data-vp="mobile"] .dhero h2{justify-content:center;}
+.dhero .spec{color:var(--muted);font-size:.9rem;margin:.2rem 0 .6rem;}
+.dhero .statline{display:flex;gap:1.4rem;flex-wrap:wrap;}
+body[data-vp="mobile"] .dhero .statline{justify-content:center;}
+.dhero .statline .s{text-align:center;}
+.dhero .statline .s b{font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:700;color:var(--fg-strong);display:block;line-height:1;}
+.dhero .statline .s span{font-size:.66rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+.dbody{padding:1.3rem 1.5rem;}
+.dbody h4{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--fg-strong);margin-bottom:.6rem;}
+.dbody p{font-size:.9rem;color:var(--fg);line-height:1.6;margin-bottom:1.2rem;}
+.langrow{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1.2rem;}
+.langrow span{font-size:.76rem;background:var(--surface-2);border:1px solid var(--border);color:var(--fg);padding:.25rem .6rem;border-radius:999px;}
+
+/* booking */
+.bcols{display:grid;grid-template-columns:1.4fr 1fr;gap:1.2rem;align-items:start;}
+body[data-vp="mobile"] .bcols{grid-template-columns:1fr;}
+.bcard{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--sh-card);overflow:hidden;}
+.bcard .ch{padding:.95rem 1.2rem;border-bottom:1px solid var(--border);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--fg-strong);}
+.bcard .cb{padding:1.2rem;}
+.daysel{display:flex;gap:.5rem;overflow-x:auto;margin-bottom:1rem;-ms-overflow-style:none;scrollbar-width:none;}
+.daysel::-webkit-scrollbar{display:none;}
+.day{flex:none;width:58px;text-align:center;padding:.6rem 0;border:2px solid var(--border);border-radius:12px;cursor:pointer;}
+.day.on{border-color:var(--g-500);background:var(--gold-soft);}
+.day span{font-size:.66rem;color:var(--muted);text-transform:uppercase;}
+.day b{display:block;font-size:1.1rem;color:var(--fg-strong);}
+.day.on b{color:var(--g-600);}
+.slots{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;}
+.slot{padding:.55rem;border:2px solid var(--border);border-radius:10px;text-align:center;font-size:.82rem;font-weight:600;color:var(--fg);cursor:pointer;background:var(--card);}
+.slot.on{border-color:var(--g-500);background:var(--gold-soft);color:var(--g-600);}
+.slot.off{opacity:.4;cursor:not-allowed;text-decoration:line-through;}
+.bsummary .srow{display:flex;justify-content:space-between;padding:.55rem 0;border-bottom:1px solid var(--border);font-size:.86rem;}
+.bsummary .srow:last-of-type{border-bottom:0;}
+.bsummary .srow .k{color:var(--muted);}.bsummary .srow .v{font-weight:600;color:var(--fg-strong);}
+.bsummary .total{display:flex;justify-content:space-between;align-items:baseline;padding-top:.8rem;margin-top:.4rem;border-top:1px dashed var(--border);}
+.bsummary .total .k{font-size:.82rem;color:var(--muted);}
+.bsummary .total .v{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;color:var(--g-600);}
+
+/* my bookings */
+.btab{display:flex;gap:.3rem;border-bottom:1px solid var(--border);margin-bottom:1.2rem;}
+.btab button{border:0;background:none;font:inherit;font-weight:600;font-size:.9rem;color:var(--muted);padding:.7rem .9rem;cursor:pointer;position:relative;}
+.btab button.on{color:var(--accent);}
+.btab button.on::after{content:"";position:absolute;left:.6rem;right:.6rem;bottom:-1px;height:2.5px;background:var(--accent);border-radius:3px;}
+.bk{display:flex;align-items:center;gap:1rem;background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--sh-card);padding:1.1rem 1.2rem;margin-bottom:.8rem;}
+.bk .av{width:54px;height:54px;font-size:1.2rem;flex:none;background:var(--gold-soft);color:var(--g-600);}
+html[data-theme="dark"] .bk .av{background:#221c0d;color:var(--g-300);}
+.bk .bi{flex:1;min-width:0;}
+.bk .bi b{font-size:.95rem;color:var(--fg-strong);}
+.bk .bi p{font-size:.8rem;color:var(--muted);display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin-top:.15rem;}
+.bk .bi p svg{width:13px;height:13px;color:var(--g-500);}
+.bk .br{flex:none;text-align:right;display:flex;flex-direction:column;gap:.4rem;align-items:flex-end;}
+
+body:not(.ready) [data-show]{display:none;}
+</style>
+</head>
+<body data-vp="desktop" data-page="list" data-btab="upcoming">
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<g id="i-star"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></g>
+<g id="i-back"><polyline points="15 18 9 12 15 6"/></g>
+<g id="i-clock"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></g>
+<g id="i-award"><circle cx="12" cy="8" r="6"/><path d="M15.5 13.5L17 22l-5-3-5 3 1.5-8.5"/></g>
+<g id="i-globe"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></g>
+<g id="i-video"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></g>
+<g id="i-phone"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></g>
+<g id="i-check"><polyline points="20 6 9 17 4 12"/></g>
+<g id="i-cal"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></g>
+<g id="i-sun"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.2" y1="4.2" x2="5.6" y2="5.6"/><line x1="18.4" y1="18.4" x2="19.8" y2="19.8"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.2" y1="19.8" x2="5.6" y2="18.4"/><line x1="18.4" y1="5.6" x2="19.8" y2="4.2"/></g>
+<g id="i-moon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></g>
+</defs></svg>
+
+<div class="harness">
+  <span class="ttl">Astrologers</span>
+  <span class="lab">Screen</span>
+  <div class="seg"><button id="pg-list" aria-pressed="true" onclick="setPage('list')">List</button><button id="pg-detail" aria-pressed="false" onclick="setPage('detail')">Detail + Book</button><button id="pg-bookings" aria-pressed="false" onclick="setPage('bookings')">My Bookings</button></div>
+  <span class="lab">View</span>
+  <div class="seg"><button id="vp-d" aria-pressed="true" onclick="setVp('desktop')">Desktop</button><button id="vp-m" aria-pressed="false" onclick="setVp('mobile')">Mobile</button></div>
+  <span class="lab">Theme</span>
+  <div class="seg"><button id="th-l" aria-pressed="true" onclick="setTh('light')"><svg class="i"><use href="#i-sun"/></svg>Light</button><button id="th-d" aria-pressed="false" onclick="setTh('dark')"><svg class="i"><use href="#i-moon"/></svg>Dark</button></div>
+  <span class="spacer"></span>
+  <span class="lab">Elder</span>
+  <div class="seg"><button id="el-off" aria-pressed="true" onclick="setEl('off')">Std</button><button id="el-on" aria-pressed="false" onclick="setEl('on')">Elder</button></div>
+</div>
+
+<div class="stage">
+<div class="device">
+
+  <!-- ============ LIST ============ -->
+  <div data-show="list">
+    <div class="wrap">
+      <div class="phead"><h1><span class="bar"></span>Consult an astrologer</h1><p>Verified Vedic astrologers for kundli & match guidance</p></div>
+      <div class="afilter">
+        <span class="achip on">All</span><span class="achip">Kundli matching</span><span class="achip">Manglik dosha</span><span class="achip">Marriage timing</span><span class="achip">Online now</span>
+      </div>
+      <div class="agrid" id="agrid"></div>
+    </div>
+  </div>
+
+  <!-- ============ DETAIL + BOOK ============ -->
+  <div data-show="detail">
+    <div class="wrap">
+      <button class="back" onclick="setPage('list')"><svg class="i"><use href="#i-back"/></svg>All astrologers</button>
+      <div class="dhero">
+        <div class="top">
+          <div class="av">PS<span></span></div>
+          <div>
+            <h2>Pt. Suresh Sharma <span class="badge b-verified"><svg class="i"><use href="#i-check"/></svg>Verified</span></h2>
+            <div class="spec">Vedic Astrology · Kundli Matching · Manglik Dosha</div>
+            <div class="statline">
+              <div class="s"><b>4.9</b><span>Rating</span></div>
+              <div class="s"><b>18 yrs</b><span>Experience</span></div>
+              <div class="s"><b>3,200+</b><span>Consults</span></div>
+              <div class="s"><b>₹400</b><span>per session</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="dbody">
+          <h4>About</h4>
+          <p>Pt. Suresh specialises in Ashtakoot guna milan and remedies for manglik and nadi dosha. He has guided thousands of Tricity families through compatibility, muhurat selection and post-marriage harmony.</p>
+          <h4>Languages</h4>
+          <div class="langrow"><span>Hindi</span><span>Punjabi</span><span>English</span></div>
+          <h4>Consultation modes</h4>
+          <div class="langrow"><span><svg class="i" style="width:12px;height:12px;vertical-align:-1px"><use href="#i-video"/></svg> Video call</span><span><svg class="i" style="width:12px;height:12px;vertical-align:-1px"><use href="#i-phone"/></svg> Voice call</span></div>
+        </div>
+      </div>
+
+      <div class="bcols">
+        <div class="bcard">
+          <div class="ch">Pick a slot</div>
+          <div class="cb">
+            <div class="daysel">
+              <div class="day"><span>Mon</span><b>23</b></div>
+              <div class="day on"><span>Tue</span><b>24</b></div>
+              <div class="day"><span>Wed</span><b>25</b></div>
+              <div class="day"><span>Thu</span><b>26</b></div>
+              <div class="day"><span>Fri</span><b>27</b></div>
+            </div>
+            <div class="slots">
+              <div class="slot off">10:00</div><div class="slot">11:30</div><div class="slot on">2:00</div>
+              <div class="slot">3:30</div><div class="slot">5:00</div><div class="slot off">6:30</div>
+            </div>
+          </div>
+        </div>
+        <div class="bcard">
+          <div class="ch">Booking summary</div>
+          <div class="cb bsummary">
+            <div class="srow"><span class="k">Astrologer</span><span class="v">Pt. Suresh Sharma</span></div>
+            <div class="srow"><span class="k">Date & time</span><span class="v">Tue 24 · 2:00 PM</span></div>
+            <div class="srow"><span class="k">Mode</span><span class="v">Video · 30 min</span></div>
+            <div class="total"><span class="k">Total</span><span class="v">₹400</span></div>
+            <button class="btn btn-gold" style="width:100%;margin-top:1rem"><svg class="i"><use href="#i-video"/></svg>Confirm & pay ₹400</button>
+            <p style="font-size:.74rem;color:var(--muted);text-align:center;margin-top:.7rem">Free reschedule up to 4 hours before</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MY BOOKINGS ============ -->
+  <div data-show="bookings">
+    <div class="wrap">
+      <div class="phead"><h1><span class="bar"></span>My consultations</h1><p>Your astrologer bookings</p></div>
+      <div class="btab">
+        <button class="on" data-bt="upcoming" onclick="setBtab('upcoming')">Upcoming</button>
+        <button data-bt="past" onclick="setBtab('past')">Past</button>
+      </div>
+      <div data-bt-panel="upcoming">
+        <div class="bk">
+          <div class="av">PS</div>
+          <div class="bi"><b>Pt. Suresh Sharma</b><p><svg class="i"><use href="#i-cal"/></svg>Tue 24 Jun · 2:00 PM <span class="status s-accept" style="margin-left:.2rem">Confirmed</span></p></div>
+          <div class="br"><span class="badge b-premium"><svg class="i"><use href="#i-video"/></svg>Video</span><button class="btn btn-gold btn-sm">Join</button></div>
+        </div>
+        <div class="bk">
+          <div class="av">RJ</div>
+          <div class="bi"><b>Acharya Ravi Joshi</b><p><svg class="i"><use href="#i-cal"/></svg>Fri 27 Jun · 11:30 AM <span class="status s-pending" style="margin-left:.2rem">Awaiting confirmation</span></p></div>
+          <div class="br"><span class="badge b-online"><svg class="i" style="width:12px;height:12px"><use href="#i-phone"/></svg>Voice</span><button class="btn btn-ghost btn-sm">Reschedule</button></div>
+        </div>
+      </div>
+      <div data-bt-panel="past" style="display:none">
+        <div class="bk">
+          <div class="av">MG</div>
+          <div class="bi"><b>Pt. Meena Gupta</b><p><svg class="i"><use href="#i-cal"/></svg>2 Jun · 4:00 PM · 30 min</p></div>
+          <div class="br"><span class="acard rate" style="border:0;padding:0;box-shadow:none"><svg class="i"><use href="#i-star"/></svg>You rated 5.0</span><button class="btn btn-secondary btn-sm">Book again</button></div>
+        </div>
+        <div class="bk">
+          <div class="av">PS</div>
+          <div class="bi"><b>Pt. Suresh Sharma</b><p><svg class="i"><use href="#i-cal"/></svg>18 May · 6:00 PM · 30 min</p></div>
+          <div class="br"><button class="btn btn-ghost btn-sm">View notes</button><button class="btn btn-secondary btn-sm">Book again</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+const ASTRO=[
+  {i:'PS',n:'Pt. Suresh Sharma',sp:'Kundli Matching · Manglik',r:4.9,e:18,p:400,on:1,v:1},
+  {i:'RJ',n:'Acharya Ravi Joshi',sp:'Marriage Timing · Muhurat',r:4.8,e:12,p:350,on:1,v:1},
+  {i:'MG',n:'Pt. Meena Gupta',sp:'Nadi Dosha · Remedies',r:5.0,e:22,p:500,on:0,v:1},
+  {i:'VD',n:'Acharya Vinod Dixit',sp:'Numerology · Compatibility',r:4.7,e:9,p:300,on:1,v:0},
+];
+function acard(a){return `<div class="acard" onclick="setPage('detail')">
+  <div class="av">${a.i}${a.on?'<span class="on-dot"></span>':''}</div>
+  <div class="ab"><h3>${a.n} ${a.v?'<span class="badge b-verified"><svg class="i"><use href="#i-check"/></svg></span>':''}</h3>
+  <div class="spec">${a.sp}</div>
+  <div class="meta"><span class="rate"><svg class="i"><use href="#i-star"/></svg>${a.r}</span><span><svg class="i"><use href="#i-award"/></svg>${a.e} yrs</span>${a.on?'<span class="b-online"><span class="dot" style="width:7px;height:7px;border-radius:50%;background:var(--success)"></span>Online</span>':''}</div>
+  <div class="foot"><span class="price">₹${a.p}<small> /session</small></span><button class="btn btn-gold btn-sm">Consult</button></div></div></div>`;}
+document.getElementById('agrid').innerHTML=ASTRO.map(acard).join('');
+document.querySelectorAll('.day,.slot:not(.off),.achip').forEach(el=>el.onclick=function(){
+  if(this.classList.contains('day')){document.querySelectorAll('.day').forEach(d=>d.classList.remove('on'));}
+  if(this.classList.contains('slot')){document.querySelectorAll('.slot').forEach(d=>d.classList.remove('on'));}
+  if(this.classList.contains('achip')){document.querySelectorAll('.achip').forEach(d=>d.classList.remove('on'));}
+  this.classList.add('on');});
+
+function press(ids,on){ids.forEach(id=>document.getElementById(id).setAttribute('aria-pressed',id===on));}
+function toggleState(s){document.querySelectorAll('[data-show]').forEach(el=>{el.style.display=el.getAttribute('data-show').split(/\s+/).includes(s)?'':'none';});}
+function setPage(p){document.body.dataset.page=p;press(['pg-list','pg-detail','pg-bookings'],'pg-'+p);toggleState(p);}
+function setBtab(t){document.body.dataset.btab=t;document.querySelectorAll('.btab button').forEach(b=>b.classList.toggle('on',b.dataset.bt===t));
+  document.querySelectorAll('[data-bt-panel]').forEach(el=>el.style.display=el.getAttribute('data-bt-panel')===t?'':'none');}
+function setVp(v){document.body.dataset.vp=v;press(['vp-d','vp-m'],v==='desktop'?'vp-d':'vp-m');}
+function setTh(t){document.documentElement.setAttribute('data-theme',t);press(['th-l','th-d'],t==='light'?'th-l':'th-d');}
+function setEl(e){document.documentElement.setAttribute('data-elder',e);press(['el-off','el-on'],e==='off'?'el-off':'el-on');}
+document.body.classList.add('ready');setPage('list');setBtab('upcoming');
+</script>
+</body>
+</html>

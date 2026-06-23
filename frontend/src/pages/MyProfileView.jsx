@@ -20,16 +20,16 @@ import { ImageLightbox } from '../components/ui/ImageLightbox';
 
 // ─── Card wrapper ────────────────────────────────────────────────────────────
 const Card = ({ title, icon: Icon, children, action, className = '' }) => (
-  <div className={`bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden ${className}`}>
+  <div className={`bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card overflow-hidden ${className}`}>
     {title && (
-      <div className="px-5 pt-4 pb-3 border-b border-slate-50 flex items-center justify-between">
+      <div className="px-5 pt-4 pb-3 border-b border-neutral-50 dark:border-neutral-800 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           {Icon && (
             <div className="w-7 h-7 rounded-lg bg-primary-50 flex items-center justify-center flex-shrink-0">
               <Icon className="w-3.5 h-3.5 text-primary-500" />
             </div>
           )}
-          <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wide">{title}</h2>
+          <h2 className="text-sm font-bold text-neutral-800 uppercase tracking-wide">{title}</h2>
         </div>
         {action}
       </div>
@@ -42,9 +42,9 @@ const Card = ({ title, icon: Icon, children, action, className = '' }) => (
 const Pill = ({ label, value, highlight }) => {
   if (!value && value !== 0) return null;
   return (
-    <div className={`flex flex-col px-3 py-2.5 rounded-xl border ${highlight ? 'bg-primary-50 border-primary-100' : 'bg-slate-50 border-slate-100'}`}>
-      <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-0.5">{label}</span>
-      <span className={`text-xs font-bold capitalize ${highlight ? 'text-primary-700' : 'text-slate-700'}`}>{String(value).replace(/_/g, ' ')}</span>
+    <div className={`flex flex-col px-3 py-2.5 rounded-xl border ${highlight ? 'bg-primary-50 border-primary-100' : 'bg-neutral-50 border-neutral-100'}`}>
+      <span className="text-[10px] font-bold uppercase tracking-wide text-neutral-400 mb-0.5">{label}</span>
+      <span className={`text-xs font-bold capitalize ${highlight ? 'text-primary-700' : 'text-neutral-700'}`}>{String(value).replace(/_/g, ' ')}</span>
     </div>
   );
 };
@@ -53,18 +53,18 @@ const Pill = ({ label, value, highlight }) => {
 const DetailRow = ({ label, value, isLast }) => {
   if (!value && value !== 0) return null;
   return (
-    <div className={`flex justify-between items-center py-2.5 ${!isLast ? 'border-b border-slate-50' : ''}`}>
-      <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">{label}</span>
-      <span className="text-sm font-semibold text-slate-700 capitalize text-right max-w-[55%] truncate">{String(value).replace(/_/g, ' ')}</span>
+    <div className={`flex justify-between items-center py-2.5 ${!isLast ? 'border-b border-neutral-50' : ''}`}>
+      <span className="text-xs font-bold text-neutral-400 uppercase tracking-wide">{label}</span>
+      <span className="text-sm font-semibold text-neutral-700 capitalize text-right max-w-[55%] truncate">{String(value).replace(/_/g, ' ')}</span>
     </div>
   );
 };
 
 // ─── Stat Badge ──────────────────────────────────────────────────────────────
 const StatBadge = ({ label, value, color = 'rose' }) => (
-  <div className={`flex flex-col items-center px-4 py-3 rounded-2xl border ${color === 'rose' ? 'bg-primary-50 border-primary-100' : color === 'amber' ? 'bg-amber-50 border-amber-100' : 'bg-emerald-50 border-emerald-100'}`}>
-    <span className={`text-xl font-black ${color === 'rose' ? 'text-primary-600' : color === 'amber' ? 'text-amber-600' : 'text-emerald-600'}`}>{value}</span>
-    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mt-0.5">{label}</span>
+  <div className={`flex flex-col items-center px-4 py-3 rounded-2xl border ${color === 'rose' ? 'bg-primary-50 border-primary-100' : color === 'amber' ? 'bg-gold-50 border-gold-200' : 'bg-success-50 border-success-100'}`}>
+    <span className={`font-display text-xl font-bold ${color === 'rose' ? 'text-primary-600' : color === 'amber' ? 'text-gold-700' : 'text-success'}`}>{value}</span>
+    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wide mt-0.5">{label}</span>
   </div>
 );
 
@@ -106,29 +106,29 @@ const MyProfileView = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-3">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-neutral-50 gap-3">
         <div className="w-9 h-9 rounded-full border-2 border-primary-200 border-t-primary-500 animate-spin" />
-        <p className="text-sm text-slate-400 font-medium">Loading your profile…</p>
+        <p className="text-sm text-neutral-400 font-medium">Loading your profile…</p>
       </div>
     );
   }
 
   if (!profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-neutral-50 px-4">
         <div className="text-center max-w-md">
           <div className="w-16 h-16 rounded-2xl bg-primary-50 flex items-center justify-center mx-auto mb-4">
             <FiUser className="w-8 h-8 text-primary-300" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">Set up your profile</h2>
-          <p className="text-slate-500 mb-6 text-sm leading-relaxed">
+          <h2 className="text-2xl font-bold text-neutral-900 mb-2">Set up your profile</h2>
+          <p className="text-neutral-500 mb-6 text-sm leading-relaxed">
             Add your details and photos so potential matches can find you.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link to="/profile/edit" className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-primary-500 text-white font-semibold text-sm hover:bg-primary-600 transition-colors shadow-sm cursor-pointer">
               <FiEdit2 className="w-4 h-4" /> Build your profile
             </Link>
-            <Link to="/dashboard" className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-medium text-sm hover:bg-slate-50 transition-colors cursor-pointer">
+            <Link to="/dashboard" className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl border border-neutral-200 text-neutral-700 font-medium text-sm hover:bg-neutral-50 transition-colors cursor-pointer">
               Back to dashboard
             </Link>
           </div>
@@ -181,16 +181,16 @@ const MyProfileView = () => {
 
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-16">
+    <div className="min-h-screen bg-neutral-50 dark:bg-[#0f1117] pb-16">
 
       {/* ── Sticky top bar ──────────────────────────────────────────── */}
-      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-slate-100 px-4 py-3">
+      <div className="sticky top-0 z-30 bg-white/95 dark:bg-[#1a1f2e]/95 backdrop-blur-sm border-b border-neutral-100 dark:border-neutral-800 px-4 py-3">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <Link to="/dashboard" className="text-sm font-semibold text-slate-500 hover:text-primary-500 transition-colors flex items-center gap-1.5 cursor-pointer">
+          <Link to="/dashboard" className="text-sm font-semibold text-neutral-500 hover:text-primary-500 transition-colors flex items-center gap-1.5 cursor-pointer">
             ← Dashboard
           </Link>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400 hidden sm:block">
+            <span className="text-xs text-neutral-400 hidden sm:block">
               <FiEye className="inline w-3 h-3 mr-1" />
               This is how matches see you
             </span>
@@ -215,15 +215,15 @@ const MyProfileView = () => {
           <div className="lg:col-span-2 space-y-5">
 
             {/* Hero card */}
-            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-[#1a1f2e] rounded-3xl border border-neutral-100 dark:border-neutral-800 shadow-card overflow-hidden">
 
               {/* Photos */}
               {allPhotos.length === 0 ? (
-                <div className="relative h-48 bg-gradient-to-br from-primary-100 via-primary-50 to-gold-50 flex items-center justify-center">
-                  <span className="text-7xl font-black text-primary-200 select-none">{profile.firstName?.[0] || '?'}</span>
+                <div className="relative h-48 bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center">
+                  <span className="text-7xl font-display font-semibold text-primary-700/40 dark:text-primary-300/40 select-none">{profile.firstName?.[0] || '?'}</span>
                   <Link
                     to="/profile/edit"
-                    className="absolute bottom-4 right-4 flex items-center gap-1.5 px-3 py-2 bg-white/90 backdrop-blur-sm rounded-xl text-xs font-bold text-slate-700 hover:bg-white shadow-sm border border-slate-100 transition-all cursor-pointer"
+                    className="absolute bottom-4 right-4 flex items-center gap-1.5 px-3 py-2 bg-white/90 backdrop-blur-sm rounded-xl text-xs font-bold text-neutral-700 hover:bg-white shadow-sm border border-neutral-100 transition-all cursor-pointer"
                   >
                     <FiCamera className="w-3.5 h-3.5 text-primary-500" />
                     Add Photos
@@ -240,9 +240,9 @@ const MyProfileView = () => {
                         key={photo}
                         type="button"
                         onClick={() => setLightbox({ open: true, src, alt })}
-                        className={`relative overflow-hidden bg-gradient-to-br from-primary-50 to-gold-50 hover:brightness-95 transition-all focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-inset cursor-pointer ${i === 0 && allPhotos.length >= 3 ? 'row-span-2 col-span-1' : ''}`}
+                        className={`relative overflow-hidden bg-primary-100 dark:bg-primary-900/40 hover:brightness-95 transition-all focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-inset cursor-pointer ${i === 0 && allPhotos.length >= 3 ? 'row-span-2 col-span-1' : ''}`}
                       >
-                        <span className="absolute inset-0 flex items-center justify-center text-6xl font-black text-primary-200 select-none">{profile.firstName?.[0] || '?'}</span>
+                        <span className="absolute inset-0 flex items-center justify-center text-6xl font-display font-semibold text-primary-700/40 dark:text-primary-300/40 select-none">{profile.firstName?.[0] || '?'}</span>
                         <img src={src} alt={alt} className="relative w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                       </button>
                     );
@@ -255,14 +255,14 @@ const MyProfileView = () => {
                 <div className="flex items-start justify-between gap-4 mb-4">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <h1 className="text-2xl md:text-3xl font-black text-slate-900">
+                      <h1 className="font-display text-2xl md:text-3xl font-bold text-neutral-900 dark:text-neutral-100">
                         {profile.firstName} {profile.lastName}
-                        {age && <span className="font-normal text-slate-400">, {age}</span>}
+                        {age && <span className="font-normal text-neutral-400">, {age}</span>}
                       </h1>
                       {isVerified && (
-                        <div className="flex items-center gap-1 px-2.5 py-1 bg-emerald-50 border border-emerald-100 rounded-full">
-                          <FiShield className="w-3 h-3 text-emerald-500" />
-                          <span className="text-[11px] font-bold text-emerald-600">Verified</span>
+                        <div className="flex items-center gap-1 px-2.5 py-1 bg-success-50 border border-success-100 rounded-full">
+                          <FiShield className="w-3 h-3 text-success" />
+                          <span className="text-[11px] font-bold text-success">Verified</span>
                         </div>
                       )}
                       {profileCode && (
@@ -270,15 +270,15 @@ const MyProfileView = () => {
                           type="button"
                           onClick={copyProfileCode}
                           title="Copy your profile ID to share"
-                          className="group flex items-center gap-1 px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-full hover:bg-slate-100 transition-colors"
+                          className="group flex items-center gap-1 px-2.5 py-1 bg-neutral-50 border border-neutral-200 rounded-full hover:bg-neutral-100 transition-colors"
                         >
-                          <FiHash className="w-3 h-3 text-slate-400" />
-                          <span className="text-[11px] font-bold text-slate-600 tracking-wide">{profileCode}</span>
-                          <FiCopy className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                          <FiHash className="w-3 h-3 text-neutral-400" />
+                          <span className="text-[11px] font-bold text-neutral-600 tracking-wide">{profileCode}</span>
+                          <FiCopy className="w-3 h-3 text-neutral-400 group-hover:text-neutral-600" />
                         </button>
                       )}
                     </div>
-                    <div className="flex flex-wrap gap-3 text-sm text-slate-500">
+                    <div className="flex flex-wrap gap-3 text-sm text-neutral-500">
                       {location && <span className="flex items-center gap-1.5 font-medium"><FiMapPin className="w-3.5 h-3.5 text-primary-400" />{location}</span>}
                       {profile.profession && <span className="flex items-center gap-1.5"><FiBriefcase className="w-3.5 h-3.5 text-primary-400" />{profile.profession}</span>}
                       {profile.education && <span className="flex items-center gap-1.5"><FiBook className="w-3.5 h-3.5 text-primary-400" />{profile.education}</span>}
@@ -297,12 +297,12 @@ const MyProfileView = () => {
 
                 {/* Bio */}
                 {profile.bio ? (
-                  <p className="text-slate-600 leading-relaxed text-sm border-t border-slate-50 pt-4">
+                  <p className="text-neutral-600 leading-relaxed text-sm border-t border-neutral-50 pt-4">
                     {sanitizeText(profile.bio)}
                   </p>
                 ) : (
-                  <div className="border-t border-slate-50 pt-4">
-                    <Link to="/profile/edit" className="text-sm text-slate-400 hover:text-primary-500 transition-colors cursor-pointer">
+                  <div className="border-t border-neutral-50 pt-4">
+                    <Link to="/profile/edit" className="text-sm text-neutral-400 hover:text-primary-500 transition-colors cursor-pointer">
                       + Add a bio to help matches get to know you
                     </Link>
                   </div>
@@ -311,7 +311,7 @@ const MyProfileView = () => {
             </div>
 
             {/* Video intro */}
-            <div className="bg-white rounded-2xl border border-slate-100 p-5">
+            <div className="bg-white rounded-2xl border border-neutral-100 p-5">
               <VideoIntroManager
                 videoUrl={profile.videoIntroUrl}
                 onChange={(url) => setProfile((p) => ({ ...p, videoIntroUrl: url }))}
@@ -325,16 +325,16 @@ const MyProfileView = () => {
                   {profilePrompts.map(({ q, a }, i) => (
                     <div key={i} className="p-4 bg-primary-50/60 rounded-xl border border-primary-100">
                       <p className="text-[11px] font-bold text-primary-400 uppercase tracking-wide mb-1.5">{sanitizeText(q)}</p>
-                      <p className="text-sm text-slate-700 leading-relaxed">{sanitizeText(a)}</p>
+                      <p className="text-sm text-neutral-700 leading-relaxed">{sanitizeText(a)}</p>
                     </div>
                   ))}
                 </div>
               </Card>
             ) : (
-              <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-5 flex items-center justify-between">
+              <div className="bg-white rounded-2xl border border-dashed border-neutral-200 p-5 flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-slate-700">Add profile prompts</p>
-                  <p className="text-xs text-slate-400 mt-0.5">Answer fun questions to stand out</p>
+                  <p className="text-sm font-semibold text-neutral-700">Add profile prompts</p>
+                  <p className="text-xs text-neutral-400 mt-0.5">Answer fun questions to stand out</p>
                 </div>
                 <Link to="/profile/edit" className="flex items-center gap-1.5 px-3 py-2 bg-primary-500 text-white rounded-xl text-xs font-bold hover:bg-primary-600 transition-colors cursor-pointer">
                   <FiEdit2 className="w-3 h-3" /> Add
@@ -354,10 +354,10 @@ const MyProfileView = () => {
                 </div>
               </Card>
             ) : (
-              <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-5 flex items-center justify-between">
+              <div className="bg-white rounded-2xl border border-dashed border-neutral-200 p-5 flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-slate-700">Add interests</p>
-                  <p className="text-xs text-slate-400 mt-0.5">Help matches find common ground</p>
+                  <p className="text-sm font-semibold text-neutral-700">Add interests</p>
+                  <p className="text-xs text-neutral-400 mt-0.5">Help matches find common ground</p>
                 </div>
                 <Link to="/profile/edit" className="flex items-center gap-1.5 px-3 py-2 bg-primary-500 text-white rounded-xl text-xs font-bold hover:bg-primary-600 transition-colors cursor-pointer">
                   <FiEdit2 className="w-3 h-3" /> Add
@@ -372,16 +372,16 @@ const MyProfileView = () => {
                   href={sanitizeUrl(profile.spotifyPlaylist)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-3 p-3.5 bg-slate-50 rounded-xl border border-slate-100 hover:border-[#1DB954]/40 hover:bg-[#1DB954]/5 transition-all group cursor-pointer"
+                  className="flex items-center gap-3 p-3.5 bg-neutral-50 rounded-xl border border-neutral-100 hover:border-[#1DB954]/40 hover:bg-[#1DB954]/5 transition-all group cursor-pointer"
                 >
                   <div className="w-10 h-10 rounded-xl bg-[#1DB954]/15 flex items-center justify-center flex-shrink-0">
                     <FiMusic className="w-4.5 h-4.5 text-[#1DB954]" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-700 group-hover:text-[#1DB954] transition-colors truncate">My Spotify Playlist</p>
-                    <p className="text-xs text-slate-400">Open in Spotify</p>
+                    <p className="text-sm font-semibold text-neutral-700 group-hover:text-[#1DB954] transition-colors truncate">My Spotify Playlist</p>
+                    <p className="text-xs text-neutral-400">Open in Spotify</p>
                   </div>
-                  <FiChevronRight className="w-4 h-4 text-slate-300" />
+                  <FiChevronRight className="w-4 h-4 text-neutral-300" />
                 </a>
               </Card>
             )}
@@ -398,11 +398,11 @@ const MyProfileView = () => {
                         href={sanitizeUrl(url)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2.5 p-3 border border-slate-100 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer"
+                        className="flex items-center gap-2.5 p-3 border border-neutral-100 rounded-xl hover:bg-neutral-50 transition-colors cursor-pointer"
                       >
                         <Icon className="w-4 h-4 flex-shrink-0" style={{ color }} />
-                        <span className="text-sm font-semibold text-slate-700">{label}</span>
-                        <FiChevronRight className="w-3 h-3 text-slate-300 ml-auto" />
+                        <span className="text-sm font-semibold text-neutral-700">{label}</span>
+                        <FiChevronRight className="w-3 h-3 text-neutral-300 ml-auto" />
                       </a>
                     );
                   })}
@@ -487,7 +487,7 @@ const MyProfileView = () => {
               <Card title="Languages" icon={FiGlobe} action={<EditBtn small />}>
                 <div className="flex flex-wrap gap-1.5">
                   {profile.languages.map((lang, i) => (
-                    <span key={i} className="px-2.5 py-1.5 bg-slate-100 rounded-xl text-xs font-bold text-slate-600">{lang}</span>
+                    <span key={i} className="px-2.5 py-1.5 bg-neutral-100 rounded-xl text-xs font-bold text-neutral-600">{lang}</span>
                   ))}
                 </div>
               </Card>
@@ -507,8 +507,8 @@ const MyProfileView = () => {
                   {profile.preferredProfession && <DetailRow label="Profession" value={profile.preferredProfession} />}
                 </div>
                 {profile.preferredCity?.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-slate-50">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2">Cities</p>
+                  <div className="mt-3 pt-3 border-t border-neutral-50">
+                    <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wide mb-2">Cities</p>
                     <div className="flex flex-wrap gap-1.5">
                       {profile.preferredCity.map((c, i) => (
                         <span key={i} className="px-2.5 py-1 bg-primary-50 text-primary-700 border border-primary-100 rounded-full text-xs font-semibold">{c}</span>
@@ -521,17 +521,17 @@ const MyProfileView = () => {
 
             {/* Verification nudge */}
             {!isVerified && (
-              <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
+              <div className="bg-gold-50 border border-gold-200 rounded-2xl p-4">
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <FiShield className="w-4 h-4 text-amber-600" />
+                  <div className="w-8 h-8 rounded-lg bg-gold-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <FiShield className="w-4 h-4 text-gold-600" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-bold text-amber-800 mb-1">Get Verified</p>
-                    <p className="text-xs text-amber-600 leading-relaxed mb-3">
+                    <p className="text-sm font-bold text-gold-700 mb-1">Get Verified</p>
+                    <p className="text-xs text-gold-700/80 leading-relaxed mb-3">
                       Verified profiles get 3x more responses. Submit your ID to get the verified badge.
                     </p>
-                    <Link to="/settings" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 text-white text-xs font-bold rounded-lg hover:bg-amber-600 transition-colors cursor-pointer">
+                    <Link to="/settings" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gold text-neutral-900 text-xs font-bold rounded-lg hover:bg-gold-400 transition-colors cursor-pointer">
                       <FiShield className="w-3 h-3" /> Verify Now
                     </Link>
                   </div>

@@ -17,6 +17,7 @@ import { MatchCard } from '../components/cards';
 import ProfileCompletionMeter, { getCompletionData } from '../components/profile/ProfileCompletionMeter';
 import { getImageUrl } from '../utils/cloudinary';
 import UpgradeModal from '../components/common/UpgradeModal';
+import SectionHeader from '../components/common/SectionHeader';
 
 // ─── Skeleton loaders ──────────────────────────────────────────────────────
 const StatSkeleton = () => (
@@ -94,8 +95,8 @@ const SuggestionCard = ({ profile, index }) => {
             onError={(e) => { e.target.style.display = 'none'; if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'flex'; }}
           />
         ) : null}
-        <div className={`absolute inset-0 bg-gradient-to-br from-primary-100 via-gold-50 to-primary-50 items-center justify-center ${(profile.profilePhoto || profile.profile_photo) ? 'hidden' : 'flex'}`}>
-          <span className="text-4xl font-bold text-primary-300">{initials}</span>
+        <div className={`absolute inset-0 bg-primary-100 dark:bg-primary-900/40 items-center justify-center ${(profile.profilePhoto || profile.profile_photo) ? 'hidden' : 'flex'}`}>
+          <span className="font-display text-4xl font-semibold text-primary-700 dark:text-primary-300">{initials}</span>
         </div>
 
         {/* Gradient scrim */}
@@ -159,7 +160,7 @@ const PLAN_META = {
   free:          { label: 'Free Plan',      color: 'text-neutral-500', bg: 'bg-neutral-100',      crown: null },
   basic_premium: { label: 'Basic Premium',  color: 'text-primary-600', bg: 'bg-primary-50',        crown: 'text-primary-400' },
   premium_plus:  { label: 'Premium Plus',   color: 'text-gold-700',    bg: 'bg-gold-50',           crown: 'text-gold-500' },
-  vip:           { label: 'VIP Member',     color: 'text-amber-600',   bg: 'bg-amber-50',          crown: 'text-amber-400' },
+  vip:           { label: 'VIP Member',     color: 'text-gold-700',    bg: 'bg-gold-50',           crown: 'text-gold-500' },
 };
 
 const SubscriptionStatusCard = ({ subscription, navigate }) => {
@@ -226,21 +227,21 @@ const SubscriptionStatusCard = ({ subscription, navigate }) => {
             <div className="flex-1 sm:flex-none sm:w-48">
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-1.5">
-                  <FiUnlock className="w-3.5 h-3.5 text-rose-500" />
+                  <FiUnlock className="w-3.5 h-3.5 text-primary-500" />
                   <span className="text-xs font-semibold text-neutral-700">Contact Unlocks</span>
                 </div>
-                <span className="text-xs font-bold text-rose-600">{unlocksLeft} / {unlocksAllowed} left</span>
+                <span className="text-xs font-bold text-primary-600">{unlocksLeft} / {unlocksAllowed} left</span>
               </div>
               <div className="h-2 bg-white rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-rose-400 to-rose-500 rounded-full transition-all"
+                  className="h-full bg-gradient-to-r from-primary-400 to-primary-500 rounded-full transition-all"
                   style={{ width: `${unlocksAllowed ? ((unlocksAllowed - unlocksLeft) / unlocksAllowed) * 100 : 0}%` }}
                 />
               </div>
             </div>
           ) : (
             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-full shadow-sm">
-              <FiZap className="w-3.5 h-3.5 text-amber-500" />
+              <FiZap className="w-3.5 h-3.5 text-gold-500" />
               <span className="text-xs font-semibold text-neutral-700">Unlimited Unlocks</span>
             </div>
           )}
@@ -475,62 +476,56 @@ const Dashboard = () => {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
-        {/* ── 1. Greeting Card ─────────────────────────────────────────────── */}
+        {/* ── 1. Greeting Card — LIGHT hero (burgundy as accent, not flat fill) ── */}
         <motion.div variants={fadeInUp}>
-          <div
-            className="relative rounded-3xl overflow-hidden"
-            style={{
-              background: 'linear-gradient(135deg, #8B2346 0%, #6B1D3A 60%, #401123 100%)',
-            }}
-          >
-            {/* Decorative rings */}
-            <div className="absolute -top-16 -right-16 w-64 h-64 border border-white/10 rounded-full pointer-events-none" />
-            <div className="absolute -bottom-10 -left-10 w-48 h-48 border border-white/10 rounded-full pointer-events-none" />
-            <div className="absolute top-6 right-48 w-3 h-3 bg-gold/40 rounded-full pointer-events-none" />
-            <div className="absolute bottom-6 right-24 w-2 h-2 bg-white/30 rounded-full pointer-events-none" />
+          <div className="relative rounded-3xl overflow-hidden bg-white dark:bg-[#1a1f2e] border border-neutral-100 dark:border-neutral-800 shadow-card">
+            {/* Thin burgundy left rail + subtle primary wash */}
+            <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-primary-500 to-primary-700 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-r from-primary-50/70 dark:from-primary-900/20 via-transparent to-transparent pointer-events-none" />
+            {/* Faint neutral decorative rings */}
+            <div className="absolute -top-16 -right-16 w-64 h-64 border border-neutral-200/60 dark:border-neutral-700/40 rounded-full pointer-events-none" />
+            <div className="absolute -bottom-10 -right-10 w-44 h-44 border border-neutral-200/50 dark:border-neutral-700/30 rounded-full pointer-events-none" />
 
             <div className="relative z-10 px-6 py-8 md:px-10 md:py-10">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
                 {/* Left: Greeting */}
                 <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-7 h-7 bg-white/15 rounded-lg flex items-center justify-center">
-                      <greeting.icon className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-white/70 text-sm font-medium">Your Dashboard</span>
+                  <div className="inline-flex items-center gap-2 mb-3 px-3 py-1 bg-gold-50 border border-gold-200 rounded-full">
+                    <greeting.icon className="w-3.5 h-3.5 text-gold-600" />
+                    <span className="text-gold-700 text-xs font-semibold uppercase tracking-wide">Your Dashboard</span>
                   </div>
-                  <h1 className="font-display text-3xl md:text-4xl font-bold text-white mb-2">
+                  <h1 className="font-display text-3xl md:text-4xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">
                     {greeting.text}
                   </h1>
-                  <p className="text-white/75 text-base">{greeting.subtext}</p>
+                  <p className="text-neutral-500 text-base">{greeting.subtext}</p>
 
                   {stats.viewsThisWeek > 5 && (
                     <motion.div
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.5 }}
-                      className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 bg-white/15 rounded-full"
+                      className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 bg-primary-50 dark:bg-primary-900/30 border border-primary-100 dark:border-primary-800 rounded-full"
                     >
-                      <FiStar className="w-3.5 h-3.5 text-gold" />
-                      <span className="text-white text-xs font-medium">
+                      <FiStar className="w-3.5 h-3.5 text-gold-500" />
+                      <span className="text-primary-700 dark:text-primary-300 text-xs font-medium">
                         {stats.viewsThisWeek} profile views this week
                       </span>
                     </motion.div>
                   )}
                 </div>
 
-                {/* Right: Quick actions */}
+                {/* Right: Quick actions — 1 primary + 1 ghost */}
                 <div className="flex flex-row md:flex-col gap-3 flex-shrink-0">
                   <Link
                     to="/search"
-                    className="flex items-center gap-2.5 px-4 py-2.5 bg-white text-primary-600 rounded-xl text-sm font-semibold hover:bg-primary-50 transition-colors shadow-md"
+                    className="flex items-center gap-2.5 px-5 py-2.5 bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-xl text-sm font-semibold hover:-translate-y-0.5 transition-transform shadow-burgundy"
                   >
                     <FiSearch className="w-4 h-4" />
                     Find Matches
                   </Link>
                   <Link
                     to="/chat"
-                    className="flex items-center gap-2.5 px-4 py-2.5 bg-white/15 text-white border border-white/25 rounded-xl text-sm font-semibold hover:bg-white/25 transition-colors"
+                    className="flex items-center gap-2.5 px-5 py-2.5 bg-white dark:bg-transparent text-primary-600 dark:text-primary-300 border border-primary-200 dark:border-primary-700 rounded-xl text-sm font-semibold hover:bg-primary-50 dark:hover:bg-primary-900/30 transition-colors"
                   >
                     <FiMessageCircle className="w-4 h-4" />
                     Messages
@@ -559,7 +554,7 @@ const Dashboard = () => {
                   <div>
                     <p className="text-neutral-500 text-xs font-medium mb-2">{stat.label}</p>
                     <motion.p
-                      className={`text-4xl font-bold ${stat.numColor}`}
+                      className="font-display text-3xl font-bold text-neutral-900 dark:text-neutral-100"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.3 + i * 0.08 }}
@@ -568,8 +563,8 @@ const Dashboard = () => {
                     </motion.p>
                     <p className="text-[11px] text-neutral-400 mt-1">{stat.sublabel}</p>
                   </div>
-                  <div className={`w-11 h-11 ${stat.iconBg} rounded-xl flex items-center justify-center`}>
-                    <Icon className={`w-5 h-5 ${stat.iconColor}`} />
+                  <div className="w-11 h-11 bg-primary-50 dark:bg-primary-900/30 rounded-xl flex items-center justify-center">
+                    <Icon className="w-5 h-5 text-primary-500" />
                   </div>
                 </div>
               </motion.div>
@@ -599,30 +594,21 @@ const Dashboard = () => {
               initial="initial"
               animate="animate"
             >
-              {/* Section header */}
-              <div className="flex items-center justify-between mb-5">
-                <div>
-                  <div className="flex items-center gap-2.5 mb-1">
-                    <div className="w-1 h-6 bg-gold rounded-full" />
-                    <h2 className="font-display text-2xl md:text-3xl font-bold text-neutral-900">
-                      Mutual Matches
-                    </h2>
-                    <span className="px-2.5 py-0.5 bg-success-50 text-success text-xs font-bold rounded-full border border-success-100">
-                      {mutualMatches.length} new
-                    </span>
-                  </div>
-                  <p className="text-neutral-500 text-sm ml-3.5">
-                    These people liked you back — start a conversation
-                  </p>
-                </div>
-                <Link
-                  to="/chat"
-                  className="hidden sm:inline-flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-xl text-sm font-semibold hover:bg-primary-600 transition-colors shadow-burgundy"
-                >
-                  <FiMessageCircle className="w-4 h-4" />
-                  Open Chat
-                </Link>
-              </div>
+              <SectionHeader
+                title="Mutual Matches"
+                subtitle="These people liked you back — start a conversation"
+                count={`${mutualMatches.length} new`}
+                countTone="ok"
+                action={
+                  <Link
+                    to="/chat"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-xl text-sm font-semibold hover:bg-primary-600 transition-colors shadow-burgundy"
+                  >
+                    <FiMessageCircle className="w-4 h-4" />
+                    Open Chat
+                  </Link>
+                }
+              />
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {mutualMatches.slice(0, 3).map((match, i) => (
@@ -641,24 +627,13 @@ const Dashboard = () => {
 
         {/* ── 4b. Who Viewed Your Profile ───────────────────────────────── */}
         <motion.section variants={fadeInUp}>
-          <div className="flex items-center justify-between mb-5">
-            <div>
-              <div className="flex items-center gap-2.5 mb-1">
-                <div className="w-1 h-6 bg-primary-300 rounded-full" />
-                <h2 className="font-display text-2xl md:text-3xl font-bold text-neutral-900">
-                  Who Viewed You
-                </h2>
-                {hasPremium && profileViewers.length > 0 && (
-                  <span className="px-2.5 py-0.5 bg-primary-50 text-primary-600 text-xs font-bold rounded-full border border-primary-100">
-                    {profileViewers.length} recent
-                  </span>
-                )}
-              </div>
-              <p className="text-neutral-500 text-sm ml-3.5">
-                {hasPremium ? 'People who visited your profile recently' : 'Upgrade to see who viewed your profile'}
-              </p>
-            </div>
-          </div>
+          <SectionHeader
+            tone="gold"
+            title="Who Viewed You"
+            subtitle={hasPremium ? 'People who visited your profile recently' : 'Upgrade to see who viewed your profile'}
+            count={hasPremium && profileViewers.length > 0 ? `${profileViewers.length} recent` : undefined}
+            countTone="gold"
+          />
 
           {hasPremium && profileViewers.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -688,8 +663,8 @@ const Dashboard = () => {
                           loading="lazy"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-50 to-gold-50">
-                          <span className="text-2xl font-bold text-primary-300">{initials}</span>
+                        <div className="w-full h-full flex items-center justify-center bg-primary-100 dark:bg-primary-900/40">
+                          <span className="font-display text-2xl font-semibold text-primary-700 dark:text-primary-300">{initials}</span>
                         </div>
                       )}
                     </div>
@@ -738,16 +713,13 @@ const Dashboard = () => {
         {/* ── 4c. Today's Matches (daily cached set) ───────────────────────── */}
         {dailyMatches.length > 0 && (
           <motion.section variants={fadeInUp}>
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <div className="flex items-center gap-2.5 mb-1">
-                  <div className="w-1 h-6 bg-gold rounded-full" />
-                  <h2 className="font-display text-2xl md:text-3xl font-bold text-neutral-900">Today's Matches</h2>
-                  <span className="px-2.5 py-0.5 bg-gold-50 text-gold-700 text-xs font-semibold rounded-full border border-gold-100">Daily</span>
-                </div>
-                <p className="text-neutral-500 text-sm ml-3.5">Hand-picked for you, refreshed every day</p>
-              </div>
-            </div>
+            <SectionHeader
+              tone="gold"
+              title="Today's Matches"
+              subtitle="Hand-picked for you, refreshed every day"
+              count="Daily"
+              countTone="gold"
+            />
 
             <div className="flex gap-4 overflow-x-auto pb-3 md:pb-0 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:gap-5 scrollbar-hide snap-x snap-mandatory">
               {dailyMatches.map((profile, i) => (
@@ -773,10 +745,7 @@ const Dashboard = () => {
         {/* ── 4d. Recently Viewed ──────────────────────────────────────────── */}
         {recentlyViewed.length > 0 && (
           <motion.section variants={fadeInUp}>
-            <div className="flex items-center gap-2.5 mb-5">
-              <div className="w-1 h-6 bg-neutral-300 rounded-full" />
-              <h2 className="font-display text-2xl md:text-3xl font-bold text-neutral-900">Recently Viewed</h2>
-            </div>
+            <SectionHeader title="Recently Viewed" />
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
               {recentlyViewed.slice(0, 6).map((p, i) => {
                 const name = `${p.firstName || ''} ${p.lastName || ''}`.trim() || 'User';
@@ -800,8 +769,8 @@ const Dashboard = () => {
                           loading="lazy"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-50 to-gold-50">
-                          <span className="text-2xl font-bold text-primary-300">{initials}</span>
+                        <div className="w-full h-full flex items-center justify-center bg-primary-100 dark:bg-primary-900/40">
+                          <span className="font-display text-2xl font-semibold text-primary-700 dark:text-primary-300">{initials}</span>
                         </div>
                       )}
                     </div>
@@ -819,30 +788,20 @@ const Dashboard = () => {
         {/* ── 5. Suggested Profiles ─────────────────────────────────────────── */}
         {suggestions.length > 0 && (
           <motion.section variants={fadeInUp}>
-            {/* Section header */}
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <div className="flex items-center gap-2.5 mb-1">
-                  <div className="w-1 h-6 bg-primary-400 rounded-full" />
-                  <h2 className="font-display text-2xl md:text-3xl font-bold text-neutral-900">
-                    Curated for You
-                  </h2>
-                  <span className="px-2.5 py-0.5 bg-primary-50 text-primary-600 text-xs font-semibold rounded-full border border-primary-100">
-                    AI matched
-                  </span>
-                </div>
-                <p className="text-neutral-500 text-sm ml-3.5">
-                  Handpicked profiles based on your preferences
-                </p>
-              </div>
-              <Link
-                to="/search"
-                className="hidden sm:inline-flex items-center gap-1.5 text-primary-500 font-semibold text-sm hover:text-primary-600 transition-colors"
-              >
-                View all
-                <FiArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
+            <SectionHeader
+              title="Curated for You"
+              subtitle="Handpicked profiles based on your preferences"
+              count="AI matched"
+              action={
+                <Link
+                  to="/search"
+                  className="inline-flex items-center gap-1.5 text-primary-500 font-semibold text-sm hover:text-primary-600 transition-colors"
+                >
+                  View all
+                  <FiArrowRight className="w-4 h-4" />
+                </Link>
+              }
+            />
 
             {/* Horizontal scroll on mobile, grid on desktop */}
             <div className="flex gap-4 overflow-x-auto pb-3 md:pb-0 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:gap-5 scrollbar-hide snap-x snap-mandatory">

@@ -9,6 +9,7 @@ import {
   FiFileText, FiUsers, FiStar, FiChevronRight,
 } from 'react-icons/fi';
 import useDarkMode from '../hooks/useDarkMode';
+import useElderMode from '../hooks/useElderMode';
 import LanguageSwitcher from '../components/common/LanguageSwitcher';
 
 const TABS = [
@@ -118,6 +119,7 @@ const AccountTab = () => {
   const [show, setShow] = useState({ current: false, newPw: false, confirm: false });
   const [success, setSuccess] = useState(false);
   const { isDark, toggle: toggleDark } = useDarkMode();
+  const { isElder, toggle: toggleElder } = useElderMode();
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
@@ -163,6 +165,12 @@ const AccountTab = () => {
             onChange={toggleDark}
             label="Dark Mode"
             desc="Switch between light and dark theme"
+          />
+          <Toggle
+            value={isElder}
+            onChange={toggleElder}
+            label="Elder Mode"
+            desc="Larger text and higher contrast for easier reading"
           />
           <div className="flex items-center justify-between p-4">
             <div>
@@ -443,13 +451,13 @@ const VerificationTab = () => {
     return (
       <div className="space-y-6">
         <SectionHeader title="Identity Verification" desc="Your documents are under review" />
-        <div className="flex items-start gap-4 p-5 bg-amber-50 border border-amber-100 rounded-2xl max-w-sm">
-          <div className="w-11 h-11 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-            <FiClock className="w-5 h-5 text-amber-600" />
+        <div className="flex items-start gap-4 p-5 bg-warning-light border border-warning/20 rounded-2xl max-w-sm">
+          <div className="w-11 h-11 rounded-full bg-warning/15 flex items-center justify-center flex-shrink-0">
+            <FiClock className="w-5 h-5 text-warning" />
           </div>
           <div>
-            <p className="font-semibold text-amber-800 text-sm">Under Review</p>
-            <p className="text-xs text-amber-700 mt-0.5">
+            <p className="font-semibold text-warning text-sm">Under Review</p>
+            <p className="text-xs text-warning/80 mt-0.5">
               Submitted {status.submittedAt ? new Date(status.submittedAt).toLocaleDateString('en-IN') : ''} · {DOC_TYPES.find(d => d.value === status.documentType)?.label || status.documentType}
             </p>
             <p className="text-xs text-neutral-500 mt-2">We typically review documents within 24 hours. You'll receive an email when it's done.</p>
@@ -670,11 +678,11 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50 pt-20 pb-24 md:pb-10 px-4">
+    <div className="min-h-screen bg-neutral-50 dark:bg-[#0f1117] pt-20 pb-24 md:pb-10 px-4">
       <div className="max-w-4xl mx-auto">
 
         <div className="mb-8">
-          <h1 className="font-display text-3xl font-bold text-neutral-900">Settings</h1>
+          <h1 className="font-display text-3xl font-bold text-neutral-900 dark:text-neutral-100">Settings</h1>
           <p className="text-neutral-500 text-sm mt-1">Manage your account preferences and privacy</p>
         </div>
 
@@ -682,7 +690,7 @@ export default function Settings() {
 
           {/* Sidebar nav */}
           <div className="md:w-56 flex-shrink-0 w-full">
-            <nav className="bg-white rounded-2xl shadow-card border border-neutral-100 overflow-hidden">
+            <nav className="bg-white dark:bg-[#1a1f2e] rounded-2xl shadow-card border border-neutral-100 dark:border-neutral-800 overflow-hidden">
               {TABS.map(({ id, label, icon: Icon, desc }) => (
                 <button
                   key={id}
@@ -718,7 +726,7 @@ export default function Settings() {
           </div>
 
           {/* Content panel */}
-          <div className="flex-1 min-w-0 bg-white rounded-2xl shadow-card border border-neutral-100 p-6 md:p-8">
+          <div className="flex-1 min-w-0 bg-white dark:bg-[#1a1f2e] rounded-2xl shadow-card border border-neutral-100 dark:border-neutral-800 p-6 md:p-8">
             <TabContent />
           </div>
         </div>

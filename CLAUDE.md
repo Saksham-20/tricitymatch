@@ -70,6 +70,13 @@ Routes:
 Onboarding 14: Welcome→CreatingFor→BasicInfo→CreateAccount→AboutYourself→Location→Education→MaritalStatus→Religion→Lifestyle→Family→Preferences→Photos→Verification.
 Dead files removed (`pages/Profile.jsx`, `pages/Signup.jsx` deleted). Build: **Vite 8** (rolldown) — `manualChunks` is function-form; terser drops console in prod; chunks vendor-react/ui/utils; es2020. AdminProtectedRoute + ProtectedRoute accept `['admin','super_admin']`.
 
+### Design System (2026-06-23 redesign)
+Hifi web redesign handoff (Claude Design) lives at **`docs/design-handoff/`** — static HTML mockups (1 per screen) + `Design System.html` (canonical components, source of truth) + `README.md` (per-screen spec) + `ts-system.css` (token reference). Open any `.html`, use top harness bar to toggle viewport/theme/elder/state. **Mockups are reference, NOT code to copy** — recreate in React using existing Tailwind classes + `index.css` CSS vars. Tokens are unchanged (burgundy `#8B2346` accent-only never flat fills, gold `#C9A227` premium/VIP only, Playfair headings + Inter body).
+- **Shared pieces (build/use first):** `components/common/SectionHeader.jsx` (tick bar — gold=premium, burgundy=standard — + Playfair title + count chip + subtext) · refined `components/ui/Avatar.jsx` fallback (solid `bg-primary-100` + Playfair initials `text-primary-700` + success verified badge; replaces old pastel `from-primary-100 via-gold-50` gradient EVERYWHERE) · one muted `bg-neutral-100` info panel (kill rainbow info boxes).
+- **Themes:** light/dark via `html.dark` (Tailwind `darkMode:'class'`). **Elder mode** = `html.elder` class → base font 16→18.5px + muted text darkens (AA+), hit targets ≥44px, layout unchanged. Both toggled in Settings/theme system.
+- **Every data view ships 4 states:** default · loading (shimmer skeleton matching layout, not spinner) · empty (icon + 1 line + CTA) · error (icon + retry). Premium-gated views add gold lock (blur + unlock CTA).
+- **Redesign progress tracker:** `docs/design-handoff/PROGRESS.md`.
+
 ## Mobile (`mobile/`) — RN
 **Stack:** Expo SDK51 · React 18.2 · RN 0.74.5 · react-navigation **v6** · react-native-screens 3.31.1 · MMKV **v2** · old arch · Zustand+React Query · i18n en/hi/pa. Docs: `docs/01–06`.
 **Nav:** RootNavigator→(Auth|Onboarding|Main). MainNavigator role-gates AdminStack (admin/super_admin), BureauStack (bureau). IncomingCallModal inside NavigationContainer, outside Stack.

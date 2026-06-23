@@ -14,7 +14,7 @@ export default function PaymentSuccess() {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-neutral-50 via-primary-50/20 to-gold-50/30 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-neutral-50 via-primary-50/20 to-gold-50/30 dark:from-[#0f1117] dark:via-[#0f1117] dark:to-[#1a1f2e] px-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex justify-center mb-8">

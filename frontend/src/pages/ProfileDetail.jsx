@@ -28,14 +28,14 @@ const CompatRing = ({ score }) => {
   const r = (size - sw * 2) / 2;
   const circ = 2 * Math.PI * r;
   const offset = circ - (score / 100) * circ;
-  const color = score >= 90 ? '#16a34a' : score >= 75 ? '#d97706' : '#be123c';
-  const bg = score >= 90 ? '#f0fdf4' : score >= 75 ? '#fffbeb' : '#fff1f2';
+  const color = score >= 90 ? '#2E7D32' : score >= 75 ? '#C9A227' : '#8B2346';
+  const bg = score >= 90 ? '#E8F5E9' : score >= 75 ? '#FEFCF3' : '#FDF2F5';
 
   return (
     <div className="flex flex-col items-center gap-1.5">
       <div className="relative" style={{ width: size, height: size }}>
         <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#f1f5f9" strokeWidth={sw} />
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#E8E8E8" strokeWidth={sw} />
           <motion.circle
             cx={size / 2} cy={size / 2} r={r}
             fill="none" stroke={color} strokeWidth={sw}
@@ -48,10 +48,10 @@ const CompatRing = ({ score }) => {
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ background: bg, borderRadius: '50%', margin: 4 }}>
           <span className="text-lg font-bold leading-none" style={{ color }}>{score}%</span>
-          <span className="text-[9px] text-slate-400 mt-0.5 font-medium uppercase tracking-wide">match</span>
+          <span className="text-[9px] text-neutral-400 mt-0.5 font-medium uppercase tracking-wide">match</span>
         </div>
       </div>
-      <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Compatibility</p>
+      <p className="text-[11px] font-semibold text-neutral-500 uppercase tracking-wide">Compatibility</p>
     </div>
   );
 };
@@ -60,11 +60,11 @@ const CompatRing = ({ score }) => {
 const Pill = ({ icon: Icon, label, value }) => {
   if (!value) return null;
   return (
-    <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-xl border border-slate-100">
+    <div className="flex items-center gap-2 px-3 py-2 bg-neutral-50 rounded-xl border border-neutral-100">
       {Icon && <Icon className="w-3.5 h-3.5 text-primary-400 flex-shrink-0" />}
       <div className="min-w-0">
-        <p className="text-[10px] text-slate-400 uppercase tracking-wide font-semibold leading-none mb-0.5">{label}</p>
-        <p className="text-xs font-semibold text-slate-700 capitalize truncate">{value}</p>
+        <p className="text-[10px] text-neutral-400 uppercase tracking-wide font-semibold leading-none mb-0.5">{label}</p>
+        <p className="text-xs font-semibold text-neutral-700 capitalize truncate">{value}</p>
       </div>
     </div>
   );
@@ -72,13 +72,13 @@ const Pill = ({ icon: Icon, label, value }) => {
 
 // ─── Section Card ────────────────────────────────────────────────────────────
 const Card = ({ title, icon: Icon, children, className = '' }) => (
-  <div className={`bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden ${className}`}>
+  <div className={`bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card overflow-hidden ${className}`}>
     {title && (
-      <div className="px-5 pt-4 pb-3 border-b border-slate-50 flex items-center gap-2.5">
-        {Icon && <div className="w-7 h-7 rounded-lg bg-primary-50 flex items-center justify-center flex-shrink-0">
+      <div className="px-5 pt-4 pb-3 border-b border-neutral-50 dark:border-neutral-800 flex items-center gap-2.5">
+        {Icon && <div className="w-7 h-7 rounded-lg bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center flex-shrink-0">
           <Icon className="w-3.5 h-3.5 text-primary-500" />
         </div>}
-        <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wide">{title}</h2>
+        <h2 className="text-sm font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wide">{title}</h2>
       </div>
     )}
     <div className="px-5 py-4">{children}</div>
@@ -89,9 +89,9 @@ const Card = ({ title, icon: Icon, children, className = '' }) => (
 const DetailRow = ({ label, value }) => {
   if (!value && value !== 0) return null;
   return (
-    <div className="flex items-center justify-between py-2.5 border-b border-slate-50 last:border-b-0">
-      <span className="text-xs font-medium text-slate-400 uppercase tracking-wide">{label}</span>
-      <span className="text-sm font-semibold text-slate-700 capitalize text-right max-w-[55%]">{String(value).replace(/_/g, ' ')}</span>
+    <div className="flex items-center justify-between py-2.5 border-b border-neutral-50 last:border-b-0">
+      <span className="text-xs font-medium text-neutral-400 uppercase tracking-wide">{label}</span>
+      <span className="text-sm font-semibold text-neutral-700 capitalize text-right max-w-[55%]">{String(value).replace(/_/g, ' ')}</span>
     </div>
   );
 };
@@ -256,10 +256,10 @@ const ProfileDetail = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-neutral-50">
         <div className="flex flex-col items-center gap-3">
           <div className="w-9 h-9 rounded-full border-2 border-primary-200 border-t-primary-500 animate-spin" />
-          <p className="text-sm text-slate-400 font-medium">Loading profile…</p>
+          <p className="text-sm text-neutral-400 font-medium">Loading profile…</p>
         </div>
       </div>
     );
@@ -267,12 +267,12 @@ const ProfileDetail = () => {
 
   if (!profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-neutral-50">
         <div className="text-center">
           <div className="w-16 h-16 rounded-2xl bg-primary-50 flex items-center justify-center mx-auto mb-4">
             <FiUser className="w-8 h-8 text-primary-300" />
           </div>
-          <h2 className="text-xl font-bold text-slate-800 mb-2">Profile not found</h2>
+          <h2 className="text-xl font-bold text-neutral-800 mb-2">Profile not found</h2>
           <Link to="/search" className="text-primary-500 hover:text-primary-700 font-semibold text-sm transition-colors">
             ← Back to search
           </Link>
@@ -328,14 +328,14 @@ const ProfileDetail = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-slate-50 pb-28 md:pb-12">
+      <div className="min-h-screen bg-neutral-50 dark:bg-[#0f1117] pb-28 md:pb-12">
 
         {/* ── Top bar ─────────────────────────────────────────────────── */}
-        <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-slate-100 px-4 py-3">
+        <div className="sticky top-0 z-30 bg-white/95 dark:bg-[#1a1f2e]/95 backdrop-blur-sm border-b border-neutral-100 dark:border-neutral-800 px-4 py-3">
           <div className="max-w-5xl mx-auto flex items-center justify-between">
             <button
               onClick={() => navigate(-1)}
-              className="flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-primary-500 transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 text-sm font-semibold text-neutral-500 hover:text-primary-500 transition-colors cursor-pointer"
             >
               <FiChevronLeft className="w-4 h-4" />
               Back
@@ -343,7 +343,7 @@ const ProfileDetail = () => {
             <div className="hidden md:flex items-center gap-2">
               <button
                 onClick={() => handleAction('shortlist')}
-                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${isShortlisted ? 'bg-amber-50 text-amber-600 border border-amber-200' : 'border border-slate-200 text-slate-600 hover:border-amber-300 hover:text-amber-600'}`}
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${isShortlisted ? 'bg-gold-50 text-gold-700 border border-gold-200' : 'border border-neutral-200 text-neutral-600 hover:border-gold-300 hover:text-gold-700'}`}
               >
                 <FiStar className="w-3.5 h-3.5" />
                 {isShortlisted ? 'Saved' : 'Save'}
@@ -351,7 +351,7 @@ const ProfileDetail = () => {
               <button
                 onClick={() => handleAction('like')}
                 disabled={isLiked}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all cursor-pointer ${isLiked ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-primary-500 text-white hover:bg-primary-600 shadow-sm hover:-translate-y-0.5'}`}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all cursor-pointer ${isLiked ? 'bg-success-50 text-success border border-success-100' : 'bg-primary-500 text-white hover:bg-primary-600 shadow-sm hover:-translate-y-0.5'}`}
               >
                 {isLiked ? <><FiCheck className="w-3.5 h-3.5" /> Interested</> : <><FiHeart className="w-3.5 h-3.5" /> Express Interest</>}
               </button>
@@ -362,7 +362,7 @@ const ProfileDetail = () => {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
           {/* ── Hero section ─────────────────────────────────────────── */}
-          <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mb-5">
+          <div className="bg-white dark:bg-[#1a1f2e] rounded-3xl border border-neutral-100 dark:border-neutral-800 shadow-card overflow-hidden mb-5">
 
             {/* Photo grid */}
             {allPhotos.length > 0 ? (
@@ -377,9 +377,9 @@ const ProfileDetail = () => {
                       key={photo}
                       type="button"
                       onClick={() => setLightbox({ open: true, src: url, alt: `${firstName} ${i + 1}` })}
-                      className={`relative overflow-hidden bg-gradient-to-br from-primary-100 via-primary-50 to-gold-50 hover:brightness-95 transition-all focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-inset cursor-pointer ${isFirst && allPhotos.length >= 3 ? 'row-span-2 col-span-1' : ''}`}
+                      className={`relative overflow-hidden bg-primary-100 dark:bg-primary-900/40 hover:brightness-95 transition-all focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-inset cursor-pointer ${isFirst && allPhotos.length >= 3 ? 'row-span-2 col-span-1' : ''}`}
                     >
-                      <span className="absolute inset-0 flex items-center justify-center text-7xl font-bold text-primary-200 select-none">{firstName[0]}</span>
+                      <span className="absolute inset-0 flex items-center justify-center text-7xl font-display font-semibold text-primary-700/40 dark:text-primary-300/40 select-none">{firstName[0]}</span>
                       <img src={url} alt={`${firstName} ${i + 1}`} className="relative w-full h-full object-cover" loading={i === 0 ? 'eager' : 'lazy'} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                       {isOverlay && (
                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
@@ -391,8 +391,8 @@ const ProfileDetail = () => {
                 })}
               </div>
             ) : (
-              <div className="h-64 bg-gradient-to-br from-primary-100 via-primary-50 to-gold-50 flex items-center justify-center">
-                <span className="text-8xl font-bold text-primary-200 select-none">{firstName[0]}</span>
+              <div className="h-64 bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center">
+                <span className="text-8xl font-display font-semibold text-primary-700/40 dark:text-primary-300/40 select-none">{firstName[0]}</span>
               </div>
             )}
 
@@ -401,26 +401,26 @@ const ProfileDetail = () => {
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <h1 className="text-2xl md:text-3xl font-bold text-slate-900 leading-tight">
+                    <h1 className="font-display text-2xl md:text-3xl font-bold text-neutral-900 dark:text-neutral-100 leading-tight">
                       {firstName}
                       {profile.lastName ? ` ${profile.lastName[0]}.` : ''}
-                      {age && <span className="font-normal text-slate-400">, {age}</span>}
+                      {age && <span className="font-normal text-neutral-400">, {age}</span>}
                     </h1>
                     {isVerified && (
-                      <div className="flex items-center gap-1 px-2.5 py-1 bg-emerald-50 border border-emerald-100 rounded-full">
-                        <FiShield className="w-3 h-3 text-emerald-500" />
-                        <span className="text-[11px] font-bold text-emerald-600">Verified</span>
+                      <div className="flex items-center gap-1 px-2.5 py-1 bg-success-50 border border-success-100 rounded-full">
+                        <FiShield className="w-3 h-3 text-success" />
+                        <span className="text-[11px] font-bold text-success">Verified</span>
                       </div>
                     )}
                     {profile.isPremium && (
-                      <div className="flex items-center gap-1 px-2.5 py-1 bg-amber-50 border border-amber-200 rounded-full">
-                        <FaCrown className="w-3 h-3 text-amber-500" />
-                        <span className="text-[11px] font-bold text-amber-700">Premium</span>
+                      <div className="flex items-center gap-1 px-2.5 py-1 bg-gold-50 border border-gold-200 rounded-full">
+                        <FaCrown className="w-3 h-3 text-gold-500" />
+                        <span className="text-[11px] font-bold text-gold-700">Premium</span>
                       </div>
                     )}
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500 mb-4">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-neutral-500 mb-4">
                     {(profile.city || profile.state) && (
                       <span className="flex items-center gap-1.5 font-medium">
                         <FiMapPin className="w-3.5 h-3.5 text-primary-400" />
@@ -466,13 +466,13 @@ const ProfileDetail = () => {
                       <button
                         onClick={() => handleAction('like')}
                         disabled={isLiked}
-                        className={`flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-bold rounded-xl transition-all cursor-pointer ${isLiked ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-primary-500 text-white hover:bg-primary-600 shadow-sm hover:-translate-y-0.5'}`}
+                        className={`flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-bold rounded-xl transition-all cursor-pointer ${isLiked ? 'bg-success-50 text-success border border-success-100' : 'bg-primary-500 text-white hover:bg-primary-600 shadow-sm hover:-translate-y-0.5'}`}
                       >
                         {isLiked ? <><FiCheck className="w-4 h-4" /> Interested</> : <><FiHeart className="w-4 h-4" /> Express Interest</>}
                       </button>
                       <button
                         onClick={handleMessage}
-                        className={`flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-xl transition-all cursor-pointer ${premiumAccess ? 'border border-slate-200 text-slate-600 hover:bg-slate-50' : 'border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'}`}
+                        className={`flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-xl transition-all cursor-pointer ${premiumAccess ? 'border border-neutral-200 text-neutral-600 hover:bg-neutral-50' : 'border border-gold-200 bg-gold-50 text-gold-700 hover:bg-gold-100'}`}
                       >
                         {premiumAccess ? <FiMessageCircle className="w-4 h-4" /> : <FiLock className="w-4 h-4" />} {premiumAccess ? 'Message' : 'Message (Premium)'}
                       </button>
@@ -481,13 +481,13 @@ const ProfileDetail = () => {
                       <div className="grid grid-cols-2 gap-2 mt-2">
                         <button
                           onClick={() => handleCall('voice')}
-                          className="flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all cursor-pointer"
+                          className="flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-xl border border-neutral-200 text-neutral-600 hover:bg-neutral-50 transition-all cursor-pointer"
                         >
                           {premiumAccess ? <FiPhone className="w-4 h-4" /> : <FiLock className="w-4 h-4" />} Voice Call
                         </button>
                         <button
                           onClick={() => handleCall('video')}
-                          className="flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all cursor-pointer"
+                          className="flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-xl border border-neutral-200 text-neutral-600 hover:bg-neutral-50 transition-all cursor-pointer"
                         >
                           {premiumAccess ? <FiVideo className="w-4 h-4" /> : <FiLock className="w-4 h-4" />} Video Call
                         </button>
@@ -499,14 +499,14 @@ const ProfileDetail = () => {
 
               {/* Bio */}
               {profile.bio && (
-                <p className="mt-4 text-slate-600 leading-relaxed text-sm border-t border-slate-50 pt-4">
+                <p className="mt-4 text-neutral-600 leading-relaxed text-sm border-t border-neutral-50 pt-4">
                   {sanitizeText(profile.bio)}
                 </p>
               )}
 
               {/* Video intro */}
               {profile.videoIntroUrl && (
-                <div className="mt-4 border-t border-slate-50 pt-4">
+                <div className="mt-4 border-t border-neutral-50 pt-4">
                   <p className="text-[11px] font-bold text-primary-400 uppercase tracking-wide mb-2">Video intro</p>
                   <video
                     src={getImageUrl(profile.videoIntroUrl, API_BASE_URL, 'full')}
@@ -527,12 +527,12 @@ const ProfileDetail = () => {
             <div className="lg:col-span-2 space-y-4">
 
               {/* Tab nav */}
-              <div className="flex gap-1 bg-white rounded-2xl border border-slate-100 shadow-sm p-1.5">
+              <div className="flex gap-1 bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-1.5">
                 {tabs.map(tab => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === tab.id ? 'bg-primary-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === tab.id ? 'bg-primary-500 text-white shadow-sm' : 'text-neutral-500 hover:text-neutral-700 hover:bg-neutral-50'}`}
                   >
                     {tab.label}
                   </button>
@@ -559,7 +559,7 @@ const ProfileDetail = () => {
                             {profilePrompts.map(({ q, a }, i) => (
                               <div key={i} className="p-4 bg-primary-50/60 rounded-xl border border-primary-100">
                                 <p className="text-[11px] font-bold text-primary-400 uppercase tracking-wide mb-1.5">{sanitizeText(q)}</p>
-                                <p className="text-sm text-slate-700 leading-relaxed">{sanitizeText(a)}</p>
+                                <p className="text-sm text-neutral-700 leading-relaxed">{sanitizeText(a)}</p>
                               </div>
                             ))}
                           </div>
@@ -586,18 +586,18 @@ const ProfileDetail = () => {
                             href={sanitizeUrl(profile.spotifyPlaylist)}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-3 p-3.5 bg-slate-50 rounded-xl border border-slate-100 hover:border-[#1DB954]/40 hover:bg-[#1DB954]/5 transition-all group cursor-pointer"
+                            className="flex items-center gap-3 p-3.5 bg-neutral-50 rounded-xl border border-neutral-100 hover:border-[#1DB954]/40 hover:bg-[#1DB954]/5 transition-all group cursor-pointer"
                           >
                             <div className="w-10 h-10 rounded-xl bg-[#1DB954]/15 flex items-center justify-center flex-shrink-0">
                               <FiMusic className="w-4.5 h-4.5 text-[#1DB954]" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-slate-700 group-hover:text-[#1DB954] transition-colors truncate">
+                              <p className="text-sm font-semibold text-neutral-700 group-hover:text-[#1DB954] transition-colors truncate">
                                 {sanitizeText(firstName)}'s Spotify Playlist
                               </p>
-                              <p className="text-xs text-slate-400">Open in Spotify</p>
+                              <p className="text-xs text-neutral-400">Open in Spotify</p>
                             </div>
-                            <FiGlobe className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                            <FiGlobe className="w-4 h-4 text-neutral-300 flex-shrink-0" />
                           </a>
                         </Card>
                       )}
@@ -607,7 +607,7 @@ const ProfileDetail = () => {
                         <Card title="Languages" icon={FiGlobe}>
                           <div className="flex flex-wrap gap-2">
                             {profile.languages.map((l, i) => (
-                              <span key={i} className="px-3 py-1.5 bg-slate-100 rounded-xl text-xs font-semibold text-slate-700">{l}</span>
+                              <span key={i} className="px-3 py-1.5 bg-neutral-100 rounded-xl text-xs font-semibold text-neutral-700">{l}</span>
                             ))}
                           </div>
                         </Card>
@@ -648,20 +648,20 @@ const ProfileDetail = () => {
                               <div className="w-11 h-11 mx-auto rounded-full bg-primary-50 border border-primary-100 flex items-center justify-center text-lg font-black text-primary-600">
                                 {numerology.person1?.number}
                               </div>
-                              <p className="text-[11px] text-slate-500 mt-1">You · {numerology.person1?.title}</p>
+                              <p className="text-[11px] text-neutral-500 mt-1">You · {numerology.person1?.title}</p>
                             </div>
                             <div className="text-center">
                               <p className="text-2xl font-black text-primary-500">{numerology.compatibility.score}%</p>
-                              <p className="text-[11px] font-semibold text-slate-600">{numerology.compatibility.label}</p>
+                              <p className="text-[11px] font-semibold text-neutral-600">{numerology.compatibility.label}</p>
                             </div>
                             <div className="text-center flex-1">
                               <div className="w-11 h-11 mx-auto rounded-full bg-primary-50 border border-primary-100 flex items-center justify-center text-lg font-black text-primary-600">
                                 {numerology.person2?.number}
                               </div>
-                              <p className="text-[11px] text-slate-500 mt-1">{profile.firstName} · {numerology.person2?.title}</p>
+                              <p className="text-[11px] text-neutral-500 mt-1">{profile.firstName} · {numerology.person2?.title}</p>
                             </div>
                           </div>
-                          <p className="text-xs text-slate-500 leading-relaxed border-t border-slate-50 pt-3">
+                          <p className="text-xs text-neutral-500 leading-relaxed border-t border-neutral-50 pt-3">
                             {numerology.compatibility.note}
                           </p>
                         </Card>
@@ -682,8 +682,8 @@ const ProfileDetail = () => {
                         {profile.weight && <Pill label="Weight" value={`${profile.weight} kg`} />}
                       </div>
                       {profile.lifestylePreferences && Object.keys(profile.lifestylePreferences).length > 0 && (
-                        <div className="mt-4 pt-4 border-t border-slate-50">
-                          <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3">Lifestyle Preferences</p>
+                        <div className="mt-4 pt-4 border-t border-neutral-50">
+                          <p className="text-xs font-bold text-neutral-400 uppercase tracking-wide mb-3">Lifestyle Preferences</p>
                           <div className="flex flex-wrap gap-2">
                             {Object.entries(profile.lifestylePreferences).map(([k, v]) => {
                               if (!v && v !== 0) return null;
@@ -693,10 +693,10 @@ const ProfileDetail = () => {
                                 </span>
                               ) : null;
                               if (Array.isArray(v) && v.length > 0) return v.map(item => (
-                                <span key={`${k}-${item}`} className="px-3 py-1.5 bg-slate-100 rounded-full text-xs font-semibold text-slate-700 capitalize">{item}</span>
+                                <span key={`${k}-${item}`} className="px-3 py-1.5 bg-neutral-100 rounded-full text-xs font-semibold text-neutral-700 capitalize">{item}</span>
                               ));
                               return (
-                                <span key={k} className="px-3 py-1.5 bg-slate-100 rounded-full text-xs font-semibold text-slate-700 capitalize">
+                                <span key={k} className="px-3 py-1.5 bg-neutral-100 rounded-full text-xs font-semibold text-neutral-700 capitalize">
                                   {k.replace(/([A-Z])/g, ' $1').trim()}: {v}
                                 </span>
                               );
@@ -716,7 +716,7 @@ const ProfileDetail = () => {
                         {profile.numberOfSiblings > 0 && <Pill label="Siblings" value={profile.numberOfSiblings} />}
                         {profile.numberOfChildren > 0 && <Pill label="Children" value={profile.numberOfChildren} />}
                       </div>
-                      <div className="space-y-0 border border-slate-100 rounded-xl overflow-hidden">
+                      <div className="space-y-0 border border-neutral-100 rounded-xl overflow-hidden">
                         {profile.fatherOccupation && <DetailRow label="Father's Occupation" value={profile.fatherOccupation} />}
                         {profile.motherOccupation && <DetailRow label="Mother's Occupation" value={profile.motherOccupation} />}
                         {profile.caste && <DetailRow label="Caste" value={profile.caste} />}
@@ -724,14 +724,14 @@ const ProfileDetail = () => {
                         {profile.gotra && <DetailRow label="Gotra" value={profile.gotra} />}
                       </div>
                       {profile.familyPreferences && Object.keys(profile.familyPreferences).length > 0 && (
-                        <div className="mt-4 pt-4 border-t border-slate-50">
-                          <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3">Family Preferences</p>
+                        <div className="mt-4 pt-4 border-t border-neutral-50">
+                          <p className="text-xs font-bold text-neutral-400 uppercase tracking-wide mb-3">Family Preferences</p>
                           <div className="flex flex-wrap gap-2">
                             {Object.entries(profile.familyPreferences).map(([k, v]) => {
                               if (!v && v !== 0) return null;
                               const label = k.replace(/([A-Z])/g, ' $1').trim();
                               if (typeof v === 'boolean') return v ? <span key={k} className="px-3 py-1.5 bg-primary-50 text-primary-700 border border-primary-100 rounded-full text-xs font-semibold capitalize">{label}</span> : null;
-                              return <span key={k} className="px-3 py-1.5 bg-slate-100 rounded-full text-xs font-semibold text-slate-700 capitalize">{label}: {v}</span>;
+                              return <span key={k} className="px-3 py-1.5 bg-neutral-100 rounded-full text-xs font-semibold text-neutral-700 capitalize">{label}: {v}</span>;
                             })}
                           </div>
                         </div>
@@ -744,36 +744,36 @@ const ProfileDetail = () => {
                     <Card title="Looking For" icon={FiHeartOutline}>
                       <div className="space-y-3">
                         {(profile.preferredAgeMin || profile.preferredAgeMax) && (
-                          <div className="flex items-center justify-between py-2.5 border-b border-slate-50">
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Age Range</span>
-                            <span className="text-sm font-bold text-slate-700">
+                          <div className="flex items-center justify-between py-2.5 border-b border-neutral-50">
+                            <span className="text-xs font-bold text-neutral-400 uppercase tracking-wide">Age Range</span>
+                            <span className="text-sm font-bold text-neutral-700">
                               {profile.preferredAgeMin || '—'} – {profile.preferredAgeMax || '—'} years
                             </span>
                           </div>
                         )}
                         {(profile.preferredHeightMin || profile.preferredHeightMax) && (
-                          <div className="flex items-center justify-between py-2.5 border-b border-slate-50">
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Height Range</span>
-                            <span className="text-sm font-bold text-slate-700">
+                          <div className="flex items-center justify-between py-2.5 border-b border-neutral-50">
+                            <span className="text-xs font-bold text-neutral-400 uppercase tracking-wide">Height Range</span>
+                            <span className="text-sm font-bold text-neutral-700">
                               {profile.preferredHeightMin ? `${profile.preferredHeightMin} cm` : '—'} – {profile.preferredHeightMax ? `${profile.preferredHeightMax} cm` : '—'}
                             </span>
                           </div>
                         )}
                         {profile.preferredEducation && (
-                          <div className="flex items-center justify-between py-2.5 border-b border-slate-50">
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Education</span>
-                            <span className="text-sm font-bold text-slate-700">{profile.preferredEducation}</span>
+                          <div className="flex items-center justify-between py-2.5 border-b border-neutral-50">
+                            <span className="text-xs font-bold text-neutral-400 uppercase tracking-wide">Education</span>
+                            <span className="text-sm font-bold text-neutral-700">{profile.preferredEducation}</span>
                           </div>
                         )}
                         {profile.preferredProfession && (
-                          <div className="flex items-center justify-between py-2.5 border-b border-slate-50">
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Profession</span>
-                            <span className="text-sm font-bold text-slate-700">{profile.preferredProfession}</span>
+                          <div className="flex items-center justify-between py-2.5 border-b border-neutral-50">
+                            <span className="text-xs font-bold text-neutral-400 uppercase tracking-wide">Profession</span>
+                            <span className="text-sm font-bold text-neutral-700">{profile.preferredProfession}</span>
                           </div>
                         )}
                         {profile.preferredCity?.length > 0 && (
                           <div className="py-2.5">
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Preferred Cities</p>
+                            <p className="text-xs font-bold text-neutral-400 uppercase tracking-wide mb-2">Preferred Cities</p>
                             <div className="flex flex-wrap gap-1.5">
                               {profile.preferredCity.map((c, i) => (
                                 <span key={i} className="px-3 py-1.5 bg-primary-50 text-primary-700 border border-primary-100 rounded-full text-xs font-semibold">{c}</span>
@@ -782,14 +782,14 @@ const ProfileDetail = () => {
                           </div>
                         )}
                         {profile.personalityValues && Object.keys(profile.personalityValues).length > 0 && (
-                          <div className="pt-3 border-t border-slate-50">
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3">Values</p>
+                          <div className="pt-3 border-t border-neutral-50">
+                            <p className="text-xs font-bold text-neutral-400 uppercase tracking-wide mb-3">Values</p>
                             <div className="flex flex-wrap gap-2">
                               {Object.entries(profile.personalityValues).map(([k, v]) => {
                                 if (!v) return null;
                                 const label = k.replace(/([A-Z])/g, ' $1').trim();
                                 if (typeof v === 'boolean') return <span key={k} className="px-3 py-1.5 bg-primary-50 text-primary-700 border border-primary-100 rounded-full text-xs font-semibold capitalize">{label}</span>;
-                                return <span key={k} className="px-3 py-1.5 bg-slate-100 rounded-full text-xs font-semibold text-slate-700 capitalize">{label}: {v}</span>;
+                                return <span key={k} className="px-3 py-1.5 bg-neutral-100 rounded-full text-xs font-semibold text-neutral-700 capitalize">{label}: {v}</span>;
                               })}
                             </div>
                           </div>
@@ -806,7 +806,7 @@ const ProfileDetail = () => {
 
               {/* Compat ring mobile */}
               {compatScore && (
-                <div className="md:hidden bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex justify-center">
+                <div className="md:hidden bg-white rounded-2xl border border-neutral-100 shadow-sm p-5 flex justify-center">
                   <CompatRing score={compatScore} />
                 </div>
               )}
@@ -837,34 +837,34 @@ const ProfileDetail = () => {
                 {isContactUnlocked && unlockedContact ? (
                   <div className="space-y-2.5">
                     {unlockedContact.phone && (
-                      <a href={`tel:${unlockedContact.phone}`} className="flex items-center gap-3 p-3.5 bg-emerald-50 border border-emerald-100 rounded-xl hover:bg-emerald-100 transition-colors cursor-pointer">
-                        <div className="w-9 h-9 rounded-lg bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
-                          <FiPhone className="w-4 h-4 text-emerald-600" />
+                      <a href={`tel:${unlockedContact.phone}`} className="flex items-center gap-3 p-3.5 bg-success-50 border border-success-100 rounded-xl hover:bg-success-100 transition-colors cursor-pointer">
+                        <div className="w-9 h-9 rounded-lg bg-success/15 flex items-center justify-center flex-shrink-0">
+                          <FiPhone className="w-4 h-4 text-success" />
                         </div>
                         <div>
-                          <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-wide">Phone</p>
-                          <p className="text-sm font-bold text-slate-800">{unlockedContact.phone}</p>
+                          <p className="text-[10px] font-bold text-success uppercase tracking-wide">Phone</p>
+                          <p className="text-sm font-bold text-neutral-800">{unlockedContact.phone}</p>
                         </div>
                       </a>
                     )}
                     {unlockedContact.email && (
-                      <a href={`mailto:${unlockedContact.email}`} className="flex items-center gap-3 p-3.5 bg-emerald-50 border border-emerald-100 rounded-xl hover:bg-emerald-100 transition-colors cursor-pointer">
-                        <div className="w-9 h-9 rounded-lg bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
-                          <FiMail className="w-4 h-4 text-emerald-600" />
+                      <a href={`mailto:${unlockedContact.email}`} className="flex items-center gap-3 p-3.5 bg-success-50 border border-success-100 rounded-xl hover:bg-success-100 transition-colors cursor-pointer">
+                        <div className="w-9 h-9 rounded-lg bg-success/15 flex items-center justify-center flex-shrink-0">
+                          <FiMail className="w-4 h-4 text-success" />
                         </div>
                         <div>
-                          <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-wide">Email</p>
-                          <p className="text-sm font-bold text-slate-800">{unlockedContact.email}</p>
+                          <p className="text-[10px] font-bold text-success uppercase tracking-wide">Email</p>
+                          <p className="text-sm font-bold text-neutral-800">{unlockedContact.email}</p>
                         </div>
                       </a>
                     )}
                     {!unlockedContact.phone && !unlockedContact.email && (
-                      <p className="text-sm text-slate-400 text-center py-2">No contact details available</p>
+                      <p className="text-sm text-neutral-400 text-center py-2">No contact details available</p>
                     )}
                     {/* Social links when unlocked */}
                     {profile.socialMediaLinks && socialPlatforms.some(p => profile.socialMediaLinks[p.key]) && (
-                      <div className="pt-2 mt-2 border-t border-slate-100">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2">Social Media</p>
+                      <div className="pt-2 mt-2 border-t border-neutral-100">
+                        <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wide mb-2">Social Media</p>
                         <div className="grid grid-cols-2 gap-2">
                           {socialPlatforms.map(({ key, label, icon: Icon, color }) => {
                             const url = profile.socialMediaLinks[key];
@@ -875,10 +875,10 @@ const ProfileDetail = () => {
                                 href={sanitizeUrl(url)}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-2 px-2.5 py-2 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer"
+                                className="flex items-center gap-2 px-2.5 py-2 rounded-xl border border-neutral-100 hover:bg-neutral-50 transition-colors cursor-pointer"
                               >
                                 <Icon className="w-3.5 h-3.5" style={{ color }} />
-                                <span className="text-xs font-semibold text-slate-600">{label}</span>
+                                <span className="text-xs font-semibold text-neutral-600">{label}</span>
                               </a>
                             );
                           })}
@@ -888,11 +888,11 @@ const ProfileDetail = () => {
                   </div>
                 ) : (
                   <div className="text-center py-3">
-                    <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-3">
-                      <FiLock className="w-5 h-5 text-slate-400" />
+                    <div className="w-12 h-12 rounded-2xl bg-neutral-100 flex items-center justify-center mx-auto mb-3">
+                      <FiLock className="w-5 h-5 text-neutral-400" />
                     </div>
-                    <p className="text-sm font-bold text-slate-700 mb-1">Contact is private</p>
-                    <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+                    <p className="text-sm font-bold text-neutral-700 mb-1">Contact is private</p>
+                    <p className="text-xs text-neutral-400 mb-4 leading-relaxed">
                       {premiumAccess
                         ? `Use 1 of your ${contactUnlocksRemaining > 0 ? contactUnlocksRemaining : 'remaining'} unlock${contactUnlocksRemaining !== 1 ? 's' : ''} to view phone & email`
                         : 'Upgrade to Premium to view phone, email, and social links'}
@@ -907,7 +907,7 @@ const ProfileDetail = () => {
                       disabled={unlockLoading}
                       className={`w-full flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-xl transition-all cursor-pointer ${premiumAccess
                           ? 'bg-primary-500 text-white hover:bg-primary-600 shadow-sm'
-                          : 'bg-amber-400 text-amber-900 hover:bg-amber-500 shadow-sm'
+                          : 'bg-gold text-neutral-900 hover:bg-gold-400 shadow-gold'
                         }`}
                     >
                       {unlockLoading ? (

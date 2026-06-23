@@ -5,10 +5,10 @@ import api from '../api/axios';
 import { FiArrowLeft, FiSmartphone, FiCalendar } from 'react-icons/fi';
 
 const STATUS_CLS = {
-  confirmed: 'bg-green-50 text-green-600',
-  pending_payment: 'bg-amber-50 text-amber-600',
+  confirmed: 'bg-success-50 text-success',
+  pending_payment: 'bg-warning-light text-warning',
   completed: 'bg-neutral-100 text-neutral-500',
-  cancelled: 'bg-red-50 text-red-600',
+  cancelled: 'bg-destructive-light text-destructive',
 };
 
 export default function AstrologerBookings() {

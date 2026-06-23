@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-elder="off">
+<head>
+<meta charset="utf-8" />
+<title>TricityShadi — Settings & Notifications</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="ts-system.css" />
+<template id="__bundler_thumbnail">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#F5F5F5"/><circle cx="100" cy="100" r="26" fill="none" stroke="#8B2346" stroke-width="10"/><g stroke="#8B2346" stroke-width="10" stroke-linecap="round"><path d="M100 50v-14M100 164v-14M150 100h14M36 100h14M135 65l10-10M55 145l10-10M135 135l10 10M55 55l10 10"/></g></svg>
+</template>
+<style>
+body{background:var(--surface-2);}
+.harness{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;padding:.6rem 1rem;background:color-mix(in srgb,var(--card) 90%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);font-size:.8rem;}
+.harness .ttl{font-family:'Playfair Display',serif;font-weight:600;color:var(--fg-strong);}
+.harness .spacer{flex:1;}
+.seg{display:flex;background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:3px;gap:2px;}
+.seg button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:.76rem;font-weight:600;padding:.32rem .7rem;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:.3rem;}
+.seg button[aria-pressed="true"]{background:var(--card);color:var(--accent);box-shadow:var(--sh-sm);}
+.harness .lab{font-size:.66rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+
+.stage{padding:4.6rem 1.2rem 3rem;min-height:100vh;display:flex;justify-content:center;}
+.device{width:100%;max-width:860px;background:var(--bg);border:1px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.12);transition:max-width .35s ease;}
+body[data-vp="mobile"] .device{max-width:402px;border-radius:34px;}
+
+.wrap{padding:1.7rem;}
+body[data-vp="mobile"] .wrap{padding:1.1rem;}
+.phead h1{font-size:1.7rem;font-weight:700;display:flex;align-items:center;gap:.55rem;}
+.phead h1 .bar{width:5px;height:1.3em;background:var(--accent);border-radius:3px;}
+.phead p{color:var(--muted);font-size:.88rem;margin:.3rem 0 1.3rem 1.05rem;}
+
+/* settings layout */
+.slayout{display:grid;grid-template-columns:200px 1fr;gap:1.4rem;align-items:start;}
+body[data-vp="mobile"] .slayout{grid-template-columns:1fr;}
+.snav{position:sticky;top:5rem;display:flex;flex-direction:column;gap:.15rem;}
+body[data-vp="mobile"] .snav{flex-direction:row;overflow-x:auto;position:static;-ms-overflow-style:none;scrollbar-width:none;margin-bottom:.4rem;}
+body[data-vp="mobile"] .snav::-webkit-scrollbar{display:none;}
+.snav button{display:flex;align-items:center;gap:.6rem;border:0;background:none;font:inherit;font-weight:600;font-size:.88rem;color:var(--muted);padding:.6rem .8rem;border-radius:10px;cursor:pointer;text-align:left;white-space:nowrap;}
+.snav button svg{width:16px;height:16px;}
+.snav button.on{background:var(--accent-soft);color:var(--accent);}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--sh-card);overflow:hidden;margin-bottom:1.1rem;}
+.card .ch{padding:.95rem 1.2rem;border-bottom:1px solid var(--border);font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-strong);}
+.row{display:flex;align-items:center;gap:1rem;padding:.95rem 1.2rem;border-bottom:1px solid var(--border);}
+.row:last-child{border-bottom:0;}
+.row .rl{flex:1;min-width:0;}
+.row .rl b{font-size:.92rem;color:var(--fg-strong);display:block;}
+.row .rl span{font-size:.8rem;color:var(--muted);}
+.row .rr{flex:none;}
+.toggle{width:46px;height:26px;border-radius:999px;background:var(--n-300);position:relative;transition:.2s;flex:none;cursor:pointer;border:0;}
+.toggle::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+.toggle[aria-pressed="true"]{background:var(--accent);}
+.toggle[aria-pressed="true"]::after{transform:translateX(20px);}
+.inp{padding:.6rem .85rem;border-radius:10px;border:2px solid var(--border);background:var(--card);color:var(--fg);font:inherit;font-size:.9rem;}
+.inp:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px rgba(139,35,70,.12);}
+.sel{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%238B8B8B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='4 6 8 10 12 6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .8rem center;padding-right:2.1rem;}
+.danger{border-color:color-mix(in srgb,var(--destructive) 25%,transparent);}
+.danger .ch{color:var(--destructive);}
+.btn-danger{background:var(--card);color:var(--destructive);border:2px solid color-mix(in srgb,var(--destructive) 35%,transparent);}
+.btn-danger:hover{background:var(--destructive-l);}
+
+/* notifications */
+.ntabs{display:flex;gap:.3rem;border-bottom:1px solid var(--border);margin-bottom:1.2rem;}
+.ntabs button{border:0;background:none;font:inherit;font-weight:600;font-size:.9rem;color:var(--muted);padding:.7rem .9rem;cursor:pointer;position:relative;display:flex;align-items:center;gap:.4rem;}
+.ntabs button .nb{min-width:18px;height:18px;background:var(--accent);color:#fff;font-size:.62rem;font-weight:800;border-radius:999px;display:grid;place-items:center;padding:0 5px;}
+.ntabs button.on{color:var(--accent);}
+.ntabs button.on::after{content:"";position:absolute;left:.6rem;right:.6rem;bottom:-1px;height:2.5px;background:var(--accent);border-radius:3px;}
+.nlist{display:flex;flex-direction:column;gap:.5rem;}
+.nitem{display:flex;align-items:flex-start;gap:.9rem;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1rem 1.1rem;box-shadow:var(--sh-card);position:relative;}
+.nitem.unread{border-left:3px solid var(--accent);background:linear-gradient(90deg,var(--accent-soft),var(--card) 8%);}
+.nitem .ni{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;flex:none;}
+.nitem .ni.heart{background:var(--accent-soft);color:var(--accent);}
+.nitem .ni.msg{background:var(--info-l);color:var(--info);}
+.nitem .ni.match{background:var(--gold-soft);color:var(--g-600);}
+.nitem .ni.shield{background:var(--success-l);color:var(--success);}
+.nitem .ni svg{width:19px;height:19px;}
+.nitem .nc{flex:1;min-width:0;}
+.nitem .nc .av{width:26px;height:26px;font-size:.7rem;display:inline-grid;vertical-align:middle;margin-right:.1rem;}
+.nitem .nc p{font-size:.9rem;color:var(--fg);line-height:1.4;}
+.nitem .nc p b{color:var(--fg-strong);font-weight:600;}
+.nitem .nc .tm{font-size:.72rem;color:var(--muted);margin-top:.3rem;display:block;}
+.nitem .nact{flex:none;display:flex;gap:.4rem;align-items:center;}
+.nitem .dot{position:absolute;top:1.1rem;right:1.1rem;width:8px;height:8px;border-radius:50%;background:var(--accent);}
+.ngroup{font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:1rem 0 .4rem .2rem;}
+.ngroup:first-child{margin-top:0;}
+.markall{margin-left:auto;font-size:.8rem;font-weight:600;color:var(--accent);background:none;border:0;cursor:pointer;}
+
+body:not(.ready) [data-show]{display:none;}
+</style>
+</head>
+<body data-vp="desktop" data-page="settings" data-snav="account" data-ntab="all">
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<g id="i-user"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></g>
+<g id="i-lock"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></g>
+<g id="i-bell"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></g>
+<g id="i-eye"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></g>
+<g id="i-globe"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></g>
+<g id="i-heart"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></g>
+<g id="i-msg"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></g>
+<g id="i-shield"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></g>
+<g id="i-check"><polyline points="20 6 9 17 4 12"/></g>
+<g id="i-trash"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></g>
+<g id="i-pause"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></g>
+<g id="i-sun"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.2" y1="4.2" x2="5.6" y2="5.6"/><line x1="18.4" y1="18.4" x2="19.8" y2="19.8"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.2" y1="19.8" x2="5.6" y2="18.4"/><line x1="18.4" y1="5.6" x2="19.8" y2="4.2"/></g>
+<g id="i-moon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></g>
+</defs></svg>
+
+<div class="harness">
+  <span class="ttl">Settings</span>
+  <span class="lab">Page</span>
+  <div class="seg"><button id="pg-settings" aria-pressed="true" onclick="setPage('settings')">Settings</button><button id="pg-notifs" aria-pressed="false" onclick="setPage('notifs')">Notifications</button></div>
+  <span class="lab">View</span>
+  <div class="seg"><button id="vp-d" aria-pressed="true" onclick="setVp('desktop')">Desktop</button><button id="vp-m" aria-pressed="false" onclick="setVp('mobile')">Mobile</button></div>
+  <span class="lab">Theme</span>
+  <div class="seg"><button id="th-l" aria-pressed="true" onclick="setTh('light')"><svg class="i"><use href="#i-sun"/></svg>Light</button><button id="th-d" aria-pressed="false" onclick="setTh('dark')"><svg class="i"><use href="#i-moon"/></svg>Dark</button></div>
+  <span class="spacer"></span>
+  <span class="lab">Elder</span>
+  <div class="seg"><button id="el-off" aria-pressed="true" onclick="setEl('off')">Std</button><button id="el-on" aria-pressed="false" onclick="setEl('on')">Elder</button></div>
+</div>
+
+<div class="stage">
+<div class="device">
+
+  <!-- ============ SETTINGS ============ -->
+  <div data-show="settings">
+    <div class="wrap">
+      <div class="phead"><h1><span class="bar"></span>Settings</h1><p>Manage your account, privacy and preferences</p></div>
+      <div class="slayout">
+        <nav class="snav">
+          <button class="on" data-sn="account" onclick="setSnav('account')"><svg class="i"><use href="#i-user"/></svg>Account</button>
+          <button data-sn="privacy" onclick="setSnav('privacy')"><svg class="i"><use href="#i-eye"/></svg>Privacy</button>
+          <button data-sn="notifs" onclick="setSnav('notifs')"><svg class="i"><use href="#i-bell"/></svg>Notifications</button>
+          <button data-sn="prefs" onclick="setSnav('prefs')"><svg class="i"><use href="#i-globe"/></svg>Preferences</button>
+          <button data-sn="security" onclick="setSnav('security')"><svg class="i"><use href="#i-lock"/></svg>Security</button>
+        </nav>
+        <div class="spanel">
+          <!-- account -->
+          <div data-sn-panel="account">
+            <div class="card"><div class="ch">Account details</div>
+              <div class="row"><div class="rl"><b>Email</b><span>aanya.m@email.com</span></div><div class="rr"><button class="btn btn-ghost btn-sm">Change</button></div></div>
+              <div class="row"><div class="rl"><b>Phone</b><span>+91 ••••• 43210 · verified</span></div><div class="rr"><button class="btn btn-ghost btn-sm">Update</button></div></div>
+              <div class="row"><div class="rl"><b>Profile created for</b><span>Myself</span></div><div class="rr"><select class="inp sel"><option>Myself</option><option>Son</option><option>Daughter</option></select></div></div>
+            </div>
+            <div class="card"><div class="ch">Membership</div>
+              <div class="row"><div class="rl"><b>Current plan</b><span>Premium Plus · renews 22 Jul 2026</span></div><div class="rr"><span class="tier plus"><svg class="i" style="width:13px;height:13px"><use href="#i-heart"/></svg>Active</span></div></div>
+              <div class="row"><div class="rl"><b>Manage subscription</b><span>Upgrade, downgrade or cancel</span></div><div class="rr"><button class="btn btn-secondary btn-sm">Manage</button></div></div>
+            </div>
+            <div class="card danger"><div class="ch">Danger zone</div>
+              <div class="row"><div class="rl"><b>Pause profile</b><span>Hide your profile temporarily from search</span></div><div class="rr"><button class="btn btn-ghost btn-sm"><svg class="i" style="width:13px;height:13px"><use href="#i-pause"/></svg>Pause</button></div></div>
+              <div class="row"><div class="rl"><b>Delete account</b><span>Permanently remove your profile and data</span></div><div class="rr"><button class="btn btn-danger btn-sm"><svg class="i" style="width:13px;height:13px"><use href="#i-trash"/></svg>Delete</button></div></div>
+            </div>
+          </div>
+          <!-- privacy -->
+          <div data-sn-panel="privacy" style="display:none">
+            <div class="card"><div class="ch">Who can see your profile</div>
+              <div class="row"><div class="rl"><b>Show profile in search</b><span>Appear in match results for others</span></div><div class="rr"><button class="toggle" aria-pressed="true" onclick="tog(this)"></button></div></div>
+              <div class="row"><div class="rl"><b>Photo visibility</b><span>Blur photos until you accept interest</span></div><div class="rr"><select class="inp sel"><option>All members</option><option>Premium only</option><option>On accept</option></select></div></div>
+              <div class="row"><div class="rl"><b>Show last seen</b><span>Let matches see when you were online</span></div><div class="rr"><button class="toggle" aria-pressed="false" onclick="tog(this)"></button></div></div>
+              <div class="row"><div class="rl"><b>Hide from screenshot</b><span>Watermark photos to deter misuse</span></div><div class="rr"><button class="toggle" aria-pressed="true" onclick="tog(this)"></button></div></div>
+            </div>
+          </div>
+          <!-- notifs -->
+          <div data-sn-panel="notifs" style="display:none">
+            <div class="card"><div class="ch">Email notifications</div>
+              <div class="row"><div class="rl"><b>New interests</b><span>When someone expresses interest</span></div><div class="rr"><button class="toggle" aria-pressed="true" onclick="tog(this)"></button></div></div>
+              <div class="row"><div class="rl"><b>New matches</b><span>When you both like each other</span></div><div class="rr"><button class="toggle" aria-pressed="true" onclick="tog(this)"></button></div></div>
+              <div class="row"><div class="rl"><b>Messages</b><span>New chat messages</span></div><div class="rr"><button class="toggle" aria-pressed="false" onclick="tog(this)"></button></div></div>
+              <div class="row"><div class="rl"><b>Weekly match digest</b><span>Curated matches every Monday</span></div><div class="rr"><button class="toggle" aria-pressed="true" onclick="tog(this)"></button></div></div>
+            </div>
+            <div class="card"><div class="ch">Push & SMS</div>
+              <div class="row"><div class="rl"><b>Push notifications</b><span>On this device</span></div><div class="rr"><button class="toggle" aria-pressed="true" onclick="tog(this)"></button></div></div>
+              <div class="row"><div class="rl"><b>SMS alerts</b><span>Important updates only</span></div><div class="rr"><button class="toggle" aria-pressed="false" onclick="tog(this)"></button></div></div>
+            </div>
+          </div>
+          <!-- prefs -->
+          <div data-sn-panel="prefs" style="display:none">
+            <div class="card"><div class="ch">Language & display</div>
+              <div class="row"><div class="rl"><b>Language</b><span>App & email language</span></div><div class="rr"><select class="inp sel"><option>English</option><option>हिन्दी (Hindi)</option><option>ਪੰਜਾਬੀ (Punjabi)</option></select></div></div>
+              <div class="row"><div class="rl"><b>Theme</b><span>Light, dark or system</span></div><div class="rr"><select class="inp sel"><option>System</option><option>Light</option><option>Dark</option></select></div></div>
+              <div class="row"><div class="rl"><b>Elder mode</b><span>Larger text & higher contrast</span></div><div class="rr"><button class="toggle" aria-pressed="false" onclick="tog(this)"></button></div></div>
+            </div>
+          </div>
+          <!-- security -->
+          <div data-sn-panel="security" style="display:none">
+            <div class="card"><div class="ch">Security</div>
+              <div class="row"><div class="rl"><b>Password</b><span>Last changed 2 months ago</span></div><div class="rr"><button class="btn btn-ghost btn-sm">Change</button></div></div>
+              <div class="row"><div class="rl"><b>Two-factor authentication</b><span>Extra security via OTP</span></div><div class="rr"><button class="toggle" aria-pressed="true" onclick="tog(this)"></button></div></div>
+              <div class="row"><div class="rl"><b>Active sessions</b><span>2 devices signed in</span></div><div class="rr"><button class="btn btn-ghost btn-sm">Review</button></div></div>
+              <div class="row"><div class="rl"><b>Blocked members</b><span>4 profiles blocked</span></div><div class="rr"><button class="btn btn-ghost btn-sm">Manage</button></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ NOTIFICATIONS ============ -->
+  <div data-show="notifs">
+    <div class="wrap">
+      <div class="phead"><h1><span class="bar"></span>Notifications</h1><p>Stay on top of interests, matches and messages</p></div>
+      <div class="ntabs">
+        <button class="on" data-nt="all" onclick="setNtab('all')">All <span class="nb">5</span></button>
+        <button data-nt="interests" onclick="setNtab('interests')">Interests</button>
+        <button data-nt="matches" onclick="setNtab('matches')">Matches</button>
+        <button data-nt="system" onclick="setNtab('system')">System</button>
+        <button class="markall">Mark all read</button>
+      </div>
+      <div class="nlist">
+        <div class="ngroup">Today</div>
+        <div class="nitem unread"><span class="ni heart"><svg class="i"><use href="#i-heart"/></svg></span><div class="nc"><p><b>Riya Verma</b> expressed interest in your profile.</p><span class="tm">25 minutes ago</span></div><div class="nact"><button class="btn btn-primary btn-sm">View</button></div><span class="dot"></span></div>
+        <div class="nitem unread"><span class="ni match"><svg class="i"><use href="#i-check"/></svg></span><div class="nc"><p>You and <b>Priya Kaur</b> are now a match! Say hello.</p><span class="tm">1 hour ago</span></div><div class="nact"><button class="btn btn-secondary btn-sm">Chat</button></div><span class="dot"></span></div>
+        <div class="nitem unread"><span class="ni msg"><svg class="i"><use href="#i-msg"/></svg></span><div class="nc"><p><b>Simran N.</b> sent you a message.</p><span class="tm">3 hours ago</span></div><div class="nact"><button class="btn btn-ghost btn-sm">Open</button></div><span class="dot"></span></div>
+        <div class="ngroup">Earlier this week</div>
+        <div class="nitem"><span class="ni shield"><svg class="i"><use href="#i-shield"/></svg></span><div class="nc"><p>Your <b>Government ID</b> verification is under review.</p><span class="tm">Yesterday</span></div></div>
+        <div class="nitem"><span class="ni heart"><svg class="i"><use href="#i-heart"/></svg></span><div class="nc"><p><b>3 people</b> viewed your profile. Upgrade to see who.</p><span class="tm">2 days ago</span></div><div class="nact"><button class="btn btn-gold btn-sm"><svg class="i" style="width:13px;height:13px"><use href="#i-lock"/></svg>Unlock</button></div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+function tog(b){b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')==='true'?'false':'true');}
+function press(ids,on){ids.forEach(id=>document.getElementById(id).setAttribute('aria-pressed',id===on));}
+function toggleState(s){document.querySelectorAll('[data-show]').forEach(el=>{el.style.display=el.getAttribute('data-show').split(/\s+/).includes(s)?'':'none';});}
+function setPage(p){document.body.dataset.page=p;press(['pg-settings','pg-notifs'],'pg-'+p);toggleState(p==='settings'?'settings':'notifs');}
+function setSnav(s){document.body.dataset.snav=s;document.querySelectorAll('.snav button').forEach(b=>b.classList.toggle('on',b.dataset.sn===s));
+  document.querySelectorAll('[data-sn-panel]').forEach(el=>el.style.display=el.getAttribute('data-sn-panel')===s?'':'none');}
+function setNtab(t){document.body.dataset.ntab=t;document.querySelectorAll('.ntabs button[data-nt]').forEach(b=>b.classList.toggle('on',b.dataset.nt===t));}
+function setVp(v){document.body.dataset.vp=v;press(['vp-d','vp-m'],v==='desktop'?'vp-d':'vp-m');}
+function setTh(t){document.documentElement.setAttribute('data-theme',t);press(['th-l','th-d'],t==='light'?'th-l':'th-d');}
+function setEl(e){document.documentElement.setAttribute('data-elder',e);press(['el-off','el-on'],e==='off'?'el-off':'el-on');}
+document.body.classList.add('ready');setPage('settings');setSnav('account');
+</script>
+</body>
+</html>

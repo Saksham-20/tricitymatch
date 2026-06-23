@@ -46,7 +46,7 @@ export default function SuccessStories() {
                 <img src={s.photoUrl} alt={s.coupleNames} className="w-full h-48 object-cover" loading="lazy" />
               )}
               <div className="p-5">
-                <FiHeart className="w-5 h-5 text-rose-500 mb-2" />
+                <FiHeart className="w-5 h-5 text-primary-500 fill-primary-500 mb-2" />
                 <p className="text-neutral-700 italic mb-4">“{s.quote}”</p>
                 <p className="font-semibold text-neutral-800">{s.coupleNames}</p>
                 <p className="text-sm text-neutral-400">

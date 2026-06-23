@@ -188,9 +188,9 @@ export const DashboardCompletionBanner = ({ profile = {} }) => {
   const topMissing = pending.slice(0, 3);
   const remaining = pending.length;
 
-  const barColor = percent >= 70 ? '#16a34a' : percent >= 45 ? '#d97706' : '#8B2346';
-  const bgColor  = percent >= 70 ? 'bg-emerald-50 border-emerald-100' : percent >= 45 ? 'bg-amber-50 border-amber-100' : 'bg-primary-50 border-primary-100';
-  const textColor = percent >= 70 ? 'text-emerald-700' : percent >= 45 ? 'text-amber-700' : 'text-rose-700';
+  const barColor = percent >= 70 ? '#2E7D32' : percent >= 45 ? '#C9A227' : '#8B2346';
+  const bgColor  = percent >= 70 ? 'bg-success-50 border-success-100' : percent >= 45 ? 'bg-gold-50 border-gold-100' : 'bg-primary-50 border-primary-100';
+  const textColor = percent >= 70 ? 'text-success' : percent >= 45 ? 'text-gold-700' : 'text-primary-700';
 
   return (
     <div className={`rounded-2xl border overflow-hidden ${bgColor}`}>
@@ -223,7 +223,7 @@ export const DashboardCompletionBanner = ({ profile = {} }) => {
           <p className={`text-sm font-bold ${textColor}`}>
             {remaining} field{remaining !== 1 ? 's' : ''} missing — complete your profile
           </p>
-          <p className="text-xs text-slate-500 mt-0.5 truncate">
+          <p className="text-xs text-neutral-500 mt-0.5 truncate">
             {topMissing.map(f => f.label).join(', ')}{remaining > 3 ? ` +${remaining - 3} more` : ''}
           </p>
         </div>
@@ -265,23 +265,23 @@ export const DashboardCompletionBanner = ({ profile = {} }) => {
                     to="/profile/edit"
                     className="flex items-center gap-3 p-2.5 bg-white/70 rounded-xl hover:bg-white transition-colors cursor-pointer"
                   >
-                    <div className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
-                      <Icon className="w-3.5 h-3.5 text-slate-500" />
+                    <div className="w-7 h-7 rounded-lg bg-white border border-neutral-200 flex items-center justify-center flex-shrink-0">
+                      <Icon className="w-3.5 h-3.5 text-neutral-500" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-700">{field.label}</p>
-                      {field.tip && <p className="text-xs text-slate-400 mt-0.5">{field.tip}</p>}
+                      <p className="text-sm font-semibold text-neutral-700">{field.label}</p>
+                      {field.tip && <p className="text-xs text-neutral-400 mt-0.5">{field.tip}</p>}
                     </div>
-                    <FiArrowRight className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                    <FiArrowRight className="w-3.5 h-3.5 text-neutral-400 flex-shrink-0" />
                   </Link>
                 );
               })}
               <Link
                 to="/profile/edit"
                 className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-bold transition-colors cursor-pointer mt-1 ${
-                  percent >= 70 ? 'bg-emerald-500 text-white hover:bg-emerald-600'
-                  : percent >= 45 ? 'bg-amber-500 text-white hover:bg-amber-600'
-                  : 'bg-rose-500 text-white hover:bg-rose-600'
+                  percent >= 70 ? 'bg-success text-white hover:bg-success-600'
+                  : percent >= 45 ? 'bg-gold text-neutral-900 hover:brightness-95'
+                  : 'bg-primary-600 text-white hover:bg-primary-700'
                 }`}
               >
                 Complete Profile
@@ -302,26 +302,23 @@ export const DashboardCompletionBanner = ({ profile = {} }) => {
 export const ProfileStrengthPanel = ({ profile = {} }) => {
   const { pending, allImportantDone, percent } = getCompletionData(profile);
 
-  const barColor = percent >= 85 ? '#16a34a' : percent >= 60 ? '#d97706' : '#be123c';
-  const barClass = percent >= 85 ? 'from-emerald-400 to-emerald-600'
-    : percent >= 60 ? 'from-amber-400 to-amber-600'
-    : 'from-rose-400 to-rose-600';
+  const barColor = percent >= 85 ? '#2E7D32' : percent >= 60 ? '#C9A227' : '#8B2346';
   const label = percent >= 85 ? 'Strong profile' : percent >= 60 ? 'Almost complete' : 'Needs attention';
-  const labelClass = percent >= 85 ? 'bg-emerald-50 text-emerald-700'
-    : percent >= 60 ? 'bg-amber-50 text-amber-700'
-    : 'bg-rose-50 text-rose-700';
+  const labelClass = percent >= 85 ? 'bg-success-50 text-success'
+    : percent >= 60 ? 'bg-gold-50 text-gold-700'
+    : 'bg-primary-50 text-primary-700';
 
   if (allImportantDone) {
     return (
-      <div className="bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-4 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-2xl bg-emerald-500 flex items-center justify-center flex-shrink-0">
+      <div className="bg-success-50 border border-success-100 rounded-2xl px-5 py-4 flex items-center gap-3">
+        <div className="w-10 h-10 rounded-2xl bg-success flex items-center justify-center flex-shrink-0">
           <FiCheck className="w-5 h-5 text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-emerald-800">Profile complete</p>
-          <p className="text-xs text-emerald-600 mt-0.5">You're appearing in full search results</p>
+          <p className="text-sm font-bold text-success">Profile complete</p>
+          <p className="text-xs text-success/80 mt-0.5">You're appearing in full search results</p>
         </div>
-        <span className="text-xl font-black text-emerald-600">{percent}%</span>
+        <span className="text-xl font-black text-success">{percent}%</span>
       </div>
     );
   }
@@ -329,23 +326,24 @@ export const ProfileStrengthPanel = ({ profile = {} }) => {
   return (
     <div className="space-y-3">
       {/* Progress bar card */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-5 py-4">
+      <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm px-5 py-4">
         <div className="flex items-center justify-between mb-2.5">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-slate-800">Profile strength</span>
+            <span className="text-sm font-bold text-neutral-800">Profile strength</span>
             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${labelClass}`}>{label}</span>
           </div>
           <span className="text-lg font-black" style={{ color: barColor }}>{percent}%</span>
         </div>
-        <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden mb-2">
+        <div className="h-2.5 bg-neutral-100 rounded-full overflow-hidden mb-2">
           <motion.div
-            className={`h-full bg-gradient-to-r ${barClass} rounded-full`}
+            className="h-full rounded-full"
+            style={{ backgroundColor: barColor }}
             initial={{ width: 0 }}
             animate={{ width: `${percent}%` }}
             transition={{ duration: 0.7, ease: 'easeOut' }}
           />
         </div>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-neutral-400">
           {pending.length} important field{pending.length !== 1 ? 's' : ''} missing · complete them to appear in more searches
         </p>
       </div>
@@ -357,22 +355,22 @@ export const ProfileStrengthPanel = ({ profile = {} }) => {
           <Link
             key={field.id}
             to="/profile/edit"
-            className="flex items-center gap-3 bg-white border border-slate-100 rounded-2xl shadow-sm px-4 py-3.5 hover:border-rose-200 hover:bg-rose-50/40 transition-all group cursor-pointer"
+            className="flex items-center gap-3 bg-white border border-neutral-100 rounded-2xl shadow-sm px-4 py-3.5 hover:border-primary-200 hover:bg-primary-50/40 transition-all group cursor-pointer"
           >
-            <div className="w-9 h-9 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center flex-shrink-0">
-              <FiAlertCircle className="w-4 h-4 text-rose-400" />
+            <div className="w-9 h-9 rounded-xl bg-primary-50 border border-primary-100 flex items-center justify-center flex-shrink-0">
+              <FiAlertCircle className="w-4 h-4 text-primary-500" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-slate-700 group-hover:text-rose-600 transition-colors">
+              <p className="text-sm font-bold text-neutral-700 group-hover:text-primary-600 transition-colors">
                 Add {field.label.toLowerCase()}
               </p>
               {field.tip && (
-                <p className="text-xs text-slate-400 mt-0.5">{field.tip}</p>
+                <p className="text-xs text-neutral-400 mt-0.5">{field.tip}</p>
               )}
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
-              <span className="text-xs font-bold text-rose-400">+{field.points}%</span>
-              <FiArrowRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-rose-400 transition-colors" />
+              <span className="text-xs font-bold text-primary-500">+{field.points}%</span>
+              <FiArrowRight className="w-3.5 h-3.5 text-neutral-300 group-hover:text-primary-500 transition-colors" />
             </div>
           </Link>
         );

@@ -69,8 +69,8 @@ const MessageTicks = ({ message, isSent }) => {
   
   if (message.isRead) {
     return (
-      <span className="inline-flex items-center ml-1">
-        <BsCheckAll className="w-4 h-4 text-primary-400" />
+      <span className="inline-flex items-center ml-1" title="Read">
+        <BsCheckAll className="w-4 h-4 text-gold-400" />
       </span>
     );
   }
@@ -104,8 +104,8 @@ const TypingIndicator = () => (
 // Date separator component
 const DateSeparator = ({ date }) => (
   <div className="flex items-center justify-center my-4" role="separator">
-    <div className="px-3 py-1 bg-neutral-200/80 rounded-full">
-      <span className="text-xs text-neutral-600 font-medium">{date}</span>
+    <div className="px-3 py-1 bg-neutral-200/80 dark:bg-neutral-800/80 rounded-full">
+      <span className="text-xs text-neutral-600 dark:text-neutral-300 font-medium">{date}</span>
     </div>
   </div>
 );
@@ -540,16 +540,17 @@ const Chat = () => {
       <div className={`
         ${showMobileSidebar ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         absolute md:relative z-20 w-full md:w-80 lg:w-96 h-full
-        bg-white border-r border-neutral-200 flex flex-col
+        bg-white dark:bg-[#1a1f2e] border-r border-neutral-200 dark:border-neutral-800 flex flex-col
         transition-transform duration-300 ease-in-out
       `}>
-        {/* Sidebar Header */}
-        <div className="p-4 border-b border-primary-600 bg-gradient-hero">
-          <h2 className="text-xl font-bold font-display text-white flex items-center gap-2">
-            <FiMessageCircle className="w-6 h-6" />
+        {/* Sidebar Header — burgundy-tinted wash (not a slab) */}
+        <div className="relative p-4 border-b border-neutral-100 dark:border-neutral-800 bg-primary-50 dark:bg-primary-900/20 overflow-hidden">
+          <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-primary-500 to-primary-700" />
+          <h2 className="text-xl font-bold font-display text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
+            <FiMessageCircle className="w-6 h-6 text-primary-500" />
             Messages
           </h2>
-          <p className="text-white/80 text-sm mt-1">{matches.length} conversation{matches.length !== 1 ? 's' : ''}</p>
+          <p className="text-neutral-500 text-sm mt-1">{matches.length} conversation{matches.length !== 1 ? 's' : ''}</p>
         </div>
 
         {/* Matches List */}
@@ -621,7 +622,7 @@ const Chat = () => {
         {selectedMatch ? (
           <>
             {/* Chat Header */}
-            <div className="flex-shrink-0 px-4 py-3 bg-white border-b border-neutral-200 shadow-sm">
+            <div className="flex-shrink-0 px-4 py-3 bg-white dark:bg-[#1a1f2e] border-b border-neutral-200 dark:border-neutral-800 shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   {/* Back button for mobile */}
@@ -841,7 +842,7 @@ const Chat = () => {
             </div>
 
             {/* Message Input */}
-            <div className="flex-shrink-0 p-4 bg-white border-t border-neutral-200">
+            <div className="flex-shrink-0 p-4 bg-white dark:bg-[#1a1f2e] border-t border-neutral-200 dark:border-neutral-800">
               <form onSubmit={sendMessage} className="flex items-end gap-3">
                 {/* Input container */}
                 <div className="flex-1 relative">

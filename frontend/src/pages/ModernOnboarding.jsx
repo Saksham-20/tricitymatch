@@ -12,9 +12,7 @@ import {
   FiX,
   FiCheckCircle,
   FiLock,
-  FiDollarSign,
   FiTrendingUp,
-  FiAward,
 } from 'react-icons/fi';
 
 // Import step components
@@ -140,117 +138,104 @@ const ModernOnboardingContent = () => {
 
   const progressPercentage = ((currentStep + 1) / visibleSteps.length) * 100;
 
-  const benefits = [
-    { icon: FiCheckCircle, text: '100% Verified Profiles' },
-    { icon: FiLock, text: 'Safe & Secure' },
-    { icon: FiDollarSign, text: 'Premium Features' },
-    { icon: FiAward, text: 'Smart Matching' },
-  ];
+  const ringR = 26;
+  const ringC = 2 * Math.PI * ringR;
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-neutral-50 via-primary-50/20 to-gold-50/30">
-      {/* Mobile: Hide left panel, show only on desktop */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-neutral-900">
-        {/* Animated background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary-900/90 via-neutral-900 to-neutral-900" />
+    <div className="min-h-screen flex bg-neutral-50 dark:bg-[#0f1117]">
+      {/* Desktop: LIGHT brand / progress rail (burgundy as accent, never a slab) */}
+      <div className="hidden lg:flex lg:w-[22rem] xl:w-96 relative overflow-hidden bg-white dark:bg-[#1a1f2e] border-r border-neutral-100 dark:border-neutral-800">
+        {/* Subtle primary wash + faint rings (neutral, not white-on-burgundy) */}
+        <div className="absolute inset-0 bg-gradient-to-b from-primary-50/70 dark:from-primary-900/20 via-white dark:via-[#1a1f2e] to-white dark:to-[#1a1f2e] pointer-events-none" />
+        <div className="absolute -top-24 -left-24 w-72 h-72 border border-neutral-200/60 dark:border-neutral-700/40 rounded-full pointer-events-none" />
+        <div className="absolute top-1/3 -right-16 w-48 h-48 border border-gold-200/50 rounded-full pointer-events-none" />
 
-        {/* Orbit rings */}
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 80, repeat: Infinity, ease: 'linear' }}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[38rem] h-[38rem] rounded-full border border-white/5 pointer-events-none"
-        />
-        <motion.div
-          animate={{ rotate: -360 }}
-          transition={{ duration: 55, repeat: Infinity, ease: 'linear' }}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24rem] h-[24rem] rounded-full border border-white/8 pointer-events-none"
-        />
-
-        {/* Top gradient line */}
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary-500/40 to-transparent" />
-
-        <div className="relative z-10 flex flex-col justify-between w-full p-14 text-white">
+        <div className="relative z-10 flex flex-col w-full p-9">
           {/* Logo */}
-          <div>
-            <Logo variant="white" size="lg" linkTo="/" />
-            <p className="text-xs text-white/40 mt-1 uppercase tracking-widest">
+          <div className="mb-8">
+            <Logo size="lg" linkTo="/" />
+            <p className="text-[11px] text-neutral-400 mt-1.5 uppercase tracking-widest">
               Chandigarh · Mohali · Panchkula
             </p>
           </div>
 
-          {/* Main message */}
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.2 }}
-            className="max-w-sm"
-          >
-            <p className="text-xs font-semibold text-primary-400 uppercase tracking-widest mb-5">
-              Begin your journey
-            </p>
-            <h2 className="font-display text-5xl font-bold leading-tight mb-5 text-white">
-              Your forever<br />starts here.
-            </h2>
-            <p className="text-white/60 text-base leading-relaxed mb-8">
-              Join Tricity's #1 matrimony platform. Verified profiles, intelligent matching, family values.
-            </p>
-
-            {/* Benefits */}
-            <div className="space-y-3">
-              {benefits.map(({ icon: Icon, text }, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, x: -16 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4 + i * 0.09 }}
-                  className="flex items-center gap-3"
-                >
-                  <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
-                    <Icon className="w-4 h-4 text-white/80" />
-                  </div>
-                  <span className="text-sm text-white/80">{text}</span>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* Current step indicator (desktop) */}
-            <div className="mt-12 pt-8 border-t border-white/10">
-              <p className="text-xs text-white/50 mb-3">Step {currentStep + 1} of {visibleSteps.length}</p>
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <p className="text-sm font-medium text-white">{visibleSteps[currentStep].title}</p>
-                <span className="text-xs text-white/60">{Math.round(progressPercentage)}%</span>
-              </div>
-              <div className="h-1 bg-white/10 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-primary-400 to-primary-600 transition-all duration-500"
-                  style={{ width: `${progressPercentage}%` }}
+          {/* Progress ring */}
+          <div className="flex items-center gap-4 mb-8">
+            <div className="relative w-16 h-16 flex-shrink-0">
+              <svg width="64" height="64" viewBox="0 0 64 64" className="-rotate-90">
+                <circle cx="32" cy="32" r={ringR} fill="none" stroke="currentColor" className="text-neutral-200 dark:text-neutral-700" strokeWidth="5" />
+                <motion.circle
+                  cx="32" cy="32" r={ringR} fill="none" stroke="#8B2346" strokeWidth="5" strokeLinecap="round"
+                  strokeDasharray={ringC}
+                  initial={false}
+                  animate={{ strokeDashoffset: ringC - (progressPercentage / 100) * ringC }}
+                  transition={{ duration: 0.5, ease: 'easeOut' }}
                 />
-              </div>
+              </svg>
+              <span className="absolute inset-0 flex items-center justify-center font-display text-sm font-bold text-primary-600 dark:text-primary-300">
+                {Math.round(progressPercentage)}%
+              </span>
             </div>
-          </motion.div>
+            <div>
+              <p className="text-[11px] font-semibold text-primary-600 dark:text-primary-300 uppercase tracking-widest">Begin your journey</p>
+              <h2 className="font-display text-xl font-bold text-neutral-900 dark:text-neutral-100 leading-tight">Your forever starts here</h2>
+            </div>
+          </div>
 
-          {/* Bottom security note */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="flex items-center gap-5 text-xs text-white/40"
-          >
+          {/* Vertical 14-step stepper */}
+          <nav className="flex-1 overflow-y-auto scrollbar-hide -mr-2 pr-2">
+            <ol className="space-y-0.5">
+              {visibleSteps.map((step, idx) => {
+                const done = idx < currentStep;
+                const active = idx === currentStep;
+                const reachable = idx <= currentStep;
+                return (
+                  <li key={step.id}>
+                    <button
+                      onClick={() => reachable && goToStep(idx)}
+                      disabled={!reachable}
+                      className={`w-full flex items-center gap-3 px-2.5 py-2 rounded-xl text-left transition-colors ${
+                        active ? 'bg-primary-50 dark:bg-primary-900/30' : reachable ? 'hover:bg-neutral-50 dark:hover:bg-neutral-800/50' : ''
+                      }`}
+                    >
+                      <span
+                        className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 transition-all ${
+                          done
+                            ? 'bg-primary-500 text-white'
+                            : active
+                            ? 'bg-primary-500 text-white ring-2 ring-primary-300 ring-offset-2 ring-offset-white dark:ring-offset-[#1a1f2e]'
+                            : 'bg-neutral-200 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400'
+                        }`}
+                      >
+                        {done ? <FiCheckCircle className="w-4 h-4" /> : idx + 1}
+                      </span>
+                      <span className={`text-sm leading-tight ${active ? 'font-semibold text-neutral-900 dark:text-neutral-100' : done ? 'text-neutral-600 dark:text-neutral-300' : 'text-neutral-400'}`}>
+                        {step.title}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+          </nav>
+
+          {/* Trust strip */}
+          <div className="flex items-center gap-5 text-xs text-neutral-400 mt-6 pt-6 border-t border-neutral-100 dark:border-neutral-800">
             <div className="flex items-center gap-1.5">
               <FiLock className="w-3.5 h-3.5" />
               <span>SSL Secured</span>
             </div>
-            <span className="w-px h-3 bg-white/20" />
+            <span className="w-px h-3 bg-neutral-200" />
             <div className="flex items-center gap-1.5">
               <FiTrendingUp className="w-3.5 h-3.5" />
               <span>100% Privacy</span>
             </div>
-          </motion.div>
+          </div>
         </div>
       </div>
 
       {/* Right Side - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-6 lg:p-12 relative">
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-12 relative">
         {/* Close button (mobile) */}
         <motion.button
           initial={{ opacity: 0, scale: 0.8 }}
@@ -295,37 +280,7 @@ const ModernOnboardingContent = () => {
             </span>
           </motion.div>
 
-          {/* Progress stepper - Desktop */}
-          <motion.div className="hidden lg:flex justify-between mb-12">
-            {visibleSteps.map((step, idx) => (
-              <motion.button
-                key={step.id}
-                onClick={() => idx <= currentStep && goToStep(idx)}
-                disabled={idx > currentStep}
-                className={`flex flex-col items-center gap-2 group transition-opacity ${
-                  idx > currentStep ? 'opacity-40' : 'opacity-100'
-                }`}
-                whileHover={idx <= currentStep ? { scale: 1.05 } : {}}
-              >
-                <motion.div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm transition-all ${
-                    idx < currentStep
-                      ? 'bg-primary-600 text-white'
-                      : idx === currentStep
-                      ? 'bg-primary-600 text-white ring-2 ring-primary-300 ring-offset-2'
-                      : 'bg-neutral-200 text-neutral-600'
-                  }`}
-                >
-                  {idx < currentStep ? <FiCheckCircle className="w-5 h-5" /> : idx + 1}
-                </motion.div>
-                <p className="text-xs font-medium text-neutral-700 text-center w-16 leading-tight">
-                  {step.title}
-                </p>
-              </motion.button>
-            ))}
-          </motion.div>
-
-          {/* Progress bar - Mobile */}
+          {/* Progress bar - Mobile (desktop uses the left rail stepper) */}
           <motion.div className="lg:hidden mb-6">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm font-semibold text-neutral-900">
@@ -353,7 +308,7 @@ const ModernOnboardingContent = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
-              className="bg-white rounded-2xl shadow-xl p-8 sm:p-10"
+              className="bg-white dark:bg-[#1a1f2e] border border-neutral-100 dark:border-neutral-800 rounded-2xl shadow-card p-8 sm:p-10"
             >
               <div className="mb-8">
                 <motion.p
@@ -368,7 +323,7 @@ const ModernOnboardingContent = () => {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.15 }}
-                  className="text-2xl sm:text-3xl font-bold text-neutral-900 mb-3"
+                  className="font-display text-2xl sm:text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-3"
                 >
                   {visibleSteps[currentStep].title}
                 </motion.h2>

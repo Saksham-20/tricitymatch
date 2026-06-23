@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-elder="off">
+<head>
+<meta charset="utf-8" />
+<title>TricityShadi — Search</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="ts-system.css" />
+<template id="__bundler_thumbnail">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#F8E8EC"/><circle cx="88" cy="88" r="40" fill="none" stroke="#8B2346" stroke-width="9"/><line x1="118" y1="118" x2="152" y2="152" stroke="#8B2346" stroke-width="9" stroke-linecap="round"/></svg>
+</template>
+<style>
+body{background:var(--surface-2);}
+.harness{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;padding:.6rem 1rem;background:color-mix(in srgb,var(--card) 90%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);font-size:.8rem;}
+.harness .ttl{font-family:'Playfair Display',serif;font-weight:600;color:var(--fg-strong);}
+.harness .spacer{flex:1;}
+.seg{display:flex;background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:3px;gap:2px;}
+.seg button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:.76rem;font-weight:600;padding:.32rem .7rem;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:.3rem;}
+.seg button[aria-pressed="true"]{background:var(--card);color:var(--accent);box-shadow:var(--sh-sm);}
+.harness .lab{font-size:.66rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+
+.stage{padding:4.6rem 1.2rem 3rem;min-height:100vh;display:flex;justify-content:center;}
+.device{width:100%;max-width:1180px;background:var(--bg);border:1px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.12);transition:max-width .35s ease;position:relative;}
+body[data-vp="mobile"] .device{max-width:402px;border-radius:34px;}
+body[data-vp="mobile"] .desktop-only{display:none!important;}
+body[data-vp="desktop"] .mobile-only{display:none!important;}
+
+.wrap{padding:1.6rem;}
+body[data-vp="mobile"] .wrap{padding:1rem;}
+
+/* header */
+.phead h1{font-size:clamp(1.6rem,3.5vw,2.1rem);font-weight:700;display:flex;align-items:center;gap:.6rem;}
+.phead h1 .bar{width:5px;height:1.4em;background:var(--accent);border-radius:3px;}
+.phead .sub{color:var(--muted);font-size:.9rem;margin:.3rem 0 0 1.1rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;}
+.headrow{display:flex;justify-content:space-between;align-items:flex-end;gap:1rem;flex-wrap:wrap;}
+.tools{display:flex;gap:.6rem;align-items:center;}
+.idsearch{display:flex;gap:.5rem;margin-top:1rem;max-width:420px;}
+.idsearch .ipwrap{position:relative;flex:1;}
+.idsearch .ipwrap svg{position:absolute;left:.7rem;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--muted);}
+.idsearch .inp{padding-left:2.1rem;}
+.inp{width:100%;padding:.6rem .85rem;border-radius:11px;background:var(--card);border:2px solid var(--border);color:var(--fg);font:inherit;font-size:.9rem;transition:.2s;}
+.inp:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px rgba(139,35,70,.12);}
+.sel{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%238B8B8B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='4 6 8 10 12 6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .8rem center;padding-right:2.1rem;}
+
+/* layout */
+.layout{display:grid;grid-template-columns:248px 1fr;gap:1.4rem;margin-top:1.5rem;align-items:start;}
+body[data-vp="mobile"] .layout{grid-template-columns:1fr;}
+
+/* filter panel */
+.fpanel{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--sh-card);position:sticky;top:5rem;overflow:hidden;}
+body[data-vp="mobile"] .fpanel.rail{display:none;}
+.fpanel .fh{display:flex;align-items:center;gap:.5rem;padding:1rem 1.1rem;border-bottom:1px solid var(--border);}
+.fpanel .fh svg{color:var(--accent);width:17px;height:17px;}
+.fpanel .fh b{font-size:.95rem;color:var(--fg-strong);font-weight:700;}
+.fpanel .fh .cnt{font-size:.66rem;font-weight:700;color:var(--accent);background:var(--accent-soft);border:1px solid var(--accent-soft-2);padding:.1rem .45rem;border-radius:999px;}
+.fpanel .fh .clr{margin-left:auto;font-size:.74rem;font-weight:600;color:var(--muted);background:none;border:0;cursor:pointer;}
+.fpanel .fh .clr:hover{color:var(--destructive);}
+.fbody{padding:1.1rem;display:flex;flex-direction:column;gap:1.05rem;max-height:none;}
+.fg{display:flex;flex-direction:column;gap:.4rem;}
+.fg label{font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);}
+.frange{display:flex;align-items:center;gap:.5rem;}
+.frange .inp{padding:.5rem .6rem;font-size:.85rem;text-align:center;}
+.frange span{color:var(--muted);font-size:.8rem;}
+.chiprow{display:flex;flex-wrap:wrap;gap:.4rem;}
+.fchip{font-size:.78rem;font-weight:600;padding:.35rem .7rem;border-radius:999px;background:var(--surface-2);border:1px solid var(--border);color:var(--fg);cursor:pointer;}
+.fchip.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);}
+.fapply{padding:1rem 1.1rem;border-top:1px solid var(--border);position:sticky;bottom:0;background:var(--card);}
+.fapply .btn{width:100%;}
+
+/* meta bar */
+.metabar{display:flex;align-items:center;justify-content:space-between;gap:1rem;background:var(--card);border:1px solid var(--border);border-radius:13px;box-shadow:var(--sh-card);padding:.7rem 1rem;margin-bottom:1.1rem;font-size:.88rem;}
+.metabar .res b{color:var(--fg-strong);}
+.metabar .res .fa{color:var(--accent);font-weight:600;}
+.metabar .mfilter{display:none;}
+body[data-vp="mobile"] .metabar .mfilter{display:inline-flex;align-items:center;gap:.4rem;font-weight:600;font-size:.84rem;color:var(--accent);background:var(--accent-soft);border:1px solid var(--accent-soft-2);border-radius:9px;padding:.35rem .7rem;cursor:pointer;}
+
+/* result grid */
+.rgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.1rem;}
+@media(max-width:1000px){body[data-vp="desktop"] .rgrid{grid-template-columns:repeat(2,1fr);}}
+body[data-vp="mobile"] .rgrid{grid-template-columns:1fr;}
+
+/* profile card */
+.pcard{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--sh-card);transition:transform .2s,box-shadow .2s;display:flex;flex-direction:column;}
+.pcard:hover{transform:translateY(-4px);box-shadow:var(--sh-card-hover);}
+.pcard .ph{position:relative;height:196px;background:repeating-linear-gradient(135deg,var(--p-50),var(--p-50) 15px,var(--p-100) 15px,var(--p-100) 30px);display:grid;place-items:center;}
+.pcard .ph .av{width:74px;height:74px;font-size:1.7rem;}
+.pcard .scrim{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.5),transparent 42%);}
+.pcard .score{position:absolute;top:.6rem;left:.6rem;display:flex;align-items:center;gap:.3rem;background:rgba(26,26,26,.82);color:#fff;font-size:.7rem;font-weight:700;padding:.2rem .5rem;border-radius:999px;backdrop-filter:blur(4px);}
+.pcard .score svg{width:11px;height:11px;color:var(--g-400);fill:var(--g-400);}
+.pcard .vbadge2{position:absolute;top:.6rem;right:.6rem;display:flex;align-items:center;gap:.25rem;background:var(--success);color:#fff;font-size:.64rem;font-weight:700;padding:.2rem .5rem;border-radius:999px;}
+.pcard .vbadge2 svg{width:10px;height:10px;}
+.pcard .nm{position:absolute;bottom:.55rem;left:.7rem;right:.7rem;color:#fff;}
+.pcard .nm b{font-size:1rem;font-weight:600;display:block;line-height:1.15;}
+.pcard .nm span{font-size:.76rem;opacity:.88;}
+.pcard .body{padding:.85rem;display:flex;flex-direction:column;gap:.7rem;flex:1;}
+.pcard .facts{display:flex;flex-wrap:wrap;gap:.35rem;}
+.pcard .facts span{font-size:.7rem;background:var(--surface-2);border:1px solid var(--border);color:var(--fg);padding:.18rem .5rem;border-radius:6px;}
+.pcard .acts{display:flex;gap:.45rem;margin-top:auto;}
+.pcard .acts .btn{flex:1;}
+
+.loadmore{text-align:center;margin-top:1.6rem;}
+.allseen{text-align:center;color:var(--muted);font-size:.82rem;margin-top:1.6rem;padding-top:1rem;border-top:1px solid var(--border);}
+
+/* mobile filter sheet */
+.sheetwrap{position:absolute;inset:0;z-index:80;display:none;}
+.sheetwrap.open{display:block;}
+.sheetwrap .scrim2{position:absolute;inset:0;background:rgba(0,0,0,.4);}
+.sheet{position:absolute;left:0;right:0;bottom:0;max-height:85%;overflow:auto;background:var(--card);border-radius:20px 20px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,.3);}
+.sheet .grab{width:38px;height:4px;border-radius:999px;background:var(--n-300);margin:.7rem auto .2rem;}
+
+body:not(.ready) [data-show]{display:none;}
+</style>
+</head>
+<body data-vp="desktop" data-state="default">
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<g id="i-search"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></g>
+<g id="i-filter"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></g>
+<g id="i-hash"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></g>
+<g id="i-heart"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></g>
+<g id="i-star"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></g>
+<g id="i-check"><polyline points="20 6 9 17 4 12"/></g>
+<g id="i-users"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></g>
+<g id="i-arr"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></g>
+<g id="i-x"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></g>
+<g id="i-sun"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.2" y1="4.2" x2="5.6" y2="5.6"/><line x1="18.4" y1="18.4" x2="19.8" y2="19.8"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.2" y1="19.8" x2="5.6" y2="18.4"/><line x1="18.4" y1="5.6" x2="19.8" y2="4.2"/></g>
+<g id="i-moon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></g>
+</defs></svg>
+
+<div class="harness">
+  <span class="ttl">Search</span>
+  <span class="lab">View</span>
+  <div class="seg"><button id="vp-d" aria-pressed="true" onclick="setVp('desktop')">Desktop</button><button id="vp-m" aria-pressed="false" onclick="setVp('mobile')">Mobile</button></div>
+  <span class="lab">Theme</span>
+  <div class="seg"><button id="th-l" aria-pressed="true" onclick="setTh('light')"><svg class="i"><use href="#i-sun"/></svg>Light</button><button id="th-d" aria-pressed="false" onclick="setTh('dark')"><svg class="i"><use href="#i-moon"/></svg>Dark</button></div>
+  <span class="lab">Elder</span>
+  <div class="seg"><button id="el-off" aria-pressed="true" onclick="setEl('off')">Std</button><button id="el-on" aria-pressed="false" onclick="setEl('on')">Elder</button></div>
+  <span class="spacer"></span>
+  <span class="lab">State</span>
+  <div class="seg">
+    <button id="s-default" aria-pressed="true" onclick="setSt('default')">Results</button>
+    <button id="s-loading" aria-pressed="false" onclick="setSt('loading')">Loading</button>
+    <button id="s-empty" aria-pressed="false" onclick="setSt('empty')">Empty</button>
+  </div>
+</div>
+
+<div class="stage">
+<div class="device">
+  <div class="wrap">
+
+    <!-- header -->
+    <div class="phead">
+      <div class="headrow">
+        <div>
+          <h1><span class="bar"></span>Find your match</h1>
+          <div class="sub">Verified profiles from Tricity and beyond <span class="chip-count">2,140+ profiles</span></div>
+        </div>
+        <div class="tools desktop-only">
+          <select class="inp sel" style="min-width:160px" aria-label="Sort">
+            <option>Best Match %</option><option>By Age</option><option>By Location</option><option>Most Recent</option>
+          </select>
+        </div>
+      </div>
+      <form class="idsearch" onsubmit="return false">
+        <div class="ipwrap"><svg class="i"><use href="#i-hash"/></svg><input class="inp" placeholder="Have a profile ID? e.g. TCS-A1B2C3D4"></div>
+        <button class="btn btn-primary btn-sm">Go</button>
+      </form>
+    </div>
+
+    <!-- layout -->
+    <div class="layout">
+
+      <!-- FILTER RAIL (desktop) -->
+      <aside class="fpanel rail" id="filterRail">
+        <div class="fh"><svg class="i"><use href="#i-filter"/></svg><b>Filters</b><span class="cnt">3</span><button class="clr">Clear</button></div>
+        <div class="fbody" id="fbody"></div>
+        <div class="fapply"><button class="btn btn-primary">Apply filters</button></div>
+      </aside>
+
+      <!-- RESULTS -->
+      <div>
+        <div class="metabar">
+          <div class="res" data-show="default"><b>24</b> profiles found <span class="fa">· 3 filters active</span></div>
+          <div class="res" data-show="loading" style="color:var(--muted)">Loading profiles…</div>
+          <div class="res" data-show="empty"><b>0</b> profiles found <span class="fa">· 3 filters active</span></div>
+          <button class="mfilter" onclick="openSheet()"><svg class="i" style="width:14px;height:14px"><use href="#i-filter"/></svg>Filters · 3</button>
+        </div>
+
+        <!-- results -->
+        <div class="rgrid" data-show="default" id="rgrid"></div>
+        <div class="loadmore" data-show="default"><button class="btn btn-secondary">Load more profiles <svg class="i"><use href="#i-arr"/></svg></button></div>
+
+        <!-- loading -->
+        <div class="rgrid" data-show="loading" id="rskel"></div>
+
+        <!-- empty -->
+        <div data-show="empty">
+          <div class="empty">
+            <div class="ei"><svg class="i"><use href="#i-users"/></svg></div>
+            <h3>No profiles found</h3>
+            <p>Try expanding your filters or check back later — new Tricity members join every day.</p>
+            <div style="display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap">
+              <button class="btn btn-primary btn-sm"><svg class="i"><use href="#i-filter"/></svg>Clear filters</button>
+              <button class="btn btn-secondary btn-sm">Refresh</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- mobile filter sheet -->
+  <div class="sheetwrap" id="sheetwrap">
+    <div class="scrim2" onclick="closeSheet()"></div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <div class="fh" style="padding:.4rem 1.1rem 1rem;display:flex;align-items:center;gap:.5rem;border-bottom:1px solid var(--border)">
+        <svg class="i" style="color:var(--accent);width:17px;height:17px"><use href="#i-filter"/></svg><b style="font-weight:700;color:var(--fg-strong)">Filters</b><span class="cnt" style="font-size:.66rem;font-weight:700;color:var(--accent);background:var(--accent-soft);border:1px solid var(--accent-soft-2);padding:.1rem .45rem;border-radius:999px">3</span>
+        <button onclick="closeSheet()" style="margin-left:auto;background:none;border:0;cursor:pointer;color:var(--muted)"><svg class="i" style="width:18px;height:18px"><use href="#i-x"/></svg></button>
+      </div>
+      <div class="fbody" id="fbody2"></div>
+      <div class="fapply"><button class="btn btn-primary" onclick="closeSheet()">Show 24 profiles</button></div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+const PEOPLE=[
+  {i:'AK',n:'Aisha Khan',a:26,c:'Chandigarh',pr:'HR Manager',h:"5'4\"",rel:'Hindu',ms:'Never married',s:92,v:1},
+  {i:'NS',n:'Neha Sethi',a:28,c:'Mohali',pr:'Dentist',h:"5'6\"",rel:'Hindu',ms:'Never married',s:88,v:1},
+  {i:'RB',n:'Ridhi Bansal',a:25,c:'Panchkula',pr:'CA · Finance',h:"5'3\"",rel:'Jain',ms:'Never married',s:84,v:0},
+  {i:'TG',n:'Tanvi Gill',a:27,c:'Chandigarh',pr:'UX Designer',h:"5'5\"",rel:'Sikh',ms:'Never married',s:79,v:1},
+  {i:'MK',n:'Meher Kaur',a:29,c:'Mohali',pr:'Pharmacist',h:"5'5\"",rel:'Sikh',ms:'Divorced',s:90,v:1},
+  {i:'JD',n:'Jiya Dhillon',a:24,c:'Panchkula',pr:'Teacher',h:"5'2\"",rel:'Sikh',ms:'Never married',s:76,v:0},
+  {i:'PA',n:'Pooja Arora',a:30,c:'Chandigarh',pr:'Architect',h:"5'6\"",rel:'Hindu',ms:'Never married',s:81,v:1},
+  {i:'SV',n:'Simran Verma',a:26,c:'Mohali',pr:'Doctor',h:"5'4\"",rel:'Hindu',ms:'Never married',s:87,v:1},
+  {i:'KB',n:'Kiran Bedi',a:28,c:'Panchkula',pr:'Lawyer',h:"5'5\"",rel:'Sikh',ms:'Never married',s:73,v:0},
+];
+function card(p){return `<div class="pcard"><div class="ph"><div class="av">${p.i}</div><div class="scrim"></div>
+  ${p.s>=75?`<div class="score"><svg class="i"><use href="#i-star"/></svg>${p.s}%</div>`:''}
+  ${p.v?`<div class="vbadge2"><svg class="i"><use href="#i-check"/></svg>Verified</div>`:''}
+  <div class="nm"><b>${p.n}, ${p.a}</b><span>${p.pr} · ${p.c}</span></div></div>
+  <div class="body"><div class="facts"><span>${p.h}</span><span>${p.rel}</span><span>${p.ms}</span></div>
+  <div class="acts"><button class="btn btn-primary btn-sm"><svg class="i"><use href="#i-heart"/></svg>Interest</button><button class="btn btn-ghost btn-sm"><svg class="i"><use href="#i-star"/></svg></button></div></div></div>`;}
+function skel(){return `<div class="pcard"><div class="sk" style="height:196px;border-radius:0"></div><div class="body"><div class="sk" style="height:13px;width:70%"></div><div class="sk" style="height:10px;width:45%"></div><div class="skline" style="margin-top:auto"><div class="sk" style="height:32px;flex:1;border-radius:9px"></div><div class="sk" style="height:32px;width:40px;border-radius:9px"></div></div></div></div>`;}
+document.getElementById('rgrid').innerHTML=PEOPLE.map(card).join('');
+document.getElementById('rskel').innerHTML=Array.from({length:6}).map(skel).join('');
+
+const FILTERS=`
+  <div class="fg"><label>Age range</label><div class="frange"><input class="inp" value="26"><span>–</span><input class="inp" value="32"></div></div>
+  <div class="fg"><label>Height range</label><div class="frange"><input class="inp" value="5'2&quot;"><span>–</span><input class="inp" value="5'8&quot;"></div></div>
+  <div class="fg"><label>City</label><select class="inp sel"><option>Any in Tricity</option><option>Chandigarh</option><option>Mohali</option><option>Panchkula</option></select></div>
+  <div class="fg"><label>Religion</label><div class="chiprow"><span class="fchip on">Hindu</span><span class="fchip">Sikh</span><span class="fchip">Jain</span><span class="fchip">Other</span></div></div>
+  <div class="fg"><label>Community / Caste</label><input class="inp" placeholder="Any community"></div>
+  <div class="fg"><label>Marital status</label><div class="chiprow"><span class="fchip on">Never married</span><span class="fchip">Divorced</span><span class="fchip">Widowed</span></div></div>
+  <div class="fg"><label>Diet</label><div class="chiprow"><span class="fchip on">Vegetarian</span><span class="fchip">Non-veg</span><span class="fchip">Eggetarian</span></div></div>
+  <div class="fg"><label>Manglik</label><div class="chiprow"><span class="fchip">Any</span><span class="fchip on">Non-Manglik</span><span class="fchip">Manglik</span></div></div>
+  <div class="fg"><label>Annual income</label><div class="frange"><input class="inp" value="₹6L"><span>–</span><input class="inp" value="₹25L"></div></div>`;
+document.getElementById('fbody').innerHTML=FILTERS;
+document.getElementById('fbody2').innerHTML=FILTERS;
+document.querySelectorAll('.fchip').forEach(c=>c.onclick=()=>c.classList.toggle('on'));
+
+function openSheet(){document.getElementById('sheetwrap').classList.add('open');}
+function closeSheet(){document.getElementById('sheetwrap').classList.remove('open');}
+function press(ids,on){ids.forEach(id=>document.getElementById(id).setAttribute('aria-pressed',id===on));}
+function setVp(v){document.body.dataset.vp=v;press(['vp-d','vp-m'],v==='desktop'?'vp-d':'vp-m');if(v==='desktop')closeSheet();}
+function setTh(t){document.documentElement.setAttribute('data-theme',t);press(['th-l','th-d'],t==='light'?'th-l':'th-d');}
+function setEl(e){document.documentElement.setAttribute('data-elder',e);press(['el-off','el-on'],e==='off'?'el-off':'el-on');}
+function toggleState(s){document.querySelectorAll('[data-show]').forEach(el=>{el.style.display=el.getAttribute('data-show').split(/\s+/).includes(s)?'':'none';});}
+function setSt(s){document.body.dataset.state=s;press(['s-default','s-loading','s-empty'],'s-'+s);toggleState(s);}
+document.body.classList.add('ready');setSt('default');
+</script>
+</body>
+</html>

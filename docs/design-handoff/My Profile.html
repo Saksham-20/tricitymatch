@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-elder="off">
+<head>
+<meta charset="utf-8" />
+<title>TricityShadi — My Profile</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="ts-system.css" />
+<template id="__bundler_thumbnail">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#F8E8EC"/><circle cx="100" cy="84" r="30" fill="#8B2346"/><path d="M52 150c0-26 22-40 48-40s48 14 48 40z" fill="#8B2346"/></svg>
+</template>
+<style>
+body{background:var(--surface-2);}
+.harness{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;padding:.6rem 1rem;background:color-mix(in srgb,var(--card) 90%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);font-size:.8rem;}
+.harness .ttl{font-family:'Playfair Display',serif;font-weight:600;color:var(--fg-strong);}
+.harness .spacer{flex:1;}
+.seg{display:flex;background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:3px;gap:2px;}
+.seg button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:.76rem;font-weight:600;padding:.32rem .7rem;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:.3rem;}
+.seg button[aria-pressed="true"]{background:var(--card);color:var(--accent);box-shadow:var(--sh-sm);}
+.harness .lab{font-size:.66rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+
+.stage{padding:4.6rem 1.2rem 3rem;min-height:100vh;display:flex;justify-content:center;}
+.device{width:100%;max-width:1080px;background:var(--bg);border:1px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.12);transition:max-width .35s ease;position:relative;}
+body[data-vp="mobile"] .device{max-width:402px;border-radius:34px;}
+body[data-vp="mobile"] .desktop-only{display:none!important;}
+body[data-vp="desktop"] .mobile-only{display:none!important;}
+
+.topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:.7rem;padding:.8rem 1.3rem;background:color-mix(in srgb,var(--card) 92%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);}
+.topbar .back{display:flex;align-items:center;gap:.35rem;background:none;border:0;font:inherit;font-weight:600;font-size:.88rem;color:var(--muted);cursor:pointer;}
+.topbar .back:hover{color:var(--accent);}
+.topbar .seehint{margin-left:auto;font-size:.76rem;color:var(--muted);display:flex;align-items:center;gap:.4rem;}
+.topbar .seehint svg{width:14px;height:14px;}
+
+.wrap{padding:1.5rem;display:flex;flex-direction:column;gap:1.3rem;}
+body[data-vp="mobile"] .wrap{padding:1rem;}
+
+/* strength panel */
+.strength{display:flex;align-items:center;gap:1.1rem;background:var(--card);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:16px;padding:1.1rem 1.3rem;box-shadow:var(--sh-card);}
+.pring{position:relative;width:60px;height:60px;flex:none;}
+.pring svg{transform:rotate(-90deg);}
+.pring .ct{position:absolute;inset:0;display:grid;place-content:center;font-weight:700;font-size:.85rem;color:var(--accent);}
+.strength .stx{flex:1;min-width:0;}
+.strength .stx b{color:var(--fg-strong);font-size:.98rem;}
+.strength .stx p{color:var(--muted);font-size:.82rem;margin-top:.1rem;}
+.strength .chips{display:flex;gap:.4rem;margin-top:.5rem;flex-wrap:wrap;}
+.tinychip{font-size:.68rem;font-weight:600;padding:.18rem .5rem;border-radius:999px;border:1px solid var(--border);background:var(--surface-2);color:var(--muted);display:flex;align-items:center;gap:.25rem;}
+.tinychip.done{background:var(--success-l);color:var(--success);border-color:color-mix(in srgb,var(--success) 25%,transparent);}
+.tinychip.done svg{width:10px;height:10px;}
+
+.cols{display:grid;grid-template-columns:1.7fr 1fr;gap:1.3rem;align-items:start;}
+body[data-vp="mobile"] .cols{grid-template-columns:1fr;}
+.colL,.colR{display:flex;flex-direction:column;gap:1.3rem;min-width:0;}
+
+/* hero */
+.hero{background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:var(--sh-card);}
+.gallery{display:grid;grid-template-columns:2fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:3px;height:280px;}
+body[data-vp="mobile"] .gallery{height:230px;grid-template-columns:1fr 1fr;}
+.gphoto{position:relative;background:repeating-linear-gradient(135deg,var(--p-50),var(--p-50) 16px,var(--p-100) 16px,var(--p-100) 32px);display:grid;place-items:center;cursor:pointer;overflow:hidden;}
+.gphoto.main{grid-row:1 / span 2;}
+body[data-vp="mobile"] .gphoto:nth-child(n+4){display:none;}
+.gphoto .ini{font-family:'Playfair Display',serif;font-weight:600;color:var(--p-300);user-select:none;font-size:2.4rem;}
+.gphoto.main .ini{font-size:5rem;}
+.gphoto .addp{position:absolute;bottom:.6rem;right:.6rem;display:flex;align-items:center;gap:.35rem;background:color-mix(in srgb,var(--card) 92%,transparent);border:1px solid var(--border);border-radius:10px;padding:.35rem .6rem;font-size:.72rem;font-weight:700;color:var(--fg);box-shadow:var(--sh-sm);}
+.gphoto .addp svg{width:13px;height:13px;color:var(--accent);}
+.ident{padding:1.3rem 1.5rem;}
+body[data-vp="mobile"] .ident{padding:1.1rem;}
+.ident .top{display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;}
+.ident h1{font-size:1.8rem;font-weight:700;line-height:1.1;display:flex;flex-wrap:wrap;align-items:center;gap:.3rem;}
+.ident h1 .age{font-weight:400;color:var(--muted);}
+.idrow{display:flex;flex-wrap:wrap;gap:.5rem;margin:.55rem 0 0;}
+.idcode{display:inline-flex;align-items:center;gap:.35rem;font-size:.7rem;font-weight:700;color:var(--fg);background:var(--surface-2);border:1px solid var(--border);border-radius:999px;padding:.2rem .55rem;cursor:pointer;}
+.idcode svg{width:12px;height:12px;color:var(--muted);}
+.facts{display:flex;flex-wrap:wrap;gap:.4rem 1rem;color:var(--muted);font-size:.88rem;margin-top:.7rem;}
+.facts span{display:flex;align-items:center;gap:.4rem;}
+.facts svg{color:var(--accent);width:14px;height:14px;}
+.statbadges{display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem;margin-top:1rem;}
+.sbadge{text-align:center;padding:.8rem;border-radius:14px;border:1px solid var(--border);background:var(--surface-2);}
+.sbadge.rose{background:var(--accent-soft);border-color:var(--accent-soft-2);}
+.sbadge.gold{background:var(--gold-soft);border-color:color-mix(in srgb,var(--g-500) 25%,transparent);}
+.sbadge.ok{background:var(--success-l);border-color:color-mix(in srgb,var(--success) 22%,transparent);}
+.sbadge b{font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;display:block;line-height:1;color:var(--fg-strong);}
+.sbadge.rose b{color:var(--accent);}.sbadge.gold b{color:var(--g-600);}.sbadge.ok b{color:var(--success);}
+.sbadge span{font-size:.64rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-top:.2rem;display:block;}
+.bio{margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);color:var(--fg);font-size:.92rem;line-height:1.6;}
+
+/* card */
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--sh-card);overflow:hidden;}
+.card .ch{display:flex;align-items:center;gap:.6rem;padding:.9rem 1.1rem;border-bottom:1px solid var(--border);}
+.card .ch .ci{width:30px;height:30px;border-radius:9px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;flex:none;}
+.card .ch .ci svg{width:15px;height:15px;}
+.card .ch h3{font-size:.76rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-strong);}
+.card .ch .edit{margin-left:auto;display:flex;align-items:center;gap:.3rem;font-size:.78rem;font-weight:600;color:var(--accent);background:none;border:0;cursor:pointer;}
+.card .ch .edit svg{width:13px;height:13px;}
+.card .cb{padding:1.1rem;}
+.drow{display:flex;justify-content:space-between;gap:1rem;padding:.55rem 0;border-bottom:1px solid var(--border);font-size:.88rem;}
+.drow:last-child{border-bottom:0;}
+.drow .k{font-size:.66rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);}
+.drow .v{font-weight:600;color:var(--fg-strong);text-align:right;text-transform:capitalize;}
+.pillgrid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;}
+.ipill{display:flex;flex-direction:column;padding:.6rem .75rem;border-radius:11px;border:1px solid var(--border);background:var(--surface-2);}
+.ipill.hl{background:var(--accent-soft);border-color:var(--accent-soft-2);}
+.ipill b{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:.15rem;}
+.ipill span{font-size:.8rem;font-weight:700;color:var(--fg-strong);text-transform:capitalize;}
+.ipill.hl span{color:var(--accent);}
+.tagwrap{display:flex;flex-wrap:wrap;gap:.45rem;}
+.tag{font-size:.78rem;font-weight:600;padding:.3rem .65rem;border-radius:999px;background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-soft-2);}
+.tag.n{background:var(--surface-2);color:var(--fg);border-color:var(--border);}
+.prompt{padding:.85rem 1rem;background:var(--accent-soft);border:1px solid var(--accent-soft-2);border-radius:12px;margin-bottom:.6rem;}
+.prompt:last-child{margin-bottom:0;}
+.prompt .q{font-size:.64rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin-bottom:.3rem;}
+.prompt .a{font-size:.88rem;color:var(--fg);}
+.dashcard{background:var(--card);border:1px dashed var(--border);border-radius:16px;padding:1rem 1.1rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;}
+.dashcard b{font-size:.9rem;color:var(--fg-strong);}.dashcard p{font-size:.78rem;color:var(--muted);}
+.nudge{background:var(--gold-soft);border:1px solid color-mix(in srgb,var(--g-500) 25%,transparent);border-radius:16px;padding:1.1rem;display:flex;gap:.8rem;align-items:flex-start;}
+.nudge .ni{width:34px;height:34px;border-radius:10px;background:color-mix(in srgb,var(--g-500) 18%,transparent);color:var(--g-600);display:grid;place-items:center;flex:none;}
+.nudge b{color:var(--g-700);font-size:.9rem;}html[data-theme="dark"] .nudge b{color:var(--g-300);}
+.nudge p{color:var(--g-600);font-size:.8rem;margin:.2rem 0 .7rem;}html[data-theme="dark"] .nudge p{color:var(--g-300);opacity:.8;}
+
+/* ===== EDIT MODE ===== */
+.etabs{display:flex;gap:.3rem;overflow-x:auto;border-bottom:1px solid var(--border);background:var(--card);padding:0 1.3rem;position:sticky;top:57px;z-index:25;-ms-overflow-style:none;scrollbar-width:none;}
+.etabs::-webkit-scrollbar{display:none;}
+.etabs button{border:0;background:none;font:inherit;font-weight:600;font-size:.86rem;color:var(--muted);padding:.85rem .8rem;cursor:pointer;position:relative;white-space:nowrap;}
+.etabs button.on{color:var(--accent);}
+.etabs button.on::after{content:"";position:absolute;left:.5rem;right:.5rem;bottom:-1px;height:2.5px;background:var(--accent);border-radius:3px;}
+.field{margin-bottom:1.1rem;}
+.field>label{display:block;font-size:.8rem;font-weight:600;color:var(--fg-strong);margin-bottom:.4rem;}
+.inp{width:100%;padding:.68rem .9rem;border-radius:11px;border:2px solid var(--border);background:var(--card);color:var(--fg);font:inherit;font-size:.95rem;transition:.2s;}
+.inp:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px rgba(139,35,70,.12);}
+textarea.inp{resize:vertical;min-height:90px;}
+.sel{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%238B8B8B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='4 6 8 10 12 6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .9rem center;padding-right:2.3rem;}
+.frow2{display:grid;grid-template-columns:1fr 1fr;gap:.9rem;}
+.charcount{font-size:.72rem;color:var(--muted);text-align:right;margin-top:.3rem;}
+.editbar{position:sticky;bottom:0;display:flex;gap:.7rem;align-items:center;padding:1rem 1.3rem;background:color-mix(in srgb,var(--card) 96%,transparent);backdrop-filter:blur(12px);border-top:1px solid var(--border);}
+.editbar .save{margin-left:auto;}
+.editbar .auto{font-size:.76rem;color:var(--muted);display:flex;align-items:center;gap:.35rem;}
+.editbar .auto svg{width:13px;height:13px;color:var(--success);}
+
+/* loading / empty */
+.center{display:grid;place-items:center;min-height:420px;padding:2rem;}
+.center .inner{text-align:center;max-width:360px;}
+.center .ei{width:72px;height:72px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;margin:0 auto 1.1rem;}
+.center .ei svg{width:30px;height:30px;}
+.center h3{font-size:1.4rem;color:var(--fg-strong);}.center p{color:var(--muted);font-size:.9rem;margin:.5rem 0 1.3rem;}
+.spin2{width:36px;height:36px;border:3px solid var(--accent-soft-2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 1rem;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+body:not(.ready) [data-show]{display:none;}
+</style>
+</head>
+<body data-vp="desktop" data-state="view" data-etab="basic">
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<g id="i-back"><polyline points="15 18 9 12 15 6"/></g>
+<g id="i-edit"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></g>
+<g id="i-eye"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></g>
+<g id="i-check"><polyline points="20 6 9 17 4 12"/></g>
+<g id="i-cam"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></g>
+<g id="i-pin"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></g>
+<g id="i-brief"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></g>
+<g id="i-book"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></g>
+<g id="i-rupee"><path d="M6 3h12M6 8h12M6 13l8.5 8M6 13h3a5 5 0 0 0 0-10"/></g>
+<g id="i-user"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></g>
+<g id="i-hash"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></g>
+<g id="i-copy"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></g>
+<g id="i-shield"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></g>
+<g id="i-alert"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></g>
+<g id="i-grid"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></g>
+<g id="i-home"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></g>
+<g id="i-sun"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.2" y1="4.2" x2="5.6" y2="5.6"/><line x1="18.4" y1="18.4" x2="19.8" y2="19.8"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.2" y1="19.8" x2="5.6" y2="18.4"/><line x1="18.4" y1="5.6" x2="19.8" y2="4.2"/></g>
+<g id="i-moon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></g>
+<g id="i-heart"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></g>
+</defs></svg>
+
+<div class="harness">
+  <span class="ttl">My Profile</span>
+  <span class="lab">Mode</span>
+  <div class="seg">
+    <button id="m-view" aria-pressed="true" onclick="setSt('view')"><svg class="i"><use href="#i-eye"/></svg>View</button>
+    <button id="m-edit" aria-pressed="false" onclick="setSt('edit')"><svg class="i"><use href="#i-edit"/></svg>Edit</button>
+    <button id="m-loading" aria-pressed="false" onclick="setSt('loading')">Loading</button>
+    <button id="m-empty" aria-pressed="false" onclick="setSt('empty')">Empty</button>
+  </div>
+  <span class="lab">View</span>
+  <div class="seg"><button id="vp-d" aria-pressed="true" onclick="setVp('desktop')">Desktop</button><button id="vp-m" aria-pressed="false" onclick="setVp('mobile')">Mobile</button></div>
+  <span class="lab">Theme</span>
+  <div class="seg"><button id="th-l" aria-pressed="true" onclick="setTh('light')"><svg class="i"><use href="#i-sun"/></svg>Light</button><button id="th-d" aria-pressed="false" onclick="setTh('dark')"><svg class="i"><use href="#i-moon"/></svg>Dark</button></div>
+  <span class="spacer"></span>
+  <span class="lab">Elder</span>
+  <div class="seg"><button id="el-off" aria-pressed="true" onclick="setEl('off')">Std</button><button id="el-on" aria-pressed="false" onclick="setEl('on')">Elder</button></div>
+</div>
+
+<div class="stage">
+<div class="device">
+
+  <!-- TOP BAR -->
+  <div class="topbar" data-show="view edit">
+    <button class="back"><svg class="i"><use href="#i-back"/></svg>Dashboard</button>
+    <span class="seehint desktop-only" data-show="view"><svg class="i"><use href="#i-eye"/></svg>This is how matches see you</span>
+    <button class="btn btn-primary btn-sm" data-show="view" onclick="setSt('edit')"><svg class="i"><use href="#i-edit"/></svg>Edit Profile</button>
+    <span class="seehint desktop-only" data-show="edit" style="margin-left:auto"><svg class="i"><use href="#i-edit"/></svg>Editing — changes preview live</span>
+  </div>
+
+  <!-- ============ VIEW ============ -->
+  <div data-show="view">
+    <div class="wrap">
+      <!-- strength -->
+      <div class="strength">
+        <div class="pring"><svg width="60" height="60"><circle cx="30" cy="30" r="25" stroke="var(--n-200)" stroke-width="6" fill="none"/><circle cx="30" cy="30" r="25" stroke="var(--accent)" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="157.1" stroke-dashoffset="28.3"/></svg><div class="ct">82%</div></div>
+        <div class="stx">
+          <b>Your profile is looking strong</b>
+          <p>Add a voice intro and one more photo to reach 100%.</p>
+          <div class="chips">
+            <span class="tinychip done"><svg class="i"><use href="#i-check"/></svg>Basics</span>
+            <span class="tinychip done"><svg class="i"><use href="#i-check"/></svg>Photos</span>
+            <span class="tinychip done"><svg class="i"><use href="#i-check"/></svg>Family</span>
+            <span class="tinychip">Voice intro</span>
+            <span class="tinychip">Income</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cols">
+        <!-- LEFT -->
+        <div class="colL">
+          <div class="hero">
+            <div class="gallery">
+              <div class="gphoto main"><span class="ini">A</span><span class="addp"><svg class="i"><use href="#i-cam"/></svg>5 photos</span></div>
+              <div class="gphoto"><span class="ini">A</span></div>
+              <div class="gphoto"><span class="ini">A</span></div>
+              <div class="gphoto"><span class="ini">A</span></div>
+              <div class="gphoto"><span class="ini">A</span></div>
+            </div>
+            <div class="ident">
+              <div class="top">
+                <div style="min-width:0">
+                  <h1>Aanya Mehra<span class="age">, 27</span></h1>
+                  <div class="idrow">
+                    <span class="badge b-verified"><svg class="i"><use href="#i-shield"/></svg>Verified</span>
+                    <span class="idcode"><svg class="i"><use href="#i-hash"/></svg>TCS-A1B2C3D4<svg class="i"><use href="#i-copy"/></svg></span>
+                  </div>
+                  <div class="facts">
+                    <span><svg class="i"><use href="#i-pin"/></svg>Mohali, Punjab</span>
+                    <span><svg class="i"><use href="#i-brief"/></svg>UX Designer</span>
+                    <span><svg class="i"><use href="#i-book"/></svg>M.Des, NID</span>
+                    <span><svg class="i"><use href="#i-rupee"/></svg>₹12L/yr</span>
+                  </div>
+                </div>
+                <button class="btn btn-ghost btn-sm desktop-only" onclick="setSt('edit')"><svg class="i"><use href="#i-edit"/></svg>Edit</button>
+              </div>
+              <div class="statbadges">
+                <div class="sbadge rose"><b>82%</b><span>Profile</span></div>
+                <div class="sbadge gold"><b>5</b><span>Photos</span></div>
+                <div class="sbadge ok"><b><svg class="i" style="width:18px;height:18px"><use href="#i-check"/></svg></b><span>Verified</span></div>
+              </div>
+              <p class="bio">Warm, curious and family-rooted. I design products by day and chase good light for photography on weekends. Looking for a partner who values kindness, honest conversation, and the occasional spontaneous road trip.</p>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="ch"><span class="ci"><svg class="i"><use href="#i-user"/></svg></span><h3>Get to know me</h3><button class="edit" onclick="setSt('edit')"><svg class="i"><use href="#i-edit"/></svg>Edit</button></div>
+            <div class="cb">
+              <div class="prompt"><div class="q">The way to win me over is…</div><div class="a">Good filter coffee and a playlist that goes from Gurbani to indie folk without skipping a beat.</div></div>
+              <div class="prompt"><div class="q">A weekend well spent…</div><div class="a">An early hike up to Kasauli, then sketching at a roadside dhaba till sunset.</div></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="ch"><span class="ci"><svg class="i"><use href="#i-grid"/></svg></span><h3>Interests & hobbies</h3><button class="edit" onclick="setSt('edit')"><svg class="i"><use href="#i-edit"/></svg>Edit</button></div>
+            <div class="cb"><div class="tagwrap"><span class="tag">Photography</span><span class="tag">Trekking</span><span class="tag">Classical music</span><span class="tag">Cooking</span><span class="tag">Reading</span><span class="tag">Travel</span></div></div>
+          </div>
+        </div>
+
+        <!-- RIGHT -->
+        <div class="colR">
+          <div class="card">
+            <div class="ch"><span class="ci"><svg class="i"><use href="#i-user"/></svg></span><h3>Details</h3><button class="edit" onclick="setSt('edit')"><svg class="i"><use href="#i-edit"/></svg>Edit</button></div>
+            <div class="cb" style="padding-top:.3rem">
+              <div class="drow"><span class="k">Age</span><span class="v">27 years</span></div>
+              <div class="drow"><span class="k">Height</span><span class="v">5'5" (165 cm)</span></div>
+              <div class="drow"><span class="k">Education</span><span class="v">M.Des, NID</span></div>
+              <div class="drow"><span class="k">Religion</span><span class="v">Hindu</span></div>
+              <div class="drow"><span class="k">Caste · Gotra</span><span class="v">Khatri · Kaushal</span></div>
+              <div class="drow"><span class="k">Mother tongue</span><span class="v">Punjabi</span></div>
+              <div class="drow"><span class="k">Marital status</span><span class="v">Never married</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="ch"><span class="ci"><svg class="i"><use href="#i-sun"/></svg></span><h3>Horoscope & Kundli</h3><button class="edit" onclick="setSt('edit')"><svg class="i"><use href="#i-edit"/></svg>Edit</button></div>
+            <div class="cb" style="padding-top:.3rem">
+              <div class="drow"><span class="k">Rashi</span><span class="v">Tula</span></div>
+              <div class="drow"><span class="k">Nakshatra</span><span class="v">Swati</span></div>
+              <div class="drow"><span class="k">Manglik</span><span class="v">No</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="ch"><span class="ci"><svg class="i"><use href="#i-home"/></svg></span><h3>Family</h3><button class="edit" onclick="setSt('edit')"><svg class="i"><use href="#i-edit"/></svg>Edit</button></div>
+            <div class="cb">
+              <div class="pillgrid" style="margin-bottom:.6rem">
+                <div class="ipill"><b>Family type</b><span>Nuclear</span></div>
+                <div class="ipill"><b>Status</b><span>Upper middle</span></div>
+              </div>
+              <div class="drow"><span class="k">Father</span><span class="v">Retired civil servant</span></div>
+              <div class="drow"><span class="k">Mother</span><span class="v">Homemaker</span></div>
+            </div>
+          </div>
+          <div class="nudge">
+            <span class="ni"><svg class="i" style="width:17px;height:17px"><use href="#i-shield"/></svg></span>
+            <div><b>Add a voice intro</b><p>Profiles with a voice intro get 2× more meaningful replies.</p><button class="btn btn-gold btn-sm" onclick="setSt('edit')">Record now</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ EDIT ============ -->
+  <div data-show="edit">
+    <div class="etabs">
+      <button class="on" data-et="basic" onclick="setEtab('basic')">Basics</button>
+      <button data-et="about" onclick="setEtab('about')">About</button>
+      <button data-et="details" onclick="setEtab('details')">Details</button>
+      <button data-et="family" onclick="setEtab('family')">Family</button>
+      <button data-et="prefs" onclick="setEtab('prefs')">Preferences</button>
+      <button data-et="photos" onclick="setEtab('photos')">Photos</button>
+    </div>
+    <div class="wrap">
+      <!-- basic -->
+      <div data-etab="basic">
+        <div class="card"><div class="ch"><span class="ci"><svg class="i"><use href="#i-user"/></svg></span><h3>Basic information</h3></div>
+          <div class="cb">
+            <div class="frow2">
+              <div class="field"><label>First name</label><input class="inp" value="Aanya"></div>
+              <div class="field"><label>Last name</label><input class="inp" value="Mehra"></div>
+            </div>
+            <div class="frow2">
+              <div class="field"><label>Date of birth</label><input class="inp" value="14 / 03 / 1999"></div>
+              <div class="field"><label>Height</label><select class="inp sel"><option>5'5" (165 cm)</option><option>5'4"</option><option>5'6"</option></select></div>
+            </div>
+            <div class="frow2">
+              <div class="field"><label>City</label><select class="inp sel"><option>Mohali</option><option>Chandigarh</option><option>Panchkula</option></select></div>
+              <div class="field"><label>Mother tongue</label><select class="inp sel"><option>Punjabi</option><option>Hindi</option></select></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- about -->
+      <div data-etab="about" style="display:none">
+        <div class="card"><div class="ch"><span class="ci"><svg class="i"><use href="#i-edit"/></svg></span><h3>About you</h3></div>
+          <div class="cb">
+            <div class="field"><label>Bio</label><textarea class="inp">Warm, curious and family-rooted. I design products by day and chase good light for photography on weekends.</textarea><div class="charcount">142 / 500</div></div>
+            <div class="field"><label>Interests</label><div class="tagwrap" style="margin-bottom:.6rem"><span class="tag">Photography ✕</span><span class="tag">Trekking ✕</span><span class="tag">Cooking ✕</span></div><input class="inp" placeholder="Add an interest and press Enter"></div>
+          </div>
+        </div>
+      </div>
+      <!-- details -->
+      <div data-etab="details" style="display:none">
+        <div class="card"><div class="ch"><span class="ci"><svg class="i"><use href="#i-user"/></svg></span><h3>Education & career</h3></div>
+          <div class="cb">
+            <div class="frow2"><div class="field"><label>Education</label><input class="inp" value="M.Des, NID"></div><div class="field"><label>Profession</label><input class="inp" value="UX Designer"></div></div>
+            <div class="frow2"><div class="field"><label>Annual income</label><input class="inp" value="₹12,00,000"></div><div class="field"><label>Religion</label><select class="inp sel"><option>Hindu</option><option>Sikh</option><option>Jain</option></select></div></div>
+            <div class="frow2"><div class="field"><label>Caste</label><input class="inp" value="Khatri"></div><div class="field"><label>Gotra</label><input class="inp" value="Kaushal"></div></div>
+          </div>
+        </div>
+      </div>
+      <!-- family -->
+      <div data-etab="family" style="display:none">
+        <div class="card"><div class="ch"><span class="ci"><svg class="i"><use href="#i-home"/></svg></span><h3>Family background</h3></div>
+          <div class="cb">
+            <div class="frow2"><div class="field"><label>Family type</label><select class="inp sel"><option>Nuclear</option><option>Joint</option></select></div><div class="field"><label>Family status</label><select class="inp sel"><option>Upper middle</option><option>Middle</option><option>Affluent</option></select></div></div>
+            <div class="frow2"><div class="field"><label>Father's occupation</label><input class="inp" value="Retired civil servant"></div><div class="field"><label>Mother's occupation</label><input class="inp" value="Homemaker"></div></div>
+            <div class="field"><label>Number of siblings</label><input class="inp" value="1" style="max-width:120px"></div>
+          </div>
+        </div>
+      </div>
+      <!-- prefs -->
+      <div data-etab="prefs" style="display:none">
+        <div class="card"><div class="ch"><span class="ci"><svg class="i"><use href="#i-heart"/></svg></span><h3>Partner preferences</h3></div>
+          <div class="cb">
+            <div class="frow2"><div class="field"><label>Age — min</label><input class="inp" value="28"></div><div class="field"><label>Age — max</label><input class="inp" value="33"></div></div>
+            <div class="field"><label>Preferred education</label><input class="inp" value="Postgraduate or above"></div>
+            <div class="field"><label>Preferred cities</label><div class="tagwrap"><span class="tag">Chandigarh ✕</span><span class="tag">Mohali ✕</span><span class="tag">Panchkula ✕</span></div></div>
+          </div>
+        </div>
+      </div>
+      <!-- photos -->
+      <div data-etab="photos" style="display:none">
+        <div class="card"><div class="ch"><span class="ci"><svg class="i"><use href="#i-cam"/></svg></span><h3>Photos</h3></div>
+          <div class="cb">
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem">
+              <div class="gphoto main" style="aspect-ratio:3/4;border-radius:12px;grid-row:span 2"><span class="ini" style="font-size:3rem">A</span><span class="addp"><svg class="i"><use href="#i-shield"/></svg>Primary</span></div>
+              <div class="gphoto" style="aspect-ratio:3/4;border-radius:12px"><span class="ini">A</span></div>
+              <div class="gphoto" style="aspect-ratio:3/4;border-radius:12px"><span class="ini">A</span></div>
+              <div class="gphoto" style="aspect-ratio:3/4;border-radius:12px"><span class="ini">A</span></div>
+              <div style="aspect-ratio:3/4;border:2px dashed var(--border);border-radius:12px;display:grid;place-items:center;color:var(--muted);cursor:pointer"><div style="text-align:center;font-size:.74rem;font-weight:600"><svg class="i" style="width:22px;height:22px;display:block;margin:0 auto .3rem"><use href="#i-cam"/></svg>Add</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="editbar">
+      <button class="btn btn-ghost btn-sm" onclick="setSt('view')">Cancel</button>
+      <span class="auto"><svg class="i"><use href="#i-check"/></svg>Auto-saved</span>
+      <button class="btn btn-primary save" onclick="setSt('view')"><svg class="i"><use href="#i-check"/></svg>Save & preview</button>
+    </div>
+  </div>
+
+  <!-- loading -->
+  <div data-show="loading"><div class="center"><div class="inner"><div class="spin2"></div><p style="color:var(--muted);font-size:.9rem">Loading your profile…</p></div></div></div>
+
+  <!-- empty -->
+  <div data-show="empty"><div class="center"><div class="inner">
+    <div class="ei"><svg class="i"><use href="#i-user"/></svg></div>
+    <h3>Set up your profile</h3>
+    <p>Add your details and photos so potential matches can find you.</p>
+    <div style="display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap">
+      <button class="btn btn-primary btn-sm" onclick="setSt('edit')"><svg class="i"><use href="#i-edit"/></svg>Build your profile</button>
+      <button class="btn btn-secondary btn-sm">Back to dashboard</button>
+    </div>
+  </div></div></div>
+
+</div>
+</div>
+
+<script>
+function press(ids,on){ids.forEach(id=>document.getElementById(id).setAttribute('aria-pressed',id===on));}
+function toggleState(s){document.querySelectorAll('[data-show]').forEach(el=>{el.style.display=el.getAttribute('data-show').split(/\s+/).includes(s)?'':'none';});}
+function setSt(s){document.body.dataset.state=s;press(['m-view','m-edit','m-loading','m-empty'],'m-'+s);toggleState(s);}
+function setEtab(t){document.body.dataset.etab=t;
+  document.querySelectorAll('.etabs button').forEach(b=>b.classList.toggle('on',b.dataset.et===t));
+  document.querySelectorAll('[data-etab]').forEach(el=>el.style.display=el.getAttribute('data-etab')===t?'':'none');}
+function setVp(v){document.body.dataset.vp=v;press(['vp-d','vp-m'],v==='desktop'?'vp-d':'vp-m');}
+function setTh(t){document.documentElement.setAttribute('data-theme',t);press(['th-l','th-d'],t==='light'?'th-l':'th-d');}
+function setEl(e){document.documentElement.setAttribute('data-elder',e);press(['el-off','el-on'],e==='off'?'el-off':'el-on');}
+document.body.classList.add('ready');setSt('view');setEtab('basic');
+</script>
+</body>
+</html>
