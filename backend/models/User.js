@@ -11,10 +11,16 @@ const User = sequelize.define('User', {
   },
   email: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true, // null for phone-only accounts (flexible auth)
     unique: true,
     validate: {
-      isEmail: true
+      isEmailOrNull(value) {
+        if (value === null || value === undefined || value === '') return;
+        // mirror Sequelize's isEmail without rejecting null
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+          throw new Error('Validation isEmail on email failed');
+        }
+      }
     }
   },
   password: {
@@ -86,6 +92,13 @@ const User = sequelize.define('User', {
     defaultValue: []
   }
 }, {
+  validate: {
+    emailOrPhonePresent() {
+      if (!this.email && !this.phone) {
+        throw new Error('An email address or phone number is required');
+      }
+    }
+  },
   hooks: {
     beforeCreate: async (user) => {
       if (user.password) {

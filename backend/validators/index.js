@@ -37,7 +37,16 @@ const paginationRules = [
 // ==================== AUTH VALIDATORS ====================
 
 const signupValidation = [
+  // Flexible auth: an account needs EITHER a valid email OR a valid phone.
+  body()
+    .custom((_, { req }) => {
+      if (!req.body.email && !req.body.phone) {
+        throw new Error('An email address or phone number is required');
+      }
+      return true;
+    }),
   body('email')
+    .optional({ checkFalsy: true })
     .isEmail()
     .withMessage('Please provide a valid email')
     .normalizeEmail()
@@ -65,9 +74,9 @@ const signupValidation = [
     .matches(/^[a-zA-Z\s'-]+$/)
     .withMessage('Last name can only contain letters, spaces, hyphens, and apostrophes'),
   body('phone')
-    .optional()
-    .isMobilePhone('any')
-    .withMessage('Please provide a valid phone number'),
+    .optional({ checkFalsy: true })
+    .matches(/^[6-9]\d{9}$/)
+    .withMessage('Please provide a valid 10-digit Indian mobile number'),
   body('gender')
     .optional()
     .isIn(['male', 'female', 'other'])
@@ -91,13 +100,39 @@ const signupValidation = [
 ];
 
 const loginValidation = [
-  body('email')
-    .isEmail()
-    .withMessage('Please provide a valid email')
-    .normalizeEmail(),
+  // Flexible auth: `identifier` is an email or phone (legacy `email` still accepted).
+  body()
+    .custom((_, { req }) => {
+      const id = (req.body.identifier ?? req.body.email ?? '').toString().trim();
+      if (!id) throw new Error('Email or phone number is required');
+      return true;
+    }),
   body('password')
     .notEmpty()
     .withMessage('Password is required'),
+];
+
+const changeEmailRequestValidation = [
+  body('newEmail')
+    .isEmail()
+    .withMessage('Please provide a valid email')
+    .normalizeEmail()
+    .isLength({ max: 255 }),
+  body('password')
+    .optional({ checkFalsy: true })
+    .isString(),
+];
+
+const changeEmailVerifyValidation = [
+  body('newEmail')
+    .isEmail()
+    .withMessage('Please provide a valid email')
+    .normalizeEmail(),
+  body('code')
+    .isLength({ min: 6, max: 6 })
+    .withMessage('Code must be 6 digits')
+    .isNumeric()
+    .withMessage('Code must be numeric'),
 ];
 
 const forgotPasswordValidation = [
@@ -528,6 +563,8 @@ module.exports = {
   signupValidation,
   contactValidation,
   loginValidation,
+  changeEmailRequestValidation,
+  changeEmailVerifyValidation,
   forgotPasswordValidation,
   resetPasswordValidation,
   refreshTokenValidation,

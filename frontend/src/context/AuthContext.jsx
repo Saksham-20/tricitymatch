@@ -133,9 +133,10 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
   }, [checkAuth]);
 
-  const login = async (email, password) => {
+  // `identifier` may be an email or a phone number (flexible auth).
+  const login = async (identifier, password) => {
     try {
-      const response = await api.post('/auth/login', { email, password });
+      const response = await api.post('/auth/login', { identifier, password });
       const { user: userData } = response.data;
       
       if (!userData) {

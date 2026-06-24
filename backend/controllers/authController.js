@@ -103,10 +103,21 @@ exports.signup = asyncHandler(async (req, res) => {
   const { email, password, phone, firstName, lastName, gender, dateOfBirth, referralCode } = req.body;
   const codeFromQuery = req.query.ref || req.body.ref;
 
-  // Check if user already exists
-  const existingUser = await User.findOne({ where: { email: email.toLowerCase() } });
-  if (existingUser) {
-    throw createError.conflict('User already exists with this email');
+  // Flexible auth: account is identified by EITHER an email OR a phone number.
+  const normalizedEmail = email ? email.toLowerCase().trim() : null;
+  const normalizedPhone = phone ? String(phone).trim() : null;
+  if (!normalizedEmail && !normalizedPhone) {
+    throw createError.badRequest('An email address or phone number is required');
+  }
+
+  // Check if user already exists (by whichever identifier was provided)
+  if (normalizedEmail) {
+    const existingByEmail = await User.findOne({ where: { email: normalizedEmail } });
+    if (existingByEmail) throw createError.conflict('An account already exists with this email');
+  }
+  if (normalizedPhone) {
+    const existingByPhone = await User.findOne({ where: { phone: normalizedPhone } });
+    if (existingByPhone) throw createError.conflict('An account already exists with this phone number');
   }
 
   // Validate and process referral code
@@ -129,9 +140,9 @@ exports.signup = asyncHandler(async (req, res) => {
   try {
     result = await sequelize.transaction(async (t) => {
       const user = await User.create({
-        email: email.toLowerCase(),
+        email: normalizedEmail,
         password,
-        phone: phone || null,
+        phone: normalizedPhone,
         status: 'active',
         ...(referralData && referralData)
       }, { transaction: t });
@@ -154,8 +165,8 @@ exports.signup = asyncHandler(async (req, res) => {
 
         await MarketingLead.create({
           name: `${firstName} ${lastName}`,
-          phone: phone || 'N/A',
-          email: email,
+          phone: normalizedPhone || 'N/A',
+          email: normalizedEmail || 'N/A',
           assignedToMarketingUserId: referralData.referredByMarketingUserId,
           referralCode: referralData.referralCodeUsed,
           convertedUserId: user.id,
@@ -167,17 +178,19 @@ exports.signup = asyncHandler(async (req, res) => {
     });
   } catch (err) {
     if (err.name === 'SequelizeUniqueConstraintError') {
-      throw createError.conflict('User already exists with this email');
+      throw createError.conflict('An account already exists with this email or phone number');
     }
     log.error('Signup transaction failed', { error: err.message, stack: err.stack });
     throw createError.badRequest('Unable to create account. Please try again.');
   }
 
-  // Send welcome email (non-blocking)
-  setImmediate(() => {
-    sendWelcomeEmail(result.email, firstName)
-      .catch(err => log.error('Failed to send welcome email', { error: err.message, userId: result.id }));
-  });
+  // Send welcome email (non-blocking) — only when the account has an email
+  if (result.email) {
+    setImmediate(() => {
+      sendWelcomeEmail(result.email, firstName)
+        .catch(err => log.error('Failed to send welcome email', { error: err.message, userId: result.id }));
+    });
+  }
 
   // Generate tokens
   const accessToken = generateAccessToken(result.id);
@@ -215,20 +228,34 @@ exports.signup = asyncHandler(async (req, res) => {
 // @desc    Login user
 // @access  Public
 exports.login = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
-  const normalizedEmail = email.toLowerCase();
+  // Flexible auth: `identifier` may be an email or a phone. `email` kept for
+  // backward compatibility with older clients.
+  const rawIdentifier = (req.body.identifier ?? req.body.email ?? '').toString().trim();
+  const { password } = req.body;
+  if (!rawIdentifier) {
+    throw createError.badRequest('Email or phone number is required');
+  }
 
-  // Find user
-  const user = await User.findOne({ where: { email: normalizedEmail } });
+  const isEmail = rawIdentifier.includes('@');
+  const lookupKey = isEmail ? rawIdentifier.toLowerCase() : rawIdentifier;
+  const where = isEmail ? { email: lookupKey } : { phone: lookupKey };
+
+  // Find user by email or phone
+  const user = await User.findOne({ where });
   if (!user) {
-    await recordFailedLogin(normalizedEmail);
+    await recordFailedLogin(lookupKey);
     throw createError.unauthorized('Invalid credentials');
+  }
+
+  // OAuth-only accounts have no password set
+  if (!user.password) {
+    throw createError.unauthorized('This account uses Google sign-in. Please continue with Google.');
   }
 
   // Check password
   const isMatch = await user.comparePassword(password);
   if (!isMatch) {
-    const attempts = await recordFailedLogin(normalizedEmail);
+    const attempts = await recordFailedLogin(lookupKey);
     const remaining = config.auth.maxLoginAttempts - attempts;
     
     if (remaining > 0) {
@@ -239,7 +266,7 @@ exports.login = asyncHandler(async (req, res) => {
   }
 
   // Clear failed login attempts on success
-  await clearLoginAttempts(normalizedEmail);
+  await clearLoginAttempts(lookupKey);
 
   // Check if user is active
   if (user.status !== 'active') {
@@ -771,5 +798,88 @@ exports.googleAuth = asyncHandler(async (req, res) => {
     user: { id: user.id, email: user.email, role: user.role },
     tokens: { accessToken, refreshToken, expiresIn: config.auth.jwtExpiry },
   });
+});
+
+// @route   POST /api/auth/change-email/request
+// @desc    Authenticated: verify identity + email a 6-digit code to the NEW address
+// @access  Private
+exports.requestEmailChange = asyncHandler(async (req, res) => {
+  const { newEmail, password } = req.body;
+  const normalized = (newEmail || '').toLowerCase().trim();
+  if (!normalized) throw createError.badRequest('New email is required');
+
+  const user = await User.findByPk(req.user.id);
+  if (!user) throw createError.unauthorized('Not authenticated');
+
+  // Password-confirm for accounts that have a password (OAuth-only users skip)
+  if (user.password) {
+    if (!password) throw createError.badRequest('Current password is required');
+    const ok = await user.comparePassword(password);
+    if (!ok) throw createError.unauthorized('Incorrect password');
+  }
+
+  if (user.email && user.email.toLowerCase() === normalized) {
+    throw createError.badRequest('That is already your email address');
+  }
+
+  const taken = await User.findOne({ where: { email: normalized } });
+  if (taken) throw createError.conflict('That email is already in use');
+
+  const { sendEmail } = require('../utils/email');
+  const { set: cacheSet } = require('../utils/cache');
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  const payload = JSON.stringify({ code, expiresAt: Date.now() + 600 * 1000, attempts: 0, userId: user.id });
+  await cacheSet(`email-change:${normalized}`, payload, 600);
+  await sendEmail({
+    to: normalized,
+    subject: 'Confirm your new TricityShadi email',
+    html: `<p>Your email change verification code is: <strong>${code}</strong></p><p>Valid for 10 minutes. If you didn't request this, you can ignore this email.</p>`,
+  });
+  // Dev affordance (matches smsService): log the code when email isn't configured.
+  if (!config.server.isProduction) {
+    log.info(`[EMAIL-CHANGE DEV] Code for ${normalized}: ${code}`);
+  }
+
+  res.json({ success: true, message: 'Verification code sent to your new email' });
+});
+
+// @route   POST /api/auth/change-email/verify
+// @desc    Authenticated: verify the code and apply the new email
+// @access  Private
+exports.verifyEmailChange = asyncHandler(async (req, res) => {
+  const { newEmail, code } = req.body;
+  const normalized = (newEmail || '').toLowerCase().trim();
+  if (!normalized || !code) throw createError.badRequest('New email and code are required');
+
+  const { get: cacheGet, set: cacheSet, del: cacheDel } = require('../utils/cache');
+  const key = `email-change:${normalized}`;
+  const raw = await cacheGet(key);
+  if (!raw) throw createError.badRequest('Code expired or not found. Please request a new one.');
+
+  const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+  if (data.userId !== req.user.id) throw createError.unauthorized('This code was issued for a different account');
+  if (Date.now() > data.expiresAt) { await cacheDel(key); throw createError.badRequest('Code expired. Please request a new one.'); }
+  if (data.attempts >= 5) { await cacheDel(key); throw createError.badRequest('Too many attempts. Please request a new code.'); }
+  if (String(code).trim() !== String(data.code)) {
+    data.attempts += 1;
+    await cacheSet(key, JSON.stringify(data), 600);
+    throw createError.badRequest('Incorrect code');
+  }
+
+  // Re-check availability (guards a race between request and verify)
+  const taken = await User.findOne({ where: { email: normalized } });
+  if (taken && taken.id !== req.user.id) throw createError.conflict('That email is already in use');
+
+  const user = await User.findByPk(req.user.id);
+  user.email = normalized;
+  user.emailVerified = true;
+  await user.save();
+  await cacheDel(key);
+
+  const fullUser = await User.findByPk(user.id, {
+    attributes: { exclude: ['password'] },
+    include: [{ model: Profile }],
+  });
+  res.json({ success: true, message: 'Email updated successfully', user: await withDerivedUserFields(fullUser) });
 });
 

@@ -88,10 +88,12 @@ const Login = () => {
   const validate = () => {
     const newErrors = {};
     
-    if (!formData.email) {
-      newErrors.email = 'Email is required';
-    } else if (!validateEmail(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
+    const id = formData.email.trim();
+    const isPhone = /^[6-9]\d{9}$/.test(id.replace(/[\s-]/g, ''));
+    if (!id) {
+      newErrors.email = 'Email or phone is required';
+    } else if (!validateEmail(id) && !isPhone) {
+      newErrors.email = 'Enter a valid email or 10-digit phone';
     }
     
     if (!formData.password) {
@@ -113,7 +115,10 @@ const Login = () => {
     
     setLoading(true);
     try {
-      const result = await login(formData.email, formData.password);
+      // Normalize: phone identifiers may be typed with spaces/dashes
+      const raw = formData.email.trim();
+      const identifier = raw.includes('@') ? raw : raw.replace(/[\s-]/g, '');
+      const result = await login(identifier, formData.password);
       setLoading(false);
       
       if (result.success) {
@@ -281,7 +286,7 @@ const Login = () => {
             {/* Email Field */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-neutral-700 mb-2">
-                {t('auth.email')}
+                {t('auth.emailOrPhone', 'Email or phone')}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -290,11 +295,11 @@ const Login = () => {
                 <input
                   id="email"
                   name="email"
-                  type="email"
-                  autoComplete="email"
+                  type="text"
+                  autoComplete="username"
                   required
                   className={`input-field pl-12 ${errors.email ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : ''}`}
-                  placeholder="you@example.com"
+                  placeholder="you@example.com or 98765 43210"
                   value={formData.email}
                   onChange={handleChange}
                 />

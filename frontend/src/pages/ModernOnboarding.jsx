@@ -116,6 +116,8 @@ const ModernOnboardingContent = () => {
     try {
       if (mode === 'signup' || mode === 'create_for_other') {
         const signupData = { ...formData };
+        if (signupData.phone) signupData.phone = String(signupData.phone).replace(/[\s-]/g, '');
+        if (!signupData.email) delete signupData.email; // phone-only signup
         const result = await signup(signupData);
         if (result.success) {
           clearDraft();

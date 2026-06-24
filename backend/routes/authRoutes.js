@@ -21,6 +21,8 @@ const {
   sendOtp,
   verifyOtp,
   googleAuth,
+  requestEmailChange,
+  verifyEmailChange,
 } = require('../controllers/authController');
 const { auth } = require('../middlewares/auth');
 const { handleValidationErrors } = require('../middlewares/errorHandler');
@@ -31,10 +33,12 @@ const {
   passwordResetLimiter,
   checkAccountLockout
 } = require('../middlewares/security');
-const { 
-  signupValidation, 
-  loginValidation, 
-  forgotPasswordValidation, 
+const {
+  signupValidation,
+  loginValidation,
+  changeEmailRequestValidation,
+  changeEmailVerifyValidation,
+  forgotPasswordValidation,
   resetPasswordValidation,
   refreshTokenValidation
 } = require('../validators');
@@ -140,6 +144,22 @@ router.post('/change-password',
   ],
   handleValidationErrors,
   changePassword
+);
+
+// Change email (2-step, OTP-verified to the new address)
+router.post('/change-email/request',
+  auth,
+  otpLimiter,
+  changeEmailRequestValidation,
+  handleValidationErrors,
+  requestEmailChange
+);
+router.post('/change-email/verify',
+  auth,
+  otpLimiter,
+  changeEmailVerifyValidation,
+  handleValidationErrors,
+  verifyEmailChange
 );
 
 // Get active sessions

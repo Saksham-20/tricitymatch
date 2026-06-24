@@ -38,10 +38,19 @@ const CreateAccountStep = () => {
       newErrors.creatingFor = 'Please select who this profile is for';
     }
 
-    if (!data.email) {
-      newErrors.email = 'Email is required';
-    } else if (!validateEmail(data.email)) {
-      newErrors.email = 'Invalid email address';
+    // Flexible auth: require an email OR a phone (at least one).
+    const phoneDigits = (data.phone || '').replace(/[\s-]/g, '');
+    const hasEmail = !!data.email;
+    const hasPhone = !!phoneDigits;
+    if (!hasEmail && !hasPhone) {
+      newErrors.email = 'Enter an email or phone number';
+    } else {
+      if (hasEmail && !validateEmail(data.email)) {
+        newErrors.email = 'Invalid email address';
+      }
+      if (hasPhone && !/^[6-9]\d{9}$/.test(phoneDigits)) {
+        newErrors.phone = 'Enter a valid 10-digit Indian mobile number';
+      }
     }
 
     if (!data.password) {
@@ -211,6 +220,8 @@ const CreateAccountStep = () => {
           <h3 className="font-semibold text-neutral-900 text-sm">Account Information</h3>
         )}
 
+        <p className="text-xs text-neutral-500 -mb-1">Sign up with an email, a phone number, or both — at least one is required.</p>
+
         <FormField
           label={formData.creatingFor !== 'self' ? "Profile Owner's Email" : "Email"}
           type="email"
@@ -222,7 +233,19 @@ const CreateAccountStep = () => {
           onChange={(value) => updateFormData('email', value)}
           onBlur={() => setFieldTouched('email')}
           error={errors.email}
-          required
+        />
+
+        <FormField
+          label={formData.creatingFor !== 'self' ? "Profile Owner's Phone" : "Phone"}
+          type="tel"
+          name="phone"
+          autoComplete="tel"
+          inputMode="numeric"
+          placeholder="10-digit mobile number"
+          value={formData.phone || ''}
+          onChange={(value) => updateFormData('phone', value)}
+          onBlur={() => setFieldTouched('phone')}
+          error={errors.phone}
         />
 
         <div className="space-y-2">

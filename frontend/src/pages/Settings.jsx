@@ -113,6 +113,98 @@ const FileUploadBox = ({ label, sublabel, required, file, onFile, accept = 'imag
 };
 
 // ─── Account tab ──────────────────────────────────────────────────────────────
+const EmailSection = () => {
+  const { user, setUser } = useAuth();
+  const currentEmail = user?.email || null;
+  const [step, setStep] = useState('idle'); // 'idle' | 'otp'
+  const [newEmail, setNewEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [code, setCode] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const errMsg = (err, fallback) =>
+    err.response?.data?.error?.message || err.response?.data?.message || fallback;
+
+  const requestCode = async (e) => {
+    e.preventDefault();
+    if (!newEmail) return;
+    setLoading(true);
+    try {
+      await api.post('/auth/change-email/request', { newEmail: newEmail.trim(), password });
+      toast.success('Verification code sent to your new email');
+      setStep('otp');
+    } catch (err) {
+      toast.error(errMsg(err, 'Could not send verification code'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyCode = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const res = await api.post('/auth/change-email/verify', { newEmail: newEmail.trim(), code: code.trim() });
+      if (res.data?.user && setUser) setUser(res.data.user);
+      toast.success('Email updated successfully');
+      setStep('idle'); setNewEmail(''); setPassword(''); setCode('');
+    } catch (err) {
+      toast.error(errMsg(err, 'Invalid or expired code'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const inputCls = 'w-full px-4 py-2.5 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent';
+
+  return (
+    <div>
+      <SectionHeader title="Email Address" desc="Change the email you use to sign in. We'll send a code to confirm the new address." />
+      <div className="max-w-sm space-y-3">
+        <div className="text-sm text-neutral-600 dark:text-neutral-300">
+          Current: <span className="font-medium text-neutral-900 dark:text-neutral-100">{currentEmail || 'No email set (phone-only account)'}</span>
+        </div>
+
+        {step === 'idle' ? (
+          <form onSubmit={requestCode} className="space-y-3">
+            <input
+              type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)}
+              placeholder="New email address" autoComplete="email" className={inputCls} required
+            />
+            <input
+              type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+              placeholder="Current password (leave blank for Google accounts)" autoComplete="current-password" className={inputCls}
+            />
+            <button type="submit" disabled={loading || !newEmail}
+              className="w-full py-2.5 rounded-lg bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 disabled:opacity-60">
+              {loading ? 'Sending…' : 'Send verification code'}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={verifyCode} className="space-y-3">
+            <p className="text-xs text-neutral-500">Enter the 6-digit code sent to <span className="font-medium">{newEmail}</span>.</p>
+            <input
+              type="text" inputMode="numeric" maxLength={6} value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+              placeholder="6-digit code" className={`${inputCls} tracking-[0.4em] text-center`} required
+            />
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setStep('idle')}
+                className="flex-1 py-2.5 rounded-lg border border-neutral-300 dark:border-neutral-700 text-sm font-medium hover:bg-neutral-50 dark:hover:bg-neutral-800">
+                Back
+              </button>
+              <button type="submit" disabled={loading || code.length !== 6}
+                className="flex-1 py-2.5 rounded-lg bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 disabled:opacity-60">
+                {loading ? 'Verifying…' : 'Verify & update'}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const AccountTab = () => {
   const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [loading, setLoading] = useState(false);
@@ -199,6 +291,8 @@ const AccountTab = () => {
           ))}
         </div>
       </div>
+
+      <EmailSection />
 
       <div>
         <SectionHeader title="Change Password" desc="Must be 8+ characters with uppercase, lowercase, number, and special character." />
