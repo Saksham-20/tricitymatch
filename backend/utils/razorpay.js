@@ -73,6 +73,15 @@ const PLANS = {
   }
 };
 
+// Razorpay caps `receipt` at 40 chars; a bare UUID userId (36) + prefix +
+// timestamp blows past that and the order create fails. Keep it short.
+const buildReceipt = (userId) => `rcpt_${String(userId).slice(0, 8)}_${Date.now()}`;
+
+// Razorpay SDK rejects with a structured object ({ error: { description } }),
+// not an Error, so error.message is undefined. Pull out something useful.
+const razorpayErrorText = (e) =>
+  e?.error?.description || e?.message || (typeof e === 'string' ? e : JSON.stringify(e));
+
 const createOrder = async (planType, userId) => {
   if (!PLANS[planType]) {
     throw new Error('Invalid plan type');
@@ -87,7 +96,7 @@ const createOrder = async (planType, userId) => {
   const options = {
     amount: plan.amount,
     currency: 'INR',
-    receipt: `order_${userId}_${Date.now()}`,
+    receipt: buildReceipt(userId),
     notes: {
       userId: userId,
       planType: planType
@@ -103,7 +112,7 @@ const createOrder = async (planType, userId) => {
       receipt: order.receipt
     };
   } catch (error) {
-    throw new Error(`Razorpay order creation failed: ${error.message}`);
+    throw new Error(`Razorpay order creation failed: ${razorpayErrorText(error)}`);
   }
 };
 
@@ -148,12 +157,12 @@ const createGenericOrder = async (amountPaise, userId, notes = {}) => {
     const order = await razorpayInstance.orders.create({
       amount: amountPaise,
       currency: 'INR',
-      receipt: `order_${userId}_${Date.now()}`,
+      receipt: buildReceipt(userId),
       notes: { userId, ...notes },
     });
     return { orderId: order.id, amount: order.amount, currency: order.currency };
   } catch (err) {
-    throw new Error(`Razorpay order creation failed: ${err.message}`);
+    throw new Error(`Razorpay order creation failed: ${razorpayErrorText(err)}`);
   }
 };
 
