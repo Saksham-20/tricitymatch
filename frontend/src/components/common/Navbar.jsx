@@ -73,9 +73,11 @@ const NotificationBell = ({ count = 0 }) => {
               )}
             </div>
 
-            <div className="divide-y divide-neutral-100 max-h-72 overflow-y-auto">
+            <div className="divide-y divide-neutral-100 dark:divide-[#252b3b] max-h-72 overflow-y-auto">
               <div className="px-4 py-8 text-center">
-                <p className="text-sm text-neutral-500">{t('navbar.viewAllBelow')}</p>
+                <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                  {count > 0 ? t('navbar.unreadCount', { count }) : t('navbar.allCaughtUp')}
+                </p>
               </div>
             </div>
 

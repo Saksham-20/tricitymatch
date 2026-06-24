@@ -121,6 +121,9 @@ const EmailSection = () => {
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
+  // Start readonly so the browser can't autofill the signed-in email into the
+  // "new email" field (Chromium ignores autoComplete="off" for type=email).
+  const [emailEditable, setEmailEditable] = useState(false);
 
   const errMsg = (err, fallback) =>
     err.response?.data?.error?.message || err.response?.data?.message || fallback;
@@ -169,7 +172,8 @@ const EmailSection = () => {
           <form onSubmit={requestCode} className="space-y-3">
             <input
               type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)}
-              placeholder="New email address" autoComplete="email" className={inputCls} required
+              readOnly={!emailEditable} onFocus={() => setEmailEditable(true)}
+              placeholder="New email address" name="new-email-address" autoComplete="off" className={inputCls} required
             />
             <input
               type="password" value={password} onChange={(e) => setPassword(e.target.value)}

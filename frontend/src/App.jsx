@@ -21,6 +21,7 @@ import AdminProtectedRoute from './components/admin/AdminProtectedRoute';
 import AdminLayout from './components/admin/AdminLayout';
 import Navbar from './components/common/Navbar';
 import BottomNav from './components/common/BottomNav';
+import useRouteTitle from './components/common/RouteTitle';
 
 // ==================== LAZY LOADED PAGES ====================
 // Code splitting - each page is loaded only when needed
@@ -406,6 +407,7 @@ const AnimatedRoutes = () => {
 const AppContent = () => {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
+  useRouteTitle();
   const isAdminRoute = location.pathname.startsWith('/admin');
   const isMarketingRoute = location.pathname.startsWith('/marketing');
 
