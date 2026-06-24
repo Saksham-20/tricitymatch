@@ -216,17 +216,28 @@ exports.verifyPayment = asyncHandler(async (req, res) => {
     );
   }
 
-  // Send confirmation email asynchronously
-  const user = await User.findByPk(userId, { attributes: ['email', 'firstName'] });
-  if (user?.email) {
-    setImmediate(() => {
-      sendSubscriptionConfirmation(
-        user.email,
-        user.firstName || 'User',
-        subscription.planType,
-        subscription.endDate.toLocaleDateString()
-      ).catch(err => log.error('Failed to send subscription email', { error: err.message }));
+  // Send confirmation email asynchronously. firstName lives on Profile, not
+  // User — selecting it off User threw "column firstName does not exist",
+  // which surfaced to the buyer as "Payment verification failed" even though
+  // the subscription had already been activated above.
+  // Never let confirmation-email work fail an already-activated payment.
+  try {
+    const user = await User.findByPk(userId, {
+      attributes: ['email'],
+      include: [{ model: Profile, attributes: ['firstName'] }],
     });
+    if (user?.email) {
+      setImmediate(() => {
+        sendSubscriptionConfirmation(
+          user.email,
+          user.Profile?.firstName || 'User',
+          subscription.planType,
+          subscription.endDate.toLocaleDateString()
+        ).catch(err => log.error('Failed to send subscription email', { error: err.message }));
+      });
+    }
+  } catch (err) {
+    log.error('Subscription confirmation email setup failed (payment already activated)', { error: err.message });
   }
 
   res.json({
