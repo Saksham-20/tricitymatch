@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 import { FiShield, FiCheckCircle, FiClock, FiXCircle, FiUploadCloud } from 'react-icons/fi';
+import { razorpay } from '../config';
+import { loadRazorpayScript, ensurePaymentsAvailable, PAYMENTS_UNAVAILABLE_MSG } from '../utils/razorpayCheckout';
 
 const DOCUMENT_TYPES = [
   { value: 'aadhaar', label: 'Aadhaar' },
@@ -87,9 +89,18 @@ export default function Verification() {
     setBgBusy(true);
     try {
       const res = await api.post('/verification/bg-check/initiate', { consent: true });
-      if (res.data.razorpayOrderId && window.Razorpay) {
+      if (res.data.razorpayOrderId) {
+        // Payment required — make sure the SDK + key are available before
+        // opening, so we never claim success without actually charging.
+        if (!ensurePaymentsAvailable()) return;
+        try {
+          await loadRazorpayScript();
+        } catch {
+          toast.error(PAYMENTS_UNAVAILABLE_MSG);
+          return;
+        }
         const rzp = new window.Razorpay({
-          key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+          key: razorpay.keyId,
           order_id: res.data.razorpayOrderId,
           amount: res.data.amountPaise,
           name: 'TricityShadi',

@@ -5,29 +5,8 @@ import toast from 'react-hot-toast';
 import { FiCheck, FiArrowRight, FiZap, FiShield } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 import { razorpay } from '../config';
+import { loadRazorpayScript, ensurePaymentsAvailable } from '../utils/razorpayCheckout';
 import { useAuth } from '../context/AuthContext';
-
-// Load the Razorpay checkout SDK once and reuse it (avoids stacking a new
-// <script> + onload handler on every subscribe click).
-let razorpayScriptPromise = null;
-const loadRazorpayScript = () => {
-  if (window.Razorpay) return Promise.resolve();
-  if (razorpayScriptPromise) return razorpayScriptPromise;
-  razorpayScriptPromise = new Promise((resolve, reject) => {
-    const existing = document.querySelector('script[src*="checkout.razorpay.com"]');
-    if (existing) {
-      existing.addEventListener('load', () => resolve());
-      existing.addEventListener('error', () => { razorpayScriptPromise = null; reject(new Error('Failed to load payment SDK')); });
-      return;
-    }
-    const s = document.createElement('script');
-    s.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    s.onload = () => resolve();
-    s.onerror = () => { razorpayScriptPromise = null; reject(new Error('Failed to load payment SDK')); };
-    document.body.appendChild(s);
-  });
-  return razorpayScriptPromise;
-};
 
 // ─── Plan feature lists ───────────────────────
 const PLAN_FEATURES = {
@@ -238,10 +217,7 @@ const Subscription = () => {
   };
 
   const handleSubscribe = async (planType) => {
-    if (!razorpay.isConfigured) {
-      toast.error('Payments are not configured for this environment. Set VITE_RAZORPAY_KEY_ID in the frontend env.');
-      return;
-    }
+    if (!ensurePaymentsAvailable()) return;
     if (processingPlan) return; // guard against double-submit / double order
 
     setProcessingPlan(planType);

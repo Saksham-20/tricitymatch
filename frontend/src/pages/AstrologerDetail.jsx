@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 import { FiStar, FiClock, FiArrowLeft, FiSmartphone, FiCheckCircle } from 'react-icons/fi';
+import { razorpay } from '../config';
+import { loadRazorpayScript, ensurePaymentsAvailable, PAYMENTS_UNAVAILABLE_MSG } from '../utils/razorpayCheckout';
 
 const DURATIONS = [10, 15, 30, 45];
 
@@ -40,9 +42,18 @@ export default function AstrologerDetail() {
         durationMin: duration,
       });
       const b = res.data.booking;
-      if (b.razorpayOrderId && window.Razorpay) {
+      if (b.razorpayOrderId) {
+        // Payment required — ensure the SDK + key are available before opening,
+        // so we never mark a booking "confirmed" without actually charging.
+        if (!b.keyId && !ensurePaymentsAvailable()) return;
+        try {
+          await loadRazorpayScript();
+        } catch {
+          toast.error(PAYMENTS_UNAVAILABLE_MSG);
+          return;
+        }
         const rzp = new window.Razorpay({
-          key: b.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID,
+          key: b.keyId || razorpay.keyId,
           order_id: b.razorpayOrderId,
           amount: b.amountPaise,
           name: 'TricityShadi',
