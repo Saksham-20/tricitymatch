@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
 import { validateEmail, validatePassword } from '../../../utils/validators';
+import PasswordRequirements from '../../common/PasswordRequirements';
 import { FiEye, FiEyeOff, FiUser, FiUsers, FiHeart, FiCheck } from 'react-icons/fi';
 
 const CreateAccountStep = () => {
@@ -275,9 +276,12 @@ const CreateAccountStep = () => {
               {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
             </button>
           </div>
-          {errors.password ? (
+          {errors.password && (
             <p id="onboarding-password-error" className="text-sm text-red-600 mt-1">{errors.password}</p>
-          ) : (
+          )}
+          {formData.password ? (
+            <PasswordRequirements password={formData.password} />
+          ) : !errors.password && (
             <p id="onboarding-password-hint" className="text-xs text-neutral-500 mt-1">
               At least 8 characters with uppercase, lowercase, a number, and a symbol.
             </p>

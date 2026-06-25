@@ -75,6 +75,13 @@ const ForgotPassword = () => {
               <Link to="/login" className="btn-primary inline-flex items-center gap-2">
                 <FiArrowLeft className="w-4 h-4" /> Back to Login
               </Link>
+              <button
+                type="button"
+                onClick={() => setSubmitted(false)}
+                className="block mx-auto mt-4 text-sm text-neutral-500 hover:text-primary-600 font-medium transition-colors"
+              >
+                Wrong email? Use a different one
+              </button>
             </div>
           </motion.div>
         </div>

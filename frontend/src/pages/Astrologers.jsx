@@ -33,7 +33,28 @@ export default function Astrologers() {
       <p className="text-neutral-500 mb-6">{t('astrologers.subtitle')}</p>
 
       {loading ? (
-        <p className="text-neutral-400">{t('common.loading')}</p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {[0, 1].map((i) => (
+            <div key={i} className="flex gap-4 bg-white border border-neutral-100 shadow-card rounded-2xl p-4 animate-pulse">
+              <div className="w-16 h-16 rounded-full bg-neutral-200" />
+              <div className="flex-1 space-y-2 py-1">
+                <div className="h-4 w-2/3 bg-neutral-200 rounded" />
+                <div className="h-3 w-1/2 bg-neutral-100 rounded" />
+                <div className="h-3 w-3/4 bg-neutral-100 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : astrologers.length === 0 ? (
+        <div className="text-center py-16 bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card">
+          <div className="w-14 h-14 bg-gold-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <FiStar className="w-7 h-7 text-gold-400" />
+          </div>
+          <h3 className="font-display text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-1">No astrologers available yet</h3>
+          <p className="text-neutral-500 text-sm max-w-xs mx-auto">
+            Our verified astrologers are joining soon. Check back shortly to book a consultation.
+          </p>
+        </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {astrologers.map((a) => (

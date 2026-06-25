@@ -194,10 +194,23 @@ const ModernProfileEditorContent = () => {
       {/* Right Panel - Form */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="bg-white dark:bg-[#1a1f2e] border-b border-neutral-200 dark:border-neutral-800 px-6 py-4 flex justify-between items-center">
+        <div className="bg-white dark:bg-[#1a1f2e] border-b border-neutral-200 dark:border-neutral-800 px-6 py-4 flex justify-between items-center gap-3">
           <div className="flex-1">
             <h1 className="text-xl font-bold text-neutral-900 lg:hidden">Edit Profile</h1>
           </div>
+          {/* Save is available from any step — no need to walk the whole wizard
+              to change one field. */}
+          {!saveSuccess && (
+            <Button
+              onClick={handleSaveProfile}
+              loading={isLoading}
+              size="sm"
+              className="flex items-center gap-1.5"
+            >
+              <FiCheck size={16} />
+              Save
+            </Button>
+          )}
           <button
             onClick={() => setShowExitDialog(true)}
             className="p-2 hover:bg-neutral-100 rounded-lg transition-colors"

@@ -110,7 +110,10 @@ const BasicInfoStep = () => {
           onChange={(value) => updateFormData('dateOfBirth', value)}
           onBlur={() => setFieldTouched('dateOfBirth')}
           error={errors.dateOfBirth}
-          max={new Date().toISOString().split('T')[0]}
+          /* Opens the picker near the 18+ era instead of today, and blocks
+             under-18 / impossible dates inline rather than after submit. */
+          min={new Date(new Date().setFullYear(new Date().getFullYear() - 100)).toISOString().split('T')[0]}
+          max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
           required
         />
       </motion.div>

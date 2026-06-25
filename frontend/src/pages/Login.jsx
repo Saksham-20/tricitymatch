@@ -361,16 +361,8 @@ const Login = () => {
               </AnimatePresence>
             </div>
 
-            {/* Remember Me & Forgot Password */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  aria-label="Remember me"
-                  className="w-4 h-4 rounded border-neutral-300 text-primary-500 focus:ring-primary-500"
-                />
-                <span className="text-sm text-neutral-700">Remember me</span>
-              </label>
+            {/* Forgot Password */}
+            <div className="flex items-center justify-end">
               <Link
                 to="/forgot-password"
                 className="text-sm font-medium text-primary-500 hover:text-primary-600 transition-colors"

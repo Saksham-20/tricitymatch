@@ -91,6 +91,12 @@ const ModernOnboardingContent = () => {
     setCompletionPercentage(getCompletionPercentage());
   }, [formData, getCompletionPercentage]);
 
+  // Reset scroll to top on every step change so users start at the top of the
+  // new step (especially on mobile, where the previous step may have been long).
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentStep]);
+
   useEffect(() => {
     if (referralCodeParam && !formData.referralCode) {
       updateFormData('referralCode', referralCodeParam);
@@ -106,12 +112,29 @@ const ModernOnboardingContent = () => {
     navigate('/');
   };
 
+  // Surface the first validation error when a step fails — otherwise on long
+  // steps the error renders off-screen and Next looks broken.
+  const scrollToFirstError = () => {
+    setTimeout(() => {
+      const el = document.querySelector('[aria-invalid="true"], .text-red-600, .text-destructive');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const field = el.closest('div')?.querySelector('input, select, textarea');
+        field?.focus({ preventScroll: true });
+      }
+    }, 60);
+  };
+
   const handleNext = () => {
-    if (validateCurrentStep()) nextStep();
+    if (validateCurrentStep()) {
+      nextStep();
+    } else {
+      scrollToFirstError();
+    }
   };
 
   const handleComplete = async () => {
-    if (!validateCurrentStep()) return;
+    if (!validateCurrentStep()) { scrollToFirstError(); return; }
     setIsLoading(true);
     try {
       if (mode === 'signup' || mode === 'create_for_other') {
