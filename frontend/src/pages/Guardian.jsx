@@ -12,6 +12,7 @@ export default function Guardian() {
   const [email, setEmail] = useState('');
   const [inviting, setInviting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [confirmRevoke, setConfirmRevoke] = useState(null); // linkId pending confirmation
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -54,6 +55,8 @@ export default function Guardian() {
       setGuardians((prev) => prev.filter((g) => g.linkId !== linkId));
     } catch {
       toast.error('Could not revoke');
+    } finally {
+      setConfirmRevoke(null);
     }
   };
 
@@ -101,9 +104,17 @@ export default function Guardian() {
                     <p className="text-neutral-800 font-medium">{g.email}</p>
                     <span className={`text-xs capitalize ${g.status === 'active' ? 'text-success' : 'text-warning'}`}>{g.status}</span>
                   </div>
-                  <button onClick={() => revoke(g.linkId)} className="inline-flex items-center gap-1.5 text-destructive hover:opacity-80 text-sm">
-                    <FiTrash2 className="w-4 h-4" /> {t('guardian.revoke')}
-                  </button>
+                  {confirmRevoke === g.linkId ? (
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-neutral-500">Revoke access?</span>
+                      <button onClick={() => revoke(g.linkId)} className="px-2.5 py-1 rounded-md bg-destructive text-white font-medium hover:bg-destructive/90">Yes</button>
+                      <button onClick={() => setConfirmRevoke(null)} className="px-2.5 py-1 rounded-md bg-neutral-100 text-neutral-600 font-medium hover:bg-neutral-200">No</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setConfirmRevoke(g.linkId)} className="inline-flex items-center gap-1.5 text-destructive hover:opacity-80 text-sm">
+                      <FiTrash2 className="w-4 h-4" /> {t('guardian.revoke')}
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>

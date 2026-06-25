@@ -439,6 +439,7 @@ const Dashboard = () => {
       iconColor:  'text-success',
       numColor:   'text-success',
       customValue: true,
+      to:         '/chat',
     },
   ];
 
@@ -541,15 +542,22 @@ const Dashboard = () => {
           {statsConfig.map((stat, i) => {
             const Icon  = stat.icon;
             const value = stat.customValue ? mutualMatches.length : (stats?.[stat.key] ?? 0);
+            // Only cards with a real destination get the hover-lift + link wrapper —
+            // otherwise the lift implies a click that goes nowhere.
+            const Wrapper = stat.to ? Link : 'div';
+            const wrapperProps = stat.to
+              ? { to: stat.to, className: 'block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-2xl' }
+              : {};
             return (
               <motion.div
                 key={stat.key}
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.08 }}
-                whileHover={{ y: -3, transition: { duration: 0.2 } }}
+                whileHover={stat.to ? { y: -3, transition: { duration: 0.2 } } : undefined}
                 className="bg-white rounded-2xl border border-neutral-100 shadow-card p-5"
               >
+                <Wrapper {...wrapperProps}>
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-neutral-500 text-xs font-medium mb-2">{stat.label}</p>
@@ -567,6 +575,7 @@ const Dashboard = () => {
                     <Icon className="w-5 h-5 text-primary-500" />
                   </div>
                 </div>
+                </Wrapper>
               </motion.div>
             );
           })}

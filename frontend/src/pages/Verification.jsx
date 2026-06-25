@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
-import { FiShield, FiCheckCircle, FiClock, FiXCircle, FiUploadCloud } from 'react-icons/fi';
+import { FiShield, FiCheckCircle, FiClock, FiXCircle, FiUploadCloud, FiX } from 'react-icons/fi';
 import { razorpay } from '../config';
 import { loadRazorpayScript, ensurePaymentsAvailable, PAYMENTS_UNAVAILABLE_MSG } from '../utils/razorpayCheckout';
 
@@ -233,19 +233,49 @@ export default function Verification() {
 }
 
 function FileField({ label, file, onChange }) {
+  const [preview, setPreview] = useState(null);
+  const inputRef = useRef(null);
+
+  // Build (and clean up) an object URL so the user can see the image they
+  // picked and confirm it's clear before submitting an ID/selfie.
+  useEffect(() => {
+    if (!file) { setPreview(null); return; }
+    const url = URL.createObjectURL(file);
+    setPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+
   return (
     <div className="mb-4">
       <label className="block text-sm text-neutral-600 mb-1">{label}</label>
-      <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-neutral-300 cursor-pointer hover:border-primary-400 text-neutral-500">
-        <FiUploadCloud className="w-5 h-5" />
-        <span className="text-sm truncate">{file ? file.name : 'Choose file'}</span>
-        <input
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => onChange(e.target.files?.[0] || null)}
-        />
-      </label>
+      {file ? (
+        <div className="flex items-center gap-3 px-3 py-2 rounded-lg border border-neutral-200 bg-neutral-50">
+          {preview && (
+            <img src={preview} alt="" className="w-12 h-12 rounded-md object-cover border border-neutral-200 flex-shrink-0" />
+          )}
+          <span className="text-sm text-neutral-700 truncate flex-1">{file.name}</span>
+          <button
+            type="button"
+            onClick={() => { onChange(null); if (inputRef.current) inputRef.current.value = ''; }}
+            className="p-1.5 rounded-md text-neutral-400 hover:text-destructive hover:bg-white transition-colors flex-shrink-0"
+            aria-label={`Remove ${label}`}
+          >
+            <FiX className="w-4 h-4" />
+          </button>
+        </div>
+      ) : (
+        <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-neutral-300 cursor-pointer hover:border-primary-400 text-neutral-500">
+          <FiUploadCloud className="w-5 h-5" />
+          <span className="text-sm truncate">Choose file</span>
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => onChange(e.target.files?.[0] || null)}
+          />
+        </label>
+      )}
     </div>
   );
 }
