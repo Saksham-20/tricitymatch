@@ -9,25 +9,33 @@ import {
 } from 'react-icons/fi';
 
 const TYPE_ICONS = {
-  match:          FiHeart,
-  message:        FiMessageCircle,
-  profile_view:   FiEye,
-  interest:       FiStar,
-  verification:   FiShield,
-  subscription:   FiCheckCircle,
-  system:         FiInfo,
-  admin:          FiShield,
+  new_match:             FiHeart,
+  match:                 FiHeart,
+  message:               FiMessageCircle,
+  new_message:           FiMessageCircle,
+  profile_view:          FiEye,
+  interest:              FiStar,
+  verification_approved: FiCheckCircle,
+  verification_rejected: FiShield,
+  verification:          FiShield,
+  subscription:          FiCheckCircle,
+  system:                FiInfo,
+  admin:                 FiShield,
 };
 
 const TYPE_COLORS = {
-  match:        'bg-primary-100 text-primary-600',
-  message:      'bg-info-light text-info',
-  profile_view: 'bg-neutral-100 text-neutral-600',
-  interest:     'bg-gold-100 text-gold-700',
-  verification: 'bg-success-50 text-success',
-  subscription: 'bg-primary-100 text-primary-600',
-  system:       'bg-neutral-100 text-neutral-600',
-  admin:        'bg-destructive-light text-destructive',
+  new_match:             'bg-primary-100 text-primary-600',
+  match:                 'bg-primary-100 text-primary-600',
+  message:               'bg-info-light text-info',
+  new_message:           'bg-info-light text-info',
+  profile_view:          'bg-neutral-100 text-neutral-600',
+  interest:              'bg-gold-100 text-gold-700',
+  verification_approved: 'bg-success-50 text-success',
+  verification_rejected: 'bg-destructive-light text-destructive',
+  verification:          'bg-success-50 text-success',
+  subscription:          'bg-primary-100 text-primary-600',
+  system:                'bg-neutral-100 text-neutral-600',
+  admin:                 'bg-destructive-light text-destructive',
 };
 
 function timeAgo(date) {
@@ -43,15 +51,21 @@ function timeAgo(date) {
 }
 
 // Where a notification should take the user when tapped.
+// Types mirror the backend notify() calls: new_match (relatedId is a MATCH id,
+// not a userId — so route to the matches hub, not a profile), verification_*,
+// and system (no single destination → mark-read only). The message/profile_view
+// entries are forward-compat for when those notifications start emitting.
 const notifLink = (n) => {
   switch (n.type) {
-    case 'message':      return '/chat';
-    case 'match':
-    case 'interest':
-    case 'profile_view': return n.relatedId ? `/profile/${n.relatedId}` : '/search';
-    case 'verification': return '/verification';
-    case 'subscription': return '/subscription';
-    default:             return null;
+    case 'new_match':            return '/dashboard';
+    case 'message':
+    case 'new_message':          return '/chat';
+    case 'profile_view':         return n.relatedId ? `/profile/${n.relatedId}` : '/dashboard';
+    case 'verification_approved':
+    case 'verification_rejected':
+    case 'verification':         return '/verification';
+    case 'subscription':         return '/subscription';
+    default:                     return null; // 'system' + unknown: just mark read
   }
 };
 
