@@ -135,6 +135,25 @@ Running log of user-friction fixes. Goal: make every interaction effortless. Evi
 ---
 
 ## Summary so far
-13 friction fixes across 5 batches (auth, onboarding, search, profile editing, chat, notifications). All build-verified; FE 35/35 unit tests green. Nothing deployed — staged locally pending approval. Reviewed-and-clean: Subscription, PaymentFailed, Settings (mostly).
+13 friction fixes across 5 batches (auth, onboarding, search, profile editing, chat, notifications). All build-verified; FE 35/35 unit tests green. Reviewed-and-clean: Subscription, PaymentFailed, Settings (mostly).
+
+## Live QA pass (2026-06-25, browser, branch `ux/friction-pass`)
+Logged in as a seeded member, drove each flow in a real browser. **10/13 verified live**, 3 covered by build + tests:
+- ✅ #1 Login — no "Remember me" present (screenshot)
+- ✅ #2 Forgot pw — success screen shows email + "Wrong email?" → returns to form with email preserved/editable
+- ✅ #3 Onboarding password — live strength label + requirement ticks update as you type (screenshot)
+- ✅ #4 Validation fail — focus jumps to first error field (email)
+- ✅ #6 DOB — input min=today-100yr, max=today-18yr (attributes confirmed)
+- ✅ #8 Search — applied "Hindu" → dismissible chip rendered, × removes it, count updates (screenshot)
+- ✅ #10 Profile editor — "Save" present on Step 3 of 10, click → "Profile Updated"
+- ✅ #11 Chat — header click → /profile/:id
+- ✅ #12 Chat — no "Online" text, fake presence dots gone
+- ✅ #13 Notifications — click navigates (see bug below)
+- ☑️ #5/#7/#9 — passive/logic-only, covered by build + 35/35 tests
+
+### 🐞 Bug found & fixed by QA (commit 7213079)
+**Notifications never navigated.** Live test showed clicking a real notification marked it read but stayed on the page. Root cause: my `notifLink` matched guessed type strings (`match`, `verification`), but the backend actually emits `new_match`, `verification_approved`, `verification_rejected`, `system`. Also `new_match`'s `relatedId` is a **match id**, not a userId — so it can't link to `/profile/:id`; routed to `/dashboard` (matches hub) instead. Fixed the mapping + aligned `TYPE_ICONS`/`TYPE_COLORS` to the real types (new_match was showing a generic bell). Re-verified live: `new_match` → /dashboard. **This bug also affected the original codebase's icon mapping** — pre-existing, now corrected.
+
+Branch `ux/friction-pass`: 2 commits (4c37b58 the 13-fix pass, 7213079 the QA fix). Nothing pushed/deployed.
 - ForgotPassword accepts email only, but Login accepts email **or** phone — phone-signup users have no self-serve reset path. (Needs backend `/auth/forgot-password` to support phone/SMS.)
 - Onboarding referral code shows "Referral code applied" the instant any text is typed — not actually validated. Misleading success state.
