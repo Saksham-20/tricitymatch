@@ -180,3 +180,25 @@ Logged in as a seeded member, drove each flow in a real browser. **10/13 verifie
 Branch `ux/friction-pass`: 2 commits (4c37b58 the 13-fix pass, 7213079 the QA fix). Nothing pushed/deployed.
 - ForgotPassword accepts email only, but Login accepts email **or** phone — phone-signup users have no self-serve reset path. (Needs backend `/auth/forgot-password` to support phone/SMS.)
 - Onboarding referral code shows "Referral code applied" the instant any text is typed — not actually validated. Misleading success state.
+
+---
+
+## Batch 7 — Pre-launch resilience pass (workflows / auth / security-UX / speed)
+
+Triggered by a launch-readiness review. Each item: problem → why it hurts → fix → verification.
+
+**1. Post-deploy white-screen (ChunkLoadError).** Routes are lazy-split into 46 hashed chunks. Every frontend deploy renames them, so a user with a tab open before the deploy hits a missing chunk on their next navigation → ChunkLoadError → stuck on the ErrorBoundary screen. With frequent launch-window deploys this hits real active users. **Fix:** `utils/lazyWithRetry.js` wraps `React.lazy` — on a chunk-load failure it reloads the page once (sessionStorage-guarded against reload loops) to fetch the fresh manifest. Aliased `const lazy = lazyWithRetry` in App.jsx so all 46 routes use it with a one-line diff. *Verified:* build still splits chunks; logic deterministic.
+
+**2. No global network/offline feedback.** `api/axios.js` had no `!error.response` branch — a network drop/timeout on flaky mobile failed silently (several callers `catch {}`). **Fix:** interceptor now fires one throttled toast (4s dedupe, online/offline-aware copy) on any no-response error, then still rejects so callers run. Also mapped the raw `"Network Error"` axios string to a friendly inline message in `AuthContext.login` (and skipped its double-toast since the interceptor covers it). *Verified live:* backend down → toast "Can't reach the server…" + inline friendly message.
+
+**3. No autofocus on auth forms.** Login / ForgotPassword / ResetPassword made every visitor click the first field. **Fix:** `autoFocus` on Login email, ForgotPassword email, ResetPassword first password field (`id==='password'` only, so the confirm field doesn't steal focus). *Verified live:* Login loads with email focused.
+
+**4. Login lockout had no distinct UX.** Backend enforces IP rate-limit (429, 5/15m) + account lockout, but the UI showed the raw message as a vanishing toast with no countdown and a still-clickable button. **Fix:** `AuthContext.login` now returns `{status, locked}`; Login shows a distinct gold lock banner with a live `mm:ss` countdown (parsed from the message, fallback 15m for 429 / 30m for account lock), disables the submit button, and relabels it "Try again in m:ss". *Verified live* (mocked 429): banner + disabled button + ticking 14:59 countdown. Server stays the real authority; client countdown is courtesy.
+
+**5. 401 refresh-fail lost the user's place.** `axios.js` hard-redirected to `/login` on session expiry (no returnTo); `ProtectedRoute` saved `state.from` that Login never read (dead). **Fix:** both paths now use `?returnTo=<path>`; Login reads it and routes back after sign-in, with an open-redirect guard (`/^\/(?!\/)/` — blocks `//evil` and absolute URLs) and admin/marketing roles ignoring returnTo. *Verified live:* `/dashboard` logged-out → `/login?returnTo=%2Fdashboard`.
+
+**6 & 7 — assessed, deliberately no code change.**
+- *Email verification gating:* requires working SMTP (config-gated) AND the app already gates identity via phone OTP. Forcing email verify adds signup friction for zero security gain. Decision: don't gate on email.
+- *Signup "account exists" enumeration:* intentional UX (tells the user to log in); the security-sensitive path (forgot-password) is already enumeration-safe. Industry-standard tradeoff. Decision: leave as-is.
+
+Regression: FE build green · FE 35/35 · 0 new lint errors. Files: `utils/lazyWithRetry.js` (new), `App.jsx`, `api/axios.js`, `context/AuthContext.jsx`, `components/common/ProtectedRoute.jsx`, `pages/Login.jsx`, `pages/ForgotPassword.jsx`, `pages/ResetPassword.jsx`.

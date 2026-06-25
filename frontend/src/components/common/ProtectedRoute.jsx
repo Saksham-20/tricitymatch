@@ -15,10 +15,12 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
     );
   }
 
-  // Redirect to login if not authenticated
+  // Redirect to login if not authenticated, preserving the attempted URL as
+  // ?returnTo= so Login sends the user back there after sign-in (same mechanism
+  // the axios 401 handler uses for expired sessions).
   if (!isAuthenticated) {
-    // Save the attempted URL for redirecting after login
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    const returnTo = encodeURIComponent(location.pathname + location.search);
+    return <Navigate to={`/login?returnTo=${returnTo}`} replace />;
   }
 
   // Redirect non-admin users trying to access admin routes

@@ -163,6 +163,7 @@ const ResetPassword = () => {
                     id={id}
                     name={id}
                     type={showPassword ? 'text' : 'password'}
+                    autoFocus={id === 'password'}
                     required
                     className="input-field pl-12 pr-12"
                     placeholder={placeholder}

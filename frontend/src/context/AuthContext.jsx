@@ -161,13 +161,24 @@ export const AuthProvider = ({ children }) => {
       toast.success('Welcome back!');
       return { success: true, role: userData?.role };
     } catch (error) {
+      // No response = network/timeout. The axios interceptor already shows a
+      // global toast for this, so don't double-toast; just give the inline form
+      // a friendly message instead of the raw "Network Error" string.
+      if (!error.response) {
+        const message = "Can't reach the server. Check your connection and try again.";
+        return { success: false, error: message, status: 0, locked: false };
+      }
       // Backend error shape is { success:false, error:{ code, message } }.
       const message = error.response?.data?.error?.message
         || error.response?.data?.message
         || error.message
         || 'Login failed';
+      const status = error.response?.status;
+      // 429 = IP rate-limit; 401 with a "locked" message = account lockout.
+      // Surface both to the caller so the UI can show a distinct lockout state.
+      const locked = status === 429 || /locked|too many/i.test(message);
       toast.error(message);
-      return { success: false, error: message };
+      return { success: false, error: message, status, locked };
     }
   };
 

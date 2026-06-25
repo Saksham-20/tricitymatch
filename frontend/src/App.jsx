@@ -1,6 +1,9 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation, useSearchParams } from 'react-router-dom';
 import Seo from './components/common/Seo';
+// lazy with stale-chunk auto-recovery (reload once on post-deploy ChunkLoadError)
+import lazyWithRetry from './utils/lazyWithRetry';
+const lazy = lazyWithRetry;
 
 const SignupRedirect = () => {
   const [searchParams] = useSearchParams();

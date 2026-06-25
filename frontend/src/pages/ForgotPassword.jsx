@@ -165,6 +165,7 @@ const ForgotPassword = () => {
                   name="email"
                   type="email"
                   autoComplete="email"
+                  autoFocus
                   required
                   className="input-field pl-12"
                   placeholder="you@example.com"

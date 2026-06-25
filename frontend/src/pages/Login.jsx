@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import Seo from '../components/common/Seo';
 import { validateEmail, validatePassword } from '../utils/validators';
 import Logo from '../components/common/Logo';
-import { FiMail, FiLock, FiEye, FiEyeOff, FiHeart, FiShield, FiArrowRight } from 'react-icons/fi';
+import { FiMail, FiLock, FiEye, FiEyeOff, FiHeart, FiShield, FiArrowRight, FiClock } from 'react-icons/fi';
 import { fadeInUp, staggerContainer, shakeAnimation } from '../utils/animations';
 import { google as googleConfig } from '../config';
 import api from '../api/axios';
@@ -22,9 +22,37 @@ const Login = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [shakeTrigger, setShakeTrigger] = useState(false);
+  const [lockedUntil, setLockedUntil] = useState(0); // epoch ms; 0 = not locked
+  const [nowTick, setNowTick] = useState(Date.now());
   const { login, setUser } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { t } = useTranslation();
+
+  // Only honor a returnTo that's a same-origin in-app path (block open redirects).
+  const returnTo = searchParams.get('returnTo');
+  const safeReturnTo = returnTo && /^\/(?!\/)/.test(returnTo) ? returnTo : null;
+
+  const lockRemaining = Math.max(0, Math.ceil((lockedUntil - nowTick) / 1000));
+  const isLocked = lockRemaining > 0;
+
+  // Tick once a second only while a lockout countdown is running.
+  useEffect(() => {
+    if (!isLocked) return;
+    const id = setInterval(() => setNowTick(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [isLocked]);
+
+  const goAfterLogin = useCallback((role) => {
+    if (safeReturnTo && role !== 'admin' && role !== 'super_admin'
+        && role !== 'marketing' && role !== 'marketing_manager') {
+      navigate(safeReturnTo);
+      return;
+    }
+    navigate(role === 'admin' || role === 'super_admin' ? '/admin/dashboard'
+      : role === 'marketing' || role === 'marketing_manager' ? '/marketing/dashboard'
+      : '/dashboard');
+  }, [navigate, safeReturnTo]);
 
   const handleGoogleCredential = useCallback(async (response) => {
     setGoogleLoading(true);
@@ -38,17 +66,14 @@ const Login = () => {
           setUser(meResult.data.user);
           localStorage.setItem('tricitymatch-auth-hint', '1');
         }
-        const role = result.data.user?.role;
-        navigate(role === 'admin' || role === 'super_admin' ? '/admin/dashboard'
-          : role === 'marketing' || role === 'marketing_manager' ? '/marketing/dashboard'
-          : '/dashboard');
+        goAfterLogin(result.data.user?.role);
       }
     } catch (err) {
       setApiError(err.response?.data?.message || 'Google sign-in failed. Please try again.');
     } finally {
       setGoogleLoading(false);
     }
-  }, [navigate, setUser]);
+  }, [goAfterLogin, setUser]);
 
   useEffect(() => {
     if (!googleConfig.isConfigured) return;
@@ -122,13 +147,18 @@ const Login = () => {
       setLoading(false);
       
       if (result.success) {
-        setTimeout(() => {
-          navigate(result.role === 'admin' || result.role === 'super_admin' ? '/admin/dashboard'
-            : result.role === 'marketing' || result.role === 'marketing_manager' ? '/marketing/dashboard'
-            : '/dashboard');
-        }, 100);
+        setTimeout(() => goAfterLogin(result.role), 100);
       } else {
-        setApiError(result.error || result.message || 'Incorrect email or password. Please try again.');
+        const msg = result.error || result.message || 'Incorrect email or password. Please try again.';
+        setApiError(msg);
+        if (result.locked) {
+          // Parse "...after 15 minutes" from the message; fall back per source
+          // (429 IP limit = 15m window, account lockout = 30m).
+          const m = msg.match(/(\d+)\s*minute/i);
+          const secs = m ? parseInt(m[1], 10) * 60 : (result.status === 429 ? 15 * 60 : 30 * 60);
+          setLockedUntil(Date.now() + secs * 1000);
+          setNowTick(Date.now());
+        }
         setShakeTrigger(true);
         setTimeout(() => setShakeTrigger(false), 500);
       }
@@ -268,9 +298,25 @@ const Login = () => {
             onSubmit={handleSubmit}
             className={`card space-y-6 ${shakeTrigger ? 'animate-shake' : ''}`}
           >
-            {/* API Error Alert */}
+            {/* Lockout / API Error Alert */}
             <AnimatePresence>
-              {apiError && (
+              {isLocked ? (
+                <motion.div
+                  role="alert"
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-gold-50 border border-gold-200 text-gold-800 text-sm"
+                >
+                  <FiClock className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <span>
+                    {apiError || 'Too many attempts.'}{' '}
+                    <span className="font-semibold whitespace-nowrap">
+                      Try again in {Math.floor(lockRemaining / 60)}:{String(lockRemaining % 60).padStart(2, '0')}
+                    </span>
+                  </span>
+                </motion.div>
+              ) : apiError ? (
                 <motion.div
                   role="alert"
                   initial={{ opacity: 0, y: -8 }}
@@ -280,7 +326,7 @@ const Login = () => {
                 >
                   {apiError}
                 </motion.div>
-              )}
+              ) : null}
             </AnimatePresence>
 
             {/* Email Field */}
@@ -297,6 +343,7 @@ const Login = () => {
                   name="email"
                   type="text"
                   autoComplete="username"
+                  autoFocus
                   required
                   className={`input-field pl-12 ${errors.email ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : ''}`}
                   placeholder="you@example.com or 98765 43210"
@@ -374,15 +421,20 @@ const Login = () => {
             {/* Submit Button */}
             <motion.button
               type="submit"
-              disabled={loading}
-              whileHover={{ scale: loading ? 1 : 1.01 }}
-              whileTap={{ scale: loading ? 1 : 0.99 }}
+              disabled={loading || isLocked}
+              whileHover={{ scale: loading || isLocked ? 1 : 1.01 }}
+              whileTap={{ scale: loading || isLocked ? 1 : 0.99 }}
               className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   {t('auth.signingIn')}
+                </>
+              ) : isLocked ? (
+                <>
+                  <FiClock className="w-5 h-5" />
+                  Try again in {Math.floor(lockRemaining / 60)}:{String(lockRemaining % 60).padStart(2, '0')}
                 </>
               ) : (
                 <>
