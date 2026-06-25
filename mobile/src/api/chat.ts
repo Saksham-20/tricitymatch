@@ -75,7 +75,11 @@ export const getThread = async (userId: string, cursor?: string): Promise<{
     { params: { page, limit: 30 } }
   );
   const { page: cur, pages } = res.data.pagination ?? { page: 1, pages: 1 };
-  return { messages: res.data.messages ?? [], nextCursor: cur < pages ? String(cur + 1) : null };
+  // Backend returns messages oldest-first (chronological — correct for web's normal
+  // scroll). The RN thread renders an inverted FlatList and prepends optimistic sends
+  // at index 0, so it needs newest-first; reverse here.
+  const messages = (res.data.messages ?? []).slice().reverse();
+  return { messages, nextCursor: cur < pages ? String(cur + 1) : null };
 };
 
 export const sendMessage = async (receiverId: string, content: string): Promise<Message> => {

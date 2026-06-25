@@ -66,6 +66,7 @@ export default function Step10Screen() {
           multiline
           numberOfLines={5}
           textAlignVertical="top"
+          autoCapitalize="sentences"
           maxLength={BIO_MAX}
           testID="input-bio"
           accessibilityLabel={t('onboarding.step10.bio')}

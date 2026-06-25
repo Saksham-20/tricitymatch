@@ -119,16 +119,18 @@ export default function HoroscopeMatchScreen() {
         {/* Manglik Section */}
         <View style={s.section}>
           <Text style={s.sectionTitle}>Manglik Compatibility</Text>
-          <View style={[s.manglikBadge, { backgroundColor: manglikCompatible ? colours.successBg : colours.errorBg }]}>
-            <Ionicons
-              name={manglikCompatible ? 'checkmark-circle' : 'close-circle'}
-              size={20}
-              color={manglikCompatible ? colours.success : colours.error}
-            />
-            <Text style={[s.manglikText, { color: manglikCompatible ? colours.success : colours.error }]}>
-              {manglikDetail}
-            </Text>
-          </View>
+          {(() => {
+            const manglikUnknown = /unknown/i.test(manglikDetail);
+            const bg = manglikUnknown ? colours.border : manglikCompatible ? colours.successBg : colours.errorBg;
+            const fg = manglikUnknown ? colours.textSecondary : manglikCompatible ? colours.success : colours.error;
+            const icon = manglikUnknown ? 'help-circle' : manglikCompatible ? 'checkmark-circle' : 'close-circle';
+            return (
+              <View style={[s.manglikBadge, { backgroundColor: bg }]}>
+                <Ionicons name={icon} size={20} color={fg} />
+                <Text style={[s.manglikText, { color: fg }]}>{manglikDetail}</Text>
+              </View>
+            );
+          })()}
         </View>
 
         {/* Ashtakoot Guna Breakdown */}

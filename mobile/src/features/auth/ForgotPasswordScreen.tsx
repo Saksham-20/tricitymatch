@@ -130,6 +130,9 @@ export default function ForgotPasswordScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
+            textContentType="emailAddress"
+            autoComplete="email"
+            autoFocus
             returnKeyType="send"
             onSubmitEditing={handleSubmit}
             accessibilityLabel={t('auth.forgotPassword.email')}

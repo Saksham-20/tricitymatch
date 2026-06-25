@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -81,6 +81,7 @@ export default function Step1Screen() {
   const [height, setHeight] = useState<number | null>(data.height);
   const [weight, setWeight] = useState(data.weight ? String(data.weight) : '');
   const [heightSheet, setHeightSheet] = useState(false);
+  const lastNameRef = useRef<TextInput>(null);
 
   const isValid = !!(firstName.trim() && lastName.trim() && dob && gender && !dobError);
 
@@ -128,16 +129,26 @@ export default function Step1Screen() {
             placeholder="First name"
             placeholderTextColor={colours.textMuted}
             autoCapitalize="words"
+            autoCorrect={false}
+            textContentType="givenName"
+            autoComplete="name-given"
+            returnKeyType="next"
+            onSubmitEditing={() => lastNameRef.current?.focus()}
             testID="input-firstName"
             accessibilityLabel="First name"
           />
           <TextInput
+            ref={lastNameRef}
             style={[styles.input, { flex: 1 }]}
             value={lastName}
             onChangeText={setLastName}
             placeholder="Last name"
             placeholderTextColor={colours.textMuted}
             autoCapitalize="words"
+            autoCorrect={false}
+            textContentType="familyName"
+            autoComplete="name-family"
+            returnKeyType="next"
             testID="input-lastName"
             accessibilityLabel="Last name"
           />

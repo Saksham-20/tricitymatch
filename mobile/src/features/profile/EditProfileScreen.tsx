@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
+import type { TextInputProps } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -34,11 +35,15 @@ interface FieldEditorProps {
   multiline?: boolean;
   maxLength?: number;
   keyboardType?: 'default' | 'numeric' | 'email-address';
+  textContentType?: TextInputProps['textContentType'];
+  autoComplete?: TextInputProps['autoComplete'];
+  autoCapitalize?: TextInputProps['autoCapitalize'];
   testID?: string;
 }
 
 function FieldEditor({
-  label, value, onChange, multiline, maxLength, keyboardType = 'default', testID,
+  label, value, onChange, multiline, maxLength, keyboardType = 'default',
+  textContentType, autoComplete, autoCapitalize, testID,
 }: FieldEditorProps) {
   return (
     <View style={fe.container}>
@@ -49,8 +54,13 @@ function FieldEditor({
         onChangeText={onChange}
         multiline={multiline}
         numberOfLines={multiline ? 4 : 1}
+        blurOnSubmit={!multiline}
+        returnKeyType={multiline ? 'default' : 'done'}
         maxLength={maxLength}
         keyboardType={keyboardType}
+        textContentType={textContentType}
+        autoComplete={autoComplete}
+        autoCapitalize={autoCapitalize ?? (multiline ? 'sentences' : 'words')}
         testID={testID ?? `field-${label}`}
         accessibilityLabel={label}
         placeholderTextColor={colours.textMuted}
@@ -495,12 +505,16 @@ export default function EditProfileScreen() {
             label="First Name"
             value={firstName}
             onChange={setFirstName}
+            textContentType="givenName"
+            autoComplete="name-given"
             testID="field-firstName"
           />
           <FieldEditor
             label="Last Name"
             value={lastName}
             onChange={setLastName}
+            textContentType="familyName"
+            autoComplete="name-family"
             testID="field-lastName"
           />
           <FieldEditor
@@ -539,8 +553,8 @@ export default function EditProfileScreen() {
           expanded={expandedSection === 'location'}
           onToggle={() => toggleSection('location')}
         >
-          <FieldEditor label="City" value={city} onChange={setCity} testID="field-city" />
-          <FieldEditor label="State" value={state} onChange={setState} testID="field-state" />
+          <FieldEditor label="City" value={city} onChange={setCity} textContentType="addressCity" autoComplete="postal-address-locality" testID="field-city" />
+          <FieldEditor label="State" value={state} onChange={setState} textContentType="addressState" autoComplete="postal-address-region" testID="field-state" />
         </SectionCard>
 
         {/* About Me */}

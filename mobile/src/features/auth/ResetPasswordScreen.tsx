@@ -128,6 +128,9 @@ export default function ResetPasswordScreen() {
               placeholder="Min. 6 characters"
               placeholderTextColor={colours.textMuted}
               secureTextEntry={!showPassword}
+              textContentType="newPassword"
+              autoComplete="new-password"
+              passwordRules="minlength: 6;"
               returnKeyType="next"
               onSubmitEditing={() => confirmRef.current?.focus()}
               accessibilityLabel={t('auth.resetPassword.newPassword')}
@@ -159,6 +162,8 @@ export default function ResetPasswordScreen() {
               placeholder="Re-enter new password"
               placeholderTextColor={colours.textMuted}
               secureTextEntry={!showConfirm}
+              textContentType="newPassword"
+              autoComplete="new-password"
               returnKeyType="done"
               onSubmitEditing={handleReset}
               accessibilityLabel={t('auth.resetPassword.confirmPassword')}

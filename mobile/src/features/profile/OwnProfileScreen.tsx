@@ -18,6 +18,7 @@ import SmartImage, { resolveImageUri } from '../../components/common/SmartImage'
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
 import { getMyProfile, getProfileViewers, getRecentlyViewed } from '../../api/profile';
+import { formatDate } from '../../utils/dateUtils';
 import { queryKeys } from '../../constants/queryKeys';
 import { useAuthStore } from '../../stores/authStore';
 import type { MainStackParamList } from '../../navigation/types';
@@ -683,7 +684,7 @@ export default function OwnProfileScreen() {
         />
         <SectionRow
           label="Date of Birth"
-          value={profile?.dateOfBirth ?? null}
+          value={profile?.dateOfBirth ? formatDate(profile.dateOfBirth) : null}
           onEdit={() => goToEdit('basic')}
         />
         <SectionRow

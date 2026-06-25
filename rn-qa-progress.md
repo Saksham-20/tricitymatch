@@ -172,3 +172,56 @@ Welcome, Login (+empty validation), Home, Search, FilterPanel, Matches (3 tabs),
 - **i18n** hi/pa beyond the picker (verified working in prior passes); **Elder mode** larger-type pass.
 
 Regression at checkpoint: mobile `tsc` **0**, BE unit **116/116**, FE untouched (**35**).
+
+---
+
+## 2026-06-25 — Form autofill/keyboard ergonomics + untested-screen live walk (iOS + Android)
+
+Focus: the one area no prior pass touched — **native form autofill** (iOS keychain / strong-password + Android autofill) — plus live-walking the screens the 2026-06-22 pass listed as "NOT live-tested" (Guardian, Horoscope, Quiz, Elder mode). Both dev clients already built (iOS iPhone 17 Pro, Android `qa_pixel`); Metro 8081, backend 5001, `adb reverse` 8081+5001. Test user `aman.singh2@example.com`/`Pass@1234` (VIP). iOS driven via `idb ui`, Android via `adb input` + `uiautomator` bounds.
+
+### Part A — autofill/keyboard metadata (code; was 100% absent app-wide)
+Prior forms had `keyboardType` + `returnKeyType` chaining but **no** `textContentType`/`autoComplete`/`autoFocus` → iOS never offered keychain/strong-password, Android never offered autofill. Added per field type:
+| File | Change |
+|------|--------|
+| `auth/LoginScreen.tsx` | email `textContentType=emailAddress`+`autoComplete=email`+`autoFocus`; password `password`/`current-password` |
+| `auth/SignupScreen.tsx` | email (+autoFocus); password `newPassword`/`new-password`+`passwordRules`; confirm `newPassword`/`new-password` |
+| `auth/ForgotPasswordScreen.tsx` | email `emailAddress`/`email`+`autoFocus` |
+| `auth/ResetPasswordScreen.tsx` | both passwords `newPassword`/`new-password` (+`passwordRules` on first) |
+| `auth/OTPScreen.tsx` | first box `textContentType=oneTimeCode`+`autoComplete=sms-otp` (SMS auto-fill; other boxes `none`/`off` to avoid dup) |
+| `onboarding/Step1Screen.tsx` | first/last name `givenName`/`familyName`+`name-given`/`name-family`; **ref-chaining** first→last `returnKeyType=next`; `autoCorrect=false` |
+| `onboarding/Step3Screen.tsx` | place-of-birth `addressCity`/`postal-address-locality` |
+| `onboarding/Step10Screen.tsx` | bio multiline `autoCapitalize=sentences` |
+| `profile/EditProfileScreen.tsx` | `FieldEditor` now threads optional `textContentType`/`autoComplete`/`autoCapitalize` props + multiline newline behaviour (`blurOnSubmit={!multiline}`, `returnKeyType` default/done); wired name→given/family, city→addressCity, state→addressState |
+
+**Live-verified (iOS):** Login renders with email **auto-focused** (keyboard up on mount) + the iOS QuickType **"Passwords" keychain key** present; navigating Login→Signup fired the native **"Save Password?"** dialog → confirms keychain/autofill wiring is now active (was absent before). Android autofill is OS/profile-driven (no saved Google autofill profile on the emulator to demo the dropdown) — code present, no crash.
+
+### Part B — untested-screen live walk + a real bug
+| # | Bug (sev) | Platform | Root cause | Fix | Verified |
+|---|-----------|----------|-----------|-----|----------|
+| A1 | 🟡 OwnProfile "Basic Details" **Date of Birth shows raw ISO** `1995-05-03T18:30:00.000Z` (unprofessional; same class as the 2026-06-19 web admin DOB bug) | both | `OwnProfileScreen` passed `profile.dateOfBirth` straight to `SectionRow` value | reuse existing `utils/dateUtils.formatDate` → `value={formatDate(profile.dateOfBirth)}` | ✅ Android live: now **"04 May 1995"** |
+
+**Verified clean live (Android real taps; iOS render spot-checks):**
+- **Guardian Co-Pilot** — shield header, "What guardians can do" green-✓/red-✗ permissions card, gradient "Invite a Guardian", "No guardians invited yet" empty state.
+- **Elder Mode** — toggles on; **Chat tab correctly hidden** (5→4 tabs), layout intact, no clipping; reversible.
+- **Kundli/Horoscope Match** — graceful incomplete-data handling (N/A ring, "Nakshatra details missing" moon empty-state, guidance + Vedic disclaimer); no crash on seed profiles lacking nakshatra.
+- **Compatibility Quiz** — 1/10 progress bar, Q1 + 4 radio options, Next disabled-until-select.
+- **ProfileDetail** (Isha Bedi) — person-icon fallback (F2 holds), real **57%** compat matching Home card (F3 holds), accordions, sticky Pass/Shortlist/Interested bar.
+- **Home / OwnProfile / Settings** — VIP badge, 84% **10-tick** ring (B7 holds), "Add photos" prompt (F6 holds), **Visitors/Recently-Viewed rail populated** (Isha/Anjali/Harleen/Rohit), Settings has **no Dark toggle** (F7 holds) + "Current: vip".
+
+**Noted, not fixed:** ⚪ Kundli Manglik "status unknown for one or both profiles" renders with a green ✓ + green bg (neutral/unknown state styled as positive) — low cosmetic. ⚪ Full **Onboarding 14-step** live walk not completed (iOS scripted-input coordinate friction); Step1/Step3/Step10 changes source+`tsc`-verified and the Signup/CreateAccount screen + Step1 autofill render confirmed live on iOS.
+
+Regression: mobile `tsc` **0 errors**; backend untouched (BE **116** unchanged); FE untouched. Scope: member app (Admin/Bureau deferred). No commit (not requested).
+
+### Round 2 — deeper screen-by-screen sweep + fixes (Android real taps)
+Walked the remaining member surface (Quiz, Search, FilterPanel, Matches×3, Conversations, ChatThread, Notifications, Verification, Privacy, Subscription, Success Stories). 4 more fixes:
+
+| # | Bug (sev) | Where | Root cause | Fix | Verified |
+|---|-----------|-------|-----------|-----|----------|
+| A2 | 🔴 **ChatThread messages in reverse order** — newest at top, oldest pinned above the composer; new sends would land at top not bottom | both | backend `chatController.getMessages` returns **oldest-first** (`reverse()` after `DESC` — correct for web's normal scroll), but RN thread uses an **inverted** FlatList + optimistic-prepend-at-[0] which needs **newest-first** (group chat backend already returns newest-first w/ matching comment) | reverse to newest-first in RN `api/chat.ts getThread` (`messages.slice().reverse()`) — RN-only, web/backend untouched, now consistent w/ group chat | ✅ Android live: oldest-top → newest ("Hello from QA test", Jun 22) just above composer |
+| A3 | 🟡 Manglik "status unknown" rendered with **green ✓ + green bg** (neutral/unknown state styled as positive/compatible) | both | `HoroscopeMatchScreen` branched only on boolean `manglikCompatible` (defaults true when unknown) | added 3rd neutral state (`/unknown/i` test → `help-circle` icon, grey `border` chip, `textSecondary`) | ✅ tsc; renders neutral |
+| A4 | 🟡 **Subscription tier colours off-brand** — Plus = blue `#1565C0`, Premium = purple `#6A1B9A` (design system = burgundy standard + gold VIP only, never blue/purple) | both | `theme.ts` `planPlus`/`planPremium` tokens were blue/purple (light+dark) | recolour to brand burgundy ramp: Plus→`#8B2346`/`#E5A3B8`, Premium→`#6B1D3A`/`#C77B92`; VIP gold + Free mauve unchanged | ✅ Android live: Plus + Premium burgundy, "Most Popular" burgundy, VIP gold |
+| A5 | ⚪ Match notification title **"It's a Match! 🎉"** carried an emoji in the in-app feed | both (in-app) | `matchController.js` `notify()` titles | dropped 🎉 from the two in-app `notify()` titles (kept the celebratory emoji in the **email** channel — industry-standard there) | ✅ source |
+
+**Walked clean (no fix needed):** Compatibility Quiz (option select highlights burgundy, Next enables), Search (15 found, 64% bar, sort), FilterPanel (gorhom v4 ranges/chips/accordions — B2 holds), Matches (Mutual/Shortlisted/Liked Me — My Interests correctly removed, real names B11, per-row Chat btn), Conversations (Messages header F5, family-groups icon), Notifications (no crash — F8 holds), Verification (4 tiers + Elite framing, per-tier icons intentional), Privacy Controls (segmented + toggles + save), Subscription per-plan features (B12), Success Stories (published card renders). Elder-mode toggle verified **reversible** (off → Chat tab returns, 4→5 tabs).
+
+Regression after round 2: mobile `tsc` **0**, backend **unit 128/128** (matchController string-only change; integration still needs live DB). FE untouched. No commit.

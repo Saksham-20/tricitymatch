@@ -231,6 +231,9 @@ export default function LoginScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
+            textContentType="emailAddress"
+            autoComplete="email"
+            autoFocus
             returnKeyType="next"
             onSubmitEditing={() => passwordRef.current?.focus()}
             accessibilityLabel={t('auth.login.email')}
@@ -259,6 +262,8 @@ export default function LoginScreen() {
               placeholder="••••••••"
               placeholderTextColor={colours.textMuted}
               secureTextEntry={!showPassword}
+              textContentType="password"
+              autoComplete="current-password"
               returnKeyType="done"
               onSubmitEditing={handleLogin}
               accessibilityLabel={t('auth.login.password')}

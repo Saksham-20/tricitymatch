@@ -168,6 +168,8 @@ export default function OTPScreen() {
               onChangeText={(v) => handleDigitChange(i, v)}
               onKeyPress={(e) => handleKeyPress(i, e)}
               keyboardType="number-pad"
+              textContentType={i === 0 ? 'oneTimeCode' : 'none'}
+              autoComplete={i === 0 ? 'sms-otp' : 'off'}
               maxLength={1}
               textAlign="center"
               selectTextOnFocus

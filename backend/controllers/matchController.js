@@ -122,8 +122,8 @@ exports.matchAction = asyncHandler(async (req, res) => {
       if (result.isMutualMatch) {
         // Mutual match — notify both users in-app + email
         await Promise.all([
-          notify(userId, 'new_match', "It's a Match! 🎉", `You and ${currentName} liked each other!`, result.match.id),
-          notify(currentUserId, 'new_match', "It's a Match! 🎉", `You and ${matchedName} liked each other!`, result.match.id),
+          notify(userId, 'new_match', "It's a Match!", `You and ${currentName} liked each other!`, result.match.id),
+          notify(currentUserId, 'new_match', "It's a Match!", `You and ${matchedName} liked each other!`, result.match.id),
         ]);
 
         const profileUrl = `${config.server.frontendUrl}/profile/${userId}`;

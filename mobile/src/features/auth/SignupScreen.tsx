@@ -152,6 +152,9 @@ export default function SignupScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
+            textContentType="emailAddress"
+            autoComplete="email"
+            autoFocus
             returnKeyType="next"
             onSubmitEditing={() => passwordRef.current?.focus()}
             accessibilityLabel={t('auth.signup.email')}
@@ -174,6 +177,9 @@ export default function SignupScreen() {
               placeholder="Min. 6 characters"
               placeholderTextColor={colours.textMuted}
               secureTextEntry={!showPassword}
+              textContentType="newPassword"
+              autoComplete="new-password"
+              passwordRules="minlength: 6;"
               returnKeyType="next"
               onSubmitEditing={() => confirmRef.current?.focus()}
               accessibilityLabel={t('auth.signup.password')}
@@ -221,6 +227,8 @@ export default function SignupScreen() {
               placeholder="Re-enter password"
               placeholderTextColor={colours.textMuted}
               secureTextEntry={!showConfirm}
+              textContentType="newPassword"
+              autoComplete="new-password"
               returnKeyType="done"
               onSubmitEditing={handleSignup}
               accessibilityLabel={t('auth.signup.confirmPassword')}

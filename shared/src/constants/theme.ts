@@ -34,10 +34,10 @@ export const colours = {
   badgeEducation: '#6A1B9A',
   badgeIncome:    '#F57C00',
 
-  // Plan tier colours
+  // Plan tier colours — brand burgundy ramp (Plus→Premium deepen) + gold VIP; no off-brand blue/purple
   planFree:    '#6B4C57',
-  planPlus:    '#1565C0',
-  planPremium: '#6A1B9A',
+  planPlus:    '#8B2346',
+  planPremium: '#6B1D3A',
   planElite:   '#C9A227',
 
   // Foreground on the primary brand colour (e.g. button labels/spinners)
@@ -165,8 +165,8 @@ export const darkColours = {
   badgeIncome:    '#F57C00',
 
   planFree:    '#9C8089',
-  planPlus:    '#42A5F5',
-  planPremium: '#AB47BC',
+  planPlus:    '#E5A3B8',
+  planPremium: '#C77B92',
   planElite:   '#D4AF37',
 
   onPrimary:   '#FFFFFF',

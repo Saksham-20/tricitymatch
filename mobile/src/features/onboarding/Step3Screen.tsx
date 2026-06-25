@@ -97,6 +97,9 @@ export default function Step3Screen() {
           placeholder="City of birth"
           placeholderTextColor={colours.textMuted}
           autoCapitalize="words"
+          autoComplete="postal-address-locality"
+          textContentType="addressCity"
+          returnKeyType="done"
           testID="input-placeOfBirth"
           accessibilityLabel={t('onboarding.step3.birthPlace')}
         />
