@@ -134,6 +134,29 @@ Running log of user-friction fixes. Goal: make every interaction effortless. Evi
 
 ---
 
+## Batch 6 — Dashboard, Astrologers, Verification, Guardian (2026-06-25) — verified live
+### 14. Dashboard stat cards were dead-end affordances ✅
+- **Problem:** Stat cards had a hover-lift (implying clickable) but none navigated.
+- **Fix:** "Mutual Matches" stat now links to /chat (its sublabel literally says "Ready to chat"); removed the hover-lift from the non-navigating cards so they don't imply a click that goes nowhere.
+- **Files:** `frontend/src/pages/Dashboard.jsx` · **Verified:** clicked → /chat.
+
+### 15. Astrologers page blank when list empty ✅
+- **Problem:** Empty `astrologers` (the current prod state) rendered a title over nothing. Loading was a bare "Loading…".
+- **Fix:** Added a proper empty state ("No astrologers available yet") + a skeleton loader.
+- **Files:** `frontend/src/pages/Astrologers.jsx` · **Verified:** build + code path (seeded rows present locally so empty state not triggered live).
+
+### 16. Verification upload had no preview ✅
+- **Problem:** ID/selfie upload showed only a filename — no way to confirm the photo is clear/correct, no way to remove a wrong pick.
+- **Fix:** `FileField` now renders an image thumbnail preview + a remove (×) button (object URL with cleanup).
+- **Files:** `frontend/src/pages/Verification.jsx` · **Verified:** uploaded → thumbnail + remove shown; remove clears back to "Choose file".
+
+### 17. Guardian revoke had no confirmation ✅
+- **Problem:** "Revoke" deleted a guardian's access instantly on one click — irreversible (re-invite needed).
+- **Fix:** Inline "Revoke access? Yes/No" confirm (matches the chat-delete pattern).
+- **Files:** `frontend/src/pages/Guardian.jsx` · **Verified:** Revoke → confirm shown, guardian intact; Yes → revoked.
+
+---
+
 ## Summary so far
 13 friction fixes across 5 batches (auth, onboarding, search, profile editing, chat, notifications). All build-verified; FE 35/35 unit tests green. Reviewed-and-clean: Subscription, PaymentFailed, Settings (mostly).
 
