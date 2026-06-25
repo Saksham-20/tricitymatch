@@ -23,7 +23,6 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [shakeTrigger, setShakeTrigger] = useState(false);
   const [lockedUntil, setLockedUntil] = useState(0); // epoch ms; 0 = not locked
-  const [nowTick, setNowTick] = useState(Date.now());
   const { login, setUser } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -33,15 +32,17 @@ const Login = () => {
   const returnTo = searchParams.get('returnTo');
   const safeReturnTo = returnTo && /^\/(?!\/)/.test(returnTo) ? returnTo : null;
 
-  const lockRemaining = Math.max(0, Math.ceil((lockedUntil - nowTick) / 1000));
-  const isLocked = lockRemaining > 0;
+  const LOCK_MS = 10 * 60 * 1000; // 10-minute client lock; no timer shown to the user
+  const isLocked = lockedUntil > Date.now();
 
-  // Tick once a second only while a lockout countdown is running.
+  // Re-enable the form once the lock elapses (no countdown displayed).
   useEffect(() => {
-    if (!isLocked) return;
-    const id = setInterval(() => setNowTick(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, [isLocked]);
+    if (!lockedUntil) return;
+    const ms = lockedUntil - Date.now();
+    if (ms <= 0) { setLockedUntil(0); return; }
+    const id = setTimeout(() => setLockedUntil(0), ms);
+    return () => clearTimeout(id);
+  }, [lockedUntil]);
 
   const goAfterLogin = useCallback((role) => {
     if (safeReturnTo && role !== 'admin' && role !== 'super_admin'
@@ -152,12 +153,7 @@ const Login = () => {
         const msg = result.error || result.message || 'Incorrect email or password. Please try again.';
         setApiError(msg);
         if (result.locked) {
-          // Parse "...after 15 minutes" from the message; fall back per source
-          // (429 IP limit = 15m window, account lockout = 30m).
-          const m = msg.match(/(\d+)\s*minute/i);
-          const secs = m ? parseInt(m[1], 10) * 60 : (result.status === 429 ? 15 * 60 : 30 * 60);
-          setLockedUntil(Date.now() + secs * 1000);
-          setNowTick(Date.now());
+          setLockedUntil(Date.now() + LOCK_MS);
         }
         setShakeTrigger(true);
         setTimeout(() => setShakeTrigger(false), 500);
@@ -309,12 +305,7 @@ const Login = () => {
                   className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-gold-50 border border-gold-200 text-gold-800 text-sm"
                 >
                   <FiClock className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                  <span>
-                    {apiError || 'Too many attempts.'}{' '}
-                    <span className="font-semibold whitespace-nowrap">
-                      Try again in {Math.floor(lockRemaining / 60)}:{String(lockRemaining % 60).padStart(2, '0')}
-                    </span>
-                  </span>
+                  <span>Too many attempts. Please wait a few minutes, then try again.</span>
                 </motion.div>
               ) : apiError ? (
                 <motion.div
@@ -434,7 +425,7 @@ const Login = () => {
               ) : isLocked ? (
                 <>
                   <FiClock className="w-5 h-5" />
-                  Try again in {Math.floor(lockRemaining / 60)}:{String(lockRemaining % 60).padStart(2, '0')}
+                  Please try again later
                 </>
               ) : (
                 <>

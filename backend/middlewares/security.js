@@ -48,9 +48,9 @@ const apiLimiter = createRateLimiter({
 
 // Auth endpoints - stricter limits
 const authLimiter = createRateLimiter({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 10 * 60 * 1000, // 10 minutes
   max: 5, // 5 attempts
-  message: 'Too many authentication attempts, please try again after 15 minutes',
+  message: 'Too many login attempts. Please try again later.',
   keyGenerator: (req) => ipKeyGenerator(req), // Always use IP for auth
 });
 
@@ -398,12 +398,11 @@ const checkAccountLockout = asyncHandler(async (req, res, next) => {
   if (data && data.count >= config.auth.maxLoginAttempts) {
     const timeSinceLock = Date.now() - data.lockTime;
     if (timeSinceLock < lockoutMs) {
-      const remainingMinutes = Math.ceil((lockoutMs - timeSinceLock) / 60000);
       return res.status(429).json({
         success: false,
         error: {
           code: 'ACCOUNT_LOCKED',
-          message: `Account temporarily locked. Try again in ${remainingMinutes} minutes`,
+          message: 'Account temporarily locked due to too many attempts. Please try again later.',
         },
       });
     }

@@ -132,7 +132,7 @@ const config = {
     resetTokenExpiry: optionalString('RESET_TOKEN_EXPIRY', '1h'),
     bcryptRounds: optionalNumber('BCRYPT_ROUNDS', 12),
     maxLoginAttempts: optionalNumber('MAX_LOGIN_ATTEMPTS', 5),
-    lockoutDuration: optionalNumber('LOCKOUT_DURATION_MINUTES', 30),
+    lockoutDuration: optionalNumber('LOCKOUT_DURATION_MINUTES', 10),
   },
 
   // Rate Limiting
