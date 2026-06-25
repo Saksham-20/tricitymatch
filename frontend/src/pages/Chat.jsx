@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
@@ -113,6 +114,7 @@ const DateSeparator = ({ date }) => (
 const Chat = () => {
   const { socket } = useSocket();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [matches, setMatches] = useState([]);
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -594,8 +596,6 @@ const Chat = () => {
                         {(match.firstName || '?')[0]}
                       </div>
                     )}
-                    {/* Online indicator */}
-                    <div className="absolute bottom-0 right-0 w-4 h-4 bg-success rounded-full border-2 border-white"></div>
                   </div>
 
                   {/* Info */}
@@ -634,45 +634,53 @@ const Chat = () => {
                     <FiChevronLeft className="w-5 h-5 text-neutral-600" />
                   </button>
 
-                  {/* Avatar */}
-                  <div className="relative">
-                    {(selectedMatch.profilePhoto || selectedMatch.profile_photo) ? (
-                      <>
-                        <img
-                          src={getImageUrl(selectedMatch.profilePhoto || selectedMatch.profile_photo, API_BASE_URL, 'avatar')}
-                          alt={`Profile photo of ${selectedMatch.firstName || 'Match'}`}
-                          className="w-11 h-11 rounded-full object-cover ring-2 ring-primary-100"
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'flex';
-                          }}
-                        />
-                        <div className="w-11 h-11 rounded-full bg-gradient-hero flex items-center justify-center text-white font-semibold ring-2 ring-primary-100 hidden" aria-hidden="true">
+                  {/* Avatar + name — tap to view full profile */}
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/profile/${selectedMatch.userId}`)}
+                    className="flex items-center gap-3 -m-1 p-1 rounded-xl hover:bg-neutral-100 transition-colors text-left"
+                    aria-label={`View ${selectedMatch.firstName || 'match'}'s profile`}
+                  >
+                    <div className="relative">
+                      {(selectedMatch.profilePhoto || selectedMatch.profile_photo) ? (
+                        <>
+                          <img
+                            src={getImageUrl(selectedMatch.profilePhoto || selectedMatch.profile_photo, API_BASE_URL, 'avatar')}
+                            alt={`Profile photo of ${selectedMatch.firstName || 'Match'}`}
+                            className="w-11 h-11 rounded-full object-cover ring-2 ring-primary-100"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'flex';
+                            }}
+                          />
+                          <div className="w-11 h-11 rounded-full bg-gradient-hero flex items-center justify-center text-white font-semibold ring-2 ring-primary-100 hidden" aria-hidden="true">
+                            {(selectedMatch.firstName || '?')[0]}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="w-11 h-11 rounded-full bg-gradient-hero flex items-center justify-center text-white font-semibold ring-2 ring-primary-100">
                           {(selectedMatch.firstName || '?')[0]}
                         </div>
-                      </>
-                    ) : (
-                      <div className="w-11 h-11 rounded-full bg-gradient-hero flex items-center justify-center text-white font-semibold ring-2 ring-primary-100">
-                        {(selectedMatch.firstName || '?')[0]}
-                      </div>
-                    )}
-                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-success rounded-full border-2 border-white"></div>
-                  </div>
+                      )}
+                    </div>
 
-                  {/* Info */}
-                  <div>
-                    <h3 className="font-semibold text-neutral-800">
-                      {selectedMatch.firstName} {selectedMatch.lastName}
-                    </h3>
-                    <p className="text-xs text-success font-medium">
-                      {isTyping ? 'typing...' : 'Online'}
-                    </p>
-                  </div>
+                    {/* Info */}
+                    <div>
+                      <h3 className="font-semibold text-neutral-800">
+                        {selectedMatch.firstName} {selectedMatch.lastName}
+                      </h3>
+                      <p className="text-xs text-neutral-400 font-medium">
+                        {isTyping ? <span className="text-success">typing…</span> : 'View profile'}
+                      </p>
+                    </div>
+                  </button>
                 </div>
 
-                {/* Actions */}
-                <button 
-                  aria-label="More options"
+                {/* Actions — view full profile */}
+                <button
+                  onClick={() => navigate(`/profile/${selectedMatch.userId}`)}
+                  aria-label="View profile"
+                  title="View profile"
                   className="p-2 hover:bg-neutral-100 rounded-full transition-colors"
                 >
                   <FiMoreVertical className="w-5 h-5 text-neutral-500" />

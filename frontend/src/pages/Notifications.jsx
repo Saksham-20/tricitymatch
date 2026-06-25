@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -41,7 +42,21 @@ function timeAgo(date) {
   return new Date(date).toLocaleDateString('en-IN');
 }
 
+// Where a notification should take the user when tapped.
+const notifLink = (n) => {
+  switch (n.type) {
+    case 'message':      return '/chat';
+    case 'match':
+    case 'interest':
+    case 'profile_view': return n.relatedId ? `/profile/${n.relatedId}` : '/search';
+    case 'verification': return '/verification';
+    case 'subscription': return '/subscription';
+    default:             return null;
+  }
+};
+
 export default function Notifications() {
+  const navigate = useNavigate();
   const [notifications, setNotifs] = useState([]);
   const [loading, setLoading]      = useState(true);
   const [page, setPage]            = useState(1);
@@ -94,6 +109,12 @@ export default function Notifications() {
     fetchNotifs(next, true);
   };
 
+  const handleOpen = (n) => {
+    if (!n.isRead) markRead(n.id);
+    const to = notifLink(n);
+    if (to) navigate(to);
+  };
+
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
@@ -144,7 +165,7 @@ export default function Notifications() {
                       className={`flex items-start gap-3 p-4 rounded-2xl shadow-card border transition-all cursor-pointer ${
                         !n.isRead ? 'border-primary-100 dark:border-primary-800 bg-primary-50/40 dark:bg-primary-900/20' : 'border-neutral-100 dark:border-neutral-800 bg-white dark:bg-[#1a1f2e]'
                       }`}
-                      onClick={() => !n.isRead && markRead(n.id)}
+                      onClick={() => handleOpen(n)}
                     >
                       <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${color}`}>
                         <Icon className="w-4 h-4" />

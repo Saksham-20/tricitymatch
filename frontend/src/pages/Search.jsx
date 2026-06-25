@@ -4,9 +4,30 @@ import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 import {
-  FiSearch, FiFilter, FiUsers, FiArrowRight,
-  FiSliders, FiRefreshCw, FiHash,
+  FiSearch, FiUsers, FiArrowRight,
+  FiSliders, FiRefreshCw, FiHash, FiX,
 } from 'react-icons/fi';
+
+// Readable labels for active-filter chips
+const FILTER_LABELS = {
+  ageMin: (v) => `Age ≥ ${v}`,
+  ageMax: (v) => `Age ≤ ${v}`,
+  heightMin: (v) => `Height ≥ ${v}cm`,
+  heightMax: (v) => `Height ≤ ${v}cm`,
+  city: (v) => v,
+  education: (v) => v,
+  profession: (v) => v,
+  diet: (v) => `Diet: ${v}`,
+  smoking: (v) => `Smoking: ${v}`,
+  drinking: (v) => `Drinking: ${v}`,
+  religion: (v) => v,
+  caste: (v) => v,
+  maritalStatus: (v) => v.replace(/_/g, ' '),
+  motherTongue: (v) => v,
+  incomeMin: (v) => `₹${(v / 100000)}L+ income`,
+  incomeMax: (v) => `≤ ₹${(v / 100000)}L income`,
+  manglikFilter: (v) => v.replace(/_/g, ' '),
+};
 import { staggerContainer, fadeInUp } from '../utils/animations';
 import { API_BASE_URL } from '../utils/api';
 import { getImageUrl } from '../utils/cloudinary';
@@ -34,7 +55,6 @@ const Search = () => {
   const navigate = useNavigate();
   const [profiles, setProfiles]   = useState([]);
   const [loading, setLoading]     = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
   const [page, setPage]           = useState(1);
   const [hasMore, setHasMore]     = useState(true);
   const [sortBy, setSortBy]       = useState('compatibility');
@@ -137,6 +157,13 @@ const Search = () => {
     setPage(1);
     searchProfiles({ overridePage: 1 });
     toast.success('Filters applied');
+  };
+
+  const handleRemoveFilter = (key) => {
+    const updated = { ...filters, [key]: '' };
+    setFilters(updated);
+    setPage(1);
+    searchProfiles({ overrideFilters: updated, overridePage: 1 });
   };
 
   const handleClearFilters = () => {
@@ -255,8 +282,8 @@ const Search = () => {
                   <span className="text-neutral-400">Loading profiles…</span>
                 ) : (
                   <>
-                    <span className="font-semibold text-neutral-900">{profiles.length}</span>
-                    {' '}{profiles.length === 1 ? 'profile' : 'profiles'} found
+                    <span className="font-semibold text-neutral-900">{Math.max(totalCount, profiles.length)}</span>
+                    {' '}{Math.max(totalCount, profiles.length) === 1 ? 'profile' : 'profiles'} found
                     {activeFilterCount > 0 && (
                       <span className="ml-2 text-primary-500 font-medium">
                         · {activeFilterCount} filter{activeFilterCount > 1 ? 's' : ''} active
@@ -274,6 +301,23 @@ const Search = () => {
                 </button>
               )}
             </div>
+
+            {/* ── Active filter chips (remove one without opening the panel) ── */}
+            {activeFilterCount > 0 && (
+              <div className="flex flex-wrap items-center gap-2 mb-5">
+                {Object.entries(filters).filter(([, v]) => v).map(([key, value]) => (
+                  <button
+                    key={key}
+                    onClick={() => handleRemoveFilter(key)}
+                    className="inline-flex items-center gap-1.5 pl-3 pr-2 py-1.5 bg-primary-50 text-primary-700 text-xs font-medium rounded-full border border-primary-100 hover:bg-primary-100 transition-colors"
+                    aria-label={`Remove filter ${key}`}
+                  >
+                    {(FILTER_LABELS[key]?.(value)) ?? `${key}: ${value}`}
+                    <FiX className="w-3.5 h-3.5" />
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* ── Loading skeleton ──────────────────────────────────────── */}
             {loading && profiles.length === 0 && (
