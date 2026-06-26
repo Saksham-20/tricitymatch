@@ -15,7 +15,8 @@ import type { RouteProp } from '@react-navigation/native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, type, spacing, borderRadius } from '@shared/constants/theme';
+import { CompatRing } from '../../components/ui';
 import { getProfile, logProfileView, getCompatibilityBreakdown } from '../../api/profile';
 import VoiceIntroRecorder from '../../components/profile/VoiceIntroRecorder';
 import { resolveImageUri } from '../../components/common/SmartImage';
@@ -32,7 +33,10 @@ type Route = RouteProp<MainStackParamList, 'ProfileDetail'>;
 
 // ─── Compatibility Bar ───────────────────────────────────────────────────────
 
+const compatScoreColour = (p: number) => (p >= 90 ? colours.success : p >= 75 ? colours.g500 : colours.p500);
+
 function CompatibilityBar({ score, onWhyPress }: { score: number; onWhyPress: () => void }) {
+  const colour = compatScoreColour(score);
   return (
     <TouchableOpacity
       style={cb.container}
@@ -41,17 +45,15 @@ function CompatibilityBar({ score, onWhyPress }: { score: number; onWhyPress: ()
       accessibilityLabel="See compatibility breakdown"
       accessibilityRole="button"
     >
-      <View style={cb.headerRow}>
+      <CompatRing value={score} size={64} />
+      <View style={cb.info}>
         <Text style={cb.label}>Compatibility</Text>
-        <Text style={cb.why}>Why this match? →</Text>
+        <Text style={cb.hint}>Tap to see the full breakdown</Text>
       </View>
-      <View style={cb.barRow}>
-        <View style={cb.bar}>
-          <View style={[cb.fill, { width: `${score}%` }]} />
-        </View>
-        <Text style={cb.score}>{score}%</Text>
+      <View style={cb.whyRow}>
+        <Text style={[cb.why, { color: colour }]}>Why</Text>
+        <Ionicons name="chevron-forward" size={16} color={colours.textMuted} />
       </View>
-      <Text style={cb.hint}>Tap to see breakdown</Text>
     </TouchableOpacity>
   );
 }
@@ -90,47 +92,19 @@ function HeroPhoto({ uri, locked }: { uri: string; locked: boolean }) {
 
 const cb = StyleSheet.create({
   container: {
-    paddingHorizontal: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingHorizontal: spacing.gutter,
     paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colours.border,
+    borderBottomWidth: 0.5,
+    borderBottomColor: colours.hairline,
   },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  label: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.semiBold,
-    color: colours.textPrimary,
-  },
-  why: {
-    fontSize: typography.fontSize.xs,
-    color: colours.primary,
-    fontFamily: typography.fontFamily.medium,
-  },
-  barRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  bar: {
-    flex: 1,
-    height: 8,
-    backgroundColor: colours.border,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  fill: {
-    height: '100%',
-    backgroundColor: colours.success,
-    borderRadius: 4,
-  },
-  score: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.bold,
-    color: colours.success,
-    minWidth: 40,
-    textAlign: 'right',
-  },
-  hint: {
-    fontSize: typography.fontSize.xs,
-    color: colours.textMuted,
-    marginTop: 4,
-  },
+  info: { flex: 1 },
+  label: { ...type.headline, color: colours.fgStrong },
+  hint: { ...type.footnote, color: colours.textMuted, marginTop: 2 },
+  whyRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  why: { ...type.subhead, color: colours.accent, fontFamily: 'Inter-SemiBold' },
 });
 
 // ─── Verification Badges ─────────────────────────────────────────────────────

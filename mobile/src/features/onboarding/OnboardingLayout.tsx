@@ -7,12 +7,13 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, type, spacing, borderRadius } from '@shared/constants/theme';
+import { Button } from '../../components/ui';
+import { useTheme } from '../../hooks/useTheme';
 import { useOnboarding } from './OnboardingContext';
 
 const TOTAL_STEPS = 14;
@@ -39,17 +40,22 @@ export default function OnboardingLayout({
   children,
 }: OnboardingLayoutProps) {
   const { t } = useTranslation();
+  const { c } = useTheme();
   const { goBack, isSaving } = useOnboarding();
   const progress = step / TOTAL_STEPS;
 
   return (
-    <SafeAreaView style={styles.safe} testID={`OnboardingStep${step}`}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} testID={`OnboardingStep${step}`}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={goBack} style={styles.backBtn} testID="btn-back" accessibilityLabel={t('common.back')}>
-          <Ionicons name="arrow-back" size={24} color={colours.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.stepLabel} accessibilityLabel={t('onboarding.progress', { current: step, total: TOTAL_STEPS })}>
+        {step > 1 ? (
+          <TouchableOpacity onPress={goBack} style={styles.backBtn} testID="btn-back" accessibilityLabel={t('common.back')}>
+            <Ionicons name="arrow-back" size={24} color={c.fgStrong} />
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.headerRight} />
+        )}
+        <Text style={[styles.stepLabel, { color: c.textMuted }]}>
           {t('onboarding.progress', { current: step, total: TOTAL_STEPS })}
         </Text>
         {skippable ? (
@@ -62,7 +68,7 @@ export default function OnboardingLayout({
       </View>
 
       {/* Progress bar */}
-      <View style={styles.progressTrack}>
+      <View style={[styles.progressTrack, { backgroundColor: c.surface2 }]}>
         <View style={[styles.progressFill, { width: `${progress * 100}%` as any }]} />
       </View>
 
@@ -73,26 +79,21 @@ export default function OnboardingLayout({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.title}>{title}</Text>
-          {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+          <Text style={[styles.title, { color: c.fgStrong }]}>{title}</Text>
+          {subtitle ? <Text style={[styles.subtitle, { color: c.textMuted }]}>{subtitle}</Text> : null}
           <View style={styles.content}>{children}</View>
         </ScrollView>
 
         {/* Footer */}
-        <View style={styles.footer}>
-          <TouchableOpacity
-            style={[styles.continueBtn, (continueDisabled || isSaving) && styles.continueBtnDisabled]}
+        <View style={[styles.footer, { borderTopColor: c.hairline, backgroundColor: c.background }]}>
+          <Button
+            title={t('onboarding.saveAndContinue')}
             onPress={onContinue}
-            disabled={continueDisabled || isSaving}
+            loading={isSaving}
+            disabled={continueDisabled}
+            size="lg"
             testID="btn-continue"
-            accessibilityLabel={t('onboarding.saveAndContinue')}
-          >
-            {isSaving ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.continueBtnText}>{t('onboarding.saveAndContinue')}</Text>
-            )}
-          </TouchableOpacity>
+          />
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -118,66 +119,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stepLabel: {
-    fontSize: typography.fontSize.sm,
-    color: colours.textSecondary,
-    fontFamily: typography.fontFamily.medium,
-  },
+  stepLabel: { ...type.subhead, color: colours.textMuted },
   headerRight: { width: 40 },
-  skipText: {
-    fontSize: typography.fontSize.sm,
-    color: colours.primary,
-    fontFamily: typography.fontFamily.medium,
-  },
+  skipText: { ...type.subhead, color: colours.accent },
   progressTrack: {
-    height: 4,
-    backgroundColor: colours.border,
-    marginHorizontal: spacing.lg,
-    borderRadius: borderRadius.full,
+    height: 6,
+    backgroundColor: colours.surface2,
+    marginHorizontal: spacing.gutter,
+    borderRadius: borderRadius.pill,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: colours.primary,
-    borderRadius: borderRadius.full,
+    backgroundColor: colours.accent,
+    borderRadius: borderRadius.pill,
   },
-  scrollContent: {
-    padding: spacing.lg,
-    paddingBottom: spacing['3xl'],
-  },
+  scrollContent: { padding: spacing.gutter, paddingBottom: spacing['3xl'] },
   title: {
-    fontSize: typography.fontSize['2xl'],
-    fontFamily: typography.fontFamily.bold,
-    color: colours.textPrimary,
+    ...type.title1,
+    fontFamily: 'PlayfairDisplay-Bold',
+    color: colours.fgStrong,
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
   },
-  subtitle: {
-    fontSize: typography.fontSize.base,
-    color: colours.textSecondary,
-    marginBottom: spacing['2xl'],
-    lineHeight: typography.fontSize.base * typography.lineHeight.normal,
-  },
+  subtitle: { ...type.body, color: colours.textMuted, marginBottom: spacing['2xl'] },
   content: { gap: spacing.lg },
   footer: {
-    padding: spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: colours.border,
-    backgroundColor: colours.background,
-  },
-  continueBtn: {
-    backgroundColor: colours.primary,
-    borderRadius: borderRadius.md,
-    height: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  continueBtnDisabled: {
-    opacity: 0.5,
-  },
-  continueBtnText: {
-    color: '#fff',
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.semiBold,
+    padding: spacing.gutter,
+    borderTopWidth: 0.5,
+    borderTopColor: colours.hairline,
   },
 });

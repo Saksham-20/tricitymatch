@@ -5,72 +5,98 @@ import {
   StyleProp,
   StyleSheet,
   Text,
+  TextStyle,
   TouchableOpacity,
   View,
   ViewStyle,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { borderRadius, colours, spacing, typography } from '@shared/constants/theme';
+import { borderRadius, colours, shadows, spacing, type } from '@shared/constants/theme';
+import { haptics } from '../../utils/haptics';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'text' | 'gold';
+export type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface ButtonProps {
   title: string;
   onPress: (event: GestureResponderEvent) => void;
   variant?: ButtonVariant;
+  size?: ButtonSize;
   loading?: boolean;
   disabled?: boolean;
+  /** Leading Ionicons glyph */
+  icon?: keyof typeof Ionicons.glyphMap;
+  /** Fire a light selection haptic on press (default true) */
+  haptic?: boolean;
   testID?: string;
   loaderTestID?: string;
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
 }
 
-// Brand gradients mirror the web Button (from-primary-500 to-primary-700 /
-// from-gold-500 to-gold-700). Solid variants render without a gradient layer.
+// Brand gradients (handoff): primary burgundy p500→p600, gold g400→g600.
 const GRADIENTS: Partial<Record<ButtonVariant, [string, string]>> = {
-  primary: [colours.primary, colours.primaryDark],
-  gold: [colours.secondary, '#A8861E'],
+  primary: [colours.p500, colours.p600],
+  gold: [colours.g400, colours.g600],
+};
+
+const SIZES: Record<ButtonSize, { minHeight: number; radius: number; font: TextStyle }> = {
+  sm: { minHeight: 38, radius: borderRadius.sm, font: type.subhead },
+  md: { minHeight: 50, radius: borderRadius.md, font: type.headline },
+  lg: { minHeight: 54, radius: borderRadius.md, font: type.body },
 };
 
 export default function Button({
   title,
   onPress,
   variant = 'primary',
+  size = 'md',
   loading = false,
   disabled = false,
+  icon,
+  haptic = true,
   testID,
   loaderTestID,
   accessibilityLabel,
   style,
 }: ButtonProps) {
   const isDisabled = disabled || loading;
-  const variantStyle = variantStyles[variant];
+  const v = variantStyles[variant];
+  const sz = SIZES[size];
   const gradient = GRADIENTS[variant];
 
+  const handlePress = (e: GestureResponderEvent) => {
+    if (haptic) haptics.light();
+    onPress(e);
+  };
+
   const inner = loading ? (
-    <ActivityIndicator color={variantStyle.spinnerColor} testID={loaderTestID} />
+    <ActivityIndicator color={v.spinnerColor} testID={loaderTestID} />
   ) : (
-    <Text style={[styles.text, variantStyle.text]} numberOfLines={1}>
-      {title}
-    </Text>
+    <View style={styles.contentRow}>
+      {icon ? <Ionicons name={icon} size={(sz.font.fontSize ?? 16) + 2} color={v.text.color} /> : null}
+      <Text style={[sz.font, v.text]} numberOfLines={1}>
+        {title}
+      </Text>
+    </View>
   );
+
+  const radiusStyle = { borderRadius: sz.radius, minHeight: sz.minHeight };
 
   return (
     <TouchableOpacity
       style={[
-        gradient ? styles.gradientWrap : styles.base,
-        gradient ? variantStyle.shadow : variantStyle.container,
-        // Solid brand fallback behind the gradient: if expo-linear-gradient's
-        // native view manager is unavailable (stale dev client, odd device),
-        // the button still shows its brand colour instead of going transparent.
+        gradient ? [styles.gradientWrap, radiusStyle] : [styles.base, radiusStyle],
+        gradient ? v.shadow : v.container,
+        // Solid brand fallback if the gradient native view is unavailable.
         gradient ? { backgroundColor: gradient[0] } : undefined,
         isDisabled && styles.disabled,
         style,
       ]}
-      onPress={onPress}
+      onPress={handlePress}
       disabled={isDisabled}
-      activeOpacity={0.85}
+      activeOpacity={0.9}
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? title}
@@ -80,8 +106,8 @@ export default function Button({
         <LinearGradient
           colors={gradient}
           start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.base}
+          end={{ x: 1, y: 1 }}
+          style={[styles.base, radiusStyle]}
         >
           {inner}
         </LinearGradient>
@@ -97,9 +123,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 52,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xl,
   },
   fill: {
     flexDirection: 'row',
@@ -107,68 +131,44 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: '100%',
   },
-  // Gradient variants: the TouchableOpacity is just a rounded, clipped shell
-  // that carries the shadow; the LinearGradient fills it.
-  gradientWrap: {
-    borderRadius: borderRadius.md,
-    overflow: 'hidden',
-  },
-  disabled: { opacity: 0.6 },
-  text: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.semiBold,
-  },
+  contentRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  gradientWrap: { overflow: 'hidden' },
+  disabled: { opacity: 0.45 },
 });
 
 type Variant = {
   container: ViewStyle;
   shadow?: ViewStyle;
-  text: ViewStyle & { color: string; fontFamily?: string };
+  text: { color: string; fontFamily?: string };
   spinnerColor: string;
-};
-
-const burgundyShadow: ViewStyle = {
-  shadowColor: colours.primary,
-  shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.3,
-  shadowRadius: 8,
-  elevation: 4,
-};
-
-const goldShadow: ViewStyle = {
-  shadowColor: colours.secondary,
-  shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.35,
-  shadowRadius: 8,
-  elevation: 4,
 };
 
 const variantStyles: Record<ButtonVariant, Variant> = {
   primary: {
-    container: { backgroundColor: colours.primary },
-    shadow: burgundyShadow,
+    container: { backgroundColor: colours.p500 },
+    shadow: shadows.e3,
     text: { color: colours.onPrimary },
     spinnerColor: colours.onPrimary,
   },
   gold: {
-    container: { backgroundColor: colours.secondary },
-    shadow: goldShadow,
-    text: { color: '#2D2D2D', fontFamily: typography.fontFamily.bold },
-    spinnerColor: '#2D2D2D',
+    container: { backgroundColor: colours.g500 },
+    shadow: shadows.gold,
+    text: { color: colours.goldText, fontFamily: type.headline.fontFamily },
+    spinnerColor: colours.goldText,
   },
   secondary: {
     container: {
-      backgroundColor: colours.surfaceCard,
-      borderWidth: 1,
-      borderColor: colours.border,
+      backgroundColor: 'transparent',
+      borderWidth: 1.5,
+      borderColor: colours.accent,
     },
-    text: { color: colours.textPrimary },
-    spinnerColor: colours.primary,
+    text: { color: colours.accent },
+    spinnerColor: colours.accent,
   },
   ghost: {
-    container: { backgroundColor: 'transparent' },
-    text: { color: colours.primary },
-    spinnerColor: colours.primary,
+    container: { backgroundColor: colours.surface2 },
+    text: { color: colours.fgStrong },
+    spinnerColor: colours.accent,
   },
   danger: {
     container: { backgroundColor: colours.error },
@@ -176,8 +176,8 @@ const variantStyles: Record<ButtonVariant, Variant> = {
     spinnerColor: colours.onPrimary,
   },
   text: {
-    container: { backgroundColor: 'transparent', minHeight: 44, paddingHorizontal: 0 },
-    text: { color: colours.textSecondary, fontFamily: typography.fontFamily.medium },
-    spinnerColor: colours.primary,
+    container: { backgroundColor: 'transparent', minHeight: 44, paddingHorizontal: spacing.sm },
+    text: { color: colours.accent, fontFamily: type.subhead.fontFamily },
+    spinnerColor: colours.accent,
   },
 };

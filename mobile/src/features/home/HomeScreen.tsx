@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   FlatList,
-  Image,
   RefreshControl,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -14,12 +13,16 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { colours, type, spacing, borderRadius } from '@shared/constants/theme';
 import SmartImage from '../../components/common/SmartImage';
+import { Avatar, SectionHeader, SkeletonBlock, EmptyState, CompletionRing } from '../../components/ui';
 import { getDailyFeed } from '../../api/matches';
 import { getUnreadCount } from '../../api/notifications';
 import { queryKeys } from '../../constants/queryKeys';
 import { useAuthStore } from '../../stores/authStore';
+import { useTheme } from '../../hooks/useTheme';
+import { haptics } from '../../utils/haptics';
 import type { MainStackParamList } from '../../navigation/types';
 import type { ProfileSummary } from '../../types';
 
@@ -27,68 +30,50 @@ type Nav = NativeStackNavigationProp<MainStackParamList>;
 
 function ageFromDob(dob: string | null): number | null {
   if (!dob) return null;
-  const diff = Date.now() - new Date(dob).getTime();
-  return Math.floor(diff / (365.25 * 24 * 3600 * 1000));
+  return Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 3600 * 1000));
 }
 
-// ─── Skeletons ───────────────────────────────────────────────────────────────
-
-function CardSkeleton() {
-  return (
-    <View style={styles.skeletonCard}>
-      <View style={styles.skeletonPhoto} />
-      <View style={styles.skeletonLine} />
-      <View style={[styles.skeletonLine, { width: '60%' }]} />
-    </View>
-  );
+function greeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
 }
 
-function ListItemSkeleton() {
-  return (
-    <View style={styles.skeletonListItem}>
-      <View style={styles.skeletonAvatar} />
-      <View style={{ flex: 1, gap: 6 }}>
-        <View style={[styles.skeletonLine, { width: '70%', marginBottom: 0 }]} />
-        <View style={[styles.skeletonLine, { width: '50%', height: 10, marginBottom: 0 }]} />
-      </View>
-    </View>
-  );
-}
+const scoreColour = (p: number) => (p >= 90 ? colours.success : p >= 75 ? colours.g500 : colours.p500);
 
-// ─── Match Card (horizontal scroll) ─────────────────────────────────────────
-
-interface MatchCardProps {
-  profile: ProfileSummary;
-  onPress: () => void;
-}
-
-function MatchCard({ profile, onPress }: MatchCardProps) {
+// ─── Rail card (166×226 scrim photo) ─────────────────────────────────────────
+function RailCard({ profile, onPress, c }: { profile: ProfileSummary; onPress: () => void; c: ReturnType<typeof useTheme>['c'] }) {
   const age = ageFromDob(profile.dateOfBirth);
-  const title = age ? `${profile.firstName}, ${age}` : profile.firstName;
-  const sub = [profile.city, profile.profession].filter(Boolean).join(' · ');
-
+  const name = `${profile.firstName}${age ? `, ${age}` : ''}`;
+  const compat = profile.compatibilityScore ?? 0;
   return (
     <TouchableOpacity
-      style={styles.matchCard}
+      style={[styles.rail, { backgroundColor: c.surface2 }]}
       onPress={onPress}
+      activeOpacity={0.9}
       testID={`match-card-${profile.userId}`}
-      accessibilityLabel={`View profile of ${title}`}
+      accessibilityLabel={`View profile of ${name}`}
     >
-      <SmartImage uri={profile.profilePhoto} name={title} style={styles.matchPhoto} initialSize={40} />
-      {profile.isVerified && (
-        <View style={styles.verifiedBadge}>
-          <Ionicons name="checkmark-circle" size={16} color={colours.success} />
+      <SmartImage uri={profile.profilePhoto} name={name} style={styles.railPhoto} initialSize={44} />
+      <LinearGradient
+        colors={['transparent', 'rgba(20,8,14,0.35)', 'rgba(20,8,14,0.88)']}
+        locations={[0.35, 0.6, 1]}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
+      <View style={styles.railBody} pointerEvents="none">
+        <View style={styles.railNameRow}>
+          <Text style={styles.railName} numberOfLines={1}>{name}</Text>
+          {profile.isVerified && <Ionicons name="checkmark-circle" size={14} color="#5DD27A" />}
         </View>
-      )}
-      <View style={styles.matchInfo}>
-        <Text style={styles.matchName} numberOfLines={1}>{title}</Text>
-        {!!sub && <Text style={styles.matchSub} numberOfLines={1}>{sub}</Text>}
-        {typeof profile.compatibilityScore === 'number' && (
-          <View style={styles.compatRow}>
-            <View style={styles.compatBar}>
-              <View style={[styles.compatFill, { width: `${profile.compatibilityScore}%` }]} />
-            </View>
-            <Text style={styles.compatLabel}>{profile.compatibilityScore}%</Text>
+        <Text style={styles.railMeta} numberOfLines={1}>
+          {[profile.city, profile.profession].filter(Boolean).join(' · ')}
+        </Text>
+        {compat > 0 && (
+          <View style={styles.railChip}>
+            <View style={[styles.railDot, { backgroundColor: scoreColour(compat) }]} />
+            <Text style={styles.railChipText}>{compat}%</Text>
           </View>
         )}
       </View>
@@ -96,62 +81,18 @@ function MatchCard({ profile, onPress }: MatchCardProps) {
   );
 }
 
-// ─── New Profile List Item ───────────────────────────────────────────────────
-
-interface NewProfileItemProps {
-  profile: ProfileSummary;
-  onPress: () => void;
-}
-
-function NewProfileItem({ profile, onPress }: NewProfileItemProps) {
-  const age = ageFromDob(profile.dateOfBirth);
-  const name = `${profile.firstName} ${profile.lastName}`.trim();
-  const detail = [age ? `${age} yrs` : null, profile.profession, profile.city]
-    .filter(Boolean)
-    .join(' · ');
-
-  return (
-    <TouchableOpacity
-      style={styles.newProfileItem}
-      onPress={onPress}
-      testID={`new-profile-${profile.userId}`}
-      accessibilityLabel={`View profile of ${name}`}
-    >
-      <SmartImage uri={profile.profilePhoto} name={name} style={styles.newAvatar} initialSize={18} />
-      <View style={{ flex: 1 }}>
-        <Text style={styles.newName} numberOfLines={1}>{name}</Text>
-        {!!detail && <Text style={styles.newDetail} numberOfLines={1}>{detail}</Text>}
-      </View>
-      {profile.isVerified && (
-        <Ionicons name="checkmark-circle" size={18} color={colours.success} />
-      )}
-      <Ionicons name="chevron-forward" size={16} color={colours.textMuted} />
-    </TouchableOpacity>
-  );
-}
-
-// ─── Screen ──────────────────────────────────────────────────────────────────
-
 export default function HomeScreen() {
   const { t } = useTranslation();
+  const { c } = useTheme();
   const navigation = useNavigation<Nav>();
   const user = useAuthStore((s) => s.user);
 
-  const {
-    data: feed,
-    isLoading: feedLoading,
-    refetch: refetchFeed,
-    isRefetching,
-  } = useQuery({
+  const { data: feed, isLoading: feedLoading, refetch: refetchFeed, isRefetching, isError } = useQuery({
     queryKey: queryKeys.dailyMatches,
     queryFn: getDailyFeed,
     staleTime: 5 * 60 * 1000,
   });
 
-  // Use the dedicated unread-count endpoint with its own query key. (Previously
-  // this shared the ['notifications'] key with NotificationsScreen's
-  // useInfiniteQuery — Home stored a flat shape there, so opening Notifications
-  // read it as InfiniteData and crashed on `data.pages`.)
   const { data: countData } = useQuery({
     queryKey: queryKeys.unreadCount,
     queryFn: getUnreadCount,
@@ -161,12 +102,10 @@ export default function HomeScreen() {
   const unreadCount = countData?.count ?? 0;
   const completionPct = user?.Profile?.completionPercentage ?? 0;
   const firstName = user?.Profile?.firstName ?? user?.email?.split('@')[0] ?? 'there';
-  const planLabel =
-    user?.subscriptionPlan && user.subscriptionPlan !== 'free'
-      ? user.subscriptionPlan.replace(/_/g, ' ').toUpperCase()
-      : null;
+  const photo = user?.Profile?.profilePhoto;
 
   const onRefresh = useCallback(async () => {
+    haptics.light();
     await refetchFeed();
   }, [refetchFeed]);
 
@@ -174,371 +113,212 @@ export default function HomeScreen() {
   const goToNotifications = () => navigation.navigate('Notifications');
   const goToOwnProfile = () => navigation.navigate('MainTabs', { screen: 'Profile' } as never);
   const goToMatches = () => navigation.navigate('MainTabs', { screen: 'Matches' } as never);
+  const goToSearch = () => navigation.navigate('MainTabs', { screen: 'Search' } as never);
 
   const todaysMatches = feed?.slice(0, 10) ?? [];
   const newProfiles = feed?.slice(10) ?? [];
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: c.background }]}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl
-          refreshing={isRefetching}
-          onRefresh={onRefresh}
-          tintColor={colours.primary}
-        />
-      }
+      refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} tintColor={c.accent} />}
       testID="HomeScreen"
     >
-      {/* Header */}
+      {/* Greeting header */}
       <View style={styles.header}>
-        <Text style={styles.logoText}>TricityShadi</Text>
-        <TouchableOpacity
-          onPress={goToNotifications}
-          testID="notif-bell"
-          accessibilityLabel="Notifications"
-          style={styles.bellBtn}
-        >
-          <Ionicons name="notifications-outline" size={24} color={colours.textPrimary} />
-          {unreadCount > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-            </View>
-          )}
+        <TouchableOpacity style={styles.greetRow} onPress={goToOwnProfile} activeOpacity={0.8}>
+          <Avatar uri={photo} name={firstName} size={42} />
+          <View>
+            <Text style={[styles.greetSmall, { color: c.textMuted }]}>{greeting()},</Text>
+            <Text style={[styles.greetName, { color: c.fgStrong }]} numberOfLines={1}>{firstName}</Text>
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={goToNotifications} testID="notif-bell" accessibilityLabel="Notifications" style={styles.bellBtn}>
+          <Ionicons name="notifications-outline" size={24} color={c.fgStrong} />
+          {unreadCount > 0 && <View style={[styles.bellDot, { borderColor: c.background }]} />}
         </TouchableOpacity>
       </View>
 
-      {/* Welcome + plan badge */}
-      <View style={styles.welcomeRow}>
-        <Text style={styles.welcomeText}>Welcome back, {firstName}</Text>
-        {planLabel && (
-          <View style={styles.planBadge}>
-            <Text style={styles.planBadgeText}>{planLabel}</Text>
+      {/* Completeness strip */}
+      {completionPct < 100 && (
+        <TouchableOpacity
+          style={[styles.completeCard, { backgroundColor: c.surfaceCard, borderColor: c.border }]}
+          onPress={goToOwnProfile}
+          testID="completeness-strip"
+          accessibilityLabel={`Profile ${completionPct}% complete, tap to edit`}
+        >
+          <CompletionRing value={completionPct} size={58} caption="" />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.completeTitle, { color: c.fgStrong }]}>Complete your profile</Text>
+            <Text style={[styles.completeSub, { color: c.textMuted }]}>
+              A complete profile gets up to 5× more interest.
+            </Text>
           </View>
-        )}
+          <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
+        </TouchableOpacity>
+      )}
+
+      {/* Quick actions */}
+      <View style={styles.quickRow}>
+        <QuickChip icon="heart" label="Liked you" tint={colours.accent} onPress={goToMatches} c={c} testID="quick-liked-you" />
+        <QuickChip icon="eye" label="Visitors" tint={colours.g600} onPress={goToOwnProfile} c={c} testID="quick-profile-views" />
+        <QuickChip icon="search" label="Search" tint={colours.accent} onPress={goToSearch} c={c} testID="quick-search" />
       </View>
 
-      {/* Profile completeness strip */}
-      <TouchableOpacity
-        style={styles.completenessCard}
-        onPress={goToOwnProfile}
-        testID="completeness-strip"
-        accessibilityLabel={`Profile ${completionPct}% complete, tap to edit`}
-      >
-        <View style={{ flex: 1 }}>
-          <Text style={styles.completenessLabel}>Profile completeness</Text>
-          <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: `${completionPct}%` }]} />
-          </View>
-        </View>
-        <Text style={styles.completenessPct}>{completionPct}%</Text>
-        <Ionicons name="chevron-forward" size={18} color={colours.textMuted} style={{ marginLeft: 4 }} />
-      </TouchableOpacity>
-
       {/* Today's Matches */}
-      <Text style={styles.sectionTitle}>{t('home.todaysMatches', "Today's Matches")}</Text>
+      <SectionHeader
+        title={t('home.todaysMatches', "Today's Matches")}
+        count={todaysMatches.length || undefined}
+        style={styles.sectionPad}
+        action={
+          <TouchableOpacity onPress={goToMatches}>
+            <Text style={[styles.seeAll, { color: c.accent }]}>See all</Text>
+          </TouchableOpacity>
+        }
+      />
       {feedLoading ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hScroll}>
-          <View style={styles.hScrollContent}>
-            {[0, 1, 2].map((i) => <CardSkeleton key={i} />)}
-          </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.railScroll}>
+          {[0, 1, 2].map((i) => (
+            <SkeletonBlock key={i} width={166} height={226} radius={borderRadius.lg} style={{ marginRight: 12 }} />
+          ))}
         </ScrollView>
+      ) : isError ? (
+        <EmptyState variant="error" title="Couldn't load matches" description="Check your connection and try again." actionLabel="Retry" onAction={onRefresh} />
       ) : todaysMatches.length > 0 ? (
         <FlatList
           data={todaysMatches}
           keyExtractor={(item) => item.userId}
-          renderItem={({ item }) => (
-            <MatchCard profile={item} onPress={() => goToProfile(item.userId)} />
-          )}
+          renderItem={({ item }) => <RailCard profile={item} onPress={() => goToProfile(item.userId)} c={c} />}
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.hScrollContent}
-          style={styles.hScroll}
+          contentContainerStyle={styles.railScroll}
+          snapToInterval={178}
+          decelerationRate="fast"
         />
       ) : (
-        <View style={styles.emptyCard}>
-          <Ionicons name="heart-outline" size={32} color={colours.textMuted} />
-          <Text style={styles.emptyText}>
-            No matches yet. Complete your profile for better suggestions.
-          </Text>
-        </View>
+        <EmptyState
+          icon="heart-outline"
+          title="No matches yet"
+          description="Complete your profile for better suggestions."
+          actionLabel="Edit profile"
+          onAction={goToOwnProfile}
+        />
       )}
 
-      {/* Quick Actions */}
-      <Text style={styles.sectionTitle}>Quick Actions</Text>
-      <View style={styles.quickRow}>
-        <TouchableOpacity
-          style={styles.quickCard}
-          onPress={goToMatches}
-          testID="quick-liked-you"
-          accessibilityLabel="Who liked you"
-        >
-          <Ionicons name="heart" size={24} color={colours.primary} />
-          <Text style={styles.quickLabel}>Liked you</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.quickCard}
-          onPress={goToOwnProfile}
-          testID="quick-profile-views"
-          accessibilityLabel="Profile views"
-        >
-          <Ionicons name="eye" size={24} color={colours.secondary} />
-          <Text style={styles.quickLabel}>Profile views</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* New on TricityShadi */}
-      {newProfiles.length > 0 && (
-        <>
-          <Text style={styles.sectionTitle}>New on TricityShadi</Text>
-          {newProfiles.map((p) => (
-            <NewProfileItem key={p.userId} profile={p} onPress={() => goToProfile(p.userId)} />
-          ))}
-        </>
+      {/* New near you */}
+      {(newProfiles.length > 0 || feedLoading) && (
+        <SectionHeader title="New near you" style={styles.sectionPad} />
       )}
-      {feedLoading && (
-        <>
-          <Text style={styles.sectionTitle}>New on TricityShadi</Text>
-          {[0, 1, 2].map((i) => <ListItemSkeleton key={i} />)}
-        </>
-      )}
+      {feedLoading
+        ? [0, 1, 2].map((i) => (
+            <View key={i} style={styles.newRow}>
+              <SkeletonBlock width={54} height={54} radius={borderRadius.pill} />
+              <View style={{ flex: 1, gap: 6 }}>
+                <SkeletonBlock width="60%" height={14} />
+                <SkeletonBlock width="40%" height={11} />
+              </View>
+            </View>
+          ))
+        : newProfiles.map((p) => {
+            const age = ageFromDob(p.dateOfBirth);
+            const name = `${p.firstName} ${p.lastName}`.trim();
+            return (
+              <TouchableOpacity
+                key={p.userId}
+                style={[styles.newRow, { borderBottomColor: c.border }]}
+                onPress={() => goToProfile(p.userId)}
+                testID={`new-profile-${p.userId}`}
+              >
+                <Avatar uri={p.profilePhoto} name={name} size={54} verified={p.isVerified} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.newName, { color: c.fgStrong }]} numberOfLines={1}>{name}</Text>
+                  <Text style={[styles.newDetail, { color: c.textMuted }]} numberOfLines={1}>
+                    {[age ? `${age} yrs` : null, p.profession, p.city].filter(Boolean).join(' · ')}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
+              </TouchableOpacity>
+            );
+          })}
 
       <View style={{ height: 32 }} />
     </ScrollView>
   );
 }
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
+function QuickChip({ icon, label, tint, onPress, c, testID }: {
+  icon: keyof typeof Ionicons.glyphMap; label: string; tint: string;
+  onPress: () => void; c: ReturnType<typeof useTheme>['c']; testID?: string;
+}) {
+  return (
+    <TouchableOpacity
+      style={[styles.quickCard, { backgroundColor: c.surfaceCard, borderColor: c.border }]}
+      onPress={onPress}
+      testID={testID}
+      accessibilityLabel={label}
+    >
+      <Ionicons name={icon} size={22} color={tint} />
+      <Text style={[styles.quickLabel, { color: c.textPrimary }]}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colours.background },
-  content: { paddingTop: 52, paddingBottom: 24 },
+  container: { flex: 1 },
+  content: { paddingTop: 56, paddingBottom: 24 },
 
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: spacing.gutter, marginBottom: spacing.lg,
   },
-  logoText: {
-    fontSize: typography.fontSize['2xl'],
-    fontFamily: typography.fontFamily.bold,
-    color: colours.primary,
-  },
+  greetRow: { flexDirection: 'row', alignItems: 'center', gap: 11, flex: 1 },
+  greetSmall: { ...type.footnote },
+  greetName: { ...type.title2, fontFamily: 'PlayfairDisplay-Bold' },
   bellBtn: { padding: 4, position: 'relative' },
-  badge: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    backgroundColor: colours.error,
-    borderRadius: 8,
-    minWidth: 16,
-    height: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 2,
-  },
-  badgeText: { fontSize: 10, color: '#fff', fontFamily: typography.fontFamily.bold },
-
-  welcomeRow: { paddingHorizontal: spacing.lg, marginBottom: spacing.md },
-  welcomeText: {
-    fontSize: typography.fontSize.lg,
-    fontFamily: typography.fontFamily.semiBold,
-    color: colours.textPrimary,
-    marginBottom: 4,
-  },
-  planBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: colours.primaryLight,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  planBadgeText: {
-    fontSize: typography.fontSize.xs,
-    color: colours.primary,
-    fontFamily: typography.fontFamily.semiBold,
+  bellDot: {
+    position: 'absolute', top: 3, right: 3, width: 10, height: 10, borderRadius: 5,
+    backgroundColor: colours.accent, borderWidth: 1.5,
   },
 
-  completenessCard: {
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.xl,
-    backgroundColor: colours.surfaceCard,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colours.border,
+  completeCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 13,
+    marginHorizontal: spacing.gutter, marginBottom: spacing.xl,
+    borderRadius: borderRadius.lg, borderWidth: 1, padding: 13,
   },
-  completenessLabel: {
-    fontSize: typography.fontSize.sm,
-    color: colours.textSecondary,
-    marginBottom: 6,
-    fontFamily: typography.fontFamily.medium,
-  },
-  progressBar: {
-    height: 6,
-    backgroundColor: colours.border,
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: colours.primary,
-    borderRadius: 3,
-  },
-  completenessPct: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.bold,
-    color: colours.primary,
-    marginLeft: spacing.md,
-  },
+  completeTitle: { ...type.headline },
+  completeSub: { ...type.footnote, marginTop: 2 },
 
-  sectionTitle: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.semiBold,
-    color: colours.textPrimary,
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-  },
-
-  hScroll: { marginBottom: spacing.xl },
-  hScrollContent: { paddingHorizontal: spacing.lg, gap: spacing.md, flexDirection: 'row' },
-
-  matchCard: {
-    width: 160,
-    backgroundColor: colours.surfaceCard,
-    borderRadius: borderRadius.lg,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colours.border,
-  },
-  matchPhoto: { width: '100%', height: 180, backgroundColor: colours.border },
-  photoFallback: { alignItems: 'center', justifyContent: 'center' },
-  verifiedBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 2,
-  },
-  matchInfo: { padding: spacing.sm },
-  matchName: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.semiBold,
-    color: colours.textPrimary,
-    marginBottom: 2,
-  },
-  matchSub: { fontSize: typography.fontSize.xs, color: colours.textSecondary, marginBottom: 6 },
-  compatRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  compatBar: { flex: 1, height: 4, backgroundColor: colours.border, borderRadius: 2, overflow: 'hidden' },
-  compatFill: { height: '100%', backgroundColor: colours.success, borderRadius: 2 },
-  compatLabel: {
-    fontSize: typography.fontSize.xs,
-    color: colours.textSecondary,
-    fontFamily: typography.fontFamily.medium,
-  },
-
-  emptyCard: {
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.xl,
-    backgroundColor: colours.surfaceCard,
-    borderRadius: borderRadius.md,
-    padding: spacing.xl,
-    alignItems: 'center',
-    gap: 12,
-    borderWidth: 1,
-    borderColor: colours.border,
-  },
-  emptyText: {
-    fontSize: typography.fontSize.sm,
-    color: colours.textSecondary,
-    textAlign: 'center',
-  },
-
-  quickRow: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing.lg,
-    gap: spacing.md,
-    marginBottom: spacing.xl,
-  },
+  quickRow: { flexDirection: 'row', gap: 10, paddingHorizontal: spacing.gutter, marginBottom: spacing.sm },
   quickCard: {
-    flex: 1,
-    backgroundColor: colours.surfaceCard,
-    borderRadius: borderRadius.md,
-    padding: spacing.lg,
-    alignItems: 'center',
-    gap: 6,
-    borderWidth: 1,
-    borderColor: colours.border,
+    flex: 1, borderRadius: borderRadius.md, borderWidth: 1, paddingVertical: 14,
+    alignItems: 'center', gap: 6,
   },
-  quickLabel: {
-    fontSize: typography.fontSize.xs,
-    color: colours.textSecondary,
-    fontFamily: typography.fontFamily.medium,
-  },
+  quickLabel: { ...type.caption },
 
-  newProfileItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    gap: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colours.border,
-  },
-  newAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colours.border,
-  },
-  newName: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.semiBold,
-    color: colours.textPrimary,
-  },
-  newDetail: { fontSize: typography.fontSize.xs, color: colours.textSecondary, marginTop: 2 },
+  sectionPad: { paddingHorizontal: spacing.gutter, marginTop: 18 },
+  seeAll: { ...type.subhead, fontFamily: 'Inter-SemiBold' },
 
-  skeletonCard: {
-    width: 160,
-    backgroundColor: colours.surfaceCard,
-    borderRadius: borderRadius.lg,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colours.border,
-    padding: spacing.sm,
+  railScroll: { paddingHorizontal: spacing.gutter, paddingTop: 4, paddingBottom: 4 },
+  rail: { width: 166, height: 226, borderRadius: borderRadius.lg, overflow: 'hidden', marginRight: 12 },
+  railPhoto: { ...StyleSheet.absoluteFillObject, width: 166, height: 226 },
+  railBody: { position: 'absolute', left: 11, right: 11, bottom: 11 },
+  railNameRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  railName: { ...type.headline, fontFamily: 'PlayfairDisplay-Bold', color: '#fff', flexShrink: 1 },
+  railMeta: { ...type.caption, color: 'rgba(255,255,255,0.9)', marginTop: 1 },
+  railChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', marginTop: 6,
+    backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: borderRadius.pill,
+    paddingHorizontal: 8, paddingVertical: 3,
   },
-  skeletonPhoto: {
-    width: '100%',
-    height: 180,
-    backgroundColor: colours.border,
-    borderRadius: borderRadius.sm,
-    marginBottom: 8,
+  railDot: { width: 6, height: 6, borderRadius: 3 },
+  railChipText: { ...type.micro, color: '#fff' },
+
+  newRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 13,
+    paddingHorizontal: spacing.gutter, paddingVertical: 11, borderBottomWidth: 0.5,
   },
-  skeletonLine: {
-    height: 12,
-    backgroundColor: colours.border,
-    borderRadius: 4,
-    marginBottom: 6,
-    width: '80%',
-  },
-  skeletonListItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    gap: spacing.md,
-  },
-  skeletonAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colours.border,
-  },
+  newName: { ...type.headline },
+  newDetail: { ...type.footnote, marginTop: 1 },
 });

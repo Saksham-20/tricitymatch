@@ -16,11 +16,14 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, type, spacing, borderRadius } from '@shared/constants/theme';
 import { search } from '../../api/search';
 import { performMatchAction } from '../../api/matches';
 import { queryKeys } from '../../constants/queryKeys';
 import ProfileCard from '../../components/cards/ProfileCard';
+import { EmptyState as SharedEmpty, SkeletonBlock } from '../../components/ui';
+import { useTheme } from '../../hooks/useTheme';
+import { haptics } from '../../utils/haptics';
 import FilterPanel, { type FilterPanelHandle } from '../../components/search/FilterPanel';
 import type { MainStackParamList } from '../../navigation/types';
 import type { SearchFilters, ProfileSummary, MatchAction } from '../../types';
@@ -44,54 +47,27 @@ const DEFAULT_FILTERS: SearchFilters = {
 function CardSkeleton() {
   return (
     <View style={sk.card}>
-      <View style={sk.photo} />
+      <SkeletonBlock width="100%" height={CARD_PHOTO_H} radius={0} />
       <View style={sk.body}>
-        <View style={sk.line} />
-        <View style={[sk.line, { width: '60%' }]} />
-        <View style={[sk.line, { width: '40%', marginTop: spacing.sm }]} />
+        <SkeletonBlock width="55%" height={16} />
+        <SkeletonBlock width="40%" height={12} style={{ marginTop: 8 }} />
+        <SkeletonBlock width="70%" height={6} style={{ marginTop: 12 }} />
       </View>
     </View>
   );
 }
+const CARD_PHOTO_H = 240;
 const sk = StyleSheet.create({
   card: {
     backgroundColor: colours.surfaceCard,
     borderRadius: borderRadius.lg,
-    marginHorizontal: spacing.lg,
+    marginHorizontal: spacing.gutter,
     marginBottom: spacing.lg,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colours.border,
   },
-  photo: { height: 240, backgroundColor: colours.border },
-  body: { padding: spacing.md, gap: 8 },
-  line: { height: 14, backgroundColor: colours.border, borderRadius: 7, width: '80%' },
-});
-
-// ─── Empty State ──────────────────────────────────────────────────────────────
-
-function EmptyState({ hasFilters, onReset }: { hasFilters: boolean; onReset: () => void }) {
-  return (
-    <View style={em.container}>
-      <Ionicons name="search" size={56} color={colours.border} />
-      <Text style={em.title}>No profiles found</Text>
-      <Text style={em.sub}>
-        {hasFilters
-          ? 'Try widening your search filters.'
-          : 'No profiles match your search yet.'}
-      </Text>
-      {hasFilters && (
-        <TouchableOpacity style={em.btn} onPress={onReset}>
-          <Text style={em.btnText}>Reset Filters</Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-}
-const em = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing['4xl'] },
-  title: { fontSize: typography.fontSize.lg, fontFamily: typography.fontFamily.bold, color: colours.textPrimary, marginTop: spacing.lg },
-  sub: { fontSize: typography.fontSize.base, color: colours.textSecondary, fontFamily: typography.fontFamily.regular, textAlign: 'center', marginTop: spacing.sm },
-  btn: { marginTop: spacing.lg, paddingHorizontal: spacing.xl, paddingVertical: spacing.sm, borderRadius: borderRadius.full, borderWidth: 1, borderColor: colours.primary },
-  btnText: { color: colours.primary, fontFamily: typography.fontFamily.semiBold, fontSize: typography.fontSize.sm },
+  body: { padding: spacing.md },
 });
 
 // ─── Sort Picker Modal ────────────────────────────────────────────────────────
@@ -207,6 +183,7 @@ export default function SearchScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const { c } = useTheme();
   const queryClient = useQueryClient();
   const filterRef = useRef<FilterPanelHandle>(null);
 
@@ -278,22 +255,22 @@ export default function SearchScreen() {
     if (!isFetchingNextPage) return null;
     return (
       <View style={s.loadMore}>
-        <ActivityIndicator color={colours.primary} />
+        <ActivityIndicator color={c.accent} />
       </View>
     );
-  }, [isFetchingNextPage]);
+  }, [isFetchingNextPage, c.accent]);
 
   return (
-    <View style={[s.container, { paddingTop: insets.top }]} testID="SearchScreen">
+    <View style={[s.container, { backgroundColor: c.background, paddingTop: insets.top }]} testID="SearchScreen">
       {/* Search Bar */}
-      <View style={s.searchBar}>
-        <Ionicons name="search" size={18} color={colours.textMuted} style={s.searchIcon} />
+      <View style={[s.searchBar, { backgroundColor: c.surfaceCard, borderColor: c.border }]}>
+        <Ionicons name="search" size={18} color={c.textMuted} style={s.searchIcon} />
         <TextInput
-          style={s.searchInput}
+          style={[s.searchInput, { color: c.fgStrong }]}
           value={nameQuery}
           onChangeText={setNameQuery}
           placeholder="Search profiles..."
-          placeholderTextColor={colours.textMuted}
+          placeholderTextColor={c.textMuted}
           returnKeyType="search"
           clearButtonMode="while-editing"
           accessibilityLabel="Search profiles by name"
@@ -305,21 +282,20 @@ export default function SearchScreen() {
       <View style={s.toolbar}>
         <View style={s.toolbarLeft}>
           <TouchableOpacity
-            style={[s.toolBtn, hasFilters && s.toolBtnActive]}
-            onPress={() => filterRef.current?.open()}
+            style={[
+              s.toolBtn,
+              { backgroundColor: c.surface2, borderColor: c.border },
+              hasFilters && { backgroundColor: colours.accentSoft, borderColor: colours.accent },
+            ]}
+            onPress={() => { haptics.light(); filterRef.current?.open(); }}
             accessibilityLabel="Open filters"
             testID="filter-btn"
           >
-            <Ionicons
-              name="options"
-              size={16}
-              color={hasFilters ? colours.primary : colours.textSecondary}
-            />
-            <Text style={[s.toolBtnText, hasFilters && { color: colours.primary }]}>
+            <Ionicons name="options" size={16} color={hasFilters ? colours.accent : c.textSecondary} />
+            <Text style={[s.toolBtnText, { color: hasFilters ? colours.accent : c.textSecondary }]}>
               Filters{hasFilters ? ' •' : ''}
             </Text>
           </TouchableOpacity>
-
         </View>
 
         <TouchableOpacity
@@ -328,15 +304,15 @@ export default function SearchScreen() {
           accessibilityLabel="Sort options"
           testID="sort-btn"
         >
-          <Text style={s.sortText}>Sort: {sortLabel}</Text>
-          <Ionicons name="chevron-down" size={14} color={colours.textSecondary} />
+          <Text style={[s.sortText, { color: c.textSecondary }]}>Sort: {sortLabel}</Text>
+          <Ionicons name="chevron-down" size={14} color={c.textSecondary} />
         </TouchableOpacity>
       </View>
 
       {/* Result count */}
       {!isLoading && (
         <View style={s.countRow}>
-          <Text style={s.countText}>
+          <Text style={[s.countText, { color: c.textMuted }]}>
             {total > 0 ? `${total} profiles found` : 'No profiles found'}
           </Text>
         </View>
@@ -352,9 +328,12 @@ export default function SearchScreen() {
           scrollEnabled={false}
         />
       ) : profiles.length === 0 ? (
-        <EmptyState
-          hasFilters={hasFilters}
-          onReset={() => setFilters(DEFAULT_FILTERS)}
+        <SharedEmpty
+          icon="search-outline"
+          title="No profiles found"
+          description={hasFilters ? 'Try widening your search filters.' : 'No profiles match your search yet.'}
+          actionLabel={hasFilters ? 'Reset filters' : undefined}
+          onAction={hasFilters ? () => setFilters(DEFAULT_FILTERS) : undefined}
         />
       ) : (
         <FlatList
