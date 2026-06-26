@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import SmartImage, { resolveImageUri } from '../../components/common/SmartImage';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { CompletionRing as SharedCompletionRing } from '../../components/ui';
 import { getMyProfile, getProfileViewers, getRecentlyViewed } from '../../api/profile';
 import { formatDate } from '../../utils/dateUtils';
 import { queryKeys } from '../../constants/queryKeys';
@@ -209,66 +210,15 @@ const ms = StyleSheet.create({
 });
 
 // ─── Completion Ring ─────────────────────────────────────────────────────────
+// Uses the shared 10-tick CompletionRing (Playfair %, brand accent).
 
 function CompletionRing({ pct }: { pct: number }) {
-  const filled = Math.round(pct / 10);
   return (
-    <View style={ring.container} testID="completion-ring">
-      <View style={ring.ring}>
-        {Array.from({ length: 10 }).map((_, i) => (
-          <View
-            key={i}
-            style={[
-              ring.segment,
-              { transform: [{ translateY: 37 }, { rotate: `${i * 36}deg` }, { translateY: -37 }] },
-              i < filled ? ring.segmentFilled : ring.segmentEmpty,
-            ]}
-          />
-        ))}
-        <View style={ring.inner}>
-          <Text style={ring.pct}>{pct}%</Text>
-          <Text style={ring.label}>Complete</Text>
-        </View>
-      </View>
+    <View style={{ alignItems: 'center', paddingVertical: spacing.md }} testID="completion-ring">
+      <SharedCompletionRing value={pct} size={100} />
     </View>
   );
 }
-
-const ring = StyleSheet.create({
-  container: { alignItems: 'center', paddingVertical: spacing.md },
-  ring: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 8,
-    borderColor: colours.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  segment: {
-    position: 'absolute',
-    width: 4,
-    height: 14,
-    top: 6,
-    left: '50%',
-    marginLeft: -2,
-    borderRadius: 2,
-  },
-  segmentFilled: { backgroundColor: colours.primary },
-  segmentEmpty: { backgroundColor: colours.border },
-  inner: { alignItems: 'center' },
-  pct: {
-    fontSize: typography.fontSize.xl,
-    fontFamily: typography.fontFamily.bold,
-    color: colours.primary,
-  },
-  label: {
-    fontSize: typography.fontSize.xs,
-    color: colours.textSecondary,
-    fontFamily: typography.fontFamily.medium,
-  },
-});
 
 // ─── Verification Badges ─────────────────────────────────────────────────────
 

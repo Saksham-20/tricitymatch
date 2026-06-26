@@ -13,8 +13,10 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, type, typography, spacing, borderRadius, shadows } from '@shared/constants/theme';
+import { useTheme } from '../../hooks/useTheme';
 import { PLANS, PLAN_ORDER } from '@shared/constants/plans';
 import { getPlans, createOrder, verifyPayment, getSubscriptionHistory } from '../../api/subscription';
 import { queryKeys } from '../../constants/queryKeys';
@@ -75,31 +77,28 @@ const PLAN_ICON: Record<SubscriptionPlanType, keyof typeof Ionicons.glyphMap> = 
 // ─── Feature row ─────────────────────────────────────────────────────────────
 
 function FeatureRow({ label, value }: { label: string; value: boolean | string | number | null }) {
+  const { c } = useTheme();
   const tick = value === true || (typeof value === 'number' && value > 0) || typeof value === 'string';
   return (
     <View style={fr.row}>
       <Ionicons
         name={tick ? 'checkmark-circle' : 'close-circle'}
         size={16}
-        color={tick ? colours.success : colours.textMuted}
+        color={tick ? colours.success : c.n400}
         style={fr.icon}
       />
-      <Text style={fr.label}>{label}</Text>
-      {typeof value === 'number' && value > 0 && (
-        <Text style={fr.val}>{value}</Text>
-      )}
-      {typeof value === 'string' && (
-        <Text style={fr.val}>{value}</Text>
-      )}
+      <Text style={[fr.label, { color: tick ? c.textPrimary : c.textMuted }]}>{label}</Text>
+      {typeof value === 'number' && value > 0 && <Text style={[fr.val, { color: c.fgStrong }]}>{value}</Text>}
+      {typeof value === 'string' && <Text style={[fr.val, { color: c.fgStrong }]}>{value}</Text>}
     </View>
   );
 }
 
 const fr = StyleSheet.create({
-  row:   { flexDirection: 'row', alignItems: 'center', paddingVertical: 4 },
+  row:   { flexDirection: 'row', alignItems: 'center', paddingVertical: 5 },
   icon:  { marginRight: 8 },
-  label: { flex: 1, fontSize: typography.fontSize.sm, color: colours.textSecondary, fontFamily: typography.fontFamily.regular },
-  val:   { fontSize: typography.fontSize.sm, color: colours.textPrimary, fontFamily: typography.fontFamily.semiBold },
+  label: { ...type.subhead, flex: 1, color: colours.textSecondary, fontFamily: 'Inter-Regular' },
+  val:   { ...type.subhead, color: colours.fgStrong, fontFamily: 'Inter-SemiBold' },
 });
 
 // ─── Plan Card ────────────────────────────────────────────────────────────────
@@ -118,17 +117,21 @@ interface PlanCardProps {
 }
 
 function PlanCard({ plan, isCurrent, isSelected, onSelect }: PlanCardProps) {
+  const { c } = useTheme();
   const colour = PLAN_COLOUR[plan.planType];
   const icon = PLAN_ICON[plan.planType];
   const highlight = PLAN_HIGHLIGHT[plan.planType];
+  const isGold = !!highlight; // Most Popular / Best Value → gold treatment
+  const borderColour = isGold ? colours.g500 : isSelected ? colours.accent : c.border;
 
   return (
     <TouchableOpacity
       style={[
         pc.card,
+        { backgroundColor: c.surfaceCard, borderColor: borderColour },
         highlight ? { marginTop: spacing.lg } : null,
-        isSelected && pc.cardSelected,
-        { borderColor: isSelected || highlight ? colour : colours.border },
+        isGold && shadows.gold,
+        isSelected && !isGold && shadows.e3,
       ]}
       onPress={onSelect}
       testID={`plan-card-${plan.planType}`}
@@ -136,9 +139,14 @@ function PlanCard({ plan, isCurrent, isSelected, onSelect }: PlanCardProps) {
       accessibilityRole="button"
     >
       {highlight && (
-        <View style={[pc.highlightBadge, { backgroundColor: colour }]}>
+        <LinearGradient
+          colors={[colours.g400, colours.g600]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={pc.highlightBadge}
+        >
           <Text style={pc.highlightText}>{highlight}</Text>
-        </View>
+        </LinearGradient>
       )}
       {isCurrent && (
         <View style={[pc.badge, { backgroundColor: colour }]}>
@@ -150,18 +158,18 @@ function PlanCard({ plan, isCurrent, isSelected, onSelect }: PlanCardProps) {
         <View style={pc.titleCol}>
           <Text style={[pc.label, { color: colour }]}>{plan.label}</Text>
           {plan.price > 0 ? (
-            <Text style={pc.price}>
+            <Text style={[pc.price, { color: c.fgStrong }]}>
               ₹{plan.price.toLocaleString('en-IN')}
-              <Text style={pc.dur}>{plan.durationDays ? ` / ${plan.durationDays} days` : ''}</Text>
+              <Text style={[pc.dur, { color: c.textMuted }]}>{plan.durationDays ? ` / ${plan.durationDays} days` : ''}</Text>
             </Text>
           ) : (
-            <Text style={pc.price}>Free</Text>
+            <Text style={[pc.price, { color: c.fgStrong }]}>Free</Text>
           )}
         </View>
-        {isSelected && <Ionicons name="checkmark-circle" size={22} color={colour} />}
+        {isSelected && <Ionicons name="checkmark-circle" size={22} color={isGold ? colours.g500 : colours.accent} />}
       </View>
 
-      <View style={pc.divider} />
+      <View style={[pc.divider, { backgroundColor: c.hairline }]} />
 
       <FeatureRow label="Chat with matches" value={plan.canChat} />
       <FeatureRow label="See who liked me" value={plan.canSeeWhoLikedMe} />
@@ -192,14 +200,6 @@ const pc = StyleSheet.create({
     backgroundColor: colours.background,
     position: 'relative',
   },
-  cardSelected: {
-    backgroundColor: colours.primaryLight,
-    shadowColor: colours.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 4,
-  },
   badge: {
     position: 'absolute',
     top: -1,
@@ -209,25 +209,25 @@ const pc = StyleSheet.create({
     borderBottomLeftRadius: borderRadius.sm,
     borderBottomRightRadius: borderRadius.sm,
   },
-  badgeText: { fontSize: typography.fontSize.xs, color: '#fff', fontFamily: typography.fontFamily.semiBold },
+  badgeText: { ...type.caption, color: '#fff' },
   highlightBadge: {
     position: 'absolute',
-    top: -12,
+    top: -11,
     left: '50%',
-    width: 110,
-    marginLeft: -55,
+    width: 120,
+    marginLeft: -60,
     paddingVertical: 4,
-    borderRadius: borderRadius.full,
+    borderRadius: borderRadius.pill,
     alignItems: 'center',
   },
-  highlightText: { fontSize: typography.fontSize.xs, color: '#fff', fontFamily: typography.fontFamily.bold, letterSpacing: 0.3 },
+  highlightText: { ...type.caption, color: colours.goldText, fontFamily: 'Inter-Bold', letterSpacing: 0.3 },
   header:    { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.sm },
   icon:      { fontSize: 28 },
   titleCol:  { flex: 1 },
-  label:     { fontSize: typography.fontSize.lg, fontFamily: typography.fontFamily.bold },
-  price:     { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: colours.textPrimary, marginTop: 2 },
-  dur:       { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.regular, color: colours.textSecondary },
-  divider:   { height: 1, backgroundColor: colours.border, marginVertical: spacing.sm },
+  label:     { ...type.title3, fontFamily: 'PlayfairDisplay-Bold' },
+  price:     { ...type.headline, color: colours.fgStrong, marginTop: 2 },
+  dur:       { ...type.subhead, fontFamily: 'Inter-Regular', color: colours.textSecondary },
+  divider:   { height: 1, backgroundColor: colours.hairline, marginVertical: spacing.sm },
 });
 
 // ─── History Item ─────────────────────────────────────────────────────────────

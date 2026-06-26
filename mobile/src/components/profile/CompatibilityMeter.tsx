@@ -1,70 +1,65 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, type, borderRadius } from '@shared/constants/theme';
+import { useTheme } from '../../hooks/useTheme';
+import { CompatRing } from '../ui/TickRing';
 
 interface Props {
   score: number;
+  /** show the tick-ring gauge alongside the bar (e.g. on ProfileDetail) */
+  ring?: boolean;
 }
 
-// Mirror the web score colouring: green (excellent) / gold (strong) / burgundy.
+// Score colouring (handoff): green / gold / burgundy.
 const scoreColour = (pct: number): string => {
   if (pct >= 90) return colours.success;
-  if (pct >= 75) return colours.secondary;
-  return colours.primary;
+  if (pct >= 75) return colours.g500;
+  return colours.p500;
 };
 
-export default function CompatibilityMeter({ score }: Props) {
+export default function CompatibilityMeter({ score, ring }: Props) {
+  const { c } = useTheme();
   const clamp = Math.max(0, Math.min(100, score));
   const colour = scoreColour(clamp);
+
   return (
     <View style={s.container} testID="CompatibilityMeter">
-      <View style={s.row}>
-        <Text style={s.label}>Compatibility</Text>
-        <Text style={[s.pct, { color: colour }]}>{clamp}%</Text>
-      </View>
-      <View style={s.bar}>
-        <View style={[s.fill, { width: `${clamp}%`, backgroundColor: colour }]} />
-      </View>
-      <Text style={s.hint}>Based on community, lifestyle & preferences</Text>
+      {ring ? (
+        <View style={s.ringRow}>
+          <CompatRing value={clamp} size={64} />
+          <View style={s.ringText}>
+            <Text style={[s.label, { color: c.fgStrong }]}>Compatibility</Text>
+            <Text style={[s.hint, { color: c.textMuted }]}>
+              Based on community, lifestyle & preferences
+            </Text>
+          </View>
+        </View>
+      ) : (
+        <>
+          <View style={s.row}>
+            <Text style={[s.label, { color: c.fgStrong }]}>Compatibility</Text>
+            <Text style={[s.pct, { color: colour }]}>{clamp}%</Text>
+          </View>
+          <View style={[s.bar, { backgroundColor: c.surface2 }]}>
+            <View style={[s.fill, { width: `${clamp}%`, backgroundColor: colour }]} />
+          </View>
+          <Text style={[s.hint, { color: c.textMuted }]}>
+            Based on community, lifestyle & preferences
+          </Text>
+        </>
+      )}
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  container: {
-    paddingVertical: spacing.sm,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  label: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.semiBold,
-    color: colours.textPrimary,
-  },
-  pct: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.bold,
-    color: colours.primary,
-  },
-  bar: {
-    height: 8,
-    backgroundColor: colours.border,
-    borderRadius: borderRadius.full,
-    overflow: 'hidden',
-  },
-  fill: {
-    height: 8,
-    backgroundColor: colours.primary,
-    borderRadius: borderRadius.full,
-  },
-  hint: {
-    fontSize: typography.fontSize.xs,
-    color: colours.textMuted,
-    fontFamily: typography.fontFamily.regular,
-    marginTop: 4,
-  },
+  container: { paddingVertical: 8 },
+  ringRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  ringText: { flex: 1 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  label: { ...type.subhead, fontFamily: 'Inter-SemiBold', color: colours.fgStrong },
+  pct: { ...type.subhead, fontFamily: 'Inter-Bold' },
+  bar: { height: 8, backgroundColor: colours.surface2, borderRadius: borderRadius.pill, overflow: 'hidden' },
+  fill: { height: 8, borderRadius: borderRadius.pill },
+  hint: { ...type.caption, color: colours.textMuted, marginTop: 4 },
 });

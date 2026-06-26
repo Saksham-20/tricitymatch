@@ -1,17 +1,29 @@
 import React from 'react';
 import { StyleSheet, View, ViewProps } from 'react-native';
-import { borderRadius, colours, shadows, spacing } from '@shared/constants/theme';
+import { borderRadius, shadows, darkShadows, spacing } from '@shared/constants/theme';
+import { useTheme } from '../../hooks/useTheme';
 
 interface CardProps extends ViewProps {
-  /** Use shadows.md instead of the default shadows.sm */
+  /** Use the e3 elevation ramp instead of the default e2 */
   elevated?: boolean;
-  /** Apply spacing.lg padding (default true) */
+  /** Apply card padding (default true) */
   padded?: boolean;
 }
 
 export default function Card({ elevated = false, padded = true, style, children, ...rest }: CardProps) {
+  const { c, isDark } = useTheme();
+  const sh = isDark ? darkShadows : shadows;
   return (
-    <View style={[styles.base, elevated ? shadows.md : shadows.sm, padded && styles.padded, style]} {...rest}>
+    <View
+      style={[
+        styles.base,
+        { backgroundColor: c.surfaceCard, borderColor: c.border },
+        elevated ? sh.e3 : sh.e2,
+        padded && styles.padded,
+        style,
+      ]}
+      {...rest}
+    >
       {children}
     </View>
   );
@@ -19,10 +31,8 @@ export default function Card({ elevated = false, padded = true, style, children,
 
 const styles = StyleSheet.create({
   base: {
-    backgroundColor: colours.surfaceCard,
     borderRadius: borderRadius.lg,
+    borderWidth: 1,
   },
-  padded: {
-    padding: spacing.lg,
-  },
+  padded: { padding: spacing.lg },
 });

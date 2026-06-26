@@ -10,7 +10,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { borderRadius, colours, spacing, typography } from '@shared/constants/theme';
+import { borderRadius, colours, type } from '@shared/constants/theme';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -25,10 +25,11 @@ interface InputProps extends TextInputProps {
 }
 
 const Input = forwardRef<TextInput, InputProps>(function Input(
-  { label, error, helper, secureToggle, toggleTestID, secureTextEntry, style, containerStyle, testID, ...rest },
+  { label, error, helper, secureToggle, toggleTestID, secureTextEntry, style, containerStyle, testID, onFocus, onBlur, ...rest },
   ref
 ) {
   const [hidden, setHidden] = useState(!!secureTextEntry);
+  const [focused, setFocused] = useState(false);
 
   return (
     <View style={[styles.group, containerStyle]}>
@@ -36,10 +37,18 @@ const Input = forwardRef<TextInput, InputProps>(function Input(
       <View style={styles.fieldRow}>
         <TextInput
           ref={ref}
-          style={[styles.input, secureToggle && styles.inputWithIcon, !!error && styles.inputError, style]}
-          placeholderTextColor={colours.textMuted}
+          style={[
+            styles.input,
+            secureToggle && styles.inputWithIcon,
+            focused && styles.inputFocused,
+            !!error && styles.inputError,
+            style,
+          ]}
+          placeholderTextColor={colours.n400}
           secureTextEntry={secureToggle ? hidden : secureTextEntry}
           testID={testID}
+          onFocus={(e) => { setFocused(true); onFocus?.(e); }}
+          onBlur={(e) => { setFocused(false); onBlur?.(e); }}
           {...rest}
         />
         {secureToggle ? (
@@ -65,27 +74,34 @@ const Input = forwardRef<TextInput, InputProps>(function Input(
 export default Input;
 
 const styles = StyleSheet.create({
-  group: { marginBottom: spacing.lg },
+  group: { marginBottom: 15 },
   label: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
+    ...type.footnote,
+    fontFamily: 'Inter-SemiBold',
     color: colours.textPrimary,
-    marginBottom: spacing.sm,
+    marginBottom: 6,
   },
   fieldRow: { position: 'relative' },
   input: {
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colours.border,
     borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 14,
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.regular,
-    color: colours.textPrimary,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    ...type.body,
+    color: colours.fgStrong,
     backgroundColor: colours.surfaceCard,
-    minHeight: 52,
+    minHeight: 50,
   },
   inputWithIcon: { paddingRight: 52 },
+  inputFocused: {
+    borderColor: colours.accent,
+    shadowColor: colours.accent,
+    shadowOpacity: 0.18,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 2,
+  },
   inputError: { borderColor: colours.error },
   eyeBtn: {
     position: 'absolute',
@@ -97,15 +113,14 @@ const styles = StyleSheet.create({
     minWidth: 40,
   },
   errorText: {
-    fontSize: typography.fontSize.xs,
-    fontFamily: typography.fontFamily.medium,
+    ...type.caption,
+    fontFamily: 'Inter-Medium',
     color: colours.error,
-    marginTop: spacing.xs,
+    marginTop: 5,
   },
   helperText: {
-    fontSize: typography.fontSize.xs,
-    fontFamily: typography.fontFamily.regular,
+    ...type.caption,
     color: colours.textMuted,
-    marginTop: spacing.xs,
+    marginTop: 5,
   },
 });

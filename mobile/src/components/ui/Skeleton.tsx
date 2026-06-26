@@ -1,6 +1,8 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, DimensionValue, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
-import { borderRadius, cream, spacing } from '@shared/constants/theme';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, DimensionValue, LayoutChangeEvent, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { borderRadius, spacing } from '@shared/constants/theme';
+import { useTheme } from '../../hooks/useTheme';
 
 interface SkeletonBlockProps {
   width?: DimensionValue;
@@ -9,26 +11,42 @@ interface SkeletonBlockProps {
   style?: StyleProp<ViewStyle>;
 }
 
-function useShimmer() {
-  const opacity = useRef(new Animated.Value(0.6)).current;
+/** Single shimmering placeholder block — 1.5s left→right sweep (handoff motion spec). */
+export function SkeletonBlock({ width = '100%', height = 16, radius = borderRadius.sm, style }: SkeletonBlockProps) {
+  const { isDark } = useTheme();
+  const [w, setW] = useState(0);
+  const x = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
+    if (!w) return;
     const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, { toValue: 1, duration: 700, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 0.6, duration: 700, useNativeDriver: true }),
-      ])
+      Animated.timing(x, { toValue: 1, duration: 1500, useNativeDriver: true }),
     );
     loop.start();
     return () => loop.stop();
-  }, [opacity]);
-  return opacity;
-}
+  }, [w, x]);
 
-/** Single shimmering placeholder block. */
-export function SkeletonBlock({ width = '100%', height = 16, radius = borderRadius.sm, style }: SkeletonBlockProps) {
-  const opacity = useShimmer();
+  const base = isDark ? '#222838' : '#E8E8E8';
+  const hi = isDark ? '#2C3346' : '#FBFBFB';
+  const onLayout = (e: LayoutChangeEvent) => setW(e.nativeEvent.layout.width);
+  const translateX = x.interpolate({ inputRange: [0, 1], outputRange: [-w, w] });
+
   return (
-    <Animated.View style={[{ width, height, borderRadius: radius, backgroundColor: cream[200], opacity }, style]} />
+    <View
+      onLayout={onLayout}
+      style={[{ width, height, borderRadius: radius, backgroundColor: base, overflow: 'hidden' }, style]}
+    >
+      {w > 0 && (
+        <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ translateX }] }]}>
+          <LinearGradient
+            colors={['transparent', hi, 'transparent']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
+      )}
+    </View>
   );
 }
 
@@ -36,7 +54,7 @@ export function SkeletonBlock({ width = '100%', height = 16, radius = borderRadi
 export function SkeletonRow() {
   return (
     <View style={styles.row}>
-      <SkeletonBlock width={48} height={48} radius={borderRadius.full} />
+      <SkeletonBlock width={54} height={54} radius={borderRadius.pill} />
       <View style={styles.rowText}>
         <SkeletonBlock width="60%" height={14} />
         <SkeletonBlock width="40%" height={12} style={styles.gapTop} />

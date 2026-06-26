@@ -47,13 +47,13 @@ export default function SmartImage({ uri, name, style, initialSize = 28 }: Props
 
 const styles = StyleSheet.create({
   fallback: {
-    backgroundColor: colours.primaryLight,
+    backgroundColor: colours.p100,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
   initial: {
-    color: colours.primary,
-    fontFamily: typography.fontFamily.bold,
+    color: colours.p700,
+    fontFamily: typography.fontFamily.display,
   },
 });

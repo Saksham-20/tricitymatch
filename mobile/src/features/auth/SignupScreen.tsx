@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { AuthStackParamList } from '../../navigation/types';
 import { useAuthStore } from '../../stores/authStore';
 import { signup } from '../../api/auth';
+import { PasswordStrength } from '../../components/ui';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Signup'>;
@@ -194,20 +195,10 @@ export default function SignupScreen() {
               <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colours.textMuted} />
             </TouchableOpacity>
           </View>
-          {/* Password strength indicator */}
-          {strength && (
-            <View style={styles.strengthContainer} testID="SignupScreen-passwordStrength">
-              <View style={styles.strengthBar}>
-                <View
-                  style={[
-                    styles.strengthFill,
-                    { width: STRENGTH_WIDTH[strength] as `${number}%`, backgroundColor: STRENGTH_COLORS[strength] },
-                  ]}
-                />
-              </View>
-              <Text style={[styles.strengthLabel, { color: STRENGTH_COLORS[strength] }]}>
-                {t(`auth.signup.passwordStrength.${strength}`)}
-              </Text>
+          {/* Password strength indicator (4-segment, shared component) */}
+          {password.length > 0 && (
+            <View testID="SignupScreen-passwordStrength">
+              <PasswordStrength password={password} />
             </View>
           )}
           {fieldErrors.password ? (
