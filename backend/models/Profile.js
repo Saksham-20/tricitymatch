@@ -27,8 +27,16 @@ const Profile = sequelize.define('Profile', {
   },
   gender: {
     type: DataTypes.ENUM('male', 'female', 'other'),
-    allowNull: true,
-    defaultValue: 'other'
+    // Nullable with NO default: a mobile account signs up with email+password only
+    // and sets gender in onboarding Step 1. A default here would pre-fill Step 1.
+    allowNull: true
+  },
+  // Authoritative onboarding-completion flag. Web sets it at signup (full profile is
+  // collected first); mobile sets it when onboarding Step 14 finishes.
+  onboardingComplete: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
   },
   dateOfBirth: {
     type: DataTypes.DATE,

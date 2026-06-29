@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<title>TricityShadi Mobile — Onboarding</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="design_doc_mode" content="canvas" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../ts-mobile.css" />
+<style>
+  body{background:#0e0f13;}
+  .canvas-title{position:absolute;left:60px;top:20px;color:#e8eaed;font-family:'Playfair Display',serif;font-size:30px;font-weight:600;}
+  .canvas-sub{position:absolute;left:60px;top:62px;color:#9aa1ad;font-size:14px;font-family:'Inter',sans-serif;}
+  .ob-top{display:flex;align-items:center;gap:13px;padding:8px 18px 14px}
+  .ob-top .bk{width:30px;height:30px;display:grid;place-items:center;color:var(--fg-strong)}
+  .ob-top .bk svg{width:22px;height:22px}
+  .ob-prog{flex:1;height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden}
+  .ob-prog i{display:block;height:100%;background:var(--p-500);border-radius:3px;transition:width var(--dur-slow) var(--ease-out)}
+  .ob-step{font-size:12px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums;flex:none}
+  .ob-body{flex:1;overflow-y:auto;padding:6px 24px 0}
+  .ob-body::-webkit-scrollbar{display:none}
+  .ob-title{font-family:'Playfair Display',serif;font-size:26px;font-weight:600;color:var(--fg-strong);line-height:1.12}
+  .ob-sub{font-size:15px;color:var(--muted);margin:6px 0 24px;line-height:1.5}
+  .ob-foot{padding:12px 24px 24px;border-top:.5px solid var(--hairline)}
+  .optcard{display:flex;align-items:center;gap:14px;padding:16px;border:1.5px solid var(--border);border-radius:var(--r-md);margin-bottom:12px;background:var(--card)}
+  .optcard.on{border-color:var(--accent);background:var(--accent-soft)}
+  .optcard .oi{width:46px;height:46px;border-radius:13px;background:var(--surface-2);color:var(--accent);display:grid;place-items:center;flex:none}
+  .optcard.on .oi{background:var(--card)}
+  .optcard .oi svg{width:22px;height:22px}
+  .optcard .ot b{font-size:16px;color:var(--fg-strong);font-weight:600;display:block}
+  .optcard .ot span{font-size:13px;color:var(--muted)}
+  .optcard .rd{width:24px;height:24px;border-radius:50%;border:2px solid var(--border);margin-left:auto;flex:none}
+  .optcard.on .rd{border-color:var(--accent);background:var(--accent);display:grid;place-items:center}
+  .optcard.on .rd::after{content:"";width:9px;height:9px;border-radius:50%;background:#fff}
+  .photogrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px}
+  .pslot{aspect-ratio:3/4;border-radius:14px;overflow:hidden;position:relative;border:1.5px dashed var(--border);display:grid;place-items:center;color:var(--muted)}
+  .pslot.filled{border:none}
+  .pslot.filled .rm{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;background:rgba(20,8,14,.6);color:#fff;display:grid;place-items:center}
+  .pslot.filled .rm svg{width:13px;height:13px}
+  .pslot .pr{position:absolute;bottom:6px;left:6px;font-size:10px;font-weight:700;background:var(--p-500);color:#fff;padding:2px 7px;border-radius:6px}
+  .pslot .add{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:12px}
+  .pslot .add svg{width:24px;height:24px}
+  .vtier{display:flex;align-items:center;gap:13px;padding:15px;border:1px solid var(--border);border-radius:var(--r-md);margin-bottom:11px;background:var(--card)}
+  .vtier .vi{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;flex:none}
+  .vtier .vi svg{width:20px}
+  .vtier.done .vi{background:var(--success-l);color:var(--success)}
+  .vtier.pend .vi{background:var(--accent-soft);color:var(--accent)}
+  .vtier.soon .vi{background:var(--surface-2);color:var(--muted)}
+  .vtier .vt{flex:1}
+  .vtier .vt b{font-size:15px;color:var(--fg-strong);font-weight:600;display:block}
+  .vtier .vt span{font-size:12px;color:var(--muted)}
+  .vtier .vs{font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px}
+  .vtier.done .vs{background:var(--success-l);color:var(--success)}
+  .vtier.pend .vs{background:var(--accent-soft);color:var(--accent)}
+  .vtier.soon .vs{background:var(--surface-2);color:var(--muted)}
+  .resume-card{margin:24px;padding:22px;border:1px solid var(--border);border-radius:var(--r-lg);background:var(--card);box-shadow:var(--e2);text-align:center}
+  .seg-tall button{padding:12px 8px}
+</style>
+</head>
+<body>
+<div class="canvas-title">Onboarding — 14-step resumable wizard</div>
+<div class="canvas-sub">Shared OnboardingLayout (progress + back/next + step count) · representative steps · resume state</div>
+<script src="frame.js"></script>
+<script>
+function ob(step,total,title,sub,body,cta='Continue',backable=true){
+  const pct=Math.round(step/total*100);
+  return `<div class="vp">
+    <div class="ob-top">${backable?`<span class="bk"><svg class="i"><use href="#i-back"/></svg></span>`:'<span style="width:30px"></span>'}
+      <div class="ob-prog"><i style="width:${pct}%"></i></div><span class="ob-step">${step} / ${total}</span></div>
+    <div class="ob-body"><h1 class="ob-title">${title}</h1><p class="ob-sub">${sub}</p>${body}</div>
+    <div class="ob-foot"><button class="btn btn-primary block">${cta}</button></div></div>`;
+}
+function obWelcome(){
+  return `<div class="vp"><div class="ob-top"><span style="width:30px"></span><div class="ob-prog"><i style="width:4%"></i></div><span class="ob-step">1 / 14</span></div>
+    <div class="ob-body" style="display:flex;flex-direction:column;justify-content:center;text-align:center;align-items:center">
+      <div class="cring" style="width:96px;height:96px"><svg viewBox="0 0 88 88"><circle cx="44" cy="44" r="38" fill="none" stroke="var(--surface-2)" stroke-width="7"/><circle cx="44" cy="44" r="38" fill="none" stroke="var(--p-500)" stroke-width="7" stroke-linecap="round" stroke-dasharray="239" stroke-dashoffset="230" transform="rotate(-90 44 44)"/></svg><div class="ct"><svg class="i" style="width:30px;color:var(--accent)"><use href="#i-heart"/></svg></div></div>
+      <h1 class="ob-title" style="margin-top:24px">Let's build your profile</h1>
+      <p class="ob-sub" style="text-align:center">14 quick steps — about 6 minutes. We save as you go, so you can pause anytime and pick up right where you left off.</p></div>
+    <div class="ob-foot"><button class="btn btn-primary block">Get started</button></div></div>`;
+}
+function obCreatingFor(){
+  const opts=[['Myself',"I'm creating my own profile",'i-user',true],['My son','For my son','i-user',false],['My daughter','For my daughter','i-user',false],['A relative','Niece, nephew, friend','i-user',false]];
+  const body=opts.map(([t,s,ic,on])=>`<div class="optcard ${on?'on':''}"><span class="oi"><svg class="i"><use href="#${ic}"/></svg></span><div class="ot"><b>${t}</b><span>${s}</span></div><span class="rd"></span></div>`).join('');
+  return ob(2,14,'Who is this profile for?','This helps us tailor the experience and guardian access.',body,'Continue');
+}
+function obBasic(){
+  const body=`<div class="field"><label>Gender</label><div class="seg seg-tall"><button aria-selected="true">Woman</button><button>Man</button></div></div>
+    <div class="field"><label>Date of birth</label><input class="input" value="14 March 1998" /></div>
+    <div class="field"><label>Height</label><input class="input" value="5 ft 4 in" /></div>
+    <div class="field"><label>Marital status</label><div class="chipwrap" style="display:flex;flex-wrap:wrap;gap:8px"><span class="chip on">Never married</span><span class="chip">Divorced</span><span class="chip">Widowed</span></div></div>`;
+  return ob(3,14,'Basic information','The essentials families look for first.',body);
+}
+function obAbout(){
+  const body=`<div class="field"><label>About you</label>
+    <div class="input" style="height:auto;min-height:130px;padding:13px 14px;align-items:flex-start;line-height:1.6;color:var(--fg-strong)">A warm, family-rooted person balancing a tech career with a love for classical music and weekend treks…</div>
+    <div class="hint">Write a few honest lines. 38 / 500</div></div>
+    <div class="notice warn" style="margin-top:6px;display:flex;gap:10px;padding:13px 14px;border-radius:14px;background:var(--accent-soft);border:1px solid var(--accent-soft-2);color:var(--accent)"><svg class="i" style="width:18px"><use href="#i-star"/></svg><span style="font-size:13px;color:var(--fg-strong)">Tip: profiles with a personal note get 2× more interest.</span></div>`;
+  return ob(5,14,'About yourself','Share what makes you, you.',body);
+}
+function obLocation(){
+  const body=`<div class="field"><label>City</label><div class="chipwrap" style="display:flex;flex-wrap:wrap;gap:8px"><span class="chip on"><svg class="i"><use href="#i-pin"/></svg>Chandigarh</span><span class="chip">Mohali</span><span class="chip">Panchkula</span></div></div>
+    <div class="field"><label>Sector / Area</label><input class="input" value="Sector 22" /></div>
+    <div class="field"><label>Grew up in</label><input class="input" value="Chandigarh" /></div>
+    <div class="field"><label>Open to relocate</label><div class="frow" style="display:flex;justify-content:space-between;align-items:center;padding:0"><span style="font-size:15px;color:var(--fg-strong)">Within Tricity only</span><span class="switch on"></span></div></div>`;
+  return ob(6,14,'Where are you based?','Most families prefer matches close to home.',body);
+}
+function obLifestyle(){
+  const grp=(label,opts)=>`<div class="field"><label>${label}</label><div class="chipwrap" style="display:flex;flex-wrap:wrap;gap:8px">${opts.map((o,i)=>`<span class="chip ${i===0?'on':''}">${o}</span>`).join('')}</div></div>`;
+  const body=grp('Diet',['Vegetarian','Eggetarian','Non-veg','Vegan'])+grp('Drinking',['Never','Socially','Yes'])+grp('Smoking',['Never','Occasionally','Yes']);
+  return ob(10,14,'Lifestyle','Helps us match on day-to-day compatibility.',body);
+}
+function obPhotos(){
+  const filled=`<div class="pslot filled">${ph('','i-user')}<span class="rm"><svg class="i"><use href="#i-x"/></svg></span></div>`;
+  const primary=`<div class="pslot filled">${ph('','i-user')}<span class="rm"><svg class="i"><use href="#i-x"/></svg></span><span class="pr">Primary</span></div>`;
+  const add=`<div class="pslot"><div class="add"><svg class="i"><use href="#i-camera"/></svg>Add</div></div>`;
+  const body=`<div class="photogrid">${primary}${filled}${filled}${add}<div class="pslot"><div class="add"><svg class="i"><use href="#i-plus"/></svg></div></div><div class="pslot"><div class="add"><svg class="i"><use href="#i-plus"/></svg></div></div></div>
+    <p class="hint" style="margin-top:14px">Add up to 6. Your first photo is shown as primary. Clear, recent face photos get the most interest.</p>`;
+  return ob(13,14,'Add your photos','3 of 6 added — looking great.',body,'Continue');
+}
+function obVerify(){
+  const body=`<div class="vtier done"><span class="vi"><svg class="i"><use href="#i-phone"/></svg></span><div class="vt"><b>Mobile number</b><span>+91 98765 43210</span></div><span class="vs">Verified</span></div>
+    <div class="vtier pend"><span class="vi"><svg class="i"><use href="#i-shield"/></svg></span><div class="vt"><b>Government ID</b><span>Aadhaar or passport</span></div><span class="vs">Verify now</span></div>
+    <div class="vtier soon"><span class="vi"><svg class="i"><use href="#i-cap"/></svg></span><div class="vt"><b>Education</b><span>Degree certificate</span></div><span class="vs">Coming soon</span></div>
+    <div class="vtier soon"><span class="vi"><svg class="i"><use href="#i-wallet"/></svg></span><div class="vt"><b>Income</b><span>Salary proof</span></div><span class="vs">Coming soon</span></div>`;
+  return `<div class="vp"><div class="ob-top"><span class="bk"><svg class="i"><use href="#i-back"/></svg></span><div class="ob-prog"><i style="width:100%"></i></div><span class="ob-step">14 / 14</span></div>
+    <div class="ob-body"><h1 class="ob-title">Build trust with verification</h1><p class="ob-sub">Verified profiles earn a badge and 3× more responses. Mobile &amp; ID power your trust score now.</p>${body}</div>
+    <div class="ob-foot"><button class="btn btn-primary block">Finish &amp; explore matches</button></div></div>`;
+}
+function obResume(){
+  return `<div class="vp"><div class="ob-top"><span style="width:30px"></span><div class="ob-prog"><i style="width:46%"></i></div><span class="ob-step">7 / 14</span></div>
+    <div class="ob-body" style="display:flex;flex-direction:column;justify-content:center">
+      <div class="resume-card"><div class="compat-ring" style="--v:46;--sz:84px;margin:0 auto 18px"><div class="inner"><b style="font-size:18px">46%</b></div></div>
+        <h1 class="ob-title" style="font-size:23px">Welcome back, Rohan</h1>
+        <p class="ob-sub" style="text-align:center;margin-bottom:0">You're halfway there. Continue from <b style="color:var(--fg-strong)">Step 7 · Education</b> — it only takes a few more minutes.</p></div></div>
+    <div class="ob-foot"><button class="btn btn-primary block">Resume setup</button><button class="btn btn-ghost block" style="margin-top:10px">Start over</button></div></div>`;
+}
+
+const Y=140;
+frame({x:60,  y:Y, label:'Step 1 · Welcome', pills:[['','LAYOUT']], theme:'light', screen:obWelcome()});
+frame({x:540, y:Y, label:'Step 2 · Creating for', pills:[['','SELECT']], theme:'light', screen:obCreatingFor()});
+frame({x:1020,y:Y, label:'Step 3 · Basic info', pills:[['','FORM']], theme:'light', screen:obBasic()});
+frame({x:1500,y:Y, label:'Step 5 · About', pills:[['','TEXT']], theme:'light', screen:obAbout()});
+frame({x:1980,y:Y, label:'Step 6 · Location', pills:[['','TRICITY']], theme:'light', screen:obLocation()});
+frame({x:2460,y:Y, label:'Step 10 · Lifestyle', pills:[['','CHIPS']], theme:'light', screen:obLifestyle()});
+frame({x:2940,y:Y, label:'Step 13 · Photos', pills:[['','UPLOAD ·6']], theme:'light', screen:obPhotos()});
+frame({x:3420,y:Y, label:'Step 14 · Verification', pills:[['','4 TIERS']], theme:'light', screen:obVerify()});
+frame({x:3900,y:Y, label:'Resume', pills:[['state','RESUMABLE']], theme:'light', screen:obResume()});
+frame({x:4380,y:Y, label:'Step 2 · Creating for', pills:[['dark','DARK']], theme:'dark', statusVariant:'ondark', screen:obCreatingFor()});
+
+redline(60, Y+930,'OnboardingLayout — redlines',[
+  ['Progress','6pt bar fills step/14 · dur.slow ease-out · step count tabular'],
+  ['Nav','back arrow (hidden step 1) · sticky footer primary CTA'],
+  ['Persist','each step writes to store on Next → resumable from any exit'],
+  ['Select cards','radio cards · on = accent border + soft fill + haptic.light'],
+]);
+redline(540, Y+930,'Steps & states',[
+  ['Photos','3×2 grid · primary badge · dashed add slots · max 6 · drag-reorder'],
+  ['Verification','Mobile/ID actionable · Education/Income "Coming soon" disabled'],
+  ['Resume','re-entry → completion ring + "Step N" deep-link · Start over confirm'],
+  ['Validation','inline errors per field · Next disabled until required filled'],
+]);
+</script>
+</body>
+</html>

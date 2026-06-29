@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<title>TricityShadi Mobile — Astrologers</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="design_doc_mode" content="canvas" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../ts-mobile.css" />
+<style>
+  body{background:#0e0f13;}
+  .canvas-title{position:absolute;left:60px;top:20px;color:#e8eaed;font-family:'Playfair Display',serif;font-size:30px;font-weight:600;}
+  .canvas-sub{position:absolute;left:60px;top:62px;color:#9aa1ad;font-size:14px;font-family:'Inter',sans-serif;}
+  .acard{display:flex;gap:13px;margin:0 18px 12px;background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:13px;box-shadow:var(--e1)}
+  .acard .av{width:62px;height:62px;font-size:22px;flex:none}
+  .acard .ai{flex:1;min-width:0}
+  .acard .ai .an{font-size:16px;font-weight:600;color:var(--fg-strong);display:flex;align-items:center;gap:6px}
+  .acard .ai .asp{font-size:12px;color:var(--muted);margin-top:2px}
+  .acard .ai .arow{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:12px}
+  .rate{display:inline-flex;align-items:center;gap:3px;color:var(--fg-strong);font-weight:700}
+  .rate svg{width:13px;height:13px;color:var(--g-500)}
+  .acard .ai .arow .exp{color:var(--muted)}
+  .acard .right{display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;flex:none}
+  .acard .right .pr{font-size:15px;font-weight:700;color:var(--accent)}
+  .acard .right .pr span{font-size:11px;color:var(--muted);font-weight:500}
+  .acard .right .cbtn{margin-top:auto}
+  .online-pill{font-size:11px;font-weight:700;color:var(--success);display:inline-flex;align-items:center;gap:4px}
+  .online-pill .d{width:7px;height:7px;border-radius:50%;background:var(--success)}
+  .filt{display:flex;gap:8px;overflow-x:auto;padding:2px 18px 14px}
+  .filt::-webkit-scrollbar{display:none}
+  .ahero{display:flex;flex-direction:column;align-items:center;padding:20px;text-align:center;border-bottom:.5px solid var(--hairline)}
+  .ahero .av{width:88px;height:88px;font-size:32px;margin-bottom:12px}
+  .ahero h1{font-family:'Playfair Display',serif;font-size:23px;color:var(--fg-strong);font-weight:600}
+  .ahero .meta{font-size:13px;color:var(--muted);margin-top:4px}
+  .ahero .stats{display:flex;gap:0;margin-top:16px;width:100%;border:1px solid var(--border);border-radius:14px;overflow:hidden}
+  .ahero .stats .s{flex:1;padding:11px;text-align:center;border-left:1px solid var(--border)}
+  .ahero .stats .s:first-child{border-left:0}
+  .ahero .stats .s b{font-size:16px;color:var(--fg-strong);font-weight:700;display:block}
+  .ahero .stats .s span{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  .rev{padding:13px 0;border-top:.5px solid var(--hairline)}
+  .rev .rh{display:flex;align-items:center;gap:9px;margin-bottom:6px}
+  .rev .rh .av{width:32px;height:32px;font-size:12px}
+  .rev .rh b{font-size:13px;color:var(--fg-strong)}
+  .rev .rh .rate{margin-left:auto;font-size:11px}
+  .rev p{font-size:13px;color:var(--fg);line-height:1.5}
+  .typesel{display:flex;gap:10px}
+  .typesel .ty{flex:1;border:1.5px solid var(--border);border-radius:14px;padding:14px 8px;text-align:center;background:var(--card)}
+  .typesel .ty.on{border-color:var(--accent);background:var(--accent-soft)}
+  .typesel .ty svg{width:22px;height:22px;color:var(--accent);margin-bottom:6px}
+  .typesel .ty b{font-size:13px;color:var(--fg-strong);display:block}
+  .typesel .ty span{font-size:11px;color:var(--muted)}
+  .slots{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+  .slot{border:1.5px solid var(--border);border-radius:11px;padding:10px;text-align:center;font-size:13px;font-weight:600;color:var(--fg-strong);background:var(--card)}
+  .slot.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+  .slot.off{color:var(--n-300);background:var(--surface-2);border-style:dashed}
+  .bk-row{display:flex;align-items:center;gap:13px;padding:14px 18px;border-bottom:.5px solid var(--hairline)}
+  .bk-row .bd{font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:10px;width:48px;height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex:none}
+  .bk-row .bd b{font-size:17px}
+  .bk-row .bi{flex:1}.bk-row .bi b{font-size:14px;color:var(--fg-strong);display:block}.bk-row .bi span{font-size:12px;color:var(--muted)}
+  .bk-row .bs{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--success-l);color:var(--success)}
+  .bk-row .bs.past{background:var(--surface-2);color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="canvas-title">Astrologers — marketplace, detail &amp; booking</div>
+<div class="canvas-sub">Consultation marketplace · astrologer detail + reviews · book (chat/voice/video) flow · my bookings</div>
+<script src="frame.js"></script>
+<script>
+function aNav(title){return `<div class="navbar"><span class="nb-btn"><svg class="i"><use href="#i-back"/></svg></span><span class="nb-title">${title}</span></div>`;}
+function acard(name,specs,rating,revs,exp,price,online,init){
+  return `<div class="acard"><div class="av">${init}</div>
+    <div class="ai"><div class="an">${name}</div><div class="asp">${specs}</div>
+      <div class="arow"><span class="rate"><svg class="fi"><use href="#i-star"/></svg>${rating}</span><span class="exp">(${revs}) · ${exp}</span></div>
+      ${online?'<div class="online-pill" style="margin-top:8px"><span class="d"></span>Online now</div>':''}</div>
+    <div class="right"><div class="pr">₹${price}<span>/min</span></div><button class="btn btn-primary btn-sm cbtn">Consult</button></div></div>`;
+}
+function aList(){
+  return `<div class="vp"><div class="scroll">${aNav('Astrologers')}
+    <div class="sbar" style="padding:6px 18px 10px"><div style="flex:1;display:flex;align-items:center;gap:9px;height:42px;background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:0 13px;color:var(--muted);font-size:15px"><svg class="i" style="width:18px"><use href="#i-search"/></svg>Search by name or skill</div></div>
+    <div class="filt"><span class="chip on">All</span><span class="chip">Kundli matching</span><span class="chip">Vedic</span><span class="chip">Manglik</span><span class="chip">Numerology</span></div>
+    ${acard('Pandit Suresh Sharma','Vedic · Kundli matching · Manglik','4.9','1.2k','18 yrs',35,true,'SS')}
+    ${acard('Acharya Meera Joshi','Kundli · Numerology · Vastu','4.8','860','12 yrs',28,true,'MJ')}
+    ${acard('Pandit Raj Tiwari','Vedic · Gemstone · Dosha','4.7','540','9 yrs',22,false,'RT')}
+    ${acard('Dr. Anjali Verma','Kundli matching · Career','4.9','2.1k','22 yrs',45,false,'AV')}
+    <div style="height:20px"></div></div></div>`;
+}
+function aDetail(){
+  return `<div class="vp"><div class="scroll">${aNav('Astrologer')}
+    <div class="ahero"><div class="av">SS</div><h1>Pandit Suresh Sharma</h1><div class="meta">Vedic Astrology · Kundli Matching · Manglik Dosha</div>
+      <div class="online-pill" style="margin-top:8px"><span class="d"></span>Online now</div>
+      <div class="stats"><div class="s"><b>4.9</b><span>Rating</span></div><div class="s"><b>18 yrs</b><span>Experience</span></div><div class="s"><b>12k+</b><span>Consults</span></div><div class="s"><b>Hi·Pa·En</b><span>Languages</span></div></div></div>
+    <div style="padding:16px 18px">
+      <h3 style="font-size:14px;font-weight:700;color:var(--fg-strong);margin-bottom:8px">About</h3>
+      <p style="font-size:14px;color:var(--fg);line-height:1.6">Specialises in horoscope matching for marriage with 18 years guiding Tricity families. Clear, practical guidance on guna milan, manglik dosha and auspicious timing.</p>
+      <h3 style="font-size:14px;font-weight:700;color:var(--fg-strong);margin:18px 0 8px">Reviews</h3>
+      <div class="rev"><div class="rh"><span class="av">RK</span><b>Rohan K.</b><span class="rate"><svg class="fi"><use href="#i-star"/></svg>5.0</span></div><p>Very accurate kundli matching. Explained every guna patiently to both families.</p></div>
+      <div class="rev"><div class="rh"><span class="av">PM</span><b>Priya M.</b><span class="rate"><svg class="fi"><use href="#i-star"/></svg>4.8</span></div><p>Helped us understand manglik concerns calmly. Highly recommend.</p></div>
+    </div><div style="height:90px"></div></div>
+    <div class="actionbar" style="position:absolute;bottom:0;left:0;right:0"><div style="flex:1"><div style="font-size:11px;color:var(--muted)">Consultation</div><div style="font-size:18px;font-weight:700;color:var(--accent)">₹35<span style="font-size:12px;color:var(--muted);font-weight:500">/min</span></div></div><button class="btn btn-primary" style="flex:1.4">Book consultation</button></div></div>`;
+}
+function aBooking(){
+  return `<div class="vp"><div class="scroll">${aNav('Book consultation')}
+    <div style="padding:14px 18px">
+      <h3 style="font-size:14px;font-weight:700;color:var(--fg-strong);margin-bottom:11px">Consultation type</h3>
+      <div class="typesel"><div class="ty"><svg class="i"><use href="#i-chat"/></svg><b>Chat</b><span>₹35/min</span></div>
+        <div class="ty on"><svg class="i"><use href="#i-phone"/></svg><b>Voice</b><span>₹45/min</span></div>
+        <div class="ty"><svg class="i"><use href="#i-video"/></svg><b>Video</b><span>₹60/min</span></div></div>
+      <h3 style="font-size:14px;font-weight:700;color:var(--fg-strong);margin:20px 0 11px">Date</h3>
+      <div class="filt" style="padding:0 0 4px"><span class="chip on">Today</span><span class="chip">Tomorrow</span><span class="chip">Sat 28</span><span class="chip">Sun 29</span></div>
+      <h3 style="font-size:14px;font-weight:700;color:var(--fg-strong);margin:18px 0 11px">Time slot</h3>
+      <div class="slots"><div class="slot off">10:00</div><div class="slot">11:30</div><div class="slot on">2:00 PM</div><div class="slot">4:30</div><div class="slot">6:00</div><div class="slot off">8:30</div></div>
+      <div style="margin-top:20px;padding:14px;background:var(--surface-2);border-radius:14px">
+        <div class="co-row" style="border:0;padding:6px 0;display:flex;justify-content:space-between;font-size:14px"><span style="color:var(--muted)">Voice · 20 min est.</span><span style="color:var(--fg-strong);font-weight:600">₹900</span></div>
+        <div class="co-row" style="border:0;padding:6px 0;display:flex;justify-content:space-between;font-size:14px"><span style="color:var(--muted)">Platform fee</span><span style="color:var(--fg-strong);font-weight:600">₹49</span></div></div>
+    </div><div style="height:90px"></div></div>
+    <div class="actionbar" style="position:absolute;bottom:0;left:0;right:0"><button class="btn btn-primary block">Pay ₹949 &amp; book</button></div></div>`;
+}
+function aBookings(){
+  return `<div class="vp"><div class="scroll">${aNav('My bookings')}
+    <div class="tabs" style="margin-top:4px"><button aria-selected="true">Upcoming</button><button>Past</button></div>
+    <div class="bk-row"><div class="bd"><b>26</b>JUN</div><div class="bi"><b>Pandit Suresh Sharma</b><span>Voice · 2:00 PM · 20 min</span></div><span class="bs">Confirmed</span></div>
+    <div class="bk-row"><div class="bd"><b>28</b>JUN</div><div class="bi"><b>Acharya Meera Joshi</b><span>Video · 11:30 AM · 30 min</span></div><span class="bs">Confirmed</span></div>
+    <div class="bk-row" style="opacity:.7"><div class="bd" style="background:var(--surface-2);color:var(--muted)"><b>12</b>JUN</div><div class="bi"><b>Dr. Anjali Verma</b><span>Chat · completed</span></div><span class="bs past">Done</span></div>
+    <div style="padding:18px"><button class="btn btn-secondary block"><svg class="i" style="width:16px"><use href="#i-plus"/></svg>Book another consultation</button></div></div></div>`;
+}
+function aLoading(){
+  const sk=`<div class="acard"><div class="sk" style="width:62px;height:62px;border-radius:50%"></div><div style="flex:1"><div class="sk" style="height:15px;width:60%"></div><div class="sk" style="height:11px;width:85%;margin-top:8px"></div><div class="sk" style="height:11px;width:40%;margin-top:8px"></div></div><div class="sk" style="width:60px;height:34px;border-radius:10px"></div></div>`;
+  return `<div class="vp"><div class="scroll">${aNav('Astrologers')}<div style="height:8px"></div>${sk}${sk}${sk}${sk}</div></div>`;
+}
+
+const Y=140;
+frame({x:60,  y:Y, label:'Marketplace', pills:[['','LIGHT']], theme:'light', screen:aList()});
+frame({x:540, y:Y, label:'Astrologer detail', pills:[['','PROFILE']], theme:'light', screen:aDetail()});
+frame({x:1020,y:Y, label:'Book consultation', pills:[['','FLOW']], theme:'light', screen:aBooking()});
+frame({x:1500,y:Y, label:'My bookings', pills:[['','UPCOMING']], theme:'light', screen:aBookings()});
+frame({x:1980,y:Y, label:'Marketplace · Loading', pills:[['state','SKELETON']], theme:'light', screen:aLoading()});
+frame({x:2460,y:Y, label:'Marketplace', pills:[['dark','DARK']], theme:'dark', statusVariant:'ondark', screen:aList()});
+
+redline(60, Y+930,'Astrologers — redlines',[
+  ['Card','avatar 62 · rating star (gold OK — quality signal) · ₹/min accent · online dot'],
+  ['Detail','stat bar 4-up · reviews · sticky book bar w/ live price'],
+  ['Booking','type selector chat/voice/video · date chips · slot grid (off=disabled)'],
+  ['Pay','est. cost summary · Razorpay · confirm → My bookings'],
+]);
+</script>
+</body>
+</html>

@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<title>TricityShadi Mobile — Profile Detail</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="design_doc_mode" content="canvas" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../ts-mobile.css" />
+<style>
+  body{background:#0e0f13;}
+  .canvas-title{position:absolute;left:60px;top:20px;color:#e8eaed;font-family:'Playfair Display',serif;font-size:30px;font-weight:600;}
+  .canvas-sub{position:absolute;left:60px;top:62px;color:#9aa1ad;font-size:14px;font-family:'Inter',sans-serif;}
+  .hero{position:relative;height:430px;flex:none}
+  .hero .ph{position:absolute;inset:0}
+  .hero .topbar{position:absolute;top:0;left:0;right:0;z-index:5;display:flex;justify-content:space-between;padding:8px 14px}
+  .hero .cbtn{width:38px;height:38px;border-radius:50%;background:rgba(20,8,14,.4);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.18);color:#fff;display:grid;place-items:center}
+  .hero .cbtn svg{width:20px;height:20px}
+  .hero .scrim{position:absolute;inset:0;background:linear-gradient(to top,rgba(20,8,14,.9) 0%,rgba(20,8,14,.25) 45%,transparent 70%)}
+  .hero .dots{position:absolute;bottom:84px;left:0;right:0;display:flex;justify-content:center;gap:6px;z-index:4}
+  .hero .dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.45)}
+  .hero .dots i.on{background:#fff;width:18px;border-radius:3px}
+  .hero .meta{position:absolute;left:18px;right:18px;bottom:16px;color:#fff;z-index:4}
+  .hero .meta h1{font-family:'Playfair Display',serif;font-size:27px;font-weight:600;display:flex;align-items:center;gap:8px}
+  .hero .meta h1 .vb{width:22px;height:22px;border-radius:50%;background:var(--success);display:grid;place-items:center}
+  .hero .meta h1 .vb svg{width:13px;height:13px}
+  .hero .meta .sub{font-size:14px;opacity:.95;margin-top:3px}
+  .hero .meta .on{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;margin-top:8px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);padding:4px 10px;border-radius:999px}
+  .hero .meta .on .d{width:7px;height:7px;border-radius:50%;background:#7CE38B}
+  .body{padding:16px 18px 0}
+  .statbar{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;margin-bottom:16px}
+  .statbar .st{background:var(--card);padding:11px 6px;text-align:center}
+  .statbar .st svg{width:17px;height:17px;color:var(--accent);margin-bottom:4px}
+  .statbar .st b{display:block;font-size:13px;color:var(--fg-strong);font-weight:600}
+  .statbar .st span{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  .compatcard{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:15px;box-shadow:var(--e1);margin-bottom:14px}
+  .compatcard .ctx{flex:1}
+  .compatcard .ctx b{font-size:16px;color:var(--fg-strong);font-weight:600;font-family:'Playfair Display',serif}
+  .compatcard .ctx p{font-size:13px;color:var(--muted);margin-top:2px}
+  .compatcard .ctx .vb{margin-top:8px;display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:600;color:var(--accent)}
+  .compatcard .ctx .vb svg{width:14px;height:14px}
+  .voice{display:flex;align-items:center;gap:12px;background:var(--accent-soft);border:1px solid var(--accent-soft-2);border-radius:var(--r-md);padding:11px 14px;margin-bottom:16px}
+  .voice .pb{width:42px;height:42px;border-radius:50%;background:var(--p-500);color:#fff;display:grid;place-items:center;flex:none}
+  .voice .pb svg{width:18px;height:18px}
+  .voice .wave{flex:1;display:flex;align-items:center;gap:3px;height:30px}
+  .voice .wave i{flex:1;background:var(--p-300);border-radius:2px}
+  .voice .t{font-size:12px;color:var(--accent);font-weight:600;font-variant-numeric:tabular-nums}
+  .acc{border:1px solid var(--border);border-radius:var(--r-md);margin-bottom:11px;overflow:hidden;background:var(--card)}
+  .acc .ah{display:flex;align-items:center;gap:10px;padding:14px 15px;font-size:16px;font-weight:600;color:var(--fg-strong)}
+  .acc .ah svg.lead{width:18px;height:18px;color:var(--accent)}
+  .acc .ah .chev{margin-left:auto;color:var(--n-400)}
+  .acc .ab{padding:0 15px 15px;font-size:14px;color:var(--fg);line-height:1.6}
+  .acc.closed .ab{display:none}
+  .acc.closed .ah .chev{transform:rotate(0)}
+  .kv{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--hairline);font-size:14px}
+  .kv:first-child{border-top:0}
+  .kv .k{color:var(--muted)}
+  .kv .v{color:var(--fg-strong);font-weight:500;text-align:right}
+  .actionbar{position:relative;z-index:20;display:flex;gap:9px;padding:10px 16px 24px;background:var(--nav-bg);backdrop-filter:blur(18px);border-top:.5px solid var(--hairline);flex:none}
+  .actionbar .ab-ic{width:52px;height:52px;border-radius:var(--r-md);border:1.5px solid var(--border);background:var(--card);display:grid;place-items:center;color:var(--fg-strong);flex:none}
+  .actionbar .ab-ic svg{width:22px;height:22px}
+  .actionbar .ab-ic.gold{border-color:transparent;background:var(--gold-soft);color:var(--g-600)}
+  .actionbar .msg{flex:1}
+  .horo{background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:15px;margin-bottom:11px}
+  .horo .hh{display:flex;align-items:center;gap:9px;margin-bottom:13px}
+  .horo .hh svg{width:18px;height:18px;color:var(--accent)}
+  .horo .hh b{font-size:16px;font-weight:600;color:var(--fg-strong)}
+  .horo .hh .score{margin-left:auto;font-size:13px;font-weight:700;color:var(--success);background:var(--success-l);padding:3px 9px;border-radius:999px}
+</style>
+</head>
+<body>
+<div class="canvas-title">Profile Detail — the other person</div>
+<div class="canvas-sub">Hero gallery · sticky actions · accordions · compatibility &amp; Ashtakoot sheets · voice intro · premium contact lock · block/report</div>
+<script src="frame.js"></script>
+<script>
+function hero(statusVar){
+  return `<div class="hero">${ph('','i-user')}<div class="scrim"></div>
+    <div class="topbar"><span class="cbtn"><svg class="i"><use href="#i-back"/></svg></span>
+      <span style="display:flex;gap:9px"><span class="cbtn"><svg class="i"><use href="#i-bookmark"/></svg></span><span class="cbtn"><svg class="i"><use href="#i-dots"/></svg></span></span></div>
+    <div class="dots"><i class="on"></i><i></i><i></i><i></i></div>
+    <div class="meta"><h1>Aanya Sharma, 27 <span class="vb"><svg class="i"><use href="#i-check"/></svg></span></h1>
+      <div class="sub">Software Engineer · Mohali</div><span class="on"><span class="d"></span>Online now</span></div></div>`;
+}
+function statbar(){
+  return `<div class="statbar">
+    <div class="st"><svg class="i"><use href="#i-user"/></svg><b>5'4"</b><span>Height</span></div>
+    <div class="st"><svg class="i"><use href="#i-cap"/></svg><b>B.Tech</b><span>Education</span></div>
+    <div class="st"><svg class="i"><use href="#i-shield"/></svg><b>Khatri</b><span>Community</span></div>
+    <div class="st"><svg class="i"><use href="#i-ring"/></svg><b>No</b><span>Manglik</span></div></div>`;
+}
+function compatCard(){
+  return `<div class="compatcard"><div class="compat-ring" style="--v:87;--sz:64px"><div class="inner"><b>87%</b><s>MATCH</s></div></div>
+    <div class="ctx"><b>Strong compatibility</b><p>Aligned on values, lifestyle &amp; family goals</p>
+    <span class="vb">View breakdown<svg class="i"><use href="#i-fwd"/></svg></span></div></div>`;
+}
+function voice(){
+  const bars=[12,20,28,16,24,30,18,26,14,22,28,18,24,12,20];
+  return `<div class="voice"><div class="pb"><svg class="i"><use href="#i-play"/></svg></div>
+    <div class="wave">${bars.map(h=>`<i style="height:${h}px"></i>`).join('')}</div><span class="t">0:18</span></div>`;
+}
+function accAbout(open=true){
+  return `<div class="acc ${open?'':'closed'}"><div class="ah"><svg class="i lead"><use href="#i-user"/></svg>About Aanya<svg class="i chev"><use href="#i-back"/></svg></div>
+    <div class="ab">A warm, family-rooted person balancing a demanding tech career with a love for classical music and weekend treks in the hills. Looking for an honest, ambitious partner who values family as much as independence.</div></div>`;
+}
+function accFamily(){
+  return `<div class="acc"><div class="ah"><svg class="i lead"><use href="#i-shield"/></svg>Family<svg class="i chev"><use href="#i-fwd"/></svg></div></div>`;
+}
+function accEdu(){
+  return `<div class="acc closed"><div class="ah"><svg class="i lead"><use href="#i-cap"/></svg>Education &amp; Career<svg class="i chev"><use href="#i-fwd"/></svg></div></div>`;
+}
+function accPref(){
+  return `<div class="acc closed"><div class="ah"><svg class="i lead"><use href="#i-heart"/></svg>Partner Preferences<svg class="i chev"><use href="#i-fwd"/></svg></div></div>`;
+}
+function horo(){
+  return `<div class="horo"><div class="hh"><svg class="i"><use href="#i-ring"/></svg><b>Horoscope match</b><span class="score">28 / 36 guna</span></div>
+    <div class="guna"><div class="g"><span class="gl">Bhakoot</span><span class="gt"><i style="width:100%"></i></span><span class="gv">7/7</span></div>
+    <div class="g"><span class="gl">Maitri</span><span class="gt"><i style="width:80%"></i></span><span class="gv">4/5</span></div>
+    <div class="g warn"><span class="gl">Nadi</span><span class="gt"><i style="width:0%"></i></span><span class="gv">0/8</span></div></div>
+    <button class="btn btn-secondary btn-sm" style="width:100%;margin-top:14px">View full Ashtakoot</button></div>`;
+}
+function contactLocked(){
+  return `<div class="acc" style="padding:0"><div class="ah"><svg class="i lead"><use href="#i-phone"/></svg>Contact details</div>
+    <div style="padding:0 15px 15px"><div class="lock" style="height:104px">
+      <div class="blur" style="padding:14px"><div class="kv"><span class="k">Phone</span><span class="v">+91 98xxx xxxxx</span></div><div class="kv"><span class="k">Email</span><span class="v">aanya••••@gmail.com</span></div></div>
+      <div class="ov"><span class="lk"><svg class="i"><use href="#i-lock"/></svg></span><b>Unlock contact</b><p>Available on Premium &amp; above</p></div></div>
+      <button class="btn btn-gold" style="width:100%;margin-top:12px"><svg class="i"><use href="#i-lock"/></svg>Upgrade to unlock</button></div></div>`;
+}
+function actionBar(){
+  return `<div class="actionbar"><div class="ab-ic"><svg class="i"><use href="#i-heart"/></svg></div>
+    <div class="ab-ic"><svg class="i"><use href="#i-bookmark"/></svg></div>
+    <button class="btn btn-primary msg"><svg class="i"><use href="#i-chat"/></svg>Send message</button></div>`;
+}
+function pdDefault(statusVar){
+  return `<div class="vp"><div class="scroll">${hero()}<div class="body">
+    ${statbar()}${compatCard()}${voice()}${accAbout()}${accFamily()}${accEdu()}${accPref()}
+    <div style="height:8px"></div></div></div>${actionBar()}</div>`;
+}
+function pdLocked(){
+  return `<div class="vp"><div class="scroll">${hero()}<div class="body" style="padding-top:14px">
+    ${horo()}${contactLocked()}${accPref()}<div style="height:8px"></div></div></div>${actionBar()}</div>`;
+}
+function pdCompatSheet(){
+  const rows=[['Values & beliefs',92],['Lifestyle',85],['Family goals',88],['Education',95],['Location',74]];
+  return `<div class="vp"><div class="scroll">${hero()}<div class="body">${statbar()}${compatCard()}</div></div>${actionBar()}
+  <div class="sheet"><div class="backdrop"></div><div class="panel"><div class="grab"></div>
+    <div class="s-head"><h3>Compatibility</h3><span class="cbtn" style="background:var(--surface-2);color:var(--fg);width:32px;height:32px"><svg class="i" style="width:16px"><use href="#i-x"/></svg></span></div>
+    <div style="padding:18px;text-align:center"><div class="compat-ring" style="--v:87;--sz:96px;margin:0 auto"><div class="inner"><b style="font-size:26px">87%</b><s>OVERALL</s></div></div>
+      <p style="font-size:13px;color:var(--muted);margin-top:10px;max-width:30ch;margin-left:auto;margin-right:auto">Based on 5 dimensions from both partners' preferences</p></div>
+    <div style="padding:0 18px 20px"><div class="guna">${rows.map(([l,v])=>`<div class="g" style="grid-template-columns:120px 1fr 40px"><span class="gl">${l}</span><span class="gt"><i style="width:${v}%"></i></span><span class="gv">${v}%</span></div>`).join('')}</div></div>
+  </div></div></div>`;
+}
+function pdReportSheet(){
+  return `<div class="vp"><div class="scroll">${hero()}<div class="body">${statbar()}${compatCard()}</div></div>${actionBar()}
+  <div class="sheet"><div class="backdrop"></div><div class="panel"><div class="grab"></div>
+    <div style="padding:6px 8px 8px"><div class="row" style="border-radius:14px"><div class="av" style="width:40px;height:40px;font-size:15px">AS</div><div class="r-main"><div class="r-title">Aanya Sharma</div><div class="r-sub">Manage this profile</div></div></div></div>
+    <div style="padding:0 8px 8px"><div class="card" style="border-radius:14px;overflow:hidden;box-shadow:none">
+      <div class="row" style="color:var(--fg-strong)"><svg class="i" style="color:var(--accent)"><use href="#i-bell"/></svg><div class="r-main"><div class="r-title">Mute notifications</div></div></div>
+      <div class="row" style="color:var(--warning)"><svg class="i"><use href="#i-block"/></svg><div class="r-main"><div class="r-title" style="color:var(--warning)">Block Aanya</div></div></div>
+      <div class="row" style="color:var(--destructive)"><svg class="i"><use href="#i-flag"/></svg><div class="r-main"><div class="r-title" style="color:var(--destructive)">Report profile</div></div></div>
+    </div></div>
+    <div style="padding:4px 8px 8px"><button class="btn btn-ghost" style="width:100%">Cancel</button></div>
+  </div></div></div>`;
+}
+function pdLoading(){
+  return `<div class="vp"><div class="scroll"><div class="sk" style="height:430px;border-radius:0"></div>
+    <div class="body"><div class="sk" style="height:60px;border-radius:14px;margin-bottom:16px"></div>
+    <div class="sk" style="height:92px;border-radius:18px;margin-bottom:14px"></div>
+    <div class="sk" style="height:64px;border-radius:14px;margin-bottom:16px"></div>
+    <div class="sk" style="height:48px;border-radius:14px;margin-bottom:11px"></div>
+    <div class="sk" style="height:48px;border-radius:14px;margin-bottom:11px"></div></div>
+  </div>${actionBar()}</div>`;
+}
+
+const Y=140;
+frame({x:60,  y:Y, label:'Profile · Default', pills:[['','LIGHT']], theme:'light', statusVariant:'onphoto', screen:pdDefault()});
+frame({x:540, y:Y, label:'Profile · Premium lock', pills:[['state','GOLD LOCK']], theme:'light', statusVariant:'onphoto', screen:pdLocked()});
+frame({x:1020,y:Y, label:'Profile · Compatibility', pills:[['state','SHEET']], theme:'light', statusVariant:'onphoto', screen:pdCompatSheet()});
+frame({x:1500,y:Y, label:'Profile · Block / Report', pills:[['state','SHEET']], theme:'light', statusVariant:'onphoto', screen:pdReportSheet()});
+frame({x:1980,y:Y, label:'Profile · Loading', pills:[['state','SKELETON']], theme:'light', statusVariant:null, screen:pdLoading()});
+frame({x:2460,y:Y, label:'Profile · Default', pills:[['dark','DARK']], theme:'dark', statusVariant:'onphoto', screen:pdDefault()});
+
+redline(60, Y+930,'Profile Detail — redlines',[
+  ['Hero','430pt photo · gallery dots · status flips white (.onphoto) · scrim 70%'],
+  ['Action bar','sticky · like 52 + shortlist 52 + message primary · safe-area 24'],
+  ['Accordions','collapse spring · chevron rotate dur.fast · one open by default'],
+  ['Voice intro','tap play → waveform animates · scrub via Gesture Handler'],
+  ['Compat ring','fills 0→87% on view · dur.slow ease-out · tap → breakdown sheet'],
+]);
+redline(540, Y+930,'Premium lock & sheets',[
+  ['Gold lock','contact blur(9) + gold lock fade-in dur.base · CTA → Subscription'],
+  ['Compat sheet','spring.sheet · 5 dimension bars fill-in staggered 40ms'],
+  ['Block/report','medium haptic on long-press ⋮ · destructive rows · confirm dialog'],
+  ['Ashtakoot','guna bars + dosha · "View full" → Horoscope screen'],
+]);
+</script>
+</body>
+</html>

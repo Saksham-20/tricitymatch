@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<title>TricityShadi Mobile — Auth</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="design_doc_mode" content="canvas" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../ts-mobile.css" />
+<style>
+  body{background:#0e0f13;}
+  .canvas-title{position:absolute;left:60px;top:20px;color:#e8eaed;font-family:'Playfair Display',serif;font-size:30px;font-weight:600;}
+  .canvas-sub{position:absolute;left:60px;top:62px;color:#9aa1ad;font-size:14px;font-family:'Inter',sans-serif;}
+  .logo{display:flex;align-items:center;gap:10px;font-family:'Playfair Display',serif;font-weight:600;color:var(--fg-strong)}
+  .logo .mk{width:40px;height:40px;border-radius:11px;background:var(--p-500);color:#fff;display:grid;place-items:center;font-weight:700;font-size:18px}
+  .apad{padding:8px 24px 24px;display:flex;flex-direction:column;height:100%}
+  .ahead{font-family:'Playfair Display',serif;font-size:28px;font-weight:600;color:var(--fg-strong);line-height:1.1;margin-bottom:6px}
+  .asub{font-size:15px;color:var(--muted);margin-bottom:26px;line-height:1.5}
+  .alink{color:var(--accent);font-weight:600;font-size:14px}
+  .pwfield{position:relative}
+  .pwfield .eye{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--muted);width:22px;height:22px}
+  .divider{display:flex;align-items:center;gap:12px;margin:22px 0;color:var(--muted);font-size:13px}
+  .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--border)}
+  .biometric{width:100%;height:54px;border-radius:var(--r-md);border:1.5px solid var(--border);background:var(--card);display:flex;align-items:center;justify-content:center;gap:10px;font-weight:600;color:var(--fg-strong);font-size:16px}
+  .biometric svg{width:24px;height:24px;color:var(--accent)}
+  .notice{display:flex;gap:10px;padding:13px 14px;border-radius:var(--r-md);font-size:13px;line-height:1.5;margin-bottom:18px}
+  .notice svg{width:18px;height:18px;flex:none;margin-top:1px}
+  .notice.err{background:var(--destructive-l);color:var(--destructive);border:1px solid color-mix(in srgb,var(--destructive) 25%,transparent)}
+  .notice.err svg{color:var(--destructive)}
+  .notice.warn{background:var(--warning-l);color:var(--fg-strong);border:1px solid color-mix(in srgb,var(--warning) 30%,transparent)}
+  .notice.warn svg{color:var(--warning)}
+  .splash{background:linear-gradient(160deg,var(--p-600),var(--p-800));height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;color:#fff}
+  .splash .mk{width:88px;height:88px;border-radius:26px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);display:grid;place-items:center;font-family:'Playfair Display',serif;font-weight:700;font-size:40px;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+  .splash h2{font-family:'Playfair Display',serif;font-size:30px;font-weight:600}
+  .splash p{font-size:14px;opacity:.8;letter-spacing:.02em}
+  .splash .dots{display:flex;gap:7px;margin-top:14px}
+  .splash .dots i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.5);animation:sd 1.2s infinite}
+  .splash .dots i:nth-child(2){animation-delay:.2s}.splash .dots i:nth-child(3){animation-delay:.4s}
+  @keyframes sd{0%,60%,100%{opacity:.3}30%{opacity:1}}
+  .welcome-hero{height:48%;position:relative;flex:none}
+  .welcome-hero .scrim{position:absolute;inset:0;background:linear-gradient(to top,var(--bg) 2%,transparent 60%)}
+  .trust{display:flex;align-items:center;justify-content:center;gap:7px;font-size:12px;color:var(--muted);margin-top:16px}
+  .trust svg{width:15px;height:15px;color:var(--success)}
+  .otpwrap{text-align:center}
+  .otpwrap .num{font-weight:700;color:var(--fg-strong)}
+  .resend{font-size:14px;color:var(--muted);margin-top:20px}
+</style>
+</head>
+<body>
+<div class="canvas-title">Auth — splash, welcome, login, signup, OTP</div>
+<div class="canvas-sub">Biometric login · 429 lockout (no countdown) · live password strength · 6-box auto-advance OTP</div>
+<script src="frame.js"></script>
+<script>
+function logo(){return `<div class="logo"><span class="mk">TS</span>TricityShadi</div>`;}
+
+function splash(){
+  return `<div class="vp"><div class="splash"><div class="mk">TS</div><h2>TricityShadi</h2>
+    <p>TRUSTED MATRIMONY · TRICITY</p><div class="dots"><i></i><i></i><i></i></div></div></div>`;
+}
+function welcome(){
+  return `<div class="vp"><div class="welcome-hero">${ph('couple / lifestyle','i-heart')}<div class="scrim"></div></div>
+    <div class="apad" style="justify-content:flex-end;text-align:center;align-items:center">
+      ${logo()}
+      <h1 class="ahead serif" style="font-size:30px;margin-top:18px">Find your forever,<br>the trusted way</h1>
+      <p class="asub" style="text-align:center">Verified profiles, family-first matchmaking, and astrology guidance — built for the Tricity community.</p>
+      <button class="btn btn-primary block" style="margin-bottom:11px">Create your profile</button>
+      <button class="btn btn-secondary block">Log in</button>
+      <div class="trust"><svg class="i"><use href="#i-shield"/></svg>Trusted by 40,000+ families across Tricity</div></div></div>`;
+}
+function login(state){
+  const err = state==='error';
+  const lock = state==='lockout';
+  return `<div class="vp"><div class="navbar" style="background:transparent;border:0;backdrop-filter:none"><span class="nb-btn"><svg class="i"><use href="#i-back"/></svg></span></div>
+    <div class="apad">${logo()}
+      <h1 class="ahead" style="margin-top:24px">Welcome back</h1>
+      <p class="asub">Log in to continue your search.</p>
+      ${lock?`<div class="notice warn"><svg class="i"><use href="#i-lock"/></svg><div><b>Too many attempts.</b> For your security, login is paused. Reset your password or try again later.</div></div>`:''}
+      ${err?`<div class="notice err"><svg class="i"><use href="#i-x"/></svg>Incorrect email or password. Please try again.</div>`:''}
+      <div class="field"><label>Email</label><input class="input" value="rohan.kapoor@gmail.com" /></div>
+      <div class="field"><label>Password</label><div class="pwfield"><input class="input ${err?'err':''}" type="password" value="••••••••" /><svg class="i eye"><use href="#i-user"/></svg></div>
+        <div style="text-align:right;margin-top:9px"><span class="alink">Forgot password?</span></div></div>
+      <button class="btn btn-primary block ${lock?'':''}" style="margin-top:6px" ${lock?'disabled':''}>Log in</button>
+      <div class="divider">or</div>
+      <button class="biometric"><svg class="i"><use href="#i-faceid"/></svg>Log in with Face ID</button>
+      <div style="text-align:center;margin-top:auto;padding-top:22px;font-size:14px;color:var(--muted)">New to TricityShadi? <span class="alink">Sign up</span></div></div></div>`;
+}
+function signup(){
+  return `<div class="vp"><div class="navbar" style="background:transparent;border:0;backdrop-filter:none"><span class="nb-btn"><svg class="i"><use href="#i-back"/></svg></span></div>
+    <div class="apad scroll">${logo()}
+      <h1 class="ahead" style="margin-top:20px">Create your account</h1>
+      <p class="asub">A few details to get started. You can complete your profile next.</p>
+      <div class="field"><label>Full name</label><input class="input" value="Rohan Kapoor" /></div>
+      <div class="field"><label>Mobile number</label><input class="input" value="+91 98765 43210" /></div>
+      <div class="field"><label>Email</label><input class="input" value="rohan.kapoor@gmail.com" /></div>
+      <div class="field"><label>Password</label><div class="pwfield"><input class="input" type="password" value="••••••••••" /><svg class="i eye"><use href="#i-user"/></svg></div>
+        <div class="pwbar"><i class="on4"></i><i class="on4"></i><i class="on4"></i><i class="on4"></i></div>
+        <div class="hint" style="color:var(--success);font-weight:600">Strong password</div></div>
+      <button class="btn btn-primary block" style="margin-top:10px">Create account</button>
+      <p style="font-size:12px;color:var(--muted);text-align:center;margin-top:14px;line-height:1.5">By continuing you agree to our <span class="alink" style="font-size:12px">Terms</span> &amp; <span class="alink" style="font-size:12px">Privacy Policy</span></p></div></div>`;
+}
+function otp(){
+  return `<div class="vp"><div class="navbar" style="background:transparent;border:0;backdrop-filter:none"><span class="nb-btn"><svg class="i"><use href="#i-back"/></svg></span></div>
+    <div class="apad"><h1 class="ahead" style="margin-top:20px">Verify your number</h1>
+      <p class="asub">Enter the 6-digit code sent to <span class="num">+91 98765 43210</span></p>
+      <div class="otp" style="margin:8px 0 4px"><span class="box filled">4</span><span class="box filled">2</span><span class="box filled">9</span><span class="box on"></span><span class="box"></span><span class="box"></span></div>
+      <div class="resend" style="text-align:center">Didn't get it? <span class="alink">Resend code</span></div>
+      <button class="btn btn-primary block" style="margin-top:28px">Verify &amp; continue</button>
+      <div class="biometric" style="margin-top:14px;border:0;background:transparent;color:var(--muted);font-size:13px"><svg class="i" style="color:var(--muted)"><use href="#i-shield"/></svg>Your number stays private to families you connect with</div></div></div>`;
+}
+function forgot(){
+  return `<div class="vp"><div class="navbar" style="background:transparent;border:0;backdrop-filter:none"><span class="nb-btn"><svg class="i"><use href="#i-back"/></svg></span></div>
+    <div class="apad"><div class="empty" style="padding:0;text-align:left"><div class="ei" style="margin:6px 0 18px"><svg class="i"><use href="#i-lock"/></svg></div></div>
+      <h1 class="ahead">Reset password</h1>
+      <p class="asub">Enter your registered email and we'll send a secure reset link.</p>
+      <div class="field"><label>Email</label><input class="input" value="rohan.kapoor@gmail.com" /></div>
+      <button class="btn btn-primary block" style="margin-top:6px">Send reset link</button>
+      <div class="notice warn" style="margin-top:18px"><svg class="i"><use href="#i-shield"/></svg>Check your spam folder if you don't see it within a minute.</div></div></div>`;
+}
+
+const Y=140;
+frame({x:60,  y:Y, label:'Splash', pills:[['','LAUNCH']], theme:'light', statusVariant:'ondark', screen:splash()});
+frame({x:540, y:Y, label:'Welcome', pills:[['','VALUE PROP']], theme:'light', screen:welcome()});
+frame({x:1020,y:Y, label:'Login', pills:[['','DEFAULT']], theme:'light', screen:login('default')});
+frame({x:1500,y:Y, label:'Login · Error', pills:[['state','INVALID']], theme:'light', screen:login('error')});
+frame({x:1980,y:Y, label:'Login · Lockout', pills:[['state','429 · NO TIMER']], theme:'light', screen:login('lockout')});
+frame({x:2460,y:Y, label:'Signup', pills:[['','STRENGTH']], theme:'light', screen:signup()});
+frame({x:2940,y:Y, label:'OTP', pills:[['','6-BOX']], theme:'light', screen:otp()});
+frame({x:3420,y:Y, label:'Forgot password', pills:[['','RESET']], theme:'light', screen:forgot()});
+frame({x:3900,y:Y, label:'Login', pills:[['dark','DARK']], theme:'dark', statusVariant:'ondark', screen:login('default')});
+
+redline(60, Y+930,'Auth — redlines',[
+  ['Splash','burgundy gradient · logo 88 glass tile · 3-dot loader · 1.2s then route'],
+  ['Welcome','hero 48% + bg fade · primary Create / secondary Log in · trust line'],
+  ['Login','email+pw fields 50pt · Face ID biometric below divider'],
+  ['Error','field err border + shake (translateX ±6 ·3) · haptic.warning'],
+  ['429 lockout','warning panel · button disabled · NO countdown shown'],
+]);
+redline(540, Y+930,'Signup / OTP',[
+  ['Pw strength','4-seg bar fills live · red→amber→gold→green · label updates'],
+  ['OTP','6 boxes 46×56 · auto-advance on entry · focus = burgundy ring + paste fill'],
+  ['Resend','timer-less link · success toast on send'],
+  ['Forgot','email → reset link · same flow feeds Reset (new pw + strength)'],
+]);
+</script>
+</body>
+</html>

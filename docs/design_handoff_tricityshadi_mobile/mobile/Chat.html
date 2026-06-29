@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<title>TricityShadi Mobile — Chat</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="design_doc_mode" content="canvas" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../ts-mobile.css" />
+<style>
+  body{background:#0e0f13;}
+  .canvas-title{position:absolute;left:60px;top:20px;color:#e8eaed;font-family:'Playfair Display',serif;font-size:30px;font-weight:600;}
+  .canvas-sub{position:absolute;left:60px;top:62px;color:#9aa1ad;font-size:14px;font-family:'Inter',sans-serif;}
+  .crow{display:flex;align-items:center;gap:13px;padding:12px 18px;}
+  .crow + .crow{border-top:.5px solid var(--hairline)}
+  .crow .thumb{width:54px;height:54px;border-radius:50%;overflow:hidden;flex:none;position:relative}
+  .crow .thumb .od{position:absolute;bottom:1px;right:1px;width:13px;height:13px;border-radius:50%;background:var(--success);border:2.5px solid var(--card)}
+  .crow .cc{flex:1;min-width:0}
+  .crow .cc .t1{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .crow .cc .t1 b{font-size:var(--t-callout);color:var(--fg-strong);font-weight:600}
+  .crow .cc .t1 .tm{font-size:11px;color:var(--muted);flex:none}
+  .crow .cc .t1 .tm.un{color:var(--accent);font-weight:700}
+  .crow .cc .t2{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:3px}
+  .crow .cc .t2 .pv{font-size:var(--t-footnote);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .crow .cc .t2 .pv.unread{color:var(--fg-strong);font-weight:500}
+  .crow .cc .t2 .ub{min-width:20px;height:20px;border-radius:10px;background:var(--p-500);color:#fff;font-size:11px;font-weight:800;display:grid;place-items:center;padding:0 6px;flex:none}
+  /* thread */
+  .thbar{display:flex;align-items:center;gap:10px;padding:6px 12px 10px;background:var(--nav-bg);backdrop-filter:blur(18px);border-bottom:.5px solid var(--hairline)}
+  .thbar .bk{width:30px;color:var(--accent);display:grid;place-items:center}
+  .thbar .bk svg{width:24px;height:24px}
+  .thbar .who{flex:1;display:flex;align-items:center;gap:9px}
+  .thbar .who .nm b{font-size:15px;color:var(--fg-strong);font-weight:600;display:block;line-height:1.1}
+  .thbar .who .nm span{font-size:11px;color:var(--success)}
+  .thbar .cic{width:36px;height:36px;display:grid;place-items:center;color:var(--accent)}
+  .thbar .cic svg{width:21px;height:21px}
+  .thread{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:14px 14px 6px}
+  .thread::-webkit-scrollbar{display:none}
+  .daydiv{text-align:center;font-size:11px;color:var(--muted);margin:6px 0}
+  .bub{max-width:75%;padding:9px 13px;border-radius:18px;font-size:var(--t-subhead);line-height:1.4;position:relative}
+  .bub.inc{align-self:flex-start;background:var(--surface-2);color:var(--fg-strong);border-bottom-left-radius:5px}
+  .bub.out{align-self:flex-end;background:var(--p-500);color:#fff;border-bottom-right-radius:5px}
+  .bub .meta{display:flex;align-items:center;gap:4px;justify-content:flex-end;margin-top:3px;font-size:10px;opacity:.85}
+  .bub .meta svg{width:14px;height:14px}
+  .bub.out .meta{color:rgba(255,255,255,.9)}
+  .typing{align-self:flex-start;background:var(--surface-2);padding:12px 15px;border-radius:18px;border-bottom-left-radius:5px;display:flex;gap:4px}
+  .typing i{width:7px;height:7px;border-radius:50%;background:var(--n-400);animation:td 1.2s infinite}
+  .typing i:nth-child(2){animation-delay:.18s}.typing i:nth-child(3){animation-delay:.36s}
+  @keyframes td{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-4px)}}
+  .inputbar{display:flex;align-items:center;gap:9px;padding:10px 12px 24px;background:var(--nav-bg);backdrop-filter:blur(18px);border-top:.5px solid var(--hairline);flex:none}
+  .inputbar .ic{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:var(--accent);flex:none}
+  .inputbar .ic svg{width:22px;height:22px}
+  .inputbar .fld{flex:1;height:40px;background:var(--surface-2);border:1px solid var(--border);border-radius:20px;padding:0 15px;display:flex;align-items:center;color:var(--muted);font-size:var(--t-callout)}
+  .inputbar .send{width:40px;height:40px;border-radius:50%;background:var(--p-500);color:#fff;display:grid;place-items:center;flex:none}
+  .inputbar .send svg{width:19px;height:19px}
+</style>
+</head>
+<body>
+<div class="canvas-title">Chat — conversations &amp; thread</div>
+<div class="canvas-sub">Premium-gated · inverted thread, read receipts, typing, optimistic send, long-press actions · free-user lock</div>
+<script src="frame.js"></script>
+<script>
+function crow(name,prev,time,opts={}){
+  const od=opts.online?'<span class="od"></span>':'';
+  const un=opts.unread;
+  return `<div class="crow"><div class="thumb">${ph('','i-user')}${od}</div>
+    <div class="cc"><div class="t1"><b>${name}</b><span class="tm ${un?'un':''}">${time}</span></div>
+    <div class="t2"><span class="pv ${un?'unread':''}">${prev}</span>${un?`<span class="ub">${un}</span>`:''}</div></div></div>`;
+}
+function chatList(){
+  return `<div class="vp"><div class="scroll" style="padding-top:6px">
+    <div class="navbar largetitle" style="border:0;background:transparent;backdrop-filter:none;display:block"><h1 style="padding:0 18px">Messages</h1></div>
+    <div class="sbar" style="padding:6px 18px 10px"><div style="flex:1;display:flex;align-items:center;gap:9px;height:40px;background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:0 13px;color:var(--muted);font-size:15px"><svg class="i" style="width:18px"><use href="#i-search"/></svg>Search messages</div></div>
+    ${crow("Aanya Sharma","Sounds good — talk tomorrow then 😊","2m",{online:true,unread:'2'})}
+    ${crow("Simran Kaur","You: Thank you for connecting!","1h",{online:true})}
+    ${crow("Sharma family","Mother: We'd love to meet your family","3h",{unread:'5'})}
+    ${crow("Ishita Bansal","Typing…","Yesterday",{})}
+    ${crow("Priya Malhotra","You: Namaste, nice to connect","Mon",{})}
+  </div>${tabBar('chat',{chatBadge:'7'})}</div>`;
+}
+function bub(side,text,time,opts={}){
+  const tick = side==='out'?`<svg class="i" viewBox="0 0 24 24"><polyline points="1 13 5 17 13 8"/><polyline points="9 13 13 17 22 7"/></svg>`:'';
+  const edited = opts.edited?'<span style="opacity:.7">edited · </span>':'';
+  return `<div class="bub ${side}">${text}<div class="meta">${edited}${time}${side==='out'?tick:''}</div></div>`;
+}
+function chatThread(){
+  return `<div class="vp">
+    <div class="thbar"><span class="bk"><svg class="i"><use href="#i-back"/></svg></span>
+      <div class="who"><div class="av" style="width:36px;height:36px;font-size:13px">AS</div><div class="nm"><b>Aanya Sharma</b><span>Online</span></div></div>
+      <span class="cic"><svg class="i"><use href="#i-phone"/></svg></span><span class="cic"><svg class="i"><use href="#i-video"/></svg></span></div>
+    <div class="thread">
+      <div class="daydiv">Today</div>
+      ${bub('inc','Hi Rohan, thank you for showing interest in my profile 🙏','6:12')}
+      ${bub('out','Namaste Aanya! Likewise — your profile really stood out to me.','6:14')}
+      ${bub('inc','That\'s kind of you. I see we both love trekking!','6:15')}
+      ${bub('out','We should plan a Triund trek sometime 😄','6:16',{edited:true})}
+      ${bub('inc','Sounds good — talk tomorrow then 😊','6:18')}
+      <div class="typing"><i></i><i></i><i></i></div>
+    </div>
+    <div class="inputbar"><span class="ic"><svg class="i"><use href="#i-plus"/></svg></span>
+      <div class="fld">Message…</div><span class="send"><svg class="i"><use href="#i-send"/></svg></span></div></div>`;
+}
+function chatLocked(){
+  return `<div class="vp"><div class="scroll" style="padding-top:6px">
+    <div class="navbar largetitle" style="border:0;background:transparent;backdrop-filter:none;display:block"><h1 style="padding:0 18px">Messages</h1></div>
+    <div class="lock" style="margin:8px 18px 0;border-radius:18px">
+      <div class="blur">${crow("Aanya Sharma","Sounds good — talk tomorrow…","2m",{online:true,unread:'2'})}${crow("Simran Kaur","Thank you for connecting!","1h",{})}${crow("Sharma family","We'd love to meet you","3h",{unread:'5'})}</div>
+      <div class="ov" style="background:color-mix(in srgb,var(--card) 58%,transparent)"><span class="lk"><svg class="i"><use href="#i-lock"/></svg></span>
+        <b>Chat is a Premium feature</b><p>Upgrade to message your matches and families directly</p>
+        <button class="btn btn-gold btn-sm" style="margin-top:6px"><svg class="i" style="width:15px"><use href="#i-star"/></svg>See Premium plans</button></div></div>
+  </div>${tabBar('chat')}</div>`;
+}
+function chatEmpty(){
+  return `<div class="vp"><div class="scroll" style="padding-top:6px">
+    <div class="navbar largetitle" style="border:0;background:transparent;backdrop-filter:none;display:block"><h1 style="padding:0 18px">Messages</h1></div>
+    <div class="empty" style="margin-top:40px"><div class="ei"><svg class="i"><use href="#i-chat"/></svg></div>
+    <h3>No conversations yet</h3><p>When you and a match both show interest, you can start chatting here.</p>
+    <button class="btn btn-secondary btn-sm"><svg class="i" style="width:16px"><use href="#i-heart"/></svg>View matches</button></div>
+  </div>${tabBar('chat')}</div>`;
+}
+
+const Y=140;
+frame({x:60,  y:Y, label:'Chat · Conversations', pills:[['','LIGHT']], theme:'light', screen:chatList()});
+frame({x:540, y:Y, label:'Chat · Thread', pills:[['','THREAD']], theme:'light', statusVariant:'', screen:chatThread()});
+frame({x:1020,y:Y, label:'Chat · Free-user lock', pills:[['state','GOLD LOCK']], theme:'light', screen:chatLocked()});
+frame({x:1500,y:Y, label:'Chat · Empty', pills:[['state','EMPTY']], theme:'light', screen:chatEmpty()});
+frame({x:1980,y:Y, label:'Chat · Thread', pills:[['dark','DARK']], theme:'dark', statusVariant:'ondark', screen:chatThread()});
+
+redline(60, Y+930,'Chat — redlines',[
+  ['List row','avatar 54 + online dot · unread burgundy badge + bold preview'],
+  ['Thread','inverted FlatList · incoming surface-2 / outgoing burgundy bubbles'],
+  ['Receipts','single→double tick fade dur.fast · "edited" prefix on edited msgs'],
+  ['Typing','3-dot bounce 1.2s · optimistic send slides in then confirms'],
+  ['Long-press','bubble → reply/edit/delete sheet · medium haptic'],
+]);
+redline(540, Y+930,'Gating & input',[
+  ['Free lock','whole list blurred + gold lock · CTA → Subscription'],
+  ['Family group','"Sharma family" thread → multi-party FamilyGroupChat'],
+  ['Input bar','+ attach · grows to 5 lines · mic when empty, send when typed'],
+  ['Send','haptic.light · bubble optimistic (50% opacity) → solid on ack'],
+]);
+</script>
+</body>
+</html>

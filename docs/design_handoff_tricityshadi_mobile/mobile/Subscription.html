@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<title>TricityShadi Mobile — Subscription</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="design_doc_mode" content="canvas" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../ts-mobile.css" />
+<style>
+  body{background:#0e0f13;}
+  .canvas-title{position:absolute;left:60px;top:20px;color:#e8eaed;font-family:'Playfair Display',serif;font-size:30px;font-weight:600;}
+  .canvas-sub{position:absolute;left:60px;top:62px;color:#9aa1ad;font-size:14px;font-family:'Inter',sans-serif;}
+  .plan{position:relative;border:1.5px solid var(--border);border-radius:var(--r-lg);padding:18px;margin:0 18px 14px;background:var(--card);box-shadow:var(--e1)}
+  .plan.pop{border-color:var(--g-500);box-shadow:var(--sh-gold)}
+  .plan.cur{border-color:var(--accent)}
+  .plan .flag{position:absolute;top:-11px;right:16px;font-size:11px;font-weight:800;letter-spacing:.04em;padding:4px 11px;border-radius:999px;background:linear-gradient(135deg,var(--g-400),var(--g-600));color:#3D2914;box-shadow:var(--e2)}
+  .plan .p-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+  .plan .pn{font-family:'Playfair Display',serif;font-size:20px;font-weight:600;color:var(--fg-strong)}
+  .plan .pn .tag{font-size:11px;font-weight:700;color:var(--g-600);background:var(--gold-soft);padding:2px 7px;border-radius:6px;margin-left:6px;vertical-align:middle}
+  .plan .pp{text-align:right}
+  .plan .pp b{font-size:24px;font-weight:700;color:var(--fg-strong);font-family:'Playfair Display',serif}
+  .plan .pp span{font-size:12px;color:var(--muted);display:block}
+  .plan ul{list-style:none;margin:14px 0 0;display:flex;flex-direction:column;gap:8px}
+  .plan li{display:flex;gap:9px;align-items:flex-start;font-size:13px;color:var(--fg)}
+  .plan li svg{width:16px;height:16px;color:var(--success);flex:none;margin-top:1px}
+  .plan li.off{color:var(--n-400)}
+  .plan li.off svg{color:var(--n-300)}
+  .plan .pcta{margin-top:16px}
+  .mtx{margin:0 18px;border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;background:var(--card)}
+  .mtx .mr{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;align-items:center}
+  .mtx .mr > div{padding:11px 8px;text-align:center;font-size:12px;border-top:.5px solid var(--hairline)}
+  .mtx .mr:first-child > div{border-top:0}
+  .mtx .mr > div:first-child{text-align:left;color:var(--fg-strong);font-weight:500}
+  .mtx .mh > div{font-weight:700;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;background:var(--surface-2)}
+  .mtx .mh > div.vip{color:var(--g-600)}
+  .mtx svg.y{width:16px;height:16px;color:var(--success)}
+  .mtx svg.n{width:14px;height:14px;color:var(--n-300)}
+  .co-row{display:flex;justify-content:space-between;padding:11px 0;font-size:14px;border-top:.5px solid var(--hairline)}
+  .co-row:first-child{border-top:0}
+  .co-row .k{color:var(--muted)}.co-row .v{color:var(--fg-strong);font-weight:600}
+  .co-total{display:flex;justify-content:space-between;padding:14px 0 4px;font-size:18px;font-weight:700;color:var(--fg-strong);border-top:1.5px solid var(--border);margin-top:6px}
+  .razor{display:flex;align-items:center;gap:9px;justify-content:center;font-size:12px;color:var(--muted);margin-top:14px}
+  .razor .d{width:8px;height:8px;border-radius:50%;background:#3395FF}
+  .result{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:40px 30px}
+  .result .seal{width:96px;height:96px;border-radius:50%;display:grid;place-items:center;margin-bottom:22px}
+  .result.ok .seal{background:var(--success-l);color:var(--success)}
+  .result.fail .seal{background:var(--destructive-l);color:var(--destructive)}
+  .result .seal svg{width:44px;height:44px}
+  .result h2{font-family:'Playfair Display',serif;font-size:25px;color:var(--fg-strong)}
+  .result p{font-size:14px;color:var(--muted);margin:8px 0 26px;line-height:1.5}
+  .bhist{display:flex;align-items:center;gap:12px;padding:13px 18px;border-top:.5px solid var(--hairline)}
+  .bhist .bi{width:38px;height:38px;border-radius:10px;background:var(--surface-2);color:var(--accent);display:grid;place-items:center;flex:none}
+  .bhist .bi svg{width:18px}
+  .bhist .bm{flex:1}.bhist .bm b{font-size:14px;color:var(--fg-strong);font-weight:600;display:block}.bhist .bm span{font-size:12px;color:var(--muted)}
+  .bhist .ba{font-size:14px;font-weight:700;color:var(--fg-strong)}
+</style>
+</head>
+<body>
+<div class="canvas-title">Subscription — Free · Basic · Plus · VIP</div>
+<div class="canvas-sub">Gold "Most Popular" / "Best Value" flags · feature matrix · Razorpay checkout · success / failed · active member &amp; billing</div>
+<script src="frame.js"></script>
+<script>
+function subNav(title){return `<div class="navbar"><span class="nb-btn"><svg class="i"><use href="#i-back"/></svg></span><span class="nb-title">${title}</span></div>`;}
+function li(t,on=true){return `<li class="${on?'':'off'}"><svg class="i"><use href="#${on?'i-check':'i-x'}"/></svg>${t}</li>`;}
+function plan(name,tag,price,per,feats,cta,cls,flag){
+  return `<div class="plan ${cls||''}">${flag?`<span class="flag">${flag}</span>`:''}
+    <div class="p-head"><div class="pn">${name}${tag?`<span class="tag">${tag}</span>`:''}</div>
+      <div class="pp"><b>${price}</b><span>${per}</span></div></div>
+    <ul>${feats.map(f=>li(f[0],f[1])).join('')}</ul>
+    <button class="btn ${cls==='pop'||name==='VIP'?'btn-gold':cls==='cur'?'btn-ghost':'btn-secondary'} block pcta" ${cls==='cur'?'disabled':''}>${cta}</button></div>`;
+}
+function plans(){
+  return `<div class="vp"><div class="scroll">${subNav('Upgrade')}
+    <div style="text-align:center;padding:4px 24px 18px"><h1 class="serif" style="font-size:25px;color:var(--fg-strong)">Find your match, faster</h1><p style="font-size:14px;color:var(--muted);margin-top:6px">Unlock chat, contact details &amp; advanced filters.</p></div>
+    ${plan('Free','','₹0','forever',[['View &amp; receive interests',true],['5 searches a day',true],['Chat with matches',false],['See who liked you',false]],'Current plan','cur')}
+    ${plan('Basic','','₹1,500','15 days',[['Unlimited search',true],['Chat with matches',true],['Advanced filters',true],['Profile visitors',false]],'Choose Basic','')}
+    ${plan('Plus','','₹3,000','30 days',[['Everything in Basic',true],['See who liked you',true],['Profile visitors',true],['Priority support',true]],'Choose Plus','pop','Most Popular')}
+    ${plan('VIP','BOOST','₹7,499','90 days',[['Everything in Plus',true],['Unlimited everything',true],['Monthly profile boost',true],['Dedicated relationship manager',true]],'Go VIP','','Best Value')}
+    <div style="height:20px"></div></div></div>`;
+}
+function matrix(){
+  const y=`<svg class="i y"><use href="#i-check"/></svg>`,n=`<svg class="i n"><use href="#i-x"/></svg>`;
+  const rows=[['Unlimited search',n,y,y,y],['Chat',n,y,y,y],['Contact unlock',n,y,y,y],['Advanced filters',n,y,y,y],['Who liked you',n,n,y,y],['Profile visitors',n,n,y,y],['Monthly boost',n,n,n,y],['Relationship mgr',n,n,n,y]];
+  return `<div class="vp"><div class="scroll">${subNav('Compare plans')}
+    <div class="mtx" style="margin-top:8px"><div class="mr mh"><div>Feature</div><div>Basic</div><div>Plus</div><div class="vip">VIP</div></div>
+    ${rows.map(r=>`<div class="mr"><div>${r[0]}</div><div>${r[1]}</div><div>${r[2]}</div><div>${r[3]}</div></div>`).join('')}</div>
+    <div style="padding:18px"><button class="btn btn-gold block">Continue with Plus</button></div></div></div>`;
+}
+function checkout(){
+  return `<div class="vp"><div class="scroll">${subNav('Checkout')}
+    <div style="margin:8px 18px;padding:18px;border:1.5px solid var(--g-500);border-radius:18px;background:var(--gold-soft)">
+      <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-family:'Playfair Display',serif;font-size:19px;color:var(--fg-strong)">Plus · 30 days</b><span class="badge b-vip">Most Popular</span></div>
+      <p style="font-size:13px;color:var(--g-700);margin-top:4px">Unlimited search, chat, who liked you &amp; more</p></div>
+    <div style="margin:14px 18px;padding:4px 16px;background:var(--card);border:1px solid var(--border);border-radius:14px">
+      <div class="co-row"><span class="k">Plus membership</span><span class="v">₹3,000</span></div>
+      <div class="co-row"><span class="k">First-time discount</span><span class="v" style="color:var(--success)">−₹300</span></div>
+      <div class="co-row"><span class="k">GST (18%)</span><span class="v">₹486</span></div>
+      <div class="co-total"><span>Total</span><span>₹3,186</span></div></div>
+    <div style="margin:0 18px"><div class="field"><label>Apply coupon</label><div style="display:flex;gap:9px"><input class="input" placeholder="Enter code" /><button class="btn btn-ghost" style="flex:none;padding:0 16px">Apply</button></div></div></div>
+    <div style="padding:6px 18px 18px"><button class="btn btn-primary block btn-lg">Pay ₹3,186</button>
+      <div class="razor"><span class="d"></span>Secured by Razorpay · UPI, cards, netbanking</div></div></div></div>`;
+}
+function paySuccess(){
+  return `<div class="vp"><div class="result ok"><div class="seal"><svg class="i"><use href="#i-check"/></svg></div>
+    <h2>You're Plus now!</h2><p>Your membership is active until 26 Jul 2026. Chat and contact details are unlocked.</p>
+    <button class="btn btn-primary block">Start messaging matches</button>
+    <button class="btn btn-ghost block" style="margin-top:10px">View receipt</button></div></div>`;
+}
+function payFailed(){
+  return `<div class="vp"><div class="result fail"><div class="seal"><svg class="i"><use href="#i-x"/></svg></div>
+    <h2>Payment didn't go through</h2><p>No money was deducted. This can happen with bank timeouts — please try again.</p>
+    <button class="btn btn-primary block"><svg class="i" style="width:16px"><use href="#i-refresh"/></svg>Retry payment</button>
+    <button class="btn btn-ghost block" style="margin-top:10px">Choose another method</button></div></div>`;
+}
+function active(){
+  return `<div class="vp"><div class="scroll">${subNav('Membership')}
+    <div style="margin:8px 18px;padding:20px;border-radius:18px;background:linear-gradient(135deg,var(--p-600),var(--p-800));color:#fff;position:relative;overflow:hidden">
+      <span class="badge b-vip" style="position:absolute;top:16px;right:16px">VIP</span>
+      <div style="font-size:13px;opacity:.8">Your membership</div><div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:600;margin-top:2px">VIP · Active</div>
+      <div style="font-size:13px;opacity:.85;margin-top:10px">Renews 24 Sep 2026 · ₹7,499 / 90 days</div>
+      <div style="height:6px;border-radius:3px;background:rgba(255,255,255,.2);margin-top:14px;overflow:hidden"><i style="display:block;height:100%;width:64%;background:var(--g-400)"></i></div>
+      <div style="font-size:11px;opacity:.8;margin-top:7px">58 of 90 days remaining</div></div>
+    <div style="padding:16px 18px 8px"><button class="btn btn-gold block"><svg class="i" style="width:16px"><use href="#i-star"/></svg>Use monthly boost</button></div>
+    <div class="sh" style="margin-top:12px"><div class="sh-l"><span class="tick"></span><h2>Billing history</h2></div></div>
+    <div class="card" style="margin:0 18px;border-radius:14px;overflow:hidden;box-shadow:none">
+      <div class="bhist"><span class="bi"><svg class="i"><use href="#i-wallet"/></svg></span><div class="bm"><b>VIP membership</b><span>24 Jun 2026 · Razorpay</span></div><span class="ba">₹7,499</span></div>
+      <div class="bhist"><span class="bi"><svg class="i"><use href="#i-wallet"/></svg></span><div class="bm"><b>Plus membership</b><span>10 Apr 2026 · Razorpay</span></div><span class="ba">₹3,000</span></div></div>
+    <div style="height:20px"></div></div></div>`;
+}
+
+const Y=140;
+frame({x:60,  y:Y, label:'Plans', pills:[['','LIGHT']], theme:'light', screen:plans()});
+frame({x:540, y:Y, label:'Feature matrix', pills:[['','COMPARE']], theme:'light', screen:matrix()});
+frame({x:1020,y:Y, label:'Checkout', pills:[['','RAZORPAY']], theme:'light', screen:checkout()});
+frame({x:1500,y:Y, label:'Payment success', pills:[['state','SUCCESS']], theme:'light', screen:paySuccess()});
+frame({x:1980,y:Y, label:'Payment failed', pills:[['state','ERROR']], theme:'light', screen:payFailed()});
+frame({x:2460,y:Y, label:'Active member', pills:[['','VIP · BILLING']], theme:'light', screen:active()});
+frame({x:2940,y:Y, label:'Plans', pills:[['dark','DARK']], theme:'dark', statusVariant:'ondark', screen:plans()});
+
+redline(60, Y+930,'Subscription — redlines',[
+  ['Plan card','VIP/Plus = gold border + sh-gold · flags float -11px gold pill'],
+  ['Gold use','ONLY on premium flags, VIP, boost · never on Free/Basic CTAs'],
+  ['Feature matrix','4-col · VIP header in gold · check=success / x=n-300'],
+  ['Checkout','order summary · GST line · coupon · Razorpay sheet handoff'],
+]);
+redline(540, Y+930,'Payment states',[
+  ['Success','success seal scale-in spring.pop · haptic.success · receipt link'],
+  ['Failed','"no money deducted" reassurance · retry primary · alt method'],
+  ['Active','burgundy member card + days-left bar · boost CTA gold (VIP only)'],
+  ['Billing','history rows · tap → invoice PDF'],
+]);
+</script>
+</body>
+</html>

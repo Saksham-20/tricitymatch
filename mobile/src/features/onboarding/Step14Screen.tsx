@@ -70,8 +70,9 @@ export default function Step14Screen() {
     if (user) {
       setUser({ ...user, onboardingComplete: true });
     }
-    // Non-blocking final profile save
-    await saveAndNext({}, {} as any).catch(() => {});
+    // Persist the authoritative completion flag so a returning user isn't sent back
+    // through onboarding on the next cold start (non-blocking).
+    await saveAndNext({}, { onboardingComplete: true } as any).catch(() => {});
     // RootNavigator picks up onboardingComplete=true and renders MainNavigator
     navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
   };

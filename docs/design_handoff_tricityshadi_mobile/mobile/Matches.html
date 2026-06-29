@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<title>TricityShadi Mobile — Matches</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="design_doc_mode" content="canvas" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../ts-mobile.css" />
+<style>
+  body{background:#0e0f13;}
+  .canvas-title{position:absolute;left:60px;top:20px;color:#e8eaed;font-family:'Playfair Display',serif;font-size:30px;font-weight:600;}
+  .canvas-sub{position:absolute;left:60px;top:62px;color:#9aa1ad;font-size:14px;font-family:'Inter',sans-serif;}
+  .mtabs{display:flex;gap:6px;padding:6px 14px 12px;overflow-x:auto}
+  .mtabs::-webkit-scrollbar{display:none}
+  .mtabs .mt{flex:none;padding:8px 14px;border-radius:999px;font-size:13px;font-weight:600;color:var(--muted);background:var(--surface-2);border:1px solid var(--border);display:flex;align-items:center;gap:6px}
+  .mtabs .mt.on{background:var(--accent-soft);color:var(--accent);border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
+  .mtabs .mt .c{font-size:11px;font-weight:800;background:var(--accent);color:#fff;border-radius:999px;min-width:17px;height:17px;display:grid;place-items:center;padding:0 4px}
+  .mtabs .mt:not(.on) .c{background:var(--n-400)}
+  .mrow{display:flex;align-items:center;gap:13px;margin:0 18px 11px;background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:11px;box-shadow:var(--e1)}
+  .mrow .thumb{width:58px;height:58px;border-radius:50%;overflow:hidden;flex:none;position:relative}
+  .mrow .nm{flex:1;min-width:0}
+  .mrow .nm b{font-size:var(--t-callout);color:var(--fg-strong);font-weight:600;display:flex;align-items:center;gap:5px}
+  .mrow .nm b svg{width:14px;height:14px;color:var(--success)}
+  .mrow .nm p{font-size:var(--t-footnote);color:var(--muted);margin-top:2px}
+  .mrow .nm .when{font-size:11px;color:var(--accent);font-weight:600;margin-top:4px;display:inline-flex;align-items:center;gap:4px}
+  .mrow .act{width:42px;height:42px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;flex:none}
+  .mrow .act svg{width:19px;height:19px}
+  .banner{display:flex;align-items:center;gap:10px;margin:0 18px 12px;padding:11px 14px;background:var(--warning-l);border:1px solid color-mix(in srgb,var(--warning) 30%,transparent);border-radius:var(--r-md);font-size:13px;color:var(--fg-strong)}
+  .banner svg{width:18px;height:18px;color:var(--warning);flex:none}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:11px;padding:0 18px}
+  .gtile{height:180px;border-radius:var(--r-md);overflow:hidden;position:relative}
+  .gtile .scrim{position:absolute;inset:0;background:linear-gradient(to top,rgba(20,8,14,.75),transparent 55%)}
+  .gtile .nm{position:absolute;left:10px;bottom:9px;color:#fff;font-size:13px;font-weight:600;z-index:2}
+</style>
+</head>
+<body>
+<div class="canvas-title">Matches — Mutual · Shortlisted · Liked Me · My Interests</div>
+<div class="canvas-sub">4 segmented tabs · mutual-match moment · Liked-Me premium grid · cached / offline state</div>
+<script src="frame.js"></script>
+<script>
+function mtabs(active){
+  const t=[['mutual','Mutual','12'],['short','Shortlisted','8'],['liked','Liked Me','24'],['mine','My Interests','5']];
+  return `<div class="navbar largetitle" style="border:0;background:transparent;backdrop-filter:none;display:block"><h1 style="padding:0 18px">Matches</h1></div>
+  <div class="mtabs">${t.map(([k,l,c])=>`<span class="mt ${k===active?'on':''}">${l}<span class="c">${c}</span></span>`).join('')}</div>`;
+}
+function mrow(name,meta,when,glyph='i-user',verified=true){
+  return `<div class="mrow"><div class="thumb">${ph('',glyph)}</div>
+    <div class="nm"><b>${name}${verified?'<svg class="i"><use href="#i-check"/></svg>':''}</b><p>${meta}</p>
+    <span class="when"><svg class="i" style="width:12px"><use href="#i-heart"/></svg>${when}</span></div>
+    <div class="act"><svg class="i"><use href="#i-chat"/></svg></div></div>`;
+}
+function matchesMutual(){
+  return `<div class="vp"><div class="scroll" style="padding-top:6px">${mtabs('mutual')}
+    ${mrow("Aanya Sharma, 27","Software Engineer · Mohali","Matched 2 days ago")}
+    ${mrow("Simran Kaur, 26","Doctor · Chandigarh","Matched 5 days ago")}
+    ${mrow("Ishita Bansal, 28","Architect · Panchkula","Matched 1 week ago",'i-user',false)}
+    ${mrow("Priya Malhotra, 25","CA · Chandigarh","Matched 2 weeks ago")}
+  </div>${tabBar('matches',{chatBadge:'2'})}</div>`;
+}
+function matchesLiked(){
+  const names=["Neha S.","Riya C.","Aanya S.","Simran K.","Pooja R.","Kiran B."];
+  return `<div class="vp"><div class="scroll" style="padding-top:6px">${mtabs('liked')}
+    <div class="lock" style="margin:0 18px;border-radius:18px">
+      <div class="blur"><div class="grid2" style="padding:0">${names.map(n=>`<div class="gtile">${ph('','i-user')}<div class="scrim"></div><span class="nm">${n}</span></div>`).join('')}</div></div>
+      <div class="ov" style="background:color-mix(in srgb,var(--card) 55%,transparent)"><span class="lk"><svg class="i"><use href="#i-lock"/></svg></span>
+        <b>24 people liked you</b><p>See everyone who's interested with Premium</p>
+        <button class="btn btn-gold btn-sm" style="margin-top:6px">Unlock with Premium</button></div></div>
+  </div>${tabBar('matches',{chatBadge:'2'})}</div>`;
+}
+function matchesEmpty(){
+  return `<div class="vp"><div class="scroll" style="padding-top:6px">${mtabs('short')}
+    <div class="empty" style="margin-top:30px"><div class="ei"><svg class="i"><use href="#i-bookmark"/></svg></div>
+    <h3>Nothing shortlisted yet</h3><p>Tap the bookmark on any profile to save people you want to revisit.</p>
+    <button class="btn btn-secondary btn-sm"><svg class="i" style="width:16px"><use href="#i-search"/></svg>Browse profiles</button></div>
+  </div>${tabBar('matches')}</div>`;
+}
+function matchesOffline(){
+  return `<div class="vp"><div class="scroll" style="padding-top:6px">${mtabs('short')}
+    <div class="banner"><svg class="i"><use href="#i-cloud-off"/></svg>You're offline — showing your saved shortlist</div>
+    ${mrow("Aanya Sharma, 27","Software Engineer · Mohali","Shortlisted Jun 12")}
+    ${mrow("Ishita Bansal, 28","Architect · Panchkula","Shortlisted Jun 9",'i-user',false)}
+  </div>${tabBar('matches')}</div>`;
+}
+
+const Y=140;
+frame({x:60,  y:Y, label:'Matches · Mutual', pills:[['','LIGHT']], theme:'light', screen:matchesMutual()});
+frame({x:540, y:Y, label:'Matches · Liked Me', pills:[['state','GOLD LOCK']], theme:'light', screen:matchesLiked()});
+frame({x:1020,y:Y, label:'Matches · Shortlisted', pills:[['state','EMPTY']], theme:'light', screen:matchesEmpty()});
+frame({x:1500,y:Y, label:'Matches · Offline', pills:[['state','CACHED']], theme:'light', screen:matchesOffline()});
+frame({x:1980,y:Y, label:'Matches · Mutual', pills:[['dark','DARK']], theme:'dark', statusVariant:'ondark', screen:matchesMutual()});
+
+redline(60, Y+930,'Matches — redlines',[
+  ['Tabs','4 segmented pills · count badge · swipe between tabs · haptic.light'],
+  ['Match row','photo 58 circle · "Matched Nd ago" accent · message FAB-style 42'],
+  ['Mutual moment','first reveal → seal celebration overlay · spring.pop · haptic.success'],
+  ['Liked Me','blurred 2-col grid + gold lock · count headline · CTA Subscription'],
+  ['Offline','warning banner · cached shortlist served from local store'],
+]);
+</script>
+</body>
+</html>

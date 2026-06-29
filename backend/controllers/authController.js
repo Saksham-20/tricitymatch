@@ -37,12 +37,10 @@ const withDerivedUserFields = async (userInstance) => {
   });
   user.subscriptionPlan = activeSub?.planType || 'free';
   const profile = user.Profile;
-  // gender/dateOfBirth carry NOT-NULL placeholder defaults from signup, so they
-  // can't signal onboarding state. firstName is empty ('') until onboarding Step 1
-  // captures the real name (web sends it at signup), so it's the reliable gate.
-  user.onboardingComplete = Boolean(
-    profile && profile.firstName && profile.gender && profile.dateOfBirth
-  );
+  // Authoritative flag persisted on the profile: set at signup for web (full profile
+  // collected first), at the end of onboarding Step 14 for mobile. The migration
+  // backfilled every pre-existing row to true, so the column is always populated.
+  user.onboardingComplete = Boolean(profile && profile.onboardingComplete);
   return user;
 };
 
@@ -152,18 +150,19 @@ exports.signup = asyncHandler(async (req, res) => {
         ...(referralData && referralData)
       }, { transaction: t });
 
-      // gender/dateOfBirth columns are NOT NULL at the DB level, so they keep their
-      // placeholder defaults when a mobile account signs up with just email+password.
-      // The onboarding gate therefore keys off firstName (empty until onboarding
-      // Step 1) rather than gender/dob — see withDerivedUserFields.
-      const profileDateOfBirth = dateOfBirth ? new Date(dateOfBirth) : new Date('2000-01-01');
+      // Leave gender/dateOfBirth NULL when not supplied so a mobile account
+      // (email+password only) doesn't pre-fill onboarding Step 1 with placeholders.
+      // Web sends the full profile at signup, so it's onboarded immediately.
+      const profileDateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
+      const onboardedAtSignup = Boolean(firstName && gender && dateOfBirth);
       await Profile.create({
         userId: user.id,
         // Name is optional at signup; Profile.firstName/lastName are NOT NULL → '' .
         firstName: firstName || '',
         lastName: lastName || '',
-        gender: gender || 'other',
-        dateOfBirth: profileDateOfBirth
+        gender: gender || null,
+        dateOfBirth: profileDateOfBirth,
+        onboardingComplete: onboardedAtSignup
       }, { transaction: t });
 
       // If referral code used, increment usage count and create marketing lead

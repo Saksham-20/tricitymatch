@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<title>TricityShadi — Mobile Design System</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="ts-mobile.css" />
+<style>
+  body{background:var(--bg);}
+  .harness{position:sticky;top:0;z-index:80;display:flex;align-items:center;gap:14px;padding:12px 22px;
+    background:color-mix(in srgb,var(--card) 88%,transparent);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);}
+  .harness .brand{display:flex;align-items:center;gap:9px;font-family:'Playfair Display',serif;font-weight:600;font-size:18px;color:var(--fg-strong);}
+  .harness .brand .mk{width:32px;height:32px;border-radius:9px;background:var(--p-500);color:#fff;display:grid;place-items:center;font-weight:700;font-size:14px;}
+  html[data-theme="dark"] .harness .brand .mk{background:var(--accent);}
+  .harness .spacer{flex:1;}
+  .seg.h button{padding:7px 13px;font-size:13px;display:flex;align-items:center;gap:5px;}
+  .seg.h button svg{width:15px;height:15px;}
+  .wrap{max-width:1080px;margin:0 auto;padding:40px 28px 120px;}
+  .doc-hero{margin-bottom:44px;}
+  .doc-hero .kick{font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:9px;}
+  .doc-hero .kick::before{content:"";width:26px;height:2px;background:var(--g-500);border-radius:2px;}
+  .doc-hero h1{font-family:'Playfair Display',serif;font-size:clamp(34px,5vw,52px);font-weight:700;color:var(--fg-strong);line-height:1.04;}
+  .doc-hero p{max-width:62ch;margin-top:14px;color:var(--muted);font-size:17px;line-height:1.6;}
+  section.block{margin-top:56px;}
+  .blabel{display:flex;align-items:center;gap:11px;margin-bottom:22px;}
+  .blabel .n{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent);font-weight:600;}
+  .blabel h2{font-family:'Playfair Display',serif;font-size:27px;font-weight:600;color:var(--fg-strong);}
+  .blabel .tick{width:3px;height:24px;background:var(--accent);border-radius:3px;}
+  .blabel.gold .tick{background:var(--g-500);}
+  .grid{display:grid;gap:16px;}
+  .panel{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:24px;box-shadow:var(--e1);}
+  .panel h3{font-size:14px;font-weight:700;color:var(--fg-strong);letter-spacing:.03em;text-transform:uppercase;margin-bottom:16px;}
+  .lead{color:var(--muted);font-size:14px;line-height:1.6;margin-bottom:18px;max-width:64ch;}
+
+  /* swatches */
+  .ramp{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
+  .ramp.g3{grid-template-columns:repeat(7,1fr);}
+  .sw{border-radius:11px;overflow:hidden;border:1px solid var(--border);background:var(--card);}
+  .sw .chip{height:56px;}
+  .sw .meta{padding:7px 9px;}
+  .sw .meta b{font-size:11px;font-weight:600;color:var(--fg-strong);display:block;}
+  .sw .meta span{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);}
+  .usebar{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;}
+  .userule{display:flex;align-items:flex-start;gap:9px;font-size:13px;color:var(--fg);background:var(--surface-2);border:1px solid var(--border);border-radius:11px;padding:11px 13px;flex:1;min-width:230px;}
+  .userule .d{width:14px;height:14px;border-radius:4px;flex:none;margin-top:1px;}
+  .userule b{color:var(--fg-strong);}
+
+  /* type */
+  .typerow{display:flex;align-items:baseline;gap:20px;padding:13px 0;border-top:1px solid var(--hairline);}
+  .typerow:first-child{border-top:0;}
+  .typerow .spec{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);width:150px;flex:none;line-height:1.5;}
+  .typerow .spec b{color:var(--accent);display:block;font-size:12px;}
+
+  /* component demo cells */
+  .cells{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;}
+  .cell{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:var(--e1);}
+  .cell .ct{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:14px;}
+  .cell .demo{display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+  .stack{display:flex;flex-direction:column;gap:10px;align-items:flex-start;}
+
+  /* motion table */
+  .mtable{width:100%;border-collapse:collapse;font-size:13px;}
+  .mtable th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:8px 12px;border-bottom:1px solid var(--border);}
+  .mtable td{padding:11px 12px;border-bottom:1px solid var(--hairline);color:var(--fg);vertical-align:top;}
+  .mtable td code,.mono-tag{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent);background:var(--accent-soft);padding:2px 7px;border-radius:6px;}
+  .mtable td .g{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--g-600);background:var(--gold-soft);padding:2px 7px;border-radius:6px;}
+
+  .idiom{display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start;}
+  .idiom .notes{flex:1;min-width:260px;}
+  .annot{display:flex;gap:11px;padding:12px 0;border-top:1px solid var(--hairline);}
+  .annot:first-child{border-top:0;}
+  .annot .num{width:22px;height:22px;border-radius:7px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700;display:grid;place-items:center;flex:none;}
+  .annot b{color:var(--fg-strong);font-size:14px;}
+  .annot p{color:var(--muted);font-size:13px;line-height:1.5;margin-top:2px;}
+
+  .iconset{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:6px;}
+  .ig{display:flex;flex-direction:column;align-items:center;gap:7px;padding:15px 6px;border-radius:12px;background:var(--surface-2);border:1px solid var(--border);}
+  .ig svg{width:24px;height:24px;color:var(--fg-strong);}
+  .ig span{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);}
+  .like-demo{width:46px;height:46px;border-radius:50%;background:var(--surface-2);border:1px solid var(--border);display:grid;place-items:center;cursor:pointer;color:var(--muted);}
+  .like-demo.on{color:var(--p-500);}
+  .like-demo svg{width:24px;height:24px;}
+  .like-demo.pop{animation:pop var(--dur-base) var(--spring);}
+  @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.32)}100%{transform:scale(1)}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<g id="i-home"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></g>
+<g id="i-search"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></g>
+<g id="i-heart"><path d="M12 20s-7-4.6-9.3-9C1.2 8.3 2.5 5 5.8 5 8 5 9.4 6.4 12 9c2.6-2.6 4-4 6.2-4 3.3 0 4.6 3.3 3.1 6-2.3 4.4-9.3 9-9.3 9z"/></g>
+<g id="i-chat"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L3 21l1.1-5.4A8.4 8.4 0 1 1 21 11.5z"/></g>
+<g id="i-user"><circle cx="12" cy="8" r="4"/><path d="M5 21v-1a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v1"/></g>
+<g id="i-bell"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></g>
+<g id="i-filter"><line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/></g>
+<g id="i-shield"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></g>
+<g id="i-check"><polyline points="20 6 9 17 4 12"/></g>
+<g id="i-lock"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></g>
+<g id="i-star"><polygon points="12 3 14.6 8.6 20.5 9.3 16 13.3 17.3 19.2 12 16.1 6.7 19.2 8 13.3 3.5 9.3 9.4 8.6"/></g>
+<g id="i-phone"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.4-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></g>
+<g id="i-video"><rect x="2" y="6" width="14" height="12" rx="2.5"/><path d="m16 10 6-3.5v11L16 14"/></g>
+<g id="i-x"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></g>
+<g id="i-plus"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></g>
+<g id="i-back"><polyline points="15 18 9 12 15 6"/></g>
+<g id="i-bookmark"><path d="M6 4h12v17l-6-4-6 4z"/></g>
+<g id="i-sliders"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></g>
+<g id="i-mic"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></g>
+<g id="i-camera"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3l2-3h8l2 3h3a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></g>
+<g id="i-gear"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.82 1.17V21a2 2 0 0 1-4 0v-.18a1.65 1.65 0 0 0-2.82-1.17l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 13H4a2 2 0 0 1 0-4h.18a1.65 1.65 0 0 0 1.17-2.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 11 4.6V4a2 2 0 0 1 4 0v.18a1.65 1.65 0 0 0 2.82 1.17l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 11H21a2 2 0 0 1 0 4z"/></g>
+<g id="i-wifi"><path d="M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.5" r="1" fill="currentColor" stroke="none"/></g>
+<g id="i-sun"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.4 1.4M17.6 17.6 19 19M19 5l-1.4 1.4M6.4 17.6 5 19"/></g>
+<g id="i-moon"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></g>
+<g id="i-elder"><circle cx="12" cy="6" r="3"/><path d="M9 22v-6l-2-3 3-2h4l3 2-2 3v6"/></g>
+<g id="i-ring"><circle cx="12" cy="12" r="8"/><path d="M9.5 4 12 1l2.5 3"/></g>
+<g id="i-cake"><path d="M4 21h16v-7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3z"/><path d="M4 16c1.5 1.3 2.5 1.3 4 0s2.5-1.3 4 0 2.5 1.3 4 0 2.5-1.3 4 0"/><path d="M12 8V5M9 8V6M15 8V6"/></g>
+</defs></svg>
+
+<div class="harness">
+  <div class="brand"><span class="mk">TS</span>Mobile Design System</div>
+  <span class="spacer"></span>
+  <div class="seg h"><button id="th-l" aria-selected="true" onclick="setTh('light')"><svg class="i"><use href="#i-sun"/></svg>Light</button><button id="th-d" aria-selected="false" onclick="setTh('dark')"><svg class="i"><use href="#i-moon"/></svg>Dark</button></div>
+  <div class="seg h"><button id="el-off" aria-selected="true" onclick="setEl(false)">Standard</button><button id="el-on" aria-selected="false" onclick="setEl(true)"><svg class="i"><use href="#i-elder"/></svg>Elder</button></div>
+  <a class="btn btn-sm btn-secondary" href="Mobile Index.html">All screens →</a>
+</div>
+
+<div class="wrap">
+  <div class="doc-hero">
+    <div class="kick">React Native · Expo SDK 51 · iOS + Android</div>
+    <h1>The native system<br>behind TricityShadi.</h1>
+    <p>The web brand, translated into native idioms — bottom tabs, sheets, haptics, platform back. Burgundy stays an accent, gold means premium, Playfair carries the premium voice. Every token here maps 1:1 to the web system so both platforms read as one product.</p>
+  </div>
+
+  <!-- COLOR -->
+  <section class="block">
+    <div class="blabel"><span class="tick"></span><span class="n">01</span><h2>Color &amp; usage rules</h2></div>
+    <div class="grid" style="grid-template-columns:1fr">
+      <div class="panel">
+        <h3>Burgundy — primary accent</h3>
+        <p class="lead">The brand voice. Used for borders, ticks, active states, links and the primary CTA. <b>Never</b> flat-filled across large areas — it's a signal, not a wallpaper.</p>
+        <div class="ramp" id="ramp-p"></div>
+      </div>
+      <div class="panel">
+        <h3>Gold — premium signal only</h3>
+        <p class="lead">Reserved exclusively for VIP, locks, "Most Popular" and boost. If it isn't about money or status, it isn't gold.</p>
+        <div class="ramp g3" id="ramp-g"></div>
+      </div>
+      <div class="panel">
+        <h3>Neutrals &amp; semantic</h3>
+        <p class="lead">Warm-grey surfaces carry the UI. One muted info style — no rainbow of colored callouts.</p>
+        <div class="ramp g3" id="ramp-n"></div>
+        <div class="usebar">
+          <div class="userule"><span class="d" style="background:var(--success)"></span><div><b>Success</b> · verified, sent, accepted</div></div>
+          <div class="userule"><span class="d" style="background:var(--info)"></span><div><b>Info</b> · the one neutral notice panel</div></div>
+          <div class="userule"><span class="d" style="background:var(--warning)"></span><div><b>Warning</b> · manglik, dosha, expiry</div></div>
+          <div class="userule"><span class="d" style="background:var(--destructive)"></span><div><b>Error</b> · failures, block, delete</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TYPE -->
+  <section class="block">
+    <div class="blabel"><span class="tick"></span><span class="n">02</span><h2>Type scale</h2></div>
+    <div class="panel">
+      <p class="lead">Playfair Display for premium headings, Inter for everything functional. Sizes are React-Native points; line-heights are fixed (RN has no unitless line-height). Elder mode bumps the body ramp — toggle it in the harness to preview.</p>
+      <div class="typerow"><div class="spec"><b>Display</b>Playfair 700<br>34 / 40</div><div class="serif" style="font-size:var(--t-display);line-height:var(--lh-display);font-weight:700">Find your person</div></div>
+      <div class="typerow"><div class="spec"><b>Title 1</b>Playfair 600<br>28 / 34</div><div class="serif" style="font-size:var(--t-title1);line-height:var(--lh-title1);font-weight:600">Today's matches</div></div>
+      <div class="typerow"><div class="spec"><b>Title 2</b>Playfair 600<br>22 / 28</div><div class="serif" style="font-size:var(--t-title2);line-height:var(--lh-title2);font-weight:600">Aanya Sharma, 27</div></div>
+      <div class="typerow"><div class="spec"><b>Title 3</b>Inter 600<br>20 / 25</div><div style="font-size:var(--t-title3);line-height:var(--lh-title3);font-weight:600;color:var(--fg-strong)">Family &amp; background</div></div>
+      <div class="typerow"><div class="spec"><b>Headline</b>Inter 600<br>17 / 22</div><div style="font-size:var(--t-headline);font-weight:600;color:var(--fg-strong)">Software Engineer · Mohali</div></div>
+      <div class="typerow"><div class="spec"><b>Body</b>Inter 400<br>17 / 23</div><div style="font-size:var(--t-body);line-height:var(--lh-body)">A warm, family-rooted person who values honesty and ambition in equal measure.</div></div>
+      <div class="typerow"><div class="spec"><b>Subhead</b>Inter 500<br>15 / 20</div><div style="font-size:var(--t-subhead);font-weight:500">87% compatibility · 28 guna match</div></div>
+      <div class="typerow"><div class="spec"><b>Footnote</b>Inter 400<br>13 / 18</div><div style="font-size:var(--t-footnote);color:var(--muted)">Last active 2 hours ago · Chandigarh</div></div>
+      <div class="typerow"><div class="spec"><b>Caption</b>Inter 600<br>12 / 16</div><div style="font-size:var(--t-caption);font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">VERIFIED PROFILE</div></div>
+    </div>
+  </section>
+
+  <!-- NATIVE IDIOMS -->
+  <section class="block">
+    <div class="blabel"><span class="tick"></span><span class="n">03</span><h2>Native idioms — not a web port</h2></div>
+    <div class="panel">
+      <div class="idiom">
+        <div style="transform:scale(.82);transform-origin:top left;margin-bottom:-150px;">
+          <div class="ios">
+            <div class="island"></div>
+            <div class="screen">
+              <div class="statusbar"><span>9:41</span><span class="right"><svg class="fi" viewBox="0 0 24 24"><path d="M2 16h3v4H2zM7 12h3v8H7zM12 8h3v12h-3zM17 4h3v16h-3z"/></svg><svg class="i"><use href="#i-wifi"/></svg><svg class="fi" viewBox="0 0 26 14"><rect x="1" y="2" width="20" height="10" rx="3" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="4" width="14" height="6" rx="1.5"/><rect x="22.5" y="5" width="2" height="4" rx="1"/></svg></span></div>
+              <div class="navbar"><span class="nb-btn"><svg class="i"><use href="#i-back"/></svg></span><span class="nb-title">Profile</span><span class="spacer"></span><span class="nb-btn"><svg class="i"><use href="#i-bell"/></svg></span></div>
+              <div class="largetitle"><h1>Good evening, Rohan</h1><div class="sub">3 new matches waiting</div></div>
+              <div class="vp"><div class="scroll" style="padding:8px 18px">
+                <div class="card" style="padding:16px;display:flex;gap:13px;align-items:center">
+                  <div class="av" style="width:48px;height:48px;font-size:18px">RK</div>
+                  <div style="flex:1"><div style="font-weight:600;color:var(--fg-strong)">Profile 78% complete</div><div style="font-size:13px;color:var(--muted)">Add 2 photos to reach 90%</div></div>
+                  <svg class="i" style="color:var(--n-400)"><use href="#i-back"/></svg>
+                </div>
+              </div></div>
+              <div class="tabbar">
+                <a class="tab on"><svg class="i"><use href="#i-home"/></svg><span>Home</span></a>
+                <a class="tab"><svg class="i"><use href="#i-search"/></svg><span>Search</span></a>
+                <a class="tab"><svg class="i"><use href="#i-heart"/></svg><span>Matches</span></a>
+                <a class="tab"><svg class="i"><use href="#i-chat"/></svg><span>Chat</span><span class="badge-dot">2</span></a>
+                <a class="tab"><svg class="i"><use href="#i-user"/></svg><span>Profile</span></a>
+              </div>
+              <div class="homebar"></div>
+            </div>
+          </div>
+        </div>
+        <div class="notes">
+          <div class="annot"><span class="num">1</span><div><b>Status bar + Dynamic Island</b><p>Real iOS chrome at 54pt. Status content flips white over photos and dark call screens via <span class="mono-tag">.onphoto</span>.</p></div></div>
+          <div class="annot"><span class="num">2</span><div><b>Blurred nav bar</b><p>Translucent, hairline border, back chevron left + 17pt title. Large-title style for tab roots; compact on push.</p></div></div>
+          <div class="annot"><span class="num">3</span><div><b>Bottom tabs · 5</b><p>Home · Search · Matches · Chat · Profile. Active tint = burgundy. <b>Elder mode hides the Chat tab</b> — the bar reflows to 4.</p></div></div>
+          <div class="annot"><span class="num">4</span><div><b>Gestures &amp; haptics</b><p>Swipe-back, long-press action reveal, pull-to-refresh, sheet snap points. Web hover states become press + haptic.</p></div></div>
+          <div class="annot"><span class="num">5</span><div><b>Home indicator</b><p>Reserved 24pt safe area at the bottom of every scroll region so content never sits under the indicator.</p></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPONENTS -->
+  <section class="block">
+    <div class="blabel"><span class="tick"></span><span class="n">04</span><h2>Component library</h2></div>
+    <div class="cells">
+      <div class="cell"><div class="ct">Buttons</div><div class="stack" style="width:100%">
+        <button class="btn btn-primary block">Send interest</button>
+        <button class="btn btn-gold block"><svg class="i"><use href="#i-lock"/></svg>Upgrade to VIP</button>
+        <button class="btn btn-secondary block">Shortlist</button>
+        <div style="display:flex;gap:8px;width:100%"><button class="btn btn-ghost btn-sm" style="flex:1">Skip</button><button class="btn btn-primary btn-sm" style="flex:1"><span class="spin"></span>Saving</button></div>
+      </div></div>
+
+      <div class="cell"><div class="ct">Avatar + verify</div><div class="demo">
+        <div class="av" style="width:56px;height:56px;font-size:21px">AS<span class="vbadge"><svg class="i"><use href="#i-check"/></svg></span></div>
+        <div class="av sq" style="width:56px;height:56px;font-size:21px">RK</div>
+        <div class="av" style="width:40px;height:40px;font-size:15px">MK</div>
+        <div class="av" style="width:32px;height:32px;font-size:12px">PB</div>
+      </div></div>
+
+      <div class="cell"><div class="ct">Badges</div><div class="demo">
+        <span class="badge b-verified"><svg class="i"><use href="#i-check"/></svg>Verified</span>
+        <span class="badge b-premium"><svg class="i"><use href="#i-star"/></svg>Premium</span>
+        <span class="badge b-vip">VIP</span>
+        <span class="badge b-new">New</span>
+        <span class="b-online"><span class="dot"></span>Online</span>
+      </div></div>
+
+      <div class="cell"><div class="ct">Filter chips</div><div class="demo">
+        <span class="chip on"><svg class="i"><use href="#i-check"/></svg>Verified</span>
+        <span class="chip">Mohali</span>
+        <span class="chip">26–32</span>
+        <span class="chip">Khatri</span>
+      </div></div>
+
+      <div class="cell"><div class="ct">Like / shortlist · tap me</div><div class="demo" style="gap:16px">
+        <div class="like-demo" id="likeBtn" onclick="likePop()"><svg class="i" id="likeIcon"><use href="#i-heart"/></svg></div>
+        <div class="like-demo on"><svg class="fi"><use href="#i-bookmark"/></svg></div>
+        <div style="font-size:12px;color:var(--muted)">fill + scale-pop<br>+ success haptic</div>
+      </div></div>
+
+      <div class="cell"><div class="ct">Compatibility ring</div><div class="demo" style="gap:18px">
+        <div class="compat-ring" style="--v:87"><div class="inner"><b>87%</b><s>MATCH</s></div></div>
+        <div class="compat-ring" style="--v:64;--sz:54px"><div class="inner"><b style="font-size:13px">64%</b></div></div>
+      </div></div>
+
+      <div class="cell" style="grid-column:span 2"><div class="ct">Ashtakoot guna bars</div>
+        <div class="guna" id="gunaDemo">
+          <div class="g"><span class="gl">Bhakoot</span><span class="gt"><i style="width:100%"></i></span><span class="gv">7/7</span></div>
+          <div class="g"><span class="gl">Gana</span><span class="gt"><i style="width:83%"></i></span><span class="gv">5/6</span></div>
+          <div class="g warn"><span class="gl">Nadi</span><span class="gt"><i style="width:0%"></i></span><span class="gv">0/8</span></div>
+        </div>
+      </div>
+
+      <div class="cell"><div class="ct">Completion ring · 10-tick</div><div class="demo" style="justify-content:center">
+        <div class="cring" id="cringDemo">
+          <svg viewBox="0 0 88 88">
+            <circle cx="44" cy="44" r="38" fill="none" stroke="var(--surface-2)" stroke-width="7"/>
+            <circle id="cringArc" cx="44" cy="44" r="38" fill="none" stroke="var(--p-500)" stroke-width="7" stroke-linecap="round" stroke-dasharray="239" stroke-dashoffset="60"/>
+          </svg>
+          <div class="ct"><b>78%</b><s>Complete</s></div>
+        </div>
+      </div></div>
+
+      <div class="cell"><div class="ct">Segmented + tabs</div><div class="stack" style="width:100%">
+        <div class="seg" style="width:100%"><button aria-selected="true">Mutual</button><button>Shortlisted</button><button>Liked me</button></div>
+        <div class="tabs" style="width:100%;border:0;padding:0"><button aria-selected="true">About</button><button>Family</button><button>Lifestyle</button></div>
+      </div></div>
+
+      <div class="cell"><div class="ct">OTP + password</div><div class="stack" style="width:100%">
+        <div class="otp"><span class="box filled">4</span><span class="box filled">2</span><span class="box on"></span><span class="box"></span><span class="box"></span><span class="box"></span></div>
+        <div style="width:100%"><div class="pwbar"><i class="on3"></i><i class="on3"></i><i class="on3"></i><i></i></div><div style="font-size:12px;color:var(--g-600);margin-top:6px;font-weight:600">Strong</div></div>
+      </div></div>
+
+      <div class="cell"><div class="ct">Switch · settings</div><div class="stack" style="width:100%">
+        <div style="display:flex;justify-content:space-between;align-items:center;width:100%"><span style="font-size:14px;color:var(--fg-strong)">Show online status</span><span class="switch on"></span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;width:100%"><span style="font-size:14px;color:var(--fg-strong)">Incognito mode</span><span class="switch"></span></div>
+      </div></div>
+
+      <div class="cell"><div class="ct">Skeleton · shimmer</div><div class="stack" style="width:100%">
+        <div style="display:flex;gap:11px;align-items:center;width:100%"><div class="sk" style="width:46px;height:46px;border-radius:50%"></div><div style="flex:1"><div class="sk" style="height:13px;width:70%"></div><div class="sk" style="height:11px;width:45%;margin-top:7px"></div></div></div>
+        <div class="sk" style="height:11px;width:100%"></div><div class="sk" style="height:11px;width:85%"></div>
+      </div></div>
+
+      <div class="cell"><div class="ct">Toast</div><div class="stack" style="width:100%;gap:10px">
+        <div class="toast ok" style="position:static"><svg class="i ti"><use href="#i-check"/></svg>Interest sent to Aanya</div>
+        <div class="toast err" style="position:static"><svg class="i ti"><use href="#i-x"/></svg>Couldn't connect. Retry</div>
+      </div></div>
+
+      <div class="cell" style="grid-column:span 2"><div class="ct">Profile card — the reusable result</div>
+        <div class="pcard" style="height:240px;max-width:200px;margin:0 auto">
+          <div class="photo ph" data-label="profile photo"><span class="glyph"><svg class="i"><use href="#i-user"/></svg></span></div>
+          <div class="scrim"></div>
+          <div class="pc-top"><span class="badge b-verified" style="background:rgba(46,125,50,.92);color:#fff;border:0"><svg class="i"><use href="#i-check"/></svg>Verified</span><span class="like-demo" style="width:34px;height:34px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);color:#fff"><svg class="i" style="width:18px;height:18px"><use href="#i-heart"/></svg></span></div>
+          <div class="pc-body"><div class="pc-name">Aanya S., 27</div><div class="pc-meta">Software Engineer · Mohali</div><span class="pc-compat"><span class="mk"></span>87% match</span></div>
+        </div>
+      </div>
+
+      <div class="cell"><div class="ct">Empty state</div>
+        <div class="empty" style="padding:18px 6px"><div class="ei"><svg class="i"><use href="#i-heart"/></svg></div><h3>No matches yet</h3><p style="font-size:13px">Widen your preferences to see more people.</p><button class="btn btn-secondary btn-sm">Edit preferences</button></div>
+      </div>
+
+      <div class="cell"><div class="ct">Error state</div>
+        <div class="empty error" style="padding:18px 6px"><div class="ei"><svg class="i"><use href="#i-x"/></svg></div><h3>Something broke</h3><p style="font-size:13px">We couldn't load this. Check your connection.</p><button class="btn btn-primary btn-sm">Retry</button></div>
+      </div>
+
+      <div class="cell"><div class="ct">Gold lock · premium</div>
+        <div class="lock" style="height:150px">
+          <div class="blur" style="height:100%"><div class="ph" style="height:100%" data-label=""></div></div>
+          <div class="ov"><span class="lk"><svg class="i"><use href="#i-lock"/></svg></span><b>Unlock contact</b><p>See phone &amp; horoscope with Premium</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ICONOGRAPHY -->
+  <section class="block">
+    <div class="blabel"><span class="tick"></span><span class="n">05</span><h2>Iconography</h2></div>
+    <div class="panel">
+      <p class="lead">A single line icon set (Ionicons family in build) at 1.9px stroke, 24pt default. <b>No emoji, no ✓/✦-as-text</b> — icons only. Filled variants signal active state (heart, bookmark).</p>
+      <div class="iconset">
+        <div class="ig"><svg class="i"><use href="#i-home"/></svg><span>home</span></div>
+        <div class="ig"><svg class="i"><use href="#i-search"/></svg><span>search</span></div>
+        <div class="ig"><svg class="i"><use href="#i-heart"/></svg><span>heart</span></div>
+        <div class="ig"><svg class="i"><use href="#i-chat"/></svg><span>chat</span></div>
+        <div class="ig"><svg class="i"><use href="#i-user"/></svg><span>person</span></div>
+        <div class="ig"><svg class="i"><use href="#i-bell"/></svg><span>bell</span></div>
+        <div class="ig"><svg class="i"><use href="#i-filter"/></svg><span>filter</span></div>
+        <div class="ig"><svg class="i"><use href="#i-sliders"/></svg><span>sliders</span></div>
+        <div class="ig"><svg class="i"><use href="#i-shield"/></svg><span>shield</span></div>
+        <div class="ig"><svg class="i"><use href="#i-lock"/></svg><span>lock</span></div>
+        <div class="ig"><svg class="i"><use href="#i-star"/></svg><span>star</span></div>
+        <div class="ig"><svg class="i"><use href="#i-bookmark"/></svg><span>bookmark</span></div>
+        <div class="ig"><svg class="i"><use href="#i-phone"/></svg><span>call</span></div>
+        <div class="ig"><svg class="i"><use href="#i-video"/></svg><span>video</span></div>
+        <div class="ig"><svg class="i"><use href="#i-mic"/></svg><span>mic</span></div>
+        <div class="ig"><svg class="i"><use href="#i-camera"/></svg><span>camera</span></div>
+        <div class="ig"><svg class="i"><use href="#i-ring"/></svg><span>horoscope</span></div>
+        <div class="ig"><svg class="i"><use href="#i-gear"/></svg><span>settings</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MOTION -->
+  <section class="block">
+    <div class="blabel gold"><span class="tick"></span><span class="n">06</span><h2>Motion &amp; haptic tokens</h2></div>
+    <div class="panel">
+      <p class="lead">Reanimated-buildable. Three durations, three curves, one spring, a fixed haptic map. Every interaction in the redlines references these names.</p>
+      <table class="mtable">
+        <thead><tr><th>Token</th><th>Value</th><th>Used for</th></tr></thead>
+        <tbody>
+          <tr><td><code>dur.fast 120ms</code></td><td>ease-std</td><td>Press scale, tab tint, chip toggle</td></tr>
+          <tr><td><code>dur.base 240ms</code></td><td>ease-std</td><td>Sheet fade, screen content, toast</td></tr>
+          <tr><td><code>dur.slow 360ms</code></td><td>ease-out</td><td>Ring fill, guna bars, skeleton → content</td></tr>
+          <tr><td><code>spring.pop</code></td><td>stiffness 380 · damping 18</td><td>Like/shortlist pop, match seal</td></tr>
+          <tr><td><code>spring.sheet</code></td><td>stiffness 240 · damping 28</td><td>Bottom-sheet open/snap</td></tr>
+          <tr><td><span class="g">haptic.light</span></td><td>selectionAsync</td><td>Tab switch, chip, segmented</td></tr>
+          <tr><td><span class="g">haptic.success</span></td><td>notification(Success)</td><td>Interest sent, mutual match, payment</td></tr>
+          <tr><td><span class="g">haptic.warning</span></td><td>notification(Warning)</td><td>Form error shake, 429 lockout</td></tr>
+          <tr><td><span class="g">haptic.medium</span></td><td>impact(Medium)</td><td>Long-press reveal, incoming call</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <p style="margin-top:64px;font-size:13px;color:var(--muted);border-left:3px solid var(--g-500);padding:14px 16px;background:var(--surface-2);border-radius:0 10px 10px 0;max-width:70ch">
+    <b style="color:var(--fg-strong)">Handoff.</b> These tokens live in <span class="mono-tag">ts-mobile.css</span> and map to the Expo theme. Every screen canvas (<a href="Mobile Index.html" style="color:var(--accent);font-weight:600">see all →</a>) carries redline cards with token names, spacing in pt, and the motion/haptic per interaction — buildable directly in Reanimated + react-navigation.
+  </p>
+</div>
+
+<script>
+  const P=[['50','#FDF2F5'],['100','#F8E8EC'],['300','#E5A3B8'],['500','#8B2346'],['700','#55172E']];
+  const G=[['100','#FDF6E3'],['200','#F9EABC'],['300','#F2D88A'],['400','#E8C34A'],['500','#C9A227'],['600','#B8941F'],['700','#96781A']];
+  const N=[['50','#FAFAFA'],['100','#F5F5F5'],['200','#E8E8E8'],['400','#A3A3A3'],['600','#5A5A5A'],['800','#2D2D2D'],['900','#1A1A1A']];
+  const mk=(arr,pre,el)=>{el.innerHTML=arr.map(([k,v])=>`<div class="sw"><div class="chip" style="background:${v}"></div><div class="meta"><b>${pre}-${k}</b><span>${v}</span></div></div>`).join('');};
+  mk(P,'p',document.getElementById('ramp-p'));mk(G,'g',document.getElementById('ramp-g'));mk(N,'n',document.getElementById('ramp-n'));
+
+  function setTh(t){document.documentElement.setAttribute('data-theme',t);
+    document.getElementById('th-l').setAttribute('aria-selected',t==='light');
+    document.getElementById('th-d').setAttribute('aria-selected',t==='dark');}
+  function setEl(on){document.documentElement.setAttribute('data-elder',on?'on':'off');
+    document.getElementById('el-on').setAttribute('aria-selected',on);
+    document.getElementById('el-off').setAttribute('aria-selected',!on);}
+  function likePop(){const b=document.getElementById('likeBtn');b.classList.toggle('on');
+    document.getElementById('likeIcon').firstElementChild.setAttribute('href',b.classList.contains('on')?'#i-heart':'#i-heart');
+    document.getElementById('likeIcon').classList.toggle('fi',b.classList.contains('on'));
+    document.getElementById('likeIcon').classList.toggle('i',!b.classList.contains('on'));
+    b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop');}
+
+  // animate guna + ring on view
+  const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){
+    if(e.target.id==='gunaDemo'){e.target.querySelectorAll('i').forEach((i)=>{const w=i.style.width;i.style.width='0';requestAnimationFrame(()=>{i.style.width=w;});});}
+    if(e.target.id==='cringDemo'){const a=document.getElementById('cringArc');a.style.transition='none';a.style.strokeDashoffset='239';requestAnimationFrame(()=>{a.style.transition='stroke-dashoffset .9s cubic-bezier(0,0,.2,1)';a.style.strokeDashoffset='60';});}
+    io.unobserve(e.target);}});},{threshold:.4});
+  [document.getElementById('gunaDemo'),document.getElementById('cringDemo')].forEach(el=>io.observe(el));
+</script>
+</body>
+</html>

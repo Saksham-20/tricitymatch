@@ -176,6 +176,7 @@ exports.updateProfile = asyncHandler(async (req, res) => {
     'bio', 'showPhone', 'showEmail', 'interestTags', 'profilePrompts',
     'spotifyPlaylist', 'socialMediaLinks', 'personalityType', 'languages',
     'incognitoMode', 'photoBlurUntilMatch', 'quizAnswers',
+    'onboardingComplete',
   ];
 
   // Use transaction for data consistency

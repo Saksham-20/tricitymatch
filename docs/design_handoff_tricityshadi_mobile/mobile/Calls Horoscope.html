@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<title>TricityShadi Mobile — Calls &amp; Horoscope</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="design_doc_mode" content="canvas" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../ts-mobile.css" />
+<style>
+  body{background:#0e0f13;}
+  .canvas-title{position:absolute;left:60px;top:20px;color:#e8eaed;font-family:'Playfair Display',serif;font-size:30px;font-weight:600;}
+  .canvas-sub{position:absolute;left:60px;top:62px;color:#9aa1ad;font-size:14px;font-family:'Inter',sans-serif;}
+  /* navy call surface */
+  .call{position:absolute;inset:0;background:linear-gradient(170deg,#141a2e 0%,#0c1020 60%,#0a0d18 100%);display:flex;flex-direction:column;align-items:center;color:#fff;z-index:1}
+  .call .top{padding-top:64px;text-align:center}
+  .call .label{font-size:13px;color:#8b96b5;letter-spacing:.08em;text-transform:uppercase}
+  .call .nm{font-family:'Playfair Display',serif;font-size:30px;font-weight:600;margin-top:8px}
+  .call .meta{font-size:14px;color:#aeb6cf;margin-top:6px}
+  .call .pavatar{width:128px;height:128px;border-radius:50%;background:linear-gradient(135deg,var(--p-400),var(--p-600));display:grid;place-items:center;font-family:'Playfair Display',serif;font-size:46px;font-weight:600;margin:40px auto 0;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+  .call .pavatar.ring::before,.call .pavatar.ring::after{content:"";position:absolute;inset:-10px;border-radius:50%;border:2px solid rgba(199,93,126,.4);animation:cr 2s ease-out infinite}
+  .call .pavatar.ring::after{animation-delay:1s}
+  @keyframes cr{0%{transform:scale(1);opacity:.7}100%{transform:scale(1.35);opacity:0}}
+  .call .mid{flex:1;display:flex;flex-direction:column;justify-content:center}
+  .call .controls{display:flex;gap:18px;justify-content:center;padding-bottom:46px;flex-wrap:wrap;max-width:300px}
+  .cbig{width:66px;height:66px;border-radius:50%;display:grid;place-items:center;flex:none}
+  .cbig svg{width:28px;height:28px}
+  .cbig.end{background:#E5484D;color:#fff}
+  .cbig.accept{background:#2F9E5B;color:#fff}
+  .csm{display:flex;flex-direction:column;align-items:center;gap:7px;color:#cfd6ea;font-size:11px}
+  .csm .b{width:58px;height:58px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);display:grid;place-items:center}
+  .csm .b.on{background:#fff;color:#141a2e}
+  .csm .b svg{width:24px;height:24px}
+  .pulse-label{font-size:14px;color:#aeb6cf;margin-top:14px;animation:pl 1.6s infinite}
+  @keyframes pl{0%,100%{opacity:.5}50%{opacity:1}}
+  /* video */
+  .vcall{position:absolute;inset:0;z-index:1;background:#0c1020;overflow:hidden}
+  .vremote{position:absolute;inset:0;background:linear-gradient(150deg,#1a2138,#0c1020)}
+  .vpip{position:absolute;top:64px;right:14px;width:104px;height:150px;border-radius:16px;overflow:hidden;border:2px solid rgba(255,255,255,.25);background:linear-gradient(135deg,#2a3350,#161c30);box-shadow:0 10px 30px rgba(0,0,0,.5);z-index:3;display:grid;place-items:center;color:#6b76a0}
+  .vpip svg{width:30px;height:30px}
+  .vtop{position:absolute;top:64px;left:18px;z-index:3;color:#fff}
+  .vtop b{font-family:'Playfair Display',serif;font-size:20px;font-weight:600;display:block}
+  .vtop span{font-size:13px;color:#aeb6cf;font-variant-numeric:tabular-nums}
+  .vbottom{position:absolute;left:0;right:0;bottom:0;z-index:3;display:flex;gap:16px;justify-content:center;padding:0 0 40px}
+  .vavatar{position:absolute;top:38%;left:50%;transform:translate(-50%,-50%);width:96px;height:96px;border-radius:50%;background:linear-gradient(135deg,var(--p-400),var(--p-600));display:grid;place-items:center;font-family:'Playfair Display',serif;font-size:34px;color:#fff}
+  /* horoscope */
+  .hNav{display:flex;align-items:center;gap:8px;padding:6px 16px 10px}
+  .hNav .nb-btn{color:var(--accent)}
+  .hHero{text-align:center;padding:8px 24px 18px}
+  .kootarow{display:grid;grid-template-columns:96px 1fr 40px;align-items:center;gap:10px;padding:9px 0;border-top:.5px solid var(--hairline)}
+  .kootarow:first-child{border-top:0}
+  .kootarow .kl b{font-size:14px;color:var(--fg-strong);font-weight:600;display:block}
+  .kootarow .kl span{font-size:11px;color:var(--muted)}
+  .kootarow .kt{height:8px;border-radius:5px;background:var(--surface-2);overflow:hidden}
+  .kootarow .kt i{display:block;height:100%;border-radius:5px;background:var(--p-500)}
+  .kootarow.warn .kt i{background:var(--warning)}
+  .kootarow .kv{font-size:13px;font-weight:700;color:var(--fg-strong);text-align:right;font-variant-numeric:tabular-nums}
+  .doshacard{display:flex;gap:12px;align-items:center;margin:0 18px 12px;padding:14px;border-radius:var(--r-md);background:var(--warning-l);border:1px solid color-mix(in srgb,var(--warning) 28%,transparent)}
+  .doshacard .di{width:42px;height:42px;border-radius:11px;background:var(--card);color:var(--warning);display:grid;place-items:center;flex:none}
+  .doshacard .di svg{width:20px}
+  .doshacard b{font-size:14px;color:var(--fg-strong);display:block}
+  .doshacard span{font-size:12px;color:var(--fg)}
+  .qopt{display:flex;align-items:center;gap:13px;padding:15px;border:1.5px solid var(--border);border-radius:var(--r-md);margin-bottom:11px;background:var(--card)}
+  .qopt.on{border-color:var(--accent);background:var(--accent-soft)}
+  .qopt .ql{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--border);display:grid;place-items:center;font-size:13px;font-weight:700;color:var(--muted);flex:none}
+  .qopt.on .ql{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .qopt span{font-size:15px;color:var(--fg-strong);font-weight:500}
+</style>
+</head>
+<body>
+<div class="canvas-title">Calls &amp; Horoscope</div>
+<div class="canvas-sub">Agora navy call UI — incoming, voice, video PiP, ended · Ashtakoot guna match, dosha &amp; 10-question quiz</div>
+<script src="frame.js"></script>
+<script>
+function incoming(){
+  return `<div class="call"><div class="top"><div class="label">TricityShadi · Voice call</div>
+    <div class="pavatar ring" style="margin-top:30px">AS</div>
+    <div class="nm" style="margin-top:26px">Aanya Sharma</div><div class="pulse-label">Incoming call…</div></div>
+    <div class="mid"></div>
+    <div style="display:flex;gap:60px;padding-bottom:46px;align-items:flex-end">
+      <div class="csm"><div class="cbig end"><svg class="i"><use href="#i-x"/></svg></div>Decline</div>
+      <div class="csm"><div class="cbig accept" style="animation:pl 1.4s infinite"><svg class="i"><use href="#i-phone"/></svg></div>Accept</div></div>
+    <div style="position:absolute;bottom:18px;left:0;right:0;text-align:center;font-size:11px;color:#6b76a0">Auto-declines in 30s · swipe up to reply with message</div></div>`;
+}
+function voice(){
+  return `<div class="call"><div class="top"><div class="label">Voice call · connected</div>
+    <div class="pavatar" style="margin-top:30px">AS</div>
+    <div class="nm" style="margin-top:26px">Aanya Sharma</div><div class="meta" style="font-variant-numeric:tabular-nums">02:14</div></div>
+    <div class="mid"></div>
+    <div class="controls">
+      <div class="csm"><div class="b on"><svg class="i"><use href="#i-mic-off"/></svg></div>Mute</div>
+      <div class="csm"><div class="b"><svg class="i"><use href="#i-video"/></svg></div>Video</div>
+      <div class="csm"><div class="b"><svg class="i"><use href="#i-phone"/></svg></div>Speaker</div>
+      <div class="csm" style="flex-basis:100%;margin-top:4px"><div class="cbig end"><svg class="i"><use href="#i-phone"/></svg></div>End</div></div></div>`;
+}
+function video(){
+  return `<div class="vcall"><div class="vremote"></div>
+    <div class="vavatar">AS</div>
+    <div class="vtop"><b>Aanya Sharma</b><span>04:38</span></div>
+    <div class="vpip"><svg class="i"><use href="#i-user"/></svg></div>
+    <div style="position:absolute;left:50%;top:54%;transform:translateX(-50%);font-size:12px;color:#8b96b5;z-index:3">Drag self-view to reposition</div>
+    <div class="vbottom">
+      <div class="csm"><div class="b"><svg class="i"><use href="#i-mic"/></svg></div></div>
+      <div class="csm"><div class="b"><svg class="i"><use href="#i-camera"/></svg></div></div>
+      <div class="csm"><div class="b"><svg class="i"><use href="#i-video"/></svg></div></div>
+      <div class="csm"><div class="cbig end" style="width:58px;height:58px"><svg class="i"><use href="#i-phone"/></svg></div></div></div></div>`;
+}
+function ended(){
+  return `<div class="call"><div class="top"><div class="pavatar" style="margin-top:60px;opacity:.85">AS</div>
+    <div class="nm" style="margin-top:26px">Aanya Sharma</div><div class="label" style="margin-top:10px">Call ended · 06:42</div></div>
+    <div class="mid"></div>
+    <div class="controls" style="gap:40px">
+      <div class="csm"><div class="b" style="background:#2F9E5B;border:0"><svg class="i"><use href="#i-phone"/></svg></div>Call back</div>
+      <div class="csm"><div class="b"><svg class="i"><use href="#i-chat"/></svg></div>Message</div></div></div>`;
+}
+function koota(name,desc,got,max,warn){
+  return `<div class="kootarow ${warn?'warn':''}"><div class="kl"><b>${name}</b><span>${desc}</span></div>
+    <div class="kt"><i style="width:${got/max*100}%"></i></div><div class="kv">${got}/${max}</div></div>`;
+}
+function horoMatch(){
+  return `<div class="vp"><div class="scroll">
+    <div class="hNav"><span class="nb-btn"><svg class="i"><use href="#i-back"/></svg></span><span class="nb-title" style="font-weight:600">Horoscope match</span></div>
+    <div class="hHero"><div class="compat-ring" style="--v:78;--sz:104px;margin:0 auto"><div class="inner"><b style="font-size:26px">28</b><s>/ 36 GUNA</s></div></div>
+      <h2 class="serif" style="font-size:21px;color:var(--fg-strong);margin-top:14px">Good match</h2>
+      <p style="font-size:13px;color:var(--muted);margin-top:4px">Rohan Kapoor &amp; Aanya Sharma · Ashtakoot Milan</p></div>
+    <div class="doshacard"><div class="di"><svg class="i"><use href="#i-ring"/></svg></div><div><b>Manglik: partially compatible</b><span>Both charts carry mild manglik — considered cancelled. Consult an astrologer to confirm.</span></div></div>
+    <div style="margin:6px 18px 0;padding:4px 16px;background:var(--card);border:1px solid var(--border);border-radius:14px">
+      ${koota('Varna','Spiritual',1,1)}
+      ${koota('Vashya','Dominance',2,2)}
+      ${koota('Tara','Destiny',3,3)}
+      ${koota('Yoni','Nature',3,4)}
+      ${koota('Maitri','Mental bond',4,5)}
+      ${koota('Gana','Temperament',5,6)}
+      ${koota('Bhakoot','Love &amp; family',7,7)}
+      ${koota('Nadi','Health &amp; genes',0,8,true)}</div>
+    <div style="padding:16px 18px"><button class="btn btn-secondary block"><svg class="i" style="width:16px"><use href="#i-star"/></svg>Discuss with an astrologer</button></div>
+    <div style="height:14px"></div></div></div>`;
+}
+function quiz(){
+  return `<div class="vp"><div class="ob-top" style="display:flex;align-items:center;gap:13px;padding:8px 18px 14px">
+    <span class="nb-btn" style="color:var(--fg-strong)"><svg class="i"><use href="#i-back"/></svg></span>
+    <div style="flex:1;height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden"><i style="display:block;height:100%;width:30%;background:var(--p-500);border-radius:3px"></i></div>
+    <span style="font-size:12px;font-weight:700;color:var(--muted)">3 / 10</span></div>
+    <div style="flex:1;padding:10px 24px">
+      <div style="font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Values</div>
+      <h1 class="serif" style="font-size:24px;color:var(--fg-strong);line-height:1.2;margin-bottom:24px">How important is living close to your parents after marriage?</h1>
+      <div class="qopt"><span class="ql">A</span><span>Very important — same city</span></div>
+      <div class="qopt on"><span class="ql">B</span><span>Important, but flexible</span></div>
+      <div class="qopt"><span class="ql">C</span><span>Neutral</span></div>
+      <div class="qopt"><span class="ql">D</span><span>Prefer independence</span></div></div>
+    <div class="ob-foot" style="padding:12px 24px 24px;border-top:.5px solid var(--hairline)"><button class="btn btn-primary block">Next question</button></div></div>`;
+}
+
+const Y=140;
+frame({x:60,  y:Y, label:'Incoming call', pills:[['dark','NAVY · 30s']], theme:'dark', statusVariant:'ondark', screen:incoming()});
+frame({x:540, y:Y, label:'Voice call', pills:[['dark','ACTIVE']], theme:'dark', statusVariant:'ondark', screen:voice()});
+frame({x:1020,y:Y, label:'Video call', pills:[['dark','PiP SELF']], theme:'dark', statusVariant:'ondark', screen:video()});
+frame({x:1500,y:Y, label:'Call ended', pills:[['dark','ENDED']], theme:'dark', statusVariant:'ondark', screen:ended()});
+frame({x:1980,y:Y, label:'Horoscope match', pills:[['','ASHTAKOOT']], theme:'light', screen:horoMatch()});
+frame({x:2460,y:Y, label:'Compatibility quiz', pills:[['','10 Q']], theme:'light', screen:quiz()});
+frame({x:2940,y:Y, label:'Horoscope match', pills:[['dark','DARK']], theme:'dark', statusVariant:'ondark', screen:horoMatch()});
+
+redline(60, Y+930,'Calls (Agora) — redlines',[
+  ['Surface','navy gradient #141a2e→#0a0d18 · status white · above all stacks'],
+  ['Incoming','pulsing avatar rings · accept green / decline red 66 · 30s auto-decline'],
+  ['Voice','mute/video/speaker toggles · end red · timer tabular'],
+  ['Video','full-bleed remote · PiP 104×150 draggable (Gesture Handler) · auto-hide controls'],
+  ['Entrance','incoming slides up full-screen · haptic.medium + ringtone loop'],
+]);
+redline(1980, Y+930,'Horoscope — redlines',[
+  ['Guna ring','28/36 fills on view dur.slow · 8 koota bars stagger 40ms'],
+  ['Nadi/dosha','0-score koota = warning amber · manglik panel muted warn (one style)'],
+  ['Quiz','progress N/10 · single-select cards · accent fill + haptic.light'],
+  ['CTA','"Discuss with astrologer" → Astrologer marketplace'],
+]);
+</script>
+</body>
+</html>

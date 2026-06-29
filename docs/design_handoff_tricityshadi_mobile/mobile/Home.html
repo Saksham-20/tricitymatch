@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<title>TricityShadi Mobile — Home</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="design_doc_mode" content="canvas" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../ts-mobile.css" />
+<style>
+  body{background:#0e0f13;}
+  .home-head{display:flex;align-items:center;gap:11px;padding:6px 18px 12px;}
+  .home-head .hi{flex:1}
+  .home-head .hi .g{font-size:var(--t-footnote);color:var(--muted);}
+  .home-head .hi h1{font-family:'Playfair Display',serif;font-size:var(--t-title2);color:var(--fg-strong);font-weight:600;line-height:1.1;}
+  .home-head .bell{width:42px;height:42px;border-radius:50%;background:var(--card);border:1px solid var(--border);display:grid;place-items:center;color:var(--fg-strong);position:relative;}
+  .home-head .bell svg{width:21px;height:21px;}
+  .home-head .bell .nd{position:absolute;top:8px;right:9px;width:8px;height:8px;border-radius:50%;background:var(--p-500);border:1.5px solid var(--card);}
+  .strip{margin:0 18px;display:flex;align-items:center;gap:14px;padding:14px;background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--e2);}
+  .strip .ctx{flex:1}
+  .strip .ctx b{font-size:var(--t-headline);color:var(--fg-strong);font-weight:600;}
+  .strip .ctx p{font-size:var(--t-footnote);color:var(--muted);margin-top:2px;}
+  .strip .ctx .mini{margin-top:8px;display:inline-flex;align-items:center;gap:5px;font-size:var(--t-caption);font-weight:700;color:var(--accent);background:var(--accent-soft);padding:3px 9px;border-radius:var(--r-pill);}
+  .qa{display:flex;gap:9px;overflow-x:auto;padding:16px 18px 4px;}
+  .qa::-webkit-scrollbar{display:none}
+  .rail{display:flex;gap:13px;overflow-x:auto;padding:2px 18px 6px;scroll-snap-type:x mandatory;}
+  .rail::-webkit-scrollbar{display:none}
+  .rail .pcard{width:166px;height:226px;flex:none;scroll-snap-align:start;}
+  .nlist{padding:0 18px 8px;display:flex;flex-direction:column;gap:11px;}
+  .nrow{display:flex;gap:13px;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:10px;box-shadow:var(--e1);}
+  .nrow .thumb{width:62px;height:62px;border-radius:13px;overflow:hidden;flex:none;}
+  .nrow .nm{flex:1;min-width:0}
+  .nrow .nm b{font-size:var(--t-callout);color:var(--fg-strong);font-weight:600;display:flex;align-items:center;gap:5px;}
+  .nrow .nm b svg{width:14px;height:14px;color:var(--success)}
+  .nrow .nm p{font-size:var(--t-footnote);color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .nrow .nm .mt{margin-top:5px;font-size:var(--t-caption);color:var(--accent);font-weight:700}
+  .nrow .lk{width:38px;height:38px;border-radius:50%;background:var(--surface-2);display:grid;place-items:center;color:var(--muted);flex:none}
+  .nrow .lk svg{width:19px;height:19px}
+  .ptr{display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;color:var(--muted);font-size:var(--t-footnote);}
+  .ptr .sp{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+  .canvas-title{position:absolute;left:60px;top:20px;color:#e8eaed;font-family:'Playfair Display',serif;font-size:30px;font-weight:600;}
+  .canvas-sub{position:absolute;left:60px;top:62px;color:#9aa1ad;font-size:14px;font-family:'Inter',sans-serif;}
+</style>
+</head>
+<body>
+<div class="canvas-title">Home — match feed</div>
+<div class="canvas-sub">Tab root · 5 states × light / dark / elder · pull-to-refresh, completeness strip, Today's Matches rail</div>
+<script src="frame.js"></script>
+<script>
+function pcard(name,meta,compat,opts={}){
+  const v = opts.verified? `<span class="badge b-verified" style="background:rgba(46,125,50,.92);color:#fff;border:0"><svg class="i"><use href="#i-check"/></svg></span>`:'';
+  const prem = opts.premium? `<span class="badge b-vip" style="font-size:10px">VIP</span>`:'';
+  return `<div class="pcard">${ph('','i-user')}<div class="scrim"></div>
+    <div class="pc-top">${v}<span style="display:flex;gap:5px;margin-left:auto">${prem}<span class="lk" style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);color:#fff;display:grid;place-items:center"><svg class="i" style="width:16px;height:16px"><use href="#i-heart"/></svg></span></span></div>
+    <div class="pc-body"><div class="pc-name" style="font-size:16px">${name}</div><div class="pc-meta" style="font-size:11px">${meta}</div>
+    <span class="pc-compat"><span class="mk"></span>${compat}% match</span></div></div>`;
+}
+function nrow(name,meta,compat,glyph='i-user',verified=true){
+  return `<div class="nrow"><div class="thumb">${ph('',glyph)}</div>
+    <div class="nm"><b>${name}${verified?'<svg class="i"><use href="#i-check"/></svg>':''}</b><p>${meta}</p><div class="mt">${compat}% compatible</div></div>
+    <div class="lk"><svg class="i"><use href="#i-heart"/></svg></div></div>`;
+}
+function homeHead(){
+  return `<div class="home-head"><div class="av" style="width:42px;height:42px;font-size:16px">RK</div>
+    <div class="hi"><div class="g">Good evening</div><h1>Rohan Kapoor</h1></div>
+    <div class="bell"><svg class="i"><use href="#i-bell"/></svg><span class="nd"></span></div></div>`;
+}
+function strip(){
+  return `<div class="strip"><div class="compat-ring" style="--v:78;--sz:58px"><div class="inner"><b style="font-size:14px">78%</b></div></div>
+    <div class="ctx"><b>Complete your profile</b><p>Verified profiles get 3× more interest</p>
+    <span class="mini"><svg class="i" style="width:12px;height:12px"><use href="#i-camera"/></svg>Add 2 photos · +12%</span></div>
+    <svg class="i" style="color:var(--n-400);width:20px"><use href="#i-fwd"/></svg></div>`;
+}
+function qa(){
+  return `<div class="qa">
+    <span class="chip on"><svg class="i"><use href="#i-shield"/></svg>Verified</span>
+    <span class="chip"><svg class="i"><use href="#i-pin"/></svg>Near me</span>
+    <span class="chip">New today</span>
+    <span class="chip"><svg class="i"><use href="#i-star"/></svg>Premium</span>
+    <span class="chip">Online now</span></div>`;
+}
+function homeBody(){
+  return `<div class="vp"><div class="scroll">
+    <div class="ptr"><svg class="i" style="width:16px"><use href="#i-refresh"/></svg>Pull to refresh</div>
+    ${homeHead()}${strip()}${qa()}
+    <div class="sh"><div class="sh-l"><span class="tick"></span><h2>Today's Matches</h2></div><span class="more">See all</span></div>
+    <div class="rail">
+      ${pcard("Aanya S., 27","Software Engineer · Mohali",87,{verified:true})}
+      ${pcard("Simran K., 26","Doctor · Chandigarh",81,{verified:true,premium:true})}
+      ${pcard("Ishita B., 28","Architect · Panchkula",74,{})}
+    </div>
+    <div class="sh"><div class="sh-l"><span class="tick"></span><h2>New near you</h2></div><span class="more">Search</span></div>
+    <div class="nlist">
+      ${nrow("Priya Malhotra, 25","CA · Sector 22, Chandigarh",79,'i-user',true)}
+      ${nrow("Neha Sethi, 29","UX Designer · Mohali",72,'i-user',true)}
+      ${nrow("Riya Chauhan, 26","Teacher · Panchkula",68,'i-user',false)}
+    </div>
+    <div style="height:24px"></div>
+  </div>${tabBar('home',{chatBadge:'2',matchBadge:'3'})}</div>`;
+}
+function homeBodyElder(){
+  // identical layout, elder tab bar (no chat)
+  return `<div class="vp"><div class="scroll">
+    ${homeHead()}${strip()}${qa()}
+    <div class="sh"><div class="sh-l"><span class="tick"></span><h2>Today's Matches</h2></div><span class="more">See all</span></div>
+    <div class="rail">
+      ${pcard("Aanya S., 27","Software Engineer · Mohali",87,{verified:true})}
+      ${pcard("Simran K., 26","Doctor · Chandigarh",81,{verified:true,premium:true})}
+    </div>
+    <div class="sh"><div class="sh-l"><span class="tick"></span><h2>New near you</h2></div></div>
+    <div class="nlist">
+      ${nrow("Priya Malhotra, 25","CA · Sector 22, Chandigarh",79,'i-user',true)}
+      ${nrow("Neha Sethi, 29","UX Designer · Mohali",72,'i-user',true)}
+    </div><div style="height:24px"></div>
+  </div>${tabBar('home',{elder:true,matchBadge:'3'})}</div>`;
+}
+// LOADING
+function homeLoading(){
+  const skRail = `<div class="rail">${Array(3).fill(`<div class="pcard sk" style="width:166px;height:226px;flex:none"></div>`).join('')}</div>`;
+  const skRow = `<div class="nrow"><div class="sk" style="width:62px;height:62px;border-radius:13px"></div><div style="flex:1"><div class="sk" style="height:14px;width:60%"></div><div class="sk" style="height:11px;width:80%;margin-top:8px"></div><div class="sk" style="height:11px;width:35%;margin-top:8px"></div></div></div>`;
+  return `<div class="vp"><div class="scroll">${homeHead()}
+    <div class="strip"><div class="sk" style="width:58px;height:58px;border-radius:50%"></div><div style="flex:1"><div class="sk" style="height:14px;width:55%"></div><div class="sk" style="height:11px;width:80%;margin-top:8px"></div></div></div>
+    <div class="qa">${Array(4).fill(`<div class="sk" style="width:92px;height:34px;border-radius:999px;flex:none"></div>`).join('')}</div>
+    <div class="sh"><div class="sh-l"><span class="tick"></span><h2>Today's Matches</h2></div></div>${skRail}
+    <div class="sh"><div class="sh-l"><span class="tick"></span><h2>New near you</h2></div></div>
+    <div class="nlist">${skRow}${skRow}${skRow}</div>
+  </div>${tabBar('home')}</div>`;
+}
+// EMPTY
+function homeEmpty(){
+  return `<div class="vp"><div class="scroll">${homeHead()}${strip()}
+    <div class="empty" style="margin-top:30px"><div class="ei"><svg class="i"><use href="#i-heart"/></svg></div>
+    <h3>No matches today</h3><p>We're finding people who fit your preferences. Widen your filters to see more.</p>
+    <button class="btn btn-secondary btn-sm">Adjust preferences</button></div>
+  </div>${tabBar('home')}</div>`;
+}
+// ERROR
+function homeError(){
+  return `<div class="vp"><div class="scroll">${homeHead()}
+    <div class="empty error" style="margin-top:40px"><div class="ei"><svg class="i"><use href="#i-cloud-off"/></svg></div>
+    <h3>Couldn't load matches</h3><p>Check your connection and try again.</p>
+    <button class="btn btn-primary btn-sm"><svg class="i" style="width:16px"><use href="#i-refresh"/></svg>Retry</button></div>
+  </div>${tabBar('home')}</div>`;
+}
+
+const Y=140;
+frame({x:60,  y:Y, label:'Home · Default',  pills:[['','LIGHT']], theme:'light', screen:homeBody()});
+frame({x:540, y:Y, label:'Home · Loading',  pills:[['state','SKELETON']], theme:'light', screen:homeLoading()});
+frame({x:1020,y:Y, label:'Home · Empty',    pills:[['state','EMPTY']], theme:'light', screen:homeEmpty()});
+frame({x:1500,y:Y, label:'Home · Error',    pills:[['state','ERROR']], theme:'light', screen:homeError()});
+frame({x:1980,y:Y, label:'Home · Default',  pills:[['dark','DARK']], theme:'dark', statusVariant:'ondark', screen:homeBody()});
+frame({x:2460,y:Y, label:'Home · Default',  pills:[['elder','ELDER · 4 TABS']], theme:'light', elder:true, screen:homeBodyElder()});
+
+redline(60, Y+930,'Home — redlines',[
+  ['Header','Greeting 22pt Playfair · avatar 42 · bell 42 w/ 8px burgundy dot'],
+  ['Strip','card r-lg · completion ring 58 · CTA chip accent-soft'],
+  ['Rail','pcard 166×226 · scroll-snap x · gap 13 · scrim bottom 66%'],
+  ['Pull-refresh','spring.sheet · branded burgundy spinner · haptic.light at trigger'],
+  ['Tabs','Home active = burgundy · chat badge dot · elder → chat hidden, 4 tabs'],
+]);
+redline(540, Y+930,'States',[
+  ['Loading','skeleton mirrors layout · shimmer 1.5s L→R · dur.slow cross-fade to data'],
+  ['Empty','icon 66 accent-soft · 1 line · CTA → preferences'],
+  ['Error','cloud-off icon · destructive tint · Retry primary'],
+  ['Card tap','scale .97 press-in → shared-element push to ProfileDetail'],
+]);
+</script>
+</body>
+</html>

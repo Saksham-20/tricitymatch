@@ -257,3 +257,19 @@ Resumed by walking the full new-user path live on Android (cleared app data → 
 **Known residual (noted, not fixed — needs migration/bigger change):** signup seeds placeholder `gender:'other'` + `dob:2000-01-01` (Profiles columns are NOT NULL), so Step 1 pre-selects "Other"/"01/01/2000" for new users; display is now clean but the placeholder still pre-fills (user can edit). Proper fix = make those columns nullable + a real `onboardingComplete` flag set at onboarding end. Also `onboardingComplete` still flips true after Step 1 (gender+dob+firstName all set there) — pre-existing gate limitation, unchanged.
 
 Regression after round 3 (cont.): mobile `tsc` **0**; backend **unit 116/116** (auth/validators unaffected — name-required assertions are integration-only, need live DB); frontend untouched. Backend changes are additive + web-safe (web still sends names at signup).
+
+### Round 3 (cont. 2) — proper fix for the onboarding residuals (migration 000042)
+Closed the two residuals left open above (placeholder prefill + onboardingComplete flipping after Step 1) the right way, with a migration and an authoritative flag.
+
+**Migration `20240101000042-onboarding-complete-flag`:** adds `Profiles.onboardingComplete BOOLEAN NOT NULL DEFAULT false`; makes `Profiles.gender` + `Profiles.dateOfBirth` **nullable** (drops NOT NULL + the `gender` default); backfills every existing row to `onboardingComplete = true`. `calculateAge()`/compatibility already guard null dob, so nullable is safe.
+
+**Wiring:**
+- `Profile` model: added `onboardingComplete`; removed `gender` `defaultValue:'other'`.
+- `authController` signup: `gender → null`, `dateOfBirth → null` when absent (no more placeholder leak); `onboardingComplete = Boolean(firstName && gender && dateOfBirth)` so **web** (full profile at signup) is onboarded immediately and **mobile** (email+password) is not.
+- `withDerivedUserFields`: reads the persisted column (no more heuristic) → never flips after Step 1.
+- `profileController` allowlist: added `onboardingComplete` so the client can persist it.
+- RN `Step14` finish: `PUT /profile/me { onboardingComplete: true }` (was an empty save) → returning user isn't re-onboarded on cold start.
+
+**Verified — API:** mobile-style signup → `onboardingComplete:false`, `gender:null`, `dob:null`; web-style → `true`; seeded VIP login → `true` (backfilled); `PUT {…, onboardingComplete:true}` → `GET /auth/me` returns `true` + persisted firstName/gender. **Verified — live Android:** fresh signup → onboarding Step 0 → Step 1 now shows empty **DD/MM/YYYY** + no pre-selected gender (placeholder leak gone, was "01/01/2000"/"Other").
+
+Regression: mobile `tsc` **0**; backend **unit 116/116**; migration applied clean (dev). Web unaffected (still sends full profile at signup → onboarded). Run `npm run migrate` before prod (prod auto-runs on boot).
