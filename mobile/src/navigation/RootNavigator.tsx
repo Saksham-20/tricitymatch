@@ -65,13 +65,12 @@ export default function RootNavigator() {
     );
   }
 
-  // The backend does not (yet) persist/return `onboardingComplete`, so a returning
-  // user logging in would otherwise be forced back through onboarding every time
-  // (the cached flag is overwritten by the flagless /auth/me response). Mirror the
-  // web guard's lenience: a profile with the Step-1 basics (gender + DOB) means the
-  // user has already onboarded. Honour an explicit server flag if one ever arrives.
+  // The backend now returns `onboardingComplete` (keyed off firstName, since
+  // gender/DOB carry NOT-NULL placeholder defaults at signup). Honour that flag;
+  // fall back to a firstName check only if an older flagless response arrives.
   const onboardingComplete =
-    user?.onboardingComplete ?? Boolean(user?.Profile?.gender && user?.Profile?.dateOfBirth);
+    user?.onboardingComplete ??
+    Boolean(user?.Profile?.firstName && user?.Profile?.gender && user?.Profile?.dateOfBirth);
 
   return (
     <NavigationContainer linking={linking} theme={navTheme}>

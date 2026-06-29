@@ -72,10 +72,14 @@ export default function Step1Screen() {
 
   const [firstName, setFirstName] = useState(data.firstName);
   const [lastName, setLastName] = useState(data.lastName);
+  // dateOfBirth may arrive as a full ISO timestamp (e.g. "2000-01-01T00:00:00.000Z")
+  // from the profile; normalise to YYYY-MM-DD before formatting so the field shows
+  // "01/01/2000" rather than the raw "01T00:00:0…" fragment.
+  const dobIso = (data.dateOfBirth || '').split('T')[0];
   const [dobDisplay, setDobDisplay] = useState(
-    data.dateOfBirth ? data.dateOfBirth.split('-').reverse().join('/') : '',
+    dobIso ? dobIso.split('-').reverse().join('/') : '',
   );
-  const [dob, setDob] = useState(data.dateOfBirth);
+  const [dob, setDob] = useState(dobIso);
   const [dobError, setDobError] = useState('');
   const [gender, setGender] = useState<Gender | null>(data.gender);
   const [height, setHeight] = useState<number | null>(data.height);

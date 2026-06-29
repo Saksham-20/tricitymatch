@@ -57,18 +57,20 @@ const signupValidation = [
     .withMessage('Password must be at least 8 characters')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
     .withMessage('Password must contain uppercase, lowercase, number, and special character'),
+  // firstName/lastName are OPTIONAL at signup: the web flow collects them on the
+  // CreateAccount step and sends them here, but the mobile app creates the account
+  // first and collects the name during onboarding Step 1 (PUT /profile/me). When
+  // present they must still be valid; when absent the profile name is filled later.
   body('firstName')
+    .optional({ checkFalsy: true })
     .trim()
-    .notEmpty()
-    .withMessage('First name is required')
     .isLength({ min: 2, max: 50 })
     .withMessage('First name must be 2-50 characters')
     .matches(/^[a-zA-Z\s'-]+$/)
     .withMessage('First name can only contain letters, spaces, hyphens, and apostrophes'),
   body('lastName')
+    .optional({ checkFalsy: true })
     .trim()
-    .notEmpty()
-    .withMessage('Last name is required')
     .isLength({ min: 2, max: 50 })
     .withMessage('Last name must be 2-50 characters')
     .matches(/^[a-zA-Z\s'-]+$/)

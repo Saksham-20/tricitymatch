@@ -37,7 +37,12 @@ const withDerivedUserFields = async (userInstance) => {
   });
   user.subscriptionPlan = activeSub?.planType || 'free';
   const profile = user.Profile;
-  user.onboardingComplete = Boolean(profile && profile.gender && profile.dateOfBirth);
+  // gender/dateOfBirth carry NOT-NULL placeholder defaults from signup, so they
+  // can't signal onboarding state. firstName is empty ('') until onboarding Step 1
+  // captures the real name (web sends it at signup), so it's the reliable gate.
+  user.onboardingComplete = Boolean(
+    profile && profile.firstName && profile.gender && profile.dateOfBirth
+  );
   return user;
 };
 
@@ -147,11 +152,16 @@ exports.signup = asyncHandler(async (req, res) => {
         ...(referralData && referralData)
       }, { transaction: t });
 
+      // gender/dateOfBirth columns are NOT NULL at the DB level, so they keep their
+      // placeholder defaults when a mobile account signs up with just email+password.
+      // The onboarding gate therefore keys off firstName (empty until onboarding
+      // Step 1) rather than gender/dob — see withDerivedUserFields.
       const profileDateOfBirth = dateOfBirth ? new Date(dateOfBirth) : new Date('2000-01-01');
       await Profile.create({
         userId: user.id,
-        firstName,
-        lastName,
+        // Name is optional at signup; Profile.firstName/lastName are NOT NULL → '' .
+        firstName: firstName || '',
+        lastName: lastName || '',
         gender: gender || 'other',
         dateOfBirth: profileDateOfBirth
       }, { transaction: t });
@@ -187,7 +197,7 @@ exports.signup = asyncHandler(async (req, res) => {
   // Send welcome email (non-blocking) — only when the account has an email
   if (result.email) {
     setImmediate(() => {
-      sendWelcomeEmail(result.email, firstName)
+      sendWelcomeEmail(result.email, firstName || 'there')
         .catch(err => log.error('Failed to send welcome email', { error: err.message, userId: result.id }));
     });
   }

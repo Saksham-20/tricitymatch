@@ -18,6 +18,7 @@ import SmartImage, { resolveImageUri } from '../../components/common/SmartImage'
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
 import { CompletionRing as SharedCompletionRing } from '../../components/ui';
+import { useTheme } from '../../hooks/useTheme';
 import { getMyProfile, getProfileViewers, getRecentlyViewed } from '../../api/profile';
 import { formatDate } from '../../utils/dateUtils';
 import { queryKeys } from '../../constants/queryKeys';
@@ -44,10 +45,11 @@ function ActivityRail({
   profiles: ProfileSummary[];
   onPressProfile: (userId: string) => void;
 }) {
+  const { c } = useTheme();
   if (profiles.length === 0) return null;
   return (
     <View style={ar.section}>
-      <Text style={ar.heading}>{title}</Text>
+      <Text style={[ar.heading, { color: c.textSecondary }]}>{title}</Text>
       <FlatList
         horizontal
         data={profiles}
@@ -64,9 +66,9 @@ function ActivityRail({
               testID={`activity-card-${item.userId}`}
               accessibilityLabel={`View ${name}`}
             >
-              <SmartImage uri={item.profilePhoto} name={item.firstName} style={ar.avatar} initialSize={28} />
-              <Text style={ar.name} numberOfLines={1}>{item.firstName}</Text>
-              <Text style={ar.meta} numberOfLines={1}>
+              <SmartImage uri={item.profilePhoto} name={item.firstName} style={[ar.avatar, { backgroundColor: c.surface2 }]} initialSize={28} />
+              <Text style={[ar.name, { color: c.textPrimary }]} numberOfLines={1}>{item.firstName}</Text>
+              <Text style={[ar.meta, { color: c.textMuted }]} numberOfLines={1}>
                 {[age ? `${age}` : null, item.city].filter(Boolean).join(' · ')}
               </Text>
             </TouchableOpacity>
@@ -78,21 +80,22 @@ function ActivityRail({
 }
 
 function ViewersUpsell({ onUpgrade }: { onUpgrade: () => void }) {
+  const { c } = useTheme();
   return (
     <View style={ar.section}>
-      <Text style={ar.heading}>Profile Visitors</Text>
+      <Text style={[ar.heading, { color: c.textSecondary }]}>Profile Visitors</Text>
       <TouchableOpacity
-        style={ar.upsell}
+        style={[ar.upsell, { backgroundColor: c.accentSoft, borderColor: c.primary + '40' }]}
         onPress={onUpgrade}
         testID="viewers-upsell"
         accessibilityLabel="Upgrade to see who viewed you"
       >
-        <Ionicons name="eye-outline" size={20} color={colours.primary} />
+        <Ionicons name="eye-outline" size={20} color={c.primary} />
         <View style={{ flex: 1 }}>
-          <Text style={ar.upsellTitle}>See who viewed your profile</Text>
-          <Text style={ar.upsellSub}>Upgrade to Premium to unlock visitors</Text>
+          <Text style={[ar.upsellTitle, { color: c.textPrimary }]}>See who viewed your profile</Text>
+          <Text style={[ar.upsellSub, { color: c.textMuted }]}>Upgrade to Premium to unlock visitors</Text>
         </View>
-        <Ionicons name="chevron-forward" size={18} color={colours.textMuted} />
+        <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
       </TouchableOpacity>
     </View>
   );
@@ -153,22 +156,23 @@ const MILESTONES = [
 ];
 
 function MilestoneStrip({ currentPct }: { currentPct: number }) {
+  const { c } = useTheme();
   return (
     <View style={ms.container}>
-      <Text style={ms.heading}>Completion Milestones</Text>
+      <Text style={[ms.heading, { color: c.textSecondary }]}>Completion Milestones</Text>
       <View style={ms.row}>
         {MILESTONES.map((m) => {
           const achieved = currentPct >= m.pct;
           return (
             <View key={m.pct} style={ms.item}>
-              <View style={[ms.dot, achieved && ms.dotDone]}>
+              <View style={[ms.dot, { backgroundColor: c.surfaceCard, borderColor: c.border }, achieved && ms.dotDone]}>
                 {achieved ? (
                   <Ionicons name="checkmark" size={12} color="#fff" />
                 ) : (
-                  <Text style={ms.dotLabel}>{m.label}</Text>
+                  <Text style={[ms.dotLabel, { color: c.textMuted }]}>{m.label}</Text>
                 )}
               </View>
-              {!achieved && <Text style={ms.tip}>{m.tip}</Text>}
+              {!achieved && <Text style={[ms.tip, { color: c.textMuted }]}>{m.tip}</Text>}
             </View>
           );
         })}
@@ -236,30 +240,31 @@ interface VerifBadgesProps {
 }
 
 function VerificationBadges({ phoneVerified, idVerified, onGetVerified }: VerifBadgesProps) {
+  const { c } = useTheme();
   const earned = [phoneVerified, idVerified, false, false];
   return (
     <View style={vb.container}>
       <View style={vb.row}>
         {VERIFICATION_TIERS.map((tier, i) => (
-          <View key={tier.key} style={[vb.badge, earned[i] && { borderColor: tier.color }]}>
+          <View key={tier.key} style={[vb.badge, { borderColor: c.border }, earned[i] && { borderColor: tier.color }]}>
             <Ionicons
               name={earned[i] ? 'checkmark-circle' : 'ellipse-outline'}
               size={14}
-              color={earned[i] ? tier.color : colours.textMuted}
+              color={earned[i] ? tier.color : c.textMuted}
             />
-            <Text style={[vb.badgeText, earned[i] && { color: tier.color }]}>{tier.label}</Text>
+            <Text style={[vb.badgeText, { color: c.textMuted }, earned[i] && { color: tier.color }]}>{tier.label}</Text>
           </View>
         ))}
       </View>
       {!idVerified && (
         <TouchableOpacity
-          style={vb.ctaBtn}
+          style={[vb.ctaBtn, { backgroundColor: c.accentSoft }]}
           onPress={onGetVerified}
           testID="get-verified-cta"
           accessibilityLabel="Get Verified"
         >
-          <Ionicons name="shield-checkmark-outline" size={16} color={colours.primary} />
-          <Text style={vb.ctaText}>Get Verified → Add trust badge</Text>
+          <Ionicons name="shield-checkmark-outline" size={16} color={c.primary} />
+          <Text style={[vb.ctaText, { color: c.primary }]}>Get Verified → Add trust badge</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -309,18 +314,19 @@ interface SectionRowProps {
 }
 
 function SectionRow({ label, value, onEdit, testID }: SectionRowProps) {
+  const { c } = useTheme();
   return (
     <TouchableOpacity
-      style={sr.row}
+      style={[sr.row, { borderBottomColor: c.border }]}
       onPress={onEdit}
       testID={testID ?? `edit-${label}`}
       accessibilityLabel={`Edit ${label}`}
     >
       <View style={{ flex: 1 }}>
-        <Text style={sr.label}>{label}</Text>
-        <Text style={[sr.value, !value && sr.empty]}>{value || 'Not added'}</Text>
+        <Text style={[sr.label, { color: c.textSecondary }]}>{label}</Text>
+        <Text style={[sr.value, { color: c.textPrimary }, !value && [sr.empty, { color: c.textMuted }]]}>{value || 'Not added'}</Text>
       </View>
-      <Ionicons name="pencil-outline" size={16} color={colours.textMuted} />
+      <Ionicons name="pencil-outline" size={16} color={c.textMuted} />
     </TouchableOpacity>
   );
 }
@@ -356,13 +362,14 @@ interface SectionCardProps {
 }
 
 function SectionCard({ title, children, onEdit }: SectionCardProps) {
+  const { c } = useTheme();
   return (
-    <View style={sc.card}>
+    <View style={[sc.card, { backgroundColor: c.surfaceCard, borderColor: c.border }]}>
       <View style={sc.header}>
-        <Text style={sc.title}>{title}</Text>
+        <Text style={[sc.title, { color: c.fgStrong }]}>{title}</Text>
         {onEdit && (
           <TouchableOpacity onPress={onEdit} testID={`edit-section-${title}`} accessibilityLabel={`Edit ${title}`}>
-            <Ionicons name="pencil-outline" size={18} color={colours.primary} />
+            <Ionicons name="pencil-outline" size={18} color={c.primary} />
           </TouchableOpacity>
         )}
       </View>
@@ -398,13 +405,14 @@ const sc = StyleSheet.create({
 // load (unresolved seed path, deleted Cloudinary asset), falls back to the same
 // "Add photos" prompt instead of a blank white box.
 function OwnGalleryPhoto({ uri, previewMode }: { uri: string; previewMode: boolean }) {
+  const { c } = useTheme();
   const [failed, setFailed] = useState(false);
   const resolved = resolveImageUri(previewMode ? uri + '?blur=20' : uri);
   if (!resolved || failed) {
     return (
-      <View style={[styles.photo, styles.photoEmpty]}>
-        <Ionicons name="camera-outline" size={48} color={colours.textMuted} />
-        <Text style={styles.photoEmptyText}>Add photos</Text>
+      <View style={[styles.photo, styles.photoEmpty, { backgroundColor: c.surface2 }]}>
+        <Ionicons name="camera-outline" size={48} color={c.textMuted} />
+        <Text style={[styles.photoEmptyText, { color: c.textMuted }]}>Add photos</Text>
       </View>
     );
   }
@@ -425,6 +433,7 @@ export default function OwnProfileScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const user = useAuthStore((s) => s.user);
+  const { c } = useTheme();
   const [previewMode, setPreviewMode] = useState(false);
   const queryClient = useQueryClient();
 
@@ -476,8 +485,8 @@ export default function OwnProfileScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.loader}>
-        <ActivityIndicator size="large" color={colours.primary} />
+      <View style={[styles.loader, { backgroundColor: c.background }]}>
+        <ActivityIndicator size="large" color={c.primary} />
       </View>
     );
   }
@@ -488,19 +497,19 @@ export default function OwnProfileScreen() {
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: c.background }]}
       showsVerticalScrollIndicator={false}
       testID="OwnProfileScreen"
     >
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Profile</Text>
+        <Text style={[styles.headerTitle, { color: c.fgStrong }]}>My Profile</Text>
         <TouchableOpacity
           onPress={goToSettings}
           testID="settings-btn"
           accessibilityLabel="Settings"
         >
-          <Ionicons name="settings-outline" size={24} color={colours.textPrimary} />
+          <Ionicons name="settings-outline" size={24} color={c.textPrimary} />
         </TouchableOpacity>
       </View>
 
@@ -521,9 +530,9 @@ export default function OwnProfileScreen() {
             <OwnGalleryPhoto key={i} uri={uri} previewMode={previewMode} />
           ))
         ) : (
-          <View style={[styles.photo, styles.photoEmpty]}>
-            <Ionicons name="camera-outline" size={48} color={colours.textMuted} />
-            <Text style={styles.photoEmptyText}>Add photos</Text>
+          <View style={[styles.photo, styles.photoEmpty, { backgroundColor: c.surface2 }]}>
+            <Ionicons name="camera-outline" size={48} color={c.textMuted} />
+            <Text style={[styles.photoEmptyText, { color: c.textMuted }]}>Add photos</Text>
           </View>
         )}
       </ScrollView>
@@ -534,7 +543,7 @@ export default function OwnProfileScreen() {
           {photos.map((_, i) => (
             <View
               key={i}
-              style={[styles.dot, i === photoIdx && styles.dotActive]}
+              style={[styles.dot, { backgroundColor: c.border }, i === photoIdx && { backgroundColor: c.primary, width: 16 }]}
             />
           ))}
         </View>
@@ -543,39 +552,39 @@ export default function OwnProfileScreen() {
       {/* Name, age, location */}
       <View style={styles.nameRow}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.name}>{name}</Text>
+          <Text style={[styles.name, { color: c.fgStrong }]}>{name}</Text>
           {profile?.dateOfBirth && (
-            <Text style={styles.subText}>
+            <Text style={[styles.subText, { color: c.textSecondary }]}>
               {Math.floor((Date.now() - new Date(profile.dateOfBirth).getTime()) / (365.25 * 24 * 3600 * 1000))} yrs
               {profile.city ? ` · ${profile.city}` : ''}
             </Text>
           )}
           {profile?.profession && (
-            <Text style={styles.subText}>{profile.profession}</Text>
+            <Text style={[styles.subText, { color: c.textSecondary }]}>{profile.profession}</Text>
           )}
         </View>
-        {/* Plan badge */}
+        {/* Plan badge — gold for paid tiers (premium/VIP), burgundy for free */}
         <TouchableOpacity
-          style={styles.planBadge}
+          style={[styles.planBadge, { backgroundColor: isPremium ? c.goldSoft : c.accentSoft }]}
           onPress={goToSubscription}
           testID="plan-badge"
           accessibilityLabel="Subscription plan"
         >
-          <Text style={styles.planText}>{planLabel}</Text>
+          <Text style={[styles.planText, { color: isPremium ? c.secondary : c.primary }]}>{planLabel}</Text>
           {user?.subscriptionPlan === 'free' && (
-            <Text style={styles.upgradeText}>Upgrade ↑</Text>
+            <Text style={[styles.upgradeText, { color: c.primary }]}>Upgrade ↑</Text>
           )}
         </TouchableOpacity>
       </View>
 
       {/* Preview toggle */}
       <View style={styles.previewRow}>
-        <Ionicons name="eye-outline" size={16} color={colours.textSecondary} />
-        <Text style={styles.previewLabel}>Preview as others see me</Text>
+        <Ionicons name="eye-outline" size={16} color={c.textSecondary} />
+        <Text style={[styles.previewLabel, { color: c.textSecondary }]}>Preview as others see me</Text>
         <Switch
           value={previewMode}
           onValueChange={setPreviewMode}
-          trackColor={{ true: colours.primary, false: colours.border }}
+          trackColor={{ true: c.primary, false: c.border }}
           thumbColor="#fff"
           testID="preview-toggle"
           accessibilityLabel="Preview as others see me"
@@ -586,12 +595,12 @@ export default function OwnProfileScreen() {
       <CompletionRing pct={profile?.completionPercentage ?? 0} />
       {(profile?.completionPercentage ?? 0) < 100 && (
         <TouchableOpacity
-          style={styles.completeBtn}
+          style={[styles.completeBtn, { backgroundColor: c.accentSoft }]}
           onPress={() => goToEdit()}
           testID="complete-profile-btn"
           accessibilityLabel="Complete profile"
         >
-          <Text style={styles.completeBtnText}>Complete your profile → Better matches</Text>
+          <Text style={[styles.completeBtnText, { color: c.primary }]}>Complete your profile → Better matches</Text>
         </TouchableOpacity>
       )}
 
@@ -684,33 +693,33 @@ export default function OwnProfileScreen() {
 
       {/* Compatibility Quiz entry */}
       <TouchableOpacity
-        style={styles.quizBanner}
+        style={[styles.quizBanner, { backgroundColor: c.accentSoft, borderColor: c.primary + '40' }]}
         onPress={() => navigation.navigate('Quiz')}
         testID="quiz-cta"
         accessibilityLabel="Take compatibility quiz"
       >
-        <Ionicons name="help-circle-outline" size={22} color={colours.primary} />
+        <Ionicons name="help-circle-outline" size={22} color={c.primary} />
         <View style={{ flex: 1 }}>
-          <Text style={styles.quizBannerTitle}>Compatibility Quiz</Text>
-          <Text style={styles.quizBannerSub}>10 questions · Better match suggestions</Text>
+          <Text style={[styles.quizBannerTitle, { color: c.textPrimary }]}>Compatibility Quiz</Text>
+          <Text style={[styles.quizBannerSub, { color: c.textMuted }]}>10 questions · Better match suggestions</Text>
         </View>
-        <Ionicons name="chevron-forward" size={18} color={colours.textMuted} />
+        <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
       </TouchableOpacity>
 
       {/* About */}
       <SectionCard title="About Me" onEdit={() => goToEdit('about')}>
         {profile?.bio ? (
-          <Text style={styles.bioText}>{profile.bio}</Text>
+          <Text style={[styles.bioText, { color: c.textPrimary }]}>{profile.bio}</Text>
         ) : (
           <TouchableOpacity onPress={() => goToEdit('about')} testID="add-bio">
-            <Text style={styles.addText}>+ Add bio</Text>
+            <Text style={[styles.addText, { color: c.primary }]}>+ Add bio</Text>
           </TouchableOpacity>
         )}
         {(profile?.interestTags?.length ?? 0) > 0 && (
           <View style={styles.tagsRow}>
             {profile!.interestTags.map((tag) => (
-              <View key={tag} style={styles.tag}>
-                <Text style={styles.tagText}>{tag}</Text>
+              <View key={tag} style={[styles.tag, { backgroundColor: c.accentSoft }]}>
+                <Text style={[styles.tagText, { color: c.primary }]}>{tag}</Text>
               </View>
             ))}
           </View>

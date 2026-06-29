@@ -43,7 +43,9 @@ export default function ResetPasswordScreen() {
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
     if (!password) errs.password = 'New password is required';
-    else if (password.length < 6) errs.password = 'Password must be at least 6 characters';
+    else if (password.length < 8) errs.password = 'Password must be at least 8 characters';
+    else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])/.test(password))
+      errs.password = 'Include an uppercase letter, number, and symbol';
     if (!confirmPassword) errs.confirmPassword = 'Please confirm your new password';
     else if (password !== confirmPassword) errs.confirmPassword = t('auth.signup.passwordMismatch');
     setFieldErrors(errs);
@@ -125,12 +127,12 @@ export default function ResetPasswordScreen() {
               style={[styles.input, styles.passwordInput, fieldErrors.password ? styles.inputError : undefined]}
               value={password}
               onChangeText={(v) => { setPassword(v); setFieldErrors((p) => ({ ...p, password: '' })); }}
-              placeholder="Min. 6 characters"
+              placeholder="Min. 8 chars, with a number & symbol"
               placeholderTextColor={colours.textMuted}
               secureTextEntry={!showPassword}
               textContentType="newPassword"
               autoComplete="new-password"
-              passwordRules="minlength: 6;"
+              passwordRules="minlength: 8; required: lower; required: upper; required: digit; required: special;"
               returnKeyType="next"
               onSubmitEditing={() => confirmRef.current?.focus()}
               accessibilityLabel={t('auth.resetPassword.newPassword')}

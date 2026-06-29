@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, type, spacing, borderRadius } from '@shared/constants/theme';
 import { CompatRing } from '../../components/ui';
+import { useTheme } from '../../hooks/useTheme';
 import { getProfile, logProfileView, getCompatibilityBreakdown } from '../../api/profile';
 import VoiceIntroRecorder from '../../components/profile/VoiceIntroRecorder';
 import { resolveImageUri } from '../../components/common/SmartImage';
@@ -36,10 +37,11 @@ type Route = RouteProp<MainStackParamList, 'ProfileDetail'>;
 const compatScoreColour = (p: number) => (p >= 90 ? colours.success : p >= 75 ? colours.g500 : colours.p500);
 
 function CompatibilityBar({ score, onWhyPress }: { score: number; onWhyPress: () => void }) {
+  const { c } = useTheme();
   const colour = compatScoreColour(score);
   return (
     <TouchableOpacity
-      style={cb.container}
+      style={[cb.container, { borderBottomColor: c.hairline }]}
       onPress={onWhyPress}
       testID="compatibility-bar"
       accessibilityLabel="See compatibility breakdown"
@@ -47,12 +49,12 @@ function CompatibilityBar({ score, onWhyPress }: { score: number; onWhyPress: ()
     >
       <CompatRing value={score} size={64} />
       <View style={cb.info}>
-        <Text style={cb.label}>Compatibility</Text>
-        <Text style={cb.hint}>Tap to see the full breakdown</Text>
+        <Text style={[cb.label, { color: c.fgStrong }]}>Compatibility</Text>
+        <Text style={[cb.hint, { color: c.textMuted }]}>Tap to see the full breakdown</Text>
       </View>
       <View style={cb.whyRow}>
         <Text style={[cb.why, { color: colour }]}>Why</Text>
-        <Ionicons name="chevron-forward" size={16} color={colours.textMuted} />
+        <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
       </View>
     </TouchableOpacity>
   );
@@ -62,12 +64,13 @@ function CompatibilityBar({ score, onWhyPress }: { score: number; onWhyPress: ()
 // Mirrors SmartImage's resolve + onError fallback but keeps the gallery's blur +
 // "Upgrade to view" lock overlay for non-premium viewers' secondary photos.
 function HeroPhoto({ uri, locked }: { uri: string; locked: boolean }) {
+  const { c } = useTheme();
   const [failed, setFailed] = useState(false);
   const resolved = resolveImageUri(uri);
   if (!resolved || failed) {
     return (
-      <View style={[styles.photoContainer, styles.photoFallback]}>
-        <Ionicons name="person" size={64} color={colours.textMuted} />
+      <View style={[styles.photoContainer, styles.photoFallback, { backgroundColor: c.surface2 }]}>
+        <Ionicons name="person" size={64} color={c.textMuted} />
       </View>
     );
   }
@@ -151,9 +154,10 @@ interface AccordionProps {
 }
 
 function Accordion({ title, children, defaultOpen = false }: AccordionProps) {
+  const { c } = useTheme();
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <View style={acc.container}>
+    <View style={[acc.container, { borderBottomColor: c.border }]}>
       <TouchableOpacity
         style={acc.header}
         onPress={() => setOpen((v) => !v)}
@@ -162,11 +166,11 @@ function Accordion({ title, children, defaultOpen = false }: AccordionProps) {
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
       >
-        <Text style={acc.title}>{title}</Text>
+        <Text style={[acc.title, { color: c.fgStrong }]}>{title}</Text>
         <Ionicons
           name={open ? 'chevron-up' : 'chevron-down'}
           size={18}
-          color={colours.textMuted}
+          color={c.textMuted}
         />
       </TouchableOpacity>
       {open && <View style={acc.body}>{children}</View>}
@@ -197,11 +201,12 @@ const acc = StyleSheet.create({
 // ─── Detail Row ──────────────────────────────────────────────────────────────
 
 function DetailRow({ label, value }: { label: string; value?: string | null }) {
+  const { c } = useTheme();
   if (!value) return null;
   return (
-    <View style={dr.row}>
-      <Text style={dr.label}>{label}</Text>
-      <Text style={dr.value}>{value}</Text>
+    <View style={[dr.row, { borderBottomColor: c.hairline }]}>
+      <Text style={[dr.label, { color: c.textSecondary }]}>{label}</Text>
+      <Text style={[dr.value, { color: c.textPrimary }]}>{value}</Text>
     </View>
   );
 }
@@ -230,13 +235,14 @@ const dr = StyleSheet.create({
 // ─── Mutual Match Overlay ────────────────────────────────────────────────────
 
 function MutualMatchOverlay({ name, onDismiss }: { name: string; onDismiss: () => void }) {
+  const { c } = useTheme();
   return (
     <View style={mm.overlay}>
-      <View style={mm.card}>
-        <Ionicons name="heart" size={56} color={colours.primary} />
-        <Text style={mm.title}>It's a Match</Text>
-        <Text style={mm.sub}>You and {name} liked each other.</Text>
-        <TouchableOpacity style={mm.btn} onPress={onDismiss} testID="mutual-match-dismiss">
+      <View style={[mm.card, { backgroundColor: c.surfaceCard }]}>
+        <Ionicons name="heart" size={56} color={c.primary} />
+        <Text style={[mm.title, { color: c.primary }]}>It's a Match</Text>
+        <Text style={[mm.sub, { color: c.textSecondary }]}>You and {name} liked each other.</Text>
+        <TouchableOpacity style={[mm.btn, { backgroundColor: c.primary }]} onPress={onDismiss} testID="mutual-match-dismiss">
           <Text style={mm.btnText}>Continue Browsing</Text>
         </TouchableOpacity>
       </View>
@@ -286,6 +292,7 @@ export default function ProfileDetailScreen() {
   const { userId } = route.params;
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
+  const { c } = useTheme();
 
   const [photoIdx, setPhotoIdx] = useState(0);
   const [mutualMatch, setMutualMatch] = useState(false);
@@ -333,16 +340,16 @@ export default function ProfileDetailScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.loader}>
-        <ActivityIndicator size="large" color={colours.primary} />
+      <View style={[styles.loader, { backgroundColor: c.background }]}>
+        <ActivityIndicator size="large" color={c.primary} />
       </View>
     );
   }
 
   if (!profile) {
     return (
-      <View style={styles.loader}>
-        <Text style={{ color: colours.textSecondary }}>Profile not found.</Text>
+      <View style={[styles.loader, { backgroundColor: c.background }]}>
+        <Text style={{ color: c.textSecondary }}>Profile not found.</Text>
       </View>
     );
   }
@@ -360,7 +367,7 @@ export default function ProfileDetailScreen() {
     : null;
 
   return (
-    <View style={styles.wrapper}>
+    <View style={[styles.wrapper, { backgroundColor: c.background }]}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false} testID="ProfileDetailScreen">
         {/* Back + Menu header */}
         <View style={styles.absHeader}>
@@ -399,8 +406,8 @@ export default function ProfileDetailScreen() {
               <HeroPhoto key={i} uri={uri} locked={!isMutualOrPremium && i > 0} />
             ))
           ) : (
-            <View style={[styles.photoContainer, styles.photoFallback]}>
-              <Ionicons name="person" size={64} color={colours.textMuted} />
+            <View style={[styles.photoContainer, styles.photoFallback, { backgroundColor: c.surface2 }]}>
+              <Ionicons name="person" size={64} color={c.textMuted} />
             </View>
           )}
         </ScrollView>
@@ -409,16 +416,16 @@ export default function ProfileDetailScreen() {
         {photos.length > 1 && (
           <View style={styles.dotsRow}>
             {photos.map((_, i) => (
-              <View key={i} style={[styles.dot, i === photoIdx && styles.dotActive]} />
+              <View key={i} style={[styles.dot, { backgroundColor: c.border }, i === photoIdx && { backgroundColor: c.primary, width: 16 }]} />
             ))}
           </View>
         )}
 
         {/* Name, age, location */}
-        <View style={styles.infoSection}>
-          <Text style={styles.name}>{name}{age ? `, ${age}` : ''}</Text>
-          <Text style={styles.location}>{profile.city}{profile.state ? `, ${profile.state}` : ''}</Text>
-          {profile.profession && <Text style={styles.profession}>{profile.profession}</Text>}
+        <View style={[styles.infoSection, { borderBottomColor: c.border }]}>
+          <Text style={[styles.name, { color: c.fgStrong }]}>{name}{age ? `, ${age}` : ''}</Text>
+          <Text style={[styles.location, { color: c.textSecondary }]}>{profile.city}{profile.state ? `, ${profile.state}` : ''}</Text>
+          {profile.profession && <Text style={[styles.profession, { color: c.textSecondary }]}>{profile.profession}</Text>}
         </View>
 
         {/* Verification row */}
@@ -434,8 +441,8 @@ export default function ProfileDetailScreen() {
 
         {/* Voice Intro — Premium+ gate applied inside component */}
         {profile.voiceIntroUrl && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Voice Intro</Text>
+          <View style={[styles.section, { borderBottomColor: c.border }]}>
+            <Text style={[styles.sectionTitle, { color: c.fgStrong }]}>Voice Intro</Text>
             <VoiceIntroRecorder
               existingUrl={profile.voiceIntroUrl}
               onSaved={() => null}
@@ -447,19 +454,19 @@ export default function ProfileDetailScreen() {
 
         {/* About */}
         {profile.bio && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>About</Text>
-            <Text style={styles.bioText}>{profile.bio}</Text>
+          <View style={[styles.section, { borderBottomColor: c.border }]}>
+            <Text style={[styles.sectionTitle, { color: c.fgStrong }]}>About</Text>
+            <Text style={[styles.bioText, { color: c.textPrimary }]}>{profile.bio}</Text>
           </View>
         )}
 
         {/* Interest tags */}
         {(profile.interestTags?.length ?? 0) > 0 && (
-          <View style={styles.section}>
+          <View style={[styles.section, { borderBottomColor: c.border }]}>
             <View style={styles.tagsRow}>
               {profile.interestTags.map((tag) => (
-                <View key={tag} style={styles.tag}>
-                  <Text style={styles.tagText}>{tag}</Text>
+                <View key={tag} style={[styles.tag, { backgroundColor: c.accentSoft }]}>
+                  <Text style={[styles.tagText, { color: c.primary }]}>{tag}</Text>
                 </View>
               ))}
             </View>
@@ -520,8 +527,8 @@ export default function ProfileDetailScreen() {
               name: [profile.firstName, profile.lastName].filter(Boolean).join(' '),
             })}
           >
-            <Ionicons name="moon-outline" size={16} color={colours.primary} />
-            <Text style={styles.kundliBtnText}>View Ashtakoot Guna Milan →</Text>
+            <Ionicons name="moon-outline" size={16} color={c.primary} />
+            <Text style={[styles.kundliBtnText, { color: c.primary }]}>View Ashtakoot Guna Milan →</Text>
           </TouchableOpacity>
         </Accordion>
 
@@ -530,40 +537,40 @@ export default function ProfileDetailScreen() {
       </ScrollView>
 
       {/* Sticky bottom action bar */}
-      <View style={styles.actionBar}>
+      <View style={[styles.actionBar, { backgroundColor: c.background, borderTopColor: c.border }]}>
         {actionDone === 'like' ? (
           <View style={styles.mutualHint}>
-            <Ionicons name="heart" size={20} color={colours.primary} />
-            <Text style={styles.mutualHintText}>
+            <Ionicons name="heart" size={20} color={c.primary} />
+            <Text style={[styles.mutualHintText, { color: c.primary }]}>
               {mutualMatch ? "It's a match! Start chatting." : 'Interest sent!'}
             </Text>
           </View>
         ) : (
           <>
             <TouchableOpacity
-              style={[styles.actionBtn, styles.passBtn]}
+              style={[styles.actionBtn, styles.passBtn, { backgroundColor: c.surfaceCard, borderColor: c.border }]}
               onPress={() => handleAction('pass')}
               disabled={actionMutation.isPending}
               testID="action-pass"
               accessibilityLabel="Pass"
             >
-              <Ionicons name="close" size={24} color={colours.textSecondary} />
-              <Text style={styles.passBtnText}>Pass</Text>
+              <Ionicons name="close" size={24} color={c.textSecondary} />
+              <Text style={[styles.passBtnText, { color: c.textSecondary }]}>Pass</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.actionBtn, styles.shortlistBtn]}
+              style={[styles.actionBtn, styles.shortlistBtn, { backgroundColor: c.goldSoft }]}
               onPress={() => handleAction('shortlist')}
               disabled={actionMutation.isPending}
               testID="action-shortlist"
               accessibilityLabel="Shortlist"
             >
-              <Ionicons name="bookmark" size={24} color={colours.secondary} />
-              <Text style={styles.shortlistBtnText}>Shortlist</Text>
+              <Ionicons name="bookmark" size={24} color={colours.g600} />
+              <Text style={[styles.shortlistBtnText, { color: colours.g600 }]}>Shortlist</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.actionBtn, styles.likeBtn]}
+              style={[styles.actionBtn, styles.likeBtn, { backgroundColor: c.primary }]}
               onPress={() => handleAction('like')}
               disabled={actionMutation.isPending}
               testID="action-like"

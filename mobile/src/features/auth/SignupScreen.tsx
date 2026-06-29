@@ -73,7 +73,9 @@ export default function SignupScreen() {
     if (!email.trim()) errs.email = 'Email is required';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = 'Please enter a valid email';
     if (!password) errs.password = 'Password is required';
-    else if (password.length < 6) errs.password = 'Password must be at least 6 characters';
+    else if (password.length < 8) errs.password = 'Password must be at least 8 characters';
+    else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])/.test(password))
+      errs.password = 'Include an uppercase letter, number, and symbol';
     if (!confirmPassword) errs.confirmPassword = 'Please confirm your password';
     else if (password !== confirmPassword) errs.confirmPassword = t('auth.signup.passwordMismatch');
     if (!termsAccepted) errs.terms = 'You must accept the Terms & Privacy Policy';
@@ -175,12 +177,12 @@ export default function SignupScreen() {
               style={[styles.input, styles.passwordInput, fieldErrors.password ? styles.inputError : undefined]}
               value={password}
               onChangeText={(v) => { setPassword(v); setFieldErrors((p) => ({ ...p, password: '' })); }}
-              placeholder="Min. 6 characters"
+              placeholder="Min. 8 chars, with a number & symbol"
               placeholderTextColor={colours.textMuted}
               secureTextEntry={!showPassword}
               textContentType="newPassword"
               autoComplete="new-password"
-              passwordRules="minlength: 6;"
+              passwordRules="minlength: 8; required: lower; required: upper; required: digit; required: special;"
               returnKeyType="next"
               onSubmitEditing={() => confirmRef.current?.focus()}
               accessibilityLabel={t('auth.signup.password')}
