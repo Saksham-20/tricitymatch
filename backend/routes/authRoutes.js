@@ -115,7 +115,7 @@ router.post(
   '/verify-otp',
   otpLimiter,
   otpTargetValidation,
-  body('code').isLength({ min: 6, max: 6 }).isNumeric().withMessage('code must be 6 digits'),
+  body('code').isLength({ min: 4, max: 6 }).isNumeric().withMessage('code must be 4–6 digits'),
   handleValidationErrors,
   verifyOtp
 );

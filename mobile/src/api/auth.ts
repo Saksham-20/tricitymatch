@@ -56,8 +56,12 @@ export const resetPassword = async (token: string, password: string): Promise<vo
   await apiClient.post('/auth/reset-password', { token, password });
 };
 
+export const sendOtp = async (phone: string): Promise<void> => {
+  await apiClient.post('/auth/send-otp', { type: 'phone', target: phone });
+};
+
 export const verifyOtp = async (phone: string, otp: string): Promise<void> => {
-  await apiClient.post('/auth/verify-otp', { phone, otp });
+  await apiClient.post('/auth/verify-otp', { type: 'phone', target: phone, code: otp });
 };
 
 export const getMe = async (): Promise<AuthUser> => {

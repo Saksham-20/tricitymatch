@@ -131,8 +131,8 @@ const changeEmailVerifyValidation = [
     .withMessage('Please provide a valid email')
     .normalizeEmail(),
   body('code')
-    .isLength({ min: 6, max: 6 })
-    .withMessage('Code must be 6 digits')
+    .isLength({ min: 4, max: 6 })
+    .withMessage('Code must be 4–6 digits')
     .isNumeric()
     .withMessage('Code must be numeric'),
 ];

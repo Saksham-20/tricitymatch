@@ -12,13 +12,13 @@ import { useOnboarding } from './OnboardingContext';
 import { verifyOtp } from '../../api/auth';
 import { apiClient } from '../../api/client';
 
-const OTP_LENGTH = 6;
+const OTP_LENGTH = 4;
 const RESEND_COOLDOWN = 60;
 
 type Phase = 'phone' | 'otp';
 
 function sendPhoneOtp(phone: string): Promise<void> {
-  return apiClient.post('/auth/send-otp', { phone }).then(() => {});
+  return apiClient.post('/auth/send-otp', { type: 'phone', target: phone }).then(() => {});
 }
 
 export default function Step13Screen() {

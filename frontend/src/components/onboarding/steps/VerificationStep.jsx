@@ -85,7 +85,8 @@ const VerificationStep = () => {
 
   const handleVerifyCode = async (method) => {
     const code = method === 'email' ? emailCode : phoneCode;
-    if (code.length !== 6) return;
+    const expectedLen = method === 'email' ? 6 : 4; // SMS OTP is 4-digit (DLT template)
+    if (code.length !== expectedLen) return;
     try {
       const target = method === 'email' ? formData.email : formData.phoneNumber;
       await api.post('/auth/verify-otp', { type: method, target, code });
@@ -297,10 +298,10 @@ const VerificationStep = () => {
               {phoneSent && (
                 <FormField
                   label="Verification Code"
-                  placeholder="Enter 6-digit code"
+                  placeholder="Enter 4-digit code"
                   value={phoneCode}
-                  onChange={(value) => setPhoneCode(value.replace(/\D/g, '').slice(0, 6))}
-                  maxLength="6"
+                  onChange={(value) => setPhoneCode(value.replace(/\D/g, '').slice(0, 4))}
+                  maxLength="4"
                   autoComplete="one-time-code"
                 />
               )}
@@ -323,7 +324,7 @@ const VerificationStep = () => {
                 {phoneSent && (
                   <button
                     onClick={() => handleVerifyCode('phone')}
-                    disabled={phoneCode.length !== 6}
+                    disabled={phoneCode.length !== 4}
                     className="px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     Verify

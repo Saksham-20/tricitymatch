@@ -12,7 +12,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import type { AuthStackParamList } from '../../navigation/types';
-import { verifyOtp } from '../../api/auth';
+import { verifyOtp, sendOtp } from '../../api/auth';
 import { colours, type, spacing, borderRadius } from '@shared/constants/theme';
 import { OtpInput, Button } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
@@ -21,7 +21,7 @@ import { haptics } from '../../utils/haptics';
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'OTP'>;
 type RouteProps = RouteProp<AuthStackParamList, 'OTP'>;
 
-const OTP_LENGTH = 6;
+const OTP_LENGTH = 4;
 const RESEND_COOLDOWN = 60;
 
 export default function OTPScreen() {
@@ -71,7 +71,7 @@ export default function OTPScreen() {
     setCooldown(RESEND_COOLDOWN);
     setCode('');
     setError('');
-    try { await verifyOtp(phone, ''); } catch { /* sent silently */ }
+    try { await sendOtp(phone); } catch { /* sent silently */ }
   };
 
   const maskedPhone = phone.length > 4
@@ -91,7 +91,7 @@ export default function OTPScreen() {
           </View>
           <Text style={[styles.title, { color: c.fgStrong }]}>Verify your number</Text>
           <Text style={[styles.subtitle, { color: c.textMuted }]}>
-            We sent a 6-digit code to {maskedPhone}
+            We sent a 4-digit code to {maskedPhone}
           </Text>
         </View>
 

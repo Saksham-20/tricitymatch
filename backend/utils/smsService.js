@@ -16,7 +16,8 @@ const MAX_VERIFY_ATTEMPTS = 5;
 const otpKey = (phone) => `otp:${phone}`;
 const rateKey = (phone) => `otp_rate:${phone}`;
 
-const generateCode = () => String(Math.floor(100000 + Math.random() * 900000));
+// 4-digit OTP to match the registered DLT/MSG91 template (##OTP## = 4 digits)
+const generateCode = () => String(Math.floor(1000 + Math.random() * 9000));
 
 // ─── Fast2SMS ─────────────────────────────────────────────────────────────────
 
@@ -68,23 +69,32 @@ const sendFast2SMS = (phone, code) => {
 
 const sendMSG91 = (phone, code) => {
   return new Promise((resolve, reject) => {
-    const apiKey = config.sms.apiKey;
+    const apiKey = config.sms.apiKey;          // MSG91 authkey
     const templateId = config.sms.msg91TemplateId;
-    if (!apiKey) { reject(new Error('SMS_API_KEY not set')); return; }
+    if (!apiKey) { reject(new Error('SMS_API_KEY (MSG91 authkey) not set')); return; }
+    if (!templateId) { reject(new Error('MSG91_TEMPLATE_ID not set')); return; }
 
-    const mobile = phone.replace(/^\+/, '').replace(/\D/g, '');
-    const body = JSON.stringify({
+    // MSG91 v5 OTP API. We pass our own `otp` so MSG91 injects it into ##OTP##
+    // (we still verify locally against Redis). otp_length must match the template.
+    const mobile = phone.replace(/^\+/, '').replace(/\D/g, ''); // 91XXXXXXXXXX
+    const query = new URLSearchParams({
       template_id: templateId,
       mobile,
-      authkey: apiKey,
       otp: code,
-    });
+      otp_length: '4',
+      otp_expiry: '10',
+    }).toString();
+
+    // Empty template-vars body (OTP injected via ##OTP##). authkey goes in header.
+    const body = JSON.stringify({});
 
     const options = {
-      hostname: 'api.msg91.com',
-      path: '/api/v5/otp',
+      hostname: 'control.msg91.com',
+      path: `/api/v5/otp?${query}`,
       method: 'POST',
+      family: 4, // force IPv4 — MSG91 authkey IP-whitelist is IPv4-only
       headers: {
+        authkey: apiKey,
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(body),
       },
