@@ -111,9 +111,11 @@ services:
       AGORA_APP_ID: ${AGORA_APP_ID:-}
       AGORA_APP_CERTIFICATE: ${AGORA_APP_CERTIFICATE:-}
       AGORA_TOKEN_EXPIRY: ${AGORA_TOKEN_EXPIRY:-3600}
-      # SMS / OTP
+      # SMS / OTP (MSG91 4-digit; authkey IP-whitelist must include VPS egress IP)
       SMS_PROVIDER: ${SMS_PROVIDER:-dev}
       SMS_API_KEY: ${SMS_API_KEY:-}
+      MSG91_TEMPLATE_ID: ${MSG91_TEMPLATE_ID:-}
+      SMS_SENDER_ID: ${SMS_SENDER_ID:-TRISHD}
       # ⚠️ PRE-LAUNCH TESTING ONLY — remove before real users
       ALLOW_INSECURE_PROD: ${ALLOW_INSECURE_PROD:-false}
       OTP_BYPASS_CODES: ${OTP_BYPASS_CODES:-}
