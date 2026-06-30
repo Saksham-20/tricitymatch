@@ -6,6 +6,14 @@ import { FaCrown } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 
 // Plan chip — on-system (burgundy/gold tiers, neutral free)
+const PLAN_LABELS = {
+  free: 'Free',
+  basic_premium: 'Basic Premium',
+  premium_plus: 'Premium Plus',
+  vip: 'VIP',
+};
+const planLabel = (p) => PLAN_LABELS[p] || (p || '—').replace(/_/g, ' ');
+
 const PlanBadge = ({ plan }) => {
   const meta = {
     free:          { label: 'Free',          cls: 'bg-neutral-100 text-neutral-600 border-neutral-200' },
@@ -78,7 +86,7 @@ export default function PaymentHistory() {
 
   const summary = [
     { label: 'Total Spent', value: `₹${totalSpent.toLocaleString('en-IN')}`, icon: FiTrendingUp },
-    { label: 'Active Plan', value: activeSub ? (activeSub.planType || '—').replace('_', ' ') : 'None', icon: FaCrown, cap: true },
+    { label: 'Active Plan', value: activeSub ? planLabel(activeSub.planType) : 'None', icon: FaCrown },
     { label: 'Renews On', value: activeSub?.endDate ? new Date(activeSub.endDate).toLocaleDateString('en-IN') : '—', icon: FiCalendar },
   ];
 

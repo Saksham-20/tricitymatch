@@ -88,7 +88,7 @@ Card.displayName = 'Card';
 // Card subcomponents
 const CardHeader = ({ children, className, ...props }) => (
   <div
-    className={cn('pb-4 border-b border-gray-100', className)}
+    className={cn('pb-4 border-b border-neutral-100', className)}
     {...props}
   >
     {children}
@@ -105,7 +105,7 @@ CardBody.displayName = 'Card.Body';
 
 const CardFooter = ({ children, className, ...props }) => (
   <div
-    className={cn('pt-4 border-t border-gray-100', className)}
+    className={cn('pt-4 border-t border-neutral-100', className)}
     {...props}
   >
     {children}

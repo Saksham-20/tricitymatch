@@ -93,20 +93,20 @@ class ErrorBoundary extends Component {
               </svg>
             </div>
 
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            <h1 className="text-2xl font-bold text-neutral-900 mb-2">
               Oops! Something went wrong
             </h1>
-            <p className="text-gray-600 mb-6">
+            <p className="text-neutral-600 mb-6">
               We're sorry, but something unexpected happened. Please try again.
             </p>
 
             {/* Error details in development */}
             {import.meta.env.DEV && this.state.error && (
               <details className="mb-6 text-left">
-                <summary className="cursor-pointer text-sm text-gray-500 hover:text-gray-700">
+                <summary className="cursor-pointer text-sm text-neutral-500 hover:text-neutral-700">
                   Technical Details
                 </summary>
-                <pre className="mt-2 p-3 bg-gray-100 rounded-lg text-xs text-red-600 overflow-auto max-h-40">
+                <pre className="mt-2 p-3 bg-neutral-100 rounded-lg text-xs text-destructive overflow-auto max-h-40">
                   {this.state.error.toString()}
                   {this.state.errorInfo?.componentStack}
                 </pre>
@@ -122,17 +122,17 @@ class ErrorBoundary extends Component {
               </button>
               <button
                 onClick={this.handleGoHome}
-                className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-all"
+                className="px-6 py-3 bg-neutral-100 text-neutral-700 rounded-xl font-medium hover:bg-neutral-200 transition-all"
               >
                 Go to Home
               </button>
             </div>
 
-            <p className="mt-6 text-sm text-gray-400">
+            <p className="mt-6 text-sm text-neutral-400">
               If this problem persists, please{' '}
               <a
                 href="mailto:support@tricityshadi.com"
-                className="text-rose-500 hover:underline"
+                className="text-primary-500 hover:underline"
               >
                 contact support
               </a>

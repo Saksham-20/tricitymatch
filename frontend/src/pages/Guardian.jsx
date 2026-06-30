@@ -95,7 +95,12 @@ export default function Guardian() {
           {loading ? (
             <p className="text-neutral-400">{t('common.loading')}</p>
           ) : guardians.length === 0 ? (
-            <p className="text-neutral-400">{t('guardian.noGuardians')}</p>
+            <div className="bg-white border border-neutral-200 rounded-2xl py-12 px-6 text-center">
+              <span className="w-12 h-12 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center mx-auto mb-3">
+                <FiUsers className="w-5 h-5" />
+              </span>
+              <p className="text-sm text-neutral-500">{t('guardian.noGuardians')}</p>
+            </div>
           ) : (
             <ul className="space-y-3">
               {guardians.map((g) => (
@@ -126,7 +131,12 @@ export default function Guardian() {
         loading ? (
           <p className="text-neutral-400">{t('common.loading')}</p>
         ) : candidates.length === 0 ? (
-          <p className="text-neutral-400">{t('guardian.noCandidates')}</p>
+          <div className="bg-white border border-neutral-200 rounded-2xl py-12 px-6 text-center">
+            <span className="w-12 h-12 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center mx-auto mb-3">
+              <FiHeart className="w-5 h-5" />
+            </span>
+            <p className="text-sm text-neutral-500">{t('guardian.noCandidates')}</p>
+          </div>
         ) : (
           <ul className="space-y-3">
             {candidates.map((c) => <CandidateCard key={c.linkId} candidate={c} />)}

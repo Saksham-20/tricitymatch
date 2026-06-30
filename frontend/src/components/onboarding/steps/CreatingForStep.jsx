@@ -163,9 +163,9 @@ const CreatingForStep = () => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="bg-blue-50 border border-blue-200 rounded-lg p-4"
+        className="bg-neutral-50 border border-neutral-200 rounded-lg p-4"
       >
-        <p className="text-sm text-blue-900">
+        <p className="text-sm text-neutral-700">
           <strong>Note:</strong> The email and phone you provide will be used for account verification. 
           The person whose profile this is will need to verify these details after account creation.
         </p>

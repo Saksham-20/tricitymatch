@@ -145,7 +145,7 @@ export default function BlockReportModal({ isOpen, onClose, targetUser, onBlock 
                       value={reason}
                       onChange={(e) => setReason(e.target.value)}
                       required
-                      className="w-full px-3 py-2.5 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
+                      className="w-full px-3 py-2.5 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                     >
                       <option value="">Select a reason</option>
                       {REPORT_REASONS.map(({ value, label }) => (
@@ -162,7 +162,7 @@ export default function BlockReportModal({ isOpen, onClose, targetUser, onBlock 
                       onChange={(e) => setDesc(e.target.value)}
                       placeholder="Describe what happened…"
                       maxLength={500}
-                      className="w-full px-3 py-2.5 border border-neutral-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-rose-500"
+                      className="w-full px-3 py-2.5 border border-neutral-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-500"
                     />
                   </div>
 

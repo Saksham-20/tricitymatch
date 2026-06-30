@@ -39,7 +39,15 @@ export default function AstrologerBookings() {
       {loading ? (
         <p className="text-neutral-400">{t('common.loading')}</p>
       ) : bookings.length === 0 ? (
-        <p className="text-neutral-400 inline-flex items-center gap-2"><FiCalendar className="w-4 h-4" /> {t('common.empty')}</p>
+        <div className="bg-white border border-neutral-200 rounded-2xl py-12 px-6 text-center">
+          <span className="w-12 h-12 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center mx-auto mb-3">
+            <FiCalendar className="w-5 h-5" />
+          </span>
+          <p className="text-sm text-neutral-500 mb-4">{t('common.empty')}</p>
+          <Link to="/astrologers" className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-700 text-white text-sm font-semibold rounded-xl hover:bg-primary-800 transition-colors">
+            {t('astrologers.title', 'Talk to an Astrologer')}
+          </Link>
+        </div>
       ) : (
         <ul className="space-y-3">
           {bookings.map((b) => (

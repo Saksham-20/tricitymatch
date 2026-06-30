@@ -672,18 +672,18 @@ const Dashboard = () => {
                     onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && viewer.userId) { e.preventDefault(); navigate(`/profile/${viewer.userId}`); } }}
                     className="cursor-pointer bg-white rounded-xl border border-neutral-100 shadow-card overflow-hidden group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1"
                   >
-                    <div className="h-28 bg-neutral-100 overflow-hidden">
-                      {viewer.profilePhoto ? (
+                    <div className="relative h-28 bg-neutral-100 overflow-hidden">
+                      <div className="absolute inset-0 flex items-center justify-center bg-primary-100 dark:bg-primary-900/40">
+                        <span className="font-display text-2xl font-semibold text-primary-700 dark:text-primary-300">{initials}</span>
+                      </div>
+                      {viewer.profilePhoto && (
                         <img
                           src={getImageUrl(viewer.profilePhoto, API_BASE_URL, 'profile')}
                           alt={viewerName}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          className="relative w-full h-full object-cover group-hover:scale-105 transition-transform"
                           loading="lazy"
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
                         />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-primary-100 dark:bg-primary-900/40">
-                          <span className="font-display text-2xl font-semibold text-primary-700 dark:text-primary-300">{initials}</span>
-                        </div>
                       )}
                     </div>
                     <div className="p-2.5 text-center">
@@ -778,18 +778,18 @@ const Dashboard = () => {
                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/profile/${p.userId}`); } }}
                     className="cursor-pointer bg-white rounded-xl border border-neutral-100 shadow-card overflow-hidden group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1"
                   >
-                    <div className="h-28 bg-neutral-100 overflow-hidden">
-                      {p.profilePhoto ? (
+                    <div className="relative h-28 bg-neutral-100 overflow-hidden">
+                      <div className="absolute inset-0 flex items-center justify-center bg-primary-100 dark:bg-primary-900/40">
+                        <span className="font-display text-2xl font-semibold text-primary-700 dark:text-primary-300">{initials}</span>
+                      </div>
+                      {p.profilePhoto && (
                         <img
                           src={getImageUrl(p.profilePhoto, API_BASE_URL, 'profile')}
                           alt={name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          className="relative w-full h-full object-cover group-hover:scale-105 transition-transform"
                           loading="lazy"
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
                         />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-primary-100 dark:bg-primary-900/40">
-                          <span className="font-display text-2xl font-semibold text-primary-700 dark:text-primary-300">{initials}</span>
-                        </div>
                       )}
                     </div>
                     <div className="p-2.5 text-center">

@@ -221,7 +221,7 @@ export default function Verification() {
           <button
             onClick={startBgCheck}
             disabled={bgBusy}
-            className="px-6 py-2.5 bg-neutral-800 text-white rounded-lg hover:bg-neutral-900 disabled:opacity-60 font-medium"
+            className="px-6 py-2.5 bg-primary-700 text-white rounded-lg hover:bg-primary-800 disabled:opacity-60 font-medium transition-colors"
           >
             {bgBusy ? t('common.loading') : t('verification.startBgCheck')}
           </button>
