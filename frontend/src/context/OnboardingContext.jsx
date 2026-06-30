@@ -134,8 +134,7 @@ export const OnboardingProvider = ({ children, mode = 'signup', existingProfile 
 
   const getCompletionPercentage = useCallback(() => {
     const fieldsPerStep = {
-      0: ['account_agree'], // welcome step
-      1: ['email', 'password', 'confirmPassword'], // account
+      1: ['email', 'password'], // account
       2: ['firstName', 'lastName', 'gender', 'dateOfBirth'], // basic info
       3: ['city'], // location
       4: ['religion', 'caste', 'motherTongue'], // religion
@@ -198,6 +197,9 @@ export const OnboardingProvider = ({ children, mode = 'signup', existingProfile 
 function getInitialFormData() {
   return {
     // Account (from User model)
+    // `identifier` = the single smart contact box (email OR mobile); it fans out
+    // into email/phone below. Kept in the draft so a resumed signup repaints it.
+    identifier: '',
     email: '',
     password: '',
     confirmPassword: '',
@@ -277,22 +279,17 @@ function getInitialFormData() {
     profilePhoto: null,
     phoneVerification: false,
     emailVerification: false,
-    phoneNumber: '',
+    // Single canonical contact number used for BOTH the account (User.phone) and
+    // phone verification — never re-asked. (Was split across `phone`/`phoneNumber`.)
+    phone: '',
   };
 }
 
 // Step definitions for the onboarding flow
 export const STEPS = [
-  {
-    id: 0,
-    number: 0,
-    title: 'Welcome',
-    icon: 'Heart',
-    description: 'Start your journey to find your perfect match',
-    fields: ['account_agree'],
-    required: ['account_agree'],
-    showIn: ['signup', 'create_for_other'],
-  },
+  // NOTE: the old standalone "Welcome" step (a Terms-only gate) was removed — the
+  // Terms & Privacy agreement now lives inline on the Create Account step, cutting
+  // a friction step out of signup for higher conversion.
   {
     id: 0.5,
     number: 0,
@@ -308,9 +305,9 @@ export const STEPS = [
     number: 1,
     title: 'Create Account',
     icon: 'User',
-    description: 'Secure your account with email and password',
-    fields: ['email', 'password', 'confirmPassword'],
-    required: ['email', 'password', 'confirmPassword'],
+    description: 'Use your email or mobile — set a password, verify, and you’re in.',
+    fields: ['identifier', 'password'],
+    required: ['identifier', 'password'],
     showIn: ['signup', 'create_for_other'],
   },
   {
@@ -421,7 +418,9 @@ export const STEPS = [
     description: 'Verify your contact information',
     fields: ['phoneVerification', 'emailVerification'],
     required: [],
-    showIn: ['signup', 'create_for_other'],
+    // Self-signup verifies inline on the Create Account step (single combined
+    // page). Only the guardian flow keeps a dedicated verification step.
+    showIn: ['create_for_other'],
   },
 ];
 

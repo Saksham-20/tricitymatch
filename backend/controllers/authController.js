@@ -138,6 +138,22 @@ exports.signup = asyncHandler(async (req, res) => {
     }
   }
 
+  // Consume the OTP-verified markers set by verify-otp so the account is stamped
+  // verified at creation (proves the contact was confirmed, not client-trusted).
+  let emailWasVerified = false;
+  let phoneWasVerified = false;
+  try {
+    const { get: cacheGet, del: cacheDel } = require('../utils/cache');
+    if (normalizedEmail) {
+      const k = `otp-verified:email:${normalizedEmail}`;
+      if (await cacheGet(k)) { emailWasVerified = true; await cacheDel(k); }
+    }
+    if (normalizedPhone) {
+      const k = `otp-verified:phone:${smsService.normalizePhone(normalizedPhone)}`;
+      if (await cacheGet(k)) { phoneWasVerified = true; await cacheDel(k); }
+    }
+  } catch { /* non-fatal */ }
+
   const sequelize = require('../config/database');
   let result;
   try {
@@ -147,6 +163,8 @@ exports.signup = asyncHandler(async (req, res) => {
         password,
         phone: normalizedPhone,
         status: 'active',
+        emailVerified: emailWasVerified,
+        phoneVerified: phoneWasVerified,
         ...(referralData && referralData)
       }, { transaction: t });
 
@@ -721,8 +739,51 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
   const { type, target, code } = req.body;
   if (!target || !code) throw createError.badRequest('target and code are required');
 
-  // Use smsService verifyOtp for both phone and email (same Redis store)
-  const result = await smsService.verifyOtp(target, code);
+  let result;
+  if (type === 'email') {
+    // Email OTP lives at `otp:<email>` (set by send-otp). It must NOT go through
+    // smsService.verifyOtp, which canonicalizes the target as a phone number —
+    // an email normalizes to null and throws before any code check. Verify here.
+    const { get: cacheGet, set: cacheSet, del: cacheDel } = require('../utils/cache');
+    const key = `otp:${String(target).toLowerCase().trim()}`;
+
+    const bypassCodes = config.sms.bypassCodes || [];
+    if (bypassCodes.length > 0 && bypassCodes.includes(String(code))) {
+      await cacheDel(key);
+      result = { success: true, message: 'OTP verified (bypass)' };
+    } else {
+      const raw = await cacheGet(key);
+      if (!raw) throw createError.badRequest('OTP expired or not sent. Please request a new one.');
+      let entry;
+      try { entry = JSON.parse(raw); } catch { throw createError.badRequest('OTP data corrupt. Please request a new one.'); }
+      if (entry.expiresAt < Date.now()) { await cacheDel(key); throw createError.badRequest('OTP has expired. Please request a new one.'); }
+      if ((entry.attempts || 0) >= 5) { await cacheDel(key); throw createError.badRequest('Too many incorrect attempts. Please request a new OTP.'); }
+      if (entry.code !== String(code)) {
+        const ttlSec = Math.max(1, Math.ceil((entry.expiresAt - Date.now()) / 1000));
+        await cacheSet(key, JSON.stringify({ ...entry, attempts: (entry.attempts || 0) + 1 }), ttlSec);
+        const remaining = 5 - (entry.attempts || 0) - 1;
+        throw createError.badRequest(`Invalid OTP. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`);
+      }
+      await cacheDel(key);
+      result = { success: true, message: 'OTP verified successfully' };
+    }
+  } else {
+    // Phone OTP — smsService canonicalizes + checks the `otp:<91…>` store.
+    result = await smsService.verifyOtp(target, code);
+  }
+
+  // Record a short-lived "this contact was just verified" marker so signup can
+  // (a) stamp the new account as verified and (b) prove the contact really was
+  // confirmed — not just trusted from a client flag. 30-min window to finish
+  // signup. Phone is canonicalized to match how signup normalizes it.
+  try {
+    const { set: cacheSet } = require('../utils/cache');
+    const key = type === 'phone'
+      ? `otp-verified:phone:${smsService.normalizePhone(target)}`
+      : `otp-verified:email:${String(target).toLowerCase().trim()}`;
+    await cacheSet(key, '1', 1800);
+  } catch { /* non-fatal: verification still succeeds */ }
+
   res.json({ ...result, message: `${type} verified successfully` });
 });
 

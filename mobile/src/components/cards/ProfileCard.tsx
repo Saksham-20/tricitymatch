@@ -1,13 +1,49 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, StyleProp, ViewStyle, TextStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated from 'react-native-reanimated';
 import { colours, type, spacing, borderRadius, shadows, darkShadows } from '@shared/constants/theme';
 import type { ProfileSummary } from '../../types';
 import SmartImage from '../common/SmartImage';
 import Avatar from '../ui/Avatar';
 import { useTheme } from '../../hooks/useTheme';
 import { haptics } from '../../utils/haptics';
+import { PressableScale, usePop } from '../motion';
+
+/** Like button with the handoff icon scale-pop + success haptic on tap. */
+function LikeButton({
+  onLike,
+  style,
+  iconColor,
+  iconSize = 20,
+  label,
+  labelStyle,
+  testID,
+}: {
+  onLike: () => void;
+  style?: StyleProp<ViewStyle>;
+  iconColor: string;
+  iconSize?: number;
+  label?: string;
+  labelStyle?: StyleProp<TextStyle>;
+  testID?: string;
+}) {
+  const { style: popStyle, pop } = usePop();
+  const press = () => {
+    haptics.success();
+    pop();
+    onLike();
+  };
+  return (
+    <TouchableOpacity style={style} onPress={press} accessibilityLabel="Like" testID={testID} activeOpacity={0.85}>
+      <Animated.View style={popStyle}>
+        <Ionicons name="heart" size={iconSize} color={iconColor} />
+      </Animated.View>
+      {label ? <Text style={labelStyle}>{label}</Text> : null}
+    </TouchableOpacity>
+  );
+}
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -48,15 +84,13 @@ export default function ProfileCard({
   const photoUri = profile.profilePhoto ?? profile.photos?.[0];
   const compat = profile.compatibilityScore ?? 0;
 
-  const like = () => { haptics.success(); onLike(); };
   const shortlist = () => { haptics.light(); onShortlist(); };
 
   if (compact) {
     return (
-      <TouchableOpacity
+      <PressableScale
         style={[s.compactCard, { backgroundColor: c.surfaceCard, borderColor: c.border }]}
         onPress={onPress}
-        activeOpacity={0.85}
         testID={testID ?? `ProfileCard-${profile.id}`}
         accessibilityLabel={`${name} profile`}
       >
@@ -81,19 +115,21 @@ export default function ProfileCard({
           <TouchableOpacity style={[s.iconBtn, { backgroundColor: c.surface2 }]} onPress={shortlist} accessibilityLabel="Shortlist" testID={`shortlist-${profile.id}`}>
             <Ionicons name="bookmark-outline" size={20} color={colours.g600} />
           </TouchableOpacity>
-          <TouchableOpacity style={[s.iconBtn, { backgroundColor: colours.accentSoft }]} onPress={like} accessibilityLabel="Like" testID={`like-${profile.id}`}>
-            <Ionicons name="heart" size={20} color={colours.accent} />
-          </TouchableOpacity>
+          <LikeButton
+            style={[s.iconBtn, { backgroundColor: colours.accentSoft }]}
+            iconColor={colours.accent}
+            onLike={onLike}
+            testID={`like-${profile.id}`}
+          />
         </View>
-      </TouchableOpacity>
+      </PressableScale>
     );
   }
 
   return (
-    <TouchableOpacity
+    <PressableScale
       style={[s.card, { backgroundColor: c.surfaceCard, borderColor: c.border }, sh.e2]}
       onPress={onPress}
-      activeOpacity={0.92}
       testID={testID ?? `ProfileCard-${profile.id}`}
       accessibilityLabel={`${name} profile`}
     >
@@ -146,12 +182,16 @@ export default function ProfileCard({
           <Ionicons name="bookmark-outline" size={20} color={colours.g600} />
           <Text style={[s.actionLabel, { color: colours.g600 }]}>Shortlist</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[s.actionBtn, s.likeBtn]} onPress={like} accessibilityLabel="Like" testID={`like-${profile.id}`}>
-          <Ionicons name="heart" size={20} color="#fff" />
-          <Text style={[s.actionLabel, { color: '#fff' }]}>Interested</Text>
-        </TouchableOpacity>
+        <LikeButton
+          style={[s.actionBtn, s.likeBtn]}
+          iconColor="#fff"
+          onLike={onLike}
+          label="Interested"
+          labelStyle={[s.actionLabel, { color: '#fff' }]}
+          testID={`like-${profile.id}`}
+        />
       </View>
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 

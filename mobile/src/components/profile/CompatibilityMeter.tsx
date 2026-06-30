@@ -1,13 +1,26 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { colours, type, borderRadius } from '@shared/constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import { CompatRing } from '../ui/TickRing';
+import { useFillAnimation } from '../motion';
 
 interface Props {
   score: number;
   /** show the tick-ring gauge alongside the bar (e.g. on ProfileDetail) */
   ring?: boolean;
+}
+
+/** Bar whose fill width animates 0→pct on view (handoff "fill on view"). */
+function AnimatedBar({ pct, colour, track }: { pct: number; colour: string; track: string }) {
+  const progress = useFillAnimation(pct);
+  const fillStyle = useAnimatedStyle(() => ({ width: `${progress.value}%` }));
+  return (
+    <View style={[s.bar, { backgroundColor: track }]}>
+      <Animated.View style={[s.fill, { backgroundColor: colour }, fillStyle]} />
+    </View>
+  );
 }
 
 // Score colouring (handoff): green / gold / burgundy.
@@ -40,9 +53,7 @@ export default function CompatibilityMeter({ score, ring }: Props) {
             <Text style={[s.label, { color: c.fgStrong }]}>Compatibility</Text>
             <Text style={[s.pct, { color: colour }]}>{clamp}%</Text>
           </View>
-          <View style={[s.bar, { backgroundColor: c.surface2 }]}>
-            <View style={[s.fill, { width: `${clamp}%`, backgroundColor: colour }]} />
-          </View>
+          <AnimatedBar pct={clamp} colour={colour} track={c.surface2} />
           <Text style={[s.hint, { color: c.textMuted }]}>
             Based on community, lifestyle & preferences
           </Text>

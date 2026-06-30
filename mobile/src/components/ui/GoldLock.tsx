@@ -2,7 +2,10 @@ import React from 'react';
 import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { borderRadius, colours, shadows, type } from '@shared/constants/theme';
+import { duration } from '@shared/constants/motion';
 import { useTheme } from '../../hooks/useTheme';
 import Button from './Button';
 
@@ -18,9 +21,9 @@ interface GoldLockProps {
 }
 
 /**
- * Premium gate — renders gated content dimmed behind a gold lock + unlock CTA.
- * (True blur needs expo-blur/native; we use a scrim + low-opacity content so it
- * works in Expo Go and stale dev clients.)
+ * Premium gate — gated content rendered behind a real frosted blur (expo-blur)
+ * with a gold lock + unlock CTA that fades in (handoff `dur.base`). The lock
+ * overlay fades in over the blurred content per the handoff "premium lock reveal".
  */
 export default function GoldLock({
   title,
@@ -31,15 +34,25 @@ export default function GoldLock({
   style,
   testID,
 }: GoldLockProps) {
-  const { c } = useTheme();
+  const { c, isDark } = useTheme();
   return (
     <View style={[styles.wrap, style]} testID={testID}>
       {children ? (
-        <View style={styles.dimmed} pointerEvents="none">
+        <View style={styles.content} pointerEvents="none">
           {children}
         </View>
       ) : null}
-      <View style={[styles.overlay, { backgroundColor: c.surfaceCard + 'D9' }]}>
+      {/* real frosted blur over the gated content (handoff blur(9) equivalent) */}
+      <BlurView
+        intensity={28}
+        tint={isDark ? 'dark' : 'light'}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
+      <Animated.View
+        entering={FadeIn.duration(duration.base)}
+        style={[styles.overlay, { backgroundColor: c.surfaceCard + '80' }]}
+      >
         <LinearGradient
           colors={[colours.g300, colours.g500]}
           start={{ x: 0, y: 0 }}
@@ -53,14 +66,14 @@ export default function GoldLock({
         {onUnlock ? (
           <Button title={ctaLabel} variant="gold" size="sm" icon="sparkles" onPress={onUnlock} style={styles.cta} />
         ) : null}
-      </View>
+      </Animated.View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: { position: 'relative', borderRadius: borderRadius.lg, overflow: 'hidden', minHeight: 160 },
-  dimmed: { opacity: 0.25 },
+  content: { transform: [{ scale: 1.04 }] },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',

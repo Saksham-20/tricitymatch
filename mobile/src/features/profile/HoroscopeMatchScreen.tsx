@@ -11,10 +11,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { colours, type, spacing, borderRadius } from '@shared/constants/theme';
 import { getHoroscopeCompatibility } from '../../api/profile';
 import type { GunaDetail } from '../../api/profile';
 import { CompatRing } from '../../components/ui';
+import { useFillAnimation } from '../../components/motion';
 import { useTheme } from '../../hooks/useTheme';
 import type { MainStackParamList } from '../../navigation/types';
 
@@ -28,12 +30,15 @@ function gunaColour(pct: number, isNull: boolean): string {
   return colours.error;
 }
 
-function GunaBar({ name, score, max, detail }: { name: string; score: number | null; max: number; detail: string }) {
+function GunaBar({ name, score, max, detail, index = 0 }: { name: string; score: number | null; max: number; detail: string; index?: number }) {
   const { c } = useTheme();
   const pct = score !== null ? (score / max) * 100 : 0;
   const isNull = score === null;
   const scoreLabel = isNull ? '?' : `${score}/${max}`;
   const barColour = gunaColour(pct, isNull);
+  // koota bars stagger 40ms each (handoff motion spec)
+  const progress = useFillAnimation(isNull ? 0 : pct, { delayMs: index * 40 });
+  const fillStyle = useAnimatedStyle(() => ({ width: `${progress.value}%` }));
 
   return (
     <View style={g.row}>
@@ -43,7 +48,7 @@ function GunaBar({ name, score, max, detail }: { name: string; score: number | n
       </View>
       <View style={g.barCol}>
         <View style={[g.track, { backgroundColor: c.surface2 }]}>
-          <View style={[g.fill, { width: `${isNull ? 0 : pct}%`, backgroundColor: barColour }]} />
+          <Animated.View style={[g.fill, { backgroundColor: barColour }, fillStyle]} />
         </View>
         <Text style={[g.scoreLabel, { color: barColour }]}>{scoreLabel}</Text>
       </View>
@@ -135,8 +140,8 @@ export default function HoroscopeMatchScreen() {
             <Text style={[s.sectionSub, { color: c.textMuted }]}>8 gunas · max 36 points</Text>
             {(Object.entries(ashtakoot.gunas) as [string, GunaDetail][])
               .sort(([, a], [, b]) => b.max - a.max)
-              .map(([key, guna]) => (
-                <GunaBar key={key} name={guna.name} score={guna.score} max={guna.max} detail={guna.detail} />
+              .map(([key, guna], i) => (
+                <GunaBar key={key} name={guna.name} score={guna.score} max={guna.max} detail={guna.detail} index={i} />
               ))}
           </View>
         ) : rashiScore !== null ? (

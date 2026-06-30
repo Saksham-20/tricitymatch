@@ -16,12 +16,14 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
+import Animated from 'react-native-reanimated';
 import * as LocalAuthentication from 'expo-local-authentication';
 import type { AuthStackParamList } from '../../navigation/types';
 import { useAuthStore } from '../../stores/authStore';
 import { login, refreshAccessToken } from '../../api/auth';
 import { cache, CACHE_KEYS } from '../../utils/cache';
 import { secureStorage } from '../../utils/secureStorage';
+import { useShake } from '../../components/motion';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
@@ -45,6 +47,7 @@ export default function LoginScreen() {
   const BIO_MAX_ATTEMPTS = 3;
 
   const passwordRef = useRef<TextInput>(null);
+  const { style: shakeStyle, shake } = useShake();
 
   // Check biometric capability on mount, auto-prompt if enabled
   useEffect(() => {
@@ -184,14 +187,12 @@ export default function LoginScreen() {
       } else {
         setError(t('common.error'));
       }
+      // handoff: field-error shake (translateX ±6 ×3) + warning haptic
+      shake();
     } finally {
       setLoading(false);
     }
   };
-
-  const lockoutDisplay = lockoutSeconds > 0
-    ? `${Math.floor(lockoutSeconds / 60)}:${String(lockoutSeconds % 60).padStart(2, '0')}`
-    : null;
 
   return (
     <KeyboardAvoidingView
@@ -211,12 +212,11 @@ export default function LoginScreen() {
           <Text style={styles.subtitle}>{t('auth.login.subtitle')}</Text>
         </View>
 
-        {/* Error banner */}
+        {/* Error banner — handoff lockout state shows a warning panel, no countdown */}
         {error ? (
-          <View style={styles.errorBanner} testID="LoginScreen-error" accessibilityLiveRegion="polite">
+          <Animated.View style={[styles.errorBanner, shakeStyle]} testID="LoginScreen-error" accessibilityLiveRegion="polite">
             <Text style={styles.errorText}>{error}</Text>
-            {lockoutDisplay && <Text style={styles.errorText}>{lockoutDisplay}</Text>}
-          </View>
+          </Animated.View>
         ) : null}
 
         {/* Email input */}

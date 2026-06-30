@@ -2,10 +2,19 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
-import { FiCheckCircle, FiPhone, FiMail, FiLoader, FiEdit2 } from 'react-icons/fi';
+import OtpBoxes from '../../ui/OtpBoxes';
+import { FiCheckCircle, FiPhone, FiMail, FiEdit2, FiShield } from 'react-icons/fi';
 import api from '../../../api/axios';
 import { validateEmail } from '../../../utils/validators';
 
+const RESEND_COOLDOWN = 60;
+
+/**
+ * Final signup step — confirm the contact details ALREADY entered on the account
+ * step. We never re-ask for the email or phone: both are pre-filled from
+ * `formData.email` / `formData.phone` (the canonical account number). The user
+ * just receives a code and enters it; an inline "Change" handles typos.
+ */
 const VerificationStep = () => {
   const { formData, updateFormData, errors, setStepErrors, registerStepValidator } = useOnboarding();
   const [emailCode, setEmailCode] = useState('');
@@ -14,370 +23,223 @@ const VerificationStep = () => {
   const [phoneSent, setPhoneSent] = useState(false);
   const [emailSending, setEmailSending] = useState(false);
   const [phoneSending, setPhoneSending] = useState(false);
-  // Resend cooldown (matches mobile RESEND_COOLDOWN = 60s). 0 = resend available.
   const [emailCooldown, setEmailCooldown] = useState(0);
   const [phoneCooldown, setPhoneCooldown] = useState(0);
-  const [editingEmail, setEditingEmail] = useState(false);
-  const [emailDraft, setEmailDraft] = useState('');
-  const [emailEditError, setEmailEditError] = useState('');
+
+  // Inline editors (fix a typo without leaving the step)
+  const [editing, setEditing] = useState(null); // 'email' | 'phone' | null
+  const [draft, setDraft] = useState('');
+  const [draftError, setDraftError] = useState('');
+
   const formDataRef = React.useRef(formData);
   formDataRef.current = formData;
 
-  const startEditEmail = () => {
-    setEmailDraft(formData.email || '');
-    setEmailEditError('');
-    setEditingEmail(true);
-  };
+  const hasEmail = !!formData.email;
+  const hasPhone = !!(formData.phone && String(formData.phone).replace(/\D/g, ''));
 
-  const saveEmail = () => {
-    const next = emailDraft.trim().toLowerCase();
-    if (!next) {
-      setEmailEditError('Email is required');
-      return;
-    }
-    if (!validateEmail(next)) {
-      setEmailEditError('Please enter a valid email address');
-      return;
-    }
-    // New address ⇒ any prior code/verification is void. Reset the OTP state so
-    // the user re-sends to the corrected inbox. updateFormData also clears the
-    // emailVerification flag centrally (see OnboardingContext).
-    updateFormData('email', next);
-    updateFormData('emailVerification', false);
-    setEmailSent(false);
-    setEmailCode('');
-    setEditingEmail(false);
-    setStepErrors({});
-  };
+  // At least one identifier must be verified. Prefer email when present.
+  const primary = hasEmail ? 'email' : 'phone';
 
   const validateStep = () => {
+    const d = formDataRef.current;
     const newErrors = {};
-    if (!formDataRef.current.emailVerification) {
-      newErrors.emailVerification = 'Email verification is required';
+    if (primary === 'email' && !d.emailVerification) {
+      newErrors.verify = 'Please verify your email to continue';
+    } else if (primary === 'phone' && !d.phoneVerification) {
+      newErrors.verify = 'Please verify your phone number to continue';
     }
     setStepErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  React.useEffect(() => {
-    return registerStepValidator(validateStep);
-  }, []);
+  React.useEffect(() => registerStepValidator(validateStep), []);
 
-  const RESEND_COOLDOWN = 60;
-
-  // Tick down whichever cooldown is active, once per second.
+  // Tick whichever cooldown is active, once per second.
   React.useEffect(() => {
     if (emailCooldown <= 0 && phoneCooldown <= 0) return;
-    const timer = setTimeout(() => {
+    const t = setTimeout(() => {
       setEmailCooldown((c) => (c > 0 ? c - 1 : 0));
       setPhoneCooldown((c) => (c > 0 ? c - 1 : 0));
     }, 1000);
-    return () => clearTimeout(timer);
+    return () => clearTimeout(t);
   }, [emailCooldown, phoneCooldown]);
 
-  const handleSendCode = async (method) => {
-    const target = method === 'email' ? formData.email : formData.phoneNumber;
-    if (!target) {
-      setStepErrors({ [method]: method === 'email' ? 'No email address found' : 'Please enter a phone number first' });
-      return;
-    }
-    // Guard against resending while the cooldown is still ticking.
-    if (method === 'email' ? emailCooldown > 0 : phoneCooldown > 0) return;
-    if (method === 'email') setEmailSending(true);
-    else setPhoneSending(true);
+  const startEdit = (method) => {
+    setEditing(method);
+    setDraft(method === 'email' ? formData.email || '' : String(formData.phone || ''));
+    setDraftError('');
+  };
 
+  const saveEdit = () => {
+    if (editing === 'email') {
+      const next = draft.trim().toLowerCase();
+      if (!next || !validateEmail(next)) { setDraftError('Enter a valid email address'); return; }
+      updateFormData('email', next);
+      updateFormData('emailVerification', false);
+      setEmailSent(false); setEmailCode(''); setEmailCooldown(0);
+    } else {
+      const next = draft.replace(/\D/g, '');
+      if (!/^[6-9]\d{9}$/.test(next)) { setDraftError('Enter a valid 10-digit mobile number'); return; }
+      updateFormData('phone', next);
+      updateFormData('phoneVerification', false);
+      setPhoneSent(false); setPhoneCode(''); setPhoneCooldown(0);
+    }
+    setEditing(null);
+    setStepErrors({});
+  };
+
+  const sendCode = async (method) => {
+    const target = method === 'email' ? formData.email : String(formData.phone || '').replace(/\D/g, '');
+    if (!target) { setStepErrors({ [method]: `Add a ${method} first` }); return; }
+    if (method === 'email' ? emailCooldown > 0 : phoneCooldown > 0) return;
+    method === 'email' ? setEmailSending(true) : setPhoneSending(true);
     try {
       await api.post('/auth/send-otp', { type: method, target });
       if (method === 'email') { setEmailSent(true); setEmailCooldown(RESEND_COOLDOWN); }
       else { setPhoneSent(true); setPhoneCooldown(RESEND_COOLDOWN); }
       setStepErrors({});
     } catch (err) {
-      const msg = err.response?.data?.error?.message || 'Failed to send code. Please try again.';
-      setStepErrors({ [method]: msg });
+      setStepErrors({ [method]: err.response?.data?.error?.message || 'Failed to send code. Try again.' });
     } finally {
-      if (method === 'email') setEmailSending(false);
-      else setPhoneSending(false);
+      method === 'email' ? setEmailSending(false) : setPhoneSending(false);
     }
   };
 
-  const handleVerifyCode = async (method) => {
-    const code = method === 'email' ? emailCode : phoneCode;
-    const expectedLen = method === 'email' ? 6 : 4; // SMS OTP is 4-digit (DLT template)
-    if (code.length !== expectedLen) return;
+  const verifyCode = async (method, code) => {
+    const target = method === 'email' ? formData.email : String(formData.phone || '').replace(/\D/g, '');
     try {
-      const target = method === 'email' ? formData.email : formData.phoneNumber;
       await api.post('/auth/verify-otp', { type: method, target, code });
-      if (method === 'email') {
-        updateFormData('emailVerification', true);
-        setEmailCode('');
-      } else {
-        updateFormData('phoneVerification', true);
-        setPhoneCode('');
-      }
+      updateFormData(method === 'email' ? 'emailVerification' : 'phoneVerification', true);
+      method === 'email' ? setEmailCode('') : setPhoneCode('');
       setStepErrors({});
     } catch (err) {
-      const msg = err.response?.data?.error?.message || 'Invalid code. Please try again.';
-      setStepErrors({ [method]: msg });
+      setStepErrors({ [method]: err.response?.data?.error?.message || 'Invalid code. Try again.' });
     }
   };
 
-  return (
-    <div className="space-y-5">
-      {/* How to Create Account message */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="bg-neutral-50 border border-neutral-200 rounded-lg p-4"
-      >
-        <p className="text-sm text-neutral-600">
-          <span className="font-medium text-neutral-800">Account security:</span><br />
-          We'll send you a verification code to confirm your email and phone number. This keeps your profile secure.
-        </p>
-      </motion.div>
+  const renderCard = ({ method, icon: Icon, title, target, verified, optional, codeLen, code, setCode, sent, sending, cooldown }) => (
+    <div className={`border-2 rounded-2xl p-5 transition-colors ${verified ? 'border-green-200 bg-green-50/40 dark:bg-green-900/10' : 'border-neutral-200 dark:border-neutral-700'}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3 min-w-0">
+          <div className={`p-2.5 rounded-xl flex-shrink-0 ${verified ? 'bg-green-100 text-green-600' : 'bg-primary-50 text-primary-600 dark:bg-primary-900/30'}`}>
+            <Icon className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="font-semibold text-neutral-900 dark:text-neutral-100 text-sm">
+              {title}{optional && <span className="ml-1.5 text-[11px] font-normal text-neutral-400">Optional</span>}
+            </p>
+            <p className="text-sm text-neutral-500 truncate">{target || `Add a ${method}`}</p>
+          </div>
+        </div>
+        {verified ? (
+          <motion.span initial={{ scale: 0.7 }} animate={{ scale: 1 }} className="flex items-center gap-1 text-xs font-semibold text-green-600 flex-shrink-0">
+            <FiCheckCircle className="w-4 h-4" /> Verified
+          </motion.span>
+        ) : (
+          editing !== method && target && (
+            <button type="button" onClick={() => startEdit(method)} className="flex items-center gap-1 text-xs font-medium text-primary-600 hover:text-primary-700 flex-shrink-0">
+              <FiEdit2 className="w-3.5 h-3.5" /> Change
+            </button>
+          )
+        )}
+      </div>
 
-      {errors.emailVerification && (
-        <p className="text-sm text-red-600 font-medium">{errors.emailVerification}</p>
+      {/* Inline editor */}
+      {editing === method && (
+        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-700 space-y-3">
+          <FormField
+            label={method === 'email' ? 'Update email' : 'Update phone'}
+            type={method === 'email' ? 'email' : 'tel'}
+            inputMode={method === 'email' ? 'email' : 'numeric'}
+            value={draft}
+            onChange={(v) => { setDraft(v); setDraftError(''); }}
+            error={draftError}
+            placeholder={method === 'email' ? 'email@example.com' : '10-digit mobile number'}
+          />
+          <div className="flex gap-2">
+            <button type="button" onClick={saveEdit} className="px-4 py-2 text-sm font-semibold bg-primary-600 text-white rounded-lg hover:bg-primary-700">Save</button>
+            <button type="button" onClick={() => setEditing(null)} className="px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg">Cancel</button>
+          </div>
+        </motion.div>
       )}
 
-      {/* Email Verification */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-      >
-        <div className="border border-neutral-200 rounded-lg p-4">
-          <div className="flex items-start justify-between">
-            <div className="flex items-start gap-3">
-              <div className={`p-2 rounded-lg ${formData.emailVerification ? 'bg-green-100' : 'bg-neutral-100'}`}>
-                <FiMail className={`w-5 h-5 ${formData.emailVerification ? 'text-green-600' : 'text-neutral-600'}`} />
-              </div>
-              <div>
-                <p className="font-medium text-neutral-900">Email Verification</p>
-                <p className="text-sm text-neutral-600">{formData.email}</p>
-              </div>
-            </div>
-            {formData.emailVerification ? (
-              <motion.div
-                initial={{ scale: 0.8 }}
-                animate={{ scale: 1 }}
-                className="text-green-600"
-              >
-                <FiCheckCircle className="w-5 h-5" />
-              </motion.div>
-            ) : (
-              !editingEmail && (
-                <button
-                  type="button"
-                  onClick={startEditEmail}
-                  className="flex items-center gap-1 text-xs font-medium text-primary-600 hover:text-primary-700"
-                >
-                  <FiEdit2 className="w-3.5 h-3.5" /> Change
-                </button>
-              )
-            )}
-          </div>
-
-          {/* Inline email editor — fix a wrong/typo'd address without leaving this step */}
-          {editingEmail && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              className="mt-4 space-y-3 pt-4 border-t border-neutral-200"
+      {/* Verify flow */}
+      {!verified && editing !== method && (
+        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-700 space-y-3">
+          {!sent ? (
+            <button
+              type="button"
+              onClick={() => sendCode(method)}
+              disabled={sending || !target}
+              className="px-4 py-2.5 text-sm font-semibold text-primary-700 bg-primary-50 hover:bg-primary-100 dark:bg-primary-900/30 rounded-lg transition-colors disabled:opacity-50"
             >
-              <FormField
-                label="Update Email Address"
-                type="email"
-                name="editEmail"
-                autoComplete="email"
-                inputMode="email"
-                placeholder="email@example.com"
-                value={emailDraft}
-                onChange={(value) => { setEmailDraft(value); setEmailEditError(''); }}
-                error={emailEditError}
+              {sending ? 'Sending…' : `Send code${target ? ` to ${method === 'email' ? 'email' : 'phone'}` : ''}`}
+            </button>
+          ) : (
+            <>
+              <p className="text-xs text-neutral-500">Enter the {codeLen}-digit code sent to <span className="font-medium text-neutral-700 dark:text-neutral-300">{target}</span></p>
+              <OtpBoxes
+                length={codeLen}
+                value={code}
+                onChange={setCode}
+                onComplete={(c) => verifyCode(method, c)}
+                error={!!errors?.[method]}
+                autoFocus
               />
-              <div className="flex gap-2">
+              <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  onClick={saveEmail}
-                  className="px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                  onClick={() => verifyCode(method, code)}
+                  disabled={code.length !== codeLen}
+                  className="px-4 py-2 text-sm font-semibold bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  Save Email
+                  Verify
                 </button>
-                <button
-                  type="button"
-                  onClick={() => { setEditingEmail(false); setEmailEditError(''); }}
-                  className="px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100 rounded-lg transition-colors"
-                >
-                  Cancel
-                </button>
+                <span className="text-xs text-neutral-500">
+                  {cooldown > 0 ? `Resend in ${cooldown}s` : <button type="button" onClick={() => sendCode(method)} className="underline text-primary-600">Resend code</button>}
+                </span>
               </div>
-            </motion.div>
+            </>
           )}
+          {errors?.[method] && <p className="text-sm text-red-600 bg-red-50 border-l-2 border-red-400 p-2 rounded">{errors[method]}</p>}
+        </motion.div>
+      )}
+    </div>
+  );
 
-          {!formData.emailVerification && !editingEmail && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              transition={{ delay: 0.2 }}
-              className="mt-4 space-y-3 pt-4 border-t border-neutral-200"
-            >
-              {!emailSent ? (
-                <p className="text-xs text-neutral-600">Click "Send Code" to get a 6-digit code at {formData.email}</p>
-              ) : (
-                <FormField
-                  label="Verification Code"
-                  placeholder="Enter 6-digit code"
-                  value={emailCode}
-                  onChange={(value) => setEmailCode(value.replace(/\D/g, '').slice(0, 6))}
-                  maxLength="6"
-                  autoComplete="one-time-code"
-                />
-              )}
-              {emailSent && (
-                <p className="text-xs text-neutral-500">
-                  Code sent to {formData.email}.{' '}
-                  {emailCooldown > 0 ? (
-                    <span className="text-neutral-400">Resend in {emailCooldown}s</span>
-                  ) : (
-                    <button onClick={() => handleSendCode('email')} className="underline text-primary-600">Resend</button>
-                  )}
-                </p>
-              )}
-              <div className="flex gap-2">
-                {!emailSent && (
-                  <button
-                    onClick={() => handleSendCode('email')}
-                    disabled={emailSending}
-                    className="px-4 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50 rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    {emailSending ? 'Sending...' : 'Send Code'}
-                  </button>
-                )}
-                {emailSent && (
-                  <button
-                    onClick={() => handleVerifyCode('email')}
-                    disabled={emailCode.length !== 6}
-                    className="px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Verify
-                  </button>
-                )}
-              </div>
-              {errors?.email && (
-                <p className="text-sm border-l-2 border-red-500 bg-red-50 text-red-600 p-2 mt-2">{errors.email}</p>
-              )}
-            </motion.div>
-          )}
+  return (
+    <div className="space-y-4">
+      {errors.verify && (
+        <p className="text-sm text-red-600 font-medium bg-red-50 border border-red-200 rounded-lg p-3">{errors.verify}</p>
+      )}
+
+      {hasEmail && renderCard({
+        method: 'email', icon: FiMail, title: 'Email verification', target: formData.email,
+        verified: formData.emailVerification, optional: false, codeLen: 6,
+        code: emailCode, setCode: setEmailCode, sent: emailSent, sending: emailSending, cooldown: emailCooldown,
+      })}
+
+      {renderCard({
+        method: 'phone', icon: FiPhone, title: 'Phone verification', target: hasPhone ? `+91 ${formData.phone}` : '',
+        verified: formData.phoneVerification, optional: hasEmail, codeLen: 4,
+        code: phoneCode, setCode: setPhoneCode, sent: phoneSent, sending: phoneSending, cooldown: phoneCooldown,
+      })}
+
+      {/* Add a phone when none was provided (email-first signup) */}
+      {!hasPhone && editing !== 'phone' && (
+        <button type="button" onClick={() => startEdit('phone')} className="text-sm font-medium text-primary-600 hover:text-primary-700 underline underline-offset-2 px-1">
+          + Add a phone number
+        </button>
+      )}
+
+      {/* Trust strip */}
+      <div className="flex items-start gap-3 bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700 rounded-xl p-4">
+        <FiShield className="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" />
+        <div className="text-xs text-neutral-600 dark:text-neutral-400 space-y-1">
+          <p className="font-semibold text-neutral-800 dark:text-neutral-200">Verification keeps the community real</p>
+          <p>It protects you from fake profiles and earns you a verified badge that matches trust more.</p>
         </div>
-      </motion.div>
-
-      {/* Phone Verification (Optional) */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.25 }}
-      >
-        <div className="border border-neutral-200 rounded-lg p-4">
-          <div className="flex items-start justify-between">
-            <div className="flex items-start gap-3">
-              <div className={`p-2 rounded-lg ${formData.phoneVerification ? 'bg-green-100' : 'bg-neutral-100'}`}>
-                <FiPhone className={`w-5 h-5 ${formData.phoneVerification ? 'text-green-600' : 'text-neutral-600'}`} />
-              </div>
-              <div>
-                <p className="font-medium text-neutral-900">Phone Verification (Optional)</p>
-                <p className="text-sm text-neutral-600">
-                  {formData.phoneNumber || 'Add your phone number'}
-                </p>
-              </div>
-            </div>
-            {formData.phoneVerification && (
-              <motion.div
-                initial={{ scale: 0.8 }}
-                animate={{ scale: 1 }}
-                className="text-green-600"
-              >
-                <FiCheckCircle className="w-5 h-5" />
-              </motion.div>
-            )}
-          </div>
-
-          {!formData.phoneVerification && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              transition={{ delay: 0.3 }}
-              className="mt-4 space-y-3 pt-4 border-t border-neutral-200"
-            >
-              <FormField
-                label="Phone Number"
-                type="tel"
-                placeholder="+91 98765 43210"
-                value={formData.phoneNumber}
-                onChange={(value) => updateFormData('phoneNumber', value)}
-              />
-              {phoneSent && (
-                <FormField
-                  label="Verification Code"
-                  placeholder="Enter 4-digit code"
-                  value={phoneCode}
-                  onChange={(value) => setPhoneCode(value.replace(/\D/g, '').slice(0, 4))}
-                  maxLength="4"
-                  autoComplete="one-time-code"
-                />
-              )}
-              {phoneSent && (
-                <p className="text-xs text-neutral-500">
-                  Code sent.{' '}
-                  {phoneCooldown > 0 ? (
-                    <span className="text-neutral-400">Resend in {phoneCooldown}s</span>
-                  ) : (
-                    <button onClick={() => handleSendCode('phone')} className="underline text-primary-600">Resend</button>
-                  )}
-                </p>
-              )}
-              <div className="flex gap-2">
-                {!phoneSent && (
-                  <button
-                    onClick={() => handleSendCode('phone')}
-                    disabled={phoneSending || !formData.phoneNumber}
-                    className="px-4 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50 rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    {phoneSending ? 'Sending...' : 'Send OTP'}
-                  </button>
-                )}
-                {phoneSent && (
-                  <button
-                    onClick={() => handleVerifyCode('phone')}
-                    disabled={phoneCode.length !== 4}
-                    className="px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Verify
-                  </button>
-                )}
-              </div>
-              {errors?.phone && (
-                <p className="text-sm border-l-2 border-red-500 bg-red-50 text-red-600 p-2 mt-2">{errors.phone}</p>
-              )}
-            </motion.div>
-          )}
-        </div>
-      </motion.div>
-
-      {/* Trust badges */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.35 }}
-        className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600"
-      >
-        <p className="font-medium text-neutral-800 mb-2">Why we verify</p>
-        <ul className="list-disc list-inside space-y-1 text-xs">
-          <li>Protects you from fake profiles</li>
-          <li>Ensures community safety</li>
-          <li>Verified badge increases match confidence</li>
-        </ul>
-      </motion.div>
+      </div>
     </div>
   );
 };

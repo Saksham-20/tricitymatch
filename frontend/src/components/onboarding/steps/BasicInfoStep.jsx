@@ -47,11 +47,18 @@ const BasicInfoStep = () => {
     return registerStepValidator(validateStep);
   }, []);
 
+  const genderOptions = [
+    { value: 'male', label: 'Male' },
+    { value: 'female', label: 'Female' },
+    { value: 'other', label: 'Other' },
+  ];
+
   return (
-    <div className="space-y-4">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+    <div className="space-y-5">
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <FormField
           label="First Name"
+          autoComplete="given-name"
           placeholder="John"
           value={formData.firstName}
           onChange={(value) => updateFormData('firstName', value)}
@@ -59,11 +66,9 @@ const BasicInfoStep = () => {
           error={errors.firstName}
           required
         />
-      </motion.div>
-
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
         <FormField
           label="Last Name"
+          autoComplete="family-name"
           placeholder="Smith"
           value={formData.lastName}
           onChange={(value) => updateFormData('lastName', value)}
@@ -75,30 +80,32 @@ const BasicInfoStep = () => {
 
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
         <div className="space-y-2">
-          <label htmlFor="onboarding-gender" className="block text-sm font-medium text-neutral-900">
+          <span className="block text-sm font-medium text-neutral-900 dark:text-neutral-100">
             Gender <span className="text-red-500 ml-1">*</span>
-          </label>
-          <select
-            id="onboarding-gender"
-            name="gender"
-            value={formData.gender || ''}
-            onChange={(e) => updateFormData('gender', e.target.value)}
-            onBlur={() => setFieldTouched('gender')}
-            required
-            aria-invalid={errors.gender ? true : undefined}
-            aria-describedby={errors.gender ? 'onboarding-gender-error' : undefined}
-            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
-              errors.gender
-                ? 'border-red-500 focus:ring-red-500/20 focus:ring-red-500'
-                : 'border-neutral-300 focus:ring-primary-500/20 focus:ring-primary-500'
-            }`}
-          >
-            <option value="" disabled>Select Gender</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-            <option value="other">Other</option>
-          </select>
-          {errors.gender && <p id="onboarding-gender-error" className="text-sm text-red-600 font-medium">{errors.gender}</p>}
+          </span>
+          <div className="grid grid-cols-3 gap-2.5" role="radiogroup" aria-label="Gender">
+            {genderOptions.map((opt) => {
+              const selected = formData.gender === opt.value;
+              return (
+                <motion.button
+                  key={opt.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => { updateFormData('gender', opt.value); setFieldTouched('gender'); }}
+                  whileTap={{ scale: 0.97 }}
+                  className={`py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
+                    selected
+                      ? 'border-primary-600 bg-primary-50 text-primary-700 dark:bg-primary-900/30'
+                      : 'border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 hover:border-primary-300'
+                  }`}
+                >
+                  {opt.label}
+                </motion.button>
+              );
+            })}
+          </div>
+          {errors.gender && <p className="text-sm text-red-600 font-medium">{errors.gender}</p>}
         </div>
       </motion.div>
 

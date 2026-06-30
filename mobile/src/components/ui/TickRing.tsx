@@ -1,7 +1,9 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { colours, type } from '@shared/constants/theme';
 import { useTheme } from '../../hooks/useTheme';
+import { useFillAnimation } from '../motion';
 
 interface TickRingProps {
   /** 0–100 */
@@ -15,10 +17,54 @@ interface TickRingProps {
   children?: React.ReactNode;
 }
 
+/** A single tick that crossfades on/off as the animated fill sweeps past it. */
+function Tick({
+  index,
+  ticks,
+  progress,
+  threshold,
+  size,
+  tickLength,
+  tickWidth,
+  onColor,
+  offColor,
+}: {
+  index: number;
+  ticks: number;
+  progress: Animated.SharedValue<number>;
+  threshold: number;
+  size: number;
+  tickLength: number;
+  tickWidth: number;
+  onColor: string;
+  offColor: string;
+}) {
+  const angle = (360 / ticks) * index;
+  const radius = size / 2;
+  const animatedStyle = useAnimatedStyle(() => ({
+    backgroundColor: progress.value >= threshold ? onColor : offColor,
+  }));
+  return (
+    <Animated.View
+      style={[
+        styles.tick,
+        {
+          width: tickWidth,
+          height: tickLength,
+          borderRadius: tickWidth,
+          transform: [{ rotate: `${angle}deg` }, { translateY: -(radius - tickLength / 2 - 1) }],
+        },
+        animatedStyle,
+      ]}
+    />
+  );
+}
+
 /**
- * Rim gauge built from N radial tick marks; the first `value%` are filled.
- * Pure-View (no SVG) so it works without a native rebuild. Powers the
- * completion ring (10 ticks) and the compatibility ring (24 ticks).
+ * Rim gauge built from N radial tick marks; the first `value%` are filled,
+ * animating 0→value on mount (handoff "fill on view"). Pure-View (no SVG) so it
+ * works without a native rebuild. Powers the completion ring (10 ticks) and the
+ * compatibility ring (24 ticks).
  */
 export default function TickRing({
   value,
@@ -32,30 +78,25 @@ export default function TickRing({
   const { c } = useTheme();
   const fillColor = color ?? c.accent;
   const v = Math.max(0, Math.min(100, value));
-  const filled = Math.round((v / 100) * ticks);
-  const radius = size / 2;
+  const progress = useFillAnimation(v);
 
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      {Array.from({ length: ticks }).map((_, i) => {
-        const angle = (360 / ticks) * i;
-        const on = i < filled;
-        return (
-          <View
-            key={i}
-            style={[
-              styles.tick,
-              {
-                width: tickWidth,
-                height: tickLength,
-                borderRadius: tickWidth,
-                backgroundColor: on ? fillColor : c.border,
-                transform: [{ rotate: `${angle}deg` }, { translateY: -(radius - tickLength / 2 - 1) }],
-              },
-            ]}
-          />
-        );
-      })}
+      {Array.from({ length: ticks }).map((_, i) => (
+        <Tick
+          key={i}
+          index={i}
+          ticks={ticks}
+          progress={progress}
+          // a tick lights once the fill passes its share of the rim
+          threshold={((i + 1) / ticks) * 100}
+          size={size}
+          tickLength={tickLength}
+          tickWidth={tickWidth}
+          onColor={fillColor}
+          offColor={c.border}
+        />
+      ))}
       <View style={styles.center}>{children}</View>
     </View>
   );

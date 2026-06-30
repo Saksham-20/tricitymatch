@@ -16,7 +16,6 @@ import {
 } from 'react-icons/fi';
 
 // Import step components
-import WelcomeStep from '../components/onboarding/steps/WelcomeStep';
 import CreatingForStep from '../components/onboarding/steps/CreatingForStep';
 import CreateAccountStep from '../components/onboarding/steps/CreateAccountStep';
 import BasicInfoStep from '../components/onboarding/steps/BasicInfoStep';
@@ -33,7 +32,6 @@ import VerificationStep from '../components/onboarding/steps/VerificationStep';
 
 // All available step components (mapped by step id)
 const allStepComponents = {
-  0: WelcomeStep,
   0.5: CreatingForStep,
   1: CreateAccountStep,
   2: BasicInfoStep,

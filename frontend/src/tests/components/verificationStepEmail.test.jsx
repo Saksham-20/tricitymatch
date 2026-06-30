@@ -57,9 +57,9 @@ describe('VerificationStep email change', () => {
     renderStep();
     fireEvent.click(screen.getByRole('button', { name: /change/i }));
 
-    const input = screen.getByLabelText(/update email address/i);
+    const input = screen.getByLabelText(/update email/i);
     fireEvent.change(input, { target: { value: 'correct.user@gmail.com' } });
-    fireEvent.click(screen.getByRole('button', { name: /save email/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
 
     // Old address gone, new one shown, editor closed (Change is back).
     expect(screen.queryByText('wrong.typo@gmial.com')).not.toBeInTheDocument();
@@ -72,9 +72,9 @@ describe('VerificationStep email change', () => {
     renderStep();
     fireEvent.click(screen.getByRole('button', { name: /change/i }));
 
-    const input = screen.getByLabelText(/update email address/i);
+    const input = screen.getByLabelText(/update email/i);
     fireEvent.change(input, { target: { value: 'not-an-email' } });
-    fireEvent.click(screen.getByRole('button', { name: /save email/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
 
     expect(screen.getByText(/valid email address/i)).toBeInTheDocument();
     expect(screen.getByText('wrong.typo@gmial.com')).toBeInTheDocument();

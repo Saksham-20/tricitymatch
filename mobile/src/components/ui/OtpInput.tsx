@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { NativeSyntheticEvent, StyleSheet, TextInput, TextInputKeyPressEventData, View } from 'react-native';
 import { borderRadius, colours, type } from '@shared/constants/theme';
 import { useTheme } from '../../hooks/useTheme';
@@ -24,6 +24,7 @@ export default function OtpInput({
 }: OtpInputProps) {
   const { c } = useTheme();
   const refs = useRef<Array<TextInput | null>>([]);
+  const [focused, setFocused] = useState<number | null>(null);
   const chars = value.split('').slice(0, length);
 
   const setAt = (i: number, raw: string) => {
@@ -52,6 +53,7 @@ export default function OtpInput({
     <View style={styles.row} testID={testID}>
       {Array.from({ length }).map((_, i) => {
         const filled = !!chars[i];
+        const isFocused = focused === i;
         return (
           <TextInput
             key={i}
@@ -59,6 +61,8 @@ export default function OtpInput({
             value={chars[i] ?? ''}
             onChangeText={(t) => setAt(i, t)}
             onKeyPress={onKey(i)}
+            onFocus={() => setFocused(i)}
+            onBlur={() => setFocused((f) => (f === i ? null : f))}
             keyboardType="number-pad"
             maxLength={length} // allow paste
             autoFocus={autoFocus && i === 0}
@@ -67,6 +71,8 @@ export default function OtpInput({
               styles.box,
               { backgroundColor: c.surfaceCard, borderColor: c.border, color: c.fgStrong },
               filled && { borderColor: c.accent },
+              // focus = burgundy ring (handoff): accent border + soft glow
+              isFocused && { borderColor: c.accent, ...styles.focusRing, shadowColor: c.accent },
             ]}
             testID={testID ? `${testID}-${i}` : undefined}
           />
@@ -87,5 +93,11 @@ const styles = StyleSheet.create({
     ...type.title2,
     fontFamily: 'Inter-Bold',
     color: colours.fgStrong,
+  },
+  focusRing: {
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 3,
   },
 });

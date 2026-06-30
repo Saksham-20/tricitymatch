@@ -25,7 +25,7 @@ import {
 import { queryKeys } from '../../constants/queryKeys';
 import { useOfflineShortlist } from '../../hooks/useOfflineShortlist';
 import OfflineBanner from '../../components/common/OfflineBanner';
-import { Avatar, EmptyState as SharedEmpty, GoldLock, SkeletonRow } from '../../components/ui';
+import { Avatar, EmptyState as SharedEmpty, GoldLock, SkeletonRow, MatchCelebration } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
 import { haptics } from '../../utils/haptics';
 import type { MainStackParamList } from '../../navigation/types';
@@ -149,6 +149,8 @@ function TabContent({ activeTab }: { activeTab: TabKey }) {
   const queryClient = useQueryClient();
   // "Liked Me" reveal is gated to paid plans (mirrors web). Any non-free tier unlocks it.
   const hasPlus = useAuthStore(selectPlan) !== 'free';
+  // mutual-match seal celebration (shown after accepting a "Liked Me" interest)
+  const [celebrate, setCelebrate] = useState<{ name: string } | null>(null);
 
   const mutualQuery   = useQuery({ queryKey: queryKeys.mutualMatches,  queryFn: getMutualMatches,  enabled: activeTab === 'mutual' });
   const likedMeQuery  = useQuery({ queryKey: queryKeys.likedMe,        queryFn: getLikedMe,        enabled: activeTab === 'liked_me' });
@@ -260,7 +262,14 @@ function TabContent({ activeTab }: { activeTab: TabKey }) {
             }
             onAccept={
               activeTab === 'liked_me'
-                ? () => actionMutation.mutate({ userId: item.userId, action: 'like' })
+                ? () => {
+                    const p = item.MatchedProfile;
+                    const nm = p ? `${p.firstName} ${p.lastName}`.trim() : undefined;
+                    actionMutation.mutate(
+                      { userId: item.userId, action: 'like' },
+                      { onSuccess: () => setCelebrate({ name: nm || 'them' }) },
+                    );
+                  }
                 : undefined
             }
             onDecline={
@@ -280,6 +289,15 @@ function TabContent({ activeTab }: { activeTab: TabKey }) {
         }
         contentContainerStyle={{ paddingBottom: spacing['5xl'] }}
         testID={`matches-list-${activeTab}`}
+      />
+      <MatchCelebration
+        visible={!!celebrate}
+        name={celebrate?.name}
+        onClose={() => setCelebrate(null)}
+        onMessage={() => {
+          setCelebrate(null);
+          navigation.navigate('MainTabs', { screen: 'Chat' } as never);
+        }}
       />
     </View>
   );

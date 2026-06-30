@@ -6,7 +6,6 @@ import {
   StyleSheet,
   Text,
   TextStyle,
-  TouchableOpacity,
   View,
   ViewStyle,
 } from 'react-native';
@@ -14,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { borderRadius, colours, shadows, spacing, type } from '@shared/constants/theme';
 import { haptics } from '../../utils/haptics';
+import { PressableScale } from '../motion';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'text' | 'gold';
 export type ButtonSize = 'sm' | 'md' | 'lg';
@@ -85,7 +85,8 @@ export default function Button({
   const radiusStyle = { borderRadius: sz.radius, minHeight: sz.minHeight };
 
   return (
-    <TouchableOpacity
+    <PressableScale
+      haptic={false}
       style={[
         gradient ? [styles.gradientWrap, radiusStyle] : [styles.base, radiusStyle],
         gradient ? v.shadow : v.container,
@@ -96,7 +97,6 @@ export default function Button({
       ]}
       onPress={handlePress}
       disabled={isDisabled}
-      activeOpacity={0.9}
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? title}
@@ -114,7 +114,7 @@ export default function Button({
       ) : (
         <View style={styles.fill}>{inner}</View>
       )}
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 
