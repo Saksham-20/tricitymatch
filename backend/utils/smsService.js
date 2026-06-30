@@ -19,6 +19,28 @@ const rateKey = (phone) => `otp_rate:${phone}`;
 // 4-digit OTP to match the registered DLT/MSG91 template (##OTP## = 4 digits)
 const generateCode = () => String(Math.floor(1000 + Math.random() * 9000));
 
+/**
+ * Canonicalize a phone number to digits-with-country-code (default India: 91XXXXXXXXXX).
+ * Clients are inconsistent — web posts a bare 10-digit number, mobile prepends +91.
+ * MSG91 v5 requires `mobile=91XXXXXXXXXX`; a bare 10-digit number returns type:success but
+ * never delivers. We normalize ONCE here so (a) the provider always gets a routable number
+ * and (b) send/verify always hit the same Redis key regardless of the string the client sent.
+ * Returns canonical digits, or null if the input can't be a valid number (caller must reject).
+ */
+const normalizePhone = (raw) => {
+  let digits = String(raw || '').replace(/\D/g, '');
+  if (!digits) return null;
+  // Strip a single leading 0 (national trunk prefix, e.g. 07973… → 7973…)
+  if (digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1);
+  // Bare 10-digit Indian mobile → prepend country code
+  if (digits.length === 10) return `91${digits}`;
+  // Already India E.164 (91 + 10 digits)
+  if (digits.length === 12 && digits.startsWith('91')) return digits;
+  // Some other country code already present (11–15 digits) → keep as-is
+  if (digits.length >= 11 && digits.length <= 15) return digits;
+  return null;
+};
+
 // ─── Fast2SMS ─────────────────────────────────────────────────────────────────
 
 const sendFast2SMS = (phone, code) => {
@@ -27,7 +49,8 @@ const sendFast2SMS = (phone, code) => {
     if (!apiKey) { reject(new Error('SMS_API_KEY not set')); return; }
 
     const message = `Your TricityShadi verification code is ${code}. Valid for 10 minutes. Do not share with anyone.`;
-    const number = phone.replace(/^\+91/, '').replace(/\D/g, '');
+    // `phone` is canonical (91XXXXXXXXXX); Fast2SMS wants the 10-digit national form.
+    const number = phone.replace(/^91/, '');
     const body = JSON.stringify({
       route: 'q',
       sender_id: config.sms.senderId || 'TRCSDI',
@@ -76,7 +99,14 @@ const sendMSG91 = (phone, code) => {
 
     // MSG91 v5 OTP API. We pass our own `otp` so MSG91 injects it into ##OTP##
     // (we still verify locally against Redis). otp_length must match the template.
-    const mobile = phone.replace(/^\+/, '').replace(/\D/g, ''); // 91XXXXXXXXXX
+    // `phone` is already canonical (91XXXXXXXXXX) from normalizePhone().
+    const mobile = String(phone).replace(/\D/g, '');
+    // Don't trust MSG91's lying type:success — refuse to send a number that isn't
+    // a routable India MSI (91 + 10 digits) or a plausible international length.
+    if (!(mobile.length === 12 && mobile.startsWith('91')) && (mobile.length < 11 || mobile.length > 15)) {
+      reject(new Error(`MSG91 unroutable mobile: ${mobile}`));
+      return;
+    }
     const query = new URLSearchParams({
       template_id: templateId,
       mobile,
@@ -135,7 +165,11 @@ const checkRateLimit = async (phone) => {
  * Send OTP to phone. Enforces 3 sends/hour rate limit.
  * Returns { success, message, isDev }
  */
-const sendOtp = async (phone) => {
+const sendOtp = async (rawPhone) => {
+  // Canonicalize FIRST — never store/send an unroutable number (no fake success).
+  const phone = normalizePhone(rawPhone);
+  if (!phone) throw new AppError('A valid phone number is required.', 400);
+
   await checkRateLimit(phone);
 
   const code = generateCode();
@@ -169,7 +203,12 @@ const sendOtp = async (phone) => {
 /**
  * Verify OTP. Throws AppError on invalid/expired/max-attempts.
  */
-const verifyOtp = async (phone, code) => {
+const verifyOtp = async (rawPhone, code) => {
+  // Same canonicalization as sendOtp so the Redis key matches regardless of the
+  // string form the client sent on verify (e.g. bare 7973… vs +91 79734…).
+  const phone = normalizePhone(rawPhone);
+  if (!phone) throw new AppError('A valid phone number is required.', 400);
+
   // ⚠️ PRE-LAUNCH TESTING ONLY — master bypass codes (OTP_BYPASS_CODES) always
   // verify so login/signup work before SMS is wired. REMOVE before real users.
   const bypassCodes = config.sms.bypassCodes || [];
@@ -207,4 +246,4 @@ const verifyOtp = async (phone, code) => {
   return { success: true, message: 'OTP verified successfully' };
 };
 
-module.exports = { sendOtp, verifyOtp };
+module.exports = { sendOtp, verifyOtp, normalizePhone };

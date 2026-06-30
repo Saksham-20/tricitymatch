@@ -14,6 +14,9 @@ const VerificationStep = () => {
   const [phoneSent, setPhoneSent] = useState(false);
   const [emailSending, setEmailSending] = useState(false);
   const [phoneSending, setPhoneSending] = useState(false);
+  // Resend cooldown (matches mobile RESEND_COOLDOWN = 60s). 0 = resend available.
+  const [emailCooldown, setEmailCooldown] = useState(0);
+  const [phoneCooldown, setPhoneCooldown] = useState(0);
   const [editingEmail, setEditingEmail] = useState(false);
   const [emailDraft, setEmailDraft] = useState('');
   const [emailEditError, setEmailEditError] = useState('');
@@ -60,19 +63,33 @@ const VerificationStep = () => {
     return registerStepValidator(validateStep);
   }, []);
 
+  const RESEND_COOLDOWN = 60;
+
+  // Tick down whichever cooldown is active, once per second.
+  React.useEffect(() => {
+    if (emailCooldown <= 0 && phoneCooldown <= 0) return;
+    const timer = setTimeout(() => {
+      setEmailCooldown((c) => (c > 0 ? c - 1 : 0));
+      setPhoneCooldown((c) => (c > 0 ? c - 1 : 0));
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [emailCooldown, phoneCooldown]);
+
   const handleSendCode = async (method) => {
     const target = method === 'email' ? formData.email : formData.phoneNumber;
     if (!target) {
       setStepErrors({ [method]: method === 'email' ? 'No email address found' : 'Please enter a phone number first' });
       return;
     }
+    // Guard against resending while the cooldown is still ticking.
+    if (method === 'email' ? emailCooldown > 0 : phoneCooldown > 0) return;
     if (method === 'email') setEmailSending(true);
     else setPhoneSending(true);
 
     try {
       await api.post('/auth/send-otp', { type: method, target });
-      if (method === 'email') setEmailSent(true);
-      else setPhoneSent(true);
+      if (method === 'email') { setEmailSent(true); setEmailCooldown(RESEND_COOLDOWN); }
+      else { setPhoneSent(true); setPhoneCooldown(RESEND_COOLDOWN); }
       setStepErrors({});
     } catch (err) {
       const msg = err.response?.data?.error?.message || 'Failed to send code. Please try again.';
@@ -220,7 +237,11 @@ const VerificationStep = () => {
               {emailSent && (
                 <p className="text-xs text-neutral-500">
                   Code sent to {formData.email}.{' '}
-                  <button onClick={() => handleSendCode('email')} className="underline text-primary-600">Resend</button>
+                  {emailCooldown > 0 ? (
+                    <span className="text-neutral-400">Resend in {emailCooldown}s</span>
+                  ) : (
+                    <button onClick={() => handleSendCode('email')} className="underline text-primary-600">Resend</button>
+                  )}
                 </p>
               )}
               <div className="flex gap-2">
@@ -308,7 +329,11 @@ const VerificationStep = () => {
               {phoneSent && (
                 <p className="text-xs text-neutral-500">
                   Code sent.{' '}
-                  <button onClick={() => handleSendCode('phone')} className="underline text-primary-600">Resend</button>
+                  {phoneCooldown > 0 ? (
+                    <span className="text-neutral-400">Resend in {phoneCooldown}s</span>
+                  ) : (
+                    <button onClick={() => handleSendCode('phone')} className="underline text-primary-600">Resend</button>
+                  )}
                 </p>
               )}
               <div className="flex gap-2">
