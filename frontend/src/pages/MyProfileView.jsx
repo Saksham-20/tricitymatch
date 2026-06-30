@@ -291,7 +291,7 @@ const MyProfileView = () => {
                 {/* Quick stats */}
                 <div className="grid grid-cols-3 gap-3 mb-4">
                   <StatBadge label="Profile" value={`${completionPct}%`} color="rose" />
-                  <StatBadge label="Photos" value={allPhotos.length} color="amber" />
+                  <StatBadge label={allPhotos.length === 1 ? 'Photo' : 'Photos'} value={allPhotos.length} color="amber" />
                   <StatBadge label={isVerified ? 'Verified' : 'Unverified'} value={isVerified ? <FiCheck className="w-5 h-5" /> : <FiAlertCircle className="w-5 h-5" />} color={isVerified ? 'emerald' : 'rose'} />
                 </div>
 
@@ -432,10 +432,8 @@ const MyProfileView = () => {
                 {profile.gotra && <DetailRow label="Gotra" value={profile.gotra} />}
                 {profile.motherTongue && <DetailRow label="Mother Tongue" value={profile.motherTongue} />}
                 {profile.maritalStatus && <DetailRow label="Marital Status" value={profile.maritalStatus} />}
-                {profile.diet && <DetailRow label="Diet" value={profile.diet} />}
-                {profile.smoking && <DetailRow label="Smoking" value={profile.smoking} />}
-                {profile.drinking && <DetailRow label="Drinking" value={profile.drinking} />}
-                {profile.skinTone && <DetailRow label="Skin Tone" value={profile.skinTone} />}
+                {/* Diet/Smoking/Drinking/Skin tone live in the dedicated Lifestyle
+                    card below — not repeated here. */}
                 {profile.personalityType && <DetailRow label="Personality" value={profile.personalityType} isLast />}
               </div>
             </Card>

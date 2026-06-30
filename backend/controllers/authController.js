@@ -711,6 +711,22 @@ exports.sendOtp = asyncHandler(async (req, res) => {
   const { type, target } = req.body;
   if (!target) throw createError.badRequest('target is required');
 
+  // OTP is signup verification — only for NEW contacts. If an account already
+  // exists for this email/phone, refuse and point them to login. Without this an
+  // existing (even logged-in) user could trigger an OTP to their own number.
+  const { Op } = require('sequelize');
+  if (type === 'email') {
+    const email = String(target).toLowerCase().trim();
+    const exists = await User.findOne({ where: { email }, attributes: ['id'] });
+    if (exists) throw createError.conflict('An account already exists with this email. Please log in instead.');
+  } else if (type === 'phone') {
+    // Match every form a phone might be stored in (bare 10-digit, +91, 91…).
+    const last10 = String(target).replace(/\D/g, '').slice(-10);
+    const variants = [...new Set([String(target).trim(), last10, `91${last10}`, `+91${last10}`, `0${last10}`])].filter(Boolean);
+    const exists = await User.findOne({ where: { phone: { [Op.in]: variants } }, attributes: ['id'] });
+    if (exists) throw createError.conflict('An account already exists with this phone number. Please log in instead.');
+  }
+
   if (type === 'phone') {
     const result = await smsService.sendOtp(target);
     res.json(result);

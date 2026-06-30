@@ -291,7 +291,9 @@ const Dashboard = () => {
       setLoading(true);
       const [statsRes, suggestionsRes, matchesRes, profileRes, subRes, dailyRes, recentRes] = await Promise.allSettled([
         api.get('/profile/me/stats').catch(() => ({ data: { stats: null } })),
-        api.get('/search/suggestions?limit=8').catch(() => ({ data: { suggestions: [] } })),
+        // Fetch a wider pool so "Curated for You" still has fresh picks after we
+        // strip out anyone already shown in "Today's Matches" (see dedup below).
+        api.get('/search/suggestions?limit=24').catch(() => ({ data: { suggestions: [] } })),
         api.get('/match/mutual').catch(() => ({ data: { mutualMatches: [] } })),
         api.get('/profile/me').catch(() => ({ data: { profile: null } })),
         api.get('/subscription/my-subscription').catch(() => ({ data: { subscription: null } })),
@@ -466,6 +468,13 @@ const Dashboard = () => {
       </div>
     );
   }
+
+  // "Today's Matches" (/match/daily) and "Curated for You" (/search/suggestions)
+  // rank the same candidate pool the same way, so the top picks overlap and the
+  // two sections showed identical people. Hide anyone already in Today's Matches
+  // from Curated so each section earns its place.
+  const dailyIds = new Set(dailyMatches.map(p => p.userId));
+  const curatedSuggestions = suggestions.filter(p => !dailyIds.has(p.userId)).slice(0, 8);
 
   // ── Main render ────────────────────────────────────────────────────────────
   return (
@@ -795,7 +804,7 @@ const Dashboard = () => {
         )}
 
         {/* ── 5. Suggested Profiles ─────────────────────────────────────────── */}
-        {suggestions.length > 0 && (
+        {curatedSuggestions.length > 0 && (
           <motion.section variants={fadeInUp}>
             <SectionHeader
               title="Curated for You"
@@ -814,7 +823,7 @@ const Dashboard = () => {
 
             {/* Horizontal scroll on mobile, grid on desktop */}
             <div className="flex gap-4 overflow-x-auto pb-3 md:pb-0 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:gap-5 scrollbar-hide snap-x snap-mandatory">
-              {suggestions.map((profile, i) => (
+              {curatedSuggestions.map((profile, i) => (
                 <div key={`suggestion-${profile.userId}-${i}`} className="snap-start">
                   <SuggestionCard profile={profile} index={i} />
                 </div>

@@ -471,10 +471,11 @@ const Login = () => {
             </Link>
           </motion.form>
 
-          {/* Trust Badges */}
-          <motion.div 
+          {/* Trust Badges — mobile only; on desktop the left brand panel already
+              shows the SSL/Privacy strip (avoid the duplicate). */}
+          <motion.div
             variants={fadeInUp}
-            className="mt-8 flex items-center justify-center gap-6 text-xs text-neutral-500"
+            className="mt-8 flex lg:hidden items-center justify-center gap-6 text-xs text-neutral-500"
           >
             <div className="flex items-center gap-1">
               <FiShield className="w-4 h-4 text-success" />
