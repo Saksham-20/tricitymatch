@@ -65,6 +65,15 @@ async function seed() {
   }
 }
 
+// Allow running the seeder directly: `node backend/seeders/adminSeeder.js`.
+// Without this, requiring the file only defines the functions (up/down) and
+// never runs seed(), so the documented command was a silent no-op.
+if (require.main === module) {
+  seed()
+    .then(() => process.exit(0))
+    .catch(() => process.exit(1));
+}
+
 module.exports = {
   up: async (queryInterface, Sequelize) => {
     await seed();
