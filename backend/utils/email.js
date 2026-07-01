@@ -7,9 +7,23 @@ const nodemailer = require('nodemailer');
 const config = require('../config/env');
 const { log } = require('../middlewares/logger');
 
-// Create transporter
-let transporter = null;
+// ── Providers ────────────────────────────────────────────────────────────────
+// Two channels, per-purpose routed:
+//   'transactional' (OTP, reset, verification, security alerts, notices) → Resend first
+//   'documents'     (invoices, receipts, admin notices, support replies)  → SMTP first
+// Each channel falls back to the OTHER configured provider, so 'documents' still
+// ship via Resend until SMTP is wired, then auto-switch once EMAIL_USER/PASSWORD
+// are set. No provider configured → no-op (dev-log). Callers never touch this.
 
+let resendClient = null;
+const getResend = () => {
+  if (resendClient) return resendClient;
+  const { Resend } = require('resend');
+  resendClient = new Resend(config.email.resend.apiKey);
+  return resendClient;
+};
+
+let transporter = null;
 const getTransporter = () => {
   if (transporter) return transporter;
 
@@ -37,6 +51,71 @@ const getTransporter = () => {
   });
 
   return transporter;
+};
+
+// "TricityShadi <noreply@tricityshadi.com>"
+const fromHeader = () => `${config.email.fromName} <${config.email.from || config.email.user}>`;
+
+// Single-provider send primitives. Throw on failure so the router can fall back.
+const sendViaResend = async ({ from, to, subject, html, text, reply }) => {
+  const { data, error } = await getResend().emails.send({
+    from,
+    to: Array.isArray(to) ? to : [to],
+    subject,
+    html,
+    ...(text ? { text } : {}),
+    ...(reply ? { replyTo: reply } : {}),
+  });
+  if (error) throw new Error(error.message || String(error));
+  log.info('Email sent (resend)', { to, subject, messageId: data && data.id });
+  return { success: true, messageId: data && data.id, provider: 'resend' };
+};
+
+const sendViaSmtp = async ({ from, to, subject, html, text, reply }) => {
+  const info = await getTransporter().sendMail({
+    from, to, subject, html, text,
+    ...(reply ? { replyTo: reply } : {}),
+  });
+  log.info('Email sent (smtp)', { to, subject, messageId: info.messageId });
+  return { success: true, messageId: info.messageId, provider: 'smtp' };
+};
+
+const PROVIDERS = {
+  resend: { isConfigured: () => config.email.resend.isConfigured(), send: sendViaResend },
+  smtp: { isConfigured: () => config.email.smtpConfigured(), send: sendViaSmtp },
+};
+
+// Channel → provider preference order (falls back to the other one).
+const CHANNEL_ORDER = {
+  transactional: ['resend', 'smtp'],
+  documents: ['smtp', 'resend'],
+};
+
+// Low-level send. Routes by channel with fallback; never throws — always resolves
+// { success, ... } so a mail failure can't break a request flow.
+const deliver = async ({ to, subject, html, text, replyTo, channel = 'transactional' }) => {
+  const from = fromHeader();
+  const reply = replyTo || config.email.replyTo;
+  const order = CHANNEL_ORDER[channel] || CHANNEL_ORDER.transactional;
+  const configured = order.filter((name) => PROVIDERS[name].isConfigured());
+
+  if (configured.length === 0) {
+    // Surface the code-carrying subject so OTP/reset flows stay testable locally.
+    log.warn('Email not configured, skipping send', { to, subject, channel });
+    return { success: false, reason: 'Email not configured' };
+  }
+
+  let lastError;
+  for (const name of configured) {
+    try {
+      return await PROVIDERS[name].send({ from, to, subject, html, text, reply });
+    } catch (error) {
+      lastError = error;
+      log.error(`Email send failed via ${name}`, { to, subject, channel, error: error.message });
+      // fall through to next configured provider
+    }
+  }
+  return { success: false, error: lastError ? lastError.message : 'send failed' };
 };
 
 // Email templates
@@ -160,6 +239,7 @@ const templates = {
   }),
 
   subscriptionConfirmation: (name, plan, expiryDate) => ({
+    channel: 'documents', // payment receipt → SMTP-first (falls back to Resend)
     subject: 'Subscription Confirmed - TricityShadi',
     html: `
       <!DOCTYPE html>
@@ -334,55 +414,117 @@ const templates = {
     `,
     text: `Hi ${name}, You have ${matchCount} new profiles matching your preferences this week on TricityShadi. Log in to view them: ${config.server.frontendUrl}/search`
   }),
+
+  // One-time verification code (email OTP: signup / email-change).
+  otpCode: (code, purpose = 'verify your email') => ({
+    subject: 'Your TricityShadi verification code',
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #7c1e3f, #a0294f); color: white; padding: 28px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; text-align: center; }
+          .code { font-size: 34px; letter-spacing: 10px; font-weight: bold; color: #7c1e3f; background: #fff; border: 2px solid #7c1e3f; border-radius: 10px; padding: 16px 24px; display: inline-block; margin: 20px 0; }
+          .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header"><h1>Verification Code</h1></div>
+          <div class="content">
+            <p>Use this code to ${purpose}:</p>
+            <div class="code">${code}</div>
+            <p>This code is valid for 10 minutes. Do not share it with anyone.</p>
+            <p style="color:#888;font-size:13px;">If you didn't request this, you can safely ignore this email.</p>
+          </div>
+          <div class="footer"><p>© ${new Date().getFullYear()} TricityShadi. All rights reserved.</p></div>
+        </div>
+      </body>
+      </html>
+    `,
+    text: `Your TricityShadi verification code is ${code}. Valid for 10 minutes. Do not share it. If you didn't request this, ignore this email.`
+  }),
+
+  // Security alert (new login, password changed, suspicious activity…).
+  securityAlert: (name, title, detail, when) => ({
+    subject: `Security alert: ${title} - TricityShadi`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: #b45309; color: white; padding: 28px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+          .detail-box { background: #fff; border: 1px solid #e5e5e5; padding: 16px; border-radius: 8px; margin: 18px 0; }
+          .button { display: inline-block; background: #7c1e3f; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin-top: 16px; }
+          .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header"><h1>⚠ ${title}</h1></div>
+          <div class="content">
+            <p>Hi ${name || 'there'},</p>
+            <p>${detail}</p>
+            <div class="detail-box">
+              ${when ? `<p style="margin:0;"><strong>When:</strong> ${when}</p>` : ''}
+              <p style="margin:0;">If this was you, no action is needed.</p>
+            </div>
+            <p><strong>If this wasn't you</strong>, reset your password immediately and review your active sessions.</p>
+            <a href="${config.server.frontendUrl}/settings" class="button">Review Account Security</a>
+          </div>
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} TricityShadi. All rights reserved.</p>
+            <p>Questions? Contact ${config.email.support}</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+    text: `Hi ${name || 'there'}, Security alert: ${title}. ${detail}${when ? ' When: ' + when + '.' : ''} If this wasn't you, reset your password immediately at ${config.server.frontendUrl}/settings.`
+  }),
 };
 
-// Send email function
-const sendEmail = async (to, template, data = {}) => {
-  try {
-    if (!config.email.host || !config.email.user) {
-      log.warn('Email not configured, skipping send', { to, template: typeof template === 'string' ? template : 'custom' });
-      return { success: false, reason: 'Email not configured' };
-    }
-
-    let emailContent;
-    
-    if (typeof template === 'string' && templates[template]) {
-      // Use predefined template
-      emailContent = templates[template](...Object.values(data));
-    } else if (typeof template === 'object') {
-      // Custom template object
-      emailContent = template;
-    } else {
-      throw new Error(`Invalid email template: ${template}`);
-    }
-
-    const mailOptions = {
-      from: `"TricityShadi" <${config.email.from || config.email.user}>`,
-      to,
-      subject: emailContent.subject,
-      html: emailContent.html,
-      text: emailContent.text,
-    };
-
-    const info = await getTransporter().sendMail(mailOptions);
-    
-    log.info('Email sent successfully', { 
-      to, 
-      subject: emailContent.subject,
-      messageId: info.messageId 
-    });
-
-    return { success: true, messageId: info.messageId };
-  } catch (error) {
-    log.error('Failed to send email', { 
-      error: error.message, 
-      to, 
-      template: typeof template === 'string' ? template : 'custom' 
-    });
-    
-    // Don't throw, just return failure
-    return { success: false, error: error.message };
+// Send email. Accepts three call shapes (all historically used in this codebase):
+//   sendEmail(to, 'templateName', data)        — named template + arg object
+//   sendEmail(to, { subject, html, text })     — inline template object
+//   sendEmail({ to, subject, html, text, replyTo }) — single options object
+// (The last shape was previously broken against the old positional-only impl —
+// the OTP-send path used it — so it silently no-op'd. Now normalized.)
+// Optional `channel` ('transactional' default | 'documents') selects provider
+// preference. Object-shape callers pass `channel` on the object; named templates
+// declare their channel via `emailContent.channel` (see subscriptionConfirmation).
+const sendEmail = async (arg1, template, data = {}) => {
+  // Shape 3: single object with a `to` field.
+  if (arg1 && typeof arg1 === 'object' && arg1.to) {
+    const { to, subject, html, text, replyTo, channel } = arg1;
+    return deliver({ to, subject, html, text, replyTo, channel });
   }
+
+  const to = arg1;
+  let emailContent;
+  if (typeof template === 'string' && templates[template]) {
+    emailContent = templates[template](...Object.values(data));
+  } else if (template && typeof template === 'object') {
+    emailContent = template;
+  } else {
+    log.error('Invalid email template', { to, template: typeof template === 'string' ? template : 'custom' });
+    return { success: false, error: `Invalid email template: ${template}` };
+  }
+
+  return deliver({
+    to,
+    subject: emailContent.subject,
+    html: emailContent.html,
+    text: emailContent.text,
+    replyTo: emailContent.replyTo,
+    channel: emailContent.channel,
+  });
 };
 
 // Send welcome email
@@ -408,6 +550,13 @@ const sendVerificationRejected = (to, name, reason) => sendEmail(to, 'verificati
 const sendWeeklyDigest = (to, name, matchCount, profilesHtml) =>
   sendEmail(to, 'weeklyDigest', { name, matchCount, profilesHtml });
 
+// Send email OTP (branded template)
+const sendOtpEmail = (to, code, purpose) => sendEmail(to, 'otpCode', { code, purpose });
+
+// Send security alert
+const sendSecurityAlert = (to, name, title, detail, when) =>
+  sendEmail(to, 'securityAlert', { name, title, detail, when });
+
 module.exports = {
   sendEmail,
   sendWelcomeEmail,
@@ -417,5 +566,7 @@ module.exports = {
   sendVerificationApproved,
   sendVerificationRejected,
   sendWeeklyDigest,
+  sendOtpEmail,
+  sendSecurityAlert,
   templates,
 };

@@ -5,7 +5,7 @@
 
 const jwt = require('jsonwebtoken');
 const { User, Profile, Subscription, RefreshToken, ReferralCode, MarketingLead } = require('../models');
-const { sendWelcomeEmail, sendPasswordResetEmail, sendEmail } = require('../utils/email');
+const { sendWelcomeEmail, sendPasswordResetEmail, sendEmail, sendOtpEmail, sendSecurityAlert } = require('../utils/email');
 const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { recordFailedLogin, clearLoginAttempts } = require('../middlewares/security');
@@ -555,17 +555,15 @@ exports.resetPassword = asyncHandler(async (req, res) => {
   // Revoke all refresh tokens for security
   await RefreshToken.revokeAllUserTokens(user.id, 'password_reset');
 
-  // Send confirmation email
+  // Send security alert (password changed)
   try {
-    await sendEmail(user.email, {
-      subject: 'Password Changed - TricityShadi',
-      html: `
-        <p>Hi ${user.firstName || 'User'},</p>
-        <p>Your password has been successfully changed.</p>
-        <p>If you didn't make this change, please contact support immediately.</p>
-      `,
-      text: 'Your password has been changed. If you didn\'t make this change, contact support immediately.'
-    });
+    await sendSecurityAlert(
+      user.email,
+      user.firstName || 'User',
+      'Your password was changed',
+      'Your TricityShadi account password was just changed.',
+      new Date().toUTCString()
+    );
   } catch (error) {
     log.error('Failed to send password change confirmation', { error: error.message, userId: user.id });
   }
@@ -731,17 +729,16 @@ exports.sendOtp = asyncHandler(async (req, res) => {
     const result = await smsService.sendOtp(target);
     res.json(result);
   } else if (type === 'email') {
-    // Email OTP: use smsService-style store but deliver via email
-    const { sendEmail } = require('../utils/email');
+    // Email OTP: use smsService-style store but deliver via email (Resend)
     const { set: cacheSet } = require('../utils/cache');
     const code = String(Math.floor(100000 + Math.random() * 900000));
     const payload = JSON.stringify({ code, expiresAt: Date.now() + 600 * 1000, attempts: 0 });
     await cacheSet(`otp:${target}`, payload, 600);
-    await sendEmail({
-      to: target,
-      subject: 'Your TricityShadi verification code',
-      html: `<p>Your verification code is: <strong>${code}</strong></p><p>Valid for 10 minutes. Do not share.</p>`,
-    });
+    await sendOtpEmail(target, code, 'verify your email');
+    // Dev affordance: log the code when no email channel is configured.
+    if (!config.email.isConfigured() && !config.server.isProduction) {
+      log.info(`[EMAIL-OTP DEV] Code for ${target}: ${code}`);
+    }
     res.json({ success: true, message: 'OTP sent to email' });
   } else {
     throw createError.badRequest('type must be phone or email');
@@ -911,18 +908,13 @@ exports.requestEmailChange = asyncHandler(async (req, res) => {
   const taken = await User.findOne({ where: { email: normalized } });
   if (taken) throw createError.conflict('That email is already in use');
 
-  const { sendEmail } = require('../utils/email');
   const { set: cacheSet } = require('../utils/cache');
   const code = String(Math.floor(100000 + Math.random() * 900000));
   const payload = JSON.stringify({ code, expiresAt: Date.now() + 600 * 1000, attempts: 0, userId: user.id });
   await cacheSet(`email-change:${normalized}`, payload, 600);
-  await sendEmail({
-    to: normalized,
-    subject: 'Confirm your new TricityShadi email',
-    html: `<p>Your email change verification code is: <strong>${code}</strong></p><p>Valid for 10 minutes. If you didn't request this, you can ignore this email.</p>`,
-  });
+  await sendOtpEmail(normalized, code, 'confirm your new email address');
   // Dev affordance (matches smsService): log the code when email isn't configured.
-  if (!config.server.isProduction) {
+  if (!config.email.isConfigured() && !config.server.isProduction) {
     log.info(`[EMAIL-CHANGE DEV] Code for ${normalized}: ${code}`);
   }
 

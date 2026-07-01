@@ -166,15 +166,36 @@ const config = {
 
   // Email
   email: {
+    // Transactional provider — Resend (primary). SMTP kept for later
+    // (invoices / receipts / manual mail). email.js prefers Resend when its
+    // API key is set, otherwise falls back to SMTP, otherwise dev-logs.
+    resend: {
+      apiKey: optionalString('RESEND_API_KEY'),
+      isConfigured: () => !!optionalString('RESEND_API_KEY'),
+    },
+    // SMTP (nodemailer) — fallback / future invoices+receipts
     host: optionalString('EMAIL_HOST', 'smtp.gmail.com'),
     port: optionalNumber('EMAIL_PORT', 587),
     secure: optionalBoolean('EMAIL_SECURE', false),
     user: optionalString('EMAIL_USER'),
     password: optionalString('EMAIL_PASSWORD'),
+    // Shared identity (used by both Resend + SMTP). `from` must be an address on
+    // a domain verified in Resend, e.g. noreply@tricityshadi.com.
     from: optionalString('EMAIL_FROM', 'noreply@tricityshadi.com'),
+    fromName: optionalString('EMAIL_FROM_NAME', 'TricityShadi'),
+    replyTo: optionalString('EMAIL_REPLY_TO', optionalString('SUPPORT_EMAIL', 'support@tricityshadi.com')),
     support: optionalString('SUPPORT_EMAIL', 'support@tricityshadi.com'),
+    // SMTP creds present (real, not placeholder)
+    smtpConfigured: () => {
+      const u = optionalString('EMAIL_USER');
+      const p = optionalString('EMAIL_PASSWORD');
+      return !!u && !!p && u !== 'your-email@gmail.com' && p !== 'your-app-password';
+    },
+    // Any transactional channel wired (Resend OR SMTP)
     isConfigured: () => {
-      return !!optionalString('EMAIL_USER') && !!optionalString('EMAIL_PASSWORD');
+      const u = optionalString('EMAIL_USER');
+      return !!optionalString('RESEND_API_KEY') ||
+        (!!u && !!optionalString('EMAIL_PASSWORD') && u !== 'your-email@gmail.com');
     },
   },
 
@@ -344,9 +365,11 @@ if (isProduction) {
     providerBucket.push('SMS_API_KEY must be set in production for OTP delivery');
   }
 
-  // Email must be configured (SMTP required for password reset, confirmations)
-  if (!config.email.from || !config.email.host) {
-    providerBucket.push('SMTP email is not configured — SMTP_FROM, SMTP_HOST, SMTP_USER, SMTP_PASS required for production');
+  // Email must be configured (needed for OTP, password reset, security alerts,
+  // verification + subscription confirmations). Resend (RESEND_API_KEY) OR real
+  // SMTP creds satisfy this.
+  if (!config.email.isConfigured()) {
+    providerBucket.push('Email is not configured — set RESEND_API_KEY (recommended) or real EMAIL_USER/EMAIL_PASSWORD (SMTP) in production');
   }
 
   if (warnings.length > 0) {

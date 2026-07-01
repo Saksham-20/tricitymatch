@@ -1,44 +1,14 @@
-const nodemailer = require('nodemailer');
 const config = require('../config/env');
-
-// Create transporter based on environment
-const createTransporter = () => {
-  return nodemailer.createTransport({
-    host: config.email.host,
-    port: config.email.port,
-    secure: config.email.secure,
-    auth: {
-      user: config.email.user,
-      pass: config.email.password
-    }
-  });
-};
+// Legacy service (match/chat/subscription notices). Delegates delivery to the
+// primary email util so everything ships through Resend (or SMTP fallback).
+const { sendEmail: deliverEmail } = require('./email');
 
 const sendEmail = async (to, subject, html, text) => {
-  try {
-    const transporter = createTransporter();
-    const mailOptions = {
-      from: config.email.from,
-      to,
-      subject,
-      html,
-      text: text || html.replace(/<[^>]*>/g, '')
-    };
-
-    const info = await transporter.sendMail(mailOptions);
-
-    if (config.isDevelopment) {
-      console.log('Email sent:', info.messageId);
-      if (info.response && info.response.includes('ethereal')) {
-        console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
-      }
-    }
-
-    return { success: true, messageId: info.messageId };
-  } catch (error) {
-    console.error('Email sending failed:', error);
-    return { success: false, error: error.message };
-  }
+  return deliverEmail(to, {
+    subject,
+    html,
+    text: text || html.replace(/<[^>]*>/g, ''),
+  });
 };
 
 const sendMatchNotification = async (userEmail, matchedUserName, profileUrl) => {

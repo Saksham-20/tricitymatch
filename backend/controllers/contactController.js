@@ -22,7 +22,10 @@ const submitContact = asyncHandler(async (req, res) => {
   // Best-effort notification — never block or fail the request on email.
   try {
     const safeSubject = subject ? `Contact form: ${subject}` : 'New contact form enquiry';
-    await sendEmail(config.email.support, {
+    await sendEmail({
+      to: config.email.support,
+      channel: 'documents', // admin/support notification → SMTP-first
+      replyTo: email, // reply goes straight to the enquirer
       subject: safeSubject,
       html: `
         <h2>New contact enquiry</h2>
