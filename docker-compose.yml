@@ -97,12 +97,16 @@ services:
       RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID}
       RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET}
       RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET}
-      # Email
+      # Email — Resend (primary transactional) + SMTP (fallback / documents)
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
       EMAIL_HOST: ${EMAIL_HOST}
       EMAIL_PORT: ${EMAIL_PORT:-587}
       EMAIL_USER: ${EMAIL_USER}
       EMAIL_PASSWORD: ${EMAIL_PASSWORD}
       EMAIL_FROM: ${EMAIL_FROM:-noreply@tricityshadi.com}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-TricityShadi}
+      EMAIL_REPLY_TO: ${EMAIL_REPLY_TO:-}
+      SUPPORT_EMAIL: ${SUPPORT_EMAIL:-support@tricityshadi.com}
       # Cloudinary
       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
