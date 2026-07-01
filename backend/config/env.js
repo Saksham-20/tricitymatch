@@ -65,7 +65,14 @@ const hasRealSecret = (value) => {
   if (!value) return false;
 
   const normalized = String(value).trim().toLowerCase();
-  return !normalized.includes('your-') && !normalized.includes('xxxxxxxx');
+  // Reject obvious placeholder / template values so a stand-in can never silently
+  // pass as a real secret (e.g. RAZORPAY_WEBHOOK_SECRET=placeholder_add_real_key_later,
+  // which let anyone forge webhook signatures — H-3, 2026-07-01 pentest).
+  const placeholderTokens = [
+    'your-', 'xxxxxxxx', 'placeholder', 'add_real', 'change-this', 'change-me',
+    'changeme', 'replace-me', 'replace_me', 'example', 'dummy', 'todo', '<',
+  ];
+  return !placeholderTokens.some((t) => normalized.includes(t));
 };
 
 // Determine environment (nodeEnv already set above)
@@ -156,7 +163,12 @@ const config = {
   razorpay: {
     keyId: optionalString('RAZORPAY_KEY_ID'),
     keySecret: optionalString('RAZORPAY_KEY_SECRET'),
-    webhookSecret: optionalString('RAZORPAY_WEBHOOK_SECRET'),
+    // Only expose the webhook secret if it's a REAL value. A placeholder resolves
+    // to '' so the webhook route treats it as unconfigured and DISCARDS instead of
+    // verifying signatures against a guessable string (H-3 forgery fix).
+    webhookSecret: hasRealSecret(optionalString('RAZORPAY_WEBHOOK_SECRET'))
+      ? optionalString('RAZORPAY_WEBHOOK_SECRET')
+      : '',
     isConfigured: () => {
       const keyId = optionalString('RAZORPAY_KEY_ID');
       const keySecret = optionalString('RAZORPAY_KEY_SECRET');

@@ -490,6 +490,18 @@ exports.getProfile = asyncHandler(async (req, res) => {
   const isShortlisted = existingMatch && existingMatch.action === 'shortlist';
   const isMutual = existingMatch?.isMutual || false;
 
+  // M-2 (2026-07-01 pentest): enforce the target's "matches only" privacy setting.
+  // Previously profileVisibility was saved but never read, so any logged-in user
+  // could view a full profile regardless. Non-mutual viewers (except admins) are
+  // now blocked; NULL/'everyone' stay visible to all.
+  const isAdminViewer = req.user.role === 'admin' || req.user.role === 'super_admin';
+  if (profile.profileVisibility === 'matches_only' && !isMutual && !isAdminViewer) {
+    throw createError.forbidden(
+      'This profile is only visible to their matches.',
+      'PROFILE_MATCHES_ONLY'
+    );
+  }
+
   // Prepare response with privacy checks
   const profileData = profile.toJSON();
 

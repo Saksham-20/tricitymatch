@@ -282,14 +282,12 @@ exports.login = asyncHandler(async (req, res) => {
   // Check password
   const isMatch = await user.comparePassword(password);
   if (!isMatch) {
-    const attempts = await recordFailedLogin(lookupKey);
-    const remaining = config.auth.maxLoginAttempts - attempts;
-    
-    if (remaining > 0) {
-      throw createError.unauthorized(`Invalid credentials. ${remaining} attempts remaining.`);
-    } else {
-      throw createError.unauthorized('Account locked due to too many failed attempts');
-    }
+    // Record the attempt for lockout, but return a CONSTANT message identical to
+    // the "user not found" branch above. The old "N attempts remaining" / "Account
+    // locked" wording revealed whether the account existed (account enumeration,
+    // M-3 2026-07-01). Lockout is still enforced server-side by checkAccountLockout.
+    await recordFailedLogin(lookupKey);
+    throw createError.unauthorized('Invalid credentials');
   }
 
   // Clear failed login attempts on success

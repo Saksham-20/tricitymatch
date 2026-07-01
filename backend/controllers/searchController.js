@@ -73,6 +73,25 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
     }
   };
 
+  // M-2 (2026-07-01 pentest): respect the "matches only" privacy setting in search.
+  // profileVisibility='matches_only' profiles are hidden from non-mutual viewers;
+  // NULL / 'everyone' remain visible to all.
+  const mutualRows = await Match.findAll({
+    where: { userId, isMutual: true },
+    attributes: ['matchedUserId'],
+  });
+  const mutualUserIds = mutualRows.map((m) => m.matchedUserId);
+  where[Op.and] = [
+    ...(where[Op.and] || []),
+    {
+      [Op.or]: [
+        { profileVisibility: { [Op.is]: null } },
+        { profileVisibility: { [Op.ne]: 'matches_only' } },
+        ...(mutualUserIds.length ? [{ userId: { [Op.in]: mutualUserIds } }] : []),
+      ],
+    },
+  ];
+
   // Gender filter: opposite gender when set; otherwise both so results aren't empty
   const gender = (currentProfile.gender || '').toLowerCase();
   if (gender === 'male') where.gender = 'female';
