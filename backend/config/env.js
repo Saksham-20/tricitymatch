@@ -157,6 +157,10 @@ const config = {
     csrfSecret: optionalString('CSRF_SECRET', isDevelopment ? 'dev-csrf-secret' : undefined),
     maxRequestSize: optionalString('MAX_REQUEST_SIZE', '10mb'), // JSON/urlencoded body limit; multipart uses multer
     maxFileSize: optionalNumber('MAX_FILE_SIZE', 5 * 1024 * 1024), // 5MB
+    // Local QA/e2e only: disables all rate limiters + login lockout so test
+    // fleets can hammer the API. Hard NODE_ENV guard — can never activate in prod.
+    disableRateLimits:
+      process.env.DISABLE_RATE_LIMITS === 'true' && process.env.NODE_ENV !== 'production',
   },
 
   // Razorpay

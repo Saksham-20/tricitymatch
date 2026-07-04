@@ -32,7 +32,7 @@ const createRateLimiter = (options) => {
       // Use user ID if authenticated, otherwise IP (ipKeyGenerator for IPv6-safe limiting)
       return req.user?.id || ipKeyGenerator(req);
     }),
-    skip: options.skip || (() => false),
+    skip: options.skip || (() => config.security.disableRateLimits),
     handler: (req, res, next, options) => {
       res.status(429).json(options.message);
     },
@@ -386,6 +386,11 @@ const _delLockoutData = async (key) => {
 };
 
 const checkAccountLockout = asyncHandler(async (req, res, next) => {
+  // QA/e2e kill switch (dev-only, see config.security.disableRateLimits)
+  if (config.security.disableRateLimits) {
+    return next();
+  }
+
   const email = req.body.email?.toLowerCase();
   if (!email) {
     return next();
@@ -414,6 +419,9 @@ const checkAccountLockout = asyncHandler(async (req, res, next) => {
 });
 
 const recordFailedLogin = async (email) => {
+  if (config.security.disableRateLimits) {
+    return 0;
+  }
   const key = `lockout:${email?.toLowerCase()}`;
   const data = (await _getLockoutData(key)) || { count: 0, lastAttempt: 0, lockTime: 0 };
 
