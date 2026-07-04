@@ -6,11 +6,13 @@ import { useAuth } from '../context/AuthContext';
 import Logo from '../components/common/Logo';
 import Progress from '../components/ui/Progress';
 import { Button } from '../components/ui/Button';
+import Avatar from '../components/ui/Avatar';
 import {
   FiChevronRight,
   FiChevronLeft,
   FiX,
   FiCheckCircle,
+  FiAlertCircle,
   FiLock,
   FiTrendingUp,
 } from 'react-icons/fi';
@@ -79,6 +81,11 @@ const ModernOnboardingContent = () => {
   const { signup } = useAuth();
   const [searchParams] = useSearchParams();
   const [showQuitDialog, setShowQuitDialog] = useState(false);
+  // Snapshot of name/DOB taken before clearDraft() resets formData — the
+  // post-signup preview card renders from this, not live form state.
+  const [previewData, setPreviewData] = useState(null);
+  const [stepDirection, setStepDirection] = useState(1);
+  const [submitError, setSubmitError] = useState('');
   const [completionPercentage, setCompletionPercentage] = useState(0);
   const referralCodeParam = searchParams.get('ref');
 
@@ -125,24 +132,46 @@ const ModernOnboardingContent = () => {
 
   const handleNext = () => {
     if (validateCurrentStep()) {
+      setStepDirection(1);
       nextStep();
     } else {
       scrollToFirstError();
     }
   };
 
+  const handleBack = () => {
+    setStepDirection(-1);
+    prevStep();
+  };
+
   const handleComplete = async () => {
+    if (isLoading) return; // double-submit guard (Enter key / rapid clicks)
     if (!validateCurrentStep()) { scrollToFirstError(); return; }
     setIsLoading(true);
+    setSubmitError('');
     try {
       if (mode === 'signup' || mode === 'create_for_other') {
         const signupData = { ...formData };
         if (signupData.phone) signupData.phone = String(signupData.phone).replace(/[\s-]/g, '');
         if (!signupData.email) delete signupData.email; // phone-only signup
         const result = await signup(signupData);
+        if (!result.success) {
+          // Toast already fired in AuthContext; keep a persistent inline copy
+          // next to the CTA so the failure can't be missed.
+          setSubmitError(result.error || 'Could not create your account. Please try again.');
+        }
         if (result.success) {
+          // Self-signup gets a "how others see you" close-the-loop card;
+          // guardian flow goes straight to the dashboard as before.
+          if (mode === 'signup') {
+            setPreviewData({
+              firstName: formData.firstName,
+              lastName: formData.lastName,
+              dateOfBirth: formData.dateOfBirth,
+            });
+          }
           clearDraft();
-          navigate('/dashboard');
+          if (mode !== 'signup') navigate('/dashboard');
         }
       } else {
         clearDraft();
@@ -182,65 +211,121 @@ const ModernOnboardingContent = () => {
             </p>
           </div>
 
-          {/* Progress ring */}
-          <div className="flex items-center gap-4 mb-8">
-            <div className="relative w-16 h-16 flex-shrink-0">
-              <svg width="64" height="64" viewBox="0 0 64 64" className="-rotate-90">
-                <circle cx="32" cy="32" r={ringR} fill="none" stroke="currentColor" className="text-neutral-200 dark:text-neutral-700" strokeWidth="5" />
-                <motion.circle
-                  cx="32" cy="32" r={ringR} fill="none" stroke="#8B2346" strokeWidth="5" strokeLinecap="round"
-                  strokeDasharray={ringC}
-                  initial={false}
-                  animate={{ strokeDashoffset: ringC - (progressPercentage / 100) * ringC }}
-                  transition={{ duration: 0.5, ease: 'easeOut' }}
-                />
-              </svg>
-              <span className="absolute inset-0 flex items-center justify-center font-display text-sm font-bold text-primary-600 dark:text-primary-300">
-                {Math.round(progressPercentage)}%
-              </span>
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold text-primary-600 dark:text-primary-300 uppercase tracking-widest">Begin your journey</p>
-              <h2 className="font-display text-xl font-bold text-neutral-900 dark:text-neutral-100 leading-tight">Your forever starts here</h2>
-            </div>
-          </div>
+          {mode === 'signup' ? (
+            /* Signup is only 2 steps — a ring + stepper rail is overkill. Light
+               cue: headline, slim segmented bar, two quiet step rows. */
+            <div className="flex-1">
+              <p className="text-[11px] font-semibold text-primary-600 dark:text-primary-300 uppercase tracking-widest mb-2">Create your profile</p>
+              <h2 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 leading-snug mb-1.5">
+                Two steps.<br />About two minutes.
+              </h2>
+              <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-7">
+                The rest of your profile can be filled in anytime after.
+              </p>
 
-          {/* Vertical 14-step stepper */}
-          <nav className="flex-1 overflow-y-auto scrollbar-hide -mr-2 pr-2">
-            <ol className="space-y-0.5">
-              {visibleSteps.map((step, idx) => {
-                const done = idx < currentStep;
-                const active = idx === currentStep;
-                const reachable = idx <= currentStep;
-                return (
-                  <li key={step.id}>
-                    <button
-                      onClick={() => reachable && goToStep(idx)}
-                      disabled={!reachable}
-                      className={`w-full flex items-center gap-3 px-2.5 py-2 rounded-xl text-left transition-colors ${
-                        active ? 'bg-primary-50 dark:bg-primary-900/30' : reachable ? 'hover:bg-neutral-50 dark:hover:bg-neutral-800/50' : ''
-                      }`}
-                    >
+              {/* Slim segmented progress */}
+              <div className="flex gap-1.5 mb-7" aria-hidden="true">
+                {visibleSteps.map((step, idx) => (
+                  <motion.span
+                    key={step.id}
+                    className={`h-1 flex-1 rounded-full ${idx <= currentStep ? 'bg-primary-500' : 'bg-neutral-200 dark:bg-neutral-700'}`}
+                    initial={false}
+                    animate={{ opacity: idx <= currentStep ? 1 : 0.7 }}
+                  />
+                ))}
+              </div>
+
+              <ol className="space-y-5">
+                {visibleSteps.map((step, idx) => {
+                  const done = idx < currentStep;
+                  const active = idx === currentStep;
+                  return (
+                    <li key={step.id} className="flex items-start gap-3">
                       <span
-                        className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 transition-all ${
+                        className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-semibold flex-shrink-0 mt-0.5 transition-all ${
                           done
                             ? 'bg-primary-500 text-white'
                             : active
-                            ? 'bg-primary-500 text-white ring-2 ring-primary-300 ring-offset-2 ring-offset-white dark:ring-offset-[#1a1f2e]'
+                            ? 'bg-primary-500 text-white ring-2 ring-primary-200 ring-offset-2 ring-offset-white dark:ring-offset-[#1a1f2e]'
                             : 'bg-neutral-200 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400'
                         }`}
                       >
-                        {done ? <FiCheckCircle className="w-4 h-4" /> : idx + 1}
+                        {done ? <FiCheckCircle className="w-3.5 h-3.5" /> : idx + 1}
                       </span>
-                      <span className={`text-sm leading-tight ${active ? 'font-semibold text-neutral-900 dark:text-neutral-100' : done ? 'text-neutral-600 dark:text-neutral-300' : 'text-neutral-400'}`}>
-                        {step.title}
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ol>
-          </nav>
+                      <div>
+                        <p className={`text-sm leading-tight ${active ? 'font-semibold text-neutral-900 dark:text-neutral-100' : done ? 'text-neutral-600 dark:text-neutral-300' : 'text-neutral-400'}`}>
+                          {step.title}
+                        </p>
+                        <p className="text-xs text-neutral-400 mt-0.5">{step.description}</p>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
+          ) : (
+            <>
+              {/* Progress ring */}
+              <div className="flex items-center gap-4 mb-8">
+                <div className="relative w-16 h-16 flex-shrink-0">
+                  <svg width="64" height="64" viewBox="0 0 64 64" className="-rotate-90">
+                    <circle cx="32" cy="32" r={ringR} fill="none" stroke="currentColor" className="text-neutral-200 dark:text-neutral-700" strokeWidth="5" />
+                    <motion.circle
+                      cx="32" cy="32" r={ringR} fill="none" stroke="#8B2346" strokeWidth="5" strokeLinecap="round"
+                      strokeDasharray={ringC}
+                      initial={false}
+                      animate={{ strokeDashoffset: ringC - (progressPercentage / 100) * ringC }}
+                      transition={{ duration: 0.5, ease: 'easeOut' }}
+                    />
+                  </svg>
+                  <span className="absolute inset-0 flex items-center justify-center font-display text-sm font-bold text-primary-600 dark:text-primary-300">
+                    {Math.round(progressPercentage)}%
+                  </span>
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold text-primary-600 dark:text-primary-300 uppercase tracking-widest">Begin your journey</p>
+                  <h2 className="font-display text-xl font-bold text-neutral-900 dark:text-neutral-100 leading-tight">Your forever starts here</h2>
+                </div>
+              </div>
+
+              {/* Vertical 14-step stepper */}
+              <nav className="flex-1 overflow-y-auto scrollbar-hide -mr-2 pr-2">
+                <ol className="space-y-0.5">
+                  {visibleSteps.map((step, idx) => {
+                    const done = idx < currentStep;
+                    const active = idx === currentStep;
+                    const reachable = idx <= currentStep;
+                    return (
+                      <li key={step.id}>
+                        <button
+                          onClick={() => reachable && goToStep(idx)}
+                          disabled={!reachable}
+                          className={`w-full flex items-center gap-3 px-2.5 py-2 rounded-xl text-left transition-colors ${
+                            active ? 'bg-primary-50 dark:bg-primary-900/30' : reachable ? 'hover:bg-neutral-50 dark:hover:bg-neutral-800/50' : ''
+                          }`}
+                        >
+                          <span
+                            className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 transition-all ${
+                              done
+                                ? 'bg-primary-500 text-white'
+                                : active
+                                ? 'bg-primary-500 text-white ring-2 ring-primary-300 ring-offset-2 ring-offset-white dark:ring-offset-[#1a1f2e]'
+                                : 'bg-neutral-200 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400'
+                            }`}
+                          >
+                            {done ? <FiCheckCircle className="w-4 h-4" /> : idx + 1}
+                          </span>
+                          <span className={`text-sm leading-tight ${active ? 'font-semibold text-neutral-900 dark:text-neutral-100' : done ? 'text-neutral-600 dark:text-neutral-300' : 'text-neutral-400'}`}>
+                            {step.title}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </nav>
+            </>
+          )}
 
           {/* Trust strip */}
           <div className="flex items-center gap-5 text-xs text-neutral-400 mt-6 pt-6 border-t border-neutral-100 dark:border-neutral-800">
@@ -310,7 +395,7 @@ const ModernOnboardingContent = () => {
                 {visibleSteps[currentStep].title}
               </p>
               <p className="text-xs text-neutral-500">
-                {currentStep + 1}/{visibleSteps.length}
+                Step {currentStep + 1} of {visibleSteps.length}
               </p>
             </div>
             <div className="h-2 bg-neutral-200 rounded-full overflow-hidden">
@@ -324,13 +409,14 @@ const ModernOnboardingContent = () => {
           </motion.div>
 
           {/* Form content with fade/slide animation */}
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="wait" custom={stepDirection}>
             <motion.div
               key={currentStep}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
+              custom={stepDirection}
+              initial={{ opacity: 0, x: 20 * stepDirection }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -16 * stepDirection }}
+              transition={{ duration: 0.24, ease: [0.25, 0.46, 0.45, 0.94] }}
               className="bg-white dark:bg-[#1a1f2e] border border-neutral-100 dark:border-neutral-800 rounded-2xl shadow-card p-8 sm:p-10"
             >
               <div className="mb-8">
@@ -382,7 +468,7 @@ const ModernOnboardingContent = () => {
               <Button
                 variant="outline"
                 size="lg"
-                onClick={prevStep}
+                onClick={handleBack}
                 disabled={isLoading}
                 className="flex items-center gap-2"
               >
@@ -397,10 +483,27 @@ const ModernOnboardingContent = () => {
               disabled={isLoading}
               className="flex-1 flex items-center justify-center gap-2"
             >
-              {isLoading ? 'Processing...' : currentStep === visibleSteps.length - 1 ? 'Complete' : 'Next'}
+              {isLoading ? 'Processing...' : currentStep === visibleSteps.length - 1 ? (mode === 'signup' ? 'Create my profile' : 'Complete') : 'Next'}
               {!isLoading && currentStep !== visibleSteps.length - 1 && <FiChevronRight className="w-5 h-5" />}
             </Button>
           </motion.div>
+
+          {/* Persistent inline submit error — the toast alone is easy to miss */}
+          {submitError && (
+            <div role="alert" className="mt-4 flex items-start gap-2.5 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/40 rounded-xl px-4 py-3">
+              <FiAlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-red-700 dark:text-red-300">{submitError}</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleComplete}
+                className="text-sm font-semibold text-red-700 dark:text-red-300 underline underline-offset-2 flex-shrink-0"
+              >
+                Retry
+              </button>
+            </div>
+          )}
 
           {/* Footer */}
           <motion.div
@@ -427,6 +530,58 @@ const ModernOnboardingContent = () => {
           </motion.div>
         </motion.div>
       </div>
+
+      {/* Profile-preview close card — "how others will see you" moment after signup */}
+      <AnimatePresence>
+        {previewData && (() => {
+          const fullName = [previewData.firstName, previewData.lastName].filter(Boolean).join(' ');
+          const dob = previewData.dateOfBirth ? new Date(previewData.dateOfBirth) : null;
+          const age = dob ? Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : null;
+          return (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            >
+              <motion.div
+                initial={{ scale: 0.94, y: 12, opacity: 0 }}
+                animate={{ scale: 1, y: 0, opacity: 1 }}
+                transition={{ duration: 0.35, ease: 'easeOut' }}
+                className="bg-white dark:bg-[#1a1f2e] rounded-2xl p-8 w-full max-w-sm shadow-2xl text-center"
+              >
+                <p className="text-[11px] font-semibold text-primary-600 dark:text-primary-300 uppercase tracking-widest mb-5">
+                  Your profile is live
+                </p>
+                <div className="flex justify-center mb-4">
+                  <Avatar name={fullName} size="2xl" />
+                </div>
+                <h3 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100">
+                  {fullName}{age ? `, ${age}` : ''}
+                </h3>
+                <span className="inline-block mt-2 px-3 py-1 rounded-full bg-primary-50 dark:bg-primary-900/30 border border-primary-100 text-primary-700 dark:text-primary-300 text-xs font-semibold">
+                  Just joined
+                </span>
+                <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-4 leading-relaxed">
+                  This is how other members will see you. Add a photo and a few
+                  details to appear in far more searches.
+                </p>
+                <div className="mt-6 space-y-2.5">
+                  <Button onClick={() => navigate('/profile/edit?section=photos')} className="w-full">
+                    Complete my profile
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/dashboard')}
+                    className="w-full py-2.5 text-sm font-medium text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 transition-colors"
+                  >
+                    Explore my dashboard first
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
 
       {/* Quit confirmation dialog */}
       <AnimatePresence>

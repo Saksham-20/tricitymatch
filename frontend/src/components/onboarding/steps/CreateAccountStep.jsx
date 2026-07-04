@@ -25,6 +25,7 @@ const CreateAccountStep = () => {
   const [otpSent, setOtpSent] = useState(false);
   const [otpSending, setOtpSending] = useState(false);
   const [otpCode, setOtpCode] = useState('');
+  const [otpVerifying, setOtpVerifying] = useState(false);
   const [cooldown, setCooldown] = useState(0);
 
   const idType = detectContactType(formData.identifier);
@@ -92,14 +93,19 @@ const CreateAccountStep = () => {
     }
   };
 
+  // Auto-fires from OtpBoxes onComplete — no manual "Verify" click needed.
   const verifyOtp = async (code) => {
+    setOtpVerifying(true);
     try {
       await api.post('/auth/verify-otp', { type: idType, target: idTarget(), code });
       updateFormData(idType === 'email' ? 'emailVerification' : 'phoneVerification', true);
       setOtpCode('');
       setStepErrors({});
     } catch (err) {
+      setOtpCode('');
       setStepErrors({ otp: err.response?.data?.error?.message || 'Invalid code. Try again.' });
+    } finally {
+      setOtpVerifying(false);
     }
   };
 
@@ -254,10 +260,17 @@ const CreateAccountStep = () => {
             <div className="space-y-3">
               <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Enter the {codeLen}-digit code</p>
               <p className="text-xs text-neutral-500 -mt-1.5">Sent to <span className="font-medium text-neutral-700 dark:text-neutral-300">{idType === 'phone' ? `+91 ${idTarget()}` : formData.email}</span></p>
-              <OtpBoxes length={codeLen} value={otpCode} onChange={setOtpCode} onComplete={verifyOtp} error={!!errors.otp} autoFocus />
-              <div className="flex items-center gap-3">
-                <button type="button" onClick={() => verifyOtp(otpCode)} disabled={otpCode.length !== codeLen} className="px-4 py-2 text-sm font-semibold bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">Verify</button>
-                <span className="text-xs text-neutral-500">{cooldown > 0 ? `Resend in ${cooldown}s` : <button type="button" onClick={sendOtp} className="underline text-primary-600">Resend code</button>}</span>
+              <OtpBoxes length={codeLen} value={otpCode} onChange={setOtpCode} onComplete={verifyOtp} error={!!errors.otp} disabled={otpVerifying} autoFocus />
+              {/* Verification fires on the last digit — no button to hunt for. */}
+              <div className="flex items-center gap-3 min-h-[20px]">
+                {otpVerifying ? (
+                  <span className="flex items-center gap-2 text-xs font-medium text-primary-600">
+                    <span className="w-3.5 h-3.5 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
+                    Verifying…
+                  </span>
+                ) : (
+                  <span className="text-xs text-neutral-500">{cooldown > 0 ? `Resend in ${cooldown}s` : <button type="button" onClick={sendOtp} className="underline text-primary-600">Resend code</button>}</span>
+                )}
               </div>
               {errors.otp && <p className="text-sm text-red-600 bg-red-50 border-l-2 border-red-400 p-2 rounded">{errors.otp}</p>}
             </div>

@@ -44,6 +44,10 @@
   },
   "auth": {
     "welcomeBack": "वापसी पर स्वागत है",
+    "emailOrPhone": "ईमेल या मोबाइल नंबर",
+    "continue": "जारी रखें",
+    "change": "बदलें",
+    "signingInAs": "साइन इन कर रहे हैं",
     "loginSubtitle": "अपनी खोज जारी रखने के लिए साइन इन करें",
     "email": "ईमेल",
     "password": "पासवर्ड",

@@ -423,8 +423,8 @@ const Home = () => {
   ];
 
   const processSteps = [
-    { n: '01', t: 'Create your profile',    b: 'Build a verified, detailed profile that reflects who you truly are. Government ID check completes within hours.',       meta: ['~12 min', 'ID verified', 'Free'] },
-    { n: '02', t: 'Discover matches',       b: 'Our AI surfaces compatible profiles across 40+ signals. You stay in full control of who sees you.',                    meta: ['AI ranked', '40+ signals', 'Daily refresh'] },
+    { n: '01', t: 'Create your profile',    b: 'Build a verified, detailed profile that reflects who you truly are. Photo verification completes within hours.',       meta: ['~12 min', 'Photo verified', 'Free'] },
+    { n: '02', t: 'Discover matches',       b: 'Our matching engine surfaces compatible profiles across 40+ signals. You stay in full control of who sees you.',                    meta: ['Smart ranking', '40+ signals', 'Daily refresh'] },
     { n: '03', t: 'Connect securely',       b: 'Every conversation is end-to-end encrypted. Express interest, chat, and bring family in when ready.',                  meta: ['E2E encrypted', 'Read receipts', 'No phone reveal'] },
     { n: '04', t: 'Begin your journey',     b: 'Meet in person with confidence. We\'ve done the groundwork on verification and compatibility.',                        meta: ['Verified meet', 'Family flow', 'Lifelong support'] },
   ];
@@ -437,7 +437,7 @@ const Home = () => {
 
   const faqs = [
     { q: 'Only Tricity residents?',              a: 'Yes — every profile is from Chandigarh, Mohali, or Panchkula, or has direct family ties to the region. Hyperlocal is the point.' },
-    { q: 'How does ID verification work?',       a: 'Government ID (Aadhaar, PAN, Driving Licence, Passport) is verified before a profile goes live. Usually within hours.' },
+    { q: 'How does profile verification work?',  a: 'Every member submits a live selfie that our team matches against their profile photos before the verified badge appears. Usually within hours.' },
     { q: 'Can I browse without an account?',     a: 'Preview a small selection without an account. Full profiles, photos, and chat require a verified account.' },
     { q: 'Premium vs VIP?',                      a: 'Premium: unlimited messaging, advanced filters, Incognito mode. VIP adds a relationship manager and curated weekly hand-picked matches.' },
     { q: 'Is my data private?',                  a: 'Yes. End-to-end encrypted conversations. We never share your phone number, never sell data, never display you to non-mutual interests.' },
@@ -445,8 +445,8 @@ const Home = () => {
   ];
 
   const whyCards = [
-    { tag: '01 / Security',   title: 'Government ID, every profile',    body: 'Strict government ID verification before going live. Zero fake accounts. Zero exceptions.',             glyph: '◉' },
-    { tag: '02 / Technology', title: 'AI matching, 40+ signals',        body: 'Values, lifestyle, family expectations — far beyond age and location.',                                  glyph: '◇' },
+    { tag: '01 / Security',   title: 'Photo-verified, every profile',   body: 'Selfie verification and human review before going live. Zero fake accounts. Zero exceptions.',           glyph: '◉' },
+    { tag: '02 / Technology', title: 'Intelligent matching, 40+ signals',        body: 'Values, lifestyle, family expectations — far beyond age and location.',                                  glyph: '◇' },
     { tag: '03 / Hyperlocal', title: 'Built only for the Tricity',      body: 'Made for Chandigarh, Mohali, Panchkula. Meet partners from your community.',                            glyph: '▣' },
     { tag: '04 / Privacy',    title: 'Incognito browsing',              body: 'Browse privately. Appear only to those you\'ve expressed interest in.',                                  glyph: '◐' },
     { tag: '05 / Comms',      title: 'Encrypted conversations',         body: 'End-to-end encryption with read receipts. Phone numbers stay hidden.',                                   glyph: '▲' },
@@ -521,9 +521,9 @@ const Home = () => {
             margin: '20px 0',
           }}>
             {[
-              { text: 'Marry someone',                                                style: { color: 'var(--ink)', animationDelay: '.25s' } },
-              { text: 'your family can',                                              style: { color: 'var(--ink)', animationDelay: '.4s' } },
-              { text: <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>actually meet.</em>, style: { animationDelay: '.55s' } },
+              { text: 'From match',                                                   style: { color: 'var(--ink)', animationDelay: '.25s' } },
+              { text: 'to mandap —',                                                  style: { color: 'var(--ink)', animationDelay: '.4s' } },
+              { text: <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>all in the Tricity.</em>, style: { animationDelay: '.55s' } },
             ].map((line, i) => (
               <span key={i} style={{
                 display: 'inline-block',
@@ -535,7 +535,7 @@ const Home = () => {
 
           {/* Trust chips */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, animation: 'rise 1.2s .7s both' }}>
-            {['✓ 100% Govt. ID verified', '✓ 1,190+ marriages made', '✓ Every profile human-reviewed'].map((t, i) => (
+            {['✓ 100% photo-verified', '✓ 1,190+ marriages made', '✓ Every profile human-reviewed'].map((t, i) => (
               <span key={i} style={{
                 fontSize: 13, fontWeight: 500, fontFamily: 'var(--sans)', color: 'var(--burgundy-dk)',
                 background: 'var(--cream-3)', border: '1px solid var(--line)', borderRadius: 999, padding: '7px 14px',
@@ -550,7 +550,7 @@ const Home = () => {
             animation: 'rise 1.2s 0.9s both',
           }}>
             <p style={{ fontSize: 14, lineHeight: 1.5, color: 'var(--ink-soft)', maxWidth: 420, fontFamily: 'var(--sans)' }}>
-              Matrimony built only for Chandigarh, Mohali and Panchkula. Every profile government-ID verified, every family within driving distance — 50,000 serious local members, not 50 million strangers.
+              Chandigarh, Mohali and Panchkula only — every profile photo-verified and human-reviewed, every family close enough to meet this week. Your whole story, in one city.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-start' }}>
               <Link to="/onboarding" style={{
@@ -694,7 +694,7 @@ const Home = () => {
         </div>
         <div className="ts-badges-row" style={{ position: 'relative', borderTop: '1px solid var(--line-on-dk)', maxWidth: 1280, margin: '0 auto', display: 'flex', justifyContent: 'space-between', gap: 16, padding: '18px 0 22px', flexWrap: 'wrap' }}>
           {[
-            '◉ Government ID checked before any profile goes live',
+            '◉ Selfie verification before any profile goes live',
             '◉ Every profile manually reviewed by our safety team',
             '◉ Conversations end-to-end encrypted · numbers never shared',
           ].map((t, i) => (
@@ -721,7 +721,7 @@ const Home = () => {
       }}>
         <div className="ribbon-track" style={{ display: 'flex', gap: 40, whiteSpace: 'nowrap', fontFamily: 'var(--display)', fontSize: 22, fontStyle: 'italic', letterSpacing: '-.01em' }}>
           {[...Array(3)].map((_, rep) => (
-            ['Verified profiles', 'AI-matched', 'Family-first', 'Hyperlocal', 'End-to-end encrypted', 'Since 2011', 'Tricity built', 'Privacy first'].map((t, i) => (
+            ['Verified profiles', 'Expertly matched', 'Family-first', 'Hyperlocal', 'End-to-end encrypted', 'Since 2011', 'Tricity built', 'Privacy first'].map((t, i) => (
               <React.Fragment key={`${rep}-${i}`}>
                 <span>{t}</span>
                 <span style={{ color: 'var(--gold)', fontStyle: 'normal', fontSize: 20 }}>✦</span>
@@ -1148,7 +1148,7 @@ const Home = () => {
         </div>
         <div className="trust-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
           {[
-            { n: '01', t: 'Identity verified',      b: 'Govt. ID required before going live.',                      Icon: FiShield },
+            { n: '01', t: 'Photo verified',         b: 'Selfie verification before going live.',                    Icon: FiShield },
             { n: '02', t: 'End-to-end encrypted',   b: 'Conversations encrypted in transit and at rest.',           Icon: FiLock },
             { n: '03', t: 'Human-moderated',        b: 'Safety team reviews flagged profiles daily.',               Icon: FiCheckCircle },
             { n: '04', t: 'Family approved',        b: 'Designed to include families, never pressure.',             Icon: FiUsers },

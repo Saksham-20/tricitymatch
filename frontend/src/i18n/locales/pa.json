@@ -44,6 +44,10 @@
   },
   "auth": {
     "welcomeBack": "ਮੁੜ ਸੁਆਗਤ ਹੈ",
+    "emailOrPhone": "ਈਮੇਲ ਜਾਂ ਮੋਬਾਈਲ ਨੰਬਰ",
+    "continue": "ਜਾਰੀ ਰੱਖੋ",
+    "change": "ਬਦਲੋ",
+    "signingInAs": "ਇਸ ਵਜੋਂ ਸਾਈਨ ਇਨ",
     "loginSubtitle": "ਆਪਣੀ ਖੋਜ ਜਾਰੀ ਰੱਖਣ ਲਈ ਸਾਈਨ ਇਨ ਕਰੋ",
     "email": "ਈਮੇਲ",
     "password": "ਪਾਸਵਰਡ",

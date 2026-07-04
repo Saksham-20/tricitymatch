@@ -44,6 +44,10 @@
   },
   "auth": {
     "welcomeBack": "Welcome back",
+    "emailOrPhone": "Email or mobile number",
+    "continue": "Continue",
+    "change": "Change",
+    "signingInAs": "Signing in as",
     "loginSubtitle": "Sign in to continue your search",
     "email": "Email",
     "password": "Password",

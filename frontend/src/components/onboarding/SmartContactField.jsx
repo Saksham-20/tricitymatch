@@ -27,14 +27,16 @@ export const phoneDigits = (raw = '') => {
  * One smart field that accepts EITHER an email or a 10-digit mobile and shows a
  * live "+91" pill the moment it reads as a phone number. Keeps signup to a single
  * contact box. `value` is the raw user string; `type` is the detected kind.
+ * Reused on Login via `id`/`label`/`hint` overrides — pass `hint` (string, may be
+ * empty) to suppress the signup OTP helper copy.
  */
-const SmartContactField = ({ value, onChange, onBlur, error, disabled, autoFocus }) => {
+const SmartContactField = ({ value, onChange, onBlur, error, disabled, autoFocus, id = 'signup-identifier', label = 'Email or mobile number', hint }) => {
   const type = detectContactType(value);
 
   return (
     <div className="space-y-1.5">
-      <label htmlFor="signup-identifier" className="block text-sm font-medium text-neutral-900 dark:text-neutral-100">
-        Email or mobile number <span className="text-red-500">*</span>
+      <label htmlFor={id} className="block text-sm font-medium text-neutral-900 dark:text-neutral-100">
+        {label} <span className="text-red-500">*</span>
       </label>
       <div
         className={`flex items-center rounded-xl border-2 bg-white dark:bg-neutral-900 transition-all focus-within:ring-2 focus-within:ring-primary-200 ${
@@ -48,7 +50,7 @@ const SmartContactField = ({ value, onChange, onBlur, error, disabled, autoFocus
           <span className="text-sm font-semibold text-neutral-700 dark:text-neutral-200 pl-1 pr-0.5 flex-shrink-0 select-none">+91</span>
         )}
         <input
-          id="signup-identifier"
+          id={id}
           name="identifier"
           type="text"
           inputMode="text"
@@ -65,6 +67,8 @@ const SmartContactField = ({ value, onChange, onBlur, error, disabled, autoFocus
       </div>
       {error ? (
         <p className="text-sm text-red-600">{error}</p>
+      ) : hint !== undefined ? (
+        hint ? <p className="text-xs text-neutral-400">{hint}</p> : null
       ) : (
         <p className="text-xs text-neutral-400">
           {type === 'phone'

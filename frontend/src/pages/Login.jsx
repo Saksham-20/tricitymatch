@@ -1,21 +1,22 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import Seo from '../components/common/Seo';
-import { validateEmail, validatePassword } from '../utils/validators';
+import { validateEmail } from '../utils/validators';
 import Logo from '../components/common/Logo';
-import { FiMail, FiLock, FiEye, FiEyeOff, FiHeart, FiShield, FiArrowRight, FiClock } from 'react-icons/fi';
-import { fadeInUp, staggerContainer, shakeAnimation } from '../utils/animations';
+import SmartContactField, { detectContactType, phoneDigits } from '../components/onboarding/SmartContactField';
+import { FiMail, FiPhone, FiLock, FiEye, FiEyeOff, FiHeart, FiShield, FiArrowRight, FiClock, FiEdit2 } from 'react-icons/fi';
+import { fadeInUp, staggerContainer } from '../utils/animations';
 import { google as googleConfig } from '../config';
 import api from '../api/axios';
 
 const Login = () => {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
+  // Progressive fintech-style flow: identifier first, password revealed after.
+  const [phase, setPhase] = useState('identifier'); // 'identifier' | 'password'
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -23,6 +24,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [shakeTrigger, setShakeTrigger] = useState(false);
   const [lockedUntil, setLockedUntil] = useState(0); // epoch ms; 0 = not locked
+  const passwordRef = useRef(null);
   const { login, setUser } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -35,6 +37,11 @@ const Login = () => {
   const LOCK_MS = 10 * 60 * 1000; // 10-minute client lock; no timer shown to the user
   const isLocked = lockedUntil > Date.now();
 
+  const idType = detectContactType(identifier);
+  const idIsValid = idType === 'email'
+    ? validateEmail(identifier.trim())
+    : idType === 'phone' ? /^[6-9]\d{9}$/.test(phoneDigits(identifier)) : false;
+
   // Re-enable the form once the lock elapses (no countdown displayed).
   useEffect(() => {
     if (!lockedUntil) return;
@@ -43,6 +50,14 @@ const Login = () => {
     const id = setTimeout(() => setLockedUntil(0), ms);
     return () => clearTimeout(id);
   }, [lockedUntil]);
+
+  // Focus the password box the moment it's revealed.
+  useEffect(() => {
+    if (phase === 'password') {
+      const id = setTimeout(() => passwordRef.current?.focus(), 250);
+      return () => clearTimeout(id);
+    }
+  }, [phase]);
 
   const goAfterLogin = useCallback((role) => {
     if (safeReturnTo && role !== 'admin' && role !== 'super_admin'
@@ -99,54 +114,50 @@ const Login = () => {
     return () => { document.head.removeChild(script); };
   }, [handleGoogleCredential]);
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-    // Clear errors when user starts typing
-    if (errors[e.target.name]) {
-      setErrors({ ...errors, [e.target.name]: '' });
-    }
-    if (apiError) setApiError('');
+  const shake = () => {
+    setShakeTrigger(true);
+    setTimeout(() => setShakeTrigger(false), 500);
   };
 
-  const validate = () => {
-    const newErrors = {};
-    
-    const id = formData.email.trim();
-    const isPhone = /^[6-9]\d{9}$/.test(id.replace(/[\s-]/g, ''));
-    if (!id) {
-      newErrors.email = 'Email or phone is required';
-    } else if (!validateEmail(id) && !isPhone) {
-      newErrors.email = 'Enter a valid email or 10-digit phone';
-    }
-    
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    }
-    
-    setErrors(newErrors);
-    if (Object.keys(newErrors).length > 0) {
-      setShakeTrigger(true);
-      setTimeout(() => setShakeTrigger(false), 500);
-    }
-    return Object.keys(newErrors).length === 0;
+  const backToIdentifier = () => {
+    setPhase('identifier');
+    setPassword('');
+    setErrors({});
+    setApiError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setApiError('');
-    if (!validate()) return;
-    
+
+    if (phase === 'identifier') {
+      if (!identifier.trim()) {
+        setErrors({ identifier: 'Email or phone is required' });
+        shake();
+        return;
+      }
+      if (!idIsValid) {
+        setErrors({ identifier: 'Enter a valid email or 10-digit phone' });
+        shake();
+        return;
+      }
+      setErrors({});
+      setPhase('password');
+      return;
+    }
+
+    if (!password) {
+      setErrors({ password: 'Password is required' });
+      shake();
+      return;
+    }
+    setErrors({});
     setLoading(true);
     try {
-      // Normalize: phone identifiers may be typed with spaces/dashes
-      const raw = formData.email.trim();
-      const identifier = raw.includes('@') ? raw : raw.replace(/[\s-]/g, '');
-      const result = await login(identifier, formData.password);
+      const submitId = idType === 'phone' ? phoneDigits(identifier) : identifier.trim();
+      const result = await login(submitId, password);
       setLoading(false);
-      
+
       if (result.success) {
         setTimeout(() => goAfterLogin(result.role), 100);
       } else {
@@ -155,8 +166,7 @@ const Login = () => {
         if (result.locked) {
           setLockedUntil(Date.now() + LOCK_MS);
         }
-        setShakeTrigger(true);
-        setTimeout(() => setShakeTrigger(false), 500);
+        shake();
       }
     } catch (error) {
       setLoading(false);
@@ -165,7 +175,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-neutral-50 via-primary-50/20 to-gold-50/30">
+    <div className="min-h-screen flex bg-[#FDF8F2]">
       <Seo
         title="Login"
         description="Log in to your TricityShadi account to continue your match journey."
@@ -289,10 +299,12 @@ const Login = () => {
             </p>
           </motion.div>
 
-          <motion.form 
+          <motion.form
             variants={fadeInUp}
+            layout
+            transition={{ layout: { duration: 0.25, ease: 'easeOut' } }}
             onSubmit={handleSubmit}
-            className={`card space-y-6 ${shakeTrigger ? 'animate-shake' : ''}`}
+            className={`card space-y-5 ${shakeTrigger ? 'animate-shake' : ''}`}
           >
             {/* Lockout / API Error Alert */}
             <AnimatePresence>
@@ -320,94 +332,120 @@ const Login = () => {
               ) : null}
             </AnimatePresence>
 
-            {/* Email Field */}
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-neutral-700 mb-2">
-                {t('auth.emailOrPhone', 'Email or phone')}
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <FiMail className={`w-5 h-5 ${errors.email ? 'text-destructive' : 'text-neutral-400'}`} />
-                </div>
-                <input
-                  id="email"
-                  name="email"
-                  type="text"
-                  autoComplete="username"
-                  autoFocus
-                  required
-                  className={`input-field pl-12 ${errors.email ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : ''}`}
-                  placeholder="you@example.com or 98765 43210"
-                  value={formData.email}
-                  onChange={handleChange}
-                />
-              </div>
-              <AnimatePresence>
-                {errors.email && (
-                  <motion.p 
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="mt-2 text-sm text-destructive flex items-center gap-1"
-                  >
-                    {errors.email}
-                  </motion.p>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Password Field */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-neutral-700 mb-2">
-                {t('auth.password')}
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <FiLock className={`w-5 h-5 ${errors.password ? 'text-destructive' : 'text-neutral-400'}`} />
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  required
-                  className={`input-field pl-12 pr-12 ${errors.password ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : ''}`}
-                  placeholder={t('auth.passwordPlaceholder')}
-                  value={formData.password}
-                  onChange={handleChange}
-                />
-                <button
-                  type="button"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-neutral-400 hover:text-neutral-600 transition-colors"
+            <AnimatePresence mode="wait" initial={false}>
+              {phase === 'identifier' ? (
+                <motion.div
+                  key="identifier"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2 }}
                 >
-                  {showPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
-                </button>
-              </div>
-              <AnimatePresence>
-                {errors.password && (
-                  <motion.p 
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="mt-2 text-sm text-destructive"
-                  >
-                    {errors.password}
-                  </motion.p>
-                )}
-              </AnimatePresence>
-            </div>
+                  <SmartContactField
+                    id="login-identifier"
+                    label={t('auth.emailOrPhone', 'Email or mobile number')}
+                    hint=""
+                    value={identifier}
+                    onChange={(v) => { setIdentifier(v); if (errors.identifier) setErrors({}); if (apiError) setApiError(''); }}
+                    error={errors.identifier}
+                    autoFocus
+                  />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="password"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2 }}
+                  className="space-y-5"
+                >
+                  {/* Identifier recap chip */}
+                  <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-neutral-50 border border-neutral-200">
+                    <span className="text-neutral-400 flex-shrink-0">
+                      {idType === 'phone' ? <FiPhone className="w-4 h-4" /> : <FiMail className="w-4 h-4" />}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] text-neutral-400 uppercase tracking-wide leading-none mb-0.5">{t('auth.signingInAs', 'Signing in as')}</p>
+                      <p className="text-sm font-semibold text-neutral-800 truncate">
+                        {idType === 'phone' ? `+91 ${phoneDigits(identifier)}` : identifier.trim()}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={backToIdentifier}
+                      className="flex items-center gap-1 text-xs font-medium text-primary-600 hover:text-primary-700 flex-shrink-0"
+                    >
+                      <FiEdit2 className="w-3.5 h-3.5" /> {t('auth.change', 'Change')}
+                    </button>
+                  </div>
 
-            {/* Forgot Password */}
-            <div className="flex items-center justify-end">
-              <Link
-                to="/forgot-password"
-                className="text-sm font-medium text-primary-500 hover:text-primary-600 transition-colors"
-              >
-                {t('auth.forgotPassword')}
-              </Link>
-            </div>
+                  {/* Hidden username input keeps password managers working */}
+                  <input
+                    type="text"
+                    autoComplete="username"
+                    value={idType === 'phone' ? phoneDigits(identifier) : identifier.trim()}
+                    readOnly
+                    tabIndex={-1}
+                    aria-hidden="true"
+                    className="sr-only"
+                  />
+
+                  {/* Password Field */}
+                  <div>
+                    <label htmlFor="password" className="block text-sm font-medium text-neutral-700 mb-2">
+                      {t('auth.password')}
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <FiLock className={`w-5 h-5 ${errors.password ? 'text-destructive' : 'text-neutral-400'}`} />
+                      </div>
+                      <input
+                        id="password"
+                        name="password"
+                        ref={passwordRef}
+                        type={showPassword ? 'text' : 'password'}
+                        autoComplete="current-password"
+                        className={`input-field pl-12 pr-12 ${errors.password ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : ''}`}
+                        placeholder={t('auth.passwordPlaceholder')}
+                        value={password}
+                        onChange={(e) => { setPassword(e.target.value); if (errors.password) setErrors({}); if (apiError) setApiError(''); }}
+                      />
+                      <button
+                        type="button"
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-neutral-400 hover:text-neutral-600 transition-colors"
+                      >
+                        {showPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                    <AnimatePresence>
+                      {errors.password && (
+                        <motion.p
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="mt-2 text-sm text-destructive"
+                        >
+                          {errors.password}
+                        </motion.p>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* Forgot Password */}
+                  <div className="flex items-center justify-end -mt-2">
+                    <Link
+                      to="/forgot-password"
+                      className="text-sm font-medium text-primary-500 hover:text-primary-600 transition-colors"
+                    >
+                      {t('auth.forgotPassword')}
+                    </Link>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Submit Button */}
             <motion.button
@@ -426,6 +464,11 @@ const Login = () => {
                 <>
                   <FiClock className="w-5 h-5" />
                   Please try again later
+                </>
+              ) : phase === 'identifier' ? (
+                <>
+                  {t('auth.continue', 'Continue')}
+                  <FiArrowRight className="w-5 h-5" />
                 </>
               ) : (
                 <>

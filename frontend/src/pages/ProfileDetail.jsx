@@ -19,6 +19,7 @@ import { getImageUrl } from '../utils/cloudinary';
 import { sanitizeText, sanitizeUrl } from '../utils/sanitize';
 import { ImageLightbox } from '../components/ui/ImageLightbox';
 import FloatingActionBar from '../components/profile/FloatingActionBar';
+import PreferenceMatch from '../components/profile/PreferenceMatch';
 import UpgradeModal from '../components/common/UpgradeModal';
 
 // ─── Compatibility Ring ──────────────────────────────────────────────────────
@@ -740,6 +741,13 @@ const ProfileDetail = () => {
                   )}
 
                   {/* ── Looking For tab ────────────────────────────── */}
+                  {activeTab === 'preferences' && (
+                    <PreferenceMatch
+                      target={profile}
+                      viewer={me?.Profile || me?.profile}
+                      targetName={firstName}
+                    />
+                  )}
                   {activeTab === 'preferences' && (
                     <Card title="Looking For" icon={FiHeartOutline}>
                       <div className="space-y-3">

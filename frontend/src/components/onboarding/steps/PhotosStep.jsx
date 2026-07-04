@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import { FiUpload, FiX, FiImage } from 'react-icons/fi';
+import PhotoGuide from '../../profile/PhotoGuide';
 
 const PhotosStep = () => {
   const { formData, updateFormData, errors, setStepErrors, registerStepValidator } = useOnboarding();
@@ -140,20 +141,14 @@ const PhotosStep = () => {
         </div>
       </motion.div>
 
-      {/* Photo Tips */}
+      {/* Photo DO/DON'T visual guide */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600"
+        className="bg-neutral-50 border border-neutral-200 rounded-lg p-4"
       >
-        <p className="font-medium text-neutral-800 mb-2">Photo tips</p>
-        <ul className="list-disc list-inside space-y-1 text-xs">
-          <li>Use a recent, clear photo of just you</li>
-          <li>Good lighting shows you at your best</li>
-          <li>Smile naturally - it's more appealing</li>
-          <li>Avoid heavy filters or editing</li>
-        </ul>
+        <PhotoGuide />
       </motion.div>
     </div>
   );
