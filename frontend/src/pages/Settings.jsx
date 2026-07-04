@@ -468,23 +468,11 @@ const NotificationsTab = () => {
   );
 };
 
-// ─── Verification tab ─────────────────────────────────────────────────────────
+// ─── Verification tab — photo (selfie) verification, no ID documents ─────────
 const VerificationTab = () => {
   const [status, setStatus] = useState(null); // null = loading
-  const [form, setForm] = useState({
-    documentType: 'aadhaar',
-    documentFront: null,
-    documentBack: null,
-    selfiePhoto: null,
-  });
+  const [selfiePhoto, setSelfiePhoto] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-
-  const DOC_TYPES = [
-    { value: 'aadhaar',         label: 'Aadhaar Card' },
-    { value: 'pan',             label: 'PAN Card' },
-    { value: 'passport',        label: 'Passport' },
-    { value: 'driving_license', label: 'Driving Licence' },
-  ];
 
   useEffect(() => {
     api.get('/verification/status')
@@ -494,22 +482,18 @@ const VerificationTab = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.documentFront) { toast.error('Document front image is required'); return; }
-    if (!form.selfiePhoto)   { toast.error('Selfie photo is required'); return; }
+    if (!selfiePhoto) { toast.error('Selfie photo is required'); return; }
 
     setSubmitting(true);
     try {
       const fd = new FormData();
-      fd.append('documentType', form.documentType);
-      fd.append('documentFront', form.documentFront);
-      if (form.documentBack) fd.append('documentBack', form.documentBack);
-      fd.append('selfiePhoto', form.selfiePhoto);
+      fd.append('selfiePhoto', selfiePhoto);
 
       const res = await api.post('/verification/submit', fd);
-      toast.success('Documents submitted! We will review within 24 hours.');
+      toast.success('Selfie submitted! We will review within 24 hours.');
       setStatus(res.data.verification);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to submit documents');
+      toast.error(err.response?.data?.error?.message || err.response?.data?.message || 'Failed to submit selfie');
     } finally {
       setSubmitting(false);
     }
@@ -527,15 +511,15 @@ const VerificationTab = () => {
   if (status.status === 'approved') {
     return (
       <div className="space-y-6">
-        <SectionHeader title="Identity Verification" desc="Your profile is verified and trusted by other members" />
+        <SectionHeader title="Photo Verification" desc="Your profile is verified and trusted by other members" />
         <div className="flex items-start gap-4 p-5 bg-success-light border border-success-100 rounded-2xl max-w-sm">
           <div className="w-11 h-11 rounded-full bg-success flex items-center justify-center flex-shrink-0">
             <FiCheck className="w-5 h-5 text-white" />
           </div>
           <div>
-            <p className="font-semibold text-success text-sm">Identity Verified</p>
+            <p className="font-semibold text-success text-sm">Photo Verified</p>
             <p className="text-xs text-success/80 mt-0.5">
-              Verified {status.verifiedAt ? `on ${new Date(status.verifiedAt).toLocaleDateString('en-IN')}` : ''} · {DOC_TYPES.find(d => d.value === status.documentType)?.label || status.documentType}
+              Verified {status.verifiedAt ? `on ${new Date(status.verifiedAt).toLocaleDateString('en-IN')}` : ''}
             </p>
             <p className="text-xs text-neutral-500 mt-2">You have a verified badge on your profile. Verified profiles receive 3× more responses.</p>
           </div>
@@ -548,7 +532,7 @@ const VerificationTab = () => {
   if (status.status === 'pending') {
     return (
       <div className="space-y-6">
-        <SectionHeader title="Identity Verification" desc="Your documents are under review" />
+        <SectionHeader title="Photo Verification" desc="Your selfie is under review" />
         <div className="flex items-start gap-4 p-5 bg-warning-light border border-warning/20 rounded-2xl max-w-sm">
           <div className="w-11 h-11 rounded-full bg-warning/15 flex items-center justify-center flex-shrink-0">
             <FiClock className="w-5 h-5 text-warning" />
@@ -556,29 +540,28 @@ const VerificationTab = () => {
           <div>
             <p className="font-semibold text-warning text-sm">Under Review</p>
             <p className="text-xs text-warning/80 mt-0.5">
-              Submitted {status.submittedAt ? new Date(status.submittedAt).toLocaleDateString('en-IN') : ''} · {DOC_TYPES.find(d => d.value === status.documentType)?.label || status.documentType}
+              Submitted {status.submittedAt ? new Date(status.submittedAt).toLocaleDateString('en-IN') : ''}
             </p>
-            <p className="text-xs text-neutral-500 mt-2">We typically review documents within 24 hours. You'll receive an email when it's done.</p>
+            <p className="text-xs text-neutral-500 mt-2">We typically review selfies within 24 hours. You'll receive an email when it's done.</p>
           </div>
         </div>
       </div>
     );
   }
 
-  // ── Rejected state — show reason + allow resubmission ─────────────────────
   // ── Not submitted / rejected — show form ─────────────────────────────────
   return (
     <div className="space-y-6">
       <SectionHeader
-        title="Identity Verification"
-        desc="Get a verified badge. Verified profiles appear higher in search and receive significantly more responses."
+        title="Photo Verification"
+        desc="Get a verified badge. We match a selfie against your profile photos — no documents needed."
       />
 
       {/* How it works */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-lg">
         {[
-          { step: '1', title: 'Upload ID', desc: 'Government-issued photo ID' },
-          { step: '2', title: 'Admin Review', desc: 'We verify within 24 hours' },
+          { step: '1', title: 'Take a Selfie', desc: 'Good light, face clearly visible' },
+          { step: '2', title: 'Team Review', desc: 'Matched to your profile photos' },
           { step: '3', title: 'Get Verified', desc: 'Badge added to your profile' },
         ].map(({ step, title, desc }) => (
           <div key={step} className="flex flex-col items-center text-center p-3 bg-neutral-50 rounded-xl border border-neutral-100">
@@ -596,63 +579,29 @@ const VerificationTab = () => {
           <div>
             <p className="text-sm font-semibold text-destructive">Previous submission rejected</p>
             <p className="text-xs text-neutral-600 mt-0.5">{status.adminNotes}</p>
-            <p className="text-xs text-neutral-500 mt-1">Please resubmit with a clearer image.</p>
+            <p className="text-xs text-neutral-500 mt-1">Please resubmit a clearer selfie.</p>
           </div>
         </div>
       )}
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-5 max-w-lg">
-        <div>
-          <label htmlFor="setting-document-type" className="block text-sm font-medium text-neutral-700 mb-1.5">
-            Document Type <span className="text-destructive">*</span>
-          </label>
-          <select
-            id="setting-document-type"
-            name="documentType"
-            value={form.documentType}
-            onChange={(e) => setForm((f) => ({ ...f, documentType: e.target.value }))}
-            className="input-field max-w-sm"
-            required
-          >
-            {DOC_TYPES.map((d) => (
-              <option key={d.value} value={d.value}>{d.label}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FileUploadBox
-            label="Document Front"
-            sublabel="Clear photo, all text visible"
-            required
-            file={form.documentFront}
-            onFile={(f) => setForm((s) => ({ ...s, documentFront: f }))}
-          />
-          <FileUploadBox
-            label="Document Back"
-            sublabel="Optional for PAN/Passport"
-            file={form.documentBack}
-            onFile={(f) => setForm((s) => ({ ...s, documentBack: f }))}
-          />
-        </div>
-
         <FileUploadBox
           label="Selfie Photo"
-          sublabel="Hold document next to your face"
+          sublabel="Face the camera in good light — no sunglasses"
           required
-          file={form.selfiePhoto}
-          onFile={(f) => setForm((s) => ({ ...s, selfiePhoto: f }))}
+          file={selfiePhoto}
+          onFile={setSelfiePhoto}
         />
 
         <div className="flex items-start gap-2 p-3.5 bg-neutral-50 border border-neutral-100 rounded-xl text-xs text-neutral-500 max-w-sm">
           <FiShield className="w-3.5 h-3.5 text-primary-400 flex-shrink-0 mt-0.5" />
-          <span>Your documents are securely encrypted and only used to verify your identity. They are never shared with other users.</span>
+          <span>Your selfie is only used by our team to verify your profile photos. It is never shown to other members.</span>
         </div>
 
         <button
           type="submit"
-          disabled={submitting || !form.documentFront || !form.selfiePhoto}
+          disabled={submitting || !selfiePhoto}
           className="btn-primary flex items-center gap-2 disabled:opacity-50"
         >
           {submitting ? (

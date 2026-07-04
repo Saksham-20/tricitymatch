@@ -167,10 +167,15 @@ export default function AdminUserDetail() {
             <div className="space-y-3">
               {verifications.map((v) => (
                 <div key={v.id} className="flex items-start justify-between gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
-                  <div>
-                    <p className="text-sm font-medium text-gray-800 capitalize">{v.documentType}</p>
-                    <p className="text-xs text-gray-400">{new Date(v.createdAt).toLocaleDateString('en-IN')}</p>
-                    {v.adminNotes && <p className="text-xs text-gray-500 mt-1">{v.adminNotes}</p>}
+                  <div className="flex items-start gap-3">
+                    {v.selfiePhoto && (
+                      <img src={v.selfiePhoto} alt="Selfie" className="w-10 h-10 rounded-lg object-cover border border-gray-200 flex-shrink-0" />
+                    )}
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">Photo verification</p>
+                      <p className="text-xs text-gray-400">{new Date(v.createdAt).toLocaleDateString('en-IN')}</p>
+                      {v.adminNotes && <p className="text-xs text-gray-500 mt-1">{v.adminNotes}</p>}
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     {v.status === 'pending' ? (

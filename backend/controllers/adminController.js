@@ -117,7 +117,10 @@ exports.getVerifications = asyncHandler(async (req, res) => {
     include: [
       {
         model: User,
-        include: [{ model: Profile, attributes: ['firstName', 'lastName', 'profilePhoto'] }]
+        attributes: ['id', 'email', 'phone', 'status'],
+        // photos included so the reviewer can compare the selfie against the
+        // member's profile gallery side-by-side
+        include: [{ model: Profile, attributes: ['firstName', 'lastName', 'profilePhoto', 'photos'] }]
       }
     ],
     order: [['createdAt', 'ASC']],
@@ -181,10 +184,10 @@ exports.updateVerification = asyncHandler(async (req, res) => {
       const name = user.Profile?.firstName || 'User';
 
       if (status === 'approved') {
-        await notify(verification.userId, 'verification_approved', 'Profile Verified!', 'Your identity has been verified. Your profile now shows a verified badge.');
+        await notify(verification.userId, 'verification_approved', 'Profile Verified!', 'Your photo verification is complete. Your profile now shows a verified badge.');
         await sendVerificationApproved(user.email, name);
       } else if (status === 'rejected') {
-        const reason = safeAdminNotes || 'Please resubmit with clear, valid documents.';
+        const reason = safeAdminNotes || 'Please resubmit a clear, well-lit selfie that matches your profile photos.';
         await notify(verification.userId, 'verification_rejected', 'Verification Update', `Your verification was not approved. ${reason}`);
         await sendVerificationRejected(user.email, name, reason);
       }

@@ -1,6 +1,8 @@
 /**
  * Verification Routes
- * Identity verification + selfie liveness + background check endpoints
+ * Photo (selfie) verification + selfie liveness + background check endpoints.
+ * Government-ID document collection removed 2026-07-02 — we only review selfies
+ * against the member's own profile photos.
  */
 
 const express = require('express');
@@ -35,7 +37,7 @@ router.use((req, res, next) => {
 // Get verification status (includes bgCheck + selfie fields)
 router.get('/status', getVerificationStatus);
 
-// Submit verification documents
+// Submit a selfie for photo verification (multipart field: selfiePhoto)
 router.post('/submit',
   uploadLimiter,
   uploadDocuments,

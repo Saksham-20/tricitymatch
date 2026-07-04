@@ -19,7 +19,7 @@ const STATS = [
 ];
 
 const VALUES = [
-  { icon: FiShield, n: '01', t: 'Verified, every profile', d: 'Government-ID verification before any profile goes live. Zero fake accounts, zero exceptions.' },
+  { icon: FiShield, n: '01', t: 'Verified, every profile', d: 'Selfie verification and human review before any profile goes live. Zero fake accounts, zero exceptions.' },
   { icon: FiLock, n: '02', t: 'Privacy-first', d: 'Your data is yours. Browse incognito, control who sees you, numbers never shared.' },
   { icon: FiUsers, n: '03', t: 'Family-oriented', d: 'Matching that respects family background, values, and the people who matter in the decision.' },
   { icon: FiMapPin, n: '04', t: 'Hyperlocal focus', d: 'Built only for Chandigarh, Mohali and Panchkula. Partners within driving distance.' },
@@ -80,8 +80,8 @@ export default function About() {
             </p>
             <p>
               Our intelligent matching considers compatibility, family background, education and lifestyle to suggest
-              the connections that actually lead somewhere. Every profile is government-ID verified before it goes live,
-              and every family is within driving distance.
+              the connections that actually lead somewhere. Every profile is photo-verified and human-reviewed before
+              it goes live, and every family is within driving distance.
             </p>
           </div>
         </div>

@@ -515,8 +515,11 @@ const adminSearchValidation = [
 
 // ==================== VERIFICATION VALIDATORS ====================
 
+// Photo (selfie) verification — no document fields collected. `documentType`
+// is tolerated from stale clients but ignored server-side.
 const submitVerificationValidation = [
   body('documentType')
+    .optional()
     .isIn(['aadhaar', 'pan', 'passport', 'driving_license'])
     .withMessage('Invalid document type'),
 ];

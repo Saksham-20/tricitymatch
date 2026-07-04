@@ -2,16 +2,9 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
-import { FiShield, FiCheckCircle, FiClock, FiXCircle, FiUploadCloud, FiX } from 'react-icons/fi';
+import { FiShield, FiCheckCircle, FiClock, FiXCircle, FiUploadCloud, FiX, FiCamera } from 'react-icons/fi';
 import { razorpay } from '../config';
 import { loadRazorpayScript, ensurePaymentsAvailable, PAYMENTS_UNAVAILABLE_MSG } from '../utils/razorpayCheckout';
-
-const DOCUMENT_TYPES = [
-  { value: 'aadhaar', label: 'Aadhaar' },
-  { value: 'pan', label: 'PAN' },
-  { value: 'passport', label: 'Passport' },
-  { value: 'driving_license', label: 'Driving License' },
-];
 
 const STATUS_META = {
   approved:      { icon: FiCheckCircle, cls: 'text-success bg-success-50 border border-success-100',         key: 'statusApproved' },
@@ -36,12 +29,9 @@ function StatusPill({ status }) {
 
 export default function Verification() {
   const { t } = useTranslation();
-  const [docStatus, setDocStatus] = useState('not_submitted');
+  const [selfieStatus, setSelfieStatus] = useState('not_submitted');
   const [bgStatus, setBgStatus] = useState('not_requested');
   const [adminNotes, setAdminNotes] = useState(null);
-  const [documentType, setDocumentType] = useState('aadhaar');
-  const [front, setFront] = useState(null);
-  const [back, setBack] = useState(null);
   const [selfie, setSelfie] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [bgConsent, setBgConsent] = useState(false);
@@ -53,7 +43,7 @@ export default function Verification() {
         api.get('/verification/status'),
         api.get('/verification/bg-check/status'),
       ]);
-      setDocStatus(v.data.verification?.status || 'not_submitted');
+      setSelfieStatus(v.data.verification?.status || 'not_submitted');
       setAdminNotes(v.data.verification?.adminNotes || null);
       setBgStatus(bg.data.bgCheckStatus || 'not_requested');
     } catch {
@@ -63,22 +53,19 @@ export default function Verification() {
 
   useEffect(() => { loadStatus(); }, [loadStatus]);
 
-  const submitDocuments = async (e) => {
+  const submitSelfie = async (e) => {
     e.preventDefault();
-    if (!front) { toast.error('Front of document is required'); return; }
+    if (!selfie) { toast.error('A selfie photo is required'); return; }
     setSubmitting(true);
     try {
       const form = new FormData();
-      form.append('documentType', documentType);
-      form.append('documentFront', front);
-      if (back) form.append('documentBack', back);
-      if (selfie) form.append('selfiePhoto', selfie);
+      form.append('selfiePhoto', selfie);
       await api.post('/verification/submit', form);
-      toast.success('Documents submitted for review');
-      setFront(null); setBack(null); setSelfie(null);
+      toast.success('Selfie submitted for review');
+      setSelfie(null);
       loadStatus();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Submission failed');
+      toast.error(err.response?.data?.error?.message || err.response?.data?.message || 'Submission failed');
     } finally {
       setSubmitting(false);
     }
@@ -133,7 +120,7 @@ export default function Verification() {
 
   // Trust score from completed tiers
   const trustScore =
-    (['approved', 'pending'].includes(docStatus) ? 50 : 0) +
+    (['approved', 'pending'].includes(selfieStatus) ? 50 : 0) +
     (['passed', 'in_progress'].includes(bgStatus) ? 50 : 0);
   const ringC = 2 * Math.PI * 30;
 
@@ -167,8 +154,8 @@ export default function Verification() {
         <h2 className="text-sm font-medium text-neutral-500 mb-4">{t('verification.status')}</h2>
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-neutral-700">{t('verification.tierDocuments')}</span>
-            <StatusPill status={docStatus === 'not_submitted' ? undefined : docStatus} />
+            <span className="text-neutral-700">{t('verification.tierSelfie')}</span>
+            <StatusPill status={selfieStatus === 'not_submitted' ? undefined : selfieStatus} />
           </div>
           <div className="flex items-center justify-between">
             <span className="text-neutral-700">{t('verification.tierBgCheck')}</span>
@@ -180,29 +167,38 @@ export default function Verification() {
         )}
       </div>
 
-      {/* Document submission */}
-      {docStatus !== 'approved' && docStatus !== 'pending' && (
-        <form onSubmit={submitDocuments} className="bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-6 mb-6">
-          <h2 className="font-semibold text-neutral-800 mb-4">{t('verification.submitDocuments')}</h2>
-          <label className="block text-sm text-neutral-600 mb-1">Document type</label>
-          <select
-            value={documentType}
-            onChange={(e) => setDocumentType(e.target.value)}
-            className="w-full mb-4 px-3 py-2 rounded-lg border border-neutral-200"
-          >
-            {DOCUMENT_TYPES.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
-          </select>
+      {/* Selfie submission */}
+      {selfieStatus !== 'approved' && selfieStatus !== 'pending' && (
+        <form onSubmit={submitSelfie} className="bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-6 mb-6">
+          <h2 className="font-semibold text-neutral-800 dark:text-neutral-200 mb-1">{t('verification.tierSelfie')}</h2>
+          <p className="text-sm text-neutral-500 mb-4">
+            Upload a clear selfie. Our team matches it against your profile photos — no
+            documents needed, and the selfie is never shown to other members.
+          </p>
 
-          <FileField label="Document (front) *" file={front} onChange={setFront} />
-          <FileField label="Document (back)" file={back} onChange={setBack} />
-          <FileField label="Selfie photo" file={selfie} onChange={setSelfie} />
+          {/* How it works */}
+          <div className="grid grid-cols-3 gap-2.5 mb-5">
+            {[
+              { step: '1', title: 'Take a selfie', desc: 'Good light, face clearly visible' },
+              { step: '2', title: 'Team review', desc: 'Matched to your profile photos' },
+              { step: '3', title: 'Get the badge', desc: 'Verified tick on your profile' },
+            ].map(({ step, title, desc }) => (
+              <div key={step} className="flex flex-col items-center text-center p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-100 dark:border-neutral-700">
+                <div className="w-6 h-6 rounded-full bg-primary-100 text-primary-600 text-xs font-bold flex items-center justify-center mb-1.5">{step}</div>
+                <p className="text-xs font-semibold text-neutral-800 dark:text-neutral-200">{title}</p>
+                <p className="text-[11px] text-neutral-500 mt-0.5">{desc}</p>
+              </div>
+            ))}
+          </div>
+
+          <SelfieField file={selfie} onChange={setSelfie} />
 
           <button
             type="submit"
-            disabled={submitting}
-            className="mt-2 px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-60 font-medium"
+            disabled={submitting || !selfie}
+            className="mt-4 px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-60 font-medium"
           >
-            {submitting ? t('common.loading') : t('verification.submitDocuments')}
+            {submitting ? t('common.loading') : t('verification.uploadSelfie')}
           </button>
         </form>
       )}
@@ -232,12 +228,12 @@ export default function Verification() {
   );
 }
 
-function FileField({ label, file, onChange }) {
+function SelfieField({ file, onChange }) {
   const [preview, setPreview] = useState(null);
   const inputRef = useRef(null);
 
-  // Build (and clean up) an object URL so the user can see the image they
-  // picked and confirm it's clear before submitting an ID/selfie.
+  // Object URL preview so the user can confirm the selfie is clear before
+  // submitting it for review.
   useEffect(() => {
     if (!file) { setPreview(null); return; }
     const url = URL.createObjectURL(file);
@@ -246,31 +242,32 @@ function FileField({ label, file, onChange }) {
   }, [file]);
 
   return (
-    <div className="mb-4">
-      <label className="block text-sm text-neutral-600 mb-1">{label}</label>
+    <div>
       {file ? (
-        <div className="flex items-center gap-3 px-3 py-2 rounded-lg border border-neutral-200 bg-neutral-50">
+        <div className="flex items-center gap-4 px-4 py-3 rounded-xl border border-neutral-200 bg-neutral-50">
           {preview && (
-            <img src={preview} alt="" className="w-12 h-12 rounded-md object-cover border border-neutral-200 flex-shrink-0" />
+            <img src={preview} alt="Selfie preview" className="w-16 h-16 rounded-xl object-cover border border-neutral-200 flex-shrink-0" />
           )}
           <span className="text-sm text-neutral-700 truncate flex-1">{file.name}</span>
           <button
             type="button"
             onClick={() => { onChange(null); if (inputRef.current) inputRef.current.value = ''; }}
             className="p-1.5 rounded-md text-neutral-400 hover:text-destructive hover:bg-white transition-colors flex-shrink-0"
-            aria-label={`Remove ${label}`}
+            aria-label="Remove selfie"
           >
             <FiX className="w-4 h-4" />
           </button>
         </div>
       ) : (
-        <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-neutral-300 cursor-pointer hover:border-primary-400 text-neutral-500">
-          <FiUploadCloud className="w-5 h-5" />
-          <span className="text-sm truncate">Choose file</span>
+        <label className="flex flex-col items-center gap-2 px-4 py-8 rounded-xl border-2 border-dashed border-neutral-300 cursor-pointer hover:border-primary-400 text-neutral-500 transition-colors">
+          <FiCamera className="w-7 h-7 text-primary-400" />
+          <span className="text-sm font-medium text-neutral-700">Take or choose a selfie</span>
+          <span className="text-xs text-neutral-400 flex items-center gap-1"><FiUploadCloud className="w-3.5 h-3.5" /> JPG/PNG, face clearly visible</span>
           <input
             ref={inputRef}
             type="file"
             accept="image/*"
+            capture="user"
             className="hidden"
             onChange={(e) => onChange(e.target.files?.[0] || null)}
           />

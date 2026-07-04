@@ -1,17 +1,22 @@
 /**
  * Verification Controller
- * Handles identity verification submissions
+ * Photo (selfie) verification — a member submits a clear selfie, an admin
+ * matches it against their profile photos and approves/rejects.
+ *
+ * Government-ID document collection was removed (2026-07-02): we are not a
+ * government authority and do not ask members for identity documents. The
+ * legacy documentType/documentFront/documentBack columns remain on the model
+ * for old rows but are no longer written.
  */
 
 const { Verification, User } = require('../models');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 
 // @route   POST /api/verification/submit
-// @desc    Submit identity verification documents
+// @desc    Submit a selfie for photo verification
 // @access  Private
 exports.submitVerification = asyncHandler(async (req, res) => {
   const userId = req.user.id;
-  const { documentType } = req.body;
 
   // Check if verification already exists
   let verification = await Verification.findOne({ where: { userId } });
@@ -24,20 +29,16 @@ exports.submitVerification = asyncHandler(async (req, res) => {
     throw createError.conflict('You are already verified');
   }
 
-  // Handle file uploads - Cloudinary returns full URL in file.path
-  const documentFront = req.files?.documentFront?.[0]?.path || null;
-  const documentBack = req.files?.documentBack?.[0]?.path || null;
+  // Cloudinary returns the full URL in file.path. Any documentFront/Back files
+  // a stale client still sends are deliberately ignored — never stored.
   const selfiePhoto = req.files?.selfiePhoto?.[0]?.path || null;
 
-  if (!documentFront || !selfiePhoto) {
-    throw createError.badRequest('Document front and selfie photo are required');
+  if (!selfiePhoto) {
+    throw createError.badRequest('A selfie photo is required');
   }
 
   if (verification) {
     // Update existing verification (resubmission after rejection)
-    verification.documentType = documentType;
-    verification.documentFront = documentFront;
-    verification.documentBack = documentBack;
     verification.selfiePhoto = selfiePhoto;
     verification.status = 'pending';
     verification.adminNotes = null;
@@ -45,12 +46,8 @@ exports.submitVerification = asyncHandler(async (req, res) => {
     verification.verifiedBy = null;
     await verification.save();
   } else {
-    // Create new verification
     verification = await Verification.create({
       userId,
-      documentType,
-      documentFront,
-      documentBack,
       selfiePhoto,
       status: 'pending'
     });
@@ -58,11 +55,10 @@ exports.submitVerification = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    message: 'Verification documents submitted successfully. Awaiting admin approval.',
+    message: 'Selfie submitted successfully. Awaiting review.',
     verification: {
       id: verification.id,
       status: verification.status,
-      documentType: verification.documentType,
       createdAt: verification.createdAt
     }
   });
@@ -76,7 +72,7 @@ exports.getVerificationStatus = asyncHandler(async (req, res) => {
 
   const verification = await Verification.findOne({
     where: { userId },
-    attributes: ['status', 'documentType', 'adminNotes', 'verifiedAt', 'createdAt']
+    attributes: ['status', 'selfiePhoto', 'adminNotes', 'verifiedAt', 'createdAt']
   });
 
   if (!verification) {
@@ -92,7 +88,7 @@ exports.getVerificationStatus = asyncHandler(async (req, res) => {
     success: true,
     verification: {
       status: verification.status,
-      documentType: verification.documentType,
+      selfiePhoto: verification.selfiePhoto,
       adminNotes: verification.status === 'rejected' ? verification.adminNotes : null,
       verifiedAt: verification.verifiedAt,
       submittedAt: verification.createdAt

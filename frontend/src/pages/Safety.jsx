@@ -14,7 +14,7 @@ const PILLARS = [
     icon: FiShield,
     n: '01',
     t: 'Profile verification',
-    body: 'Every profile is verified with government-issued ID before going live. Verified profiles display a badge and receive 3× more responses — always prefer them when connecting.',
+    body: 'Every profile passes selfie verification — a live photo matched to their profile pictures by our safety team — before going live. Verified profiles display a badge and receive 3× more responses — always prefer them when connecting.',
     points: [],
   },
   {
