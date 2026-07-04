@@ -20,11 +20,13 @@ ENV VITE_API_URL=$VITE_API_URL \
     VITE_CLOUDINARY_CLOUD_NAME=$VITE_CLOUDINARY_CLOUD_NAME \
     VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
 
-# Copy package files
+# Copy package files (package-lock.json is a standalone lockfile for this
+# Docker context — the repo root's workspace lockfile isn't visible here)
 COPY package*.json ./
 
-# Install dependencies (npm install tolerates lock file out of sync; use npm ci after locking deps)
-RUN npm install
+# Deterministic install: npm ci fails loudly on lockfile drift instead of
+# silently resolving newer transitives on the production box
+RUN npm ci
 
 # Copy source code
 COPY . .

@@ -52,7 +52,7 @@ const ResetPassword = () => {
 
   if (!token) {
     return (
-      <div className="min-h-screen flex bg-gradient-to-br from-neutral-50 via-primary-50/20 to-gold-50/30">
+      <div className="min-h-screen flex bg-[#FDF8F2]">
         <Seo title="Reset Password" description="Set a new password for your TricityShadi account." path="/reset-password" />
         <EditorialPanel
           headline={"Invalid link."}
@@ -103,7 +103,7 @@ const ResetPassword = () => {
 
   if (success) {
     return (
-      <div className="min-h-screen flex bg-gradient-to-br from-neutral-50 via-primary-50/20 to-gold-50/30">
+      <div className="min-h-screen flex bg-[#FDF8F2]">
         <Seo title="Reset Password" description="Set a new password for your TricityShadi account." path="/reset-password" />
         <EditorialPanel
           headline={"You're all set."}
@@ -130,7 +130,7 @@ const ResetPassword = () => {
   }
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-neutral-50 via-primary-50/20 to-gold-50/30">
+    <div className="min-h-screen flex bg-[#FDF8F2]">
       <Seo title="Reset Password" description="Set a new password for your TricityShadi account." path="/reset-password" />
       <EditorialPanel
         headline={"Create your new password."}

@@ -89,7 +89,7 @@ test.describe('🔑 Login Form UX', () => {
   });
 
   test('Tab key moves focus between form fields correctly', async ({ page }) => {
-    const emailInput = page.locator('input[type="email"], [name="email"]').first();
+    const emailInput = page.locator('[name="identifier"], input[type="email"], [name="email"]').first();
     await emailInput.focus();
     await page.keyboard.press('Tab');
 
@@ -124,8 +124,12 @@ test.describe('🔑 Login Form UX', () => {
   });
 
   test('Login button shows loading state on submit', async ({ page }) => {
-    await page.fill('input[type="email"], [name="email"]', 'test@test.com');
-    await page.fill('input[type="password"]', 'anything');
+    // Two-phase: submit the identifier first, then the password phase.
+    await page.fill('[name="identifier"]', 'test@test.com');
+    await page.click('button[type="submit"]');
+    const passInput = page.locator('input[type="password"]').first();
+    await passInput.waitFor({ state: 'visible' });
+    await passInput.fill('anything');
 
     const btn = page.locator('button[type="submit"]').first();
     await btn.click();

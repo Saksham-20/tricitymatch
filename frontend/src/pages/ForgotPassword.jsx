@@ -29,7 +29,7 @@ const ForgotPassword = () => {
 
   if (submitted) {
     return (
-      <div className="min-h-screen flex bg-gradient-to-br from-neutral-50 via-primary-50/20 to-gold-50/30">
+      <div className="min-h-screen flex bg-[#FDF8F2]">
         <Seo
           title="Forgot Password"
           description="Reset your TricityShadi password — we'll email you a secure recovery link."
@@ -90,7 +90,7 @@ const ForgotPassword = () => {
   }
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-neutral-50 via-primary-50/20 to-gold-50/30">
+    <div className="min-h-screen flex bg-[#FDF8F2]">
       <Seo
         title="Forgot Password"
         description="Reset your TricityShadi password — we'll email you a secure recovery link."

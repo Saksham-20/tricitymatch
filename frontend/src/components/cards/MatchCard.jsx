@@ -37,7 +37,7 @@ const MatchCard = ({ match, userId, index = 0, onChat }) => {
     <motion.div 
       initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ delay: index * 0.1 }}
+      transition={{ delay: (index % 6) * 0.06 }}
       whileHover={{ y: -6 }}
       onClick={handleClick}
       className="card cursor-pointer group"
@@ -60,7 +60,7 @@ const MatchCard = ({ match, userId, index = 0, onChat }) => {
             />
           ) : null}
           <div 
-            className={`w-24 h-24 rounded-full mx-auto bg-gradient-to-br from-primary-100 to-gold-100 flex items-center justify-center text-neutral-600 text-2xl font-semibold border-4 border-white shadow-lg ${(match.profilePhoto || match.profile_photo) ? 'hidden' : ''}`}
+            className={`w-24 h-24 rounded-full mx-auto bg-primary-100 flex items-center justify-center text-primary-700 font-display text-2xl font-semibold border-4 border-white shadow-lg ${(match.profilePhoto || match.profile_photo) ? 'hidden' : ''}`}
           >
             {initials}
           </div>
@@ -96,7 +96,7 @@ const MatchCard = ({ match, userId, index = 0, onChat }) => {
         </p>
         
         {match.compatibilityScore && (
-          <span className="inline-block px-3 py-1 bg-gold-50 text-gold-700 text-xs font-semibold rounded-full border border-gold-200">
+          <span className="inline-block px-3 py-1 bg-primary-50 text-primary-700 text-xs font-semibold rounded-full border border-primary-100">
             {Math.round(match.compatibilityScore)}% Compatible
           </span>
         )}
@@ -107,7 +107,7 @@ const MatchCard = ({ match, userId, index = 0, onChat }) => {
           whileTap={{ scale: 0.98 }}
           onClick={handleChatClick}
           aria-label={`Start chat with ${fullName}`}
-          className="mt-4 w-full py-2.5 bg-gradient-to-r from-gold-500 to-gold-600 text-white rounded-xl text-sm font-semibold hover:from-gold-600 hover:to-gold-700 transition-all shadow-gold flex items-center justify-center gap-2"
+          className="mt-4 w-full py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition-colors flex items-center justify-center gap-2"
         >
           <FiMessageCircle className="w-4 h-4" aria-hidden="true" />
           Message

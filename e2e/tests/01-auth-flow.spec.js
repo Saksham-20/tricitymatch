@@ -12,9 +12,13 @@ const BASE = process.env.BASE_URL || 'http://localhost:3000';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
+// Progressive login: identifier first, password enters the DOM after Continue.
 async function fillAndSubmitLogin(page, email, password) {
-  await page.fill('input[type="email"], [name="email"], [data-testid="email-input"]', email);
-  await page.fill('input[type="password"], [name="password"], [data-testid="password-input"]', password);
+  await page.fill('[name="identifier"], input[type="email"], [name="email"]', email);
+  await page.click('button[type="submit"]');
+  const passInput = page.locator('input[type="password"]').first();
+  await passInput.waitFor({ state: 'visible' });
+  await passInput.fill(password);
   await page.click('button[type="submit"]');
 }
 
@@ -37,14 +41,18 @@ test.describe('🔐 Auth Flow', () => {
     // Check page title
     await expect(page).toHaveTitle(/.+/);
 
-    // Email & password inputs must be visible
-    const emailInput = page.locator('input[type="email"], [name="email"]').first();
-    const passInput  = page.locator('input[type="password"], [name="password"]').first();
-    const submitBtn  = page.locator('button[type="submit"]').first();
+    // Progressive login phase 1: identifier + Continue visible; the password
+    // field appears only after a valid identifier is submitted.
+    const idInput   = page.locator('[name="identifier"]').first();
+    const submitBtn = page.locator('button[type="submit"]').first();
 
-    await expect(emailInput).toBeVisible();
-    await expect(passInput).toBeVisible();
+    await expect(idInput).toBeVisible();
     await expect(submitBtn).toBeVisible();
+
+    await idInput.fill('qa-render-check@example.com');
+    await submitBtn.click();
+    const passInput = page.locator('input[type="password"]').first();
+    await expect(passInput).toBeVisible();
 
     // Should have a link to signup
     const signupLink = page.locator('a[href*="signup"]:visible, a:has-text("Sign up"):visible, a:has-text("Register"):visible').first();
@@ -64,10 +72,6 @@ test.describe('🔐 Auth Flow', () => {
 
     await page.click('button[type="submit"]');
     await page.waitForTimeout(500);
-
-    // HTML5 validation or custom error messages should appear
-    const emailInput = page.locator('input[type="email"], [name="email"]').first();
-    const isInvalid  = await emailInput.evaluate(el => !el.validity.valid || el.getAttribute('aria-invalid') === 'true');
 
     // At minimum, the page should NOT navigate away
     await expect(page).toHaveURL(/login/);

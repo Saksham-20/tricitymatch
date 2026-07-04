@@ -11,7 +11,7 @@ const SignupRedirect = () => {
   return <Navigate to={ref ? `/onboarding?ref=${ref}` : '/onboarding'} replace />;
 };
 import { Toaster } from 'react-hot-toast';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { OnboardingProvider } from './context/OnboardingContext';
 import { SocketProvider } from './context/SocketContext';
@@ -391,8 +391,8 @@ const AnimatedRoutes = () => {
           <Route path="*" element={
             <div className="min-h-screen flex flex-col items-center justify-center gap-6 p-8 text-center">
               <Seo title="Page Not Found" description="The page you're looking for doesn't exist or has been moved." noindex />
-              <div className="text-8xl font-bold text-primary-200">404</div>
-              <h1 className="text-2xl font-semibold text-neutral-800">Page not found</h1>
+              <div className="font-display text-8xl font-bold text-primary-200">404</div>
+              <h1 className="font-display text-2xl font-semibold text-neutral-800">Page not found</h1>
               <p className="text-neutral-500 max-w-sm">The page you're looking for doesn't exist or has been moved.</p>
               <Link to="/" className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium">
                 Go Home
@@ -484,20 +484,25 @@ const AppContent = () => {
 function App() {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <OnboardingProvider>
-          <SocketProvider>
-            <CallProvider>
-              <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-                <div className="min-h-screen bg-background">
-                  <AppContent />
-                  <CallOverlay />
-                </div>
-              </Router>
-            </CallProvider>
-          </SocketProvider>
-        </OnboardingProvider>
-      </AuthProvider>
+      {/* reducedMotion="user": framer-motion honors the OS accessibility
+          setting app-wide; CSS keyframes are covered by the matching
+          prefers-reduced-motion block in index.css. */}
+      <MotionConfig reducedMotion="user">
+        <AuthProvider>
+          <OnboardingProvider>
+            <SocketProvider>
+              <CallProvider>
+                <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                  <div className="min-h-screen bg-background">
+                    <AppContent />
+                    <CallOverlay />
+                  </div>
+                </Router>
+              </CallProvider>
+            </SocketProvider>
+          </OnboardingProvider>
+        </AuthProvider>
+      </MotionConfig>
     </ErrorBoundary>
   );
 }

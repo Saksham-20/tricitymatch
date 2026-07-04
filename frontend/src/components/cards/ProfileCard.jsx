@@ -151,7 +151,7 @@ const ProfileCard = ({
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: index * 0.05, duration: 0.25 }}
+        transition={{ delay: (index % 6) * 0.05, duration: 0.25 }}
         whileHover={{ y: -3 }}
         className="bg-white rounded-2xl border border-neutral-100 shadow-card hover:shadow-card-hover transition-all duration-200 p-4 cursor-pointer group"
         onClick={handleCardClick}
@@ -237,7 +237,7 @@ const ProfileCard = ({
       initial={{ opacity: 0, y: 20, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ delay: index * 0.05, duration: 0.3 }}
+      transition={{ delay: (index % 6) * 0.05, duration: 0.3 }}
       whileHover={{ y: -6 }}
       className="group relative bg-white rounded-3xl overflow-hidden cursor-pointer transition-all duration-300"
       style={{

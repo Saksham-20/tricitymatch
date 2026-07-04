@@ -71,6 +71,7 @@ const getFields = (p) => [
   {
     id: 'bio',
     label: 'Write about yourself',
+    cta: 'Write about yourself',
     group: 'important',
     points: 8,
     done: !!(p.bio && p.bio.trim().length >= 20),
@@ -362,7 +363,7 @@ export const ProfileStrengthPanel = ({ profile = {} }) => {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-neutral-700 group-hover:text-primary-600 transition-colors">
-                Add {field.label.toLowerCase()}
+                {field.cta || `Add ${field.label.toLowerCase()}`}
               </p>
               {field.tip && (
                 <p className="text-xs text-neutral-400 mt-0.5">{field.tip}</p>

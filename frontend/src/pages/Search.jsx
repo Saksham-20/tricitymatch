@@ -5,7 +5,7 @@ import api from '../api/axios';
 import toast from 'react-hot-toast';
 import {
   FiSearch, FiUsers, FiArrowRight,
-  FiSliders, FiRefreshCw, FiHash, FiX,
+  FiSliders, FiRefreshCw, FiHash, FiX, FiAlertCircle,
 } from 'react-icons/fi';
 
 // Readable labels for active-filter chips
@@ -55,6 +55,7 @@ const Search = () => {
   const navigate = useNavigate();
   const [profiles, setProfiles]   = useState([]);
   const [loading, setLoading]     = useState(false);
+  const [searchError, setSearchError] = useState(false);
   const [page, setPage]           = useState(1);
   const [hasMore, setHasMore]     = useState(true);
   const [sortBy, setSortBy]       = useState('compatibility');
@@ -134,13 +135,19 @@ const Search = () => {
       });
 
       currentPage === 1 ? setProfiles(normalized) : setProfiles(prev => [...prev, ...normalized]);
+      setSearchError(false);
 
       const pagination = response.data?.pagination || response.data?.data?.pagination || {};
       setHasMore(pagination.page < pagination.pages);
       setTotalCount(pagination.total || normalized.length);
     } catch (err) {
       const currentPage = options.overridePage || page;
-      if (err.response?.status !== 404) toast.error('Failed to load profiles');
+      // 404 is the backend's "no results for these filters" — that is the EMPTY
+      // state, not an error. Anything else renders the distinct error card so a
+      // server failure is never blamed on the member's filters.
+      if (err.response?.status !== 404) {
+        setSearchError(true);
+      }
       if (currentPage === 1) setProfiles([]);
     } finally {
       setLoading(false);
@@ -326,8 +333,36 @@ const Search = () => {
               </div>
             )}
 
+            {/* ── Error state — distinct from empty: server broke, filters didn't ── */}
+            {!loading && searchError && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                role="alert"
+                className="text-center py-16 bg-white dark:bg-[#1a1f2e] rounded-3xl border border-red-100 dark:border-red-900/40 shadow-card"
+              >
+                <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-2xl flex items-center justify-center mx-auto mb-5">
+                  <FiAlertCircle className="w-8 h-8 text-red-400" />
+                </div>
+                <h3 className="font-display text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">
+                  Something went wrong
+                </h3>
+                <p className="text-neutral-500 text-sm mb-6 max-w-xs mx-auto">
+                  We couldn't load profiles right now. Your filters are fine — please try again.
+                </p>
+                <motion.button
+                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  onClick={() => { setPage(1); searchProfiles({ overridePage: 1 }); }}
+                  className="btn-primary inline-flex items-center gap-2 text-sm"
+                >
+                  <FiRefreshCw className="w-4 h-4" />
+                  Try Again
+                </motion.button>
+              </motion.div>
+            )}
+
             {/* ── Empty state ────────────────────────────────────────────── */}
-            {!loading && profiles.length === 0 && (
+            {!loading && !searchError && profiles.length === 0 && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.97 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -373,7 +408,7 @@ const Search = () => {
                       if (!pid) return null;
                       return (
                         <ProfileCard
-                          key={`profile-${pid}-${i}`}
+                          key={`profile-${pid}`}
                           profile={profile}
                           userId={profile.userId}
                           index={i}

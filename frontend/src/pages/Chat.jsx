@@ -471,7 +471,7 @@ const Chat = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-gold-50/30 to-white flex items-center justify-center">
+      <div className="min-h-screen bg-[#FDF8F2] flex items-center justify-center">
         <div className="text-center">
           <div className="relative w-16 h-16 mx-auto mb-4">
             <div className="absolute inset-0 rounded-full border-4 border-primary-200"></div>
@@ -486,7 +486,7 @@ const Chat = () => {
   if (accessDenied) {
     return (
       <>
-        <div className="min-h-screen bg-gradient-to-br from-primary-50 via-gold-50/30 to-white flex items-center justify-center p-4">
+        <div className="min-h-screen bg-[#FDF8F2] flex items-center justify-center p-4">
           <div className="text-center max-w-md">
             <div className="w-24 h-24 mx-auto mb-6 bg-gold-50 border border-gold-100 rounded-full flex items-center justify-center">
               <FiLock className="w-12 h-12 text-gold-600" />
@@ -514,9 +514,9 @@ const Chat = () => {
 
   if (matches.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-gold-50/30 to-white flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#FDF8F2] flex items-center justify-center p-4">
         <div className="text-center max-w-md">
-          <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-primary-100 to-gold-100 rounded-full flex items-center justify-center">
+          <div className="w-24 h-24 mx-auto mb-6 bg-primary-100 rounded-full flex items-center justify-center">
             <FiMessageCircle className="w-12 h-12 text-primary-400" />
           </div>
           <h2 className="text-2xl font-bold font-display text-neutral-800 mb-3">No Matches Yet</h2>
@@ -886,9 +886,9 @@ const Chat = () => {
           </>
         ) : (
           /* No chat selected */
-          <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-primary-50 via-gold-50/30 to-white">
+          <div className="flex-1 flex items-center justify-center bg-[#FDF8F2]">
             <div className="text-center p-8">
-              <div className="w-32 h-32 mx-auto mb-6 bg-gradient-to-br from-primary-100 to-gold-100 rounded-full flex items-center justify-center">
+              <div className="w-32 h-32 mx-auto mb-6 bg-primary-100 rounded-full flex items-center justify-center">
                 <FiMessageCircle className="w-16 h-16 text-primary-400" />
               </div>
               <h3 className="text-xl font-semibold font-display text-neutral-700 mb-2">Start a Conversation</h3>

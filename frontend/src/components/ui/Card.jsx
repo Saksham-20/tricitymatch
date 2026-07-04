@@ -39,7 +39,7 @@ const Card = React.forwardRef(
       elevated: 'bg-white shadow-md',
       outlined: 'bg-white border border-neutral-200',
       filled: 'bg-neutral-50',
-      gradient: 'bg-gradient-to-br from-primary-50 to-gold-50',
+      gradient: 'bg-[#FDF8F2] border border-neutral-100',
     };
 
     const paddings = {

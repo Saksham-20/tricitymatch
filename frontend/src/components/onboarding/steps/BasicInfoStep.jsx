@@ -2,10 +2,25 @@ import React, { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
+import Select from '../../ui/Select';
 import { validateName } from '../../../utils/validators';
 
+// 4'6" – 7'0" in one-inch increments, stored as cm (backend validates 100–250).
+const HEIGHT_OPTIONS = (() => {
+  const opts = [];
+  for (let ft = 4; ft <= 7; ft++) {
+    for (let inch = 0; inch <= 11; inch++) {
+      if (ft === 4 && inch < 6) continue;
+      if (ft === 7 && inch > 0) break;
+      const cm = Math.round(ft * 30.48 + inch * 2.54);
+      opts.push({ value: String(cm), label: `${ft}'${inch}" (${cm} cm)` });
+    }
+  }
+  return opts;
+})();
+
 const BasicInfoStep = () => {
-  const { formData, updateFormData, errors, setStepErrors, setFieldTouched, registerStepValidator } = useOnboarding();
+  const { formData, updateFormData, errors, setStepErrors, setFieldTouched, registerStepValidator, mode } = useOnboarding();
   const formDataRef = useRef(formData);
   formDataRef.current = formData;
 
@@ -39,6 +54,13 @@ const BasicInfoStep = () => {
       }
     }
 
+    if (data.weight !== '' && data.weight != null) {
+      const w = Number(data.weight);
+      if (!Number.isInteger(w) || w < 30 || w > 300) {
+        newErrors.weight = 'Weight must be between 30–300 kg';
+      }
+    }
+
     setStepErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -55,27 +77,30 @@ const BasicInfoStep = () => {
 
   return (
     <div className="space-y-5">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <FormField
-          label="First Name"
-          autoComplete="given-name"
-          placeholder="John"
-          value={formData.firstName}
-          onChange={(value) => updateFormData('firstName', value)}
-          onBlur={() => setFieldTouched('firstName')}
-          error={errors.firstName}
-          required
-        />
-        <FormField
-          label="Last Name"
-          autoComplete="family-name"
-          placeholder="Smith"
-          value={formData.lastName}
-          onChange={(value) => updateFormData('lastName', value)}
-          onBlur={() => setFieldTouched('lastName')}
-          error={errors.lastName}
-          required
-        />
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <FormField
+            label="First Name"
+            autoComplete="given-name"
+            placeholder="John"
+            value={formData.firstName}
+            onChange={(value) => updateFormData('firstName', value)}
+            onBlur={() => setFieldTouched('firstName')}
+            error={errors.firstName}
+            required
+          />
+          <FormField
+            label="Last Name"
+            autoComplete="family-name"
+            placeholder="Smith"
+            value={formData.lastName}
+            onChange={(value) => updateFormData('lastName', value)}
+            onBlur={() => setFieldTouched('lastName')}
+            error={errors.lastName}
+            required
+          />
+        </div>
+        <p className="text-xs text-neutral-400 mt-1.5">Your real name, as families will see it — real names build trust.</p>
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
@@ -117,6 +142,7 @@ const BasicInfoStep = () => {
           onChange={(value) => updateFormData('dateOfBirth', value)}
           onBlur={() => setFieldTouched('dateOfBirth')}
           error={errors.dateOfBirth}
+          hint="Used for age and horoscope matching — your exact birthday is never shown publicly."
           /* Opens the picker near the 18+ era instead of today, and blocks
              under-18 / impossible dates inline rather than after submit. */
           min={new Date(new Date().setFullYear(new Date().getFullYear() - 100)).toISOString().split('T')[0]}
@@ -124,6 +150,33 @@ const BasicInfoStep = () => {
           required
         />
       </motion.div>
+
+      {/* Height/weight are collected post-signup: self-signup stays a 2-field
+          minimum, while edit + guardian flows carry the full basic profile. */}
+      {mode !== 'signup' && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Select
+              label="Height"
+              options={HEIGHT_OPTIONS}
+              value={formData.height ? String(formData.height) : ''}
+              onChange={(value) => updateFormData('height', value)}
+              placeholder="Select height"
+            />
+            <FormField
+              label="Weight (kg)"
+              type="number"
+              inputMode="numeric"
+              placeholder="65"
+              value={formData.weight}
+              onChange={(value) => updateFormData('weight', value)}
+              onBlur={() => setFieldTouched('weight')}
+              error={errors.weight}
+            />
+          </div>
+          <p className="text-xs text-neutral-400 mt-1.5">Optional — but profiles with height filled appear in more filtered searches.</p>
+        </motion.div>
+      )}
     </div>
   );
 };

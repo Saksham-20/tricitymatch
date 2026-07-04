@@ -53,32 +53,27 @@ const EDIT_STEPS = [
  * ModernProfileEditor - Edit existing profile using modern onboarding UI
  * Shows same beautiful interface as signup but for updating existing profile
  */
+// Deep-linkable sections (e.g. the post-signup preview card sends members
+// straight to Photos with /profile/edit?section=photos).
+const SECTION_INDEX = {
+  basic: 0, location: 1, religion: 2, marital: 3, education: 4,
+  family: 5, lifestyle: 6, about: 7, preferences: 8, photos: 9,
+};
+
 const ModernProfileEditorContent = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { formData, currentStep, nextStep, prevStep, goToStep, isLoading, setIsLoading } = useOnboarding();
   const [showExitDialog, setShowExitDialog] = useState(false);
-  const [existingProfile, setExistingProfile] = useState(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // Load existing profile on mount
   useEffect(() => {
-    loadProfile();
-  }, []);
-
-  const loadProfile = async () => {
-    try {
-      setIsLoading(true);
-      const response = await api.get('/profile/me');
-      const profile = response.data.profile;
-      setExistingProfile(profile);
-    } catch (error) {
-      toast.error('Failed to load profile');
-      navigate('/profile');
-    } finally {
-      setIsLoading(false);
+    const section = new URLSearchParams(window.location.search).get('section');
+    if (section && SECTION_INDEX[section] !== undefined) {
+      goToStep(SECTION_INDEX[section]);
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSaveProfile = async () => {
     if (!formData) return;
@@ -135,16 +130,12 @@ const ModernProfileEditorContent = () => {
     }
   };
 
-  if (!existingProfile) {
-    return <LoadingSpinner fullScreen message="Loading your profile..." />;
-  }
-
   const CurrentStepComponent = EditStepComponents[currentStep];
   const completionPercentage = Math.round((currentStep / EditStepComponents.length) * 100);
   const isLastStep = currentStep === EditStepComponents.length - 1;
 
   return (
-    <div className="min-h-screen flex bg-neutral-50 dark:bg-[#0f1117]">
+    <div className="min-h-screen flex bg-neutral-50 dark:bg-[#0f1117] pb-16 lg:pb-0">
       {/* Left Panel — LIGHT brand rail (burgundy accent, not a slab) */}
       <div className="hidden lg:flex lg:w-[24rem] xl:w-[28rem] relative overflow-hidden bg-white dark:bg-[#1a1f2e] border-r border-neutral-100 dark:border-neutral-800">
         <div className="absolute inset-0 bg-gradient-to-b from-primary-50/70 dark:from-primary-900/20 via-white dark:via-[#1a1f2e] to-white dark:to-[#1a1f2e] pointer-events-none" />
@@ -398,10 +389,31 @@ const ModernProfileEditorContent = () => {
   );
 };
 
-// Main export with context wrapper
+// Main export with context wrapper.
+// The profile is fetched BEFORE the provider mounts: OnboardingProvider seeds
+// formData from `existingProfile` in a useState initializer, so passing it
+// after mount would leave every field blank (the bug this fixes).
 const ModernProfileEditor = () => {
+  const navigate = useNavigate();
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.get('/profile/me')
+      .then((res) => { if (!cancelled) setProfile(res.data.profile); })
+      .catch(() => {
+        toast.error('Failed to load profile');
+        navigate('/profile');
+      });
+    return () => { cancelled = true; };
+  }, [navigate]);
+
+  if (!profile) {
+    return <LoadingSpinner fullScreen message="Loading your profile..." />;
+  }
+
   return (
-    <OnboardingProvider mode="edit">
+    <OnboardingProvider mode="edit" existingProfile={profile}>
       <ModernProfileEditorContent />
     </OnboardingProvider>
   );

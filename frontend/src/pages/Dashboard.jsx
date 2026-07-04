@@ -7,6 +7,7 @@ import {
   FiEye, FiHeart, FiUsers, FiTrendingUp, FiMessageCircle,
   FiStar, FiArrowRight, FiCheckCircle, FiSun, FiMoon, FiCoffee,
   FiSearch, FiChevronRight, FiLock, FiUnlock, FiCalendar, FiZap,
+  FiAlertCircle, FiRefreshCw, FiCamera, FiUser, FiSliders,
 } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 import { formatCompatibilityScore } from '../utils/compatibility';
@@ -80,7 +81,7 @@ const SuggestionCard = ({ profile, index }) => {
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.06 }}
+      transition={{ delay: (index % 6) * 0.05 }}
       whileHover={{ y: -5, transition: { duration: 0.2 } }}
       className="relative bg-white rounded-2xl border border-neutral-100 shadow-card overflow-hidden group flex-shrink-0 w-56 sm:w-auto"
     >
@@ -272,6 +273,7 @@ const Dashboard = () => {
   const [hasPremium, setHasPremium]      = useState(false);
   const [subscription, setSubscription]  = useState(null);
   const [loading, setLoading]           = useState(true);
+  const [loadError, setLoadError]       = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Time-based greeting
@@ -280,7 +282,7 @@ const Dashboard = () => {
     const firstName = user?.firstName || user?.Profile?.firstName || user?.profile?.firstName || 'there';
     if (hour >= 5  && hour < 12) return { text: `Good morning, ${firstName}`, icon: FiCoffee, subtext: 'Start your day with meaningful connections' };
     if (hour >= 12 && hour < 17) return { text: `Good afternoon, ${firstName}`, icon: FiSun,    subtext: 'Perfect time to explore new profiles' };
-    if (hour >= 17 && hour < 21) return { text: `Good evening, ${firstName}`, icon: FiSun,    subtext: 'Wind down with some profile browsing' };
+    if (hour >= 17 && hour < 21) return { text: `Good evening, ${firstName}`, icon: FiSun,    subtext: 'New profiles from the Tricity are waiting to meet you' };
     return                               { text: `Good night, ${firstName}`,   icon: FiMoon,   subtext: 'Your perfect match might be just a click away' };
   }, [user]);
 
@@ -289,17 +291,24 @@ const Dashboard = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const [statsRes, suggestionsRes, matchesRes, profileRes, subRes, dailyRes, recentRes] = await Promise.allSettled([
-        api.get('/profile/me/stats').catch(() => ({ data: { stats: null } })),
+      setLoadError(false);
+      // No per-request catch-to-stub here: a server failure must surface as the
+      // error banner below, not render as zeros + "Complete Your Profile"
+      // (which blames the user's profile for a 500).
+      const settled = await Promise.allSettled([
+        api.get('/profile/me/stats'),
         // Fetch a wider pool so "Curated for You" still has fresh picks after we
         // strip out anyone already shown in "Today's Matches" (see dedup below).
-        api.get('/search/suggestions?limit=24').catch(() => ({ data: { suggestions: [] } })),
-        api.get('/match/mutual').catch(() => ({ data: { mutualMatches: [] } })),
-        api.get('/profile/me').catch(() => ({ data: { profile: null } })),
-        api.get('/subscription/my-subscription').catch(() => ({ data: { subscription: null } })),
-        api.get('/match/daily').catch(() => ({ data: { matches: [] } })),
-        api.get('/profile/me/recently-viewed?limit=8').catch(() => ({ data: { profiles: [] } })),
+        api.get('/search/suggestions?limit=24'),
+        api.get('/match/mutual'),
+        api.get('/profile/me'),
+        api.get('/subscription/my-subscription'),
+        api.get('/match/daily'),
+        api.get('/profile/me/recently-viewed?limit=8'),
       ]);
+      const [statsRes, suggestionsRes, matchesRes, profileRes, subRes, dailyRes, recentRes] = settled;
+      const failures = settled.filter(r => r.status === 'rejected').length;
+      setLoadError(failures >= 3 || profileRes.status === 'rejected');
 
       const normalizeProfile = (p) => ({
         ...p,
@@ -476,6 +485,20 @@ const Dashboard = () => {
   const dailyIds = new Set(dailyMatches.map(p => p.userId));
   const curatedSuggestions = suggestions.filter(p => !dailyIds.has(p.userId)).slice(0, 8);
 
+  // First-run: a brand-new member sees a setup checklist instead of a row of
+  // zero-stats ("quantified rejection") — profile under 60% complete or an
+  // account younger than 48h counts as first-run.
+  const profileForMeter = userProfile || user?.profile || {};
+  const { percent: completionPercent } = getCompletionData(profileForMeter);
+  const accountIsNew = !!(userProfile?.createdAt) &&
+    (Date.now() - new Date(userProfile.createdAt).getTime()) < 48 * 3600 * 1000;
+  const isFirstRun = !loadError && (completionPercent < 60 || accountIsNew);
+  const setupChecklist = [
+    { id: 'photo', label: 'Add your photo', desc: 'Profiles with photos get 8x more views', done: !!profileForMeter.profilePhoto, icon: FiCamera },
+    { id: 'bio',   label: 'Write about yourself', desc: 'A short bio helps families connect', done: !!(profileForMeter.bio && String(profileForMeter.bio).trim().length >= 20), icon: FiUser },
+    { id: 'prefs', label: 'Set partner preferences', desc: 'Sharpen who we match you with', done: !!(profileForMeter.preferredAgeMin || profileForMeter.preferredCity || profileForMeter.preferredEducation), icon: FiSliders },
+  ];
+
   // ── Main render ────────────────────────────────────────────────────────────
   return (
     <motion.div
@@ -500,9 +523,9 @@ const Dashboard = () => {
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
                 {/* Left: Greeting */}
                 <div>
-                  <div className="inline-flex items-center gap-2 mb-3 px-3 py-1 bg-gold-50 border border-gold-200 rounded-full">
-                    <greeting.icon className="w-3.5 h-3.5 text-gold-600" />
-                    <span className="text-gold-700 text-xs font-semibold uppercase tracking-wide">Your Dashboard</span>
+                  <div className="inline-flex items-center gap-2 mb-3 px-3 py-1 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full">
+                    <greeting.icon className="w-3.5 h-3.5 text-primary-600 dark:text-primary-300" />
+                    <span className="text-neutral-600 dark:text-neutral-300 text-xs font-semibold uppercase tracking-wide">Your Dashboard</span>
                   </div>
                   <h1 className="font-display text-3xl md:text-4xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">
                     {greeting.text}
@@ -516,7 +539,7 @@ const Dashboard = () => {
                       transition={{ delay: 0.5 }}
                       className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 bg-primary-50 dark:bg-primary-900/30 border border-primary-100 dark:border-primary-800 rounded-full"
                     >
-                      <FiStar className="w-3.5 h-3.5 text-gold-500" />
+                      <FiStar className="w-3.5 h-3.5 text-primary-500" />
                       <span className="text-primary-700 dark:text-primary-300 text-xs font-medium">
                         {stats.viewsThisWeek} profile views this week
                       </span>
@@ -546,7 +569,55 @@ const Dashboard = () => {
           </div>
         </motion.div>
 
-        {/* ── 2. Stats row ─────────────────────────────────────────────────── */}
+        {/* ── 1b. Load error — a server failure is never dressed up as an empty
+               profile. Distinct banner + retry. ─────────────────────────────── */}
+        {loadError && (
+          <motion.div
+            variants={fadeInUp}
+            role="alert"
+            className="bg-white dark:bg-[#1a1f2e] border border-red-100 dark:border-red-900/40 rounded-2xl shadow-card p-5 flex items-center gap-4"
+          >
+            <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center flex-shrink-0">
+              <FiAlertCircle className="w-5 h-5 text-red-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">Couldn't load your dashboard</p>
+              <p className="text-xs text-neutral-500 mt-0.5">Something went wrong on our side or your connection dropped. Your profile is safe.</p>
+            </div>
+            <button
+              onClick={loadDashboardData}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-semibold transition-colors flex-shrink-0"
+            >
+              <FiRefreshCw className="w-4 h-4" /> Retry
+            </button>
+          </motion.div>
+        )}
+
+        {/* ── 2. Stats row — or, for first-run members, a setup checklist ──── */}
+        {isFirstRun ? (
+          <motion.div variants={fadeInUp} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {setupChecklist.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.id}
+                  to="/profile/edit"
+                  className={`bg-white dark:bg-[#1a1f2e] rounded-2xl border shadow-card p-5 flex items-start gap-3.5 transition-all hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
+                    item.done ? 'border-success/30' : 'border-neutral-100 dark:border-neutral-800 hover:border-primary-200'
+                  }`}
+                >
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${item.done ? 'bg-success-50' : 'bg-primary-50 dark:bg-primary-900/30'}`}>
+                    {item.done ? <FiCheckCircle className="w-5 h-5 text-success" /> : <Icon className="w-5 h-5 text-primary-500" />}
+                  </div>
+                  <div className="min-w-0">
+                    <p className={`text-sm font-semibold ${item.done ? 'text-neutral-400 line-through' : 'text-neutral-800 dark:text-neutral-100'}`}>{item.label}</p>
+                    <p className="text-xs text-neutral-400 mt-0.5">{item.desc}</p>
+                  </div>
+                </Link>
+              );
+            })}
+          </motion.div>
+        ) : (
         <motion.div variants={fadeInUp} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {statsConfig.map((stat, i) => {
             const Icon  = stat.icon;
@@ -589,6 +660,7 @@ const Dashboard = () => {
             );
           })}
         </motion.div>
+        )}
 
         {/* ── 3. Subscription Status Card ──────────────────────────────── */}
         {subscription && (
@@ -643,7 +715,10 @@ const Dashboard = () => {
           )}
         </AnimatePresence>
 
-        {/* ── 4b. Who Viewed Your Profile ───────────────────────────────── */}
+        {/* ── 4b. Who Viewed Your Profile — hidden for free members until at
+               least one real view exists (an upsell to see zero viewers reads
+               as mockery on a fresh account). ────────────────────────────── */}
+        {(hasPremium || (stats?.totalViews ?? 0) > 0) && (
         <motion.section variants={fadeInUp}>
           <SectionHeader
             tone="gold"
@@ -727,16 +802,15 @@ const Dashboard = () => {
             </div>
           )}
         </motion.section>
+        )}
 
         {/* ── 4c. Today's Matches (daily cached set) ───────────────────────── */}
         {dailyMatches.length > 0 && (
           <motion.section variants={fadeInUp}>
             <SectionHeader
-              tone="gold"
               title="Today's Matches"
               subtitle="Hand-picked for you, refreshed every day"
               count="Daily"
-              countTone="gold"
             />
 
             <div className="flex gap-4 overflow-x-auto pb-3 md:pb-0 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:gap-5 scrollbar-hide snap-x snap-mandatory">
@@ -808,8 +882,8 @@ const Dashboard = () => {
           <motion.section variants={fadeInUp}>
             <SectionHeader
               title="Curated for You"
-              subtitle="Handpicked profiles based on your preferences"
-              count="AI matched"
+              subtitle="A wider set of profiles matched to your preferences"
+              count="For you"
               action={
                 <Link
                   to="/search"
@@ -842,43 +916,44 @@ const Dashboard = () => {
           </motion.section>
         )}
 
-        {/* ── 6. Empty state ─────────────────────────────────────────────────── */}
-        {suggestions.length === 0 && mutualMatches.length === 0 && (
+        {/* ── 6. Empty state — genuinely no content in ANY section (the fixed
+               condition; previously a populated Today's Matches rail could sit
+               above this card). Discovery-focused: the completion nudge already
+               lives in the meter above, so this card doesn't repeat it. ──── */}
+        {!loadError &&
+          suggestions.length === 0 && mutualMatches.length === 0 &&
+          dailyMatches.length === 0 && recentlyViewed.length === 0 && (
           <motion.div
             variants={fadeInUp}
             className="bg-white border border-neutral-100 rounded-3xl shadow-card text-center py-16 px-6"
           >
-            <motion.div
-              className="w-20 h-20 bg-gradient-to-br from-primary-50 to-gold-50 rounded-2xl flex items-center justify-center mx-auto mb-6"
-              animate={{ scale: [1, 1.04, 1] }}
-              transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-            >
+            <div className="w-20 h-20 bg-primary-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
               <FiUsers className="w-10 h-10 text-primary-400" />
-            </motion.div>
+            </div>
             <h3 className="font-display text-2xl font-bold text-neutral-900 mb-2">
-              Complete Your Profile
+              No matches to show yet
             </h3>
             <p className="text-neutral-500 mb-8 max-w-sm mx-auto text-sm leading-relaxed">
-              Add more details and photos to get personalised match suggestions from the Tricity area.
+              Browse profiles from the Tricity area, or fine-tune your partner preferences so we can match you better.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => navigate('/profile/edit')}
+                onClick={() => navigate('/search')}
                 className="btn-primary inline-flex items-center gap-2"
               >
-                <FiCheckCircle className="w-4 h-4" />
-                Complete Profile
+                <FiSearch className="w-4 h-4" />
+                Browse Profiles
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => navigate('/search')}
+                onClick={() => navigate('/profile/edit')}
                 className="btn-secondary inline-flex items-center gap-2"
               >
-                <FiSearch className="w-4 h-4" />
-                Browse Profiles
+                <FiSliders className="w-4 h-4" />
+                Set Preferences
               </motion.button>
             </div>
           </motion.div>

@@ -24,20 +24,22 @@ const MatchPopup = ({
 }) => {
   const [confetti, setConfetti] = useState([]);
 
-  // Generate confetti particles on mount
+  // A brief, deliberate celebration — a mutual match is the emotional peak of
+  // the product. Kept intentionally restrained (few particles, one short
+  // burst, brand colors only); MotionConfig disables it for reduced-motion.
   useEffect(() => {
     if (isOpen) {
       const particles = [];
-      const colors = ['#8B2346', '#C9A227', '#F8E8EC', '#FDF6E3', '#E5A3B8'];
-      
-      for (let i = 0; i < 50; i++) {
+      const colors = ['#8B2346', '#C9A227', '#F8E8EC', '#E5A3B8'];
+
+      for (let i = 0; i < 18; i++) {
         particles.push({
           id: i,
           x: Math.random() * 100,
-          delay: Math.random() * 0.5,
+          delay: Math.random() * 0.3,
           color: colors[Math.floor(Math.random() * colors.length)],
-          rotation: Math.random() * 720 - 360,
-          size: Math.random() * 8 + 4,
+          rotation: Math.random() * 360 - 180,
+          size: Math.random() * 6 + 3,
         });
       }
       setConfetti(particles);
@@ -91,7 +93,7 @@ const MatchPopup = ({
                   x: [0, (Math.random() - 0.5) * 200],
                 }}
                 transition={{
-                  duration: 3,
+                  duration: 1.8,
                   delay: particle.delay,
                   ease: 'easeOut',
                 }}
@@ -107,8 +109,7 @@ const MatchPopup = ({
             transition={{ type: 'spring', damping: 20, stiffness: 300 }}
             className="relative bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 overflow-hidden"
           >
-            {/* Background Gradient */}
-            <div className="absolute inset-0 bg-gradient-to-b from-primary-50/50 via-white to-gold-50/30 pointer-events-none" />
+            <div className="absolute inset-0 bg-[#FDF8F2] pointer-events-none" />
             
             {/* Close Button */}
             <button
@@ -181,8 +182,7 @@ const MatchPopup = ({
                 {/* Current User Photo */}
                 <motion.div
                   className="relative"
-                  animate={{ x: [0, 5, 0] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                  
                 >
                   {(currentUser?.profilePhoto || currentUser?.profile_photo) ? (
                     <>
@@ -195,12 +195,12 @@ const MatchPopup = ({
                           if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'flex';
                         }}
                       />
-                      <div className="w-24 h-24 rounded-full bg-gradient-hero flex items-center justify-center text-white font-bold text-2xl border-4 border-white shadow-lg hidden" aria-hidden="true">
+                      <div className="w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-display font-bold text-2xl border-4 border-white shadow-lg hidden" aria-hidden="true">
                         {getInitials(currentUser)}
                       </div>
                     </>
                   ) : (
-                    <div className="w-24 h-24 rounded-full bg-gradient-hero flex items-center justify-center text-white font-bold text-2xl border-4 border-white shadow-lg">
+                    <div className="w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-display font-bold text-2xl border-4 border-white shadow-lg">
                       {getInitials(currentUser)}
                     </div>
                   )}
@@ -218,8 +218,7 @@ const MatchPopup = ({
                 {/* Matched User Photo */}
                 <motion.div
                   className="relative"
-                  animate={{ x: [0, -5, 0] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                  
                 >
                   {(matchedUser?.profilePhoto || matchedUser?.profile_photo) ? (
                     <>
@@ -232,12 +231,12 @@ const MatchPopup = ({
                           if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'flex';
                         }}
                       />
-                      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center text-white font-bold text-2xl border-4 border-white shadow-lg hidden" aria-hidden="true">
+                      <div className="w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-display font-bold text-2xl border-4 border-white shadow-lg hidden" aria-hidden="true">
                         {getInitials(matchedUser)}
                       </div>
                     </>
                   ) : (
-                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center text-white font-bold text-2xl border-4 border-white shadow-lg">
+                    <div className="w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-display font-bold text-2xl border-4 border-white shadow-lg">
                       {getInitials(matchedUser)}
                     </div>
                   )}

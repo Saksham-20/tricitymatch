@@ -188,7 +188,26 @@ async function dismissOverlays(page) {
   }
 }
 
+
+/**
+ * Two-phase progressive login (2026-07 redesign): the /login page shows a
+ * single identifier field first; the password input only enters the DOM
+ * after "Continue". One-pass email+password fills no longer work.
+ */
+async function loginViaUI(page, identifier, password) {
+  await page.goto('/login');
+  const idInput = page.locator('[name="identifier"]').first();
+  await idInput.waitFor({ state: 'visible' });
+  await idInput.fill(identifier);
+  await page.click('button[type="submit"]');
+  const passInput = page.locator('input[type="password"]').first();
+  await passInput.waitFor({ state: 'visible' });
+  await passInput.fill(password);
+  await page.click('button[type="submit"]');
+}
+
 module.exports = {
+  loginViaUI,
   fullPageScreenshot,
   viewportScreenshot,
   isInternal,

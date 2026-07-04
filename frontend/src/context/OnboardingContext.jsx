@@ -18,7 +18,20 @@ export const OnboardingProvider = ({ children, mode = 'signup', existingProfile 
   // Draft data (auto-saved to localStorage)
   const [formData, setFormData] = useState(() => {
     if (mode === 'edit' && existingProfile) {
-      return existingProfile;
+      // Merge onto the known form shape so raw API extras (id, userId,
+      // timestamps) never leak into the submit payload, and normalize the
+      // ISO dateOfBirth to the YYYY-MM-DD the date input expects.
+      const base = getInitialFormData();
+      const merged = { ...base };
+      Object.keys(base).forEach((k) => {
+        if (existingProfile[k] !== undefined && existingProfile[k] !== null) {
+          merged[k] = existingProfile[k];
+        }
+      });
+      if (typeof merged.dateOfBirth === 'string' && merged.dateOfBirth.length > 10) {
+        merged.dateOfBirth = merged.dateOfBirth.slice(0, 10);
+      }
+      return merged;
     }
     const saved = localStorage.getItem('onboarding_draft');
     return saved ? JSON.parse(saved) : getInitialFormData();
@@ -31,9 +44,12 @@ export const OnboardingProvider = ({ children, mode = 'signup', existingProfile 
     });
     const maxStep = Math.max(0, initialVisibleSteps.length - 1);
 
-    // In edit mode, don't need welcome/account steps
+    // Edit mode's visible steps already exclude the account steps, so index 0
+    // IS Basic Information. (The old Math.min(2,...) offset dated from when
+    // welcome/account occupied indexes 0-1 and silently opened the editor on
+    // the Religion step instead.)
     if (mode === 'edit') {
-      return Math.min(2, maxStep); // Start at Basic Info or max step
+      return 0;
     }
     // In create_for_other mode, start at "Who are you creating for?" step
     if (mode === 'create_for_other') {
@@ -49,14 +65,18 @@ export const OnboardingProvider = ({ children, mode = 'signup', existingProfile 
   const [isLoading, setIsLoading] = useState(false);
   const stepValidatorRef = useRef(null);
 
-  // Auto-save form data and current step to localStorage
+  // Auto-save form data and current step to localStorage — signup/guardian
+  // drafts only. Edit mode must never write the member's full profile into
+  // the shared signup draft (it would prefill a later logged-out signup).
   useEffect(() => {
+    if (onboardingMode === 'edit') return;
     localStorage.setItem('onboarding_draft', JSON.stringify(formData));
-  }, [formData]);
+  }, [formData, onboardingMode]);
 
   useEffect(() => {
+    if (onboardingMode === 'edit') return;
     localStorage.setItem('onboarding_step', String(currentStep));
-  }, [currentStep]);
+  }, [currentStep, onboardingMode]);
 
   const updateFormData = useCallback((field, value) => {
     setFormData(prev => ({
@@ -315,8 +335,9 @@ export const STEPS = [
     number: 2,
     title: 'Basic Information',
     icon: 'Info',
-    description: 'Tell us about yourself',
-    fields: ['firstName', 'lastName', 'gender', 'dateOfBirth'],
+    description: 'Just your name, gender and birthday — the rest can wait.',
+    // height/weight render in edit + create_for_other modes only (BasicInfoStep)
+    fields: ['firstName', 'lastName', 'gender', 'dateOfBirth', 'height', 'weight'],
     required: ['firstName', 'lastName', 'gender', 'dateOfBirth'],
     showIn: ['signup', 'edit', 'create_for_other'],
   },

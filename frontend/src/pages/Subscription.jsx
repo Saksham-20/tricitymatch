@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
-import { FiCheck, FiArrowRight, FiZap, FiShield } from 'react-icons/fi';
+import { FiCheck, FiArrowRight, FiZap, FiShield, FiClock } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 import { razorpay } from '../config';
 import { loadRazorpayScript, ensurePaymentsAvailable } from '../utils/razorpayCheckout';
@@ -333,6 +333,24 @@ const Subscription = () => {
             Unlock premium features and find your perfect match faster.
           </p>
         </motion.div>
+
+        {/* Payments-unavailable notice — shown up-front so members aren't
+            surprised at checkout while online payments are being enabled. */}
+        {!razorpay.isConfigured && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8 flex items-center gap-3 px-5 py-3.5 bg-neutral-100 border border-neutral-200 rounded-2xl"
+          >
+            <div className="w-8 h-8 rounded-full bg-white border border-neutral-200 flex items-center justify-center flex-shrink-0">
+              <FiClock className="w-4 h-4 text-neutral-500" />
+            </div>
+            <p className="text-sm text-neutral-600">
+              Online payments are opening soon. To upgrade today, write to{' '}
+              <a href="mailto:support@tricityshadi.com" className="font-semibold text-primary-600 underline underline-offset-2">support@tricityshadi.com</a>.
+            </p>
+          </motion.div>
+        )}
 
         {/* Active subscription banner */}
         {currentSub?.status === 'active' && (

@@ -21,10 +21,15 @@ const TEST_PASSWORD = process.env.TEST_PASSWORD || 'Test@1234';
 
 async function loginAs(page, email, password) {
   await page.goto(`${BASE}/login`);
-  await page.fill('input[type="email"], [name="email"]', email);
-  await page.fill('input[type="password"], [name="password"]', password);
+  const idInput = page.locator('[name="identifier"]').first();
+  await idInput.waitFor({ state: 'visible' });
+  await idInput.fill(email);
   await page.click('button[type="submit"]');
-  await waitForStable(page);
+  const passInput = page.locator('input[type="password"]').first();
+  await passInput.waitFor({ state: 'visible' });
+  await passInput.fill(password);
+  await page.click('button[type="submit"]');
+  await page.waitForURL(/dashboard|profile|onboarding/, { timeout: 15000 }).catch(() => {});
 }
 
 // ── Session 13: Real OTP backend ─────────────────────────────────────────────
