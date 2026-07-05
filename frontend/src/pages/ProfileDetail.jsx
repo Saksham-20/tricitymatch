@@ -21,6 +21,7 @@ import { ImageLightbox } from '../components/ui/ImageLightbox';
 import FloatingActionBar from '../components/profile/FloatingActionBar';
 import PreferenceMatch from '../components/profile/PreferenceMatch';
 import UpgradeModal from '../components/common/UpgradeModal';
+import { friendlyLabel, formatEnum } from '../constants/profileOptions';
 
 // ─── Compatibility Ring ──────────────────────────────────────────────────────
 const CompatRing = ({ score }) => {
@@ -452,9 +453,9 @@ const ProfileDetail = () => {
                   <div className="flex flex-wrap gap-2">
                     {profile.height && <Pill icon={FiUser} label="Height" value={formatHeight(profile.height)} />}
                     {profile.religion && <Pill icon={FiSun} label="Religion" value={profile.religion} />}
-                    {profile.maritalStatus && <Pill icon={FiHeartOutline} label="Status" value={profile.maritalStatus.replace(/_/g, ' ')} />}
+                    {profile.maritalStatus && <Pill icon={FiHeartOutline} label="Status" value={friendlyLabel('maritalStatus', profile.maritalStatus)} />}
                     {profile.motherTongue && <Pill label="Mother Tongue" value={profile.motherTongue} />}
-                    {profile.diet && <Pill label="Diet" value={profile.diet} />}
+                    {profile.diet && <Pill label="Diet" value={formatEnum(profile.diet)} />}
                     {profile.personalityType && <Pill label="Personality" value={profile.personalityType} />}
                   </div>
                 </div>
@@ -621,7 +622,7 @@ const ProfileDetail = () => {
                             {profile.zodiacSign && <Pill label="Zodiac Sign" value={profile.zodiacSign} />}
                             {profile.rashi && <Pill label="Rashi" value={profile.rashi} />}
                             {profile.nakshatra && <Pill label="Nakshatra" value={profile.nakshatra} />}
-                            {profile.manglikStatus && <Pill label="Manglik" value={profile.manglikStatus.replace(/_/g, ' ')} />}
+                            {profile.manglikStatus && <Pill label="Manglik" value={friendlyLabel('manglikStatus', profile.manglikStatus)} />}
                             {profile.placeOfBirth && <Pill label="Place of Birth" value={profile.placeOfBirth} />}
                             {profile.birthTime && <Pill label="Birth Time" value={profile.birthTime} />}
                           </div>
@@ -712,8 +713,8 @@ const ProfileDetail = () => {
                   {activeTab === 'family' && (
                     <Card title="Family Background" icon={FiHome}>
                       <div className="grid grid-cols-2 gap-3 mb-4">
-                        {profile.familyType && <Pill label="Family Type" value={profile.familyType.replace(/_/g, ' ')} />}
-                        {profile.familyStatus && <Pill label="Family Status" value={profile.familyStatus.replace(/_/g, ' ')} />}
+                        {profile.familyType && <Pill label="Family Type" value={friendlyLabel('familyType', profile.familyType)} />}
+                        {profile.familyStatus && <Pill label="Family Status" value={friendlyLabel('familyStatus', profile.familyStatus)} />}
                         {profile.numberOfSiblings > 0 && <Pill label="Siblings" value={profile.numberOfSiblings} />}
                         {profile.numberOfChildren > 0 && <Pill label="Children" value={profile.numberOfChildren} />}
                       </div>
@@ -833,10 +834,10 @@ const ProfileDetail = () => {
                   <DetailRow label="Religion" value={profile.religion} />
                   <DetailRow label="Caste" value={profile.caste} />
                   <DetailRow label="Mother Tongue" value={profile.motherTongue} />
-                  <DetailRow label="Marital Status" value={profile.maritalStatus} />
-                  <DetailRow label="Diet" value={profile.diet} />
-                  <DetailRow label="Smoking" value={profile.smoking} />
-                  <DetailRow label="Drinking" value={profile.drinking} />
+                  <DetailRow label="Marital Status" value={friendlyLabel('maritalStatus', profile.maritalStatus)} />
+                  <DetailRow label="Diet" value={formatEnum(profile.diet)} />
+                  <DetailRow label="Smoking" value={formatEnum(profile.smoking)} />
+                  <DetailRow label="Drinking" value={formatEnum(profile.drinking)} />
                 </div>
               </Card>
 

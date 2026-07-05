@@ -17,6 +17,7 @@ import { sanitizeText, sanitizeUrl } from '../utils/sanitize';
 import { toProfileCode } from '../utils/profileCode';
 import VideoIntroManager from '../components/profile/VideoIntroManager';
 import { ImageLightbox } from '../components/ui/ImageLightbox';
+import { friendlyLabel, formatEnum } from '../constants/profileOptions';
 
 // ─── Card wrapper ────────────────────────────────────────────────────────────
 const Card = ({ title, icon: Icon, children, action, className = '' }) => (
@@ -302,7 +303,7 @@ const MyProfileView = () => {
                   </p>
                 ) : (
                   <div className="border-t border-neutral-50 pt-4">
-                    <Link to="/profile/edit" className="text-sm text-neutral-400 hover:text-primary-500 transition-colors cursor-pointer">
+                    <Link to="/profile/edit?section=about" className="text-sm text-neutral-400 hover:text-primary-500 transition-colors cursor-pointer">
                       + Add a bio to help matches get to know you
                     </Link>
                   </div>
@@ -320,7 +321,7 @@ const MyProfileView = () => {
 
             {/* Profile prompts */}
             {profilePrompts.length > 0 ? (
-              <Card title="Get to Know Me" icon={FiUser} action={<EditBtn small />}>
+              <Card title="Get to Know Me" icon={FiUser} action={<EditBtn small to="/profile/edit?section=about" />}>
                 <div className="space-y-3">
                   {profilePrompts.map(({ q, a }, i) => (
                     <div key={i} className="p-4 bg-primary-50/60 rounded-xl border border-primary-100">
@@ -344,7 +345,7 @@ const MyProfileView = () => {
 
             {/* Interests */}
             {profile.interestTags?.length > 0 ? (
-              <Card title="Interests & Hobbies" icon={FiGrid} action={<EditBtn small />}>
+              <Card title="Interests & Hobbies" icon={FiGrid} action={<EditBtn small to="/profile/edit?section=about" />}>
                 <div className="flex flex-wrap gap-2">
                   {profile.interestTags.map((tag, i) => (
                     <span key={i} className="px-3 py-1.5 bg-primary-50 text-primary-700 border border-primary-100 rounded-full text-xs font-semibold cursor-default">
@@ -416,7 +417,7 @@ const MyProfileView = () => {
           <div className="space-y-5">
 
             {/* Core details */}
-            <Card title="Details" icon={FiUser} action={<EditBtn small />}>
+            <Card title="Details" icon={FiUser} action={<EditBtn small to="/profile/edit?section=religion" />}>
               <div>
                 {age != null && <DetailRow label="Age" value={`${age} years`} />}
                 {location && <DetailRow label="Location" value={location} />}
@@ -431,7 +432,7 @@ const MyProfileView = () => {
                 {profile.subCaste && <DetailRow label="Sub Caste" value={profile.subCaste} />}
                 {profile.gotra && <DetailRow label="Gotra" value={profile.gotra} />}
                 {profile.motherTongue && <DetailRow label="Mother Tongue" value={profile.motherTongue} />}
-                {profile.maritalStatus && <DetailRow label="Marital Status" value={profile.maritalStatus} />}
+                {profile.maritalStatus && <DetailRow label="Marital Status" value={friendlyLabel('maritalStatus', profile.maritalStatus)} />}
                 {/* Diet/Smoking/Drinking/Skin tone live in the dedicated Lifestyle
                     card below — not repeated here. */}
                 {profile.personalityType && <DetailRow label="Personality" value={profile.personalityType} isLast />}
@@ -440,24 +441,24 @@ const MyProfileView = () => {
 
             {/* Lifestyle pills */}
             {(profile.diet || profile.smoking || profile.drinking || profile.skinTone) && (
-              <Card title="Lifestyle" icon={FiInfo} action={<EditBtn small />}>
+              <Card title="Lifestyle" icon={FiInfo} action={<EditBtn small to="/profile/edit?section=lifestyle" />}>
                 <div className="grid grid-cols-2 gap-2">
-                  {profile.diet && <Pill label="Diet" value={profile.diet} />}
-                  {profile.smoking && <Pill label="Smoking" value={profile.smoking} highlight={profile.smoking !== 'never'} />}
-                  {profile.drinking && <Pill label="Drinking" value={profile.drinking} highlight={profile.drinking !== 'never'} />}
-                  {profile.skinTone && <Pill label="Skin Tone" value={profile.skinTone} />}
+                  {profile.diet && <Pill label="Diet" value={formatEnum(profile.diet)} />}
+                  {profile.smoking && <Pill label="Smoking" value={formatEnum(profile.smoking)} highlight={profile.smoking !== 'never'} />}
+                  {profile.drinking && <Pill label="Drinking" value={formatEnum(profile.drinking)} highlight={profile.drinking !== 'never'} />}
+                  {profile.skinTone && <Pill label="Skin Tone" value={formatEnum(profile.skinTone)} />}
                 </div>
               </Card>
             )}
 
             {/* Horoscope */}
             {(profile.manglikStatus || profile.zodiacSign || profile.rashi || profile.nakshatra) && (
-              <Card title="Horoscope & Kundli" icon={FiSun} action={<EditBtn small />}>
+              <Card title="Horoscope & Kundli" icon={FiSun} action={<EditBtn small to="/profile/edit?section=horoscope" />}>
                 <div>
                   {profile.zodiacSign && <DetailRow label="Zodiac Sign" value={profile.zodiacSign} />}
                   {profile.rashi && <DetailRow label="Rashi" value={profile.rashi} />}
                   {profile.nakshatra && <DetailRow label="Nakshatra" value={profile.nakshatra} />}
-                  {profile.manglikStatus && <DetailRow label="Manglik" value={profile.manglikStatus} />}
+                  {profile.manglikStatus && <DetailRow label="Manglik" value={friendlyLabel('manglikStatus', profile.manglikStatus)} />}
                   {profile.placeOfBirth && <DetailRow label="Place of Birth" value={profile.placeOfBirth} />}
                   {profile.birthTime && <DetailRow label="Birth Time" value={profile.birthTime} isLast />}
                 </div>
@@ -466,10 +467,10 @@ const MyProfileView = () => {
 
             {/* Family */}
             {(profile.familyType || profile.familyStatus || profile.fatherOccupation || profile.motherOccupation || profile.numberOfSiblings > 0) && (
-              <Card title="Family Background" icon={FiHome} action={<EditBtn small />}>
+              <Card title="Family Background" icon={FiHome} action={<EditBtn small to="/profile/edit?section=family" />}>
                 <div className="grid grid-cols-2 gap-2 mb-3">
-                  {profile.familyType && <Pill label="Family Type" value={profile.familyType} />}
-                  {profile.familyStatus && <Pill label="Family Status" value={profile.familyStatus} />}
+                  {profile.familyType && <Pill label="Family Type" value={friendlyLabel('familyType', profile.familyType)} />}
+                  {profile.familyStatus && <Pill label="Family Status" value={friendlyLabel('familyStatus', profile.familyStatus)} />}
                   {profile.numberOfSiblings > 0 && <Pill label="Siblings" value={profile.numberOfSiblings} />}
                   {profile.numberOfChildren > 0 && <Pill label="Children" value={profile.numberOfChildren} />}
                 </div>
@@ -493,7 +494,7 @@ const MyProfileView = () => {
 
             {/* Partner preferences */}
             {(profile.preferredAgeMin || profile.preferredAgeMax || profile.preferredEducation || profile.preferredProfession || profile.preferredCity?.length) && (
-              <Card title="Looking For" icon={FiHeart} action={<EditBtn small />}>
+              <Card title="Looking For" icon={FiHeart} action={<EditBtn small to="/profile/edit?section=preferences" />}>
                 <div>
                   {(profile.preferredAgeMin || profile.preferredAgeMax) && (
                     <DetailRow label="Age Range" value={`${profile.preferredAgeMin || '—'} – ${profile.preferredAgeMax || '—'} yrs`} />

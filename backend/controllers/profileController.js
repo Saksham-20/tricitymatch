@@ -31,6 +31,7 @@ const { deleteFromCloudinary } = require('../middlewares/upload');
 const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { log } = require('../middlewares/logger');
+const { PROFILE_EDITABLE_FIELDS, NULLABLE_NONSTRING_FIELDS } = require('../constants/profileFields');
 
 // Maximum number of gallery photos allowed
 const MAX_GALLERY_PHOTOS = config.upload.maxGalleryPhotos;
@@ -87,9 +88,12 @@ const calculateCompletion = (profile) => {
   // Additional photos
   if (profile.photos && profile.photos.length > 0) completed += 3;
 
-  // Personality info
-  if (profile.personalityValues && Object.keys(profile.personalityValues).length > 0) completed += 2;
-  if (profile.familyPreferences && Object.keys(profile.familyPreferences).length > 0) completed += 2;
+  // Community & birth details (4%) — these replaced personalityValues /
+  // familyPreferences, which had NO editor input on web and so capped every user
+  // below 100%. Both of these ARE collectible in the profile editor now.
+  if (profile.caste && profile.caste.trim()) completed += 2;
+  if ((profile.placeOfBirth && profile.placeOfBirth.trim()) ||
+      (profile.birthTime && profile.birthTime.trim())) completed += 2;
 
   // Interest tags
   if (profile.interestTags && profile.interestTags.length > 0) completed += 2;
@@ -162,22 +166,12 @@ exports.updateProfile = asyncHandler(async (req, res) => {
     throw createError.notFound('Profile not found');
   }
 
-  // Allowlisted profile fields — NEVER spread req.body directly to prevent mass-assignment
-  const PROFILE_UPDATABLE_FIELDS = [
-    'firstName', 'lastName', 'gender', 'dateOfBirth', 'height', 'weight',
-    'city', 'state', 'skinTone', 'diet', 'smoking', 'drinking',
-    'education', 'degree', 'profession', 'income',
-    'religion', 'caste', 'subCaste', 'gotra', 'motherTongue', 'maritalStatus', 'numberOfChildren',
-    'placeOfBirth', 'birthTime', 'manglikStatus', 'zodiacSign', 'rashi', 'nakshatra',
-    'familyType', 'familyStatus', 'fatherOccupation', 'motherOccupation',
-    'preferredAgeMin', 'preferredAgeMax', 'preferredHeightMin', 'preferredHeightMax',
-    'preferredEducation', 'preferredProfession', 'preferredCity',
-    'personalityValues', 'familyPreferences', 'lifestylePreferences',
-    'bio', 'showPhone', 'showEmail', 'interestTags', 'profilePrompts',
-    'spotifyPlaylist', 'socialMediaLinks', 'personalityType', 'languages',
-    'incognitoMode', 'photoBlurUntilMatch', 'quizAnswers',
-    'onboardingComplete',
-  ];
+  // Allowlisted profile fields — NEVER spread req.body directly to prevent mass-assignment.
+  // Single source of truth (backend/constants/profileFields.js), shared with the validator
+  // stripper so the two can never drift again (the drift silently dropped religion/caste/
+  // family/horoscope/numberOfSiblings). onboardingComplete is intentionally excluded here —
+  // it is server-controlled (set at signup), never client-settable via PUT /me.
+  const PROFILE_UPDATABLE_FIELDS = PROFILE_EDITABLE_FIELDS;
 
   // Use transaction for data consistency
   await sequelize.transaction(async (t) => {
@@ -221,6 +215,13 @@ exports.updateProfile = asyncHandler(async (req, res) => {
         }
       }
     }
+
+    // Coerce empty-string enum/int fields to null. A multipart form sends cleared
+    // dropdowns as '', which Postgres rejects for ENUM/INTEGER columns (raw 500).
+    // '' means "clear this field" → null. (String free-text fields keep '' as valid.)
+    NULLABLE_NONSTRING_FIELDS.forEach((key) => {
+      if (updateData[key] === '') updateData[key] = null;
+    });
 
     // Don't overwrite critical fields with empty — keeps suggestions/discovery working (e.g. gender)
     const criticalFields = ['gender', 'firstName', 'lastName'];

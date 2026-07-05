@@ -4,6 +4,7 @@
  */
 
 const { body, param, query } = require('express-validator');
+const { PROFILE_STRIPPER_ALLOWLIST } = require('../constants/profileFields');
 
 // Common validation helpers
 const isUUID = (field, location = 'param') => {
@@ -173,17 +174,10 @@ const refreshTokenValidation = [
 
 // ==================== PROFILE VALIDATORS ====================
 
-const allowedProfileFields = [
-  'firstName', 'lastName', 'gender', 'dateOfBirth', 'height', 'weight',
-  'city', 'state', 'skinTone', 'diet', 'smoking', 'drinking',
-  'education', 'degree', 'profession', 'income',
-  'preferredAgeMin', 'preferredAgeMax', 'preferredHeightMin', 'preferredHeightMax',
-  'preferredEducation', 'preferredProfession', 'preferredCity',
-  'personalityValues', 'familyPreferences', 'lifestylePreferences',
-  'bio', 'showPhone', 'showEmail', 'interestTags', 'profilePrompts',
-  'spotifyPlaylist', 'socialMediaLinks', 'personalityType', 'languages',
-  'incognitoMode', 'photoBlurUntilMatch', 'profilePhoto', 'photos'
-];
+// Derived from the single source of truth (backend/constants/profileFields.js)
+// so the stripper can never drift out of sync with the controller's update loop
+// again. Includes profilePhoto/photos so the controller can read them post-strip.
+const allowedProfileFields = PROFILE_STRIPPER_ALLOWLIST;
 
 const updateProfileValidation = [
   body('firstName')
@@ -298,6 +292,46 @@ const updateProfileValidation = [
     .optional()
     .isInt({ min: 0, max: 20 })
     .withMessage('Desired children must be between 0 and 20'),
+  // Religion & community (free text — length-capped, HTML-stripped in controller)
+  body('religion').optional().trim().isLength({ max: 50 }).withMessage('Religion too long'),
+  body('caste').optional().trim().isLength({ max: 100 }).withMessage('Caste must not exceed 100 characters'),
+  body('subCaste').optional().trim().isLength({ max: 100 }).withMessage('Sub-caste too long'),
+  body('gotra').optional().trim().isLength({ max: 100 }).withMessage('Gotra too long'),
+  body('motherTongue').optional().trim().isLength({ max: 50 }).withMessage('Mother tongue too long'),
+  // Marital — ENUM: reject bad values with 400 instead of a raw pg 500
+  body('maritalStatus')
+    .optional({ checkFalsy: true })
+    .isIn(['never_married', 'divorced', 'widowed', 'awaiting_divorce'])
+    .withMessage('Invalid marital status'),
+  body('numberOfChildren')
+    .optional({ checkFalsy: true })
+    .isInt({ min: 0, max: 20 }).withMessage('Number of children must be 0-20').toInt(),
+  // Horoscope / Kundli
+  body('manglikStatus')
+    .optional({ checkFalsy: true })
+    .isIn(['manglik', 'non_manglik', 'anshik_manglik', 'not_sure'])
+    .withMessage('Invalid Manglik status'),
+  body('zodiacSign').optional().trim().isLength({ max: 30 }).withMessage('Zodiac sign too long'),
+  body('rashi').optional().trim().isLength({ max: 30 }).withMessage('Rashi too long'),
+  body('nakshatra').optional().trim().isLength({ max: 40 }).withMessage('Nakshatra too long'),
+  body('placeOfBirth').optional().trim().isLength({ max: 100 }).withMessage('Place of birth too long'),
+  body('birthTime').optional().trim().isLength({ max: 20 }).withMessage('Invalid birth time'),
+  // Family — ENUMs + int
+  body('familyType')
+    .optional({ checkFalsy: true })
+    .isIn(['joint', 'nuclear']).withMessage('Invalid family type'),
+  body('familyStatus')
+    .optional({ checkFalsy: true })
+    .isIn(['middle_class', 'upper_middle_class', 'affluent', 'rich'])
+    .withMessage('Invalid family status'),
+  body('fatherOccupation').optional().trim().isLength({ max: 100 }).withMessage('Father occupation too long'),
+  body('motherOccupation').optional().trim().isLength({ max: 100 }).withMessage('Mother occupation too long'),
+  body('numberOfSiblings')
+    .optional({ checkFalsy: true })
+    .isInt({ min: 0, max: 20 }).withMessage('Number of siblings must be 0-20').toInt(),
+  body('degree').optional().trim().isLength({ max: 100 }).withMessage('Degree too long'),
+  body('preferredEducation').optional().trim().isLength({ max: 100 }).withMessage('Preferred education too long'),
+  body('preferredProfession').optional().trim().isLength({ max: 100 }).withMessage('Preferred profession too long'),
   // Strip disallowed fields so client can send full profile (e.g. from GET); only allowed keys are kept
   body()
     .custom((value, { req }) => {

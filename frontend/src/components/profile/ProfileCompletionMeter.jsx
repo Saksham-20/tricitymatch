@@ -11,6 +11,17 @@ import {
 // "important" = required (35%) + important (50%) fields only. "optional" = the 15%.
 // hideThreshold: when ALL important fields done → hide from dashboard, show success.
 
+// Map each completion field to the editor section that collects it, so a nudge
+// deep-links straight to the right step instead of dumping the user on Basic Info.
+const FIELD_SECTION = {
+  firstName: 'basic', lastName: 'basic', gender: 'basic', dateOfBirth: 'basic',
+  height: 'basic', weight: 'basic', city: 'location', profilePhoto: 'photos',
+  bio: 'about', education: 'education', profession: 'education',
+  religion: 'religion', motherTongue: 'religion', maritalStatus: 'marital',
+  lifestyle: 'lifestyle',
+};
+const editLink = (id) => `/profile/edit${FIELD_SECTION[id] ? `?section=${FIELD_SECTION[id]}` : ''}`;
+
 const getFields = (p) => [
   // Required (35%)
   {
@@ -263,7 +274,7 @@ export const DashboardCompletionBanner = ({ profile = {} }) => {
                 return (
                   <Link
                     key={field.id}
-                    to="/profile/edit"
+                    to={editLink(field.id)}
                     className="flex items-center gap-3 p-2.5 bg-white/70 rounded-xl hover:bg-white transition-colors cursor-pointer"
                   >
                     <div className="w-7 h-7 rounded-lg bg-white border border-neutral-200 flex items-center justify-center flex-shrink-0">
@@ -355,7 +366,7 @@ export const ProfileStrengthPanel = ({ profile = {} }) => {
         return (
           <Link
             key={field.id}
-            to="/profile/edit"
+            to={editLink(field.id)}
             className="flex items-center gap-3 bg-white border border-neutral-100 rounded-2xl shadow-sm px-4 py-3.5 hover:border-primary-200 hover:bg-primary-50/40 transition-all group cursor-pointer"
           >
             <div className="w-9 h-9 rounded-xl bg-primary-50 border border-primary-100 flex items-center justify-center flex-shrink-0">

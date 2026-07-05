@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { OnboardingProvider, useOnboarding } from '../context/OnboardingContext';
 import api from '../api/axios';
+import { buildProfileFormData } from '../utils/profileSubmit';
 import toast from 'react-hot-toast';
 import { FiX, FiArrowLeft, FiArrowRight, FiCheck, FiAlertCircle } from 'react-icons/fi';
 
@@ -11,6 +12,7 @@ import { FiX, FiArrowLeft, FiArrowRight, FiCheck, FiAlertCircle } from 'react-ic
 import BasicInfoStep from '../components/onboarding/steps/BasicInfoStep';
 import LocationStep from '../components/onboarding/steps/LocationStep';
 import ReligionStep from '../components/onboarding/steps/ReligionStep';
+import HoroscopeStep from '../components/onboarding/steps/HoroscopeStep';
 import MaritalStatusStep from '../components/onboarding/steps/MaritalStatusStep';
 import EducationStep from '../components/onboarding/steps/EducationStep';
 import FamilyStep from '../components/onboarding/steps/FamilyStep';
@@ -26,6 +28,7 @@ const EditStepComponents = [
   BasicInfoStep,
   LocationStep,
   ReligionStep,
+  HoroscopeStep,
   MaritalStatusStep,
   EducationStep,
   FamilyStep,
@@ -40,13 +43,14 @@ const EDIT_STEPS = [
   { number: 0, title: 'Basic Information', icon: 'Info' },
   { number: 1, title: 'Location', icon: 'MapPin' },
   { number: 2, title: 'Religion & Community', icon: 'Heart' },
-  { number: 3, title: 'Marital Status', icon: 'Ring' },
-  { number: 4, title: 'Education & Career', icon: 'Briefcase' },
-  { number: 5, title: 'Family Background', icon: 'Users' },
-  { number: 6, title: 'Lifestyle', icon: 'Smile' },
-  { number: 7, title: 'About Yourself', icon: 'BookOpen' },
-  { number: 8, title: 'Preferences', icon: 'Heart' },
-  { number: 9, title: 'Photos', icon: 'Camera' },
+  { number: 3, title: 'Horoscope & Kundli', icon: 'Sun' },
+  { number: 4, title: 'Marital Status', icon: 'Ring' },
+  { number: 5, title: 'Education & Career', icon: 'Briefcase' },
+  { number: 6, title: 'Family Background', icon: 'Users' },
+  { number: 7, title: 'Lifestyle', icon: 'Smile' },
+  { number: 8, title: 'About Yourself', icon: 'BookOpen' },
+  { number: 9, title: 'Preferences', icon: 'Heart' },
+  { number: 10, title: 'Photos', icon: 'Camera' },
 ];
 
 /**
@@ -56,8 +60,8 @@ const EDIT_STEPS = [
 // Deep-linkable sections (e.g. the post-signup preview card sends members
 // straight to Photos with /profile/edit?section=photos).
 const SECTION_INDEX = {
-  basic: 0, location: 1, religion: 2, marital: 3, education: 4,
-  family: 5, lifestyle: 6, about: 7, preferences: 8, photos: 9,
+  basic: 0, location: 1, religion: 2, horoscope: 3, marital: 4, education: 5,
+  family: 6, lifestyle: 7, about: 8, preferences: 9, photos: 10,
 };
 
 const ModernProfileEditorContent = () => {
@@ -80,25 +84,8 @@ const ModernProfileEditorContent = () => {
 
     setIsLoading(true);
     try {
-      // Prepare FormData for file uploads
-      const submitData = new FormData();
-
-      // Add all form fields
-      Object.entries(formData).forEach(([key, value]) => {
-        if (value instanceof File) {
-          submitData.append(key, value);
-        } else if (Array.isArray(value)) {
-          value.forEach((item) => {
-            // Append multiple items with the exact same key name
-            // Multer/busboy natively parses this into an array, and correctly identifies 'photos' without rejecting it as an unexpected field
-            submitData.append(key, item);
-          });
-        } else if (typeof value === 'object' && value !== null) {
-          submitData.append(key, JSON.stringify(value));
-        } else if (value !== null && value !== undefined && value !== '') {
-          submitData.append(key, value);
-        }
-      });
+      // Whitelisted multipart build (never sends password/identifier/email/flags)
+      const submitData = buildProfileFormData(formData);
 
       const response = await api.put('/profile/me', submitData, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -174,10 +161,13 @@ const ModernProfileEditorContent = () => {
             </div>
           </div>
 
-          {/* Progress */}
+          {/* Wizard position (NOT profile completeness — this is how far through
+              the editor you are, so it must not read as a completion %). */}
           <div>
-            <p className="text-neutral-500 text-sm mb-2">Profile Completion</p>
-            <Progress value={completionPercentage} max={100} showLabel />
+            <p className="text-neutral-500 text-sm mb-2">
+              Section {currentStep + 1} of {EditStepComponents.length}
+            </p>
+            <Progress value={completionPercentage} max={100} />
           </div>
         </div>
       </div>

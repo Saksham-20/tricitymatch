@@ -3,6 +3,8 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useOnboarding, STEPS, OnboardingProvider } from '../context/OnboardingContext';
 import { useAuth } from '../context/AuthContext';
+import api from '../api/axios';
+import { buildProfileFormData } from '../utils/profileSubmit';
 import Logo from '../components/common/Logo';
 import Progress from '../components/ui/Progress';
 import { Button } from '../components/ui/Button';
@@ -23,6 +25,7 @@ import CreateAccountStep from '../components/onboarding/steps/CreateAccountStep'
 import BasicInfoStep from '../components/onboarding/steps/BasicInfoStep';
 import LocationStep from '../components/onboarding/steps/LocationStep';
 import ReligionStep from '../components/onboarding/steps/ReligionStep';
+import HoroscopeStep from '../components/onboarding/steps/HoroscopeStep';
 import MaritalStatusStep from '../components/onboarding/steps/MaritalStatusStep';
 import EducationStep from '../components/onboarding/steps/EducationStep';
 import FamilyStep from '../components/onboarding/steps/FamilyStep';
@@ -39,6 +42,7 @@ const allStepComponents = {
   2: BasicInfoStep,
   3: LocationStep,
   4: ReligionStep,
+  4.5: HoroscopeStep,
   5: MaritalStatusStep,
   6: EducationStep,
   7: FamilyStep,
@@ -169,6 +173,19 @@ const ModernOnboardingContent = () => {
               lastName: formData.lastName,
               dateOfBirth: formData.dateOfBirth,
             });
+          }
+          if (mode === 'create_for_other') {
+            // Guardian collected the full profile but signup only persists
+            // name/gender/dob — persist the rest now that the candidate account
+            // + session exist. Non-fatal on failure (editable later). Must run
+            // BEFORE clearDraft() wipes formData.
+            try {
+              await api.put('/profile/me', buildProfileFormData(formData), {
+                headers: { 'Content-Type': 'multipart/form-data' },
+              });
+            } catch (e) {
+              console.error('guardian profile save failed', e.response?.data || e);
+            }
           }
           clearDraft();
           if (mode !== 'signup') navigate('/dashboard');
