@@ -4,15 +4,20 @@ import { getUsers, updateUserStatus } from '../../api/adminApi';
 import toast from 'react-hot-toast';
 import { FiSearch, FiPlus, FiChevronLeft, FiChevronRight, FiEye } from 'react-icons/fi';
 
-const STATUS_OPTIONS = ['all', 'active', 'inactive', 'suspended', 'deleted'];
+// Must match User model status enum: active/inactive/banned/pending/deleted.
+const STATUS_OPTIONS   = ['all', 'active', 'inactive', 'banned', 'pending', 'deleted'];
+// Statuses an admin can set via PUT /users/:id/status (excludes 'deleted' —
+// account deletion has its own flow — matching updateUserStatusValidation).
+const SETTABLE_STATUSES = ['active', 'inactive', 'banned', 'pending'];
 const ROLE_OPTIONS   = ['all', 'user', 'admin'];
 
 const StatusBadge = ({ status }) => {
   const map = {
     active:    'bg-green-100 text-green-700',
     inactive:  'bg-gray-100 text-gray-600',
-    suspended: 'bg-amber-100 text-amber-700',
-    deleted:   'bg-red-100 text-red-600',
+    banned:    'bg-red-100 text-red-600',
+    pending:   'bg-amber-100 text-amber-700',
+    deleted:   'bg-gray-200 text-gray-500',
   };
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${map[status] || 'bg-gray-100 text-gray-500'}`}>
@@ -156,9 +161,13 @@ export default function AdminUsers() {
                         onChange={(e) => handleStatusChange(u.id, e.target.value)}
                         className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-500"
                       >
-                        {['active', 'inactive', 'suspended', 'deleted'].map((s) => (
+                        {SETTABLE_STATUSES.map((s) => (
                           <option key={s} value={s}>{s}</option>
                         ))}
+                        {/* show current terminal state (e.g. deleted) but don't offer it as a set action */}
+                        {!SETTABLE_STATUSES.includes(u.status) && (
+                          <option value={u.status} disabled>{u.status}</option>
+                        )}
                       </select>
                     </td>
                     <td className="px-4 py-3 text-gray-500 text-xs">
