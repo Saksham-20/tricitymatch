@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiFilter, FiX, FiMapPin, FiBriefcase, FiBook, FiCalendar,
-  FiChevronDown, FiSearch, FiCheck, FiHeart,
+  FiChevronDown, FiSearch, FiCheck, FiHeart, FiShield,
 } from 'react-icons/fi';
 
 // ─── Filter Section (collapsible) ───────────
@@ -89,8 +89,40 @@ const FilterContent = ({ filters, onChange }) => {
 
   const toggle = (key) => setSections(p => ({ ...p, [key]: !p[key] }));
 
+  const verifiedOn = filters.verifiedOnly === 'true';
+  const toggleVerified = () =>
+    onChange({ target: { name: 'verifiedOnly', value: verifiedOn ? '' : 'true' } });
+
   return (
     <div className="space-y-0">
+      {/* Verified-only quick toggle — trust filter, kept above the fold */}
+      <button
+        type="button"
+        onClick={toggleVerified}
+        aria-pressed={verifiedOn}
+        className={`w-full flex items-center justify-between gap-2 mb-2 px-3 py-3 rounded-xl border transition-colors ${
+          verifiedOn
+            ? 'border-success bg-success-50 text-success'
+            : 'border-neutral-200 hover:bg-neutral-50 text-neutral-700'
+        }`}
+      >
+        <span className="flex items-center gap-2 text-sm font-semibold">
+          <FiShield className={`w-4 h-4 ${verifiedOn ? 'text-success' : 'text-primary-500'}`} />
+          Verified profiles only
+        </span>
+        <span
+          className={`relative inline-flex h-5 w-9 flex-shrink-0 rounded-full transition-colors ${
+            verifiedOn ? 'bg-success' : 'bg-neutral-300'
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${
+              verifiedOn ? 'translate-x-4' : 'translate-x-0.5'
+            }`}
+          />
+        </span>
+      </button>
+
       {/* Age Range */}
       <FilterSection title="Age Range" icon={FiCalendar} sectionKey="basic" expanded={sections.basic} onToggle={toggle}>
         <div className="flex items-center gap-3">

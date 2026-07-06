@@ -8,7 +8,7 @@ import {
   FiMusic, FiCheck, FiMapPin, FiBook, FiBriefcase, FiUser,
   FiGlobe, FiShield, FiHome, FiSun, FiHeart, FiInfo,
   FiCamera, FiChevronRight, FiEye, FiDollarSign, FiGrid,
-  FiHash, FiCopy, FiAlertCircle,
+  FiHash, FiCopy, FiAlertCircle, FiYoutube, FiLink,
 } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 import { API_BASE_URL } from '../utils/api';
@@ -73,8 +73,19 @@ const SOCIAL_PLATFORMS = [
   { key: 'instagram', label: 'Instagram', icon: FiInstagram, color: '#E1306C' },
   { key: 'linkedin', label: 'LinkedIn', icon: FiLinkedin, color: '#0077B5' },
   { key: 'facebook', label: 'Facebook', icon: FiFacebook, color: '#1877F2' },
-  { key: 'twitter', label: 'Twitter', icon: FiTwitter, color: '#1DA1F2' },
+  { key: 'twitter', label: 'X (Twitter)', icon: FiTwitter, color: '#1DA1F2' },
+  { key: 'youtube', label: 'YouTube', icon: FiYoutube, color: '#FF0000' },
+  { key: 'website', label: 'Website', icon: FiLink, color: '#8B2346' },
 ];
+
+// Links can be a legacy string or the new { url, visibility } shape.
+const socialUrl = (entry) => (typeof entry === 'string' ? entry : entry?.url) || null;
+const socialVisibilityLabel = (entry) => {
+  const v = typeof entry === 'object' && entry ? entry.visibility : 'matches_only';
+  if (v === 'everyone') return 'Public';
+  if (v === 'hidden') return 'Hidden';
+  return 'Matches only';
+};
 
 const EditBtn = ({ to, small }) => (
   <Link
@@ -157,7 +168,7 @@ const MyProfileView = () => {
       toast.error('Could not copy');
     }
   };
-  const activeSocials = SOCIAL_PLATFORMS.filter(p => profile.socialMediaLinks?.[p.key]);
+  const activeSocials = SOCIAL_PLATFORMS.filter(p => socialUrl(profile.socialMediaLinks?.[p.key]));
 
   const formatHeight = (cm) => {
     if (!cm) return null;
@@ -392,18 +403,23 @@ const MyProfileView = () => {
               <Card title="Social Media" icon={FiGlobe} action={<EditBtn small />}>
                 <div className="grid grid-cols-2 gap-2.5">
                   {activeSocials.map(({ key, label, icon: Icon, color }) => {
-                    const url = profile.socialMediaLinks[key];
+                    const entry = profile.socialMediaLinks[key];
+                    const url = sanitizeUrl(socialUrl(entry));
+                    if (!url) return null;
                     return (
                       <a
                         key={key}
-                        href={sanitizeUrl(url)}
+                        href={url}
                         target="_blank"
-                        rel="noopener noreferrer"
+                        rel="noopener nofollow noreferrer"
                         className="flex items-center gap-2.5 p-3 border border-neutral-100 rounded-xl hover:bg-neutral-50 transition-colors cursor-pointer"
                       >
                         <Icon className="w-4 h-4 flex-shrink-0" style={{ color }} />
-                        <span className="text-sm font-semibold text-neutral-700">{label}</span>
-                        <FiChevronRight className="w-3 h-3 text-neutral-300 ml-auto" />
+                        <div className="min-w-0">
+                          <span className="block text-sm font-semibold text-neutral-700 truncate">{label}</span>
+                          <span className="block text-[10px] text-neutral-400">{socialVisibilityLabel(entry)}</span>
+                        </div>
+                        <FiChevronRight className="w-3 h-3 text-neutral-300 ml-auto flex-shrink-0" />
                       </a>
                     );
                   })}
@@ -528,9 +544,9 @@ const MyProfileView = () => {
                   <div className="min-w-0">
                     <p className="text-sm font-bold text-gold-700 mb-1">Get Verified</p>
                     <p className="text-xs text-gold-700/80 leading-relaxed mb-3">
-                      Verified profiles get 3x more responses. Submit your ID to get the verified badge.
+                      Verified profiles get 3x more responses. Take a quick selfie to get the verified badge.
                     </p>
-                    <Link to="/settings" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gold text-neutral-900 text-xs font-bold rounded-lg hover:bg-gold-400 transition-colors cursor-pointer">
+                    <Link to="/verification" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gold text-neutral-900 text-xs font-bold rounded-lg hover:bg-gold-400 transition-colors cursor-pointer">
                       <FiShield className="w-3 h-3" /> Verify Now
                     </Link>
                   </div>

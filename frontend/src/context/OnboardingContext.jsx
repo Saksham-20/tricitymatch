@@ -284,6 +284,9 @@ function getInitialFormData() {
     bio: '',
     interestTags: [],
     personalityValues: {},
+    // Social connections — display-only links, per-link visibility.
+    // Shape: { instagram: { url, visibility }, ... }
+    socialMediaLinks: {},
 
     // Preferences
     preferredAgeMin: '',

@@ -18,6 +18,7 @@ import EducationStep from '../components/onboarding/steps/EducationStep';
 import FamilyStep from '../components/onboarding/steps/FamilyStep';
 import LifestyleStep from '../components/onboarding/steps/LifestyleStep';
 import AboutYourselfStep from '../components/onboarding/steps/AboutYourselfStep';
+import SocialConnectionsStep from '../components/onboarding/steps/SocialConnectionsStep';
 import PreferencesStep from '../components/onboarding/steps/PreferencesStep';
 import PhotosStep from '../components/onboarding/steps/PhotosStep';
 import Progress from '../components/ui/Progress';
@@ -34,6 +35,7 @@ const EditStepComponents = [
   FamilyStep,
   LifestyleStep,
   AboutYourselfStep,
+  SocialConnectionsStep,
   PreferencesStep,
   PhotosStep,
 ];
@@ -49,8 +51,9 @@ const EDIT_STEPS = [
   { number: 6, title: 'Family Background', icon: 'Users' },
   { number: 7, title: 'Lifestyle', icon: 'Smile' },
   { number: 8, title: 'About Yourself', icon: 'BookOpen' },
-  { number: 9, title: 'Preferences', icon: 'Heart' },
-  { number: 10, title: 'Photos', icon: 'Camera' },
+  { number: 9, title: 'Social Connections', icon: 'Link' },
+  { number: 10, title: 'Preferences', icon: 'Heart' },
+  { number: 11, title: 'Photos', icon: 'Camera' },
 ];
 
 /**
@@ -61,7 +64,7 @@ const EDIT_STEPS = [
 // straight to Photos with /profile/edit?section=photos).
 const SECTION_INDEX = {
   basic: 0, location: 1, religion: 2, horoscope: 3, marital: 4, education: 5,
-  family: 6, lifestyle: 7, about: 8, preferences: 9, photos: 10,
+  family: 6, lifestyle: 7, about: 8, social: 9, preferences: 10, photos: 11,
 };
 
 const ModernProfileEditorContent = () => {

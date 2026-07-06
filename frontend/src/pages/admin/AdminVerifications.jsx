@@ -5,13 +5,14 @@ import { FiCheckCircle, FiXCircle, FiCamera, FiUser } from 'react-icons/fi';
 import { getImageUrl } from '../../utils/cloudinary';
 import { API_BASE_URL } from '../../utils/api';
 
-const TAB_OPTIONS = ['pending', 'approved', 'rejected', 'all'];
+const TAB_OPTIONS = ['pending', 'approved', 'rejected', 'flagged', 'all'];
 
 const StatusBadge = ({ status }) => {
   const map = {
     pending:  'bg-amber-100 text-amber-700',
     approved: 'bg-green-100 text-green-700',
     rejected: 'bg-red-100 text-red-600',
+    flagged:  'bg-orange-100 text-orange-700',
   };
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${map[status] || 'bg-gray-100 text-gray-500'}`}>
@@ -179,14 +180,12 @@ export default function AdminVerifications() {
 
               <div className="flex items-center justify-between text-xs text-gray-400">
                 <span>{new Date(v.createdAt).toLocaleDateString('en-IN')}</span>
-                {v.status === 'pending' && (
-                  <button
-                    onClick={() => openReview(v)}
-                    className="px-3 py-1.5 rounded-lg bg-primary-100 hover:bg-primary-200 text-primary-700 font-medium text-xs transition-colors"
-                  >
-                    Review
-                  </button>
-                )}
+                <button
+                  onClick={() => openReview(v)}
+                  className="px-3 py-1.5 rounded-lg bg-primary-100 hover:bg-primary-200 text-primary-700 font-medium text-xs transition-colors"
+                >
+                  {v.status === 'pending' ? 'Review' : 'Change status'}
+                </button>
               </div>
             </div>
           ))}
@@ -259,24 +258,42 @@ export default function AdminVerifications() {
 
             <div className="flex gap-3">
               <button
-                onClick={() => setReviewModal(null)}
-                className="flex-1 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium"
-              >
-                Cancel
-              </button>
-              <button
                 onClick={() => handleAction('rejected')}
-                disabled={submitting}
-                className="flex-1 py-2.5 rounded-xl bg-red-100 hover:bg-red-200 text-red-700 text-sm font-medium disabled:opacity-60 flex items-center justify-center gap-1.5"
+                disabled={submitting || reviewModal.status === 'rejected'}
+                className="flex-1 py-2.5 rounded-xl bg-red-100 hover:bg-red-200 text-red-700 text-sm font-medium disabled:opacity-40 flex items-center justify-center gap-1.5"
               >
                 <FiXCircle className="w-4 h-4" /> Reject
               </button>
               <button
                 onClick={() => handleAction('approved')}
-                disabled={submitting}
-                className="flex-1 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white text-sm font-medium disabled:opacity-60 flex items-center justify-center gap-1.5"
+                disabled={submitting || reviewModal.status === 'approved'}
+                className="flex-1 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white text-sm font-medium disabled:opacity-40 flex items-center justify-center gap-1.5"
               >
                 <FiCheckCircle className="w-4 h-4" /> Approve
+              </button>
+            </div>
+
+            {/* Secondary status controls — admin can re-open or flag at any time */}
+            <div className="flex gap-3 mt-3">
+              <button
+                onClick={() => setReviewModal(null)}
+                className="flex-1 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleAction('pending')}
+                disabled={submitting || reviewModal.status === 'pending'}
+                className="flex-1 py-2 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-700 text-sm font-medium disabled:opacity-40"
+              >
+                Re-open
+              </button>
+              <button
+                onClick={() => handleAction('flagged')}
+                disabled={submitting || reviewModal.status === 'flagged'}
+                className="flex-1 py-2 rounded-xl border border-orange-200 bg-orange-50 hover:bg-orange-100 text-orange-700 text-sm font-medium disabled:opacity-40"
+              >
+                Flag
               </button>
             </div>
           </div>

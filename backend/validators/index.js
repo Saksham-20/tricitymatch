@@ -523,7 +523,8 @@ const updateUserStatusValidation = [
 const updateVerificationValidation = [
   isUUID('verificationId', 'param'),
   body('status')
-    .isIn(['approved', 'rejected', 'flagged'])
+    // 'pending' lets an admin re-open a decided verification for another look.
+    .isIn(['approved', 'rejected', 'pending', 'flagged'])
     .withMessage('Invalid status'),
   body('adminNotes')
     .optional()
