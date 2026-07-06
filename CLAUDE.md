@@ -145,6 +145,8 @@ Pubkey installed in server `~/.ssh/authorized_keys` (comment `claude-code@tricit
 ## Admin
 `admin@tricitymatch.com` / `Pass@1234` (or `ADMIN_EMAIL`/`ADMIN_PASSWORD`). Login `/login` (not /admin/login). Re-seed `node backend/seeders/adminSeeder.js`.
 
+**Prod QA member account** (real prod member on user's own inbox — use for live prod testing / receiving OTP + emails): `globoniksprod@gmail.com` / `TricityQA@2026` (userId `ba32aefe-e5b2-4089-a963-0cc7bd5c4e37`). Free tier, has test profile data. OTP/verification emails land in that Gmail.
+
 ## Testing
 **QA playbook: `docs/QA.md`** — universal, reusable: method + severity/status legends, env/creds, per-screen + anti-slop checklists, web (375/768/1440) + admin + **RN apps iOS+Android simulator** plan, readiness gates. (Replaced the scattered root QA files — `browser-qa-*`, `qa-progress`, `mobile-qa-progress`, `bug-tracker`, `production-bugs`, `launch-readiness`, `release-*`, `user-flows`; their history is in git + Audit History below. Audit-phase tracker `review-progress.md` stays.)
 Backend unit+integration **Jest 30**+Supertest `backend/tests/` (**116 unit green**: numerology, profileCode, sanitize, validators, errorHandler, notifyUserImports, razorpay [timing-safe], bgCheckWebhook [fail-closed], **uploadMagicBytes** [SEC-4], **groupAuth** [membership IDOR gate]; integration: auth — needs live DB). Frontend **Vitest 4**+RTL 16 `frontend/src/tests/` (**31 green**: utils/validators + components/routeGuards). E2E Playwright `e2e/tests/` (9).
