@@ -52,7 +52,7 @@ const generateKundliPDF = (res, data) => {
   doc.pipe(res);
 
   // ── Header ────────────────────────────────────────────
-  doc.fontSize(24).fillColor(BURGUNDY).text('TricityMatch', 50, 50);
+  doc.fontSize(24).fillColor(BURGUNDY).text('TricityShadi', 50, 50);
   doc.fontSize(10).fillColor(GRAY).text('Kundli Matching Report · Ashtakoot Guna Milan', 50, 80);
   doc.moveTo(50, 100).lineTo(545, 100).strokeColor(BURGUNDY).stroke();
 
@@ -187,7 +187,7 @@ const generateKundliPDF = (res, data) => {
   // ── Footer disclaimer (fixed) ─────────────────────────
   doc.fontSize(8).fillColor(LIGHT).text(
     'This report is generated from the birth details provided and is for guidance only. ' +
-    'For important decisions, please consult a qualified astrologer. © TricityMatch',
+    'For important decisions, please consult a qualified astrologer. © TricityShadi',
     50, 770, { align: 'center', width: 495 }
   );
 

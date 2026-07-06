@@ -31,7 +31,7 @@ const generateInvoicePDF = (res, { subscription, user, profile }) => {
   const GRAY = '#6b7280';
 
   // ── Header ────────────────────────────────────────────
-  doc.fontSize(24).fillColor(BURGUNDY).text('TricityMatch', 50, 50);
+  doc.fontSize(24).fillColor(BURGUNDY).text('TricityShadi', 50, 50);
   doc.fontSize(10).fillColor(GRAY).text('The Tricity Matrimonial Platform', 50, 80);
   doc.moveDown(0.5);
   doc.moveTo(50, 100).lineTo(545, 100).strokeColor(BURGUNDY).stroke();
@@ -130,7 +130,7 @@ const generateInvoicePDF = (res, { subscription, user, profile }) => {
 
   // ── Footer ────────────────────────────────────────────
   doc.fontSize(9).fillColor(GRAY).text(
-    'Thank you for choosing TricityMatch. For support contact support@tricitymatch.com',
+    'Thank you for choosing TricityShadi. For support contact support@tricityshadi.com',
     50, 750, { align: 'center', width: 495 }
   );
 
