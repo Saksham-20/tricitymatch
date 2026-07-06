@@ -71,7 +71,7 @@ export default function MarketingReferralCodes() {
         <h1 className="text-3xl font-bold">Referral Codes</h1>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
         >
           <Plus size={18} /> Generate New Code
         </button>
@@ -98,7 +98,7 @@ export default function MarketingReferralCodes() {
                   value={newCodeForm.campaign}
                   onChange={(e) => setNewCodeForm(f => ({ ...f, campaign: e.target.value }))}
                   placeholder="e.g. Instagram Q2"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
               <div>
@@ -108,7 +108,7 @@ export default function MarketingReferralCodes() {
                   value={newCodeForm.source}
                   onChange={(e) => setNewCodeForm(f => ({ ...f, source: e.target.value }))}
                   placeholder="e.g. instagram, whatsapp"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
             </div>
@@ -122,7 +122,7 @@ export default function MarketingReferralCodes() {
               <button
                 onClick={handleCreateCode}
                 disabled={creating}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
               >
                 {creating ? 'Generating...' : 'Generate Code'}
               </button>
@@ -138,7 +138,7 @@ export default function MarketingReferralCodes() {
           <p className="text-gray-500 mb-4">No referral codes yet</p>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 mx-auto"
+            className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 mx-auto"
           >
             <Plus size={18} /> Generate Your First Code
           </button>
@@ -158,7 +158,7 @@ export default function MarketingReferralCodes() {
                     </span>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-blue-600">{code.usageCount}</p>
+                    <p className="text-2xl font-bold text-primary-600">{code.usageCount}</p>
                     <p className="text-sm text-gray-600">Signups</p>
                   </div>
                 </div>
@@ -168,7 +168,7 @@ export default function MarketingReferralCodes() {
                     <code className="text-sm">{code.code}</code>
                     <button
                       onClick={() => handleCopyCode(code.code)}
-                      className="flex items-center gap-2 text-blue-600 hover:text-blue-800"
+                      className="flex items-center gap-2 text-primary-600 hover:text-primary-800"
                     >
                       {copied === code.code ? <Check size={18} /> : <Copy size={18} />}
                     </button>
@@ -178,7 +178,7 @@ export default function MarketingReferralCodes() {
                     <code className="text-sm truncate">{generateShareLink(code.code)}</code>
                     <button
                       onClick={() => handleCopyLink(code.code)}
-                      className="flex items-center gap-2 text-blue-600 hover:text-blue-800 ml-2"
+                      className="flex items-center gap-2 text-primary-600 hover:text-primary-800 ml-2"
                     >
                       {copied === `link-${code.code}` ? <Check size={18} /> : <Copy size={18} />}
                     </button>
@@ -193,7 +193,7 @@ export default function MarketingReferralCodes() {
               <button
                 key={p}
                 onClick={() => setPage(p)}
-                className={`px-3 py-1 rounded ${page === p ? 'bg-blue-600 text-white' : 'border'}`}
+                className={`px-3 py-1 rounded ${page === p ? 'bg-primary-600 text-white' : 'border'}`}
               >
                 {p}
               </button>

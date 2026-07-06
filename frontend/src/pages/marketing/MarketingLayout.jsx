@@ -18,13 +18,13 @@ export default function MarketingLayout() {
           <h1 className="text-2xl font-bold">Marketing</h1>
         </div>
         <nav className="p-4 space-y-2">
-          <Link to="/marketing/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-50 text-gray-700">
+          <Link to="/marketing/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary-50 text-gray-700">
             <BarChart3 size={20} /> Dashboard
           </Link>
-          <Link to="/marketing/leads" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-50 text-gray-700">
+          <Link to="/marketing/leads" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary-50 text-gray-700">
             <Users size={20} /> My Leads
           </Link>
-          <Link to="/marketing/referral-codes" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-50 text-gray-700">
+          <Link to="/marketing/referral-codes" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary-50 text-gray-700">
             <Zap size={20} /> Referral Codes
           </Link>
         </nav>

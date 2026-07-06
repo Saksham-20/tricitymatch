@@ -7,14 +7,13 @@ import {
 import { getAnalytics } from '../../api/adminApi';
 import { FiUsers, FiCheckCircle, FiCreditCard, FiTrendingUp, FiFlag } from 'react-icons/fi';
 
-const COLORS = ['#be123c', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'];
+// Brand-family ramp (burgundy → gold → muted tints); no off-brand green/blue/purple.
+const COLORS = ['#8B2346', '#C9A227', '#B76E79', '#5E1730', '#D8B24A'];
 
 const KpiCard = ({ icon: Icon, label, value, sub, color = 'rose' }) => {
   const colorMap = {
     rose: 'bg-primary-100 text-primary-700',
-    amber: 'bg-amber-100 text-amber-700',
-    green: 'bg-green-100 text-green-700',
-    blue: 'bg-blue-100 text-blue-700',
+    gold: 'bg-gold-50 text-gold-700',
   };
   return (
     <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-start gap-4">
@@ -64,10 +63,10 @@ export default function AdminDashboard() {
 
       {/* KPI cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard icon={FiUsers}       label="Total Users"         value={stats.totalUsers}         color="blue" />
-        <KpiCard icon={FiCheckCircle} label="Verified Users"      value={stats.verifiedUsers}      color="green" />
-        <KpiCard icon={FiCreditCard}  label="Active Subscribers"  value={stats.activeSubscribers}  color="amber" />
-        <KpiCard icon={FiTrendingUp}  label="Revenue (This Month)" value={stats.revenueThisMonth ? `₹${stats.revenueThisMonth.toLocaleString('en-IN')}` : '—'} color="rose" />
+        <KpiCard icon={FiUsers}       label="Total Users"         value={stats.totalUsers}         color="rose" />
+        <KpiCard icon={FiCheckCircle} label="Verified Users"      value={stats.verifiedUsers}      color="rose" />
+        <KpiCard icon={FiCreditCard}  label="Active Subscribers"  value={stats.activeSubscribers}  color="rose" />
+        <KpiCard icon={FiTrendingUp}  label="Revenue (This Month)" value={stats.revenueThisMonth ? `₹${stats.revenueThisMonth.toLocaleString('en-IN')}` : '—'} color="gold" />
       </div>
 
       {/* Charts row 1 */}
@@ -117,12 +116,13 @@ export default function AdminDashboard() {
           {planDist.length > 0 ? (
             <ResponsiveContainer width="100%" height={180}>
               <PieChart>
-                <Pie data={planDist} dataKey="count" nameKey="plan" outerRadius={70} label={({ plan }) => plan}>
+                <Pie data={planDist} dataKey="count" nameKey="plan" outerRadius={64}>
                   {planDist.map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
               </PieChart>
             </ResponsiveContainer>
           ) : (

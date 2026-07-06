@@ -2,6 +2,21 @@ import { useState, useEffect } from 'react';
 import { Users, TrendingUp, DollarSign, Code2, PhoneCall } from 'lucide-react';
 import apiClient from '../../api/apiClient';
 
+// Tiled KPI card — mirrors the admin dashboard KpiCard so both portals read the same.
+const KpiCard = ({ icon: Icon, label, value, accent = 'primary' }) => (
+  <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
+    <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${
+      accent === 'gold' ? 'bg-gold-50 text-gold' : 'bg-primary-100 text-primary-600'
+    }`}>
+      <Icon size={22} />
+    </div>
+    <div>
+      <p className="text-2xl font-bold text-gray-900">{value ?? '—'}</p>
+      <p className="text-sm font-medium text-gray-600">{label}</p>
+    </div>
+  </div>
+);
+
 export default function MarketingDashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -34,55 +49,11 @@ export default function MarketingDashboard() {
 
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center gap-4">
-              <Users className="text-blue-600" size={28} />
-              <div>
-                <p className="text-gray-600 text-sm">Total Leads</p>
-                <p className="text-3xl font-bold">{stats.totalLeads}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center gap-4">
-              <PhoneCall className="text-blue-400" size={28} />
-              <div>
-                <p className="text-gray-600 text-sm">Contacted</p>
-                <p className="text-3xl font-bold">{stats.contactedLeads}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center gap-4">
-              <TrendingUp className="text-green-600" size={28} />
-              <div>
-                <p className="text-gray-600 text-sm">Converted</p>
-                <p className="text-3xl font-bold">{stats.convertedLeads}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center gap-4">
-              <DollarSign className="text-purple-600" size={28} />
-              <div>
-                <p className="text-gray-600 text-sm">Revenue</p>
-                <p className="text-3xl font-bold">₹{stats.totalRevenue?.toLocaleString() || 0}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center gap-4">
-              <Code2 className="text-orange-600" size={28} />
-              <div>
-                <p className="text-gray-600 text-sm">Active Codes</p>
-                <p className="text-3xl font-bold">{stats.activeReferralCodes}</p>
-              </div>
-            </div>
-          </div>
+          <KpiCard icon={Users}      label="Total Leads"  value={stats.totalLeads} />
+          <KpiCard icon={PhoneCall}  label="Contacted"    value={stats.contactedLeads} />
+          <KpiCard icon={TrendingUp} label="Converted"    value={stats.convertedLeads} />
+          <KpiCard icon={DollarSign} label="Revenue"      value={`₹${stats.totalRevenue?.toLocaleString() || 0}`} accent="gold" />
+          <KpiCard icon={Code2}      label="Active Codes" value={stats.activeReferralCodes} />
         </div>
       )}
 
@@ -90,19 +61,19 @@ export default function MarketingDashboard() {
         <h2 className="text-xl font-bold mb-4">How It Works</h2>
         <ol className="space-y-3 text-gray-700 list-none">
           <li className="flex items-start gap-3">
-            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-sm font-bold flex items-center justify-center">1</span>
+            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-100 text-primary-700 text-sm font-bold flex items-center justify-center">1</span>
             <span>Go to <strong>Referral Codes</strong> and generate a code for your campaign.</span>
           </li>
           <li className="flex items-start gap-3">
-            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-sm font-bold flex items-center justify-center">2</span>
+            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-100 text-primary-700 text-sm font-bold flex items-center justify-center">2</span>
             <span>Copy the share link — it opens the signup page with your code pre-filled.</span>
           </li>
           <li className="flex items-start gap-3">
-            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-sm font-bold flex items-center justify-center">3</span>
+            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-100 text-primary-700 text-sm font-bold flex items-center justify-center">3</span>
             <span>Every signup via your link appears in <strong>My Leads</strong> and increments your code's signup count.</span>
           </li>
           <li className="flex items-start gap-3">
-            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-sm font-bold flex items-center justify-center">4</span>
+            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-100 text-primary-700 text-sm font-bold flex items-center justify-center">4</span>
             <span>Track conversions and revenue in the stats above.</span>
           </li>
         </ol>
