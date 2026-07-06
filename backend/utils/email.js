@@ -300,7 +300,7 @@ const templates = {
           .header { background: #dc3545; color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
           .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
           .reason-box { background: #fff3f3; border: 1px solid #dc3545; padding: 15px; border-radius: 5px; margin: 20px 0; }
-          .button { display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin-top: 20px; }
+          .button { display: inline-block; background: #8B2346; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin-top: 20px; }
           .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
         </style>
       </head>
@@ -313,13 +313,13 @@ const templates = {
             <p>Hi ${name},</p>
             <p>We were unable to verify your profile at this time.</p>
             ${reason ? `<div class="reason-box"><strong>Reason:</strong> ${reason}</div>` : ''}
-            <p>Please re-submit your verification documents ensuring they are:</p>
+            <p>Please re-take your verification selfie, making sure it is:</p>
             <ul>
-              <li>Clear and legible</li>
-              <li>Valid and not expired</li>
-              <li>Matching the information on your profile</li>
+              <li>Clear and well-lit</li>
+              <li>Shows your full, unobstructed face</li>
+              <li>Matches the photos on your profile</li>
             </ul>
-            <a href="${config.server.frontendUrl}/settings" class="button">Re-submit Verification</a>
+            <a href="${config.server.frontendUrl}/verification" class="button">Re-submit Verification</a>
           </div>
           <div class="footer">
             <p>© ${new Date().getFullYear()} TricityShadi. All rights reserved.</p>
@@ -329,7 +329,7 @@ const templates = {
       </body>
       </html>
     `,
-    text: `Hi ${name}, Your verification was not approved.${reason ? ' Reason: ' + reason : ''} Please re-submit with clear, valid documents.`
+    text: `Hi ${name}, Your verification was not approved.${reason ? ' Reason: ' + reason : ''} Please re-take a clear, well-lit selfie showing your full face.`
   }),
 
   verificationApproved: (name) => ({
