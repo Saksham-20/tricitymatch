@@ -200,9 +200,14 @@ export const DashboardCompletionBanner = ({ profile = {} }) => {
   const topMissing = pending.slice(0, 3);
   const remaining = pending.length;
 
-  const barColor = percent >= 70 ? '#2E7D32' : percent >= 45 ? '#C9A227' : '#8B2346';
-  const bgColor  = percent >= 70 ? 'bg-success-50 border-success-100' : percent >= 45 ? 'bg-gold-50 border-gold-100' : 'bg-primary-50 border-primary-100';
-  const textColor = percent >= 70 ? 'text-success' : percent >= 45 ? 'text-gold-700' : 'text-primary-700';
+  // Tier thresholds MUST match the summary variant below (85 / 60) so the same
+  // profile shows the same colour+label on the dashboard and on Own Profile.
+  // (Previously 70/45 here vs 85/60 below → 82% read green "complete" on the
+  // dashboard while contradicting its own "fields missing" copy, and gold
+  // "almost complete" on Own Profile.)
+  const barColor = percent >= 85 ? '#2E7D32' : percent >= 60 ? '#C9A227' : '#8B2346';
+  const bgColor  = percent >= 85 ? 'bg-success-50 border-success-100' : percent >= 60 ? 'bg-gold-50 border-gold-100' : 'bg-primary-50 border-primary-100';
+  const textColor = percent >= 85 ? 'text-success' : percent >= 60 ? 'text-gold-700' : 'text-primary-700';
 
   return (
     <div className={`rounded-2xl border overflow-hidden ${bgColor}`}>
@@ -291,8 +296,8 @@ export const DashboardCompletionBanner = ({ profile = {} }) => {
               <Link
                 to="/profile/edit"
                 className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-bold transition-colors cursor-pointer mt-1 ${
-                  percent >= 70 ? 'bg-success text-white hover:bg-success-600'
-                  : percent >= 45 ? 'bg-gold text-neutral-900 hover:brightness-95'
+                  percent >= 85 ? 'bg-success text-white hover:bg-success-600'
+                  : percent >= 60 ? 'bg-gold text-neutral-900 hover:brightness-95'
                   : 'bg-primary-600 text-white hover:bg-primary-700'
                 }`}
               >

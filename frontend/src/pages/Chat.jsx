@@ -537,7 +537,7 @@ const Chat = () => {
   const groupedMessages = groupMessagesByDate(messages);
 
   return (
-    <div className="h-[calc(100dvh-8rem)] md:h-screen -mb-24 md:mb-0 flex bg-neutral-100 overflow-hidden">
+    <div className="h-[calc(100dvh-8rem)] md:h-screen -mb-24 md:mb-0 flex bg-neutral-100 dark:bg-[#14182a] overflow-hidden">
       {/* Matches Sidebar */}
       <div className={`
         ${showMobileSidebar ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
@@ -689,14 +689,11 @@ const Chat = () => {
             </div>
 
             {/* Messages Container */}
-            <div 
+            <div
               ref={chatContainerRef}
-              className="flex-1 overflow-y-auto chat-scrollbar px-4 py-4"
+              className="flex-1 overflow-y-auto chat-scrollbar px-4 py-4 bg-[#FDF8F2] dark:bg-[#14182a]"
               role="log"
               aria-label="Chat messages"
-              style={{ 
-                background: 'linear-gradient(180deg, #FDF2F5 0%, #FDF6E3 50%, #FAFAFA 100%)'
-              }}
             >
               {/* Chat start message */}
               <div className="flex justify-center mb-6">

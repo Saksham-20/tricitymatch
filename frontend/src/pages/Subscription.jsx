@@ -357,15 +357,15 @@ const Subscription = () => {
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-8 flex items-center gap-3 px-5 py-3.5 bg-success-50 border border-success-100 rounded-2xl"
+            className="mb-8 flex items-center gap-3 px-5 py-3.5 bg-primary-50 border border-primary-100 rounded-2xl"
           >
-            <div className="w-8 h-8 rounded-full bg-success flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center flex-shrink-0">
               <FiCheck className="w-4 h-4 text-white" />
             </div>
-            <p className="text-sm text-success font-medium">
+            <p className="text-sm text-primary-700 font-medium">
               You have an active <strong>{planDisplayName(currentSub.planType)}</strong> subscription
               {currentSub.endDate && (
-                <span className="font-normal text-success/80">
+                <span className="font-normal text-primary-700/70">
                   {' '}· valid until {new Date(currentSub.endDate).toLocaleDateString()}
                 </span>
               )}

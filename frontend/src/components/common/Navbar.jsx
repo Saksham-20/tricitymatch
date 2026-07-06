@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import Logo from './Logo';
 import api from '../../api/axios';
 import useDarkMode from '../../hooks/useDarkMode';
+import useElderMode from '../../hooks/useElderMode';
 import {
   FiUser, FiLogOut, FiHome, FiSearch, FiMessageCircle,
   FiMenu, FiX, FiBell, FiSettings, FiCreditCard, FiChevronDown,
@@ -203,6 +204,10 @@ const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const { isDark, toggle: toggleDark } = useDarkMode();
+  // Mount elder mode globally (parallels dark mode) so the .elder class is
+  // re-applied from localStorage on every page load — not just on Settings,
+  // where the hook used to be the only mount point (elder silently off elsewhere).
+  useElderMode();
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {

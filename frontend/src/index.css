@@ -528,6 +528,12 @@
     background-color: #F5F5F5;
     color: #2D2D2D;
   }
+  /* Dark-mode parity: received bubbles were hard-coded light (#F5F5F5) with no
+     dark variant, leaving the chat thread half-light in dark mode. */
+  :is(html.dark) .message-received {
+    background-color: #232a3d;
+    color: #E8E8E8;
+  }
   
   .typing-indicator {
     @apply flex gap-1 p-3;

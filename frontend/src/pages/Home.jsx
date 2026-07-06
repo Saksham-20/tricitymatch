@@ -248,6 +248,13 @@ const FontLoader = () => (
       .cur-dot, .cur-ring { display: none !important; }
       .ribbon-track { animation: none !important; }
     }
+
+    /* Fixed global navbar is taller on mobile (~89px) than the desktop bar the
+       announcement clears by default → its first line hid under the navbar.
+       Give the announcement explicit top clearance on small screens. */
+    @media (max-width: 767px) {
+      .home-announce { margin-top: 40px; }
+    }
   `}</style>
 );
 
@@ -472,6 +479,7 @@ const Home = () => {
       <AnimatePresence>
         {announcementOn && (
           <motion.div
+            className="home-announce"
             initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
             style={{ background: 'var(--burgundy)', color: 'var(--cream)', fontSize: 13, overflow: 'hidden', position: 'relative', zIndex: 40 }}
           >
@@ -589,6 +597,7 @@ const Home = () => {
               position: 'absolute', inset: 0, borderRadius: 6, overflow: 'hidden',
               boxShadow: '0 30px 80px -20px rgba(45,26,34,.35)',
               background: 'linear-gradient(140deg,#C9B5A6,#6E574B)',
+              transform: 'rotate(-8deg) translateY(40px) translateX(-30px)',
               animation: 'drift-back 8s ease-in-out infinite',
             }}>
               <img src="/images/landing/profile-anjali.jpg" alt="Anjali Nair" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -600,6 +609,7 @@ const Home = () => {
               position: 'absolute', inset: 0, borderRadius: 6, overflow: 'hidden',
               boxShadow: '0 30px 80px -20px rgba(45,26,34,.35)',
               background: 'linear-gradient(160deg,#B59C82,#5C4B40)',
+              transform: 'rotate(4deg) translateY(20px) translateX(20px)',
               animation: 'drift-mid 10s ease-in-out infinite',
             }}>
               <img src="/images/landing/profile-rahul.jpg" alt="Rahul Gupta" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -610,6 +620,7 @@ const Home = () => {
             <div style={{
               position: 'absolute', inset: 0, borderRadius: 6, overflow: 'hidden',
               boxShadow: '0 30px 80px -20px rgba(45,26,34,.35)',
+              transform: 'rotate(-2deg)',
               animation: 'drift-front 12s ease-in-out infinite',
               zIndex: 2,
             }}>

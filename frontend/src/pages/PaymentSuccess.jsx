@@ -32,10 +32,10 @@ export default function PaymentSuccess() {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-            className="w-18 h-18 rounded-full bg-success-light flex items-center justify-center mx-auto mb-5"
+            className="w-18 h-18 rounded-full bg-gold-50 flex items-center justify-center mx-auto mb-5"
             style={{ width: 72, height: 72 }}
           >
-            <FiCheckCircle className="w-9 h-9 text-success" />
+            <FiCheckCircle className="w-9 h-9 text-gold" />
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
@@ -47,8 +47,8 @@ export default function PaymentSuccess() {
               Your subscription is now active. You have full access to all premium features.
             </p>
 
-            <div className="bg-success-light rounded-2xl p-4 mb-6 text-left">
-              <p className="text-xs font-semibold text-success uppercase tracking-wide mb-2">What's unlocked</p>
+            <div className="bg-gold-50 rounded-2xl p-4 mb-6 text-left">
+              <p className="text-xs font-semibold text-gold-700 uppercase tracking-wide mb-2">What's unlocked</p>
               {[
                 'Unlimited profile views',
                 'Send unlimited interests',
@@ -56,7 +56,7 @@ export default function PaymentSuccess() {
                 'Direct messaging',
               ].map((f) => (
                 <div key={f} className="flex items-center gap-2 py-1">
-                  <FiCheckCircle className="w-3.5 h-3.5 text-success flex-shrink-0" />
+                  <FiCheckCircle className="w-3.5 h-3.5 text-gold flex-shrink-0" />
                   <span className="text-sm text-neutral-700">{f}</span>
                 </div>
               ))}
