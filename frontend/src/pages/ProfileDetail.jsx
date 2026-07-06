@@ -8,7 +8,7 @@ import {
   FiMusic, FiLock, FiCheck, FiMapPin, FiCalendar, FiBook, FiBriefcase,
   FiGlobe, FiChevronLeft, FiMessageCircle, FiShield, FiPhone, FiMail,
   FiUnlock, FiUser, FiGrid, FiSun, FiHome, FiHeart as FiHeartOutline,
-  FiInfo, FiDollarSign, FiDownload, FiVideo,
+  FiInfo, FiDollarSign, FiDownload, FiVideo, FiYoutube, FiLink,
 } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
@@ -288,7 +288,9 @@ const ProfileDetail = () => {
   const age = profile.dateOfBirth
     ? Math.floor((Date.now() - new Date(profile.dateOfBirth)) / (365.25 * 24 * 60 * 60 * 1000))
     : null;
-  const isVerified = profile.User?.Verification?.status === 'approved';
+  // getProfile now attaches `isVerified` directly (the old
+  // profile.User.Verification.status was never populated → badge never showed).
+  const isVerified = profile.isVerified || profile.User?.Verification?.status === 'approved';
   const allPhotos = profile.profilePhoto
     ? [profile.profilePhoto, ...(profile.photos || []).filter(p => p !== profile.profilePhoto)]
     : (profile.photos || []);
@@ -311,8 +313,13 @@ const ProfileDetail = () => {
     { key: 'instagram', label: 'Instagram', icon: FiInstagram, color: '#E1306C' },
     { key: 'linkedin', label: 'LinkedIn', icon: FiLinkedin, color: '#0077B5' },
     { key: 'facebook', label: 'Facebook', icon: FiFacebook, color: '#1877F2' },
-    { key: 'twitter', label: 'Twitter', icon: FiTwitter, color: '#1DA1F2' },
+    { key: 'twitter', label: 'X (Twitter)', icon: FiTwitter, color: '#1DA1F2' },
+    { key: 'youtube', label: 'YouTube', icon: FiYoutube, color: '#FF0000' },
+    { key: 'website', label: 'Website', icon: FiLink, color: '#8B2346' },
   ];
+  // Links can be a legacy string or the new { url, visibility } shape.
+  const socialUrl = (entry) => (typeof entry === 'string' ? entry : entry?.url) || null;
+  const hasSocials = profile.socialMediaLinks && socialPlatforms.some((p) => socialUrl(profile.socialMediaLinks[p.key]));
 
   const tabs = [
     { id: 'about', label: 'About' },
@@ -870,30 +877,6 @@ const ProfileDetail = () => {
                     {!unlockedContact.phone && !unlockedContact.email && (
                       <p className="text-sm text-neutral-400 text-center py-2">No contact details available</p>
                     )}
-                    {/* Social links when unlocked */}
-                    {profile.socialMediaLinks && socialPlatforms.some(p => profile.socialMediaLinks[p.key]) && (
-                      <div className="pt-2 mt-2 border-t border-neutral-100">
-                        <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wide mb-2">Social Media</p>
-                        <div className="grid grid-cols-2 gap-2">
-                          {socialPlatforms.map(({ key, label, icon: Icon, color }) => {
-                            const url = profile.socialMediaLinks[key];
-                            if (!url) return null;
-                            return (
-                              <a
-                                key={key}
-                                href={sanitizeUrl(url)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 px-2.5 py-2 rounded-xl border border-neutral-100 hover:bg-neutral-50 transition-colors cursor-pointer"
-                              >
-                                <Icon className="w-3.5 h-3.5" style={{ color }} />
-                                <span className="text-xs font-semibold text-neutral-600">{label}</span>
-                              </a>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 ) : (
                   <div className="text-center py-3">
@@ -904,7 +887,7 @@ const ProfileDetail = () => {
                     <p className="text-xs text-neutral-400 mb-4 leading-relaxed">
                       {premiumAccess
                         ? `Use 1 of your ${contactUnlocksRemaining > 0 ? contactUnlocksRemaining : 'remaining'} unlock${contactUnlocksRemaining !== 1 ? 's' : ''} to view phone & email`
-                        : 'Upgrade to Premium to view phone, email, and social links'}
+                        : 'Upgrade to Premium to view phone & email'}
                     </p>
                     {premiumAccess && contactUnlocksRemaining > 0 && (
                       <p className="text-xs font-bold text-primary-400 mb-3">{contactUnlocksRemaining} unlock{contactUnlocksRemaining !== 1 ? 's' : ''} remaining</p>
@@ -930,6 +913,31 @@ const ProfileDetail = () => {
                   </div>
                 )}
               </Card>
+
+              {/* Social connections — display-only links the member chose to show.
+                  Server already filtered these by each link's visibility. */}
+              {hasSocials && (
+                <Card title="Social Connections" icon={FiLink}>
+                  <div className="grid grid-cols-2 gap-2">
+                    {socialPlatforms.map(({ key, label, icon: Icon, color }) => {
+                      const url = sanitizeUrl(socialUrl(profile.socialMediaLinks[key]));
+                      if (!url) return null;
+                      return (
+                        <a
+                          key={key}
+                          href={url}
+                          target="_blank"
+                          rel="noopener nofollow noreferrer"
+                          className="flex items-center gap-2 px-2.5 py-2 rounded-xl border border-neutral-100 hover:bg-neutral-50 transition-colors cursor-pointer"
+                        >
+                          <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color }} />
+                          <span className="text-xs font-semibold text-neutral-600 truncate">{label}</span>
+                        </a>
+                      );
+                    })}
+                  </div>
+                </Card>
+              )}
             </div>
           </div>
         </div>

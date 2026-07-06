@@ -39,6 +39,7 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
     incomeMax,
     motherTongue,
     manglikFilter,  // 'manglik_only' | 'non_manglik_only' | 'exclude_incompatible'
+    verifiedOnly,   // 'true' → only photo-verified members
     sortBy = 'compatibility'
   } = req.query;
 
@@ -203,6 +204,20 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
     }
   }
 
+  // Verified-only filter: restrict to members with an approved photo
+  // verification. Pre-fetch the approved set and constrain the DB query so the
+  // page counts stay correct (post-query filtering would break pagination).
+  if (verifiedOnly === 'true' || verifiedOnly === true) {
+    const approvedVerifications = await Verification.findAll({
+      where: { status: 'approved' },
+      attributes: ['userId'],
+    });
+    const approvedIds = approvedVerifications.map((v) => v.userId);
+    if (!where[Op.and]) where[Op.and] = [];
+    // Empty approved set → match nothing (userId is never null).
+    where[Op.and].push({ userId: approvedIds.length ? { [Op.in]: approvedIds } : null });
+  }
+
   // Column-backed sorts run at the DB level so they paginate correctly;
   // 'compatibility' is computed in JS below, so it keeps the default order.
   const orderClause =
@@ -342,8 +357,10 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
   // Sort by compatibility if requested
   if (sortBy === 'compatibility') {
     profilesWithCompatibility.sort((a, b) => {
-      const scoreA = (a.compatibilityScore || 0) + premiumBoost(a.premiumPlan) + (a.isBoosted ? 8 : 0);
-      const scoreB = (b.compatibilityScore || 0) + premiumBoost(b.premiumPlan) + (b.isBoosted ? 8 : 0);
+      // Verified members get a ranking nudge (+8, on par with a referral boost)
+      // so getting verified visibly pays off in where you land in results.
+      const scoreA = (a.compatibilityScore || 0) + premiumBoost(a.premiumPlan) + (a.isBoosted ? 8 : 0) + (a.isVerified ? 8 : 0);
+      const scoreB = (b.compatibilityScore || 0) + premiumBoost(b.premiumPlan) + (b.isBoosted ? 8 : 0) + (b.isVerified ? 8 : 0);
       return scoreB - scoreA;
     });
   }

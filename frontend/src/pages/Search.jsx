@@ -27,6 +27,7 @@ const FILTER_LABELS = {
   incomeMin: (v) => `₹${(v / 100000)}L+ income`,
   incomeMax: (v) => `≤ ₹${(v / 100000)}L income`,
   manglikFilter: (v) => v.replace(/_/g, ' '),
+  verifiedOnly: () => 'Verified only',
 };
 import { staggerContainer, fadeInUp } from '../utils/animations';
 import { API_BASE_URL } from '../utils/api';
@@ -67,6 +68,7 @@ const Search = () => {
     city: '', education: '', profession: '',
     diet: '', smoking: '', drinking: '',
     religion: '', caste: '', maritalStatus: '', motherTongue: '', incomeMin: '', incomeMax: '', manglikFilter: '',
+    verifiedOnly: '',
   });
 
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
@@ -174,7 +176,7 @@ const Search = () => {
   };
 
   const handleClearFilters = () => {
-    const emptyFilters = { ageMin: '', ageMax: '', heightMin: '', heightMax: '', city: '', education: '', profession: '', diet: '', smoking: '', drinking: '', religion: '', caste: '', maritalStatus: '', motherTongue: '', incomeMin: '', incomeMax: '', manglikFilter: '' };
+    const emptyFilters = { ageMin: '', ageMax: '', heightMin: '', heightMax: '', city: '', education: '', profession: '', diet: '', smoking: '', drinking: '', religion: '', caste: '', maritalStatus: '', motherTongue: '', incomeMin: '', incomeMax: '', manglikFilter: '', verifiedOnly: '' };
     setFilters(emptyFilters);
     setPage(1);
     searchProfiles({ overrideFilters: emptyFilters, overridePage: 1 });

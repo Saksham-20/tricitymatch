@@ -3,7 +3,8 @@
  * Handles user profile management with proper security
  */
 
-const { Profile, User, ProfileView, Subscription, Match, ContactUnlock, Block } = require('../models');
+const { Profile, User, ProfileView, Subscription, Match, ContactUnlock, Block, Verification } = require('../models');
+const { visibleSocialLinks, normalizeSocialLinks } = require('../utils/socialLinks');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const { calculateCompatibility, getCompatibilityBreakdown: calcBreakdown, getAshtakootScore, isManglikCompatible, getRashiCompatibility } = require('../utils/compatibility');
@@ -182,7 +183,7 @@ exports.updateProfile = asyncHandler(async (req, res) => {
     // Fields that must be arrays in the database (excluding photos which is handled separately)
     const arrayFields = ['preferredCity', 'interestTags', 'languages'];
     // Fields that must be JSON in the database
-    const jsonFields = ['personalityValues', 'familyPreferences', 'lifestylePreferences', 'profilePrompts', 'quizAnswers'];
+    const jsonFields = ['personalityValues', 'familyPreferences', 'lifestylePreferences', 'profilePrompts', 'quizAnswers', 'socialMediaLinks'];
     
     for (const field of PROFILE_UPDATABLE_FIELDS) {
       if (Object.prototype.hasOwnProperty.call(req.body || {}, field)) {
@@ -229,6 +230,13 @@ exports.updateProfile = asyncHandler(async (req, res) => {
       const v = updateData[key];
       if (v === '' || v === null || v === undefined) delete updateData[key];
     });
+
+    // Normalize social connections to the canonical { key: {url, visibility} }
+    // shape, dropping unknown platforms and unsafe (non-http) URLs. null clears
+    // the field. Display-only links — no ownership proof, no credibility weight.
+    if (Object.prototype.hasOwnProperty.call(updateData, 'socialMediaLinks')) {
+      updateData.socialMediaLinks = normalizeSocialLinks(updateData.socialMediaLinks);
+    }
 
     // Normalize file path: Cloudinary returns full URL; local storage returns path — store URL path for local
     const getStoredPath = (file) => {
@@ -531,8 +539,24 @@ exports.getProfile = asyncHandler(async (req, res) => {
       delete profileData.User.phone;
       delete profileData.User.email;
     }
-    profileData.socialMediaLinks = null;
   }
+
+  // Social connections are display-only links, independent of the contact
+  // paywall. Show them per the OWNER's own per-link visibility choice
+  // (everyone / matches_only / hidden) rather than gating them behind premium.
+  profileData.socialMediaLinks = visibleSocialLinks(profileData.socialMediaLinks, {
+    isOwner: false,
+    isMutual,
+  });
+
+  // Verified badge: derived from an approved Verification. getProfile never
+  // included the Verification association, so ProfileDetail's badge was always
+  // false — attach it explicitly so a direct profile view matches search cards.
+  const approvedVerification = await Verification.findOne({
+    where: { userId, status: 'approved' },
+    attributes: ['id'],
+  });
+  profileData.isVerified = !!approvedVerification;
 
   // Check if target user has premium (for badge display)
   const targetSubscription = await Subscription.findOne({

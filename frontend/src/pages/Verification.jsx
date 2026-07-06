@@ -29,6 +29,7 @@ function StatusPill({ status }) {
 
 export default function Verification() {
   const { t } = useTranslation();
+  const [tab, setTab] = useState('photo');
   const [selfieStatus, setSelfieStatus] = useState('not_submitted');
   const [bgStatus, setBgStatus] = useState('not_requested');
   const [adminNotes, setAdminNotes] = useState(null);
@@ -167,60 +168,130 @@ export default function Verification() {
         )}
       </div>
 
-      {/* Selfie submission */}
-      {selfieStatus !== 'approved' && selfieStatus !== 'pending' && (
-        <form onSubmit={submitSelfie} className="bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-6 mb-6">
+      {/* Tabs */}
+      <div className="flex gap-1 bg-neutral-100 dark:bg-neutral-800 rounded-xl p-1 mb-6 w-full sm:w-fit">
+        {[
+          { id: 'photo', label: 'Photo Verification' },
+          { id: 'bgCheck', label: 'Background Check' },
+        ].map((tb) => (
+          <button
+            key={tb.id}
+            onClick={() => setTab(tb.id)}
+            className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              tab === tb.id
+                ? 'bg-white dark:bg-[#1a1f2e] shadow text-neutral-900 dark:text-neutral-100'
+                : 'text-neutral-500 hover:text-neutral-700'
+            }`}
+          >
+            {tb.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Photo Verification tab ─────────────────────────────────────────── */}
+      {tab === 'photo' && (
+        <div className="bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-6 mb-6">
           <h2 className="font-semibold text-neutral-800 dark:text-neutral-200 mb-1">{t('verification.tierSelfie')}</h2>
           <p className="text-sm text-neutral-500 mb-4">
             Upload a clear selfie. Our team matches it against your profile photos — no
             documents needed, and the selfie is never shown to other members.
           </p>
 
-          {/* How it works */}
-          <div className="grid grid-cols-3 gap-2.5 mb-5">
-            {[
-              { step: '1', title: 'Take a selfie', desc: 'Good light, face clearly visible' },
-              { step: '2', title: 'Team review', desc: 'Matched to your profile photos' },
-              { step: '3', title: 'Get the badge', desc: 'Verified tick on your profile' },
-            ].map(({ step, title, desc }) => (
-              <div key={step} className="flex flex-col items-center text-center p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-100 dark:border-neutral-700">
-                <div className="w-6 h-6 rounded-full bg-primary-100 text-primary-600 text-xs font-bold flex items-center justify-center mb-1.5">{step}</div>
-                <p className="text-xs font-semibold text-neutral-800 dark:text-neutral-200">{title}</p>
-                <p className="text-[11px] text-neutral-500 mt-0.5">{desc}</p>
-              </div>
-            ))}
+          {/* Why verify — the perks */}
+          <div className="mb-5 rounded-xl bg-gold-50 dark:bg-gold-900/10 border border-gold-100 dark:border-gold-800 p-4">
+            <p className="text-xs font-bold text-gold-700 dark:text-gold-300 uppercase tracking-wide mb-2">Why get verified</p>
+            <ul className="space-y-1.5">
+              {[
+                'A verified badge on your profile that families trust',
+                'Higher ranking in search results',
+                'You appear in “Verified only” searches',
+              ].map((perk) => (
+                <li key={perk} className="flex items-start gap-2 text-sm text-neutral-700 dark:text-neutral-300">
+                  <FiCheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
+                  {perk}
+                </li>
+              ))}
+            </ul>
           </div>
 
-          <SelfieField file={selfie} onChange={setSelfie} />
+          {/* Rejected — surface the admin note + let them resubmit */}
+          {selfieStatus === 'rejected' && adminNotes && (
+            <p className="mb-5 text-sm text-destructive bg-destructive-light border border-destructive/20 rounded-lg p-3">
+              {adminNotes}
+            </p>
+          )}
 
-          <button
-            type="submit"
-            disabled={submitting || !selfie}
-            className="mt-4 px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-60 font-medium"
-          >
-            {submitting ? t('common.loading') : t('verification.uploadSelfie')}
-          </button>
-        </form>
+          {selfieStatus === 'approved' ? (
+            <div className="flex items-center gap-2 text-success bg-success-50 border border-success-100 rounded-xl p-4 text-sm font-medium">
+              <FiCheckCircle className="w-5 h-5" /> Your profile is verified. The badge is live for other members.
+            </div>
+          ) : selfieStatus === 'pending' ? (
+            <div className="flex items-center gap-2 text-warning bg-warning-light border border-warning/20 rounded-xl p-4 text-sm font-medium">
+              <FiClock className="w-5 h-5" /> Your selfie is with our team for review. We'll notify you once it's done.
+            </div>
+          ) : (
+            <form onSubmit={submitSelfie}>
+              {/* How it works */}
+              <div className="grid grid-cols-3 gap-2.5 mb-5">
+                {[
+                  { step: '1', title: 'Take a selfie', desc: 'Good light, face clearly visible' },
+                  { step: '2', title: 'Team review', desc: 'Matched to your profile photos' },
+                  { step: '3', title: 'Get the badge', desc: 'Verified tick on your profile' },
+                ].map(({ step, title, desc }) => (
+                  <div key={step} className="flex flex-col items-center text-center p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-100 dark:border-neutral-700">
+                    <div className="w-6 h-6 rounded-full bg-primary-100 text-primary-600 text-xs font-bold flex items-center justify-center mb-1.5">{step}</div>
+                    <p className="text-xs font-semibold text-neutral-800 dark:text-neutral-200">{title}</p>
+                    <p className="text-[11px] text-neutral-500 mt-0.5">{desc}</p>
+                  </div>
+                ))}
+              </div>
+
+              <SelfieField file={selfie} onChange={setSelfie} />
+
+              <button
+                type="submit"
+                disabled={submitting || !selfie}
+                className="mt-4 px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-60 font-medium"
+              >
+                {submitting ? t('common.loading') : t('verification.uploadSelfie')}
+              </button>
+            </form>
+          )}
+        </div>
       )}
 
-      {/* Background check */}
-      {bgStatus !== 'passed' && bgStatus !== 'in_progress' && (
+      {/* ── Background Check tab ────────────────────────────────────────────── */}
+      {tab === 'bgCheck' && (
         <div className="bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-6">
           <h2 className="font-semibold text-neutral-800 dark:text-neutral-200 mb-2">{t('verification.tierBgCheck')}</h2>
-          <p className="text-sm text-neutral-500 mb-4">
-            A professional background verification (₹499). Adds a trust badge to your profile.
-          </p>
-          <label className="flex items-start gap-2 mb-4 text-sm text-neutral-700">
-            <input type="checkbox" checked={bgConsent} onChange={(e) => setBgConsent(e.target.checked)} className="mt-1" />
-            <span>I consent to a third-party background check using my profile details.</span>
-          </label>
-          <button
-            onClick={startBgCheck}
-            disabled={bgBusy}
-            className="px-6 py-2.5 bg-primary-700 text-white rounded-lg hover:bg-primary-800 disabled:opacity-60 font-medium transition-colors"
-          >
-            {bgBusy ? t('common.loading') : t('verification.startBgCheck')}
-          </button>
+          {bgStatus === 'passed' || bgStatus === 'in_progress' ? (
+            <div className={`flex items-center gap-2 rounded-xl p-4 text-sm font-medium ${
+              bgStatus === 'passed'
+                ? 'text-success bg-success-50 border border-success-100'
+                : 'text-warning bg-warning-light border border-warning/20'
+            }`}>
+              {bgStatus === 'passed'
+                ? <><FiCheckCircle className="w-5 h-5" /> Background check complete. The trust badge is on your profile.</>
+                : <><FiClock className="w-5 h-5" /> Your background check is in progress.</>}
+            </div>
+          ) : (
+            <>
+              <p className="text-sm text-neutral-500 mb-4">
+                A professional background verification (₹499). Adds a trust badge to your profile.
+              </p>
+              <label className="flex items-start gap-2 mb-4 text-sm text-neutral-700">
+                <input type="checkbox" checked={bgConsent} onChange={(e) => setBgConsent(e.target.checked)} className="mt-1" />
+                <span>I consent to a third-party background check using my profile details.</span>
+              </label>
+              <button
+                onClick={startBgCheck}
+                disabled={bgBusy}
+                className="px-6 py-2.5 bg-primary-700 text-white rounded-lg hover:bg-primary-800 disabled:opacity-60 font-medium transition-colors"
+              >
+                {bgBusy ? t('common.loading') : t('verification.startBgCheck')}
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>

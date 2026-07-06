@@ -7,7 +7,7 @@ import {
   FiEye, FiHeart, FiUsers, FiTrendingUp, FiMessageCircle,
   FiStar, FiArrowRight, FiCheckCircle, FiSun, FiMoon, FiCoffee,
   FiSearch, FiChevronRight, FiLock, FiUnlock, FiCalendar, FiZap,
-  FiAlertCircle, FiRefreshCw, FiCamera, FiUser, FiSliders,
+  FiAlertCircle, FiRefreshCw, FiCamera, FiUser, FiSliders, FiShield, FiX,
 } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 import { formatCompatibilityScore } from '../utils/compatibility';
@@ -275,6 +275,10 @@ const Dashboard = () => {
   const [loading, setLoading]           = useState(true);
   const [loadError, setLoadError]       = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState(null);
+  const [verifyNudgeDismissed, setVerifyNudgeDismissed] = useState(
+    () => sessionStorage.getItem('verifyNudgeDismissed') === '1'
+  );
 
   // Time-based greeting
   const greeting = useMemo(() => {
@@ -287,6 +291,24 @@ const Dashboard = () => {
   }, [user]);
 
   useEffect(() => { loadDashboardData(); }, []);
+
+  // Verification status drives the "Get verified" nudge (best-effort; page still
+  // renders if this fails).
+  useEffect(() => {
+    api.get('/verification/status')
+      .then(r => setVerificationStatus(r.data?.verification?.status || 'not_submitted'))
+      .catch(() => {});
+  }, []);
+
+  const dismissVerifyNudge = () => {
+    sessionStorage.setItem('verifyNudgeDismissed', '1');
+    setVerifyNudgeDismissed(true);
+  };
+  // Show only to members who can still act on it (not already verified/pending).
+  const showVerifyNudge =
+    !verifyNudgeDismissed &&
+    verificationStatus &&
+    !['approved', 'pending'].includes(verificationStatus);
 
   const loadDashboardData = async () => {
     try {
@@ -568,6 +590,39 @@ const Dashboard = () => {
             </div>
           </div>
         </motion.div>
+
+        {/* ── 1a. Get-verified nudge — perks-led, dismissible, no hard gate. ── */}
+        {showVerifyNudge && (
+          <motion.div variants={fadeInUp}>
+            <div className="relative rounded-2xl border border-gold-200 bg-gold-50 dark:bg-gold-900/10 dark:border-gold-800 p-5 flex items-start gap-4">
+              <div className="w-11 h-11 rounded-xl bg-gold-100 dark:bg-gold-900/30 flex items-center justify-center flex-shrink-0">
+                <FiShield className="w-5 h-5 text-gold-700 dark:text-gold-300" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-display text-base font-bold text-neutral-900 dark:text-neutral-100">
+                  {verificationStatus === 'rejected' ? 'Re-submit your verification' : 'Get verified — stand out'}
+                </p>
+                <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-0.5">
+                  Verified profiles rank higher, show a trust badge, and appear in “verified only” searches. Takes under a minute with a selfie.
+                </p>
+                <Link
+                  to="/verification"
+                  className="inline-flex items-center gap-1.5 mt-3 px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors"
+                >
+                  <FiShield className="w-4 h-4" />
+                  {verificationStatus === 'rejected' ? 'Try again' : 'Verify my profile'}
+                </Link>
+              </div>
+              <button
+                onClick={dismissVerifyNudge}
+                className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-600 hover:bg-white/60 transition-colors flex-shrink-0"
+                aria-label="Dismiss"
+              >
+                <FiX className="w-4 h-4" />
+              </button>
+            </div>
+          </motion.div>
+        )}
 
         {/* ── 1b. Load error — a server failure is never dressed up as an empty
                profile. Distinct banner + retry. ─────────────────────────────── */}

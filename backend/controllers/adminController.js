@@ -142,8 +142,10 @@ exports.updateVerification = asyncHandler(async (req, res) => {
   const { verificationId } = req.params;
   const { status, adminNotes } = req.body;
 
-  // Allowlist status values
-  const validVerificationStatuses = ['approved', 'rejected'];
+  // Allowlist status values. Admins can move a verification to ANY of these at
+  // any time — re-open an approved one to 'pending', flag a suspicious one, or
+  // reverse a rejection — not just the one-shot approve/reject it used to allow.
+  const validVerificationStatuses = ['approved', 'rejected', 'pending', 'flagged'];
   if (!status || !validVerificationStatuses.includes(status)) {
     throw createError.badRequest(`Status must be one of: ${validVerificationStatuses.join(', ')}`);
   }
@@ -173,28 +175,35 @@ exports.updateVerification = asyncHandler(async (req, res) => {
     newStatus: status
   });
 
-  // Notify user via in-app + email (non-blocking)
-  setImmediate(async () => {
-    try {
-      const user = await User.findByPk(verification.userId, {
-        attributes: ['email'],
-        include: [{ model: Profile, attributes: ['firstName'] }]
-      });
-      if (!user) return;
-      const name = user.Profile?.firstName || 'User';
+  // Notify user via in-app + email (non-blocking). Only fire on a REAL status
+  // transition so re-saving the same status (e.g. editing notes) doesn't spam
+  // the member. 'flagged' is an internal admin state — no member notification.
+  if (status !== previousStatus) {
+    setImmediate(async () => {
+      try {
+        const user = await User.findByPk(verification.userId, {
+          attributes: ['email'],
+          include: [{ model: Profile, attributes: ['firstName'] }]
+        });
+        if (!user) return;
+        const name = user.Profile?.firstName || 'User';
 
-      if (status === 'approved') {
-        await notify(verification.userId, 'verification_approved', 'Profile Verified!', 'Your photo verification is complete. Your profile now shows a verified badge.');
-        await sendVerificationApproved(user.email, name);
-      } else if (status === 'rejected') {
-        const reason = safeAdminNotes || 'Please resubmit a clear, well-lit selfie that matches your profile photos.';
-        await notify(verification.userId, 'verification_rejected', 'Verification Update', `Your verification was not approved. ${reason}`);
-        await sendVerificationRejected(user.email, name, reason);
+        if (status === 'approved') {
+          await notify(verification.userId, 'verification_approved', 'Profile Verified!', 'Your photo verification is complete. Your profile now shows a verified badge.');
+          await sendVerificationApproved(user.email, name);
+        } else if (status === 'rejected') {
+          const reason = safeAdminNotes || 'Please resubmit a clear, well-lit selfie that matches your profile photos.';
+          await notify(verification.userId, 'verification_rejected', 'Verification Update', `Your verification was not approved. ${reason}`);
+          await sendVerificationRejected(user.email, name, reason);
+        } else if (status === 'pending') {
+          // Re-opened for another look — in-app only, no email.
+          await notify(verification.userId, 'system', 'Verification under review', 'Our team is re-reviewing your photo verification. We\'ll update you shortly.');
+        }
+      } catch (err) {
+        // Non-fatal — verification is already saved
       }
-    } catch (err) {
-      // Non-fatal — verification is already saved
-    }
-  });
+    });
+  }
 
   res.json({
     success: true,
