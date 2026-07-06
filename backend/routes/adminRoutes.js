@@ -75,7 +75,7 @@ router.get('/revenue', getRevenueReport);
 router.get('/reports', getReports);
 router.put('/reports/:reportId',
   param('reportId').isUUID(4),
-  body('status').isIn(['reviewed', 'dismissed']),
+  body('status').isIn(['reviewing', 'resolved', 'reviewed', 'dismissed']),
   handleValidationErrors,
   updateReport
 );

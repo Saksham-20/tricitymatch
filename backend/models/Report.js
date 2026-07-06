@@ -33,7 +33,8 @@ const Report = sequelize.define('Report', {
     allowNull: true,
   },
   status: {
-    type: DataTypes.ENUM('pending', 'reviewed', 'dismissed'),
+    // pending → reviewing → resolved | dismissed. `reviewed` kept for legacy rows.
+    type: DataTypes.ENUM('pending', 'reviewing', 'reviewed', 'resolved', 'dismissed'),
     defaultValue: 'pending',
   },
   adminNotes: {

@@ -360,9 +360,9 @@ exports.updateReport = asyncHandler(async (req, res) => {
   const { reportId } = req.params;
   const { status, adminNotes } = req.body;
 
-  const validStatuses = ['reviewed', 'dismissed'];
+  const validStatuses = ['reviewing', 'resolved', 'reviewed', 'dismissed'];
   if (!validStatuses.includes(status)) {
-    throw createError.badRequest('Status must be reviewed or dismissed');
+    throw createError.badRequest('Status must be one of: reviewing, resolved, dismissed');
   }
 
   const report = await Report.findByPk(reportId);
@@ -377,12 +377,18 @@ exports.updateReport = asyncHandler(async (req, res) => {
 
   logAudit('report_status_changed', req.user.id, { reportId, previous, status });
 
-  // Notify reporter that their report was reviewed
+  // Notify reporter of the outcome
+  const outcomeCopy = {
+    reviewing: 'is being reviewed by our team',
+    resolved: 'has been reviewed and action has been taken',
+    reviewed: 'has been reviewed and action has been taken',
+    dismissed: 'has been reviewed and dismissed',
+  };
   await notify(
     report.reporterId,
     'report_reviewed',
-    'Your report has been reviewed',
-    `Your report has been ${status === 'reviewed' ? 'reviewed and action has been taken' : 'reviewed and dismissed'}.`
+    'Your report has been updated',
+    `Your report ${outcomeCopy[status] || 'has been reviewed'}.`
   );
 
   res.json({ success: true, report });
