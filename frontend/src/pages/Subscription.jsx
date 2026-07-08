@@ -48,13 +48,25 @@ const PLAN_CONFIG = {
   vip:            { label: 'VIP',           accent: 'gold',     icon: FiShield, cta: 'Get VIP',      duration: '3 months', price: 7499  },
 };
 
+// Tier order — a member can only move UP while a paid plan is active (mirrors
+// the backend createOrder rule). Lower/equal paid tiers show as "Included".
+const TIER_RANK = { free: 0, basic_premium: 1, premium_plus: 2, vip: 3 };
+
 // ─── Single plan card ─────────────────────────
-const PlanCard = ({ planKey, plan, isPopular, isCurrent, isProcessing, onSubscribe }) => {
+const PlanCard = ({ planKey, plan, isPopular, isCurrent, currentPlanType, isProcessing, onSubscribe }) => {
   const cfg = PLAN_CONFIG[planKey] || PLAN_CONFIG.free;
   const Icon = cfg.icon;
   const features = PLAN_FEATURES[planKey] || plan.features || [];
   const free = planKey === 'free';
   const displayPrice = plan.price || cfg.price || 0;
+
+  // On a paid plan, only higher tiers are purchasable (as upgrades).
+  const currentRank = TIER_RANK[currentPlanType] ?? 0;
+  const thisRank = TIER_RANK[planKey] ?? 0;
+  const onPaidPlan = currentRank > 0;
+  const isUpgrade = onPaidPlan && thisRank > currentRank;
+  const isIncluded = onPaidPlan && !isCurrent && !free && thisRank < currentRank;
+  const disabled = isCurrent || free || isIncluded || isProcessing;
 
   // Compute per-month price for display (only show for multi-month plans)
   let perMonth = null;
@@ -165,13 +177,11 @@ const PlanCard = ({ planKey, plan, isPopular, isCurrent, isProcessing, onSubscri
       {/* CTA */}
       <div className="px-6 pb-6">
         <button
-          onClick={() => !free && !isCurrent && !isProcessing && onSubscribe(planKey)}
-          disabled={isCurrent || free || isProcessing}
+          onClick={() => !disabled && onSubscribe(planKey)}
+          disabled={disabled}
           aria-busy={isProcessing || undefined}
           className={`w-full py-3 text-sm font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 disabled:cursor-not-allowed ${
-            isCurrent
-              ? 'bg-neutral-100 text-neutral-500 cursor-default'
-              : free
+            isCurrent || free || isIncluded
               ? 'bg-neutral-100 text-neutral-500 cursor-default'
               : planKey === 'vip'
               ? 'bg-gold text-neutral-900 hover:bg-gold-400 shadow-gold hover:-translate-y-0.5'
@@ -184,6 +194,10 @@ const PlanCard = ({ planKey, plan, isPopular, isCurrent, isProcessing, onSubscri
             ? <><FiCheck className="w-4 h-4" /> Current Plan</>
             : free
             ? 'Free Forever'
+            : isIncluded
+            ? <><FiCheck className="w-4 h-4" /> Included</>
+            : isUpgrade
+            ? <>Upgrade <FiArrowRight className="w-4 h-4" /></>
             : <>{cfg.cta} <FiArrowRight className="w-4 h-4" /></>}
         </button>
       </div>
@@ -395,6 +409,7 @@ const Subscription = () => {
                   plan={plan}
                   isPopular={key === 'premium_plus' || plan.popular}
                   isCurrent={currentSub?.planType === key && currentSub?.status === 'active'}
+                  currentPlanType={currentSub?.status === 'active' ? currentSub?.planType : 'free'}
                   isProcessing={processingPlan === key}
                   onSubscribe={handleSubscribe}
                 />
@@ -420,6 +435,7 @@ const Subscription = () => {
                   }}
                   isPopular={key === 'premium_plus'}
                   isCurrent={currentSub?.planType === key && currentSub?.status === 'active'}
+                  currentPlanType={currentSub?.status === 'active' ? currentSub?.planType : 'free'}
                   isProcessing={processingPlan === key}
                   onSubscribe={handleSubscribe}
                 />

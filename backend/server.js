@@ -91,7 +91,7 @@ const strictCors = cors(corsDelegate);
 // Provider webhooks are server-to-server (no Origin header) and authenticated by
 // HMAC signature, not CORS. Strict CORS would 403 them, dropping payment/BG-check
 // callbacks — so exempt webhook paths (they still verify signatures downstream).
-const isWebhookPath = (p) => /\/(subscription\/webhook|bg-check\/webhook)$/.test(p);
+const isWebhookPath = (p) => /\/subscription\/webhook$/.test(p);
 app.use((req, res, next) => {
   if (req.path.startsWith('/monitoring') || req.path.startsWith('/api/monitoring')) {
     return monitoringCors(req, res, next);
@@ -126,8 +126,6 @@ const rawBodyCapture = [
 ];
 app.use('/api/v1/subscription/webhook', ...rawBodyCapture);
 app.use('/api/subscription/webhook', ...rawBodyCapture);
-app.use('/api/v1/verification/bg-check/webhook', ...rawBodyCapture);
-app.use('/api/verification/bg-check/webhook', ...rawBodyCapture); // legacy double-mount (BE-1/WH-2)
 
 // JSON body parser with size limit
 app.use(express.json({

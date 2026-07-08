@@ -58,7 +58,6 @@ import EarningsScreen from '../features/bureau/EarningsScreen';
 // Astrologer marketplace (APP-059)
 import AstrologerMarketplaceScreen from '../features/profile/AstrologerMarketplaceScreen';
 import AstrologerDetailScreen from '../features/profile/AstrologerDetailScreen';
-import BackgroundCheckScreen from '../features/profile/BackgroundCheckScreen';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const Stack = createNativeStackNavigator<MainStackParamList>();
@@ -186,9 +185,6 @@ export default function MainNavigator() {
       {/* Astrologer marketplace (APP-059) */}
       <Stack.Screen name="AstrologerMarketplace" component={AstrologerMarketplaceScreen} />
       <Stack.Screen name="AstrologerDetail" component={AstrologerDetailScreen} />
-
-      {/* Background check (APP-060) */}
-      <Stack.Screen name="BackgroundCheck" component={BackgroundCheckScreen} />
 
       {/* Role-gated: admin only */}
       {(role === 'admin' || role === 'super_admin') && (

@@ -244,23 +244,6 @@ export default function VerificationScreen() {
           <Ionicons name="chevron-forward" size={18} color={colours.textMuted} />
         </TouchableOpacity>
 
-        {/* Background check CTA (APP-060) */}
-        <TouchableOpacity
-          style={sv.card}
-          onPress={() => navigation.navigate('BackgroundCheck')}
-          testID="background-check-btn"
-          accessibilityLabel="Start background check"
-        >
-          <View style={sv.left}>
-            <Ionicons name="shield-checkmark" size={24} color={colours.primary} />
-          </View>
-          <View style={sv.info}>
-            <Text style={sv.title}>Background Verified Badge</Text>
-            <Text style={sv.sub}>Court records + marital status check — ₹499 one-time</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={colours.textMuted} />
-        </TouchableOpacity>
-
         {isLoading ? (
           <ActivityIndicator size="large" color={colours.primary} style={{ marginTop: spacing['3xl'] }} />
         ) : (

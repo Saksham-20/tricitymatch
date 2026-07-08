@@ -341,7 +341,7 @@ const ProfileDetail = () => {
 
         {/* ── Top bar ─────────────────────────────────────────────────── */}
         <div className="sticky top-0 z-30 bg-white/95 dark:bg-[#1a1f2e]/95 backdrop-blur-sm border-b border-neutral-100 dark:border-neutral-800 px-4 py-3">
-          <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <div className="max-w-3xl mx-auto flex items-center justify-between">
             <button
               onClick={() => navigate(-1)}
               className="flex items-center gap-1.5 text-sm font-semibold text-neutral-500 hover:text-primary-500 transition-colors cursor-pointer"
@@ -368,7 +368,7 @@ const ProfileDetail = () => {
           </div>
         </div>
 
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
           {/* ── Hero section ─────────────────────────────────────────── */}
           <div className="bg-white dark:bg-[#1a1f2e] rounded-3xl border border-neutral-100 dark:border-neutral-800 shadow-card overflow-hidden mb-5">
@@ -529,11 +529,36 @@ const ProfileDetail = () => {
             </div>
           </div>
 
-          {/* ── Two-column layout ────────────────────────────────────── */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          {/* ── Single-column layout — everything stacked in one cohesive column ── */}
+          <div className="space-y-4">
 
-            {/* ── Left: Content tabs ─────────────────────────────────── */}
-            <div className="lg:col-span-2 space-y-4">
+              {/* Compat ring — mobile only (desktop ring lives in the hero) */}
+              {compatScore && (
+                <div className="md:hidden bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-5 flex justify-center">
+                  <CompatRing score={compatScore} />
+                </div>
+              )}
+
+              {/* Core details — full table up top so the page is dense (no side void) */}
+              <Card title="Details" icon={FiUser}>
+                <div>
+                  {age && <DetailRow label="Age" value={`${age} years`} />}
+                  {profile.height && <DetailRow label="Height" value={formatHeight(profile.height)} />}
+                  {profile.weight && <DetailRow label="Weight" value={`${profile.weight} kg`} />}
+                  <DetailRow label="Location" value={[profile.city, profile.state].filter(Boolean).join(', ') || null} />
+                  <DetailRow label="Education" value={profile.education} />
+                  {profile.degree && <DetailRow label="Degree" value={profile.degree} />}
+                  <DetailRow label="Profession" value={profile.profession} />
+                  {profile.income && <DetailRow label="Income" value={formatIncome(profile.income)} />}
+                  <DetailRow label="Religion" value={profile.religion} />
+                  <DetailRow label="Caste" value={profile.caste} />
+                  <DetailRow label="Mother Tongue" value={profile.motherTongue} />
+                  <DetailRow label="Marital Status" value={friendlyLabel('maritalStatus', profile.maritalStatus)} />
+                  <DetailRow label="Diet" value={formatEnum(profile.diet)} />
+                  <DetailRow label="Smoking" value={formatEnum(profile.smoking)} />
+                  <DetailRow label="Drinking" value={formatEnum(profile.drinking)} />
+                </div>
+              </Card>
 
               {/* Tab nav */}
               <div className="flex gap-1 bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-1.5">
@@ -815,39 +840,6 @@ const ProfileDetail = () => {
                   )}
                 </motion.div>
               </AnimatePresence>
-            </div>
-
-            {/* ── Right sidebar ─────────────────────────────────────── */}
-            <div className="space-y-4">
-
-              {/* Compat ring mobile */}
-              {compatScore && (
-                <div className="md:hidden bg-white rounded-2xl border border-neutral-100 shadow-sm p-5 flex justify-center">
-                  <CompatRing score={compatScore} />
-                </div>
-              )}
-
-              {/* Core details */}
-              <Card title="Details" icon={FiUser}>
-                <div>
-                  {age && <DetailRow label="Age" value={`${age} years`} />}
-                  {profile.height && <DetailRow label="Height" value={formatHeight(profile.height)} />}
-                  {profile.weight && <DetailRow label="Weight" value={`${profile.weight} kg`} />}
-                  <DetailRow label="Location" value={[profile.city, profile.state].filter(Boolean).join(', ') || null} />
-                  <DetailRow label="Education" value={profile.education} />
-                  {profile.degree && <DetailRow label="Degree" value={profile.degree} />}
-                  <DetailRow label="Profession" value={profile.profession} />
-                  {profile.income && <DetailRow label="Income" value={formatIncome(profile.income)} />}
-                  <DetailRow label="Religion" value={profile.religion} />
-                  <DetailRow label="Caste" value={profile.caste} />
-                  <DetailRow label="Mother Tongue" value={profile.motherTongue} />
-                  <DetailRow label="Marital Status" value={friendlyLabel('maritalStatus', profile.maritalStatus)} />
-                  <DetailRow label="Diet" value={formatEnum(profile.diet)} />
-                  <DetailRow label="Smoking" value={formatEnum(profile.smoking)} />
-                  <DetailRow label="Drinking" value={formatEnum(profile.drinking)} />
-                </div>
-              </Card>
-
               {/* Contact unlock */}
               <Card title="Contact Details" icon={FiPhone}>
                 {isContactUnlocked && unlockedContact ? (
@@ -938,7 +930,6 @@ const ProfileDetail = () => {
                   </div>
                 </Card>
               )}
-            </div>
           </div>
         </div>
       </div>

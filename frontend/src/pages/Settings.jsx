@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
@@ -11,6 +11,7 @@ import {
 import useDarkMode from '../hooks/useDarkMode';
 import useElderMode from '../hooks/useElderMode';
 import LanguageSwitcher from '../components/common/LanguageSwitcher';
+import LiveSelfieCapture from '../components/verification/LiveSelfieCapture';
 
 const TABS = [
   { id: 'account',       label: 'Account',      icon: FiUser,          desc: 'Password & appearance' },
@@ -52,66 +53,6 @@ const SectionHeader = ({ title, desc }) => (
 );
 
 // ─── File upload dropzone ─────────────────────────────────────────────────────
-const FileUploadBox = ({ label, sublabel, required, file, onFile, accept = 'image/*' }) => {
-  const ref = useRef();
-  const handleDrop = (e) => {
-    e.preventDefault();
-    const f = e.dataTransfer.files[0];
-    if (f) onFile(f);
-  };
-  return (
-    <div>
-      <p className="text-sm font-medium text-neutral-700 mb-1.5">
-        {label} {required && <span className="text-destructive">*</span>}
-      </p>
-      {file ? (
-        <div className="flex items-center gap-3 p-3 bg-primary-50 border border-primary-100 rounded-xl">
-          <div className="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center flex-shrink-0">
-            {file.type.startsWith('image/') ? (
-              <img src={URL.createObjectURL(file)} alt="" className="w-10 h-10 object-cover rounded-lg" />
-            ) : (
-              <FiFileText className="w-5 h-5 text-primary-500" />
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-neutral-800 truncate">{file.name}</p>
-            <p className="text-xs text-neutral-500">{(file.size / 1024).toFixed(0)} KB</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => onFile(null)}
-            aria-label="Remove file"
-            className="text-neutral-400 hover:text-destructive transition-colors cursor-pointer"
-          >
-            <FiX className="w-4 h-4" />
-          </button>
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => ref.current.click()}
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={handleDrop}
-          className="w-full border-2 border-dashed border-neutral-200 rounded-xl p-4 flex flex-col items-center justify-center gap-2 hover:border-primary-300 hover:bg-primary-50/40 transition-all cursor-pointer text-center"
-        >
-          <FiUpload className="w-5 h-5 text-neutral-400" />
-          <div>
-            <p className="text-sm font-medium text-neutral-600">Click or drag to upload</p>
-            {sublabel && <p className="text-xs text-neutral-400 mt-0.5">{sublabel}</p>}
-          </div>
-        </button>
-      )}
-      <input
-        ref={ref}
-        type="file"
-        accept={accept}
-        className="hidden"
-        onChange={(e) => onFile(e.target.files[0] || null)}
-      />
-    </div>
-  );
-};
-
 // ─── Account tab ──────────────────────────────────────────────────────────────
 const EmailSection = () => {
   const { user, setUser } = useAuth();
@@ -586,17 +527,11 @@ const VerificationTab = () => {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-5 max-w-lg">
-        <FileUploadBox
-          label="Selfie Photo"
-          sublabel="Face the camera in good light — no sunglasses"
-          required
-          file={selfiePhoto}
-          onFile={setSelfiePhoto}
-        />
+        <LiveSelfieCapture file={selfiePhoto} onChange={setSelfiePhoto} />
 
         <div className="flex items-start gap-2 p-3.5 bg-neutral-50 border border-neutral-100 rounded-xl text-xs text-neutral-500 max-w-sm">
           <FiShield className="w-3.5 h-3.5 text-primary-400 flex-shrink-0 mt-0.5" />
-          <span>Your selfie is only used by our team to verify your profile photos. It is never shown to other members.</span>
+          <span>Your selfie is captured live from your camera — no uploads — and only used by our team to verify your profile photos. It is never shown to other members.</span>
         </div>
 
         <button
@@ -605,7 +540,7 @@ const VerificationTab = () => {
           className="btn-primary flex items-center gap-2 disabled:opacity-50"
         >
           {submitting ? (
-            <><div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> Uploading…</>
+            <><div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> Submitting…</>
           ) : (
             <><FiUpload className="w-4 h-4" /> Submit for Verification</>
           )}

@@ -296,23 +296,6 @@ const config = {
     },
   },
 
-  // Background Check (APP-060 — AuthBridge / Signzy)
-  bgCheck: {
-    provider: optionalString('BG_CHECK_PROVIDER', 'dev'), // 'authbridge' | 'signzy' | 'dev'
-    apiKey: optionalString('BG_CHECK_API_KEY'),
-    apiSecret: optionalString('BG_CHECK_API_SECRET'),
-    webhookSecret: optionalString('BG_CHECK_WEBHOOK_SECRET'),
-    // AuthBridge endpoints
-    authBridgeBaseUrl: optionalString('AUTHBRIDGE_BASE_URL', 'https://api.authbridge.com/v1'),
-    // Signzy endpoints
-    signzyBaseUrl: optionalString('SIGNZY_BASE_URL', 'https://api.signzy.app/api/v2'),
-    signzyPatronId: optionalString('SIGNZY_PATRON_ID'),
-    isConfigured: () => {
-      const p = optionalString('BG_CHECK_PROVIDER', 'dev');
-      return p !== 'dev' && !!optionalString('BG_CHECK_API_KEY');
-    },
-  },
-
   // Monitoring & Alerting
   monitoring: {
     enabled: optionalBoolean('MONITORING_ENABLED', true),
@@ -363,14 +346,6 @@ if (isProduction) {
   // Razorpay webhook secret must be set so signature verification works
   if (!config.razorpay.webhookSecret) {
     providerBucket.push('RAZORPAY_WEBHOOK_SECRET must be set in production');
-  }
-
-  // Background-check webhook secret must be set when a real BG-check provider is
-  // enabled — otherwise the webhook fails open and a forged payload could
-  // self-grant the Background Verified badge. (Always fatal — only applies when
-  // a provider is actually enabled, so it can't block an unconfigured box.)
-  if (config.bgCheck.isConfigured() && !config.bgCheck.webhookSecret) {
-    errors.push('BG_CHECK_WEBHOOK_SECRET must be set in production when a BG_CHECK_PROVIDER is enabled');
   }
 
   // SMS_PROVIDER and SMS_API_KEY must be real (not dev mode) in production

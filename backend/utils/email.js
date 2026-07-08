@@ -118,375 +118,230 @@ const deliver = async ({ to, subject, html, text, replyTo, channel = 'transactio
   return { success: false, error: lastError ? lastError.message : 'send failed' };
 };
 
+// ── Shared brand palette + layout ────────────────────────────────────────────
+// One professional, table-based (email-client-safe) shell used by every
+// transactional email: burgundy header, gold hairline accent, muted footer with
+// the real support address. No off-brand gradients.
+const BRAND = {
+  burgundy: '#8B2346',
+  gold: '#C9A227',
+  ink: '#2D2D2D',
+  soft: '#6B6B6B',
+  bg: '#FAF7F3',
+  border: '#EFE7E0',
+  panelBorder: '#E7DCD3',
+};
+
+/**
+ * brandLayout — wraps body HTML in the shared TricityShadi shell.
+ * @param {object} o
+ * @param {string} o.eyebrow  small uppercase label under the wordmark
+ * @param {string} o.bodyHtml inner content (already-escaped/trusted)
+ * @param {string} [o.preheader] hidden inbox-preview line
+ * @param {{href:string,label:string,gold?:boolean}} [o.cta] primary button
+ */
+const brandLayout = ({ eyebrow, bodyHtml, preheader = '', cta }) => `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+</head>
+<body style="margin:0;padding:0;background:${BRAND.bg};-webkit-text-size-adjust:100%;">
+  ${preheader ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:${BRAND.bg};">${preheader}</div>` : ''}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BRAND.bg};padding:24px 12px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+    <tr><td align="center">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid ${BRAND.border};">
+        <tr><td style="background:${BRAND.burgundy};padding:30px 32px;text-align:center;">
+          <div style="font-family:Georgia,'Times New Roman',serif;font-size:25px;font-weight:700;color:#ffffff;letter-spacing:0.5px;">TricityShadi</div>
+          <div style="height:3px;width:46px;background:${BRAND.gold};margin:11px auto 0;border-radius:2px;"></div>
+          ${eyebrow ? `<div style="color:#F1E2D5;font-size:11px;margin-top:12px;letter-spacing:1.5px;text-transform:uppercase;">${eyebrow}</div>` : ''}
+        </td></tr>
+        <tr><td style="padding:32px;color:${BRAND.ink};font-size:15px;line-height:1.65;">
+          ${bodyHtml}
+          ${cta ? `<div style="text-align:center;margin:30px 0 6px;"><a href="${cta.href}" style="display:inline-block;${cta.gold ? `background:${BRAND.gold};color:#2D2D2D;` : `background:${BRAND.burgundy};color:#ffffff;`}text-decoration:none;font-weight:600;font-size:14px;padding:13px 32px;border-radius:8px;">${cta.label}</a></div>` : ''}
+        </td></tr>
+        <tr><td style="background:${BRAND.bg};padding:22px 32px;text-align:center;border-top:1px solid ${BRAND.border};">
+          <div style="color:${BRAND.soft};font-size:12px;line-height:1.7;">
+            TricityShadi &middot; Chandigarh &middot; Mohali &middot; Panchkula<br/>
+            Questions? <a href="mailto:${config.email.support}" style="color:${BRAND.burgundy};text-decoration:none;font-weight:600;">${config.email.support}</a>
+          </div>
+          <div style="color:#B8AEA4;font-size:11px;margin-top:10px;">© ${new Date().getFullYear()} TricityShadi. All rights reserved.</div>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+// Small reusable panel (used for plan box, reason box, etc.)
+const panel = (inner, { accent = BRAND.burgundy } = {}) =>
+  `<div style="background:${BRAND.bg};border:1px solid ${BRAND.panelBorder};border-left:3px solid ${accent};border-radius:8px;padding:16px 18px;margin:20px 0;">${inner}</div>`;
+
+// Friendly display name for internal plan codes.
+const PLAN_LABELS = {
+  basic_premium: 'Basic Premium',
+  premium_plus: 'Premium Plus',
+  vip: 'VIP',
+};
+const planLabel = (p) => PLAN_LABELS[p] || (p ? String(p).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : 'Premium');
+
 // Email templates
 const templates = {
   welcome: (name) => ({
-    subject: 'Welcome to TricityShadi!',
-    html: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-          .button { display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin-top: 20px; }
-          .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>Welcome to TricityShadi!</h1>
-          </div>
-          <div class="content">
-            <p>Hi ${name},</p>
-            <p>Thank you for joining TricityShadi! We're excited to help you find your perfect match.</p>
-            <p>Here's what you can do next:</p>
-            <ul>
-              <li>Complete your profile to increase your visibility</li>
-              <li>Upload your best photos</li>
-              <li>Start browsing profiles in your area</li>
-            </ul>
-            <a href="${config.server.frontendUrl}" class="button">Complete Your Profile</a>
-          </div>
-          <div class="footer">
-            <p>© ${new Date().getFullYear()} TricityShadi. All rights reserved.</p>
-            <p>If you didn't create this account, please ignore this email.</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `,
-    text: `Welcome to TricityShadi, ${name}! Thank you for joining us. Complete your profile to get started.`
+    subject: 'Welcome to TricityShadi',
+    html: brandLayout({
+      eyebrow: 'Welcome',
+      preheader: 'Your TricityShadi journey starts here.',
+      bodyHtml: `
+        <p style="margin-top:0;">Hi ${name},</p>
+        <p>Welcome to TricityShadi. We're glad you're here, and we'll help you find the right match with people from Chandigarh, Mohali and Panchkula.</p>
+        <p style="margin-bottom:8px;">A few things to do next:</p>
+        <ul style="margin:0 0 8px 0;padding-left:20px;color:${BRAND.soft};">
+          <li>Complete your profile so you appear in more searches</li>
+          <li>Add a few clear photos</li>
+          <li>Start browsing profiles near you</li>
+        </ul>`,
+      cta: { href: `${config.server.frontendUrl}/profile/edit`, label: 'Complete Your Profile' },
+    }),
+    text: `Welcome to TricityShadi, ${name}! Complete your profile to get started: ${config.server.frontendUrl}/profile/edit`,
   }),
 
   passwordReset: (name, resetLink) => ({
-    subject: 'Reset Your Password - TricityShadi',
-    html: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: #dc3545; color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-          .button { display: inline-block; background: #dc3545; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin-top: 20px; }
-          .warning { background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 5px; margin-top: 20px; }
-          .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>Password Reset Request</h1>
-          </div>
-          <div class="content">
-            <p>Hi ${name},</p>
-            <p>We received a request to reset your password. Click the button below to create a new password:</p>
-            <a href="${resetLink}" class="button">Reset Password</a>
-            <div class="warning">
-              <strong>Important:</strong> This link will expire in 1 hour for security reasons.
-            </div>
-            <p style="margin-top: 20px;">If you didn't request a password reset, you can safely ignore this email. Your password will not be changed.</p>
-          </div>
-          <div class="footer">
-            <p>© ${new Date().getFullYear()} TricityShadi. All rights reserved.</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `,
-    text: `Hi ${name}, Reset your password by clicking this link: ${resetLink}. This link expires in 1 hour. If you didn't request this, ignore this email.`
+    subject: 'Reset your password — TricityShadi',
+    html: brandLayout({
+      eyebrow: 'Password Reset',
+      preheader: 'Reset your TricityShadi password (link expires in 1 hour).',
+      bodyHtml: `
+        <p style="margin-top:0;">Hi ${name},</p>
+        <p>We received a request to reset your password. Use the button below to choose a new one.</p>
+        ${panel(`<strong>This link expires in 1 hour</strong> for your security.`, { accent: BRAND.gold })}
+        <p style="color:${BRAND.soft};font-size:13px;">If you didn't request this, you can safely ignore this email — your password won't change.</p>`,
+      cta: { href: resetLink, label: 'Reset Password' },
+    }),
+    text: `Hi ${name}, Reset your password: ${resetLink} — this link expires in 1 hour. If you didn't request this, ignore this email.`,
   }),
 
   matchNotification: (name, matchName) => ({
-    subject: `It's a Match! 🎉 - TricityShadi`,
-    html: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; text-align: center; }
-          .button { display: inline-block; background: #ff6b6b; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin-top: 20px; }
-          .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>🎉 It's a Match!</h1>
-          </div>
-          <div class="content">
-            <p>Hi ${name},</p>
-            <p>Great news! You and <strong>${matchName}</strong> have both liked each other!</p>
-            <p>This could be the start of something special. Don't keep them waiting!</p>
-            <a href="${config.server.frontendUrl}/matches" class="button">Start Chatting</a>
-          </div>
-          <div class="footer">
-            <p>© ${new Date().getFullYear()} TricityShadi. All rights reserved.</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `,
-    text: `Hi ${name}, It's a Match! You and ${matchName} have both liked each other. Start chatting now at ${config.server.frontendUrl}/matches`
+    subject: `You matched with ${matchName} — TricityShadi`,
+    html: brandLayout({
+      eyebrow: "It's a Match",
+      preheader: `You and ${matchName} liked each other.`,
+      bodyHtml: `
+        <p style="margin-top:0;">Hi ${name},</p>
+        <p>Good news — you and <strong>${matchName}</strong> have both expressed interest. You can now start a conversation.</p>`,
+      cta: { href: `${config.server.frontendUrl}/matches`, label: 'View Match' },
+    }),
+    text: `Hi ${name}, you and ${matchName} matched on TricityShadi. Start a conversation: ${config.server.frontendUrl}/matches`,
   }),
 
   subscriptionConfirmation: (name, plan, expiryDate) => ({
     channel: 'documents', // payment receipt → SMTP-first (falls back to Resend)
-    subject: 'Subscription Confirmed - TricityShadi',
-    html: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-          .plan-box { background: white; padding: 20px; border-radius: 10px; margin: 20px 0; border: 2px solid #11998e; }
-          .button { display: inline-block; background: #11998e; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin-top: 20px; }
-          .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>Subscription Confirmed!</h1>
-          </div>
-          <div class="content">
-            <p>Hi ${name},</p>
-            <p>Thank you for subscribing! Your payment has been processed successfully.</p>
-            <div class="plan-box">
-              <h3 style="margin: 0 0 10px 0;">Your Plan</h3>
-              <p style="margin: 0;"><strong>Plan:</strong> ${plan}</p>
-              <p style="margin: 0;"><strong>Valid Until:</strong> ${expiryDate}</p>
-            </div>
-            <p>Enjoy all the premium features:</p>
-            <ul>
-              <li>Unlimited likes and matches</li>
-              <li>See who liked you</li>
-              <li>Priority profile visibility</li>
-              <li>Advanced filters</li>
-              ${plan.toLowerCase() === 'elite' ? '<li>Video calling feature</li>' : ''}
-            </ul>
-            <a href="${config.server.frontendUrl}/browse" class="button">Start Matching</a>
-          </div>
-          <div class="footer">
-            <p>© ${new Date().getFullYear()} TricityShadi. All rights reserved.</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `,
-    text: `Hi ${name}, Your ${plan} subscription is confirmed and valid until ${expiryDate}. Enjoy all premium features!`
+    subject: 'Your TricityShadi membership is confirmed',
+    html: brandLayout({
+      eyebrow: 'Membership Confirmed',
+      preheader: `Your ${planLabel(plan)} membership is active until ${expiryDate}.`,
+      bodyHtml: `
+        <p style="margin-top:0;">Hi ${name},</p>
+        <p>Thank you for upgrading. Your payment was processed successfully and your membership is now active.</p>
+        ${panel(
+          `<p style="margin:0 0 6px 0;font-family:Georgia,serif;font-size:16px;color:${BRAND.burgundy};font-weight:700;">${planLabel(plan)}</p>
+           <p style="margin:0;color:${BRAND.soft};font-size:13px;">Valid until <strong style="color:${BRAND.ink};">${expiryDate}</strong></p>`,
+          { accent: BRAND.gold }
+        )}
+        <p style="margin-bottom:8px;">Your membership includes:</p>
+        <ul style="margin:0 0 8px 0;padding-left:20px;color:${BRAND.soft};">
+          <li>View contact details of your matches</li>
+          <li>Unlimited messaging</li>
+          <li>See who's interested in you</li>
+          <li>Advanced search filters &amp; priority visibility</li>
+        </ul>`,
+      cta: { href: `${config.server.frontendUrl}/dashboard`, label: 'Go to Dashboard', gold: true },
+    }),
+    text: `Hi ${name}, your ${planLabel(plan)} membership is confirmed and valid until ${expiryDate}. Go to your dashboard: ${config.server.frontendUrl}/dashboard`,
   }),
 
   verificationRejected: (name, reason) => ({
-    subject: 'Profile Verification Update - TricityShadi',
-    html: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: #dc3545; color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-          .reason-box { background: #fff3f3; border: 1px solid #dc3545; padding: 15px; border-radius: 5px; margin: 20px 0; }
-          .button { display: inline-block; background: #8B2346; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin-top: 20px; }
-          .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>Verification Update</h1>
-          </div>
-          <div class="content">
-            <p>Hi ${name},</p>
-            <p>We were unable to verify your profile at this time.</p>
-            ${reason ? `<div class="reason-box"><strong>Reason:</strong> ${reason}</div>` : ''}
-            <p>Please re-take your verification selfie, making sure it is:</p>
-            <ul>
-              <li>Clear and well-lit</li>
-              <li>Shows your full, unobstructed face</li>
-              <li>Matches the photos on your profile</li>
-            </ul>
-            <a href="${config.server.frontendUrl}/verification" class="button">Re-submit Verification</a>
-          </div>
-          <div class="footer">
-            <p>© ${new Date().getFullYear()} TricityShadi. All rights reserved.</p>
-            <p>If you have questions, contact our support team.</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `,
-    text: `Hi ${name}, Your verification was not approved.${reason ? ' Reason: ' + reason : ''} Please re-take a clear, well-lit selfie showing your full face.`
+    subject: 'Photo verification update — TricityShadi',
+    html: brandLayout({
+      eyebrow: 'Verification Update',
+      preheader: 'We could not verify your photo this time.',
+      bodyHtml: `
+        <p style="margin-top:0;">Hi ${name},</p>
+        <p>We weren't able to verify your profile from the selfie you submitted.</p>
+        ${reason ? panel(`<strong>Reason:</strong> ${reason}`) : ''}
+        <p style="margin-bottom:8px;">Please re-take your live selfie, making sure it is:</p>
+        <ul style="margin:0 0 8px 0;padding-left:20px;color:${BRAND.soft};">
+          <li>Clear and well-lit</li>
+          <li>Showing your full, unobstructed face</li>
+          <li>A close match to the photos on your profile</li>
+        </ul>`,
+      cta: { href: `${config.server.frontendUrl}/verification`, label: 'Re-take Verification' },
+    }),
+    text: `Hi ${name}, your photo verification was not approved.${reason ? ' Reason: ' + reason : ''} Please re-take a clear, well-lit live selfie showing your full face: ${config.server.frontendUrl}/verification`,
   }),
 
   verificationApproved: (name) => ({
-    subject: 'Profile Verified! ✓ - TricityShadi',
-    html: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: #28a745; color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; text-align: center; }
-          .badge { display: inline-block; background: #28a745; color: white; padding: 10px 20px; border-radius: 50px; margin: 20px 0; }
-          .button { display: inline-block; background: #28a745; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin-top: 20px; }
-          .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>✓ Profile Verified!</h1>
-          </div>
-          <div class="content">
-            <p>Hi ${name},</p>
-            <p>Congratulations! Your profile has been verified.</p>
-            <div class="badge">✓ Verified Profile</div>
-            <p>Your profile will now display a verification badge, increasing trust and visibility.</p>
-            <a href="${config.server.frontendUrl}/profile" class="button">View Your Profile</a>
-          </div>
-          <div class="footer">
-            <p>© ${new Date().getFullYear()} TricityShadi. All rights reserved.</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `,
-    text: `Hi ${name}, Congratulations! Your TricityShadi profile has been verified. You now have a verification badge.`
+    subject: 'Your profile is verified — TricityShadi',
+    html: brandLayout({
+      eyebrow: 'Profile Verified',
+      preheader: 'Your verified badge is now live.',
+      bodyHtml: `
+        <p style="margin-top:0;">Hi ${name},</p>
+        <p>Congratulations — your profile is now verified. A verified badge is live on your profile, which builds trust and typically brings more responses.</p>`,
+      cta: { href: `${config.server.frontendUrl}/profile`, label: 'View Your Profile' },
+    }),
+    text: `Hi ${name}, your TricityShadi profile is now verified. View it: ${config.server.frontendUrl}/profile`,
   }),
 
   weeklyDigest: (name, matchCount, profilesHtml) => ({
-    subject: `${matchCount} new matches this week on TricityShadi 💌`,
-    html: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; background: #f8f4f0; margin: 0; padding: 0; }
-          .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; }
-          .header { background: linear-gradient(135deg, #7c1e3f, #a0294f); color: white; padding: 32px 24px; text-align: center; }
-          .header h1 { margin: 0; font-size: 24px; }
-          .header p { margin: 8px 0 0; opacity: 0.85; font-size: 14px; }
-          .body { padding: 28px 24px; }
-          .profiles { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin: 20px 0; }
-          .cta { text-align: center; margin: 28px 0 16px; }
-          .btn { background: #7c1e3f; color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: bold; display: inline-block; }
-          .footer { text-align: center; padding: 16px; background: #f8f4f0; color: #888; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>You have ${matchCount} new matches! 💌</h1>
-            <p>New profiles matching your preferences this week</p>
-          </div>
-          <div class="body">
-            <p>Hi ${name},</p>
-            <p>New members have joined TricityShadi this week who match your preferences. Don't miss out!</p>
-            ${profilesHtml || ''}
-            <div class="cta">
-              <a href="${config.server.frontendUrl}/search" class="btn">View All Matches →</a>
-            </div>
-            <p style="color: #666; font-size: 13px; text-align: center;">Log in to see their full profiles and send interest.</p>
-          </div>
-          <div class="footer">
-            <p>You're receiving this because you have an active profile on TricityShadi.</p>
-            <p>© TricityShadi — Chandigarh · Mohali · Panchkula</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `,
-    text: `Hi ${name}, You have ${matchCount} new profiles matching your preferences this week on TricityShadi. Log in to view them: ${config.server.frontendUrl}/search`
+    subject: `${matchCount} new matches this week on TricityShadi`,
+    html: brandLayout({
+      eyebrow: 'Your Weekly Matches',
+      preheader: `${matchCount} new profiles match your preferences this week.`,
+      bodyHtml: `
+        <p style="margin-top:0;">Hi ${name},</p>
+        <p>New members have joined TricityShadi this week who match your preferences — here's a look.</p>
+        ${profilesHtml || ''}
+        <p style="color:${BRAND.soft};font-size:13px;text-align:center;margin-top:18px;">Log in to see full profiles and send interest.</p>`,
+      cta: { href: `${config.server.frontendUrl}/search`, label: 'View All Matches' },
+    }),
+    text: `Hi ${name}, You have ${matchCount} new profiles matching your preferences this week on TricityShadi. Log in to view them: ${config.server.frontendUrl}/search`,
   }),
 
   // One-time verification code (email OTP: signup / email-change).
   otpCode: (code, purpose = 'verify your email') => ({
     subject: 'Your TricityShadi verification code',
-    html: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #7c1e3f, #a0294f); color: white; padding: 28px; text-align: center; border-radius: 10px 10px 0 0; }
-          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; text-align: center; }
-          .code { font-size: 34px; letter-spacing: 10px; font-weight: bold; color: #7c1e3f; background: #fff; border: 2px solid #7c1e3f; border-radius: 10px; padding: 16px 24px; display: inline-block; margin: 20px 0; }
-          .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header"><h1>Verification Code</h1></div>
-          <div class="content">
-            <p>Use this code to ${purpose}:</p>
-            <div class="code">${code}</div>
-            <p>This code is valid for 10 minutes. Do not share it with anyone.</p>
-            <p style="color:#888;font-size:13px;">If you didn't request this, you can safely ignore this email.</p>
-          </div>
-          <div class="footer"><p>© ${new Date().getFullYear()} TricityShadi. All rights reserved.</p></div>
+    html: brandLayout({
+      eyebrow: 'Verification Code',
+      preheader: 'Your one-time verification code (valid 10 minutes).',
+      bodyHtml: `
+        <p style="margin-top:0;text-align:center;">Use this code to ${purpose}:</p>
+        <div style="text-align:center;">
+          <div style="font-size:32px;letter-spacing:10px;font-weight:700;color:${BRAND.burgundy};background:${BRAND.bg};border:2px solid ${BRAND.burgundy};border-radius:10px;padding:16px 24px;display:inline-block;margin:18px 0;">${code}</div>
         </div>
-      </body>
-      </html>
-    `,
-    text: `Your TricityShadi verification code is ${code}. Valid for 10 minutes. Do not share it. If you didn't request this, ignore this email.`
+        <p style="text-align:center;color:${BRAND.soft};font-size:13px;">Valid for 10 minutes. Do not share it with anyone. If you didn't request this, you can safely ignore this email.</p>`,
+    }),
+    text: `Your TricityShadi verification code is ${code}. Valid for 10 minutes. Do not share it. If you didn't request this, ignore this email.`,
   }),
 
   // Security alert (new login, password changed, suspicious activity…).
   securityAlert: (name, title, detail, when) => ({
-    subject: `Security alert: ${title} - TricityShadi`,
-    html: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: #b45309; color: white; padding: 28px; text-align: center; border-radius: 10px 10px 0 0; }
-          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-          .detail-box { background: #fff; border: 1px solid #e5e5e5; padding: 16px; border-radius: 8px; margin: 18px 0; }
-          .button { display: inline-block; background: #7c1e3f; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin-top: 16px; }
-          .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header"><h1>⚠ ${title}</h1></div>
-          <div class="content">
-            <p>Hi ${name || 'there'},</p>
-            <p>${detail}</p>
-            <div class="detail-box">
-              ${when ? `<p style="margin:0;"><strong>When:</strong> ${when}</p>` : ''}
-              <p style="margin:0;">If this was you, no action is needed.</p>
-            </div>
-            <p><strong>If this wasn't you</strong>, reset your password immediately and review your active sessions.</p>
-            <a href="${config.server.frontendUrl}/settings" class="button">Review Account Security</a>
-          </div>
-          <div class="footer">
-            <p>© ${new Date().getFullYear()} TricityShadi. All rights reserved.</p>
-            <p>Questions? Contact ${config.email.support}</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `,
-    text: `Hi ${name || 'there'}, Security alert: ${title}. ${detail}${when ? ' When: ' + when + '.' : ''} If this wasn't you, reset your password immediately at ${config.server.frontendUrl}/settings.`
+    subject: `Security alert: ${title} — TricityShadi`,
+    html: brandLayout({
+      eyebrow: 'Security Alert',
+      preheader: title,
+      bodyHtml: `
+        <p style="margin-top:0;">Hi ${name || 'there'},</p>
+        <p>${detail}</p>
+        ${panel(
+          `${when ? `<p style="margin:0 0 6px 0;"><strong>When:</strong> ${when}</p>` : ''}<p style="margin:0;color:${BRAND.soft};">If this was you, no action is needed.</p>`,
+          { accent: BRAND.gold }
+        )}
+        <p><strong>If this wasn't you</strong>, reset your password immediately and review your active sessions.</p>`,
+      cta: { href: `${config.server.frontendUrl}/settings`, label: 'Review Account Security' },
+    }),
+    text: `Hi ${name || 'there'}, Security alert: ${title}. ${detail}${when ? ' When: ' + when + '.' : ''} If this wasn't you, reset your password immediately at ${config.server.frontendUrl}/settings.`,
   }),
 };
 

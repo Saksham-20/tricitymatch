@@ -8,7 +8,7 @@ import api from '../../api/axios';
 import useDarkMode from '../../hooks/useDarkMode';
 import useElderMode from '../../hooks/useElderMode';
 import {
-  FiUser, FiLogOut, FiHome, FiSearch, FiMessageCircle,
+  FiUser, FiLogOut, FiHome, FiSearch, FiMessageCircle, FiHeart,
   FiMenu, FiX, FiBell, FiSettings, FiCreditCard, FiChevronDown,
   FiClock, FiSun, FiMoon,
 } from 'react-icons/fi';
@@ -242,6 +242,7 @@ const Navbar = () => {
   const navLinks = [
     { path: '/dashboard', label: t('navbar.dashboard'), icon: FiHome },
     { path: '/search',    label: t('navbar.findMatch'), icon: FiSearch },
+    { path: '/matches',   label: t('navbar.matches'),   icon: FiHeart },
     { path: '/chat',      label: t('navbar.messages'),  icon: FiMessageCircle },
   ];
 

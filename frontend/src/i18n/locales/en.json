@@ -20,6 +20,7 @@
   "navbar": {
     "dashboard": "Dashboard",
     "findMatch": "Find Match",
+    "matches": "Matches",
     "messages": "Messages",
     "myProfile": "My Profile",
     "settings": "Settings",

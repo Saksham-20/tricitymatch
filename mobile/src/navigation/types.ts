@@ -88,8 +88,6 @@ export type MainStackParamList = {
   // Astrologer marketplace (APP-059)
   AstrologerMarketplace: undefined;
   AstrologerDetail: { astrologerId: string; astrologerName: string };
-  // Background check (APP-060)
-  BackgroundCheck: undefined;
 };
 
 // Root Navigator

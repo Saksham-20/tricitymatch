@@ -32,6 +32,10 @@ exports.createOrder = asyncHandler(async (req, res) => {
     throw createError.badRequest('Invalid plan type');
   }
 
+  // Tier rank — a paid member can only move UP a tier while their plan is active.
+  // Same-tier renewal or a downgrade while active is rejected (handle via support).
+  const TIER_RANK = { basic_premium: 1, premium_plus: 2, vip: 3 };
+
   // Use transaction for atomicity
   const result = await sequelize.transaction(async (t) => {
     // Check for existing active subscription
@@ -45,7 +49,18 @@ exports.createOrder = asyncHandler(async (req, res) => {
     });
 
     if (activeSubscription) {
-      throw createError.conflict('You already have an active subscription');
+      const currentRank = TIER_RANK[activeSubscription.planType] || 0;
+      const targetRank = TIER_RANK[planType] || 0;
+      if (targetRank <= currentRank) {
+        // Same plan or lower — not an upgrade.
+        throw createError.conflict(
+          targetRank === currentRank
+            ? 'You are already on this plan.'
+            : 'You are on a higher plan. Contact support to change your plan.'
+        );
+      }
+      // Otherwise it's a genuine upgrade — allow a new order. The old active
+      // subscription is superseded when the upgrade payment is verified.
     }
 
     // Cancel any existing pending orders for this user
@@ -171,13 +186,14 @@ exports.verifyPayment = asyncHandler(async (req, res) => {
     sub.contactUnlocksUsed = 0;
     await sub.save({ transaction: t });
 
-    // Cancel any other pending subscriptions for this user
+    // Supersede any OTHER subscription that's still pending OR active (the plan
+    // being upgraded FROM) so exactly one active subscription remains per user.
     await Subscription.update(
       { status: 'cancelled' },
       {
         where: {
           userId,
-          status: 'pending',
+          status: { [Op.in]: ['pending', 'active'] },
           id: { [Op.ne]: sub.id }
         },
         transaction: t

@@ -72,6 +72,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const MyProfileView = lazy(() => import('./pages/MyProfileView'));
 const ProfileDetail = lazy(() => import('./pages/ProfileDetail'));
 const Search = lazy(() => import('./pages/Search'));
+const Matches = lazy(() => import('./pages/Matches'));
 const Chat = lazy(() => import('./pages/Chat'));
 const Subscription = lazy(() => import('./pages/Subscription'));
 const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
@@ -225,6 +226,16 @@ const AnimatedRoutes = () => {
               <ProtectedRoute>
                 <PageTransition>
                   <Search />
+                </PageTransition>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/matches"
+            element={
+              <ProtectedRoute>
+                <PageTransition>
+                  <Matches />
                 </PageTransition>
               </ProtectedRoute>
             }
