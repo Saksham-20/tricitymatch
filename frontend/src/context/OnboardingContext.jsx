@@ -255,11 +255,15 @@ function getInitialFormData() {
     maritalStatus: '', // 'never_married', 'divorced', 'widowed'
     numberOfChildren: 0,
 
-    // Horoscope
+    // Horoscope. nakshatra/rashi MUST live in this base shape or edit-mode
+    // hydration (which merges existingProfile onto base keys only) silently drops
+    // them and the Nakshatra field never repopulates.
     placeOfBirth: '',
     birthTime: '',
     manglikStatus: '',
     zodiacSign: '',
+    rashi: '',
+    nakshatra: '',
 
     // Family
     familyType: '', // 'joint', 'nuclear'
@@ -370,7 +374,7 @@ export const STEPS = [
     title: 'Horoscope & Kundli',
     icon: 'Sun',
     description: 'Your Kundli details — all optional',
-    fields: ['manglikStatus', 'rashi', 'zodiacSign', 'nakshatra', 'placeOfBirth', 'birthTime'],
+    fields: ['manglikStatus', 'nakshatra', 'placeOfBirth', 'birthTime'],
     required: [],
     showIn: ['edit', 'create_for_other'],
   },
@@ -423,6 +427,20 @@ export const STEPS = [
     fields: ['bio', 'interestTags'],
     required: [],
     showIn: ['edit', 'create_for_other'],
+  },
+  {
+    // Edit-only: the profile editor renders a Social Connections step. It lives in
+    // STEPS so `visibleSteps` (the single source the editor navigates by) matches
+    // the editor's rendered components — otherwise nav bounds < rendered steps and
+    // the last step (Photos) becomes unreachable.
+    id: 9.5,
+    number: 10,
+    title: 'Social Connections',
+    icon: 'Link',
+    description: 'Add your social links — all optional',
+    fields: ['socialMediaLinks'],
+    required: [],
+    showIn: ['edit'],
   },
   {
     id: 10,

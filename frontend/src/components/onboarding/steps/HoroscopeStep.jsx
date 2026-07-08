@@ -3,12 +3,13 @@ import { motion } from 'framer-motion';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
 import Select from '../../ui/Select';
-import {
-  MANGLIK_OPTIONS, ZODIAC_OPTIONS, RASHI_OPTIONS, NAKSHATRA_OPTIONS,
-} from '../../../constants/profileOptions';
+import { MANGLIK_OPTIONS, NAKSHATRA_OPTIONS } from '../../../constants/profileOptions';
 
 // The Kundli / horoscope form. Every field is optional — many members don't know
 // their birth time or nakshatra, and horoscope is a match aid, not a gate.
+// Trimmed to the essentials that actually drive Ashtakoot matching: Manglik +
+// Nakshatra + birth place/time. (Nakshatra already fixes the Rashi/moon sign, and
+// the Western sun-sign was redundant — both inputs removed to cut depth.)
 const HoroscopeStep = () => {
   const { formData, updateFormData } = useOnboarding();
 
@@ -22,34 +23,6 @@ const HoroscopeStep = () => {
           onChange={(value) => updateFormData('manglikStatus', value)}
           placeholder="Select Manglik status"
         />
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-        className="grid grid-cols-1 sm:grid-cols-2 gap-4"
-      >
-        <div>
-          <Select
-            label="Rashi (Moon sign)"
-            options={RASHI_OPTIONS}
-            value={formData.rashi}
-            onChange={(value) => updateFormData('rashi', value)}
-            searchable
-            placeholder="Select Rashi"
-          />
-        </div>
-        <div>
-          <Select
-            label="Zodiac (Sun sign)"
-            options={ZODIAC_OPTIONS}
-            value={formData.zodiacSign}
-            onChange={(value) => updateFormData('zodiacSign', value)}
-            placeholder="Select Zodiac"
-          />
-          <p className="text-xs text-neutral-400 mt-1.5">Western sun sign — distinct from your Vedic Rashi.</p>
-        </div>
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>

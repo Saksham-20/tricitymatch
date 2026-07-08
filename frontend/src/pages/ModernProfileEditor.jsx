@@ -25,36 +25,25 @@ import Progress from '../components/ui/Progress';
 import Button from '../components/ui/Button';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
-const EditStepComponents = [
-  BasicInfoStep,
-  LocationStep,
-  ReligionStep,
-  HoroscopeStep,
-  MaritalStatusStep,
-  EducationStep,
-  FamilyStep,
-  LifestyleStep,
-  AboutYourselfStep,
-  SocialConnectionsStep,
-  PreferencesStep,
-  PhotosStep,
-];
-
-// Step definitions for editing (no account/welcome steps)
-const EDIT_STEPS = [
-  { number: 0, title: 'Basic Information', icon: 'Info' },
-  { number: 1, title: 'Location', icon: 'MapPin' },
-  { number: 2, title: 'Religion & Community', icon: 'Heart' },
-  { number: 3, title: 'Horoscope & Kundli', icon: 'Sun' },
-  { number: 4, title: 'Marital Status', icon: 'Ring' },
-  { number: 5, title: 'Education & Career', icon: 'Briefcase' },
-  { number: 6, title: 'Family Background', icon: 'Users' },
-  { number: 7, title: 'Lifestyle', icon: 'Smile' },
-  { number: 8, title: 'About Yourself', icon: 'BookOpen' },
-  { number: 9, title: 'Social Connections', icon: 'Link' },
-  { number: 10, title: 'Preferences', icon: 'Heart' },
-  { number: 11, title: 'Photos', icon: 'Camera' },
-];
+// Step id → component. The editor renders whatever `visibleSteps` (from the
+// OnboardingContext, filtered for mode='edit') contains — the SAME list that
+// bounds navigation. Deriving both from one source is what keeps the last step
+// reachable; the old parallel arrays drifted (11 nav steps vs 12 rendered) and
+// made Photos unreachable.
+const EDIT_STEP_COMPONENTS = {
+  2: BasicInfoStep,
+  3: LocationStep,
+  4: ReligionStep,
+  4.5: HoroscopeStep,
+  5: MaritalStatusStep,
+  6: EducationStep,
+  7: FamilyStep,
+  8: LifestyleStep,
+  9: AboutYourselfStep,
+  9.5: SocialConnectionsStep,
+  10: PreferencesStep,
+  11: PhotosStep,
+};
 
 /**
  * ModernProfileEditor - Edit existing profile using modern onboarding UI
@@ -70,7 +59,9 @@ const SECTION_INDEX = {
 const ModernProfileEditorContent = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { formData, currentStep, nextStep, prevStep, goToStep, isLoading, setIsLoading } = useOnboarding();
+  const { formData, currentStep, nextStep, prevStep, goToStep, isLoading, setIsLoading, visibleSteps } = useOnboarding();
+  const stepComponents = visibleSteps.map((s) => EDIT_STEP_COMPONENTS[s.id]);
+  const totalSteps = stepComponents.length;
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -120,9 +111,9 @@ const ModernProfileEditorContent = () => {
     }
   };
 
-  const CurrentStepComponent = EditStepComponents[currentStep];
-  const completionPercentage = Math.round((currentStep / EditStepComponents.length) * 100);
-  const isLastStep = currentStep === EditStepComponents.length - 1;
+  const CurrentStepComponent = stepComponents[currentStep];
+  const completionPercentage = Math.round((currentStep / totalSteps) * 100);
+  const isLastStep = currentStep === totalSteps - 1;
 
   return (
     <div className="min-h-screen flex bg-neutral-50 dark:bg-[#0f1117] pb-16 lg:pb-0">
@@ -168,7 +159,7 @@ const ModernProfileEditorContent = () => {
               the editor you are, so it must not read as a completion %). */}
           <div>
             <p className="text-neutral-500 text-sm mb-2">
-              Section {currentStep + 1} of {EditStepComponents.length}
+              Section {currentStep + 1} of {totalSteps}
             </p>
             <Progress value={completionPercentage} max={100} />
           </div>
@@ -208,10 +199,10 @@ const ModernProfileEditorContent = () => {
         <div className="lg:hidden bg-white dark:bg-[#1a1f2e] px-6 py-4 border-b border-neutral-200 dark:border-neutral-800">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-semibold text-neutral-900">
-              {EDIT_STEPS[currentStep].title}
+              {visibleSteps[currentStep].title}
             </span>
             <span className="text-xs text-neutral-600">
-              {currentStep + 1} of {EditStepComponents.length}
+              {currentStep + 1} of {totalSteps}
             </span>
           </div>
           <Progress value={completionPercentage} max={100} />
@@ -219,7 +210,7 @@ const ModernProfileEditorContent = () => {
 
         {/* Desktop stepper */}
         <div className="hidden lg:flex bg-white dark:bg-[#1a1f2e] border-b border-neutral-200 dark:border-neutral-800 overflow-x-auto">
-          {EDIT_STEPS.map((step, idx) => (
+          {visibleSteps.map((step, idx) => (
             <motion.button
               key={idx}
               onClick={() => goToStep(idx)}
@@ -301,7 +292,7 @@ const ModernProfileEditorContent = () => {
 
               <div className="text-center">
                 <p className="text-sm text-neutral-600">
-                  Step {currentStep + 1} of {EditStepComponents.length}
+                  Step {currentStep + 1} of {totalSteps}
                 </p>
               </div>
 
