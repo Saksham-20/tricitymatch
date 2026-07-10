@@ -314,8 +314,13 @@ const requestPerformanceMiddleware = (options = {}) => {
       const durationMs = Number(endTime - startTime) / 1e6;
       const memoryDelta = process.memoryUsage().heapUsed - startMemory;
 
-      // Add timing headers
-      res.setHeader('X-Response-Time', `${Math.round(durationMs)}ms`);
+      // Add timing headers — but only if headers haven't been flushed yet.
+      // Streamed responses (e.g. the Kundli PDF via pdfkit `doc.pipe(res)`) send
+      // their body before res.end(), so setHeader here would throw
+      // ERR_HTTP_HEADERS_SENT → uncaughtException → the whole server crashes.
+      if (!res.headersSent) {
+        res.setHeader('X-Response-Time', `${Math.round(durationMs)}ms`);
+      }
 
       // Log slow requests
       if (durationMs > slowThreshold || logAll) {

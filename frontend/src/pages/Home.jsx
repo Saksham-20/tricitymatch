@@ -467,7 +467,7 @@ const Home = () => {
 
   /* ════════════════════════════════════════════════════════════ */
   return (
-    <div style={{ background: 'var(--cream)', fontFamily: 'var(--sans)', color: 'var(--ink)' }}>
+    <div style={{ background: 'var(--cream)', fontFamily: 'var(--sans)', color: 'var(--ink)', overflowX: 'clip' }}>
       <Seo path="/" />
       <FontLoader />
       <Cursor />

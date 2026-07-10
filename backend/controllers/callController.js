@@ -1,7 +1,8 @@
 'use strict';
 
 const { v4: uuidv4 } = require('uuid');
-const { CallSession, User, Profile } = require('../models');
+const { Op } = require('sequelize');
+const { CallSession, User, Profile, Match } = require('../models');
 const { generateRtcToken } = require('../utils/agoraToken');
 const { getIO } = require('../utils/socket');
 const { notify } = require('../utils/notifyUser');
@@ -36,8 +37,24 @@ exports.initiateCall = asyncHandler(async (req, res) => {
   if (!calleeId) throw createError.validation('calleeId required');
   if (!['voice', 'video'].includes(type)) throw createError.validation('type must be voice or video');
 
+  if (calleeId === req.user.id) throw createError.validation('You cannot call yourself');
+
   const callee = await User.findByPk(calleeId, { attributes: ['id'] });
   if (!callee) throw createError.notFound('User not found');
+
+  // Only mutual matches may call each other — mirrors the chat gate. Without
+  // this, any premium member could ring any user by ID (unsolicited calls /
+  // harassment vector), even though chat between them is blocked.
+  const mutual = await Match.findOne({
+    where: {
+      [Op.or]: [
+        { userId: req.user.id, matchedUserId: calleeId, isMutual: true },
+        { userId: calleeId, matchedUserId: req.user.id, isMutual: true },
+      ],
+    },
+    attributes: ['id'],
+  });
+  if (!mutual) throw createError.forbidden('You can only call your mutual matches');
 
   const channelName = `call_${uuidv4().replace(/-/g, '').slice(0, 16)}`;
   const call = await CallSession.create({

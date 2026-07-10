@@ -18,6 +18,8 @@ PODS:
     - ExpoModulesCore
   - ExpoAsset (10.0.10):
     - ExpoModulesCore
+  - ExpoBlur (13.0.3):
+    - ExpoModulesCore
   - ExpoCamera (15.0.16):
     - ExpoModulesCore
     - ZXingObjC/OneD
@@ -27,6 +29,8 @@ PODS:
   - ExpoFileSystem (17.0.1):
     - ExpoModulesCore
   - ExpoFont (12.0.10):
+    - ExpoModulesCore
+  - ExpoHaptics (13.0.1):
     - ExpoModulesCore
   - ExpoImageManipulator (12.0.5):
     - EXImageLoader
@@ -1421,10 +1425,12 @@ DEPENDENCIES:
   - EXManifests (from `../../node_modules/expo-manifests/ios`)
   - Expo (from `../../node_modules/expo`)
   - ExpoAsset (from `../../node_modules/expo-asset/ios`)
+  - ExpoBlur (from `../../node_modules/expo-blur/ios`)
   - ExpoCamera (from `../../node_modules/expo-camera/ios`)
   - ExpoDocumentPicker (from `../../node_modules/expo-document-picker/ios`)
   - ExpoFileSystem (from `../../node_modules/expo-file-system/ios`)
   - ExpoFont (from `../../node_modules/expo-font/ios`)
+  - ExpoHaptics (from `../../node_modules/expo-haptics/ios`)
   - ExpoImageManipulator (from `../../node_modules/expo-image-manipulator/ios`)
   - ExpoImagePicker (from `../../node_modules/expo-image-picker/ios`)
   - ExpoKeepAwake (from `../../node_modules/expo-keep-awake/ios`)
@@ -1532,6 +1538,8 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/expo"
   ExpoAsset:
     :path: "../../node_modules/expo-asset/ios"
+  ExpoBlur:
+    :path: "../../node_modules/expo-blur/ios"
   ExpoCamera:
     :path: "../../node_modules/expo-camera/ios"
   ExpoDocumentPicker:
@@ -1540,6 +1548,8 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/expo-file-system/ios"
   ExpoFont:
     :path: "../../node_modules/expo-font/ios"
+  ExpoHaptics:
+    :path: "../../node_modules/expo-haptics/ios"
   ExpoImageManipulator:
     :path: "../../node_modules/expo-image-manipulator/ios"
   ExpoImagePicker:
@@ -1695,10 +1705,12 @@ SPEC CHECKSUMS:
   EXManifests: ebb7f551c340c0d06f3ecd9ae662e418bf68417c
   Expo: ed0a748eb6be0efd2c3df7f6de3f3158a14464c9
   ExpoAsset: 286fee7ba711ce66bf20b315e68106b13b8629fc
+  ExpoBlur: 99901a4531f5d3ac4a19b362907b8f75da4ed9c8
   ExpoCamera: cf49d2d121a9f883be0f98dde15a2185a1dd42be
   ExpoDocumentPicker: 3204d5169a090ddbb23c4bf035bb86c3a6ea0ec2
   ExpoFileSystem: 2988caaf68b7cb706e36d382829d99811d9d76a5
   ExpoFont: 38dddf823e32740c2a9f37c926a33aeca736b5c4
+  ExpoHaptics: 9f47be324f691b6291c17c216189ab832d1a4d69
   ExpoImageManipulator: eb92d3ac4bad0fe96258f17273b9e295e87447be
   ExpoImagePicker: 7038c1740853c170002c491de63f9f9780c8139b
   ExpoKeepAwake: dd02e65d49f1cfd9194640028ae2857e536eb1c9

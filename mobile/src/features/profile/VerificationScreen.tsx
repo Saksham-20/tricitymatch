@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
@@ -33,27 +34,37 @@ const TIER_CONFIG: {
   badgeColor: string;
 }[] = [
   { tier: 1, name: 'Mobile Verified',  description: 'Verify your phone number',          badge: 'phone-portrait-outline', docHint: 'Phone OTP already verified', badgeColor: colours.badgeMobile },
-  { tier: 2, name: 'ID Verified',      description: 'Upload Aadhaar or PAN card',         badge: 'card-outline', docHint: 'Photo of Aadhaar / PAN / Passport', badgeColor: colours.badgeID },
+  { tier: 2, name: 'Photo Verified',   description: 'Take a live selfie to confirm it\'s you', badge: 'camera-outline', docHint: 'A clear, well-lit selfie — our team matches it against your profile photos', badgeColor: colours.badgeID },
   { tier: 3, name: 'Education Verified', description: 'Upload your degree or offer letter', badge: 'school-outline', docHint: 'Degree certificate or employer offer letter', badgeColor: colours.badgeEducation },
   { tier: 4, name: 'Income Verified',  description: 'Upload ITR or salary slip',          badge: 'cash-outline', docHint: 'ITR acknowledgement or 3-month salary slip', badgeColor: colours.badgeIncome },
 ];
 
 type PickedFile = { uri: string; name: string; type: string };
 
-// ─── Expo ImagePicker/DocumentPicker stub (dynamic require) ──────────────────
+// ─── Live selfie capture ─────────────────────────────────────────────────────
+// Photo verification is a LIVE camera selfie only — never a gallery/file pick
+// (uploads can be doctored). This mirrors the web LiveSelfieCapture flow and the
+// selfie-only backend (POST /verification/submit expects a `selfiePhoto` file).
+// launchCameraAsync opens the device camera live; front camera by default.
 
-async function pickDocument(): Promise<PickedFile | null> {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const DocumentPicker = require('expo-document-picker');
-    const result = await DocumentPicker.getDocumentAsync({ type: ['image/*', 'application/pdf'] });
-    if (result.canceled || !result.assets?.length) return null;
-    const a = result.assets[0];
-    return { uri: a.uri, name: a.name ?? 'document', type: a.mimeType ?? 'application/octet-stream' };
-  } catch {
-    // Not available in Expo Go — return stub
-    return { uri: 'file://DEV_STUB', name: 'stub_document.pdf', type: 'application/pdf' };
+async function captureSelfie(): Promise<PickedFile | null> {
+  const { status } = await ImagePicker.requestCameraPermissionsAsync();
+  if (status !== 'granted') {
+    Alert.alert(
+      'Camera required',
+      'Photo verification needs your camera to take a live selfie. Enable camera access in Settings.',
+    );
+    return null;
   }
+  const result = await ImagePicker.launchCameraAsync({
+    cameraType: ImagePicker.CameraType.front,
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    quality: 0.85,
+    allowsEditing: false,
+  });
+  if (result.canceled || !result.assets?.[0]) return null;
+  const a = result.assets[0];
+  return { uri: a.uri, name: 'selfie.jpg', type: a.mimeType ?? 'image/jpeg' };
 }
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
@@ -135,8 +146,8 @@ function TierCard({ config, tierData, onUpload, uploading }: TierCardProps) {
               <ActivityIndicator size="small" color="#fff" />
             ) : (
               <>
-                <Ionicons name="cloud-upload-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
-                <Text style={tc.uploadText}>{isRejected ? 'Resubmit' : 'Upload Document'}</Text>
+                <Ionicons name="camera-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
+                <Text style={tc.uploadText}>{isRejected ? 'Retake Selfie' : 'Take Selfie'}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -192,20 +203,19 @@ export default function VerificationScreen() {
     mutationFn: submitVerification,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.verification });
-      Alert.alert('Submitted!', 'Your document is under review. We\'ll notify you within 24–48 hours.');
+      Alert.alert('Submitted!', 'Your selfie is under review. We\'ll notify you within 24–48 hours.');
     },
-    onError: () => Alert.alert('Error', 'Upload failed. Please try again.'),
+    onError: () => Alert.alert('Error', 'Submission failed. Please try again.'),
     onSettled: () => setUploadingTier(null),
   });
 
   const handleUpload = async (tier: 1 | 2 | 3 | 4) => {
-    const file = await pickDocument();
+    const file = await captureSelfie();
     if (!file) return;
     setUploadingTier(tier);
     const form = new FormData();
-    // Backend supports ID-document verification: documentType + documentFront file.
-    form.append('documentType', 'aadhaar');
-    form.append('documentFront', { uri: file.uri, name: file.name, type: file.type } as any);
+    // Selfie-only backend: POST /verification/submit expects a `selfiePhoto` file.
+    form.append('selfiePhoto', { uri: file.uri, name: file.name, type: file.type } as any);
     submitMutation.mutate(form);
   };
 
@@ -264,7 +274,7 @@ export default function VerificationScreen() {
         <View style={s.note}>
           <Ionicons name="information-circle-outline" size={16} color={colours.textMuted} />
           <Text style={s.noteText}>
-            Documents are reviewed by our team and deleted after verification. We never share your documents with other users.
+            Your selfie is reviewed by our team and only used to confirm it matches your profile photos. We never share it with other members.
           </Text>
         </View>
       </ScrollView>

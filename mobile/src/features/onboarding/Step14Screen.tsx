@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
 import { useOnboarding } from './OnboardingContext';
 import { useAuthStore } from '../../stores/authStore';
+import * as authApi from '../../api/auth';
 import type { RootStackParamList } from '../../navigation/types';
 
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
@@ -73,6 +74,15 @@ export default function Step14Screen() {
     // Persist the authoritative completion flag so a returning user isn't sent back
     // through onboarding on the next cold start (non-blocking).
     await saveAndNext({}, { onboardingComplete: true } as any).catch(() => {});
+    // Refresh the FULL auth-store user (Profile.completionPercentage, etc.) so surfaces
+    // that read from it — e.g. Home's "Complete your profile" strip — reflect the
+    // freshly-onboarded profile instead of the stale pre-onboarding snapshot (0%).
+    try {
+      const fresh = await authApi.getMe();
+      setUser(fresh);
+    } catch {
+      /* keep the optimistic onboardingComplete patch above */
+    }
     // RootNavigator picks up onboardingComplete=true and renders MainNavigator
     navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
   };

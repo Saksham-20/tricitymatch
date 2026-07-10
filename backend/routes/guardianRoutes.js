@@ -60,6 +60,13 @@ router.post('/invite', auth, asyncHandler(async (req, res) => {
 
   const guardianUser = await User.findOne({ where: { email } });
 
+  // Cannot be your own guardian. The resolve-invite path already guards this;
+  // the direct (on-platform) branch must too, else a member could invite their
+  // own email and burn a guardian slot on a self-link.
+  if (guardianUser && guardianUser.id === req.user.id) {
+    throw new AppError('Cannot be your own guardian', 400);
+  }
+
   if (guardianUser) {
     // User already on platform — link directly as active
     const link = await GuardianLink.create({

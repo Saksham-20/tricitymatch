@@ -163,12 +163,12 @@ const Select = ({
           isOpen ? 'ring-2 ring-primary-500 border-primary-500' : ''
         }`}
       >
-        <span className={selectedOption ? 'text-neutral-900 font-medium' : 'text-neutral-500'}>
-          {selectedOption?.label || placeholder}
+        <span className={(selectedOption || value) ? 'text-neutral-900 font-medium' : 'text-neutral-500'}>
+          {selectedOption?.label || (value ? String(value) : placeholder)}
         </span>
 
         <div className="flex items-center gap-2">
-          {clearable && selectedOption && !disabled && (
+          {clearable && (selectedOption || value) && !disabled && (
             <button
               type="button"
               onClick={handleClear}

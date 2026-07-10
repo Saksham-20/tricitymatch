@@ -550,7 +550,7 @@ exports.getProfileByCode = asyncHandler(async (req, res) => {
         ...(blockedUserIds.length > 0 ? { [Op.notIn]: blockedUserIds } : {}),
       },
     },
-    attributes: ['userId', 'firstName', 'lastName', 'dateOfBirth', 'city', 'profession', 'profilePhoto', 'photoBlurred'],
+    attributes: ['userId', 'firstName', 'lastName', 'dateOfBirth', 'city', 'profession', 'profilePhoto', 'photoBlurUntilMatch'],
     limit: 2,
   });
 
@@ -564,12 +564,26 @@ exports.getProfileByCode = asyncHandler(async (req, res) => {
   const profile = matches[0];
 
   const raw = profile.toJSON();
+  const isSelf = raw.userId === userId;
+
+  // Photo-privacy: mirror the main search (see line ~324) — hide the photo from a
+  // non-mutual viewer when the target enabled blur-until-match. (Own profile is
+  // always shown to itself.)
+  const mutual = isSelf
+    ? null
+    : await Match.findOne({
+        where: { userId, matchedUserId: raw.userId, isMutual: true },
+        attributes: ['id'],
+      });
+  const profilePhoto = (raw.photoBlurUntilMatch && !mutual && !isSelf) ? null : raw.profilePhoto;
+
   res.json({
     success: true,
     profile: {
       ...raw,
+      profilePhoto,
       profileCode: toProfileCode(raw.userId),
-      isSelf: raw.userId === userId,
+      isSelf,
     },
   });
 });

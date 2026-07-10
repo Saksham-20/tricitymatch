@@ -25,6 +25,12 @@ const TITLE_RULES = [
 // Returns a title for app/admin routes, or null for public routes — which
 // render their own <Seo> (Helmet) and must not be clobbered here.
 const titleForPath = (pathname) => {
+  // Viewing someone else's profile — `/profile/:id` (but NOT `/profile/edit`).
+  // Own profile is exactly `/profile`; "My Profile" here would mislabel another
+  // member's page. Generic "Profile" also keeps their name out of the tab/history.
+  if (/^\/profile\/(?!edit$)[^/]+/.test(pathname)) {
+    return 'Profile | TricityShadi';
+  }
   const rule = TITLE_RULES.find(([prefix]) => pathname === prefix || pathname.startsWith(`${prefix}/`));
   return rule ? `${rule[1]} | TricityShadi` : null;
 };

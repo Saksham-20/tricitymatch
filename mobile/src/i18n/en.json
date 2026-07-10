@@ -184,7 +184,10 @@
       "subtitle": "Let your matches know you better",
       "bioPlaceholder": "Describe yourself...",
       "bioLimit": "{{count}}/500",
-      "interestTags": "Select your interests"
+      "interestTags": "Select your interests",
+      "bio": "About you",
+      "interests": "Interests",
+      "interestsHint": "Pick a few that describe you best"
     },
     "step11": {
       "title": "Partner Preferences",
@@ -222,7 +225,7 @@
       "invalidOtp": "Incorrect OTP. Please try again."
     },
     "step14": {
-      "title": "You're all set! 🎉",
+      "title": "You're all set!",
       "subtitle": "Your profile is ready. Here's what to do next:",
       "getVerified": "Get ID Verified",
       "getVerifiedSub": "Add a trust badge to your profile",
@@ -230,7 +233,14 @@
       "completeProfileSub": "Better matches for more complete profiles",
       "uploadKundli": "Upload Kundli",
       "uploadKundliSub": "Enable horoscope matching",
-      "browseMatches": "Browse Matches"
+      "browseMatches": "Browse Matches",
+      "complete": "Complete",
+      "card1Title": "Get Photo Verified",
+      "card1Sub": "Add a trust badge to your profile",
+      "card2Title": "Complete Your Profile",
+      "card2Sub": "Better matches for more complete profiles",
+      "card3Title": "Discover Matches",
+      "card3Sub": "See profiles picked just for you"
     }
   },
   "home": {

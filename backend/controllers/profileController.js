@@ -299,6 +299,21 @@ exports.updateProfile = asyncHandler(async (req, res) => {
     updateData.photos = finalPhotos;
     updateData.profilePhoto = finalProfilePhoto || null;
 
+    // Server-controlled onboarding completion (one-way false→true). onboardingComplete
+    // is never client-settable via PUT /me (mass-assignment guard above), but mobile
+    // signup is email+password only, so the account starts un-onboarded and fills the
+    // identity triple across the 14-step flow. Mirror the signup rule — once the
+    // resulting profile has firstName + gender + dateOfBirth, mark it onboarded so a
+    // returning user isn't sent back through onboarding. Never flips true→false.
+    if (!profile.onboardingComplete) {
+      const nextFirstName = Object.prototype.hasOwnProperty.call(updateData, 'firstName') ? updateData.firstName : profile.firstName;
+      const nextGender = Object.prototype.hasOwnProperty.call(updateData, 'gender') ? updateData.gender : profile.gender;
+      const nextDob = Object.prototype.hasOwnProperty.call(updateData, 'dateOfBirth') ? updateData.dateOfBirth : profile.dateOfBirth;
+      if (nextFirstName && nextGender && nextDob) {
+        updateData.onboardingComplete = true;
+      }
+    }
+
     // Update profile with new data
     await profile.update(updateData, { transaction: t });
   });
