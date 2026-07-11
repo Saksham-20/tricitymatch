@@ -78,14 +78,20 @@
 - [ ] PII: no secrets/tokens in logs (see X7); error bodies stack-stripped in prod (C20 ✅).
 - [ ] VPS infra (documented, out of app scope, [[project-security-pentest-2026-07]]): `.env.production` 644 world-readable, SSH root/password/no-fail2ban — **owner action**.
 
-## X7 — Observability / logging  ⬜
+## X7 — Observability / logging  ✅ (2026-07-11, static + prod-env)
+**Result: clean.** OTP codes logged ONLY when `!isProduction` (SMS) / `!email.isConfigured() && !isProduction` (email) → prod never logs codes (only destination phone for delivery debug — acceptable). Prod env verified live: `NODE_ENV=production`, `OTP_BYPASS_CODES` unset, `ALLOW_INSECURE_PROD="false"` (parsed→disabled, secret-strength guards active), `SMS_PROVIDER=msg91`. Structured JSON logger in use. **XF-05 ⚪** — 3 leftover debug `console.log` in `profileController.js` (162/255/340: content-type/file/photo counts) bypass the structured logger + pollute prod container logs; harmless (counts, no PII); batch-remove with next backend change (not worth a standalone backend redeploy). **⚪** — logger has no auto-redaction of password/token fields (defense-in-depth); no actual body-dumping found, so latent only.
+
+## X7 (original checklist)
 - [ ] Structured JSON logs (`middlewares/logger`) — request id, no PII (password/token/OTP/phone) in log lines; grep for accidental `console.log`.
 - [ ] Error monitoring: uncaughtException/unhandledRejection handled (DQ-011 showed a crash-path); consider Sentry/log aggregation for prod.
 - [ ] `/health` returns useful liveness (DB + Redis reachability), used by docker healthcheck + nginx.
 - [ ] Prometheus/Grafana (`monitoring/`) scrape targets valid; key counters (signups, payments, errors) exported.
 - [ ] Log levels correct (no debug spam in prod; terser drops FE console).
 
-## X8 — Data integrity  ⬜
+## X8 — Data integrity  🟡 (2026-07-11, static slice only)
+**Enum coverage ✅** — model ENUMs consistent with code + deep-run findings: `User.role` (user/admin/super_admin/marketing_manager/marketing — no `bureau`, confirms DQ-015); `Subscription.planType` (free/basic_premium/premium_plus/vip = shared PLANS) + status (active/expired/cancelled/pending); `Match.action` (like/shortlist/pass); `User.status` (+deleted for soft-delete). Model↔column parity risks (DQ-009 col-typo, 2026-06-21 privacy-columns) already found+fixed in prior runs. **Remaining (needs DB session):** orphan-row scan, FK-cascade on delete-account, migration-drift on fresh DB, timezone/IST boundary, money-math — deferred to a focused DB-integrity pass.
+
+## X8 (original checklist)
 - [ ] Migrations 000001–000042 apply clean on a fresh DB (`db:reset` + migrate) with no drift vs models.
 - [ ] Model ↔ column parity (DQ-009 by-code col typo class; the privacy-columns-not-declared class from 2026-06-21) — spot-check every model's declared attrs vs actual table columns.
 - [ ] FK constraints + cascade on delete-account (User → Profile/Match/Message/Notification/Subscription) — no orphans; DEL /auth/account leaves no dangling rows.
