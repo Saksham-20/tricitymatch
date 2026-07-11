@@ -255,8 +255,7 @@ const NriBlock = ({ plan, currency, isCurrent, currentPlanType, isProcessing, on
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
       className="mt-8 rounded-2xl border border-gold-300 bg-gradient-to-br from-white to-gold-50/40 shadow-gold ring-1 ring-gold-200 overflow-hidden"
     >
