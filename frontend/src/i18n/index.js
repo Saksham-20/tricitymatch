@@ -32,4 +32,15 @@ i18n
     },
   });
 
+// Keep <html lang> in sync so screen readers use the right pronunciation rules
+// for hi/pa content (WCAG 3.1.1 / 3.1.2). LanguageDetector only sets the i18n
+// language, never the document attribute.
+const syncHtmlLang = (lng) => {
+  if (typeof document !== 'undefined' && lng) {
+    document.documentElement.setAttribute('lang', lng);
+  }
+};
+syncHtmlLang(i18n.language);
+i18n.on('languageChanged', syncHtmlLang);
+
 export default i18n;

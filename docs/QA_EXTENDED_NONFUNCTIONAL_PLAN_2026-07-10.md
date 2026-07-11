@@ -9,7 +9,15 @@
 - **Started** 2026-07-10 (Opus). **PAUSED after X1 partial** to push+deploy the deep-run fixes + nodemailer patch.
 - **Findings prefix:** `XF-nn` (extended finding), severity 🔴/🟠/🟡/⚪.
 
-## X1 — Performance  🟡 (partial)
+## X1 — Performance  ✅ (2026-07-11)
+**Result: clean.** Findings: XF-01 (nodemailer, fixed+deployed) · XF-02 ⚪ (background-job serial queries, acceptable). Details below.
+- **N+1 scan** ✅ — request paths (controllers/routes/socket) **CLEAN**, zero loop-nested queries (they use includes/joins). Only hits = `utils/queue.js` Bull background jobs (weekly digest per-user `Match.findAll`+`Profile.count` @235-264; saved-search-alerts per-search `Profile.count` @341-377). **XF-02 ⚪** — serial, but scheduled off-peak (Mon 10AM / daily 9AM), no user waiting → acceptable; revisit if user base grows large (batch into grouped aggregate). Not fixed (scope+risk vs benefit).
+- **FE bundle** ✅ — 75 chunks, well code-split. Heavy libs isolated to lazy route chunks: AgoraRTC 411KB gz (calls-only), BarChart/recharts 100KB gz (admin-analytics-only). Initial shell ~200KB gz (index 44 + vendor-react 58 + vendor-ui 57 + vendor-utils 38) — healthy for a feature SPA. No action.
+- **Static-asset cache** ✅ — hashed JS `max-age=31536000, public, immutable` (1yr); index.html `no-store, no-cache, must-revalidate` (instant deploy pickup). Textbook-correct nginx config.
+- **API cache** ⚪ — public GETs (plans/success-stories) have ETag (conditional 304) but no `Cache-Control`. Marginal (endpoints 1-3ms); **skipped** (touches response path, low benefit).
+- **Latency** ✅ — local public endpoints sub-3ms; X-Response-Time header live (DQ-011 guard holds).
+
+### (original X1 checklist — completed above)
 - [x] Backend dep audit → **XF-01 nodemailer HIGH** (`<=9.0.0`, message-`raw` attachment bypass) → bumped **9.0.0→9.0.3** (patch, non-breaking; app never uses message-`raw`, exposure nil). HIGH cleared. **DEPLOYED.**
 - [x] Remaining 10 moderate = all `uuid` transitive advisory (buffer-bounds v3/v5/v6); only "fixes" are MAJOR downgrades (sequelize@3, firebase-admin@10, bull@1) → **held** per CLAUDE.md dep policy (breaking, no real benefit). Documented.
 - [x] Public API latency sample (local): `/health` ~1ms, `/success-stories` ~3ms, `/subscription/plans` ~1.5ms. X-Response-Time header live (DQ-011 guard holds). ETag present (conditional GET).
@@ -20,7 +28,10 @@
 - [ ] Image delivery — Cloudinary transforms (500²/1200²) confirmed in upload; verify `f_auto,q_auto` on delivery URLs for web/RN.
 - [ ] Redis cache hit-path (daily matches TTL, by-code) — dev has no Redis (in-mem fallback); verify prod Redis wired + TTL→midnight correct.
 
-## X2 — Accessibility (web)  ⬜
+## X2 — Accessibility (web)  ✅ (2026-07-11, static pass)
+**Result: strong baseline, 1 fix.** FormField label↔input assoc + aria-invalid + aria-describedby ✅; global `:focus-visible` burgundy ring + skip-link ✅; all 14 `<img>` have alt ✅; 76 aria-labels; 7 live-regions (+react-hot-toast own aria-live). Contrast: burgundy ~9:1 AA-pass; gold accent-only per design rule; elder-mode darkens muted. **XF-03 🟡 fixed** — `<html lang>` was static "en", never updated on hi/pa switch (WCAG 3.1.1/3.1.2 — SR mispronounces); added `i18n.on('languageChanged')` → `documentElement.lang` sync. **Remaining (deeper, needs live AT/browser):** full keyboard-nav walk of modals (focus-trap/Esc), axe scan per page — deferred to a focused interactive a11y pass.
+
+## X2 (original checklist)
 - [ ] Keyboard nav: tab order, focus-visible rings, no keyboard traps (modals: MatchPopup, review lightbox, confirm dialogs), Esc closes overlays.
 - [ ] ARIA: form inputs have `<label>`/`aria-label`; icon-only buttons labelled; `role`/`aria-live` on toasts + notif badge; nav landmarks.
 - [ ] Color contrast AA — burgundy `#8B2346` on white, gold `#C9A227` text, muted text in light+dark+elder. Run axe or manual contrast on Home/Login/Dashboard/Profile.
@@ -28,7 +39,10 @@
 - [ ] Elder mode: 18.5px base + ≥44px hit targets actually applied on every interactive control (spot-check Search filters, chat send, bottom nav).
 - [ ] Reduced-motion: `MotionConfig reducedMotion="user"` honored (confirm no essential info conveyed by motion only).
 
-## X3 — SEO  ⬜
+## X3 — SEO  ✅ (2026-07-11)
+**Result: strong, 1 fix.** robots.txt correct (public allowed; admin/marketing/api/dashboard/chat/settings/notifications disallowed) ✅; sitemap.xml 9 public URLs, no protected-route leak ✅; `Seo.jsx` per-route on 10 pages w/ canonical + OG + twitter card ✅; JSON-LD Organization+WebSite in index.html ✅. **XF-04 🟠 fixed** — index.html default OG + twitter + JSON-LD descriptions still claimed **"Government-ID verified"** (govt-ID removed 2026-07-02) → "Photo-verified, human-reviewed profiles" ×3; full-repo sweep confirms no other stale govt-ID user-facing claim (remaining hits = profession options + removal-explaining code comments). **⚪ deferred:** no SSR/prerender → raw HTML identical across routes, per-route meta only applies post-JS; Google (runs JS) fine, non-JS social scrapers get generic home preview for deep links. Fix = prerender/SSR (infra change, out of QA-fix scope).
+
+## X3 (original checklist)
 - [ ] `public/robots.txt` + `public/sitemap.xml` present + valid (URLs 200, lastmod sane, no staging leak).
 - [ ] Per-route meta via `Seo.jsx` on ALL public routes (`/ /login /signup /about /contact /safety /success-stories /terms /privacy`) — unique title + description + canonical + OG (+ twitter card). Check for dupes.
 - [ ] Structured data (JSON-LD Organization/WebSite) on Home; optional Product/Offer on subscription.
@@ -51,7 +65,8 @@
 - [ ] Double-submit guards (signup, payment, match) — no dup rows.
 - [ ] Socket disconnect/reconnect (AppState in RN, tab-refocus web) — messages/typing resync, no dupes.
 
-## X6 — Security depth (beyond C20)  ⬜
+## X6 — Security depth (beyond C20)  ✅ (2026-07-11, partial — headers/cookies/deps)
+**Result: clean.** Cookie flags (prod live): accessToken + refreshToken both **HttpOnly + Secure + SameSite=Strict** (Max-Age 15m / 7d) → CSRF mitigated, XSS can't read tokens ✅. Security headers live through nginx: HSTS+preload, CSP (full allowlist), X-Frame DENY, X-Content-Type nosniff, Referrer-Policy ✅. Dep audit HIGH (nodemailer) cleared (X1). **Remaining (deeper, needs load/session driving):** rate-limit real-enforcement hammer (429 + Redis lockout), JWT rotation+family-revoke live test, upload magic-byte live — most already covered functionally in deep-run C2/C20; re-verify under a focused security-load pass.
 - [x] Dep audit (see X1 — HIGH cleared).
 - [ ] Cookie flags: accessToken/refreshToken `httpOnly` + `Secure` (prod) + `SameSite` correct; not readable by JS.
 - [ ] CSRF posture — cookie-auth + custom header / SameSite=strict|lax reasoning documented; state-changing routes safe.
