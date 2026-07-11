@@ -7,6 +7,7 @@ const { Profile, User, ProfileView, Subscription, Match, ContactUnlock, Block, V
 const { visibleSocialLinks, normalizeSocialLinks } = require('../utils/socialLinks');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
+const { PAID_PLANS } = require('../constants/plans');
 const { calculateCompatibility, getCompatibilityBreakdown: calcBreakdown, getAshtakootScore, isManglikCompatible, getRashiCompatibility } = require('../utils/compatibility');
 const { getNumerologyMatch } = require('../utils/numerology');
 const { generateKundliPDF } = require('../utils/kundli');
@@ -477,7 +478,7 @@ exports.getProfile = asyncHandler(async (req, res) => {
   });
 
   const hasPremiumAccess = viewerSubscription &&
-    ['basic_premium', 'premium_plus', 'vip'].includes(viewerSubscription.planType);
+    PAID_PLANS.includes(viewerSubscription.planType);
 
   // Check if contact was already unlocked
   const existingUnlock = await ContactUnlock.findOne({
@@ -578,7 +579,7 @@ exports.getProfile = asyncHandler(async (req, res) => {
     where: {
       userId,
       status: 'active',
-      planType: { [Op.in]: ['basic_premium', 'premium_plus', 'vip'] },
+      planType: { [Op.in]: PAID_PLANS },
       endDate: { [Op.gt]: new Date() }
     }
   });

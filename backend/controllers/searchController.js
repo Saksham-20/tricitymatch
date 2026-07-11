@@ -6,6 +6,7 @@
 const { Profile, User, Match, Subscription, Block, Verification } = require('../models');
 const { Op, fn, col, where: seqWhere } = require('sequelize');
 const Sequelize = require('sequelize');
+const { PAID_PLANS } = require('../constants/plans');
 const { calculateCompatibility, isManglikCompatible } = require('../utils/compatibility');
 const { toProfileCode, parseProfileCode } = require('../utils/profileCode');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
@@ -270,7 +271,7 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
         where: {
           userId: { [Op.in]: profileUserIds },
           status: 'active',
-          planType: { [Op.in]: ['basic_premium', 'premium_plus', 'vip'] },
+          planType: { [Op.in]: PAID_PLANS },
           [Op.or]: [{ endDate: null }, { endDate: { [Op.gt]: new Date() } }]
         },
         attributes: ['userId', 'planType']
@@ -436,7 +437,7 @@ exports.getSuggestions = asyncHandler(async (req, res) => {
         where: {
           userId: { [Op.in]: suggestionUserIds },
           status: 'active',
-          planType: { [Op.in]: ['basic_premium', 'premium_plus', 'vip'] },
+          planType: { [Op.in]: PAID_PLANS },
           [Op.or]: [{ endDate: null }, { endDate: { [Op.gt]: new Date() } }]
         },
         attributes: ['userId', 'planType']

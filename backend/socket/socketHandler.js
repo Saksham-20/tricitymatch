@@ -5,6 +5,7 @@
 
 const { Message, Match, Subscription, GroupMember } = require('../models');
 const { Op } = require('sequelize');
+const { PAID_PLANS } = require('../constants/plans');
 const jwt = require('jsonwebtoken');
 const cookie = require('cookie');
 const config = require('../config/env');
@@ -122,7 +123,7 @@ const checkSubscription = async (userId) => {
       where: {
         userId,
         status: 'active',
-        planType: { [Op.in]: ['basic_premium', 'premium_plus', 'vip'] },
+        planType: { [Op.in]: PAID_PLANS },
         [Op.or]: [
           { endDate: null },
           { endDate: { [Op.gt]: new Date() } }

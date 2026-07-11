@@ -5,6 +5,7 @@
 
 const { body, param, query } = require('express-validator');
 const { PROFILE_STRIPPER_ALLOWLIST } = require('../constants/profileFields');
+const { PAID_PLANS } = require('../constants/plans');
 
 // Common validation helpers
 const isUUID = (field, location = 'param') => {
@@ -492,7 +493,7 @@ const searchValidation = [
 
 const createOrderValidation = [
   body('planType')
-    .isIn(['basic_premium', 'premium_plus', 'vip'])
+    .isIn(PAID_PLANS)
     .withMessage('Plan type must be one of: basic_premium, premium_plus, vip'),
 ];
 

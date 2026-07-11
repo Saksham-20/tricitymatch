@@ -37,6 +37,7 @@ const { adminLimiter } = require('../middlewares/security');
 const { sendPushNotification } = require('../utils/fcm');
 const { User } = require('../models');
 const { Op } = require('sequelize');
+const { ALL_PLANS } = require('../constants/plans');
 const { 
   updateUserStatusValidation, 
   updateVerificationValidation, 
@@ -55,7 +56,7 @@ router.get('/users/:userId', param('userId').isUUID(4), handleValidationErrors, 
 router.put('/users/:userId/status', updateUserStatusValidation, handleValidationErrors, updateUserStatus);
 router.put('/users/:userId/subscription',
   param('userId').isUUID(4),
-  body('planType').isIn(['free', 'basic_premium', 'premium_plus', 'vip']),
+  body('planType').isIn(ALL_PLANS),
   handleValidationErrors,
   updateSubscription
 );

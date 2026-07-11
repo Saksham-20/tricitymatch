@@ -8,6 +8,7 @@ const { User, Subscription, RefreshToken } = require('../models');
 const { Op } = require('sequelize');
 const config = require('../config/env');
 const { createError, asyncHandler } = require('./errorHandler');
+const { PAID_PLANS, UNLIMITED_PLANS } = require('../constants/plans');
 
 /**
  * Extract token from request
@@ -161,7 +162,7 @@ const requirePremium = asyncHandler(async (req, res, next) => {
     where: {
       userId,
       status: 'active',
-      planType: { [Op.in]: ['basic_premium', 'premium_plus', 'vip'] },
+      planType: { [Op.in]: PAID_PLANS },
       [Op.or]: [
         { endDate: null },
         { endDate: { [Op.gt]: new Date() } }
@@ -199,7 +200,7 @@ const requireVIP = asyncHandler(async (req, res, next) => {
     where: {
       userId,
       status: 'active',
-      planType: 'vip',
+      planType: { [Op.in]: UNLIMITED_PLANS },
       [Op.or]: [
         { endDate: null },
         { endDate: { [Op.gt]: new Date() } }
@@ -322,7 +323,7 @@ const socketRequirePremium = async (socket, next) => {
       where: {
         userId: socket.userId,
         status: 'active',
-        planType: { [Op.in]: ['basic_premium', 'premium_plus', 'vip'] },
+        planType: { [Op.in]: PAID_PLANS },
         [Op.or]: [
           { endDate: null },
           { endDate: { [Op.gt]: new Date() } }

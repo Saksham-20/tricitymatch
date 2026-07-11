@@ -6,6 +6,7 @@
 const { Subscription, User, Profile, MarketingLead } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
+const { PAID_PLANS, TIER_RANK } = require('../constants/plans');
 const { createOrder: razorpayCreateOrder, verifyPayment: razorpayVerifyPayment, getPlanDetails } = require('../utils/razorpay');
 const { sendSubscriptionConfirmation } = require('../utils/email');
 const config = require('../config/env');
@@ -27,14 +28,12 @@ exports.createOrder = asyncHandler(async (req, res) => {
   }
 
   // Validate plan type
-  const validPlans = ['basic_premium', 'premium_plus', 'vip'];
-  if (!validPlans.includes(planType)) {
+  if (!PAID_PLANS.includes(planType)) {
     throw createError.badRequest('Invalid plan type');
   }
 
   // Tier rank — a paid member can only move UP a tier while their plan is active.
   // Same-tier renewal or a downgrade while active is rejected (handle via support).
-  const TIER_RANK = { basic_premium: 1, premium_plus: 2, vip: 3 };
 
   // Use transaction for atomicity
   const result = await sequelize.transaction(async (t) => {

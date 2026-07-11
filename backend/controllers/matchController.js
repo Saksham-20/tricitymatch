@@ -6,6 +6,7 @@
 const { Match, Profile, User, Subscription, Block, Verification } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
+const { PAID_PLANS } = require('../constants/plans');
 const { calculateCompatibility } = require('../utils/compatibility');
 const { getOrSet } = require('../utils/cache');
 const { sendMatchNotification } = require('../utils/emailService');
@@ -203,7 +204,7 @@ const computeDailyMatches = async (userId) => {
           where: {
             userId: { [Op.in]: candidateIds },
             status: 'active',
-            planType: { [Op.in]: ['basic_premium', 'premium_plus', 'vip'] },
+            planType: { [Op.in]: PAID_PLANS },
             [Op.or]: [{ endDate: null }, { endDate: { [Op.gt]: new Date() } }],
           },
           attributes: ['userId', 'planType'],
@@ -265,7 +266,7 @@ exports.getDailyMatches = asyncHandler(async (req, res) => {
     where: {
       userId,
       status: 'active',
-      planType: { [Op.in]: ['basic_premium', 'premium_plus', 'vip'] },
+      planType: { [Op.in]: PAID_PLANS },
       [Op.or]: [{ endDate: null }, { endDate: { [Op.gt]: new Date() } }],
     },
     attributes: ['planType'],

@@ -6,6 +6,7 @@
 const { User, Profile, Subscription, Match, Verification, ProfileView, Report, ReferralCode, MarketingLead, SuccessStory } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
+const { PAID_PLANS, ALL_PLANS } = require('../constants/plans');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { logAudit } = require('../middlewares/logger');
 const { generateInvoicePDF } = require('../utils/invoice');
@@ -242,7 +243,7 @@ exports.getAnalytics = asyncHandler(async (req, res) => {
     Subscription.count({
       where: {
         status: 'active',
-        planType: { [Op.in]: ['basic_premium', 'premium_plus', 'vip'] },
+        planType: { [Op.in]: PAID_PLANS },
         [Op.or]: [{ endDate: null }, { endDate: { [Op.gt]: now } }],
       },
     }),
@@ -487,8 +488,7 @@ exports.updateSubscription = asyncHandler(async (req, res) => {
   const { userId } = req.params;
   const { planType, startDate, endDate, status = 'active' } = req.body;
 
-  const validPlans = ['free', 'basic_premium', 'premium_plus', 'vip'];
-  if (!validPlans.includes(planType)) {
+  if (!ALL_PLANS.includes(planType)) {
     throw createError.badRequest('planType must be free, basic_premium, premium_plus, or vip');
   }
 
