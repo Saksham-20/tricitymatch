@@ -185,6 +185,12 @@ const ProfileDetail = () => {
       setShowUpgradeModal(true);
       return;
     }
+    // Depleted finite plan (0 left) — go straight to upgrade, skip the doomed 403.
+    if (contactUnlocksRemaining === 0) {
+      setUpgradeFeature('More Contact Unlocks');
+      setShowUpgradeModal(true);
+      return;
+    }
     try {
       setUnlockLoading(true);
       const res = await api.post(`/profile/${userId}/unlock-contact`);
@@ -320,6 +326,8 @@ const ProfileDetail = () => {
   // Links can be a legacy string or the new { url, visibility } shape.
   const socialUrl = (entry) => (typeof entry === 'string' ? entry : entry?.url) || null;
   const hasSocials = profile.socialMediaLinks && socialPlatforms.some((p) => socialUrl(profile.socialMediaLinks[p.key]));
+  // Can actually spend an unlock: premium AND (unlimited=-1 OR some left). 0 = depleted → upgrade instead.
+  const canUnlockContact = premiumAccess && contactUnlocksRemaining !== 0;
 
   const tabs = [
     { id: 'about', label: 'About' },
@@ -877,27 +885,36 @@ const ProfileDetail = () => {
                     </div>
                     <p className="text-sm font-bold text-neutral-700 mb-1">Contact is private</p>
                     <p className="text-xs text-neutral-400 mb-4 leading-relaxed">
-                      {premiumAccess
-                        ? `Use 1 of your ${contactUnlocksRemaining > 0 ? contactUnlocksRemaining : 'remaining'} unlock${contactUnlocksRemaining !== 1 ? 's' : ''} to view phone & email`
-                        : 'Upgrade to Premium to view phone & email'}
+                      {!premiumAccess
+                        ? 'Upgrade to Premium to view phone & email'
+                        : contactUnlocksRemaining === 0
+                        ? "You've used all your contact unlocks. Upgrade your plan to unlock more."
+                        : contactUnlocksRemaining === -1
+                        ? 'Unlock to view phone & email'
+                        : `Use 1 of your ${contactUnlocksRemaining} unlock${contactUnlocksRemaining !== 1 ? 's' : ''} to view phone & email`}
                     </p>
                     {premiumAccess && contactUnlocksRemaining > 0 && (
                       <p className="text-xs font-bold text-primary-400 mb-3">{contactUnlocksRemaining} unlock{contactUnlocksRemaining !== 1 ? 's' : ''} remaining</p>
+                    )}
+                    {premiumAccess && contactUnlocksRemaining === 0 && (
+                      <p className="text-xs font-bold text-neutral-400 mb-3">0 unlocks remaining</p>
                     )}
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={handleUnlockContact}
                       disabled={unlockLoading}
-                      className={`w-full flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-xl transition-all cursor-pointer ${premiumAccess
+                      className={`w-full flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-xl transition-all cursor-pointer ${canUnlockContact
                           ? 'bg-primary-500 text-white hover:bg-primary-600 shadow-sm'
                           : 'bg-gold text-neutral-900 hover:bg-gold-400 shadow-gold'
                         }`}
                     >
                       {unlockLoading ? (
                         <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                      ) : premiumAccess ? (
+                      ) : canUnlockContact ? (
                         <><FiUnlock className="w-4 h-4" /> Unlock Contact</>
+                      ) : premiumAccess ? (
+                        <><FaCrown className="w-3.5 h-3.5" /> Upgrade for more unlocks</>
                       ) : (
                         <><FaCrown className="w-3.5 h-3.5" /> Upgrade to Premium</>
                       )}
