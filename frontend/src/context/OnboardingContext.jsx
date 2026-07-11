@@ -317,16 +317,13 @@ export const STEPS = [
   // NOTE: the old standalone "Welcome" step (a Terms-only gate) was removed — the
   // Terms & Privacy agreement now lives inline on the Create Account step, cutting
   // a friction step out of signup for higher conversion.
-  {
-    id: 0.5,
-    number: 0,
-    title: 'Creating Profile For',
-    icon: 'Users',
-    description: 'Is this profile for you or someone else?',
-    fields: ['creatingFor', 'relationshipToProfile', 'yourName', 'yourPhone', 'yourEmail'],
-    required: ['creatingFor', 'yourName', 'yourPhone', 'yourEmail'],
-    showIn: ['create_for_other'],
-  },
+  //
+  // The separate "Creating Profile For" step (id 0.5) was ALSO removed: it
+  // duplicated the who-for + creator-details collection that already lives on the
+  // Create Account step (guardian branch), with an inconsistent data model
+  // (creatingFor 'parent'/'sibling' vs the account step's self/other +
+  // relationship dropdown) that left the flow stuck. Guardians now do who-for,
+  // creator details AND account creds on ONE step.
   {
     id: 1,
     number: 1,
@@ -363,7 +360,7 @@ export const STEPS = [
     number: 4,
     title: 'Religion & Community',
     icon: 'Heart',
-    description: 'Your religious background',
+    description: 'Your religious background — all optional',
     fields: ['religion', 'caste', 'subCaste', 'gotra', 'motherTongue'],
     required: [],
     showIn: ['edit', 'create_for_other'],
@@ -393,7 +390,7 @@ export const STEPS = [
     number: 6,
     title: 'Education & Career',
     icon: 'Briefcase',
-    description: 'Your professional background',
+    description: 'Your professional background — all optional',
     fields: ['education', 'degree', 'profession', 'income'],
     required: [],
     showIn: ['edit', 'create_for_other'],
@@ -403,7 +400,7 @@ export const STEPS = [
     number: 7,
     title: 'Family Background',
     icon: 'Users',
-    description: 'Tell us about your family',
+    description: 'Tell us about your family — all optional',
     fields: ['familyType', 'familyStatus', 'numberOfSiblings'],
     required: [],
     showIn: ['edit', 'create_for_other'],
@@ -413,7 +410,7 @@ export const STEPS = [
     number: 8,
     title: 'Lifestyle',
     icon: 'Smile',
-    description: 'Your lifestyle preferences',
+    description: 'Your lifestyle preferences — all optional',
     fields: ['skinTone', 'diet', 'smoking', 'drinking'],
     required: [],
     showIn: ['edit', 'create_for_other'],
@@ -423,7 +420,7 @@ export const STEPS = [
     number: 9,
     title: 'About Yourself',
     icon: 'BookOpen',
-    description: 'Tell us more about yourself',
+    description: 'Tell us more about yourself — all optional',
     fields: ['bio', 'interestTags'],
     required: [],
     showIn: ['edit', 'create_for_other'],
@@ -447,7 +444,7 @@ export const STEPS = [
     number: 10,
     title: 'Preferences',
     icon: 'Heart',
-    description: 'What are you looking for?',
+    description: 'What are you looking for? — all optional',
     fields: ['preferredAgeMin', 'preferredAgeMax', 'preferredEducation', 'preferredCity'],
     required: [],
     showIn: ['edit', 'create_for_other'],

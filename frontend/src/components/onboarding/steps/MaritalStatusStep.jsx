@@ -60,6 +60,7 @@ const MaritalStatusStep = () => {
             onChange={(value) => updateFormData('numberOfChildren', value)}
             min="0"
             max="10"
+            optional
           />
         </motion.div>
       )}

@@ -162,6 +162,7 @@ const BasicInfoStep = () => {
               value={formData.height ? String(formData.height) : ''}
               onChange={(value) => updateFormData('height', value)}
               placeholder="Select height"
+              optional
             />
             <FormField
               label="Weight (kg)"
@@ -172,6 +173,7 @@ const BasicInfoStep = () => {
               onChange={(value) => updateFormData('weight', value)}
               onBlur={() => setFieldTouched('weight')}
               error={errors.weight}
+              optional
             />
           </div>
           <p className="text-xs text-neutral-400 mt-1.5">Optional — but profiles with height filled appear in more filtered searches.</p>

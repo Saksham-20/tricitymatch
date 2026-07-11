@@ -9,6 +9,7 @@ const Select = ({
   placeholder = 'Select an option',
   error,
   required = false,
+  optional = false,
   searchable = false,
   disabled = false,
   clearable = true,
@@ -137,6 +138,7 @@ const Select = ({
         <label id={labelId} htmlFor={fieldId} className="block text-sm font-medium text-neutral-900">
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
+          {optional && !required && <span className="ml-1.5 text-xs font-normal text-neutral-400">(optional)</span>}
         </label>
       )}
 

@@ -20,7 +20,6 @@ import {
 } from 'react-icons/fi';
 
 // Import step components
-import CreatingForStep from '../components/onboarding/steps/CreatingForStep';
 import CreateAccountStep from '../components/onboarding/steps/CreateAccountStep';
 import BasicInfoStep from '../components/onboarding/steps/BasicInfoStep';
 import LocationStep from '../components/onboarding/steps/LocationStep';
@@ -37,7 +36,6 @@ import VerificationStep from '../components/onboarding/steps/VerificationStep';
 
 // All available step components (mapped by step id)
 const allStepComponents = {
-  0.5: CreatingForStep,
   1: CreateAccountStep,
   2: BasicInfoStep,
   3: LocationStep,
@@ -90,6 +88,10 @@ const ModernOnboardingContent = () => {
   const [previewData, setPreviewData] = useState(null);
   const [stepDirection, setStepDirection] = useState(1);
   const [submitError, setSubmitError] = useState('');
+  // Guardian flow creates the account first, THEN saves the full profile. If the
+  // account is already created, a Retry must re-run ONLY the profile save (a
+  // second signup would 409) — this flag gates that.
+  const [accountCreated, setAccountCreated] = useState(false);
   const [completionPercentage, setCompletionPercentage] = useState(0);
   const referralCodeParam = searchParams.get('ref');
 
@@ -154,7 +156,14 @@ const ModernOnboardingContent = () => {
     setIsLoading(true);
     setSubmitError('');
     try {
-      if (mode === 'signup' || mode === 'create_for_other') {
+      if (mode === 'edit') {
+        clearDraft();
+        navigate('/dashboard');
+        return;
+      }
+
+      // ── 1. Create the account (skipped on Retry once it already exists) ──
+      if (!accountCreated) {
         const signupData = { ...formData };
         if (signupData.phone) signupData.phone = String(signupData.phone).replace(/[\s-]/g, '');
         if (!signupData.email) delete signupData.email; // phone-only signup
@@ -163,37 +172,41 @@ const ModernOnboardingContent = () => {
           // Toast already fired in AuthContext; keep a persistent inline copy
           // next to the CTA so the failure can't be missed.
           setSubmitError(result.error || 'Could not create your account. Please try again.');
+          return;
         }
-        if (result.success) {
-          // Self-signup gets a "how others see you" close-the-loop card;
-          // guardian flow goes straight to the dashboard as before.
-          if (mode === 'signup') {
-            setPreviewData({
-              firstName: formData.firstName,
-              lastName: formData.lastName,
-              dateOfBirth: formData.dateOfBirth,
-            });
-          }
-          if (mode === 'create_for_other') {
-            // Guardian collected the full profile but signup only persists
-            // name/gender/dob — persist the rest now that the candidate account
-            // + session exist. Non-fatal on failure (editable later). Must run
-            // BEFORE clearDraft() wipes formData.
-            try {
-              await api.put('/profile/me', buildProfileFormData(formData), {
-                headers: { 'Content-Type': 'multipart/form-data' },
-              });
-            } catch (e) {
-              console.error('guardian profile save failed', e.response?.data || e);
-            }
-          }
-          clearDraft();
-          if (mode !== 'signup') navigate('/dashboard');
-        }
-      } else {
-        clearDraft();
-        navigate('/dashboard');
+        setAccountCreated(true);
       }
+
+      // ── 2. Self-signup: show the "how others see you" card, done ──
+      if (mode === 'signup') {
+        setPreviewData({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          dateOfBirth: formData.dateOfBirth,
+        });
+        clearDraft();
+        return;
+      }
+
+      // ── 3. Guardian: persist the full profile the guardian filled in.
+      // signup only stored name/gender/dob; everything else rides this PUT.
+      // A failure here must NOT silently drop 12 steps of data — surface it,
+      // keep the draft, and let Retry re-run just this save.
+      try {
+        await api.put('/profile/me', buildProfileFormData(formData), {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+      } catch (e) {
+        console.error('guardian profile save failed', e.response?.data || e);
+        setSubmitError(
+          e.response?.data?.error?.message ||
+          'Your account was created, but we could not save all the profile details. Tap Retry — nothing you entered is lost.'
+        );
+        return; // keep draft + accountCreated flag; Retry re-runs this PUT only
+      }
+
+      clearDraft();
+      navigate('/dashboard');
     } finally {
       setIsLoading(false);
     }
@@ -530,12 +543,32 @@ const ModernOnboardingContent = () => {
             className="mt-6 text-center text-sm text-neutral-600"
           >
             {currentStep === 0 ? (
-              <p>
-                Already have an account?{' '}
-                <Link to="/login" className="font-semibold text-primary-600 hover:text-primary-700">
-                  Sign in
-                </Link>
-              </p>
+              <div className="space-y-2">
+                <p>
+                  Already have an account?{' '}
+                  <Link to="/login" className="font-semibold text-primary-600 hover:text-primary-700">
+                    Sign in
+                  </Link>
+                </p>
+                {/* Mode switch — the guardian ("for someone else") flow is otherwise
+                    unreachable. A full navigation re-mounts the provider in the
+                    right mode. */}
+                {mode === 'signup' ? (
+                  <p className="text-xs text-neutral-500">
+                    Setting up a profile for your son, daughter or sibling?{' '}
+                    <a href="/onboarding?createFor=other" className="font-semibold text-primary-600 hover:text-primary-700 underline underline-offset-2">
+                      Create it for them
+                    </a>
+                  </p>
+                ) : (
+                  <p className="text-xs text-neutral-500">
+                    Creating your own profile instead?{' '}
+                    <a href="/onboarding" className="font-semibold text-primary-600 hover:text-primary-700 underline underline-offset-2">
+                      Switch to a personal profile
+                    </a>
+                  </p>
+                )}
+              </div>
             ) : (
               <button
                 onClick={handleQuit}
