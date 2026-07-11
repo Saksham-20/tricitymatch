@@ -22,6 +22,7 @@ const Group = require('./Group');
 const GroupMember = require('./GroupMember');
 const GroupMessage = require('./GroupMessage');
 const ContactMessage = require('./ContactMessage');
+const UnlockPurchase = require('./UnlockPurchase');
 
 // Define Relationships
 User.hasOne(Profile, { foreignKey: 'userId', onDelete: 'CASCADE' });
@@ -122,6 +123,10 @@ GroupMessage.belongsTo(Group, { foreignKey: 'groupId', as: 'Group' });
 User.hasMany(GroupMessage, { foreignKey: 'senderId', as: 'GroupMessagesSent', onDelete: 'CASCADE' });
 GroupMessage.belongsTo(User, { foreignKey: 'senderId', as: 'Sender' });
 
+// Unlock top-up purchases
+User.hasMany(UnlockPurchase, { foreignKey: 'userId', as: 'UnlockPurchases', onDelete: 'CASCADE' });
+UnlockPurchase.belongsTo(User, { foreignKey: 'userId' });
+
 module.exports = {
   sequelize,
   User,
@@ -147,5 +152,6 @@ module.exports = {
   GroupMember,
   GroupMessage,
   ContactMessage,
+  UnlockPurchase,
 };
 

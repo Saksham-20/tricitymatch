@@ -27,13 +27,19 @@ const getRazorpayInstance = () => {
   return razorpay;
 };
 
-// Subscription plans configuration
+// Subscription plans configuration — single source of truth for price/tenure/
+// unlocks AND presentation (mrp/badge/durationLabel/features). getPlans() in
+// subscriptionController maps over this; do not re-hardcode prices there.
+// `amount`/`mrp` are in paise. `duration` is days. `contactUnlocks: null` =
+// unlimited. Enum keys are fixed (persisted); prices are remapped here.
 const PLANS = {
   basic_premium: {
-    name: 'Basic Premium',
-    amount: 150000,       // ₹1,500 in paise
-    duration: 15,          // 15 days
-    contactUnlocks: 5,     // 5 contact unlocks
+    name: 'Basic',
+    amount: 129900,        // ₹1,299
+    mrp: 199900,           // ₹1,999 (strike-through anchor)
+    duration: 30,          // 30 days
+    durationLabel: '30 days',
+    contactUnlocks: 5,
     features: [
       'view_contacts',
       'unlimited_messages',
@@ -42,10 +48,14 @@ const PLANS = {
     ]
   },
   premium_plus: {
-    name: 'Premium Plus',
-    amount: 300000,       // ₹3,000 in paise
-    duration: 30,          // 1 month
-    contactUnlocks: 10,    // 10 contact unlocks
+    name: 'Premium',
+    amount: 249900,        // ₹2,499
+    mrp: 399900,           // ₹3,999
+    duration: 90,          // 90 days
+    durationLabel: '90 days',
+    contactUnlocks: 15,
+    popular: true,
+    badge: 'Most Popular',
     features: [
       'view_contacts',
       'unlimited_messages',
@@ -55,10 +65,30 @@ const PLANS = {
       'spotlight_listing'
     ]
   },
+  elite: {
+    name: 'Elite',
+    amount: 399900,        // ₹3,999
+    mrp: 699900,           // ₹6,999
+    duration: 180,         // 180 days
+    durationLabel: '6 months',
+    contactUnlocks: 30,
+    badge: 'Best Value',
+    features: [
+      'view_contacts',
+      'unlimited_messages',
+      'who_viewed_profile',
+      'advanced_search',
+      'profile_boost',
+      'spotlight_listing',
+      'priority_ranking'
+    ]
+  },
   vip: {
     name: 'VIP',
-    amount: 749900,       // ₹7,499 in paise
-    duration: 90,          // 3 months
+    amount: 599900,        // ₹5,999
+    mrp: 1199900,          // ₹11,999
+    duration: 360,         // 360 days (12 months)
+    durationLabel: '12 months',
     contactUnlocks: null,  // Unlimited
     features: [
       'view_contacts',
@@ -70,7 +100,38 @@ const PLANS = {
       'priority_ranking',
       'verified_badge'
     ]
+  },
+  nri: {
+    name: 'NRI Connect',
+    amount: 999900,        // ₹9,999
+    mrp: null,
+    duration: 180,         // 180 days
+    durationLabel: '6 months',
+    contactUnlocks: null,  // Unlimited
+    badge: 'NRI',
+    features: [
+      'view_contacts',
+      'unlimited_messages',
+      'who_viewed_profile',
+      'advanced_search',
+      'profile_boost',
+      'spotlight_listing',
+      'priority_ranking',
+      'verified_badge',
+      'nri_priority_support',
+      'timezone_aware_matching'
+    ]
   }
+};
+
+// À-la-carte contact-unlock top-ups (not a plan). Priced ABOVE every finite
+// plan's per-unlock rate so upgrading always beats stacking bundles. Ride the
+// active subscription row (increment contactUnlocksAllowed). Not for unlimited
+// plans (vip/nri). `amount` in paise.
+const UNLOCK_BUNDLES = {
+  bundle_3:  { name: '3 Contact Unlocks',  unlocks: 3,  amount: 59900 },   // ₹599
+  bundle_10: { name: '10 Contact Unlocks', unlocks: 10, amount: 149900 },  // ₹1,499
+  bundle_25: { name: '25 Contact Unlocks', unlocks: 25, amount: 299900 },  // ₹2,999
 };
 
 // Razorpay caps `receipt` at 40 chars; a bare UUID userId (36) + prefix +
@@ -166,12 +227,35 @@ const createGenericOrder = async (amountPaise, userId, notes = {}) => {
   }
 };
 
+/**
+ * Create a Razorpay order for an à-la-carte unlock bundle.
+ * @param {string} bundleId  key of UNLOCK_BUNDLES
+ * @param {string} userId
+ */
+const createBundleOrder = async (bundleId, userId) => {
+  const bundle = UNLOCK_BUNDLES[bundleId];
+  if (!bundle) {
+    throw new Error('Invalid bundle id');
+  }
+  const order = await createGenericOrder(bundle.amount, userId, {
+    type: 'unlock_bundle',
+    bundleId,
+    unlocks: bundle.unlocks,
+  });
+  return { ...order, bundleId, unlocks: bundle.unlocks };
+};
+
+const getBundleDetails = (bundleId) => UNLOCK_BUNDLES[bundleId] || null;
+
 module.exports = {
   getRazorpayInstance,
   createOrder,
   createGenericOrder,
+  createBundleOrder,
   verifyPayment,
   getPlanDetails,
-  PLANS
+  getBundleDetails,
+  PLANS,
+  UNLOCK_BUNDLES
 };
 

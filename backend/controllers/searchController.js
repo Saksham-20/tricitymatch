@@ -295,7 +295,7 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
   });
 
   // Keep highest plan per user (vip > premium_plus > basic_premium)
-  const planRank = { vip: 3, premium_plus: 2, basic_premium: 1 };
+  const planRank = { nri: 4, vip: 4, elite: 3, premium_plus: 2, basic_premium: 1 };
   const subMap = new Map();
   activeSubscriptions.forEach(s => {
     const existing = subMap.get(s.userId);
@@ -349,7 +349,8 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
 
   // Boost premium members and referral-boosted users toward top
   const premiumBoost = (plan) => {
-    if (plan === 'vip') return 20;
+    if (plan === 'vip' || plan === 'nri') return 20;
+    if (plan === 'elite') return 15;
     if (plan === 'premium_plus') return 10;
     if (plan === 'basic_premium') return 5;
     return 0;
@@ -453,7 +454,7 @@ exports.getSuggestions = asyncHandler(async (req, res) => {
 
   const verifiedSuggestionIds = new Set(suggestionVerifications.map(v => v.userId));
 
-  const planRankSug = { vip: 3, premium_plus: 2, basic_premium: 1 };
+  const planRankSug = { nri: 4, vip: 4, elite: 3, premium_plus: 2, basic_premium: 1 };
   const subMapSug = new Map();
   suggestionSubs.forEach(s => {
     const existing = subMapSug.get(s.userId);
@@ -466,7 +467,8 @@ exports.getSuggestions = asyncHandler(async (req, res) => {
 
   // Calculate compatibility and sort (with premium + referral boost)
   const premiumBoostSug = (plan) => {
-    if (plan === 'vip') return 20;
+    if (plan === 'vip' || plan === 'nri') return 20;
+    if (plan === 'elite') return 15;
     if (plan === 'premium_plus') return 10;
     if (plan === 'basic_premium') return 5;
     return 0;

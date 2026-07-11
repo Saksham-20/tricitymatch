@@ -6,7 +6,7 @@
 const { User, Profile, Subscription, Match, Verification, ProfileView, Report, ReferralCode, MarketingLead, SuccessStory } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
-const { PAID_PLANS, ALL_PLANS } = require('../constants/plans');
+const { PAID_PLANS, ALL_PLANS, UNLIMITED_PLANS } = require('../constants/plans');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { logAudit } = require('../middlewares/logger');
 const { generateInvoicePDF } = require('../utils/invoice');
@@ -489,7 +489,7 @@ exports.updateSubscription = asyncHandler(async (req, res) => {
   const { planType, startDate, endDate, status = 'active' } = req.body;
 
   if (!ALL_PLANS.includes(planType)) {
-    throw createError.badRequest('planType must be free, basic_premium, premium_plus, or vip');
+    throw createError.badRequest(`planType must be one of: ${ALL_PLANS.join(', ')}`);
   }
 
   const user = await User.findByPk(userId);
@@ -512,13 +512,13 @@ exports.updateSubscription = asyncHandler(async (req, res) => {
     status,
     startDate: startDate ? new Date(startDate) : new Date(),
     endDate: subEndDate,
-    amount: planType === 'basic_premium' ? 1500 : planType === 'premium_plus' ? 3000 : planType === 'vip' ? 7499 : 0,
+    amount: planDetails ? planDetails.amount / 100 : 0,
     contactUnlocksAllowed: planDetails ? planDetails.contactUnlocks : null,
     contactUnlocksUsed: 0,
   });
 
-  // VIP admin override: activate profile boost
-  if (planType === 'vip' && status === 'active') {
+  // Unlimited-plan admin override: activate profile boost
+  if (UNLIMITED_PLANS.includes(planType) && status === 'active') {
     await User.update(
       { isBoosted: true, boostExpiresAt: subEndDate },
       { where: { id: userId } }

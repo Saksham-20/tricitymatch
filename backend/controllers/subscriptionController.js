@@ -3,11 +3,18 @@
  * Handles payment processing with Razorpay
  */
 
-const { Subscription, User, Profile, MarketingLead } = require('../models');
+const { Subscription, User, Profile, MarketingLead, UnlockPurchase } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
-const { PAID_PLANS, TIER_RANK } = require('../constants/plans');
-const { createOrder: razorpayCreateOrder, verifyPayment: razorpayVerifyPayment, getPlanDetails } = require('../utils/razorpay');
+const { PAID_PLANS, UNLIMITED_PLANS, TIER_RANK } = require('../constants/plans');
+const {
+  createOrder: razorpayCreateOrder,
+  verifyPayment: razorpayVerifyPayment,
+  getPlanDetails,
+  createBundleOrder: razorpayCreateBundleOrder,
+  getBundleDetails,
+  PLANS,
+} = require('../utils/razorpay');
 const { sendSubscriptionConfirmation } = require('../utils/email');
 const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
@@ -222,8 +229,8 @@ exports.verifyPayment = asyncHandler(async (req, res) => {
     await lead.save();
   }
 
-  // VIP plan: activate 30-day profile boost
-  if (subscription.planType === 'vip') {
+  // Unlimited plans (VIP / NRI): activate profile boost for the plan term
+  if (UNLIMITED_PLANS.includes(subscription.planType)) {
     const boostExpiry = new Date(subscription.endDate);
     await User.update(
       { isBoosted: true, boostExpiresAt: boostExpiry },
@@ -302,6 +309,51 @@ exports.getMySubscription = asyncHandler(async (req, res) => {
 // @desc    Get available subscription plans
 // @access  Public
 exports.getPlans = asyncHandler(async (req, res) => {
+  // Human-readable marketing bullets per tier. Price/tenure/unlocks/mrp/badge
+  // are pulled from the razorpay PLANS map (single source of truth) so the two
+  // never drift; only the display copy lives here.
+  const FEATURE_COPY = {
+    basic_premium: [
+      'View contact details',
+      'Unlimited messages',
+      'See who viewed profile',
+      'Advanced search filters',
+      '5 contact unlocks',
+    ],
+    premium_plus: [
+      'Everything in Basic',
+      '15 contact unlocks',
+      'Profile boost',
+      'Spotlight listing',
+      'Priority customer support',
+    ],
+    elite: [
+      'Everything in Premium',
+      '30 contact unlocks',
+      'Priority ranking in search',
+      '6-month validity',
+      'Best value per month',
+    ],
+    vip: [
+      'Everything in Elite',
+      'Unlimited contact unlocks',
+      'Verified badge',
+      'Full-year validity',
+      'Dedicated relationship advisor',
+    ],
+    nri: [
+      'Everything in VIP',
+      'Unlimited contact unlocks',
+      'Priority NRI support',
+      'Timezone-aware matching',
+      'Prices shown in your local currency',
+    ],
+  };
+
+  // perMonth (rupees, rounded) = price / (durationDays / 30)
+  const perMonth = (rupees, durationDays) =>
+    Math.round(rupees / (durationDays / 30));
+
   const plans = {
     free: {
       name: 'Free',
@@ -312,55 +364,33 @@ exports.getPlans = asyncHandler(async (req, res) => {
         'Create profile',
         'Browse matches',
         'Send interest',
-        'Basic search filters'
-      ]
+        'Basic search filters',
+      ],
     },
-    basic_premium: {
-      name: 'Basic Premium',
-      price: 1500,
-      duration: '15 days',
-      contactUnlocks: 5,
-      features: [
-        'View contact details',
-        'Unlimited messages',
-        'See who viewed profile',
-        'Advanced search filters',
-        '5 contact unlocks'
-      ]
-    },
-    premium_plus: {
-      name: 'Premium Plus',
-      price: 3000,
-      duration: '1 month',
-      contactUnlocks: 10,
-      popular: true,
-      features: [
-        'Everything in Basic Premium',
-        '10 contact unlocks',
-        'Profile boost',
-        'Spotlight listing',
-        'Priority customer support'
-      ]
-    },
-    vip: {
-      name: 'VIP',
-      price: 7499,
-      duration: '3 months',
-      contactUnlocks: -1,
-      features: [
-        'Everything in Premium Plus',
-        'Unlimited contact unlocks',
-        'Priority ranking in search',
-        'Verified badge',
-        'Dedicated relationship advisor',
-        'Exclusive member events'
-      ]
-    }
   };
+
+  // Build every paid tier from PLANS in ladder order.
+  for (const key of ['basic_premium', 'premium_plus', 'elite', 'vip', 'nri']) {
+    const p = PLANS[key];
+    if (!p) continue;
+    const price = p.amount / 100;
+    plans[key] = {
+      name: p.name,
+      price,
+      mrp: p.mrp ? p.mrp / 100 : null,
+      perMonth: perMonth(price, p.duration),
+      duration: p.durationLabel,
+      durationDays: p.duration,
+      contactUnlocks: p.contactUnlocks === null ? -1 : p.contactUnlocks,
+      popular: p.popular || false,
+      badge: p.badge || null,
+      features: FEATURE_COPY[key] || [],
+    };
+  }
 
   res.json({
     success: true,
-    plans
+    plans,
   });
 });
 
@@ -414,8 +444,8 @@ exports.webhook = asyncHandler(async (req, res) => {
         subscription.contactUnlocksUsed = 0;
         await subscription.save({ transaction: t });
 
-        // VIP plan: activate profile boost via webhook too
-        if (subscription.planType === 'vip') {
+        // Unlimited plans (VIP / NRI): activate profile boost via webhook too
+        if (UNLIMITED_PLANS.includes(subscription.planType)) {
           await User.update(
             { isBoosted: true, boostExpiresAt: endDate },
             { where: { id: subscription.userId }, transaction: t }
@@ -563,6 +593,136 @@ exports.cancelSubscription = asyncHandler(async (req, res) => {
     success: true,
     message: 'Subscription cancelled',
     refund: refundResult,
+  });
+});
+
+// Find the buyer's single active FINITE (non-unlimited) subscription, or null.
+// Bundles ride this row, so an unlimited plan (VIP/NRI) can't buy top-ups.
+const findActiveFiniteSubscription = async (userId, transaction) => {
+  const sub = await Subscription.findOne({
+    where: {
+      userId,
+      status: 'active',
+      endDate: { [Op.gt]: new Date() },
+    },
+    order: [['createdAt', 'DESC']],
+    transaction,
+    ...(transaction ? { lock: true } : {}),
+  });
+  return sub;
+};
+
+// @route   POST /api/subscription/unlock-bundle/create-order
+// @desc    Buy an à-la-carte contact-unlock top-up (requires an active finite plan)
+// @access  Private (requirePremium)
+exports.createBundleOrder = asyncHandler(async (req, res) => {
+  const { bundleId } = req.body;
+  const userId = req.user.id;
+
+  if (!config.razorpay.isConfigured()) {
+    throw createError.internal('Payment gateway is not configured');
+  }
+
+  const bundle = getBundleDetails(bundleId);
+  if (!bundle) {
+    throw createError.badRequest('Invalid bundle');
+  }
+
+  // requirePremium guarantees an active paid sub in req.subscription, but that
+  // includes unlimited plans — bundles make no sense there.
+  const active = req.subscription;
+  if (!active) {
+    throw createError.forbidden('An active subscription is required to buy unlock top-ups', 'PREMIUM_REQUIRED');
+  }
+  if (active.contactUnlocksAllowed === null) {
+    throw createError.badRequest('Your plan already includes unlimited contact unlocks');
+  }
+
+  const order = await razorpayCreateBundleOrder(bundleId, userId);
+
+  await UnlockPurchase.create({
+    userId,
+    bundleId,
+    unlocks: bundle.unlocks,
+    amount: bundle.amount / 100,
+    razorpayOrderId: order.orderId,
+    status: 'pending',
+  });
+
+  logAudit('unlock_bundle_order_created', userId, { bundleId, orderId: order.orderId });
+
+  res.json({
+    success: true,
+    order: {
+      id: order.orderId,
+      amount: order.amount,
+      currency: order.currency,
+    },
+    bundle: { bundleId, unlocks: bundle.unlocks },
+  });
+});
+
+// @route   POST /api/subscription/unlock-bundle/verify-payment
+// @desc    Verify a bundle payment and credit unlocks to the active subscription
+// @access  Private (requirePremium)
+exports.verifyBundlePayment = asyncHandler(async (req, res) => {
+  const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
+  const userId = req.user.id;
+
+  if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+    throw createError.badRequest('Missing payment details');
+  }
+
+  const isValid = razorpayVerifyPayment(razorpayOrderId, razorpayPaymentId, razorpaySignature);
+  if (!isValid) {
+    log.warn('Bundle payment signature verification failed', { userId, razorpayOrderId });
+    throw createError.badRequest('Payment verification failed');
+  }
+
+  const result = await sequelize.transaction(async (t) => {
+    const purchase = await UnlockPurchase.findOne({
+      where: { razorpayOrderId, userId },
+      transaction: t,
+      lock: true,
+    });
+
+    if (!purchase) {
+      throw createError.notFound('Purchase not found');
+    }
+
+    // Idempotency — already credited.
+    if (purchase.status === 'active') {
+      return purchase;
+    }
+
+    const active = await findActiveFiniteSubscription(userId, t);
+    if (!active) {
+      throw createError.badRequest('No active subscription to credit unlocks to');
+    }
+    if (active.contactUnlocksAllowed === null) {
+      throw createError.badRequest('Your plan already includes unlimited contact unlocks');
+    }
+
+    active.contactUnlocksAllowed += purchase.unlocks;
+    await active.save({ transaction: t });
+
+    purchase.razorpayPaymentId = razorpayPaymentId;
+    purchase.status = 'active';
+    await purchase.save({ transaction: t });
+
+    return purchase;
+  });
+
+  logAudit('unlock_bundle_credited', userId, {
+    purchaseId: result.id,
+    bundleId: result.bundleId,
+    unlocks: result.unlocks,
+  });
+
+  res.json({
+    success: true,
+    message: `${result.unlocks} contact unlocks added to your plan`,
+    unlocks: result.unlocks,
   });
 });
 

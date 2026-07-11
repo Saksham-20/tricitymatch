@@ -16,7 +16,7 @@ const Subscription = sequelize.define('Subscription', {
     }
   },
   planType: {
-    type: DataTypes.ENUM('free', 'basic_premium', 'premium_plus', 'vip'),
+    type: DataTypes.ENUM('free', 'basic_premium', 'premium_plus', 'elite', 'vip', 'nri'),
     defaultValue: 'free'
   },
   razorpayOrderId: {

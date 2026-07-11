@@ -163,7 +163,7 @@ const secondsToNextISTMidnight = () => {
   return Math.max(60, Math.ceil((DAY_MS - sinceMidnight) / 1000));
 };
 
-const premiumBoost = (plan) => (plan === 'vip' ? 20 : plan === 'premium_plus' ? 10 : plan === 'basic_premium' ? 5 : 0);
+const premiumBoost = (plan) => (plan === 'vip' || plan === 'nri' ? 20 : plan === 'elite' ? 15 : plan === 'premium_plus' ? 10 : plan === 'basic_premium' ? 5 : 0);
 
 // Compute the ranked daily set for a user (top DAILY_CACHE_SIZE). Pure read.
 const computeDailyMatches = async (userId) => {
@@ -216,7 +216,7 @@ const computeDailyMatches = async (userId) => {
   ]);
 
   const verifiedIds = new Set(verifications.map(v => v.userId));
-  const planRank = { vip: 3, premium_plus: 2, basic_premium: 1 };
+  const planRank = { nri: 4, vip: 4, elite: 3, premium_plus: 2, basic_premium: 1 };
   const subMap = new Map();
   subs.forEach(s => {
     const cur = subMap.get(s.userId);

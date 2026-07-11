@@ -180,9 +180,11 @@ const panel = (inner, { accent = BRAND.burgundy } = {}) =>
 
 // Friendly display name for internal plan codes.
 const PLAN_LABELS = {
-  basic_premium: 'Basic Premium',
-  premium_plus: 'Premium Plus',
+  basic_premium: 'Basic',
+  premium_plus: 'Premium',
+  elite: 'Elite',
   vip: 'VIP',
+  nri: 'NRI Connect',
 };
 const planLabel = (p) => PLAN_LABELS[p] || (p ? String(p).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : 'Premium');
 

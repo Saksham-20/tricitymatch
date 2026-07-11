@@ -494,7 +494,7 @@ const searchValidation = [
 const createOrderValidation = [
   body('planType')
     .isIn(PAID_PLANS)
-    .withMessage('Plan type must be one of: basic_premium, premium_plus, vip'),
+    .withMessage(`Plan type must be one of: ${PAID_PLANS.join(', ')}`),
 ];
 
 const verifyPaymentValidation = [

@@ -15,11 +15,15 @@ const {
   getPaymentHistory,
   getInvoice,
   cancelSubscription,
+  createBundleOrder,
+  verifyBundlePayment,
 } = require('../controllers/subscriptionController');
-const { auth } = require('../middlewares/auth');
+const { auth, requirePremium } = require('../middlewares/auth');
 const { handleValidationErrors, createError } = require('../middlewares/errorHandler');
 const { createRateLimiter } = require('../middlewares/security');
 const { createOrderValidation, verifyPaymentValidation } = require('../validators');
+const { body: evBody } = require('express-validator');
+const { UNLOCK_BUNDLES } = require('../utils/razorpay');
 const config = require('../config/env');
 
 // Rate limiter for payment operations
@@ -94,6 +98,25 @@ router.post('/verify-payment',
   verifyPaymentValidation,
   handleValidationErrors,
   verifyPayment
+);
+
+// ---- À-la-carte contact-unlock top-ups (require an active finite paid plan) ----
+router.post('/unlock-bundle/create-order',
+  auth,
+  paymentLimiter,
+  requirePremium,
+  evBody('bundleId').isIn(Object.keys(UNLOCK_BUNDLES)).withMessage('Invalid bundle'),
+  handleValidationErrors,
+  createBundleOrder
+);
+
+router.post('/unlock-bundle/verify-payment',
+  auth,
+  paymentLimiter,
+  requirePremium,
+  verifyPaymentValidation,
+  handleValidationErrors,
+  verifyBundlePayment
 );
 
 // Cancel active subscription (with pro-rated refund attempt)
