@@ -10,8 +10,13 @@
 - **Findings prefix:** `XF-nn` (extended finding), severity 🔴/🟠/🟡/⚪.
 
 ## ⭐ PRIORITY-0 (NEXT) — Pricing revamp (feature, before the deferred X-passes)
-**User-flagged top priority.** Ship the new pricing model BEFORE resuming deep X8/X5/X2/X6 passes.
-- **Source specs (uncommitted drafts):** `docs/PLAN_pricing_revamp_2026-07-08.md` (178L, phased) + `docs/PRICING_REVAMP_PLAN_2026-07-08.md` (153L). **Near-duplicates — consolidate to ONE before building** (recommend the phased 178L one; delete/merge the other).
+**User-flagged top priority. Runs BEFORE resuming the deferred X8/X5/X2/X6 passes** — do pricing first, then continue the non-functional follow-ups.
+- **Canonical spec:** `docs/PRICING_REVAMP_PLAN_2026-07-08.md` (user-selected; the duplicate `PLAN_pricing_revamp_2026-07-08.md` deleted 2026-07-11). Full 6-phase plan + blast-radius + open decisions live in that doc — build FROM it.
+- **⛔ BLOCKED on 4 open decisions (confirm before ANY build — from the spec's "Open decisions"):**
+  1. **VIP tenure 90d → 360d** at ₹5,999 (existing VIP holders keep their current endDate, unaffected). OK?
+  2. **`nri` = VIP-equivalent** for boost/verified/premium gates. OK?
+  3. **Bundle unlocks expire with the plan** (ride the subscription row, no persistent wallet). OK, or need a wallet?
+  4. **NRI currency = static display labels** for v1 (charge INR via Razorpay, no live FX / no separate settlement). OK?
 - **What it is:** 3-tier → **4-tier ladder + NRI card + à-la-carte unlock bundles**, with per-month framing, MRP-strike anchoring, social-proof badges. Prices: Basic ₹1,299/30d/5-unlock · Premium ₹2,499/90d/15 (⭐Most Popular) · **Elite ₹3,999/180d/30 (NEW, 💎Best Value)** · VIP ₹5,999/360d/unlimited+boost · **NRI Connect ₹9,999/180d/unlimited+boost (NEW)**. Bundles: 3/₹599 · 10/₹1,499 · 25/₹2,999 (shown at 0-unlock wall; not VIP/NRI).
 - **Key de-risking decisions (from drafts):** KEEP existing enum keys (`basic_premium/premium_plus/vip`), only remap price/duration/unlocks/label; add exactly **2 new enum values** `elite`+`nri` (migration); **centralize the `['basic_premium','premium_plus','vip']` literal** (copy-pasted in 11–13 source files) into one shared `PREMIUM_PLAN_TYPES` const FIRST (Phase 0) so Elite/NRI don't silently lose premium/chat/boost gating; bundles reuse `contactUnlocksAllowed` + `checkContactUnlockLimit` (no gate change); NRI multi-currency = display-only v1 (charge INR via Razorpay).
 - **Surfaces to touch:** backend `utils/razorpay.js` PLANS + `config` sources of truth, subscription controller (TIER_RANK upgrade gate must include elite/nri ordering), migration for the 2 enum values, web `Subscription.jsx` (tier cards + badges + MRP strike + bundle wall), RN `subscription.ts` shared PLANS overlay, email `planLabel()`, admin plan dropdowns. **Sync web+RN** (shared PLANS capability flags).
