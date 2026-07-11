@@ -31,7 +31,9 @@ only touches the 2 config sources of truth. Zero-risk. Only add 2 NEW enum value
 | `bundle_25` | 25 | ₹2,999 | ₹120 |
 
 Priced ABOVE every plan's per-unlock rate (Basic ₹260, Premium ₹167, Elite ₹133) so upgrading
-stays better value. Sold only when active plan's unlocks hit 0. Not for VIP/NRI (unlimited).
+stays better value. **Visible + purchasable immediately after any paid subscription** (not gated at
+the 0-unlock wall — decision 3). Not for VIP/NRI (unlimited). Also surfaced at the unlock wall when a
+finite plan hits 0.
 
 ---
 
@@ -81,7 +83,7 @@ Verify: `grep -rn "'basic_premium', 'premium_plus', 'vip'" backend --include=*.j
    - `verifyPayment` (:227) + `webhook` (:419) — boost activation: `UNLIMITED_PLANS.includes(planType)` (so `nri` also boosts), not `=== 'vip'`.
    - NEW `createBundleOrder` + `verifyBundlePayment` handlers: verify sig → find active subscription → `contactUnlocksAllowed += bundle.unlocks` (skip if null/unlimited) → mark UnlockPurchase active (idempotent on paymentId). Bundle unlocks ride the subscription row, so existing `checkContactUnlockLimit` enforcement needs NO change.
 
-6. **`routes/subscriptionRoutes.js`** — add `POST /unlock-bundle/create-order`, `POST /unlock-bundle/verify-payment` (auth + requirePremium; free users can't buy top-ups, must subscribe first).
+6. **`routes/subscriptionRoutes.js`** — add `POST /unlock-bundle/create-order`, `POST /unlock-bundle/verify-payment` (auth + requirePremium; free users can't buy top-ups, must subscribe first). Purchasable anytime an active finite paid plan exists (not only at 0 unlocks) — reject if plan is unlimited (VIP/NRI) or none.
 
 7. **`validators/index.js:495`** — planType isIn → `PAID_PLANS`; add bundleId validator `isIn(Object.keys(UNLOCK_BUNDLES))`.
 
@@ -103,7 +105,7 @@ Verify: `grep -rn "'basic_premium', 'premium_plus', 'vip'" backend --include=*.j
   - Card: render ~~MRP~~ strike-through + `Flat X% off` chip + `₹X/month` line (data already in getPlans). Badge from `plan.badge`.
   - `isPopular` (:410) — drive from `plan.popular` (premium_plus) + add Best-Value (elite).
   - NRI card: separate styled block (gold ring, "~$149 / £119" static label, region-agnostic — everyone sees it).
-  - Unlock-bundle upsell: new small component shown at the contact-unlock wall when `contactUnlocksRemaining === 0` (ProfileDetail already surfaces remaining). Buy → `/unlock-bundle/create-order` → Razorpay → verify.
+  - Unlock-bundle purchase: a **persistent block in the subscription/manage area shown to every active finite-plan member** (Basic/Premium/Elite) right after they subscribe — decision 3, not wall-gated. ALSO surfaced at the contact-unlock wall when `contactUnlocksRemaining === 0`. Buy → `/unlock-bundle/create-order` → Razorpay → verify. Hidden for VIP/NRI (unlimited).
 - `PLAN_ORDER`/`planDisplayName` helpers — pick up new keys.
 
 ---
@@ -117,9 +119,17 @@ Verify: `grep -rn "'basic_premium', 'premium_plus', 'vip'" backend --include=*.j
 
 ---
 
-## Phase 5 — NRI currency (display-only, keep simple)
+## Phase 5 — NRI currency (DYNAMIC per-user display — decision 4)
 
-- Razorpay charges INR always. Show static `~$149 / ~£119 / ~C$205 / ~A$249` label on NRI card from a small FX constant map (not live). No `isNRI` user flag needed for v1. Real multi-currency settlement = future work (needs Razorpay international + FX), out of scope.
+Each user sees prices in THEIR OWN currency (display-only; Razorpay still charges INR).
+- **Detect currency (no new user flag, client-side, ordered fallback):**
+  1. `Intl.NumberFormat().resolvedOptions()` / `Intl.DateTimeFormat().resolvedOptions().timeZone` + browser `navigator.language` region → country → currency.
+  2. Fallback: lightweight geo-IP (e.g. a country header from nginx `geoip` or a one-time `/api/v1/geo` lookup) if locale is ambiguous.
+  3. Final fallback: INR (show ₹ as-is).
+- **FX map** — a small constant table `{ USD:0.012, GBP:0.0095, CAD:0.0165, AUD:0.018, EUR:0.011, AED:0.044, SGD:0.016, ... }` (INR→X), refreshed manually/periodically (NOT live per-request in v1). Helper `formatLocalPrice(inrPaise, currency)` → `Intl.NumberFormat(locale,{style:'currency',currency})`.
+- **Where:** NRI card headline shows the member's local currency prominently; other tier cards MAY show a subtle "≈ $X" secondary line under the ₹ price (primary stays ₹ since charge is INR). Keep ₹ authoritative + a "billed in INR" note to avoid confusion.
+- **Scope guard:** display conversion only. Real multi-currency SETTLEMENT (Razorpay International + live FX + separate payout) = future work, out of scope. FX table is approximate + labelled "indicative".
+- Shared helper in `shared/` so web + RN reuse the same detection + FX map.
 
 ---
 
@@ -146,8 +156,8 @@ Verify: `grep -rn "'basic_premium', 'premium_plus', 'vip'" backend --include=*.j
 **Order:** Phase 0 → 1 → 2 → 3 → 4 → 5 → 6. Phase 0 alone is safe to land first (pure refactor,
 no behavior change) — de-risks everything after.
 
-## Open decisions (confirm before build)
-1. VIP → 360d/₹5,999 changes tenure from current 90d. Existing VIP holders unaffected (their row keeps old endDate). OK?
-2. `nri` treated as VIP-equivalent for boost/verified/premium gates. OK?
-3. Bundle unlocks expire with the plan (ride the subscription row). OK, or need a persistent wallet?
-4. NRI currency = static display labels for v1 (no live FX / no separate INR-settlement). OK?
+## Decisions — RESOLVED 2026-07-11 (user)
+1. ✅ **VIP → 360d (12 months) / ₹5,999.** Existing VIP holders unaffected (row keeps old endDate).
+2. ✅ **`nri` = VIP-equivalent** for boost/verified/premium gates.
+3. ✅ **Bundles visible + purchasable IMMEDIATELY after any paid subscription** — NOT gated behind the 0-unlock wall. Any active paid plan (basic_premium/premium_plus/elite; VIP/NRI unlimited → no bundles) can buy top-ups anytime from the subscription area. Unlocks still ride the subscription row (increment `contactUnlocksAllowed`, expire with the plan — no separate wallet). **[SPEC CHANGE vs original "sold only at 0-unlock wall".]**
+4. ✅ **NRI = DYNAMIC per-user currency display.** Detect each user's currency (locale/`Intl`/timezone → country → currency; geo-IP fallback) and show NRI (and optionally all) prices converted to their local currency via an FX map. Razorpay still CHARGES INR (international settlement out of scope); display-only conversion, but **per-user dynamic, not a fixed static label**. **[SPEC CHANGE vs original "static labels".]** See revised Phase 5.
