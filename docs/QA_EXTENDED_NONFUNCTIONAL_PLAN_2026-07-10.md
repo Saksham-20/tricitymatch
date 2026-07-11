@@ -6,8 +6,17 @@
 > Status legend: ⬜ not started · 🟡 in progress · ✅ done · ⏸ paused.
 
 ## Run state
-- **Started** 2026-07-10 (Opus). **PAUSED after X1 partial** to push+deploy the deep-run fixes + nodemailer patch.
+- **Started** 2026-07-10 (Opus). X1–X8 substantially done (X1✅ X2✅ X3✅ X4✅ X5🟡 X6✅ X7✅ X8🟡); XF-01/03/04 fixed+deployed. Prod HEAD `823d81f`.
 - **Findings prefix:** `XF-nn` (extended finding), severity 🔴/🟠/🟡/⚪.
+
+## ⭐ PRIORITY-0 (NEXT) — Pricing revamp (feature, before the deferred X-passes)
+**User-flagged top priority.** Ship the new pricing model BEFORE resuming deep X8/X5/X2/X6 passes.
+- **Source specs (uncommitted drafts):** `docs/PLAN_pricing_revamp_2026-07-08.md` (178L, phased) + `docs/PRICING_REVAMP_PLAN_2026-07-08.md` (153L). **Near-duplicates — consolidate to ONE before building** (recommend the phased 178L one; delete/merge the other).
+- **What it is:** 3-tier → **4-tier ladder + NRI card + à-la-carte unlock bundles**, with per-month framing, MRP-strike anchoring, social-proof badges. Prices: Basic ₹1,299/30d/5-unlock · Premium ₹2,499/90d/15 (⭐Most Popular) · **Elite ₹3,999/180d/30 (NEW, 💎Best Value)** · VIP ₹5,999/360d/unlimited+boost · **NRI Connect ₹9,999/180d/unlimited+boost (NEW)**. Bundles: 3/₹599 · 10/₹1,499 · 25/₹2,999 (shown at 0-unlock wall; not VIP/NRI).
+- **Key de-risking decisions (from drafts):** KEEP existing enum keys (`basic_premium/premium_plus/vip`), only remap price/duration/unlocks/label; add exactly **2 new enum values** `elite`+`nri` (migration); **centralize the `['basic_premium','premium_plus','vip']` literal** (copy-pasted in 11–13 source files) into one shared `PREMIUM_PLAN_TYPES` const FIRST (Phase 0) so Elite/NRI don't silently lose premium/chat/boost gating; bundles reuse `contactUnlocksAllowed` + `checkContactUnlockLimit` (no gate change); NRI multi-currency = display-only v1 (charge INR via Razorpay).
+- **Surfaces to touch:** backend `utils/razorpay.js` PLANS + `config` sources of truth, subscription controller (TIER_RANK upgrade gate must include elite/nri ordering), migration for the 2 enum values, web `Subscription.jsx` (tier cards + badges + MRP strike + bundle wall), RN `subscription.ts` shared PLANS overlay, email `planLabel()`, admin plan dropdowns. **Sync web+RN** (shared PLANS capability flags).
+- **Gates:** BE unit + FE vitest + mobile tsc + build green; live-verify upgrade path (Razorpay test-mode) + tier-rank gate (DQ from 2026-07-07 C11); confirm existing paid members' access unaffected by enum/label remap.
+- **Method:** consolidate spec → Phase 0 centralize const → migration → config/PLANS remap → +Elite/NRI → bundles → web UI → RN parity → emails/admin → test+deploy. Chunked, fix-on-discovery, same as X-run.
 
 ## X1 — Performance  ✅ (2026-07-11)
 **Result: clean.** Findings: XF-01 (nodemailer, fixed+deployed) · XF-02 ⚪ (background-job serial queries, acceptable). Details below.
