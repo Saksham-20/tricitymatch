@@ -113,5 +113,5 @@ export const isPlanAtLeast = (userPlan: SubscriptionPlanType, requiredPlan: Subs
 export const UNLOCK_BUNDLES: Record<string, UnlockBundle> = {
   bundle_3:  { bundleId: 'bundle_3',  label: '3 Contact Unlocks',  unlocks: 3,  price: 599 },
   bundle_10: { bundleId: 'bundle_10', label: '10 Contact Unlocks', unlocks: 10, price: 1499 },
-  bundle_25: { bundleId: 'bundle_25', label: '25 Contact Unlocks', unlocks: 25, price: 2999 },
+  bundle_25: { bundleId: 'bundle_25', label: '25 Contact Unlocks', unlocks: 25, price: 3499 },
 };

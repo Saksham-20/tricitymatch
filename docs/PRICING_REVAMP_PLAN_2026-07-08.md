@@ -28,7 +28,7 @@ only touches the 2 config sources of truth. Zero-risk. Only add 2 NEW enum value
 |-----------|---------|-------|---------|
 | `bundle_3` | 3 | ₹599 | ₹200 |
 | `bundle_10` | 10 | ₹1,499 | ₹150 |
-| `bundle_25` | 25 | ₹2,999 | ₹120 |
+| `bundle_25` | 25 | ₹3,499 | ₹140 |
 
 Priced ABOVE every plan's per-unlock rate (Basic ₹260, Premium ₹167, Elite ₹133) so upgrading
 stays better value. **Visible + purchasable immediately after any paid subscription** (not gated at

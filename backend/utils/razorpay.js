@@ -131,7 +131,7 @@ const PLANS = {
 const UNLOCK_BUNDLES = {
   bundle_3:  { name: '3 Contact Unlocks',  unlocks: 3,  amount: 59900 },   // ₹599
   bundle_10: { name: '10 Contact Unlocks', unlocks: 10, amount: 149900 },  // ₹1,499
-  bundle_25: { name: '25 Contact Unlocks', unlocks: 25, amount: 299900 },  // ₹2,999
+  bundle_25: { name: '25 Contact Unlocks', unlocks: 25, amount: 349900 },  // ₹3,499
 };
 
 // Razorpay caps `receipt` at 40 chars; a bare UUID userId (36) + prefix +

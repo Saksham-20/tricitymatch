@@ -72,7 +72,7 @@ const GRID_KEYS = ['free', 'basic_premium', 'premium_plus', 'elite', 'vip'];
 const BUNDLES = [
   { id: 'bundle_3',  unlocks: 3,  price: 599 },
   { id: 'bundle_10', unlocks: 10, price: 1499 },
-  { id: 'bundle_25', unlocks: 25, price: 2999 },
+  { id: 'bundle_25', unlocks: 25, price: 3499 },
 ];
 
 // Tier order — a member can only move UP while a paid plan is active (mirrors
