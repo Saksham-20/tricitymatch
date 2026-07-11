@@ -50,14 +50,20 @@
 - [ ] No `noindex` leaking on public pages; protected routes not in sitemap.
 - [ ] Canonical host consistency (`https://tricityshadi.com`, non-www vs www decided).
 
-## X4 — Responsive  ⬜
+## X4 — Responsive  ✅ (2026-07-11, live browser sweep)
+**Result: clean.** Horizontal-overflow measured (`documentElement.scrollWidth − clientWidth`, offender-element listed if >1px) across **13 pages @375** (/, /about, /safety, /onboarding[signup], /login, /dashboard, /search, /matches, /subscription, /settings) + **Home @1440** → **zero overflow everywhere, no offending elements**. DQ-001 (Home h-scroll) class fully resolved. XF-03 `<html lang>` fix **verified live** (set hi → `documentElement.lang="hi"`). **Remaining (lower-risk):** @768 mid-breakpoint + touch-target ≥44px spot-audit — deferred (375 is the tightest; all clean).
+
+## X4 (original checklist)
 - [ ] 375 / 768 / 1440 layout integrity on: Home, Login, Signup/onboarding, Dashboard, Search+filters, Profile detail, Matches, Chat, Subscription, Settings, Admin.
 - [ ] **No horizontal scroll** (DQ-001 class — `docScrollWidth == clientWidth`) at every breakpoint. DQ-001 fixed Home@1440; re-sweep all.
 - [ ] Touch targets ≥44px on mobile; sticky navbar/bottom-nav don't occlude content or CTAs (DQ / prior FilterPanel z-index class).
 - [ ] Tables/wide content scroll inside own container, not the page.
 - [ ] RN: safe-area on notch devices, landscape not broken, font-scale (OS large-text) doesn't clip.
 
-## X5 — Resilience / error-handling  ⬜
+## X5 — Resilience / error-handling  🟡 (2026-07-11, error/empty/404 live)
+**Result: graceful, no crashes.** Bad profile id (`/profile/<nonexistent-uuid>`) → "Profile not found ← Back to search" error card, navbar intact, no white-screen (title "Profile" — DQ-010 holds). Unknown route → proper "Page Not Found" page. Console errors on the bad-profile page = browser-logged HTTP 4xx (400 profile + 404 horoscope-match), **not uncaught JS** — app handled them; doubled by dev React StrictMode (1× in prod). ⚪ minor: ProfileDetail fires horoscope-match fetch even when the profile fetch 400s (harmless 404, gated would be cleaner). Data-view 4-states (loading/empty/error-retry) established in deep-run C-work (Dashboard/Search error+retry). **Remaining (needs network interception):** offline/throttle behavior, optimistic-UI rollback (chat/match/privacy), socket disconnect-resync, double-submit — deferred to a focused resilience pass.
+
+## X5 (original checklist)
 - [ ] Every data view ships 4 states (default/loading-skeleton/empty/error-retry) — audit Dashboard, Search, Matches, Chat, Notifications, Profile, Admin tables (design-system contract).
 - [ ] Network-fail: throttle/offline → graceful (RN OfflineBanner; web retry cards) not white-screen.
 - [ ] API 500/timeout → user-facing error, no raw stack, retry works; axios 401→refresh queue holds under concurrent 401s.
