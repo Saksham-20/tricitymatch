@@ -67,7 +67,7 @@ const ResetPassword = () => {
               </div>
               <h2 className="font-display text-2xl font-bold text-neutral-800 mb-3">Invalid Reset Link</h2>
               <p className="text-neutral-500 text-sm mb-6 leading-relaxed">
-                This link is invalid or has expired. Reset links are valid for 24 hours.
+                This link is invalid or has expired. Reset links are valid for 1 hour.
               </p>
               <Link to="/forgot-password" className="btn-primary inline-flex">Request New Link</Link>
             </motion.div>
@@ -95,7 +95,7 @@ const ResetPassword = () => {
       setSuccess(true);
       toast.success('Password reset successfully!');
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to reset password');
+      toast.error(error.response?.data?.error?.message || error.response?.data?.message || 'Failed to reset password');
     } finally {
       setLoading(false);
     }
