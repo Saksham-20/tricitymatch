@@ -205,6 +205,21 @@ const ModernOnboardingContent = () => {
         return; // keep draft + accountCreated flag; Retry re-runs this PUT only
       }
 
+      // Link the guardian who set this up (read-only co-pilot access), if they
+      // gave their email. Non-fatal — the profile is already saved.
+      if (formData.yourEmail && formData.creatingFor && formData.creatingFor !== 'self') {
+        try {
+          await api.post('/guardian/invite', {
+            email: formData.yourEmail,
+            name: formData.yourName,
+            phone: formData.yourPhone,
+            relationship: formData.relationshipToProfile,
+          });
+        } catch (e) {
+          console.error('guardian link creation failed (non-fatal)', e.response?.data || e);
+        }
+      }
+
       clearDraft();
       navigate('/dashboard');
     } finally {

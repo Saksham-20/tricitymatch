@@ -130,6 +130,14 @@ const CreateAccountStep = () => {
         if (!data.relationshipToProfile) newErrors.relationshipToProfile = 'Please select your relationship';
         if (!data.yourName || data.yourName.trim().length < 2) newErrors.yourName = 'Name is required (at least 2 characters)';
         if (!data.yourPhone || data.yourPhone.trim().length < 10) newErrors.yourPhone = 'Valid phone number is required';
+        // Your email is optional, but if given it must be valid AND differ from
+        // the profile owner's email (you can't be your own guardian).
+        if (data.yourEmail) {
+          if (!validateEmail(data.yourEmail)) newErrors.yourEmail = 'Enter a valid email address';
+          else if (hasEmail && data.yourEmail.trim().toLowerCase() === data.email.trim().toLowerCase()) {
+            newErrors.yourEmail = 'Use a different email from the profile owner';
+          }
+        }
       }
       if (!data.account_agree) newErrors.account_agree = 'Please agree to the Terms & Privacy Policy to continue';
       setStepErrors(newErrors);
@@ -318,6 +326,9 @@ const CreateAccountStep = () => {
           </div>
           <FormField label="Your Full Name" name="yourName" autoComplete="name" placeholder="Enter your own name" value={formData.yourName || ''} onChange={(v) => updateFormData('yourName', v)} onBlur={() => setFieldTouched('yourName')} error={errors.yourName} required />
           <FormField label="Your Phone Number" type="tel" name="yourPhone" autoComplete="tel" inputMode="numeric" placeholder="Your 10-digit phone number" value={formData.yourPhone || ''} onChange={(v) => updateFormData('yourPhone', v)} onBlur={() => setFieldTouched('yourPhone')} error={errors.yourPhone} required />
+          {/* Guardian's own email — when given, we link them as a read-only
+              guardian of this profile so they can keep an eye on it later. */}
+          <FormField label="Your Email" type="email" name="yourEmail" autoComplete="email" inputMode="email" placeholder="your.email@example.com" value={formData.yourEmail || ''} onChange={(v) => updateFormData('yourEmail', v)} onBlur={() => setFieldTouched('yourEmail')} error={errors.yourEmail} hint="We'll give you read-only guardian access to this profile." optional />
           <div className="space-y-2">
             <label htmlFor="onboarding-relationship" className="block text-sm font-medium text-neutral-900">Your Relationship to the Person Whose Profile This Is *</label>
             <select id="onboarding-relationship" name="relationshipToProfile" value={formData.relationshipToProfile || ''} onChange={(e) => updateFormData('relationshipToProfile', e.target.value)} onBlur={() => setFieldTouched('relationshipToProfile')}

@@ -37,6 +37,21 @@ const GuardianLink = sequelize.define('GuardianLink', {
     allowNull: false,
     defaultValue: 'pending',
   },
+  // Set when a guardian creates a candidate profile during onboarding — captures
+  // who set up the account (previously collected then dropped). Nullable:
+  // candidate-initiated invites leave these null.
+  guardianName: {
+    type: DataTypes.STRING(120),
+    allowNull: true,
+  },
+  guardianPhone: {
+    type: DataTypes.STRING(32),
+    allowNull: true,
+  },
+  relationship: {
+    type: DataTypes.STRING(40),
+    allowNull: true,
+  },
 }, {
   tableName: 'GuardianLinks',
   timestamps: true,

@@ -30,6 +30,9 @@ router.get('/my-guardians', auth, asyncHandler(async (req, res) => {
     linkId: l.id,
     guardianId: l.guardianId,
     email: l.inviteEmail,
+    name: l.guardianName,
+    phone: l.guardianPhone,
+    relationship: l.relationship,
     status: l.status,
     addedAt: l.createdAt,
   }));
@@ -39,10 +42,17 @@ router.get('/my-guardians', auth, asyncHandler(async (req, res) => {
 
 // POST /guardian/invite — invite a guardian by email
 router.post('/invite', auth, asyncHandler(async (req, res) => {
-  const { email } = req.body;
+  const { email, name, phone, relationship } = req.body;
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     throw new AppError('Valid email required', 400);
   }
+  // Optional creator metadata (set when a guardian sets up a candidate profile
+  // during onboarding). Trimmed/clamped; ignored for a plain candidate invite.
+  const creatorMeta = {
+    guardianName: name ? String(name).trim().slice(0, 120) : null,
+    guardianPhone: phone ? String(phone).replace(/[^\d+]/g, '').slice(0, 32) : null,
+    relationship: relationship ? String(relationship).trim().slice(0, 40) : null,
+  };
 
   // Count active/pending guardians
   const activeCount = await GuardianLink.count({
@@ -74,6 +84,7 @@ router.post('/invite', auth, asyncHandler(async (req, res) => {
       guardianId: guardianUser.id,
       inviteEmail: email,
       status: 'active',
+      ...creatorMeta,
     });
 
     await notify(
@@ -95,6 +106,7 @@ router.post('/invite', auth, asyncHandler(async (req, res) => {
       inviteToken: token,
       inviteExpiresAt: new Date(Date.now() + 7 * 24 * 3600 * 1000),
       status: 'pending',
+      ...creatorMeta,
     });
 
     log.info('Guardian invite created (user not on platform)', { candidateId: req.user.id, email });
