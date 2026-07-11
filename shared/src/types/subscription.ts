@@ -1,4 +1,4 @@
-export type SubscriptionPlanType = 'free' | 'basic_premium' | 'premium_plus' | 'vip';
+export type SubscriptionPlanType = 'free' | 'basic_premium' | 'premium_plus' | 'elite' | 'vip' | 'nri';
 export type SubscriptionStatus = 'active' | 'expired' | 'cancelled' | 'pending';
 
 export interface Subscription {
@@ -23,6 +23,12 @@ export interface PlanFeatures {
   planType: SubscriptionPlanType;
   label: string;
   price: number;
+  /** Anchor "was" price for strike-through display (rupees). */
+  mrp?: number;
+  /** Effective per-month price (rupees, rounded) for the "₹X/month" line. */
+  perMonth?: number;
+  /** Presentation badge, e.g. "Most Popular" / "Best Value" / "NRI". */
+  badge?: string;
   durationDays: number | null;
   contactUnlocks: number | null;
   canChat: boolean;
@@ -32,4 +38,14 @@ export interface PlanFeatures {
   canBoostProfile: boolean;
   hasRelationshipManager: boolean;
   interestsLimit: number | null;
+}
+
+export type UnlockBundleId = 'bundle_3' | 'bundle_10' | 'bundle_25';
+
+export interface UnlockBundle {
+  bundleId: UnlockBundleId;
+  label: string;
+  unlocks: number;
+  /** Price in rupees. */
+  price: number;
 }

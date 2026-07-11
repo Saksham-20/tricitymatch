@@ -38,3 +38,24 @@ export const getSubscriptionHistory = async (): Promise<Subscription[]> => {
   const res = await apiClient.get<{ subscriptions: Subscription[] }>('/subscription/history');
   return res.data.subscriptions ?? [];
 };
+
+// ---- À-la-carte contact-unlock top-ups (require an active finite paid plan) ----
+export const createBundleOrder = async (
+  bundleId: string
+): Promise<{ orderId: string; amount: number; currency: string }> => {
+  const res = await apiClient.post<{ order: { id: string; amount: number; currency: string } }>(
+    '/subscription/unlock-bundle/create-order',
+    { bundleId }
+  );
+  const { id, amount, currency } = res.data.order;
+  return { orderId: id, amount, currency };
+};
+
+export const verifyBundlePayment = async (data: {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}): Promise<{ unlocks: number }> => {
+  const res = await apiClient.post<{ unlocks: number }>('/subscription/unlock-bundle/verify-payment', data);
+  return { unlocks: res.data.unlocks };
+};

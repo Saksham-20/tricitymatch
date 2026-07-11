@@ -64,14 +64,18 @@ const PLAN_COLOUR: Record<SubscriptionPlanType, string> = {
   free:          colours.planFree,
   basic_premium: colours.planPlus,
   premium_plus:  colours.planPremium,
-  vip:           colours.planElite,
+  elite:         colours.planElite,
+  vip:           colours.g600,
+  nri:           colours.accent,
 };
 
 const PLAN_ICON: Record<SubscriptionPlanType, keyof typeof Ionicons.glyphMap> = {
   free:          'person-outline',
   basic_premium: 'star-outline',
   premium_plus:  'diamond-outline',
+  elite:         'ribbon-outline',
   vip:           'trophy-outline',
+  nri:           'globe-outline',
 };
 
 // ─── Feature row ─────────────────────────────────────────────────────────────
@@ -103,10 +107,11 @@ const fr = StyleSheet.create({
 
 // ─── Plan Card ────────────────────────────────────────────────────────────────
 
-// Which plan to spotlight, mirroring the web (premium_plus = Most Popular, vip = Best Value).
+// Which plan to spotlight, mirroring the web (premium = Most Popular, elite = Best Value).
 const PLAN_HIGHLIGHT: Partial<Record<SubscriptionPlanType, string>> = {
   premium_plus: 'Most Popular',
-  vip:          'Best Value',
+  elite:        'Best Value',
+  nri:          'NRI',
 };
 
 interface PlanCardProps {
@@ -158,10 +163,18 @@ function PlanCard({ plan, isCurrent, isSelected, onSelect }: PlanCardProps) {
         <View style={pc.titleCol}>
           <Text style={[pc.label, { color: colour }]}>{plan.label}</Text>
           {plan.price > 0 ? (
-            <Text style={[pc.price, { color: c.fgStrong }]}>
-              ₹{plan.price.toLocaleString('en-IN')}
-              <Text style={[pc.dur, { color: c.textMuted }]}>{plan.durationDays ? ` / ${plan.durationDays} days` : ''}</Text>
-            </Text>
+            <>
+              <View style={pc.priceRow}>
+                <Text style={[pc.price, { color: c.fgStrong }]}>₹{plan.price.toLocaleString('en-IN')}</Text>
+                {plan.mrp && plan.mrp > plan.price ? (
+                  <Text style={[pc.mrp, { color: c.textMuted }]}>₹{plan.mrp.toLocaleString('en-IN')}</Text>
+                ) : null}
+                <Text style={[pc.dur, { color: c.textMuted }]}>{plan.durationDays ? ` / ${plan.durationDays}d` : ''}</Text>
+              </View>
+              {plan.perMonth ? (
+                <Text style={[pc.perMonth, { color: c.textMuted }]}>≈ ₹{plan.perMonth.toLocaleString('en-IN')}/month</Text>
+              ) : null}
+            </>
           ) : (
             <Text style={[pc.price, { color: c.fgStrong }]}>Free</Text>
           )}
@@ -183,7 +196,7 @@ function PlanCard({ plan, isCurrent, isSelected, onSelect }: PlanCardProps) {
           value={plan.contactUnlocks === null ? 'Unlimited' : plan.contactUnlocks}
         />
       )}
-      {plan.contactUnlocks === null && plan.planType === 'vip' && (
+      {plan.contactUnlocks === null && plan.planType !== 'free' && (
         <FeatureRow label="Contact unlocks" value="Unlimited" />
       )}
     </TouchableOpacity>
@@ -225,7 +238,10 @@ const pc = StyleSheet.create({
   icon:      { fontSize: 28 },
   titleCol:  { flex: 1 },
   label:     { ...type.title3, fontFamily: 'PlayfairDisplay-Bold' },
-  price:     { ...type.headline, color: colours.fgStrong, marginTop: 2 },
+  priceRow:  { flexDirection: 'row', alignItems: 'baseline', marginTop: 2, flexWrap: 'wrap' },
+  price:     { ...type.headline, color: colours.fgStrong },
+  mrp:       { ...type.subhead, fontFamily: 'Inter-Regular', color: colours.textSecondary, textDecorationLine: 'line-through', marginLeft: 6 },
+  perMonth:  { ...type.caption, fontFamily: 'Inter-Regular', color: colours.textSecondary, marginTop: 1 },
   dur:       { ...type.subhead, fontFamily: 'Inter-Regular', color: colours.textSecondary },
   divider:   { height: 1, backgroundColor: colours.hairline, marginVertical: spacing.sm },
 });
