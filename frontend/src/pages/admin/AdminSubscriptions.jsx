@@ -4,18 +4,31 @@ import toast from 'react-hot-toast';
 import { FiSearch, FiEdit2, FiDownload } from 'react-icons/fi';
 import { adminGetInvoice } from '../../api/adminApi';
 
-const PLAN_OPTIONS = ['free', 'basic', 'premium', 'gold'];
+// Plan keys MUST match the backend enum (constants/plans.js ALL_PLANS): the old
+// ['free','basic','premium','gold'] values did not exist server-side, so every
+// override 400'd on `body('planType').isIn(ALL_PLANS)`.
+const PLAN_LABELS = {
+  free:          'Free',
+  basic_premium: 'Basic Premium',
+  premium_plus:  'Premium Plus',
+  elite:         'Elite',
+  vip:           'VIP',
+  nri:           'NRI Connect',
+};
+const PLAN_OPTIONS = Object.keys(PLAN_LABELS);
 
 const PlanBadge = ({ plan }) => {
   const map = {
-    free:    'bg-gray-100 text-gray-600',
-    basic:   'bg-blue-100 text-blue-700',
-    premium: 'bg-amber-100 text-amber-700',
-    gold:    'bg-yellow-100 text-yellow-700',
+    free:          'bg-gray-100 text-gray-600',
+    basic_premium: 'bg-blue-100 text-blue-700',
+    premium_plus:  'bg-amber-100 text-amber-700',
+    elite:         'bg-yellow-100 text-yellow-700',
+    vip:           'bg-yellow-100 text-yellow-800',
+    nri:           'bg-emerald-100 text-emerald-700',
   };
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold capitalize ${map[plan] || 'bg-gray-100 text-gray-500'}`}>
-      {plan}
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${map[plan] || 'bg-gray-100 text-gray-500'}`}>
+      {PLAN_LABELS[plan] || plan}
     </span>
   );
 };
@@ -35,7 +48,7 @@ export default function AdminSubscriptions() {
     try {
       const res = await getUsers({ page, limit: 20, search: search || undefined });
       setUsers(res.data.users || []);
-      setTotal(res.data.totalPages || 1);
+      setTotal(res.data.pagination?.pages || 1);
     } catch {
       toast.error('Failed to load subscriptions');
     } finally {
@@ -47,7 +60,7 @@ export default function AdminSubscriptions() {
 
   const openOverride = (user) => {
     setModal(user);
-    setNewPlan(user.Subscription?.planType || 'free');
+    setNewPlan(user.Subscriptions?.[0]?.planType || 'free');
   };
 
   const handleOverride = async () => {
@@ -127,30 +140,38 @@ export default function AdminSubscriptions() {
                   <td colSpan={7} className="text-center py-12 text-gray-400 text-sm">No users found</td>
                 </tr>
               ) : (
-                users.map((u) => (
+                users.map((u) => {
+                  // getUsers eager-loads the latest subscription as `Subscriptions`
+                  // (a hasMany with separate:true → array), NOT `Subscription`.
+                  // Reading the singular made every row read undefined → all
+                  // showed "free". Names live on the Profile association, not the
+                  // User row.
+                  const sub = u.Subscriptions?.[0];
+                  const name = [u.Profile?.firstName, u.Profile?.lastName].filter(Boolean).join(' ');
+                  return (
                   <tr key={u.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3">
-                      <p className="font-medium text-gray-800">{u.firstName} {u.lastName}</p>
+                      <p className="font-medium text-gray-800">{name || '—'}</p>
                       <p className="text-xs text-gray-400">{u.email}</p>
                     </td>
                     <td className="px-4 py-3">
-                      <PlanBadge plan={u.Subscription?.planType || 'free'} />
+                      <PlanBadge plan={sub?.planType || 'free'} />
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-500 capitalize">{u.Subscription?.status || '—'}</td>
+                    <td className="px-4 py-3 text-xs text-gray-500 capitalize">{sub?.status || '—'}</td>
                     <td className="px-4 py-3 text-xs text-gray-500">
-                      {u.Subscription?.startDate ? new Date(u.Subscription.startDate).toLocaleDateString('en-IN') : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-gray-500">
-                      {u.Subscription?.endDate ? new Date(u.Subscription.endDate).toLocaleDateString('en-IN') : '—'}
+                      {sub?.startDate ? new Date(sub.startDate).toLocaleDateString('en-IN') : '—'}
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-500">
-                      {u.Subscription?.paymentAmount ? `₹${Number(u.Subscription.paymentAmount).toLocaleString('en-IN')}` : '—'}
+                      {sub?.endDate ? new Date(sub.endDate).toLocaleDateString('en-IN') : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-gray-500">
+                      {sub?.paymentAmount ? `₹${Number(sub.paymentAmount).toLocaleString('en-IN')}` : '—'}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {u.Subscription && (
+                        {sub && (
                           <button
-                            onClick={() => downloadInvoice(u.Subscription.id)}
+                            onClick={() => downloadInvoice(sub.id)}
                             className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
                             title="Download Invoice"
                           >
@@ -167,7 +188,8 @@ export default function AdminSubscriptions() {
                       </div>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -188,13 +210,13 @@ export default function AdminSubscriptions() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
             <h3 className="text-lg font-bold text-gray-900 mb-1">Override Plan</h3>
-            <p className="text-sm text-gray-500 mb-4">{overrideModal.firstName} {overrideModal.lastName}</p>
+            <p className="text-sm text-gray-500 mb-4">{[overrideModal.Profile?.firstName, overrideModal.Profile?.lastName].filter(Boolean).join(' ') || overrideModal.email}</p>
             <select
               value={newPlan}
               onChange={(e) => setNewPlan(e.target.value)}
               className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 mb-4"
             >
-              {PLAN_OPTIONS.map((p) => <option key={p} value={p} className="capitalize">{p}</option>)}
+              {PLAN_OPTIONS.map((p) => <option key={p} value={p}>{PLAN_LABELS[p]}</option>)}
             </select>
             <div className="flex gap-3">
               <button onClick={() => setModal(null)} className="flex-1 py-2.5 rounded-xl bg-gray-100 text-gray-700 text-sm font-medium">Cancel</button>

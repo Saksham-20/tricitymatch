@@ -4,8 +4,31 @@ import { createUser } from '../../api/adminApi';
 import toast from 'react-hot-toast';
 import { FiArrowLeft } from 'react-icons/fi';
 
-const ROLES    = ['user', 'admin'];
-const STATUSES = ['active', 'inactive', 'suspended'];
+// Match the backend: createUser hardcodes role='user' (admins are never created
+// through this form — it ignores any role in the body) and coerces status to one
+// of active/pending/inactive. The old ['user','admin'] role picker and the
+// 'suspended' status were both silently dropped server-side, so they lied to the
+// admin. Show only what actually takes effect.
+const STATUSES = ['active', 'inactive', 'pending'];
+
+// Defined at module scope — NOT inside the component. A component defined inside
+// the render body is a brand-new type on every render, so React unmounts and
+// remounts every input on each keystroke, which drops focus after one character
+// and made the form nearly impossible to type in.
+const Field = ({ label, name, type = 'text', required = false, form, set, children }) => (
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}{required && <span className="text-red-500 ml-0.5">*</span>}</label>
+    {children || (
+      <input
+        type={type}
+        value={form[name]}
+        onChange={(e) => set(name, e.target.value)}
+        required={required}
+        className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+      />
+    )}
+  </div>
+);
 
 export default function AdminCreateUser() {
   const navigate = useNavigate();
@@ -36,21 +59,6 @@ export default function AdminCreateUser() {
     }
   };
 
-  const Field = ({ label, name, type = 'text', required = false, children }) => (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}{required && <span className="text-red-500 ml-0.5">*</span>}</label>
-      {children || (
-        <input
-          type={type}
-          value={form[name]}
-          onChange={(e) => set(name, e.target.value)}
-          required={required}
-          className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-        />
-      )}
-    </div>
-  );
-
   return (
     <div className="max-w-xl space-y-5">
       <button
@@ -67,12 +75,12 @@ export default function AdminCreateUser() {
 
       <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
         <div className="grid grid-cols-2 gap-4">
-          <Field label="First Name" name="firstName" required />
-          <Field label="Last Name"  name="lastName"  required />
+          <Field label="First Name" name="firstName" required form={form} set={set} />
+          <Field label="Last Name"  name="lastName"  required form={form} set={set} />
         </div>
-        <Field label="Email Address" name="email" type="email" required />
-        <Field label="Phone Number"  name="phone" type="tel" />
-        <Field label="Password" name="password" type="password" required>
+        <Field label="Email Address" name="email" type="email" required form={form} set={set} />
+        <Field label="Phone Number"  name="phone" type="tel" form={form} set={set} />
+        <Field label="Password" name="password" type="password" required form={form} set={set}>
           <input
             type="password"
             value={form.password}
@@ -84,26 +92,15 @@ export default function AdminCreateUser() {
           />
         </Field>
 
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Role" name="role">
-            <select
-              value={form.role}
-              onChange={(e) => set('role', e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
-              {ROLES.map((r) => <option key={r} value={r} className="capitalize">{r}</option>)}
-            </select>
-          </Field>
-          <Field label="Status" name="status">
-            <select
-              value={form.status}
-              onChange={(e) => set('status', e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
-              {STATUSES.map((s) => <option key={s} value={s} className="capitalize">{s}</option>)}
-            </select>
-          </Field>
-        </div>
+        <Field label="Status" name="status">
+          <select
+            value={form.status}
+            onChange={(e) => set('status', e.target.value)}
+            className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+          >
+            {STATUSES.map((s) => <option key={s} value={s} className="capitalize">{s}</option>)}
+          </select>
+        </Field>
 
         <div className="flex gap-3 pt-2">
           <button

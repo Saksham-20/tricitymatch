@@ -4,7 +4,7 @@ import api from './axios';
 export const getUsers = (params) => api.get('/admin/users', { params });
 export const getUser = (userId) => api.get(`/admin/users/${userId}`);
 export const createUser = (data) => api.post('/admin/users', data);
-export const updateUserStatus = (userId, data) => api.patch(`/admin/users/${userId}/status`, data);
+export const updateUserStatus = (userId, data) => api.put(`/admin/users/${userId}/status`, data);
 export const updateSubscription = (userId, data) => api.put(`/admin/users/${userId}/subscription`, data);
 
 // Verifications

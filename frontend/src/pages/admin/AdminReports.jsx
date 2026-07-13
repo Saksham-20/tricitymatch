@@ -130,11 +130,11 @@ export default function AdminReports() {
                 reports.map((r) => (
                   <tr key={r.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3">
-                      <p className="font-medium text-gray-800">{r.Reporter?.firstName} {r.Reporter?.lastName}</p>
+                      <p className="font-medium text-gray-800">{[r.Reporter?.Profile?.firstName, r.Reporter?.Profile?.lastName].filter(Boolean).join(' ') || '—'}</p>
                       <p className="text-xs text-gray-400">{r.Reporter?.email}</p>
                     </td>
                     <td className="px-4 py-3">
-                      <p className="font-medium text-gray-800">{r.ReportedUser?.firstName} {r.ReportedUser?.lastName}</p>
+                      <p className="font-medium text-gray-800">{[r.ReportedUser?.Profile?.firstName, r.ReportedUser?.Profile?.lastName].filter(Boolean).join(' ') || '—'}</p>
                       <p className="text-xs text-gray-400">{r.ReportedUser?.email}</p>
                     </td>
                     <td className="px-4 py-3 text-gray-600 capitalize text-xs">{r.reason?.replace(/_/g, ' ')}</td>
@@ -162,8 +162,8 @@ export default function AdminReports() {
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
             <h3 className="text-lg font-bold text-gray-900 mb-1">Review Report</h3>
             <div className="text-sm text-gray-500 mb-4 space-y-1">
-              <p><span className="font-medium text-gray-700">From:</span> {modal.Reporter?.firstName} {modal.Reporter?.lastName}</p>
-              <p><span className="font-medium text-gray-700">Against:</span> {modal.ReportedUser?.firstName} {modal.ReportedUser?.lastName}</p>
+              <p><span className="font-medium text-gray-700">From:</span> {[modal.Reporter?.Profile?.firstName, modal.Reporter?.Profile?.lastName].filter(Boolean).join(' ') || modal.Reporter?.email || '—'}</p>
+              <p><span className="font-medium text-gray-700">Against:</span> {[modal.ReportedUser?.Profile?.firstName, modal.ReportedUser?.Profile?.lastName].filter(Boolean).join(' ') || modal.ReportedUser?.email || '—'}</p>
               <p><span className="font-medium text-gray-700">Reason:</span> {modal.reason?.replace(/_/g, ' ')}</p>
               {modal.description && <p className="bg-gray-50 rounded-lg px-3 py-2 text-gray-600">{modal.description}</p>}
             </div>

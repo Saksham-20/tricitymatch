@@ -91,11 +91,11 @@ export default function AdminUserDetail() {
       {/* Profile header */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-start gap-5">
         <div className="w-16 h-16 rounded-2xl bg-primary-100 flex items-center justify-center text-primary-700 text-xl font-bold flex-shrink-0">
-          {((user.firstName?.[0] || '') + (user.lastName?.[0] || '')).toUpperCase() || 'U'}
+          {((profile?.firstName?.[0] || '') + (profile?.lastName?.[0] || '')).toUpperCase() || 'U'}
         </div>
         <div className="flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="text-xl font-bold text-gray-900">{user.firstName} {user.lastName}</h2>
+            <h2 className="text-xl font-bold text-gray-900">{[profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || '—'}</h2>
             {user.verificationStatus === 'approved' && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">
                 <FiCheckCircle className="w-3 h-3" /> Verified

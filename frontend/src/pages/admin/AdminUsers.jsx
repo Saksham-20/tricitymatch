@@ -45,7 +45,7 @@ export default function AdminUsers() {
       if (roleFilter   !== 'all') params.role   = roleFilter;
       const res = await getUsers(params);
       setUsers(res.data.users || []);
-      setTotal(res.data.totalPages || 1);
+      setTotal(res.data.pagination?.pages || 1);
     } catch {
       toast.error('Failed to load users');
     } finally {
@@ -146,10 +146,10 @@ export default function AdminUsers() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xs font-bold flex-shrink-0">
-                          {((u.firstName?.[0] || '') + (u.lastName?.[0] || '')).toUpperCase() || 'U'}
+                          {((u.Profile?.firstName?.[0] || '') + (u.Profile?.lastName?.[0] || '')).toUpperCase() || 'U'}
                         </div>
                         <div>
-                          <p className="font-medium text-gray-800">{u.firstName} {u.lastName}</p>
+                          <p className="font-medium text-gray-800">{[u.Profile?.firstName, u.Profile?.lastName].filter(Boolean).join(' ') || '—'}</p>
                           <p className="text-xs text-gray-400">{u.email}</p>
                         </div>
                       </div>

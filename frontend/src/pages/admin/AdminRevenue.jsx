@@ -45,9 +45,41 @@ export default function AdminRevenue() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const monthly   = data?.monthly || [];
-  const summary   = data?.summary || {};
-  const byPlan    = data?.byPlan  || [];
+  // The API returns { monthlyRevenue: [{month:'YYYY-MM', planType, count, revenue}], totals }
+  // — one row per month *per plan*. Aggregate into the {month, amount, count}
+  // shape the charts/table expect, filter to the selected year (the backend
+  // returns a rolling 12 months, so the year picker must filter client-side),
+  // and derive KPIs + by-plan breakdown from the same filtered set so every
+  // panel agrees. (Previously read data.monthly/summary/byPlan — none of which
+  // exist — so the page showed "—" and "No data" despite real revenue.)
+  const rawRows  = data?.monthlyRevenue || [];
+  const yearRows = rawRows.filter((r) => String(r.month).startsWith(String(year)));
+
+  const monthly = Object.values(
+    yearRows.reduce((acc, r) => {
+      const m = (acc[r.month] ||= { month: r.month, amount: 0, count: 0 });
+      m.amount += Number(r.revenue) || 0;
+      m.count  += Number(r.count) || 0;
+      return acc;
+    }, {})
+  ).sort((a, b) => a.month.localeCompare(b.month));
+
+  const byPlan = Object.values(
+    yearRows.reduce((acc, r) => {
+      const p = (acc[r.planType] ||= { plan: r.planType, amount: 0, count: 0 });
+      p.amount += Number(r.revenue) || 0;
+      p.count  += Number(r.count) || 0;
+      return acc;
+    }, {})
+  ).sort((a, b) => b.amount - a.amount);
+
+  const totalRevenue       = monthly.reduce((s, m) => s + m.amount, 0);
+  const totalSubscriptions = monthly.reduce((s, m) => s + m.count, 0);
+  const summary = {
+    totalRevenue,
+    totalSubscriptions,
+    avgRevenue: totalSubscriptions ? totalRevenue / totalSubscriptions : 0,
+  };
   const yearRange = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 
   return (
