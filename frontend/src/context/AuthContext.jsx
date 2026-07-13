@@ -103,6 +103,27 @@ export const AuthProvider = ({ children }) => {
         throw new Error('No user data received');
       }
     } catch (error) {
+      // A 401 from /auth/me on boot means the 15-min access token expired, NOT
+      // that the session is gone — the 7-day refresh cookie may still be valid.
+      // The axios interceptor deliberately skips auto-refresh for /auth/me (so
+      // failed logins don't hard-reload), so recover the session explicitly:
+      // refresh once, then re-probe /auth/me before concluding logged-out.
+      // Without this, every hard reload after 15 min dumps the user to /login.
+      if (error.response?.status === 401) {
+        try {
+          await api.post('/auth/refresh');
+          const retry = await api.get('/auth/me');
+          const userData = retry.data.user || retry.data;
+          if (userData) {
+            setUser(userData);
+            setIsAuthenticated(true);
+            setStoredAuthHint(true);
+            return;
+          }
+        } catch (_) {
+          // Refresh failed too → genuinely logged out; fall through.
+        }
+      }
       // 401 is expected when not logged in - not an error
       if (error.response?.status !== 401) {
         if (isDev) {

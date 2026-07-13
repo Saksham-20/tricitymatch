@@ -92,20 +92,27 @@ const User = sequelize.define('User', {
     defaultValue: []
   }
 }, {
-  validate: {
-    emailOrPhonePresent() {
-      if (!this.email && !this.phone) {
+  hooks: {
+    // "A user must always have at least one contact channel" is enforced via
+    // hooks, NOT a model-level `validate` block: model validators also fire on
+    // bulk `User.update(values, {where})` with an instance where isNewRecord is
+    // true and only the changed fields are set, making a partial update
+    // (isBoosted, fcmTokens, status) indistinguishable from a create — which
+    // false-rejected those updates. beforeCreate runs only on real creates;
+    // beforeUpdate (per-instance saves only, never bulk update) runs only when
+    // email/phone actually change.
+    beforeCreate: async (user) => {
+      if (!user.email && !user.phone) {
         throw new Error('An email address or phone number is required');
       }
-    }
-  },
-  hooks: {
-    beforeCreate: async (user) => {
       if (user.password) {
         user.password = await bcrypt.hash(user.password, config.auth.bcryptRounds);
       }
     },
     beforeUpdate: async (user) => {
+      if ((user.changed('email') || user.changed('phone')) && !user.email && !user.phone) {
+        throw new Error('An email address or phone number is required');
+      }
       if (user.changed('password')) {
         user.password = await bcrypt.hash(user.password, config.auth.bcryptRounds);
       }

@@ -30,7 +30,7 @@ const createRateLimiter = (options) => {
     legacyHeaders: false,
     keyGenerator: options.keyGenerator || ((req) => {
       // Use user ID if authenticated, otherwise IP (ipKeyGenerator for IPv6-safe limiting)
-      return req.user?.id || ipKeyGenerator(req);
+      return req.user?.id || ipKeyGenerator(req.ip);
     }),
     skip: options.skip || (() => config.security.disableRateLimits),
     handler: (req, res, next, options) => {
@@ -51,7 +51,7 @@ const authLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000, // 10 minutes
   max: 5, // 5 attempts
   message: 'Too many login attempts. Please try again later.',
-  keyGenerator: (req) => ipKeyGenerator(req), // Always use IP for auth
+  keyGenerator: (req) => ipKeyGenerator(req.ip), // Always use IP for auth
 });
 
 // Signup limiter - very strict
@@ -59,7 +59,7 @@ const signupLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 3, // 3 signups per hour per IP
   message: 'Too many accounts created, please try again after an hour',
-  keyGenerator: (req) => ipKeyGenerator(req),
+  keyGenerator: (req) => ipKeyGenerator(req.ip),
 });
 
 // Public contact form limiter — anti-spam without blocking genuine enquiries
@@ -67,7 +67,7 @@ const contactLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 5, // 5 enquiries per hour per IP
   message: 'Too many messages sent, please try again after an hour',
-  keyGenerator: (req) => ipKeyGenerator(req),
+  keyGenerator: (req) => ipKeyGenerator(req.ip),
 });
 
 // OTP send/verify limiter — separate from auth limiter so OTP calls don't exhaust login pool
@@ -75,7 +75,7 @@ const otpLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000, // 10 minutes
   max: 10, // 10 OTP attempts per 10 min per IP (generous for real users, tight enough vs bots)
   message: 'Too many verification attempts, please try again in 10 minutes',
-  keyGenerator: (req) => ipKeyGenerator(req),
+  keyGenerator: (req) => ipKeyGenerator(req.ip),
 });
 
 // Password reset limiter
@@ -83,7 +83,7 @@ const passwordResetLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 3, // 3 reset attempts per hour
   message: 'Too many password reset attempts, please try again later',
-  keyGenerator: (req) => ipKeyGenerator(req),
+  keyGenerator: (req) => ipKeyGenerator(req.ip),
 });
 
 // Search limiter
@@ -126,7 +126,7 @@ const adminLimiter = createRateLimiter({
   windowMs: 60 * 1000, // 1 minute
   max: 100, // 100 requests per minute for admins
   message: 'Too many admin requests',
-  keyGenerator: (req) => req.user?.id || ipKeyGenerator(req),
+  keyGenerator: (req) => req.user?.id || ipKeyGenerator(req.ip),
 });
 
 // ==================== SECURITY HEADERS ====================
