@@ -10,6 +10,7 @@ const TITLE_RULES = [
   ['/profile/edit', 'Edit Profile'],
   ['/profile', 'My Profile'], // also covers /profile/:id
   ['/search', 'Find a Match'],
+  ['/matches', 'My Matches'],
   ['/chat', 'Messages'],
   ['/subscription', 'Plans'],
   ['/payment', 'Payment'],
