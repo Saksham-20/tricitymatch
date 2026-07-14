@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Linking,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -253,7 +254,13 @@ export default function SignupScreen() {
           >
             {termsAccepted && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
           </TouchableOpacity>
-          <Text style={styles.termsText}>{t('auth.signup.termsLabel')}</Text>
+          <Text style={styles.termsText}>
+            {t('auth.signup.termsLabel')}
+            {'  '}
+            <Text style={styles.termsLink} onPress={() => Linking.openURL('https://tricityshadi.com/terms')}>Terms</Text>
+            <Text> · </Text>
+            <Text style={styles.termsLink} onPress={() => Linking.openURL('https://tricityshadi.com/privacy')}>Privacy</Text>
+          </Text>
         </View>
         {fieldErrors.terms ? (
           <Text style={[styles.fieldError, { marginTop: -spacing.sm, marginBottom: spacing.md }]} accessibilityLiveRegion="polite">
@@ -400,6 +407,10 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.regular,
     color: colours.textSecondary,
+  },
+  termsLink: {
+    color: colours.primary,
+    fontFamily: typography.fontFamily.semiBold,
   },
   primaryBtn: {
     backgroundColor: colours.primary,

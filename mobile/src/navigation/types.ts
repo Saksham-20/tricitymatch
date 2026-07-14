@@ -73,6 +73,12 @@ export type MainStackParamList = {
   SuccessStoriesBrowse: undefined;
   Support: undefined;
   Quiz: undefined;
+  // Static content / legal
+  Terms: undefined;
+  Privacy: undefined;
+  About: undefined;
+  Safety: undefined;
+  Contact: undefined;
   // Family group chat
   FamilyGroups: undefined;
   FamilyGroupChat: { groupId: string; groupName: string; memberCount: number };

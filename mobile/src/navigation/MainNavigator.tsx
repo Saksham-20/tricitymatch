@@ -35,6 +35,13 @@ import HoroscopeMatchScreen from '../features/profile/HoroscopeMatchScreen';
 // Verification
 import SelfieVerificationScreen from '../features/profile/SelfieVerificationScreen';
 
+// Static content / legal
+import TermsScreen from '../features/legal/TermsScreen';
+import PrivacyScreen from '../features/legal/PrivacyScreen';
+import AboutScreen from '../features/legal/AboutScreen';
+import SafetyScreen from '../features/legal/SafetyScreen';
+import ContactScreen from '../features/legal/ContactScreen';
+
 // Family group chat
 import FamilyGroupsScreen from '../features/chat/FamilyGroupsScreen';
 import FamilyGroupChatScreen from '../features/chat/FamilyGroupChatScreen';
@@ -169,6 +176,13 @@ export default function MainNavigator() {
       <Stack.Screen name="SuccessStoriesBrowse" component={SuccessStoriesBrowseScreen} />
       <Stack.Screen name="Support" component={SupportScreen} />
       <Stack.Screen name="Quiz" component={QuizScreen} />
+
+      {/* Static content / legal (store review requirement + web parity) */}
+      <Stack.Screen name="Terms" component={TermsScreen} />
+      <Stack.Screen name="Privacy" component={PrivacyScreen} />
+      <Stack.Screen name="About" component={AboutScreen} />
+      <Stack.Screen name="Safety" component={SafetyScreen} />
+      <Stack.Screen name="Contact" component={ContactScreen} />
 
       {/* Family group chat — all authenticated users */}
       <Stack.Screen name="FamilyGroups" component={FamilyGroupsScreen} />

@@ -482,6 +482,49 @@ export default function SettingsScreen() {
           />
         </Section>
 
+        {/* About & Legal */}
+        <Section title="About & Legal">
+          <SettingRow
+            icon="information-circle-outline"
+            iconColor={colours.textSecondary}
+            label="About TricityShadi"
+            onPress={() => navigation.navigate('About')}
+            testID="setting-about"
+          />
+          <Divider />
+          <SettingRow
+            icon="shield-checkmark-outline"
+            iconColor={colours.textSecondary}
+            label="Safety & Trust"
+            onPress={() => navigation.navigate('Safety')}
+            testID="setting-safety"
+          />
+          <Divider />
+          <SettingRow
+            icon="mail-outline"
+            iconColor={colours.textSecondary}
+            label="Contact Us"
+            onPress={() => navigation.navigate('Contact')}
+            testID="setting-contact"
+          />
+          <Divider />
+          <SettingRow
+            icon="document-text-outline"
+            iconColor={colours.textSecondary}
+            label="Terms of Service"
+            onPress={() => navigation.navigate('Terms')}
+            testID="setting-terms"
+          />
+          <Divider />
+          <SettingRow
+            icon="lock-closed-outline"
+            iconColor={colours.textSecondary}
+            label="Privacy Policy"
+            onPress={() => navigation.navigate('Privacy')}
+            testID="setting-privacy-policy"
+          />
+        </Section>
+
         {/* Danger zone */}
         <Section title="Account Actions">
           <SettingRow
