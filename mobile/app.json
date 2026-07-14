@@ -1,6 +1,4 @@
 {
-  "name": "TricityShadi",
-  "displayName": "TricityShadi",
   "expo": {
     "name": "TricityShadi",
     "slug": "tricityshadi",
@@ -52,7 +50,9 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-localization"
+      "expo-localization",
+      "expo-font",
+      "expo-secure-store"
     ],
     "extra": {
       "eas": {

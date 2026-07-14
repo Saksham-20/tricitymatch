@@ -19,7 +19,8 @@ Bundle ID (both platforms): `com.tricityshadi.app`.
 
 ## 1. Pre-build blockers
 
-- [ ] **[you/eng] Google targetSdk 35** — Play requires it for new apps. Expo SDK 51 targets 34 → **upgrade to Expo SDK 52+ (RN 0.76+)** first, then re-verify native modules (MMKV v2, reanimated, @gorhom/bottom-sheet v4, react-native-iap, react-native-razorpay, screens). This is the single biggest launch task.
+- [x] **Google targetSdk 35 — DONE.** Upgraded to Expo SDK 52 / RN 0.76.9 (targetSdk 35); deps aligned (screens 4.4, reanimated 3.16.7, gorhom 5.2.14, gesture-handler 2.20.2). Verified: tsc 0, Metro bundle ✓, backend 171/171, frontend build ✓.
+- [ ] **[you/eng] Regenerate native folders for SDK 52** — the committed `mobile/android` + `mobile/ios` are SDK-51 stale. Run `npx expo prebuild --clean` (needs pod install for iOS — set `LANG/LC_ALL=en_US.UTF-8`). EAS Build regenerates automatically, so this is only for local builds. Keep **new arch OFF** (MMKV v2 / razorpay / fast-image are old-arch only).
 - [ ] **[decision] Sign in with Apple** — Google login is hidden on iOS (Guideline 4.8). Either keep it hidden (email/password only on iOS, already done **[code]**) or add `expo-apple-authentication` to re-enable social login on iOS.
 - [ ] **[code] ✅** iOS export-compliance (`ITSAppUsesNonExemptEncryption=false`), Android `BILLING` permission, legal screens, payment routing.
 
