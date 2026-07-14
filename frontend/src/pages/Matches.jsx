@@ -202,6 +202,7 @@ export default function Matches() {
                     profile={profile}
                     userId={pid}
                     index={i}
+                    primaryCta={active === 'mutual' ? 'message' : 'interest'}
                     onLike={() => handleAction(pid, 'like')}
                     onShortlist={() => handleAction(pid, 'shortlist')}
                   />

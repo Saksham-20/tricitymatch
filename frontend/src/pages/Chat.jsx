@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
@@ -115,6 +115,7 @@ const Chat = () => {
   const { socket } = useSocket();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [matches, setMatches] = useState([]);
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -222,7 +223,15 @@ const Chat = () => {
       setMatches(mutualMatches);
 
       if (mutualMatches.length > 0) {
-        setSelectedMatch(mutualMatches[0]);
+        // Deep-link: /chat?to=<userId> (e.g. the Message CTA on a Mutual
+        // match card) opens that person's thread; otherwise the first match.
+        const targetId = searchParams.get('to');
+        const target = targetId && mutualMatches.find((m) => m.userId === targetId);
+        setSelectedMatch(target || mutualMatches[0]);
+        if (targetId) {
+          setShowMobileSidebar(false);
+          setSearchParams({}, { replace: true });
+        }
       }
     } catch (error) {
       if (isDev) {

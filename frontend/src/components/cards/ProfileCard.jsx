@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   FiHeart, FiBookmark, FiMapPin, FiBook, FiBriefcase,
-  FiLock, FiCheckCircle, FiArrowRight, FiCheck,
+  FiLock, FiCheckCircle, FiArrowRight, FiCheck, FiMessageCircle,
 } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 import { API_BASE_URL } from '../../utils/api';
@@ -118,6 +118,10 @@ const ProfileCard = ({
   isAISuggested = false,
   isPremiumLocked = false,
   isOnline = false,
+  // 'interest' (default) shows the Express-Interest primary CTA.
+  // 'message' is for people you've already matched with (Mutual) —
+  // the primary CTA becomes "Message" and deep-links into the chat.
+  primaryCta = 'interest',
 }) => {
   const navigate = useNavigate();
   const [isLiked, setIsLiked] = useState(profile.matchStatus === 'like');
@@ -443,6 +447,26 @@ const ProfileCard = ({
                 <FaCrown className="w-3.5 h-3.5" />
                 Unlock Profile
               </button>
+            ) : primaryCta === 'message' ? (
+              <>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={(e) => { e.stopPropagation(); navigate(`/chat?to=${userId}`); }}
+                  className="flex-1 py-3 text-sm font-semibold rounded-2xl transition-all duration-200 bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:from-primary-600 hover:to-primary-700 shadow-burgundy inline-flex items-center justify-center gap-1.5"
+                >
+                  <FiMessageCircle className="w-4 h-4" /> Message
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={handleCardClick}
+                  className="flex-1 py-3 text-sm font-semibold rounded-2xl transition-all duration-200 border border-neutral-200 text-neutral-600 hover:border-primary-300 hover:text-primary-500 hover:bg-primary-50/50 flex items-center justify-center gap-1.5"
+                >
+                  View Profile
+                  <FiArrowRight className="w-3.5 h-3.5" />
+                </motion.button>
+              </>
             ) : (
               <>
                 <motion.button
