@@ -295,25 +295,31 @@ export default function LoginScreen() {
           )}
         </TouchableOpacity>
 
-        {/* Divider */}
-        <View style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>{t('common.or')}</Text>
-          <View style={styles.dividerLine} />
-        </View>
+        {/* Google Sign-In — HIDDEN on iOS. Apple Guideline 4.8 requires "Sign in
+            with Apple" alongside any third-party social login. Until that's added,
+            iOS uses email/password only (avoids guaranteed App Review rejection). */}
+        {Platform.OS !== 'ios' && (
+          <>
+            {/* Divider */}
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>{t('common.or')}</Text>
+              <View style={styles.dividerLine} />
+            </View>
 
-        {/* Google Sign-In */}
-        <TouchableOpacity
-          style={styles.googleBtn}
-          onPress={() => Alert.alert('Google Sign-In', 'Configure EXPO_PUBLIC_GOOGLE_CLIENT_ID to enable')}
-          accessibilityLabel={t('auth.login.googleSignIn')}
-          testID="LoginScreen-google"
-        >
-          <View style={styles.btnRow}>
-            <Ionicons name="logo-google" size={18} color={colours.textPrimary} />
-            <Text style={styles.googleBtnText}>{t('auth.login.googleSignIn')}</Text>
-          </View>
-        </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.googleBtn}
+              onPress={() => Alert.alert('Google Sign-In', 'Configure EXPO_PUBLIC_GOOGLE_CLIENT_ID to enable')}
+              accessibilityLabel={t('auth.login.googleSignIn')}
+              testID="LoginScreen-google"
+            >
+              <View style={styles.btnRow}>
+                <Ionicons name="logo-google" size={18} color={colours.textPrimary} />
+                <Text style={styles.googleBtnText}>{t('auth.login.googleSignIn')}</Text>
+              </View>
+            </TouchableOpacity>
+          </>
+        )}
 
         {/* Biometric — only shown when hardware available */}
         {biometricAvailable && (

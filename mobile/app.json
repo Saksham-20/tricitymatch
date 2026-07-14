@@ -21,6 +21,7 @@
       "bundleIdentifier": "com.tricityshadi.app",
       "buildNumber": "1",
       "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "Camera is used for profile photos and selfie verification.",
         "NSMicrophoneUsageDescription": "Microphone is used for voice and video calls.",
         "NSPhotoLibraryUsageDescription": "Photo library access is used for uploading profile photos.",
@@ -43,13 +44,16 @@
         "USE_BIOMETRIC",
         "USE_FINGERPRINT",
         "VIBRATE",
-        "RECEIVE_BOOT_COMPLETED"
+        "RECEIVE_BOOT_COMPLETED",
+        "com.android.vending.BILLING"
       ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [],
+    "plugins": [
+      "expo-localization"
+    ],
     "extra": {
       "eas": {
         "projectId": "tricityshadi-app"
