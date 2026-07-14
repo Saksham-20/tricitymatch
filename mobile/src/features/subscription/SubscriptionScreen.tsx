@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Platform,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -17,14 +19,34 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { colours, type, typography, spacing, borderRadius, shadows } from '@shared/constants/theme';
 import { useTheme } from '../../hooks/useTheme';
-import { PLANS, PLAN_ORDER } from '@shared/constants/plans';
-import { getPlans, createOrder, verifyPayment, getSubscriptionHistory } from '../../api/subscription';
+import { PLANS, PLAN_ORDER, UNLOCK_BUNDLES } from '@shared/constants/plans';
+import {
+  getPlans,
+  createOrder,
+  verifyPayment,
+  verifyGooglePlay,
+  getSubscriptionHistory,
+  createBundleOrder,
+  verifyBundlePayment,
+} from '../../api/subscription';
+import {
+  purchaseGooglePlaySubscription,
+  finishGooglePlayPurchase,
+  IAP_UNAVAILABLE,
+} from '../../utils/iap';
+import { detectCurrency, formatLocalPrice, type DetectedCurrency } from '../../utils/currency';
 import { queryKeys } from '../../constants/queryKeys';
 import { useAuthStore } from '../../stores/authStore';
 import type { MainStackParamList } from '../../navigation/types';
 import type { PlanFeatures, SubscriptionPlanType } from '../../types';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
+
+// On iOS, Apple's rules make in-app purchase of digital subscriptions costly, so
+// (like Spotify) we send buyers to the website to pay. Android keeps in-app
+// billing (Razorpay + Google Play, user-choice).
+const WEB_SUBSCRIPTION_URL = 'https://tricityshadi.com/subscription';
+const isIOS = Platform.OS === 'ios';
 
 // ─── Razorpay stub (dynamic require for native build) ─────────────────────────
 
@@ -119,10 +141,12 @@ interface PlanCardProps {
   isCurrent: boolean;
   isSelected: boolean;
   onSelect: () => void;
+  currency: DetectedCurrency;
 }
 
-function PlanCard({ plan, isCurrent, isSelected, onSelect }: PlanCardProps) {
+function PlanCard({ plan, isCurrent, isSelected, onSelect, currency }: PlanCardProps) {
   const { c } = useTheme();
+  const localPrice = plan.price > 0 ? formatLocalPrice(plan.price, currency) : null;
   const colour = PLAN_COLOUR[plan.planType];
   const icon = PLAN_ICON[plan.planType];
   const highlight = PLAN_HIGHLIGHT[plan.planType];
@@ -173,6 +197,9 @@ function PlanCard({ plan, isCurrent, isSelected, onSelect }: PlanCardProps) {
               </View>
               {plan.perMonth ? (
                 <Text style={[pc.perMonth, { color: c.textMuted }]}>≈ ₹{plan.perMonth.toLocaleString('en-IN')}/month</Text>
+              ) : null}
+              {localPrice ? (
+                <Text style={[pc.perMonth, { color: c.textMuted }]}>≈ {localPrice} (charged in ₹)</Text>
               ) : null}
             </>
           ) : (
@@ -292,6 +319,13 @@ export default function SubscriptionScreen() {
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlanType>(currentPlan);
   const [tab, setTab] = useState<'plans' | 'history'>('plans');
   const [paying, setPaying] = useState(false);
+  const currency = useMemo(() => detectCurrency(), []);
+
+  // Unlock bundles apply only to an active FINITE paid plan (unlimited plans
+  // already have all unlocks; free has none to top up).
+  const currentPlanCaps = PLANS[currentPlan];
+  const bundlesEligible =
+    currentPlan !== 'free' && currentPlanCaps?.contactUnlocks !== null;
 
   const { data: plans, isLoading: plansLoading } = useQuery({
     queryKey: queryKeys.plans,
@@ -318,8 +352,14 @@ export default function SubscriptionScreen() {
     },
   });
 
-  const handleSubscribe = async () => {
-    if (selectedPlan === 'free' || selectedPlan === currentPlan) return;
+  // iOS: send the buyer to the website to pay (avoids Apple's IAP + ~30% cut).
+  const openWebsiteCheckout = () => {
+    Linking.openURL(WEB_SUBSCRIPTION_URL).catch(() =>
+      Alert.alert('Could not open browser', `Visit ${WEB_SUBSCRIPTION_URL} to subscribe.`),
+    );
+  };
+
+  const payViaRazorpay = async () => {
     setPaying(true);
     try {
       const orderData = await createOrder(selectedPlan);
@@ -338,6 +378,82 @@ export default function SubscriptionScreen() {
         razorpay_payment_id: paymentResult.razorpay_payment_id,
         razorpay_signature: paymentResult.razorpay_signature,
       });
+    } catch {
+      Alert.alert('Payment Cancelled', 'No charge was made.');
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  const payViaGooglePlay = async () => {
+    setPaying(true);
+    try {
+      const { productId, purchaseToken } = await purchaseGooglePlaySubscription(selectedPlan);
+      await verifyGooglePlay({ productId, purchaseToken });
+      await finishGooglePlayPurchase();
+      queryClient.invalidateQueries({ queryKey: queryKeys.me });
+      queryClient.invalidateQueries({ queryKey: queryKeys.subscription });
+      Alert.alert('Success!', `${PLANS[selectedPlan].label} plan activated. Enjoy!`);
+      navigation.goBack();
+    } catch (e: any) {
+      if (e?.message === IAP_UNAVAILABLE) {
+        Alert.alert(
+          'Google Play unavailable',
+          'Google Play billing needs the Play Store build. Use Card / UPI, or subscribe on our website.',
+        );
+      } else {
+        Alert.alert('Payment Cancelled', 'No charge was made.');
+      }
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  // Android offers a payment-method choice (user-choice billing). iOS redirects.
+  const handleSubscribe = () => {
+    if (selectedPlan === 'free' || selectedPlan === currentPlan) return;
+    if (isIOS) {
+      openWebsiteCheckout();
+      return;
+    }
+    Alert.alert(
+      'Choose payment method',
+      `Subscribe to ${PLANS[selectedPlan].label}`,
+      [
+        { text: 'Card / UPI (Razorpay)', onPress: payViaRazorpay },
+        { text: 'Google Play', onPress: payViaGooglePlay },
+        { text: 'Cancel', style: 'cancel' },
+      ],
+    );
+  };
+
+  // À-la-carte contact-unlock top-up. iOS → website; Android → Razorpay.
+  const buyBundle = async (bundleId: string) => {
+    if (isIOS) {
+      openWebsiteCheckout();
+      return;
+    }
+    setPaying(true);
+    try {
+      const order = await createBundleOrder(bundleId);
+      const bundle = UNLOCK_BUNDLES[bundleId];
+      const paymentResult = await openRazorpay({
+        key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID ?? '',
+        amount: order.amount,
+        currency: order.currency,
+        name: 'TricityShadi',
+        description: bundle?.label ?? 'Contact unlocks',
+        order_id: order.orderId,
+        prefill: { email: user?.email },
+        theme: { color: colours.primary },
+      });
+      const { unlocks } = await verifyBundlePayment({
+        razorpay_order_id: paymentResult.razorpay_order_id,
+        razorpay_payment_id: paymentResult.razorpay_payment_id,
+        razorpay_signature: paymentResult.razorpay_signature,
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.me });
+      Alert.alert('Unlocks added', `${unlocks} contact unlock${unlocks === 1 ? '' : 's'} credited.`);
     } catch {
       Alert.alert('Payment Cancelled', 'No charge was made.');
     } finally {
@@ -399,9 +515,43 @@ export default function SubscriptionScreen() {
                     isCurrent={planType === currentPlan}
                     isSelected={planType === selectedPlan}
                     onSelect={() => setSelectedPlan(planType)}
+                    currency={currency}
                   />
                 );
               })
+            )}
+
+            {/* À-la-carte contact-unlock top-ups (finite paid plans only) */}
+            {bundlesEligible && (
+              <View style={s.bundles}>
+                <Text style={s.bundlesTitle}>Need more contact unlocks?</Text>
+                <Text style={s.bundlesSub}>Top up without changing your plan.</Text>
+                {Object.values(UNLOCK_BUNDLES).map((b) => {
+                  const local = formatLocalPrice(b.price, currency);
+                  return (
+                    <TouchableOpacity
+                      key={b.bundleId}
+                      style={[s.bundleRow, { borderColor: colours.border }]}
+                      onPress={() => buyBundle(b.bundleId)}
+                      disabled={paying}
+                      testID={`bundle-${b.bundleId}`}
+                    >
+                      <Ionicons name="lock-open-outline" size={20} color={colours.primary} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.bundleLabel}>{b.label}</Text>
+                        {local ? <Text style={s.bundleLocal}>≈ {local} (charged in ₹)</Text> : null}
+                      </View>
+                      <Text style={s.bundlePrice}>₹{b.price.toLocaleString('en-IN')}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+
+            {isIOS && (
+              <Text style={s.iosNote}>
+                Subscriptions are managed on tricityshadi.com. Tap below to continue in your browser.
+              </Text>
             )}
           </ScrollView>
 
@@ -422,11 +572,17 @@ export default function SubscriptionScreen() {
                     ? 'Current Plan'
                     : selectedPlan === 'free'
                     ? 'Downgrade not available'
+                    : isIOS
+                    ? `Upgrade to ${PLANS[selectedPlan].label} on our website ↗`
                     : `Subscribe to ${PLANS[selectedPlan].label} — ₹${PLANS[selectedPlan].price.toLocaleString('en-IN')}`}
                 </Text>
               )}
             </TouchableOpacity>
-            <Text style={s.disclaimer}>Payments processed securely via Razorpay</Text>
+            <Text style={s.disclaimer}>
+              {isIOS
+                ? 'You’ll finish checkout securely on tricityshadi.com'
+                : 'Pay by Card / UPI (Razorpay) or Google Play'}
+            </Text>
           </View>
         </>
       ) : (
@@ -469,4 +625,12 @@ const s = StyleSheet.create({
   disclaimer:   { fontSize: typography.fontSize.xs, color: colours.textMuted, textAlign: 'center', marginTop: spacing.sm },
   emptyState:   { alignItems: 'center', paddingTop: spacing['5xl'], gap: spacing.md },
   emptyText:    { fontSize: typography.fontSize.base, color: colours.textMuted },
+  bundles:      { marginTop: spacing.lg, paddingTop: spacing.lg, borderTopWidth: 1, borderTopColor: colours.border },
+  bundlesTitle: { fontSize: typography.fontSize.lg, fontFamily: typography.fontFamily.bold, color: colours.textPrimary },
+  bundlesSub:   { fontSize: typography.fontSize.sm, color: colours.textSecondary, marginBottom: spacing.md },
+  bundleRow:    { flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderWidth: 1, borderRadius: borderRadius.md, padding: spacing.md, marginBottom: spacing.sm },
+  bundleLabel:  { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: colours.textPrimary },
+  bundleLocal:  { fontSize: typography.fontSize.xs, color: colours.textMuted, marginTop: 1 },
+  bundlePrice:  { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.bold, color: colours.primary },
+  iosNote:      { fontSize: typography.fontSize.sm, color: colours.textSecondary, textAlign: 'center', marginTop: spacing.lg, lineHeight: 20 },
 });

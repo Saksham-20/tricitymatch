@@ -30,7 +30,22 @@ export const verifyPayment = async (data: {
   razorpay_payment_id: string;
   razorpay_signature: string;
 }): Promise<Subscription> => {
-  const res = await apiClient.post<{ subscription: Subscription }>('/subscription/verify-payment', data);
+  // Backend + web both read camelCase keys (razorpayOrderId…). The Razorpay SDK
+  // hands back snake_case, so map here — sending snake_case 400s "Missing payment details".
+  const res = await apiClient.post<{ subscription: Subscription }>('/subscription/verify-payment', {
+    razorpayOrderId: data.razorpay_order_id,
+    razorpayPaymentId: data.razorpay_payment_id,
+    razorpaySignature: data.razorpay_signature,
+  });
+  return res.data.subscription;
+};
+
+// Verify a Google Play subscription purchase (Android user-choice billing).
+export const verifyGooglePlay = async (data: {
+  productId: string;
+  purchaseToken: string;
+}): Promise<Subscription> => {
+  const res = await apiClient.post<{ subscription: Subscription }>('/subscription/google-verify', data);
   return res.data.subscription;
 };
 
@@ -56,6 +71,10 @@ export const verifyBundlePayment = async (data: {
   razorpay_payment_id: string;
   razorpay_signature: string;
 }): Promise<{ unlocks: number }> => {
-  const res = await apiClient.post<{ unlocks: number }>('/subscription/unlock-bundle/verify-payment', data);
+  const res = await apiClient.post<{ unlocks: number }>('/subscription/unlock-bundle/verify-payment', {
+    razorpayOrderId: data.razorpay_order_id,
+    razorpayPaymentId: data.razorpay_payment_id,
+    razorpaySignature: data.razorpay_signature,
+  });
   return { unlocks: res.data.unlocks };
 };

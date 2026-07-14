@@ -6,7 +6,7 @@
 const { Subscription, User, Profile, MarketingLead, UnlockPurchase } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
-const { PAID_PLANS, UNLIMITED_PLANS, TIER_RANK } = require('../constants/plans');
+const { PAID_PLANS, UNLIMITED_PLANS, TIER_RANK, GOOGLE_PLAY_PRODUCTS } = require('../constants/plans');
 const {
   createOrder: razorpayCreateOrder,
   verifyPayment: razorpayVerifyPayment,
@@ -17,7 +17,7 @@ const {
 } = require('../utils/razorpay');
 const { sendSubscriptionConfirmation } = require('../utils/email');
 const config = require('../config/env');
-const { createError, asyncHandler } = require('../middlewares/errorHandler');
+const { createError, asyncHandler, AppError } = require('../middlewares/errorHandler');
 const { log, logAudit } = require('../middlewares/logger');
 const { generateInvoicePDF } = require('../utils/invoice');
 const { notify } = require('../utils/notifyUser');
@@ -266,6 +266,136 @@ exports.verifyPayment = asyncHandler(async (req, res) => {
     success: true,
     message: 'Payment verified and subscription activated',
     subscription
+  });
+});
+
+// @route   POST /api/subscription/google-verify
+// @desc    Verify a Google Play subscription purchase and activate the plan
+// @access  Private
+// Android "user-choice billing" second rail: when a member pays via Google Play
+// (instead of Razorpay), the client sends the productId + purchaseToken here. We
+// validate the token against the Google Play Developer API, then activate the
+// plan through the same supersede-and-reset logic as the Razorpay path.
+exports.verifyGooglePlay = asyncHandler(async (req, res) => {
+  if (!config.googlePlay.isConfigured()) {
+    throw new AppError('Google Play billing is not configured', 503);
+  }
+
+  const { productId, purchaseToken } = req.body;
+  const userId = req.user.id;
+
+  if (!productId || !purchaseToken) {
+    throw createError.badRequest('Missing productId or purchaseToken');
+  }
+
+  const planType = GOOGLE_PLAY_PRODUCTS[productId];
+  if (!planType || !PAID_PLANS.includes(planType)) {
+    throw createError.badRequest('Unknown Google Play product');
+  }
+
+  // --- Validate the purchase token against Google Play Developer API ---
+  const { JWT } = require('google-auth-library');
+  let creds;
+  try {
+    creds = JSON.parse(config.googlePlay.serviceAccountJson);
+  } catch {
+    throw createError.internal('Google Play service account is misconfigured');
+  }
+  const jwtClient = new JWT({
+    email: creds.client_email,
+    key: creds.private_key,
+    scopes: ['https://www.googleapis.com/auth/androidpublisher'],
+  });
+  const pkg = config.googlePlay.packageName;
+  const base = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${pkg}/purchases/subscriptions/${encodeURIComponent(productId)}/tokens/${encodeURIComponent(purchaseToken)}`;
+
+  let purchase;
+  try {
+    const resp = await jwtClient.request({ url: base });
+    purchase = resp.data;
+  } catch (err) {
+    log.warn('Google Play token verification failed', { userId, productId, error: err.message });
+    throw createError.badRequest('Could not verify Google Play purchase');
+  }
+
+  // paymentState: 0 pending, 1 received, 2 free trial, 3 deferred. Require paid.
+  const paid = purchase && (purchase.paymentState === 1 || purchase.paymentState === 2);
+  const notExpired = purchase && Number(purchase.expiryTimeMillis || 0) > Date.now();
+  if (!paid || !notExpired) {
+    throw createError.badRequest('Google Play purchase is not active');
+  }
+
+  // Acknowledge within Google's 3-day window (else auto-refund).
+  if (purchase.acknowledgementState === 0) {
+    try {
+      await jwtClient.request({ url: `${base}:acknowledge`, method: 'POST', data: {} });
+    } catch (err) {
+      log.warn('Google Play acknowledge failed (continuing)', { userId, error: err.message });
+    }
+  }
+
+  const planDetails = getPlanDetails(planType);
+  if (!planDetails) {
+    throw createError.badRequest('Invalid plan type');
+  }
+
+  const subscription = await sequelize.transaction(async (t) => {
+    // Idempotency: same purchaseToken already activated → return it.
+    const existing = await Subscription.findOne({
+      where: { userId, razorpayPaymentId: purchaseToken, status: 'active' },
+      transaction: t,
+    });
+    if (existing) return existing;
+
+    const now = new Date();
+    const endDate = new Date(Number(purchase.expiryTimeMillis) || now.getTime() + planDetails.duration * 86400000);
+
+    const sub = await Subscription.create({
+      userId,
+      planType,
+      // Reuse existing columns so no migration is needed: order = productId,
+      // paymentId = purchaseToken (also the idempotency key).
+      razorpayOrderId: `gplay_${productId}`,
+      razorpayPaymentId: purchaseToken,
+      razorpaySignature: 'GOOGLE_PLAY',
+      status: 'active',
+      startDate: now,
+      endDate,
+      amount: (planDetails.amount != null ? planDetails.amount / 100 : 0),
+      contactUnlocksAllowed: planDetails.contactUnlocks,
+      contactUnlocksUsed: 0,
+    }, { transaction: t });
+
+    // Supersede any other pending/active subscription (upgrade-from tier).
+    await Subscription.update(
+      { status: 'cancelled' },
+      {
+        where: { userId, status: { [Op.in]: ['pending', 'active'] }, id: { [Op.ne]: sub.id } },
+        transaction: t,
+      }
+    );
+
+    return sub;
+  });
+
+  logAudit('subscription_activated_googleplay', userId, {
+    subscriptionId: subscription.id,
+    planType: subscription.planType,
+    productId,
+    endDate: subscription.endDate,
+  });
+
+  if (UNLIMITED_PLANS.includes(subscription.planType)) {
+    await User.update(
+      { isBoosted: true, boostExpiresAt: new Date(subscription.endDate) },
+      { where: { id: userId } }
+    );
+  }
+
+  res.json({
+    success: true,
+    message: 'Google Play purchase verified and subscription activated',
+    subscription,
   });
 });
 

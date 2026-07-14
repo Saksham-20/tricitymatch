@@ -268,6 +268,15 @@ const config = {
     isConfigured: () => !!optionalString('GOOGLE_CLIENT_ID'),
   },
 
+  // Google Play Billing (Android in-app subscription receipt verification).
+  // serviceAccountJson = raw JSON string of a Play-linked service account with
+  // the "View financial data / manage orders" permission (androidpublisher).
+  googlePlay: {
+    packageName: optionalString('GOOGLE_PLAY_PACKAGE_NAME', 'com.tricityshadi.app'),
+    serviceAccountJson: optionalString('GOOGLE_PLAY_SERVICE_ACCOUNT_JSON'),
+    isConfigured: () => !!optionalString('GOOGLE_PLAY_SERVICE_ACCOUNT_JSON'),
+  },
+
   // Agora RTC (voice/video calls)
   agora: {
     appId: optionalString('AGORA_APP_ID'),

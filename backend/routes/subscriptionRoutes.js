@@ -17,6 +17,7 @@ const {
   cancelSubscription,
   createBundleOrder,
   verifyBundlePayment,
+  verifyGooglePlay,
 } = require('../controllers/subscriptionController');
 const { auth, requirePremium } = require('../middlewares/auth');
 const { handleValidationErrors, createError } = require('../middlewares/errorHandler');
@@ -92,12 +93,22 @@ router.post('/create-order',
 );
 
 // Verify payment
-router.post('/verify-payment', 
+router.post('/verify-payment',
   auth,
   paymentLimiter,
   verifyPaymentValidation,
   handleValidationErrors,
   verifyPayment
+);
+
+// Verify a Google Play subscription purchase (Android user-choice billing)
+router.post('/google-verify',
+  auth,
+  paymentLimiter,
+  evBody('productId').isString().trim().notEmpty().withMessage('productId required'),
+  evBody('purchaseToken').isString().trim().notEmpty().withMessage('purchaseToken required'),
+  handleValidationErrors,
+  verifyGooglePlay
 );
 
 // ---- À-la-carte contact-unlock top-ups (require an active finite paid plan) ----
