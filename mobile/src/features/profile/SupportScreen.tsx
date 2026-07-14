@@ -19,7 +19,7 @@ const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=Hi+TricityShadi+Supp
 const FAQ: Array<{ q: string; a: string }> = [
   {
     q: 'How do I get verified?',
-    a: 'Go to Profile → Verification. Upload your Aadhaar or PAN for ID verification. Education and income tiers need degree/ITR documents. Admin reviews within 24–48 hours.',
+    a: 'Go to Profile → Verification and take a live selfie. Our team matches it against your profile photos and awards your verified badge — usually within 24–48 hours. We never ask for government ID.',
   },
   {
     q: 'Why can\'t I see phone numbers?',
