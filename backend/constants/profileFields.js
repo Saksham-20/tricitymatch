@@ -36,6 +36,8 @@ const PROFILE_EDITABLE_FIELDS = [
   'firstName', 'lastName', 'gender', 'dateOfBirth', 'height', 'weight',
   // Location
   'city', 'state',
+  // NRI / living abroad
+  'isNri', 'residenceCountry', 'residenceStatus', 'familyLocation',
   // Lifestyle
   'skinTone', 'diet', 'smoking', 'drinking',
   // Education & career

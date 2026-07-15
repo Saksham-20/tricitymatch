@@ -57,15 +57,39 @@ export const NAKSHATRA_OPTIONS = [
   'Shatabhisha', 'Purva Bhadrapada', 'Uttara Bhadrapada', 'Revati',
 ].map((n) => ({ value: n, label: n }));
 
+// ─── Cities ──────────────────────────────────────────────────────────────────
+// Tricity core first, then nearby towns in the Chandigarh catchment (Punjab +
+// Haryana border belt). Free-text "Other" catches anywhere else. Shared by the
+// onboarding Location step, Preferences step and the search FilterPanel so the
+// three never drift.
+export const TRICITY_CORE = ['Chandigarh', 'Mohali', 'Panchkula'];
+
+export const NEARBY_CITIES = [
+  'Zirakpur', 'Kharar', 'Derabassi', 'New Chandigarh', 'Kurali', 'Banur',
+  'Lalru', 'Baltana', 'Rajpura', 'Patiala', 'Rupnagar (Ropar)', 'Morinda',
+  'Ambala', 'Ambala Cantt', 'Pinjore', 'Kalka', 'Nalagarh', 'Baddi', 'Ludhiana',
+];
+
+// Ordered value list (Tricity first). Used to build <Select>/chip options.
+export const CITY_VALUES = [...TRICITY_CORE, ...NEARBY_CITIES];
+
+export const CITY_OPTIONS = CITY_VALUES.map((c) => ({ value: c, label: c }));
+
+export const CITY_OTHER = '__other_city__';
+
 // ─── Caste / community ───────────────────────────────────────────────────────
 // Alphabetical, NOT ranked — plus a free-text "Other" so we never author a
 // caste taxonomy or imply hierarchy. Always optional. Covers common Tricity /
 // North-India communities across Hindu/Sikh/etc.; "Other" catches the rest.
 export const CASTE_OPTIONS = [
-  'Aggarwal', 'Arora', 'Bania', 'Bhatia', 'Brahmin', 'Chadha', 'Chhabra',
-  'Gujjar', 'Jatt', 'Kamboj', 'Kayastha', 'Khatri', 'Kshatriya', 'Kumhar',
-  'Labana', 'Lohar', 'Mahajan', 'Nai', 'Rajput', 'Ramdasia', 'Ramgarhia',
-  'Ravidasia', 'Saini', 'Sood', 'Tank Kshatriya', 'Thakur', 'Yadav',
+  'Ad Dharmi', 'Aggarwal', 'Ahluwalia', 'Arora', 'Bagga', 'Bania', 'Bhardwaj',
+  'Bhatia', 'Bhati', 'Brahmin', 'Chadha', 'Chhabra', 'Chimba', 'Dhiman',
+  'Gill', 'Grewal', 'Gujjar', 'Jain', 'Jaiswal', 'Jatt', 'Julaha', 'Kalsi',
+  'Kamboj', 'Kashyap', 'Kayastha', 'Khatri', 'Kshatriya', 'Kumhar', 'Labana',
+  'Lohar', 'Mahajan', 'Mair Rajput', 'Maurya', 'Mehra', 'Nai', 'Prajapati',
+  'Rajput', 'Ramdasia', 'Ramgarhia', 'Rathore', 'Ravidasia', 'Saini', 'Sander',
+  'Sethi', 'Sharma', 'Sikligar', 'Sindhi', 'Sood', 'Sunar', 'Tank Kshatriya',
+  'Tarkhan', 'Teli', 'Thakur', 'Tomar', 'Verma', 'Yadav',
 ].map((c) => ({ value: c, label: c }));
 
 export const CASTE_OTHER = '__other__';

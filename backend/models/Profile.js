@@ -126,6 +126,24 @@ const Profile = sequelize.define('Profile', {
     type: DataTypes.STRING,
     allowNull: true
   },
+  // NRI / living abroad
+  isNri: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
+  },
+  residenceCountry: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  residenceStatus: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  familyLocation: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
   // Family Details
   familyType: {
     type: DataTypes.ENUM('joint', 'nuclear'),

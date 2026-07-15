@@ -4,7 +4,8 @@
 // means we NEVER put password/identifier/email/verification flags on the wire.
 export const PROFILE_SUBMIT_FIELDS = [
   'firstName', 'lastName', 'gender', 'dateOfBirth', 'height', 'weight',
-  'city', 'state', 'skinTone', 'diet', 'smoking', 'drinking',
+  'city', 'state', 'isNri', 'residenceCountry', 'residenceStatus', 'familyLocation',
+  'skinTone', 'diet', 'smoking', 'drinking',
   'education', 'degree', 'profession', 'income',
   'religion', 'caste', 'subCaste', 'gotra', 'motherTongue',
   'maritalStatus', 'numberOfChildren',

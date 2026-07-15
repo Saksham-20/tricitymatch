@@ -1,13 +1,14 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { FiCheck } from 'react-icons/fi';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
 import Select from '../../ui/Select';
-import CheckBox from '../../ui/CheckBox';
+import { CITY_VALUES } from '../../../constants/profileOptions';
 
 const PreferencesStep = () => {
   const { formData, updateFormData, errors, setStepErrors } = useOnboarding();
-  const CITIES = ['Chandigarh', 'Mohali', 'Panchkula'];
+  const CITIES = CITY_VALUES;
   const EDUCATION_OPTIONS = ['12th Pass', 'Diploma', 'Bachelor', 'Master', 'PhD', 'Professional Degree'];
 
   const validateStep = () => {
@@ -79,24 +80,30 @@ const PreferencesStep = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
       >
-        <label className="block text-sm font-medium text-neutral-900 mb-3">
+        <label className="block text-sm font-medium text-neutral-900 mb-1">
           Preferred Cities
         </label>
-        <div className="space-y-2">
-          {CITIES.map((city, idx) => (
-            <motion.div
-              key={city}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 + idx * 0.05 }}
-            >
-              <CheckBox
-                checked={formData.preferredCity?.includes(city)}
-                onChange={() => handleCityToggle(city)}
-                label={city}
-              />
-            </motion.div>
-          ))}
+        <p className="text-xs text-neutral-500 mb-3">Tap all the cities you're open to.</p>
+        <div className="flex flex-wrap gap-2">
+          {CITIES.map((city) => {
+            const selected = formData.preferredCity?.includes(city);
+            return (
+              <button
+                type="button"
+                key={city}
+                onClick={() => handleCityToggle(city)}
+                aria-pressed={selected}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium border transition-all ${
+                  selected
+                    ? 'bg-primary-500 border-primary-500 text-white shadow-burgundy'
+                    : 'bg-white border-neutral-300 text-neutral-700 hover:border-primary-400 hover:text-primary-600'
+                }`}
+              >
+                {selected && <FiCheck className="w-3.5 h-3.5" />}
+                {city}
+              </button>
+            );
+          })}
         </div>
       </motion.div>
 

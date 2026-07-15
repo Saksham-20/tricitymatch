@@ -104,7 +104,7 @@ const PLANS = {
   nri: {
     name: 'NRI Connect',
     amount: 999900,        // ₹9,999
-    mrp: null,
+    mrp: 1799900,          // ₹17,999 (strike-through anchor)
     duration: 180,         // 180 days
     durationLabel: '6 months',
     contactUnlocks: null,  // Unlimited
