@@ -211,7 +211,12 @@ const Navbar = () => {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated) {
+      // On logout the badge must drop back to 0 immediately — otherwise the
+      // stale count lingers until a full reload.
+      setUnreadCount(0);
+      return;
+    }
     const fetchCount = () => {
       api.get('/notifications/unread-count')
         .then(r => setUnreadCount(r.data?.count || 0))

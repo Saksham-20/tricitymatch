@@ -37,6 +37,23 @@ const setStoredAuthHint = (value) => {
   }
 };
 
+// User-scoped client state that must NOT leak to the next account on a shared
+// browser. Cleared on logout so a logged-out (or freshly logged-in) user never
+// sees the previous member's notification prefs or half-filled signup draft.
+const USER_SCOPED_STORAGE_KEYS = [
+  'tm_notif_prefs',
+  'onboarding_draft',
+  'onboarding_step',
+];
+
+const clearUserScopedStorage = () => {
+  try {
+    USER_SCOPED_STORAGE_KEYS.forEach((k) => window.localStorage.removeItem(k));
+  } catch {
+    // Ignore storage issues.
+  }
+};
+
 const routeNeedsAuthCheck = (pathname = '/') =>
   PROTECTED_ROUTE_PREFIXES.some(prefix => pathname === prefix || pathname.startsWith(`${prefix}/`));
 
@@ -253,6 +270,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setIsAuthenticated(false);
     setStoredAuthHint(false);
+    clearUserScopedStorage();
     toast.success('Logged out successfully');
   };
 
@@ -262,6 +280,7 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setIsAuthenticated(false);
       setStoredAuthHint(false);
+      clearUserScopedStorage();
       toast.success('Logged out from all devices');
     } catch (error) {
       toast.error('Failed to logout from all devices');

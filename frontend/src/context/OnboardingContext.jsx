@@ -244,6 +244,14 @@ function getInitialFormData() {
     city: 'Chandigarh', // default
     state: 'Punjab',
 
+    // NRI / living abroad — declared inline on the Location step. When isNri is
+    // true we collect residence + where the family is based in India (no separate
+    // section; the fields render conditionally within the Location step).
+    isNri: false,
+    residenceCountry: '',
+    residenceStatus: '', // Citizen / PR / Work Visa / Student / Other
+    familyLocation: '',  // where the family is based in India
+
     // Religion & Community
     religion: '',
     caste: '',
@@ -351,7 +359,7 @@ export const STEPS = [
     title: 'Location',
     icon: 'MapPin',
     description: 'Where are you based?',
-    fields: ['city'],
+    fields: ['city', 'isNri', 'residenceCountry', 'residenceStatus', 'familyLocation'],
     required: ['city'],
     showIn: ['edit', 'create_for_other'],
   },

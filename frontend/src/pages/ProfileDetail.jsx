@@ -554,6 +554,15 @@ const ProfileDetail = () => {
                   {profile.height && <DetailRow label="Height" value={formatHeight(profile.height)} />}
                   {profile.weight && <DetailRow label="Weight" value={`${profile.weight} kg`} />}
                   <DetailRow label="Location" value={[profile.city, profile.state].filter(Boolean).join(', ') || null} />
+                  {profile.isNri && (
+                    <DetailRow
+                      label="Living Abroad"
+                      value={[profile.residenceCountry, profile.residenceStatus].filter(Boolean).join(' · ') || 'NRI'}
+                    />
+                  )}
+                  {profile.isNri && profile.familyLocation && (
+                    <DetailRow label="Family In India" value={profile.familyLocation} />
+                  )}
                   <DetailRow label="Education" value={profile.education} />
                   {profile.degree && <DetailRow label="Degree" value={profile.degree} />}
                   <DetailRow label="Profession" value={profile.profession} />

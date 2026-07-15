@@ -183,6 +183,8 @@ exports.updateProfile = asyncHandler(async (req, res) => {
     
     // Fields that must be arrays in the database (excluding photos which is handled separately)
     const arrayFields = ['preferredCity', 'interestTags', 'languages'];
+    // Boolean columns — coerce multipart 'true'/'false' strings to real booleans.
+    const booleanFields = ['isNri', 'showPhone', 'showEmail', 'incognitoMode', 'photoBlurUntilMatch'];
     // Fields that must be JSON in the database
     const jsonFields = ['personalityValues', 'familyPreferences', 'lifestylePreferences', 'profilePrompts', 'quizAnswers', 'socialMediaLinks'];
     
@@ -190,7 +192,11 @@ exports.updateProfile = asyncHandler(async (req, res) => {
       if (Object.prototype.hasOwnProperty.call(req.body || {}, field)) {
         let value = req.body[field];
         
-        if (arrayFields.includes(field)) {
+        if (booleanFields.includes(field)) {
+          // Multipart sends booleans as the strings 'true'/'false'. A raw
+          // assignment would store 'false' as truthy (non-empty string).
+          updateData[field] = value === true || value === 'true' || value === '1';
+        } else if (arrayFields.includes(field)) {
           // If multer parsed a single appended element, it's a string. Make it an array.
           updateData[field] = typeof value === 'string' ? (value ? [value] : []) : value;
         } else if (jsonFields.includes(field)) {
@@ -207,6 +213,7 @@ exports.updateProfile = asyncHandler(async (req, res) => {
         } else {
           // Strip HTML tags from free-text fields to prevent stored XSS
           const freeTextFields = ['bio', 'education', 'degree', 'profession', 'city', 'state',
+            'residenceCountry', 'residenceStatus', 'familyLocation',
             'religion', 'caste', 'subCaste', 'gotra', 'motherTongue', 'placeOfBirth',
             'birthTime', 'rashi', 'nakshatra', 'zodiacSign', 'fatherOccupation', 'motherOccupation',
             'preferredEducation', 'preferredProfession', 'firstName', 'lastName', 'personalityType'];

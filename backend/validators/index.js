@@ -293,6 +293,11 @@ const updateProfileValidation = [
     .optional()
     .isInt({ min: 0, max: 20 })
     .withMessage('Desired children must be between 0 and 20'),
+  // NRI / living abroad
+  body('isNri').optional().isBoolean().withMessage('isNri must be a boolean'),
+  body('residenceCountry').optional().trim().isLength({ max: 60 }).withMessage('Residence country too long'),
+  body('residenceStatus').optional().trim().isLength({ max: 60 }).withMessage('Residence status too long'),
+  body('familyLocation').optional().trim().isLength({ max: 120 }).withMessage('Family location too long'),
   // Religion & community (free text — length-capped, HTML-stripped in controller)
   body('religion').optional().trim().isLength({ max: 50 }).withMessage('Religion too long'),
   body('caste').optional().trim().isLength({ max: 100 }).withMessage('Caste must not exceed 100 characters'),

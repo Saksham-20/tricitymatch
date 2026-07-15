@@ -108,12 +108,12 @@ const PlanCard = ({ planKey, plan, isPopular, isCurrent, currentPlanType, isProc
       animate={{ opacity: 1, y: 0 }}
       whileHover={!free && !isCurrent ? { y: -6 } : {}}
       transition={{ duration: 0.35 }}
-      className={`relative flex flex-col bg-white rounded-2xl border transition-all duration-200 overflow-hidden ${
+      className={`relative flex flex-col bg-white dark:bg-[#1a1f2e] rounded-2xl border transition-all duration-200 overflow-hidden ${
         isPopular
-          ? 'border-primary-300 shadow-burgundy-lg ring-1 ring-primary-200 scale-[1.03]'
+          ? 'border-primary-300 dark:border-primary-700/50 shadow-burgundy-lg ring-1 ring-primary-200 dark:ring-primary-800/40 scale-[1.03]'
           : gold
-          ? 'border-gold-300 shadow-gold ring-1 ring-gold-200'
-          : 'border-neutral-200 shadow-card'
+          ? 'border-gold-300 dark:border-gold-700/50 shadow-gold ring-1 ring-gold-200 dark:ring-gold-800/40'
+          : 'border-neutral-200 dark:border-neutral-800 shadow-card'
       }`}
     >
       {/* Accent bar + badge ribbon */}
@@ -148,7 +148,7 @@ const PlanCard = ({ planKey, plan, isPopular, isCurrent, currentPlanType, isProc
               <Icon className="w-4 h-4" />
             </div>
           )}
-          <h3 className="text-lg font-bold text-neutral-900">{plan.name || cfg.label}</h3>
+          <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">{plan.name || cfg.label}</h3>
           {isCurrent && (
             <span className="ml-auto px-2 py-0.5 bg-success-50 border border-success-100 text-success text-[10px] font-bold rounded-full uppercase tracking-wide">
               Active
@@ -204,7 +204,7 @@ const PlanCard = ({ planKey, plan, isPopular, isCurrent, currentPlanType, isProc
               }`}>
                 <FiCheck className="w-2.5 h-2.5" />
               </div>
-              <span className="text-sm text-neutral-700 leading-snug">{f}</span>
+              <span className="text-sm text-neutral-700 dark:text-neutral-300 leading-snug">{f}</span>
             </li>
           ))}
         </ul>
@@ -245,6 +245,8 @@ const PlanCard = ({ planKey, plan, isPopular, isCurrent, currentPlanType, isProc
 const NriBlock = ({ plan, currency, isCurrent, currentPlanType, isProcessing, onSubscribe }) => {
   const cfg = PLAN_CONFIG.nri;
   const price = plan?.price || cfg.price;
+  const mrp = plan?.mrp || null;
+  const discountPct = mrp && mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0;
   const currentRank = TIER_RANK[currentPlanType] ?? 0;
   const isUnlimited = currentRank >= TIER_RANK.vip; // already on VIP/NRI-equivalent
   const disabled = isCurrent || isProcessing || isUnlimited;
@@ -257,23 +259,23 @@ const NriBlock = ({ plan, currency, isCurrent, currentPlanType, isProcessing, on
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="mt-8 rounded-2xl border border-gold-300 bg-gradient-to-br from-white to-gold-50/40 shadow-gold ring-1 ring-gold-200 overflow-hidden"
+      className="mt-8 rounded-2xl border border-gold-300 dark:border-gold-700/50 bg-gradient-to-br from-white to-gold-50/40 dark:from-[#1c2130] dark:to-[#221f16] shadow-gold ring-1 ring-gold-200 dark:ring-gold-800/40 overflow-hidden"
     >
       <div className="flex flex-col lg:flex-row lg:items-center gap-6 p-6 lg:p-8">
         <div className="flex-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-gold-100 border border-gold-200 rounded-full mb-3">
-            <FiGlobe className="w-3.5 h-3.5 text-gold-700" />
-            <span className="text-[11px] font-bold text-gold-700 uppercase tracking-wide">For NRIs abroad</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-gold-100 dark:bg-gold-900/30 border border-gold-200 dark:border-gold-700/50 rounded-full mb-3">
+            <FiGlobe className="w-3.5 h-3.5 text-gold-700 dark:text-gold-400" />
+            <span className="text-[11px] font-bold text-gold-700 dark:text-gold-400 uppercase tracking-wide">For NRIs abroad</span>
           </div>
-          <h3 className="font-display text-2xl font-bold text-neutral-900 mb-1.5">NRI Connect</h3>
-          <p className="text-sm text-neutral-600 max-w-md mb-3">
+          <h3 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-1.5">NRI Connect</h3>
+          <p className="text-sm text-neutral-600 dark:text-neutral-300 max-w-md mb-3">
             Full VIP access built for members abroad — timezone-aware matching, priority support,
             and prices shown in your own currency.
           </p>
           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
             {PLAN_FEATURES.nri.map((f, i) => (
-              <li key={i} className="flex items-center gap-2 text-sm text-neutral-700">
-                <FiCheck className="w-3.5 h-3.5 text-gold-600 flex-shrink-0" />{f}
+              <li key={i} className="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-300">
+                <FiCheck className="w-3.5 h-3.5 text-gold-600 dark:text-gold-400 flex-shrink-0" />{f}
               </li>
             ))}
           </ul>
@@ -281,22 +283,32 @@ const NriBlock = ({ plan, currency, isCurrent, currentPlanType, isProcessing, on
 
         <div className="lg:w-64 flex-shrink-0 text-center lg:text-right">
           <div className="flex items-baseline justify-center lg:justify-end gap-1">
-            <span className="text-4xl font-bold text-gold-600">₹{price.toLocaleString('en-IN')}</span>
-            <span className="text-sm text-neutral-500">/6 months</span>
+            <span className="text-4xl font-bold text-gold-600 dark:text-gold-400">₹{price.toLocaleString('en-IN')}</span>
+            <span className="text-sm text-neutral-500 dark:text-neutral-400">/6 months</span>
           </div>
-          {local && (
-            <p className="text-sm text-neutral-500 mt-1">≈ {local} <span className="text-neutral-400">(indicative)</span></p>
+          {(mrp && mrp > price) && (
+            <div className="flex items-center justify-center lg:justify-end gap-2 mt-1">
+              <span className="text-sm text-neutral-400 dark:text-neutral-500 line-through">₹{mrp.toLocaleString('en-IN')}</span>
+              {discountPct > 0 && (
+                <span className="text-[11px] font-bold text-success bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 px-1.5 py-0.5 rounded">
+                  Flat {discountPct}% off
+                </span>
+              )}
+            </div>
           )}
-          <p className="text-[11px] text-neutral-400 mt-1">Billed in INR</p>
+          {local && (
+            <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">≈ {local} <span className="text-neutral-400 dark:text-neutral-500">(indicative)</span></p>
+          )}
+          <p className="text-[11px] text-neutral-400 dark:text-neutral-500 mt-1">Billed in INR</p>
           <button
             onClick={() => !disabled && onSubscribe('nri')}
             disabled={disabled}
             aria-busy={isProcessing || undefined}
             className={`mt-4 w-full py-3 text-sm font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 disabled:cursor-not-allowed ${
               isCurrent
-                ? 'bg-neutral-100 text-neutral-500 cursor-default'
+                ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 cursor-default'
                 : isUnlimited
-                ? 'bg-neutral-100 text-neutral-500 cursor-default'
+                ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 cursor-default'
                 : 'bg-gold text-neutral-900 hover:bg-gold-400 shadow-gold hover:-translate-y-0.5'
             }`}
           >
@@ -532,7 +544,7 @@ const Subscription = () => {
   ]);
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-neutral-50 dark:bg-[#0f1117]">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 
         {/* Header */}
@@ -545,10 +557,10 @@ const Subscription = () => {
             <FaCrown className="w-3.5 h-3.5 text-gold" />
             <span className="text-xs font-semibold text-gold-700 uppercase tracking-wide">Membership Plans</span>
           </div>
-          <h1 className="font-display text-4xl md:text-5xl font-bold text-neutral-900 mb-3">
+          <h1 className="font-display text-4xl md:text-5xl font-bold text-neutral-900 dark:text-neutral-100 mb-3">
             Choose Your Plan
           </h1>
-          <p className="text-neutral-500 text-lg max-w-lg mx-auto">
+          <p className="text-neutral-500 dark:text-neutral-400 text-lg max-w-lg mx-auto">
             Unlock premium features and find your perfect match faster.
           </p>
         </motion.div>
