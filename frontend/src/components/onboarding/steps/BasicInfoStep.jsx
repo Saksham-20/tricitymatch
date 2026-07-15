@@ -161,7 +161,8 @@ const BasicInfoStep = () => {
               options={HEIGHT_OPTIONS}
               value={formData.height ? String(formData.height) : ''}
               onChange={(value) => updateFormData('height', value)}
-              placeholder="Select height"
+              searchable
+              placeholder="Search height"
               optional
             />
             <FormField
