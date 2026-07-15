@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
 import Select from '../../ui/Select';
-import { validateName } from '../../../utils/validators';
+import { validateName, validateAge } from '../../../utils/validators';
 
 // 4'6" – 7'0" in one-inch increments, stored as cm (backend validates 100–250).
 const HEIGHT_OPTIONS = (() => {
@@ -46,12 +46,9 @@ const BasicInfoStep = () => {
 
     if (!data.dateOfBirth) {
       newErrors.dateOfBirth = 'Date of birth is required';
-    } else {
-      const dob = new Date(data.dateOfBirth);
-      const age = Math.floor((new Date() - dob) / (365.25 * 24 * 60 * 60 * 1000));
-      if (age < 18) {
-        newErrors.dateOfBirth = 'You must be at least 18 years old';
-      }
+    } else if (!validateAge(data.dateOfBirth, 18, 100)) {
+      // Calendar-accurate (leap-year safe) instead of 365.25-day float math.
+      newErrors.dateOfBirth = 'You must be at least 18 years old';
     }
 
     if (data.weight !== '' && data.weight != null) {
@@ -138,6 +135,7 @@ const BasicInfoStep = () => {
         <FormField
           label="Date of Birth"
           type="date"
+          autoComplete="bday"
           value={formData.dateOfBirth}
           onChange={(value) => updateFormData('dateOfBirth', value)}
           onBlur={() => setFieldTouched('dateOfBirth')}

@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
 import Select from '../../ui/Select';
-import { MANGLIK_OPTIONS, NAKSHATRA_OPTIONS } from '../../../constants/profileOptions';
+import { MANGLIK_OPTIONS, NAKSHATRA_OPTIONS, ZODIAC_OPTIONS, RASHI_OPTIONS } from '../../../constants/profileOptions';
 
 // The Kundli / horoscope form. Every field is optional — many members don't know
 // their birth time or nakshatra, and horoscope is a match aid, not a gate.
@@ -33,6 +33,32 @@ const HoroscopeStep = () => {
           onChange={(value) => updateFormData('nakshatra', value)}
           searchable
           placeholder="Select Nakshatra"
+        />
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.22 }}
+        className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+      >
+        <Select
+          label="Rashi (Moon sign)"
+          options={RASHI_OPTIONS}
+          value={formData.rashi}
+          onChange={(value) => updateFormData('rashi', value)}
+          searchable
+          optional
+          placeholder="Select Rashi"
+        />
+        <Select
+          label="Zodiac (Sun sign)"
+          options={ZODIAC_OPTIONS}
+          value={formData.zodiacSign}
+          onChange={(value) => updateFormData('zodiacSign', value)}
+          searchable
+          optional
+          placeholder="Select Zodiac sign"
         />
       </motion.div>
 

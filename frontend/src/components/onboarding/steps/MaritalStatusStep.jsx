@@ -55,6 +55,7 @@ const MaritalStatusStep = () => {
           <FormField
             label="Number of Children"
             type="number"
+            inputMode="numeric"
             placeholder="0"
             value={formData.numberOfChildren}
             onChange={(value) => updateFormData('numberOfChildren', value)}

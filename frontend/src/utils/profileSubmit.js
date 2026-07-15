@@ -22,6 +22,13 @@ export const PROFILE_SUBMIT_FIELDS = [
 
 const SUBMIT_SET = new Set(PROFILE_SUBMIT_FIELDS);
 
+// Array fields the backend coerces via `value ? [value] : []`, so sending an
+// empty string clears them. Lets a member remove ALL interests / preferred
+// cities and have it persist (previously an empty array appended nothing, the
+// key was absent, and the backend kept the old value). `photos` is excluded —
+// it's handled as file uploads, not a clearable text array.
+const CLEARABLE_ARRAY_FIELDS = new Set(['preferredCity', 'interestTags', 'languages']);
+
 /**
  * Build a multipart FormData for PUT /profile/me from the onboarding formData,
  * appending ONLY whitelisted profile fields. Handles File (photos), arrays
@@ -35,7 +42,12 @@ export const buildProfileFormData = (formData = {}) => {
     if (value instanceof File) {
       fd.append(key, value);
     } else if (Array.isArray(value)) {
-      value.forEach((item) => fd.append(key, item));
+      if (value.length === 0) {
+        // Send an explicit empty so the backend clears it (skip photos & others).
+        if (CLEARABLE_ARRAY_FIELDS.has(key)) fd.append(key, '');
+      } else {
+        value.forEach((item) => fd.append(key, item));
+      }
     } else if (typeof value === 'object' && value !== null) {
       fd.append(key, JSON.stringify(value));
     } else if (value !== null && value !== undefined && value !== '') {

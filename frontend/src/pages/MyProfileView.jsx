@@ -332,7 +332,8 @@ const MyProfileView = () => {
 
             {/* Profile prompts */}
             {profilePrompts.length > 0 ? (
-              <Card title="Get to Know Me" icon={FiUser} action={<EditBtn small to="/profile/edit?section=about" />}>
+              /* Prompts have no dedicated editor yet — display-only (no dead Edit link). */
+              <Card title="Get to Know Me" icon={FiUser}>
                 <div className="space-y-3">
                   {profilePrompts.map(({ q, a }, i) => (
                     <div key={i} className="p-4 bg-primary-50/60 rounded-xl border border-primary-100">
@@ -379,7 +380,7 @@ const MyProfileView = () => {
 
             {/* Spotify */}
             {profile.spotifyPlaylist && sanitizeUrl(profile.spotifyPlaylist) && (
-              <Card title="Music Taste" icon={FiMusic} action={<EditBtn small />}>
+              <Card title="Music Taste" icon={FiMusic} action={<EditBtn small to="/profile/edit?section=social" />}>
                 <a
                   href={sanitizeUrl(profile.spotifyPlaylist)}
                   target="_blank"
@@ -400,7 +401,7 @@ const MyProfileView = () => {
 
             {/* Social Media */}
             {activeSocials.length > 0 && (
-              <Card title="Social Media" icon={FiGlobe} action={<EditBtn small />}>
+              <Card title="Social Media" icon={FiGlobe} action={<EditBtn small to="/profile/edit?section=social" />}>
                 <div className="grid grid-cols-2 gap-2.5">
                   {activeSocials.map(({ key, label, icon: Icon, color }) => {
                     const entry = profile.socialMediaLinks[key];
@@ -499,7 +500,7 @@ const MyProfileView = () => {
 
             {/* Languages */}
             {profile.languages?.length > 0 && (
-              <Card title="Languages" icon={FiGlobe} action={<EditBtn small />}>
+              <Card title="Languages" icon={FiGlobe} action={<EditBtn small to="/profile/edit?section=about" />}>
                 <div className="flex flex-wrap gap-1.5">
                   {profile.languages.map((lang, i) => (
                     <span key={i} className="px-2.5 py-1.5 bg-neutral-100 rounded-xl text-xs font-bold text-neutral-600">{lang}</span>

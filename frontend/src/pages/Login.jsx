@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import Seo from '../components/common/Seo';
-import { validateEmail } from '../utils/validators';
+import { validateEmail, IDENTIFIER_ERROR } from '../utils/validators';
 import Logo from '../components/common/Logo';
 import SmartContactField, { detectContactType, phoneDigits } from '../components/onboarding/SmartContactField';
 import { FiMail, FiPhone, FiLock, FiEye, FiEyeOff, FiHeart, FiShield, FiArrowRight, FiClock, FiEdit2 } from 'react-icons/fi';
@@ -137,7 +137,7 @@ const Login = () => {
         return;
       }
       if (!idIsValid) {
-        setErrors({ identifier: 'Enter a valid email or 10-digit phone' });
+        setErrors({ identifier: IDENTIFIER_ERROR });
         shake();
         return;
       }

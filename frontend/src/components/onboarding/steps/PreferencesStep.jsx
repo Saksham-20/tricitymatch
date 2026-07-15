@@ -44,6 +44,7 @@ const PreferencesStep = () => {
         <FormField
           label="Preferred Age (Min)"
           type="number"
+          inputMode="numeric"
           placeholder="20"
           value={formData.preferredAgeMin}
           onChange={(value) => updateFormData('preferredAgeMin', value)}
@@ -53,6 +54,7 @@ const PreferencesStep = () => {
         <FormField
           label="Preferred Age (Max)"
           type="number"
+          inputMode="numeric"
           placeholder="35"
           value={formData.preferredAgeMax}
           onChange={(value) => updateFormData('preferredAgeMax', value)}

@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useOnboarding, STEPS, OnboardingProvider } from '../context/OnboardingContext';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import { buildProfileFormData } from '../utils/profileSubmit';
+import { calculateAge } from '../utils/validators';
 import Logo from '../components/common/Logo';
 import Progress from '../components/ui/Progress';
 import { Button } from '../components/ui/Button';
@@ -94,6 +95,12 @@ const ModernOnboardingContent = () => {
   const [accountCreated, setAccountCreated] = useState(false);
   const [completionPercentage, setCompletionPercentage] = useState(0);
   const referralCodeParam = searchParams.get('ref');
+  // On a real step transition, move focus to the new step's heading (after the
+  // enter animation settles) so keyboard + screen-reader users land in context
+  // and Tab straight into the first field. Not on initial mount — step 0 has an
+  // autoFocused field we must not steal.
+  const headingRef = useRef(null);
+  const focusHeadingRef = useRef(false);
 
   // Build stepComponents array based on visible steps
   const stepComponents = visibleSteps.map(step => allStepComponents[step.id]);
@@ -138,6 +145,7 @@ const ModernOnboardingContent = () => {
 
   const handleNext = () => {
     if (validateCurrentStep()) {
+      focusHeadingRef.current = true;
       setStepDirection(1);
       nextStep();
     } else {
@@ -146,8 +154,17 @@ const ModernOnboardingContent = () => {
   };
 
   const handleBack = () => {
+    focusHeadingRef.current = true;
     setStepDirection(-1);
     prevStep();
+  };
+
+  // Enter submits the step form: advance, or complete on the last step.
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    if (isLoading) return;
+    if (currentStep === visibleSteps.length - 1) handleComplete();
+    else handleNext();
   };
 
   const handleComplete = async () => {
@@ -316,7 +333,7 @@ const ModernOnboardingContent = () => {
                   <svg width="64" height="64" viewBox="0 0 64 64" className="-rotate-90">
                     <circle cx="32" cy="32" r={ringR} fill="none" stroke="currentColor" className="text-neutral-200 dark:text-neutral-700" strokeWidth="5" />
                     <motion.circle
-                      cx="32" cy="32" r={ringR} fill="none" stroke="#8B2346" strokeWidth="5" strokeLinecap="round"
+                      cx="32" cy="32" r={ringR} fill="none" stroke="currentColor" className="text-primary-600 dark:text-primary-400" strokeWidth="5" strokeLinecap="round"
                       strokeDasharray={ringC}
                       initial={false}
                       animate={{ strokeDashoffset: ringC - (progressPercentage / 100) * ringC }}
@@ -453,85 +470,98 @@ const ModernOnboardingContent = () => {
             </div>
           </motion.div>
 
-          {/* Form content with fade/slide animation */}
-          <AnimatePresence mode="wait" custom={stepDirection}>
-            <motion.div
-              key={currentStep}
-              custom={stepDirection}
-              initial={{ opacity: 0, x: 20 * stepDirection }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -16 * stepDirection }}
-              transition={{ duration: 0.24, ease: [0.25, 0.46, 0.45, 0.94] }}
-              className="bg-white dark:bg-[#1a1f2e] border border-neutral-100 dark:border-neutral-800 rounded-2xl shadow-card p-8 sm:p-10"
-            >
-              <div className="mb-8">
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.1 }}
-                  className="text-xs font-semibold text-primary-600 uppercase tracking-widest mb-2"
-                >
-                  {visibleSteps[currentStep].icon && `Step ${currentStep + 1}`}
-                </motion.p>
-                <motion.h2
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15 }}
-                  className="font-display text-2xl sm:text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-3"
-                >
-                  {visibleSteps[currentStep].title}
-                </motion.h2>
-                <motion.p
+          {/* A real <form> so Enter advances the step (and submits on the last
+              one) — matches the Login form's keyboard behavior. */}
+          <form onSubmit={handleFormSubmit} noValidate>
+            {/* Form content with fade/slide animation */}
+            <AnimatePresence mode="wait" custom={stepDirection}>
+              <motion.div
+                key={currentStep}
+                custom={stepDirection}
+                initial={{ opacity: 0, x: 20 * stepDirection }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -16 * stepDirection }}
+                transition={{ duration: 0.24, ease: [0.25, 0.46, 0.45, 0.94] }}
+                onAnimationComplete={() => {
+                  if (focusHeadingRef.current) {
+                    headingRef.current?.focus();
+                    focusHeadingRef.current = false;
+                  }
+                }}
+                className="bg-white dark:bg-[#1a1f2e] border border-neutral-100 dark:border-neutral-800 rounded-2xl shadow-card p-8 sm:p-10"
+              >
+                <div className="mb-8">
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.1 }}
+                    className="text-xs font-semibold text-primary-600 uppercase tracking-widest mb-2"
+                  >
+                    {visibleSteps[currentStep].icon && `Step ${currentStep + 1}`}
+                  </motion.p>
+                  <motion.h2
+                    ref={headingRef}
+                    tabIndex={-1}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 }}
+                    className="font-display text-2xl sm:text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-3 focus:outline-none"
+                  >
+                    {visibleSteps[currentStep].title}
+                  </motion.h2>
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="text-neutral-600"
+                  >
+                    {visibleSteps[currentStep].description}
+                  </motion.p>
+                </div>
+
+                {/* Step component */}
+                <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.2 }}
-                  className="text-neutral-600"
                 >
-                  {visibleSteps[currentStep].description}
-                </motion.p>
-              </div>
-
-              {/* Step component */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
-              >
-                <Step />
+                  <Step />
+                </motion.div>
               </motion.div>
-            </motion.div>
-          </AnimatePresence>
+            </AnimatePresence>
 
-          {/* Navigation buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="mt-6 flex gap-4"
-          >
-            {currentStep > 0 && (
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={handleBack}
-                disabled={isLoading}
-                className="flex items-center gap-2"
-              >
-                <FiChevronLeft className="w-5 h-5" />
-                Back
-              </Button>
-            )}
-
-            <Button
-              size="lg"
-              onClick={currentStep === visibleSteps.length - 1 ? handleComplete : handleNext}
-              disabled={isLoading}
-              className="flex-1 flex items-center justify-center gap-2"
+            {/* Navigation buttons */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="mt-6 flex gap-4"
             >
-              {isLoading ? 'Processing...' : currentStep === visibleSteps.length - 1 ? (mode === 'signup' ? 'Create my profile' : 'Complete') : 'Next'}
-              {!isLoading && currentStep !== visibleSteps.length - 1 && <FiChevronRight className="w-5 h-5" />}
-            </Button>
-          </motion.div>
+              {currentStep > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  onClick={handleBack}
+                  disabled={isLoading}
+                  className="flex items-center gap-2"
+                >
+                  <FiChevronLeft className="w-5 h-5" />
+                  Back
+                </Button>
+              )}
+
+              <Button
+                type="submit"
+                size="lg"
+                disabled={isLoading}
+                className="flex-1 flex items-center justify-center gap-2"
+              >
+                {isLoading ? 'Processing...' : currentStep === visibleSteps.length - 1 ? (mode === 'signup' ? 'Create my profile' : 'Complete') : 'Next'}
+                {!isLoading && currentStep !== visibleSteps.length - 1 && <FiChevronRight className="w-5 h-5" />}
+              </Button>
+            </motion.div>
+          </form>
 
           {/* Persistent inline submit error — the toast alone is easy to miss */}
           {submitError && (
@@ -600,8 +630,7 @@ const ModernOnboardingContent = () => {
       <AnimatePresence>
         {previewData && (() => {
           const fullName = [previewData.firstName, previewData.lastName].filter(Boolean).join(' ');
-          const dob = previewData.dateOfBirth ? new Date(previewData.dateOfBirth) : null;
-          const age = dob ? Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : null;
+          const age = calculateAge(previewData.dateOfBirth);
           return (
             <motion.div
               initial={{ opacity: 0 }}
