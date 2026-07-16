@@ -16,10 +16,9 @@ import { FiChevronDown } from 'react-icons/fi';
  * parts are chosen, else '' so required-validation still fires.
  */
 
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
+// Short month names — the full ones ("September") don't fit a third of a
+// 375px viewport and native selects can't show a different closed label.
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export const daysInMonth = (year, month) => {
   // month is 1-12; year may be '' → assume 31/30/29 style upper bound
@@ -35,7 +34,7 @@ const parseValue = (value) => {
 };
 
 const selectCls = (hasError) =>
-  `w-full pl-3 pr-8 py-3 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:border-transparent transition-all appearance-none ${
+  `w-full pl-3 pr-7 py-3 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:border-transparent transition-all appearance-none ${
     hasError
       ? 'border-red-500 focus:ring-red-500'
       : 'border-neutral-300 focus:ring-primary-500'
@@ -57,7 +56,7 @@ const PartSelect = ({ id, name, srLabel, value, onChange, hasError, children }) 
     >
       {children}
     </select>
-    <FiChevronDown className="w-4 h-4 text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+    <FiChevronDown className="w-4 h-4 text-neutral-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
   </div>
 );
 
