@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
 import Select from '../../ui/Select';
+import DobField from '../../ui/DobField';
 import { validateName, validateAge } from '../../../utils/validators';
 
 // 4'6" – 7'0" in one-inch increments, stored as cm (backend validates 100–250).
@@ -132,19 +133,15 @@ const BasicInfoStep = () => {
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
-        <FormField
-          label="Date of Birth"
-          type="date"
-          autoComplete="bday"
+        {/* Day/Month/Year selects instead of a native date input — the Android
+            calendar dialog (clamped 18 years back, decades of paging) was a
+            reported usability failure, and pickers are the wrong tool for a
+            birthday anyway. Year list already bounds 18–100. */}
+        <DobField
           value={formData.dateOfBirth}
-          onChange={(value) => updateFormData('dateOfBirth', value)}
-          onBlur={() => setFieldTouched('dateOfBirth')}
+          onChange={(value) => { updateFormData('dateOfBirth', value); setFieldTouched('dateOfBirth'); }}
           error={errors.dateOfBirth}
           hint="Used for age and horoscope matching — your exact birthday is never shown publicly."
-          /* Opens the picker near the 18+ era instead of today, and blocks
-             under-18 / impossible dates inline rather than after submit. */
-          min={new Date(new Date().setFullYear(new Date().getFullYear() - 100)).toISOString().split('T')[0]}
-          max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
           required
         />
       </motion.div>
