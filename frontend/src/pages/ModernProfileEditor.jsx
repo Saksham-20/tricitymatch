@@ -227,7 +227,9 @@ const ModernProfileEditorContent = () => {
             <p className="text-neutral-500 text-sm mb-2">
               Section {currentStep + 1} of {totalSteps}
             </p>
-            <Progress value={completionPercentage} max={100} />
+            {/* "Section X of Y" already says where you are — a % here reads as
+                profile completion, which this is not. */}
+            <Progress value={completionPercentage} max={100} showLabel={false} />
           </div>
         </div>
       </div>
@@ -281,7 +283,7 @@ const ModernProfileEditorContent = () => {
               {currentStep + 1} of {totalSteps}
             </span>
           </div>
-          <Progress value={completionPercentage} max={100} />
+          <Progress value={completionPercentage} max={100} showLabel={false} />
         </div>
 
         {/* Desktop stepper */}

@@ -406,17 +406,6 @@ const ModernOnboardingContent = () => {
 
       {/* Right Side - Form */}
       <div className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-12 relative">
-        {/* Close button (mobile) */}
-        <motion.button
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          onClick={handleQuit}
-          className="absolute top-4 right-4 lg:hidden p-2 hover:bg-neutral-100 rounded-full transition-colors"
-          title="Exit onboarding"
-        >
-          <FiX className="w-6 h-6 text-neutral-600" />
-        </motion.button>
-
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -424,41 +413,31 @@ const ModernOnboardingContent = () => {
           transition={{ duration: 0.3 }}
           className="w-full max-w-2xl"
         >
-          {/* Mobile Logo */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="lg:hidden flex justify-center mb-6"
-          >
-            <Logo size="lg" linkTo="/" />
-          </motion.div>
-
-          {/* Mobile tab switcher */}
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="lg:hidden flex rounded-2xl bg-neutral-100 p-1 mb-6"
-          >
-            <Link
-              to="/login"
-              className="flex-1 py-3 text-center text-sm font-semibold rounded-xl text-neutral-500 hover:text-neutral-700 transition-colors"
-            >
-              Sign In
-            </Link>
-            <span className="flex-1 py-3 text-center text-sm font-semibold rounded-xl bg-white shadow-sm text-neutral-900">
-              Create Profile
-            </span>
-          </motion.div>
+          {/* No mobile logo / Sign-In tab block — the global Navbar already
+              brands the page and links to login; the duplicated chrome cost
+              ~150px before the form appeared on a phone. The exit ✕ lives
+              inline in the progress row (an absolute one collided with it). */}
 
           {/* Progress bar - Mobile (desktop uses the left rail stepper) */}
           <motion.div className="lg:hidden mb-6">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between gap-2 mb-2">
               <p className="text-sm font-semibold text-neutral-900">
                 {visibleSteps[currentStep].title}
               </p>
-              <p className="text-xs text-neutral-500">
-                Step {currentStep + 1} of {visibleSteps.length}
-              </p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs text-neutral-500">
+                  Step {currentStep + 1} of {visibleSteps.length}
+                </p>
+                <button
+                  type="button"
+                  onClick={handleQuit}
+                  className="p-1.5 -mr-1.5 hover:bg-neutral-100 rounded-full transition-colors"
+                  title="Exit onboarding"
+                  aria-label="Exit onboarding"
+                >
+                  <FiX className="w-5 h-5 text-neutral-500" />
+                </button>
+              </div>
             </div>
             <div className="h-2 bg-neutral-200 rounded-full overflow-hidden">
               <motion.div
