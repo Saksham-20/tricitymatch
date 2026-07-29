@@ -52,7 +52,7 @@ Everything found is handled by the core method: **TEST → FAIL → root-cause �
 5. **Severity:** 🔴 Critical (data loss, crash, auth/payment broken) · 🟠 High (feature broken for a class of users) · 🟡 Medium (workflow friction, wrong data shown) · ⚪ Low/Cosmetic.
 6. **Bug IDs:** `DQ-001, DQ-002, …` (deep-run scheme, sequential across all chunks; keeps clear of old BUG-/P-/UX- schemes).
 7. **Known-issues ledger (§7) and parity map (§8) are law:** do not re-report ledger items as new bugs; do not "fix" config-gated features by hacking around missing creds. Verify they degrade *gracefully* — a crash or white screen on a config-gated feature IS a bug.
-8. **Anti-slop / professionalism** checks (`docs/QA.md` §2) apply to every screen on every platform: no emoji-in-copy, no unicode-as-icon, no rainbow gradients/pastel info boxes, brand is **TricityShadi**, burgundy `#8B2346` accent / gold `#C9A227` premium-only.
+8. **Anti-slop / professionalism** checks (`docs/QA.md` §2) apply to every screen on every platform: no emoji-in-copy, no unicode-as-icon, no rainbow gradients/pastel info boxes, brand is **TricityMatch**, burgundy `#8B2346` accent / gold `#C9A227` premium-only.
 9. **All 4 data states** (default / loading / empty / error) verified wherever a view fetches data. Error state = kill backend or force 500 where practical.
 10. **Console/network discipline:** web console 0 non-benign errors; RN logcat/Metro no redbox, no unhandled promise rejections; network tab no unexpected 4xx/5xx (logged-out 401 probe is expected).
 11. **Screenshot honesty (web):** `react-countup` scroll-spy + `whileInView` render 0/blank in static fullPage shots — scroll element into view before judging (see CLAUDE.md "QA method notes").

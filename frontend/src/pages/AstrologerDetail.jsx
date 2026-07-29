@@ -56,7 +56,7 @@ export default function AstrologerDetail() {
           key: b.keyId || razorpay.keyId,
           order_id: b.razorpayOrderId,
           amount: b.amountPaise,
-          name: 'TricityShadi',
+          name: 'TricityMatch',
           description: `Consultation with ${b.astrologerName}`,
           handler: async (resp) => {
             try {

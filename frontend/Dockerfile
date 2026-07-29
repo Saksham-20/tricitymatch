@@ -1,4 +1,4 @@
-# TricityShadi Frontend Dockerfile
+# TricityMatch Frontend Dockerfile
 # Multi-stage build for production optimization
 
 # ==================== BUILD STAGE ====================

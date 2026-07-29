@@ -48,7 +48,7 @@ const sendFast2SMS = (phone, code) => {
     const apiKey = config.sms.apiKey;
     if (!apiKey) { reject(new Error('SMS_API_KEY not set')); return; }
 
-    const message = `Your TricityShadi verification code is ${code}. Valid for 10 minutes. Do not share with anyone.`;
+    const message = `Your TricityMatch verification code is ${code}. Valid for 10 minutes. Do not share with anyone.`;
     // `phone` is canonical (91XXXXXXXXXX); Fast2SMS wants the 10-digit national form.
     const number = phone.replace(/^91/, '');
     const body = JSON.stringify({

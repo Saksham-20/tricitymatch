@@ -1,7 +1,7 @@
 {
   "name": "tricitymatch",
   "version": "1.0.0",
-  "description": "TricityShadi - Modern Matrimonial Platform",
+  "description": "TricityMatch - Modern Matrimonial Platform",
   "private": true,
   "workspaces": [
     "backend",

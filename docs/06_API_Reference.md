@@ -1,4 +1,4 @@
-# TricityShadi — API Reference
+# TricityMatch — API Reference
 **Version:** 2.0 | **Updated:** 2026-06-05 (Session 16)
 
 All endpoints are under `/api/v1` unless noted. Legacy alias `/api` also works for some routes.

@@ -102,12 +102,12 @@
     "myBookings": "ਮੇਰੀਆਂ ਬੁਕਿੰਗਾਂ",
     "online": "ਹੁਣ ਆਨਲਾਈਨ",
     "offline": "ਆਫਲਾਈਨ",
-    "callInApp": "ਤੁਹਾਡੀ ਕਾਲ ਬੁੱਕ ਹੋ ਗਈ। ਇਸ ਨੂੰ TricityShadi ਮੋਬਾਈਲ ਐਪ ਤੋਂ ਜੌਇਨ ਕਰੋ।",
+    "callInApp": "ਤੁਹਾਡੀ ਕਾਲ ਬੁੱਕ ਹੋ ਗਈ। ਇਸ ਨੂੰ TricityMatch ਮੋਬਾਈਲ ਐਪ ਤੋਂ ਜੌਇਨ ਕਰੋ।",
     "bookingConfirmed": "ਬੁਕਿੰਗ ਪੁਸ਼ਟ"
   },
   "successStories": {
     "title": "ਸਫਲਤਾ ਦੀਆਂ ਕਹਾਣੀਆਂ",
-    "subtitle": "ਅਸਲੀ ਜੋੜੇ ਜਿਨ੍ਹਾਂ ਨੇ TricityShadi 'ਤੇ ਇੱਕ-ਦੂਜੇ ਨੂੰ ਲੱਭਿਆ।",
+    "subtitle": "ਅਸਲੀ ਜੋੜੇ ਜਿਨ੍ਹਾਂ ਨੇ TricityMatch 'ਤੇ ਇੱਕ-ਦੂਜੇ ਨੂੰ ਲੱਭਿਆ।",
     "married": "ਵਿਆਹੇ",
     "empty": "ਕਹਾਣੀਆਂ ਜਲਦੀ ਆ ਰਹੀਆਂ ਹਨ।"
   },

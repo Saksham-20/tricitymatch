@@ -1,17 +1,17 @@
-# Competitive Benchmark — TricityShadi vs Shaadi.com & Jeevansathi.com
+# Competitive Benchmark — TricityMatch vs Shaadi.com & Jeevansathi.com
 
 > Date: 2026-06-14. Grounded in actual code (routes/controllers/pages), not just docs.
 > Goal: confirm feature completeness vs market leaders; flag missing/incomplete.
 
 ## Method
-- TricityShadi inventory = backend `routes/` + `controllers/`, web `frontend/src/pages` + `App.jsx`, mobile `features/`.
+- TricityMatch inventory = backend `routes/` + `controllers/`, web `frontend/src/pages` + `App.jsx`, mobile `features/`.
 - Competitor inventory = public feature/pricing pages of Shaadi.com (Gold/Diamond/Platinum) and Jeevansathi.com (Premium/Premium+/Exclusive/Selectse).
 
 ---
 
 ## 1. Core matrimonial features
 
-| Feature | Shaadi | Jeevansathi | TricityShadi | Status |
+| Feature | Shaadi | Jeevansathi | TricityMatch | Status |
 |---|---|---|---|---|
 | Profile + partner preferences | ✓ | ✓ | ✓ 14-step onboarding | ✅ |
 | Search (basic/advanced/filters) | ✓ | ✓ | ✓ religion/caste/income/motherTongue/gotra/manglik | ✅ |
@@ -31,7 +31,7 @@
 
 ## 2. Astro / horoscope
 
-| Feature | Shaadi | Jeevansathi | TricityShadi | Status |
+| Feature | Shaadi | Jeevansathi | TricityMatch | Status |
 |---|---|---|---|---|
 | Kundli / guna milan matching | ✓ | ✓ | ✓ Vedic Ashtakoot 27-nakshatra/8-guna/dosha | ✅ strong |
 | Manglik / dosha detection | ✓ | ✓ | ✓ | ✅ |
@@ -41,7 +41,7 @@
 
 ## 3. Communication
 
-| Feature | Shaadi | Jeevansathi | TricityShadi | Status |
+| Feature | Shaadi | Jeevansathi | TricityMatch | Status |
 |---|---|---|---|---|
 | Voice intro | ✗ | ✗ | ✓ voice-intro upload | ✅ **edge** |
 | Video intro / video profile | ✓ (Shaadi) | ✓ video profile | ✅ `POST /profile/video-intro` (~30s, Cloudinary) + web upload/playback | ✅ **CLOSED R2** |
@@ -50,7 +50,7 @@
 
 ## 4. Premium / assisted services
 
-| Feature | Shaadi | Jeevansathi | TricityShadi | Status |
+| Feature | Shaadi | Jeevansathi | TricityMatch | Status |
 |---|---|---|---|---|
 | Tiered paid plans | Gold/Diamond/Platinum | Premium/+/Exclusive | free/basic/premium_plus/vip | ✅ |
 | Relationship manager / handpicked (VIP human) | ✓ Select Shaadi | ✓ Selectse/Khup | ⚠️ bureau role exists (mobile BureauStack), no web | partial |
@@ -61,7 +61,7 @@
 
 ## 5. Platform / reach
 
-| Feature | Shaadi | Jeevansathi | TricityShadi | Status |
+| Feature | Shaadi | Jeevansathi | TricityMatch | Status |
 |---|---|---|---|---|
 | Mobile app | ✓ | ✓ | ✓ RN Expo (full feature set) | ✅ |
 | Multilingual UI | ✓ many | ✓ many | ⚠️ mobile en/hi/pa full; web i18n scaffold (en/hi/pa) live, existing pages still EN | partial (scaffold R1; full DEFERRED) |
@@ -70,7 +70,7 @@
 ---
 
 ## Verdict
-TricityShadi **meets or beats** competition on core matching, astro, verification, calls, guardian/family, and has unique edges (voice + video intro, astrologer marketplace, family groups, hyperlocal). After two parity rounds, **every buildable gap vs Shaadi/Jeevansathi is closed**; the residue is heavy/optional (kundli PDF), mechanical (full web i18n), or business/policy (settlement guarantee).
+TricityMatch **meets or beats** competition on core matching, astro, verification, calls, guardian/family, and has unique edges (voice + video intro, astrologer marketplace, family groups, hyperlocal). After two parity rounds, **every buildable gap vs Shaadi/Jeevansathi is closed**; the residue is heavy/optional (kundli PDF), mechanical (full web i18n), or business/policy (settlement guarantee).
 
 ## Prioritized gaps — resolution status
 

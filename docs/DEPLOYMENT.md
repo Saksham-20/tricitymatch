@@ -1,4 +1,4 @@
-# TricityShadi Deployment Guide
+# TricityMatch Deployment Guide
 
 ## Table of Contents
 1. [Prerequisites](#prerequisites)
@@ -172,7 +172,7 @@ docker-compose exec backend npm run seed
 
 For step-by-step deployment on a **Hostinger VPS** (Ubuntu, Docker, optional domain + SSL), see:
 
-**[Deploy TricityShadi on Hostinger VPS](HOSTINGER-VPS.md)**
+**[Deploy TricityMatch on Hostinger VPS](HOSTINGER-VPS.md)**
 
 That guide covers: SSH access, installing Docker, configuring `.env`, running with or without a domain, and setting up Let's Encrypt SSL.
 

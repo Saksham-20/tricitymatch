@@ -32,7 +32,7 @@ const ForgotPassword = () => {
       <div className="min-h-screen flex bg-[#FDF8F2]">
         <Seo
           title="Forgot Password"
-          description="Reset your TricityShadi password — we'll email you a secure recovery link."
+          description="Reset your TricityMatch password — we'll email you a secure recovery link."
           path="/forgot-password"
         />
         <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-neutral-900">
@@ -93,7 +93,7 @@ const ForgotPassword = () => {
     <div className="min-h-screen flex bg-[#FDF8F2]">
       <Seo
         title="Forgot Password"
-        description="Reset your TricityShadi password — we'll email you a secure recovery link."
+        description="Reset your TricityMatch password — we'll email you a secure recovery link."
         path="/forgot-password"
       />
       {/* Left editorial panel */}

@@ -95,7 +95,7 @@ export default function LoginScreen() {
       if (!available || !enrolled) return;
 
       const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Sign in to TricityShadi',
+        promptMessage: 'Sign in to TricityMatch',
         fallbackLabel: 'Use password',
         cancelLabel: 'Cancel',
         disableDeviceFallback: false,

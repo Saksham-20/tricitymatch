@@ -30,16 +30,16 @@ const titleForPath = (pathname) => {
   // Own profile is exactly `/profile`; "My Profile" here would mislabel another
   // member's page. Generic "Profile" also keeps their name out of the tab/history.
   if (/^\/profile\/(?!edit$)[^/]+/.test(pathname)) {
-    return 'Profile | TricityShadi';
+    return 'Profile | TricityMatch';
   }
   const rule = TITLE_RULES.find(([prefix]) => pathname === prefix || pathname.startsWith(`${prefix}/`));
-  return rule ? `${rule[1]} | TricityShadi` : null;
+  return rule ? `${rule[1]} | TricityMatch` : null;
 };
 
 /**
  * Sets document.title for authenticated/app routes that don't render <Seo>,
  * fixing the stale browser-tab title left behind from the previous page
- * (e.g. "Login | TricityShadi" persisting on /admin/dashboard). Public pages
+ * (e.g. "Login | TricityMatch" persisting on /admin/dashboard). Public pages
  * keep their <Seo> Helmet titles; this only governs routes that have none.
  */
 export default function useRouteTitle() {

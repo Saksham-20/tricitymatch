@@ -54,7 +54,7 @@ export default function Safety() {
     <div className="min-h-screen bg-[#FDF8F2] text-neutral-900">
       <Seo
         title="Safety & Trust"
-        description="How TricityShadi keeps members safe — verification, privacy controls, and dating-safety guidance."
+        description="How TricityMatch keeps members safe — verification, privacy controls, and dating-safety guidance."
         path="/safety"
       />
 

@@ -44,7 +44,7 @@ if (getRNMinorVersion() >= 75) {
   }
 }
 
-rootProject.name = 'TricityShadi'
+rootProject.name = 'TricityMatch'
 
 dependencyResolutionManagement {
   versionCatalogs {

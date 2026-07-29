@@ -1,4 +1,4 @@
-# QA Playbook — TricityShadi (Universal, reusable)
+# QA Playbook — TricityMatch (Universal, reusable)
 
 > Single QA reference for the whole product: **web** (desktop/tablet/mobile), **admin panel**, and **React Native apps** (iOS + Android on macOS simulators). Replaces the old scattered root QA files (`browser-qa-*.md`, `qa-progress.md`, `mobile-qa-progress.md`, `bug-tracker.md`, `production-bugs.md`, `launch-readiness.md`, `release-*.md`, `user-flows.md`) — their detailed run history lives in git history + the CLAUDE.md "Audit History" log. The audit-phase tracker `review-progress.md` is separate and stays.
 
@@ -55,7 +55,7 @@ Workflow:
 - **No emoji in UI copy.** No `✓`/`!`/`✦` unicode-as-icon → use `react-icons`/`lucide` (`FiCheck`, `FiAlertCircle`, …).
 - **No childish multi-color info boxes** (`bg-blue/green/cyan/yellow/orange/indigo/pink/purple-50`) → one muted standard `bg-neutral-50 border-neutral-200 text-neutral-600`.
 - **No rainbow gradients** (`from-rose-*`/`pink`/`purple`/`amber→yellow`) → solid brand. Premium = gold, accent = burgundy. Semantic colors OK (red=danger, green=success, traffic-light progress).
-- Brand name is **"TricityShadi"** (never "TricityMatch") in all copy.
+- Brand name is **"TricityMatch"** (never "TricityMatch") in all copy.
 - Copy is formal — no clichéd/childish lines ("Make yourself shine", "perfect match").
 
 ---
@@ -124,7 +124,7 @@ node_modules/.bin/tsc --noEmit -p tsconfig.json
 - **Both platforms:** verify on iOS sim **and** Android emulator — fonts, shadows (iOS shadow vs Android elevation), back gesture/hardware back (Android), keyboard avoidance.
 - **Navigation:** stack push/pop, tab switches, role-gated stacks (admin/bureau), modal-outside-stack (IncomingCall). `nav.navigate('MainTabs',{screen:'X'})` from a stack. Elder mode hides the Chat tab.
 - **Theme:** light + **dark mode** (uiStore `darkModeOverride`), **elder mode** (larger type). Use tokens `textPrimary`/`surfaceCard` (not `.text`/`.surface`).
-- **Anti-slop §2** applies equally — no emoji-in-copy, no childish boxes/gradients, brand burgundy/gold, "TricityShadi".
+- **Anti-slop §2** applies equally — no emoji-in-copy, no childish boxes/gradients, brand burgundy/gold, "TricityMatch".
 - **Native module gracefulness:** in Expo Go, Agora/Razorpay/Firebase/camera show stubs without crashing.
 - **Lists/perf:** inverted chat list, infinite scroll, optimistic sends, offline (MMKV) shortlist.
 

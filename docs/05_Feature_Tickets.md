@@ -1,4 +1,4 @@
-# TricityShadi Mobile App — Feature Ticket List
+# TricityMatch Mobile App — Feature Ticket List
 **Version:** 1.0 | **Date:** June 2026
 
 ---
@@ -1038,7 +1038,7 @@ Tickets are ordered by execution sequence within each phase — implement in ord
 
 **Tasks:**
 - Help Centre: webview loading help docs URL
-- Contact Support: WhatsApp deep link (`https://wa.me/91XXXXXXXXXX?text=Hi+TricityShadi+Support`)
+- Contact Support: WhatsApp deep link (`https://wa.me/91XXXXXXXXXX?text=Hi+TricityMatch+Support`)
 - Success Story submission form: couple names + wedding date + story text + optional photo
 - `POST /stories` → admin queue → success toast
 

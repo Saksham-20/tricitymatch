@@ -1,8 +1,8 @@
-# Competitor Visual/UX Benchmark — Shaadi.com & Jeevansathi.com vs TricityShadi
+# Competitor Visual/UX Benchmark — Shaadi.com & Jeevansathi.com vs TricityMatch
 
 > Date: 2026-07-02. Live walkthroughs via Playwright, real accounts created on both competitors (real OTP verified), screenshots in `docs/competitor-research/shots/{shaadi,jeevansathi}/`.
 > Companion doc: `docs/07_Competitive_Benchmark.md` (2026-06-14, feature-matrix pass, no screenshots/pricing detail). This doc is the deeper visual/UX/pricing pass; read together.
-> TricityShadi facts below are pulled live from the codebase (onboarding steps, `backend/utils/razorpay.js` plans, gating middleware, `compatibility.js`/`kundli.js`), not from memory.
+> TricityMatch facts below are pulled live from the codebase (onboarding steps, `backend/utils/razorpay.js` plans, gating middleware, `compatibility.js`/`kundli.js`), not from memory.
 
 ## Method
 Created one live test account on each site (real mobile OTP), walked signup → onboarding → OTP verify → dashboard → search → profile detail → pricing wall. 36 full-page screenshots captured. Both competitors are Info Edge/People Group-scale products (25+ years, tens of millions of profiles) — this is a David-vs-Goliaths comparison; the point is to steal specific UX patterns, not match their scale.
@@ -30,13 +30,13 @@ Created one live test account on each site (real mobile OTP), walked signup → 
 - Bio step: textbox + **"Need help? Use AI to write bio" button** — click it and it **actually generates a real bio from the collected profile data** ("I am Aman Verma, a 30-year-old software professional from Chandigarh. With a B.Tech degree and a passion for technology, I work in the private sector...") in an editable modal (`10-bio-step-ai-writer.png`, `11-ai-bio-generator-modal.png`). This is genuinely personalized, not a template.
 - Finish → a **profile-preview card** ("Aman Verma, 30 · 5'9" · Chandigarh · Khatri · Software Professional · Rs 7.5-10 Lakh p.a. · B.E/B.Tech", "Just Joined" badge) exactly as others will see it, with "Team Jeevansathi wishes you all the best!" (`12-profile-finish.png`) — strong close-the-loop moment.
 
-### TricityShadi (from code)
+### TricityMatch (from code)
 - Self-signup is **2 screens total**: Step 1 = smart identifier (email/phone auto-detect) + password + inline OTP verify + Terms; Step 2 = First/Last name + gender + DOB. Everything else (location, religion/caste, marital status, education/career, family, lifestyle, about-me, preferences, photos, verification) is deferred to **post-signup profile editing** — not part of onboarding at all (`OnboardingContext.jsx`, `CreateAccountStep.jsx`, `BasicInfoStep.jsx`).
 - Caste is a **free-text optional field**, not a taxonomy (`ReligionStep.jsx`) — religion is a fixed 7-option dropdown.
 - Photo: single required upload with a text-tips list (lighting, avoid filters, smile) — no visual DO/DON'T example images, no skip (it's required).
 - No AI bio generation, no AI biodata-autofill-from-upload.
 
-**Gap/opportunity:** Our signup is *faster* (2 screens vs their 6-12) which is good for conversion, but it also means a brand-new profile has almost no data — no location, no religion, no photo — when it first appears in search/matches. Both competitors force enough of the profile (religion, caste, education, income, photo) to be usable *before* the account is considered "done." Worth checking: does a TricityShadi profile with only name+gender+DOB show up in search/matches looking broken/empty? If dashboard nudges ("Add career details", "Upload photo") aren't strong enough, that's a silent quality gap.
+**Gap/opportunity:** Our signup is *faster* (2 screens vs their 6-12) which is good for conversion, but it also means a brand-new profile has almost no data — no location, no religion, no photo — when it first appears in search/matches. Both competitors force enough of the profile (religion, caste, education, income, photo) to be usable *before* the account is considered "done." Worth checking: does a TricityMatch profile with only name+gender+DOB show up in search/matches looking broken/empty? If dashboard nudges ("Add career details", "Upload photo") aren't strong enough, that's a silent quality gap.
 
 ---
 
@@ -63,7 +63,7 @@ Self-Service vs **Assisted** (RM-managed) toggle at the top. Self-Service featur
 
 Duration for Pro Max: 1 month ₹976 (was ₹1,525), 3 months ₹2,441 (was ₹3,814), **Till Marriage** ₹7,453 (was ₹11,644) — flat 36% off banner. Notably the landing page itself (before signup) advertises **"Message & chat with unlimited users" as a FREE-tier feature** — and this held true live: the dashboard action row on every match card includes a working **"Chat" button even unauthenticated for premium**, with only "Contact Details" (phone/video call) gated (`18-dashboard-mymatches.png`, `19-profile-detail.png`: "Go Premium to contact matches — Initiate a voice or video call... by upgrading").
 
-### TricityShadi (from `backend/utils/razorpay.js`)
+### TricityMatch (from `backend/utils/razorpay.js`)
 | Plan | Price | Duration | Contact unlocks | Per-month equiv |
 |---|---|---|---|---|
 | free | ₹0 | — | 0 | — |
@@ -76,8 +76,8 @@ Chat is **fully gated behind premium** (`chatRoutes.js` — entire router requir
 **Gap/opportunity:**
 1. **Our per-month price (₹2,500-3,000) is 2-6x Shaadi's discounted per-month price (₹499-1,205)** and roughly 3x Jeevansathi's Pro Max (₹813-976/mo). Even against their *undiscounted* anchors we're not cheaper. This may be fine for a hyperlocal premium play, but it's worth a deliberate pricing decision rather than an accidental one — right now there's no local-market rationale documented for the multiple.
 2. Both competitors' "36-55% OFF" banners appear to be **permanent, always-on anchor pricing** (a classic dark-pattern-adjacent tactic) — not something to copy verbatim, but the psychological framing (strikethrough "was" price) measurably works and we have none of it.
-3. Jeevansathi's **free-chat / gate-only-contact-and-calls** model is a meaningfully different monetization shape than ours (gate-everything). Their landing page literally leads with "Now, chat for free!" as the hero headline — it's their #1 differentiator message. Worth deciding deliberately whether TricityShadi's full chat paywall is costing engagement/virality (free users who can't even message a mutual match may just churn) vs. the revenue it protects.
-4. Both show the pricing wall as a **mandatory-feeling interstitial immediately after signup completes**, before the user ever sees a match. We should check whether TricityShadi does the same or drops users straight into an empty/sparse dashboard — first-session monetization exposure matters even if not gating access.
+3. Jeevansathi's **free-chat / gate-only-contact-and-calls** model is a meaningfully different monetization shape than ours (gate-everything). Their landing page literally leads with "Now, chat for free!" as the hero headline — it's their #1 differentiator message. Worth deciding deliberately whether TricityMatch's full chat paywall is costing engagement/virality (free users who can't even message a mutual match may just churn) vs. the revenue it protects.
+4. Both show the pricing wall as a **mandatory-feeling interstitial immediately after signup completes**, before the user ever sees a match. We should check whether TricityMatch does the same or drops users straight into an empty/sparse dashboard — first-session monetization exposure matters even if not gating access.
 
 ---
 
@@ -87,26 +87,26 @@ Chat is **fully gated behind premium** (`chatRoutes.js` — entire router requir
 - **Jeevansathi**: **Real scrolling list**, real (non-blurred) profile photos even on free tier, each card shows online/active-status, height/city/caste, occupation+income, education+marital-status, and a 4-action row (Interest / Shortlist / Ignore / **Chat**) all clickable without a paywall (`18-dashboard-mymatches.png`). Some cards carry "Pro"/"Pro Max"/"Top Profiles" badges (other users' paid-tier boosting, visible to everyone) — a visible social-proof/FOMO mechanic for the viewer to also upgrade.
 - Both dashboards run a **persistent upgrade-nudge sidebar/banner** on every authenticated page (not just a one-time interstitial) — Jeevansathi's right rail literally never goes away ("You are missing out on the premium benefits!").
 
-**Gap/opportunity:** the reachable-photo policy differs sharply (Shaadi blurs everything pre-paywall, Jeevansathi shows real photos and gates only contact/calls). Confirm which model TricityShadi follows and whether it's a deliberate choice — showing real photos (Jeevansathi's approach) usually drives more engagement/virality since browsing itself feels rewarding, at the cost of some "why pay" pressure.
+**Gap/opportunity:** the reachable-photo policy differs sharply (Shaadi blurs everything pre-paywall, Jeevansathi shows real photos and gates only contact/calls). Confirm which model TricityMatch follows and whether it's a deliberate choice — showing real photos (Jeevansathi's approach) usually drives more engagement/virality since browsing itself feels rewarding, at the cost of some "why pay" pressure.
 
 ---
 
 ## 4. Search & Profile Detail
 
 - **Shaadi search** (`15-search-page.png`, `16-search-results.png`): sidebar has ~18 filter categories (Verification Status, Photo Settings, Recently Joined, Active Members, Annual Income, Religion, Community, Mother Tongue, Country/State Living In, Country Grew Up In, Working With, Profession Area, Profile Managed By, Eating Habits, Education Level, Education Area). Result list interleaves **VIP-managed profiles** (concierge-run, "Connect Now"/"Call Consultant" CTAs) among organic results, and a mid-feed banner nudge ("Members with Photos get twice as many responses — Add Photo").
-- **Jeevansathi profile detail** (`19-profile-detail.png`) is the standout artifact of this whole pass: sectioned About Me / Family / Looking For tabs; a Kundli & Astro block (Rashi, Nakshatra, DOB+time+place of birth, "Horoscope match is Must" flag, Download Horoscope); and — most notably — a **"Who is she looking for..." reverse-preference-match panel**: it takes HER stated partner preferences (height/age/marital-status/religion/mother-tongue/caste/city/country/education/income) and checks each one against the viewer's own profile with a **"You match 10/10 of her preference"** badge and a green-checkmark line-item list. This is a genuinely different, very legible trust/relevance signal that neither Shaadi nor (per code) TricityShadi has.
+- **Jeevansathi profile detail** (`19-profile-detail.png`) is the standout artifact of this whole pass: sectioned About Me / Family / Looking For tabs; a Kundli & Astro block (Rashi, Nakshatra, DOB+time+place of birth, "Horoscope match is Must" flag, Download Horoscope); and — most notably — a **"Who is she looking for..." reverse-preference-match panel**: it takes HER stated partner preferences (height/age/marital-status/religion/mother-tongue/caste/city/country/education/income) and checks each one against the viewer's own profile with a **"You match 10/10 of her preference"** badge and a green-checkmark line-item list. This is a genuinely different, very legible trust/relevance signal that neither Shaadi nor (per code) TricityMatch has.
 
-**Gap/opportunity:** TricityShadi's compatibility score (Ashtakoot 8-guna + numerology, weighted 20/100 for horoscope) is more sophisticated astrologically than either competitor's UI exposes, but neither competitor UI explains a numeric score the way we imply one might — the closer analogue worth stealing is Jeevansathi's **reverse-preference checklist**, which is simple, explainable, and directly answers "why is this person shown to me / would they even want me?" We have `preferredAge/Height/Education/Profession/City` fields on the Profile model already (`profileController.js`) — the data exists, the reverse-match UI does not. This looks like a cheap, high-clarity feature to add.
+**Gap/opportunity:** TricityMatch's compatibility score (Ashtakoot 8-guna + numerology, weighted 20/100 for horoscope) is more sophisticated astrologically than either competitor's UI exposes, but neither competitor UI explains a numeric score the way we imply one might — the closer analogue worth stealing is Jeevansathi's **reverse-preference checklist**, which is simple, explainable, and directly answers "why is this person shown to me / would they even want me?" We have `preferredAge/Height/Education/Profession/City` fields on the Profile model already (`profileController.js`) — the data exists, the reverse-match UI does not. This looks like a cheap, high-clarity feature to add.
 
 ---
 
-## 5. Summary — steal-worthy patterns not in TricityShadi today
+## 5. Summary — steal-worthy patterns not in TricityMatch today
 
 1. **AI-personalized bio generator** (Jeevansathi) — uses already-collected onboarding fields (name, age, city, education, job, values) to draft a real first-person bio, editable before save. We collect enough profile data post-onboarding to do the same; this is an LLM-prompt problem, not new data collection.
 2. **Reverse partner-preference match checklist** ("You match 10/10 of their preference") on profile detail — cheap to build, data already exists (`preferredAge/Height/...` fields), high clarity for the viewer.
 3. **Visual DO/DON'T photo guide with example images** (both competitors) vs. our text-only tips list — likely reduces bad photo uploads and support/moderation load.
 4. **Profile-completion progress bar with %** visible throughout onboarding (Jeevansathi) — ours has no visible progress indicator across the 2-screen flow (less needed at 2 screens, but if any post-signup profile-completion flow exists, a % bar there would help completion rates).
-5. **Login-with-OTP as a first-class option next to password** (Shaadi) — reduces "forgot password" friction; confirm TricityShadi mobile has this (web CLAUDE.md doesn't mention it for web login).
+5. **Login-with-OTP as a first-class option next to password** (Shaadi) — reduces "forgot password" friction; confirm TricityMatch mobile has this (web CLAUDE.md doesn't mention it for web login).
 6. **Biodata-upload-to-AI-autofill** (Jeevansathi) — higher effort, but matches a real user behavior (many Indian families already have a Word/PDF biodata document prepared before ever visiting a matrimony site); could be a genuine differentiator if AI-vision/parsing is already in the stack elsewhere.
 7. Deliberate (not accidental) decision needed on: **chat paywall (all-gate vs. free-chat/paid-contact)** and **per-month price positioning** relative to competitor discounted rates — both are strategy calls, not pure engineering, flagged here for the business side rather than auto-implemented.
 

@@ -102,12 +102,12 @@
     "myBookings": "My bookings",
     "online": "Online now",
     "offline": "Offline",
-    "callInApp": "Your call is booked. Join it from the TricityShadi mobile app.",
+    "callInApp": "Your call is booked. Join it from the TricityMatch mobile app.",
     "bookingConfirmed": "Booking confirmed"
   },
   "successStories": {
     "title": "Success Stories",
-    "subtitle": "Real couples who found each other on TricityShadi.",
+    "subtitle": "Real couples who found each other on TricityMatch.",
     "married": "Married",
     "empty": "Stories coming soon."
   },

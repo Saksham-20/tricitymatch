@@ -14,7 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
 
 const WHATSAPP_NUMBER = '919876543210';
-const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=Hi+TricityShadi+Support%2C+I+need+help+with`;
+const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=Hi+TricityMatch+Support%2C+I+need+help+with`;
 
 const FAQ: Array<{ q: string; a: string }> = [
   {
@@ -147,7 +147,7 @@ export default function SupportScreen() {
 
         <View style={s.footerNote}>
           <Ionicons name="information-circle-outline" size={16} color={colours.textMuted} />
-          <Text style={s.footerText}>TricityShadi — Chandigarh, Mohali, Panchkula</Text>
+          <Text style={s.footerText}>TricityMatch — Chandigarh, Mohali, Panchkula</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

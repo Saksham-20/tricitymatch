@@ -33,7 +33,7 @@ export default function SuccessStories() {
     <div className="min-h-screen bg-[#FDF8F2] text-neutral-900">
       <Seo
         title="Success Stories"
-        description="Real couples who found their life partner on TricityShadi across Chandigarh, Mohali and Panchkula."
+        description="Real couples who found their life partner on TricityMatch across Chandigarh, Mohali and Panchkula."
         path="/success-stories"
       />
 
@@ -42,7 +42,7 @@ export default function SuccessStories() {
         <div className="max-w-3xl mx-auto">
           <Eyebrow className="mb-5">● Real couples · Real weddings</Eyebrow>
           <h1 className="font-display text-4xl md:text-6xl font-bold leading-[1.05]">
-            Found on TricityShadi,
+            Found on TricityMatch,
             <span className="text-primary-700 italic"> married for life.</span>
           </h1>
           <p className="mt-6 text-lg text-neutral-600">{t('successStories.subtitle')}</p>

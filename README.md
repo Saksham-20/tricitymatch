@@ -1,4 +1,4 @@
-# TricityShadi — Matrimonial Platform
+# TricityMatch — Matrimonial Platform
 
 <p align="center">
   A production-grade, secure, and scalable matrimonial platform for the Tricity area (Chandigarh, Mohali, Panchkula).
@@ -19,7 +19,7 @@
 
 ## Overview
 
-TricityShadi is a hyperlocal matrimonial platform targeting Chandigarh, Mohali, and Panchkula. Full-stack monorepo: React 18 SPA + Express.js REST API + PostgreSQL + Redis + Socket.io real-time messaging. Deployed via Docker Compose behind Nginx.
+TricityMatch is a hyperlocal matrimonial platform targeting Chandigarh, Mohali, and Panchkula. Full-stack monorepo: React 18 SPA + Express.js REST API + PostgreSQL + Redis + Socket.io real-time messaging. Deployed via Docker Compose behind Nginx.
 
 **Live site:** [tricityshadi.com](https://tricityshadi.com)
 

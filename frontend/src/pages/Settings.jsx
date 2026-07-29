@@ -195,7 +195,7 @@ const AccountTab = () => {
   return (
     <div className="space-y-8">
       <div>
-        <SectionHeader title="Appearance" desc="Customize how TricityShadi looks for you" />
+        <SectionHeader title="Appearance" desc="Customize how TricityMatch looks for you" />
         <div className="rounded-2xl border border-neutral-100 divide-y divide-neutral-100 overflow-hidden max-w-sm">
           <Toggle
             value={isDark}

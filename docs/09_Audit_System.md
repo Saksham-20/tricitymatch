@@ -1,6 +1,6 @@
 # 09 — Comprehensive Audit & Review System
 
-> Permanent methodology for full-project audits of TricityShadi. The live tracker is
+> Permanent methodology for full-project audits of TricityMatch. The live tracker is
 > [`review-progress.md`](../review-progress.md) at the repo root — it is the single
 > source of truth. This doc explains **how** to run the audit; the tracker records
 > **what** was found.

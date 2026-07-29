@@ -4,7 +4,7 @@
 > `gh` unavailable in env → spec archived locally, no GitHub issue. Children below are 1-3 day units.
 
 ## Context
-Benchmark vs Shaadi.com / Jeevansathi.com found TricityShadi meets/beats core, but with two gap classes: (a) **web is missing whole feature areas the backend + mobile already ship** (astrologers, guardian, calls, standalone verification), and (b) a few **true feature gaps** vs competitors (daily curated matches, recently-viewed, real success stories). This epic closes them.
+Benchmark vs Shaadi.com / Jeevansathi.com found TricityMatch meets/beats core, but with two gap classes: (a) **web is missing whole feature areas the backend + mobile already ship** (astrologers, guardian, calls, standalone verification), and (b) a few **true feature gaps** vs competitors (daily curated matches, recently-viewed, real success stories). This epic closes them.
 
 ## Locked decisions (2026-06-14)
 - **Web voice/video calls: DEFERRED.** Agora Web SDK integration out of scope this round. Astrologer page ships marketplace + booking only; in-browser call replaced with "continue in mobile app" CTA. Standalone web Calls page deferred.
@@ -55,7 +55,7 @@ C6 success stories ── independent
 
 ## C3 — Web: Astrologer marketplace + booking (call deferred)
 **Current:** `astrologerRoutes.js` live: GET `/`, GET `/:id`, GET `/my-bookings`, POST `/book`, POST `/book/:id/verify-payment|start-call|end-call`. No web page.
-**Change:** ProtectedRoute `/astrologers` (list + filters), `/astrologers/:id` (detail + book), booking flow with Razorpay verify. **Skip start-call/end-call on web** — after a confirmed booking show "Join your call in the TricityShadi mobile app." Add `/astrologers/bookings` (my bookings).
+**Change:** ProtectedRoute `/astrologers` (list + filters), `/astrologers/:id` (detail + book), booking flow with Razorpay verify. **Skip start-call/end-call on web** — after a confirmed booking show "Join your call in the TricityMatch mobile app." Add `/astrologers/bookings` (my bookings).
 **Files:** `frontend/src/pages/Astrologers.jsx`, `AstrologerDetail.jsx`, `MyBookings.jsx` (new), `frontend/src/api/astrologerApi.js` (new), `App.jsx` (+3 routes), nav entry.
 **Acceptance:**
 1. `/astrologers` lists astrologers from GET `/`.

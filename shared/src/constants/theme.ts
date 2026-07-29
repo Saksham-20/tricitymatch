@@ -1,5 +1,5 @@
 // ============================================================================
-// TricityShadi — native mobile design tokens
+// TricityMatch — native mobile design tokens
 // Ported from the native handoff `ts-mobile.css`. Brand palette is LOCKED:
 //   burgundy = accent only (borders/ticks/active/CTA — never flat-fill large areas)
 //   gold     = premium signal only (VIP, locks, "Most Popular", boost)

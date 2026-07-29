@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-               BuildableName = "TricityShadi.app"
-               BlueprintName = "TricityShadi"
-               ReferencedContainer = "container:TricityShadi.xcodeproj">
+               BuildableName = "TricityMatch.app"
+               BlueprintName = "TricityMatch"
+               ReferencedContainer = "container:TricityMatch.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -33,9 +33,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "00E356ED1AD99517003FC87E"
-               BuildableName = "TricityShadiTests.xctest"
-               BlueprintName = "TricityShadiTests"
-               ReferencedContainer = "container:TricityShadi.xcodeproj">
+               BuildableName = "TricityMatchTests.xctest"
+               BlueprintName = "TricityMatchTests"
+               ReferencedContainer = "container:TricityMatch.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -55,9 +55,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "TricityShadi.app"
-            BlueprintName = "TricityShadi"
-            ReferencedContainer = "container:TricityShadi.xcodeproj">
+            BuildableName = "TricityMatch.app"
+            BlueprintName = "TricityMatch"
+            ReferencedContainer = "container:TricityMatch.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -72,9 +72,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "TricityShadi.app"
-            BlueprintName = "TricityShadi"
-            ReferencedContainer = "container:TricityShadi.xcodeproj">
+            BuildableName = "TricityMatch.app"
+            BlueprintName = "TricityMatch"
+            ReferencedContainer = "container:TricityMatch.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

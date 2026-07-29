@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Pre-launch checklist for TricityShadi production deployment
+# Pre-launch checklist for TricityMatch production deployment
 # Run: bash scripts/prelaunch-check.sh
 # Set BASE_URL to override default: BASE_URL=https://tricitymatch.com bash scripts/prelaunch-check.sh
 
@@ -24,7 +24,7 @@ warn() { echo -e "${YELLOW}  ⚠ $1${NC}"; ((WARN++)); }
 
 section() { echo -e "\n${YELLOW}── $1 ──────────────────────────${NC}"; }
 
-echo "TricityShadi Pre-Launch Checklist"
+echo "TricityMatch Pre-Launch Checklist"
 echo "BASE_URL: $BASE_URL"
 echo "ENV_FILE: $ENV_FILE"
 

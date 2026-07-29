@@ -92,7 +92,7 @@ export default function SuccessStoryScreen() {
 
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
         <Text style={s.subtitle}>
-          Inspire others by sharing your TricityShadi success story!
+          Inspire others by sharing your TricityMatch success story!
         </Text>
 
         {/* Names */}
@@ -138,7 +138,7 @@ export default function SuccessStoryScreen() {
           style={s.storyInput}
           value={story}
           onChangeText={setStory}
-          placeholder="How did you find each other on TricityShadi? Share your journey..."
+          placeholder="How did you find each other on TricityMatch? Share your journey..."
           placeholderTextColor={colours.textMuted}
           multiline
           maxLength={1000}

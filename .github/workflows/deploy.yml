@@ -135,7 +135,7 @@ jobs:
         with:
           payload: |
             {
-              "text": "✅ TricityShadi deployed to production successfully!",
+              "text": "✅ TricityMatch deployed to production successfully!",
               "attachments": [
                 {
                   "color": "good",
@@ -164,7 +164,7 @@ jobs:
         with:
           payload: |
             {
-              "text": "❌ TricityShadi production deployment failed!",
+              "text": "❌ TricityMatch production deployment failed!",
               "attachments": [
                 {
                   "color": "danger",

@@ -91,7 +91,7 @@ router.post('/invite', auth, asyncHandler(async (req, res) => {
       guardianUser.id,
       'system',
       'Guardian access granted',
-      'You have been given read-only guardian access to a candidate\'s profile on TricityShadi.'
+      'You have been given read-only guardian access to a candidate\'s profile on TricityMatch.'
     );
 
     log.info('Guardian linked directly', { candidateId: req.user.id, guardianId: guardianUser.id });
@@ -112,7 +112,7 @@ router.post('/invite', auth, asyncHandler(async (req, res) => {
     log.info('Guardian invite created (user not on platform)', { candidateId: req.user.id, email });
     res.json({
       success: true,
-      message: 'Invite stored — they will see the link when they join TricityShadi',
+      message: 'Invite stored — they will see the link when they join TricityMatch',
       method: 'pending',
       linkId: link.id,
     });

@@ -82,7 +82,7 @@ export default function SuccessStoriesBrowseScreen() {
             <View style={styles.empty}>
               <Ionicons name="heart-outline" size={48} color={colours.textMuted} />
               <Text style={styles.emptyTitle}>No stories yet</Text>
-              <Text style={styles.emptySub}>Be the first to share your TricityShadi journey.</Text>
+              <Text style={styles.emptySub}>Be the first to share your TricityMatch journey.</Text>
               <TouchableOpacity
                 style={styles.emptyBtn}
                 onPress={() => navigation.navigate('SuccessStory')}

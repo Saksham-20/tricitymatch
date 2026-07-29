@@ -749,7 +749,7 @@ const Home = () => {
         {/* Sticky left */}
         <div style={{ position: 'sticky', top: 80, padding: '0 28px 0 40px' }}>
           <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0 }}>
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--burgundy)', marginBottom: 24, display: 'block' }}>— Why TricityShadi</span>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--burgundy)', marginBottom: 24, display: 'block' }}>— Why TricityMatch</span>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', marginBottom: 24 }}>
               Six reasons<br />this <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>isn't</em><br />another app.
             </h2>
@@ -763,7 +763,7 @@ const Home = () => {
         </div>
 
         {/* Horizontal scroll */}
-        <div id="why-scroller" className="why-scroller" tabIndex={0} role="group" aria-label="Why TricityShadi — scroll horizontally to read" style={{ display: 'flex', gap: 16, overflowX: 'auto', padding: '0 24px 20px', scrollSnapType: 'x mandatory' }}>
+        <div id="why-scroller" className="why-scroller" tabIndex={0} role="group" aria-label="Why TricityMatch — scroll horizontally to read" style={{ display: 'flex', gap: 16, overflowX: 'auto', padding: '0 24px 20px', scrollSnapType: 'x mandatory' }}>
           {whyCards.map((c, i) => (
             <motion.div key={i} initial={{ opacity: 1, y: 0 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0 }}
               transition={{ delay: i * 0.07 }}
@@ -1133,7 +1133,7 @@ const Home = () => {
             </span>
           </p>
           <p className="quote-attribution" style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--mute)', display: 'inline-flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
-            <span>— Founders, TricityShadi</span>
+            <span>— Founders, TricityMatch</span>
             <span className="dot" style={{ color: 'var(--burgundy)' }}>·</span>
             <span>Chandigarh</span>
             <span className="dot" style={{ color: 'var(--burgundy)' }}>·</span>
@@ -1368,7 +1368,7 @@ const Home = () => {
               Every great<br />love story<br />starts with <em style={{ fontStyle: 'italic', color: 'var(--gold)' }}>one step.</em>
             </h2>
             <p style={{ maxWidth: 540, margin: '0 auto 32px', fontSize: 14, lineHeight: 1.5, color: 'rgba(253,248,242,.82)', fontFamily: 'var(--sans)' }}>
-              Join thousands of families who trusted TricityShadi to find their forever partner. Free to start.
+              Join thousands of families who trusted TricityMatch to find their forever partner. Free to start.
             </p>
             <div style={{ display: 'inline-flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 32 }}>
               <Link to="/onboarding" style={{
@@ -1406,7 +1406,7 @@ const Home = () => {
         {/* Mega wordmark */}
         <div className="footer-mega-inner" style={{ padding: '36px 48px 24px', borderBottom: '1px solid var(--line-on-dk)' }}>
           <div style={{ fontFamily: 'var(--display)', fontSize: 'clamp(36px,7vw,100px)', lineHeight: .85, letterSpacing: '-.04em', color: 'var(--cream)' }}>
-            TricityShadi
+            TricityMatch
           </div>
         </div>
 
@@ -1459,7 +1459,7 @@ const Home = () => {
 
         {/* Bottom bar */}
         <div className="footer-bottom-inner" style={{ padding: '16px 48px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.14em', textTransform: 'uppercase', color: 'rgba(253,248,242,.5)', flexWrap: 'wrap', gap: 16 }}>
-          <span>© 2026 TricityShadi · All rights reserved</span>
+          <span>© 2026 TricityMatch · All rights reserved</span>
           <span>Made with care in Chandigarh</span>
           <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80', animation: 'pulse 2s ease-in-out infinite' }} />

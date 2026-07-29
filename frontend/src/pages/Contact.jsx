@@ -52,7 +52,7 @@ export default function Contact() {
     <div className="min-h-screen bg-neutral-50 pt-20 pb-16 px-4">
       <Seo
         title="Contact Us"
-        description="Get in touch with the TricityShadi team for support, partnerships or feedback."
+        description="Get in touch with the TricityMatch team for support, partnerships or feedback."
         path="/contact"
       />
       <div className="max-w-5xl mx-auto">

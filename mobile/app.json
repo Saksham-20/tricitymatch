@@ -1,8 +1,8 @@
 {
-  "name": "TricityShadi",
-  "displayName": "TricityShadi",
+  "name": "TricityMatch",
+  "displayName": "TricityMatch",
   "expo": {
-    "name": "TricityShadi",
+    "name": "TricityMatch",
     "slug": "tricityshadi",
     "version": "1.0.0",
     "orientation": "portrait",

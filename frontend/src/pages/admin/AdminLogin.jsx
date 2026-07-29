@@ -43,7 +43,7 @@ export default function AdminLogin() {
             <span className="text-white text-xl font-black">TC</span>
           </div>
           <h1 className="text-2xl font-bold text-white">Admin Panel</h1>
-          <p className="text-gray-400 text-sm mt-1">Sign in to manage TricityShadi</p>
+          <p className="text-gray-400 text-sm mt-1">Sign in to manage TricityMatch</p>
         </div>
 
         <form
@@ -112,7 +112,7 @@ export default function AdminLogin() {
         </form>
 
         <p className="text-center text-gray-600 text-xs mt-6">
-          TricityShadi Admin — Authorized access only
+          TricityMatch Admin — Authorized access only
         </p>
       </div>
     </div>

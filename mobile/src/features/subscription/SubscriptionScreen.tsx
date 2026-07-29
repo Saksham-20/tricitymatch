@@ -327,7 +327,7 @@ export default function SubscriptionScreen() {
         key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID ?? '',
         amount: orderData.amount,
         currency: orderData.currency,
-        name: 'TricityShadi',
+        name: 'TricityMatch',
         description: `${PLANS[selectedPlan].label} Plan`,
         order_id: orderData.orderId,
         prefill: { email: user?.email },

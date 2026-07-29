@@ -62,7 +62,7 @@ export const cloudinary = {
 
 // App Configuration
 export const app = {
-  name: 'TricityShadi',
+  name: 'TricityMatch',
   version: __APP_VERSION__ || '1.0.0',
   buildTime: __BUILD_TIME__ || new Date().toISOString(),
   supportEmail: 'support@tricitymatch.com',

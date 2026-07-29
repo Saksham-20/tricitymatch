@@ -53,7 +53,7 @@ const ResetPassword = () => {
   if (!token) {
     return (
       <div className="min-h-screen flex bg-[#FDF8F2]">
-        <Seo title="Reset Password" description="Set a new password for your TricityShadi account." path="/reset-password" />
+        <Seo title="Reset Password" description="Set a new password for your TricityMatch account." path="/reset-password" />
         <EditorialPanel
           headline={"Invalid link."}
           sub="This password reset link is invalid or has expired. Please request a new one."
@@ -104,7 +104,7 @@ const ResetPassword = () => {
   if (success) {
     return (
       <div className="min-h-screen flex bg-[#FDF8F2]">
-        <Seo title="Reset Password" description="Set a new password for your TricityShadi account." path="/reset-password" />
+        <Seo title="Reset Password" description="Set a new password for your TricityMatch account." path="/reset-password" />
         <EditorialPanel
           headline={"You're all set."}
           sub="Your password has been updated. Sign in with your new credentials."
@@ -131,10 +131,10 @@ const ResetPassword = () => {
 
   return (
     <div className="min-h-screen flex bg-[#FDF8F2]">
-      <Seo title="Reset Password" description="Set a new password for your TricityShadi account." path="/reset-password" />
+      <Seo title="Reset Password" description="Set a new password for your TricityMatch account." path="/reset-password" />
       <EditorialPanel
         headline={"Create your new password."}
-        sub="Choose a strong password to protect your TricityShadi account."
+        sub="Choose a strong password to protect your TricityMatch account."
       />
 
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12">

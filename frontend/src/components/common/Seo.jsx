@@ -2,7 +2,7 @@ import React from 'react';
 import { Helmet } from 'react-helmet-async';
 
 const SITE_URL = 'https://tricitymatch.com';
-const DEFAULT_TITLE = 'TricityShadi - Find Your Perfect Match in Tricity';
+const DEFAULT_TITLE = 'TricityMatch - Find Your Perfect Match in Tricity';
 const DEFAULT_DESCRIPTION =
   'The most trusted matrimonial platform for Chandigarh, Mohali, and Panchkula. Find your perfect life partner with our smart matching algorithm.';
 const DEFAULT_IMAGE = `${SITE_URL}/images/hero-couple.png`;
@@ -22,7 +22,7 @@ const DEFAULT_IMAGE = `${SITE_URL}/images/hero-couple.png`;
  *  - bare:        use `title` verbatim without appending the site name
  */
 export default function Seo({ title, description, path = '/', image, noindex = false, bare = false }) {
-  const fullTitle = title ? (bare ? title : `${title} | TricityShadi`) : DEFAULT_TITLE;
+  const fullTitle = title ? (bare ? title : `${title} | TricityMatch`) : DEFAULT_TITLE;
   const desc = description || DEFAULT_DESCRIPTION;
   const canonical = `${SITE_URL}${path === '/' ? '/' : path.replace(/\/$/, '')}`;
   const ogImage = image || DEFAULT_IMAGE;

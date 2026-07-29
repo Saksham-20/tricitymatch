@@ -198,7 +198,7 @@ const config = {
     // Shared identity (used by both Resend + SMTP). `from` must be an address on
     // a domain verified in Resend, e.g. noreply@tricityshadi.com.
     from: optionalString('EMAIL_FROM', 'noreply@tricityshadi.com'),
-    fromName: optionalString('EMAIL_FROM_NAME', 'TricityShadi'),
+    fromName: optionalString('EMAIL_FROM_NAME', 'TricityMatch'),
     replyTo: optionalString('EMAIL_REPLY_TO', optionalString('SUPPORT_EMAIL', 'support@tricityshadi.com')),
     support: optionalString('SUPPORT_EMAIL', 'support@tricityshadi.com'),
     // SMTP creds present (real, not placeholder)

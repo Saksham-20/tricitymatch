@@ -32,7 +32,7 @@ export default function About() {
     <div className="min-h-screen bg-[#FDF8F2] text-neutral-900">
       <Seo
         title="About Us"
-        description="Learn about TricityShadi — the trusted hyperlocal matrimonial platform for Chandigarh, Mohali and Panchkula."
+        description="Learn about TricityMatch — the trusted hyperlocal matrimonial platform for Chandigarh, Mohali and Panchkula."
         path="/about"
       />
 
@@ -46,7 +46,7 @@ export default function About() {
             <span className="text-primary-700 italic"> not algorithms.</span>
           </h1>
           <p className="mt-6 text-lg text-neutral-600 max-w-2xl leading-relaxed">
-            TricityShadi is a hyperlocal matrimonial platform built specifically for families in
+            TricityMatch is a hyperlocal matrimonial platform built specifically for families in
             Chandigarh, Mohali and Panchkula — where finding a life partner is meaningful, safe and community-first.
           </p>
         </div>
@@ -75,7 +75,7 @@ export default function About() {
           </div>
           <div className="space-y-5 text-neutral-700 text-base leading-relaxed pt-1">
             <p>
-              Unlike generic matrimonial platforms, TricityShadi focuses on the Tricity region — bringing together
+              Unlike generic matrimonial platforms, TricityMatch focuses on the Tricity region — bringing together
               people who share local roots, cultural values and community ties.
             </p>
             <p>

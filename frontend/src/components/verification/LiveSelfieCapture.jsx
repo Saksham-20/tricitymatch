@@ -32,7 +32,7 @@ export default function LiveSelfieCapture({ file, onChange }) {
     setError('');
     setPhase('starting');
     if (!navigator.mediaDevices?.getUserMedia) {
-      setError('Your browser does not support live camera capture. Open TricityShadi on a phone or use a device with a camera.');
+      setError('Your browser does not support live camera capture. Open TricityMatch on a phone or use a device with a camera.');
       setPhase('error');
       return;
     }
@@ -55,7 +55,7 @@ export default function LiveSelfieCapture({ file, onChange }) {
         denied
           ? 'Camera access was blocked. Allow camera permission in your browser, then try again.'
           : none
-          ? 'No camera found on this device. Open TricityShadi on a phone to verify.'
+          ? 'No camera found on this device. Open TricityMatch on a phone to verify.'
           : 'Could not start the camera. Make sure no other app is using it, then try again.'
       );
       setPhase('error');

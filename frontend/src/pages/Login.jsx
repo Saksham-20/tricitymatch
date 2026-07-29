@@ -178,7 +178,7 @@ const Login = () => {
     <div className="min-h-screen flex bg-[#FDF8F2]">
       <Seo
         title="Login"
-        description="Log in to your TricityShadi account to continue your match journey."
+        description="Log in to your TricityMatch account to continue your match journey."
         path="/login"
       />
       {/* Left Side — Editorial panel */}
@@ -225,7 +225,7 @@ const Login = () => {
               Your journey<br />continues here.
             </h2>
             <p className="text-white/60 text-base leading-relaxed">
-              Thousands of families found their forever through TricityShadi.
+              Thousands of families found their forever through TricityMatch.
               Every sign-in brings you closer.
             </p>
 
@@ -501,7 +501,7 @@ const Login = () => {
                 <div className="w-full border-t border-neutral-200" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white text-neutral-600">New to TricityShadi?</span>
+                <span className="px-4 bg-white text-neutral-600">New to TricityMatch?</span>
               </div>
             </div>
 

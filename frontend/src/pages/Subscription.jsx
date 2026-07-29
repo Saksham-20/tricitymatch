@@ -399,7 +399,7 @@ const Subscription = () => {
         key: razorpay.keyId,
         amount: order.amount,
         currency: order.currency,
-        name: 'TricityShadi',
+        name: 'TricityMatch',
         description,
         order_id: order.id,
         handler: async (response) => {

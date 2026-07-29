@@ -1,7 +1,7 @@
-# Handoff: TricityShadi — Native Mobile App (iOS + Android)
+# Handoff: TricityMatch — Native Mobile App (iOS + Android)
 
 ## Overview
-This is the complete member-facing **React Native** design for **TricityShadi**, a premium, hyperlocal matrimonial app for the Tricity region (Chandigarh, Mohali, Panchkula). It is the native translation of the existing TricityShadi **web** design system — same brand, same tokens, rebuilt around native idioms (bottom tabs, sheets, gestures, haptics, platform back). Tone is trustworthy, family-first, premium-but-restrained — **not** a casual dating app.
+This is the complete member-facing **React Native** design for **TricityMatch**, a premium, hyperlocal matrimonial app for the Tricity region (Chandigarh, Mohali, Panchkula). It is the native translation of the existing TricityMatch **web** design system — same brand, same tokens, rebuilt around native idioms (bottom tabs, sheets, gestures, haptics, platform back). Tone is trustworthy, family-first, premium-but-restrained — **not** a casual dating app.
 
 The package covers: a mobile design-system reference, the five bottom-tab destinations, auth, the 14-step onboarding wizard, subscription/monetization, the astrologer marketplace, Agora call UI, and the horoscope/Ashtakoot surfaces — each data view in its 4–5 states, in light, dark and (on primary screens) elder mode.
 

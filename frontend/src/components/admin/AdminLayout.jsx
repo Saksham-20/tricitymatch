@@ -39,7 +39,7 @@ export default function AdminLayout() {
             <span className="text-white text-xs font-black">TS</span>
           </div>
           <div>
-            <p className="text-white font-bold text-sm leading-tight">TricityShadi</p>
+            <p className="text-white font-bold text-sm leading-tight">TricityMatch</p>
             <p className="text-gray-400 text-[10px] uppercase tracking-widest">Admin Panel</p>
           </div>
         </div>
@@ -118,7 +118,7 @@ export default function AdminLayout() {
           >
             <FiMenu className="w-6 h-6" />
           </button>
-          <span className="text-white text-sm font-semibold">TricityShadi Admin</span>
+          <span className="text-white text-sm font-semibold">TricityMatch Admin</span>
           <div className="w-6" />
         </div>
 

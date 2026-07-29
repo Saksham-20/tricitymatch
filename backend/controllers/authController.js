@@ -559,7 +559,7 @@ exports.resetPassword = asyncHandler(async (req, res) => {
       user.email,
       user.firstName || 'User',
       'Your password was changed',
-      'Your TricityShadi account password was just changed.',
+      'Your TricityMatch account password was just changed.',
       new Date().toUTCString()
     );
   } catch (error) {

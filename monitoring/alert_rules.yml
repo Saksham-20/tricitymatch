@@ -1,4 +1,4 @@
-# Prometheus Alerting Rules for TricityShadi
+# Prometheus Alerting Rules for TricityMatch
 # These rules define when alerts should be triggered
 
 groups:

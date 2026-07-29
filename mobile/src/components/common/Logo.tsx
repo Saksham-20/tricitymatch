@@ -11,7 +11,7 @@ interface LogoProps {
   showText?: boolean;
 }
 
-// The real TricityShadi brand mark, shared with the website (frontend/public/images/logo.svg).
+// The real TricityMatch brand mark, shared with the website (frontend/public/images/logo.svg).
 const LOGO = require('../../../assets/logo.png');
 
 const badgeSizes = {
@@ -53,7 +53,7 @@ export default function Logo({ variant = 'default', size = 'md', showText = true
       importantForAccessibility="no"
       accessibilityElementsHidden
     >
-      TricityShadi
+      TricityMatch
     </Text>
   ) : null;
 
@@ -61,7 +61,7 @@ export default function Logo({ variant = 'default', size = 'md', showText = true
     <View
       style={isStacked ? styles.stackedContainer : styles.rowContainer}
       accessibilityRole="image"
-      accessibilityLabel="TricityShadi"
+      accessibilityLabel="TricityMatch"
     >
       {mark}
       {label}

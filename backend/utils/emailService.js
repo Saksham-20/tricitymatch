@@ -20,7 +20,7 @@ const sendMatchNotification = async (userEmail, matchedUserName, profileUrl) => 
       <p>Great news! <strong>${matchedUserName}</strong> has liked your profile.</p>
       <p>Check out their profile and start a conversation!</p>
       <a href="${profileUrl}" style="display: inline-block; padding: 12px 24px; background-color: #e91e63; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0;">View Profile</a>
-      <p>Best regards,<br>TricityShadi Team</p>
+      <p>Best regards,<br>TricityMatch Team</p>
     </div>
   `;
   return await sendEmail(userEmail, subject, html);
@@ -34,7 +34,7 @@ const sendMessageNotification = async (userEmail, senderName, messageNotice) => 
       <h2 style="color: #e91e63;">You have a new message!</h2>
       <p>Hi there,</p>
       <p><strong>${senderName}</strong> sent you a message. Log in to read it.</p>
-      <p>Best regards,<br>TricityShadi Team</p>
+      <p>Best regards,<br>TricityMatch Team</p>
     </div>
   `;
   return await sendEmail(userEmail, subject, html);
@@ -49,7 +49,7 @@ const sendSubscriptionReminder = async (userEmail, planType, daysLeft) => {
       <p>Your <strong>${planType}</strong> subscription will expire in <strong>${daysLeft} days</strong>.</p>
       <p>Renew now to continue enjoying premium features!</p>
       <a href="${config.server.frontendUrl}/subscription" style="display: inline-block; padding: 12px 24px; background-color: #e91e63; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0;">Renew Subscription</a>
-      <p>Best regards,<br>TricityShadi Team</p>
+      <p>Best regards,<br>TricityMatch Team</p>
     </div>
   `;
   return await sendEmail(userEmail, subject, html);

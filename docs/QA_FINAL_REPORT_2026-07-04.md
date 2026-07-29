@@ -1,4 +1,4 @@
-# TricityShadi — Final Pre-Launch QA Report
+# TricityMatch — Final Pre-Launch QA Report
 **Date:** 2026-07-04 · **Scope:** Web (member + admin + marketing) on localhost · **Mode:** report-only (no product fixes applied this pass) · **RN apps:** out of scope.
 
 ---
@@ -54,7 +54,7 @@ This is the most important table in the report — it shows the fleet's severity
 | **Low** | a11y | Match/section tab controls lack `role="tab"`/`aria-selected` semantics (screen-reader nav + test stability). | Add ARIA tab roles. |
 | **Low** | Premium | Kundli horoscope-match **PDF returns 404** for a VIP when the target profile has no birth data (free correctly 403s). Agent D hypothesis: missing DOB, not a code bug. | Confirm; return a graceful "add birth details to generate" instead of a raw 404. |
 | **Low** | Auth UX | Login **forgot-password link only appears on the password phase**, not the initial identifier screen. Defensible for progressive login, but reduces discoverability. | Optional: surface a "Forgot password?" affordance on phase 1, or accept as-is. |
-| **Low** | Data (dev-only) | Admin sidebar shows account displayName **"Admin TricityMatch"** / `admin@tricitymatch.com`. Seeded-account data, not code; brand chrome elsewhere is correct "TricityShadi". | Update seed/admin displayName; cosmetic. |
+| **Low** | Data (dev-only) | Admin sidebar shows account displayName **"Admin TricityMatch"** / `admin@tricitymatch.com`. Seeded-account data, not code; brand chrome elsewhere is correct "TricityMatch". | Update seed/admin displayName; cosmetic. |
 
 ---
 
