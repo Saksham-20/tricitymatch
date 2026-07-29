@@ -127,7 +127,7 @@ docker-compose --profile full up -d                    # prod
 docker-compose --profile full --profile monitoring up -d
 ```
 Nginx upstream `backend:5000` (host maps 5001:5000). **CRITICAL:** `--force-recreate` when rebuilding backend (plain up won't replace).
-Pre-launch `bash scripts/prelaunch-check.sh` (`ENV_FILE=.env BASE_URL=https://tricityshadi.com`). Load `k6 run scripts/load-test.js --env BASE_URL=...`. FCM smoke `POST /api/v1/admin/push-smoke-test`.
+Pre-launch `bash scripts/prelaunch-check.sh` (`ENV_FILE=.env BASE_URL=https://tricitymatch.com`). Load `k6 run scripts/load-test.js --env BASE_URL=...`. FCM smoke `POST /api/v1/admin/push-smoke-test`.
 Checklist: real Razorpay → Email → Google OAuth → `.env.production` → strong secrets → migrate(→000039) → seed admin → PWA icons → HTTPS → SMS/Agora/BG_CHECK/FCM env (+ `VITE_AGORA_APP_ID` for web calls).
 
 ### VPS / Server access
@@ -138,9 +138,9 @@ ssh -i ~/.ssh/tricityshadi_vps root@178.16.138.82   # explicit
 ```
 Pubkey installed in server `~/.ssh/authorized_keys` (comment `claude-code@tricityshadi-vps`). To revoke: remove that line on the server + `rm ~/.ssh/tricityshadi_vps*` locally. Rotate any password-auth creds; prefer disabling `PasswordAuthentication` in `sshd_config` now that key auth works.
 
-> ⚠️ **SHARED VPS — multiple production sites on this box. Do NOT disrupt co-tenants.** Other sites hosted here: **cityfreshkart, college-placements, ecom, edumapping.com, school.globoniks.com, tricitylifeinsurance** (nginx sites + their own docker/services). Hard rules: scope every command to TricityShadi only — never global `docker stop/rm/prune`, never `docker compose down` from a shared dir, never blanket `systemctl restart docker`. nginx: only edit the `tricityshadi.com` site file; `nginx -t` before any `reload` (a bad global config breaks ALL sites). Don't reuse ports already bound by others (in use: 3000/3001/3002/5000/5001/5002/5003/5006/9000/9001/80/443).
+> ⚠️ **SHARED VPS — multiple production sites on this box. Do NOT disrupt co-tenants.** Other sites hosted here: **cityfreshkart, college-placements, ecom, edumapping.com, school.globoniks.com, tricitylifeinsurance** (nginx sites + their own docker/services). Hard rules: scope every command to TricityShadi only — never global `docker stop/rm/prune`, never `docker compose down` from a shared dir, never blanket `systemctl restart docker`. nginx: only edit the `tricitymatch.com` + `tricityshadi.com` site files; `nginx -t` before any `reload` (a bad global config breaks ALL sites). Don't reuse ports already bound by others (in use: 3000/3001/3002/5000/5001/5002/5003/5006/9000/9001/80/443).
 >
-> **TricityShadi footprint on the VPS:** docker containers `tricitymatch-frontend` (host **3002**→80), `tricitymatch-backend` (host **5002**→5000), `tricitymatch-db` (postgres:15-alpine), `tricitymatch-redis` (redis:7). nginx site `tricityshadi.com`. webroot `/var/www/tricitymatch`. Note prod host ports are **3002/5002** here (not the local 3000/5001). Manage only via this project's compose file; target containers by `tricitymatch-*` name.
+> **TricityShadi footprint on the VPS:** docker containers `tricitymatch-frontend` (host **3002**→80), `tricitymatch-backend` (host **5002**→5000), `tricitymatch-db` (postgres:15-alpine), `tricitymatch-redis` (redis:7). nginx sites: **`tricitymatch.com`** (primary, `sites-available` + symlink) and `tricityshadi.com` (legacy — 301s page routes to the new domain but still proxies `/api/` + `/socket.io/` for shipped mobile builds; `sites-enabled` regular file, not a symlink). webroot `/var/www/tricitymatch`. Note prod host ports are **3002/5002** here (not the local 3000/5001). Manage only via this project's compose file; target containers by `tricitymatch-*` name.
 
 ## Admin
 `admin@tricitymatch.com` / `Pass@1234` (or `ADMIN_EMAIL`/`ADMIN_PASSWORD`). Login `/login` (not /admin/login). Re-seed `node backend/seeders/adminSeeder.js`.
