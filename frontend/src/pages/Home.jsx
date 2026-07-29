@@ -1296,7 +1296,7 @@ const Home = () => {
             <p style={{ maxWidth: 520, fontSize: 14, lineHeight: 1.5, color: 'var(--ink-soft)', fontFamily: 'var(--sans)', marginBottom: 32 }}>
               If you don't find what you need, reach out — we respond within 24 hours, in English, Hindi or Punjabi.
             </p>
-            <a href="mailto:support@tricityshadi.com" style={{
+            <a href="mailto:support@tricitymatch.com" style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
               fontFamily: 'var(--mono)', fontSize: 12, letterSpacing: '.14em', textTransform: 'uppercase',
               padding: '12px 20px', border: '1px solid var(--line)', borderRadius: 999,
@@ -1435,7 +1435,7 @@ const Home = () => {
           {[
             { title: 'Platform', links: [['Browse Profiles', '/search'], ['How It Works', '/#why'], ['Pricing Plans', '/subscription'], ['Success Stories', '/#stories'], ['Create Profile', '/onboarding']] },
             { title: 'Company',  links: [['About Us', '/about'], ['Contact', '/contact'], ['Safety Centre', '/safety'], ['Privacy Policy', '/privacy'], ['Terms of Service', '/terms']] },
-            { title: 'Contact',  links: [['support@tricityshadi.com', null], ['+91 98765 43210', null], ['Sector 17, Chandigarh', null]] },
+            { title: 'Contact',  links: [['support@tricitymatch.com', null], ['+91 98765 43210', null], ['Sector 17, Chandigarh', null]] },
           ].map(col => (
             <div key={col.title}>
               <h3 style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--gold-text)', fontWeight: 500, marginBottom: 20 }}>{col.title}</h3>

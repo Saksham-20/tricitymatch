@@ -1,7 +1,7 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
 
-const SITE_URL = 'https://tricityshadi.com';
+const SITE_URL = 'https://tricitymatch.com';
 const DEFAULT_TITLE = 'TricityShadi - Find Your Perfect Match in Tricity';
 const DEFAULT_DESCRIPTION =
   'The most trusted matrimonial platform for Chandigarh, Mohali, and Panchkula. Find your perfect life partner with our smart matching algorithm.';

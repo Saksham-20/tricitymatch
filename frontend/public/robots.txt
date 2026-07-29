@@ -11,4 +11,4 @@ Disallow: /chat
 Disallow: /settings
 Disallow: /notifications
 
-Sitemap: https://tricityshadi.com/sitemap.xml
+Sitemap: https://tricitymatch.com/sitemap.xml

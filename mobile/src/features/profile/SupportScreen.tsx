@@ -103,7 +103,7 @@ export default function SupportScreen() {
   };
 
   const openEmail = () => {
-    Linking.openURL('mailto:support@tricityshadi.com?subject=Support+Request');
+    Linking.openURL('mailto:support@tricitymatch.com?subject=Support+Request');
   };
 
   return (
@@ -129,7 +129,7 @@ export default function SupportScreen() {
           <ContactRow
             icon="mail-outline"
             label="Email Support"
-            sub="support@tricityshadi.com"
+            sub="support@tricitymatch.com"
             onPress={openEmail}
             testID="email-btn"
           />

@@ -15,7 +15,7 @@ import IncomingCallModal from '../components/calls/IncomingCallModal';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const linking: LinkingOptions<RootStackParamList> = {
-  prefixes: ['tricityshadi://', 'https://tricityshadi.com'],
+  prefixes: ['tricityshadi://', 'https://tricitymatch.com', 'https://tricityshadi.com'],
   config: {
     screens: {
       Main: {

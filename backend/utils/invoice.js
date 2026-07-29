@@ -8,6 +8,7 @@
  */
 
 const PDFDocument = require('pdfkit');
+const config = require('../config/env');
 
 /**
  * Stream a PDF invoice to the HTTP response.
@@ -130,7 +131,7 @@ const generateInvoicePDF = (res, { subscription, user, profile }) => {
 
   // ── Footer ────────────────────────────────────────────
   doc.fontSize(9).fillColor(GRAY).text(
-    'Thank you for choosing TricityShadi. For support contact support@tricityshadi.com',
+    `Thank you for choosing TricityShadi. For support contact ${config.email.support}`,
     50, 750, { align: 'center', width: 495 }
   );
 

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Pre-launch checklist for TricityShadi production deployment
 # Run: bash scripts/prelaunch-check.sh
-# Set BASE_URL to override default: BASE_URL=https://tricityshadi.com bash scripts/prelaunch-check.sh
+# Set BASE_URL to override default: BASE_URL=https://tricitymatch.com bash scripts/prelaunch-check.sh
 
 set -euo pipefail
 
-BASE_URL="${BASE_URL:-https://tricityshadi.com}"
+BASE_URL="${BASE_URL:-https://tricitymatch.com}"
 BACKEND_URL="${BACKEND_URL:-$BASE_URL}"
 ENV_FILE="${ENV_FILE:-.env}"
 

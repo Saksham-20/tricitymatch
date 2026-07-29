@@ -113,7 +113,7 @@ export default function Safety() {
               <h2 className="font-display text-2xl md:text-3xl font-bold mb-2 text-[#FDF8F2]">In immediate danger? Call 112.</h2>
               <p className="text-[#FDF8F2]/70 max-w-xl">
                 For platform safety concerns, email{' '}
-                <a href="mailto:support@tricityshadi.com" className="underline decoration-[#D4B048] underline-offset-4 hover:text-white">support@tricityshadi.com</a>.
+                <a href="mailto:support@tricitymatch.com" className="underline decoration-[#D4B048] underline-offset-4 hover:text-white">support@tricitymatch.com</a>.
                 Our team responds within 24 hours.
               </p>
             </div>

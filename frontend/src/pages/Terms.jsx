@@ -109,7 +109,7 @@ export default function Terms() {
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">15. Grievances &amp; Contact</h2>
-              <p>For questions about these Terms, or to report content or conduct, contact us at <a href="mailto:support@tricityshadi.com" className="text-primary-600 underline hover:text-primary-700">support@tricityshadi.com</a>. In line with applicable Indian law, complaints regarding content or data may be addressed to our Grievance Officer at <a href="mailto:grievance@tricityshadi.com" className="text-primary-600 underline hover:text-primary-700">grievance@tricityshadi.com</a>, and we will acknowledge and endeavour to resolve them within the timelines prescribed by law.</p>
+              <p>For questions about these Terms, or to report content or conduct, contact us at <a href="mailto:support@tricitymatch.com" className="text-primary-600 underline hover:text-primary-700">support@tricitymatch.com</a>. In line with applicable Indian law, complaints regarding content or data may be addressed to our Grievance Officer at <a href="mailto:grievance@tricitymatch.com" className="text-primary-600 underline hover:text-primary-700">grievance@tricitymatch.com</a>, and we will acknowledge and endeavour to resolve them within the timelines prescribed by law.</p>
             </section>
           </div>
         </div>

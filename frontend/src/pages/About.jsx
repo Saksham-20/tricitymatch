@@ -116,7 +116,7 @@ export default function About() {
           <h2 className="font-display text-3xl md:text-4xl font-bold mb-3 text-[#FDF8F2]">Your forever starts with one step.</h2>
           <p className="text-[#FDF8F2]/70 max-w-xl mx-auto mb-8">
             Have questions or feedback? Reach us at{' '}
-            <a href="mailto:support@tricityshadi.com" className="underline decoration-[#D4B048] underline-offset-4 hover:text-white">support@tricityshadi.com</a>
+            <a href="mailto:support@tricitymatch.com" className="underline decoration-[#D4B048] underline-offset-4 hover:text-white">support@tricitymatch.com</a>
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link to="/onboarding" className="inline-flex items-center justify-center gap-2 bg-[#FDF8F2] text-primary-800 font-semibold px-7 py-3.5 rounded-full hover:bg-white transition-colors">

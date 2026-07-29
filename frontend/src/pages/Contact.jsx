@@ -131,7 +131,7 @@ export default function Contact() {
                 <div>
                   <h2 className="text-sm font-bold text-neutral-900 mb-1">Email Support</h2>
                   <p className="text-sm text-neutral-600">
-                    <a href="mailto:support@tricityshadi.com" className="text-primary-600 hover:underline">support@tricityshadi.com</a>
+                    <a href="mailto:support@tricitymatch.com" className="text-primary-600 hover:underline">support@tricitymatch.com</a>
                   </p>
                 </div>
               </div>

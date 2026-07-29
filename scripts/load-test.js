@@ -2,7 +2,7 @@
  * k6 load test — TricityShadi critical API endpoints
  *
  * Install: brew install k6
- * Run:     k6 run scripts/load-test.js --env BASE_URL=https://tricityshadi.com
+ * Run:     k6 run scripts/load-test.js --env BASE_URL=https://tricitymatch.com
  *          k6 run scripts/load-test.js --env BASE_URL=http://localhost:5001
  *
  * Thresholds (all must pass for green):

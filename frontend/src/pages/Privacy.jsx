@@ -83,7 +83,7 @@ export default function Privacy() {
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">8. Your Rights</h2>
-              <p>You have the right to access, correct, update, or delete your personal data, and to withdraw consent for optional processing such as verification. You can manage most of this directly from your profile and settings, or by contacting us at <a href="mailto:privacy@tricityshadi.com" className="text-primary-600 underline hover:text-primary-700">privacy@tricityshadi.com</a>.</p>
+              <p>You have the right to access, correct, update, or delete your personal data, and to withdraw consent for optional processing such as verification. You can manage most of this directly from your profile and settings, or by contacting us at <a href="mailto:privacy@tricitymatch.com" className="text-primary-600 underline hover:text-primary-700">privacy@tricitymatch.com</a>.</p>
             </section>
 
             <section>
@@ -103,7 +103,7 @@ export default function Privacy() {
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">12. Grievances &amp; Contact</h2>
-              <p>For any privacy-related question or request, contact us at <a href="mailto:privacy@tricityshadi.com" className="text-primary-600 underline hover:text-primary-700">privacy@tricityshadi.com</a>. In accordance with applicable Indian law, you may also reach our Grievance Officer at <a href="mailto:grievance@tricityshadi.com" className="text-primary-600 underline hover:text-primary-700">grievance@tricityshadi.com</a> for complaints regarding your personal data, and we will respond within the timelines prescribed by law.</p>
+              <p>For any privacy-related question or request, contact us at <a href="mailto:privacy@tricitymatch.com" className="text-primary-600 underline hover:text-primary-700">privacy@tricitymatch.com</a>. In accordance with applicable Indian law, you may also reach our Grievance Officer at <a href="mailto:grievance@tricitymatch.com" className="text-primary-600 underline hover:text-primary-700">grievance@tricitymatch.com</a> for complaints regarding your personal data, and we will respond within the timelines prescribed by law.</p>
             </section>
           </div>
         </div>

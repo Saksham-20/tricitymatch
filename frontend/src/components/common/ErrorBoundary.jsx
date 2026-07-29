@@ -131,7 +131,7 @@ class ErrorBoundary extends Component {
             <p className="mt-6 text-sm text-neutral-400">
               If this problem persists, please{' '}
               <a
-                href="mailto:support@tricityshadi.com"
+                href="mailto:support@tricitymatch.com"
                 className="text-primary-500 hover:underline"
               >
                 contact support

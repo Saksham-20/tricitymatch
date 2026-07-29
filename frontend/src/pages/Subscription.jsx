@@ -577,7 +577,7 @@ const Subscription = () => {
             </div>
             <p className="text-sm text-neutral-600">
               Online payments are opening soon. To upgrade today, write to{' '}
-              <a href="mailto:support@tricityshadi.com" className="font-semibold text-primary-600 underline underline-offset-2">support@tricityshadi.com</a>.
+              <a href="mailto:support@tricitymatch.com" className="font-semibold text-primary-600 underline underline-offset-2">support@tricitymatch.com</a>.
             </p>
           </motion.div>
         )}

@@ -4,7 +4,7 @@ import { razorpay } from '../config';
 // User-facing copy for when online payments can't be started. Never expose
 // env-var names or "not configured" developer language to members.
 export const PAYMENTS_UNAVAILABLE_MSG =
-  'Online payments are temporarily unavailable. Please try again later or contact support@tricityshadi.com.';
+  'Online payments are temporarily unavailable. Please try again later or contact support@tricitymatch.com.';
 
 // Load the Razorpay checkout SDK once and reuse it (avoids stacking a new
 // <script> + onload handler on every payment click). The SDK is intentionally
