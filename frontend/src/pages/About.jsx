@@ -12,14 +12,14 @@ const Eyebrow = ({ children, className = '' }) => (
 );
 
 const STATS = [
-  { value: '1,190+', label: 'Marriages made' },
-  { value: '50K+', label: 'Verified members' },
-  { value: '92%', label: 'Reply within 48 hrs' },
-  { value: '15 yr', label: 'Serving Tricity families' },
+  { value: 'Live selfie', label: 'Verification, never uploads' },
+  { value: 'Tricity only', label: 'Chandigarh · Mohali · Panchkula' },
+  { value: 'Family-first', label: 'Guardians participate gracefully' },
+  { value: 'Founding', label: 'Members join free' },
 ];
 
 const VALUES = [
-  { icon: FiShield, n: '01', t: 'Verified, every profile', d: 'Selfie verification and human review before any profile goes live. Zero fake accounts, zero exceptions.' },
+  { icon: FiShield, n: '01', t: 'Verified profiles', d: 'The verified badge is earned with a live selfie matched by human review — never a file upload.' },
   { icon: FiLock, n: '02', t: 'Privacy-first', d: 'Your data is yours. Browse incognito, control who sees you, numbers never shared.' },
   { icon: FiUsers, n: '03', t: 'Family-oriented', d: 'Matching that respects family background, values, and the people who matter in the decision.' },
   { icon: FiMapPin, n: '04', t: 'Hyperlocal focus', d: 'Built only for Chandigarh, Mohali and Panchkula. Partners within driving distance.' },
@@ -40,7 +40,7 @@ export default function About() {
       <section className="px-4 pt-24 pb-16 md:pt-32 md:pb-20">
         <div className="max-w-5xl mx-auto">
           <Link to="/" className="font-mono text-[11px] uppercase tracking-[0.16em] text-neutral-500 hover:text-primary-600 transition-colors mb-10 block w-fit">← Back to home</Link>
-          <Eyebrow className="mb-5">● Our story · Tricity only · Since 2011</Eyebrow>
+          <Eyebrow className="mb-5">● Our story · Tricity only · Founding community</Eyebrow>
           <h1 className="font-display text-4xl md:text-6xl font-bold leading-[1.05] text-neutral-900 max-w-3xl">
             Matrimony built for families,
             <span className="text-primary-700 italic"> not algorithms.</span>
@@ -70,7 +70,7 @@ export default function About() {
           <div>
             <Eyebrow className="mb-4">— Our mission</Eyebrow>
             <h2 className="font-display text-3xl md:text-4xl font-bold leading-tight">
-              50,000 serious local members, <span className="italic text-primary-700">not 50 million strangers.</span>
+              A serious local community, <span className="italic text-primary-700">not 50 million strangers.</span>
             </h2>
           </div>
           <div className="space-y-5 text-neutral-700 text-base leading-relaxed pt-1">

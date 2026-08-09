@@ -225,16 +225,16 @@ const Login = () => {
               Your journey<br />continues here.
             </h2>
             <p className="text-white/60 text-base leading-relaxed">
-              Thousands of families found their forever through TricityMatch.
-              Every sign-in brings you closer.
+              Tricity's own matrimonial community — verified profiles, private
+              conversations, and matches close enough to meet this week.
             </p>
 
             {/* Stat pills */}
             <div className="flex flex-wrap gap-3 mt-8">
               {[
-                { n: '1,190+', l: 'Matches Made' },
-                { n: '98%',    l: 'Satisfaction' },
-                { n: '50K+',   l: 'Profiles' },
+                { n: 'Verified', l: 'Live selfie badge' },
+                { n: 'Local',    l: 'Tricity only' },
+                { n: 'Private',  l: 'Encrypted in transit' },
               ].map(({ n, l }) => (
                 <div key={l} className="flex flex-col px-4 py-2.5 rounded-xl bg-white/6 border border-white/10">
                   <span className="text-lg font-bold text-white leading-none">{n}</span>
