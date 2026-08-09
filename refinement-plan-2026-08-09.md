@@ -133,8 +133,34 @@ PHASE 1 NOW COMPLETE (2026-08-09 second pass, deployed): E1 slop-lint wired into
 (keyboard listbox, relative timestamps) · P1.3c informative no-profile state. DEFERRED: P1.3a ref
 warning = framer-motion 12 PopChild internals under AnimatePresence mode=wait, dev-console-only,
 not our code (revisit on next framer-motion bump) · P1.3d marketing portal (owner call).
-Phase S remaining: FRONTEND half only (founding band refinement, invite send/receive UI, city
-pages, E3 empty states) — backend + grant-cap tests (foundingGrant.test.js, 10) are done+deployed.
+**PHASE S NOW COMPLETE (2026-08-10, deployed @ 4c6a0e8).** Frontend half shipped: founding band
+(asymmetric editorial per the wireframe) · invite SEND (`InviteLink` card/row/inline) + RECEIVE
+(signup kicker, silently-absent on bad tokens) · founding badge · 3 city pages
+(`/matrimony/chandigarh|mohali|panchkula`, one template + distinct content, footer crawl path,
+sitemap) · E3 supply-aware empty states on Search/Matches/Dashboard. Founding claim is server-gated
+via a new **public `founding {open, endsAt, contactUnlocks}` block on `GET /subscription/plans`** +
+`useFoundingWindow` (fail-closed; withholds the date while closed). **Prod round-trip verified:**
+mint link → public resolve → "QA invited you to TricityMatch" kicker on tricitymatch.com.
+
+**Two live bugs found while verifying Phase S (both fixed + deployed):**
+1. 🔴 Two homepage headlines rendered **near-black on near-black in production** — the founding
+   band and the closing "Every great love story" CTA. `index.css` colours `h1/h2/h3` with an
+   ELEMENT rule that beats the light colour a dark section inherits down. Fixed by scoping
+   `color: inherit` to Home's dark sections. **Class of bug, not a one-off** — any dark panel
+   anywhere in the app hits it (this is the "systemic dark-panel heading bug" from memory). The
+   city band additionally pins literal brand hexes because the **neutral scale INVERTS under
+   `html.dark`** (`bg-neutral-900` resolves near-WHITE there) — the first draft of that band was
+   light-on-light in dark mode.
+2. 🔴 **`npm run lint` could never pass** — it died at the backend workspace (`--ignore-path
+   .gitignore` → ENOENT, exit 2), so the E1 slop-lint gate wired in Phase 1 had never actually
+   run in the chain, and 9 frontend + 4 backend eslint errors had accumulated unseen. Chain is
+   now green end-to-end (0 errors both workspaces, slop-lint clean @284 files). Also fixed a real
+   dead alias in `utils/compatibility.js` (`'shatabhisha'` mapped twice; restored `'satabhisha'`)
+   and a silent-failure on notification delete.
+
+**New owner item (found on the live homepage):** the footer support phone `+91 98765 43210` is a
+placeholder — a fabricated contact detail still shipping on a site we just de-fabricated. Supply
+the real number or say the word and it comes out.
 
 ### P1.1 Logo mark refresh (found via screenshot review — the audit under-fixed F-011)
 `frontend/public/images/logo.svg` is still the **old TS monogram on an off-brand `#B60D2F` red
@@ -196,19 +222,19 @@ Liquidity is the binding constraint (both outside voices; TODOS P1 since July). 
 only the code-shaped substrate — outreach itself stays owner work with a named target
 (**100 real Tricity profiles / 30 days** as the north star, owner-executed).
 
-- [ ] **Founding-member landing copy** — extend the P0.1b positioning into a proper section on `/`
+- [x] **Founding-member landing copy** — extend the P0.1b positioning into a proper section on `/`
       (+ signup touchpoint): what founding members get (free premium period per TODOS memo),
       why now, invite framing. Honest numbers only.
-- [ ] **Invite mechanics** — shareable invite link per member (reuse the `profileCode` util
+- [x] **Invite mechanics** — shareable invite link per member (reuse the `profileCode` util
       PATTERN — do NOT reuse the marketing `ReferralCode` table: its `marketingUserId` FK is
       ON DELETE CASCADE to a marketing user, wrong semantics for member invites). Design: invite
       param on the signup URL + nullable `Users.invitedBy` UUID column; landing shows the
       inviter's FIRST NAME only (never profile data; invalid/forged codes silently ignored —
       normal signup proceeds). Tracked via the Phase 0.5 event table (add `invited_signup` to
       the enum). Invite-chip states: valid / silently-absent (invalid) / loading.
-- [ ] **Tricity SEO content pages** — 3 landing pages (Chandigarh / Mohali / Panchkula matrimony),
+- [x] **Tricity SEO content pages** — 3 landing pages (Chandigarh / Mohali / Panchkula matrimony),
       brand-correct, `Seo.jsx` meta + sitemap entries (rides E6), honest community-first copy.
-- [ ] **Bureau-stack decision memo** — the codebase carries a dormant Bureau feature stack (RN
+- [x] **Bureau-stack decision memo** — the codebase carries a dormant Bureau feature stack (RN
       BureauStack: client roster, match proposals, earnings — flagged dead in deep-QA). Write the
       one-page memo: USE (bureau partnership channel) / PARTNER (manual, no code) / DELETE.
       Owner decides; memo has a decide-by date 2 weeks out.
