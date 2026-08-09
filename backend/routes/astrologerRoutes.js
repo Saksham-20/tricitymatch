@@ -99,6 +99,20 @@ router.post('/book', auth, asyncHandler(async (req, res) => {
     throw new AppError('durationMin must be an integer between 5 and 120', 400);
   }
 
+  // Only durationMin was validated, so a stale form (or a crafted request) could
+  // create a paid booking for a slot in the past — billed, unfulfillable.
+  const when = new Date(scheduledAt);
+  if (Number.isNaN(when.getTime())) {
+    throw new AppError('scheduledAt must be a valid date', 400);
+  }
+  if (when.getTime() <= Date.now()) {
+    throw new AppError('Please pick a time in the future', 400);
+  }
+  // Guard the far end too — a booking years out is a data-entry mistake.
+  if (when.getTime() > Date.now() + 180 * 24 * 60 * 60 * 1000) {
+    throw new AppError('Bookings can be made up to 6 months ahead', 400);
+  }
+
   const ast = await Astrologer.findOne({ where: { id: astrologerId, isActive: true } });
   if (!ast) throw new AppError('Astrologer not found', 404);
 

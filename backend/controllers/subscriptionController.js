@@ -275,28 +275,27 @@ exports.verifyPayment = asyncHandler(async (req, res) => {
 exports.getMySubscription = asyncHandler(async (req, res) => {
   const userId = req.user.id;
 
+  // Only an ACTIVE row describes what the member currently has. Taking the most
+  // recently created row of any status meant that starting an upgrade and never
+  // paying (status 'pending'), or an old 'cancelled' row, was reported as the
+  // current plan — the UI showed "VIP" while the server correctly granted
+  // nothing, because entitlement checks filter on status:'active'.
   const subscription = await Subscription.findOne({
-    where: { userId },
+    where: { userId, status: 'active' },
     order: [['createdAt', 'DESC']]
   });
 
+  const free = { planType: 'free', status: 'active' };
+
   if (!subscription) {
-    return res.json({
-      success: true,
-      subscription: {
-        planType: 'free',
-        status: 'active'
-      }
-    });
+    return res.json({ success: true, subscription: free });
   }
 
   // Check if subscription expired and update status
-  if (subscription.status === 'active' && subscription.endDate) {
-    const now = new Date();
-    if (now > new Date(subscription.endDate)) {
-      subscription.status = 'expired';
-      await subscription.save();
-    }
+  if (subscription.endDate && new Date() > new Date(subscription.endDate)) {
+    subscription.status = 'expired';
+    await subscription.save();
+    return res.json({ success: true, subscription: free });
   }
 
   res.json({

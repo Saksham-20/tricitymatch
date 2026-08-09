@@ -5,7 +5,8 @@
 
 const { Profile, User, ProfileView, Subscription, Match, ContactUnlock, Block, Verification } = require('../models');
 const { visibleSocialLinks, normalizeSocialLinks } = require('../utils/socialLinks');
-const { Op } = require('sequelize');
+const { Op, QueryTypes } = require('sequelize');
+const { randomUUID } = require('crypto');
 const sequelize = require('../config/database');
 const { PAID_PLANS } = require('../constants/plans');
 const { calculateCompatibility, getCompatibilityBreakdown: calcBreakdown, getAshtakootScore, isManglikCompatible, getRashiCompatibility } = require('../utils/compatibility');
@@ -468,8 +469,14 @@ exports.getProfile = asyncHandler(async (req, res) => {
     include: [
       {
         model: User,
-        // Only fetch fields safe to return publicly; contact details are gated below
+        // Only fetch fields safe to return publicly; contact details are gated below.
+        // Account status is an inner join on purpose: deleting an account sets
+        // User.status='deleted' but leaves Profile.isActive alone, so filtering on
+        // the profile only kept deleted/suspended members readable to anyone who
+        // still had the direct URL — search hid them, this endpoint did not.
         attributes: ['id', 'status'],
+        where: { status: 'active' },
+        required: true,
         include: [{ model: Subscription, where: { status: 'active' }, required: false }]
       }
     ]
@@ -677,28 +684,120 @@ exports.unlockContact = asyncHandler(async (req, res) => {
     });
   }
 
-  const result = await sequelize.transaction(async (t) => {
-    await ContactUnlock.create({ userId, targetUserId }, { transaction: t });
+  let result;
+  try {
+    result = await sequelize.transaction(async (t) => {
+      // ON CONFLICT DO NOTHING rather than a plain INSERT: a duplicate raises a
+      // unique violation that aborts the whole Postgres transaction, so every
+      // later statement in it failed with "current transaction is aborted" and
+      // the member got a 500 for merely double-tapping Unlock.
+      //
+      // Raw INSERT ... RETURNING, not bulkCreate({ignoreDuplicates}): Sequelize
+      // hands back the *built* instances (UUID generated client-side) whether or
+      // not a row was actually written, so it cannot tell us who won the race —
+      // eight concurrent taps on one profile were billed as six unlocks.
+      const insertedRows = await sequelize.query(
+        `INSERT INTO "ContactUnlocks" ("id", "userId", "targetUserId", "createdAt", "updatedAt")
+         VALUES (:id, :userId, :targetUserId, NOW(), NOW())
+         ON CONFLICT ("userId", "targetUserId") DO NOTHING
+         RETURNING "id"`,
+        {
+          replacements: { id: randomUUID(), userId, targetUserId },
+          type: QueryTypes.SELECT,
+          transaction: t,
+        }
+      );
+      const wonTheRace = Array.isArray(insertedRows) && insertedRows.length > 0;
+      if (!wonTheRace) {
+        // Another request created it; charge nothing and report it as unlocked.
+        const tpDup = await Profile.findOne({
+          where: { userId: targetUserId },
+          include: [{ model: User, attributes: ['email', 'phone'] }],
+          transaction: t
+        });
+        return {
+          duplicate: true,
+          contact: { phone: tpDup?.User?.phone || null, email: tpDup?.User?.email || null },
+        };
+      }
 
-    const subscription = req.subscription;
-    if (subscription.contactUnlocksAllowed !== null) {
-      subscription.contactUnlocksUsed = (subscription.contactUnlocksUsed || 0) + 1;
-      await subscription.save({ transaction: t });
-    }
+      const subscription = req.subscription;
+      let remaining = -1;
 
-    const tp = await Profile.findOne({
-      where: { userId: targetUserId },
-      include: [{ model: User, attributes: ['email', 'phone'] }],
-      transaction: t
+      if (subscription.contactUnlocksAllowed !== null) {
+        // Consume the quota with a single conditional UPDATE. Read-modify-write on
+        // the in-memory instance let concurrent unlocks (double-taps, or several
+        // tabs) all start from the same stale count and overwrite each other:
+        // 11 unlock rows had been created against a counter that read 3, so the
+        // plan's cap could be exceeded by any user issuing parallel requests.
+        const [affected] = await Subscription.update(
+          { contactUnlocksUsed: sequelize.literal('"contactUnlocksUsed" + 1') },
+          {
+            where: {
+              id: subscription.id,
+              [Op.and]: [
+                sequelize.where(
+                  sequelize.col('contactUnlocksUsed'),
+                  Op.lt,
+                  sequelize.col('contactUnlocksAllowed')
+                ),
+              ],
+            },
+            transaction: t,
+          }
+        );
+
+        if (affected === 0) {
+          // Someone else consumed the last unlock between the middleware's check
+          // and this write — roll the ContactUnlock back with the transaction.
+          throw createError.forbidden(
+            `You have used all ${subscription.contactUnlocksAllowed} contact unlocks for your plan. Upgrade to unlock more.`
+          );
+        }
+
+        const fresh = await Subscription.findByPk(subscription.id, {
+          attributes: ['contactUnlocksUsed', 'contactUnlocksAllowed'],
+          transaction: t,
+        });
+        remaining = Math.max(0, fresh.contactUnlocksAllowed - fresh.contactUnlocksUsed);
+      }
+
+      const tp = await Profile.findOne({
+        where: { userId: targetUserId },
+        include: [{ model: User, attributes: ['email', 'phone'] }],
+        transaction: t
+      });
+
+      return {
+        contact: { phone: tp?.User?.phone || null, email: tp?.User?.email || null },
+        remaining
+      };
     });
+  } catch (err) {
+    // Belt and braces: if a unique violation still escapes (another index, a
+    // dialect that doesn't support ON CONFLICT), report the unlock rather than
+    // a 500 — the contact is unlocked either way.
+    if (err?.name === 'SequelizeUniqueConstraintError') {
+      const tp = await Profile.findOne({
+        where: { userId: targetUserId },
+        include: [{ model: User, attributes: ['email', 'phone'] }]
+      });
+      return res.json({
+        success: true,
+        alreadyUnlocked: true,
+        contact: { phone: tp?.User?.phone || null, email: tp?.User?.email || null }
+      });
+    }
+    throw err;
+  }
 
-    return {
-      contact: { phone: tp?.User?.phone || null, email: tp?.User?.email || null },
-      remaining: subscription.contactUnlocksAllowed === null
-        ? -1
-        : Math.max(0, subscription.contactUnlocksAllowed - (subscription.contactUnlocksUsed || 0))
-    };
-  });
+  if (result.duplicate) {
+    return res.json({
+      success: true,
+      alreadyUnlocked: true,
+      contact: result.contact
+    });
+  }
 
   res.json({
     success: true,
