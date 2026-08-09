@@ -453,7 +453,8 @@ const Home = () => {
               <p><span style={{ fontWeight: 600, color: 'var(--gold-lt)' }}>Limited time:</span> First month Premium free for Chandigarh residents.{' '}
                 <Link to="/onboarding" style={{ textDecoration: 'underline', fontWeight: 600 }}>Claim now</Link>
               </p>
-              <button onClick={() => setAnnouncementOn(false)} style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', opacity: 0.7 }} aria-label="Dismiss">
+              {/* padding + compensating offset: 32px hit box, icon stays at right:16 */}
+              <button onClick={() => setAnnouncementOn(false)} style={{ position: 'absolute', right: 7, top: '50%', transform: 'translateY(-50%)', opacity: 0.7, padding: 9, lineHeight: 0 }} aria-label="Dismiss">
                 <FiX style={{ width: 14, height: 14 }} />
               </button>
             </div>

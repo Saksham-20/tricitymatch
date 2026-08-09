@@ -248,7 +248,7 @@ const SubscriptionStatusCard = ({ subscription, navigate }) => {
           )}
           <button
             onClick={() => navigate('/subscription')}
-            className="text-xs font-semibold text-neutral-500 hover:text-primary-500 transition-colors whitespace-nowrap"
+            className="text-xs font-semibold text-neutral-500 hover:text-primary-500 transition-colors whitespace-nowrap py-2 px-2 -my-2 -mx-2"
           >
             Manage Plan
           </button>
@@ -963,7 +963,7 @@ const Dashboard = () => {
             <div className="mt-4 sm:hidden text-center">
               <Link
                 to="/search"
-                className="inline-flex items-center gap-1.5 text-primary-500 font-semibold text-sm"
+                className="inline-flex items-center gap-1.5 text-primary-500 font-semibold text-sm py-2.5 px-3 -my-2.5 -mx-3"
               >
                 View all profiles <FiArrowRight className="w-4 h-4" />
               </Link>

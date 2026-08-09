@@ -201,7 +201,7 @@ const MyProfileView = () => {
       {/* ── Sticky top bar ──────────────────────────────────────────── */}
       <div className="sticky top-0 z-30 bg-white/95 dark:bg-[#1a1f2e]/95 backdrop-blur-sm border-b border-neutral-100 dark:border-neutral-800 px-4 py-3">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <Link to="/dashboard" className="text-sm font-semibold text-neutral-500 hover:text-primary-500 transition-colors flex items-center gap-1.5 cursor-pointer">
+          <Link to="/dashboard" className="text-sm font-semibold text-neutral-500 hover:text-primary-500 transition-colors flex items-center gap-1.5 cursor-pointer py-2 px-2 -my-2 -mx-2">
             ← Dashboard
           </Link>
           <div className="flex items-center gap-2">

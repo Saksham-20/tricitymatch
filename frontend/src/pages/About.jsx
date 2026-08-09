@@ -39,7 +39,7 @@ export default function About() {
       {/* Hero */}
       <section className="px-4 pt-24 pb-16 md:pt-32 md:pb-20">
         <div className="max-w-5xl mx-auto">
-          <Link to="/" className="font-mono text-[11px] uppercase tracking-[0.16em] text-neutral-500 hover:text-primary-600 transition-colors mb-10 block w-fit">← Back to home</Link>
+          <Link to="/" className="font-mono text-[11px] uppercase tracking-[0.16em] text-neutral-500 hover:text-primary-600 transition-colors block w-fit py-2 px-2 -mx-2 -mt-2 mb-8">← Back to home</Link>
           <Eyebrow className="mb-5">● Our story · Tricity only · Founding community</Eyebrow>
           <h1 className="font-display text-4xl md:text-6xl font-bold leading-[1.05] text-neutral-900 max-w-3xl">
             Matrimony built for families,
@@ -80,8 +80,8 @@ export default function About() {
             </p>
             <p>
               Our intelligent matching considers compatibility, family background, education and lifestyle to suggest
-              the connections that actually lead somewhere. Every profile is photo-verified and human-reviewed before
-              it goes live, and every family is within driving distance.
+              the connections that actually lead somewhere. Verified badges are earned with a live selfie matched by
+              human review, and every family is within driving distance.
             </p>
           </div>
         </div>
