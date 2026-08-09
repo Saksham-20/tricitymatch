@@ -5,7 +5,7 @@
 
 const { body, param, query } = require('express-validator');
 const { PROFILE_STRIPPER_ALLOWLIST } = require('../constants/profileFields');
-const { PAID_PLANS } = require('../constants/plans');
+const { PURCHASABLE_PLANS } = require('../constants/plans');
 
 // Common validation helpers
 const isUUID = (field, location = 'param') => {
@@ -101,6 +101,18 @@ const signupValidation = [
       }
       return true;
     }),
+  // Member invite token (Phase S). Optional and non-blocking BY DESIGN: an
+  // invalid, forged or expired invite is silently ignored and the signup
+  // proceeds — it must never be a reason a real person cannot register. The
+  // controller re-validates the inviter against the DB; this only bounds the
+  // shape so a junk value never reaches a query.
+  // NOTE the param name: `invite`, NOT `ref` — `ref`/`referralCode` belong to
+  // the marketing referral flow and are honoured independently.
+  body('invite')
+    .optional({ checkFalsy: true })
+    .isString()
+    .isLength({ max: 128 })
+    .withMessage('Invalid invite link'),
 ];
 
 const loginValidation = [
@@ -496,10 +508,13 @@ const searchValidation = [
 
 // ==================== SUBSCRIPTION VALIDATORS ====================
 
+// PURCHASABLE_PLANS, not PAID_PLANS: `founding_premium` is a granted
+// entitlement with no price, so posting it here must 400 at validation rather
+// than reach Razorpay (which has no order for it) and 500.
 const createOrderValidation = [
   body('planType')
-    .isIn(PAID_PLANS)
-    .withMessage(`Plan type must be one of: ${PAID_PLANS.join(', ')}`),
+    .isIn(PURCHASABLE_PLANS)
+    .withMessage(`Plan type must be one of: ${PURCHASABLE_PLANS.join(', ')}`),
 ];
 
 const verifyPaymentValidation = [

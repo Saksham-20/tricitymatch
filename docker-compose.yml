@@ -132,6 +132,10 @@ services:
       BG_CHECK_PROVIDER: ${BG_CHECK_PROVIDER:-}
       BG_CHECK_API_KEY: ${BG_CHECK_API_KEY:-}
       BG_CHECK_API_SECRET: ${BG_CHECK_API_SECRET:-}
+      # Founding-member offer (Phase S). Unset = offer CLOSED, no grants fire.
+      # FOUNDING_PERIOD_ENDS is an ISO date; FOUNDING_MEMBER_CAP 0/unset = no cap.
+      FOUNDING_PERIOD_ENDS: ${FOUNDING_PERIOD_ENDS:-}
+      FOUNDING_MEMBER_CAP: ${FOUNDING_MEMBER_CAP:-}
       # Monitoring
       MONITORING_ENABLED: ${MONITORING_ENABLED:-true}
       ALERT_EMAILS: ${ALERT_EMAILS:-}

@@ -296,6 +296,29 @@ const config = {
     },
   },
 
+  // Founding-member offer (Phase S)
+  // The offer is CLOSED unless FOUNDING_PERIOD_ENDS is set to a future ISO date.
+  // Unset (the default) means no grant ever fires — the surfaces that promise a
+  // "free premium period" must stay dark until this is deliberately turned on.
+  founding: {
+    // ISO date/datetime string, e.g. 2026-10-31 or 2026-10-31T23:59:59+05:30.
+    // Doubles as the granted subscription's endDate, so the whole cohort expires
+    // together rather than each member 30 days after they happened to sign up.
+    endsAt: optionalString('FOUNDING_PERIOD_ENDS', ''),
+    // Optional hard cap on how many founding grants exist. 0 / unset = no cap.
+    memberCap: optionalNumber('FOUNDING_MEMBER_CAP', 0),
+    // Date half of the gate only. The member-count half needs a DB read, so the
+    // CALLER (utils/foundingGrant.js) checks it — this stays synchronous and
+    // dependency-free so any surface can ask "is the window open at all?".
+    isOpen: () => {
+      const raw = optionalString('FOUNDING_PERIOD_ENDS', '');
+      if (!raw) return false;
+      const ends = new Date(raw);
+      if (Number.isNaN(ends.getTime())) return false;
+      return ends.getTime() > Date.now();
+    },
+  },
+
   // Monitoring & Alerting
   monitoring: {
     enabled: optionalBoolean('MONITORING_ENABLED', true),

@@ -13,6 +13,7 @@ const { log } = require('../middlewares/logger');
 const { OAuth2Client } = require('google-auth-library');
 const smsService = require('../utils/smsService');
 const { trackEvent } = require('../utils/trackEvent');
+const { grantFoundingIfOpen } = require('../utils/foundingGrant');
 
 // Cookie configuration: use Secure only over HTTPS so cookies work when frontend is http://
 const useSecureCookies = config.isProduction && (config.server.frontendUrl || '').startsWith('https');
@@ -106,6 +107,9 @@ const clearAuthCookies = (res) => {
 exports.signup = asyncHandler(async (req, res) => {
   const { email, password, phone, firstName, lastName, gender, dateOfBirth, referralCode } = req.body;
   const codeFromQuery = req.query.ref || req.body.ref;
+  // Member invite (Phase S) — a DIFFERENT param from the marketing `ref` above.
+  // Both may be present on one signup and are honoured independently.
+  const inviteFromRequest = req.body.invite || req.query.invite;
 
   // Flexible auth: account is identified by EITHER an email OR a phone number.
   const normalizedEmail = email ? email.toLowerCase().trim() : null;
@@ -139,6 +143,27 @@ exports.signup = asyncHandler(async (req, res) => {
     }
   }
 
+  // Resolve the member invite AT SIGNUP, not just when the landing page rendered
+  // the inviter's name: the inviter may have been deleted or deactivated in
+  // between, and `invitedBy` must never point at a dead account. Any failure
+  // (unknown token, inactive inviter, DB hiccup) resolves to null and the signup
+  // proceeds normally — a forged invite is silently ignored, never an error.
+  let invitedBy = null;
+  if (inviteFromRequest) {
+    try {
+      const token = String(inviteFromRequest).trim();
+      if (/^[0-9a-f]{16,128}$/i.test(token)) {
+        const inviter = await User.findOne({
+          where: { inviteToken: token, status: 'active' },
+          attributes: ['id'],
+        });
+        if (inviter) invitedBy = inviter.id;
+      }
+    } catch (err) {
+      log.warn('Invite lookup failed at signup (ignored)', { error: err.message });
+    }
+  }
+
   // Consume the OTP-verified markers set by verify-otp so the account is stamped
   // verified at creation (proves the contact was confirmed, not client-trusted).
   let emailWasVerified = false;
@@ -166,6 +191,7 @@ exports.signup = asyncHandler(async (req, res) => {
         status: 'active',
         emailVerified: emailWasVerified,
         phoneVerified: phoneWasVerified,
+        invitedBy,
         ...(referralData && referralData)
       }, { transaction: t });
 
@@ -215,6 +241,18 @@ exports.signup = asyncHandler(async (req, res) => {
   // Funnel stage 3 — account-bound, so the partial unique index makes it
   // once-per-user on its own. Fire-and-forget: never awaited.
   trackEvent(result.id, 'account_created');
+  if (invitedBy) trackEvent(result.id, 'invited_signup');
+
+  // Founding-member grant (Phase S). Deliberately OUTSIDE the signup
+  // transaction: any error raised inside a Postgres transaction poisons it, so
+  // a failed grant in there would abort an otherwise-good signup at COMMIT —
+  // exactly the outcome grantFoundingIfOpen's swallow-everything contract
+  // exists to prevent. Awaited (not fire-and-forget) so the response below
+  // already reflects the granted plan in `subscriptionPlan`.
+  // This is the ONLY grant point for email signup, and it covers the guardian
+  // `create_for_other` flow too — that flow has no endpoint of its own, it
+  // posts to this same POST /auth/signup.
+  await grantFoundingIfOpen(result.id);
 
   // Send welcome email (non-blocking) — only when the account has an email
   if (result.email) {
@@ -879,6 +917,11 @@ exports.googleAuth = asyncHandler(async (req, res) => {
 
       // Same funnel stage 3 for the Google first-time signup path.
       trackEvent(user.id, 'account_created');
+
+      // …and the same founding grant. Leaving it off this path would mean two
+      // people signing up the same day get different entitlements purely by
+      // which button they pressed. Post-transaction + never-throws, as above.
+      await grantFoundingIfOpen(user.id);
 
       setImmediate(() => {
         sendWelcomeEmail(user.email, firstName || 'there')

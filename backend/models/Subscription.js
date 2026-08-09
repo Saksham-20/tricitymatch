@@ -16,7 +16,10 @@ const Subscription = sequelize.define('Subscription', {
     }
   },
   planType: {
-    type: DataTypes.ENUM('free', 'basic_premium', 'premium_plus', 'elite', 'vip', 'nri'),
+    // Keep in lockstep with the PG type `enum_Subscriptions_planType`
+    // (migrations 000044 elite/nri, 000048 founding_premium) and with
+    // constants/plans.js. `founding_premium` is granted, never purchased.
+    type: DataTypes.ENUM('free', 'basic_premium', 'premium_plus', 'elite', 'vip', 'nri', 'founding_premium'),
     defaultValue: 'free'
   },
   razorpayOrderId: {

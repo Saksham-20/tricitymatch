@@ -125,6 +125,17 @@ const contactLimiter = createRateLimiter({
   keyGenerator: (req) => ipKeyGenerator(req.ip),
 });
 
+// Public invite-resolve limiter (Phase S) — GET /invite/:token returns an
+// inviter's first name, so the budget is sized to stop the token space being
+// swept for valid links while staying invisible to a real invitee (who resolves
+// once per page load, plus retries).
+const inviteLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30, // 30 lookups per 15 min per IP
+  message: 'Too many invite lookups, please try again shortly',
+  keyGenerator: (req) => ipKeyGenerator(req.ip),
+});
+
 // OTP send/verify limiter — separate from auth limiter so OTP calls don't exhaust login pool
 const otpLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000, // 10 minutes
@@ -543,6 +554,7 @@ module.exports = {
   otpLimiter,
   signupLimiter,
   contactLimiter,
+  inviteLimiter,
   passwordResetLimiter,
   passwordResetSubmitLimiter,
   searchLimiter,

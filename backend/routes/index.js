@@ -15,6 +15,7 @@ const callRoutes = require('./callRoutes');
 const guardianRoutes = require('./guardianRoutes');
 const astrologerRoutes = require('./astrologerRoutes');
 const groupRoutes = require('./groupRoutes');
+const inviteRoutes = require('./inviteRoutes');
 const { getPublicSuccessStories } = require('../controllers/adminController');
 const { submitContact, submitSuccessStory } = require('../controllers/contactController');
 const { contactLimiter } = require('../middlewares/security');
@@ -44,6 +45,8 @@ router.use('/calls', callRoutes);
 router.use('/guardian', guardianRoutes);
 router.use('/astrologers', astrologerRoutes);
 router.use('/groups', groupRoutes);
+// Member invites — mixed: /invite/:token is public, /invite/my-link is authed
+router.use('/invite', inviteRoutes);
 
 module.exports = router;
 

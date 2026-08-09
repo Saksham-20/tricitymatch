@@ -6,7 +6,8 @@
 const { User, Profile, Subscription, Match, Verification, ProfileView, Report, ReferralCode, MarketingLead, SuccessStory, ContactMessage } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
-const { PAID_PLANS, ALL_PLANS, UNLIMITED_PLANS } = require('../constants/plans');
+const { PAID_PLANS, ALL_PLANS, UNLIMITED_PLANS, FOUNDING_PLAN, FOUNDING_CONTACT_UNLOCKS } = require('../constants/plans');
+const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { logAudit } = require('../middlewares/logger');
 const { generateInvoicePDF } = require('../utils/invoice');
@@ -239,7 +240,11 @@ exports.getAnalytics = asyncHandler(async (req, res) => {
     // Email-verified users
     User.count({ where: { role: 'user', emailVerified: true } }),
 
-    // Active premium subscribers
+    // Active premium subscribers.
+    // NOTE (Phase S): `founding_premium` is in PAID_PLANS, so founding grants
+    // are counted here — the number is "members with premium entitlements", not
+    // "members who paid". Revenue is unaffected (founding rows carry amount 0),
+    // and planDistribution below breaks the two apart.
     Subscription.count({
       where: {
         status: 'active',
@@ -492,6 +497,16 @@ exports.updateSubscription = asyncHandler(async (req, res) => {
     throw createError.badRequest(`planType must be one of: ${ALL_PLANS.join(', ')}`);
   }
 
+  // Founding grants may only be minted WHILE the founding window is open. After
+  // it closes the offer is retrospective ("founding families"), and an admin
+  // override is the one remaining way to mint a new founding row — so it is
+  // gated here rather than trusted.
+  if (planType === FOUNDING_PLAN && !config.founding.isOpen()) {
+    throw createError.badRequest(
+      'The founding-member period has closed — founding_premium can no longer be granted. Choose a paid plan instead.'
+    );
+  }
+
   const user = await User.findByPk(userId);
   if (!user) throw createError.notFound('User not found');
 
@@ -504,7 +519,17 @@ exports.updateSubscription = asyncHandler(async (req, res) => {
   const { getPlanDetails } = require('../utils/razorpay');
   const planDetails = getPlanDetails(planType);
 
-  const subEndDate = endDate ? new Date(endDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  const isFounding = planType === FOUNDING_PLAN;
+
+  // `founding_premium` has no entry in the razorpay PLANS map (it is granted,
+  // not priced), so planDetails is null for it. Without this branch the row
+  // would be created with contactUnlocksAllowed: null — which means UNLIMITED
+  // unlocks in middlewares/auth.js. Same explicit bundle as utils/foundingGrant.
+  const subEndDate = endDate
+    ? new Date(endDate)
+    : isFounding && config.founding.endsAt
+      ? new Date(config.founding.endsAt)
+      : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
   const subscription = await Subscription.create({
     userId,
@@ -513,7 +538,9 @@ exports.updateSubscription = asyncHandler(async (req, res) => {
     startDate: startDate ? new Date(startDate) : new Date(),
     endDate: subEndDate,
     amount: planDetails ? planDetails.amount / 100 : 0,
-    contactUnlocksAllowed: planDetails ? planDetails.contactUnlocks : null,
+    contactUnlocksAllowed: isFounding
+      ? FOUNDING_CONTACT_UNLOCKS
+      : (planDetails ? planDetails.contactUnlocks : null),
     contactUnlocksUsed: 0,
   });
 
@@ -523,6 +550,12 @@ exports.updateSubscription = asyncHandler(async (req, res) => {
       { isBoosted: true, boostExpiresAt: subEndDate },
       { where: { id: userId } }
     );
+  }
+
+  // Founding-ness is a User fact that outlives the row (upgrade supersedes it,
+  // the cohort expires together), so stamp it here as the grant util does.
+  if (isFounding && status === 'active') {
+    await User.update({ isFoundingMember: true }, { where: { id: userId } });
   }
 
   logAudit('subscription_overridden', req.user.id, { userId, planType, status });

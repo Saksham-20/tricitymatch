@@ -6,7 +6,7 @@
 const { Subscription, User, Profile, MarketingLead, UnlockPurchase } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
-const { PAID_PLANS, UNLIMITED_PLANS, TIER_RANK } = require('../constants/plans');
+const { PURCHASABLE_PLANS, UNLIMITED_PLANS, TIER_RANK } = require('../constants/plans');
 const {
   createOrder: razorpayCreateOrder,
   verifyPayment: razorpayVerifyPayment,
@@ -34,8 +34,11 @@ exports.createOrder = asyncHandler(async (req, res) => {
     throw createError.internal('Payment gateway is not configured');
   }
 
-  // Validate plan type
-  if (!PAID_PLANS.includes(planType)) {
+  // Validate plan type against the PURCHASABLE list (createOrderValidation
+  // already rejects the rest; this is the defence-in-depth copy). Using
+  // PAID_PLANS here would let `founding_premium` — a granted, priceless tier —
+  // through to Razorpay, which has no order for it.
+  if (!PURCHASABLE_PLANS.includes(planType)) {
     throw createError.badRequest('Invalid plan type');
   }
 

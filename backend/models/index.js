@@ -132,6 +132,13 @@ UnlockPurchase.belongsTo(User, { foreignKey: 'userId' });
 // so events are not a child collection of a user. CASCADE lives on the FK.
 AnalyticsEvent.belongsTo(User, { foreignKey: 'userId' });
 
+// Member invites (Phase S). Self-referencing: `invitedBy` points at the member
+// whose invite link was used. ON DELETE SET NULL lives on the FK (migration
+// 000048) — deleting an inviter orphans the edge, it never cascades away the
+// invitee's account.
+User.belongsTo(User, { foreignKey: 'invitedBy', as: 'Inviter' });
+User.hasMany(User, { foreignKey: 'invitedBy', as: 'InvitedUsers' });
+
 module.exports = {
   sequelize,
   User,

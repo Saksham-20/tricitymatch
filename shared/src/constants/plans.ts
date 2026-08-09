@@ -15,6 +15,25 @@ export const PLANS: Record<SubscriptionPlanType, PlanFeatures> = {
     hasRelationshipManager: false,
     interestsLimit: 5,
   },
+  // Founding-member grant (Phase S). Never sold — `price: 0` and deliberately
+  // absent from PLAN_ORDER, so it can never render as a purchasable card.
+  // Capabilities mirror basic_premium exactly (including 5 contact unlocks:
+  // the backend writes that number explicitly on the granted row because a
+  // null there would mean UNLIMITED).
+  founding_premium: {
+    planType: 'founding_premium',
+    label: 'Founding Premium',
+    price: 0,
+    durationDays: null,
+    contactUnlocks: 5,
+    canChat: true,
+    canSeeWhoLikedMe: true,
+    canMakeVoiceVideoCalls: false,
+    canUseAdvancedFilters: false,
+    canBoostProfile: false,
+    hasRelationshipManager: false,
+    interestsLimit: null,
+  },
   basic_premium: {
     planType: 'basic_premium',
     label: 'Basic',
@@ -99,8 +118,12 @@ export const PLANS: Record<SubscriptionPlanType, PlanFeatures> = {
   },
 };
 
-// Linear upgrade ladder. `nri` sits at the end (parallel premium tier — it has
+// Linear upgrade ladder AND the purchase-UI enumeration (mobile maps over it to
+// render plan cards). `nri` sits at the end (parallel premium tier — it has
 // every VIP capability, so isPlanAtLeast against any non-nri requirement passes).
+// `founding_premium` is deliberately EXCLUDED: it is granted, never purchasable,
+// and listing it here would render a ₹0 plan card. Read its capabilities from
+// PLANS directly rather than through isPlanAtLeast.
 export const PLAN_ORDER: SubscriptionPlanType[] = [
   'free', 'basic_premium', 'premium_plus', 'elite', 'vip', 'nri',
 ];
