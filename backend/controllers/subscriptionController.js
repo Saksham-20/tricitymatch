@@ -6,7 +6,12 @@
 const { Subscription, User, Profile, MarketingLead, UnlockPurchase } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
-const { PURCHASABLE_PLANS, UNLIMITED_PLANS, TIER_RANK } = require('../constants/plans');
+const {
+  PURCHASABLE_PLANS,
+  UNLIMITED_PLANS,
+  TIER_RANK,
+  FOUNDING_CONTACT_UNLOCKS,
+} = require('../constants/plans');
 const {
   createOrder: razorpayCreateOrder,
   verifyPayment: razorpayVerifyPayment,
@@ -393,6 +398,18 @@ exports.getPlans = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     plans,
+    // Public founding-window state (Phase S). This is the ONLY public source of
+    // truth for "may a surface promise a free premium period?" — the landing
+    // band, the city pages and the signup kicker all read it and default to
+    // CLOSED. Fail-closed matters: `FOUNDING_PERIOD_ENDS` unset means no grant
+    // ever fires (utils/foundingGrant.js), so a surface that assumed "open"
+    // would promise an entitlement nobody receives. `contactUnlocks` is echoed
+    // so the copy can name the real cap instead of hand-waving "premium".
+    founding: {
+      open: config.founding.isOpen(),
+      endsAt: config.founding.isOpen() ? config.founding.endsAt : null,
+      contactUnlocks: FOUNDING_CONTACT_UNLOCKS,
+    },
   });
 });
 

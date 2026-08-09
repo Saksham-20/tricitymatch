@@ -8,6 +8,7 @@ import {
 } from 'react-icons/fi';
 import { FaInstagram, FaFacebook, FaTwitter, FaWhatsapp } from 'react-icons/fa';
 import api from '../api/axios';
+import useFoundingWindow from '../hooks/useFoundingWindow';
 
 /* Testimonials come ONLY from published admin success stories — the section is
    hidden until at least one real story exists. Never seed fabricated couples. */
@@ -62,6 +63,15 @@ const FontLoader = () => (
     body.cur-dk .cur-ring { border-color: var(--cream); }
     body.cur-hov .cur-ring { width: 64px; height: 64px; background: rgba(124,29,58,.08); }
     @media (max-width: 900px) { .cur-dot, .cur-ring { display: none; } }
+
+    /* ── Headings on dark panels ──
+       index.css colours h1/h2/h3 with an ELEMENT rule, which beats the inherited
+       light colour a dark section sets on its container. Two headlines on this
+       page rendered near-black on near-black because of it (the founding band
+       and the closing CTA). Scoping inherit to this page's dark sections fixes
+       both and stops the next one; a heading with its own inline colour wins. */
+    .section-dark h1, .section-dark h2, .section-dark h3,
+    footer h1, footer h2, footer h3 { color: inherit; }
 
     /* ── Scroll progress bar ── */
     .scroll-bar {
@@ -175,9 +185,10 @@ const FontLoader = () => (
       .footer-grid-inner { grid-template-columns: 1fr 1fr !important; padding: 32px 20px !important; }
       .footer-mega-inner { padding: 32px 20px 20px !important; }
       .footer-bottom-inner { padding: 20px 20px 0 !important; flex-direction: column !important; align-items: flex-start !important; gap: 8px !important; }
-      /* Trust strip: 2x2 metrics, stacked badges/momentum */
-      .trust-strip-section { padding: 28px 16px 0 !important; }
-      .ts-metrics-row { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 20px !important; }
+      /* Founding band: single column, pledge rule moves from left edge to top */
+      .trust-strip-section { padding: 32px 16px 0 !important; }
+      .founding-band { grid-template-columns: 1fr !important; gap: 28px !important; }
+      .founding-pledges { border-left: none !important; border-top: 1px solid var(--line-on-dk) !important; padding-left: 0 !important; padding-top: 26px !important; }
       .ts-badges-row, .ts-momentum-row { flex-direction: column !important; gap: 8px !important; text-align: center !important; }
       .tsm-sep { display: none !important; }
       /* Parents */
@@ -325,6 +336,13 @@ const Home = () => {
   const [stories, setStories]             = useState([]);
   const [faqOpen, setFaqOpen]             = useState(-1);
   const [announcementOn, setAnnouncementOn] = useState(true);
+
+  // Fail-closed: until the server confirms the window is open, the band shows
+  // the weaker copy that is true regardless (see the FOUNDING BAND section).
+  const founding = useFoundingWindow();
+  const foundingEndsLabel = founding.endsAt
+    ? new Date(founding.endsAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
+    : '';
 
   const { scrollYProgress } = useScroll();
   const progressScaleX = useTransform(scrollYProgress, [0, 1], [0, 1]);
@@ -590,6 +608,9 @@ const Home = () => {
               animation: 'drift-front 12s ease-in-out infinite',
               zIndex: 2,
             }}>
+              {/* eslint-disable-next-line react/no-unknown-property -- React 18.2 drops the
+                  camelCase `fetchPriority` prop with a warning; the lowercase DOM
+                  attribute is what actually reaches the browser on this version. */}
               <img src="/images/landing/profile-priya.jpg" alt="Priya Sharma" fetchpriority="high" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 50%,rgba(0,0,0,.55))' }} />
               <span style={{ position: 'absolute', top: 14, right: 14, fontFamily: 'var(--display)', fontSize: 36, lineHeight: 1, color: 'var(--cream)', zIndex: 3, fontStyle: 'italic' }}>97<small style={{ fontSize: 16, opacity: .7 }}>%</small></span>
@@ -630,19 +651,77 @@ const Home = () => {
       </section>
 
       {/* ════════════════════════════════════════════════════════
-          TRUST STRIP — metrics + safety badges + momentum ticker
+          FOUNDING BAND — the old stats-band slot (Phase S, F2/F10)
+
+          Trust register, in order: exclusivity → verification specificity →
+          hyperlocality. Community/family language, never SaaS growth-speak, and
+          no number anywhere: the band that replaced fabricated metrics must not
+          smuggle new ones in.
+
+          The stronger claim (a free premium PERIOD) renders ONLY while the
+          server says the founding window is open — `useFoundingWindow` is
+          fail-closed, so a failed/slow lookup shows the weaker, always-true copy
+          rather than promising an entitlement the grant would not issue.
       ════════════════════════════════════════════════════════ */}
-      <section className="trust-strip-section section-dark" style={{ background: 'var(--ink)', color: 'var(--cream)', padding: '40px 40px 0', position: 'relative', overflow: 'hidden' }}>
+      <section className="trust-strip-section section-dark" style={{ background: 'var(--ink)', color: 'var(--cream)', padding: '56px 40px 0', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 120%, rgba(124,29,58,.55), transparent 60%)' }} />
-        <div className="ts-metrics-row" style={{ position: 'relative', maxWidth: 1280, margin: '0 auto', textAlign: 'center', paddingBottom: 32 }}>
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--gold-text)', display: 'block', marginBottom: 18 }}>— Founding members</span>
-          <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(26px,3.4vw,48px)', lineHeight: 1.08, letterSpacing: '-.02em', maxWidth: 860, margin: '0 auto' }}>
-            Tricity's newest, most carefully verified matchmaking community — <em style={{ fontStyle: 'italic', color: 'var(--gold)' }}>founding members join free.</em>
-          </h2>
-          <p style={{ fontSize: 14, lineHeight: 1.6, color: 'rgba(253,248,242,.7)', fontFamily: 'var(--sans)', maxWidth: 560, margin: '16px auto 0' }}>
-            We're starting the honest way: no inflated numbers, every verified badge earned with a live selfie, and matchmaking that stays inside Chandigarh, Mohali and Panchkula.
-          </p>
+
+        <div className="founding-band" style={{
+          position: 'relative', maxWidth: 1280, margin: '0 auto',
+          display: 'grid', gridTemplateColumns: '7fr 5fr', gap: 56, paddingBottom: 40, alignItems: 'center',
+        }}>
+          {/* Left — the claim */}
+          <div>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.22em', textTransform: 'uppercase', color: 'var(--gold-text)', display: 'block', marginBottom: 20 }}>— Founding members</span>
+            <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(28px,3.6vw,48px)', lineHeight: 1.1, letterSpacing: '-.02em', margin: 0 }}>
+              Tricity's newest, most carefully verified matchmaking community — {founding.open
+                ? <em style={{ fontStyle: 'italic', color: 'var(--gold)' }}>founding members join free.</em>
+                : <em style={{ fontStyle: 'italic', color: 'var(--gold)' }}>built family-first.</em>}
+            </h2>
+            <p style={{ fontSize: 15, lineHeight: 1.65, color: 'rgba(253,248,242,.72)', fontFamily: 'var(--sans)', maxWidth: '34em', margin: '18px 0 28px' }}>
+              We&apos;re starting the honest way: no inflated numbers, every verified badge earned with a
+              live selfie, and matchmaking that stays inside Chandigarh, Mohali and Panchkula.
+              {founding.open
+                ? ` Founding members get full membership free until ${foundingEndsLabel} — including ${founding.contactUnlocks} contact unlocks.`
+                : ' Founding members join free and shape what this becomes.'}
+            </p>
+            <Link to="/onboarding" style={{
+              display: 'inline-flex', alignItems: 'center', gap: 10,
+              padding: '14px 28px', borderRadius: 999,
+              background: 'var(--cream)', color: 'var(--ink)',
+              fontSize: 14, fontWeight: 500, fontFamily: 'var(--sans)',
+              textDecoration: 'none', transition: 'all .3s cubic-bezier(.2,.8,.2,1)',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 16px 40px -12px rgba(0,0,0,.5)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+            >Become a founding member <FiArrowRight /></Link>
+            <p style={{ fontFamily: 'var(--sans)', fontSize: 13, color: 'rgba(253,248,242,.55)', marginTop: 14 }}>
+              {founding.open ? 'Free during the founding period' : 'Free to join'} · Photo-verified profiles · Local, family-first
+            </p>
+          </div>
+
+          {/* Right — the pledge column */}
+          <div className="founding-pledges" style={{
+            borderLeft: '1px solid var(--line-on-dk)', paddingLeft: 56,
+            display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 26,
+          }}>
+            {[
+              ['Verified, not vast', 'A smaller circle where every profile has been seen by a person.'],
+              ['Tricity only', 'Matches you can actually meet — same city, same community.'],
+              ['Families welcome', 'Parents and guardians take part, the way Tricity actually matches.'],
+            ].map(([title, body]) => (
+              <div key={title} style={{ display: 'flex', gap: 14, alignItems: 'baseline' }}>
+                <span aria-hidden="true" style={{ width: 22, height: 2, background: 'var(--gold)', flex: 'none', transform: 'translateY(-4px)' }} />
+                <div>
+                  <b style={{ display: 'block', fontFamily: 'var(--sans)', fontSize: 14, fontWeight: 600, letterSpacing: '.02em' }}>{title}</b>
+                  <span style={{ fontFamily: 'var(--sans)', fontSize: 13, lineHeight: 1.55, color: 'rgba(253,248,242,.68)' }}>{body}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
+
+        {/* Safety facts kept as a quiet footer line — true, specific, unpromoted */}
         <div className="ts-badges-row" style={{ position: 'relative', borderTop: '1px solid var(--line-on-dk)', maxWidth: 1280, margin: '0 auto', display: 'flex', justifyContent: 'space-between', gap: 16, padding: '18px 0 22px', flexWrap: 'wrap' }}>
           {[
             '◉ Photo-verified badge earned with a live selfie',
@@ -1306,7 +1385,7 @@ const Home = () => {
         </div>
 
         {/* Grid */}
-        <div className="footer-grid-inner" style={{ padding: '36px 48px', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 36, borderBottom: '1px solid var(--line-on-dk)' }}>
+        <div className="footer-grid-inner" style={{ padding: '36px 48px', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', gap: 36, borderBottom: '1px solid var(--line-on-dk)' }}>
           <div>
             <div style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--gold-text)', marginBottom: 20 }}>Chandigarh · Mohali · Panchkula</div>
             <p style={{ fontSize: 14, color: 'rgba(253,248,242,.7)', lineHeight: 1.55, maxWidth: 320, fontFamily: 'var(--sans)', marginBottom: 24 }}>
@@ -1329,6 +1408,10 @@ const Home = () => {
           </div>
           {[
             { title: 'Platform', links: [['Browse Profiles', '/search'], ['How It Works', '/#why'], ['Pricing Plans', '/subscription'], ['Success Stories', '/#stories'], ['Create Profile', '/onboarding']] },
+            // Cities: the crawl path into the city landing pages. Without a real
+            // internal link, /matrimony/* is sitemap-only — discoverable in
+            // theory, orphaned in practice.
+            { title: 'Cities',   links: [['Matrimony in Chandigarh', '/matrimony/chandigarh'], ['Matrimony in Mohali', '/matrimony/mohali'], ['Matrimony in Panchkula', '/matrimony/panchkula']] },
             { title: 'Company',  links: [['About Us', '/about'], ['Contact', '/contact'], ['Safety Centre', '/safety'], ['Privacy Policy', '/privacy'], ['Terms of Service', '/terms']] },
             { title: 'Contact',  links: [['support@tricitymatch.com', null], ['+91 98765 43210', null], ['Sector 17, Chandigarh', null]] },
           ].map(col => (

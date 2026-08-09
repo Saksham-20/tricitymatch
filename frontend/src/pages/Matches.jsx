@@ -6,6 +6,7 @@ import { FaCrown } from 'react-icons/fa';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 import { ProfileCard } from '../components/cards';
+import InviteLink from '../components/common/InviteLink';
 import SectionHeader from '../components/common/SectionHeader';
 
 // Each tab maps to a match endpoint + the response key it returns.
@@ -16,7 +17,11 @@ const TABS = [
     icon: FiBookmark,
     endpoint: '/match/shortlist',
     respKey: 'shortlisted',
-    empty: { title: 'Nothing saved yet', line: 'Tap the bookmark on a profile to save it here for later.' },
+    empty: {
+      title: 'Nothing saved yet',
+      line: 'Tap the bookmark on a profile to save it here for later.',
+      supply: 'We\u2019re verifying new Tricity members by hand every week, so this list grows as the community does.',
+    },
   },
   {
     id: 'mutual',
@@ -24,7 +29,11 @@ const TABS = [
     icon: FiUsers,
     endpoint: '/match/mutual',
     respKey: 'mutualMatches',
-    empty: { title: 'No mutual matches yet', line: 'When you and someone both express interest, they show up here.' },
+    empty: {
+      title: 'No mutual matches yet',
+      line: 'When you and someone both express interest, they show up here.',
+      supply: 'A mutual match needs two people. The surest way to get one is to bring someone you already trust into the circle.',
+    },
   },
   {
     id: 'likes',
@@ -33,7 +42,11 @@ const TABS = [
     endpoint: '/match/likes',
     respKey: 'likes',
     premium: true,
-    empty: { title: 'No interests received yet', line: 'Members who like you will appear here.' },
+    empty: {
+      title: 'No interests received yet',
+      line: 'Members who like you will appear here.',
+      supply: 'A complete, photo-verified profile gets seen first \u2014 and the more Tricity families here, the more eyes on yours.',
+    },
   },
 ];
 
@@ -179,13 +192,21 @@ export default function Matches() {
               {tab?.icon ? React.createElement(tab.icon, { className: 'w-7 h-7 text-primary-300' }) : null}
             </div>
             <h3 className="text-lg font-bold text-neutral-800 dark:text-neutral-100 mb-1">{tab?.empty.title}</h3>
-            <p className="text-sm text-neutral-500 max-w-sm mb-5">{tab?.empty.line}</p>
-            <Link
-              to="/search"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-500 text-white rounded-xl text-sm font-semibold hover:bg-primary-600"
-            >
-              <FiSearch className="w-4 h-4" /> Discover profiles
-            </Link>
+            <p className="text-sm text-neutral-500 max-w-sm mb-2">{tab?.empty.line}</p>
+            {/* Supply-aware second line (Phase S, E3): every one of these tabs is
+                empty for the SAME underlying reason early on — not enough members
+                yet. Naming it (and offering the invite) beats a dead end that
+                implies the member did something wrong. */}
+            <p className="text-sm text-neutral-500 max-w-sm mb-5">{tab?.empty.supply}</p>
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              <Link
+                to="/search"
+                className="inline-flex items-center gap-2 min-h-[44px] px-5 bg-primary-500 text-white rounded-xl text-sm font-semibold hover:bg-primary-600"
+              >
+                <FiSearch className="w-4 h-4" /> Discover profiles
+              </Link>
+              <InviteLink variant="inline" />
+            </div>
           </div>
         )}
 

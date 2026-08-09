@@ -36,7 +36,13 @@ import { chromium } from '@playwright/test';
 const MIN_HIT = 24; // WCAG 2.5.8 AA floor — hard gate
 const PRIMARY_MIN = 44; // WCAG 2.5.5 AAA / HIG — reported as WARN
 
-const PUBLIC_ROUTES = ['/', '/about', '/contact', '/safety', '/success-stories', '/login', '/terms', '/privacy'];
+const PUBLIC_ROUTES = [
+  '/', '/about', '/contact', '/safety', '/success-stories', '/login', '/terms', '/privacy',
+  // City landing pages (Phase S). One template, so probing one instance would
+  // cover the layout — all three are listed because they are indexed URLs and a
+  // regression on any of them is a regression on a page Google sends people to.
+  '/matrimony/chandigarh', '/matrimony/mohali', '/matrimony/panchkula',
+];
 const MEMBER_ROUTES = ['/dashboard', '/settings', '/search', '/matches', '/profile', '/notifications', '/subscription'];
 
 const argv = process.argv.slice(2);

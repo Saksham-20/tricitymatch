@@ -5,10 +5,19 @@ import Seo from './components/common/Seo';
 import lazyWithRetry from './utils/lazyWithRetry';
 const lazy = lazyWithRetry;
 
+// /signup is an alias for /onboarding. Forward BOTH acquisition params: `ref`
+// (marketing referral codes) and `invite` (member invite tokens, Phase S) —
+// dropping either here silently breaks attribution for anyone who shared a
+// /signup URL.
 const SignupRedirect = () => {
   const [searchParams] = useSearchParams();
-  const ref = searchParams.get('ref');
-  return <Navigate to={ref ? `/onboarding?ref=${ref}` : '/onboarding'} replace />;
+  const forwarded = new URLSearchParams();
+  for (const key of ['ref', 'invite']) {
+    const value = searchParams.get(key);
+    if (value) forwarded.set(key, value);
+  }
+  const qs = forwarded.toString();
+  return <Navigate to={qs ? `/onboarding?${qs}` : '/onboarding'} replace />;
 };
 import { Toaster } from 'react-hot-toast';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
@@ -41,6 +50,7 @@ const About = lazy(() => import('./pages/About'));
 const Contact = lazy(() => import('./pages/Contact'));
 const Safety = lazy(() => import('./pages/Safety'));
 const SuccessStories = lazy(() => import('./pages/SuccessStories'));
+const CityMatrimony = lazy(() => import('./pages/CityMatrimony'));
 
 // Modern Profile Editor (new)
 const ModernProfileEditor = lazy(() => import('./pages/ModernProfileEditor'));
@@ -177,6 +187,14 @@ const AnimatedRoutes = () => {
           <Route path="/success-stories" element={
             <PageTransition>
               <SuccessStories />
+            </PageTransition>
+          } />
+          {/* City landing pages (Phase S). One template, three content instances.
+              These URLs are in sitemap.xml — do not rename them. An unknown city
+              slug redirects home inside the page rather than 404-ing. */}
+          <Route path="/matrimony/:city" element={
+            <PageTransition>
+              <CityMatrimony />
             </PageTransition>
           } />
 

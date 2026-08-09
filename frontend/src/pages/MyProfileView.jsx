@@ -16,6 +16,8 @@ import { getImageUrl } from '../utils/cloudinary';
 import { sanitizeText, sanitizeUrl } from '../utils/sanitize';
 import { toProfileCode } from '../utils/profileCode';
 import VideoIntroManager from '../components/profile/VideoIntroManager';
+import FoundingBadge from '../components/common/FoundingBadge';
+import { useAuth } from '../context/AuthContext';
 import { ImageLightbox } from '../components/ui/ImageLightbox';
 import { friendlyLabel, formatEnum } from '../constants/profileOptions';
 
@@ -102,6 +104,7 @@ const EditBtn = ({ to, small }) => (
 
 // ─────────────────────────────────────────────────────────────────────────────
 const MyProfileView = () => {
+  const { user: authUser } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [lightbox, setLightbox] = useState({ open: false, src: null, alt: '' });
@@ -280,6 +283,10 @@ const MyProfileView = () => {
                           <span className="text-[11px] font-bold text-success">Verified</span>
                         </div>
                       )}
+                      {/* Reads off the account (Users.isFoundingMember), not the
+                          subscription row — the row is superseded on upgrade and
+                          expires with the cohort; the badge is meant to outlive both. */}
+                      <FoundingBadge user={authUser} size="xs" />
                       {profileCode && (
                         <button
                           type="button"

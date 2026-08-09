@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useOnboarding, STEPS, OnboardingProvider } from '../context/OnboardingContext';
 import { useAuth } from '../context/AuthContext';
+import { resolveInvite } from '../api/invite';
 import api from '../api/axios';
 import { buildProfileFormData } from '../utils/profileSubmit';
 import { calculateAge } from '../utils/validators';
@@ -95,6 +96,12 @@ const ModernOnboardingContent = () => {
   const [accountCreated, setAccountCreated] = useState(false);
   const [completionPercentage, setCompletionPercentage] = useState(0);
   const referralCodeParam = searchParams.get('ref');
+  // Member invite (Phase S) — a DIFFERENT param from the marketing `ref` above,
+  // and deliberately NOT stored in the onboarding draft: it belongs to this
+  // arrival, not to a draft someone resumes days later from a plain /onboarding.
+  // Both may be present and are honoured independently by the backend.
+  const inviteParam = searchParams.get('invite');
+  const [inviterName, setInviterName] = useState('');
   // On a real step transition, move focus to the new step's heading (after the
   // enter animation settles) so keyboard + screen-reader users land in context
   // and Tab straight into the first field. Not on initial mount — step 0 has an
@@ -132,6 +139,17 @@ const ModernOnboardingContent = () => {
       updateFormData('referralCode', referralCodeParam);
     }
   }, [referralCodeParam]);
+
+  // Resolve the invite to a first name for display only. `resolveInvite` never
+  // rejects — every failure returns null and leaves the kicker unrendered.
+  useEffect(() => {
+    if (!inviteParam) return undefined;
+    let alive = true;
+    resolveInvite(inviteParam).then((invite) => {
+      if (alive && invite?.firstName) setInviterName(invite.firstName);
+    });
+    return () => { alive = false; };
+  }, [inviteParam]);
 
   const handleQuit = () => {
     setShowQuitDialog(true);
@@ -194,6 +212,11 @@ const ModernOnboardingContent = () => {
       // ── 1. Create the account (skipped on Retry once it already exists) ──
       if (!accountCreated) {
         const signupData = { ...formData };
+        // The raw token, not the resolved name: the server re-validates it at
+        // signup time (the inviter may have been deleted since the page loaded),
+        // and sends it even when the kicker never rendered — a token that failed
+        // to RESOLVE (rate limit, transient 500) may still be perfectly valid.
+        if (inviteParam) signupData.invite = inviteParam;
         if (signupData.phone) signupData.phone = String(signupData.phone).replace(/[\s-]/g, '');
         if (!signupData.email) delete signupData.email; // phone-only signup
         const result = await signup(signupData);
@@ -437,6 +460,29 @@ const ModernOnboardingContent = () => {
               brands the page and links to login; the duplicated chrome cost
               ~150px before the form appeared on a phone. The exit ✕ lives
               inline in the progress row (an absolute one collided with it). */}
+
+          {/* Invite kicker (Phase S, F4) — an invited arrival should see WHO sent
+              them before anything else. Renders only on the first step, only in
+              self-signup, and only once the token actually resolved: an unknown,
+              revoked or rate-limited token folds into "absent" and this whole
+              block silently does not exist. A forged link never blocks signup. */}
+          {mode === 'signup' && currentStep === 0 && inviteParam && inviterName && (
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-5 flex items-center gap-3 rounded-2xl border border-primary-100 bg-primary-50/60 dark:bg-primary-900/20 dark:border-primary-900/40 px-4 py-3"
+            >
+              <span className="w-9 h-9 rounded-full bg-primary-100 text-primary-700 font-display font-semibold flex items-center justify-center flex-shrink-0">
+                {inviterName.charAt(0).toUpperCase()}
+              </span>
+              <p className="text-sm text-neutral-800 dark:text-neutral-200">
+                <span className="font-semibold">{inviterName}</span> invited you to TricityMatch
+                <span className="block text-xs text-neutral-600 dark:text-neutral-400 mt-0.5">
+                  Create your profile to see who they think you should meet.
+                </span>
+              </p>
+            </motion.div>
+          )}
 
           {/* Progress bar - Mobile (desktop uses the left rail stepper) */}
           <motion.div className="lg:hidden mb-6">

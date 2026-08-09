@@ -13,6 +13,7 @@ import useDarkMode from '../hooks/useDarkMode';
 import useElderMode from '../hooks/useElderMode';
 import LanguageSwitcher from '../components/common/LanguageSwitcher';
 import LiveSelfieCapture from '../components/verification/LiveSelfieCapture';
+import InviteLink from '../components/common/InviteLink';
 
 const TABS = [
   { id: 'account',       label: 'Account',      icon: FiUser,          desc: 'Password & appearance' },
@@ -352,6 +353,13 @@ const AccountTab = () => {
 
   return (
     <div className="space-y-8">
+      <div>
+        <SectionHeader title="Invite" desc="Bring someone you'd vouch for into the community" />
+        <div className="rounded-2xl border border-neutral-100 dark:border-neutral-800 px-4 max-w-xl">
+          <InviteLink variant="row" />
+        </div>
+      </div>
+
       <div>
         <SectionHeader title="Appearance" desc="Customize how TricityMatch looks for you" />
         <div className="rounded-2xl border border-neutral-100 divide-y divide-neutral-100 overflow-hidden max-w-sm">

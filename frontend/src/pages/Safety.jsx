@@ -14,7 +14,7 @@ const PILLARS = [
     icon: FiShield,
     n: '01',
     t: 'Profile verification',
-    body: 'Every profile passes selfie verification — a live photo matched to their profile pictures by our safety team — before going live. Verified profiles display a badge and receive 3× more responses — always prefer them when connecting.',
+    body: 'The verified badge is earned, not assumed: a member captures a live selfie in-app, and our safety team matches it to their profile pictures by hand. Verified profiles carry the badge and can be filtered for — always prefer them when connecting.',
     points: [],
   },
   {

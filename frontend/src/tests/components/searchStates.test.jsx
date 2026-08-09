@@ -36,14 +36,14 @@ describe('Search error vs empty', () => {
 
     await waitFor(() => expect(screen.getByText(/something went wrong/i)).toBeInTheDocument());
     expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument();
-    expect(screen.queryByText(/no profiles found/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/the circle is still small/i)).not.toBeInTheDocument();
   });
 
   it('renders the empty card on 404 (backend "no results"), not the error card', async () => {
     api.get.mockRejectedValue(Object.assign(new Error('none'), { response: { status: 404 } }));
     renderSearch();
 
-    await waitFor(() => expect(screen.getByText(/no profiles found/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/the circle is still small/i)).toBeInTheDocument());
     expect(screen.queryByText(/something went wrong/i)).not.toBeInTheDocument();
   });
 
@@ -51,7 +51,7 @@ describe('Search error vs empty', () => {
     api.get.mockResolvedValue({ data: { profiles: [], pagination: { page: 1, pages: 1, total: 0 } } });
     renderSearch();
 
-    await waitFor(() => expect(screen.getByText(/no profiles found/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/the circle is still small/i)).toBeInTheDocument());
     expect(screen.queryByText(/something went wrong/i)).not.toBeInTheDocument();
   });
 
