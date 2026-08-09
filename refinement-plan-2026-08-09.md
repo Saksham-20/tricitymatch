@@ -85,11 +85,11 @@ Both outside voices called the original spec false precision at current traffic.
 measurement self-hosted (DPDP posture) without dashboard/ingest infrastructure — read by SQL until
 traffic earns a UI (~2-3 hrs total):
 
-- [ ] **Event table** — migration `AnalyticsEvents (id, eventType STRING(32) app-validated —
+- [x] **Event table** — migration `AnalyticsEvents (id, eventType STRING(32) app-validated —
       NOT a PG ENUM: Phase S already adds `invited_signup`, and ALTER TYPE ADD VALUE migrations
       are irreversible friction for an internal table — userId NULLABLE FK, createdAt)` + btree
       on (eventType, createdAt). No metadata blob.
-- [ ] **Five SERVER-SIDE emissions (semantics corrected by eng review — both voices):**
+- [x] **Five SERVER-SIDE emissions (semantics corrected by eng review — both voices):**
       `send-otp`/`verify-otp` run PRE-account in the 2-step signup (`authController.js:713/:756`),
       so those rows have `userId NULL` and Postgres unique indexes treat NULLs as distinct — no
       dedupe possible without storing contact data. Decision: the two pre-account events are
@@ -101,14 +101,19 @@ traffic earns a UI (~2-3 hrs total):
       `profileController.js:~330`) so the crossing is detectable.
       All via ONE `trackEvent(userId, type)` util — fire-and-forget: never awaited on the
       response path, failures `log.warn`ed; an analytics insert must never 500 a signup.
-- [ ] **Read path = SQL**, committed as `scripts/funnel-report.sql` (stage counts +
+- [x] **Read path = SQL**, committed as `scripts/funnel-report.sql` (stage counts +
       week-over-week; comments document: pre-account counters are inflated by resends, and
       account deletion CASCADE rewrites history retroactively — acceptable, DPDP-first).
-- [ ] **Privacy bounds**: no metadata stored at all; `userId` FK ON DELETE CASCADE.
-- [ ] **Unit tests**: emission points fire (test awaits the flushed fire-and-forget promise —
+- [x] **Privacy bounds**: no metadata stored at all; `userId` FK ON DELETE CASCADE.
+- [x] **Unit tests**: emission points fire (test awaits the flushed fire-and-forget promise —
       not a vacuous pass); duplicate suppression on repeated profile-save/match actions;
       NULL-userId rows accepted for the two counters; insert failure swallowed + logged.
 - CUT (build when >100 signups/week): client ingest route, admin funnel card, retention queue.
+
+**PHASE 0.5 COMPLETE — 2026-08-09** (Opus agent, gated + deployed; commit a6d8364; prod migration
+000047 applied on boot). Emission semantics proven at util+DB layer (live dedupe smoke: 2 raw
+counter rows kept, account-bound rows collapse to 1; reversibility tested). Full HTTP walkthrough
+deferred to the P2.2 payment e2e session (needs OTP bypass env); suite 178/178.
 
 **Exit gate:** one scripted dev walkthrough produces all 5 rows; `funnel-report.sql` returns the
 funnel; regression gate green.
