@@ -97,7 +97,11 @@ export default function Notifications() {
     try {
       await api.put(`/notifications/${id}/read`);
       setNotifs((prev) => prev.map((n) => n.id === id ? { ...n, isRead: true } : n));
-    } catch {}
+    } catch {
+      // Marking-as-read fires as a side effect of opening a notification. A
+      // toast here would interrupt the thing the member actually clicked on;
+      // the unread dot simply stays, which is the honest outcome.
+    }
   };
 
   const markAllRead = async () => {
@@ -114,7 +118,10 @@ export default function Notifications() {
     try {
       await api.delete(`/notifications/${id}`);
       setNotifs((prev) => prev.filter((n) => n.id !== id));
-    } catch {}
+    } catch {
+      // Delete is an explicit, destructive tap — silence made it look dead.
+      toast.error('Could not delete that notification');
+    }
   };
 
   const loadMore = () => {

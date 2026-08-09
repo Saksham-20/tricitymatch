@@ -22,7 +22,10 @@ export default function useDarkMode() {
     }
     try {
       localStorage.setItem('tm_dark_mode', String(isDark));
-    } catch {}
+    } catch {
+      // Private mode / storage disabled: the theme still applies for this
+      // session, it just won't be remembered. Not worth telling the user.
+    }
   }, [isDark]);
 
   const toggle = () => setIsDark((d) => !d);
