@@ -13,6 +13,7 @@ const { calculateCompatibility, getCompatibilityBreakdown: calcBreakdown, getAsh
 const { getNumerologyMatch } = require('../utils/numerology');
 const { generateKundliPDF } = require('../utils/kundli');
 const { notify } = require('../utils/notifyUser');
+const { trackEvent } = require('../utils/trackEvent');
 
 // Completion milestones and their messages
 const COMPLETION_MILESTONES = [
@@ -340,6 +341,14 @@ exports.updateProfile = asyncHandler(async (req, res) => {
   checkMilestone(req.user.id, prevCompletion, completion).catch((err) => {
     log.error('Milestone notification failed', { error: err.message });
   });
+
+  // Funnel stage 4 — the 60% crossing. prevCompletion is the value stored BEFORE
+  // this save, so the crossing itself is detectable (a profile that was already
+  // ≥60% doesn't re-emit). The partial unique index makes it once-per-user
+  // regardless. Fire-and-forget: never awaited.
+  if (prevCompletion < 60 && completion >= 60) {
+    trackEvent(req.user.id, 'profile_60pct');
+  }
 
   // Reload once more so response has latest DB state; send plain object so client gets photos array
   await profile.reload();

@@ -12,6 +12,7 @@ const { calculateCompatibility } = require('../utils/compatibility');
 const { getOrSet } = require('../utils/cache');
 const { sendMatchNotification } = require('../utils/emailService');
 const { notify } = require('../utils/notifyUser');
+const { trackEvent } = require('../utils/trackEvent');
 const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { log } = require('../middlewares/logger');
@@ -123,6 +124,14 @@ exports.matchAction = asyncHandler(async (req, res) => {
 
     return { match, isMutualMatch, currentProfile, matchedProfile };
   });
+
+  // Funnel stage 5 — first expressed interest. 'pass' is a rejection, not an
+  // interest, so only like/shortlist count. Emitted unconditionally on those:
+  // the partial unique index (userId, eventType) collapses every later like into
+  // a no-op, so this stays "first". Fire-and-forget: never awaited.
+  if (action === 'like' || action === 'shortlist') {
+    trackEvent(currentUserId, 'first_interest_sent');
+  }
 
   // Send notifications outside transaction (non-critical)
   setImmediate(async () => {

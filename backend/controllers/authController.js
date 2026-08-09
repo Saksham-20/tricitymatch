@@ -12,6 +12,7 @@ const { recordFailedLogin, clearLoginAttempts } = require('../middlewares/securi
 const { log } = require('../middlewares/logger');
 const { OAuth2Client } = require('google-auth-library');
 const smsService = require('../utils/smsService');
+const { trackEvent } = require('../utils/trackEvent');
 
 // Cookie configuration: use Secure only over HTTPS so cookies work when frontend is http://
 const useSecureCookies = config.isProduction && (config.server.frontendUrl || '').startsWith('https');
@@ -210,6 +211,10 @@ exports.signup = asyncHandler(async (req, res) => {
     log.error('Signup transaction failed', { error: err.message, stack: err.stack });
     throw createError.badRequest('Unable to create account. Please try again.');
   }
+
+  // Funnel stage 3 — account-bound, so the partial unique index makes it
+  // once-per-user on its own. Fire-and-forget: never awaited.
+  trackEvent(result.id, 'account_created');
 
   // Send welcome email (non-blocking) — only when the account has an email
   if (result.email) {
@@ -748,6 +753,12 @@ exports.sendOtp = asyncHandler(async (req, res) => {
   } else {
     throw createError.badRequest('type must be phone or email');
   }
+
+  // Funnel stage 1 — reached only when a send branch ran (bad type throws above).
+  // Pre-account: no User row exists yet, so userId is NULL and this is a RAW
+  // COUNTER, inflated by resends (documented in scripts/funnel-report.sql).
+  // Fire-and-forget: never awaited, never able to fail the response.
+  trackEvent(null, 'otp_send_attempted');
 });
 
 // @route   POST /api/auth/verify-otp
@@ -801,6 +812,9 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
       : `otp-verified:email:${String(target).toLowerCase().trim()}`;
     await cacheSet(key, '1', 1800);
   } catch { /* non-fatal: verification still succeeds */ }
+
+  // Funnel stage 2 — still pre-account (userId NULL), same raw-counter caveat.
+  trackEvent(null, 'otp_verify_succeeded');
 
   res.json({ ...result, message: `${type} verified successfully` });
 });
@@ -862,6 +876,9 @@ exports.googleAuth = asyncHandler(async (req, res) => {
 
         return newUser;
       });
+
+      // Same funnel stage 3 for the Google first-time signup path.
+      trackEvent(user.id, 'account_created');
 
       setImmediate(() => {
         sendWelcomeEmail(user.email, firstName || 'there')
