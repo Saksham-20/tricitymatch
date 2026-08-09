@@ -9,12 +9,8 @@ import {
 import { FaInstagram, FaFacebook, FaTwitter, FaWhatsapp } from 'react-icons/fa';
 import api from '../api/axios';
 
-/* Seed testimonials — replaced by published admin success stories when available */
-const STATIC_STORIES = [
-  { quote: 'From the first message to our engagement, everything felt intentional. This platform respects both families.', who: 'Meera & Vikram', where: 'Panchkula · Married Sept 2024', tag: 'Story 042', img: '/images/landing/story-meera-vikram.jpg' },
-  { quote: 'We met because of compatibility, not luck. Six months later, our families knew it was right.',                 who: 'Priya & Arjun',   where: 'Mohali · Married March 2025', tag: 'Story 067', img: '/images/landing/story-priya-arjun.jpg' },
-  { quote: 'The Incognito mode let me take my time. When I was ready, my family stepped in beautifully.',                 who: 'Anjali & Rohan',  where: 'Chandigarh · Engaged 2025',  tag: 'Story 091', img: '/images/landing/story-anjali-rohan.jpg' },
-];
+/* Testimonials come ONLY from published admin success stories — the section is
+   hidden until at least one real story exists. Never seed fabricated couples. */
 
 /* ── FONT LOADER ─────────────────────────────────────────────── */
 const FontLoader = () => (
@@ -296,25 +292,6 @@ function Cursor() {
   );
 }
 
-/* ── COUNT UP ─────────────────────────────────────────────────── */
-const CountUp = ({ to, suffix = '', duration = 1800 }) => {
-  const [n, setN] = useState(0);
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: '-40px' });
-  useEffect(() => {
-    if (!inView) return;
-    const start = performance.now();
-    const tick = (now) => {
-      const t = Math.min(1, (now - start) / duration);
-      const eased = 1 - Math.pow(1 - t, 3);
-      setN(Math.floor(to * eased));
-      if (t < 1) requestAnimationFrame(tick); else setN(to);
-    };
-    requestAnimationFrame(tick);
-  }, [inView, to, duration]);
-  return <span ref={ref}>{n >= 1000 ? n.toLocaleString('en-IN') : n}<span style={{ color: 'var(--gold)', fontStyle: 'italic' }}>{suffix}</span></span>;
-};
-
 /* ── STICKY CTA — mobile-only bottom bar ─────────────────────────── */
 const StickyCTA = () => {
   const [show, setShow] = useState(false);
@@ -345,25 +322,14 @@ const Home = () => {
   const [matchIdx, setMatchIdx]           = useState(0);
   const [processActive, setProcessActive] = useState(0);
   const [storyIdx, setStoryIdx]           = useState(0);
-  const [stories, setStories]             = useState(STATIC_STORIES);
+  const [stories, setStories]             = useState([]);
   const [faqOpen, setFaqOpen]             = useState(-1);
   const [announcementOn, setAnnouncementOn] = useState(true);
-  const [liveIdx, setLiveIdx]             = useState(0);
 
   const { scrollYProgress } = useScroll();
   const progressScaleX = useTransform(scrollYProgress, [0, 1], [0, 1]);
 
-  /* live match ticker */
-  const liveMatches = [
-    { who: 'Priya & Arjun',   where: 'Mohali',      pct: 97 },
-    { who: 'Simran & Karan',  where: 'Chandigarh',  pct: 95 },
-    { who: 'Anjali & Rohan',  where: 'Panchkula',   pct: 93 },
-    { who: 'Meera & Vikram',  where: 'Panchkula',   pct: 96 },
-  ];
-  useEffect(() => {
-    const t = setInterval(() => setLiveIdx(i => (i + 1) % liveMatches.length), 3200);
-    return () => clearInterval(t);
-  }, []);
+  /* "Just matched" live ticker removed — it showed fabricated couples as real activity. */
 
   /* process scroll tracking */
   const processRef = useRef(null);
@@ -387,7 +353,7 @@ const Home = () => {
     return () => clearInterval(t);
   }, [stories.length]);
 
-  /* load published success stories from API; keep static seed if none */
+  /* load published success stories from API; section stays hidden if none */
   useEffect(() => {
     let active = true;
     api.get('/success-stories')
@@ -403,7 +369,7 @@ const Home = () => {
         })));
         setStoryIdx(0);
       })
-      .catch(() => { /* keep seed */ });
+      .catch(() => { /* section stays hidden */ });
     return () => { active = false; };
   }, []);
 
@@ -430,38 +396,37 @@ const Home = () => {
   ];
 
   const processSteps = [
-    { n: '01', t: 'Create your profile',    b: 'Build a verified, detailed profile that reflects who you truly are. Photo verification completes within hours.',       meta: ['~12 min', 'Photo verified', 'Free'] },
+    { n: '01', t: 'Create your profile',    b: 'Build a detailed profile that reflects who you truly are, then earn your verified badge with a live selfie.',       meta: ['~12 min', 'Selfie verified', 'Free'] },
     { n: '02', t: 'Discover matches',       b: 'Our matching engine surfaces compatible profiles across 40+ signals. You stay in full control of who sees you.',                    meta: ['Smart ranking', '40+ signals', 'Daily refresh'] },
-    { n: '03', t: 'Connect securely',       b: 'Every conversation is end-to-end encrypted. Express interest, chat, and bring family in when ready.',                  meta: ['E2E encrypted', 'Read receipts', 'No phone reveal'] },
+    { n: '03', t: 'Connect securely',       b: 'Every conversation is encrypted in transit and stays private. Express interest, chat, and bring family in when ready.',                  meta: ['Encrypted in transit', 'Read receipts', 'No phone reveal'] },
     { n: '04', t: 'Begin your journey',     b: 'Meet in person with confidence. We\'ve done the groundwork on verification and compatibility.',                        meta: ['Verified meet', 'Family flow', 'Lifelong support'] },
   ];
 
   const cities = [
-    { tag: 'City Beautiful',       name: 'Chandigarh', count: '28K', desc: 'India\'s most planned city. Cosmopolitan, career-forward — and deeply family-rooted.',         img: '/images/landing/city-chandigarh.jpg' },
-    { tag: "Punjab's Rising Star", name: 'Mohali',     count: '14K', desc: 'Tech parks, AIIMS, IIT. Young professionals building careers without leaving culture.',         img: '/images/landing/city-mohali.jpg' },
-    { tag: 'Roots Run Deep',       name: 'Panchkula',  count: '8K',  desc: 'Quiet, established, close-knit. Tradition and aspiration in equal measure.',                   img: '/images/landing/city-panchkula.jpg' },
+    { tag: 'City Beautiful',       name: 'Chandigarh', desc: 'India\'s most planned city. Cosmopolitan, career-forward — and deeply family-rooted.',         img: '/images/landing/city-chandigarh.jpg' },
+    { tag: "Punjab's Rising Star", name: 'Mohali',     desc: 'Tech parks, AIIMS, IIT. Young professionals building careers without leaving culture.',         img: '/images/landing/city-mohali.jpg' },
+    { tag: 'Roots Run Deep',       name: 'Panchkula',  desc: 'Quiet, established, close-knit. Tradition and aspiration in equal measure.',                   img: '/images/landing/city-panchkula.jpg' },
   ];
 
   const faqs = [
     { q: 'Only Tricity residents?',              a: 'Yes — every profile is from Chandigarh, Mohali, or Panchkula, or has direct family ties to the region. Hyperlocal is the point.' },
-    { q: 'How does profile verification work?',  a: 'Every member submits a live selfie that our team matches against their profile photos before the verified badge appears. Usually within hours.' },
+    { q: 'How does profile verification work?',  a: 'Members submit a live selfie — captured in the moment, never uploaded from files — that our team matches against their profile photos. The verified badge appears once approved.' },
     { q: 'Can I browse without an account?',     a: 'Preview a small selection without an account. Full profiles, photos, and chat require a verified account.' },
     { q: 'Premium vs VIP?',                      a: 'Premium: unlimited messaging, advanced filters, Incognito mode. VIP adds a relationship manager and curated weekly hand-picked matches.' },
-    { q: 'Is my data private?',                  a: 'Yes. End-to-end encrypted conversations. We never share your phone number, never sell data, never display you to non-mutual interests.' },
+    { q: 'Is my data private?',                  a: 'Yes. Conversations are encrypted in transit and access is restricted to you and your match. We never share your phone number, never sell data, never display you to non-mutual interests.' },
     { q: 'Can families participate?',             a: 'Yes — gracefully. You choose when. They get their own view and chat channel kept respectfully separate from yours.' },
   ];
 
   const whyCards = [
-    { tag: '01 / Security',   title: 'Photo-verified, every profile',   body: 'Selfie verification and human review before going live. Zero fake accounts. Zero exceptions.',           glyph: '◉' },
+    { tag: '01 / Security',   title: 'Photo-verified profiles',   body: 'The verified badge is earned with a live selfie matched by human review — no uploads, no shortcuts.',           glyph: '◉' },
     { tag: '02 / Technology', title: 'Intelligent matching, 40+ signals',        body: 'Values, lifestyle, family expectations — far beyond age and location.',                                  glyph: '◇' },
     { tag: '03 / Hyperlocal', title: 'Built only for the Tricity',      body: 'Made for Chandigarh, Mohali, Panchkula. Meet partners from your community.',                            glyph: '▣' },
     { tag: '04 / Privacy',    title: 'Incognito browsing',              body: 'Browse privately. Appear only to those you\'ve expressed interest in.',                                  glyph: '◐' },
-    { tag: '05 / Comms',      title: 'Encrypted conversations',         body: 'End-to-end encryption with read receipts. Phone numbers stay hidden.',                                   glyph: '▲' },
+    { tag: '05 / Comms',      title: 'Private conversations',           body: 'Encrypted in transit, with read receipts. Phone numbers stay hidden.',                                   glyph: '▲' },
     { tag: '06 / Values',     title: 'Family-aware flow',               body: 'Bring family in at the right moment. Respect, not pressure.',                                            glyph: '✦' },
   ];
 
   const cur       = profiles[matchIdx];
-  const curLive   = liveMatches[liveIdx];
   const curStep   = processSteps[processActive];
   const curStory  = stories[storyIdx];
 
@@ -515,7 +480,7 @@ const Home = () => {
             color: 'var(--burgundy-dk)', animation: 'rise 1.2s .1s both',
           }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--burgundy)', animation: 'pulse 1.6s ease-in-out infinite', flexShrink: 0 }} />
-            Serious matrimony · Tricity only · Since 2011
+            Serious matrimony · Tricity only · Founding members welcome
           </div>
 
           {/* Headline — CRO messaging (h1 for SEO/a11y; one per page) */}
@@ -543,7 +508,7 @@ const Home = () => {
 
           {/* Trust chips */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, animation: 'rise 1.2s .7s both' }}>
-            {['✓ 100% photo-verified', '✓ 1,190+ marriages made', '✓ Every profile human-reviewed'].map((t, i) => (
+            {['✓ Live selfie verification', '✓ Chandigarh · Mohali · Panchkula', '✓ Family-first matchmaking'].map((t, i) => (
               <span key={i} style={{
                 fontSize: 13, fontWeight: 500, fontFamily: 'var(--sans)', color: 'var(--burgundy-dk)',
                 background: 'var(--cream-3)', border: '1px solid var(--line)', borderRadius: 999, padding: '7px 14px',
@@ -558,7 +523,7 @@ const Home = () => {
             animation: 'rise 1.2s 0.9s both',
           }}>
             <p style={{ fontSize: 14, lineHeight: 1.5, color: 'var(--ink-soft)', maxWidth: 420, fontFamily: 'var(--sans)' }}>
-              Chandigarh, Mohali and Panchkula only — every profile photo-verified and human-reviewed, every family close enough to meet this week. Your whole story, in one city.
+              Chandigarh, Mohali and Panchkula only — live selfie verification, private conversations, and every family close enough to meet this week. Founding members join free while we build Tricity's most carefully verified community.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-start' }}>
               <Link to="/onboarding" style={{
@@ -634,26 +599,6 @@ const Home = () => {
             </div>
           </div>
 
-          {/* Live match pill */}
-          <div className="live-pill" style={{
-            position: 'absolute', bottom: -28, left: '50%', transform: 'translateX(-50%)',
-            background: 'var(--cream-3)', border: '1px solid var(--line)',
-            padding: '10px 18px', borderRadius: 999,
-            display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, overflow: 'hidden',
-            boxShadow: '0 14px 36px -14px rgba(45,26,34,.18)', zIndex: 5,
-            animation: 'rise 1s 1.5s both', whiteSpace: 'nowrap',
-          }}>
-            <span style={{ width: 8, height: 8, background: 'var(--burgundy)', borderRadius: '50%', animation: 'pulse 1.4s ease-in-out infinite', flexShrink: 0 }} />
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--mute)' }}>Just matched</span>
-            <AnimatePresence mode="wait">
-              <motion.span key={liveIdx} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
-                className="live-text"
-                style={{ fontFamily: 'var(--display)', fontSize: 16, fontStyle: 'italic' }}>
-                {curLive.who} · {curLive.where} · {curLive.pct}%
-              </motion.span>
-            </AnimatePresence>
-          </div>
-
           {/* Rotating badge */}
           <div className="hero-spin-badge" style={{ position: 'absolute', top: 20, right: 24, width: 110, height: 110, animation: 'spin 30s linear infinite' }}>
             <svg viewBox="0 0 200 200" style={{ width: '100%', height: '100%' }}>
@@ -674,7 +619,7 @@ const Home = () => {
           fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '.14em', textTransform: 'uppercase',
           color: 'var(--ink-soft)', padding: '12px 40px', borderTop: '1px solid var(--line)',
         }}>
-          {['Est. 2011', '1,190+ matches', '50K+ verified', '15 years'].map((item, i) => (
+          {['Live selfie verification', 'Chandigarh', 'Mohali', 'Panchkula'].map((item, i) => (
             <React.Fragment key={i}>
               {i > 0 && <span style={{ width: 24, height: 1, background: 'var(--mute)', opacity: .4, flexShrink: 0 }} />}
               <span>{item}</span>
@@ -688,37 +633,23 @@ const Home = () => {
       ════════════════════════════════════════════════════════ */}
       <section className="trust-strip-section section-dark" style={{ background: 'var(--ink)', color: 'var(--cream)', padding: '40px 40px 0', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 120%, rgba(124,29,58,.55), transparent 60%)' }} />
-        <div className="ts-metrics-row" style={{ position: 'relative', maxWidth: 1280, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', paddingBottom: 32 }}>
-          {[
-            { to: 1190, suffix: '+',  label: 'Marriages made' },
-            { to: 50,   suffix: 'K+', label: 'Verified members' },
-            { to: 92,   suffix: '%',  label: 'Reply within 48 hrs' },
-            { to: 15,   suffix: 'yr', label: 'Serving Tricity families' },
-          ].map((s, i) => (
-            <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, minWidth: 140 }}>
-              <span style={{ fontFamily: 'var(--display)', fontSize: 'clamp(34px,5vw,64px)', lineHeight: 1, letterSpacing: '-.03em' }}>
-                <CountUp to={s.to} suffix={s.suffix} />
-              </span>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.16em', textTransform: 'uppercase', color: 'rgba(253,248,242,.55)', marginTop: 10 }}>{s.label}</span>
-            </div>
-          ))}
+        <div className="ts-metrics-row" style={{ position: 'relative', maxWidth: 1280, margin: '0 auto', textAlign: 'center', paddingBottom: 32 }}>
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--gold-text)', display: 'block', marginBottom: 18 }}>— Founding members</span>
+          <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(26px,3.4vw,48px)', lineHeight: 1.08, letterSpacing: '-.02em', maxWidth: 860, margin: '0 auto' }}>
+            Tricity's newest, most carefully verified matchmaking community — <em style={{ fontStyle: 'italic', color: 'var(--gold)' }}>founding members join free.</em>
+          </h2>
+          <p style={{ fontSize: 14, lineHeight: 1.6, color: 'rgba(253,248,242,.7)', fontFamily: 'var(--sans)', maxWidth: 560, margin: '16px auto 0' }}>
+            We're starting the honest way: no inflated numbers, every verified badge earned with a live selfie, and matchmaking that stays inside Chandigarh, Mohali and Panchkula.
+          </p>
         </div>
         <div className="ts-badges-row" style={{ position: 'relative', borderTop: '1px solid var(--line-on-dk)', maxWidth: 1280, margin: '0 auto', display: 'flex', justifyContent: 'space-between', gap: 16, padding: '18px 0 22px', flexWrap: 'wrap' }}>
           {[
-            '◉ Selfie verification before any profile goes live',
-            '◉ Every profile manually reviewed by our safety team',
-            '◉ Conversations end-to-end encrypted · numbers never shared',
+            '◉ Photo-verified badge earned with a live selfie',
+            '◉ Flagged profiles reviewed by our safety team',
+            '◉ Conversations encrypted in transit · numbers never shared',
           ].map((t, i) => (
             <span key={i} style={{ fontSize: 13, color: 'rgba(253,248,242,.78)', fontFamily: 'var(--sans)' }}>{t}</span>
           ))}
-        </div>
-        <div className="ts-momentum-row" style={{ position: 'relative', maxWidth: 1280, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, flexWrap: 'wrap', padding: '14px 0 22px', borderTop: '1px solid var(--line-on-dk)', fontSize: 13, color: 'rgba(253,248,242,.85)', fontFamily: 'var(--sans)' }}>
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#4ADE80', animation: 'pulse 1.6s ease-in-out infinite', flexShrink: 0 }} />
-          <span><strong style={{ color: 'var(--gold)', fontWeight: 600 }}>214</strong> new verified profiles this week</span>
-          <span className="tsm-sep" style={{ color: 'rgba(253,248,242,.4)' }}>·</span>
-          <span><strong style={{ color: 'var(--gold)', fontWeight: 600 }}>38</strong> family introductions this month</span>
-          <span className="tsm-sep" style={{ color: 'rgba(253,248,242,.4)' }}>·</span>
-          <span><strong style={{ color: 'var(--gold)', fontWeight: 600 }}>3</strong> engagements announced in May</span>
         </div>
       </section>
 
@@ -732,7 +663,7 @@ const Home = () => {
       }}>
         <div className="ribbon-track" style={{ display: 'flex', gap: 40, whiteSpace: 'nowrap', fontFamily: 'var(--display)', fontSize: 22, fontStyle: 'italic', letterSpacing: '-.01em' }}>
           {[...Array(3)].map((_, rep) => (
-            ['Verified profiles', 'Expertly matched', 'Family-first', 'Hyperlocal', 'End-to-end encrypted', 'Since 2011', 'Tricity built', 'Privacy first'].map((t, i) => (
+            ['Verified profiles', 'Expertly matched', 'Family-first', 'Hyperlocal', 'Encrypted in transit', 'Founding community', 'Tricity built', 'Privacy first'].map((t, i) => (
               <React.Fragment key={`${rep}-${i}`}>
                 <span>{t}</span>
                 <span style={{ color: 'var(--gold)', fontStyle: 'normal', fontSize: 20 }}>✦</span>
@@ -1094,14 +1025,12 @@ const Home = () => {
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--gold-text)' }}>{c.tag}</span>
-                  <div style={{ fontFamily: 'var(--display)', fontSize: 64, lineHeight: 1, color: 'var(--gold)', fontStyle: 'italic', textAlign: 'right' }}>
-                    {c.count}<small style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '.18em', textTransform: 'uppercase', color: 'rgba(253,248,242,.7)', marginTop: 4, fontStyle: 'normal' }}>profiles</small>
-                  </div>
+                  <span style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '.18em', textTransform: 'uppercase', color: 'rgba(253,248,242,.7)', textAlign: 'right' }}>Covered<br />from day one</span>
                 </div>
                 <div style={{ fontFamily: 'var(--display)', fontSize: 'clamp(32px,4vw,64px)', lineHeight: .9, letterSpacing: '-.025em', color: 'var(--cream)' }}>{c.name}</div>
                 <div className="city-content-bottom" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 24 }}>
                   <p style={{ fontSize: 14, lineHeight: 1.55, color: 'rgba(253,248,242,.75)', maxWidth: 320, fontFamily: 'var(--sans)' }}>{c.desc}</p>
-                  <Link to="/search" aria-label={`Browse ${c.name} profiles — ${c.count} listed`} onFocus={() => setActiveCity(i)} style={{
+                  <Link to="/search" aria-label={`Browse ${c.name} profiles`} onFocus={() => setActiveCity(i)} style={{
                     fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.16em', textTransform: 'uppercase',
                     padding: '10px 18px', border: '1px solid rgba(253,248,242,.4)', borderRadius: 999, color: 'var(--cream)',
                     textDecoration: 'none', transition: 'all .3s', whiteSpace: 'nowrap',
@@ -1159,8 +1088,8 @@ const Home = () => {
         </div>
         <div className="trust-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
           {[
-            { n: '01', t: 'Photo verified',         b: 'Selfie verification before going live.',                    Icon: FiShield },
-            { n: '02', t: 'End-to-end encrypted',   b: 'Conversations encrypted in transit and at rest.',           Icon: FiLock },
+            { n: '01', t: 'Photo verified',         b: 'Live selfie verification earns the verified badge.',        Icon: FiShield },
+            { n: '02', t: 'Encrypted in transit',   b: 'Conversations are encrypted over the network and never shared.', Icon: FiLock },
             { n: '03', t: 'Human-moderated',        b: 'Safety team reviews flagged profiles daily.',               Icon: FiCheckCircle },
             { n: '04', t: 'Family approved',        b: 'Designed to include families, never pressure.',             Icon: FiUsers },
           ].map((it, i) => (
@@ -1179,8 +1108,9 @@ const Home = () => {
       </section>
 
       {/* ════════════════════════════════════════════════════════
-          TESTIMONIALS — polaroid stack carousel with real images
+          TESTIMONIALS — published success stories ONLY; hidden until one exists
       ════════════════════════════════════════════════════════ */}
+      {stories.length > 0 && (
       <section className="testi-section" style={{ background: 'var(--cream)', padding: '56px 40px', overflow: 'hidden' }}>
         <div style={{ marginBottom: 40 }}>
           <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--burgundy)', marginBottom: 24, display: 'block' }}>— Real couples</span>
@@ -1227,13 +1157,13 @@ const Home = () => {
               </motion.p>
             </AnimatePresence>
             <div style={{ display: 'flex', alignItems: 'center', gap: 20, paddingTop: 24, borderTop: '1px solid var(--line)', marginTop: 'auto' }}>
-              <button onClick={() => setStoryIdx((storyIdx - 1 + 3) % 3)}
+              <button onClick={() => setStoryIdx((storyIdx - 1 + stories.length) % stories.length)}
                 style={{ width: 44, height: 44, border: '1px solid var(--line)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .3s', cursor: 'pointer', background: 'transparent', color: 'var(--ink)', fontSize: 14 }}
                 onMouseEnter={e => { e.currentTarget.style.background = 'var(--burgundy)'; e.currentTarget.style.color = 'var(--cream)'; e.currentTarget.style.borderColor = 'var(--burgundy)'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--ink)'; e.currentTarget.style.borderColor = 'var(--line)'; }}
               >←</button>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.14em' }}>0{storyIdx + 1} / 03</span>
-              <button onClick={() => setStoryIdx((storyIdx + 1) % 3)}
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.14em' }}>0{storyIdx + 1} / 0{stories.length}</span>
+              <button onClick={() => setStoryIdx((storyIdx + 1) % stories.length)}
                 style={{ width: 44, height: 44, border: '1px solid var(--line)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .3s', cursor: 'pointer', background: 'transparent', color: 'var(--ink)', fontSize: 14 }}
                 onMouseEnter={e => { e.currentTarget.style.background = 'var(--burgundy)'; e.currentTarget.style.color = 'var(--cream)'; e.currentTarget.style.borderColor = 'var(--burgundy)'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--ink)'; e.currentTarget.style.borderColor = 'var(--line)'; }}
@@ -1242,46 +1172,10 @@ const Home = () => {
           </div>
         </div>
       </section>
+      )}
 
-      {/* ════════════════════════════════════════════════════════
-          PARENTS — family / guardian testimonials
-      ════════════════════════════════════════════════════════ */}
-      <section className="parents-section" style={{ background: 'var(--cream-3)', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)', padding: '64px 40px' }}>
-        <div className="parents-head" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, alignItems: 'end', maxWidth: 1328, margin: '0 auto 40px' }}>
-          <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0 }}>
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--burgundy)', marginBottom: 24, display: 'block' }}>— What parents say</span>
-            <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em' }}>
-              Trusted by the<br />whole <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>family.</em>
-            </h2>
-          </motion.div>
-          <p style={{ fontSize: 14, lineHeight: 1.5, color: 'var(--ink-soft)', maxWidth: 520, fontFamily: 'var(--sans)' }}>
-            In the Tricity, marriage is a family decision. Here's what the families say.
-          </p>
-        </div>
-        <div className="parents-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, maxWidth: 1328, margin: '0 auto' }}>
-          {[
-            { quote: "We found our daughter a wonderful match. The verification gave us the confidence other sites never did.", who: 'Mrs. Harpreet Kaur', role: 'Mother of the bride · Mohali' },
-            { quote: "Within two weeks, we were having tea with their family in Sector 9. That is simply not possible on the big platforms.", who: 'Mr. R.K. Sharma', role: 'Father of the groom · Chandigarh' },
-            { quote: "Every profile we saw was a real family we could verify through our own community. That mattered more than anything.", who: 'Mrs. & Mr. Khanna', role: 'Parents · Panchkula' },
-          ].map((p, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0 }} transition={{ delay: i * 0.07 }}
-              style={{ background: 'var(--cream)', border: '1px solid var(--line)', borderRadius: 8, padding: '28px 24px', display: 'flex', flexDirection: 'column', gap: 16, transition: 'all .35s' }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 24px 50px -20px rgba(45,26,34,.18)'; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
-            >
-              <div style={{ fontFamily: 'var(--display)', fontStyle: 'italic', fontSize: 56, lineHeight: 0.4, color: 'var(--burgundy)' }}>&ldquo;</div>
-              <p style={{ fontFamily: 'var(--display)', fontSize: 19, lineHeight: 1.3, letterSpacing: '-.01em', color: 'var(--ink)' }}>{p.quote}</p>
-              <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginTop: 'auto', paddingTop: 16, borderTop: '1px solid var(--line)' }}>
-                <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, var(--burgundy-lt), var(--burgundy-dk))', flexShrink: 0 }} />
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, fontFamily: 'var(--sans)' }}>{p.who}</div>
-                  <div style={{ fontFamily: 'var(--mono)', fontSize: 10.5, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--mute)', marginTop: 2 }}>{p.role}</div>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </section>
+      {/* Parents-testimonials section removed 2026-08-09: its three named quotes were
+          fabricated. It returns only when real family testimonials exist to publish. */}
 
       {/* ════════════════════════════════════════════════════════
           FAQ — sticky 2-col with hairline rules
@@ -1415,7 +1309,7 @@ const Home = () => {
           <div>
             <div style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--gold-text)', marginBottom: 20 }}>Chandigarh · Mohali · Panchkula</div>
             <p style={{ fontSize: 14, color: 'rgba(253,248,242,.7)', lineHeight: 1.55, maxWidth: 320, fontFamily: 'var(--sans)', marginBottom: 24 }}>
-              Tricity's most trusted matrimonial platform. Connecting families through verified profiles and intelligent matching since 2011.
+              Tricity's own matrimonial platform. Connecting families through verified profiles and intelligent matching.
             </p>
             <div style={{ display: 'flex', gap: 12 }}>
               {[
