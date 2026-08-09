@@ -19,22 +19,38 @@ let redisConnected = false;
  * Initialize Redis connection
  */
 const initRedis = async () => {
-  if (!config.redis?.url) {
+  // Gate on isConfigured(), not on REDIS_URL alone: docker-compose wires the
+  // backend to the redis service with REDIS_HOST/REDIS_PORT/REDIS_PASSWORD and
+  // never sets REDIS_URL, so production logged "Redis not configured" and fell
+  // back to the in-memory cache while the Redis container sat unused. That
+  // silently made rate-limit and account-lockout state per-process and wiped it
+  // on every restart.
+  if (!config.redis?.isConfigured?.()) {
     log.info('Redis not configured, using in-memory cache');
     return null;
   }
 
   try {
     const Redis = require('ioredis');
-    
-    redisClient = new Redis(config.redis.url, {
-      maxRetriesPerRequest: 3,
+
+    const options = {
+      maxRetriesPerRequest: config.redis.maxRetriesPerRequest ?? 3,
       retryDelayOnFailover: 100,
       enableReadyCheck: true,
       connectTimeout: 10000,
       lazyConnect: true,
       keepAlive: 10000,
-    });
+      ...(config.redis.tls ? { tls: {} } : {}),
+    };
+
+    redisClient = config.redis.url
+      ? new Redis(config.redis.url, options)
+      : new Redis({
+        host: config.redis.host,
+        port: config.redis.port,
+        ...(config.redis.password ? { password: config.redis.password } : {}),
+        ...options,
+      });
 
     redisClient.on('connect', () => {
       redisConnected = true;

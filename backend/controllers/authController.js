@@ -589,6 +589,13 @@ exports.changePassword = asyncHandler(async (req, res) => {
     throw createError.unauthorized('Current password is incorrect');
   }
 
+  // Reusing the same password reported success and revoked the other sessions
+  // without actually changing anything — worse than useless when the reason for
+  // changing it is that the old one leaked.
+  if (currentPassword === newPassword) {
+    throw createError.badRequest('Your new password must be different from your current one');
+  }
+
   // Update password
   user.password = newPassword;
   await user.save();
