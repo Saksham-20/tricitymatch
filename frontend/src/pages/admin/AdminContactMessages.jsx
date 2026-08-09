@@ -15,6 +15,90 @@ const formatDate = (iso) => {
   });
 };
 
+// "2 h ago" for scanning; the absolute datetime lives in the title tooltip.
+const formatRelative = (iso) => {
+  if (!iso) return '-';
+  const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  if (s < 60) return 'just now';
+  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
+  if (s < 7 * 86400) return `${Math.floor(s / 86400)} d ago`;
+  return new Date(iso).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+const STATUS_OPTIONS = ['new', 'read', 'resolved'];
+
+/**
+ * The status chip IS the control: click (or Enter/Space) opens a small menu,
+ * arrows move, Esc closes. Replaces the redundant chip-column + select-column
+ * pair. Optimistic update + revert live in the parent's changeStatus.
+ */
+function StatusChipMenu({ value, disabled, onChange, label }) {
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+
+  const openMenu = () => {
+    setActive(Math.max(0, STATUS_OPTIONS.indexOf(value)));
+    setOpen(true);
+  };
+
+  const pick = (opt) => {
+    setOpen(false);
+    if (opt !== value) onChange(opt);
+  };
+
+  const onKeyDown = (e) => {
+    if (!open) {
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') { e.preventDefault(); openMenu(); }
+      return;
+    }
+    if (e.key === 'Escape') { e.preventDefault(); setOpen(false); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); setActive((a) => (a + 1) % STATUS_OPTIONS.length); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((a) => (a - 1 + STATUS_OPTIONS.length) % STATUS_OPTIONS.length); }
+    else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(STATUS_OPTIONS[active]); }
+    else if (e.key === 'Tab') setOpen(false);
+  };
+
+  return (
+    <div className="relative inline-block" onKeyDown={onKeyDown}>
+      <button
+        type="button"
+        disabled={disabled}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={label}
+        onClick={() => (open ? setOpen(false) : openMenu())}
+        onBlur={(e) => { if (!e.currentTarget.parentElement.contains(e.relatedTarget)) setOpen(false); }}
+        className={`px-3 py-1.5 rounded-full text-sm inline-flex items-center gap-1.5 border border-transparent
+          focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:opacity-60
+          ${STATUS_STYLES[value] || 'bg-gray-100 text-gray-700'}`}
+      >
+        {value}
+        <span aria-hidden="true" className="text-[10px] opacity-60">▾</span>
+      </button>
+      {open && (
+        <ul role="listbox" aria-label={label}
+          className="absolute z-20 mt-1 left-0 bg-white border border-neutral-200 rounded-lg shadow-card py-1 min-w-[8rem]">
+          {STATUS_OPTIONS.map((opt, i) => (
+            <li key={opt} role="option" aria-selected={opt === value}>
+              <button
+                type="button"
+                onClick={() => pick(opt)}
+                onMouseEnter={() => setActive(i)}
+                className={`w-full text-left px-3 py-2 text-sm capitalize
+                  ${i === active ? 'bg-primary-50 text-primary-700' : 'text-neutral-700'}
+                  ${opt === value ? 'font-semibold' : ''}`}
+              >
+                {opt}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export default function AdminContactMessages() {
   const [messages, setMessages] = useState([]);
   const [newCount, setNewCount] = useState(0);
@@ -157,7 +241,6 @@ export default function AdminContactMessages() {
                   <th className="border p-3 text-left">From</th>
                   <th className="border p-3 text-left">Subject</th>
                   <th className="border p-3 text-left">Status</th>
-                  <th className="border p-3 text-left">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -167,34 +250,24 @@ export default function AdminContactMessages() {
                       className="hover:bg-gray-50 cursor-pointer"
                       onClick={() => setExpanded(expanded === m.id ? null : m.id)}
                     >
-                      <td className="border p-3 whitespace-nowrap text-sm">{formatDate(m.createdAt)}</td>
+                      <td className="border p-3 whitespace-nowrap text-sm" title={formatDate(m.createdAt)}>{formatRelative(m.createdAt)}</td>
                       <td className="border p-3">
                         <div className="font-medium">{m.name}</div>
                         <div className="text-sm text-neutral-500">{m.email}</div>
                         {m.phone && <div className="text-sm text-neutral-500">{m.phone}</div>}
                       </td>
                       <td className="border p-3">{m.subject || <span className="text-neutral-400">(no subject)</span>}</td>
-                      <td className="border p-3">
-                        <span className={`px-3 py-1 rounded-full text-sm ${STATUS_STYLES[m.status] || 'bg-gray-100 text-gray-700'}`}>
-                          {m.status}
-                        </span>
-                      </td>
                       <td className="border p-3" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center gap-2">
-                          <select
+                        <div className="flex items-center gap-3">
+                          <StatusChipMenu
                             value={m.status}
                             disabled={savingId === m.id}
-                            onChange={(e) => changeStatus(m.id, e.target.value)}
-                            className="border px-2 py-1 rounded text-sm"
-                            aria-label={`Status for enquiry from ${m.name}`}
-                          >
-                            <option value="new">New</option>
-                            <option value="read">Read</option>
-                            <option value="resolved">Resolved</option>
-                          </select>
+                            onChange={(next) => changeStatus(m.id, next)}
+                            label={`Status for enquiry from ${m.name}`}
+                          />
                           <a
                             href={`mailto:${m.email}?subject=${encodeURIComponent(`Re: ${m.subject || 'Your enquiry'}`)}`}
-                            className="inline-flex items-center gap-1 text-sm text-primary-700 hover:underline"
+                            className="inline-flex items-center gap-1 text-sm text-primary-700 hover:underline py-2"
                           >
                             <Mail size={14} /> Reply
                           </a>
@@ -203,7 +276,7 @@ export default function AdminContactMessages() {
                     </tr>
                     {expanded === m.id && (
                       <tr key={`${m.id}-body`}>
-                        <td colSpan={5} className="border p-4 bg-neutral-50">
+                        <td colSpan={4} className="border p-4 bg-neutral-50">
                           <p className="whitespace-pre-wrap text-sm text-neutral-800">{m.message}</p>
                         </td>
                       </tr>
