@@ -122,6 +122,16 @@ funnel; regression gate green.
 
 ## Phase 1 — Brand + UI refinement
 
+**STATUS 2026-08-09 (both Opus agents died at the session limit ~95% done; completed + gated here):**
+DONE + DEPLOYED: P1.1 full (TM monogram SVG + favicon cut + all PWA/apple icons + mobile assets via
+committed `scripts/generate-brand-assets.mjs`) · P1.2 full (fixes + `scripts/tap-target-probe.mjs`,
+all 8 public routes PASS: 0 <24px) · E2 OG card wired · E6 sitemap/robots · one MORE fabricated
+About claim removed. Phase S BACKEND also done + deployed (migration 000048 on prod; grant/invite
+live; founding window CLOSED until FOUNDING_PERIOD_ENDS is set in prod env).
+REMAINING in Phase 1: E1 slop-lint script · P1.3a ref warning · P1.3b Support-Inbox chip merge ·
+P1.3c admin user-detail dead end · P1.3d marketing portal (owner call). Phase S remaining: frontend
+half (founding band refinement, invite send/receive UI, city pages) + grant/invite unit tests.
+
 ### P1.1 Logo mark refresh (found via screenshot review — the audit under-fixed F-011)
 `frontend/public/images/logo.svg` is still the **old TS monogram on an off-brand `#B60D2F` red
 square** (brand burgundy is `#8B2346`). F-011 only changed the admin *text* badge to "TM"; the SVG
