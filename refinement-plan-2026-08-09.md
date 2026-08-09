@@ -18,12 +18,12 @@ and `vite build` green — before the next starts.
 The 3-round audit left 22 modified + 4 untracked files **uncommitted**, and three fixes only take
 effect on production after a deploy.
 
-- [ ] **P0.1 Commit in file-compatible groups.** Grouping strictly by finding collides with shared
+- [x] **P0.1 Commit in file-compatible groups.** Grouping strictly by finding collides with shared
       files (`profileController.js` carries money F-014/15 AND privacy F-016; `security.js` carries
       rate-limiting AND CSP F-025) and interactive hunk-staging is unavailable — so group by files
       that change together, with multi-finding commit messages naming every F-id they carry.
       `/review` before commit per CLAUDE.md.
-- [ ] **P0.1b Truth in the same deploy (F-004 resolved 2026-08-09, D8.1: option b + narrative).**
+- [x] **P0.1b Truth in the same deploy (F-004 resolved 2026-08-09, D8.1: option b + narrative).**
       In `Home.jsx` (already carries the F-002 edit): drop the fabricated stats band ("1190+
       marriages / 50K+ / 92% / 15yr" + 28K/14K/8K city counts), the three named parent
       testimonials, and the false badge claims ("every profile manually reviewed", "selfie
@@ -40,11 +40,11 @@ effect on production after a deploy.
       real stories (seed fallback deleted; real-stories data path kept); hero keeps its CTA,
       gains the founding sub-line. **P0.1b copy promises NOTHING un-granted** — no premium-period
       claim until Phase S ships the grant mechanic (F5). Full founding band lands in Phase S.
-- [ ] **P0.2 Deploy** — push main, VPS `git pull`, rebuild backend **with `--force-recreate`** +
+- [x] **P0.2 Deploy** — push main, VPS `git pull`, rebuild backend **with `--force-recreate`** +
       frontend, scoped to `tricitymatch-*` containers only (shared VPS rules).
-- [ ] **P0.3 Prod data fix** — run `scripts/rebrand-stored-data.sql` against `tricitymatch-db`
+- [x] **P0.3 Prod data fix** — run `scripts/rebrand-stored-data.sql` against `tricitymatch-db`
       (idempotent; covers Notifications + SuccessStories).
-- [ ] **P0.4 Post-deploy verification** (these were unverifiable in dev):
+- [x] **P0.4 Post-deploy verification** (these were unverifiable in dev):
       - Redis actually connects: backend logs show "Redis connected", `redis-cli --scan` shows
         `lockout:` / `daily-matches:` keys appearing.
       - CSP `frameSrc` (F-025): the checkout iframe never mounts on prod while Razorpay keys are
@@ -62,6 +62,16 @@ effect on production after a deploy.
         `SELECT COUNT(*) FROM "ContactMessages"` on the prod DB (dev showed 5 real + the audit's
         own test row; the prod count is unknown until checked — don't hardcode 6).
       - Spot-check: login, refresh, search, unlock on prod as `globoniksprod@gmail.com`.
+
+**PHASE 0 COMPLETE — 2026-08-09.** 9 commits (57762c9..702e108) deployed to prod. Verified:
+Redis connected for cache AND Bull queues (queue.js had the same REDIS_URL-only gate — fixed as
+F-026 sibling, `bull:cleanup:*` keys now in prod redis); document + API CSP both carry
+`checkout.razorpay.com`; Support Inbox live, count 0 == prod ContactMessages 0 (the "6 enquiries"
+were dev rows); rebrand SQL: 0 stale rows on prod; member login/me/search/refresh + admin
+login/inbox all 200; prod bundle scan: fabrications=0 in Home/About/Login chunks (About + Login
+carried the same fake stats in source — swept in the same deploy); co-tenants all 200.
+Real prod numbers: 9 profiles, 0 contact messages. ⚠️ Prod admin password is the seeded default —
+rotate (owner: pick a password, then update the User row / re-seed with ADMIN_PASSWORD env).
 
 **Exit gate:** prod healthy, no co-tenant disruption, fixes pushed to `main` (solo repo — commits
 land on main directly, matching the standing deploy flow), and zero "TricityShadi" strings
