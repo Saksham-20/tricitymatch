@@ -26,6 +26,8 @@ const {
   createReferralCode,
   toggleReferralCode,
   getLeads,
+  getContactMessages,
+  updateContactMessage,
   getSuccessStories,
   createSuccessStory,
   updateSuccessStory,
@@ -118,6 +120,17 @@ router.put('/referral-codes/:id/toggle',
 // ==================== MARKETING LEADS ====================
 
 router.get('/leads', getLeads);
+
+// ==================== CONTACT MESSAGES (SUPPORT INBOX) ====================
+
+router.get('/contact-messages', getContactMessages);
+router.put(
+  '/contact-messages/:id',
+  param('id').isUUID(4),
+  body('status').isIn(['new', 'read', 'resolved']),
+  handleValidationErrors,
+  updateContactMessage
+);
 
 // ==================== SUCCESS STORIES ====================
 

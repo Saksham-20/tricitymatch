@@ -3,7 +3,7 @@
  * Administrative operations with proper authorization
  */
 
-const { User, Profile, Subscription, Match, Verification, ProfileView, Report, ReferralCode, MarketingLead, SuccessStory } = require('../models');
+const { User, Profile, Subscription, Match, Verification, ProfileView, Report, ReferralCode, MarketingLead, SuccessStory, ContactMessage } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const { PAID_PLANS, ALL_PLANS, UNLIMITED_PLANS } = require('../constants/plans');
@@ -970,3 +970,69 @@ exports.getPublicSuccessStories = asyncHandler(async (req, res) => {
   res.json({ success: true, stories });
 });
 
+
+// ==================== CONTACT MESSAGES (SUPPORT INBOX) ====================
+
+// @route   GET /api/v1/admin/contact-messages
+// @desc    List public contact-form enquiries (support inbox)
+// @access  Private/Admin
+exports.getContactMessages = asyncHandler(async (req, res) => {
+  const rawLimit = parseInt(req.query.limit) || 20;
+  const limit = Math.min(Math.max(rawLimit, 1), 100);
+  const page = Math.max(parseInt(req.query.page) || 1, 1);
+  const offset = (page - 1) * limit;
+  const { status, search } = req.query;
+
+  const VALID_STATUSES = ['new', 'read', 'resolved'];
+  const where = {};
+  if (status && VALID_STATUSES.includes(status)) where.status = status;
+  if (search) {
+    const term = `%${escapeLikePattern(search)}%`;
+    where[Op.or] = [
+      { name: { [Op.iLike]: term } },
+      { email: { [Op.iLike]: term } },
+      { subject: { [Op.iLike]: term } },
+      { message: { [Op.iLike]: term } },
+    ];
+  }
+
+  const { count, rows: messages } = await ContactMessage.findAndCountAll({
+    where,
+    order: [['createdAt', 'DESC']],
+    limit,
+    offset,
+  });
+
+  const newCount = await ContactMessage.count({ where: { status: 'new' } });
+
+  res.json({
+    success: true,
+    messages,
+    newCount,
+    pagination: { page, limit, total: count, pages: Math.ceil(count / limit) },
+  });
+});
+
+// @route   PUT /api/v1/admin/contact-messages/:id
+// @desc    Update enquiry status (new/read/resolved)
+// @access  Private/Admin
+exports.updateContactMessage = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  const VALID_STATUSES = ['new', 'read', 'resolved'];
+  if (!VALID_STATUSES.includes(status)) {
+    throw createError.badRequest('Status must be one of: new, read, resolved');
+  }
+
+  const message = await ContactMessage.findByPk(id);
+  if (!message) throw createError.notFound('Message not found');
+
+  const previous = message.status;
+  message.status = status;
+  await message.save();
+
+  logAudit('contact_message_status_changed', req.user.id, { id, previous, status });
+
+  res.json({ success: true, message });
+});

@@ -59,6 +59,7 @@ const AdminMarketingUserDetail = lazy(() => import('./pages/admin/AdminMarketing
 const AdminReferralCodes = lazy(() => import('./pages/admin/AdminReferralCodes'));
 const AdminLeads = lazy(() => import('./pages/admin/AdminLeads'));
 const AdminSuccessStories = lazy(() => import('./pages/admin/AdminSuccessStories'));
+const AdminContactMessages = lazy(() => import('./pages/admin/AdminContactMessages'));
 
 // Marketing pages
 const MarketingLayout = lazy(() => import('./pages/marketing/MarketingLayout'));
@@ -396,6 +397,7 @@ const AnimatedRoutes = () => {
             <Route path="referral-codes"           element={<AdminReferralCodes />} />
             <Route path="leads"                    element={<AdminLeads />} />
             <Route path="success-stories"          element={<AdminSuccessStories />} />
+            <Route path="contact-messages"         element={<AdminContactMessages />} />
           </Route>
 
           {/* 404 */}
