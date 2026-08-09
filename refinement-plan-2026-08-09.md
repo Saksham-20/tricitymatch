@@ -128,9 +128,13 @@ committed `scripts/generate-brand-assets.mjs`) · P1.2 full (fixes + `scripts/ta
 all 8 public routes PASS: 0 <24px) · E2 OG card wired · E6 sitemap/robots · one MORE fabricated
 About claim removed. Phase S BACKEND also done + deployed (migration 000048 on prod; grant/invite
 live; founding window CLOSED until FOUNDING_PERIOD_ENDS is set in prod env).
-REMAINING in Phase 1: E1 slop-lint script · P1.3a ref warning · P1.3b Support-Inbox chip merge ·
-P1.3c admin user-detail dead end · P1.3d marketing portal (owner call). Phase S remaining: frontend
-half (founding band refinement, invite send/receive UI, city pages) + grant/invite unit tests.
+PHASE 1 NOW COMPLETE (2026-08-09 second pass, deployed): E1 slop-lint wired into `npm run lint`
+(clean @278 files, curated allowlist + justified exceptions) · P1.3b inbox status-chip-as-control
+(keyboard listbox, relative timestamps) · P1.3c informative no-profile state. DEFERRED: P1.3a ref
+warning = framer-motion 12 PopChild internals under AnimatePresence mode=wait, dev-console-only,
+not our code (revisit on next framer-motion bump) · P1.3d marketing portal (owner call).
+Phase S remaining: FRONTEND half only (founding band refinement, invite send/receive UI, city
+pages, E3 empty states) — backend + grant-cap tests (foundingGrant.test.js, 10) are done+deployed.
 
 ### P1.1 Logo mark refresh (found via screenshot review — the audit under-fixed F-011)
 `frontend/public/images/logo.svg` is still the **old TS monogram on an off-brand `#B60D2F` red
