@@ -1,17 +1,50 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiCheckCircle, FiArrowRight } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 import Logo from '../components/common/Logo';
+import api from '../api/axios';
 
 export default function PaymentSuccess() {
   const navigate = useNavigate();
+  // This page used to congratulate anyone who opened the URL — a bookmark or a
+  // shared link told a free member their subscription was active. Confirm with
+  // the server before claiming anything happened.
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await api.get('/subscription/my-subscription');
+        const plan = data?.subscription?.planType;
+        if (!cancelled && (!plan || plan === 'free')) {
+          navigate('/subscription', { replace: true });
+          return;
+        }
+      } catch {
+        // Network hiccup on the confirmation read shouldn't strand the member
+        // who genuinely just paid; fall through and show the page.
+      }
+      if (!cancelled) setChecking(false);
+    })();
+    return () => { cancelled = true; };
+  }, [navigate]);
+
+  useEffect(() => {
+    if (checking) return undefined;
     const timer = setTimeout(() => navigate('/dashboard'), 10000);
     return () => clearTimeout(timer);
-  }, [navigate]);
+  }, [navigate, checking]);
+
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#FDF8F2] dark:bg-[#0f1117] px-4">
+        <div className="w-10 h-10 rounded-full border-2 border-primary-200 border-t-primary-600 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#FDF8F2] dark:bg-[#0f1117] px-4">

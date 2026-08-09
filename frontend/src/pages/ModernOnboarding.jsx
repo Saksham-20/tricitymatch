@@ -81,7 +81,7 @@ const ModernOnboardingContent = () => {
   } = useOnboarding();
 
   const navigate = useNavigate();
-  const { signup } = useAuth();
+  const { signup, isAuthenticated } = useAuth();
   const [searchParams] = useSearchParams();
   const [showQuitDialog, setShowQuitDialog] = useState(false);
   // Snapshot of name/DOB taken before clearDraft() resets formData — the
@@ -104,6 +104,18 @@ const ModernOnboardingContent = () => {
 
   // Build stepComponents array based on visible steps
   const stepComponents = visibleSteps.map(step => allStepComponents[step.id]);
+
+  // "Create Profile" links live in the public footer/hero, so a signed-in member
+  // can land here and be asked to pick an email and password all over again.
+  // Send them to the editor instead. Mount-only: after signup succeeds we are
+  // authenticated too, and that must not bounce the success card away.
+  // create_for_other is a deliberate deep-link and is left alone.
+  useEffect(() => {
+    if (isAuthenticated && mode === 'signup') {
+      navigate('/profile/edit', { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     setCompletionPercentage(getCompletionPercentage());
@@ -257,6 +269,14 @@ const ModernOnboardingContent = () => {
 
   return (
     <div className="min-h-screen flex bg-neutral-50 dark:bg-[#0f1117]">
+      {/* Once the account exists, clearDraft() has reset the wizard to a blank
+          step 1 — leaving a dead "Create Account" form (and its tab stops)
+          sitting behind the success card. Hide it from sight and from
+          assistive tech while the preview owns the screen. */}
+      <div
+        className={previewData ? 'hidden' : 'contents'}
+        aria-hidden={previewData ? 'true' : undefined}
+      >
       {/* Desktop: LIGHT brand / progress rail (burgundy as accent, never a slab) */}
       <div className="hidden lg:flex lg:w-[22rem] xl:w-96 relative overflow-hidden bg-white dark:bg-[#1a1f2e] border-r border-neutral-100 dark:border-neutral-800">
         {/* Subtle primary wash + faint rings (neutral, not white-on-burgundy) */}
@@ -604,6 +624,7 @@ const ModernOnboardingContent = () => {
           </motion.div>
         </motion.div>
       </div>
+      </div>
 
       {/* Profile-preview close card — "how others will see you" moment after signup */}
       <AnimatePresence>
@@ -617,6 +638,9 @@ const ModernOnboardingContent = () => {
               className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
             >
               <motion.div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="signup-preview-title"
                 initial={{ scale: 0.94, y: 12, opacity: 0 }}
                 animate={{ scale: 1, y: 0, opacity: 1 }}
                 transition={{ duration: 0.35, ease: 'easeOut' }}
@@ -628,7 +652,7 @@ const ModernOnboardingContent = () => {
                 <div className="flex justify-center mb-4">
                   <Avatar name={fullName} size="2xl" />
                 </div>
-                <h3 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100">
+                <h3 id="signup-preview-title" className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100">
                   {fullName}{age ? `, ${age}` : ''}
                 </h3>
                 <span className="inline-block mt-2 px-3 py-1 rounded-full bg-primary-50 dark:bg-primary-900/30 border border-primary-100 text-primary-700 dark:text-primary-300 text-xs font-semibold">

@@ -87,10 +87,13 @@ const socialVisibilityLabel = (entry) => {
   return 'Matches only';
 };
 
+// The negative margins keep the visual position identical while padding grows
+// the touch area: these sat at 41×18 px on a phone, well under the 24 px WCAG
+// 2.5.8 floor, and there are six of them stacked down the page.
 const EditBtn = ({ to, small }) => (
   <Link
     to={to || '/profile/edit'}
-    className={`inline-flex items-center gap-1.5 font-semibold text-primary-500 hover:text-primary-700 transition-colors cursor-pointer ${small ? 'text-xs' : 'text-sm'}`}
+    className={`inline-flex items-center gap-1.5 font-semibold text-primary-500 hover:text-primary-700 transition-colors cursor-pointer px-2 py-2 -mx-2 -my-2 ${small ? 'text-xs' : 'text-sm'}`}
   >
     <FiEdit2 className="w-3 h-3" />
     Edit

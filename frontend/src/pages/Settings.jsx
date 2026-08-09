@@ -6,7 +6,8 @@ import toast from 'react-hot-toast';
 import {
   FiUser, FiLock, FiBell, FiAlertTriangle, FiEye, FiEyeOff,
   FiMoon, FiShield, FiCheck, FiUpload, FiClock, FiX, FiCamera,
-  FiFileText, FiUsers, FiStar, FiChevronRight,
+  FiFileText, FiUsers, FiStar, FiChevronRight, FiMonitor, FiSmartphone,
+  FiRefreshCw, FiAlertCircle,
 } from 'react-icons/fi';
 import useDarkMode from '../hooks/useDarkMode';
 import useElderMode from '../hooks/useElderMode';
@@ -150,6 +151,163 @@ const EmailSection = () => {
   );
 };
 
+// ─── Active sessions ──────────────────────────────────────────────────────────
+// GET /auth/sessions, DELETE /auth/sessions/:id and POST /auth/logout-all have
+// existed on the server since launch with no way to reach them from the web
+// app. On a shared family device that is the difference between "someone is
+// still signed in on the tablet" and having no way to find out.
+const parseUserAgent = (ua = '') => {
+  const browser = /Edg\//.test(ua) ? 'Edge'
+    : /Chrome\//.test(ua) ? 'Chrome'
+    : /Safari\//.test(ua) ? 'Safari'
+    : /Firefox\//.test(ua) ? 'Firefox'
+    : 'Browser';
+  const mobile = /Mobile|Android|iPhone|iPad/.test(ua);
+  const os = /Android/.test(ua) ? 'Android'
+    : /iPhone|iPad|iOS/.test(ua) ? 'iOS'
+    : /Mac OS X/.test(ua) ? 'macOS'
+    : /Windows/.test(ua) ? 'Windows'
+    : /Linux/.test(ua) ? 'Linux'
+    : 'Unknown device';
+  return { label: `${browser} on ${os}`, mobile };
+};
+
+const formatWhen = (value) => {
+  if (!value) return 'not used yet';
+  const then = new Date(value);
+  const mins = Math.round((Date.now() - then.getTime()) / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins} min ago`;
+  if (mins < 60 * 24) return `${Math.round(mins / 60)} h ago`;
+  return then.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
+const SessionsSection = () => {
+  const { logoutAll } = useAuth();
+  const [sessions, setSessions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [busyId, setBusyId] = useState(null);
+
+  const load = async () => {
+    setLoading(true);
+    setError(false);
+    try {
+      const { data } = await api.get('/auth/sessions');
+      setSessions(data.sessions || []);
+    } catch {
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const revoke = async (id) => {
+    setBusyId(id);
+    try {
+      await api.delete(`/auth/sessions/${id}`);
+      setSessions((prev) => prev.filter((s) => s.id !== id));
+      toast.success('Signed out on that device');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not sign that device out');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const signOutEverywhere = async () => {
+    if (!window.confirm('Sign out of every device, including this one?')) return;
+    try {
+      await logoutAll();
+    } catch {
+      toast.error('Could not sign out everywhere');
+    }
+  };
+
+  return (
+    <div>
+      <SectionHeader
+        title="Where you're signed in"
+        desc="Sign out any device you don't recognise. Doing that immediately ends its access."
+      />
+      <div className="rounded-2xl border border-neutral-100 overflow-hidden max-w-lg">
+        {loading ? (
+          <div className="divide-y divide-neutral-100">
+            {[0, 1].map((i) => (
+              <div key={i} className="p-4 flex items-center gap-3 animate-pulse">
+                <div className="w-9 h-9 rounded-full bg-neutral-100" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 w-40 bg-neutral-100 rounded" />
+                  <div className="h-2.5 w-24 bg-neutral-100 rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : error ? (
+          <div className="p-6 text-center">
+            <FiAlertCircle className="w-6 h-6 text-neutral-400 mx-auto mb-2" />
+            <p className="text-sm text-neutral-600 mb-3">Couldn't load your sessions.</p>
+            <button onClick={load} className="text-sm font-semibold text-primary-600 hover:text-primary-700 inline-flex items-center gap-1.5">
+              <FiRefreshCw className="w-3.5 h-3.5" /> Try again
+            </button>
+          </div>
+        ) : sessions.length === 0 ? (
+          <div className="p-6 text-center">
+            <FiMonitor className="w-6 h-6 text-neutral-400 mx-auto mb-2" />
+            <p className="text-sm text-neutral-600">No other active sessions.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-neutral-100">
+            {sessions.map((s) => {
+              const { label, mobile } = parseUserAgent(s.userAgent);
+              const Icon = mobile ? FiSmartphone : FiMonitor;
+              return (
+                <div key={s.id} className="p-4 flex items-center gap-3">
+                  <span className="w-9 h-9 rounded-full bg-primary-50 flex items-center justify-center flex-shrink-0">
+                    <Icon className="w-4 h-4 text-primary-600" />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-neutral-900 truncate">
+                      {label}
+                      {s.isCurrent && (
+                        <span className="ml-2 px-2 py-0.5 rounded-full bg-primary-50 text-primary-700 text-[10px] font-semibold uppercase tracking-wide">
+                          This device
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-xs text-neutral-500 truncate">
+                      {s.ipAddress || 'unknown IP'} · active {formatWhen(s.lastUsedAt || s.createdAt)}
+                    </p>
+                  </div>
+                  {!s.isCurrent && (
+                    <button
+                      onClick={() => revoke(s.id)}
+                      disabled={busyId === s.id}
+                      className="text-xs font-semibold text-red-600 hover:text-red-700 disabled:opacity-50 flex-shrink-0"
+                    >
+                      {busyId === s.id ? 'Signing out…' : 'Sign out'}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      {!loading && !error && sessions.length > 0 && (
+        <button
+          onClick={signOutEverywhere}
+          className="mt-3 text-sm font-semibold text-red-600 hover:text-red-700"
+        >
+          Sign out everywhere
+        </button>
+      )}
+    </div>
+  );
+};
+
 const AccountTab = () => {
   const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [loading, setLoading] = useState(false);
@@ -281,6 +439,8 @@ const AccountTab = () => {
           </button>
         </form>
       </div>
+
+      <SessionsSection />
     </div>
   );
 };

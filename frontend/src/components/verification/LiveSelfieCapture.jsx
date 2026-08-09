@@ -37,10 +37,23 @@ export default function LiveSelfieCapture({ file, onChange }) {
       return;
     }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 720 } },
-        audio: false,
-      });
+      // getUserMedia stays pending for as long as the permission prompt is
+      // unanswered — dismiss it, or open the page on a machine with no camera
+      // driver, and the promise never settles. Without this race the member is
+      // left staring at "Starting camera…" forever with nothing to act on.
+      const stream = await Promise.race([
+        navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 720 } },
+          audio: false,
+        }),
+        new Promise((_, reject) =>
+          setTimeout(() => {
+            const e = new Error('camera-timeout');
+            e.name = 'TimeoutError';
+            reject(e);
+          }, 15000)
+        ),
+      ]);
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -51,11 +64,14 @@ export default function LiveSelfieCapture({ file, onChange }) {
     } catch (err) {
       const denied = err?.name === 'NotAllowedError' || err?.name === 'SecurityError';
       const none = err?.name === 'NotFoundError' || err?.name === 'OverconstrainedError';
+      const timedOut = err?.name === 'TimeoutError';
       setError(
         denied
           ? 'Camera access was blocked. Allow camera permission in your browser, then try again.'
           : none
           ? 'No camera found on this device. Open TricityMatch on a phone to verify.'
+          : timedOut
+          ? 'We never got access to your camera. Look for the camera permission prompt in your browser and choose Allow, then try again — or open TricityMatch on your phone.'
           : 'Could not start the camera. Make sure no other app is using it, then try again.'
       );
       setPhase('error');
