@@ -9,6 +9,7 @@ const { Op } = require('sequelize');
 const config = require('../config/env');
 const { createError, asyncHandler } = require('./errorHandler');
 const { PAID_PLANS, UNLIMITED_PLANS } = require('../constants/plans');
+const { hasChatAccess } = require('../utils/entitlements');
 
 /**
  * Extract token from request
@@ -187,6 +188,40 @@ const requirePremium = asyncHandler(async (req, res, next) => {
 });
 
 /**
+ * Chat access middleware (Phase 2) — the ONLY gate that honours
+ * FREE_CHAT_FOR_MUTUALS. Used at `chatRoutes` in place of `requirePremium`.
+ *
+ * Deliberately separate from `requirePremium`: that one also gates calls,
+ * likes-you, profile viewers, contact unlock, the kundli PDF and invoices, so
+ * teaching it about the chat flag would give all of those away for free.
+ *
+ * Route-level check only. The per-thread mutual-match rule stays in
+ * `chatController` (it 403s a non-mutual thread regardless of plan), so the
+ * route gate does not need the other user's id — and `GET /conversations`
+ * genuinely has none.
+ */
+const requireChatAccess = asyncHandler(async (req, res, next) => {
+  const userId = req.user?.id;
+
+  if (!userId) {
+    throw createError.unauthorized('Authentication required');
+  }
+
+  const access = await hasChatAccess(userId);
+
+  if (!access.allowed) {
+    throw createError.forbidden('Premium subscription required', 'PREMIUM_REQUIRED');
+  }
+
+  // May be null for a free member chatting under the flag. Nothing in
+  // chatController reads it (verified) — it is attached only so a future
+  // handler sees the same shape `requirePremium` provides.
+  req.subscription = access.subscription;
+  req.chatAccessReason = access.reason;
+  next();
+});
+
+/**
  * VIP subscription requirement middleware
  */
 const requireVIP = asyncHandler(async (req, res, next) => {
@@ -352,6 +387,7 @@ module.exports = {
   adminAuth,
   marketingAuth,
   requirePremium,
+  requireChatAccess,
   requireVIP,
   checkContactUnlockLimit,
   verifyTargetUser,

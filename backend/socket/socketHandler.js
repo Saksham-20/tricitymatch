@@ -3,13 +3,13 @@
  * Real-time communication with proper security
  */
 
-const { Message, Match, Subscription, GroupMember } = require('../models');
+const { Message, Match, GroupMember } = require('../models');
 const { Op } = require('sequelize');
-const { PAID_PLANS } = require('../constants/plans');
 const jwt = require('jsonwebtoken');
 const cookie = require('cookie');
 const config = require('../config/env');
 const { log, logSecurityEvent } = require('../middlewares/logger');
+const { hasChatAccess } = require('../utils/entitlements');
 
 // Socket rate limiting map
 const socketRateLimits = new Map();
@@ -115,28 +115,6 @@ const authenticateSocket = async (socket, next) => {
   }
 };
 
-// Check premium subscription for chat access
-// Plan names must match DB enum: basic_premium, premium_plus, vip
-const checkSubscription = async (userId) => {
-  try {
-    const subscription = await Subscription.findOne({
-      where: {
-        userId,
-        status: 'active',
-        planType: { [Op.in]: PAID_PLANS },
-        [Op.or]: [
-          { endDate: null },
-          { endDate: { [Op.gt]: new Date() } }
-        ]
-      }
-    });
-    return subscription;
-  } catch (error) {
-    log.error('Subscription check failed', { userId, error: error.message });
-    return null;
-  }
-};
-
 // Verify mutual match between users
 const verifyMutualMatch = async (userId1, userId2) => {
   try {
@@ -204,10 +182,12 @@ const initializeSocket = (io) => {
           return;
         }
 
-        // Verify premium subscription (chat requires premium) — SOCK-5: use the
-        // shared checkSubscription so the "premium" definition stays single-sourced.
-        const activeSub = await checkSubscription(userId);
-        if (!activeSub) {
+        // Verify chat entitlement through the SAME function the REST gate uses
+        // (utils/entitlements) so the socket and `requireChatAccess` can never
+        // disagree about who may chat — including under FREE_CHAT_FOR_MUTUALS.
+        // The mutual check above already ran, so this only decides paid-vs-flag.
+        const access = await hasChatAccess(userId, otherUserId);
+        if (!access.allowed) {
           socket.emit('error', { code: 'PREMIUM_REQUIRED', message: 'Chat requires an active premium subscription' });
           return;
         }

@@ -4,7 +4,7 @@
  */
 
 const jwt = require('jsonwebtoken');
-const { User, Profile, Subscription, RefreshToken, ReferralCode, MarketingLead } = require('../models');
+const { User, Profile, RefreshToken, ReferralCode, MarketingLead } = require('../models');
 const { sendWelcomeEmail, sendPasswordResetEmail, sendEmail, sendOtpEmail, sendSecurityAlert } = require('../utils/email');
 const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
@@ -14,6 +14,7 @@ const { OAuth2Client } = require('google-auth-library');
 const smsService = require('../utils/smsService');
 const { trackEvent } = require('../utils/trackEvent');
 const { grantFoundingIfOpen } = require('../utils/foundingGrant');
+const { getActiveSubscription } = require('../utils/entitlements');
 
 // Cookie configuration: use Secure only over HTTPS so cookies work when frontend is http://
 const useSecureCookies = config.isProduction && (config.server.frontendUrl || '').startsWith('https');
@@ -33,16 +34,26 @@ const getCookieOptions = (maxAge) => ({
 // Step-1 basics). Kept in one place so login/signup/getMe stay in sync.
 const withDerivedUserFields = async (userInstance) => {
   const user = userInstance.toJSON();
-  const activeSub = await Subscription.findOne({
-    where: { userId: user.id, status: 'active' },
-    order: [['createdAt', 'DESC']],
-  });
+  // Read through utils/entitlements — the SAME query every gate uses, including
+  // its endDate predicate. Filtering on `status:'active'` alone (what this did
+  // until 2026-08-10) meant that between a subscription's expiry and the hourly
+  // Bull sweep that flips the row to 'expired', /auth/me reported the member as
+  // premium while every actual gate 403'd; if Redis is down the sweep never
+  // runs at all. The sweep is cleanup, not correctness.
+  const activeSub = await getActiveSubscription(user.id);
   user.subscriptionPlan = activeSub?.planType || 'free';
   const profile = user.Profile;
   // Authoritative flag persisted on the profile: set at signup for web (full profile
   // collected first), at the end of onboarding Step 14 for mobile. The migration
   // backfilled every pre-existing row to true, so the column is always populated.
   user.onboardingComplete = Boolean(profile && profile.onboardingComplete);
+  // Server-owned feature flags. The client branches on THIS and never on a
+  // VITE_/EXPO_PUBLIC_ build var: a build-baked copy drifts from the server and
+  // ends up advertising premium chat that is actually free (or the reverse).
+  user.features = {
+    freeChatForMutuals: config.features.freeChatForMutuals,
+    foundingOpen: config.founding.isOpen(),
+  };
   return user;
 };
 

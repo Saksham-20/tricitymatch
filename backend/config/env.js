@@ -319,6 +319,18 @@ const config = {
     },
   },
 
+  // Runtime feature flags (Phase 2).
+  // These are read by the SERVER and echoed to clients in the `features` block
+  // on /auth/me — never mirrored into a VITE_ build var, because a build-baked
+  // copy drifts from the backend and would sell premium chat that is actually
+  // free (or vice versa).
+  features: {
+    // Chat with a mutual match without a paid plan. Ships DARK: the default is
+    // today's behaviour (chat is premium-only). Two-way door — flipping it
+    // writes nothing to the database, so flipping back restores the gate.
+    freeChatForMutuals: optionalBoolean('FREE_CHAT_FOR_MUTUALS', false),
+  },
+
   // Monitoring & Alerting
   monitoring: {
     enabled: optionalBoolean('MONITORING_ENABLED', true),

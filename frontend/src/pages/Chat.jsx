@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
@@ -129,6 +129,18 @@ const Chat = () => {
   const [showMobileSidebar, setShowMobileSidebar] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  // Access lost WHILE the thread is open — the subscription expired, or the
+  // free-chat flag was turned off under a free member. The thread stays on
+  // screen and readable (their history is theirs); only the composer closes.
+  // Wiping the screen to a paywall at the moment someone is mid-sentence reads
+  // as data loss, not as a gate.
+  const [revoked, setRevoked] = useState(false);
+  // Has any thread successfully opened this session? It is what separates "you
+  // never had chat access" (show the gate) from "your access just ended"
+  // (keep the conversation, close the composer). The mutual-match list this
+  // page renders from is NOT premium-gated, so without this the gate screen is
+  // unreachable and a free member lands on a thread that 403s on every action.
+  const chatEverWorked = useRef(false);
   const messagesEndRef = useRef(null);
   const editInputRef = useRef(null);
   const chatContainerRef = useRef(null);
@@ -260,12 +272,28 @@ const Chat = () => {
         console.log('Messages response:', response.data);
       }
       setMessages(response.data.messages || []);
+      chatEverWorked.current = true;
+      setRevoked(false);
     } catch (error) {
       if (isDev) {
         console.error('Failed to load messages:', error.response?.data || error.message);
       }
       if (error.response?.status === 403) {
-        toast.error(error.response?.data?.message || 'Premium subscription required');
+        const code = error.response?.data?.error?.code;
+        if (code === 'PREMIUM_REQUIRED' || code === 'SUBSCRIPTION_EXPIRED') {
+          // Two different situations, two different screens. If no thread has
+          // ever opened in this session the member simply has no chat access —
+          // show the gate. If one HAS opened, they are losing access
+          // mid-conversation, so keep the history and close only the composer.
+          if (chatEverWorked.current) {
+            setRevoked(true);
+            toast.error(error.response?.data?.message || 'Premium subscription required');
+          } else {
+            setAccessDenied(true);
+          }
+        } else {
+          toast.error(error.response?.data?.message || 'Premium subscription required');
+        }
       } else {
         toast.error('Failed to load messages');
       }
@@ -288,7 +316,8 @@ const Chat = () => {
       });
 
       const sentMessage = response.data.message;
-      
+      chatEverWorked.current = true;
+
       // Add message to local state
       setMessages(prev => {
         // Check if already exists (prevent duplicates)
@@ -313,6 +342,13 @@ const Chat = () => {
       // Restore the message if failed
       setNewMessage(messageContent);
       if (error.response?.status === 403) {
+        const code = error.response?.data?.error?.code;
+        // Entitlement lost mid-thread: close the composer with a persistent
+        // inline notice instead of a toast that scrolls away, and leave the
+        // conversation readable.
+        if (code === 'PREMIUM_REQUIRED' || code === 'SUBSCRIPTION_EXPIRED') {
+          setRevoked(true);
+        }
         toast.error(error.response?.data?.message || 'Premium subscription required to send messages');
       } else {
         toast.error('Failed to send message');
@@ -528,9 +564,13 @@ const Chat = () => {
           <div className="w-24 h-24 mx-auto mb-6 bg-primary-100 rounded-full flex items-center justify-center">
             <FiMessageCircle className="w-12 h-12 text-primary-400" />
           </div>
-          <h2 className="text-2xl font-bold font-display text-neutral-800 mb-3">No Matches Yet</h2>
+          {/* True for every plan: a thread needs a mutual match, so this is the
+              honest explainer whether or not FREE_CHAT_FOR_MUTUALS is on. With
+              the flag on it is also the ONLY thing standing between a free
+              member and chat, which is why it explains rather than upsells. */}
+          <h2 className="text-2xl font-bold font-display text-neutral-800 mb-3">Chat opens when you both match</h2>
           <p className="text-neutral-500 mb-6 leading-relaxed">
-            When you and someone else both like each other, you'll be able to start a conversation here.
+            When you and someone else both like each other, you&apos;ll be able to start a conversation here.
           </p>
           <a
             href="/search"
@@ -857,6 +897,21 @@ const Chat = () => {
 
             {/* Message Input */}
             <div className="flex-shrink-0 p-4 bg-white dark:bg-[#1a1f2e] border-t border-neutral-200 dark:border-neutral-800">
+              {revoked ? (
+                /* Composer closed, history intact. */
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-2xl bg-neutral-100 dark:bg-[#14182a] px-4 py-3">
+                  <FiLock className="w-4 h-4 flex-shrink-0 text-neutral-500 dark:text-neutral-400" aria-hidden="true" />
+                  <p className="flex-1 text-sm text-neutral-600 dark:text-neutral-300">
+                    Your messaging access ended. You can still read this conversation.
+                  </p>
+                  <Link
+                    to="/subscription"
+                    className="inline-flex items-center justify-center min-h-[44px] px-5 rounded-full bg-primary-700 hover:bg-primary-800 text-white text-sm font-medium transition-colors"
+                  >
+                    See plans
+                  </Link>
+                </div>
+              ) : (
               <form onSubmit={sendMessage} className="flex items-end gap-3">
                 {/* Input container */}
                 <div className="flex-1 relative">
@@ -888,6 +943,7 @@ const Chat = () => {
                   <FiSend className={`w-5 h-5 ${sending ? 'animate-pulse' : ''} ${newMessage.trim() ? '' : 'opacity-50'}`} />
                 </button>
               </form>
+              )}
             </div>
           </>
         ) : (

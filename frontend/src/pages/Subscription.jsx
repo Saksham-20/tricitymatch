@@ -10,6 +10,11 @@ import { useAuth } from '../context/AuthContext';
 import { detectCurrency, formatLocalPrice } from '../utils/currency';
 
 // ─── Plan feature lists ───────────────────────
+// The chat lines are DERIVED from the server's `freeChatForMutuals` flag, never
+// hardcoded: with the flag on, "Unlimited messages" as a paid feature is a lie
+// (free members message their mutual matches), and with it off, promising free
+// chat is a lie in the other direction. `planFeatures()` below is the only
+// place either line is written.
 const PLAN_FEATURES = {
   free: [
     'Create profile',
@@ -54,6 +59,30 @@ const PLAN_FEATURES = {
   ],
 };
 
+/**
+ * Feature list for a tier, in the world the server says we are in.
+ *
+ * Flag OFF (default): the lists above, unchanged — chat is a paid feature.
+ * Flag ON: free gains the chat line, and Basic loses "Unlimited messages" and
+ * re-leads on what it still uniquely buys (contact details + who-viewed).
+ * Every "Everything in X" chain above stays valid either way, because only the
+ * bottom two rungs move.
+ */
+export const planFeatures = (planKey, freeChatForMutuals) => {
+  const base = PLAN_FEATURES[planKey] || [];
+  if (!freeChatForMutuals) return base;
+  if (planKey === 'free') return [...base, 'Chat with your mutual matches'];
+  if (planKey === 'basic_premium') {
+    return [
+      'View contact details',
+      '5 contact unlocks',
+      'See who viewed profile',
+      'Advanced search filters',
+    ];
+  }
+  return base;
+};
+
 // ─── Plan card config ─────────────────────────
 // accent: 'primary' (burgundy) | 'gold' (premium/VIP only) | 'neutral'
 const PLAN_CONFIG = {
@@ -81,10 +110,10 @@ const BUNDLES = [
 const TIER_RANK = { free: 0, basic_premium: 1, premium_plus: 2, elite: 3, vip: 4, nri: 4 };
 
 // ─── Single plan card ─────────────────────────
-const PlanCard = ({ planKey, plan, isPopular, isCurrent, currentPlanType, isProcessing, onSubscribe }) => {
+const PlanCard = ({ planKey, plan, isPopular, isCurrent, currentPlanType, isProcessing, freeChatForMutuals, onSubscribe }) => {
   const cfg = PLAN_CONFIG[planKey] || PLAN_CONFIG.free;
   const Icon = cfg.icon;
-  const features = PLAN_FEATURES[planKey] || plan.features || [];
+  const features = planFeatures(planKey, freeChatForMutuals);
   const free = planKey === 'free';
   const gold = cfg.accent === 'gold';
   const displayPrice = plan.price || cfg.price || 0;
@@ -369,6 +398,11 @@ const BundleBlock = ({ processingBundle, onBuy }) => (
 // ─────────────────────────────────────────────
 const Subscription = () => {
   const { user } = useAuth();
+  // Server-owned flag (see backend withDerivedUserFields). Absent ⇒ false, so
+  // an older/failed /auth/me payload shows the paid-chat copy — the
+  // conservative direction: it under-promises rather than advertising a free
+  // feature the server would refuse.
+  const freeChatForMutuals = Boolean(user?.features?.freeChatForMutuals);
   const [plans, setPlans] = useState({});
   const [currentSub, setCurrentSub] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -624,6 +658,7 @@ const Subscription = () => {
                 isCurrent={currentSub?.planType === key && currentSub?.status === 'active'}
                 currentPlanType={currentPlanType}
                 isProcessing={processingPlan === key}
+                freeChatForMutuals={freeChatForMutuals}
                 onSubscribe={handleSubscribe}
               />
             </motion.div>

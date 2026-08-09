@@ -12,7 +12,7 @@ const {
   editMessage, 
   deleteMessage 
 } = require('../controllers/chatController');
-const { auth, requirePremium, verifyTargetUser } = require('../middlewares/auth');
+const { auth, requireChatAccess, verifyTargetUser } = require('../middlewares/auth');
 const { handleValidationErrors } = require('../middlewares/errorHandler');
 const { messageLimiter } = require('../middlewares/security');
 const { 
@@ -23,8 +23,11 @@ const {
   paginationRules
 } = require('../validators');
 
-// All chat routes require authentication and premium subscription
-router.use(auth, requirePremium);
+// All chat routes require authentication and chat access. `requireChatAccess`
+// is premium-only by default and additionally admits mutual matches when
+// FREE_CHAT_FOR_MUTUALS is on — it is the ONLY gate that reads that flag, so
+// every other premium perk stays behind `requirePremium`.
+router.use(auth, requireChatAccess);
 
 // Get all conversations with pagination
 router.get('/conversations', 
