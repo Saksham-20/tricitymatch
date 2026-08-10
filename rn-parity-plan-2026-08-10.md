@@ -227,6 +227,15 @@ Then, in RN-A:
 nothing about a bare-workflow app whose native shell is for a different RN major.
 
 ### RN-B — Store blockers and the decisions that shape RN-C
+**STATUS: the verifiable half is DONE** (commits 6c36d9b, a4d7ebd, 33ebf85). Posture
+written up in `docs/STORE_READINESS_2026-08-10.md`. Closed: targetSdk 35 verified in the
+installed artifact · edge-to-edge verified on a real API 35 emulator for Welcome + Login ·
+Apple 4.8 confirmed not to apply · dead UI (Google button, call buttons) hidden behind
+working config gates · dark mode light-locked · Sentry wired and dark · OTA
+`runtimeVersion: fingerprint` + channels. Still open and owner-blocked: the iOS payment
+ruling, the Play Console account type, the Sentry DSN, Razorpay live keys. Still open in
+code: edge-to-edge on the authed screens.
+
 - **targetSdk 35 (G10)** — properly in the committed `android/build.gradle`, verified on an
   Android 15 emulator (edge-to-edge + permission changes are what break apps).
 - **iOS payment ruling.** Does LP's web-redirect survive App Store review under 3.1.1, or

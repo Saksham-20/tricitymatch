@@ -98,7 +98,9 @@ built or polished until this is settled** — that is the entire reason RN-B pre
 Expo SDK 52 predates Xcode 26; two third-party sources do not compile against it. Both are
 patched idempotently and re-applied automatically, and both should be deleted when
 upstream catches up:
-- `fmt` 9.x consteval failure → patched in `ios/Podfile` `post_install`
+- `fmt` 9.x consteval failure → `mobile/plugins/withFmtConstevalPatch.js`, which injects
+  the Podfile `post_install` hook at prebuild time. It lived directly in `ios/Podfile`
+  first and was erased by the next `prebuild --clean`, taking the iOS build with it.
 - `expo-localization` non-exhaustive `Calendar.Identifier` switch →
   `scripts/patch-native-modules.cjs`, run on postinstall
 
