@@ -15,6 +15,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useSocket } from '../../hooks/useSocket';
 import { unlockContact } from '../../api/matches';
 import { getThread, sendMessage, editMessage, deleteMessage } from '../../api/chat';
+import { CONFIG } from '../../constants/config';
 import { queryKeys } from '../../constants/queryKeys';
 import type { MainStackParamList } from '../../navigation/types';
 import type { Message } from '../../types';
@@ -469,8 +470,13 @@ export default function ChatThreadScreen() {
           <Text style={s.headerName} numberOfLines={1}>{name}</Text>
         </TouchableOpacity>
 
+        {/* Calls are config-gated on the Agora credentials, matching the web app
+            (which hides its call UI when VITE_AGORA_APP_ID is unset). Without
+            them these buttons navigate to a screen that cannot connect, so they
+            are hidden rather than shown-and-broken. */}
         <View style={s.headerActions}>
-          {/* Voice call — Premium+ gate stub */}
+          {CONFIG.IS_AGORA_CONFIGURED && (
+          <>
           <TouchableOpacity
             style={s.headerBtn}
             onPress={() => navigation.navigate('VoiceCall', { calleeId: userId, channelName: `voice_${userId}` })}
@@ -487,6 +493,8 @@ export default function ChatThreadScreen() {
           >
             <Ionicons name="videocam-outline" size={22} color={colours.textPrimary} />
           </TouchableOpacity>
+          </>
+          )}
         </View>
       </View>
 

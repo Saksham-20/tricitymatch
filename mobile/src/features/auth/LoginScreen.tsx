@@ -21,6 +21,7 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import type { AuthStackParamList } from '../../navigation/types';
 import { useAuthStore } from '../../stores/authStore';
 import { login, refreshAccessToken } from '../../api/auth';
+import { CONFIG } from '../../constants/config';
 import { cache, CACHE_KEYS } from '../../utils/cache';
 import { secureStorage } from '../../utils/secureStorage';
 import { useShake } from '../../components/motion';
@@ -194,6 +195,16 @@ export default function LoginScreen() {
     }
   };
 
+  // Only reachable when CONFIG.IS_GOOGLE_CONFIGURED — the button is not rendered
+  // otherwise. The native Google SDK is not installed yet, so this states the
+  // real situation instead of naming an environment variable at the user.
+  const handleGoogleSignIn = () => {
+    Alert.alert(
+      t('auth.login.googleSignIn'),
+      'Google sign-in is not available in this build. Please continue with your email or phone number.',
+    );
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.flex}
@@ -298,7 +309,7 @@ export default function LoginScreen() {
         {/* Google Sign-In — HIDDEN on iOS. Apple Guideline 4.8 requires "Sign in
             with Apple" alongside any third-party social login. Until that's added,
             iOS uses email/password only (avoids guaranteed App Review rejection). */}
-        {Platform.OS !== 'ios' && (
+        {Platform.OS !== 'ios' && CONFIG.IS_GOOGLE_CONFIGURED && (
           <>
             {/* Divider */}
             <View style={styles.divider}>
@@ -309,7 +320,7 @@ export default function LoginScreen() {
 
             <TouchableOpacity
               style={styles.googleBtn}
-              onPress={() => Alert.alert('Google Sign-In', 'Configure EXPO_PUBLIC_GOOGLE_CLIENT_ID to enable')}
+              onPress={handleGoogleSignIn}
               accessibilityLabel={t('auth.login.googleSignIn')}
               testID="LoginScreen-google"
             >
