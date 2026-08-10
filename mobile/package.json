@@ -23,6 +23,7 @@
     "@react-navigation/bottom-tabs": "^6.6.1",
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/native-stack": "^6.9.18",
+    "@sentry/react-native": "~6.10.0",
     "@tanstack/react-query": "^5.101.0",
     "axios": "^1.17.0",
     "date-fns": "^4.4.0",

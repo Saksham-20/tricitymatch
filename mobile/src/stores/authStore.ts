@@ -3,6 +3,7 @@ import type { AuthUser, SubscriptionPlanType } from '../types';
 import { cache, CACHE_KEYS } from '../utils/cache';
 import { secureStorage } from '../utils/secureStorage';
 import { removeFcmToken } from '../api/notifications';
+import { setCrashReportingUser } from '../utils/crashReporting';
 
 interface AuthState {
   user: AuthUser | null;
@@ -24,6 +25,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   setUser: (user) => {
     cache.setObject(CACHE_KEYS.USER, user);
+    // Id only — a crash report should be traceable to an account without
+    // carrying the member's email, phone or profile data off-device.
+    setCrashReportingUser(user.id);
     set({ user, isAuthenticated: true });
   },
 
@@ -40,6 +44,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
     await secureStorage.deleteRefreshToken();
     cache.delete(CACHE_KEYS.USER);
+    setCrashReportingUser(null);
     set({ user: null, accessToken: null, isAuthenticated: false });
   },
 

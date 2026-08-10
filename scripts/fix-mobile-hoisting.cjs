@@ -20,7 +20,7 @@
  * with no native projects at all, which is a confusing state to land in.
  */
 
-const { existsSync, cpSync, rmSync, readFileSync } = require('node:fs');
+const { existsSync, cpSync, rmSync, readFileSync, mkdirSync } = require('node:fs');
 const { join } = require('node:path');
 
 const repoRoot = join(__dirname, '..');
@@ -29,7 +29,7 @@ const rootModules = join(repoRoot, 'node_modules');
 
 // Packages that must resolve `expo` as a sibling. Add to this list if a new
 // config plugin starts failing the same way.
-const NEEDS_LOCAL = ['expo-build-properties'];
+const NEEDS_LOCAL = ['expo-build-properties', '@sentry/react-native'];
 
 if (!existsSync(mobileModules)) {
   // mobile deps not installed yet (e.g. `npm ci --workspace=backend`) — nothing to do.
@@ -50,6 +50,8 @@ const sameVersion = (a, b) => {
 for (const pkg of NEEDS_LOCAL) {
   const src = join(rootModules, pkg);
   const dest = join(mobileModules, pkg);
+  // Scoped packages (@sentry/react-native) need their @scope dir to exist first.
+  if (pkg.includes('/')) mkdirSync(join(mobileModules, pkg.split('/')[0]), { recursive: true });
 
   if (!existsSync(src)) continue;          // not hoisted (or not installed) — fine
   if (existsSync(dest) && sameVersion(src, dest)) continue;  // already correct

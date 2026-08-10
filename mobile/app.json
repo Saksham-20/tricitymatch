@@ -65,7 +65,8 @@
           }
         }
       ],
-      "./plugins/withIapStoreFlavor"
+      "./plugins/withIapStoreFlavor",
+      "./plugins/withFmtConstevalPatch"
     ],
     "extra": {
       "eas": {
@@ -77,6 +78,14 @@
       "backgroundColor": "#FAFAFA",
       "barStyle": "dark-content",
       "translucent": false
+    },
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "enabled": true,
+      "fallbackToCacheTimeout": 0,
+      "checkAutomatically": "ON_LOAD"
     }
   }
 }

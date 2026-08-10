@@ -132,16 +132,34 @@ the light palette into module-scope `StyleSheet.create`, which evaluates once at
 and cannot respond to a theme change. An explicit user choice still wins; only the absence
 of one is locked. RN-G retrofits and restores system-following.
 
-### 3.4 Crash reporting — **OPEN (code)**
-Nothing Sentry-shaped is installed. Every QA session from here to submission is blind to
-field crashes. Should land before RN-C/RN-D QA begins, and installing it means one more
-native rebuild cycle.
+### 3.4 Crash reporting — **CLOSED (code), OPEN (owner: DSN)**
+`@sentry/react-native` installed and wired at `App.tsx` entry via
+`src/utils/crashReporting.ts`, verified booting on device with the native module linked.
 
-### 3.5 OTA updates — **OPEN (code)**
-`expo-updates` is installed but unconfigured: no `runtimeVersion`, no `updates` block.
-Without `runtimeVersion` fingerprinting, a JS update can land on an incompatible binary.
-This is the difference between a 30-minute fix and a full review cycle for the JS-level
-bugs this codebase's history is full of.
+Config-gated on `EXPO_PUBLIC_SENTRY_DSN`: with no DSN nothing initialises, nothing is
+sent, and no network call is attempted. A crash reporter that threw on startup because it
+was unconfigured would be worse than none.
+
+Deliberately not captured, and this is a data-safety commitment as much as an engineering
+one: no request/response bodies (profiles here carry caste, religion, income and
+photographs), no email or phone. The user id is attached on login and cleared on logout —
+enough to correlate a report with an account, not enough to identify a person.
+
+The Sentry Expo build plugin was removed. It exists only to upload source maps and fails
+the build without an org and auth token; the runtime SDK does not need it. Re-add it when
+the owner supplies Sentry credentials, and stack traces become readable.
+
+**Owner action:** create the Sentry project, supply `EXPO_PUBLIC_SENTRY_DSN`.
+
+### 3.5 OTA updates — **CLOSED (code)**
+`app.json` now carries `runtimeVersion: { policy: 'fingerprint' }` and an `updates` block,
+and `eas.json` binds each profile to a channel (development / preview / production).
+
+The fingerprint policy is the part that matters. It derives the runtime version from the
+NATIVE surface, so a JS bundle can only land on a binary whose native modules actually
+match it. Without it, an OTA update that assumes a module the installed binary does not
+have crashes every user who receives it — turning the mechanism meant to avoid a review
+cycle into the thing that requires one.
 
 ### 3.6 Store collateral — **OPEN (owner + code)**
 Review demo account, screenshots, data-safety / privacy-nutrition declarations (note:
@@ -161,11 +179,10 @@ reset. **Submission should be gated on supply, not only on code being ready.**
 | 1 | iOS payment posture: web-redirect vs IAP | **OWNER — decide before RN-C builds those screens** |
 | 2 | Play Console account type → 12-tester / 14-day clock | **OWNER — start the clock now if personal** |
 | 3 | Razorpay live keys (KYC) | OWNER — the product cannot take money on any platform today |
-| 4 | Crash reporting | CODE |
-| 5 | OTA runtimeVersion policy | CODE |
-| 6 | Edge-to-edge on authed screens | CODE |
-| 7 | Store collateral + data-safety declarations | OWNER + CODE |
-| 8 | Supply gate | OWNER judgement |
+| 4 | Sentry DSN (reporter is wired and dark) | OWNER |
+| 5 | Edge-to-edge on authed screens | CODE |
+| 6 | Store collateral + data-safety declarations | OWNER + CODE |
+| 7 | Supply gate | OWNER judgement |
 
 Items 1 and 2 are the two that cost calendar time rather than engineering time, which is
 why they are first.

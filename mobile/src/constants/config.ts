@@ -35,6 +35,7 @@ export const CONFIG = {
   RAZORPAY_KEY_ID:      process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID ?? '',
   CLOUDINARY_CLOUD_NAME:process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME ?? '',
   GOOGLE_CLIENT_ID:     process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ?? '',
+  SENTRY_DSN:           process.env.EXPO_PUBLIC_SENTRY_DSN ?? '',
 
   IS_DEV: process.env.NODE_ENV !== 'production',
 
@@ -44,6 +45,7 @@ export const CONFIG = {
   // treat non-functional UI as a rejection reason.
   IS_RAZORPAY_CONFIGURED: isConfigured(process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID, (v) => v.startsWith('rzp_')),
   IS_AGORA_CONFIGURED:    isConfigured(process.env.EXPO_PUBLIC_AGORA_APP_ID),
+  IS_SENTRY_CONFIGURED:   isConfigured(process.env.EXPO_PUBLIC_SENTRY_DSN, (v) => v.startsWith('https://')),
   IS_GOOGLE_CONFIGURED:   isConfigured(
     process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
     (v) => v.endsWith('.apps.googleusercontent.com')

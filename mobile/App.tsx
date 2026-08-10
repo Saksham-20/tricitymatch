@@ -1,5 +1,11 @@
 import './src/i18n';
 
+// Before anything else, so a crash during app startup is still reported.
+// No-op unless EXPO_PUBLIC_SENTRY_DSN is set — see utils/crashReporting.
+import { initCrashReporting } from './src/utils/crashReporting';
+
+initCrashReporting();
+
 import React from 'react';
 import { View, ActivityIndicator, StatusBar, useColorScheme } from 'react-native';
 import { QueryClientProvider } from '@tanstack/react-query';
