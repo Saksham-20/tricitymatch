@@ -37,7 +37,8 @@
     "qa:desktop": "npx playwright test --project=desktop-chrome",
     "qa:mobile": "npx playwright test --project=mobile-chrome",
     "test:mobile": "npm run test --workspace=mobile",
-    "typecheck": "npm run typecheck --workspace=mobile"
+    "typecheck": "npm run typecheck --workspace=mobile",
+    "postinstall": "node scripts/fix-mobile-hoisting.cjs && node scripts/patch-native-modules.cjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.1",
@@ -89,6 +90,7 @@
     "react-dom": "18.3.1"
   },
   "dependencies": {
+    "@expo/config-plugins": "9.0.17",
     "@gorhom/bottom-sheet": "^5.1.6",
     "color": "^4.2.3",
     "query-string": "^7.1.3",

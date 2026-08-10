@@ -18,4 +18,3 @@ export type { BureauClient, MatchProposal, BureauEarnings, ProposalStatus } from
 // Constants
 export { colours, darkColours, typography, spacing, borderRadius, tapTarget } from './constants/theme';
 export { PLANS, PLAN_ORDER, isPlanAtLeast, UNLOCK_BUNDLES } from './constants/plans';
-export { API_ROUTES } from './constants/routes';

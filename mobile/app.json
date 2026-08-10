@@ -50,12 +50,32 @@
     "plugins": [
       "expo-localization",
       "expo-font",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "minSdkVersion": 24,
+            "extraProguardRules": "-keep class com.swmansion.reanimated.** { *; }\n-keep class com.facebook.react.turbomodule.** { *; }"
+          },
+          "ios": {
+            "deploymentTarget": "15.1"
+          }
+        }
+      ]
     ],
     "extra": {
       "eas": {
         "projectId": "tricityshadi-app"
       }
+    },
+    "scheme": "tricitymatch",
+    "androidStatusBar": {
+      "backgroundColor": "#FAFAFA",
+      "barStyle": "dark-content",
+      "translucent": false
     }
   }
 }
