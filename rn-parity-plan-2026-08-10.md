@@ -132,12 +132,32 @@ Branch `mobile/launch-prep`. Commits `885129d` (plan) → `aa6f3fb` (merge) → 
   the iOS 26 SDK (`scripts/patch-native-modules.cjs`, postinstall).
 - **G14 closed** — stale `routes.ts` deleted.
 
-**RN-A REMAINING:**
-- Mobile eslint config (G8 remainder) — deferred during the merge to avoid destabilising
-  the dependency tree mid-reconcile.
-- The api contract harness (backend route manifest → regenerated route constants →
-  mobile conformance test + zod envelope parsing). This replaces what `routes.ts` was
-  pretending to be.
+**RN-A COMPLETE.** The remainders are done:
+- **API contract harness.** `backend/tests/unit/routeManifest.test.js` walks the live
+  Express router → `shared/src/constants/api-manifest.json` (137 routes);
+  `mobile/src/api/apiConformance.test.ts` asserts every client call site against it.
+  Probe-verified: reintroducing the historical `/match/matches` fails with the file and
+  path named. **Found three real bugs on first run** — a `POST /profile/:id/view` that
+  never existed and 404'd behind a `.catch()` on every profile open; `eas.json` missing
+  `/api/v1` on all three build profiles (EAS env overrides `.env`, so **every EAS binary
+  including a store submission would 404 on every request**); and `api/bureau.ts` calling
+  four endpoints with no backend at all.
+- **The `as unknown as` casts were hiding missing required fields**, not style. Four in
+  the api layer bridged partial shapes to `ProfileSummary`/`Message` — `photos`, `city`,
+  `height`, `completionPercentage` genuinely arrive undefined, so `profile.photos.map()`
+  throws. Replaced with an explicit `toProfileSummary`. Removing them immediately
+  surfaced a real hidden type error: the API returns `gender` as a plain string against
+  a `Gender` union.
+- **Mobile eslint** wired into the root gate, pinned to the eslint 8 line, banning the
+  `unknown` double-cast in `src/api`. `no-unused-vars` is WARN with a recorded count —
+  **62 unused bindings across 32 files** (19 dead imports, 43 dead locals). That number
+  is the contract and should only go down; RN-G flips the rule to error.
+
+Gates now: root lint 0 (backend + frontend + **mobile eslint + mobile typecheck** +
+slop-lint) · root test 0 — backend **250** · frontend **97** · mobile **9**.
+
+Still to smoke on a device: the changed mappers (Matches / Chat / Profile rows). The
+edits are JS-only and typecheck clean, but they have not been seen rendering.
 
 **Toolchain requirements discovered (write these down, they cost an hour):**
 - Gradle and `sdkmanager` need JDK 17+; the only JVM on PATH here is Java 8. Use
