@@ -201,8 +201,38 @@ the real number or say the word and it comes out.
    search results" (Elite-only). A receipt now names the plan actually bought and its real
    features.
 
-**NEXT:** P3' (signup-funnel axe + keyboard traversal) and P4' (Home LCP ≤2.5s; first suspect is
-the FontLoader runtime Google-Fonts `@import` in `Home.jsx`).
+**P3' + P4' NOW COMPLETE (2026-08-10, deployed @ 27dd7ad / d572142 / 14da99f).**
+- **P3' a11y.** New `scripts/a11y-probe.mjs` (axe-core, WCAG 2.1 A+AA, gates on critical+serious
+  only, 375px) over landing → login both phases → signup step 1 → OTP panel, plus a keyboard walk
+  that presses a REAL Tab. Result: **0 gating, 0 advisory, 0 stops without a focus ring**; 40 tab
+  stops on the landing page. **One real fix:** `--gold` (#B8952A) on `--burgundy` is 3.52:1 and the
+  Home display headings clamp to 22px at 375px — under WCAG's 24px large-text threshold, so they
+  needed 4.5:1. Every gold TEXT node now uses the existing `--gold-text` (#D4B048, 4.8:1);
+  decorative glyphs/dots/icons keep `--gold`.
+  **Two probe lessons worth keeping:** `el.focus()` does NOT set `:focus-visible` (an earlier
+  version invented 7 "no focus ring" findings on the login form), and ring styles must be read
+  ~70ms after Tab or the CSS transition is caught at ~0.2px and reports another false negative.
+  **Known gap:** the `--deep` step reaches the OTP panel and scans the six labelled digit inputs
+  but cannot get past it (`OtpBoxes` completes on real key events; neither `fill` nor
+  `keyboard.type` registered a finished code), so **step 2 and its DOB selects are still
+  unscanned** — noted in the script.
+- **P4' LCP.** New `scripts/lcp-probe.mjs` (375px, 1.6Mbps/150ms RTT, 4× CPU, fresh context per
+  run, median of N, prints the LCP element + slowest third-party resources; budget 2500ms, exit 1
+  over). **Root cause confirmed exactly as the plan predicted:** Home's four display families were
+  loaded by an `@import` inside a `<style>` tag React rendered, so the preload scanner could not
+  see it and the request did not START until **~1970ms** on throttled 4G — after which Google
+  answers with CSS pointing at fonts.gstatic.com. Three sequential round trips before the headline
+  font existed. Fixed by folding those families into the single `index.html` request (one request,
+  starts ~250ms) and loading it `media="print" onload="this.media='all'"` so first paint is not
+  gated on it (`display=swap` was already set; `<noscript>` fallback kept).
+  **Measured on production: 2284ms baseline → 2100ms median (runs 2072–2148), inside the 2500ms
+  budget with ~400ms headroom.** Note the intermediate state (fonts merged but still
+  render-blocking) measured 2444ms — folding them in is only a win WITH the non-blocking load.
+  FCP is unchanged at ~1670ms and is dominated by JS download+parse on a throttled CPU; that is
+  the next lever and is out of this sliver's scope.
+
+**NEXT:** nothing left in this plan. Remaining work is owner-blocked (see below) or lives in the
+dated TODOS cycles (full a11y audit, perf cycle, RN store launch).
 
 ### P1.1 Logo mark refresh (found via screenshot review — the audit under-fixed F-011)
 `frontend/public/images/logo.svg` is still the **old TS monogram on an off-brand `#B60D2F` red
@@ -445,9 +475,9 @@ appended as Round 4 with score update.
 Acquisition-facing slice only; the full audit (VoiceOver, contrast sweep, all routes both themes,
 token-decision gate) moves to a dated TODOS cycle for when real users exist.
 
-- [ ] axe-core (`@axe-core/playwright`) on the signup funnel: `/` → `/signup` → onboarding steps →
+- [x] axe-core (`@axe-core/playwright`) on the signup funnel: `/` → `/signup` → onboarding steps →
       post-signup preview. 0 critical/serious, light theme.
-- [ ] Full keyboard traversal of the same funnel (incl. OTP boxes, DOB selects, Terms checkbox,
+- [x] Full keyboard traversal of the same funnel (incl. OTP boxes, DOB selects, Terms checkbox,
       focus order, Enter-to-advance).
 
 ---
@@ -457,7 +487,7 @@ token-decision gate) moves to a dated TODOS cycle for when real users exist.
 Acquisition-facing only. Deferred to the dated TODOS perf cycle: Agora chunk fetch verification,
 BarChart admin-only check, API p95 baselines.
 
-- [ ] Home LCP at 375px on throttled 4G — **budget ≤2.5s** (design review: the acquisition page
+- [x] Home LCP at 375px on throttled 4G — **budget ≤2.5s** (design review: the acquisition page
       gets a target, not a vibes check); record the number, fix to budget. **First suspect (eng
       review): `Home.jsx` FontLoader injects Google Fonts via a runtime `@import` in a `<style>`
       tag (~line 21) — render-blocking external fetch; self-host the fonts.
