@@ -54,7 +54,7 @@ export default function PrivacyScreen() {
       </Section>
 
       <Section heading="8. Your Rights">
-        <Para>You have the right to access, correct, update, or delete your personal data, and to withdraw consent for optional processing such as verification. You can manage most of this from your profile and settings, or by contacting us at privacy@tricityshadi.com.</Para>
+        <Para>You have the right to access, correct, update, or delete your personal data, and to withdraw consent for optional processing such as verification. You can manage most of this from your profile and settings, or by contacting us at privacy@tricitymatch.com.</Para>
       </Section>
 
       <Section heading="9. Cookies & Local Storage">
@@ -70,7 +70,7 @@ export default function PrivacyScreen() {
       </Section>
 
       <Section heading="12. Grievances & Contact">
-        <Para>For any privacy-related question or request, contact us at privacy@tricityshadi.com. In accordance with applicable Indian law, you may also reach our Grievance Officer at grievance@tricityshadi.com, and we will respond within the timelines prescribed by law.</Para>
+        <Para>For any privacy-related question or request, contact us at privacy@tricitymatch.com. In accordance with applicable Indian law, you may also reach our Grievance Officer at grievance@tricitymatch.com, and we will respond within the timelines prescribed by law.</Para>
       </Section>
     </LegalLayout>
   );

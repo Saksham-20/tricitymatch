@@ -14,10 +14,10 @@
     "dev:backend": "npm run dev --workspace=backend",
     "dev:frontend": "npm run dev --workspace=frontend",
     "build": "npm run build --workspace=frontend",
-    "test": "npm run test --workspace=backend && npm run test:run --workspace=frontend",
+    "test": "npm run test --workspace=backend && npm run test:run --workspace=frontend && npm run test --workspace=mobile",
     "test:backend": "npm run test --workspace=backend",
     "test:frontend": "npm run test:run --workspace=frontend",
-    "lint": "npm run lint --workspace=backend && npm run lint --workspace=frontend && node scripts/slop-lint.mjs",
+    "lint": "npm run lint --workspace=backend && npm run lint --workspace=frontend && npm run typecheck --workspace=mobile && node scripts/slop-lint.mjs",
     "lint:fix": "npm run lint:fix --workspace=backend && npm run lint:fix --workspace=frontend",
     "qa": "npx playwright test",
     "qa:auth": "npx playwright test e2e/tests/01-auth-flow.spec.js",
@@ -35,7 +35,9 @@
     "qa:debug": "npx playwright test --debug",
     "qa:headed": "npx playwright test --headed",
     "qa:desktop": "npx playwright test --project=desktop-chrome",
-    "qa:mobile": "npx playwright test --project=mobile-chrome"
+    "qa:mobile": "npx playwright test --project=mobile-chrome",
+    "test:mobile": "npm run test --workspace=mobile",
+    "typecheck": "npm run typecheck --workspace=mobile"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.1",
@@ -57,6 +59,14 @@
     ],
     "frontend/**/*.{ts,tsx}": [
       "node scripts/prettier-staged.cjs"
+    ],
+    "mobile/**/*.{ts,tsx}": [
+      "node scripts/prettier-staged.cjs",
+      "node scripts/mobile-typecheck-staged.cjs"
+    ],
+    "shared/**/*.ts": [
+      "node scripts/prettier-staged.cjs",
+      "node scripts/mobile-typecheck-staged.cjs"
     ]
   },
   "engines": {

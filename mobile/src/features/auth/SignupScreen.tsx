@@ -257,9 +257,9 @@ export default function SignupScreen() {
           <Text style={styles.termsText}>
             {t('auth.signup.termsLabel')}
             {'  '}
-            <Text style={styles.termsLink} onPress={() => Linking.openURL('https://tricityshadi.com/terms')}>Terms</Text>
+            <Text style={styles.termsLink} onPress={() => Linking.openURL('https://tricitymatch.com/terms')}>Terms</Text>
             <Text> · </Text>
-            <Text style={styles.termsLink} onPress={() => Linking.openURL('https://tricityshadi.com/privacy')}>Privacy</Text>
+            <Text style={styles.termsLink} onPress={() => Linking.openURL('https://tricitymatch.com/privacy')}>Privacy</Text>
           </Text>
         </View>
         {fieldErrors.terms ? (

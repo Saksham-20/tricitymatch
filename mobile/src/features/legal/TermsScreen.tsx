@@ -79,7 +79,7 @@ export default function TermsScreen() {
       </Section>
 
       <Section heading="15. Grievances & Contact">
-        <Para>For questions about these Terms, or to report content or conduct, contact us at support@tricityshadi.com. In line with applicable Indian law, complaints regarding content or data may be addressed to our Grievance Officer at grievance@tricityshadi.com, and we will acknowledge and endeavour to resolve them within the timelines prescribed by law.</Para>
+        <Para>For questions about these Terms, or to report content or conduct, contact us at support@tricitymatch.com. In line with applicable Indian law, complaints regarding content or data may be addressed to our Grievance Officer at grievance@tricitymatch.com, and we will acknowledge and endeavour to resolve them within the timelines prescribed by law.</Para>
       </Section>
     </LegalLayout>
   );

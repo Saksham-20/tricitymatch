@@ -45,7 +45,7 @@ type Nav = NativeStackNavigationProp<MainStackParamList>;
 // On iOS, Apple's rules make in-app purchase of digital subscriptions costly, so
 // (like Spotify) we send buyers to the website to pay. Android keeps in-app
 // billing (Razorpay + Google Play, user-choice).
-const WEB_SUBSCRIPTION_URL = 'https://tricityshadi.com/subscription';
+const WEB_SUBSCRIPTION_URL = 'https://tricitymatch.com/subscription';
 const isIOS = Platform.OS === 'ios';
 
 // ─── Razorpay stub (dynamic require for native build) ─────────────────────────
@@ -556,7 +556,7 @@ export default function SubscriptionScreen() {
 
             {isIOS && (
               <Text style={s.iosNote}>
-                Subscriptions are managed on tricityshadi.com. Tap below to continue in your browser.
+                Subscriptions are managed on tricitymatch.com. Tap below to continue in your browser.
               </Text>
             )}
           </ScrollView>
@@ -586,7 +586,7 @@ export default function SubscriptionScreen() {
             </TouchableOpacity>
             <Text style={s.disclaimer}>
               {isIOS
-                ? 'You’ll finish checkout securely on tricityshadi.com'
+                ? 'You’ll finish checkout securely on tricitymatch.com'
                 : 'Pay by Card / UPI (Razorpay) or Google Play'}
             </Text>
           </View>

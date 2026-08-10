@@ -34,7 +34,7 @@ export default function ContactScreen() {
       setForm({ name: '', email: '', phone: '', subject: '', message: '' });
       navigation.goBack();
     } catch {
-      Alert.alert('Could not send', 'Something went wrong. Please try again or email support@tricityshadi.com.');
+      Alert.alert('Could not send', 'Something went wrong. Please try again or email support@tricitymatch.com.');
     } finally {
       setSending(false);
     }
@@ -65,7 +65,7 @@ export default function ContactScreen() {
             {sending ? <ActivityIndicator color="#fff" /> : <Text style={s.ctaText}>Send message</Text>}
           </TouchableOpacity>
 
-          <Text style={s.altContact}>Or email us at support@tricityshadi.com</Text>
+          <Text style={s.altContact}>Or email us at support@tricitymatch.com</Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
