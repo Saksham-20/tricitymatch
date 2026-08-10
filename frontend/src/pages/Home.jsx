@@ -14,10 +14,13 @@ import useFoundingWindow from '../hooks/useFoundingWindow';
    hidden until at least one real story exists. Never seed fabricated couples. */
 
 /* ── FONT LOADER ─────────────────────────────────────────────── */
+/* The @font-face families this file uses (Instrument Serif, Cormorant Garamond,
+   Inter Tight, JetBrains Mono) are requested from `index.html`, NOT from here.
+   An @import inside this style tag is invisible to the preload scanner — it was
+   not fetched until ~1970ms on throttled 4G, which is most of the landing
+   page's LCP. See scripts/lcp-probe.mjs. */
 const FontLoader = () => (
   <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Inter+Tight:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
-
     :root {
       --burgundy: #7C1D3A;
       --burgundy-dk: #5C1229;
