@@ -463,6 +463,26 @@ exports.webhook = asyncHandler(async (req, res) => {
         subscription.contactUnlocksUsed = 0;
         await subscription.save({ transaction: t });
 
+        // Supersede every OTHER pending-or-active row, exactly as
+        // `verifyPayment` does. The webhook is the FALLBACK leg — it runs when
+        // the browser never came back from checkout — and on an upgrade the
+        // member still holds the plan they are upgrading from. Without this the
+        // user ends up with two rows marked 'active': `requirePremium` picks
+        // one arbitrarily (no ORDER BY), so contact-unlock quota is consumed
+        // from whichever row the query happened to return and
+        // `my-subscription` can report the older, cheaper plan.
+        await Subscription.update(
+          { status: 'cancelled' },
+          {
+            where: {
+              userId: subscription.userId,
+              status: { [Op.in]: ['pending', 'active'] },
+              id: { [Op.ne]: subscription.id },
+            },
+            transaction: t,
+          }
+        );
+
         // Unlimited plans (VIP / NRI): activate profile boost via webhook too
         if (UNLIMITED_PLANS.includes(subscription.planType)) {
           await User.update(

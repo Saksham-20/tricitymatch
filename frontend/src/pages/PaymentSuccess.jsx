@@ -5,23 +5,54 @@ import { FiCheckCircle, FiArrowRight } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 import Logo from '../components/common/Logo';
 import api from '../api/axios';
+import { planFeatures } from '../utils/planFeatures';
+import { useAuth } from '../context/AuthContext';
+
+// Display names for the plan enum. Kept beside the page that shows them; the
+// enum keys themselves are persisted in Postgres and never change.
+const PLAN_LABEL = {
+  basic_premium: 'Basic',
+  premium_plus: 'Premium',
+  elite: 'Elite',
+  vip: 'VIP',
+  nri: 'NRI Connect',
+  founding_premium: 'Founding Member',
+};
 
 export default function PaymentSuccess() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   // This page used to congratulate anyone who opened the URL — a bookmark or a
   // shared link told a free member their subscription was active. Confirm with
   // the server before claiming anything happened.
   const [checking, setChecking] = useState(true);
+  const [plan, setPlan] = useState(null);
+  const [features, setFeatures] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const { data } = await api.get('/subscription/my-subscription');
-        const plan = data?.subscription?.planType;
-        if (!cancelled && (!plan || plan === 'free')) {
+        const planType = data?.subscription?.planType;
+        if (!cancelled && (!planType || planType === 'free')) {
           navigate('/subscription', { replace: true });
           return;
+        }
+        if (!cancelled) {
+          setPlan(planType);
+          // What this member actually bought. The list used to be four
+          // hardcoded lines shown to every buyer, including "Priority in search
+          // results" — an Elite feature a Basic buyer does not get. A receipt
+          // is the worst possible place to over-promise.
+          // Drop the "Everything in X" chain lines — a comparison-grid device
+          // that says nothing on a receipt — and honour the live chat flag so
+          // this never takes credit for something that is currently free.
+          setFeatures(
+            planFeatures(planType, Boolean(user?.features?.freeChatForMutuals))
+              .filter((f) => !/^Everything in /.test(f))
+              .slice(0, 4)
+          );
         }
       } catch {
         // Network hiccup on the confirmation read shouldn't strand the member
@@ -30,7 +61,7 @@ export default function PaymentSuccess() {
       if (!cancelled) setChecking(false);
     })();
     return () => { cancelled = true; };
-  }, [navigate]);
+  }, [navigate, user]);
 
   useEffect(() => {
     if (checking) return undefined;
@@ -77,23 +108,22 @@ export default function PaymentSuccess() {
               <h1 className="font-display text-2xl font-bold text-neutral-900">Payment Successful!</h1>
             </div>
             <p className="text-neutral-500 text-sm mb-6">
-              Your subscription is now active. You have full access to all premium features.
+              {PLAN_LABEL[plan]
+                ? `Your ${PLAN_LABEL[plan]} membership is now active.`
+                : 'Your membership is now active.'}
             </p>
 
+            {features?.length > 0 && (
             <div className="bg-gold-50 rounded-2xl p-4 mb-6 text-left">
               <p className="text-xs font-semibold text-gold-700 uppercase tracking-wide mb-2">What's unlocked</p>
-              {[
-                'Unlimited profile views',
-                'Send unlimited interests',
-                'Priority in search results',
-                'Direct messaging',
-              ].map((f) => (
+              {(features || []).map((f) => (
                 <div key={f} className="flex items-center gap-2 py-1">
                   <FiCheckCircle className="w-3.5 h-3.5 text-gold flex-shrink-0" />
                   <span className="text-sm text-neutral-700">{f}</span>
                 </div>
               ))}
             </div>
+            )}
 
             <div className="flex flex-col gap-3">
               <Link to="/dashboard" className="btn-primary w-full flex items-center justify-center gap-2">

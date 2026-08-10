@@ -8,7 +8,7 @@
  * (`/auth/me` → `features.freeChatForMutuals`), and this locks that derivation.
  */
 import { describe, it, expect } from 'vitest';
-import { planFeatures } from '../../pages/Subscription';
+import { planFeatures } from '../../utils/planFeatures';
 
 const CHAT_LINE = 'Chat with your mutual matches';
 const PAID_CHAT_LINE = 'Unlimited messages';
