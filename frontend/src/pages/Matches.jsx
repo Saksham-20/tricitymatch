@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiBookmark, FiHeart, FiUsers, FiAlertCircle, FiLock, FiSearch } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
@@ -65,7 +65,14 @@ const CardSkeleton = () => (
 );
 
 export default function Matches() {
-  const [active, setActive] = useState('shortlist');
+  // ?tab= lets other surfaces deep-link a specific list — notification taps in
+  // particular. An unknown value falls back to Saved rather than rendering an
+  // empty shell for a tab that doesn't exist.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requested = searchParams.get('tab');
+  const [active, setActive] = useState(
+    TABS.some((t) => t.id === requested) ? requested : 'shortlist'
+  );
   const [state, setState] = useState('loading'); // loading | ready | empty | error | premium
   const [profiles, setProfiles] = useState([]);
 
@@ -127,7 +134,12 @@ export default function Matches() {
             return (
               <button
                 key={t.id}
-                onClick={() => setActive(t.id)}
+                onClick={() => {
+                  setActive(t.id);
+                  // Keep the URL honest so a refresh or a shared link lands on
+                  // the tab the member is actually looking at.
+                  setSearchParams(t.id === 'shortlist' ? {} : { tab: t.id }, { replace: true });
+                }}
                 className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
                   isActive
                     ? 'bg-primary-500 text-white shadow-sm'
