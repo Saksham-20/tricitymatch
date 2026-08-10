@@ -29,7 +29,12 @@ const FontLoader = () => (
       --ink-soft: #4A3B30;
       --gold: #B8952A;
       --gold-lt: #F0D080;
-      --gold-text: #D4B048; /* AA-compliant gold for small text on burgundy/ink (4.8:1) */
+      --gold-text: #D4B048; /* AA-compliant gold for TEXT on burgundy/ink (4.8:1) */
+      /* Rule: --gold is for decoration (glyphs, dots, icons); every gold TEXT
+         node uses --gold-text. --gold on --burgundy is only 3.52:1, and these
+         display headings clamp down to 22px on a 375px screen — under WCAG's
+         24px large-text threshold, so they need the full 4.5:1. Caught by
+         scripts/a11y-probe.mjs, not by eye. */
       --mute: rgba(45,26,34,0.65);
       --line: rgba(45,26,34,0.14);
       --line-on-dk: rgba(253,248,242,0.22);
@@ -675,8 +680,8 @@ const Home = () => {
             <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.22em', textTransform: 'uppercase', color: 'var(--gold-text)', display: 'block', marginBottom: 20 }}>— Founding members</span>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(28px,3.6vw,48px)', lineHeight: 1.1, letterSpacing: '-.02em', margin: 0 }}>
               Tricity's newest, most carefully verified matchmaking community — {founding.open
-                ? <em style={{ fontStyle: 'italic', color: 'var(--gold)' }}>founding members join free.</em>
-                : <em style={{ fontStyle: 'italic', color: 'var(--gold)' }}>built family-first.</em>}
+                ? <em style={{ fontStyle: 'italic', color: 'var(--gold-text)' }}>founding members join free.</em>
+                : <em style={{ fontStyle: 'italic', color: 'var(--gold-text)' }}>built family-first.</em>}
             </h2>
             <p style={{ fontSize: 15, lineHeight: 1.65, color: 'rgba(253,248,242,.72)', fontFamily: 'var(--sans)', maxWidth: '34em', margin: '18px 0 28px' }}>
               We&apos;re starting the honest way: no inflated numbers, every verified badge earned with a
@@ -828,13 +833,13 @@ const Home = () => {
           <div>
             <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--gold-text)', marginBottom: 24, display: 'block' }}>— Smart matches</span>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', color: 'var(--cream)' }}>
-              Profiles matched<br /><em style={{ fontStyle: 'italic', color: 'var(--gold)' }}>just</em> for you.
+              Profiles matched<br /><em style={{ fontStyle: 'italic', color: 'var(--gold-text)' }}>just</em> for you.
             </h2>
           </div>
           <div style={{ fontFamily: 'var(--display)', display: 'flex', alignItems: 'baseline', gap: 8 }}>
             <AnimatePresence mode="wait">
               <motion.span key={matchIdx} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-                style={{ fontSize: 36, lineHeight: 1, color: 'var(--gold)', fontStyle: 'italic' }}>
+                style={{ fontSize: 36, lineHeight: 1, color: 'var(--gold-text)', fontStyle: 'italic' }}>
                 0{matchIdx + 1}
               </motion.span>
             </AnimatePresence>
@@ -871,7 +876,7 @@ const Home = () => {
             {/* Details panel */}
             <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
               <div>
-                <span style={{ fontFamily: 'var(--display)', fontSize: 'clamp(20px,2.4vw,32px)', lineHeight: 1.05, letterSpacing: '-.02em', color: 'var(--cream)' }}>{cur.name}, <em style={{ color: 'var(--gold)', fontStyle: 'italic' }}>{cur.age}</em></span>
+                <span style={{ fontFamily: 'var(--display)', fontSize: 'clamp(20px,2.4vw,32px)', lineHeight: 1.05, letterSpacing: '-.02em', color: 'var(--cream)' }}>{cur.name}, <em style={{ color: 'var(--gold-text)', fontStyle: 'italic' }}>{cur.age}</em></span>
                 <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '.16em', textTransform: 'uppercase', opacity: .7, color: 'var(--cream)', marginTop: 4 }}>{cur.loc} · Tricity</div>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -1056,7 +1061,7 @@ const Home = () => {
           <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0 }}>
             <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--gold-text)', marginBottom: 24, display: 'block' }}>— Made for Tricity</span>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', color: 'var(--cream)' }}>
-              Three cities.<br />One <em style={{ fontStyle: 'italic', color: 'var(--gold)' }}>community.</em>
+              Three cities.<br />One <em style={{ fontStyle: 'italic', color: 'var(--gold-text)' }}>community.</em>
             </h2>
           </motion.div>
           <p style={{ fontSize: 14, lineHeight: 1.5, color: 'rgba(253,248,242,.75)', maxWidth: 520, fontFamily: 'var(--sans)' }}>
@@ -1159,7 +1164,7 @@ const Home = () => {
           <div>
             <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--gold-text)', marginBottom: 24, display: 'block' }}>— Safety first</span>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', color: 'var(--cream)' }}>
-              Built on trust. Backed by <em style={{ fontStyle: 'italic', color: 'var(--gold)' }}>action.</em>
+              Built on trust. Backed by <em style={{ fontStyle: 'italic', color: 'var(--gold-text)' }}>action.</em>
             </h2>
           </div>
           <p style={{ fontSize: 14, lineHeight: 1.5, color: 'rgba(253,248,242,.75)', maxWidth: 520, fontFamily: 'var(--sans)' }}>
@@ -1339,7 +1344,7 @@ const Home = () => {
           <motion.div initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0 }}>
             <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--gold-text)', marginBottom: 32, display: 'block' }}>★ Your story awaits ★</span>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.8vw,44px)', lineHeight: .92, letterSpacing: '-.025em', marginBottom: 32 }}>
-              Every great<br />love story<br />starts with <em style={{ fontStyle: 'italic', color: 'var(--gold)' }}>one step.</em>
+              Every great<br />love story<br />starts with <em style={{ fontStyle: 'italic', color: 'var(--gold-text)' }}>one step.</em>
             </h2>
             <p style={{ maxWidth: 540, margin: '0 auto 32px', fontSize: 14, lineHeight: 1.5, color: 'rgba(253,248,242,.82)', fontFamily: 'var(--sans)' }}>
               Join thousands of families who trusted TricityMatch to find their forever partner. Free to start.
