@@ -8,7 +8,8 @@ import {
   TouchableOpacity,
   Image,
   Switch,
-  ActivityIndicator,
+  ActivityIndicator, 
+  useWindowDimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -406,11 +407,14 @@ const sc = StyleSheet.create({
 // "Add photos" prompt instead of a blank white box.
 function OwnGalleryPhoto({ uri, previewMode }: { uri: string; previewMode: boolean }) {
   const { c } = useTheme();
+  // One slide == one viewport, or pagingEnabled drifts and the dot index
+  // (contentOffset.x / width) stops matching the photo on screen.
+  const { width: slideWidth } = useWindowDimensions();
   const [failed, setFailed] = useState(false);
   const resolved = resolveImageUri(previewMode ? uri + '?blur=20' : uri);
   if (!resolved || failed) {
     return (
-      <View style={[styles.photo, styles.photoEmpty, { backgroundColor: c.surface2 }]}>
+      <View style={[styles.photo, styles.photoEmpty, { width: slideWidth, backgroundColor: c.surface2 }]}>
         <Ionicons name="camera-outline" size={48} color={c.textMuted} />
         <Text style={[styles.photoEmptyText, { color: c.textMuted }]}>Add photos</Text>
       </View>
@@ -419,7 +423,7 @@ function OwnGalleryPhoto({ uri, previewMode }: { uri: string; previewMode: boole
   return (
     <Image
       source={{ uri: resolved }}
-      style={styles.photo}
+      style={[styles.photo, { width: slideWidth }]}
       resizeMode="cover"
       blurRadius={previewMode ? 20 : 0}
       onError={() => setFailed(true)}
@@ -434,6 +438,7 @@ export default function OwnProfileScreen() {
   const navigation = useNavigation<Nav>();
   const user = useAuthStore((s) => s.user);
   const { c } = useTheme();
+  const { width: windowWidth } = useWindowDimensions();
   const [previewMode, setPreviewMode] = useState(false);
   const queryClient = useQueryClient();
 
@@ -519,7 +524,7 @@ export default function OwnProfileScreen() {
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={(e) => {
-          const idx = Math.round(e.nativeEvent.contentOffset.x / 375);
+          const idx = Math.round(e.nativeEvent.contentOffset.x / windowWidth);
           setPhotoIdx(idx);
         }}
         style={styles.photoScroll}
@@ -530,7 +535,7 @@ export default function OwnProfileScreen() {
             <OwnGalleryPhoto key={i} uri={uri} previewMode={previewMode} />
           ))
         ) : (
-          <View style={[styles.photo, styles.photoEmpty, { backgroundColor: c.surface2 }]}>
+          <View style={[styles.photo, styles.photoEmpty, { width: windowWidth, backgroundColor: c.surface2 }]}>
             <Ionicons name="camera-outline" size={48} color={c.textMuted} />
             <Text style={[styles.photoEmptyText, { color: c.textMuted }]}>Add photos</Text>
           </View>
@@ -793,7 +798,9 @@ const styles = StyleSheet.create({
   },
 
   photoScroll: { height: 320 },
-  photo: { width: 375, height: 320 },
+  // Width comes from useWindowDimensions at the call site — a fixed 375 letterboxed
+  // the hero and desynced the paging dots on every device that is not a 375pt iPhone.
+  photo: { height: 320 },
   photoEmpty: {
     backgroundColor: colours.surfaceCard,
     alignItems: 'center',

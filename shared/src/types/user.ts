@@ -28,7 +28,24 @@ export interface User {
   Subscription?: Subscription;
 }
 
+/**
+ * Server-owned feature flags, returned on the `/auth/me` payload.
+ *
+ * These must NOT be duplicated as build-time client constants. A flag baked into
+ * a bundle drifts from the server the moment it is flipped, and on mobile a
+ * stale bundle can sit on a device for weeks — which is exactly how the app and
+ * the website came to disagree about whether the same account could chat.
+ */
+export interface AuthFeatures {
+  /** When on, mutual matches can chat without a paid plan. */
+  freeChatForMutuals: boolean;
+  /** Whether the founding-member window is currently open. */
+  foundingOpen: boolean;
+}
+
 export interface AuthUser extends User {
   subscriptionPlan: SubscriptionPlanType;
   onboardingComplete: boolean;
+  /** Optional: older server builds predate this block. Treat absence as all-false. */
+  features?: AuthFeatures;
 }

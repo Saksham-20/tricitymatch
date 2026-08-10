@@ -199,6 +199,7 @@ export default function SearchScreen() {
     hasNextPage,
     isFetchingNextPage,
     isLoading,
+    isError,
     refetch,
   } = useInfiniteQuery({
     queryKey: ['search', filters, nameQuery],
@@ -310,7 +311,7 @@ export default function SearchScreen() {
       </View>
 
       {/* Result count */}
-      {!isLoading && (
+      {!isLoading && !isError && (
         <View style={s.countRow}>
           <Text style={[s.countText, { color: c.textMuted }]}>
             {total > 0 ? `${total} profiles found` : 'No profiles found'}
@@ -326,6 +327,18 @@ export default function SearchScreen() {
           renderItem={() => <CardSkeleton />}
           contentContainerStyle={s.list}
           scrollEnabled={false}
+        />
+      ) : isError ? (
+        // A failed request is NOT an empty result. Reporting "No profiles found"
+        // when the network died tells the member the marketplace is empty — the
+        // single most damaging thing this app can say while supply is thin, and
+        // it is not even true. Distinguish them, and offer a retry.
+        <SharedEmpty
+          icon="cloud-offline-outline"
+          title="Couldn't load profiles"
+          description="Check your connection and try again."
+          actionLabel="Retry"
+          onAction={() => refetch()}
         />
       ) : profiles.length === 0 ? (
         <SharedEmpty

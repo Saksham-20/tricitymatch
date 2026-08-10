@@ -7,7 +7,8 @@ import {
   TouchableOpacity,
   Image,
   Alert,
-  ActivityIndicator,
+  ActivityIndicator, 
+  useWindowDimensions,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -65,17 +66,20 @@ function CompatibilityBar({ score, onWhyPress }: { score: number; onWhyPress: ()
 // "Upgrade to view" lock overlay for non-premium viewers' secondary photos.
 function HeroPhoto({ uri, locked }: { uri: string; locked: boolean }) {
   const { c } = useTheme();
+  // Each slide must be exactly one viewport wide or pagingEnabled drifts and the
+  // dot index (contentOffset.x / width) stops matching the visible photo.
+  const { width: slideWidth } = useWindowDimensions();
   const [failed, setFailed] = useState(false);
   const resolved = resolveImageUri(uri);
   if (!resolved || failed) {
     return (
-      <View style={[styles.photoContainer, styles.photoFallback, { backgroundColor: c.surface2 }]}>
+      <View style={[styles.photoContainer, styles.photoFallback, { width: slideWidth, backgroundColor: c.surface2 }]}>
         <Ionicons name="person" size={64} color={c.textMuted} />
       </View>
     );
   }
   return (
-    <View style={styles.photoContainer}>
+    <View style={[styles.photoContainer, { width: slideWidth }]}>
       <Image
         source={{ uri: resolved }}
         style={styles.photo}
@@ -112,20 +116,23 @@ const cb = StyleSheet.create({
 
 // ─── Verification Badges ─────────────────────────────────────────────────────
 
-const BADGES = [
-  { key: 'mobile', label: 'Mobile', color: colours.badgeMobile },
-  { key: 'id', label: 'ID', color: colours.badgeID },
-  { key: 'education', label: 'Education', color: colours.badgeEducation },
-  { key: 'income', label: 'Income', color: colours.badgeIncome },
-] as const;
+// The BADGES array that used to live here modelled Mobile / ID / Education /
+// Income tiers. Three of those were REMOVED from the product: govt-ID collection
+// stopped on 2026-07-02 and education/income tiers never shipped. Verification is
+// selfie-only now, so there is exactly one badge to show.
+//
+// This row also never rendered. It was invoked as `<VerificationRow />` with no
+// props while requiring `phoneVerified` to be truthy — and `phoneVerified` is not
+// even part of the profile payload. The single trust signal on the screen where a
+// matrimonial decision actually gets made was dead code.
 
-function VerificationRow({ phoneVerified }: { phoneVerified?: boolean }) {
-  if (!phoneVerified) return null;
+function VerificationRow({ photoVerified }: { photoVerified?: boolean }) {
+  if (!photoVerified) return null;
   return (
     <View style={vr.row}>
-      <View style={[vr.badge, { borderColor: colours.badgeMobile }]}>
-        <Ionicons name="checkmark-circle" size={12} color={colours.badgeMobile} />
-        <Text style={[vr.text, { color: colours.badgeMobile }]}>Mobile</Text>
+      <View style={[vr.badge, { borderColor: colours.success }]}>
+        <Ionicons name="checkmark-circle" size={12} color={colours.success} />
+        <Text style={[vr.text, { color: colours.success }]}>Photo verified</Text>
       </View>
     </View>
   );
@@ -294,6 +301,7 @@ export default function ProfileDetailScreen() {
   const user = useAuthStore((s) => s.user);
   const { c } = useTheme();
 
+  const { width: windowWidth } = useWindowDimensions();
   const [photoIdx, setPhotoIdx] = useState(0);
   const [mutualMatch, setMutualMatch] = useState(false);
   const [actionDone, setActionDone] = useState<MatchAction | null>(null);
@@ -395,7 +403,7 @@ export default function ProfileDetailScreen() {
           pagingEnabled
           showsHorizontalScrollIndicator={false}
           onMomentumScrollEnd={(e) => {
-            const idx = Math.round(e.nativeEvent.contentOffset.x / 375);
+            const idx = Math.round(e.nativeEvent.contentOffset.x / windowWidth);
             setPhotoIdx(idx);
           }}
           style={styles.photoScroll}
@@ -406,7 +414,7 @@ export default function ProfileDetailScreen() {
               <HeroPhoto key={i} uri={uri} locked={!isMutualOrPremium && i > 0} />
             ))
           ) : (
-            <View style={[styles.photoContainer, styles.photoFallback, { backgroundColor: c.surface2 }]}>
+            <View style={[styles.photoContainer, styles.photoFallback, { width: windowWidth, backgroundColor: c.surface2 }]}>
               <Ionicons name="person" size={64} color={c.textMuted} />
             </View>
           )}
@@ -429,7 +437,7 @@ export default function ProfileDetailScreen() {
         </View>
 
         {/* Verification row */}
-        <VerificationRow />
+        <VerificationRow photoVerified={profile.isVerified} />
 
         {/* Compatibility */}
         {typeof compat?.overallScore === 'number' && (
@@ -640,7 +648,9 @@ const styles = StyleSheet.create({
   },
 
   photoScroll: { height: 380 },
-  photoContainer: { width: 375, height: 380 },
+  // Width comes from useWindowDimensions at the call site — a fixed 375 letterboxed
+  // the hero and desynced the paging dots on every device that is not a 375pt iPhone.
+  photoContainer: { height: 380 },
   photo: { width: '100%', height: '100%' },
   photoFallback: {
     backgroundColor: colours.surfaceCard,

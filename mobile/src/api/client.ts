@@ -90,8 +90,21 @@ apiClient.interceptors.response.use(
         return apiClient(original);
       } catch (refreshError) {
         processQueue(refreshError);
-        const { useAuthStore } = require('../stores/authStore');
-        await useAuthStore.getState().logout();
+
+        // Only a REJECTED refresh means the session is gone. A refresh that
+        // never reached the server — airplane mode, a dead lift, a flaky train
+        // — says nothing about whether the token is still valid, and logging the
+        // user out on it means opening the app underground signs you out and
+        // makes you re-authenticate. Keep the session and let the caller surface
+        // the offline state instead.
+        const err = refreshError as { response?: { status?: number } };
+        const status = err?.response?.status;
+        const serverRejected = status === 401 || status === 403;
+
+        if (serverRejected) {
+          const { useAuthStore } = require('../stores/authStore');
+          await useAuthStore.getState().logout();
+        }
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
