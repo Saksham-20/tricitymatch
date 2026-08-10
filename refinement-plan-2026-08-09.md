@@ -212,10 +212,13 @@ the real number or say the word and it comes out.
   **Two probe lessons worth keeping:** `el.focus()` does NOT set `:focus-visible` (an earlier
   version invented 7 "no focus ring" findings on the login form), and ring styles must be read
   ~70ms after Tab or the CSS transition is caught at ~0.2px and reports another false negative.
-  **Known gap:** the `--deep` step reaches the OTP panel and scans the six labelled digit inputs
-  but cannot get past it (`OtpBoxes` completes on real key events; neither `fill` nor
-  `keyboard.type` registered a finished code), so **step 2 and its DOB selects are still
-  unscanned** — noted in the script.
+  **Gap closed same day (4dc2700):** the `--deep` step could not get past the OTP widget
+  (`OtpBoxes` completes on real key events; neither `fill` nor `keyboard.type` registered a
+  finished code), leaving the actual form unscanned. It now creates the account through the API
+  and seeds the onboarding draft — which is what decides the rendered step, not auth state — so
+  **signup step 2 scans clean too**: 15 tab stops covering both name inputs, the gender chips, all
+  three DOB selects and Back / Create my profile / Save & Exit, 0 violations. Funnel total: 6
+  states, 0 gating, 0 advisory, 0 stops without a focus ring.
 - **P4' LCP.** New `scripts/lcp-probe.mjs` (375px, 1.6Mbps/150ms RTT, 4× CPU, fresh context per
   run, median of N, prints the LCP element + slowest third-party resources; budget 2500ms, exit 1
   over). **Root cause confirmed exactly as the plan predicted:** Home's four display families were
