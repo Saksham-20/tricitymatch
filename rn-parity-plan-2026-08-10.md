@@ -95,6 +95,39 @@ commits behind main and 7 ahead.
 
 ---
 
+---
+
+## EXECUTION STATUS — 2026-08-10
+
+Branch `mobile/launch-prep`. Commits `885129d` (plan) → `aa6f3fb` (merge) → `661ecfd` (gate + harness).
+**Nothing pushed. Nothing deployed.** Web production is untouched by this branch.
+
+**RN-A DONE:**
+- Merge landed. 4 conflicts resolved; lockfile regenerated rather than trusted.
+- Gates green: backend **247/247** · frontend **97/97** · mobile **4/4** · mobile `tsc` **0** ·
+  root `lint` 0 · slop-lint clean (294 files) · frontend build OK.
+- `mobile` is inside root `lint` + `test` + `lint-staged` (G8 closed, **probe-verified**:
+  clean tree exits 0, adding a tier to the shared enum exits 1 with the same TS2741 that
+  shipped unnoticed on main).
+- Jest harness works (G2 closed) — jest 29 nested under `mobile`, native modules mocked.
+- G1 closed, G13 closed, G14 partially (legacy prefixes dropped), G21 closed.
+- Two bugs found and fixed that predate this plan: `isPlanAtLeast` ranked a founding
+  member **below free**, and the Play-products test would have let a granted tier be sold.
+- Root `npm test` had been failing at its first leg on backend's coverage threshold
+  (60% configured vs 19.32% actual), so frontend and mobile legs never ran — the new gate
+  would have been dead on arrival. Correctness and coverage are now separate commands.
+
+**RN-A REMAINING:**
+- `npx expo prebuild --clean` + native diff/re-apply + `pod install` + **boots on both
+  simulators** — the real G0 exit gate. Not attempted yet.
+- `shared/src/constants/routes.ts` still holds the stale contract (G14). Regenerate from a
+  backend route manifest or delete; do not adopt as-is.
+- Mobile eslint config (G8 remainder) — deliberately deferred during the merge to avoid
+  destabilising the dependency tree mid-reconcile.
+- The api contract harness (manifest + conformance + zod envelopes).
+
+---
+
 ## Phases
 
 ### RN-A — Reconcile the vehicle and make it real
