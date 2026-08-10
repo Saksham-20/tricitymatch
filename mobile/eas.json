@@ -1,26 +1,32 @@
 {
-  "cli": { "version": ">= 7.0.0" },
+  "cli": {
+    "version": ">= 7.0.0"
+  },
   "build": {
     "development": {
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://localhost:5001",
+        "EXPO_PUBLIC_API_URL": "http://localhost:5001/api/v1",
         "EXPO_PUBLIC_WS_URL": "ws://localhost:5001"
       }
     },
     "preview": {
       "distribution": "internal",
-      "android": { "buildType": "apk" },
+      "android": {
+        "buildType": "apk"
+      },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://staging.tricitymatch.com",
+        "EXPO_PUBLIC_API_URL": "https://staging.tricitymatch.com/api/v1",
         "EXPO_PUBLIC_WS_URL": "wss://staging.tricitymatch.com"
       }
     },
     "production": {
-      "android": { "buildType": "app-bundle" },
+      "android": {
+        "buildType": "app-bundle"
+      },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://tricitymatch.com",
+        "EXPO_PUBLIC_API_URL": "https://tricitymatch.com/api/v1",
         "EXPO_PUBLIC_WS_URL": "wss://tricitymatch.com"
       }
     }

@@ -17,7 +17,7 @@
     "test": "npm run test --workspace=backend && npm run test:run --workspace=frontend && npm run test --workspace=mobile",
     "test:backend": "npm run test --workspace=backend",
     "test:frontend": "npm run test:run --workspace=frontend",
-    "lint": "npm run lint --workspace=backend && npm run lint --workspace=frontend && npm run typecheck --workspace=mobile && node scripts/slop-lint.mjs",
+    "lint": "npm run lint --workspace=backend && npm run lint --workspace=frontend && npm run lint --workspace=mobile && npm run typecheck --workspace=mobile && node scripts/slop-lint.mjs",
     "lint:fix": "npm run lint:fix --workspace=backend && npm run lint:fix --workspace=frontend",
     "qa": "npx playwright test",
     "qa:auth": "npx playwright test e2e/tests/01-auth-flow.spec.js",

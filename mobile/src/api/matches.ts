@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { toProfileSummary } from './profileSummary';
 import type { Match, MatchAction, MatchActionResponse, ProfileSummary } from '../types';
 
 // Backend wraps list responses as { success, <key>, pagination } — unwrap to the inner key.
@@ -33,8 +34,9 @@ const toMatch = (m: RawMatchItem, isMutual: boolean): Match => {
     mutualMatchDate: m.matchedAt ?? null,
     createdAt: when,
     updatedAt: when,
-    MatchedProfile: {
+    MatchedProfile: toProfileSummary({
       id: m.userId,
+      userId: m.userId,
       firstName: m.firstName,
       lastName: m.lastName,
       city: m.city,
@@ -44,7 +46,7 @@ const toMatch = (m: RawMatchItem, isMutual: boolean): Match => {
       profession: m.profession,
       gender: m.gender,
       compatibilityScore: score ?? undefined,
-    } as unknown as ProfileSummary,
+    }),
   };
 };
 
