@@ -110,68 +110,48 @@ const STEPS = [
  *
  * Run: OTP_BYPASS_CODES=000000 in .env.development (revert after), then
  *   node scripts/a11y-probe.mjs --deep --bypass=000000
- * Delete any created user afterwards.
- *
- * KNOWN LIMIT (measured 2026-08-10, not a product bug): this reaches the OTP
- * panel and scans the six segmented digit inputs, but does NOT get past it —
- * `OtpBoxes` completes on real key events, and Playwright's `fill` sets the
- * value without producing the sequence the component treats as a finished code.
- * So step 2 (name + the DOB selects) is still UNSCANNED by axe. Driving it
- * needs `pressSequentially` per box or a direct verify-then-navigate; worth
- * doing when someone next touches onboarding.
+ * Delete the created users afterwards:
+ *   DELETE FROM "Users" WHERE email LIKE 'a11y.probe.%@example.com';
  */
 const DEEP_STEPS = [
   {
-    name: 'signup — OTP boxes (6 digits)',
+    name: 'signup step 2 (basics + DOB)',
     enter: async (page, { bypass }) => {
-      const stamp = Date.now();
-      const email = `a11y.probe.${stamp}@example.com`;
-      // The earlier steps left an onboarding draft in localStorage; without
-      // clearing it the reload RESUMES mid-flow and the OTP panel never
-      // renders. (Cost me a 30s timeout to notice.)
-      await page.goto(`${BASE}/signup`, { waitUntil: 'domcontentloaded' });
-      await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+      const email = `a11y.probe.${Date.now()}@example.com`;
+      const password = 'Probe@12345';
+
+      // Create the account through the API rather than the OTP widget.
+      // `OtpBoxes` completes on real key events and neither `fill` nor
+      // `keyboard.type` produced a code it accepted, which left step 2 —
+      // the actual form, with the three DOB selects — unscanned. The widget
+      // itself is already covered by the step above; what matters here is
+      // getting PAST it. `page.request` shares the browser context's cookie
+      // jar, so the session lands in the page.
+      const api = `${BASE}/api/v1`;
+      const post = async (path, data) => {
+        const res = await page.request.post(`${api}${path}`, { data });
+        if (!res.ok()) throw new Error(`${path} → ${res.status()} ${(await res.text()).slice(0, 120)}`);
+        return res.json();
+      };
+
+      await post('/auth/send-otp', { type: 'email', target: email });
+      await post('/auth/verify-otp', { type: 'email', target: email, code: bypass });
+      await post('/auth/signup', { email, password });
+
+      // Which step renders is decided by the onboarding DRAFT, not by auth
+      // state — CreateAccountStep re-renders until the draft says the contact
+      // is verified. Seed the draft the way a completed step 1 leaves it.
+      await page.goto(`${BASE}/onboarding`, { waitUntil: 'domcontentloaded' });
+      await page.evaluate((mail) => {
+        localStorage.setItem('onboarding_draft', JSON.stringify({
+          creatingFor: 'self',
+          email: mail,
+          emailVerification: true,
+          termsAccepted: true,
+        }));
+        localStorage.setItem('onboarding_step', '1');
+      }, email);
       await page.reload({ waitUntil: 'domcontentloaded' });
-      await page.waitForTimeout(1500);
-
-      // `input:first` on this step is the PASSWORD box, not the identifier —
-      // target the field by name so a layout change can't silently type the
-      // email into the wrong control (which is exactly what happened first).
-      await page.locator('[name="identifier"]').first().fill(email);
-      await page.locator('input[type="password"]').first().fill('Probe@12345');
-      // Terms checkbox
-      const terms = page.locator('input[type="checkbox"]').first();
-      if (await terms.count()) await terms.check({ force: true });
-
-      await page.getByRole('button', { name: /send otp/i }).click({ timeout: 15000 });
-      await page.waitForTimeout(1800);
-
-      // OTP segmented input: type the bypass code digit by digit, which is
-      // exactly what a person does — and proves focus advances on its own.
-      const boxes = page.locator('input[aria-label^="Digit"], input[inputmode="numeric"], input[maxlength="1"]');
-      const count = await boxes.count();
-      if (count > 1) {
-        // pressSequentially, not fill: OtpBoxes advances focus and fires
-        // onComplete off real key events. `fill` sets the value without them,
-        // so the code never registers as finished.
-        await boxes.first().click();
-        await page.keyboard.type(bypass, { delay: 90 });
-      } else {
-        await page.locator('input').nth(1).fill(bypass);
-      }
-      await page.waitForTimeout(3000);
-
-      // Verification fires on the last digit and the step may advance on its
-      // own, so the button can vanish mid-click. Either outcome is a real
-      // funnel state worth scanning — don't fail the run over which one.
-      try {
-        await page.getByRole('button', { name: /next|create my profile|continue/i })
-          .first()
-          .click({ timeout: 8000 });
-      } catch {
-        // already advanced, or blocked by a validation message that is itself
-        // part of the state being scanned
-      }
       await page.waitForTimeout(2000);
     },
   },
