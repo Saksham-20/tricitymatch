@@ -39,7 +39,16 @@ const ErrorTypes = {
 const createError = {
   badRequest: (message, details = null) => new AppError(message, 400, ErrorTypes.BAD_REQUEST, details),
   unauthorized: (message = 'Authentication required') => new AppError(message, 401, ErrorTypes.AUTHENTICATION_ERROR),
-  forbidden: (message = 'Access denied') => new AppError(message, 403, ErrorTypes.AUTHORIZATION_ERROR),
+  // The optional `code` is what the CLIENT branches on. Six call sites have
+  // been passing one since the premium gates were written
+  // (`PREMIUM_REQUIRED`, `SUBSCRIPTION_EXPIRED`, `VIP_REQUIRED`,
+  // `CONTACT_UNLOCK_LIMIT_REACHED`) and this factory silently dropped every one
+  // of them, so every 403 arrived as the generic `AUTHORIZATION_ERROR`. The web
+  // chat paywall screen (`Chat.jsx`, which tests for `PREMIUM_REQUIRED`) was
+  // therefore unreachable: a free member landed on the empty "no matches"
+  // state instead of an upgrade prompt.
+  forbidden: (message = 'Access denied', code = ErrorTypes.AUTHORIZATION_ERROR) =>
+    new AppError(message, 403, code),
   notFound: (message = 'Resource not found') => new AppError(message, 404, ErrorTypes.NOT_FOUND),
   conflict: (message) => new AppError(message, 409, ErrorTypes.CONFLICT),
   validation: (message, details = null) => new AppError(message, 400, ErrorTypes.VALIDATION_ERROR, details),

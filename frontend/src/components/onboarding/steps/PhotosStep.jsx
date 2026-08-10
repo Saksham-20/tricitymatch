@@ -7,7 +7,12 @@ import PhotoGuide from '../../profile/PhotoGuide';
 const PhotosStep = () => {
   const { formData, updateFormData, errors, setStepErrors, registerStepValidator } = useOnboarding();
   const fileInputRef = useRef(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  // In edit mode `profilePhoto` is an existing Cloudinary URL string — show it
+  // so the member sees their current photo instead of an empty dropzone (a new
+  // File selection replaces it). New signups start with null.
+  const [imagePreview, setImagePreview] = useState(
+    typeof formData.profilePhoto === 'string' && formData.profilePhoto ? formData.profilePhoto : null
+  );
   const formDataRef = useRef(formData);
   formDataRef.current = formData;
 
@@ -24,25 +29,34 @@ const PhotosStep = () => {
     return registerStepValidator(validateStep);
   }, []);
 
-  const handleFileSelect = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setStepErrors({ profilePhoto: 'File size must be less than 5MB' });
-        return;
-      }
+  const [dragActive, setDragActive] = useState(false);
 
-      // Create preview
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const preview = event.target?.result;
-        setImagePreview(preview);
-        updateFormData('profilePhoto', file);
-        setStepErrors({});
-      };
-      reader.readAsDataURL(file);
+  const processFile = (file) => {
+    if (!file) return;
+    // Drop bypasses the input's accept filter, so re-check the type here.
+    if (!file.type.startsWith('image/')) {
+      setStepErrors({ profilePhoto: 'Please choose an image file (PNG or JPG)' });
+      return;
     }
+    if (file.size > 5 * 1024 * 1024) {
+      setStepErrors({ profilePhoto: 'File size must be less than 5MB' });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setImagePreview(event.target?.result);
+      updateFormData('profilePhoto', file);
+      setStepErrors({});
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleFileSelect = (e) => processFile(e.target.files?.[0]);
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragActive(false);
+    processFile(e.dataTransfer.files?.[0]);
   };
 
   const removePhoto = () => {
@@ -71,13 +85,20 @@ const PhotosStep = () => {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => fileInputRef.current?.click()}
-            className="w-full border-2 border-dashed border-neutral-300 rounded-lg p-8 text-center hover:border-primary-500 hover:bg-primary-50 transition-all"
+            onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+            onDragLeave={() => setDragActive(false)}
+            onDrop={handleDrop}
+            className={`w-full border-2 border-dashed rounded-lg p-8 text-center transition-all ${
+              dragActive
+                ? 'border-primary-500 bg-primary-50'
+                : 'border-neutral-300 hover:border-primary-500 hover:bg-primary-50'
+            }`}
           >
             <div className="flex flex-col items-center gap-2">
               <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center">
                 <FiUpload className="w-6 h-6 text-primary-600" />
               </div>
-              <p className="font-medium text-neutral-900">Choose a profile photo</p>
+              <p className="font-medium text-neutral-900">Drag a photo here, or click to browse</p>
               <p className="text-sm text-neutral-600">PNG, JPG up to 5MB</p>
             </div>
           </motion.button>

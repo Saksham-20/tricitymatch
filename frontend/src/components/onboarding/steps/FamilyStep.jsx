@@ -87,6 +87,7 @@ const FamilyStep = () => {
         <FormField
           label="Number of Siblings"
           type="number"
+          inputMode="numeric"
           placeholder="0"
           value={formData.numberOfSiblings}
           onChange={(value) => updateFormData('numberOfSiblings', value)}

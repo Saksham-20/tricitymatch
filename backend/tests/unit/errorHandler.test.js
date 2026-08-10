@@ -56,6 +56,17 @@ describe('Error Handler', () => {
       expect(error.code).toBe(ErrorTypes.AUTHORIZATION_ERROR);
     });
 
+    it('should pass a caller-supplied code through to the client', () => {
+      // Regression (2026-08-10): the factory ignored its second argument, so
+      // `requirePremium`'s 'PREMIUM_REQUIRED' arrived as the generic
+      // AUTHORIZATION_ERROR and the web chat paywall — which branches on that
+      // exact string — never rendered for free members.
+      const error = createError.forbidden('Premium subscription required', 'PREMIUM_REQUIRED');
+
+      expect(error.statusCode).toBe(403);
+      expect(error.code).toBe('PREMIUM_REQUIRED');
+    });
+
     it('should create notFound error (404)', () => {
       const error = createError.notFound('Resource not found');
 

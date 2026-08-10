@@ -16,6 +16,8 @@ import { getImageUrl } from '../utils/cloudinary';
 import { sanitizeText, sanitizeUrl } from '../utils/sanitize';
 import { toProfileCode } from '../utils/profileCode';
 import VideoIntroManager from '../components/profile/VideoIntroManager';
+import FoundingBadge from '../components/common/FoundingBadge';
+import { useAuth } from '../context/AuthContext';
 import { ImageLightbox } from '../components/ui/ImageLightbox';
 import { friendlyLabel, formatEnum } from '../constants/profileOptions';
 
@@ -87,10 +89,13 @@ const socialVisibilityLabel = (entry) => {
   return 'Matches only';
 };
 
+// The negative margins keep the visual position identical while padding grows
+// the touch area: these sat at 41×18 px on a phone, well under the 24 px WCAG
+// 2.5.8 floor, and there are six of them stacked down the page.
 const EditBtn = ({ to, small }) => (
   <Link
     to={to || '/profile/edit'}
-    className={`inline-flex items-center gap-1.5 font-semibold text-primary-500 hover:text-primary-700 transition-colors cursor-pointer ${small ? 'text-xs' : 'text-sm'}`}
+    className={`inline-flex items-center gap-1.5 font-semibold text-primary-500 hover:text-primary-700 transition-colors cursor-pointer px-2 py-2 -mx-2 -my-2 ${small ? 'text-xs' : 'text-sm'}`}
   >
     <FiEdit2 className="w-3 h-3" />
     Edit
@@ -99,6 +104,7 @@ const EditBtn = ({ to, small }) => (
 
 // ─────────────────────────────────────────────────────────────────────────────
 const MyProfileView = () => {
+  const { user: authUser } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [lightbox, setLightbox] = useState({ open: false, src: null, alt: '' });
@@ -198,7 +204,7 @@ const MyProfileView = () => {
       {/* ── Sticky top bar ──────────────────────────────────────────── */}
       <div className="sticky top-0 z-30 bg-white/95 dark:bg-[#1a1f2e]/95 backdrop-blur-sm border-b border-neutral-100 dark:border-neutral-800 px-4 py-3">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <Link to="/dashboard" className="text-sm font-semibold text-neutral-500 hover:text-primary-500 transition-colors flex items-center gap-1.5 cursor-pointer">
+          <Link to="/dashboard" className="text-sm font-semibold text-neutral-500 hover:text-primary-500 transition-colors flex items-center gap-1.5 cursor-pointer py-2 px-2 -my-2 -mx-2">
             ← Dashboard
           </Link>
           <div className="flex items-center gap-2">
@@ -277,6 +283,10 @@ const MyProfileView = () => {
                           <span className="text-[11px] font-bold text-success">Verified</span>
                         </div>
                       )}
+                      {/* Reads off the account (Users.isFoundingMember), not the
+                          subscription row — the row is superseded on upgrade and
+                          expires with the cohort; the badge is meant to outlive both. */}
+                      <FoundingBadge user={authUser} size="xs" />
                       {profileCode && (
                         <button
                           type="button"
@@ -332,7 +342,8 @@ const MyProfileView = () => {
 
             {/* Profile prompts */}
             {profilePrompts.length > 0 ? (
-              <Card title="Get to Know Me" icon={FiUser} action={<EditBtn small to="/profile/edit?section=about" />}>
+              /* Prompts have no dedicated editor yet — display-only (no dead Edit link). */
+              <Card title="Get to Know Me" icon={FiUser}>
                 <div className="space-y-3">
                   {profilePrompts.map(({ q, a }, i) => (
                     <div key={i} className="p-4 bg-primary-50/60 rounded-xl border border-primary-100">
@@ -379,7 +390,7 @@ const MyProfileView = () => {
 
             {/* Spotify */}
             {profile.spotifyPlaylist && sanitizeUrl(profile.spotifyPlaylist) && (
-              <Card title="Music Taste" icon={FiMusic} action={<EditBtn small />}>
+              <Card title="Music Taste" icon={FiMusic} action={<EditBtn small to="/profile/edit?section=social" />}>
                 <a
                   href={sanitizeUrl(profile.spotifyPlaylist)}
                   target="_blank"
@@ -400,7 +411,7 @@ const MyProfileView = () => {
 
             {/* Social Media */}
             {activeSocials.length > 0 && (
-              <Card title="Social Media" icon={FiGlobe} action={<EditBtn small />}>
+              <Card title="Social Media" icon={FiGlobe} action={<EditBtn small to="/profile/edit?section=social" />}>
                 <div className="grid grid-cols-2 gap-2.5">
                   {activeSocials.map(({ key, label, icon: Icon, color }) => {
                     const entry = profile.socialMediaLinks[key];
@@ -499,7 +510,7 @@ const MyProfileView = () => {
 
             {/* Languages */}
             {profile.languages?.length > 0 && (
-              <Card title="Languages" icon={FiGlobe} action={<EditBtn small />}>
+              <Card title="Languages" icon={FiGlobe} action={<EditBtn small to="/profile/edit?section=about" />}>
                 <div className="flex flex-wrap gap-1.5">
                   {profile.languages.map((lang, i) => (
                     <span key={i} className="px-2.5 py-1.5 bg-neutral-100 rounded-xl text-xs font-bold text-neutral-600">{lang}</span>

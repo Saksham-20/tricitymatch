@@ -98,7 +98,7 @@ export default function PrivacySettingsScreen() {
         </View>
         <Text style={styles.hint}>
           {visibility === 'everyone'
-            ? 'Anyone on TricityShadi can view your full profile.'
+            ? 'Anyone on TricityMatch can view your full profile.'
             : 'Only people you have matched with can view your full profile.'}
         </Text>
 

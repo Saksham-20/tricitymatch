@@ -8,51 +8,7 @@ import { razorpay } from '../config';
 import { loadRazorpayScript, ensurePaymentsAvailable } from '../utils/razorpayCheckout';
 import { useAuth } from '../context/AuthContext';
 import { detectCurrency, formatLocalPrice } from '../utils/currency';
-
-// ─── Plan feature lists ───────────────────────
-const PLAN_FEATURES = {
-  free: [
-    'Create profile',
-    'Browse matches',
-    'Send interest',
-    'Basic search filters',
-  ],
-  basic_premium: [
-    'View contact details',
-    'Unlimited messages',
-    'See who viewed profile',
-    'Advanced search filters',
-    '5 contact unlocks',
-  ],
-  premium_plus: [
-    'Everything in Basic',
-    '15 contact unlocks',
-    'Profile boost',
-    'Spotlight listing',
-    'Priority customer support',
-  ],
-  elite: [
-    'Everything in Premium',
-    '30 contact unlocks',
-    'Priority ranking in search',
-    '6-month validity',
-    'Best value per month',
-  ],
-  vip: [
-    'Everything in Elite',
-    'Unlimited contact unlocks',
-    'Verified badge',
-    'Full-year validity',
-    'Dedicated relationship advisor',
-  ],
-  nri: [
-    'Everything in VIP',
-    'Unlimited contact unlocks',
-    'Priority NRI support',
-    'Timezone-aware matching',
-    'Prices in your local currency',
-  ],
-};
+import { planFeatures } from '../utils/planFeatures';
 
 // ─── Plan card config ─────────────────────────
 // accent: 'primary' (burgundy) | 'gold' (premium/VIP only) | 'neutral'
@@ -81,10 +37,10 @@ const BUNDLES = [
 const TIER_RANK = { free: 0, basic_premium: 1, premium_plus: 2, elite: 3, vip: 4, nri: 4 };
 
 // ─── Single plan card ─────────────────────────
-const PlanCard = ({ planKey, plan, isPopular, isCurrent, currentPlanType, isProcessing, onSubscribe }) => {
+const PlanCard = ({ planKey, plan, isPopular, isCurrent, currentPlanType, isProcessing, freeChatForMutuals, onSubscribe }) => {
   const cfg = PLAN_CONFIG[planKey] || PLAN_CONFIG.free;
   const Icon = cfg.icon;
-  const features = PLAN_FEATURES[planKey] || plan.features || [];
+  const features = planFeatures(planKey, freeChatForMutuals);
   const free = planKey === 'free';
   const gold = cfg.accent === 'gold';
   const displayPrice = plan.price || cfg.price || 0;
@@ -273,7 +229,7 @@ const NriBlock = ({ plan, currency, isCurrent, currentPlanType, isProcessing, on
             and prices shown in your own currency.
           </p>
           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
-            {PLAN_FEATURES.nri.map((f, i) => (
+            {planFeatures('nri', false).map((f, i) => (
               <li key={i} className="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-300">
                 <FiCheck className="w-3.5 h-3.5 text-gold-600 dark:text-gold-400 flex-shrink-0" />{f}
               </li>
@@ -353,7 +309,7 @@ const BundleBlock = ({ processingBundle, onBuy }) => (
               onClick={() => !busy && onBuy(b.id)}
               disabled={busy}
               aria-busy={busy || undefined}
-              className="mt-auto w-full py-2.5 text-sm font-semibold rounded-lg bg-primary-500 text-white hover:bg-primary-600 shadow-burgundy transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="mt-auto w-full min-h-[44px] py-2.5 text-sm font-semibold rounded-lg bg-primary-500 text-white hover:bg-primary-600 shadow-burgundy transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {busy
                 ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Processing…</>
@@ -369,6 +325,11 @@ const BundleBlock = ({ processingBundle, onBuy }) => (
 // ─────────────────────────────────────────────
 const Subscription = () => {
   const { user } = useAuth();
+  // Server-owned flag (see backend withDerivedUserFields). Absent ⇒ false, so
+  // an older/failed /auth/me payload shows the paid-chat copy — the
+  // conservative direction: it under-promises rather than advertising a free
+  // feature the server would refuse.
+  const freeChatForMutuals = Boolean(user?.features?.freeChatForMutuals);
   const [plans, setPlans] = useState({});
   const [currentSub, setCurrentSub] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -399,7 +360,7 @@ const Subscription = () => {
         key: razorpay.keyId,
         amount: order.amount,
         currency: order.currency,
-        name: 'TricityShadi',
+        name: 'TricityMatch',
         description,
         order_id: order.id,
         handler: async (response) => {
@@ -577,7 +538,7 @@ const Subscription = () => {
             </div>
             <p className="text-sm text-neutral-600">
               Online payments are opening soon. To upgrade today, write to{' '}
-              <a href="mailto:support@tricityshadi.com" className="font-semibold text-primary-600 underline underline-offset-2">support@tricityshadi.com</a>.
+              <a href="mailto:support@tricitymatch.com" className="font-semibold text-primary-600 underline underline-offset-2">support@tricitymatch.com</a>.
             </p>
           </motion.div>
         )}
@@ -624,6 +585,7 @@ const Subscription = () => {
                 isCurrent={currentSub?.planType === key && currentSub?.status === 'active'}
                 currentPlanType={currentPlanType}
                 isProcessing={processingPlan === key}
+                freeChatForMutuals={freeChatForMutuals}
                 onSubscribe={handleSubscribe}
               />
             </motion.div>

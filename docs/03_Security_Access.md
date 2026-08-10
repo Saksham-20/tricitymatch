@@ -1,4 +1,4 @@
-# TricityShadi Mobile App — Security & Access Control
+# TricityMatch Mobile App — Security & Access Control
 **Version:** 1.0 | **Date:** June 2026
 
 ---
@@ -166,13 +166,13 @@ const getPhotoUrl = (photo, viewerRelation) => {
   if (viewerRelation === 'blurred') {
     return cloudinary.url(base, { 
       width: 400, effect: 'blur:800', 
-      overlay: { text: 'TricityShadi', font_size: 20 }
+      overlay: { text: 'TricityMatch', font_size: 20 }
     });
   }
   // watermarked only
   return cloudinary.url(base, { 
     width: 400, 
-    overlay: { text: 'TricityShadi | @{username}', font_size: 16, opacity: 60 }
+    overlay: { text: 'TricityMatch | @{username}', font_size: 16, opacity: 60 }
   });
 };
 ```

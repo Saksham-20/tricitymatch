@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import Seo from '../components/common/Seo';
-import { validateEmail } from '../utils/validators';
+import { validateEmail, IDENTIFIER_ERROR } from '../utils/validators';
 import Logo from '../components/common/Logo';
 import SmartContactField, { detectContactType, phoneDigits } from '../components/onboarding/SmartContactField';
 import { FiMail, FiPhone, FiLock, FiEye, FiEyeOff, FiHeart, FiShield, FiArrowRight, FiClock, FiEdit2 } from 'react-icons/fi';
@@ -137,7 +137,7 @@ const Login = () => {
         return;
       }
       if (!idIsValid) {
-        setErrors({ identifier: 'Enter a valid email or 10-digit phone' });
+        setErrors({ identifier: IDENTIFIER_ERROR });
         shake();
         return;
       }
@@ -178,7 +178,7 @@ const Login = () => {
     <div className="min-h-screen flex bg-[#FDF8F2]">
       <Seo
         title="Login"
-        description="Log in to your TricityShadi account to continue your match journey."
+        description="Log in to your TricityMatch account to continue your match journey."
         path="/login"
       />
       {/* Left Side — Editorial panel */}
@@ -225,16 +225,16 @@ const Login = () => {
               Your journey<br />continues here.
             </h2>
             <p className="text-white/60 text-base leading-relaxed">
-              Thousands of families found their forever through TricityShadi.
-              Every sign-in brings you closer.
+              Tricity's own matrimonial community — verified profiles, private
+              conversations, and matches close enough to meet this week.
             </p>
 
             {/* Stat pills */}
             <div className="flex flex-wrap gap-3 mt-8">
               {[
-                { n: '1,190+', l: 'Matches Made' },
-                { n: '98%',    l: 'Satisfaction' },
-                { n: '50K+',   l: 'Profiles' },
+                { n: 'Verified', l: 'Live selfie badge' },
+                { n: 'Local',    l: 'Tricity only' },
+                { n: 'Private',  l: 'Encrypted in transit' },
               ].map(({ n, l }) => (
                 <div key={l} className="flex flex-col px-4 py-2.5 rounded-xl bg-white/6 border border-white/10">
                   <span className="text-lg font-bold text-white leading-none">{n}</span>
@@ -501,7 +501,7 @@ const Login = () => {
                 <div className="w-full border-t border-neutral-200" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white text-neutral-600">New to TricityShadi?</span>
+                <span className="px-4 bg-white text-neutral-600">New to TricityMatch?</span>
               </div>
             </div>
 

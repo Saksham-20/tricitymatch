@@ -82,22 +82,28 @@ async function openRazorpay(options: RazorpayOptions): Promise<{
 
 // ─── Plan tier colours ────────────────────────────────────────────────────────
 
+// These maps are exhaustive `Record<SubscriptionPlanType, …>` on purpose: adding
+// a tier to shared/src/constants/plans.ts must fail the mobile typecheck rather
+// than render a blank chip. founding_premium arrived that way and sat red because
+// the mobile workspace was outside the root lint/test gate — it is inside it now.
 const PLAN_COLOUR: Record<SubscriptionPlanType, string> = {
-  free:          colours.planFree,
-  basic_premium: colours.planPlus,
-  premium_plus:  colours.planPremium,
-  elite:         colours.planElite,
-  vip:           colours.g600,
-  nri:           colours.accent,
+  free:             colours.planFree,
+  founding_premium: colours.planElite,
+  basic_premium:    colours.planPlus,
+  premium_plus:     colours.planPremium,
+  elite:            colours.planElite,
+  vip:              colours.g600,
+  nri:              colours.accent,
 };
 
 const PLAN_ICON: Record<SubscriptionPlanType, keyof typeof Ionicons.glyphMap> = {
-  free:          'person-outline',
-  basic_premium: 'star-outline',
-  premium_plus:  'diamond-outline',
-  elite:         'ribbon-outline',
-  vip:           'trophy-outline',
-  nri:           'globe-outline',
+  free:             'person-outline',
+  founding_premium: 'sparkles-outline',
+  basic_premium:    'star-outline',
+  premium_plus:     'diamond-outline',
+  elite:            'ribbon-outline',
+  vip:              'trophy-outline',
+  nri:              'globe-outline',
 };
 
 // ─── Feature row ─────────────────────────────────────────────────────────────
@@ -367,7 +373,7 @@ export default function SubscriptionScreen() {
         key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID ?? '',
         amount: orderData.amount,
         currency: orderData.currency,
-        name: 'TricityShadi',
+        name: 'TricityMatch',
         description: `${PLANS[selectedPlan].label} Plan`,
         order_id: orderData.orderId,
         prefill: { email: user?.email },

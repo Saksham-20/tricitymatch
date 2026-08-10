@@ -7,11 +7,11 @@ export default function Privacy() {
     <div className="min-h-screen bg-neutral-50 pt-20 pb-16 px-4">
       <Seo
         title="Privacy Policy"
-        description="How TricityShadi collects, uses and protects your personal data."
+        description="How TricityMatch collects, uses and protects your personal data."
         path="/privacy"
       />
       <div className="max-w-3xl mx-auto">
-        <Link to="/" className="text-sm text-primary-600 hover:text-primary-700 mb-6 inline-block">← Back to Home</Link>
+        <Link to="/" className="text-sm text-primary-600 hover:text-primary-700 inline-block py-2 px-2 -mx-2 -mt-2 mb-4">← Back to Home</Link>
 
         <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-8 md:p-12">
           <h1 className="text-3xl font-bold text-neutral-900 mb-2">Privacy Policy</h1>
@@ -20,7 +20,7 @@ export default function Privacy() {
           <div className="prose prose-sm max-w-none text-neutral-700 space-y-6">
             <section>
               <p>
-                TricityShadi respects your privacy. This policy explains what personal
+                TricityMatch respects your privacy. This policy explains what personal
                 information we collect, how we use and protect it, and the choices you have.
                 It applies to your use of our website and services. We handle your data in
                 line with applicable Indian law, including the Digital Personal Data
@@ -83,7 +83,7 @@ export default function Privacy() {
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">8. Your Rights</h2>
-              <p>You have the right to access, correct, update, or delete your personal data, and to withdraw consent for optional processing such as verification. You can manage most of this directly from your profile and settings, or by contacting us at <a href="mailto:privacy@tricityshadi.com" className="text-primary-600 underline hover:text-primary-700">privacy@tricityshadi.com</a>.</p>
+              <p>You have the right to access, correct, update, or delete your personal data, and to withdraw consent for optional processing such as verification. You can manage most of this directly from your profile and settings, or by contacting us at <a href="mailto:privacy@tricitymatch.com" className="text-primary-600 underline hover:text-primary-700">privacy@tricitymatch.com</a>.</p>
             </section>
 
             <section>
@@ -93,7 +93,7 @@ export default function Privacy() {
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">10. Children's Privacy</h2>
-              <p>TricityShadi is intended only for adults aged 18 and above. We do not knowingly collect information from minors. If you believe a minor has provided us data, please contact us and we will remove it.</p>
+              <p>TricityMatch is intended only for adults aged 18 and above. We do not knowingly collect information from minors. If you believe a minor has provided us data, please contact us and we will remove it.</p>
             </section>
 
             <section>
@@ -103,7 +103,7 @@ export default function Privacy() {
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">12. Grievances &amp; Contact</h2>
-              <p>For any privacy-related question or request, contact us at <a href="mailto:privacy@tricityshadi.com" className="text-primary-600 underline hover:text-primary-700">privacy@tricityshadi.com</a>. In accordance with applicable Indian law, you may also reach our Grievance Officer at <a href="mailto:grievance@tricityshadi.com" className="text-primary-600 underline hover:text-primary-700">grievance@tricityshadi.com</a> for complaints regarding your personal data, and we will respond within the timelines prescribed by law.</p>
+              <p>For any privacy-related question or request, contact us at <a href="mailto:privacy@tricitymatch.com" className="text-primary-600 underline hover:text-primary-700">privacy@tricitymatch.com</a>. In accordance with applicable Indian law, you may also reach our Grievance Officer at <a href="mailto:grievance@tricitymatch.com" className="text-primary-600 underline hover:text-primary-700">grievance@tricitymatch.com</a> for complaints regarding your personal data, and we will respond within the timelines prescribed by law.</p>
             </section>
           </div>
         </div>

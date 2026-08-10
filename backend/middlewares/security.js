@@ -8,6 +8,7 @@
  */
 
 const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
+const jwt = require('jsonwebtoken');
 const helmet = require('helmet');
 const config = require('../config/env');
 const { createError, asyncHandler } = require('./errorHandler');
@@ -32,6 +33,10 @@ const createRateLimiter = (options) => {
       // Use user ID if authenticated, otherwise IP (ipKeyGenerator for IPv6-safe limiting)
       return req.user?.id || ipKeyGenerator(req.ip);
     }),
+    // Forwarded explicitly: this factory whitelists options, so anything not
+    // listed here is silently dropped rather than reaching express-rate-limit.
+    skipSuccessfulRequests: options.skipSuccessfulRequests || false,
+    skipFailedRequests: options.skipFailedRequests || false,
     skip: options.skip || (() => config.security.disableRateLimits),
     handler: (req, res, next, options) => {
       res.status(429).json(options.message);
@@ -39,27 +44,77 @@ const createRateLimiter = (options) => {
   });
 };
 
-// General API rate limiter
+// General API rate limiter.
+//
+// This is mounted globally on /api, i.e. BEFORE any route-level auth runs, so
+// `req.user` is never populated here and the default keyGenerator silently fell
+// back to the IP for everyone. Two consequences, both observed live:
+//   1. Behind shared NAT (mobile CGNAT, office/college wifi) every member drew
+//      from ONE 200-request bucket — the app became unusable within minutes.
+//   2. A single member browsing normally blows 200 requests in 15 min easily
+//      (this SPA fires 5-8 calls per page), and a 429 on /auth/me is read by the
+//      client as "session gone" → the user is force-logged-out at random.
+// Fix: key by the authenticated user when a valid access token is present, and
+// use a ceiling that matches how chatty the SPA actually is. Anonymous traffic
+// still falls back to per-IP limiting.
 const apiLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200, // 200 requests per 15 minutes
+  max: 900, // per user (or per IP when unauthenticated)
   message: 'Too many API requests, please try again later',
+  keyGenerator: (req) => {
+    const token = req.header('Authorization')?.startsWith('Bearer ')
+      ? req.header('Authorization').substring(7)
+      : req.cookies?.accessToken;
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, config.auth.jwtSecret);
+        if (decoded?.userId) return `user:${decoded.userId}`;
+      } catch {
+        // Expired/invalid token — fall through to IP keying.
+      }
+    }
+    return ipKeyGenerator(req.ip);
+  },
 });
 
-// Auth endpoints - stricter limits
+// Auth endpoints - stricter limits.
+// Counts FAILED attempts only: a successful login is not abuse, and counting it
+// meant a shared public IP (mobile CGNAT, office/college wifi — the norm for our
+// hyperlocal user base) burned its whole budget on legitimate sign-ins and then
+// 429'd innocent users. The real per-account brute-force defense is the email-keyed
+// lockout below (config.auth.maxLoginAttempts / lockoutDuration); this IP limiter
+// is only a backstop against spray attacks, so it can be generous.
 const authLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000, // 10 minutes
-  max: 5, // 5 attempts
+  max: 20, // 20 FAILED attempts per IP
   message: 'Too many login attempts. Please try again later.',
   keyGenerator: (req) => ipKeyGenerator(req.ip), // Always use IP for auth
+  skipSuccessfulRequests: true,
 });
 
-// Signup limiter - very strict
+// Token refresh is a background rotation every ~15 min per active session, not a
+// credential-guessing surface (it needs a valid, single-use refresh cookie and is
+// already protected by rotation + family revoke). It must NOT share the login
+// budget: doing so meant one active tab could exhaust the pool and lock the whole
+// IP out of /auth/login.
+const refreshLimiter = createRateLimiter({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 60, // plenty for many concurrent sessions behind one NAT
+  message: 'Too many session refresh attempts. Please try again later.',
+  keyGenerator: (req) => ipKeyGenerator(req.ip),
+  skipSuccessfulRequests: true,
+});
+
+// Signup limiter - strict, but only counts accounts that were ACTUALLY created.
+// Counting rejected attempts meant three mistyped emails locked a genuine user
+// (and everyone sharing their NAT'd IP) out of registering for a full hour —
+// a silent conversion killer. Junk requests are still covered by apiLimiter.
 const signupLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3, // 3 signups per hour per IP
+  max: 5, // 5 real signups per hour per IP (families often register together)
   message: 'Too many accounts created, please try again after an hour',
   keyGenerator: (req) => ipKeyGenerator(req.ip),
+  skipFailedRequests: true,
 });
 
 // Public contact form limiter — anti-spam without blocking genuine enquiries
@@ -67,6 +122,17 @@ const contactLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 5, // 5 enquiries per hour per IP
   message: 'Too many messages sent, please try again after an hour',
+  keyGenerator: (req) => ipKeyGenerator(req.ip),
+});
+
+// Public invite-resolve limiter (Phase S) — GET /invite/:token returns an
+// inviter's first name, so the budget is sized to stop the token space being
+// swept for valid links while staying invisible to a real invitee (who resolves
+// once per page load, plus retries).
+const inviteLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30, // 30 lookups per 15 min per IP
+  message: 'Too many invite lookups, please try again shortly',
   keyGenerator: (req) => ipKeyGenerator(req.ip),
 });
 
@@ -78,12 +144,26 @@ const otpLimiter = createRateLimiter({
   keyGenerator: (req) => ipKeyGenerator(req.ip),
 });
 
-// Password reset limiter
+// Password reset REQUEST limiter — throttles how often reset emails can be
+// triggered for an IP. Successful sends still count (that is the abuse vector).
 const passwordResetLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3, // 3 reset attempts per hour
+  max: 5, // 5 reset emails per hour per IP (was 3 — too tight behind shared NAT)
   message: 'Too many password reset attempts, please try again later',
   keyGenerator: (req) => ipKeyGenerator(req.ip),
+});
+
+// Password reset SUBMIT limiter — separate budget from the request limiter.
+// Sharing one meant a user who mistyped the new password twice burned the whole
+// hourly pool and was locked out mid-reset while holding a valid token. This
+// endpoint requires a signed, single-use reset token, so it is not a spray
+// surface; only failed submissions count.
+const passwordResetSubmitLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 20, // 20 FAILED submissions per hour per IP
+  message: 'Too many password reset attempts, please try again later',
+  keyGenerator: (req) => ipKeyGenerator(req.ip),
+  skipSuccessfulRequests: true,
 });
 
 // Search limiter
@@ -139,7 +219,11 @@ const securityHeaders = helmet({
       scriptSrc: ["'self'", 'https://checkout.razorpay.com'],
       imgSrc: ["'self'", 'data:', 'blob:', 'https://res.cloudinary.com', 'https://checkout.razorpay.com'],
       connectSrc: ["'self'", config.server.frontendUrl, 'https://api.razorpay.com', 'https://lumberjack.razorpay.com', 'https://checkout.razorpay.com'],
-      frameSrc: ["'self'", 'https://api.razorpay.com'],
+      // Razorpay's standard checkout renders from checkout.razorpay.com as well
+      // as api.razorpay.com; allowing only the latter risks the payment modal
+      // being blocked outright in production, where this CSP actually applies
+      // (dev is served by Vite, so it never shows up locally).
+      frameSrc: ["'self'", 'https://api.razorpay.com', 'https://checkout.razorpay.com'],
       fontSrc: ["'self'", 'https://fonts.gstatic.com'],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
@@ -466,10 +550,13 @@ module.exports = {
   // Rate limiters
   apiLimiter,
   authLimiter,
+  refreshLimiter,
   otpLimiter,
   signupLimiter,
   contactLimiter,
+  inviteLimiter,
   passwordResetLimiter,
+  passwordResetSubmitLimiter,
   searchLimiter,
   messageLimiter,
   profileUpdateLimiter,

@@ -61,7 +61,7 @@ const NAKSHATRA_ALIASES = {
   'uttara_ashadha': 'uttara_ashadha', 'uttara ashadha': 'uttara_ashadha',
   'shravana': 'shravana', 'sravana': 'shravana', 'shravan': 'shravana',
   'dhanistha': 'dhanistha', 'dhanishtha': 'dhanistha', 'dhanista': 'dhanistha',
-  'shatabhisha': 'shatabhisha', 'shatabhisha': 'shatabhisha', 'sadayam': 'shatabhisha',
+  'shatabhisha': 'shatabhisha', 'satabhisha': 'shatabhisha', 'sadayam': 'shatabhisha',
   'purva_bhadrapada': 'purva_bhadrapada', 'purva bhadrapada': 'purva_bhadrapada',
   'uttara_bhadrapada': 'uttara_bhadrapada', 'uttara bhadrapada': 'uttara_bhadrapada',
   'revati': 'revati',

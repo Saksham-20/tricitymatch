@@ -3,7 +3,8 @@ import { motion } from 'framer-motion';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
 import Select from '../../ui/Select';
-import { validateName } from '../../../utils/validators';
+import DobField from '../../ui/DobField';
+import { validateName, validateAge } from '../../../utils/validators';
 
 // 4'6" – 7'0" in one-inch increments, stored as cm (backend validates 100–250).
 const HEIGHT_OPTIONS = (() => {
@@ -46,12 +47,9 @@ const BasicInfoStep = () => {
 
     if (!data.dateOfBirth) {
       newErrors.dateOfBirth = 'Date of birth is required';
-    } else {
-      const dob = new Date(data.dateOfBirth);
-      const age = Math.floor((new Date() - dob) / (365.25 * 24 * 60 * 60 * 1000));
-      if (age < 18) {
-        newErrors.dateOfBirth = 'You must be at least 18 years old';
-      }
+    } else if (!validateAge(data.dateOfBirth, 18, 100)) {
+      // Calendar-accurate (leap-year safe) instead of 365.25-day float math.
+      newErrors.dateOfBirth = 'You must be at least 18 years old';
     }
 
     if (data.weight !== '' && data.weight != null) {
@@ -135,18 +133,15 @@ const BasicInfoStep = () => {
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
-        <FormField
-          label="Date of Birth"
-          type="date"
+        {/* Day/Month/Year selects instead of a native date input — the Android
+            calendar dialog (clamped 18 years back, decades of paging) was a
+            reported usability failure, and pickers are the wrong tool for a
+            birthday anyway. Year list already bounds 18–100. */}
+        <DobField
           value={formData.dateOfBirth}
-          onChange={(value) => updateFormData('dateOfBirth', value)}
-          onBlur={() => setFieldTouched('dateOfBirth')}
+          onChange={(value) => { updateFormData('dateOfBirth', value); setFieldTouched('dateOfBirth'); }}
           error={errors.dateOfBirth}
           hint="Used for age and horoscope matching — your exact birthday is never shown publicly."
-          /* Opens the picker near the 18+ era instead of today, and blocks
-             under-18 / impossible dates inline rather than after submit. */
-          min={new Date(new Date().setFullYear(new Date().getFullYear() - 100)).toISOString().split('T')[0]}
-          max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
           required
         />
       </motion.div>
@@ -161,7 +156,8 @@ const BasicInfoStep = () => {
               options={HEIGHT_OPTIONS}
               value={formData.height ? String(formData.height) : ''}
               onChange={(value) => updateFormData('height', value)}
-              placeholder="Select height"
+              searchable
+              placeholder="Search height"
               optional
             />
             <FormField

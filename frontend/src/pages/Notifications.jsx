@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiBell, FiHeart, FiMessageCircle, FiEye, FiStar,
-  FiCheckCircle, FiShield, FiInfo, FiCheck,
+  FiCheckCircle, FiShield, FiInfo, FiCheck, FiClock,
 } from 'react-icons/fi';
 
 const TYPE_ICONS = {
@@ -19,6 +19,8 @@ const TYPE_ICONS = {
   verification_rejected: FiShield,
   verification:          FiShield,
   subscription:          FiCheckCircle,
+  subscription_expiring: FiClock,
+  report_reviewed:       FiShield,
   system:                FiInfo,
   admin:                 FiShield,
 };
@@ -34,6 +36,8 @@ const TYPE_COLORS = {
   verification_rejected: 'bg-destructive-light text-destructive',
   verification:          'bg-success-50 text-success',
   subscription:          'bg-primary-100 text-primary-600',
+  subscription_expiring: 'bg-gold-100 text-gold-700',
+  report_reviewed:       'bg-neutral-100 text-neutral-600',
   system:                'bg-neutral-100 text-neutral-600',
   admin:                 'bg-destructive-light text-destructive',
 };
@@ -51,20 +55,36 @@ function timeAgo(date) {
 }
 
 // Where a notification should take the user when tapped.
-// Types mirror the backend notify() calls: new_match (relatedId is a MATCH id,
-// not a userId — so route to the matches hub, not a profile), verification_*,
-// and system (no single destination → mark-read only). The message/profile_view
-// entries are forward-compat for when those notifications start emitting.
-const notifLink = (n) => {
+//
+// This map must cover every value of the Notifications.type ENUM
+// (backend/models/Notification.js). A type that falls through to `default`
+// silently becomes a dead tap: the row marks itself read and nothing happens,
+// which reads as a broken app rather than as a deliberate no-destination.
+//
+// `subscription_expiring` and `report_reviewed` were both missing — the first
+// is emitted at renewal time, the second by the admin report review, and both
+// landed on `default`. The old 'subscription' / 'verification' / 'message' keys
+// are not ENUM values at all; they are kept as harmless aliases in case an
+// older client or a future emitter uses the short form.
+//
+// `new_match` carries a MATCH id in relatedId, NOT a userId, so it cannot route
+// to a profile — it goes to the Mutual tab of the matches hub, which is the
+// thing the notification is actually about.
+export const notifLink = (n) => {
   switch (n.type) {
-    case 'new_match':            return '/dashboard';
+    case 'new_match':            return '/matches?tab=mutual';
     case 'message':
     case 'new_message':          return '/chat';
-    case 'profile_view':         return n.relatedId ? `/profile/${n.relatedId}` : '/dashboard';
+    case 'profile_view':         return n.relatedId ? `/profile/${n.relatedId}` : '/profile';
     case 'verification_approved':
     case 'verification_rejected':
     case 'verification':         return '/verification';
+    case 'subscription_expiring':
     case 'subscription':         return '/subscription';
+    // The reporter has no "my reports" view to land on, and inventing one is
+    // out of scope here; Safety is where reporting is explained, so the tap at
+    // least goes somewhere related instead of dying.
+    case 'report_reviewed':      return '/safety';
     default:                     return null; // 'system' + unknown: just mark read
   }
 };
@@ -97,7 +117,11 @@ export default function Notifications() {
     try {
       await api.put(`/notifications/${id}/read`);
       setNotifs((prev) => prev.map((n) => n.id === id ? { ...n, isRead: true } : n));
-    } catch {}
+    } catch {
+      // Marking-as-read fires as a side effect of opening a notification. A
+      // toast here would interrupt the thing the member actually clicked on;
+      // the unread dot simply stays, which is the honest outcome.
+    }
   };
 
   const markAllRead = async () => {
@@ -114,7 +138,10 @@ export default function Notifications() {
     try {
       await api.delete(`/notifications/${id}`);
       setNotifs((prev) => prev.filter((n) => n.id !== id));
-    } catch {}
+    } catch {
+      // Delete is an explicit, destructive tap — silence made it look dead.
+      toast.error('Could not delete that notification');
+    }
   };
 
   const loadMore = () => {

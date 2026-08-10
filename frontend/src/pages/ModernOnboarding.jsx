@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useOnboarding, STEPS, OnboardingProvider } from '../context/OnboardingContext';
 import { useAuth } from '../context/AuthContext';
+import { resolveInvite } from '../api/invite';
 import api from '../api/axios';
 import { buildProfileFormData } from '../utils/profileSubmit';
+import { calculateAge } from '../utils/validators';
 import Logo from '../components/common/Logo';
 import Progress from '../components/ui/Progress';
 import { Button } from '../components/ui/Button';
@@ -80,7 +82,7 @@ const ModernOnboardingContent = () => {
   } = useOnboarding();
 
   const navigate = useNavigate();
-  const { signup } = useAuth();
+  const { signup, isAuthenticated } = useAuth();
   const [searchParams] = useSearchParams();
   const [showQuitDialog, setShowQuitDialog] = useState(false);
   // Snapshot of name/DOB taken before clearDraft() resets formData — the
@@ -94,9 +96,33 @@ const ModernOnboardingContent = () => {
   const [accountCreated, setAccountCreated] = useState(false);
   const [completionPercentage, setCompletionPercentage] = useState(0);
   const referralCodeParam = searchParams.get('ref');
+  // Member invite (Phase S) — a DIFFERENT param from the marketing `ref` above,
+  // and deliberately NOT stored in the onboarding draft: it belongs to this
+  // arrival, not to a draft someone resumes days later from a plain /onboarding.
+  // Both may be present and are honoured independently by the backend.
+  const inviteParam = searchParams.get('invite');
+  const [inviterName, setInviterName] = useState('');
+  // On a real step transition, move focus to the new step's heading (after the
+  // enter animation settles) so keyboard + screen-reader users land in context
+  // and Tab straight into the first field. Not on initial mount — step 0 has an
+  // autoFocused field we must not steal.
+  const headingRef = useRef(null);
+  const focusHeadingRef = useRef(false);
 
   // Build stepComponents array based on visible steps
   const stepComponents = visibleSteps.map(step => allStepComponents[step.id]);
+
+  // "Create Profile" links live in the public footer/hero, so a signed-in member
+  // can land here and be asked to pick an email and password all over again.
+  // Send them to the editor instead. Mount-only: after signup succeeds we are
+  // authenticated too, and that must not bounce the success card away.
+  // create_for_other is a deliberate deep-link and is left alone.
+  useEffect(() => {
+    if (isAuthenticated && mode === 'signup') {
+      navigate('/profile/edit', { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     setCompletionPercentage(getCompletionPercentage());
@@ -113,6 +139,17 @@ const ModernOnboardingContent = () => {
       updateFormData('referralCode', referralCodeParam);
     }
   }, [referralCodeParam]);
+
+  // Resolve the invite to a first name for display only. `resolveInvite` never
+  // rejects — every failure returns null and leaves the kicker unrendered.
+  useEffect(() => {
+    if (!inviteParam) return undefined;
+    let alive = true;
+    resolveInvite(inviteParam).then((invite) => {
+      if (alive && invite?.firstName) setInviterName(invite.firstName);
+    });
+    return () => { alive = false; };
+  }, [inviteParam]);
 
   const handleQuit = () => {
     setShowQuitDialog(true);
@@ -138,6 +175,7 @@ const ModernOnboardingContent = () => {
 
   const handleNext = () => {
     if (validateCurrentStep()) {
+      focusHeadingRef.current = true;
       setStepDirection(1);
       nextStep();
     } else {
@@ -146,8 +184,17 @@ const ModernOnboardingContent = () => {
   };
 
   const handleBack = () => {
+    focusHeadingRef.current = true;
     setStepDirection(-1);
     prevStep();
+  };
+
+  // Enter submits the step form: advance, or complete on the last step.
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    if (isLoading) return;
+    if (currentStep === visibleSteps.length - 1) handleComplete();
+    else handleNext();
   };
 
   const handleComplete = async () => {
@@ -165,6 +212,11 @@ const ModernOnboardingContent = () => {
       // ── 1. Create the account (skipped on Retry once it already exists) ──
       if (!accountCreated) {
         const signupData = { ...formData };
+        // The raw token, not the resolved name: the server re-validates it at
+        // signup time (the inviter may have been deleted since the page loaded),
+        // and sends it even when the kicker never rendered — a token that failed
+        // to RESOLVE (rate limit, transient 500) may still be perfectly valid.
+        if (inviteParam) signupData.invite = inviteParam;
         if (signupData.phone) signupData.phone = String(signupData.phone).replace(/[\s-]/g, '');
         if (!signupData.email) delete signupData.email; // phone-only signup
         const result = await signup(signupData);
@@ -240,6 +292,14 @@ const ModernOnboardingContent = () => {
 
   return (
     <div className="min-h-screen flex bg-neutral-50 dark:bg-[#0f1117]">
+      {/* Once the account exists, clearDraft() has reset the wizard to a blank
+          step 1 — leaving a dead "Create Account" form (and its tab stops)
+          sitting behind the success card. Hide it from sight and from
+          assistive tech while the preview owns the screen. */}
+      <div
+        className={previewData ? 'hidden' : 'contents'}
+        aria-hidden={previewData ? 'true' : undefined}
+      >
       {/* Desktop: LIGHT brand / progress rail (burgundy as accent, never a slab) */}
       <div className="hidden lg:flex lg:w-[22rem] xl:w-96 relative overflow-hidden bg-white dark:bg-[#1a1f2e] border-r border-neutral-100 dark:border-neutral-800">
         {/* Subtle primary wash + faint rings (neutral, not white-on-burgundy) */}
@@ -316,7 +376,7 @@ const ModernOnboardingContent = () => {
                   <svg width="64" height="64" viewBox="0 0 64 64" className="-rotate-90">
                     <circle cx="32" cy="32" r={ringR} fill="none" stroke="currentColor" className="text-neutral-200 dark:text-neutral-700" strokeWidth="5" />
                     <motion.circle
-                      cx="32" cy="32" r={ringR} fill="none" stroke="#8B2346" strokeWidth="5" strokeLinecap="round"
+                      cx="32" cy="32" r={ringR} fill="none" stroke="currentColor" className="text-primary-600 dark:text-primary-400" strokeWidth="5" strokeLinecap="round"
                       strokeDasharray={ringC}
                       initial={false}
                       animate={{ strokeDashoffset: ringC - (progressPercentage / 100) * ringC }}
@@ -389,17 +449,6 @@ const ModernOnboardingContent = () => {
 
       {/* Right Side - Form */}
       <div className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-12 relative">
-        {/* Close button (mobile) */}
-        <motion.button
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          onClick={handleQuit}
-          className="absolute top-4 right-4 lg:hidden p-2 hover:bg-neutral-100 rounded-full transition-colors"
-          title="Exit onboarding"
-        >
-          <FiX className="w-6 h-6 text-neutral-600" />
-        </motion.button>
-
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -407,41 +456,54 @@ const ModernOnboardingContent = () => {
           transition={{ duration: 0.3 }}
           className="w-full max-w-2xl"
         >
-          {/* Mobile Logo */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="lg:hidden flex justify-center mb-6"
-          >
-            <Logo size="lg" linkTo="/" />
-          </motion.div>
+          {/* No mobile logo / Sign-In tab block — the global Navbar already
+              brands the page and links to login; the duplicated chrome cost
+              ~150px before the form appeared on a phone. The exit ✕ lives
+              inline in the progress row (an absolute one collided with it). */}
 
-          {/* Mobile tab switcher */}
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="lg:hidden flex rounded-2xl bg-neutral-100 p-1 mb-6"
-          >
-            <Link
-              to="/login"
-              className="flex-1 py-3 text-center text-sm font-semibold rounded-xl text-neutral-500 hover:text-neutral-700 transition-colors"
+          {/* Invite kicker (Phase S, F4) — an invited arrival should see WHO sent
+              them before anything else. Renders only on the first step, only in
+              self-signup, and only once the token actually resolved: an unknown,
+              revoked or rate-limited token folds into "absent" and this whole
+              block silently does not exist. A forged link never blocks signup. */}
+          {mode === 'signup' && currentStep === 0 && inviteParam && inviterName && (
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-5 flex items-center gap-3 rounded-2xl border border-primary-100 bg-primary-50/60 dark:bg-primary-900/20 dark:border-primary-900/40 px-4 py-3"
             >
-              Sign In
-            </Link>
-            <span className="flex-1 py-3 text-center text-sm font-semibold rounded-xl bg-white shadow-sm text-neutral-900">
-              Create Profile
-            </span>
-          </motion.div>
+              <span className="w-9 h-9 rounded-full bg-primary-100 text-primary-700 font-display font-semibold flex items-center justify-center flex-shrink-0">
+                {inviterName.charAt(0).toUpperCase()}
+              </span>
+              <p className="text-sm text-neutral-800 dark:text-neutral-200">
+                <span className="font-semibold">{inviterName}</span> invited you to TricityMatch
+                <span className="block text-xs text-neutral-600 dark:text-neutral-400 mt-0.5">
+                  Create your profile to see who they think you should meet.
+                </span>
+              </p>
+            </motion.div>
+          )}
 
           {/* Progress bar - Mobile (desktop uses the left rail stepper) */}
           <motion.div className="lg:hidden mb-6">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between gap-2 mb-2">
               <p className="text-sm font-semibold text-neutral-900">
                 {visibleSteps[currentStep].title}
               </p>
-              <p className="text-xs text-neutral-500">
-                Step {currentStep + 1} of {visibleSteps.length}
-              </p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs text-neutral-500">
+                  Step {currentStep + 1} of {visibleSteps.length}
+                </p>
+                <button
+                  type="button"
+                  onClick={handleQuit}
+                  className="p-1.5 -mr-1.5 hover:bg-neutral-100 rounded-full transition-colors"
+                  title="Exit onboarding"
+                  aria-label="Exit onboarding"
+                >
+                  <FiX className="w-5 h-5 text-neutral-500" />
+                </button>
+              </div>
             </div>
             <div className="h-2 bg-neutral-200 rounded-full overflow-hidden">
               <motion.div
@@ -453,85 +515,98 @@ const ModernOnboardingContent = () => {
             </div>
           </motion.div>
 
-          {/* Form content with fade/slide animation */}
-          <AnimatePresence mode="wait" custom={stepDirection}>
-            <motion.div
-              key={currentStep}
-              custom={stepDirection}
-              initial={{ opacity: 0, x: 20 * stepDirection }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -16 * stepDirection }}
-              transition={{ duration: 0.24, ease: [0.25, 0.46, 0.45, 0.94] }}
-              className="bg-white dark:bg-[#1a1f2e] border border-neutral-100 dark:border-neutral-800 rounded-2xl shadow-card p-8 sm:p-10"
-            >
-              <div className="mb-8">
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.1 }}
-                  className="text-xs font-semibold text-primary-600 uppercase tracking-widest mb-2"
-                >
-                  {visibleSteps[currentStep].icon && `Step ${currentStep + 1}`}
-                </motion.p>
-                <motion.h2
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15 }}
-                  className="font-display text-2xl sm:text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-3"
-                >
-                  {visibleSteps[currentStep].title}
-                </motion.h2>
-                <motion.p
+          {/* A real <form> so Enter advances the step (and submits on the last
+              one) — matches the Login form's keyboard behavior. */}
+          <form onSubmit={handleFormSubmit} noValidate>
+            {/* Form content with fade/slide animation */}
+            <AnimatePresence mode="wait" custom={stepDirection}>
+              <motion.div
+                key={currentStep}
+                custom={stepDirection}
+                initial={{ opacity: 0, x: 20 * stepDirection }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -16 * stepDirection }}
+                transition={{ duration: 0.24, ease: [0.25, 0.46, 0.45, 0.94] }}
+                onAnimationComplete={() => {
+                  if (focusHeadingRef.current) {
+                    headingRef.current?.focus();
+                    focusHeadingRef.current = false;
+                  }
+                }}
+                className="bg-white dark:bg-[#1a1f2e] border border-neutral-100 dark:border-neutral-800 rounded-2xl shadow-card p-8 sm:p-10"
+              >
+                <div className="mb-8">
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.1 }}
+                    className="text-xs font-semibold text-primary-600 uppercase tracking-widest mb-2"
+                  >
+                    {visibleSteps[currentStep].icon && `Step ${currentStep + 1}`}
+                  </motion.p>
+                  <motion.h2
+                    ref={headingRef}
+                    tabIndex={-1}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 }}
+                    className="font-display text-2xl sm:text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-3 focus:outline-none"
+                  >
+                    {visibleSteps[currentStep].title}
+                  </motion.h2>
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="text-neutral-600"
+                  >
+                    {visibleSteps[currentStep].description}
+                  </motion.p>
+                </div>
+
+                {/* Step component */}
+                <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.2 }}
-                  className="text-neutral-600"
                 >
-                  {visibleSteps[currentStep].description}
-                </motion.p>
-              </div>
-
-              {/* Step component */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
-              >
-                <Step />
+                  <Step />
+                </motion.div>
               </motion.div>
-            </motion.div>
-          </AnimatePresence>
+            </AnimatePresence>
 
-          {/* Navigation buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="mt-6 flex gap-4"
-          >
-            {currentStep > 0 && (
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={handleBack}
-                disabled={isLoading}
-                className="flex items-center gap-2"
-              >
-                <FiChevronLeft className="w-5 h-5" />
-                Back
-              </Button>
-            )}
-
-            <Button
-              size="lg"
-              onClick={currentStep === visibleSteps.length - 1 ? handleComplete : handleNext}
-              disabled={isLoading}
-              className="flex-1 flex items-center justify-center gap-2"
+            {/* Navigation buttons */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="mt-6 flex gap-4"
             >
-              {isLoading ? 'Processing...' : currentStep === visibleSteps.length - 1 ? (mode === 'signup' ? 'Create my profile' : 'Complete') : 'Next'}
-              {!isLoading && currentStep !== visibleSteps.length - 1 && <FiChevronRight className="w-5 h-5" />}
-            </Button>
-          </motion.div>
+              {currentStep > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  onClick={handleBack}
+                  disabled={isLoading}
+                  className="flex items-center gap-2"
+                >
+                  <FiChevronLeft className="w-5 h-5" />
+                  Back
+                </Button>
+              )}
+
+              <Button
+                type="submit"
+                size="lg"
+                disabled={isLoading}
+                className="flex-1 flex items-center justify-center gap-2"
+              >
+                {isLoading ? 'Processing...' : currentStep === visibleSteps.length - 1 ? (mode === 'signup' ? 'Create my profile' : 'Complete') : 'Next'}
+                {!isLoading && currentStep !== visibleSteps.length - 1 && <FiChevronRight className="w-5 h-5" />}
+              </Button>
+            </motion.div>
+          </form>
 
           {/* Persistent inline submit error — the toast alone is easy to miss */}
           {submitError && (
@@ -595,13 +670,13 @@ const ModernOnboardingContent = () => {
           </motion.div>
         </motion.div>
       </div>
+      </div>
 
       {/* Profile-preview close card — "how others will see you" moment after signup */}
       <AnimatePresence>
         {previewData && (() => {
           const fullName = [previewData.firstName, previewData.lastName].filter(Boolean).join(' ');
-          const dob = previewData.dateOfBirth ? new Date(previewData.dateOfBirth) : null;
-          const age = dob ? Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : null;
+          const age = calculateAge(previewData.dateOfBirth);
           return (
             <motion.div
               initial={{ opacity: 0 }}
@@ -609,6 +684,9 @@ const ModernOnboardingContent = () => {
               className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
             >
               <motion.div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="signup-preview-title"
                 initial={{ scale: 0.94, y: 12, opacity: 0 }}
                 animate={{ scale: 1, y: 0, opacity: 1 }}
                 transition={{ duration: 0.35, ease: 'easeOut' }}
@@ -620,7 +698,7 @@ const ModernOnboardingContent = () => {
                 <div className="flex justify-center mb-4">
                   <Avatar name={fullName} size="2xl" />
                 </div>
-                <h3 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100">
+                <h3 id="signup-preview-title" className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100">
                   {fullName}{age ? `, ${age}` : ''}
                 </h3>
                 <span className="inline-block mt-2 px-3 py-1 rounded-full bg-primary-50 dark:bg-primary-900/30 border border-primary-100 text-primary-700 dark:text-primary-300 text-xs font-semibold">

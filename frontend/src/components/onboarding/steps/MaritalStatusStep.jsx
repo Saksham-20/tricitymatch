@@ -55,6 +55,7 @@ const MaritalStatusStep = () => {
           <FormField
             label="Number of Children"
             type="number"
+            inputMode="numeric"
             placeholder="0"
             value={formData.numberOfChildren}
             onChange={(value) => updateFormData('numberOfChildren', value)}
@@ -72,7 +73,7 @@ const MaritalStatusStep = () => {
         className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600"
       >
         <p className="font-medium text-neutral-800 mb-1">All statuses welcome</p>
-        <p>TricityShadi is for everyone. Your marital status helps us find the right matches for you.</p>
+        <p>TricityMatch is for everyone. Your marital status helps us find the right matches for you.</p>
       </motion.div>
     </div>
   );

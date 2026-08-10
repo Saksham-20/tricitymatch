@@ -12,14 +12,14 @@ const Eyebrow = ({ children, className = '' }) => (
 );
 
 const STATS = [
-  { value: '1,190+', label: 'Marriages made' },
-  { value: '50K+', label: 'Verified members' },
-  { value: '92%', label: 'Reply within 48 hrs' },
-  { value: '15 yr', label: 'Serving Tricity families' },
+  { value: 'Live selfie', label: 'Verification, never uploads' },
+  { value: 'Tricity only', label: 'Chandigarh · Mohali · Panchkula' },
+  { value: 'Family-first', label: 'Guardians participate gracefully' },
+  { value: 'Founding', label: 'Members join free' },
 ];
 
 const VALUES = [
-  { icon: FiShield, n: '01', t: 'Verified, every profile', d: 'Selfie verification and human review before any profile goes live. Zero fake accounts, zero exceptions.' },
+  { icon: FiShield, n: '01', t: 'Verified profiles', d: 'The verified badge is earned with a live selfie matched by human review — never a file upload.' },
   { icon: FiLock, n: '02', t: 'Privacy-first', d: 'Your data is yours. Browse incognito, control who sees you, numbers never shared.' },
   { icon: FiUsers, n: '03', t: 'Family-oriented', d: 'Matching that respects family background, values, and the people who matter in the decision.' },
   { icon: FiMapPin, n: '04', t: 'Hyperlocal focus', d: 'Built only for Chandigarh, Mohali and Panchkula. Partners within driving distance.' },
@@ -32,21 +32,21 @@ export default function About() {
     <div className="min-h-screen bg-[#FDF8F2] text-neutral-900">
       <Seo
         title="About Us"
-        description="Learn about TricityShadi — the trusted hyperlocal matrimonial platform for Chandigarh, Mohali and Panchkula."
+        description="Learn about TricityMatch — the trusted hyperlocal matrimonial platform for Chandigarh, Mohali and Panchkula."
         path="/about"
       />
 
       {/* Hero */}
       <section className="px-4 pt-24 pb-16 md:pt-32 md:pb-20">
         <div className="max-w-5xl mx-auto">
-          <Link to="/" className="font-mono text-[11px] uppercase tracking-[0.16em] text-neutral-500 hover:text-primary-600 transition-colors mb-10 block w-fit">← Back to home</Link>
-          <Eyebrow className="mb-5">● Our story · Tricity only · Since 2011</Eyebrow>
+          <Link to="/" className="font-mono text-[11px] uppercase tracking-[0.16em] text-neutral-500 hover:text-primary-600 transition-colors block w-fit py-2 px-2 -mx-2 -mt-2 mb-8">← Back to home</Link>
+          <Eyebrow className="mb-5">● Our story · Tricity only · Founding community</Eyebrow>
           <h1 className="font-display text-4xl md:text-6xl font-bold leading-[1.05] text-neutral-900 max-w-3xl">
             Matrimony built for families,
             <span className="text-primary-700 italic"> not algorithms.</span>
           </h1>
           <p className="mt-6 text-lg text-neutral-600 max-w-2xl leading-relaxed">
-            TricityShadi is a hyperlocal matrimonial platform built specifically for families in
+            TricityMatch is a hyperlocal matrimonial platform built specifically for families in
             Chandigarh, Mohali and Panchkula — where finding a life partner is meaningful, safe and community-first.
           </p>
         </div>
@@ -70,18 +70,18 @@ export default function About() {
           <div>
             <Eyebrow className="mb-4">— Our mission</Eyebrow>
             <h2 className="font-display text-3xl md:text-4xl font-bold leading-tight">
-              50,000 serious local members, <span className="italic text-primary-700">not 50 million strangers.</span>
+              A serious local community, <span className="italic text-primary-700">not 50 million strangers.</span>
             </h2>
           </div>
           <div className="space-y-5 text-neutral-700 text-base leading-relaxed pt-1">
             <p>
-              Unlike generic matrimonial platforms, TricityShadi focuses on the Tricity region — bringing together
+              Unlike generic matrimonial platforms, TricityMatch focuses on the Tricity region — bringing together
               people who share local roots, cultural values and community ties.
             </p>
             <p>
               Our intelligent matching considers compatibility, family background, education and lifestyle to suggest
-              the connections that actually lead somewhere. Every profile is photo-verified and human-reviewed before
-              it goes live, and every family is within driving distance.
+              the connections that actually lead somewhere. Verified badges are earned with a live selfie matched by
+              human review, and every family is within driving distance.
             </p>
           </div>
         </div>
@@ -116,7 +116,7 @@ export default function About() {
           <h2 className="font-display text-3xl md:text-4xl font-bold mb-3 text-[#FDF8F2]">Your forever starts with one step.</h2>
           <p className="text-[#FDF8F2]/70 max-w-xl mx-auto mb-8">
             Have questions or feedback? Reach us at{' '}
-            <a href="mailto:support@tricityshadi.com" className="underline decoration-[#D4B048] underline-offset-4 hover:text-white">support@tricityshadi.com</a>
+            <a href="mailto:support@tricitymatch.com" className="underline decoration-[#D4B048] underline-offset-4 hover:text-white">support@tricitymatch.com</a>
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link to="/onboarding" className="inline-flex items-center justify-center gap-2 bg-[#FDF8F2] text-primary-800 font-semibold px-7 py-3.5 rounded-full hover:bg-white transition-colors">

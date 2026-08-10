@@ -53,7 +53,7 @@ const getTransporter = () => {
   return transporter;
 };
 
-// "TricityShadi <noreply@tricityshadi.com>"
+// "TricityMatch <noreply@tricityshadi.com>"
 const fromHeader = () => `${config.email.fromName} <${config.email.from || config.email.user}>`;
 
 // Single-provider send primitives. Throw on failure so the router can fall back.
@@ -133,7 +133,7 @@ const BRAND = {
 };
 
 /**
- * brandLayout — wraps body HTML in the shared TricityShadi shell.
+ * brandLayout — wraps body HTML in the shared TricityMatch shell.
  * @param {object} o
  * @param {string} o.eyebrow  small uppercase label under the wordmark
  * @param {string} o.bodyHtml inner content (already-escaped/trusted)
@@ -153,7 +153,7 @@ const brandLayout = ({ eyebrow, bodyHtml, preheader = '', cta }) => `
     <tr><td align="center">
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid ${BRAND.border};">
         <tr><td style="background:${BRAND.burgundy};padding:30px 32px;text-align:center;">
-          <div style="font-family:Georgia,'Times New Roman',serif;font-size:25px;font-weight:700;color:#ffffff;letter-spacing:0.5px;">TricityShadi</div>
+          <div style="font-family:Georgia,'Times New Roman',serif;font-size:25px;font-weight:700;color:#ffffff;letter-spacing:0.5px;">TricityMatch</div>
           <div style="height:3px;width:46px;background:${BRAND.gold};margin:11px auto 0;border-radius:2px;"></div>
           ${eyebrow ? `<div style="color:#F1E2D5;font-size:11px;margin-top:12px;letter-spacing:1.5px;text-transform:uppercase;">${eyebrow}</div>` : ''}
         </td></tr>
@@ -163,10 +163,10 @@ const brandLayout = ({ eyebrow, bodyHtml, preheader = '', cta }) => `
         </td></tr>
         <tr><td style="background:${BRAND.bg};padding:22px 32px;text-align:center;border-top:1px solid ${BRAND.border};">
           <div style="color:${BRAND.soft};font-size:12px;line-height:1.7;">
-            TricityShadi &middot; Chandigarh &middot; Mohali &middot; Panchkula<br/>
+            TricityMatch &middot; Chandigarh &middot; Mohali &middot; Panchkula<br/>
             Questions? <a href="mailto:${config.email.support}" style="color:${BRAND.burgundy};text-decoration:none;font-weight:600;">${config.email.support}</a>
           </div>
-          <div style="color:#B8AEA4;font-size:11px;margin-top:10px;">© ${new Date().getFullYear()} TricityShadi. All rights reserved.</div>
+          <div style="color:#B8AEA4;font-size:11px;margin-top:10px;">© ${new Date().getFullYear()} TricityMatch. All rights reserved.</div>
         </td></tr>
       </table>
     </td></tr>
@@ -191,13 +191,13 @@ const planLabel = (p) => PLAN_LABELS[p] || (p ? String(p).replace(/_/g, ' ').rep
 // Email templates
 const templates = {
   welcome: (name) => ({
-    subject: 'Welcome to TricityShadi',
+    subject: 'Welcome to TricityMatch',
     html: brandLayout({
       eyebrow: 'Welcome',
-      preheader: 'Your TricityShadi journey starts here.',
+      preheader: 'Your TricityMatch journey starts here.',
       bodyHtml: `
         <p style="margin-top:0;">Hi ${name},</p>
-        <p>Welcome to TricityShadi. We're glad you're here, and we'll help you find the right match with people from Chandigarh, Mohali and Panchkula.</p>
+        <p>Welcome to TricityMatch. We're glad you're here, and we'll help you find the right match with people from Chandigarh, Mohali and Panchkula.</p>
         <p style="margin-bottom:8px;">A few things to do next:</p>
         <ul style="margin:0 0 8px 0;padding-left:20px;color:${BRAND.soft};">
           <li>Complete your profile so you appear in more searches</li>
@@ -206,14 +206,14 @@ const templates = {
         </ul>`,
       cta: { href: `${config.server.frontendUrl}/profile/edit`, label: 'Complete Your Profile' },
     }),
-    text: `Welcome to TricityShadi, ${name}! Complete your profile to get started: ${config.server.frontendUrl}/profile/edit`,
+    text: `Welcome to TricityMatch, ${name}! Complete your profile to get started: ${config.server.frontendUrl}/profile/edit`,
   }),
 
   passwordReset: (name, resetLink) => ({
-    subject: 'Reset your password — TricityShadi',
+    subject: 'Reset your password — TricityMatch',
     html: brandLayout({
       eyebrow: 'Password Reset',
-      preheader: 'Reset your TricityShadi password (link expires in 1 hour).',
+      preheader: 'Reset your TricityMatch password (link expires in 1 hour).',
       bodyHtml: `
         <p style="margin-top:0;">Hi ${name},</p>
         <p>We received a request to reset your password. Use the button below to choose a new one.</p>
@@ -225,7 +225,7 @@ const templates = {
   }),
 
   matchNotification: (name, matchName) => ({
-    subject: `You matched with ${matchName} — TricityShadi`,
+    subject: `You matched with ${matchName} — TricityMatch`,
     html: brandLayout({
       eyebrow: "It's a Match",
       preheader: `You and ${matchName} liked each other.`,
@@ -234,12 +234,12 @@ const templates = {
         <p>Good news — you and <strong>${matchName}</strong> have both expressed interest. You can now start a conversation.</p>`,
       cta: { href: `${config.server.frontendUrl}/matches`, label: 'View Match' },
     }),
-    text: `Hi ${name}, you and ${matchName} matched on TricityShadi. Start a conversation: ${config.server.frontendUrl}/matches`,
+    text: `Hi ${name}, you and ${matchName} matched on TricityMatch. Start a conversation: ${config.server.frontendUrl}/matches`,
   }),
 
   subscriptionConfirmation: (name, plan, expiryDate) => ({
     channel: 'documents', // payment receipt → SMTP-first (falls back to Resend)
-    subject: 'Your TricityShadi membership is confirmed',
+    subject: 'Your TricityMatch membership is confirmed',
     html: brandLayout({
       eyebrow: 'Membership Confirmed',
       preheader: `Your ${planLabel(plan)} membership is active until ${expiryDate}.`,
@@ -264,7 +264,7 @@ const templates = {
   }),
 
   verificationRejected: (name, reason) => ({
-    subject: 'Photo verification update — TricityShadi',
+    subject: 'Photo verification update — TricityMatch',
     html: brandLayout({
       eyebrow: 'Verification Update',
       preheader: 'We could not verify your photo this time.',
@@ -284,7 +284,7 @@ const templates = {
   }),
 
   verificationApproved: (name) => ({
-    subject: 'Your profile is verified — TricityShadi',
+    subject: 'Your profile is verified — TricityMatch',
     html: brandLayout({
       eyebrow: 'Profile Verified',
       preheader: 'Your verified badge is now live.',
@@ -293,27 +293,27 @@ const templates = {
         <p>Congratulations — your profile is now verified. A verified badge is live on your profile, which builds trust and typically brings more responses.</p>`,
       cta: { href: `${config.server.frontendUrl}/profile`, label: 'View Your Profile' },
     }),
-    text: `Hi ${name}, your TricityShadi profile is now verified. View it: ${config.server.frontendUrl}/profile`,
+    text: `Hi ${name}, your TricityMatch profile is now verified. View it: ${config.server.frontendUrl}/profile`,
   }),
 
   weeklyDigest: (name, matchCount, profilesHtml) => ({
-    subject: `${matchCount} new matches this week on TricityShadi`,
+    subject: `${matchCount} new matches this week on TricityMatch`,
     html: brandLayout({
       eyebrow: 'Your Weekly Matches',
       preheader: `${matchCount} new profiles match your preferences this week.`,
       bodyHtml: `
         <p style="margin-top:0;">Hi ${name},</p>
-        <p>New members have joined TricityShadi this week who match your preferences — here's a look.</p>
+        <p>New members have joined TricityMatch this week who match your preferences — here's a look.</p>
         ${profilesHtml || ''}
         <p style="color:${BRAND.soft};font-size:13px;text-align:center;margin-top:18px;">Log in to see full profiles and send interest.</p>`,
       cta: { href: `${config.server.frontendUrl}/search`, label: 'View All Matches' },
     }),
-    text: `Hi ${name}, You have ${matchCount} new profiles matching your preferences this week on TricityShadi. Log in to view them: ${config.server.frontendUrl}/search`,
+    text: `Hi ${name}, You have ${matchCount} new profiles matching your preferences this week on TricityMatch. Log in to view them: ${config.server.frontendUrl}/search`,
   }),
 
   // One-time verification code (email OTP: signup / email-change).
   otpCode: (code, purpose = 'verify your email') => ({
-    subject: 'Your TricityShadi verification code',
+    subject: 'Your TricityMatch verification code',
     html: brandLayout({
       eyebrow: 'Verification Code',
       preheader: 'Your one-time verification code (valid 10 minutes).',
@@ -324,12 +324,12 @@ const templates = {
         </div>
         <p style="text-align:center;color:${BRAND.soft};font-size:13px;">Valid for 10 minutes. Do not share it with anyone. If you didn't request this, you can safely ignore this email.</p>`,
     }),
-    text: `Your TricityShadi verification code is ${code}. Valid for 10 minutes. Do not share it. If you didn't request this, ignore this email.`,
+    text: `Your TricityMatch verification code is ${code}. Valid for 10 minutes. Do not share it. If you didn't request this, ignore this email.`,
   }),
 
   // Security alert (new login, password changed, suspicious activity…).
   securityAlert: (name, title, detail, when) => ({
-    subject: `Security alert: ${title} — TricityShadi`,
+    subject: `Security alert: ${title} — TricityMatch`,
     html: brandLayout({
       eyebrow: 'Security Alert',
       preheader: title,

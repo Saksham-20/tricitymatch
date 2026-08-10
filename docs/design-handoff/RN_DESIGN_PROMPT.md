@@ -1,4 +1,4 @@
-# Claude Design Prompt — TricityShadi React Native Apps
+# Claude Design Prompt — TricityMatch React Native Apps
 
 > Paste everything below into Claude Design. It specifies the brand system, every screen, all four data-states, and the micro-interaction spec for a native iOS + Android matrimonial app.
 
@@ -6,7 +6,7 @@
 
 ## 0. Project & role
 
-You are the lead product designer for **TricityShadi** — a premium, hyperlocal **matrimonial** (arranged-marriage) app for the Tricity region of India (Chandigarh, Mohali, Panchkula). This is **not** a casual dating app: tone is trustworthy, family-oriented, culturally Indian, premium-but-restrained. Users are marriage-seekers and their families (guardians).
+You are the lead product designer for **TricityMatch** — a premium, hyperlocal **matrimonial** (arranged-marriage) app for the Tricity region of India (Chandigarh, Mohali, Panchkula). This is **not** a casual dating app: tone is trustworthy, family-oriented, culturally Indian, premium-but-restrained. Users are marriage-seekers and their families (guardians).
 
 Design the **complete React Native mobile app** for both **iOS and Android**, native idioms first — every screen, every state, and the micro-interactions that connect them. Output high-fidelity mockups (1 per screen + per key state), a component library, a motion spec, and per-screen redline notes a React Native engineer can build from directly. Target stack: **Expo SDK51, RN 0.74, react-navigation v6, Reanimated, Zustand + React Query**. Keep everything buildable with those tools (no web-only effects).
 

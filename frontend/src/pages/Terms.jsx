@@ -7,11 +7,11 @@ export default function Terms() {
     <div className="min-h-screen bg-neutral-50 pt-20 pb-16 px-4">
       <Seo
         title="Terms of Service"
-        description="The terms governing your use of TricityShadi."
+        description="The terms governing your use of TricityMatch."
         path="/terms"
       />
       <div className="max-w-3xl mx-auto">
-        <Link to="/" className="text-sm text-primary-600 hover:text-primary-700 mb-6 inline-block">← Back to Home</Link>
+        <Link to="/" className="text-sm text-primary-600 hover:text-primary-700 inline-block py-2 px-2 -mx-2 -mt-2 mb-4">← Back to Home</Link>
 
         <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-8 md:p-12">
           <h1 className="text-3xl font-bold text-neutral-900 mb-2">Terms of Service</h1>
@@ -20,21 +20,21 @@ export default function Terms() {
           <div className="prose prose-sm max-w-none text-neutral-700 space-y-6">
             <section>
               <p>
-                Welcome to TricityShadi — a matrimonial platform for the Tricity region
+                Welcome to TricityMatch — a matrimonial platform for the Tricity region
                 (Chandigarh, Mohali, and Panchkula) and beyond. These Terms of Service
-                ("Terms") are an agreement between you and TricityShadi. Please read them
+                ("Terms") are an agreement between you and TricityMatch. Please read them
                 carefully. By creating an account or using the platform, you accept these Terms.
               </p>
             </section>
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">1. Acceptance of Terms</h2>
-              <p>By accessing or using TricityShadi ("the Service"), you agree to be bound by these Terms. If you do not agree, please do not use the Service.</p>
+              <p>By accessing or using TricityMatch ("the Service"), you agree to be bound by these Terms. If you do not agree, please do not use the Service.</p>
             </section>
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">2. Eligibility</h2>
-              <p>You must be at least 18 years of age and legally competent to marry under the laws applicable to you. By using TricityShadi, you represent and warrant that you meet these requirements and are creating a profile for a genuine matrimonial purpose — for yourself, or, where our guardian feature is used, on behalf of a consenting family member.</p>
+              <p>You must be at least 18 years of age and legally competent to marry under the laws applicable to you. By using TricityMatch, you represent and warrant that you meet these requirements and are creating a profile for a genuine matrimonial purpose — for yourself, or, where our guardian feature is used, on behalf of a consenting family member.</p>
             </section>
 
             <section>
@@ -64,7 +64,7 @@ export default function Terms() {
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">6. Your Content</h2>
-              <p>You retain ownership of the photos, text, and other content you upload. By uploading it, you grant TricityShadi a limited licence to host, display, and process that content for the purpose of operating the Service (for example, showing your profile to other members according to your privacy settings). You are responsible for having the rights to any content you upload.</p>
+              <p>You retain ownership of the photos, text, and other content you upload. By uploading it, you grant TricityMatch a limited licence to host, display, and process that content for the purpose of operating the Service (for example, showing your profile to other members according to your privacy settings). You are responsible for having the rights to any content you upload.</p>
             </section>
 
             <section>
@@ -74,7 +74,7 @@ export default function Terms() {
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">8. No Guarantee of Outcome</h2>
-              <p>TricityShadi is a platform to help you discover and connect with prospective matches. We do not guarantee that you will find a match, a response, or a marriage, and we are not a party to any relationship, engagement, or marriage that results from using the Service.</p>
+              <p>TricityMatch is a platform to help you discover and connect with prospective matches. We do not guarantee that you will find a match, a response, or a marriage, and we are not a party to any relationship, engagement, or marriage that results from using the Service.</p>
             </section>
 
             <section>
@@ -94,7 +94,7 @@ export default function Terms() {
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">12. Limitation of Liability</h2>
-              <p>To the maximum extent permitted by law, TricityShadi shall not be liable for any indirect, incidental, special, or consequential damages, or for the acts or omissions of any user, arising from your use of the Service.</p>
+              <p>To the maximum extent permitted by law, TricityMatch shall not be liable for any indirect, incidental, special, or consequential damages, or for the acts or omissions of any user, arising from your use of the Service.</p>
             </section>
 
             <section>
@@ -109,7 +109,7 @@ export default function Terms() {
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">15. Grievances &amp; Contact</h2>
-              <p>For questions about these Terms, or to report content or conduct, contact us at <a href="mailto:support@tricityshadi.com" className="text-primary-600 underline hover:text-primary-700">support@tricityshadi.com</a>. In line with applicable Indian law, complaints regarding content or data may be addressed to our Grievance Officer at <a href="mailto:grievance@tricityshadi.com" className="text-primary-600 underline hover:text-primary-700">grievance@tricityshadi.com</a>, and we will acknowledge and endeavour to resolve them within the timelines prescribed by law.</p>
+              <p>For questions about these Terms, or to report content or conduct, contact us at <a href="mailto:support@tricitymatch.com" className="text-primary-600 underline hover:text-primary-700">support@tricitymatch.com</a>. In line with applicable Indian law, complaints regarding content or data may be addressed to our Grievance Officer at <a href="mailto:grievance@tricitymatch.com" className="text-primary-600 underline hover:text-primary-700">grievance@tricitymatch.com</a>, and we will acknowledge and endeavour to resolve them within the timelines prescribed by law.</p>
             </section>
           </div>
         </div>

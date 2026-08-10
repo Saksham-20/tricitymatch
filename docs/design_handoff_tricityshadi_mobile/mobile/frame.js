@@ -1,4 +1,4 @@
-/* ============================================================ TricityShadi mobile canvas kit
+/* ============================================================ TricityMatch mobile canvas kit
    Injects the icon sprite + helpers to stamp positioned iOS frames on a design canvas. */
 (function(){
   const SPRITE = `

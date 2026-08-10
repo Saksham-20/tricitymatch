@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "TricityShadi",
+    "name": "TricityMatch",
     "slug": "tricityshadi",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -37,8 +37,6 @@
       "permissions": [
         "CAMERA",
         "RECORD_AUDIO",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
         "USE_BIOMETRIC",
         "USE_FINGERPRINT",
         "VIBRATE",

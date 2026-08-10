@@ -36,13 +36,10 @@ const ReligionStep = () => {
   };
 
   const validateStep = () => {
-    const newErrors = {};
-    // Religion is optional in the new design, but caste requires religion
-    if (formData.caste && !formData.religion) {
-      newErrors.religion = 'Please select religion to specify caste';
-    }
-    setStepErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    // Everything on this step is optional and independent — caste/community is
+    // available to every religion (no gating), so there is nothing to block on.
+    setStepErrors({});
+    return true;
   };
 
   React.useEffect(() => {
@@ -67,21 +64,22 @@ const ReligionStep = () => {
         />
       </motion.div>
 
-      {formData.religion && (
-        <>
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-          >
-            <Select
-              label="Caste / Community"
-              options={CASTE_SELECT_OPTIONS}
-              value={casteSelectValue}
-              onChange={handleCasteSelect}
-              searchable
-              placeholder="Search your community (optional)"
-            />
+      {/* Caste / community + horoscope details are available to EVERY religion —
+          no gating. Search the list or type your own via "Other". */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+      >
+        <Select
+          label="Caste / Community"
+          options={CASTE_SELECT_OPTIONS}
+          value={casteSelectValue}
+          onChange={handleCasteSelect}
+          searchable
+          optional
+          placeholder="Search or type your community"
+        />
             <AnimatePresence>
               {casteOther && (
                 <motion.div
@@ -120,8 +118,6 @@ const ReligionStep = () => {
               onChange={(value) => updateFormData('gotra', value)}
             />
           </motion.div>
-        </>
-      )}
 
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -133,7 +129,8 @@ const ReligionStep = () => {
           options={MOTHER_TONGUES.map(m => ({ value: m, label: m }))}
           value={formData.motherTongue}
           onChange={(value) => updateFormData('motherTongue', value)}
-          placeholder="Select your mother tongue"
+          searchable
+          placeholder="Search your mother tongue"
         />
       </motion.div>
 

@@ -18,3 +18,12 @@
 - [ ] **OG/social share image polish** — brand-correct share cards.
 - [ ] **Biodata-upload AI autofill** (L) — benchmark item; real user behavior (families have PDF biodatas); higher effort.
 - [ ] **RN verification screens selfie-only rework** — RN ID-tier submit 400s since 2026-07-02 backend change (documented Known Issue).
+
+## Added by /autoplan review 2026-08-09 (refinement-plan-2026-08-09.md)
+- [ ] **RN store-launch initiative** (L) — replaces the cut Phase 5: start from `mobile/launch-prep` (7 commits ahead, Expo SDK 51→52/targetSdk 35), clear the two store blockers (targetSdk 35 review, Apple 4.8), selfie-only verification rework (Android emulator virtual camera / dev capture stub + native rebuild), TM logo assets, backend-changes smoke, AND the `founding_premium` shared-types ripple (`shared/src/types/subscription.ts` union + PLANS record — mobile `tsc` breaks without it).
+- [ ] **Full a11y audit cycle** (M, next cycle after real users) — VoiceOver on 3 journeys, contrast sweep, all-routes axe both themes, dark-token decision gate. This cycle shipped only the signup-funnel sliver (D8.6).
+- [ ] **Full perf verification** (S) — Agora chunk fetch-on-call-only network check, BarChart admin-only, search/dashboard API p95 baselines. This cycle shipped only Home LCP.
+- [ ] **Funnel analytics full build** (M, trigger: >100 signups/week) — client ingest route, admin funnel card, retention queue on the existing AnalyticsEvents table. Plus E4 weekly digest email.
+- [ ] **Trust-engine surfaces + concierge curated-intro experiment** (L, memo) — response-rate chips, admin-curated 5–10 matches, "request introduction" flow; merge with the supply-seeding P1 item. Source: Codex CEO cold read 2026-08-09.
+- NOTE: **free-chat experiment memo is DECIDED** (2026-08-09, D8.4): flag `FREE_CHAT_FOR_MUTUALS`, ships dark, flips ON after both-config QA — implemented via refinement plan P2.1.
+- NOTE: **pricing memo decide-by (2026-07-31) expired** — re-dated to 2026-08-23 as refinement-plan Standing Decision 4.

@@ -1,4 +1,4 @@
-# Alertmanager Configuration for TricityShadi
+# Alertmanager Configuration for TricityMatch
 # Configure alert routing and notification channels
 
 global:

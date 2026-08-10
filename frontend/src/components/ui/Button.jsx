@@ -82,7 +82,10 @@ const Button = React.forwardRef(
         ) : leftIcon ? (
           <span className="flex-shrink-0">{leftIcon}</span>
         ) : null}
-        {children && <span>{children}</span>}
+        {/* inline-flex so icons passed INSIDE children (a very common call-site
+            pattern) sit beside the text — Tailwind preflight makes svg
+            display:block, which otherwise wraps the icon onto its own line. */}
+        {children && <span className="inline-flex items-center justify-center gap-2">{children}</span>}
         {!loading && rightIcon && (
           <span className="flex-shrink-0">{rightIcon}</span>
         )}

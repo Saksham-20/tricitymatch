@@ -107,7 +107,7 @@ const MatchCard = ({ match, userId, index = 0, onChat }) => {
           whileTap={{ scale: 0.98 }}
           onClick={handleChatClick}
           aria-label={`Start chat with ${fullName}`}
-          className="mt-4 w-full py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition-colors flex items-center justify-center gap-2"
+          className="mt-4 w-full min-h-[44px] py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition-colors flex items-center justify-center gap-2"
         >
           <FiMessageCircle className="w-4 h-4" aria-hidden="true" />
           Message

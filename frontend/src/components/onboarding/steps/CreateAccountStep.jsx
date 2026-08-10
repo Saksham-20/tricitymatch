@@ -5,7 +5,7 @@ import FormField from '../../ui/FormField';
 import CheckBox from '../../ui/CheckBox';
 import OtpBoxes from '../../ui/OtpBoxes';
 import SmartContactField, { detectContactType, phoneDigits } from '../SmartContactField';
-import { validateEmail, validatePassword } from '../../../utils/validators';
+import { validateEmail, validatePassword, IDENTIFIER_ERROR } from '../../../utils/validators';
 import PasswordRequirements from '../../common/PasswordRequirements';
 import api from '../../../api/axios';
 import { FiEye, FiEyeOff, FiUser, FiUsers, FiCheck, FiCheckCircle, FiEdit2, FiShield } from 'react-icons/fi';
@@ -77,7 +77,7 @@ const CreateAccountStep = () => {
     // Send only needs a valid contact — password/terms are gated at "Next" so a
     // user can confirm their email/phone without a confusing credential error
     // on the OTP button.
-    if (!idType || !idValid()) { setStepErrors({ identifier: 'Enter a valid email or 10-digit mobile number' }); return; }
+    if (!idType || !idValid()) { setStepErrors({ identifier: IDENTIFIER_ERROR }); return; }
     if (cooldown > 0) return;
 
     setOtpSending(true);
@@ -147,7 +147,7 @@ const CreateAccountStep = () => {
     // Self-signup: single identifier must be entered, valid, AND verified.
     const type = detectContactType(data.identifier);
     if (!type || !(type === 'email' ? validateEmail(data.email) : /^[6-9]\d{9}$/.test(phoneDigits(data.identifier)))) {
-      newErrors.identifier = 'Enter a valid email or 10-digit mobile number';
+      newErrors.identifier = IDENTIFIER_ERROR;
     }
     if (!data.password) newErrors.password = 'Password is required';
     else if (!validatePassword(data.password)) newErrors.password = 'Min 8 chars (uppercase, lowercase, number, symbol)';
@@ -191,6 +191,7 @@ const CreateAccountStep = () => {
               onChange={(e) => updateFormData('password', e.target.value)}
               onBlur={() => setFieldTouched('password')}
               aria-invalid={errors.password ? true : undefined}
+              aria-describedby="signup-password-hint"
               className="w-full px-4 py-3 pr-11 rounded-xl border-2 border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500"
             />
             <button type="button" onClick={() => setShowPassword((s) => !s)} aria-label={showPassword ? 'Hide password' : 'Show password'} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500">
@@ -201,7 +202,7 @@ const CreateAccountStep = () => {
           {formData.password ? (
             <PasswordRequirements password={formData.password} />
           ) : !errors.password && (
-            <p className="text-xs text-neutral-400">At least 8 characters with uppercase, lowercase, a number, and a symbol.</p>
+            <p id="signup-password-hint" className="text-xs text-neutral-400">At least 8 characters with uppercase, lowercase, a number, and a symbol.</p>
           )}
         </div>
 
@@ -214,6 +215,8 @@ const CreateAccountStep = () => {
           ) : (
             <input
               type="text"
+              name="referralCode"
+              autoComplete="off"
               placeholder="Enter referral code"
               value={formData.referralCode || ''}
               onChange={(e) => updateFormData('referralCode', e.target.value.toUpperCase())}
@@ -357,17 +360,18 @@ const CreateAccountStep = () => {
           <label htmlFor="onboarding-password" className="block text-sm font-medium text-neutral-900">{formData.creatingFor !== 'self' ? "Profile Owner's Password *" : 'Password *'}</label>
           <div className="relative">
             <input id="onboarding-password" name="password" autoComplete="new-password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={formData.password} onChange={(e) => updateFormData('password', e.target.value)} onBlur={() => setFieldTouched('password')}
+              aria-invalid={errors.password ? true : undefined} aria-describedby="guardian-password-hint"
               className="w-full px-4 py-2.5 pr-11 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
             <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Hide password' : 'Show password'} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500">{showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}</button>
           </div>
           {errors.password && <p className="text-sm text-red-600 mt-1">{errors.password}</p>}
-          {formData.password ? <PasswordRequirements password={formData.password} /> : !errors.password && <p className="text-xs text-neutral-500 mt-1">At least 8 characters with uppercase, lowercase, a number, and a symbol.</p>}
+          {formData.password ? <PasswordRequirements password={formData.password} /> : !errors.password && <p id="guardian-password-hint" className="text-xs text-neutral-500 mt-1">At least 8 characters with uppercase, lowercase, a number, and a symbol.</p>}
         </div>
         <div className="space-y-1">
           {!showReferralInput ? (
             <button type="button" onClick={() => setShowReferralInput(true)} className="text-xs text-neutral-400 hover:text-primary-600 transition-colors underline underline-offset-2">Have a referral code?</button>
           ) : (
-            <input type="text" placeholder="Enter referral code" value={formData.referralCode || ''} onChange={(e) => updateFormData('referralCode', e.target.value.toUpperCase())} autoFocus className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent uppercase tracking-wider text-sm" />
+            <input type="text" name="referralCode" autoComplete="off" placeholder="Enter referral code" value={formData.referralCode || ''} onChange={(e) => updateFormData('referralCode', e.target.value.toUpperCase())} autoFocus className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent uppercase tracking-wider text-sm" />
           )}
         </div>
         <div className="pt-2">

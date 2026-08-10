@@ -14,7 +14,7 @@ const PILLARS = [
     icon: FiShield,
     n: '01',
     t: 'Profile verification',
-    body: 'Every profile passes selfie verification — a live photo matched to their profile pictures by our safety team — before going live. Verified profiles display a badge and receive 3× more responses — always prefer them when connecting.',
+    body: 'The verified badge is earned, not assumed: a member captures a live selfie in-app, and our safety team matches it to their profile pictures by hand. Verified profiles carry the badge and can be filtered for — always prefer them when connecting.',
     points: [],
   },
   {
@@ -54,14 +54,14 @@ export default function Safety() {
     <div className="min-h-screen bg-[#FDF8F2] text-neutral-900">
       <Seo
         title="Safety & Trust"
-        description="How TricityShadi keeps members safe — verification, privacy controls, and dating-safety guidance."
+        description="How TricityMatch keeps members safe — verification, privacy controls, and dating-safety guidance."
         path="/safety"
       />
 
       {/* Hero */}
       <section className="px-4 pt-24 pb-14 md:pt-32 md:pb-16">
         <div className="max-w-5xl mx-auto">
-          <Link to="/" className="font-mono text-[11px] uppercase tracking-[0.16em] text-neutral-500 hover:text-primary-600 transition-colors mb-10 block w-fit">← Back to home</Link>
+          <Link to="/" className="font-mono text-[11px] uppercase tracking-[0.16em] text-neutral-500 hover:text-primary-600 transition-colors block w-fit py-2 px-2 -mx-2 -mt-2 mb-8">← Back to home</Link>
           <Eyebrow className="mb-5">● Safety centre · Your trust comes first</Eyebrow>
           <h1 className="font-display text-4xl md:text-6xl font-bold leading-[1.05] max-w-3xl">
             Meet with <span className="text-primary-700 italic">confidence.</span>
@@ -113,7 +113,7 @@ export default function Safety() {
               <h2 className="font-display text-2xl md:text-3xl font-bold mb-2 text-[#FDF8F2]">In immediate danger? Call 112.</h2>
               <p className="text-[#FDF8F2]/70 max-w-xl">
                 For platform safety concerns, email{' '}
-                <a href="mailto:support@tricityshadi.com" className="underline decoration-[#D4B048] underline-offset-4 hover:text-white">support@tricityshadi.com</a>.
+                <a href="mailto:support@tricitymatch.com" className="underline decoration-[#D4B048] underline-offset-4 hover:text-white">support@tricitymatch.com</a>.
                 Our team responds within 24 hours.
               </p>
             </div>

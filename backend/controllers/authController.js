@@ -4,7 +4,7 @@
  */
 
 const jwt = require('jsonwebtoken');
-const { User, Profile, Subscription, RefreshToken, ReferralCode, MarketingLead } = require('../models');
+const { User, Profile, RefreshToken, ReferralCode, MarketingLead } = require('../models');
 const { sendWelcomeEmail, sendPasswordResetEmail, sendEmail, sendOtpEmail, sendSecurityAlert } = require('../utils/email');
 const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
@@ -12,6 +12,9 @@ const { recordFailedLogin, clearLoginAttempts } = require('../middlewares/securi
 const { log } = require('../middlewares/logger');
 const { OAuth2Client } = require('google-auth-library');
 const smsService = require('../utils/smsService');
+const { trackEvent } = require('../utils/trackEvent');
+const { grantFoundingIfOpen } = require('../utils/foundingGrant');
+const { getActiveSubscription } = require('../utils/entitlements');
 
 // Cookie configuration: use Secure only over HTTPS so cookies work when frontend is http://
 const useSecureCookies = config.isProduction && (config.server.frontendUrl || '').startsWith('https');
@@ -31,16 +34,26 @@ const getCookieOptions = (maxAge) => ({
 // Step-1 basics). Kept in one place so login/signup/getMe stay in sync.
 const withDerivedUserFields = async (userInstance) => {
   const user = userInstance.toJSON();
-  const activeSub = await Subscription.findOne({
-    where: { userId: user.id, status: 'active' },
-    order: [['createdAt', 'DESC']],
-  });
+  // Read through utils/entitlements — the SAME query every gate uses, including
+  // its endDate predicate. Filtering on `status:'active'` alone (what this did
+  // until 2026-08-10) meant that between a subscription's expiry and the hourly
+  // Bull sweep that flips the row to 'expired', /auth/me reported the member as
+  // premium while every actual gate 403'd; if Redis is down the sweep never
+  // runs at all. The sweep is cleanup, not correctness.
+  const activeSub = await getActiveSubscription(user.id);
   user.subscriptionPlan = activeSub?.planType || 'free';
   const profile = user.Profile;
   // Authoritative flag persisted on the profile: set at signup for web (full profile
   // collected first), at the end of onboarding Step 14 for mobile. The migration
   // backfilled every pre-existing row to true, so the column is always populated.
   user.onboardingComplete = Boolean(profile && profile.onboardingComplete);
+  // Server-owned feature flags. The client branches on THIS and never on a
+  // VITE_/EXPO_PUBLIC_ build var: a build-baked copy drifts from the server and
+  // ends up advertising premium chat that is actually free (or the reverse).
+  user.features = {
+    freeChatForMutuals: config.features.freeChatForMutuals,
+    foundingOpen: config.founding.isOpen(),
+  };
   return user;
 };
 
@@ -105,6 +118,9 @@ const clearAuthCookies = (res) => {
 exports.signup = asyncHandler(async (req, res) => {
   const { email, password, phone, firstName, lastName, gender, dateOfBirth, referralCode } = req.body;
   const codeFromQuery = req.query.ref || req.body.ref;
+  // Member invite (Phase S) — a DIFFERENT param from the marketing `ref` above.
+  // Both may be present on one signup and are honoured independently.
+  const inviteFromRequest = req.body.invite || req.query.invite;
 
   // Flexible auth: account is identified by EITHER an email OR a phone number.
   const normalizedEmail = email ? email.toLowerCase().trim() : null;
@@ -138,6 +154,27 @@ exports.signup = asyncHandler(async (req, res) => {
     }
   }
 
+  // Resolve the member invite AT SIGNUP, not just when the landing page rendered
+  // the inviter's name: the inviter may have been deleted or deactivated in
+  // between, and `invitedBy` must never point at a dead account. Any failure
+  // (unknown token, inactive inviter, DB hiccup) resolves to null and the signup
+  // proceeds normally — a forged invite is silently ignored, never an error.
+  let invitedBy = null;
+  if (inviteFromRequest) {
+    try {
+      const token = String(inviteFromRequest).trim();
+      if (/^[0-9a-f]{16,128}$/i.test(token)) {
+        const inviter = await User.findOne({
+          where: { inviteToken: token, status: 'active' },
+          attributes: ['id'],
+        });
+        if (inviter) invitedBy = inviter.id;
+      }
+    } catch (err) {
+      log.warn('Invite lookup failed at signup (ignored)', { error: err.message });
+    }
+  }
+
   // Consume the OTP-verified markers set by verify-otp so the account is stamped
   // verified at creation (proves the contact was confirmed, not client-trusted).
   let emailWasVerified = false;
@@ -165,6 +202,7 @@ exports.signup = asyncHandler(async (req, res) => {
         status: 'active',
         emailVerified: emailWasVerified,
         phoneVerified: phoneWasVerified,
+        invitedBy,
         ...(referralData && referralData)
       }, { transaction: t });
 
@@ -210,6 +248,22 @@ exports.signup = asyncHandler(async (req, res) => {
     log.error('Signup transaction failed', { error: err.message, stack: err.stack });
     throw createError.badRequest('Unable to create account. Please try again.');
   }
+
+  // Funnel stage 3 — account-bound, so the partial unique index makes it
+  // once-per-user on its own. Fire-and-forget: never awaited.
+  trackEvent(result.id, 'account_created');
+  if (invitedBy) trackEvent(result.id, 'invited_signup');
+
+  // Founding-member grant (Phase S). Deliberately OUTSIDE the signup
+  // transaction: any error raised inside a Postgres transaction poisons it, so
+  // a failed grant in there would abort an otherwise-good signup at COMMIT —
+  // exactly the outcome grantFoundingIfOpen's swallow-everything contract
+  // exists to prevent. Awaited (not fire-and-forget) so the response below
+  // already reflects the granted plan in `subscriptionPlan`.
+  // This is the ONLY grant point for email signup, and it covers the guardian
+  // `create_for_other` flow too — that flow has no endpoint of its own, it
+  // posts to this same POST /auth/signup.
+  await grantFoundingIfOpen(result.id);
 
   // Send welcome email (non-blocking) — only when the account has an email
   if (result.email) {
@@ -559,7 +613,7 @@ exports.resetPassword = asyncHandler(async (req, res) => {
       user.email,
       user.firstName || 'User',
       'Your password was changed',
-      'Your TricityShadi account password was just changed.',
+      'Your TricityMatch account password was just changed.',
       new Date().toUTCString()
     );
   } catch (error) {
@@ -587,6 +641,13 @@ exports.changePassword = asyncHandler(async (req, res) => {
   const isMatch = await user.comparePassword(currentPassword);
   if (!isMatch) {
     throw createError.unauthorized('Current password is incorrect');
+  }
+
+  // Reusing the same password reported success and revoked the other sessions
+  // without actually changing anything — worse than useless when the reason for
+  // changing it is that the old one leaked.
+  if (currentPassword === newPassword) {
+    throw createError.badRequest('Your new password must be different from your current one');
   }
 
   // Update password
@@ -741,6 +802,12 @@ exports.sendOtp = asyncHandler(async (req, res) => {
   } else {
     throw createError.badRequest('type must be phone or email');
   }
+
+  // Funnel stage 1 — reached only when a send branch ran (bad type throws above).
+  // Pre-account: no User row exists yet, so userId is NULL and this is a RAW
+  // COUNTER, inflated by resends (documented in scripts/funnel-report.sql).
+  // Fire-and-forget: never awaited, never able to fail the response.
+  trackEvent(null, 'otp_send_attempted');
 });
 
 // @route   POST /api/auth/verify-otp
@@ -794,6 +861,9 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
       : `otp-verified:email:${String(target).toLowerCase().trim()}`;
     await cacheSet(key, '1', 1800);
   } catch { /* non-fatal: verification still succeeds */ }
+
+  // Funnel stage 2 — still pre-account (userId NULL), same raw-counter caveat.
+  trackEvent(null, 'otp_verify_succeeded');
 
   res.json({ ...result, message: `${type} verified successfully` });
 });
@@ -855,6 +925,14 @@ exports.googleAuth = asyncHandler(async (req, res) => {
 
         return newUser;
       });
+
+      // Same funnel stage 3 for the Google first-time signup path.
+      trackEvent(user.id, 'account_created');
+
+      // …and the same founding grant. Leaving it off this path would mean two
+      // people signing up the same day get different entitlements purely by
+      // which button they pressed. Post-transaction + never-throws, as above.
+      await grantFoundingIfOpen(user.id);
 
       setImmediate(() => {
         sendWelcomeEmail(user.email, firstName || 'there')

@@ -1,4 +1,4 @@
-# TricityShadi Mobile App — Technical Architecture
+# TricityMatch Mobile App — Technical Architecture
 **Version:** 1.0 | **Date:** June 2026
 
 ---

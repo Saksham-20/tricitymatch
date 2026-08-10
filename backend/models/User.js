@@ -90,6 +90,35 @@ const User = sequelize.define('User', {
     type: DataTypes.ARRAY(DataTypes.TEXT),
     allowNull: false,
     defaultValue: []
+  },
+  // ── Founding members + invites (Phase S, migration 000048) ──
+  // Founding-ness is a User fact, NOT "has a founding_premium subscription":
+  // the granted row is cancelled when the member upgrades (verifyPayment
+  // supersedes it) and expires for the whole cohort at FOUNDING_PERIOD_ENDS.
+  // The badge has to survive both.
+  isFoundingMember: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
+  },
+  // ≥128-bit random hex, minted lazily by utils/inviteToken.js. Never derived
+  // from the userId: utils/profileCode.js codes resolve to a whole profile via
+  // GET /search/by-code, and an invite token must only ever resolve to a first
+  // name. Unique index `users_invite_token` is the collision backstop.
+  inviteToken: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    unique: true
+  },
+  // Self-FK to the inviting member. ON DELETE SET NULL (migration 000048) so
+  // removing an inviter never cascades away the accounts they brought in.
+  invitedBy: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'Users',
+      key: 'id'
+    }
   }
 }, {
   hooks: {
@@ -127,10 +156,15 @@ User.prototype.comparePassword = async function(candidatePassword) {
 // Override toJSON to exclude sensitive fields from API responses
 User.prototype.toJSON = function() {
   const values = { ...this.get() };
-  
+
   // Remove sensitive fields
   delete values.password;
-  
+  // The invite token is a bearer-ish secret for ONE surface (resolve → first
+  // name). Several endpoints serialize a User that isn't the caller's own
+  // (admin lists, profile includes), so it never rides the generic user shape —
+  // the owner reads it from GET /invite/my-link and nowhere else.
+  delete values.inviteToken;
+
   return values;
 };
 

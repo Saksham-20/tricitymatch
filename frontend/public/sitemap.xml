@@ -1,12 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Public, indexable routes only. Member routes (/dashboard, /profile, /search,
+     /matches, /chat, …) sit behind ProtectedRoute and are Disallow-ed in
+     robots.txt — never list them here. Keep in sync with App.jsx's public block. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://tricityshadi.com/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
-  <url><loc>https://tricityshadi.com/about</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://tricityshadi.com/contact</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://tricityshadi.com/safety</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://tricityshadi.com/success-stories</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://tricityshadi.com/privacy</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
-  <url><loc>https://tricityshadi.com/terms</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
-  <url><loc>https://tricityshadi.com/login</loc><changefreq>yearly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://tricityshadi.com/signup</loc><changefreq>yearly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://tricitymatch.com/</loc><lastmod>2026-08-09</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://tricitymatch.com/about</loc><lastmod>2026-08-09</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://tricitymatch.com/success-stories</loc><lastmod>2026-08-09</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://tricitymatch.com/matrimony/chandigarh</loc><lastmod>2026-08-09</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://tricitymatch.com/matrimony/mohali</loc><lastmod>2026-08-09</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://tricitymatch.com/matrimony/panchkula</loc><lastmod>2026-08-09</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://tricitymatch.com/signup</loc><lastmod>2026-08-09</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://tricitymatch.com/safety</loc><lastmod>2026-08-09</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://tricitymatch.com/contact</loc><lastmod>2026-08-09</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://tricitymatch.com/login</loc><lastmod>2026-08-09</lastmod><changefreq>yearly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://tricitymatch.com/privacy</loc><lastmod>2026-08-09</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://tricitymatch.com/terms</loc><lastmod>2026-08-09</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>
 </urlset>

@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
   FiGrid, FiUsers, FiCheckCircle, FiCreditCard,
   FiTrendingUp, FiFlag, FiLogOut, FiMenu, FiX,
-  FiChevronRight, FiTag, FiUserPlus, FiPhoneCall, FiHeart,
+  FiChevronRight, FiTag, FiUserPlus, FiPhoneCall, FiHeart, FiInbox,
 } from 'react-icons/fi';
 
 const navItems = [
@@ -14,6 +14,7 @@ const navItems = [
   { to: '/admin/subscriptions',    label: 'Subscriptions',     icon: FiCreditCard },
   { to: '/admin/revenue',          label: 'Revenue',           icon: FiTrendingUp },
   { to: '/admin/reports',          label: 'Reports',           icon: FiFlag },
+  { to: '/admin/contact-messages', label: 'Support Inbox',     icon: FiInbox },
   { to: '/admin/marketing-users',  label: 'Marketing Users',   icon: FiUserPlus },
   { to: '/admin/referral-codes',   label: 'Referral Codes',    icon: FiTag },
   { to: '/admin/leads',            label: 'Leads',             icon: FiPhoneCall },
@@ -36,10 +37,10 @@ export default function AdminLayout() {
       <div className="px-6 py-5 border-b border-gray-800">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-primary-700 flex items-center justify-center">
-            <span className="text-white text-xs font-black">TS</span>
+            <span className="text-white text-xs font-black">TM</span>
           </div>
           <div>
-            <p className="text-white font-bold text-sm leading-tight">TricityShadi</p>
+            <p className="text-white font-bold text-sm leading-tight">TricityMatch</p>
             <p className="text-gray-400 text-[10px] uppercase tracking-widest">Admin Panel</p>
           </div>
         </div>
@@ -118,7 +119,7 @@ export default function AdminLayout() {
           >
             <FiMenu className="w-6 h-6" />
           </button>
-          <span className="text-white text-sm font-semibold">TricityShadi Admin</span>
+          <span className="text-white text-sm font-semibold">TricityMatch Admin</span>
           <div className="w-6" />
         </div>
 

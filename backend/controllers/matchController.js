@@ -4,13 +4,15 @@
  */
 
 const { Match, Profile, User, Subscription, Block, Verification } = require('../models');
-const { Op } = require('sequelize');
+const { Op, QueryTypes } = require('sequelize');
+const { randomUUID } = require('crypto');
 const sequelize = require('../config/database');
 const { PAID_PLANS } = require('../constants/plans');
 const { calculateCompatibility } = require('../utils/compatibility');
 const { getOrSet } = require('../utils/cache');
 const { sendMatchNotification } = require('../utils/emailService');
 const { notify } = require('../utils/notifyUser');
+const { trackEvent } = require('../utils/trackEvent');
 const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { log } = require('../middlewares/logger');
@@ -64,13 +66,33 @@ exports.matchAction = asyncHandler(async (req, res) => {
       match.compatibilityScore = compatibilityScore;
       await match.save({ transaction: t });
     } else {
-      // Create new match
-      match = await Match.create({
-        userId: currentUserId,
-        matchedUserId: userId,
-        action,
-        compatibilityScore
-      }, { transaction: t });
+      // Upsert, not create: the find-then-create above is not atomic, so a
+      // double-tapped Like raced itself into the (userId, matchedUserId) unique
+      // index. In Postgres that aborts the surrounding transaction, so the
+      // second tap came back as a 500 instead of simply being the same like.
+      await sequelize.query(
+        `INSERT INTO "Matches" ("id", "userId", "matchedUserId", "action", "compatibilityScore", "createdAt", "updatedAt")
+         VALUES (:id, :userId, :matchedUserId, :action, :score, NOW(), NOW())
+         ON CONFLICT ("userId", "matchedUserId")
+         DO UPDATE SET "action" = EXCLUDED."action",
+                       "compatibilityScore" = EXCLUDED."compatibilityScore",
+                       "updatedAt" = NOW()`,
+        {
+          replacements: {
+            id: randomUUID(),
+            userId: currentUserId,
+            matchedUserId: userId,
+            action,
+            score: compatibilityScore,
+          },
+          type: QueryTypes.INSERT,
+          transaction: t,
+        }
+      );
+      match = await Match.findOne({
+        where: { userId: currentUserId, matchedUserId: userId },
+        transaction: t,
+      });
     }
 
     // Check for mutual match
@@ -102,6 +124,14 @@ exports.matchAction = asyncHandler(async (req, res) => {
 
     return { match, isMutualMatch, currentProfile, matchedProfile };
   });
+
+  // Funnel stage 5 — first expressed interest. 'pass' is a rejection, not an
+  // interest, so only like/shortlist count. Emitted unconditionally on those:
+  // the partial unique index (userId, eventType) collapses every later like into
+  // a no-op, so this stays "first". Fire-and-forget: never awaited.
+  if (action === 'like' || action === 'shortlist') {
+    trackEvent(currentUserId, 'first_interest_sent');
+  }
 
   // Send notifications outside transaction (non-critical)
   setImmediate(async () => {

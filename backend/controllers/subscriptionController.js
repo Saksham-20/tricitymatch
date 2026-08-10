@@ -6,7 +6,14 @@
 const { Subscription, User, Profile, MarketingLead, UnlockPurchase } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
-const { PAID_PLANS, UNLIMITED_PLANS, TIER_RANK, GOOGLE_PLAY_PRODUCTS } = require('../constants/plans');
+const {
+  PAID_PLANS,
+  PURCHASABLE_PLANS,
+  UNLIMITED_PLANS,
+  TIER_RANK,
+  FOUNDING_CONTACT_UNLOCKS,
+  GOOGLE_PLAY_PRODUCTS,
+} = require('../constants/plans');
 const {
   createOrder: razorpayCreateOrder,
   verifyPayment: razorpayVerifyPayment,
@@ -34,8 +41,11 @@ exports.createOrder = asyncHandler(async (req, res) => {
     throw createError.internal('Payment gateway is not configured');
   }
 
-  // Validate plan type
-  if (!PAID_PLANS.includes(planType)) {
+  // Validate plan type against the PURCHASABLE list (createOrderValidation
+  // already rejects the rest; this is the defence-in-depth copy). Using
+  // PAID_PLANS here would let `founding_premium` — a granted, priceless tier —
+  // through to Razorpay, which has no order for it.
+  if (!PURCHASABLE_PLANS.includes(planType)) {
     throw createError.badRequest('Invalid plan type');
   }
 
@@ -405,28 +415,27 @@ exports.verifyGooglePlay = asyncHandler(async (req, res) => {
 exports.getMySubscription = asyncHandler(async (req, res) => {
   const userId = req.user.id;
 
+  // Only an ACTIVE row describes what the member currently has. Taking the most
+  // recently created row of any status meant that starting an upgrade and never
+  // paying (status 'pending'), or an old 'cancelled' row, was reported as the
+  // current plan — the UI showed "VIP" while the server correctly granted
+  // nothing, because entitlement checks filter on status:'active'.
   const subscription = await Subscription.findOne({
-    where: { userId },
+    where: { userId, status: 'active' },
     order: [['createdAt', 'DESC']]
   });
 
+  const free = { planType: 'free', status: 'active' };
+
   if (!subscription) {
-    return res.json({
-      success: true,
-      subscription: {
-        planType: 'free',
-        status: 'active'
-      }
-    });
+    return res.json({ success: true, subscription: free });
   }
 
   // Check if subscription expired and update status
-  if (subscription.status === 'active' && subscription.endDate) {
-    const now = new Date();
-    if (now > new Date(subscription.endDate)) {
-      subscription.status = 'expired';
-      await subscription.save();
-    }
+  if (subscription.endDate && new Date() > new Date(subscription.endDate)) {
+    subscription.status = 'expired';
+    await subscription.save();
+    return res.json({ success: true, subscription: free });
   }
 
   res.json({
@@ -521,6 +530,18 @@ exports.getPlans = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     plans,
+    // Public founding-window state (Phase S). This is the ONLY public source of
+    // truth for "may a surface promise a free premium period?" — the landing
+    // band, the city pages and the signup kicker all read it and default to
+    // CLOSED. Fail-closed matters: `FOUNDING_PERIOD_ENDS` unset means no grant
+    // ever fires (utils/foundingGrant.js), so a surface that assumed "open"
+    // would promise an entitlement nobody receives. `contactUnlocks` is echoed
+    // so the copy can name the real cap instead of hand-waving "premium".
+    founding: {
+      open: config.founding.isOpen(),
+      endsAt: config.founding.isOpen() ? config.founding.endsAt : null,
+      contactUnlocks: FOUNDING_CONTACT_UNLOCKS,
+    },
   });
 });
 
@@ -573,6 +594,26 @@ exports.webhook = asyncHandler(async (req, res) => {
         subscription.contactUnlocksAllowed = planDetails.contactUnlocks;
         subscription.contactUnlocksUsed = 0;
         await subscription.save({ transaction: t });
+
+        // Supersede every OTHER pending-or-active row, exactly as
+        // `verifyPayment` does. The webhook is the FALLBACK leg — it runs when
+        // the browser never came back from checkout — and on an upgrade the
+        // member still holds the plan they are upgrading from. Without this the
+        // user ends up with two rows marked 'active': `requirePremium` picks
+        // one arbitrarily (no ORDER BY), so contact-unlock quota is consumed
+        // from whichever row the query happened to return and
+        // `my-subscription` can report the older, cheaper plan.
+        await Subscription.update(
+          { status: 'cancelled' },
+          {
+            where: {
+              userId: subscription.userId,
+              status: { [Op.in]: ['pending', 'active'] },
+              id: { [Op.ne]: subscription.id },
+            },
+            transaction: t,
+          }
+        );
 
         // Unlimited plans (VIP / NRI): activate profile boost via webhook too
         if (UNLIMITED_PLANS.includes(subscription.planType)) {

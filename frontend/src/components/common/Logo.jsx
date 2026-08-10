@@ -46,7 +46,7 @@ const Logo = ({
     <span className={`${wrapperLayout} ${className}`}>
       <img
         src="/images/logo.svg"
-        alt="TricityShadi logo"
+        alt="TricityMatch logo"
         className={`${s.img} object-contain flex-shrink-0 rounded-lg`}
         loading="eager"
         width={40}
@@ -54,7 +54,7 @@ const Logo = ({
       />
       {showText && !isIcon && (
         <span className={`font-display font-bold ${s.text} ${textColor} leading-tight`}>
-          TricityShadi
+          TricityMatch
         </span>
       )}
     </span>

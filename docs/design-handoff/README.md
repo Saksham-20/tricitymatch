@@ -1,7 +1,7 @@
-# Handoff: TricityShadi Web App Redesign
+# Handoff: TricityMatch Web App Redesign
 
 ## Overview
-A complete visual redesign of the TricityShadi matrimony **web app** (logged-in experience). It refreshes every core and secondary page to feel premium, trustworthy, and family-safe: burgundy used as an **accent** (never heavy flat fills), gold reserved for premium/VIP, Playfair Display headings + Inter body, a refined avatar/empty-photo treatment, one standardized SectionHeader, consistent components, and full **default / loading / empty / error** states. Every screen is designed at **desktop + mobile**, in **light + dark**, with an **elder mode** (larger type, higher contrast).
+A complete visual redesign of the TricityMatch matrimony **web app** (logged-in experience). It refreshes every core and secondary page to feel premium, trustworthy, and family-safe: burgundy used as an **accent** (never heavy flat fills), gold reserved for premium/VIP, Playfair Display headings + Inter body, a refined avatar/empty-photo treatment, one standardized SectionHeader, consistent components, and full **default / loading / empty / error** states. Every screen is designed at **desktop + mobile**, in **light + dark**, with an **elder mode** (larger type, higher contrast).
 
 **Target repo:** `Saksham-20/tricitymatch` → `frontend/` (React 18 SPA + Vite + Tailwind `darkMode:'class'` + react-router v7 + react-helmet-async + framer-motion, i18n en/hi/pa, icons from `react-icons/fi`).
 

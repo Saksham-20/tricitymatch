@@ -8,11 +8,21 @@ jest.mock('../../config/env', () => ({
 }));
 
 const { PLANS, UNLOCK_BUNDLES, createBundleOrder, getBundleDetails } = require('../../utils/razorpay');
-const { PAID_PLANS, UNLIMITED_PLANS, ALL_PLANS, TIER_RANK } = require('../../constants/plans');
+const {
+  PAID_PLANS,
+  PURCHASABLE_PLANS,
+  UNLIMITED_PLANS,
+  ALL_PLANS,
+  TIER_RANK,
+  FOUNDING_PLAN,
+  FOUNDING_CONTACT_UNLOCKS,
+} = require('../../constants/plans');
 
 describe('plan constants', () => {
-  it('PAID_PLANS covers all five paid tiers in ladder order', () => {
-    expect(PAID_PLANS).toEqual(['basic_premium', 'premium_plus', 'elite', 'vip', 'nri']);
+  it('PAID_PLANS covers every paid-grade tier in ladder order', () => {
+    expect(PAID_PLANS).toEqual([
+      'founding_premium', 'basic_premium', 'premium_plus', 'elite', 'vip', 'nri',
+    ]);
   });
 
   it('UNLIMITED_PLANS are vip + nri only', () => {
@@ -21,7 +31,7 @@ describe('plan constants', () => {
 
   it('ALL_PLANS prepends free', () => {
     expect(ALL_PLANS[0]).toBe('free');
-    expect(ALL_PLANS).toHaveLength(6);
+    expect(ALL_PLANS).toHaveLength(7);
   });
 
   it('TIER_RANK ranks nri === vip and is strictly increasing up to that', () => {
@@ -30,6 +40,40 @@ describe('plan constants', () => {
     expect(TIER_RANK.premium_plus).toBeLessThan(TIER_RANK.elite);
     expect(TIER_RANK.elite).toBeLessThan(TIER_RANK.vip);
     expect(TIER_RANK.nri).toBe(TIER_RANK.vip);
+  });
+});
+
+// The founding tier's whole safety story is which list it is in and which it is
+// NOT. Each of these, if it flipped, is a different production incident.
+describe('founding_premium tier placement', () => {
+  it('is a PAID-grade entitlement (every premium gate reads PAID_PLANS)', () => {
+    expect(PAID_PLANS).toContain(FOUNDING_PLAN);
+  });
+
+  it('is NOT purchasable — create-order must reject it before Razorpay', () => {
+    expect(PURCHASABLE_PLANS).not.toContain(FOUNDING_PLAN);
+  });
+
+  it('PURCHASABLE_PLANS is exactly PAID_PLANS minus the granted tier', () => {
+    expect(PURCHASABLE_PLANS).toEqual(PAID_PLANS.filter((p) => p !== FOUNDING_PLAN));
+  });
+
+  it('is NOT unlimited — unlimited would mean unlimited contact unlocks + boost', () => {
+    expect(UNLIMITED_PLANS).not.toContain(FOUNDING_PLAN);
+  });
+
+  it('ranks at 0 so a founding member can still upgrade to any paid tier', () => {
+    expect(TIER_RANK[FOUNDING_PLAN]).toBe(0);
+    expect(TIER_RANK[FOUNDING_PLAN]).toBeLessThan(TIER_RANK.basic_premium);
+  });
+
+  it('bundles a FINITE contact-unlock allowance (NULL would mean unlimited)', () => {
+    expect(typeof FOUNDING_CONTACT_UNLOCKS).toBe('number');
+    expect(FOUNDING_CONTACT_UNLOCKS).toBe(5);
+  });
+
+  it('has no entry in the razorpay price map (it is granted, never priced)', () => {
+    expect(PLANS[FOUNDING_PLAN]).toBeUndefined();
   });
 });
 
@@ -50,9 +94,12 @@ describe('razorpay PLANS ladder', () => {
     expect(p.contactUnlocks).toBe(exp.contactUnlocks);
   });
 
-  it('every paid MRP (when present) is above its price', () => {
-    for (const key of PAID_PLANS) {
+  it('every purchasable MRP (when present) is above its price', () => {
+    // PURCHASABLE_PLANS, not PAID_PLANS: founding_premium is paid-grade for
+    // entitlement gates but has no razorpay catalog entry — it is granted, never sold.
+    for (const key of PURCHASABLE_PLANS) {
       const p = PLANS[key];
+      expect(p).toBeDefined();
       if (p.mrp != null) expect(p.mrp).toBeGreaterThan(p.amount);
     }
   });

@@ -142,7 +142,14 @@ export default function AdminUserDetail() {
               <InfoRow label="Profession"   value={profile.profession} />
             </>
           ) : (
-            <p className="text-sm text-gray-400">No profile created yet</p>
+            <div className="text-sm text-neutral-600 bg-neutral-50 border border-neutral-200 rounded-lg p-4">
+              <p className="font-medium text-neutral-800 mb-1">Onboarding not completed</p>
+              <p>
+                This member created an account but hasn&apos;t filled their profile yet — matching
+                and search won&apos;t surface them until they do. Account, subscription and
+                verification details are still shown below.
+              </p>
+            </div>
           )}
         </Section>
 

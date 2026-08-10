@@ -19,7 +19,9 @@ module.exports = {
     'no-duplicate-imports': 'error',
     
     // Best practices
-    'eqeqeq': ['error', 'always'],
+    // `x == null` (matches both null and undefined) is deliberate and used in
+    // several places; every OTHER loose comparison stays an error.
+    'eqeqeq': ['error', 'always', { null: 'ignore' }],
     'no-eval': 'error',
     'no-implied-eval': 'error',
     'no-new-func': 'error',

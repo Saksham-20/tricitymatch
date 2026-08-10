@@ -28,9 +28,11 @@ const { auth } = require('../middlewares/auth');
 const { handleValidationErrors } = require('../middlewares/errorHandler');
 const {
   authLimiter,
+  refreshLimiter,
   otpLimiter,
   signupLimiter,
   passwordResetLimiter,
+  passwordResetSubmitLimiter,
   checkAccountLockout
 } = require('../middlewares/security');
 const {
@@ -63,9 +65,9 @@ router.post('/login',
   login
 );
 
-// Refresh token - moderate rate limiting
-router.post('/refresh', 
-  authLimiter,
+// Refresh token - own budget, must never exhaust the login limiter
+router.post('/refresh',
+  refreshLimiter,
   refreshTokenValidation,
   handleValidationErrors,
   refreshToken
@@ -79,9 +81,9 @@ router.post('/forgot-password',
   forgotPassword
 );
 
-// Reset password - strict rate limiting
-router.post('/reset-password', 
-  passwordResetLimiter, 
+// Reset password - own budget so a mistyped password can't lock the user out mid-reset
+router.post('/reset-password',
+  passwordResetSubmitLimiter,
   resetPasswordValidation, 
   handleValidationErrors, 
   resetPassword

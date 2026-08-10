@@ -1,4 +1,4 @@
-# TricityShadi — Try It Out 💍
+# TricityMatch — Try It Out 💍
 
 A matrimonial site for the Tricity (Chandigarh · Mohali · Panchkula).
 Thanks for helping test it! Here's what to try. Takes ~10 minutes.

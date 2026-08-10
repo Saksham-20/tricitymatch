@@ -34,7 +34,10 @@ export const OnboardingProvider = ({ children, mode = 'signup', existingProfile 
       return merged;
     }
     const saved = localStorage.getItem('onboarding_draft');
-    return saved ? JSON.parse(saved) : getInitialFormData();
+    if (!saved) return getInitialFormData();
+    // Always start with empty credential fields — drafts written by older
+    // builds may still contain a plain-text password; never rehydrate one.
+    return { ...getInitialFormData(), ...JSON.parse(saved), password: '', confirmPassword: '' };
   });
 
   const [currentStep, setCurrentStep] = useState(() => {
@@ -68,9 +71,16 @@ export const OnboardingProvider = ({ children, mode = 'signup', existingProfile 
   // Auto-save form data and current step to localStorage — signup/guardian
   // drafts only. Edit mode must never write the member's full profile into
   // the shared signup draft (it would prefill a later logged-out signup).
+  //
+  // Credentials are stripped before persisting: an abandoned signup used to
+  // leave the chosen password sitting in localStorage in plain text, readable
+  // by anyone on a shared machine and by any XSS on this origin. On resume the
+  // password field is simply blank and the user retypes it (step validation
+  // already requires it).
   useEffect(() => {
     if (onboardingMode === 'edit') return;
-    localStorage.setItem('onboarding_draft', JSON.stringify(formData));
+    const { password, confirmPassword, ...safeDraft } = formData;
+    localStorage.setItem('onboarding_draft', JSON.stringify(safeDraft));
   }, [formData, onboardingMode]);
 
   useEffect(() => {

@@ -32,6 +32,9 @@ export const phoneDigits = (raw = '') => {
  */
 const SmartContactField = ({ value, onChange, onBlur, error, disabled, autoFocus, id = 'signup-identifier', label = 'Email or mobile number', hint }) => {
   const type = detectContactType(value);
+  const errorId = `${id}-error`;
+  const hintId = `${id}-hint`;
+  const describedBy = error ? errorId : hintId;
 
   return (
     <div className="space-y-1.5">
@@ -53,7 +56,10 @@ const SmartContactField = ({ value, onChange, onBlur, error, disabled, autoFocus
           id={id}
           name="identifier"
           type="text"
-          inputMode="text"
+          /* Surface the right soft keyboard once the field reads as a phone
+             (numeric pad) vs email (@-key layout). Mobile only re-evaluates on
+             next focus, but it's strictly better than a plain text pad. */
+          inputMode={type === 'phone' ? 'tel' : 'email'}
           autoComplete="username"
           autoFocus={autoFocus}
           disabled={disabled}
@@ -62,15 +68,16 @@ const SmartContactField = ({ value, onChange, onBlur, error, disabled, autoFocus
           onChange={(e) => onChange(e.target.value)}
           onBlur={onBlur}
           aria-invalid={error ? true : undefined}
+          aria-describedby={describedBy}
           className="flex-1 min-w-0 bg-transparent px-2.5 py-3 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:outline-none"
         />
       </div>
       {error ? (
-        <p className="text-sm text-red-600">{error}</p>
+        <p id={errorId} className="text-sm text-red-600">{error}</p>
       ) : hint !== undefined ? (
-        hint ? <p className="text-xs text-neutral-400">{hint}</p> : null
+        hint ? <p id={hintId} className="text-xs text-neutral-400">{hint}</p> : null
       ) : (
-        <p className="text-xs text-neutral-400">
+        <p id={hintId} className="text-xs text-neutral-400">
           {type === 'phone'
             ? 'We’ll text a one-time code to this number.'
             : type === 'email'

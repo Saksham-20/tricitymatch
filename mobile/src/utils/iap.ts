@@ -15,11 +15,11 @@ export const IAP_UNAVAILABLE = 'IAP_UNAVAILABLE';
 
 // planType → Play product id
 export const PLAY_PRODUCT_IDS: Partial<Record<SubscriptionPlanType, string>> = {
-  basic_premium: 'tricityshadi_basic_premium',
-  premium_plus:  'tricityshadi_premium_plus',
-  elite:         'tricityshadi_elite',
-  vip:           'tricityshadi_vip',
-  nri:           'tricityshadi_nri',
+  basic_premium: 'tricitymatch_basic_premium',
+  premium_plus:  'tricitymatch_premium_plus',
+  elite:         'tricitymatch_elite',
+  vip:           'tricitymatch_vip',
+  nri:           'tricitymatch_nri',
 };
 
 export interface PlayPurchase {

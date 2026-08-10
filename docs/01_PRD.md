@@ -1,11 +1,11 @@
-# TricityShadi Mobile App — Product Requirements Document (PRD)
+# TricityMatch Mobile App — Product Requirements Document (PRD)
 **Version:** 1.0 | **Date:** June 2026 | **Status:** Final for v1 Build
 
 ---
 
 ## 1. Executive Summary
 
-TricityShadi is a working matrimonial web platform serving Chandigarh, Mohali, and Panchkula, built on React + Express.js + PostgreSQL. This PRD defines requirements for the **iOS + Android mobile app** built in React Native, sharing the same backend and database as the web.
+TricityMatch is a working matrimonial web platform serving Chandigarh, Mohali, and Panchkula, built on React + Express.js + PostgreSQL. This PRD defines requirements for the **iOS + Android mobile app** built in React Native, sharing the same backend and database as the web.
 
 The app is not a rebuild — it is a new client layer. All user data, profiles, matches, and messages are shared in real time between the web and the app. The mobile app adds what the web cannot deliver well: push notifications, biometric login, in-app voice/video calls (Agora), offline shortlist viewing, and native UX patterns.
 
@@ -17,7 +17,7 @@ The app is not a rebuild — it is a new client layer. All user data, profiles, 
 
 ## 2. Problem Statement
 
-- ~80% of Indian matrimonial searches happen on mobile. TricityShadi has no app.
+- ~80% of Indian matrimonial searches happen on mobile. TricityMatch has no app.
 - The existing web PWA has no push notifications (FCM stub never implemented), making re-engagement impossible.
 - Key differentiators — voice/video calls without number sharing, biometric login, family mode — cannot be delivered well in a mobile browser.
 - Competitors (Shaadi.com, Jeevansathi, BharatMatrimony) have polished native apps with millions of downloads.

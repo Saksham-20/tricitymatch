@@ -108,7 +108,7 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Check auth status on mount - tokens are in httpOnly cookies
-  const checkAuth = useCallback(async () => {
+  const checkAuth = useCallback(async (attempt = 0) => {
     try {
       const response = await api.get('/auth/me');
       const userData = response.data.user || response.data;
@@ -141,17 +141,29 @@ export const AuthProvider = ({ children }) => {
           // Refresh failed too → genuinely logged out; fall through.
         }
       }
-      // 401 is expected when not logged in - not an error
-      if (error.response?.status !== 401) {
+      const status = error.response?.status;
+
+      // Only a 401 proves the session is gone. A 429 (rate limited), a 5xx, or a
+      // dropped connection says nothing about whether the user is signed in —
+      // treating those as "logged out" bounced members to /login mid-session and
+      // made rate limiting look like a random forced logout. Retry once, then
+      // leave the existing session state alone.
+      if (status !== 401) {
         if (isDev) {
           console.error('Auth check failed:', error.message);
         }
+        if (attempt < 1) {
+          await new Promise((r) => setTimeout(r, 1200));
+          return checkAuth(attempt + 1);
+        }
+        // Give up without destroying the session — the cookie and the auth hint
+        // stay, so the next navigation or reload recovers normally.
+        return;
       }
+
       setUser(null);
       setIsAuthenticated(false);
-      if (error.response?.status === 401) {
-        setStoredAuthHint(false);
-      }
+      setStoredAuthHint(false);
     } finally {
       setLoading(false);
     }

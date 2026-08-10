@@ -1,4 +1,11 @@
-export type SubscriptionPlanType = 'free' | 'basic_premium' | 'premium_plus' | 'elite' | 'vip' | 'nri';
+/**
+ * `founding_premium` (Phase S) is a GRANTED tier, not a purchasable one: it is
+ * minted at signup while the founding window is open and carries basic-grade
+ * capabilities at zero price. It is intentionally absent from `PLAN_ORDER`
+ * (which drives the purchase UI) — see constants/plans.ts.
+ */
+export type SubscriptionPlanType =
+  | 'free' | 'founding_premium' | 'basic_premium' | 'premium_plus' | 'elite' | 'vip' | 'nri';
 export type SubscriptionStatus = 'active' | 'expired' | 'cancelled' | 'pending';
 
 export interface Subscription {

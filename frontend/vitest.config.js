@@ -3,6 +3,13 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  // Build-time constants that `vite.config.js` injects. Without them here, any
+  // test whose import graph reaches `src/config/index.js` dies with
+  // "__APP_VERSION__ is not defined" — a config gap, not a product bug.
+  define: {
+    __APP_VERSION__: JSON.stringify('test'),
+    __BUILD_TIME__: JSON.stringify('1970-01-01T00:00:00.000Z'),
+  },
   test: {
     // Test environment
     environment: 'jsdom',

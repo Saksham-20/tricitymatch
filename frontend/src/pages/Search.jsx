@@ -34,6 +34,7 @@ import { API_BASE_URL } from '../utils/api';
 import { getImageUrl } from '../utils/cloudinary';
 import { ProfileCard } from '../components/cards';
 import { FilterPanel } from '../components/search';
+import InviteLink from '../components/common/InviteLink';
 
 // ─── Card skeleton for loading state ──────────────────────────────────────
 const CardSkeleton = () => (
@@ -373,21 +374,31 @@ const Search = () => {
                 <div className="w-16 h-16 bg-primary-50 dark:bg-primary-900/30 rounded-2xl flex items-center justify-center mx-auto mb-5">
                   <FiUsers className="w-8 h-8 text-primary-400" />
                 </div>
+                {/* Supply-aware (Phase S, E3). Two genuinely different dead ends:
+                    filters that excluded everyone, and a community still being
+                    built. Saying "new members join every day" in either case was
+                    a fabricated activity claim — the honest landing page can't be
+                    followed by a dishonest interior. */}
                 <h3 className="font-display text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">
-                  No profiles found
+                  {activeFilterCount > 0 ? 'No profiles match these filters' : 'The circle is still small'}
                 </h3>
-                <p className="text-neutral-500 text-sm mb-6 max-w-xs mx-auto">
-                  Try expanding your filters or check back later — new members join every day.
+                <p className="text-neutral-500 text-sm mb-6 max-w-sm mx-auto">
+                  {activeFilterCount > 0
+                    ? 'Widen a filter or two — with a community this focused, a narrow search can rule out everyone.'
+                    : 'We verify every member by hand, one Tricity family at a time. The fastest way to find someone worth meeting is to bring someone you already trust.'}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                    onClick={handleClearFilters}
-                    className="btn-primary inline-flex items-center gap-2 text-sm"
-                  >
-                    <FiSliders className="w-4 h-4" />
-                    Clear Filters
-                  </motion.button>
+                  {activeFilterCount > 0 && (
+                    <motion.button
+                      whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                      onClick={handleClearFilters}
+                      className="btn-primary inline-flex items-center gap-2 text-sm"
+                    >
+                      <FiSliders className="w-4 h-4" />
+                      Clear Filters
+                    </motion.button>
+                  )}
+                  <InviteLink variant="inline" />
                   <motion.button
                     whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                     onClick={() => { setPage(1); searchProfiles(); }}

@@ -21,7 +21,11 @@ const memoryQueue = {
  * Initialize job queues
  */
 const initQueues = async () => {
-  if (!config.redis?.url) {
+  // Same gate class as F-026 (utils/cache.js): docker-compose configures Redis via
+  // REDIS_HOST/PORT/PASSWORD and never REDIS_URL, so gating on url alone left the
+  // Bull queues (weekly digest, cleanup, saved-search alerts) running in-memory on
+  // production while the Redis container sat next to them.
+  if (!config.redis?.isConfigured?.()) {
     log.info('Redis not configured, using in-memory job processing');
     startMemoryQueueProcessor();
     return;
@@ -30,7 +34,13 @@ const initQueues = async () => {
   try {
     const Bull = require('bull');
     const redisOptions = {
-      redis: config.redis.url,
+      redis: config.redis.url
+        ? config.redis.url
+        : {
+          host: config.redis.host,
+          port: config.redis.port,
+          ...(config.redis.password ? { password: config.redis.password } : {}),
+        },
       defaultJobOptions: {
         removeOnComplete: 100, // Keep last 100 completed jobs
         removeOnFail: 500, // Keep last 500 failed jobs

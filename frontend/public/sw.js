@@ -1,5 +1,5 @@
 /**
- * TricityShadi Service Worker
+ * TricityMatch Service Worker
  * Provides offline support and caching for better performance
  */
 
@@ -169,7 +169,7 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification(data.title || 'TricityShadi', options)
+    self.registration.showNotification(data.title || 'TricityMatch', options)
   );
 });
 

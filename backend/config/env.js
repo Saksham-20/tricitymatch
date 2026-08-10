@@ -198,7 +198,7 @@ const config = {
     // Shared identity (used by both Resend + SMTP). `from` must be an address on
     // a domain verified in Resend, e.g. noreply@tricityshadi.com.
     from: optionalString('EMAIL_FROM', 'noreply@tricityshadi.com'),
-    fromName: optionalString('EMAIL_FROM_NAME', 'TricityShadi'),
+    fromName: optionalString('EMAIL_FROM_NAME', 'TricityMatch'),
     replyTo: optionalString('EMAIL_REPLY_TO', optionalString('SUPPORT_EMAIL', 'support@tricityshadi.com')),
     support: optionalString('SUPPORT_EMAIL', 'support@tricityshadi.com'),
     // SMTP creds present (real, not placeholder)
@@ -303,6 +303,41 @@ const config = {
     isConfigured: () => {
       return !!optionalString('REDIS_URL') || !!optionalString('REDIS_HOST');
     },
+  },
+
+  // Founding-member offer (Phase S)
+  // The offer is CLOSED unless FOUNDING_PERIOD_ENDS is set to a future ISO date.
+  // Unset (the default) means no grant ever fires — the surfaces that promise a
+  // "free premium period" must stay dark until this is deliberately turned on.
+  founding: {
+    // ISO date/datetime string, e.g. 2026-10-31 or 2026-10-31T23:59:59+05:30.
+    // Doubles as the granted subscription's endDate, so the whole cohort expires
+    // together rather than each member 30 days after they happened to sign up.
+    endsAt: optionalString('FOUNDING_PERIOD_ENDS', ''),
+    // Optional hard cap on how many founding grants exist. 0 / unset = no cap.
+    memberCap: optionalNumber('FOUNDING_MEMBER_CAP', 0),
+    // Date half of the gate only. The member-count half needs a DB read, so the
+    // CALLER (utils/foundingGrant.js) checks it — this stays synchronous and
+    // dependency-free so any surface can ask "is the window open at all?".
+    isOpen: () => {
+      const raw = optionalString('FOUNDING_PERIOD_ENDS', '');
+      if (!raw) return false;
+      const ends = new Date(raw);
+      if (Number.isNaN(ends.getTime())) return false;
+      return ends.getTime() > Date.now();
+    },
+  },
+
+  // Runtime feature flags (Phase 2).
+  // These are read by the SERVER and echoed to clients in the `features` block
+  // on /auth/me — never mirrored into a VITE_ build var, because a build-baked
+  // copy drifts from the backend and would sell premium chat that is actually
+  // free (or vice versa).
+  features: {
+    // Chat with a mutual match without a paid plan. Ships DARK: the default is
+    // today's behaviour (chat is premium-only). Two-way door — flipping it
+    // writes nothing to the database, so flipping back restores the gate.
+    freeChatForMutuals: optionalBoolean('FREE_CHAT_FOR_MUTUALS', false),
   },
 
   // Monitoring & Alerting

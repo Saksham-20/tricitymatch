@@ -367,8 +367,16 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
     });
   }
 
-  // Get total count
-  const total = await Profile.count({ where });
+  // Get total count — must apply the SAME User join as the rows query above.
+  // Counting profiles alone included members whose account is suspended or
+  // deleted, so the header said "7 profiles found" while six could ever load,
+  // and pagination advertised pages that always came back empty.
+  const total = await Profile.count({
+    where,
+    include: [{ model: User, attributes: [], where: { status: 'active' }, required: true }],
+    distinct: true,
+    col: 'id',
+  });
 
   res.json({
     success: true,

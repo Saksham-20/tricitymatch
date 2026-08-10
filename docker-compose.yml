@@ -1,4 +1,4 @@
-# TricityShadi Docker Compose Configuration
+# TricityMatch Docker Compose Configuration
 # Production-grade deployment setup
 #
 # Usage:
@@ -93,6 +93,8 @@ services:
       COOKIE_SECRET: ${COOKIE_SECRET}
       # URLs
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      # Extra allowed CORS origin (legacy domain / shipped mobile builds)
+      CORS_ORIGIN: ${CORS_ORIGIN:-}
       # Payment
       RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID}
       RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET}
@@ -104,7 +106,7 @@ services:
       EMAIL_USER: ${EMAIL_USER}
       EMAIL_PASSWORD: ${EMAIL_PASSWORD}
       EMAIL_FROM: ${EMAIL_FROM:-noreply@tricityshadi.com}
-      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-TricityShadi}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-TricityMatch}
       EMAIL_REPLY_TO: ${EMAIL_REPLY_TO:-}
       SUPPORT_EMAIL: ${SUPPORT_EMAIL:-support@tricityshadi.com}
       # Cloudinary
@@ -130,6 +132,14 @@ services:
       BG_CHECK_PROVIDER: ${BG_CHECK_PROVIDER:-}
       BG_CHECK_API_KEY: ${BG_CHECK_API_KEY:-}
       BG_CHECK_API_SECRET: ${BG_CHECK_API_SECRET:-}
+      # Founding-member offer (Phase S). Unset = offer CLOSED, no grants fire.
+      # FOUNDING_PERIOD_ENDS is an ISO date; FOUNDING_MEMBER_CAP 0/unset = no cap.
+      FOUNDING_PERIOD_ENDS: ${FOUNDING_PERIOD_ENDS:-}
+      FOUNDING_MEMBER_CAP: ${FOUNDING_MEMBER_CAP:-}
+      # Feature flags (Phase 2). Compose passes ONLY the vars listed here, so a
+      # flag that is not in this allowlist stays off in prod no matter what the
+      # env file says — the CORS_ORIGIN failure, already made once.
+      FREE_CHAT_FOR_MUTUALS: ${FREE_CHAT_FOR_MUTUALS:-false}
       # Monitoring
       MONITORING_ENABLED: ${MONITORING_ENABLED:-true}
       ALERT_EMAILS: ${ALERT_EMAILS:-}

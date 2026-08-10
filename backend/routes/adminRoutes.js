@@ -26,6 +26,8 @@ const {
   createReferralCode,
   toggleReferralCode,
   getLeads,
+  getContactMessages,
+  updateContactMessage,
   getSuccessStories,
   createSuccessStory,
   updateSuccessStory,
@@ -119,6 +121,17 @@ router.put('/referral-codes/:id/toggle',
 
 router.get('/leads', getLeads);
 
+// ==================== CONTACT MESSAGES (SUPPORT INBOX) ====================
+
+router.get('/contact-messages', getContactMessages);
+router.put(
+  '/contact-messages/:id',
+  param('id').isUUID(4),
+  body('status').isIn(['new', 'read', 'resolved']),
+  handleValidationErrors,
+  updateContactMessage
+);
+
 // ==================== SUCCESS STORIES ====================
 
 router.get('/success-stories', getSuccessStories);
@@ -134,7 +147,7 @@ router.post('/push-smoke-test', [
   body('body').optional().isString().trim().isLength({ max: 200 }),
   handleValidationErrors,
 ], asyncHandler(async (req, res) => {
-  const { userId, title = 'TricityShadi Test', body: msgBody = 'Push notifications are working!' } = req.body;
+  const { userId, title = 'TricityMatch Test', body: msgBody = 'Push notifications are working!' } = req.body;
 
   if (userId) {
     const user = await User.findByPk(userId, { attributes: ['id', 'fcmTokens'] });

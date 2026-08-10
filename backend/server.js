@@ -1,5 +1,5 @@
 /**
- * TricityShadi Backend Server
+ * TricityMatch Backend Server
  * Production-grade Express.js application
  */
 
@@ -239,7 +239,7 @@ if (config.isDevelopment || process.env.ENABLE_SWAGGER === 'true') {
 
   app.use('/api/docs', swaggerGuard, swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
     customCss: '.swagger-ui .topbar { display: none }',
-    customSiteTitle: 'TricityShadi API Documentation',
+    customSiteTitle: 'TricityMatch API Documentation',
     swaggerOptions: {
       persistAuthorization: true,
       displayRequestDuration: true,
@@ -360,7 +360,7 @@ const startServer = async () => {
         : 'Cloudinary: NOT configured (local disk)';
       console.log(`
 ╔════════════════════════════════════════════════════════════╗
-║                  TricityShadi Server                       ║
+║                  TricityMatch Server                       ║
 ╠════════════════════════════════════════════════════════════╣
 ║  Status:      Running                                      ║
 ║  Environment: ${config.env.padEnd(43)}║

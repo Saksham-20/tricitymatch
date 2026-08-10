@@ -2,7 +2,7 @@
 <html lang="en" data-theme="light">
 <head>
 <meta charset="utf-8" />
-<title>TricityShadi Mobile — Auth</title>
+<title>TricityMatch Mobile — Auth</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="design_doc_mode" content="canvas" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -53,10 +53,10 @@
 <div class="canvas-sub">Biometric login · 429 lockout (no countdown) · live password strength · 6-box auto-advance OTP</div>
 <script src="frame.js"></script>
 <script>
-function logo(){return `<div class="logo"><span class="mk">TS</span>TricityShadi</div>`;}
+function logo(){return `<div class="logo"><span class="mk">TS</span>TricityMatch</div>`;}
 
 function splash(){
-  return `<div class="vp"><div class="splash"><div class="mk">TS</div><h2>TricityShadi</h2>
+  return `<div class="vp"><div class="splash"><div class="mk">TS</div><h2>TricityMatch</h2>
     <p>TRUSTED MATRIMONY · TRICITY</p><div class="dots"><i></i><i></i><i></i></div></div></div>`;
 }
 function welcome(){
@@ -84,7 +84,7 @@ function login(state){
       <button class="btn btn-primary block ${lock?'':''}" style="margin-top:6px" ${lock?'disabled':''}>Log in</button>
       <div class="divider">or</div>
       <button class="biometric"><svg class="i"><use href="#i-faceid"/></svg>Log in with Face ID</button>
-      <div style="text-align:center;margin-top:auto;padding-top:22px;font-size:14px;color:var(--muted)">New to TricityShadi? <span class="alink">Sign up</span></div></div></div>`;
+      <div style="text-align:center;margin-top:auto;padding-top:22px;font-size:14px;color:var(--muted)">New to TricityMatch? <span class="alink">Sign up</span></div></div></div>`;
 }
 function signup(){
   return `<div class="vp"><div class="navbar" style="background:transparent;border:0;backdrop-filter:none"><span class="nb-btn"><svg class="i"><use href="#i-back"/></svg></span></div>

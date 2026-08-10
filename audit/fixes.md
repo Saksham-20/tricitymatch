@@ -4,7 +4,7 @@ One row per fix. Nothing here without real-viewport verification + commit hash.
 
 | Chunk | ID | Fix | Files | Commit | Verified |
 |-------|----|-----|-------|--------|----------|
-| 2 | C2-1 | Per-route `<Seo>` titles on forgot/reset password | ForgotPassword.jsx, ResetPassword.jsx | aeeb29c | ✅ live: "Forgot Password \| TricityShadi", "Reset Password \| TricityShadi" |
+| 2 | C2-1 | Per-route `<Seo>` titles on forgot/reset password | ForgotPassword.jsx, ResetPassword.jsx | aeeb29c | ✅ live: "Forgot Password \| TricityMatch", "Reset Password \| TricityMatch" |
 | 2 | C2-2 | Remove duplicate skip-to-content link | Navbar.jsx | aeeb29c | ✅ live: skipLinkCount 2→1 |
 | 2 | C2-3 | Explicit `type="button"` on mobile hamburger | Navbar.jsx | aeeb29c | ✅ live: hamburgerType "button" |
 | 3 | C3-1 | Native hidden `<input>` in CheckBox (keyboard+SR a11y) | ui/CheckBox.jsx | 9b13ecd | ✅ live: focusable, Space toggles + shows check |

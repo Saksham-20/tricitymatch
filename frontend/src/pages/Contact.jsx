@@ -52,11 +52,11 @@ export default function Contact() {
     <div className="min-h-screen bg-neutral-50 pt-20 pb-16 px-4">
       <Seo
         title="Contact Us"
-        description="Get in touch with the TricityShadi team for support, partnerships or feedback."
+        description="Get in touch with the TricityMatch team for support, partnerships or feedback."
         path="/contact"
       />
       <div className="max-w-5xl mx-auto">
-        <Link to="/" className="text-sm text-primary-600 hover:text-primary-700 mb-6 inline-block">← Back to Home</Link>
+        <Link to="/" className="text-sm text-primary-600 hover:text-primary-700 inline-block py-2 px-2 -mx-2 -mt-2 mb-4">← Back to Home</Link>
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* Form */}
@@ -131,7 +131,8 @@ export default function Contact() {
                 <div>
                   <h2 className="text-sm font-bold text-neutral-900 mb-1">Email Support</h2>
                   <p className="text-sm text-neutral-600">
-                    <a href="mailto:support@tricityshadi.com" className="text-primary-600 hover:underline">support@tricityshadi.com</a>
+                    {/* py/-my pair: 24px+ hit box, zero layout shift (WCAG 2.5.8) */}
+                    <a href="mailto:support@tricitymatch.com" className="inline-block py-2 -my-2 text-primary-600 hover:underline">support@tricitymatch.com</a>
                   </p>
                 </div>
               </div>

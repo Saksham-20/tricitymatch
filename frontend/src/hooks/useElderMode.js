@@ -21,7 +21,9 @@ export default function useElderMode() {
     }
     try {
       localStorage.setItem('tm_elder_mode', String(isElder));
-    } catch {}
+    } catch {
+      // Private mode / storage disabled — see useDarkMode. Session-only.
+    }
   }, [isElder]);
 
   const toggle = () => setIsElder((e) => !e);

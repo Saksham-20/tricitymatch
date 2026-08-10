@@ -57,7 +57,7 @@ Single `<h1>` ✓ · counters animate ✓ · 0 broken images ✓ · AA contrast 
 ### Findings + fixes
 | ID | Sev | Status | Issue → Fix |
 |----|-----|--------|-------------|
-| C2-1 | ⚪ Low | ✅ FIXED-VERIFIED | `/forgot-password` + `/reset-password` fell back to the **generic site `<title>`** (Login already had a per-route one). → Added `<Seo>` to both (all 3 reset states). Verified live: titles now "Forgot Password / Reset Password \| TricityShadi". |
+| C2-1 | ⚪ Low | ✅ FIXED-VERIFIED | `/forgot-password` + `/reset-password` fell back to the **generic site `<title>`** (Login already had a per-route one). → Added `<Seo>` to both (all 3 reset states). Verified live: titles now "Forgot Password / Reset Password \| TricityMatch". |
 | C2-2 | ⚪ Low | ✅ FIXED-VERIFIED | **Duplicate "Skip to main content"** link (App.jsx:428 *and* Navbar.jsx:244, both → `#main-content`) — two skip targets confuse keyboard/SR users. → Removed the Navbar duplicate (App's renders first in DOM = canonical). Verified live: skipLinkCount 2→1. |
 | C2-3 | ⚪ Low | ✅ FIXED-VERIFIED | Navbar mobile **hamburger had no `type`** → defaults to `type=submit` (harmless here — not inside the login form — but wrong semantics). → Added `type="button"`. Verified live: hamburgerType now "button". |
 
@@ -274,7 +274,7 @@ The seeder writes legacy `Subscription.planType = 'premium'`/`'elite'`, but `req
 - Dashboard "Subscription Plans" pie labels overlap/truncate (`premium_plus` clipped) — readability.
 - User-detail Date of Birth shows raw ISO `1995-01-15T00:00:00.000Z` (should format).
 - Admin avatars show "U" (admin reads `user.firstName`, nested under Profile — same root as W3-1 but admin layouts weren't in the AuthContext-normalized path).
-- Admin panel still branded "TricityMatch" (old name) vs "TricityShadi" elsewhere.
+- Admin panel still branded "TricityMatch" (old name) vs "TricityMatch" elsewhere.
 
 ### Not tested
 Marketing panel (`/marketing/*`) needs a marketing-role account — none seeded locally. Admin Reports/Revenue/Subscriptions/Referral/Leads/Success-Stories list pages not individually screenshotted (nav + dashboard counts confirm they're wired); deeper marketing pass deferred.

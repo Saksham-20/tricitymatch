@@ -23,6 +23,7 @@ const GroupMember = require('./GroupMember');
 const GroupMessage = require('./GroupMessage');
 const ContactMessage = require('./ContactMessage');
 const UnlockPurchase = require('./UnlockPurchase');
+const AnalyticsEvent = require('./AnalyticsEvent');
 
 // Define Relationships
 User.hasOne(Profile, { foreignKey: 'userId', onDelete: 'CASCADE' });
@@ -127,6 +128,17 @@ GroupMessage.belongsTo(User, { foreignKey: 'senderId', as: 'Sender' });
 User.hasMany(UnlockPurchase, { foreignKey: 'userId', as: 'UnlockPurchases', onDelete: 'CASCADE' });
 UnlockPurchase.belongsTo(User, { foreignKey: 'userId' });
 
+// Funnel events. No User.hasMany: the two pre-account counters carry userId NULL,
+// so events are not a child collection of a user. CASCADE lives on the FK.
+AnalyticsEvent.belongsTo(User, { foreignKey: 'userId' });
+
+// Member invites (Phase S). Self-referencing: `invitedBy` points at the member
+// whose invite link was used. ON DELETE SET NULL lives on the FK (migration
+// 000048) — deleting an inviter orphans the edge, it never cascades away the
+// invitee's account.
+User.belongsTo(User, { foreignKey: 'invitedBy', as: 'Inviter' });
+User.hasMany(User, { foreignKey: 'invitedBy', as: 'InvitedUsers' });
+
 module.exports = {
   sequelize,
   User,
@@ -153,5 +165,6 @@ module.exports = {
   GroupMessage,
   ContactMessage,
   UnlockPurchase,
+  AnalyticsEvent,
 };
 

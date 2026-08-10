@@ -3,6 +3,10 @@
  * Client-side validation (backend has final authority)
  */
 
+// Shared copy so the identifier (email-or-mobile) error reads identically on
+// Login and signup — the two used to drift ("phone" vs "mobile number").
+export const IDENTIFIER_ERROR = 'Enter a valid email or 10-digit mobile number';
+
 // Email validation
 export const validateEmail = (email) => {
   if (!email || typeof email !== 'string') return false;

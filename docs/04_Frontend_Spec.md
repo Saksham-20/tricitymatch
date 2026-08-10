@@ -1,4 +1,4 @@
-# TricityShadi Mobile App — Frontend Specification
+# TricityMatch Mobile App — Frontend Specification
 **Version:** 1.0 | **Date:** June 2026 | **Framework:** React Native (Expo Bare, SDK 51+)
 
 ---
@@ -263,7 +263,7 @@ type ProfileCardProps = {
 ```typescript
 // Row of pill badges showing earned verification tiers only
 // Mobile ✓ (green) | ID ✓ (blue) | Education ✓ (purple) | Income ✓ (amber)
-// Tapping any badge shows tooltip: "Verified by TricityShadi team"
+// Tapping any badge shows tooltip: "Verified by TricityMatch team"
 ```
 
 ---
@@ -273,7 +273,7 @@ type ProfileCardProps = {
 ### 4.1 Auth Screens
 
 **SplashScreen**
-- TricityShadi logo centred, rose-600 background
+- TricityMatch logo centred, rose-600 background
 - Auto-navigates after 2 seconds: checks for stored refresh token
   - If found: attempt silent refresh → Main app
   - If not: → Welcome screen
@@ -418,7 +418,7 @@ Each step:
 **Layout:**
 ```
 ┌────────────────────────────────┐
-│ [Logo]    TricityShadi  [🔔 3] │  ← Header (notification badge)
+│ [Logo]    TricityMatch  [🔔 3] │  ← Header (notification badge)
 ├────────────────────────────────┤
 │ Welcome back, Priya 👋         │
 │ [Plan badge]  [Profile 72% ▓▓▓░] │
@@ -429,7 +429,7 @@ Each step:
 │ ── Quick Actions ──            │
 │ [Who liked you: 4] [Profile views: 12] │
 ├────────────────────────────────┤
-│ ── New on TricityShadi ──      │
+│ ── New on TricityMatch ──      │
 │ [Vertical list of recent profiles] │
 └────────────────────────────────┘
 ```

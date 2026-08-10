@@ -19,6 +19,8 @@ import ProfileCompletionMeter, { getCompletionData } from '../components/profile
 import { getImageUrl } from '../utils/cloudinary';
 import UpgradeModal from '../components/common/UpgradeModal';
 import SectionHeader from '../components/common/SectionHeader';
+import FoundingBadge from '../components/common/FoundingBadge';
+import InviteLink from '../components/common/InviteLink';
 
 // ─── Skeleton loaders ──────────────────────────────────────────────────────
 const StatSkeleton = () => (
@@ -248,7 +250,7 @@ const SubscriptionStatusCard = ({ subscription, navigate }) => {
           )}
           <button
             onClick={() => navigate('/subscription')}
-            className="text-xs font-semibold text-neutral-500 hover:text-primary-500 transition-colors whitespace-nowrap"
+            className="text-xs font-semibold text-neutral-500 hover:text-primary-500 transition-colors whitespace-nowrap py-2 px-2 -my-2 -mx-2"
           >
             Manage Plan
           </button>
@@ -545,9 +547,12 @@ const Dashboard = () => {
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
                 {/* Left: Greeting */}
                 <div>
-                  <div className="inline-flex items-center gap-2 mb-3 px-3 py-1 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full">
-                    <greeting.icon className="w-3.5 h-3.5 text-primary-600 dark:text-primary-300" />
-                    <span className="text-neutral-600 dark:text-neutral-300 text-xs font-semibold uppercase tracking-wide">Your Dashboard</span>
+                  <div className="flex items-center gap-2 mb-3 flex-wrap">
+                    <span className="inline-flex items-center gap-2 px-3 py-1 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full">
+                      <greeting.icon className="w-3.5 h-3.5 text-primary-600 dark:text-primary-300" />
+                      <span className="text-neutral-600 dark:text-neutral-300 text-xs font-semibold uppercase tracking-wide">Your Dashboard</span>
+                    </span>
+                    <FoundingBadge user={user} />
                   </div>
                   <h1 className="font-display text-3xl md:text-4xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">
                     {greeting.text}
@@ -963,7 +968,7 @@ const Dashboard = () => {
             <div className="mt-4 sm:hidden text-center">
               <Link
                 to="/search"
-                className="inline-flex items-center gap-1.5 text-primary-500 font-semibold text-sm"
+                className="inline-flex items-center gap-1.5 text-primary-500 font-semibold text-sm py-2.5 px-3 -my-2.5 -mx-3"
               >
                 View all profiles <FiArrowRight className="w-4 h-4" />
               </Link>
@@ -986,10 +991,12 @@ const Dashboard = () => {
               <FiUsers className="w-10 h-10 text-primary-400" />
             </div>
             <h3 className="font-display text-2xl font-bold text-neutral-900 mb-2">
-              No matches to show yet
+              You&apos;re early — and that&apos;s the point
             </h3>
-            <p className="text-neutral-500 mb-8 max-w-sm mx-auto text-sm leading-relaxed">
-              Browse profiles from the Tricity area, or fine-tune your partner preferences so we can match you better.
+            <p className="text-neutral-500 mb-8 max-w-md mx-auto text-sm leading-relaxed">
+              We&apos;re building this community one verified Tricity family at a time, so there isn&apos;t
+              much here yet. Sharpen your preferences so we match you well from the first profile —
+              and invite someone you&apos;d trust with an introduction.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <motion.button
@@ -1011,8 +1018,18 @@ const Dashboard = () => {
                 Set Preferences
               </motion.button>
             </div>
+            <div className="mt-4 flex justify-center">
+              <InviteLink variant="inline" />
+            </div>
           </motion.div>
         )}
+
+        {/* ── 7. Invite (Phase S, F6) — a standing action, not an empty-state
+               consolation: the fastest route to a better match here is a member
+               bringing someone they already vouch for. ─────────────────────── */}
+        <motion.div variants={fadeInUp}>
+          <InviteLink variant="card" />
+        </motion.div>
       </div>
 
       {/* Upgrade Modal */}

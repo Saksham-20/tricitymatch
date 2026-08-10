@@ -71,7 +71,8 @@ const EducationStep = () => {
           options={PROFESSIONS.map(p => ({ value: p, label: p }))}
           value={formData.profession}
           onChange={(value) => updateFormData('profession', value)}
-          placeholder="Select your profession"
+          searchable
+          placeholder="Search your profession"
         />
       </motion.div>
 

@@ -206,7 +206,7 @@ paths:
                 properties:
                   name:
                     type: string
-                    example: TricityShadi API
+                    example: TricityMatch API
                   version:
                     type: string
                   environment:

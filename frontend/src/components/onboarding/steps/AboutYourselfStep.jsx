@@ -10,9 +10,24 @@ const INTERESTS = [
   'Dancing', 'Gaming', 'Gardening', 'Meditation', 'Language Learning'
 ];
 
+const LANGUAGES = [
+  'Hindi', 'Punjabi', 'English', 'Urdu', 'Haryanvi',
+  'Bengali', 'Tamil', 'Telugu', 'Marathi', 'Gujarati',
+  'Kannada', 'Malayalam', 'Sanskrit',
+];
+
 const AboutYourselfStep = () => {
   const { formData, updateFormData, errors, setStepErrors } = useOnboarding();
   const [interestInput, setInterestInput] = useState('');
+  const languages = formData.languages || [];
+
+  const toggleLanguage = (lang) => {
+    if (languages.includes(lang)) {
+      updateFormData('languages', languages.filter((l) => l !== lang));
+    } else {
+      updateFormData('languages', [...languages, lang]);
+    }
+  };
 
   const validateStep = () => {
     const newErrors = {};
@@ -57,8 +72,15 @@ const AboutYourselfStep = () => {
           rows={4}
           className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all resize-none"
         />
-        <p id="onboarding-bio-count" className="text-xs text-neutral-500 mt-2">
-          {formData.bio?.length || 0}/500 characters
+        {/* Min 20 chars matches the completion meter's "bio done" threshold, so
+            the editor and the meter finally agree on what counts as filled. */}
+        <p id="onboarding-bio-count" className="text-xs mt-2">
+          <span className={(formData.bio?.trim().length || 0) >= 20 ? 'text-green-600 font-medium' : 'text-neutral-500'}>
+            {formData.bio?.length || 0}/500
+          </span>
+          {(formData.bio?.trim().length || 0) < 20 && (
+            <span className="text-neutral-400"> · minimum 20 characters</span>
+          )}
         </p>
       </motion.div>
 
@@ -116,6 +138,37 @@ const AboutYourselfStep = () => {
               {interest}
             </motion.button>
           ))}
+        </div>
+      </motion.div>
+
+      {/* Languages spoken */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+      >
+        <label className="block text-sm font-medium text-neutral-900 mb-3">
+          Languages You Speak
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {LANGUAGES.map((lang) => {
+            const selected = languages.includes(lang);
+            return (
+              <button
+                key={lang}
+                type="button"
+                onClick={() => toggleLanguage(lang)}
+                aria-pressed={selected}
+                className={`px-3 py-2 rounded-lg font-medium text-sm border transition-all ${
+                  selected
+                    ? 'bg-primary-500 border-primary-500 text-white'
+                    : 'bg-white border-neutral-300 text-neutral-700 hover:border-primary-400 hover:text-primary-600'
+                }`}
+              >
+                {lang}
+              </button>
+            );
+          })}
         </div>
       </motion.div>
 
