@@ -64,7 +64,8 @@
             "deploymentTarget": "15.1"
           }
         }
-      ]
+      ],
+      "./plugins/withIapStoreFlavor"
     ],
     "extra": {
       "eas": {
