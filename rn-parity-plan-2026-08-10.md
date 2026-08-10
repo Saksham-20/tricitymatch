@@ -117,14 +117,33 @@ Branch `mobile/launch-prep`. Commits `885129d` (plan) → `aa6f3fb` (merge) → 
   (60% configured vs 19.32% actual), so frontend and mobile legs never ran — the new gate
   would have been dead on arrival. Correctness and coverage are now separate commands.
 
+**RN-A EXIT GATE MET — the app builds and boots on both platforms.**
+- **iOS:** Build Succeeded, 0 errors, launches on an iPhone 17 Pro simulator to the
+  Welcome screen. G0 closed — `Podfile.lock` now pins React-Core 0.76.9.
+- **Android:** BUILD SUCCESSFUL, installs, `MainActivity` reaches `topResumedActivity`,
+  Welcome renders with the light status bar, logcat clean of FATAL/AndroidRuntime.
+- **G10 closed:** generated `gradle.properties` carries `android.targetSdkVersion=35`.
+  Caveat: the emulator is API 34, so targetSdk-35 *runtime* behaviour (edge-to-edge,
+  permission changes) is asserted by config but not yet exercised → RN-B.
+- Native config is now **declarative** (`app.json` + `expo-build-properties` + a local
+  `withIapStoreFlavor` plugin), so `prebuild --clean` no longer destroys it. Two
+  third-party toolchain gaps are patched self-healingly: fmt's consteval failure under
+  Xcode 26 (Podfile `post_install`) and expo-localization's non-exhaustive switch against
+  the iOS 26 SDK (`scripts/patch-native-modules.cjs`, postinstall).
+- **G14 closed** — stale `routes.ts` deleted.
+
 **RN-A REMAINING:**
-- `npx expo prebuild --clean` + native diff/re-apply + `pod install` + **boots on both
-  simulators** — the real G0 exit gate. Not attempted yet.
-- `shared/src/constants/routes.ts` still holds the stale contract (G14). Regenerate from a
-  backend route manifest or delete; do not adopt as-is.
-- Mobile eslint config (G8 remainder) — deliberately deferred during the merge to avoid
-  destabilising the dependency tree mid-reconcile.
-- The api contract harness (manifest + conformance + zod envelopes).
+- Mobile eslint config (G8 remainder) — deferred during the merge to avoid destabilising
+  the dependency tree mid-reconcile.
+- The api contract harness (backend route manifest → regenerated route constants →
+  mobile conformance test + zod envelope parsing). This replaces what `routes.ts` was
+  pretending to be.
+
+**Toolchain requirements discovered (write these down, they cost an hour):**
+- Gradle and `sdkmanager` need JDK 17+; the only JVM on PATH here is Java 8. Use
+  `export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"`.
+- `platforms;android-35` had to be installed — only 34 and 36.1 were present.
+- CocoaPods needs `LANG=LC_ALL=en_US.UTF-8` (already in the repo notes).
 
 ---
 
