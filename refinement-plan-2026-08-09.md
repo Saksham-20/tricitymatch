@@ -162,6 +162,48 @@ mint link → public resolve → "QA invited you to TricityMatch" kicker on tric
 placeholder — a fabricated contact detail still shipping on a site we just de-fabricated. Supply
 the real number or say the word and it comes out.
 
+**PHASE 2 NOW COMPLETE (2026-08-10, deployed @ c06dc99 / 00c60f7 / f1f9e69).**
+- **P2.1 entitlements + free-chat flag.** NEW `backend/utils/entitlements.js`
+  (`getActiveSubscription` / `isMutualMatch` / `hasChatAccess`, fails closed on a DB error) + NEW
+  `requireChatAccess` swapped in ONLY at `chatRoutes`; socket `join-room` calls the same function
+  so REST and socket cannot disagree. `requirePremium` untouched — a test asserts it never sees
+  the flag. `FREE_CHAT_FOR_MUTUALS` ships DARK (default false), wired through `config/env.js` AND
+  the compose allowlist, exposed to clients in a `features` block on `/auth/me` (never `VITE_`).
+  Subscription plan copy is DERIVED from the flag (`utils/planFeatures.js`). QA'd live in BOTH
+  states: free+flag-on chats with mutuals while viewers/likes/kundli stay 403; flag-off shows the
+  gate; flipping mid-thread closes the composer and keeps history; paid unaffected either way.
+- **P2.2 payment e2e** driven for real on `rzp_test_` through hosted checkout (order → card → 3DS
+  → verify → invoice PDF) plus both webhook events with signed payloads (forged sig 401s).
+- **P2.3/P2.4** every notification ENUM type now has a live destination (test pins the map to the
+  backend enum); `/matches` reads/writes `?tab=`. Swept: role gates 403 for a member on
+  admin+marketing APIs, repeated match actions idempotent, shortlisting a mutual preserves
+  `isMutual`, existing double-submit guards confirmed.
+
+**Four more pre-existing bugs found while verifying Phase 2 (all fixed + deployed):**
+3. 🔴 **F8 as predicted, and worse than filed** — `withDerivedUserFields` filtered `status:'active'`
+   with no endDate check, so `/auth/me` reported premium between expiry and the hourly Bull sweep
+   (indefinitely if Redis is down). Seeded dev data reproduced it on the first login. Now reads
+   through `entitlements.getActiveSubscription`, the same query the gates use.
+4. 🔴 **`createError.forbidden` silently DROPPED its code argument** — six call sites had been
+   passing `PREMIUM_REQUIRED` / `SUBSCRIPTION_EXPIRED` / `VIP_REQUIRED` /
+   `CONTACT_UNLOCK_LIMIT_REACHED` since the premium gates were written, and every one arrived at
+   the client as the generic `AUTHORIZATION_ERROR`.
+5. 🔴 **The web chat paywall screen had never been reachable** — a consequence of (4), and it
+   would have STAYED unreachable after fixing it, because `Chat.jsx` keys `accessDenied` off
+   `/match/mutual`, which is not premium-gated. A free member landed on a thread that 403'd on
+   every action. Now distinguishes "never had access" (gate screen) from "access ended
+   mid-thread" (composer closes, history stays readable).
+6. 🟠 **The Razorpay webhook never superseded the prior subscription** — unlike `verifyPayment`.
+   The webhook is the FALLBACK leg, so on an upgrade the member ends with TWO rows marked
+   'active'; `requirePremium` does `findOne` with no ORDER BY, making the effective plan (and
+   which row's unlock quota is spent) arbitrary.
+7. 🟡 `/payment/success` listed four hardcoded features for every buyer, including "Priority in
+   search results" (Elite-only). A receipt now names the plan actually bought and its real
+   features.
+
+**NEXT:** P3' (signup-funnel axe + keyboard traversal) and P4' (Home LCP ≤2.5s; first suspect is
+the FontLoader runtime Google-Fonts `@import` in `Home.jsx`).
+
 ### P1.1 Logo mark refresh (found via screenshot review — the audit under-fixed F-011)
 `frontend/public/images/logo.svg` is still the **old TS monogram on an off-brand `#B60D2F` red
 square** (brand burgundy is `#8B2346`). F-011 only changed the admin *text* badge to "TM"; the SVG
@@ -317,7 +359,7 @@ Method unchanged: TEST → SCREENSHOT → ANALYZE → FIX → RETEST. These are 
 itself listed as not exhaustively driven.
 
 ### P2.1 Chat workflows (deepest remaining gap)
-- [ ] **FIRST: free-chat-for-mutuals flag (D8.4; entitlements design CORRECTED by eng review —
+- [x] **FIRST: free-chat-for-mutuals flag (D8.4; entitlements design CORRECTED by eng review —
       both voices).** The "shared premium helper" does not exist: `requirePremium`
       (`auth.js:154`) and the socket's LOCAL `checkSubscription` (`socketHandler.js:120`) are two
       parallel implementations sharing only `PAID_PLANS`; and `requirePremium` also gates calls,
@@ -342,7 +384,7 @@ itself listed as not exhaustively driven.
       updated to match. **Rollout: ship the flag DARK (default OFF = fail-closed), QA both
       configs, then flip ON as a deliberate config change.** Reversible two-way door. All P2.1
       items below are QA'd in BOTH flag states.
-- [ ] **Fix existing prod bug found in eng review (F8):** `withDerivedUserFields`
+- [x] **Fix existing prod bug found in eng review (F8):** `withDerivedUserFields`
       (`authController.js:32`) filters `status:'active'` with NO `endDate` check → between a
       sub's expiry and the hourly Bull sweep, `/auth/me` claims premium while every gate 403s
       (and if Redis/Bull is down the sweep never runs). Add the endDate filter; the sweep is
@@ -360,38 +402,38 @@ itself listed as not exhaustively driven.
       gains "Chat with your mutual matches"; `basic_premium` drops "Unlimited messages" and
       re-leads with contact-unlock + visibility value; re-derive every "Everything in X, plus"
       chain across the six PLAN_FEATURES lists in `Subscription.jsx:13` + shared `PLANS`.
-- [ ] Premium expiry **mid-conversation**: sub expires while thread open — what do send, socket,
+- [x] Premium expiry **mid-conversation**: sub expires while thread open — what do send, socket,
       and UI each do? (server re-checks per message?)
-- [ ] Block user mid-conversation: existing thread visibility, socket room membership, typing events.
-- [ ] Edit/delete windows: edit own vs other's (403 verified via API — now verify the **UI** hides
+- [x] Block user mid-conversation: existing thread visibility, socket room membership, typing events.
+- [x] Edit/delete windows: edit own vs other's (403 verified via API — now verify the **UI** hides
       the affordance), deleted-message rendering on the other side live.
-- [ ] Socket drop/reconnect: kill network 30s mid-thread → reconnect → missed messages appear?
+- [x] Socket drop/reconnect: kill network 30s mid-thread → reconnect → missed messages appear?
       duplicate sends? optimistic-message reconciliation.
-- [ ] Unread counts: badge accuracy after reading in another tab, after socket-only delivery.
-- [ ] Family-group chat **UI** end-to-end (backend authz verified in round 3; web UI never driven):
+- [x] Unread counts: badge accuracy after reading in another tab, after socket-only delivery.
+- [x] Family-group chat **UI** end-to-end (backend authz verified in round 3; web UI never driven):
       create group, invite by phone, post/edit/delete, member leaves, non-member deep-link.
-- [ ] Empty/error states in Conversations for a free user (gate copy) and a premium user with zero
+- [x] Empty/error states in Conversations for a free user (gate copy) and a premium user with zero
       mutuals.
 
 ### P2.2 Payment e2e with a real test card
 Unblocked: `rzp_test_` keys already present in `.env.development` + `frontend/.env` (verified
 2026-08-09; prod keys remain placeholders). Webhook leg needs a public URL — use a tunnel
 (e.g. `ssh -R` via the VPS or ngrok) or drive the webhook handler directly with a signed payload.
-- [ ] Razorpay test-mode card through hosted checkout: order → pay → `verify-payment` → webhook →
+- [x] Razorpay test-mode card through hosted checkout: order → pay → `verify-payment` → webhook →
       entitlement flips → invoice downloadable → `/payment/success` (F-023 fix) confirms correctly.
-- [ ] Failure leg: abandon checkout → `pending` row → F-018 fix keeps plan `free` → retry works.
-- [ ] Upgrade leg live: basic → premium_plus with the round-2 TIER_RANK gate.
+- [x] Failure leg: abandon checkout → `pending` row → F-018 fix keeps plan `free` → retry works.
+- [x] Upgrade leg live: basic → premium_plus with the round-2 TIER_RANK gate.
 
 ### P2.3 Notification deep-links
-- [ ] Every notification `type` → click → correct destination with correct state (match, message,
+- [x] Every notification `type` → click → correct destination with correct state (match, message,
       verification result, subscription, view). Dead links = findings.
 
 ### P2.4 Cross-cutting mistake sweeps (patterns that caught F-015/F-023)
-- [ ] Double-submit on every remaining mutating form (guardian invite, group create, astro booking,
+- [x] Double-submit on every remaining mutating form (guardian invite, group create, astro booking,
       report, story submit).
-- [ ] Back-button + refresh mid-flow: onboarding step 2, payment pending, selfie capture.
-- [ ] Stale-tab actions: act on a profile in tab B after blocking it in tab A.
-- [ ] Direct-URL access on the newest routes (`/matches` tabs, `/admin/contact-messages`) for each role.
+- [x] Back-button + refresh mid-flow: onboarding step 2, payment pending, selfie capture.
+- [x] Stale-tab actions: act on a profile in tab B after blocking it in tab A.
+- [x] Direct-URL access on the newest routes (`/matches` tabs, `/admin/contact-messages`) for each role.
 
 **Exit gate:** all findings fixed at root cause, adjacent-workflow regression per fix, audit doc
 appended as Round 4 with score update.
