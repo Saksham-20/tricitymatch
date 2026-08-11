@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { toProfileSummary } from './profileSummary';
 import type { Profile, ProfileSummary } from '../types';
 
 // Viewers / recently-viewed return a FLAT profile-ish item (userId + a subset of
@@ -18,7 +19,7 @@ interface RawViewedItem {
 }
 
 const toSummary = (v: RawViewedItem): ProfileSummary =>
-  ({
+  toProfileSummary({
     id: v.userId,
     userId: v.userId,
     firstName: v.firstName,
@@ -29,7 +30,7 @@ const toSummary = (v: RawViewedItem): ProfileSummary =>
     dateOfBirth: v.dateOfBirth ?? null,
     education: v.education,
     profession: v.profession,
-  }) as unknown as ProfileSummary;
+  });
 
 // Profile endpoints wrap the record in `{ success, profile }`; unwrap to the record.
 export const getMyProfile = async (): Promise<Profile> => {
@@ -69,9 +70,12 @@ export const deletePhoto = async (photoUrl: string): Promise<void> => {
   await apiClient.delete('/profile/me/photo', { data: { photoUrl } });
 };
 
-export const logProfileView = async (userId: string): Promise<void> => {
-  await apiClient.post(`/profile/${userId}/view`);
-};
+// NOTE: there is deliberately no logProfileView here.
+// `POST /profile/:id/view` never existed on the server — the client fired it on
+// every profile open and swallowed the 404. The view is recorded server-side as
+// part of `GET /profile/:id` (profileController records a ProfileView, and skips
+// it when the VIEWER has incognito on). Doing it from the client would both
+// duplicate that write and bypass the incognito check.
 
 export interface SuccessStoryPayload {
   groomName: string;

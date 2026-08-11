@@ -7,11 +7,18 @@ podfile_properties = JSON.parse(File.read(File.join(__dir__, 'Podfile.properties
 ENV['RCT_NEW_ARCH_ENABLED'] = podfile_properties['newArchEnabled'] == 'true' ? '1' : '0'
 ENV['EX_DEV_CLIENT_NETWORK_INSPECTOR'] = podfile_properties['EX_DEV_CLIENT_NETWORK_INSPECTOR']
 
-use_autolinking_method_symbol = ('use' + '_native' + '_modules!').to_sym
-origin_autolinking_method = self.method(use_autolinking_method_symbol)
-self.define_singleton_method(use_autolinking_method_symbol) do |*args|
-  if ENV['EXPO_UNSTABLE_CORE_AUTOLINKING'] == '1'
-    Pod::UI.puts('Using expo-modules-autolinking as core autolinking source'.green)
+platform :ios, podfile_properties['ios.deploymentTarget'] || '15.1'
+install! 'cocoapods',
+  :deterministic_uuids => false
+
+prepare_react_native_project!
+
+target 'TricityMatch' do
+  use_expo_modules!
+
+  if ENV['EXPO_USE_COMMUNITY_AUTOLINKING'] == '1'
+    config_command = ['node', '-e', "process.argv=['', '', 'config'];require('@react-native-community/cli').run()"];
+  else
     config_command = [
       'node',
       '--no-warnings',
@@ -22,21 +29,9 @@ self.define_singleton_method(use_autolinking_method_symbol) do |*args|
       '--platform',
       'ios'
     ]
-    origin_autolinking_method.call(config_command)
-  else
-    origin_autolinking_method.call()
   end
-end
 
-platform :ios, podfile_properties['ios.deploymentTarget'] || '13.4'
-install! 'cocoapods',
-  :deterministic_uuids => false
-
-prepare_react_native_project!
-
-target 'TricityMatch' do
-  use_expo_modules!
-  config = use_native_modules!
+  config = use_native_modules!(config_command)
 
   use_frameworks! :linkage => podfile_properties['ios.useFrameworks'].to_sym if podfile_properties['ios.useFrameworks']
   use_frameworks! :linkage => ENV['USE_FRAMEWORKS'].to_sym if ENV['USE_FRAMEWORKS']
@@ -50,6 +45,28 @@ target 'TricityMatch' do
   )
 
   post_install do |installer|
+
+    # fmt-consteval-patch — see mobile/plugins/withFmtConstevalPatch.js
+    fmt_base = File.join(installer.sandbox.root, 'fmt', 'include', 'fmt', 'base.h')
+    if File.exist?(fmt_base)
+      contents = File.read(fmt_base)
+      patch_marker = '/* patched: consteval disabled for Xcode 26 clang */'
+      unless contents.include?(patch_marker)
+        patched = contents.sub(
+          "#if !defined(__cpp_lib_is_constant_evaluated)",
+          "#if 1 #{patch_marker}"
+        )
+        if patched != contents
+          # CocoaPods installs pod sources read-only; restore the mode after writing.
+          original_mode = File.stat(fmt_base).mode
+          File.chmod(0o644, fmt_base)
+          File.write(fmt_base, patched)
+          File.chmod(original_mode, fmt_base)
+          Pod::UI.puts '[fmt] disabled consteval (Xcode 26 clang rejects FMT_STRING in a consteval context)'
+        end
+      end
+    end
+
     react_native_post_install(
       installer,
       config[:reactNativePath],
@@ -66,14 +83,6 @@ target 'TricityMatch' do
           config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
         end
       end
-    end
-  end
-
-  post_integrate do |installer|
-    begin
-      expo_patch_react_imports!(installer)
-    rescue => e
-      Pod::UI.warn e
     end
   end
 end

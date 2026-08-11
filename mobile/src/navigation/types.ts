@@ -65,14 +65,20 @@ export type MainStackParamList = {
   EditProfile: undefined;
   Subscription: undefined;
   Verification: undefined;
-  SelfieVerification: undefined;
   Settings: undefined;
   PrivacySettings: undefined;
+  AccountSecurity: undefined;
   Notifications: undefined;
   SuccessStory: undefined;
   SuccessStoriesBrowse: undefined;
   Support: undefined;
   Quiz: undefined;
+  // Static content / legal
+  Terms: undefined;
+  Privacy: undefined;
+  About: undefined;
+  Safety: undefined;
+  Contact: undefined;
   // Family group chat
   FamilyGroups: undefined;
   FamilyGroupChat: { groupId: string; groupName: string; memberCount: number };

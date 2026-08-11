@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { AuthStackParamList } from '../../navigation/types';
 import { resetPassword } from '../../api/auth';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { PASSWORD_RULES_ATTR, passwordProblem } from '../../utils/passwordRule';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'ResetPassword'>;
 type RouteProps = RouteProp<AuthStackParamList, 'ResetPassword'>;
@@ -42,10 +43,8 @@ export default function ResetPasswordScreen() {
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
-    if (!password) errs.password = 'New password is required';
-    else if (password.length < 8) errs.password = 'Password must be at least 8 characters';
-    else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])/.test(password))
-      errs.password = 'Include an uppercase letter, number, and symbol';
+    const pwProblem = passwordProblem(password);
+    if (pwProblem) errs.password = pwProblem;
     if (!confirmPassword) errs.confirmPassword = 'Please confirm your new password';
     else if (password !== confirmPassword) errs.confirmPassword = t('auth.signup.passwordMismatch');
     setFieldErrors(errs);
@@ -132,7 +131,7 @@ export default function ResetPasswordScreen() {
               secureTextEntry={!showPassword}
               textContentType="newPassword"
               autoComplete="new-password"
-              passwordRules="minlength: 8; required: lower; required: upper; required: digit; required: special;"
+              passwordRules={PASSWORD_RULES_ATTR}
               returnKeyType="next"
               onSubmitEditing={() => confirmRef.current?.focus()}
               accessibilityLabel={t('auth.resetPassword.newPassword')}

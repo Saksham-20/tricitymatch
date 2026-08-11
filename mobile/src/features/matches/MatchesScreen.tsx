@@ -30,7 +30,8 @@ import { useTheme } from '../../hooks/useTheme';
 import { haptics } from '../../utils/haptics';
 import type { MainStackParamList } from '../../navigation/types';
 import type { Match, MatchAction } from '../../types';
-import { useAuthStore, selectPlan } from '../../stores/authStore';
+import { useAuthStore } from '../../stores/authStore';
+import { hasPremiumAccess } from '../../utils/entitlements';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 
@@ -147,8 +148,11 @@ function TabContent({ activeTab }: { activeTab: TabKey }) {
   const navigation = useNavigation<Nav>();
   const { c } = useTheme();
   const queryClient = useQueryClient();
-  // "Liked Me" reveal is gated to paid plans (mirrors web). Any non-free tier unlocks it.
-  const hasPlus = useAuthStore(selectPlan) !== 'free';
+  // "Liked Me" is a requirePremium surface on the server, NOT a chat surface, so
+  // it deliberately does not consult the free-chat-for-mutuals flag. Turning that
+  // flag on opens chat; it must not silently hand out every paid surface.
+  const authUser = useAuthStore((st) => st.user);
+  const hasPlus = hasPremiumAccess(authUser);
   // mutual-match seal celebration (shown after accepting a "Liked Me" interest)
   const [celebrate, setCelebrate] = useState<{ name: string } | null>(null);
 

@@ -128,8 +128,24 @@ export const PLAN_ORDER: SubscriptionPlanType[] = [
   'free', 'basic_premium', 'premium_plus', 'elite', 'vip', 'nri',
 ];
 
+// Rank on the money ladder, mirroring backend/constants/plans.js TIER_RANK.
+// Read through this rather than PLAN_ORDER.indexOf: founding_premium is absent
+// from PLAN_ORDER (it must never render as a purchasable card), so indexOf
+// returns -1 and a founding member would score BELOW free — inverting the one
+// gate the grant exists to pass. Backend puts founding at rank 0 alongside free
+// so the member can still upgrade to any paid tier while the grant is active.
+const PLAN_RANK: Record<SubscriptionPlanType, number> = {
+  free: 0,
+  founding_premium: 0,
+  basic_premium: 1,
+  premium_plus: 2,
+  elite: 3,
+  vip: 4,
+  nri: 4,
+};
+
 export const isPlanAtLeast = (userPlan: SubscriptionPlanType, requiredPlan: SubscriptionPlanType): boolean => {
-  return PLAN_ORDER.indexOf(userPlan) >= PLAN_ORDER.indexOf(requiredPlan);
+  return PLAN_RANK[userPlan] >= PLAN_RANK[requiredPlan];
 };
 
 // À-la-carte contact-unlock top-ups (prices in rupees).

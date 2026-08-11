@@ -2,14 +2,20 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { colours, type } from '@shared/constants/theme';
 
-/** Rough 0–4 strength score from a password. */
+/**
+ * Rough 0–4 strength score.
+ *
+ * The symbol point only counts symbols the server accepts (@$!%*?&). Counting
+ * any non-alphanumeric made `Passw0rd#` read "Strong" a line above the error
+ * saying it was invalid — the meter has to agree with the rule it sits under.
+ */
 export function scorePassword(pw: string): number {
   if (!pw) return 0;
   let s = 0;
   if (pw.length >= 8) s++;
   if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) s++;
   if (/\d/.test(pw)) s++;
-  if (/[^A-Za-z0-9]/.test(pw)) s++;
+  if (/[@$!%*?&]/.test(pw)) s++;
   return Math.min(s, 4);
 }
 

@@ -25,6 +25,7 @@ import EditProfileScreen from '../features/profile/EditProfileScreen';
 import VerificationScreen from '../features/profile/VerificationScreen';
 import SettingsScreen from '../features/profile/SettingsScreen';
 import PrivacySettingsScreen from '../features/profile/PrivacySettingsScreen';
+import AccountSecurityScreen from '../features/profile/AccountSecurityScreen';
 import NotificationsScreen from '../features/notifications/NotificationsScreen';
 import SupportScreen from '../features/profile/SupportScreen';
 import SuccessStoryScreen from '../features/profile/SuccessStoryScreen';
@@ -33,7 +34,13 @@ import QuizScreen from '../features/profile/QuizScreen';
 import HoroscopeMatchScreen from '../features/profile/HoroscopeMatchScreen';
 
 // Verification
-import SelfieVerificationScreen from '../features/profile/SelfieVerificationScreen';
+
+// Static content / legal
+import TermsScreen from '../features/legal/TermsScreen';
+import PrivacyScreen from '../features/legal/PrivacyScreen';
+import AboutScreen from '../features/legal/AboutScreen';
+import SafetyScreen from '../features/legal/SafetyScreen';
+import ContactScreen from '../features/legal/ContactScreen';
 
 // Family group chat
 import FamilyGroupsScreen from '../features/chat/FamilyGroupsScreen';
@@ -161,14 +168,21 @@ export default function MainNavigator() {
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="Subscription" component={SubscriptionScreen} />
       <Stack.Screen name="Verification" component={VerificationScreen} />
-      <Stack.Screen name="SelfieVerification" component={SelfieVerificationScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="PrivacySettings" component={PrivacySettingsScreen} />
+      <Stack.Screen name="AccountSecurity" component={AccountSecurityScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="SuccessStory" component={SuccessStoryScreen} />
       <Stack.Screen name="SuccessStoriesBrowse" component={SuccessStoriesBrowseScreen} />
       <Stack.Screen name="Support" component={SupportScreen} />
       <Stack.Screen name="Quiz" component={QuizScreen} />
+
+      {/* Static content / legal (store review requirement + web parity) */}
+      <Stack.Screen name="Terms" component={TermsScreen} />
+      <Stack.Screen name="Privacy" component={PrivacyScreen} />
+      <Stack.Screen name="About" component={AboutScreen} />
+      <Stack.Screen name="Safety" component={SafetyScreen} />
+      <Stack.Screen name="Contact" component={ContactScreen} />
 
       {/* Family group chat — all authenticated users */}
       <Stack.Screen name="FamilyGroups" component={FamilyGroupsScreen} />

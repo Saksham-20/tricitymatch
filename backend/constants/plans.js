@@ -61,6 +61,18 @@ const TIER_RANK = {
   nri: 4,
 };
 
+// Google Play subscription product IDs ↔ plan tiers. These IDs must be created
+// verbatim as subscription products in Play Console. Kept here so the Android
+// receipt-verification path can map a purchased productId back to a plan tier.
+// (Mirror map lives in mobile/src/utils/iap.ts.)
+const GOOGLE_PLAY_PRODUCTS = {
+  tricitymatch_basic_premium: 'basic_premium',
+  tricitymatch_premium_plus:  'premium_plus',
+  tricitymatch_elite:         'elite',
+  tricitymatch_vip:           'vip',
+  tricitymatch_nri:           'nri',
+};
+
 module.exports = {
   PAID_PLANS,
   PURCHASABLE_PLANS,
@@ -69,4 +81,5 @@ module.exports = {
   TIER_RANK,
   FOUNDING_PLAN,
   FOUNDING_CONTACT_UNLOCKS,
+  GOOGLE_PLAY_PRODUCTS,
 };

@@ -1,6 +1,4 @@
 {
-  "name": "TricityMatch",
-  "displayName": "TricityMatch",
   "expo": {
     "name": "TricityMatch",
     "slug": "tricityshadi",
@@ -21,6 +19,7 @@
       "bundleIdentifier": "com.tricityshadi.app",
       "buildNumber": "1",
       "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "Camera is used for profile photos and selfie verification.",
         "NSMicrophoneUsageDescription": "Microphone is used for voice and video calls.",
         "NSPhotoLibraryUsageDescription": "Photo library access is used for uploading profile photos.",
@@ -38,22 +37,55 @@
       "permissions": [
         "CAMERA",
         "RECORD_AUDIO",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
         "USE_BIOMETRIC",
         "USE_FINGERPRINT",
         "VIBRATE",
-        "RECEIVE_BOOT_COMPLETED"
+        "RECEIVE_BOOT_COMPLETED",
+        "com.android.vending.BILLING"
       ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [],
+    "plugins": [
+      "expo-localization",
+      "expo-font",
+      "expo-secure-store",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "minSdkVersion": 24,
+            "extraProguardRules": "-keep class com.swmansion.reanimated.** { *; }\n-keep class com.facebook.react.turbomodule.** { *; }"
+          },
+          "ios": {
+            "deploymentTarget": "15.1"
+          }
+        }
+      ],
+      "./plugins/withIapStoreFlavor",
+      "./plugins/withFmtConstevalPatch"
+    ],
     "extra": {
       "eas": {
         "projectId": "tricityshadi-app"
       }
+    },
+    "scheme": "tricitymatch",
+    "androidStatusBar": {
+      "backgroundColor": "#FAFAFA",
+      "barStyle": "dark-content",
+      "translucent": false
+    },
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "enabled": true,
+      "fallbackToCacheTimeout": 0,
+      "checkAutomatically": "ON_LOAD"
     }
   }
 }

@@ -24,5 +24,28 @@ export const search = async (filters: SearchFilters & { cursor?: string }): Prom
   };
 };
 
+/**
+ * Look up one profile by its shareable code (`TCS-XXXXXXXX`).
+ *
+ * The server answers 404 both when no profile matches and when the 8-hex
+ * prefix is ambiguous — it refuses to guess between two members rather than
+ * open an arbitrary one. Either way the caller shows "no profile found".
+ */
+export const getProfileByCode = async (code: string): Promise<ProfileSummary & { isSelf?: boolean }> => {
+  const res = await apiClient.get<{ profile: ProfileSummary & { isSelf?: boolean } }>(
+    '/search/by-code',
+    { params: { code } }
+  );
+  return res.data.profile;
+};
+
+/** Curated "you might like" set — the same source the website's suggestions use. */
+export const getSuggestions = async (limit = 10): Promise<ProfileSummary[]> => {
+  const res = await apiClient.get<{ suggestions: ProfileSummary[] }>('/search/suggestions', {
+    params: { limit },
+  });
+  return res.data.suggestions ?? [];
+};
+
 // NOTE: saved-searches have no backend endpoint yet — the save UI is hidden in FilterPanel.
 // See CLAUDE.md Known Issues. Re-add functions here when the server side ships.

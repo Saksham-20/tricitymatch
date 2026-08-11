@@ -57,21 +57,42 @@ const withDerivedUserFields = async (userInstance) => {
   return user;
 };
 
-// Generate short-lived access token
-const generateAccessToken = (userId) => {
+/**
+ * Generate a short-lived access token.
+ *
+ * `sid` is the id of the RefreshToken row this access token was issued
+ * alongside — i.e. which session (device) is holding it. It exists so
+ * `GET /auth/sessions` can mark "this device" for clients that have no
+ * cookies: the web reads the refreshToken cookie and hashes it, but a native
+ * client has no cookie to read and must not put its refresh token in a URL
+ * (SEC-1). Without it the phone shows a session list with nothing marked
+ * current, and revoking "the unfamiliar one" signs you out of the device
+ * you're holding.
+ *
+ * The claim is optional. Tokens minted before this existed simply omit it and
+ * fall back to the cookie path.
+ */
+const generateAccessToken = (userId, sessionId = null) => {
   return jwt.sign(
-    { userId, type: 'access' },
+    sessionId ? { userId, type: 'access', sid: sessionId } : { userId, type: 'access' },
     config.auth.jwtSecret,
     { expiresIn: config.auth.jwtExpiry }
   );
 };
 
-// Generate refresh token and save to database
+/**
+ * Create a refresh-token row and return both the plaintext token (for the
+ * client) and its row id (to stamp into the paired access token).
+ *
+ * Rotation creates a new row, so the id changes on every refresh — session
+ * identity across rotations is `family`, but only one un-revoked row per
+ * family is ever live, so the id identifies the live session exactly.
+ */
 const generateRefreshToken = async (userId, userAgent, ipAddress, existingFamily = null) => {
   const token = RefreshToken.generateToken();
   const expiresAt = new Date(Date.now() + parseDuration(config.auth.refreshTokenExpiry));
-  
-  await RefreshToken.create({
+
+  const row = await RefreshToken.create({
     userId,
     token,
     tokenHash: RefreshToken.hashToken(token),
@@ -80,8 +101,8 @@ const generateRefreshToken = async (userId, userAgent, ipAddress, existingFamily
     userAgent: userAgent?.substring(0, 500),
     ipAddress,
   });
-  
-  return token;
+
+  return { token, sessionId: row.id };
 };
 
 // Parse duration string (e.g., '7d', '1h', '30m') to milliseconds
@@ -273,13 +294,13 @@ exports.signup = asyncHandler(async (req, res) => {
     });
   }
 
-  // Generate tokens
-  const accessToken = generateAccessToken(result.id);
-  const refreshToken = await generateRefreshToken(
+  // Generate tokens — the refresh row first, so the access token can carry its id.
+  const { token: refreshToken, sessionId } = await generateRefreshToken(
     result.id,
     req.headers['user-agent'],
     req.clientIp || req.ip
   );
+  const accessToken = generateAccessToken(result.id, sessionId);
 
   // Set cookies
   setAuthCookies(res, accessToken, refreshToken);
@@ -356,13 +377,13 @@ exports.login = asyncHandler(async (req, res) => {
   user.lastLogin = new Date();
   await user.save();
 
-  // Generate tokens
-  const accessToken = generateAccessToken(user.id);
-  const refreshToken = await generateRefreshToken(
+  // Generate tokens — the refresh row first, so the access token can carry its id.
+  const { token: refreshToken, sessionId } = await generateRefreshToken(
     user.id,
     req.headers['user-agent'],
     req.clientIp || req.ip
   );
+  const accessToken = generateAccessToken(user.id, sessionId);
 
   // Set cookies
   setAuthCookies(res, accessToken, refreshToken);
@@ -426,14 +447,14 @@ exports.refreshToken = asyncHandler(async (req, res) => {
   // Rotate refresh token (invalidate old, create new)
   await storedToken.revoke('rotated');
   
-  // Generate new tokens
-  const newAccessToken = generateAccessToken(user.id);
-  const newRefreshToken = await generateRefreshToken(
+  // Generate new tokens — the refresh row first, so the access token can carry its id.
+  const { token: newRefreshToken, sessionId } = await generateRefreshToken(
     user.id,
     req.headers['user-agent'],
     req.clientIp || req.ip,
     storedToken.family // Keep the same family for tracking
   );
+  const newAccessToken = generateAccessToken(user.id, sessionId);
 
   // Update last used
   storedToken.lastUsedAt = new Date();
@@ -654,18 +675,27 @@ exports.changePassword = asyncHandler(async (req, res) => {
   user.password = newPassword;
   await user.save();
 
-  // Revoke all other refresh tokens (keep current session)
-  const currentRefreshToken = req.cookies?.refreshToken || req.body.currentRefreshToken;
-  if (currentRefreshToken) {
-    const currentHash = RefreshToken.hashToken(currentRefreshToken);
+  // Revoke every other refresh token, keeping the session that made this
+  // request. The access token's `sid` claim identifies it directly; the cookie
+  // (web) or an explicitly posted refresh token are the fallbacks for tokens
+  // minted before the claim existed. If none of the three resolve we revoke
+  // nothing rather than everything — signing the member out of the device they
+  // are standing on is a worse failure than leaving a stale session, and they
+  // can still use "log out everywhere".
+  const Op = require('sequelize').Op;
+  let keep = null;
+  if (req.sessionId) {
+    keep = { id: { [Op.ne]: req.sessionId } };
+  } else {
+    const currentRefreshToken = req.cookies?.refreshToken || req.body.currentRefreshToken;
+    if (currentRefreshToken) {
+      keep = { tokenHash: { [Op.ne]: RefreshToken.hashToken(currentRefreshToken) } };
+    }
+  }
+  if (keep) {
     await RefreshToken.update(
       { isRevoked: true, revokedAt: new Date(), revokedReason: 'password_change' },
-      { 
-        where: { 
-          userId: user.id,
-          tokenHash: { [require('sequelize').Op.ne]: currentHash }
-        } 
-      }
+      { where: { userId: user.id, ...keep } }
     );
   }
 
@@ -689,12 +719,16 @@ exports.getSessions = asyncHandler(async (req, res) => {
     order: [['lastUsedAt', 'DESC']]
   });
 
-  // Identify current session
+  // Identify the current session. The access token carries its session id
+  // (`sid`) since 2026-08-11 — that works for every client. The cookie hash is
+  // the fallback for access tokens minted before the claim existed; without it
+  // a native client sees a list with nothing marked "this device" and can sign
+  // itself out trying to revoke the unfamiliar one.
+  let currentSessionId = req.sessionId || null;
   const currentRefreshToken = req.cookies?.refreshToken;
-  let currentSessionId = null;
-  if (currentRefreshToken) {
+  if (!currentSessionId && currentRefreshToken) {
     const currentHash = RefreshToken.hashToken(currentRefreshToken);
-    const currentSession = await RefreshToken.findOne({ 
+    const currentSession = await RefreshToken.findOne({
       where: { tokenHash: currentHash },
       attributes: ['id']
     });
@@ -946,8 +980,12 @@ exports.googleAuth = asyncHandler(async (req, res) => {
   user.lastLogin = new Date();
   await user.save();
 
-  const accessToken = generateAccessToken(user.id);
-  const refreshToken = await generateRefreshToken(user.id, req.headers['user-agent'], req.clientIp || req.ip);
+  const { token: refreshToken, sessionId } = await generateRefreshToken(
+    user.id,
+    req.headers['user-agent'],
+    req.clientIp || req.ip
+  );
+  const accessToken = generateAccessToken(user.id, sessionId);
   setAuthCookies(res, accessToken, refreshToken);
 
   res.status(isNewUser ? 201 : 200).json({

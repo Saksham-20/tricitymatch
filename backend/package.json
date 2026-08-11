@@ -9,7 +9,7 @@
   "scripts": {
     "start": "cross-env NODE_ENV=production node server.js",
     "dev": "cross-env NODE_ENV=development nodemon server.js",
-    "test": "cross-env NODE_ENV=test jest --coverage --detectOpenHandles",
+    "test": "cross-env NODE_ENV=test jest --detectOpenHandles",
     "test:watch": "cross-env NODE_ENV=test jest --watch",
     "test:unit": "cross-env NODE_ENV=test jest --testPathPattern=tests/unit",
     "test:integration": "cross-env NODE_ENV=test jest --testPathPattern=tests/integration",
@@ -25,7 +25,8 @@
     "db:reset": "npm run db:drop && npm run db:create && npm run migrate && npm run seed",
     "db:reset:test": "cross-env NODE_ENV=test npm run db:drop && cross-env NODE_ENV=test npm run db:create && cross-env NODE_ENV=test npm run migrate",
     "db:create": "sequelize-cli db:create",
-    "db:drop": "sequelize-cli db:drop"
+    "db:drop": "sequelize-cli db:drop",
+    "test:coverage": "cross-env NODE_ENV=test jest --coverage --detectOpenHandles"
   },
   "keywords": [
     "matrimonial",

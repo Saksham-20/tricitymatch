@@ -17,7 +17,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, type, spacing, borderRadius } from '@shared/constants/theme';
-import { search } from '../../api/search';
+import { getProfileByCode, search } from '../../api/search';
 import { performMatchAction } from '../../api/matches';
 import { queryKeys } from '../../constants/queryKeys';
 import ProfileCard from '../../components/cards/ProfileCard';
@@ -27,6 +27,7 @@ import { haptics } from '../../utils/haptics';
 import FilterPanel, { type FilterPanelHandle } from '../../components/search/FilterPanel';
 import type { MainStackParamList } from '../../navigation/types';
 import type { SearchFilters, ProfileSummary, MatchAction } from '../../types';
+import { formatProfileCode, parseProfileCode } from '../../utils/profileCode';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 
@@ -191,6 +192,34 @@ export default function SearchScreen() {
   const [filters, setFilters] = useState<SearchFilters>(DEFAULT_FILTERS);
   const [showSort, setShowSort] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [codeLookupError, setCodeLookupError] = useState<string | null>(null);
+
+  // A member who has been given a profile ID offline ("mine is TCS-A1B2C3D4")
+  // types it into the one search box they can see. Rather than add a second
+  // field, recognise the shape and offer the lookup — the same box, one extra
+  // affordance, only when the text can actually be a code.
+  const typedCode = parseProfileCode(nameQuery);
+  const codeLookup = useMutation({
+    mutationFn: () => getProfileByCode(nameQuery.trim()),
+    onMutate: () => setCodeLookupError(null),
+    onSuccess: (profile) => {
+      setNameQuery('');
+      if ((profile as { isSelf?: boolean }).isSelf) {
+        // Opening your own profile in the viewer's layout is confusing; send
+        // the member to their own profile tab instead.
+        navigation.navigate('MainTabs', { screen: 'Profile' } as never);
+        return;
+      }
+      navigation.navigate('ProfileDetail', { userId: profile.userId });
+    },
+    onError: (err: unknown) => {
+      const data = (err as { response?: { data?: { error?: { message?: string }; message?: string } } })?.response?.data;
+      // The server answers 404 both for "no such profile" and for an ambiguous
+      // prefix — it refuses to guess between two members. Either way there is
+      // nothing to open, so the member sees one honest message.
+      setCodeLookupError(data?.error?.message ?? data?.message ?? 'No profile found for that ID');
+    },
+  });
 
   // ── Infinite query ──────────────────────────────────────────────────────
   const {
@@ -199,6 +228,7 @@ export default function SearchScreen() {
     hasNextPage,
     isFetchingNextPage,
     isLoading,
+    isError,
     refetch,
   } = useInfiniteQuery({
     queryKey: ['search', filters, nameQuery],
@@ -278,6 +308,32 @@ export default function SearchScreen() {
         />
       </View>
 
+      {/* Profile-ID lookup — only when what's typed could be a code */}
+      {typedCode ? (
+        <View style={s.codeRow}>
+          <TouchableOpacity
+            style={[s.codeBtn, { borderColor: c.border, backgroundColor: c.surfaceCard }]}
+            onPress={() => codeLookup.mutate()}
+            disabled={codeLookup.isPending}
+            accessibilityLabel={`Open profile ${formatProfileCode(typedCode)}`}
+            testID="open-profile-code"
+          >
+            <Ionicons name="id-card-outline" size={16} color={colours.accent} />
+            <Text style={[s.codeText, { color: c.fgStrong }]} numberOfLines={1}>
+              Open profile {formatProfileCode(typedCode)}
+            </Text>
+            {codeLookup.isPending ? (
+              <ActivityIndicator size="small" color={colours.accent} />
+            ) : (
+              <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
+            )}
+          </TouchableOpacity>
+          {codeLookupError ? (
+            <Text style={s.codeError} testID="code-lookup-error">{codeLookupError}</Text>
+          ) : null}
+        </View>
+      ) : null}
+
       {/* Filter + Sort row */}
       <View style={s.toolbar}>
         <View style={s.toolbarLeft}>
@@ -310,7 +366,7 @@ export default function SearchScreen() {
       </View>
 
       {/* Result count */}
-      {!isLoading && (
+      {!isLoading && !isError && (
         <View style={s.countRow}>
           <Text style={[s.countText, { color: c.textMuted }]}>
             {total > 0 ? `${total} profiles found` : 'No profiles found'}
@@ -326,6 +382,18 @@ export default function SearchScreen() {
           renderItem={() => <CardSkeleton />}
           contentContainerStyle={s.list}
           scrollEnabled={false}
+        />
+      ) : isError ? (
+        // A failed request is NOT an empty result. Reporting "No profiles found"
+        // when the network died tells the member the marketplace is empty — the
+        // single most damaging thing this app can say while supply is thin, and
+        // it is not even true. Distinguish them, and offer a retry.
+        <SharedEmpty
+          icon="cloud-offline-outline"
+          title="Couldn't load profiles"
+          description="Check your connection and try again."
+          actionLabel="Retry"
+          onAction={() => refetch()}
         />
       ) : profiles.length === 0 ? (
         <SharedEmpty
@@ -392,6 +460,18 @@ const s = StyleSheet.create({
     height: 48,
   },
   searchIcon: { marginRight: spacing.sm },
+  codeRow: { paddingHorizontal: spacing.gutter, paddingBottom: spacing.sm, gap: 4 },
+  codeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    minHeight: 44,
+  },
+  codeText: { flex: 1, ...type.subhead },
+  codeError: { ...type.footnote, color: colours.error },
   searchInput: {
     flex: 1,
     fontSize: typography.fontSize.base,

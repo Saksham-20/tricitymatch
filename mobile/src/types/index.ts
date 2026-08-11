@@ -11,6 +11,6 @@ export type {
   Subscription, SubscriptionPlanType, SubscriptionStatus, PlanFeatures,
   Notification, NotificationType,
   CallSession, CallInvitation, AgoraTokenResponse, CallType, CallStatus,
-  Verification, VerificationTier, DocumentType, VerificationStatus,
+  Verification, PhotoVerification, DocumentType, VerificationStatus,
   BureauClient, MatchProposal, BureauEarnings, ProposalStatus,
 } from '@shared/index';

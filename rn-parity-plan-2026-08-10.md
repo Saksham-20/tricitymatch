@@ -95,6 +95,108 @@ commits behind main and 7 ahead.
 
 ---
 
+---
+
+## EXECUTION STATUS — 2026-08-10
+
+Branch `mobile/launch-prep`. Commits `885129d` (plan) → `aa6f3fb` (merge) → `661ecfd` (gate + harness).
+**Nothing pushed. Nothing deployed.** Web production is untouched by this branch.
+
+**RN-A DONE:**
+- Merge landed. 4 conflicts resolved; lockfile regenerated rather than trusted.
+- Gates green: backend **247/247** · frontend **97/97** · mobile **4/4** · mobile `tsc` **0** ·
+  root `lint` 0 · slop-lint clean (294 files) · frontend build OK.
+- `mobile` is inside root `lint` + `test` + `lint-staged` (G8 closed, **probe-verified**:
+  clean tree exits 0, adding a tier to the shared enum exits 1 with the same TS2741 that
+  shipped unnoticed on main).
+- Jest harness works (G2 closed) — jest 29 nested under `mobile`, native modules mocked.
+- G1 closed, G13 closed, G14 partially (legacy prefixes dropped), G21 closed.
+- Two bugs found and fixed that predate this plan: `isPlanAtLeast` ranked a founding
+  member **below free**, and the Play-products test would have let a granted tier be sold.
+- Root `npm test` had been failing at its first leg on backend's coverage threshold
+  (60% configured vs 19.32% actual), so frontend and mobile legs never ran — the new gate
+  would have been dead on arrival. Correctness and coverage are now separate commands.
+
+**RN-A EXIT GATE MET — the app builds and boots on both platforms.**
+- **iOS:** Build Succeeded, 0 errors, launches on an iPhone 17 Pro simulator to the
+  Welcome screen. G0 closed — `Podfile.lock` now pins React-Core 0.76.9.
+- **Android:** BUILD SUCCESSFUL, installs, `MainActivity` reaches `topResumedActivity`,
+  Welcome renders with the light status bar, logcat clean of FATAL/AndroidRuntime.
+- **G10 closed:** generated `gradle.properties` carries `android.targetSdkVersion=35`.
+  Caveat: the emulator is API 34, so targetSdk-35 *runtime* behaviour (edge-to-edge,
+  permission changes) is asserted by config but not yet exercised → RN-B.
+- Native config is now **declarative** (`app.json` + `expo-build-properties` + a local
+  `withIapStoreFlavor` plugin), so `prebuild --clean` no longer destroys it. Two
+  third-party toolchain gaps are patched self-healingly: fmt's consteval failure under
+  Xcode 26 (Podfile `post_install`) and expo-localization's non-exhaustive switch against
+  the iOS 26 SDK (`scripts/patch-native-modules.cjs`, postinstall).
+- **G14 closed** — stale `routes.ts` deleted.
+
+**RN-A COMPLETE.** The remainders are done:
+- **API contract harness.** `backend/tests/unit/routeManifest.test.js` walks the live
+  Express router → `shared/src/constants/api-manifest.json` (137 routes);
+  `mobile/src/api/apiConformance.test.ts` asserts every client call site against it.
+  Probe-verified: reintroducing the historical `/match/matches` fails with the file and
+  path named. **Found three real bugs on first run** — a `POST /profile/:id/view` that
+  never existed and 404'd behind a `.catch()` on every profile open; `eas.json` missing
+  `/api/v1` on all three build profiles (EAS env overrides `.env`, so **every EAS binary
+  including a store submission would 404 on every request**); and `api/bureau.ts` calling
+  four endpoints with no backend at all.
+- **The `as unknown as` casts were hiding missing required fields**, not style. Four in
+  the api layer bridged partial shapes to `ProfileSummary`/`Message` — `photos`, `city`,
+  `height`, `completionPercentage` genuinely arrive undefined, so `profile.photos.map()`
+  throws. Replaced with an explicit `toProfileSummary`. Removing them immediately
+  surfaced a real hidden type error: the API returns `gender` as a plain string against
+  a `Gender` union.
+- **Mobile eslint** wired into the root gate, pinned to the eslint 8 line, banning the
+  `unknown` double-cast in `src/api`. `no-unused-vars` is WARN with a recorded count —
+  **62 unused bindings across 32 files** (19 dead imports, 43 dead locals). That number
+  is the contract and should only go down; RN-G flips the rule to error.
+
+Gates now: root lint 0 (backend + frontend + **mobile eslint + mobile typecheck** +
+slop-lint) · root test 0 — backend **250** · frontend **97** · mobile **9**.
+
+Still to smoke on a device: the changed mappers (Matches / Chat / Profile rows). The
+edits are JS-only and typecheck clean, but they have not been seen rendering.
+
+**Toolchain requirements discovered (write these down, they cost an hour):**
+- Gradle and `sdkmanager` need JDK 17+; the only JVM on PATH here is Java 8. Use
+  `export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"`.
+- `platforms;android-35` had to be installed — only 34 and 36.1 were present.
+- CocoaPods needs `LANG=LC_ALL=en_US.UTF-8` (already in the repo notes).
+
+**RN-C IN PROGRESS** — commits `b92ec6e`, `d4e84a1`, `1f30565`, `3d10f3c`. Still unpushed.
+
+Done:
+- **G3/G7 entitlements**, **G15** offline logout, **G16** dead trust row, **G17** Search
+  error state, **G18** 375pt galleries (`b92ec6e`).
+- **G6 verification** — the app advertised four tiers and a Video Verified Badge against a
+  server that has one selfie review. Converged on the web flow; deleted the liveness screen
+  and the `POST /verification/selfie` route behind it, which was mounted with no upload
+  middleware and could only ever answer 400. Rejection reasons (`adminNotes`) now surface —
+  they were being dropped, so a rejected member resubmitted the same photo.
+- **G9 (part)** — account security: change password + signed-in devices. Required a server
+  fix: session identity was cookie-only, so on native nothing was marked "this device" and
+  `change-password` revoked *every* session including the caller's. Access tokens now carry
+  an optional `sid` claim; when the current session can't be resolved, change-password
+  revokes nothing rather than everything.
+- **G9 (part)** — profile-ID search both ways: lookup surfaced inside the existing search
+  box when the text parses as a code, and the member's own code on OwnProfile with the
+  native share sheet.
+- Three password rules across Signup/Reset/new screen collapsed into one that mirrors the
+  server's *actual* regex (they all accepted symbols the server rejects), pinned by a test
+  that reads the server's pattern out of `authRoutes.js`. Same technique pins
+  `profileCode` against the backend module.
+
+Gates now: root lint 0 · backend **259** · frontend **97** · mobile **57** · mobile `tsc` 0.
+
+Still open in RN-C: invite/founding surfaces (G5), payment result/history + my-subscription
++ invoices (waiting on the iOS payment ruling), ProfileDetail hierarchy, RN-C0 rails, and
+device smoke for everything since RN-A — the camera capture and the share sheet in
+particular are hardware paths no simulator run has exercised.
+
+---
+
 ## Phases
 
 ### RN-A — Reconcile the vehicle and make it real
@@ -155,6 +257,15 @@ Then, in RN-A:
 nothing about a bare-workflow app whose native shell is for a different RN major.
 
 ### RN-B — Store blockers and the decisions that shape RN-C
+**STATUS: the verifiable half is DONE** (commits 6c36d9b, a4d7ebd, 33ebf85). Posture
+written up in `docs/STORE_READINESS_2026-08-10.md`. Closed: targetSdk 35 verified in the
+installed artifact · edge-to-edge verified on a real API 35 emulator for Welcome + Login ·
+Apple 4.8 confirmed not to apply · dead UI (Google button, call buttons) hidden behind
+working config gates · dark mode light-locked · Sentry wired and dark · OTA
+`runtimeVersion: fingerprint` + channels. Still open and owner-blocked: the iOS payment
+ruling, the Play Console account type, the Sentry DSN, Razorpay live keys. Still open in
+code: edge-to-edge on the authed screens.
+
 - **targetSdk 35 (G10)** — properly in the committed `android/build.gradle`, verified on an
   Android 15 emulator (edge-to-edge + permission changes are what break apps).
 - **iOS payment ruling.** Does LP's web-redirect survive App Store review under 3.1.1, or

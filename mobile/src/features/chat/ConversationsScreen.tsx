@@ -11,7 +11,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { colours, type, spacing, borderRadius } from '@shared/constants/theme';
 import { Avatar, EmptyState as SharedEmpty, GoldLock, SkeletonRow } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
-import { useAuthStore, selectPlan } from '../../stores/authStore';
+import { useAuthStore } from '../../stores/authStore';
+import { canUseChat } from '../../utils/entitlements';
 import { useUIStore } from '../../stores/uiStore';
 import { useSocket } from '../../hooks/useSocket';
 import { getConversations } from '../../api/chat';
@@ -87,8 +88,13 @@ export default function ConversationsScreen() {
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
 
-  // Chat is gated to paid plans (mirrors web's requirePremium). Any non-free tier unlocks it.
-  const hasPlus = useAuthStore(selectPlan) !== 'free';
+  // Chat access is decided by the SERVER (requireChatAccess). This mirrors that
+  // rule for display only — see utils/entitlements.ts. It used to read
+  // `plan !== 'free'`, which ignored the free-chat-for-mutuals flag entirely, so
+  // with the flag on the same member could chat on the website and was refused
+  // here.
+  const authUser = useAuthStore((st) => st.user);
+  const hasPlus = canUseChat(authUser);
 
   const { data: conversations = [], isLoading, isRefetching, refetch } = useQuery({
     queryKey: queryKeys.conversations,

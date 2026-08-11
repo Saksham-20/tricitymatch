@@ -15,9 +15,12 @@ import IncomingCallModal from '../components/calls/IncomingCallModal';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const linking: LinkingOptions<RootStackParamList> = {
-  // New brand first. The tricityshadi:// scheme and domain stay registered so
-  // links already shared with, or saved by, existing installs keep resolving.
-  prefixes: ['tricitymatch://', 'https://tricitymatch.com', 'tricityshadi://', 'https://tricityshadi.com'],
+  // One brand only. The legacy tricityshadi scheme/domain used to be listed "so
+  // existing installs keep resolving", but there are no existing installs — the
+  // apps have never shipped to a store. Keeping an unverifiable domain in the
+  // Android intent filter degrades App Links verification for the domain that
+  // matters, and a custom scheme any app can claim must never carry a link.
+  prefixes: ['tricitymatch://', 'https://tricitymatch.com'],
   config: {
     screens: {
       Main: {

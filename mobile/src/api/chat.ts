@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { toProfileSummary } from './profileSummary';
 import type { Conversation, Message, ProfileSummary } from '../types';
 
 // ─── Family group chat types ──────────────────────────────────────────────────
@@ -37,27 +38,53 @@ interface RawConversation {
   unreadCount: number;
 }
 
+
+/**
+ * The conversations endpoint returns only a three-field preview of the last
+ * message (content / createdAt / isRead), but `Conversation.lastMessage` is typed
+ * as a full `Message`. This used to be bridged with `as unknown as Message`,
+ * which hid the fact that id, senderId, deliveredAt, readAt and the edit fields
+ * simply are not there.
+ *
+ * The list UI only renders content, timestamp and read state. Filling the rest
+ * with explicit empty values keeps that honest and visible: if a screen ever
+ * starts reading `lastMessage.senderId`, it gets an empty string it can check,
+ * not an `undefined` that throws — and the gap is documented here rather than
+ * silenced at the call site.
+ */
+const toMessagePreview = (
+  conversationUserId: string,
+  preview: { content: string; createdAt: string; isRead: boolean },
+): Message => ({
+  id: '',
+  senderId: '',
+  receiverId: conversationUserId,
+  content: preview.content,
+  isRead: preview.isRead,
+  deliveredAt: null,
+  readAt: null,
+  isEdited: false,
+  editedAt: null,
+  createdAt: preview.createdAt,
+  updatedAt: preview.createdAt,
+});
+
 export const getConversations = async (): Promise<Conversation[]> => {
   const res = await apiClient.get<{ conversations: RawConversation[] }>('/chat/conversations');
   return (res.data.conversations ?? []).map((c) => {
     const parts = (c.user?.name ?? '').trim().split(' ');
-    const profile = {
+    const profile = toProfileSummary({
       id: c.user?.id ?? c.userId,
+      userId: c.userId,
       firstName: parts[0] ?? '',
       lastName: parts.slice(1).join(' '),
       profilePhoto: c.user?.profilePhoto ?? null,
       isVerified: false,
-    } as unknown as ProfileSummary;
+    });
     return {
       userId: c.userId,
       profile,
-      lastMessage: c.lastMessage
-        ? ({
-            content: c.lastMessage.content,
-            createdAt: c.lastMessage.createdAt,
-            isRead: c.lastMessage.isRead,
-          } as unknown as Message)
-        : null,
+      lastMessage: c.lastMessage ? toMessagePreview(c.userId, c.lastMessage) : null,
       unreadCount: c.unreadCount ?? 0,
       isOnline: false,
       lastActive: null,
