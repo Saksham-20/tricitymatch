@@ -10,6 +10,7 @@ import {
   Switch,
   ActivityIndicator, 
   useWindowDimensions,
+  Share,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -24,6 +25,7 @@ import { getMyProfile, getProfileViewers, getRecentlyViewed } from '../../api/pr
 import { formatDate } from '../../utils/dateUtils';
 import { queryKeys } from '../../constants/queryKeys';
 import { useAuthStore } from '../../stores/authStore';
+import { toProfileCode } from '../../utils/profileCode';
 import type { MainStackParamList } from '../../navigation/types';
 import type { Profile, ProfileSummary } from '../../types';
 import VoiceIntroRecorder from '../../components/profile/VoiceIntroRecorder';
@@ -500,6 +502,14 @@ export default function OwnProfileScreen() {
     ? `${profile.firstName} ${profile.lastName}`.trim()
     : user?.email ?? '';
 
+  const profileCode = toProfileCode(profile?.userId ?? user?.id);
+  const shareProfileCode = () => {
+    if (!profileCode) return;
+    Share.share({
+      message: `Find me on TricityMatch — my profile ID is ${profileCode}. Search it in the app.`,
+    }).catch(() => { /* the member dismissed the sheet */ });
+  };
+
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: c.background }]}
@@ -581,6 +591,22 @@ export default function OwnProfileScreen() {
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Shareable profile ID — the other half of Search's ID lookup. Without a
+          way to read your own code, looking one up is a one-way door. */}
+      {profileCode ? (
+        <TouchableOpacity
+          style={[styles.codeChip, { borderColor: c.border, backgroundColor: c.surfaceCard }]}
+          onPress={shareProfileCode}
+          testID="profile-code-chip"
+          accessibilityLabel={`Share my profile ID ${profileCode}`}
+        >
+          <Ionicons name="id-card-outline" size={16} color={c.textSecondary} />
+          <Text style={[styles.codeLabel, { color: c.textMuted }]}>My profile ID</Text>
+          <Text style={[styles.codeValue, { color: c.fgStrong }]}>{profileCode}</Text>
+          <Ionicons name="share-outline" size={16} color={c.primary} />
+        </TouchableOpacity>
+      ) : null}
 
       {/* Preview toggle */}
       <View style={styles.previewRow}>
@@ -867,6 +893,19 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
+  codeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.md,
+    borderWidth: 1,
+    borderRadius: borderRadius.md,
+    minHeight: 44,
+  },
+  codeLabel: { fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.medium },
+  codeValue: { flex: 1, fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold, letterSpacing: 0.5 },
   previewRow: {
     flexDirection: 'row',
     alignItems: 'center',
