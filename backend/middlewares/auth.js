@@ -70,6 +70,10 @@ const auth = asyncHandler(async (req, res, next) => {
     // Attach user to request
     req.user = user;
     req.userId = user.id;
+    // Which session (RefreshToken row) this access token belongs to, when the
+    // token carries the claim. Lets GET /auth/sessions mark "this device" for
+    // cookie-less native clients. Null for tokens minted before the claim existed.
+    req.sessionId = decoded.sid || null;
 
     next();
   } catch (error) {

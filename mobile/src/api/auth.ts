@@ -72,3 +72,39 @@ export const getMe = async (): Promise<AuthUser> => {
 export const deleteAccount = async (): Promise<void> => {
   await apiClient.delete('/auth/account');
 };
+
+// ─── Account security ─────────────────────────────────────────────────────────
+
+export interface AuthSession {
+  id: string;
+  userAgent: string | null;
+  ipAddress: string | null;
+  createdAt: string;
+  lastUsedAt: string | null;
+  /** Server-resolved from the access token's session claim — see authController. */
+  isCurrent: boolean;
+}
+
+/**
+ * Changing the password revokes every OTHER session server-side; the one making
+ * the request survives, so the app is not signed out by its own security
+ * action. The server identifies it from the access token, so nothing about the
+ * refresh token goes over the wire here.
+ */
+export const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
+  await apiClient.post('/auth/change-password', { currentPassword, newPassword });
+};
+
+export const getSessions = async (): Promise<AuthSession[]> => {
+  const res = await apiClient.get<{ sessions: AuthSession[] }>('/auth/sessions');
+  return res.data.sessions ?? [];
+};
+
+export const revokeSession = async (sessionId: string): Promise<void> => {
+  await apiClient.delete(`/auth/sessions/${sessionId}`);
+};
+
+/** Signs out every device including this one. */
+export const logoutAll = async (): Promise<void> => {
+  await apiClient.post('/auth/logout-all');
+};

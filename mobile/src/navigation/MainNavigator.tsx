@@ -25,6 +25,7 @@ import EditProfileScreen from '../features/profile/EditProfileScreen';
 import VerificationScreen from '../features/profile/VerificationScreen';
 import SettingsScreen from '../features/profile/SettingsScreen';
 import PrivacySettingsScreen from '../features/profile/PrivacySettingsScreen';
+import AccountSecurityScreen from '../features/profile/AccountSecurityScreen';
 import NotificationsScreen from '../features/notifications/NotificationsScreen';
 import SupportScreen from '../features/profile/SupportScreen';
 import SuccessStoryScreen from '../features/profile/SuccessStoryScreen';
@@ -169,6 +170,7 @@ export default function MainNavigator() {
       <Stack.Screen name="Verification" component={VerificationScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="PrivacySettings" component={PrivacySettingsScreen} />
+      <Stack.Screen name="AccountSecurity" component={AccountSecurityScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="SuccessStory" component={SuccessStoryScreen} />
       <Stack.Screen name="SuccessStoriesBrowse" component={SuccessStoriesBrowseScreen} />

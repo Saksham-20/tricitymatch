@@ -67,6 +67,7 @@ export type MainStackParamList = {
   Verification: undefined;
   Settings: undefined;
   PrivacySettings: undefined;
+  AccountSecurity: undefined;
   Notifications: undefined;
   SuccessStory: undefined;
   SuccessStoriesBrowse: undefined;

@@ -20,34 +20,10 @@ import { useAuthStore } from '../../stores/authStore';
 import { signup } from '../../api/auth';
 import { PasswordStrength } from '../../components/ui';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { PASSWORD_RULES_ATTR, passwordProblem } from '../../utils/passwordRule';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Signup'>;
 
-type PasswordStrength = 'weak' | 'medium' | 'strong';
-
-function getPasswordStrength(password: string): PasswordStrength {
-  if (password.length < 6) return 'weak';
-  const hasUpper = /[A-Z]/.test(password);
-  const hasLower = /[a-z]/.test(password);
-  const hasNumber = /[0-9]/.test(password);
-  const hasSpecial = /[^A-Za-z0-9]/.test(password);
-  const score = [hasUpper, hasLower, hasNumber, hasSpecial].filter(Boolean).length;
-  if (password.length >= 8 && score >= 3) return 'strong';
-  if (password.length >= 6 && score >= 2) return 'medium';
-  return 'weak';
-}
-
-const STRENGTH_COLORS: Record<PasswordStrength, string> = {
-  weak: colours.error,
-  medium: colours.warning,
-  strong: colours.success,
-};
-
-const STRENGTH_WIDTH: Record<PasswordStrength, string> = {
-  weak: '33%',
-  medium: '66%',
-  strong: '100%',
-};
 
 export default function SignupScreen() {
   const navigation = useNavigation<Nav>();
@@ -67,16 +43,13 @@ export default function SignupScreen() {
   const passwordRef = useRef<TextInput>(null);
   const confirmRef = useRef<TextInput>(null);
 
-  const strength = password.length > 0 ? getPasswordStrength(password) : null;
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
     if (!email.trim()) errs.email = 'Email is required';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = 'Please enter a valid email';
-    if (!password) errs.password = 'Password is required';
-    else if (password.length < 8) errs.password = 'Password must be at least 8 characters';
-    else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])/.test(password))
-      errs.password = 'Include an uppercase letter, number, and symbol';
+    const pwProblem = passwordProblem(password);
+    if (pwProblem) errs.password = pwProblem;
     if (!confirmPassword) errs.confirmPassword = 'Please confirm your password';
     else if (password !== confirmPassword) errs.confirmPassword = t('auth.signup.passwordMismatch');
     if (!termsAccepted) errs.terms = 'You must accept the Terms & Privacy Policy';
@@ -183,7 +156,7 @@ export default function SignupScreen() {
               secureTextEntry={!showPassword}
               textContentType="newPassword"
               autoComplete="new-password"
-              passwordRules="minlength: 8; required: lower; required: upper; required: digit; required: special;"
+              passwordRules={PASSWORD_RULES_ATTR}
               returnKeyType="next"
               onSubmitEditing={() => confirmRef.current?.focus()}
               accessibilityLabel={t('auth.signup.password')}
@@ -361,28 +334,6 @@ const styles = StyleSheet.create({
     color: colours.error,
     marginTop: spacing.xs,
     fontFamily: typography.fontFamily.regular,
-  },
-  strengthContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.sm,
-    gap: spacing.sm,
-  },
-  strengthBar: {
-    flex: 1,
-    height: 4,
-    backgroundColor: colours.border,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  strengthFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
-  strengthLabel: {
-    fontSize: typography.fontSize.xs,
-    fontFamily: typography.fontFamily.medium,
-    minWidth: 48,
   },
   termsRow: {
     flexDirection: 'row',

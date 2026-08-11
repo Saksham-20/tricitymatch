@@ -348,6 +348,15 @@ export default function SettingsScreen() {
             onPress={() => navigation.navigate('PrivacySettings')}
             testID="setting-privacy-controls"
           />
+          <Divider />
+          <SettingRow
+            icon="key-outline"
+            iconColor={colours.secondary}
+            label="Account Security"
+            sublabel="Change password & signed-in devices"
+            onPress={() => navigation.navigate('AccountSecurity')}
+            testID="setting-account-security"
+          />
         </Section>
 
         {/* Appearance — Dark Mode intentionally omitted: not yet themed app-wide
