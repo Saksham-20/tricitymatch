@@ -33,7 +33,6 @@ import QuizScreen from '../features/profile/QuizScreen';
 import HoroscopeMatchScreen from '../features/profile/HoroscopeMatchScreen';
 
 // Verification
-import SelfieVerificationScreen from '../features/profile/SelfieVerificationScreen';
 
 // Static content / legal
 import TermsScreen from '../features/legal/TermsScreen';
@@ -168,7 +167,6 @@ export default function MainNavigator() {
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="Subscription" component={SubscriptionScreen} />
       <Stack.Screen name="Verification" component={VerificationScreen} />
-      <Stack.Screen name="SelfieVerification" component={SelfieVerificationScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="PrivacySettings" component={PrivacySettingsScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />

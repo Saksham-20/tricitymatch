@@ -1,38 +1,33 @@
 import { apiClient } from './client';
-import type { VerificationTier } from '../types';
+import type { PhotoVerification } from '../types';
 
-// The backend tracks a single selfie photo-verification (GET /verification/status →
-// { verification: { status, selfiePhoto } }) plus phone-at-signup. Government-ID
-// collection was removed (2026-07-02) — tier 2 is now a live selfie. Education/Income
-// tiers have no backend yet (see CLAUDE.md). Map what exists onto the 4-tier UI shape.
-export const getMyVerifications = async (): Promise<VerificationTier[]> => {
-  const res = await apiClient.get<{ verification: { status?: string; selfiePhoto?: string } }>(
+/**
+ * Photo verification — one live selfie, reviewed by a human.
+ *
+ * The server has been selfie-only since 2026-07-02: `POST /verification/submit`
+ * requires a `selfiePhoto` file and deliberately ignores any documentType /
+ * documentFront / documentBack a stale client still sends. This module used to
+ * fan the single server status out into a four-tier ladder for the UI, which
+ * meant the app advertised education and income tiers that have no backend and
+ * an "ID" tier the product removed.
+ */
+export const getPhotoVerification = async (): Promise<PhotoVerification> => {
+  const res = await apiClient.get<{ verification?: Partial<PhotoVerification> }>(
     '/verification/status'
   );
   const v = res.data.verification ?? {};
-  const selfieStatus = (v.status ?? 'not_submitted') as string;
-  const photoEarned = selfieStatus === 'approved';
-  const photoStatus = selfieStatus !== 'not_submitted'
-    ? (selfieStatus as VerificationTier['status'])
-    : undefined;
-  const t = (tier: 1 | 2 | 3 | 4, isEarned: boolean, status?: VerificationTier['status']): VerificationTier =>
-    ({ tier, name: '', description: '', badge: '', isEarned, status });
-  return [
-    t(1, true, 'approved'),         // mobile — phone OTP at signup
-    t(2, photoEarned, photoStatus), // photo — live selfie → admin review
-    t(3, false, undefined),         // education — no backend
-    t(4, false, undefined),         // income — no backend
-  ];
+  return {
+    status: v.status ?? 'not_submitted',
+    selfiePhoto: v.selfiePhoto ?? null,
+    adminNotes: v.adminNotes ?? null,
+    verifiedAt: v.verifiedAt ?? null,
+    submittedAt: v.submittedAt ?? null,
+  };
 };
 
+/** `formData` must carry a `selfiePhoto` file captured from the live camera. */
 export const submitVerification = async (formData: FormData): Promise<void> => {
   await apiClient.post('/verification/submit', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-};
-
-export const submitSelfieVerification = async (formData: FormData): Promise<void> => {
-  await apiClient.post('/verification/selfie', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 };

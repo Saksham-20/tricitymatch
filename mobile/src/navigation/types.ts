@@ -65,7 +65,6 @@ export type MainStackParamList = {
   EditProfile: undefined;
   Subscription: undefined;
   Verification: undefined;
-  SelfieVerification: undefined;
   Settings: undefined;
   PrivacySettings: undefined;
   Notifications: undefined;

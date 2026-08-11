@@ -122,7 +122,6 @@
     "POST /api/v1/subscription/verify-payment",
     "POST /api/v1/subscription/webhook",
     "POST /api/v1/success-stories",
-    "POST /api/v1/verification/selfie",
     "POST /api/v1/verification/submit",
     "PUT /api/v1/admin/contact-messages/:id",
     "PUT /api/v1/admin/marketing-users/:userId/status",

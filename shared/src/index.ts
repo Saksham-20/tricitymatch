@@ -12,7 +12,7 @@ export type { Message, Conversation, SendMessagePayload } from './types/chat';
 export type { Subscription, SubscriptionPlanType, SubscriptionStatus, PlanFeatures, UnlockBundle, UnlockBundleId } from './types/subscription';
 export type { Notification, NotificationType } from './types/notification';
 export type { CallSession, CallInvitation, AgoraTokenResponse, CallType, CallStatus } from './types/call';
-export type { Verification, VerificationTier, DocumentType, VerificationStatus } from './types/verification';
+export type { Verification, PhotoVerification, DocumentType, VerificationStatus } from './types/verification';
 export type { BureauClient, MatchProposal, BureauEarnings, ProposalStatus } from './types/bureau';
 
 // Constants
