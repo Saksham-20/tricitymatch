@@ -165,6 +165,36 @@ edits are JS-only and typecheck clean, but they have not been seen rendering.
 - `platforms;android-35` had to be installed — only 34 and 36.1 were present.
 - CocoaPods needs `LANG=LC_ALL=en_US.UTF-8` (already in the repo notes).
 
+**RN-C IN PROGRESS** — commits `b92ec6e`, `d4e84a1`, `1f30565`, `3d10f3c`. Still unpushed.
+
+Done:
+- **G3/G7 entitlements**, **G15** offline logout, **G16** dead trust row, **G17** Search
+  error state, **G18** 375pt galleries (`b92ec6e`).
+- **G6 verification** — the app advertised four tiers and a Video Verified Badge against a
+  server that has one selfie review. Converged on the web flow; deleted the liveness screen
+  and the `POST /verification/selfie` route behind it, which was mounted with no upload
+  middleware and could only ever answer 400. Rejection reasons (`adminNotes`) now surface —
+  they were being dropped, so a rejected member resubmitted the same photo.
+- **G9 (part)** — account security: change password + signed-in devices. Required a server
+  fix: session identity was cookie-only, so on native nothing was marked "this device" and
+  `change-password` revoked *every* session including the caller's. Access tokens now carry
+  an optional `sid` claim; when the current session can't be resolved, change-password
+  revokes nothing rather than everything.
+- **G9 (part)** — profile-ID search both ways: lookup surfaced inside the existing search
+  box when the text parses as a code, and the member's own code on OwnProfile with the
+  native share sheet.
+- Three password rules across Signup/Reset/new screen collapsed into one that mirrors the
+  server's *actual* regex (they all accepted symbols the server rejects), pinned by a test
+  that reads the server's pattern out of `authRoutes.js`. Same technique pins
+  `profileCode` against the backend module.
+
+Gates now: root lint 0 · backend **259** · frontend **97** · mobile **57** · mobile `tsc` 0.
+
+Still open in RN-C: invite/founding surfaces (G5), payment result/history + my-subscription
++ invoices (waiting on the iOS payment ruling), ProfileDetail hierarchy, RN-C0 rails, and
+device smoke for everything since RN-A — the camera capture and the share sheet in
+particular are hardware paths no simulator run has exercised.
+
 ---
 
 ## Phases
