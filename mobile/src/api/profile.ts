@@ -202,15 +202,16 @@ export interface Astrologer {
   nextAvailable?: string;
 }
 
+/** Shape the server actually returns from POST /astrologers/book. */
 export interface ConsultBooking {
   id: string;
-  astrologerId: string;
   astrologerName: string;
   scheduledAt: string;
   durationMin: number;
-  amount: number;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
-  meetLink?: string;
+  amountPaise: number;
+  status: 'pending_payment' | 'confirmed' | 'completed' | 'cancelled';
+  razorpayOrderId?: string;
+  keyId?: string;
 }
 
 export const getAstrologers = async (): Promise<Astrologer[]> => {
@@ -218,13 +219,20 @@ export const getAstrologers = async (): Promise<Astrologer[]> => {
   return res.data.astrologers ?? [];
 };
 
+export const getAstrologer = async (id: string): Promise<Astrologer> => {
+  const res = await apiClient.get<{ astrologer: Astrologer }>(`/astrologers/${id}`);
+  return res.data.astrologer;
+};
+
 export const bookAstrologer = async (payload: {
   astrologerId: string;
   scheduledAt: string;
   durationMin: number;
 }): Promise<ConsultBooking> => {
-  const res = await apiClient.post<ConsultBooking>('/astrologers/book', payload);
-  return res.data;
+  // The server wraps this as { success, booking } — returning res.data handed the
+  // envelope back and every field read off it was undefined.
+  const res = await apiClient.post<{ booking: ConsultBooking }>('/astrologers/book', payload);
+  return res.data.booking;
 };
 
 export const getMyConsultations = async (): Promise<ConsultBooking[]> => {

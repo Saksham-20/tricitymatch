@@ -91,8 +91,10 @@ export default function AstrologerMarketplaceScreen() {
 
   // No stub fallback. The listing previously substituted four invented
   // astrologers — names, ratings, review counts and prices — whenever the API
-  // returned nothing, which it always does. Fabricated practitioners with
-  // fabricated credentials are not placeholder copy; they shipped as if real.
+  // returned an empty list. Fabricated practitioners with fabricated credentials
+  // are not placeholder copy; they shipped as if real. The endpoint works and
+  // returns real records where the table is seeded, so an empty list means
+  // "none onboarded here yet", not "feature missing".
   const { data, isLoading } = useQuery({
     queryKey: ['astrologers'],
     queryFn: getAstrologers,
