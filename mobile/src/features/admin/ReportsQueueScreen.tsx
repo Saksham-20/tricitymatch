@@ -9,9 +9,9 @@ import {
   Alert,
   Modal,
   TextInput,
-  SafeAreaView,
   RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -22,13 +22,29 @@ interface ReportItem {
   id: string;
   reporterId: string;
   reportedUserId: string;
-  category: string;
+  /**
+   * The server's field is `reason`, and the two users arrive as nested
+   * `Reporter` / `ReportedUser` objects — not `category` / `reporterName` /
+   * `reportedName`, which it has never sent. Reading the invented `category`
+   * and calling `.replace()` on it crashed this screen outright the moment a
+   * single report existed; it only ever looked fine because the queue was empty.
+   */
+  reason: string;
   description: string | null;
-  status: 'pending' | 'reviewed' | 'dismissed';
+  status: 'pending' | 'reviewed' | 'resolved' | 'dismissed';
   createdAt: string;
-  reporterName?: string;
-  reportedName?: string;
+  Reporter?: { id: string; Profile?: { firstName?: string; lastName?: string } | null } | null;
+  ReportedUser?: { id: string; Profile?: { firstName?: string; lastName?: string } | null } | null;
 }
+
+const displayName = (
+  u: ReportItem['Reporter'],
+  fallbackId: string,
+): string => {
+  const p = u?.Profile;
+  const name = [p?.firstName, p?.lastName].filter(Boolean).join(' ').trim();
+  return name || fallbackId;
+};
 
 const CATEGORY_ICONS: Record<string, React.ComponentProps<typeof Ionicons>['name']> = {
   fake_profile:    'person-remove-outline',
@@ -48,8 +64,9 @@ function ReportCard({
   onDismiss: (id: string) => void;
   onBlock: (reportId: string, userId: string, name: string) => void;
 }) {
-  const iconName = CATEGORY_ICONS[item.category] ?? 'flag-outline';
-  const label = item.category.replace(/_/g, ' ');
+  const reason = item.reason ?? '';
+  const iconName = CATEGORY_ICONS[reason] ?? 'flag-outline';
+  const label = reason ? reason.replace(/_/g, ' ') : 'Report';
 
   return (
     <View style={s.card} testID={`report-card-${item.id}`}>
@@ -63,11 +80,11 @@ function ReportCard({
 
       <View style={s.namesRow}>
         <Text style={s.nameLabel}>Reported:</Text>
-        <Text style={s.nameValue}>{item.reportedName ?? item.reportedUserId}</Text>
+        <Text style={s.nameValue}>{displayName(item.ReportedUser, item.reportedUserId)}</Text>
       </View>
       <View style={s.namesRow}>
         <Text style={s.nameLabel}>By:</Text>
-        <Text style={s.nameValue}>{item.reporterName ?? item.reporterId}</Text>
+        <Text style={s.nameValue}>{displayName(item.Reporter, item.reporterId)}</Text>
       </View>
 
       {item.description ? (
@@ -86,7 +103,7 @@ function ReportCard({
         </TouchableOpacity>
         <TouchableOpacity
           style={[s.btn, s.blockBtn]}
-          onPress={() => onBlock(item.id, item.reportedUserId, item.reportedName ?? 'User')}
+          onPress={() => onBlock(item.id, item.reportedUserId, displayName(item.ReportedUser, 'User'))}
           testID={`block-btn-${item.id}`}
           accessibilityLabel="Block user"
         >

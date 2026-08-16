@@ -6,9 +6,9 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  SafeAreaView,
   RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -19,13 +19,26 @@ import type { AdminStackParamList } from '../../navigation/types';
 
 type Nav = NativeStackNavigationProp<AdminStackParamList, 'AdminHome'>;
 
+/**
+ * Mirrors `GET /admin/analytics` → `stats`, field for field.
+ *
+ * The previous shape was invented: `signupsToday`, `activeSubscriptions` and
+ * `revenueToday` are names the server has never sent. Combined with an API
+ * helper that returned the `{ success, stats }` envelope instead of `stats`,
+ * every tile read `undefined` — the console rendered blank figures and a
+ * literal "₹undefined" where the day's revenue belongs.
+ *
+ * There is no "today" revenue or signup figure server-side (revenue is
+ * month-to-date and registrations arrive as a dated series), so the tiles say
+ * what the numbers actually are.
+ */
 interface AdminStats {
-  signupsToday: number;
-  activeSubscriptions: number;
-  revenueToday: number;
+  totalUsers: number;
+  verifiedUsers: number;
+  activeSubscribers: number;
+  revenueThisMonth: number;
   pendingVerifications: number;
   openReports: number;
-  totalUsers: number;
 }
 
 interface StatCardProps {
@@ -89,12 +102,12 @@ export default function AdminHomeScreen() {
 
   const isLoading = statsQ.isLoading;
   const stats: AdminStats = statsQ.data ?? {
-    signupsToday: 0,
-    activeSubscriptions: 0,
-    revenueToday: 0,
+    totalUsers: 0,
+    verifiedUsers: 0,
+    activeSubscribers: 0,
+    revenueThisMonth: 0,
     pendingVerifications: 0,
     openReports: 0,
-    totalUsers: 0,
   };
 
   const pendingVerif = verifQ.data?.length ?? stats.pendingVerifications;
@@ -117,12 +130,22 @@ export default function AdminHomeScreen() {
         contentContainerStyle={s.scroll}
         refreshControl={<RefreshControl refreshing={statsQ.isFetching} onRefresh={refetch} />}
       >
-        <Text style={s.sectionTitle}>Today's Overview</Text>
+        <Text style={s.sectionTitle}>Overview</Text>
         <View style={s.statsGrid}>
-          <StatCard icon="people" label="Signups Today" value={stats.signupsToday} />
-          <StatCard icon="card" label="Active Subs" value={stats.activeSubscriptions} color={colours.info} />
-          <StatCard icon="cash" label="Revenue Today" value={`₹${stats.revenueToday?.toLocaleString()}`} color={colours.success} />
-          <StatCard icon="person" label="Total Users" value={stats.totalUsers?.toLocaleString()} color={colours.badgeEducation} />
+          <StatCard icon="people" label="Total Users" value={(stats.totalUsers ?? 0).toLocaleString()} />
+          <StatCard icon="card" label="Active Subs" value={(stats.activeSubscribers ?? 0).toLocaleString()} color={colours.info} />
+          <StatCard
+            icon="cash"
+            label="Revenue This Month"
+            value={`₹${(stats.revenueThisMonth ?? 0).toLocaleString()}`}
+            color={colours.success}
+          />
+          <StatCard
+            icon="shield-checkmark"
+            label="Verified Users"
+            value={(stats.verifiedUsers ?? 0).toLocaleString()}
+            color={colours.badgeEducation}
+          />
         </View>
 
         <Text style={s.sectionTitle}>Action Queues</Text>
