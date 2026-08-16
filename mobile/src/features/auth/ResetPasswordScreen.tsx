@@ -11,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
@@ -25,6 +26,7 @@ type RouteProps = RouteProp<AuthStackParamList, 'ResetPassword'>;
 
 export default function ResetPasswordScreen() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const route = useRoute<RouteProps>();
   const { t } = useTranslation();
 
@@ -98,7 +100,7 @@ export default function ResetPasswordScreen() {
     >
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing['2xl'] }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -206,7 +208,7 @@ export default function ResetPasswordScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colours.background },
   scroll: { flex: 1 },
-  content: { padding: spacing['2xl'], paddingTop: 60 },
+  content: { padding: spacing['2xl'] },
   header: { marginBottom: spacing['2xl'], alignItems: 'flex-start' },
   iconWrap: {
     width: 60,

@@ -13,6 +13,7 @@ import {
   Modal,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
@@ -31,6 +32,7 @@ type Nav = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
 export default function LoginScreen() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { setUser, setAccessToken } = useAuthStore();
 
@@ -213,7 +215,7 @@ export default function LoginScreen() {
     >
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing['2xl'] }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -406,7 +408,6 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: {
     padding: spacing['2xl'],
-    paddingTop: 60,
   },
   header: { marginBottom: spacing['3xl'] },
   title: {

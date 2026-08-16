@@ -12,6 +12,7 @@ import {
   Linking,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,6 +28,7 @@ type Nav = NativeStackNavigationProp<AuthStackParamList, 'Signup'>;
 
 export default function SignupScreen() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { setUser, setAccessToken } = useAuthStore();
 
@@ -90,7 +92,7 @@ export default function SignupScreen() {
     >
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing['2xl'] }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -273,7 +275,7 @@ export default function SignupScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colours.background },
   scroll: { flex: 1 },
-  content: { padding: spacing['2xl'], paddingTop: 48 },
+  content: { padding: spacing['2xl'] },
   backBtn: { marginBottom: spacing.lg, minHeight: 40, justifyContent: 'center', alignSelf: 'flex-start' },
   backText: { fontSize: typography.fontSize.base, color: colours.primary, fontFamily: typography.fontFamily.medium },
   header: { marginBottom: spacing['2xl'] },

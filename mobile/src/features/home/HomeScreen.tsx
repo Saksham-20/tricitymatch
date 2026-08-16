@@ -9,6 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
@@ -84,6 +85,7 @@ function RailCard({ profile, onPress, c }: { profile: ProfileSummary; onPress: (
 export default function HomeScreen() {
   const { t } = useTranslation();
   const { c } = useTheme();
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const user = useAuthStore((s) => s.user);
 
@@ -121,7 +123,7 @@ export default function HomeScreen() {
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: c.background }]}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.md }]}
       showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} tintColor={c.accent} />}
       testID="HomeScreen"
@@ -267,7 +269,7 @@ function QuickChip({ icon, label, tint, onPress, c, testID }: {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { paddingTop: 56, paddingBottom: 24 },
+  content: { paddingBottom: 24 },
 
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

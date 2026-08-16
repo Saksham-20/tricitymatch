@@ -11,6 +11,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -300,6 +301,7 @@ export default function ProfileDetailScreen() {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const { c } = useTheme();
+  const insets = useSafeAreaInsets();
 
   const { width: windowWidth } = useWindowDimensions();
   const [photoIdx, setPhotoIdx] = useState(0);
@@ -378,7 +380,7 @@ export default function ProfileDetailScreen() {
     <View style={[styles.wrapper, { backgroundColor: c.background }]}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false} testID="ProfileDetailScreen">
         {/* Back + Menu header */}
-        <View style={styles.absHeader}>
+        <View style={[styles.absHeader, { top: insets.top + spacing.sm }]}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.iconBtn}
@@ -545,7 +547,16 @@ export default function ProfileDetailScreen() {
       </ScrollView>
 
       {/* Sticky bottom action bar */}
-      <View style={[styles.actionBar, { backgroundColor: c.background, borderTopColor: c.border }]}>
+      <View
+        style={[
+          styles.actionBar,
+          {
+            backgroundColor: c.background,
+            borderTopColor: c.border,
+            paddingBottom: Math.max(insets.bottom, spacing.md),
+          },
+        ]}
+      >
         {actionDone === 'like' ? (
           <View style={styles.mutualHint}>
             <Ionicons name="heart" size={20} color={c.primary} />
@@ -630,7 +641,6 @@ const styles = StyleSheet.create({
 
   absHeader: {
     position: 'absolute',
-    top: 48,
     left: 0,
     right: 0,
     flexDirection: 'row',

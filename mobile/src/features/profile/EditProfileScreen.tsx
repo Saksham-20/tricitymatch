@@ -9,7 +9,6 @@ import {
   Image,
   Alert,
   ActivityIndicator,
-  Platform,
 } from 'react-native';
 import type { TextInputProps } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -611,7 +610,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingTop: Platform.OS === 'ios' ? 52 : 20,
+    paddingTop: spacing.md,
     paddingBottom: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colours.border,

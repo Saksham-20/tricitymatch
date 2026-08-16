@@ -256,7 +256,7 @@ export default function QuizScreen() {
       </ScrollView>
 
       {/* Footer */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
         {!isLast ? (
           <TouchableOpacity
             style={[styles.nextBtn, !answered && styles.nextBtnDisabled]}

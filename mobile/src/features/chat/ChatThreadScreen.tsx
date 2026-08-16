@@ -5,9 +5,10 @@ import {
 } from 'react-native';
 import SmartImage from '../../components/common/SmartImage';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
@@ -15,6 +16,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useSocket } from '../../hooks/useSocket';
 import { unlockContact } from '../../api/matches';
 import { getThread, sendMessage, editMessage, deleteMessage } from '../../api/chat';
+import { getProfile } from '../../api/profile';
 import { CONFIG } from '../../constants/config';
 import { queryKeys } from '../../constants/queryKeys';
 import type { MainStackParamList } from '../../navigation/types';
@@ -227,9 +229,27 @@ export default function ChatThreadScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
-  const { userId, name, photo } = route.params;
+  const { userId, name: nameParam, photo: photoParam } = route.params;
+
+  // Callers that only know the other user's id — a "new message" notification
+  // tap, for one — navigate here with an empty name, which rendered a chat with
+  // a blank header. Fall back to fetching the profile so the header is correct
+  // regardless of who navigated.
+  const { data: fallbackProfile } = useQuery({
+    queryKey: queryKeys.profile(userId),
+    queryFn: () => getProfile(userId),
+    enabled: !nameParam,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const name =
+    nameParam ||
+    [fallbackProfile?.firstName, fallbackProfile?.lastName].filter(Boolean).join(' ') ||
+    '';
+  const photo = photoParam ?? fallbackProfile?.profilePhoto ?? undefined;
 
   const { user } = useAuthStore();
+  const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
 
   const [input, setInput] = useState('');
@@ -449,7 +469,7 @@ export default function ChatThreadScreen() {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       {/* Header */}
-      <View style={s.header}>
+      <View style={[s.header, { paddingTop: insets.top + spacing.sm }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={s.backBtn}
@@ -534,7 +554,7 @@ export default function ChatThreadScreen() {
       )}
 
       {/* Input bar */}
-      <View style={s.inputBar}>
+      <View style={[s.inputBar, { paddingBottom: Math.max(insets.bottom, spacing.xs) }]}>
         <TextInput
           style={s.input}
           value={input}
@@ -591,7 +611,6 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.sm,
-    paddingTop: Platform.OS === 'ios' ? 56 : 12,
     paddingBottom: 10,
     backgroundColor: colours.surfaceCard,
     borderBottomWidth: 1,
@@ -791,7 +810,6 @@ const s = StyleSheet.create({
     alignItems: 'flex-end',
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
-    paddingBottom: Platform.OS === 'ios' ? spacing.md : spacing.xs,
     backgroundColor: colours.surfaceCard,
     borderTopWidth: 1,
     borderTopColor: colours.border,
