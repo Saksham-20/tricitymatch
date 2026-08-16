@@ -289,7 +289,10 @@ const s = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.semiBold,
     color: colours.textSecondary,
-    width: 60,
+    // 60pt cut "Reported:" mid-word on iOS, leaving a stray ":" on its own
+    // line. The label sizes itself; only the floor is fixed, so the two rows
+    // still line their values up.
+    minWidth: 76,
   },
   nameValue: {
     flex: 1,
