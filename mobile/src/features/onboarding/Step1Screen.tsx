@@ -20,11 +20,20 @@ const GENDERS: { key: Gender; tKey: string }[] = [
   { key: 'other', tKey: 'onboarding.step1.genderOptions.other' },
 ];
 
+/**
+ * One row per inch, 4'6"–7'0", matching the web editor's select. Stored in cm.
+ *
+ * This used to emit one row per centimetre and round the label to the nearest
+ * inch, so the list ran to 93 entries in which the feet-and-inches half repeated
+ * — 4'0" (121 cm), 4'0" (122 cm), 4'0" (123 cm) — and anyone choosing, say, 5'6"
+ * was offered three rows that read identically apart from a cm value most
+ * members do not think in.
+ */
 const HEIGHT_OPTIONS: { label: string; value: number }[] = [];
-for (let cm = 121; cm <= 213; cm++) {
-  const totalInches = Math.round(cm / 2.54);
+for (let totalInches = 54; totalInches <= 84; totalInches++) {
   const ft = Math.floor(totalInches / 12);
   const inches = totalInches % 12;
+  const cm = Math.round(totalInches * 2.54);
   HEIGHT_OPTIONS.push({ label: `${ft}'${inches}" (${cm} cm)`, value: cm });
 }
 

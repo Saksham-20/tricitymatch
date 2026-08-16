@@ -69,13 +69,18 @@ export default function Step14Screen() {
     ]).start();
   }, []);
 
+  // Read the completion figure only — deliberately WITHOUT committing the fetched
+  // user to the store. `onboardingComplete` is derived server-side from firstName,
+  // which was set back at step 1, so calling setUser here flips it true and
+  // RootNavigator swaps Onboarding out for Main mid-render: this screen would
+  // dismiss itself before anyone saw it. The store is updated in handleBrowse,
+  // when leaving is what the member actually asked for.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const fresh = await authApi.getMe();
         if (cancelled) return;
-        setUser(fresh);
         setCompletion(fresh.Profile?.completionPercentage ?? FALLBACK_COMPLETION);
       } catch {
         if (!cancelled) setCompletion(user?.Profile?.completionPercentage ?? FALLBACK_COMPLETION);
@@ -143,14 +148,16 @@ export default function Step14Screen() {
             <View style={styles.ringTrack} />
             {/* Completion percentage text */}
             <View style={styles.ringInner}>
-              <Animated.Text style={styles.ringPercent}>
-                {completion === null
-                  ? '—'
-                  : progressAnim.interpolate({
-                      inputRange: [0, 100],
-                      outputRange: ['0%', '100%'],
-                    })}
-              </Animated.Text>
+              {/*
+                Plain Text, not Animated.Text driven by an interpolated node.
+                React Native does not reliably update an AnimatedNode passed as
+                text *children* (as opposed to a style prop): the label renders
+                its value at mount and then never moves, so the ring read a
+                frozen 0%. The animation still drives the arc below.
+              */}
+              <Text style={styles.ringPercent}>
+                {completion === null ? '—' : `${Math.round(completion)}%`}
+              </Text>
               <Text style={styles.ringLabel}>{t('onboarding.step14.complete')}</Text>
             </View>
           </View>

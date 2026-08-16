@@ -20,7 +20,9 @@
     "yes": "Yes",
     "no": "No",
     "or": "or",
-    "optional": "Optional"
+    "optional": "Optional",
+    "permissionRequired": "Permission required",
+    "remove": "Remove"
   },
   "auth": {
     "login": {
@@ -90,7 +92,7 @@
       "dateOfBirth": "Date of Birth",
       "gender": "Gender",
       "height": "Height",
-      "weight": "Weight (optional)",
+      "weight": "Weight",
       "genderOptions": {
         "male": "Man",
         "female": "Woman",
@@ -208,21 +210,37 @@
       "title": "Add Photos",
       "subtitle": "Clear face photos get 5x more matches",
       "addPhoto": "Add Photo",
-      "camera": "Camera",
-      "gallery": "Gallery",
-      "faceMask": "Face Mask",
-      "guidelines": "Clear face, no sunglasses, recent photo",
-      "minRequired": "At least 1 photo required"
+      "guide1": "Clear, well-lit face photo",
+      "guide2": "No group photos or sunglasses",
+      "guide3": "Recent — taken within the last year",
+      "addFirst": "Add photo",
+      "addMore": "Add more",
+      "primary": "Main",
+      "count": "{{count}} of {{max}} photos added",
+      "photoPermission": "Photo access is needed to add pictures to your profile.",
+      "uploadError": "Could not upload that photo. Please try again.",
+      "removeTitle": "Remove photo",
+      "removeMessage": "Remove this photo from your profile?",
+      "removePhoto": "Remove"
     },
     "step13": {
       "title": "Verify Mobile",
       "subtitle": "We'll send a verification code to your number",
       "phone": "Phone Number",
       "sendOtp": "Send OTP",
-      "enterOtp": "Enter 6-digit OTP",
+      "enterOtp": "Enter the 4-digit code",
       "resend": "Resend OTP",
       "resendIn": "Resend in {{seconds}}s",
-      "invalidOtp": "Incorrect OTP. Please try again."
+      "invalidOtp": "Incorrect OTP. Please try again.",
+      "otpTitle": "Enter the code",
+      "otpSubtitle": "We sent a 4-digit code to {{phone}}",
+      "phoneLabel": "Phone number",
+      "phoneError": "Enter a valid 10-digit mobile number",
+      "sendError": "Could not send the code. Please try again.",
+      "tooManyAttempts": "Too many attempts. Please request a new code.",
+      "verify": "Verify",
+      "verifying": "Verifying…",
+      "noCode": "Didn't get the code?"
     },
     "step14": {
       "title": "You're all set!",
