@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   ScrollView, Animated,
@@ -18,7 +18,13 @@ type RootNav = NativeStackNavigationProp<RootStackParamList>;
 
 const RING_SIZE = 140;
 const RING_THICKNESS = 10;
-const COMPLETION_PERCENTAGE = 72; // base onboarding completion
+
+/**
+ * Shown only until the real figure arrives from the server. This used to be a
+ * fixed 72 that every member saw regardless of what they had actually filled in,
+ * so a sparse profile and a complete one both celebrated the same number.
+ */
+const FALLBACK_COMPLETION = 0;
 
 const NEXT_STEPS = [
   {
@@ -47,24 +53,48 @@ export default function Step14Screen() {
   const navigation = useNavigation<RootNav>();
   const { setUser, user } = useAuthStore();
 
+  // The member's real profile completion, read from the server once onboarding
+  // has been written. Until it lands we show nothing rather than a stand-in.
+  const [completion, setCompletion] = useState<number | null>(null);
+
   // Animated scale for the ring entrance
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.sequence([
-      Animated.parallel([
-        Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 60, friction: 7 }),
-        Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
-      ]),
-      Animated.timing(progressAnim, {
-        toValue: COMPLETION_PERCENTAGE,
-        duration: 1000,
-        useNativeDriver: false,
-      }),
+    Animated.parallel([
+      Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 60, friction: 7 }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
     ]).start();
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const fresh = await authApi.getMe();
+        if (cancelled) return;
+        setUser(fresh);
+        setCompletion(fresh.Profile?.completionPercentage ?? FALLBACK_COMPLETION);
+      } catch {
+        if (!cancelled) setCompletion(user?.Profile?.completionPercentage ?? FALLBACK_COMPLETION);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (completion === null) return;
+    Animated.timing(progressAnim, {
+      toValue: completion,
+      duration: 1000,
+      useNativeDriver: false,
+    }).start();
+  }, [completion, progressAnim]);
 
   const handleBrowse = async () => {
     // Mark onboarding complete in user store
@@ -114,7 +144,12 @@ export default function Step14Screen() {
             {/* Completion percentage text */}
             <View style={styles.ringInner}>
               <Animated.Text style={styles.ringPercent}>
-                {progressAnim.interpolate({ inputRange: [0, COMPLETION_PERCENTAGE], outputRange: ['0%', `${COMPLETION_PERCENTAGE}%`] })}
+                {completion === null
+                  ? '—'
+                  : progressAnim.interpolate({
+                      inputRange: [0, 100],
+                      outputRange: ['0%', '100%'],
+                    })}
               </Animated.Text>
               <Text style={styles.ringLabel}>{t('onboarding.step14.complete')}</Text>
             </View>

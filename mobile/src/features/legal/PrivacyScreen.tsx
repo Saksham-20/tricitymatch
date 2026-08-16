@@ -7,7 +7,7 @@ export default function PrivacyScreen() {
     <LegalLayout title="Privacy Policy" subtitle="Last updated: July 2026">
       <Section>
         <Para>
-          TricityShadi respects your privacy. This policy explains what personal information we
+          TricityMatch respects your privacy. This policy explains what personal information we
           collect, how we use and protect it, and the choices you have. We handle your data in line
           with applicable Indian law, including the Digital Personal Data Protection Act, 2023.
         </Para>
@@ -62,7 +62,7 @@ export default function PrivacyScreen() {
       </Section>
 
       <Section heading="10. Children's Privacy">
-        <Para>TricityShadi is intended only for adults aged 18 and above. We do not knowingly collect information from minors. If you believe a minor has provided us data, please contact us and we will remove it.</Para>
+        <Para>TricityMatch is intended only for adults aged 18 and above. We do not knowingly collect information from minors. If you believe a minor has provided us data, please contact us and we will remove it.</Para>
       </Section>
 
       <Section heading="11. Changes to This Policy">

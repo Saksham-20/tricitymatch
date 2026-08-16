@@ -13,6 +13,7 @@ import {
   Share,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,6 +23,7 @@ import { colours, typography, spacing, borderRadius } from '@shared/constants/th
 import { CompletionRing as SharedCompletionRing } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
 import { getMyProfile, getProfileViewers, getRecentlyViewed } from '../../api/profile';
+import { getPhotoVerification } from '../../api/verification';
 import { formatDate } from '../../utils/dateUtils';
 import { queryKeys } from '../../constants/queryKeys';
 import { useAuthStore } from '../../stores/authStore';
@@ -229,22 +231,32 @@ function CompletionRing({ pct }: { pct: number }) {
 
 // ─── Verification Badges ─────────────────────────────────────────────────────
 
+/**
+ * Two tiers, because two tiers is what the product has.
+ *
+ * This row used to show a four-rung ladder — Mobile / ID / Education / Income —
+ * left over from a verification model that was removed: govt-ID collection went
+ * in 2026-07-02 and the app is selfie-only now, while education and income
+ * verification never had a backend at all. The call site passed
+ * `idVerified={false}` as a literal and the last two rungs were hardcoded
+ * `false`, so three of the four badges could never be earned by anyone, and the
+ * "Get Verified" CTA below them was shown unconditionally — including to members
+ * who were already verified.
+ */
 const VERIFICATION_TIERS = [
-  { key: 'mobile', label: 'Mobile', color: colours.badgeMobile, icon: 'phone-portrait' },
-  { key: 'id', label: 'ID', color: colours.badgeID, icon: 'card' },
-  { key: 'education', label: 'Education', color: colours.badgeEducation, icon: 'school' },
-  { key: 'income', label: 'Income', color: colours.badgeIncome, icon: 'cash' },
+  { key: 'mobile', label: 'Mobile', color: colours.badgeMobile },
+  { key: 'photo', label: 'Photo', color: colours.badgeID },
 ] as const;
 
 interface VerifBadgesProps {
   phoneVerified: boolean;
-  idVerified: boolean;
+  photoVerified: boolean;
   onGetVerified: () => void;
 }
 
-function VerificationBadges({ phoneVerified, idVerified, onGetVerified }: VerifBadgesProps) {
+function VerificationBadges({ phoneVerified, photoVerified, onGetVerified }: VerifBadgesProps) {
   const { c } = useTheme();
-  const earned = [phoneVerified, idVerified, false, false];
+  const earned = [phoneVerified, photoVerified];
   return (
     <View style={vb.container}>
       <View style={vb.row}>
@@ -259,7 +271,7 @@ function VerificationBadges({ phoneVerified, idVerified, onGetVerified }: VerifB
           </View>
         ))}
       </View>
-      {!idVerified && (
+      {!photoVerified && (
         <TouchableOpacity
           style={[vb.ctaBtn, { backgroundColor: c.accentSoft }]}
           onPress={onGetVerified}
@@ -440,6 +452,7 @@ export default function OwnProfileScreen() {
   const navigation = useNavigation<Nav>();
   const user = useAuthStore((s) => s.user);
   const { c } = useTheme();
+  const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
   const [previewMode, setPreviewMode] = useState(false);
   const queryClient = useQueryClient();
@@ -463,6 +476,14 @@ export default function OwnProfileScreen() {
     queryFn: getProfileViewers,
     enabled: isPremium,
     staleTime: 60 * 1000,
+  });
+
+  // Real photo-verification state, so the badge row and the "Get Verified" CTA
+  // reflect what this member has actually done rather than a hardcoded false.
+  const { data: photoVerification } = useQuery({
+    queryKey: queryKeys.verification,
+    queryFn: getPhotoVerification,
+    staleTime: 2 * 60 * 1000,
   });
 
   const handleVoiceIntroSaved = (url: string | null) => {
@@ -517,7 +538,7 @@ export default function OwnProfileScreen() {
       testID="OwnProfileScreen"
     >
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
         <Text style={[styles.headerTitle, { color: c.fgStrong }]}>My Profile</Text>
         <TouchableOpacity
           onPress={goToSettings}
@@ -661,7 +682,7 @@ export default function OwnProfileScreen() {
       {/* Verification badges */}
       <VerificationBadges
         phoneVerified={user?.phoneVerified ?? false}
-        idVerified={false}
+        photoVerified={photoVerification?.status === 'approved'}
         onGetVerified={goToVerification}
       />
 
@@ -814,7 +835,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingTop: 52,
     paddingBottom: spacing.md,
   },
   headerTitle: {

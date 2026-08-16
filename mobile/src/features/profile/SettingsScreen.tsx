@@ -299,7 +299,7 @@ export default function SettingsScreen() {
           <SettingRow
             icon="shield-checkmark-outline"
             label="Verification"
-            sublabel="Verify your ID, education & income"
+            sublabel="Get your photo-verified badge"
             onPress={() => navigation.navigate('Verification')}
             testID="setting-verification"
           />
@@ -419,8 +419,8 @@ export default function SettingsScreen() {
         <Section title="Notifications">
           <SettingRow
             icon="notifications-outline"
-            label="Notification Preferences"
-            sublabel="Manage which alerts you receive"
+            label="Notifications"
+            sublabel="View your matches, messages and alerts"
             onPress={() => navigation.navigate('Notifications')}
             testID="setting-notifications"
           />
@@ -496,7 +496,7 @@ export default function SettingsScreen() {
           <SettingRow
             icon="information-circle-outline"
             iconColor={colours.textSecondary}
-            label="About TricityShadi"
+            label="About TricityMatch"
             onPress={() => navigation.navigate('About')}
             testID="setting-about"
           />

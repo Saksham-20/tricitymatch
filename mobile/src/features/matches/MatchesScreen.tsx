@@ -31,6 +31,7 @@ import { haptics } from '../../utils/haptics';
 import type { MainStackParamList } from '../../navigation/types';
 import type { Match, MatchAction } from '../../types';
 import { useAuthStore } from '../../stores/authStore';
+import { useUIStore } from '../../stores/uiStore';
 import { hasPremiumAccess } from '../../utils/entitlements';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
@@ -153,6 +154,10 @@ function TabContent({ activeTab }: { activeTab: TabKey }) {
   // flag on opens chat; it must not silently hand out every paid surface.
   const authUser = useAuthStore((st) => st.user);
   const hasPlus = hasPremiumAccess(authUser);
+  // Elder mode removes the Chat tab from the navigator entirely, so navigating
+  // to it is a silent no-op — the button looked live and did nothing. Hide the
+  // chat affordances instead of offering a dead one.
+  const elderMode = useUIStore((st) => st.elderMode);
   // mutual-match seal celebration (shown after accepting a "Liked Me" interest)
   const [celebrate, setCelebrate] = useState<{ name: string } | null>(null);
 
@@ -260,7 +265,7 @@ function TabContent({ activeTab }: { activeTab: TabKey }) {
               navigation.navigate('ProfileDetail', { userId: item.matchedUserId })
             }
             onChat={
-              activeTab === 'mutual'
+              activeTab === 'mutual' && !elderMode
                 ? () => navigation.navigate('MainTabs', { screen: 'Chat' } as any)
                 : undefined
             }
@@ -298,10 +303,14 @@ function TabContent({ activeTab }: { activeTab: TabKey }) {
         visible={!!celebrate}
         name={celebrate?.name}
         onClose={() => setCelebrate(null)}
-        onMessage={() => {
-          setCelebrate(null);
-          navigation.navigate('MainTabs', { screen: 'Chat' } as never);
-        }}
+        onMessage={
+          elderMode
+            ? undefined
+            : () => {
+                setCelebrate(null);
+                navigation.navigate('MainTabs', { screen: 'Chat' } as never);
+              }
+        }
       />
     </View>
   );

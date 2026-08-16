@@ -9,7 +9,6 @@ export type AuthStackParamList = {
   Signup: undefined;
   ForgotPassword: undefined;
   ResetPassword: { token: string };
-  OTP: { phone: string };
 };
 
 // Onboarding Stack

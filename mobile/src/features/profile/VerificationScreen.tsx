@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colours, spacing, borderRadius, type } from '@shared/constants/theme';
 import { Button, Card, EmptyState, ScreenHeader, SkeletonBlock, TickRing } from '../../components/ui';
 import { getPhotoVerification, submitVerification } from '../../api/verification';
+import { useAuthStore } from '../../stores/authStore';
 import { queryKeys } from '../../constants/queryKeys';
 import type { PhotoVerification } from '../../types';
 
@@ -91,6 +92,7 @@ const PERKS = [
 export default function VerificationScreen() {
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
+  const phoneVerified = useAuthStore((st) => st.user?.phoneVerified ?? false);
   const [submitting, setSubmitting] = useState(false);
 
   const { data, isLoading, isError, refetch } = useQuery({
@@ -166,7 +168,7 @@ export default function VerificationScreen() {
                 <Ionicons name="phone-portrait-outline" size={18} color={colours.badgeMobile} />
                 <Text style={s.statusName}>Mobile number</Text>
               </View>
-              <StatusPill status="approved" />
+              <StatusPill status={phoneVerified ? 'approved' : 'not_submitted'} />
             </View>
             <View style={[s.statusRow, s.statusRowLast]}>
               <View style={s.statusLeft}>

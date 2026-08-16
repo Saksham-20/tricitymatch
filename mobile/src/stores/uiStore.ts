@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import type { SubscriptionPlanType } from '../types';
 import { cache, CACHE_KEYS } from '../utils/cache';
 
 type Language = 'en' | 'hi' | 'pa';
@@ -19,14 +18,10 @@ interface UIState {
   // sheets). Owner decision 2026-08-10: ship light-locked, retrofit in RN-G, then
   // restore `null` here so the system preference is honoured again.
   darkModeOverride: boolean | null;
-  upgradeModalVisible: boolean;
-  upgradeModalRequiredPlan: SubscriptionPlanType | null;
 
   setLanguage: (lang: Language) => void;
   setElderMode: (enabled: boolean) => void;
   setDarkModeOverride: (value: boolean | null) => void;
-  showUpgradeModal: (plan: SubscriptionPlanType) => void;
-  hideUpgradeModal: () => void;
   initFromCache: () => void;
 }
 
@@ -37,8 +32,6 @@ export const useUIStore = create<UIState>((set) => ({
   language: 'en',
   elderMode: false,
   darkModeOverride: DEFAULT_DARK_MODE_OVERRIDE,
-  upgradeModalVisible: false,
-  upgradeModalRequiredPlan: null,
 
   setLanguage: (language) => {
     cache.setString(CACHE_KEYS.LANGUAGE, language);
@@ -57,14 +50,6 @@ export const useUIStore = create<UIState>((set) => ({
       cache.setString(CACHE_KEYS.DARK_MODE, value ? 'true' : 'false');
     }
     set({ darkModeOverride: value });
-  },
-
-  showUpgradeModal: (upgradeModalRequiredPlan) => {
-    set({ upgradeModalVisible: true, upgradeModalRequiredPlan });
-  },
-
-  hideUpgradeModal: () => {
-    set({ upgradeModalVisible: false, upgradeModalRequiredPlan: null });
   },
 
   initFromCache: () => {

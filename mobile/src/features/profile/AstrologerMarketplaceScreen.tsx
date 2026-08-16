@@ -29,59 +29,6 @@ const SPECIALITY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   'Gemstone': 'diamond-outline',
 };
 
-// Stub data (backend returns [] until implemented)
-const STUB_ASTROLOGERS: Astrologer[] = [
-  {
-    id: 'ast_1',
-    name: 'Pt. Rajesh Sharma',
-    speciality: ['Kundli Matching', 'Marriage Timing'],
-    experience: 18,
-    rating: 4.8,
-    reviewCount: 342,
-    pricePerMin: 25,
-    languages: ['Hindi', 'Punjabi', 'English'],
-    avatarUrl: '',
-    isOnline: true,
-  },
-  {
-    id: 'ast_2',
-    name: 'Acharya Sunita Devi',
-    speciality: ['Numerology', 'Career'],
-    experience: 12,
-    rating: 4.6,
-    reviewCount: 198,
-    pricePerMin: 18,
-    languages: ['Hindi', 'English'],
-    avatarUrl: '',
-    isOnline: true,
-  },
-  {
-    id: 'ast_3',
-    name: 'Pt. Vikram Joshi',
-    speciality: ['Kundli Matching', 'Vastu', 'Gemstone'],
-    experience: 25,
-    rating: 4.9,
-    reviewCount: 571,
-    pricePerMin: 35,
-    languages: ['Hindi', 'Punjabi'],
-    avatarUrl: '',
-    isOnline: false,
-    nextAvailable: 'Today 6:00 PM',
-  },
-  {
-    id: 'ast_4',
-    name: 'Dr. Meena Kapoor',
-    speciality: ['Marriage Timing', 'Gemstone'],
-    experience: 9,
-    rating: 4.5,
-    reviewCount: 124,
-    pricePerMin: 20,
-    languages: ['Hindi', 'English', 'Punjabi'],
-    avatarUrl: '',
-    isOnline: false,
-    nextAvailable: 'Tomorrow 10:00 AM',
-  },
-];
 
 function AstrologerCard({ item, onPress }: { item: Astrologer; onPress: () => void }) {
   return (
@@ -142,12 +89,13 @@ export default function AstrologerMarketplaceScreen() {
   const nav = useNavigation<Nav>();
   const [filter, setFilter] = useState<'all' | 'online'>('all');
 
+  // No stub fallback. The listing previously substituted four invented
+  // astrologers — names, ratings, review counts and prices — whenever the API
+  // returned nothing, which it always does. Fabricated practitioners with
+  // fabricated credentials are not placeholder copy; they shipped as if real.
   const { data, isLoading } = useQuery({
     queryKey: ['astrologers'],
     queryFn: getAstrologers,
-    // Use stub data if backend returns empty / errors
-    select: (d) => (d && d.length > 0 ? d : STUB_ASTROLOGERS),
-    placeholderData: STUB_ASTROLOGERS,
   });
 
   const filtered = filter === 'online' ? (data ?? []).filter(a => a.isOnline) : (data ?? []);
@@ -207,7 +155,16 @@ export default function AstrologerMarketplaceScreen() {
           ListEmptyComponent={
             <View style={s.empty}>
               <Ionicons name="moon-outline" size={48} color={colours.textMuted} />
-              <Text style={s.emptyText}>No astrologers online right now</Text>
+              <Text style={s.emptyText}>
+                {filter === 'online'
+                  ? 'No astrologers online right now'
+                  : 'Astrologer consultations are coming soon'}
+              </Text>
+              {filter === 'all' && (
+                <Text style={s.emptySub}>
+                  We are onboarding certified Vedic astrologers. Check back shortly.
+                </Text>
+              )}
             </View>
           }
         />
@@ -238,6 +195,7 @@ const s = StyleSheet.create({
 
   empty:       { alignItems: 'center', paddingVertical: 60, gap: spacing.sm },
   emptyText:   { fontSize: typography.fontSize.base, color: colours.textMuted },
+  emptySub:    { fontSize: typography.fontSize.sm, color: colours.textMuted, textAlign: 'center', paddingHorizontal: spacing.xl },
 });
 
 const c = StyleSheet.create({

@@ -25,7 +25,7 @@ export default function AboutScreen() {
     <LegalLayout title="About Us" subtitle="Our story · Tricity only · Since 2011">
       <Section>
         <Para>
-          TricityShadi is a hyperlocal matrimonial platform built specifically for families in
+          TricityMatch is a hyperlocal matrimonial platform built specifically for families in
           Chandigarh, Mohali and Panchkula — where finding a life partner is meaningful, safe and
           community-first. Matrimony built for families, not algorithms.
         </Para>

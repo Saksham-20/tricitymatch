@@ -12,7 +12,6 @@ export type { EmptyStateIcon } from './EmptyState';
 export { SkeletonBlock, SkeletonRow, SkeletonCard } from './Skeleton';
 export { default as ListRow } from './ListRow';
 export { default as TickRing, CompletionRing, CompatRing } from './TickRing';
-export { default as OtpInput } from './OtpInput';
 export { default as PasswordStrength, scorePassword } from './PasswordStrength';
 export { default as GoldLock } from './GoldLock';
 export { default as Toast } from './Toast';

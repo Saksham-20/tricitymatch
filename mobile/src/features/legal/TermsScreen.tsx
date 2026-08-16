@@ -7,15 +7,15 @@ export default function TermsScreen() {
     <LegalLayout title="Terms of Service" subtitle="Last updated: July 2026">
       <Section>
         <Para>
-          Welcome to TricityShadi — a matrimonial platform for the Tricity region (Chandigarh,
+          Welcome to TricityMatch — a matrimonial platform for the Tricity region (Chandigarh,
           Mohali, and Panchkula) and beyond. These Terms of Service ("Terms") are an agreement
-          between you and TricityShadi. By creating an account or using the platform, you accept
+          between you and TricityMatch. By creating an account or using the platform, you accept
           these Terms.
         </Para>
       </Section>
 
       <Section heading="1. Acceptance of Terms">
-        <Para>By accessing or using TricityShadi ("the Service"), you agree to be bound by these Terms. If you do not agree, please do not use the Service.</Para>
+        <Para>By accessing or using TricityMatch ("the Service"), you agree to be bound by these Terms. If you do not agree, please do not use the Service.</Para>
       </Section>
 
       <Section heading="2. Eligibility">
@@ -43,7 +43,7 @@ export default function TermsScreen() {
       </Section>
 
       <Section heading="6. Your Content">
-        <Para>You retain ownership of the content you upload. By uploading it, you grant TricityShadi a limited licence to host, display, and process that content to operate the Service (for example, showing your profile to other members according to your privacy settings). You are responsible for having the rights to any content you upload.</Para>
+        <Para>You retain ownership of the content you upload. By uploading it, you grant TricityMatch a limited licence to host, display, and process that content to operate the Service (for example, showing your profile to other members according to your privacy settings). You are responsible for having the rights to any content you upload.</Para>
       </Section>
 
       <Section heading="7. Subscriptions & Payments">
@@ -51,7 +51,7 @@ export default function TermsScreen() {
       </Section>
 
       <Section heading="8. No Guarantee of Outcome">
-        <Para>TricityShadi helps you discover and connect with prospective matches. We do not guarantee that you will find a match, a response, or a marriage, and we are not a party to any relationship that results from using the Service.</Para>
+        <Para>TricityMatch helps you discover and connect with prospective matches. We do not guarantee that you will find a match, a response, or a marriage, and we are not a party to any relationship that results from using the Service.</Para>
       </Section>
 
       <Section heading="9. Privacy">
@@ -67,7 +67,7 @@ export default function TermsScreen() {
       </Section>
 
       <Section heading="12. Limitation of Liability">
-        <Para>To the maximum extent permitted by law, TricityShadi shall not be liable for any indirect, incidental, special, or consequential damages, or for the acts or omissions of any user, arising from your use of the Service.</Para>
+        <Para>To the maximum extent permitted by law, TricityMatch shall not be liable for any indirect, incidental, special, or consequential damages, or for the acts or omissions of any user, arising from your use of the Service.</Para>
       </Section>
 
       <Section heading="13. Governing Law">
