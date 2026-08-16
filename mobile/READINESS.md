@@ -1,58 +1,82 @@
-# TricityShadi Mobile — Launch Readiness
+# TricityMatch Mobile — Launch Readiness
 
-_Last updated: 2026-07-14 · branch `mobile/launch-prep`_
+_Last updated: 2026-08-16 · `main`_
 
-## Scores
+> The previous revision of this file was dated 2026-07-14 and was wrong in ways
+> that mattered: it scored store-submission readiness on the strength of a commit
+> that had never compiled, called `react-native-iap` and `expo-localization`
+> "declared but not installed" when both are podded, and was written before the
+> 2026-07-29 rebrand so it still said TricityShadi throughout. Treat scores here
+> as claims that must be re-verified against a built artifact, not as state.
 
-| Dimension | Score | Notes |
-|---|---|---|
-| **Member-app feature/data parity with website** | **9.0 / 10** | All member pages, forms, fields, and live data present. Legal pages added. Remaining: full hi/pa i18n on 6 screens. |
-| **Payments (code)** | **9.0 / 10** | iOS→web redirect, Android Razorpay + Google Play chooser, unlock bundles, NRI currency — all code-complete. Not yet exercised on a real store build. |
-| **Store-submission readiness** | **7.0 / 10** | targetSdk 35 done (SDK 52). Gated on: `expo prebuild --clean` native regen, real EAS/store accounts, IAP product setup, live payment test. See Blockers. |
-| **Overall code completeness** | **8.5 / 10** | The app is code-complete for launch; the gap to "in the stores" is configuration + accounts + one platform upgrade, not features. |
+## Where this actually stands
 
-**Bottom line:** the member app is functionally done and store-configured. It is **not one click from the stores** — three things stand between here and a live listing: (1) an **Expo SDK 51→52+ upgrade** for Google's targetSdk-35 rule, (2) **your Apple + Google accounts** to create the apps / IAP products / signing, and (3) a **native build** to test real payments, camera, and push. All are documented in `docs/STORE_LAUNCH_CHECKLIST.md`.
-
----
-
-## ✅ Complete
-
-- **All member screens + navigation** (auth, onboarding, home, search, matches, chat, profile/edit, subscription, verification, guardian, astrologers, notifications, settings, success stories).
-- **In-app legal & info**: Terms, Privacy, About, Safety, Contact (native, ported from web) — reachable from Settings → About & Legal and from Signup. _Required by both stores._
-- **Payments rework**
-  - iOS: subscribe CTA opens `tricityshadi.com/subscription` (no Apple IAP / 30% cut).
-  - Android: payment-method chooser — Card/UPI (Razorpay) **or** Google Play.
-  - Unlock-bundle top-ups on the Subscription screen.
-  - NRI indicative local-currency display (charged in ₹).
-  - Backend `POST /subscription/google-verify` (Play Developer API token validation + acknowledge + supersede prior sub; config-gated).
-- **Fixed a latent payment bug**: mobile sent snake_case `razorpay_*` keys; backend/web use camelCase → verify would have 400'd every real Razorpay/bundle purchase.
-- **Store config**: iOS encryption declaration, Android `BILLING` permission, `expo-localization` plugin, Apple-4.8 Google-login gate, verified 1024² icons + splash.
-- **Regression**: mobile `tsc` 0 errors · backend unit **171/171** green.
-
-## 🟡 Config-gated (code done, needs credentials / native build)
-
-| Item | What's needed |
+| Dimension | State |
 |---|---|
-| Google Play Billing | Create subscription products in Play Console with the exact IDs in `backend/constants/plans.js → GOOGLE_PLAY_PRODUCTS` (`tricityshadi_basic_premium`, …); set `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` on the server; native build. |
-| Razorpay (Android) | `EXPO_PUBLIC_RAZORPAY_KEY_ID` + live server keys; `react-native-razorpay` linked in a native build. |
-| `react-native-iap`, `expo-localization` | Declared in `package.json` but not installed. Run `npx expo install react-native-iap expo-localization` then prebuild/EAS build. (App runs fine without them in Expo Go — they degrade gracefully.) |
-| Push (FCM) | Firebase creds + native build. |
-| In-app calls (Agora) | `EXPO_PUBLIC_AGORA_APP_ID` + server certificate. |
+| Member-app parity with the website | **Good.** All member screens, forms and live data present. Gaps are listed below and are backend-shaped, not UI-shaped. |
+| Builds and runs | **Verified.** Builds and boots on an API 35 Android emulator and an iPhone 17 Pro simulator; walked authed end-to-end (login → home → search + filters → matches → chat send → profile → settings → verification → subscription). |
+| Android store posture | **Close.** targetSdk 35 confirmed in the installed artifact; sensitive permissions stripped from the release APK. Gated on a Play Console account and live payment keys. |
+| iOS store posture | **Blocked on accounts.** No Apple Developer account, no `DEVELOPMENT_TEAM`, placeholder `submit.production.ios`. |
+| Payments | **Code complete, cannot take money.** No live Razorpay keys anywhere; Google Play billing needs a Play-signed build. |
+| Push and calls | **Not shipped.** See below — this is not a config gap. |
 
-## 🔴 Blockers / decisions
+## Verified against artifacts, not config
 
-1. **Google Play targetSdk 35 — ✅ RESOLVED.** Upgraded to **Expo SDK 52 / React Native 0.76.9** (targetSdk 35). All native deps aligned: react 18.3.1, react-native-screens 4.4.0, reanimated 3.16.7, gesture-handler 2.20.2, safe-area-context 4.12.0, @gorhom/bottom-sheet 5.2.14, MMKV 2.12.2 (old arch). Verified: mobile `tsc` 0, **Metro production bundle succeeds** (5.5 MB Hermes), expo-doctor clean of blockers, backend 171/171, frontend build ✓.
-   - **⚠️ One native step remains:** the committed `mobile/android` + `mobile/ios` folders were generated for SDK 51 and are now stale. Run **`npx expo prebuild --clean`** to regenerate them for SDK 52 before a local native build (EAS Build does this automatically). New arch stays **off** (MMKV v2, react-native-razorpay, react-native-fast-image are old-arch only).
-2. **Apple Sign in with Apple (Guideline 4.8)** — Google login is currently **hidden on iOS** to avoid rejection. To offer social login on iOS, add `expo-apple-authentication` (Sign in with Apple). Otherwise iOS ships email/password only (fine).
-3. **iOS external-payment link (3.1.1/3.1.3)** — the website redirect is now permissible but a review-risk area. Include the App Review note in the checklist; fallback is read-only plans with no link.
+- `targetSdk=35` read from `adb shell dumpsys package com.tricityshadi.app` on a
+  running install.
+- Release APK requests no `SYSTEM_ALERT_WINDOW`, no `WRITE_EXTERNAL_STORAGE` and
+  no `READ_PHONE_STATE`, confirmed with `aapt dump permissions`. The last of
+  those is merged in by `com.razorpay:core` and is a Play *restricted*
+  permission; it is blocked, and must be re-checked against a real Razorpay
+  checkout once live keys exist.
+- Safe areas exercised on an API 35 emulator (edge-to-edge is forced there) and
+  on a Dynamic Island simulator.
 
-## ⚪ Out of scope / known gaps (non-blocking)
+## Not shipped — and not merely unconfigured
 
-- **i18n residual**: 6 member screens still English-only (Notifications, Astrologer ×2, HoroscopeMatch, Support, SuccessStory). Language switch works elsewhere. ~½ day.
-- **Admin/Bureau stacks**: deferred. Admin `VerificationQueueScreen` still document-based (web admin is selfie photo-comparison) — needs a rework when admin is in scope.
-- **Astrologer marketplace**: stub data (backend table unseeded).
-- **Saved searches / sent-interests**: no backend; UI intentionally hidden.
+These read as "config-gated" in older docs. They are not: the packages are absent
+from `mobile/package.json`, so no amount of environment setup turns them on.
 
-## Not live-tested (needs a native build / hardware)
+- **Voice/video calls** — `react-native-agora` is not installed. The call screens
+  are dynamic-require stubs; call buttons stay hidden behind
+  `CONFIG.IS_AGORA_CONFIGURED`.
+- **Push notifications** — `@react-native-firebase/messaging` is not installed,
+  and there is no `google-services.json` / `GoogleService-Info.plist`, no
+  notification config in `app.json`, and no `POST_NOTIFICATIONS` permission.
 
-Real Google Play + Razorpay purchase, live-camera selfie verification, voice/video calls, FCM push. All are code-complete and config-gated; verify on the first internal (TestFlight / Play internal-testing) build.
+## Owner-blocked
+
+1. Apple Developer Program enrolment (nothing iOS-store-shaped can proceed without it).
+2. Play Console account — if it is a personal account, the 12-tester / 14-consecutive-day
+   clock starts at the first installable build, so start it early.
+3. Expo account + `eas init` — `extra.eas.projectId` is still the literal string
+   `tricityshadi-app`, so **no EAS build can run at all** until this is replaced.
+4. Live Razorpay keys (KYC).
+5. Sentry DSN — the reporter is wired and deliberately dark without one.
+6. Store collateral: screenshots, descriptions, data-safety / App-Privacy declarations.
+
+## Known product gaps
+
+- **Astrologer marketplace** has no backend; both screens now show honest
+  "coming soon" states rather than invented practitioners.
+- **Saved searches** and a **sent-interests** tab have no endpoints; the UI is hidden.
+- **i18n**: 6 member screens remain English-only; language switching itself works.
+- **Dark mode** is light-locked on purpose — 84 of 88 screen files bake the light
+  palette into module-scope `StyleSheet.create`, which cannot respond to a theme
+  change. Do not unlock it before that retrofit.
+
+## Installing on a real device today
+
+No EAS project exists, so use the local cable path:
+
+```bash
+cd mobile
+npx expo prebuild --clean          # after any app.json change
+npx expo run:android --device      # debug-signed; fine for testing, not for Play
+npx expo run:ios --device          # select a signing team in Xcode first
+```
+
+Point the build at an environment with `mobile/.env` (`EXPO_PUBLIC_API_URL` must
+include `/api/v1` — `eas.json` overrides `.env` on EAS builds, and once did not).
+
+See `docs/STORE_LAUNCH_CHECKLIST.md` for the submission sequence.
