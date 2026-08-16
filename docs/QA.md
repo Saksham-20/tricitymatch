@@ -10,7 +10,7 @@
 - Live app is the source of truth, not the source code.
 - After any fix: re-run the screen, confirm fixed, check console clean, then move on.
 - Per area: update the run tracker, screenshot before/after.
-- **Regression gate before sign-off:** FE tests `31/31` green · BE unit `116/116` green · `npm run build` green · console 0 non-benign errors.
+- **Regression gate before sign-off:** BE unit `259/259` · FE `97/97` · mobile jest `57/57` · mobile `tsc` 0 · root `npm run lint` 0 errors · slop-lint clean · `npm run build` green · console 0 non-benign errors. (Counts move; treat them as a floor, and never let a leg be skipped — root `npm test` used to die at its first leg so later legs silently never ran.)
 
 **Severity:** 🔴 Critical · 🟠 High · 🟡 Medium · ⚪ Low/Cosmetic
 **Status:** OPEN · FIXING · FIXED-VERIFIED · DEFERRED · WONTFIX
@@ -55,7 +55,7 @@ Workflow:
 - **No emoji in UI copy.** No `✓`/`!`/`✦` unicode-as-icon → use `react-icons`/`lucide` (`FiCheck`, `FiAlertCircle`, …).
 - **No childish multi-color info boxes** (`bg-blue/green/cyan/yellow/orange/indigo/pink/purple-50`) → one muted standard `bg-neutral-50 border-neutral-200 text-neutral-600`.
 - **No rainbow gradients** (`from-rose-*`/`pink`/`purple`/`amber→yellow`) → solid brand. Premium = gold, accent = burgundy. Semantic colors OK (red=danger, green=success, traffic-light progress).
-- Brand name is **"TricityMatch"** (never "TricityMatch") in all copy.
+- Brand name is **"TricityMatch"** in all copy — never "TricityShadi". (Bundle ids, the MMKV store id and `com.tricityshadi.app` are deliberately unchanged; those are identity, not display.)
 - Copy is formal — no clichéd/childish lines ("Make yourself shine", "perfect match").
 
 ---
@@ -78,7 +78,7 @@ Workflow:
 ---
 
 ## 4. React Native apps QA — iOS + Android simulators (macOS)
-App: `mobile/` — Expo SDK **51**, React **18.2**, RN **0.74.5**, react-navigation **v6**, MMKV **v2**, old arch, Zustand + React Query, i18n en/hi/pa. Native dirs (`ios/`, `android/`) are committed → prebuilt dev clients. Bundle id `com.tricityshadi.app` (both).
+App: `mobile/` — Expo SDK **52**, React **18.3.1**, RN **0.76.9**, react-navigation **v6**, MMKV **v2**, gorhom bottom-sheet **v5**, old arch (new arch OFF), Zustand + React Query, i18n en/hi/pa. Native dirs (`ios/`, `android/`) are committed → prebuilt dev clients. Bundle id `com.tricityshadi.app` (both).
 
 ### 4.1 Prerequisites (one-time on the MacBook)
 - **Xcode** (App Store) + Command Line Tools (`xcode-select --install`) → iOS Simulator. Open one sim once: `open -a Simulator`.
@@ -147,7 +147,7 @@ node_modules/.bin/tsc --noEmit -p tsconfig.json
 | Console / network | 0 non-benign errors; only expected logged-out 401 probe |
 | No dead UI | 0 TODO/dead-button/placeholder/lorem |
 | Professionalism | §2 anti-slop clean across audited screens |
-| Regression | FE 31/31 · BE 116/116 · build green |
+| Regression | BE 259 · FE 97 · mobile 57 · mobile tsc 0 · lint 0 · build green |
 | RN | iOS sim + Android emulator both pass per-area; `tsc --noEmit` clean |
 
 **Pre-launch (config, not code) — revert/supply before real users:**
