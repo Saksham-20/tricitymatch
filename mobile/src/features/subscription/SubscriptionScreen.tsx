@@ -35,6 +35,7 @@ import {
   IAP_UNAVAILABLE,
 } from '../../utils/iap';
 import { detectCurrency, formatLocalPrice, type DetectedCurrency } from '../../utils/currency';
+import { CONFIG } from '../../constants/config';
 import { queryKeys } from '../../constants/queryKeys';
 import { useAuthStore } from '../../stores/authStore';
 import type { MainStackParamList } from '../../navigation/types';
@@ -61,23 +62,57 @@ type RazorpayOptions = {
   theme?: { color: string };
 };
 
+/**
+ * Thrown when the checkout cannot be opened at all — the native module is absent
+ * (Expo Go) or no publishable key is configured. Distinct from a payment that
+ * opened and then failed or was cancelled, which must surface as itself.
+ */
+export class PaymentsUnavailableError extends Error {
+  constructor() {
+    super('Payments are unavailable in this build');
+    this.name = 'PaymentsUnavailableError';
+  }
+}
+
+function loadRazorpay(): { open: (o: RazorpayOptions) => Promise<unknown> } | null {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    return require('react-native-razorpay').default ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function openRazorpay(options: RazorpayOptions): Promise<{
   razorpay_payment_id: string;
   razorpay_order_id: string;
   razorpay_signature: string;
 }> {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const RazorpayCheckout = require('react-native-razorpay').default;
-    return await RazorpayCheckout.open(options);
-  } catch {
-    // Not installed (Expo Go / dev) — return stub
-    return {
-      razorpay_payment_id: 'pay_DEV_STUB',
-      razorpay_order_id: options.order_id,
-      razorpay_signature: 'DEV_STUB_SIG',
-    };
+  const RazorpayCheckout = loadRazorpay();
+
+  // Module missing or unconfigured. In development we hand back a stub so the
+  // rest of the flow can be exercised; in a release build we must NOT — feeding
+  // a fabricated payment id into /verify-payment turns "payments are not
+  // available" into "your payment failed on the server", and the earlier version
+  // of this function did exactly that.
+  if (!RazorpayCheckout || !CONFIG.IS_RAZORPAY_CONFIGURED) {
+    if (__DEV__ && !RazorpayCheckout) {
+      return {
+        razorpay_payment_id: 'pay_DEV_STUB',
+        razorpay_order_id: options.order_id,
+        razorpay_signature: 'DEV_STUB_SIG',
+      };
+    }
+    throw new PaymentsUnavailableError();
   }
+
+  // Anything thrown from here on is a real checkout outcome (cancelled, failed,
+  // network) and is propagated. It must never be converted into a fake success.
+  return (await RazorpayCheckout.open(options)) as {
+    razorpay_payment_id: string;
+    razorpay_order_id: string;
+    razorpay_signature: string;
+  };
 }
 
 // ─── Plan tier colours ────────────────────────────────────────────────────────
@@ -370,7 +405,7 @@ export default function SubscriptionScreen() {
     try {
       const orderData = await createOrder(selectedPlan);
       const paymentResult = await openRazorpay({
-        key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID ?? '',
+        key: CONFIG.RAZORPAY_KEY_ID,
         amount: orderData.amount,
         currency: orderData.currency,
         name: 'TricityMatch',
@@ -384,8 +419,15 @@ export default function SubscriptionScreen() {
         razorpay_payment_id: paymentResult.razorpay_payment_id,
         razorpay_signature: paymentResult.razorpay_signature,
       });
-    } catch {
-      Alert.alert('Payment Cancelled', 'No charge was made.');
+    } catch (e) {
+      if (e instanceof PaymentsUnavailableError) {
+        Alert.alert(
+          'Card / UPI unavailable',
+          `Card and UPI payments are not available in this build. Subscribe at ${WEB_SUBSCRIPTION_URL} instead.`,
+        );
+      } else {
+        Alert.alert('Payment Cancelled', 'No charge was made.');
+      }
     } finally {
       setPaying(false);
     }
@@ -422,14 +464,25 @@ export default function SubscriptionScreen() {
       openWebsiteCheckout();
       return;
     }
+    // Only offer methods that can actually complete. A chooser entry that always
+    // ends in an error alert is non-functional UI, which store reviewers treat as
+    // a rejection reason.
+    const methods = [
+      ...(CONFIG.IS_RAZORPAY_CONFIGURED
+        ? [{ text: 'Card / UPI (Razorpay)', onPress: payViaRazorpay }]
+        : []),
+      { text: 'Google Play', onPress: payViaGooglePlay },
+    ];
+
+    if (methods.length === 1) {
+      methods[0].onPress();
+      return;
+    }
+
     Alert.alert(
       'Choose payment method',
       `Subscribe to ${PLANS[selectedPlan].label}`,
-      [
-        { text: 'Card / UPI (Razorpay)', onPress: payViaRazorpay },
-        { text: 'Google Play', onPress: payViaGooglePlay },
-        { text: 'Cancel', style: 'cancel' },
-      ],
+      [...methods, { text: 'Cancel', style: 'cancel' as const }],
     );
   };
 
@@ -444,10 +497,10 @@ export default function SubscriptionScreen() {
       const order = await createBundleOrder(bundleId);
       const bundle = UNLOCK_BUNDLES[bundleId];
       const paymentResult = await openRazorpay({
-        key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID ?? '',
+        key: CONFIG.RAZORPAY_KEY_ID,
         amount: order.amount,
         currency: order.currency,
-        name: 'TricityShadi',
+        name: 'TricityMatch',
         description: bundle?.label ?? 'Contact unlocks',
         order_id: order.orderId,
         prefill: { email: user?.email },
@@ -460,8 +513,15 @@ export default function SubscriptionScreen() {
       });
       queryClient.invalidateQueries({ queryKey: queryKeys.me });
       Alert.alert('Unlocks added', `${unlocks} contact unlock${unlocks === 1 ? '' : 's'} credited.`);
-    } catch {
-      Alert.alert('Payment Cancelled', 'No charge was made.');
+    } catch (e) {
+      if (e instanceof PaymentsUnavailableError) {
+        Alert.alert(
+          'Card / UPI unavailable',
+          `Card and UPI payments are not available in this build. Buy unlocks at ${WEB_SUBSCRIPTION_URL} instead.`,
+        );
+      } else {
+        Alert.alert('Payment Cancelled', 'No charge was made.');
+      }
     } finally {
       setPaying(false);
     }
@@ -562,7 +622,7 @@ export default function SubscriptionScreen() {
           </ScrollView>
 
           {/* Subscribe CTA */}
-          <View style={s.footer}>
+          <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
             <TouchableOpacity
               style={[s.cta, !canUpgrade && s.ctaDisabled]}
               onPress={handleSubscribe}
@@ -587,7 +647,9 @@ export default function SubscriptionScreen() {
             <Text style={s.disclaimer}>
               {isIOS
                 ? 'You’ll finish checkout securely on tricitymatch.com'
-                : 'Pay by Card / UPI (Razorpay) or Google Play'}
+                : CONFIG.IS_RAZORPAY_CONFIGURED
+                  ? 'Pay by Card / UPI (Razorpay) or Google Play'
+                  : 'Pay with Google Play'}
             </Text>
           </View>
         </>
@@ -612,7 +674,7 @@ export default function SubscriptionScreen() {
 
 const s = StyleSheet.create({
   wrapper:      { flex: 1, backgroundColor: colours.background },
-  header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingTop: spacing['3xl'], paddingBottom: spacing.md, borderBottomWidth: 1, borderBottomColor: colours.border },
+  header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.md, borderBottomWidth: 1, borderBottomColor: colours.border },
   backBtn:      { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   title:        { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: colours.textPrimary },
   tabs:         { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: colours.border },
