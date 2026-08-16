@@ -17,25 +17,32 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
 import { getVerificationQueue, approveVerification, rejectVerification } from '../../api/admin';
-import type { Verification, DocumentType } from '../../types';
+import SmartImage from '../../components/common/SmartImage';
+import type { Verification } from '../../types';
 
+/**
+ * Matches what `GET /admin/verifications` returns: the reviewed user arrives
+ * nested as `User` (with `Profile`), not as flat `userName` / `userEmail`, which
+ * the server has never sent — so every card read "User" with no email.
+ *
+ * The card also showed a document-type badge and a document filename. Govt-ID
+ * collection was removed on 2026-07-02; those columns are dormant and always
+ * null now, so the badge read "Unknown" on every row and the filename never
+ * rendered. Verification is a selfie-to-profile-photo comparison, and this
+ * screen could not show either image — an admin literally could not do the job
+ * from mobile. It now puts the two side by side.
+ */
 interface VerifItem extends Verification {
-  userName?: string;
-  userEmail?: string;
+  User?: {
+    id: string;
+    email?: string;
+    Profile?: { firstName?: string; lastName?: string; profilePhoto?: string | null; photos?: string[] } | null;
+  } | null;
 }
 
-const DOC_LABELS: Record<DocumentType, string> = {
-  aadhaar:        'Aadhaar',
-  pan:            'PAN',
-  passport:       'Passport',
-  driving_license:'Driving License',
-};
-
-const DOC_COLOUR: Record<DocumentType, string> = {
-  aadhaar:        colours.primary,
-  pan:            '#3B82F6',
-  passport:       '#8B5CF6',
-  driving_license:'#6B7280',
+const nameOf = (item: VerifItem): string => {
+  const p = item.User?.Profile;
+  return [p?.firstName, p?.lastName].filter(Boolean).join(' ').trim() || 'User';
 };
 
 function VerifCard({
@@ -47,32 +54,33 @@ function VerifCard({
   onApprove: (id: string) => void;
   onReject: (id: string, name: string) => void;
 }) {
-  const docType = item.documentType;
-  const tierColor = docType ? (DOC_COLOUR[docType] ?? colours.primary) : colours.primary;
-  const tierLabel = docType ? (DOC_LABELS[docType] ?? docType) : 'Unknown';
+  const name = nameOf(item);
+  const profilePhoto = item.User?.Profile?.profilePhoto ?? item.User?.Profile?.photos?.[0] ?? null;
+
   return (
     <View style={s.card} testID={`verif-card-${item.id}`}>
       <View style={s.cardHeader}>
-        <View style={[s.tierBadge, { backgroundColor: tierColor + '20', borderColor: tierColor }]}>
-          <Text style={[s.tierText, { color: tierColor }]}>{tierLabel}</Text>
-        </View>
+        <Text style={s.cardName}>{name}</Text>
         <Text style={s.cardDate}>{new Date(item.createdAt).toLocaleDateString('en-IN')}</Text>
       </View>
+      {item.User?.email ? <Text style={s.cardEmail}>{item.User.email}</Text> : null}
 
-      <Text style={s.cardName}>{item.userName ?? 'User'}</Text>
-      {item.userEmail ? <Text style={s.cardEmail}>{item.userEmail}</Text> : null}
-
-      {item.documentFront ? (
-        <View style={s.docRow}>
-          <Ionicons name="document-outline" size={14} color={colours.textSecondary} />
-          <Text style={s.docText} numberOfLines={1}>{item.documentFront.split('/').pop()}</Text>
+      {/* The actual review: submitted selfie against the profile photo. */}
+      <View style={s.compareRow}>
+        <View style={s.compareCell}>
+          <Text style={s.compareLabel}>Selfie</Text>
+          <SmartImage uri={item.selfiePhoto ?? undefined} name={name} style={s.compareImg} />
         </View>
-      ) : null}
+        <View style={s.compareCell}>
+          <Text style={s.compareLabel}>Profile photo</Text>
+          <SmartImage uri={profilePhoto ?? undefined} name={name} style={s.compareImg} />
+        </View>
+      </View>
 
       <View style={s.actions}>
         <TouchableOpacity
           style={[s.btn, s.rejectBtn]}
-          onPress={() => onReject(item.id, item.userName ?? 'User')}
+          onPress={() => onReject(item.id, nameOf(item))}
           testID={`reject-btn-${item.id}`}
           accessibilityLabel="Reject verification"
         >
@@ -247,13 +255,6 @@ const s = StyleSheet.create({
     gap: spacing.sm,
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  tierBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderRadius: borderRadius.full,
-    borderWidth: 1,
-  },
-  tierText: { fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.semiBold },
   cardDate: {
     fontSize: typography.fontSize.xs,
     fontFamily: typography.fontFamily.regular,
@@ -269,12 +270,20 @@ const s = StyleSheet.create({
     fontFamily: typography.fontFamily.regular,
     color: colours.textSecondary,
   },
-  docRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  docText: {
-    flex: 1,
+  compareRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
+  compareCell: { flex: 1, gap: 4 },
+  compareLabel: {
     fontSize: typography.fontSize.xs,
-    fontFamily: typography.fontFamily.regular,
+    fontFamily: typography.fontFamily.semiBold,
     color: colours.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  compareImg: {
+    width: '100%',
+    aspectRatio: 1,
+    borderRadius: borderRadius.md,
+    backgroundColor: colours.surfaceCard,
   },
   actions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
   btn: {
