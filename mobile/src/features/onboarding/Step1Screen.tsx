@@ -98,7 +98,21 @@ export default function Step1Screen() {
 
   const isValid = !!(firstName.trim() && lastName.trim() && dob && gender && !dobError);
 
-  const handleDobChange = (text: string) => {
+  /**
+   * The field asks for DD/MM/YYYY behind a numeric keypad, which has no "/"
+   * key — so a real user could type the eight digits and never satisfy the
+   * parser, leaving Save & Continue disabled at the first step of onboarding.
+   * Insert the separators as they type instead of expecting them.
+   */
+  const formatDob = (text: string) => {
+    const digits = text.replace(/\D/g, '').slice(0, 8);
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+  };
+
+  const handleDobChange = (raw: string) => {
+    const text = formatDob(raw);
     setDobDisplay(text);
     setDobError('');
     const parts = text.split('/');

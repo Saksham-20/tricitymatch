@@ -124,7 +124,18 @@ export default function SuccessStoryScreen() {
         <TextInput
           style={s.input}
           value={weddingDate}
-          onChangeText={setWeddingDate}
+          // Numeric keypad has no "/" key, so the separators have to be
+          // inserted for the user (same trap as onboarding step 1).
+          onChangeText={(raw) => {
+            const digits = raw.replace(/\D/g, '').slice(0, 8);
+            setWeddingDate(
+              digits.length <= 2
+                ? digits
+                : digits.length <= 4
+                  ? `${digits.slice(0, 2)}/${digits.slice(2)}`
+                  : `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`,
+            );
+          }}
           placeholder="DD/MM/YYYY"
           placeholderTextColor={colours.textMuted}
           maxLength={10}
