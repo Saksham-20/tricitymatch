@@ -122,8 +122,27 @@ export default function AdminHomeScreen() {
   return (
     <SafeAreaView style={s.safe} testID="AdminHomeScreen">
       <View style={s.header}>
+        {/*
+         * The console is the root of its own stack, so it has no back button of
+         * its own and the iOS swipe-back gesture is swallowed by the nested
+         * navigator: an admin who opened this screen could not get out of it
+         * without force-quitting. Pop the parent stack explicitly.
+         */}
+        <TouchableOpacity
+          onPress={() => (nav.getParent() ?? nav).goBack()}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+          testID="admin-back"
+        >
+          <Ionicons name="arrow-back" size={24} color={colours.textPrimary} />
+        </TouchableOpacity>
         <Text style={s.title}>Admin Console</Text>
-        {isLoading && <ActivityIndicator size="small" color={colours.primary} />}
+        {isLoading ? (
+          <ActivityIndicator size="small" color={colours.primary} />
+        ) : (
+          <View style={s.headerSpacer} />
+        )}
       </View>
 
       <ScrollView
@@ -178,17 +197,19 @@ const s = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: spacing.md,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colours.border,
   },
   title: {
+    flex: 1,
     fontSize: typography.fontSize['2xl'],
     fontFamily: typography.fontFamily.bold,
     color: colours.textPrimary,
   },
+  headerSpacer: { width: 24 },
   scroll: { padding: spacing.lg, gap: spacing.sm },
   sectionTitle: {
     fontSize: typography.fontSize.sm,
