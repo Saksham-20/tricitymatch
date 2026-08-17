@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  Modal,
   useWindowDimensions,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -21,14 +22,15 @@ import Animated, {
   Extrapolation,
 } from 'react-native-reanimated';
 import { showToast } from '../../utils/toast';
+import { haptics } from '../../utils/haptics';
 import { colours, typography, type, spacing, borderRadius } from '@shared/constants/theme';
-import { CompatRing } from '../../components/ui';
+import { CompatRing, MatchCelebration } from '../../components/ui';
 import { ProfileDetailSkeleton } from '../../components/ui/skeletons';
 import { PressableScale } from '../../components/motion';
 import { useTheme } from '../../hooks/useTheme';
 import { getProfile, getCompatibilityBreakdown, getMyProfile } from '../../api/profile';
 import PreferenceMatch from '../../components/profile/PreferenceMatch';
-import VoiceIntroRecorder from '../../components/profile/VoiceIntroRecorder';
+import AudioIntroChip from '../../components/profile/AudioIntroChip';
 import { performMatchAction } from '../../api/matches';
 import { queryKeys } from '../../constants/queryKeys';
 import { useAuthStore } from '../../stores/authStore';
@@ -73,21 +75,6 @@ function DetailRow({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
-function MutualMatchOverlay({ name, onDismiss }: { name: string; onDismiss: () => void }) {
-  const { c } = useTheme();
-  return (
-    <View style={s.mmOverlay}>
-      <View style={[s.mmCard, { backgroundColor: c.surfaceCard }]}>
-        <Ionicons name="heart" size={56} color={c.primary} />
-        <Text style={[s.mmTitle, { color: c.primary }]}>It's a Match</Text>
-        <Text style={[s.mmSub, { color: c.textSecondary }]}>You and {name} liked each other.</Text>
-        <TouchableOpacity style={[s.mmBtn, { backgroundColor: c.primary }]} onPress={onDismiss} testID="mutual-match-dismiss">
-          <Text style={s.mmBtnText}>Continue Browsing</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-}
 
 // Warm matrimonial caption bands for interleaved photos — rotated per photo.
 // Family-forward voice, never dating-app prompts.
@@ -117,6 +104,7 @@ export default function ProfileDetailScreen() {
   const [blockReportVisible, setBlockReportVisible] = useState(false);
   const [breakdownVisible, setBreakdownVisible] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState<number | null>(null);
+  const [appreciateSubject, setAppreciateSubject] = useState<string | null>(null);
 
   const heroH = Math.max(380, Math.round(winH * 0.56));
   const scrollY = useSharedValue(0);
@@ -193,7 +181,9 @@ export default function ProfileDetailScreen() {
   const heroPhoto: string | null = photos[0] ?? null;
   const restPhotos = photos.slice(1);
 
-  const isMutualOrPremium = actionDone === 'like' || user?.subscriptionPlan !== 'free';
+  // Viewing your own profile ("see it as others do") — no actions, no compat.
+  const isSelf = user?.id === profile.userId;
+  const isMutualOrPremium = isSelf || actionDone === 'like' || user?.subscriptionPlan !== 'free';
   // Free viewers only get the primary photo in the gallery; the rest stay locked.
   const viewablePhotos = isMutualOrPremium ? photos : photos.slice(0, 1);
 
@@ -228,6 +218,14 @@ export default function ProfileDetailScreen() {
           caption={band.caption}
           locked={!isMutualOrPremium}
           onPress={isMutualOrPremium ? () => setGalleryIndex(i + 1) : undefined}
+          onLongPress={
+            isMutualOrPremium && !isSelf
+              ? () => {
+                  haptics.medium();
+                  setAppreciateSubject(band.eyebrow);
+                }
+              : undefined
+          }
         />
       </RevealOnScroll>
     );
@@ -271,7 +269,7 @@ export default function ProfileDetailScreen() {
         )}
 
         {/* Compatibility card */}
-        {typeof compat?.overallScore === 'number' && (
+        {!isSelf && typeof compat?.overallScore === 'number' && (
           <RevealOnScroll scrollY={scrollY}>
             <PressableScale onPress={() => setBreakdownVisible(true)} haptic testID="compatibility-bar">
               <SectionCard style={s.compatCard}>
@@ -295,16 +293,11 @@ export default function ProfileDetailScreen() {
           </RevealOnScroll>
         )}
 
-        {/* Voice intro */}
+        {/* Voice intro — modern audio chip */}
         {profile.voiceIntroUrl && (
           <RevealOnScroll scrollY={scrollY}>
-            <SectionCard title="In their own voice" icon="mic-outline">
-              <VoiceIntroRecorder
-                existingUrl={profile.voiceIntroUrl}
-                onSaved={() => null}
-                isPremiumViewer={isMutualOrPremium}
-                readOnly
-              />
+            <SectionCard title={`Hear from ${profile.firstName}`} icon="mic-outline">
+              <AudioIntroChip url={profile.voiceIntroUrl} isPremiumViewer={isMutualOrPremium} />
             </SectionCard>
           </RevealOnScroll>
         )}
@@ -347,9 +340,11 @@ export default function ProfileDetailScreen() {
         {photoAt(1)}
 
         {/* Reverse partner-preference checklist */}
-        <RevealOnScroll scrollY={scrollY}>
-          <PreferenceMatch target={profile} viewer={myProfile} targetName={profile.firstName} />
-        </RevealOnScroll>
+        {!isSelf && (
+          <RevealOnScroll scrollY={scrollY}>
+            <PreferenceMatch target={profile} viewer={myProfile} targetName={profile.firstName} />
+          </RevealOnScroll>
+        )}
 
         {/* Education & career + community details */}
         <RevealOnScroll scrollY={scrollY}>
@@ -415,6 +410,7 @@ export default function ProfileDetailScreen() {
         })}
 
         {/* Quiet safety footer */}
+        {!isSelf && (
         <TouchableOpacity
           style={s.safetyFooter}
           onPress={() => setBlockReportVisible(true)}
@@ -423,6 +419,7 @@ export default function ProfileDetailScreen() {
           <Ionicons name="shield-outline" size={14} color={c.textMuted} />
           <Text style={[type.footnote, { color: c.textMuted }]}>Report or block {profile.firstName}</Text>
         </TouchableOpacity>
+        )}
 
         <View style={{ height: 110 }} />
       </Animated.ScrollView>
@@ -459,6 +456,7 @@ export default function ProfileDetailScreen() {
       </View>
 
       {/* Sticky bottom action bar */}
+      {!isSelf && (
       <View
         style={[
           s.actionBar,
@@ -524,8 +522,21 @@ export default function ProfileDetailScreen() {
           </>
         )}
       </View>
+      )}
 
-      {mutualMatch && <MutualMatchOverlay name={profile.firstName} onDismiss={() => setMutualMatch(false)} />}
+      <MatchCelebration
+        visible={mutualMatch}
+        name={profile.firstName}
+        onClose={() => setMutualMatch(false)}
+        onMessage={() => {
+          setMutualMatch(false);
+          if (user?.subscriptionPlan !== 'free') {
+            navigation.navigate('ChatThread', { userId, name, photo: heroPhoto ?? undefined });
+          } else {
+            navigation.navigate('Subscription');
+          }
+        }}
+      />
 
       <BlockReportSheet
         visible={blockReportVisible}
@@ -547,6 +558,51 @@ export default function ProfileDetailScreen() {
         visible={galleryIndex !== null}
         onClose={() => setGalleryIndex(null)}
       />
+
+      {/* Appreciate sheet — long-press a photo, carry the warmth into the
+          first message (client-side prefill; chat gating unchanged). */}
+      <Modal
+        visible={appreciateSubject !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setAppreciateSubject(null)}
+      >
+        <TouchableOpacity style={s.appBackdrop} activeOpacity={1} onPress={() => setAppreciateSubject(null)} />
+        <View style={[s.appSheet, { backgroundColor: c.background, paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
+          <View style={[s.appGrabber, { backgroundColor: c.border }]} />
+          <Ionicons name="heart-circle" size={40} color={c.primary} style={{ alignSelf: 'center' }} />
+          <Text style={[s.appTitle, { color: c.fgStrong }]}>A lovely detail</Text>
+          <Text style={[type.callout, { color: c.textSecondary, textAlign: 'center' }]}>
+            Mention what caught your eye when you connect with {profile.firstName} — thoughtful first
+            messages get warmer replies.
+          </Text>
+          <TouchableOpacity
+            style={[s.appCta, { backgroundColor: c.primary }]}
+            onPress={() => {
+              const subject = appreciateSubject;
+              setAppreciateSubject(null);
+              if (user?.subscriptionPlan !== 'free') {
+                navigation.navigate('ChatThread', {
+                  userId,
+                  name,
+                  photo: heroPhoto ?? undefined,
+                  draft: `Hello ${profile.firstName}, the photo under “${subject}” stood out to me. I would love to know the story behind it.`,
+                });
+              } else {
+                navigation.navigate('Subscription');
+              }
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Mention in a message"
+            testID="appreciate-cta"
+          >
+            <Ionicons name="chatbubble-ellipses-outline" size={18} color="#fff" />
+            <Text style={s.appCtaText}>
+              {user?.subscriptionPlan !== 'free' ? 'Mention in a message' : 'Upgrade to message'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -642,6 +698,27 @@ const s = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
 
+  appBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
+  appSheet: {
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
+    paddingHorizontal: spacing['2xl'],
+    paddingTop: spacing.sm,
+    gap: spacing.md,
+  },
+  appGrabber: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2 },
+  appTitle: { fontFamily: 'PlayfairDisplay-Bold', fontSize: 22, textAlign: 'center' },
+  appCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
+    marginTop: spacing.sm,
+  },
+  appCtaText: { ...type.headline, color: '#fff' },
+
   actionBar: {
     position: 'absolute',
     left: 0,
@@ -677,31 +754,4 @@ const s = StyleSheet.create({
   },
   mutualHintText: { ...type.headline },
 
-  mmOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 100,
-  },
-  mmCard: {
-    borderRadius: borderRadius.xl,
-    padding: spacing['3xl'],
-    alignItems: 'center',
-    gap: spacing.md,
-    marginHorizontal: spacing['2xl'],
-  },
-  mmTitle: { fontFamily: 'PlayfairDisplay-Bold', fontSize: typography.fontSize['2xl'] },
-  mmSub: { ...type.body, textAlign: 'center' },
-  mmBtn: {
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing['2xl'],
-    paddingVertical: spacing.md,
-    marginTop: spacing.sm,
-  },
-  mmBtnText: { color: '#fff', fontFamily: typography.fontFamily.semiBold, fontSize: typography.fontSize.base },
 });

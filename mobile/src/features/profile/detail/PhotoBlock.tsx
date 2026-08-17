@@ -16,6 +16,8 @@ interface PhotoBlockProps {
   locked?: boolean;
   /** Tap to open the full-screen gallery viewer (unlocked photos only). */
   onPress?: () => void;
+  /** Long-press to appreciate this photo (warm opener prefill). */
+  onLongPress?: () => void;
 }
 
 /**
@@ -24,7 +26,7 @@ interface PhotoBlockProps {
  * (interleaved-content pattern; matrimonial voice, never flirty).
  * A photo that fails to load renders nothing — the story simply flows on.
  */
-export default function PhotoBlock({ uri, caption, eyebrow, locked = false, onPress }: PhotoBlockProps) {
+export default function PhotoBlock({ uri, caption, eyebrow, locked = false, onPress, onLongPress }: PhotoBlockProps) {
   const { c } = useTheme();
   const { width } = useWindowDimensions();
   const [failed, setFailed] = useState(false);
@@ -38,7 +40,8 @@ export default function PhotoBlock({ uri, caption, eyebrow, locked = false, onPr
     <View style={s.wrap}>
       <Pressable
         onPress={onPress}
-        disabled={!onPress}
+        onLongPress={onLongPress}
+        disabled={!onPress && !onLongPress}
         accessibilityRole={onPress ? 'imagebutton' : 'image'}
         accessibilityLabel={caption ?? 'Profile photo'}
         style={[s.photoHolder, { width: photoW, height: photoH, backgroundColor: c.surface2 }]}

@@ -3,11 +3,13 @@ import { Modal, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
+  Easing,
   FadeIn,
   FadeOut,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 import { colours, type } from '@shared/constants/theme';
 import { spring } from '@shared/constants/motion';
@@ -30,23 +32,35 @@ interface Props {
 export default function MatchCelebration({ visible, name, onClose, onMessage }: Props) {
   const reduced = useReduceMotion();
   const scale = useSharedValue(reduced ? 1 : 0);
+  const pulse = useSharedValue(0);
 
   useEffect(() => {
     if (visible) {
       haptics.success();
       scale.value = reduced ? 1 : withSpring(1, spring.pop);
+      // One subtle ring pulse behind the seal — celebration, not confetti.
+      if (!reduced) {
+        pulse.value = 0;
+        pulse.value = withTiming(1, { duration: 900, easing: Easing.out(Easing.cubic) });
+      }
     } else {
       scale.value = reduced ? 1 : 0;
+      pulse.value = 0;
     }
-  }, [visible, reduced, scale]);
+  }, [visible, reduced, scale, pulse]);
 
   const sealStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const pulseStyle = useAnimatedStyle(() => ({
+    opacity: (1 - pulse.value) * 0.5,
+    transform: [{ scale: 1 + pulse.value * 0.9 }],
+  }));
 
   if (!visible) return null;
 
   return (
     <Modal transparent visible={visible} animationType="none" onRequestClose={onClose}>
       <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.scrim}>
+        <Animated.View style={[styles.pulseRing, pulseStyle]} pointerEvents="none" />
         <Animated.View style={sealStyle}>
           <LinearGradient
             colors={[colours.g300, colours.g600]}
@@ -77,6 +91,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 32,
     backgroundColor: 'rgba(85,23,46,0.94)', // p700 @ ~94%
+  },
+  pulseRing: {
+    position: 'absolute',
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    borderWidth: 2,
+    borderColor: colours.g300,
   },
   seal: {
     width: 104,

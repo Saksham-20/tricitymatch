@@ -58,7 +58,7 @@ export type BureauStackParamList = {
 export type MainStackParamList = {
   MainTabs: NavigatorScreenParams<MainTabParamList>;
   ProfileDetail: { userId: string };
-  ChatThread: { userId: string; name: string; photo?: string };
+  ChatThread: { userId: string; name: string; photo?: string; draft?: string };
   VoiceCall: { callId?: string; channelName: string; calleeId: string };
   VideoCall: { callId?: string; channelName: string; calleeId: string; callType: CallType };
   EditProfile: undefined;

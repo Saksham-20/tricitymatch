@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
+import Animated, { useAnimatedStyle, useSharedValue, withDelay, withTiming, Easing } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
 import { getCompatibilityBreakdown } from '../../api/profile';
@@ -28,10 +29,20 @@ const CATEGORY_META: Record<string, { label: string; icon: keyof typeof Ionicons
   horoscope: { label: 'Horoscope',            icon: 'star' },
 };
 
-function ScoreBar({ score, color }: { score: number; color: string }) {
+function ScoreBar({ score, color, index = 0 }: { score: number; color: string; index?: number }) {
+  // Koota-bar fill: 0 → value on mount, 40ms stagger per row (handoff spec).
+  const clamped = Math.max(0, Math.min(100, score));
+  const progress = useSharedValue(0);
+  React.useEffect(() => {
+    progress.value = withDelay(
+      index * 40,
+      withTiming(1, { duration: 360, easing: Easing.out(Easing.cubic) }),
+    );
+  }, [index, progress]);
+  const fill = useAnimatedStyle(() => ({ width: `${clamped * progress.value}%` }));
   return (
     <View style={sb.track}>
-      <View style={[sb.fill, { width: `${Math.max(0, Math.min(100, score))}%`, backgroundColor: color }]} />
+      <Animated.View style={[sb.fill, { backgroundColor: color }, fill]} />
     </View>
   );
 }
@@ -53,7 +64,7 @@ function scoreColor(score: number) {
   return colours.error;
 }
 
-function CategoryRow({ catKey, data }: { catKey: string; data: CompatibilityCategory }) {
+function CategoryRow({ catKey, data, index = 0 }: { catKey: string; data: CompatibilityCategory; index?: number }) {
   const meta = CATEGORY_META[catKey] || { label: catKey, icon: 'ellipse' as keyof typeof Ionicons.glyphMap };
   const color = scoreColor(data.score);
   return (
@@ -66,7 +77,7 @@ function CategoryRow({ catKey, data }: { catKey: string; data: CompatibilityCate
           <Text style={cr.label}>{meta.label}</Text>
           <Text style={[cr.score, { color }]}>{data.score}%</Text>
         </View>
-        <ScoreBar score={data.score} color={color} />
+        <ScoreBar score={data.score} color={color} index={index} />
         {!!data.detail && <Text style={cr.detail}>{data.detail}</Text>}
       </View>
     </View>
@@ -173,8 +184,8 @@ export default function CompatibilityBreakdownSheet({ visible, userId, onClose }
               {Object.entries(categories).length === 0 ? (
                 <Text style={styles.errorText}>No breakdown data available.</Text>
               ) : (
-                Object.entries(categories).map(([key, val]) =>
-                  val ? <CategoryRow key={key} catKey={key} data={val} /> : null,
+                Object.entries(categories).map(([key, val], i) =>
+                  val ? <CategoryRow key={key} catKey={key} data={val} index={i} /> : null,
                 )
               )}
             </View>

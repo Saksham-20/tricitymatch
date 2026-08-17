@@ -685,6 +685,21 @@ export default function OwnProfileScreen() {
         />
       </View>
 
+      {/* Full story-scroll preview — exactly what a match sees */}
+      {user?.id ? (
+        <TouchableOpacity
+          style={styles.previewRow}
+          onPress={() => navigation.navigate('ProfileDetail', { userId: user.id })}
+          testID="open-full-preview"
+          accessibilityRole="button"
+          accessibilityLabel="Open full profile preview"
+        >
+          <Ionicons name="albums-outline" size={16} color={c.textSecondary} />
+          <Text style={[styles.previewLabel, { color: c.textSecondary }]}>Open my full profile preview</Text>
+          <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
+        </TouchableOpacity>
+      ) : null}
+
       {/* Completion — one card: ring + the specific fields still missing */}
       <StaggeredEntrance index={0}>
         <CompletionCard

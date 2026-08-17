@@ -232,7 +232,7 @@ export default function ChatThreadScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
-  const { userId, name: nameParam, photo: photoParam } = route.params;
+  const { userId, name: nameParam, photo: photoParam , draft } = route.params;
 
   // Callers that only know the other user's id — a "new message" notification
   // tap, for one — navigate here with an empty name, which rendered a chat with
@@ -255,7 +255,7 @@ export default function ChatThreadScreen() {
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
 
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState(draft ?? '');
   const [editingMsg, setEditingMsg] = useState<Message | null>(null);
   const [selectedMsg, setSelectedMsg] = useState<Message | null>(null);
   const [isOtherTyping, setIsOtherTyping] = useState(false);
