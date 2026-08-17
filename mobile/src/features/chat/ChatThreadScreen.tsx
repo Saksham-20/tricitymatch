@@ -576,7 +576,7 @@ export default function ChatThreadScreen() {
           {isSending ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
-            <Ionicons name="send" size={18} color="#fff" />
+            <Ionicons name="send" size={18} color={!input.trim() ? colours.textMuted : '#fff'} />
           )}
         </TouchableOpacity>
       </View>
@@ -838,8 +838,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   sendBtnDisabled: {
-    backgroundColor: colours.primaryLight,
-    opacity: 0.5,
+    backgroundColor: colours.n200,
   },
   // Action menu
   menuOverlay: {
