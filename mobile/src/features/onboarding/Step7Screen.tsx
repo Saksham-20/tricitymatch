@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { PressableScale } from '../../components/motion';
+import { haptics } from '../../utils/haptics';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
 import OnboardingLayout from './OnboardingLayout';
@@ -48,10 +50,11 @@ export default function Step7Screen() {
           {MARITAL_OPTIONS.map((opt) => {
             const isActive = maritalStatus === opt.key;
             return (
-              <TouchableOpacity
+              <PressableScale
                 key={opt.key}
+                scaleTo={0.97}
                 style={[styles.optionBtn, isActive && styles.optionBtnActive]}
-                onPress={() => setMaritalStatus(opt.key)}
+                onPress={() => { haptics.light(); setMaritalStatus(opt.key); }}
                 testID={`marital-${opt.key}`}
                 accessibilityLabel={t(opt.tKey)}
                 accessibilityRole="radio"
@@ -60,7 +63,7 @@ export default function Step7Screen() {
                 <Text style={[styles.optionBtnText, isActive && styles.optionBtnTextActive]}>
                   {t(opt.tKey)}
                 </Text>
-              </TouchableOpacity>
+              </PressableScale>
             );
           })}
         </View>
@@ -70,9 +73,10 @@ export default function Step7Screen() {
       <View>
         <Text style={styles.label}>{t('onboarding.step7.children')}</Text>
         <View style={styles.row}>
-          <TouchableOpacity
+          <PressableScale
+            scaleTo={0.96}
             style={[styles.yesNoBtn, !hasChildren && styles.yesNoBtnActive]}
-            onPress={() => setHasChildren(false)}
+            onPress={() => { haptics.light(); setHasChildren(false); }}
             testID="children-no"
             accessibilityLabel={t('common.no')}
             accessibilityRole="radio"
@@ -81,10 +85,11 @@ export default function Step7Screen() {
             <Text style={[styles.yesNoBtnText, !hasChildren && styles.yesNoBtnTextActive]}>
               {t('common.no')}
             </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
+          </PressableScale>
+          <PressableScale
+            scaleTo={0.96}
             style={[styles.yesNoBtn, hasChildren && styles.yesNoBtnActive]}
-            onPress={() => setHasChildren(true)}
+            onPress={() => { haptics.light(); setHasChildren(true); }}
             testID="children-yes"
             accessibilityLabel={t('common.yes')}
             accessibilityRole="radio"
@@ -93,7 +98,7 @@ export default function Step7Screen() {
             <Text style={[styles.yesNoBtnText, hasChildren && styles.yesNoBtnTextActive]}>
               {t('common.yes')}
             </Text>
-          </TouchableOpacity>
+          </PressableScale>
         </View>
       </View>
 

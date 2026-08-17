@@ -8,8 +8,11 @@ import {
   Modal,
   FlatList,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { PressableScale } from '../../components/motion';
+import { haptics } from '../../utils/haptics';
 import OnboardingLayout from './OnboardingLayout';
 import { useOnboarding } from './OnboardingContext';
 import type { Gender } from '../../types';
@@ -206,19 +209,21 @@ export default function Step1Screen() {
           {GENDERS.map((g) => {
             const isActive = gender === g.key;
             return (
-              <TouchableOpacity
+              <PressableScale
                 key={g.key}
+                scaleTo={0.95}
                 style={[styles.optionBtn, isActive && styles.optionBtnActive]}
-                onPress={() => setGender(g.key)}
+                onPress={() => { haptics.light(); setGender(g.key); }}
                 testID={`gender-${g.key}`}
                 accessibilityLabel={t(g.tKey)}
                 accessibilityRole="radio"
                 accessibilityState={{ selected: isActive }}
               >
+                {isActive && <Ionicons name="checkmark" size={16} color={colours.primary} />}
                 <Text style={[styles.optionBtnText, isActive && styles.optionBtnTextActive]}>
                   {t(g.tKey)}
                 </Text>
-              </TouchableOpacity>
+              </PressableScale>
             );
           })}
         </View>
@@ -302,6 +307,8 @@ const styles = StyleSheet.create({
   optionBtn: {
     flex: 1,
     height: 48,
+    flexDirection: 'row',
+    gap: spacing.xs,
     borderWidth: 1.5,
     borderColor: colours.border,
     borderRadius: borderRadius.sm,

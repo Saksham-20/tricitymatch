@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { PressableScale } from '../../components/motion';
+import { haptics } from '../../utils/haptics';
 import OnboardingLayout from './OnboardingLayout';
 import { useOnboarding } from './OnboardingContext';
 import type { Diet, SmokingDrinking } from '../../types';
@@ -26,10 +28,11 @@ function RadioGroup<T extends string>({
         {options.map((opt) => {
           const active = selected === opt.key;
           return (
-            <TouchableOpacity
+            <PressableScale
               key={opt.key}
+              scaleTo={0.95}
               style={[styles.pill, active && styles.pillActive]}
-              onPress={() => onSelect(opt.key)}
+              onPress={() => { haptics.light(); onSelect(opt.key); }}
               testID={`${testPrefix}-${opt.key}`}
               accessibilityLabel={opt.label}
               accessibilityRole="radio"
@@ -38,7 +41,7 @@ function RadioGroup<T extends string>({
               <Text style={[styles.pillText, active && styles.pillTextActive]}>
                 {opt.label}
               </Text>
-            </TouchableOpacity>
+            </PressableScale>
           );
         })}
       </View>
@@ -151,7 +154,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colours.border,
     borderRadius: borderRadius.full,
-    minHeight: 40,
+    minHeight: 44,
     justifyContent: 'center',
     alignItems: 'center',
   },

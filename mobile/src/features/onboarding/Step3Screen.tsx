@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { PressableScale } from '../../components/motion';
+import { haptics } from '../../utils/haptics';
 import OnboardingLayout from './OnboardingLayout';
 import { useOnboarding } from './OnboardingContext';
 import type { ManglikStatus } from '../../types';
@@ -45,10 +47,11 @@ export default function Step3Screen() {
           {MANGLIK_OPTIONS.map((opt) => {
             const isActive = manglikStatus === opt.key;
             return (
-              <TouchableOpacity
+              <PressableScale
                 key={opt.key}
+                scaleTo={0.95}
                 style={[styles.optionBtn, isActive && styles.optionBtnActive]}
-                onPress={() => setManglikStatus(opt.key)}
+                onPress={() => { haptics.light(); setManglikStatus(opt.key); }}
                 testID={`manglik-${opt.key}`}
                 accessibilityLabel={t(opt.tKey)}
                 accessibilityRole="radio"
@@ -57,7 +60,7 @@ export default function Step3Screen() {
                 <Text style={[styles.optionBtnText, isActive && styles.optionBtnTextActive]}>
                   {t(opt.tKey)}
                 </Text>
-              </TouchableOpacity>
+              </PressableScale>
             );
           })}
         </View>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,13 +7,17 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  LayoutChangeEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming, Easing } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { colours, type, spacing, borderRadius } from '@shared/constants/theme';
+import { duration, easing } from '@shared/constants/motion';
 import { Button } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
+import { useReduceMotion } from '../../components/motion';
 import { useOnboarding } from './OnboardingContext';
 
 const TOTAL_STEPS = 14;
@@ -42,7 +46,21 @@ export default function OnboardingLayout({
   const { t } = useTranslation();
   const { c } = useTheme();
   const { goBack, isSaving } = useOnboarding();
-  const progress = step / TOTAL_STEPS;
+  const reduced = useReduceMotion();
+  const progress = Math.max(0, Math.min(1, step / TOTAL_STEPS));
+
+  // Animated progress fill: measure the track once, then spring the fill width
+  // to the new step so the bar glides instead of jumping. Reduce-motion jumps.
+  const [trackW, setTrackW] = useState(0);
+  const fillW = useSharedValue(0);
+  const fillStyle = useAnimatedStyle(() => ({ width: fillW.value }));
+  const onTrackLayout = (e: LayoutChangeEvent) => setTrackW(e.nativeEvent.layout.width);
+  React.useEffect(() => {
+    const target = trackW * progress;
+    fillW.value = reduced
+      ? target
+      : withTiming(target, { duration: duration.slow, easing: Easing.bezier(...easing.std) });
+  }, [trackW, progress, reduced, fillW]);
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} testID={`OnboardingStep${step}`}>
@@ -68,8 +86,8 @@ export default function OnboardingLayout({
       </View>
 
       {/* Progress bar */}
-      <View style={[styles.progressTrack, { backgroundColor: c.surface2 }]}>
-        <View style={[styles.progressFill, { width: `${progress * 100}%` as any }]} />
+      <View style={[styles.progressTrack, { backgroundColor: c.surface2 }]} onLayout={onTrackLayout}>
+        <Animated.View style={[styles.progressFill, fillStyle]} />
       </View>
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>

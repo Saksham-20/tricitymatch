@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, type, spacing, borderRadius } from '@shared/constants/theme';
+import { PressableScale } from '../../components/motion';
+import { haptics } from '../../utils/haptics';
 import OnboardingLayout from './OnboardingLayout';
 import { useOnboarding, type RegisteringFor } from './OnboardingContext';
 
@@ -37,20 +39,26 @@ export default function Step0Screen() {
         {OPTIONS.map((opt) => {
           const isActive = selected === opt.key;
           return (
-            <TouchableOpacity
+            <PressableScale
               key={opt.key}
+              scaleTo={0.96}
               style={[styles.tile, isActive && styles.tileActive]}
-              onPress={() => setSelected(opt.key)}
+              onPress={() => { haptics.light(); setSelected(opt.key); }}
               testID={`tile-${opt.key}`}
               accessibilityLabel={t(`onboarding.step0.options.${opt.key}`)}
               accessibilityRole="radio"
               accessibilityState={{ selected: isActive }}
             >
-              <Ionicons name={opt.icon} size={28} color={isActive ? colours.primary : colours.textSecondary} />
+              {isActive && (
+                <View style={styles.check}>
+                  <Ionicons name="checkmark-circle" size={20} color={colours.primary} />
+                </View>
+              )}
+              <Ionicons name={opt.icon} size={30} color={isActive ? colours.primary : colours.textSecondary} />
               <Text style={[styles.tileLabel, isActive && styles.tileLabelActive]}>
                 {t(`onboarding.step0.options.${opt.key}`)}
               </Text>
-            </TouchableOpacity>
+            </PressableScale>
           );
         })}
       </View>
@@ -66,9 +74,9 @@ const styles = StyleSheet.create({
   },
   tile: {
     width: '47%',
-    minHeight: 80,
+    minHeight: 104,
     backgroundColor: colours.surfaceCard,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.lg,
     borderWidth: 2,
     borderColor: colours.border,
     alignItems: 'center',
@@ -80,12 +88,13 @@ const styles = StyleSheet.create({
     borderColor: colours.primary,
     backgroundColor: colours.primaryLight,
   },
-  tileIcon: {
-    fontSize: 28,
+  check: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
   },
   tileLabel: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
+    ...type.headline,
     color: colours.textPrimary,
     textAlign: 'center',
   },
