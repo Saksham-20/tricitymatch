@@ -1,12 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
-  Image,
-  ActivityIndicator, 
+  ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -15,302 +13,122 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, {
+  interpolate,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+  Extrapolation,
+} from 'react-native-reanimated';
 import { showToast } from '../../utils/toast';
-import { useTranslation } from 'react-i18next';
 import { colours, typography, type, spacing, borderRadius } from '@shared/constants/theme';
 import { CompatRing } from '../../components/ui';
 import { ProfileDetailSkeleton } from '../../components/ui/skeletons';
+import { PressableScale } from '../../components/motion';
 import { useTheme } from '../../hooks/useTheme';
 import { getProfile, getCompatibilityBreakdown, getMyProfile } from '../../api/profile';
 import PreferenceMatch from '../../components/profile/PreferenceMatch';
 import VoiceIntroRecorder from '../../components/profile/VoiceIntroRecorder';
-import { resolveImageUri } from '../../components/common/SmartImage';
 import { performMatchAction } from '../../api/matches';
 import { queryKeys } from '../../constants/queryKeys';
 import { useAuthStore } from '../../stores/authStore';
 import BlockReportSheet from './BlockReportSheet';
 import CompatibilityBreakdownSheet from './CompatibilityBreakdownSheet';
+import HeroBlock from './detail/HeroBlock';
+import PhotoBlock from './detail/PhotoBlock';
+import SectionCard from './detail/SectionCard';
+import RevealOnScroll from './detail/RevealOnScroll';
 import type { MainStackParamList } from '../../navigation/types';
-import type { Profile, MatchAction } from '../../types';
+import type { MatchAction } from '../../types';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 type Route = RouteProp<MainStackParamList, 'ProfileDetail'>;
 
-// ─── Compatibility Bar ───────────────────────────────────────────────────────
+// ─── Small pieces ────────────────────────────────────────────────────────────
 
 const compatScoreColour = (p: number) => (p >= 90 ? colours.success : p >= 75 ? colours.g500 : colours.p500);
 
-function CompatibilityBar({ score, onWhyPress }: { score: number; onWhyPress: () => void }) {
+/** Compact stat chip for the essence band (height · education · community…). */
+function StatChip({ icon, label }: { icon: keyof typeof Ionicons.glyphMap; label: string }) {
   const { c } = useTheme();
-  const colour = compatScoreColour(score);
   return (
-    <TouchableOpacity
-      style={[cb.container, { borderBottomColor: c.hairline }]}
-      onPress={onWhyPress}
-      testID="compatibility-bar"
-      accessibilityLabel="See compatibility breakdown"
-      accessibilityRole="button"
-    >
-      <CompatRing value={score} size={64} />
-      <View style={cb.info}>
-        <Text style={[cb.label, { color: c.fgStrong }]}>Compatibility</Text>
-        <Text style={[cb.hint, { color: c.textMuted }]}>Tap to see the full breakdown</Text>
-      </View>
-      <View style={cb.whyRow}>
-        <Text style={[cb.why, { color: colour }]}>Why</Text>
-        <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
-      </View>
-    </TouchableOpacity>
-  );
-}
-
-// ─── Hero photo (resolves relative/seed paths, graceful fallback) ─────────────
-// Mirrors SmartImage's resolve + onError fallback but keeps the gallery's blur +
-// "Upgrade to view" lock overlay for non-premium viewers' secondary photos.
-function HeroPhoto({ uri, locked }: { uri: string; locked: boolean }) {
-  const { c } = useTheme();
-  // Each slide must be exactly one viewport wide or pagingEnabled drifts and the
-  // dot index (contentOffset.x / width) stops matching the visible photo.
-  const { width: slideWidth } = useWindowDimensions();
-  const [failed, setFailed] = useState(false);
-  const resolved = resolveImageUri(uri);
-  if (!resolved || failed) {
-    return (
-      <View style={[styles.photoContainer, styles.photoFallback, { width: slideWidth, backgroundColor: c.surface2 }]}>
-        <Ionicons name="person" size={64} color={c.textMuted} />
-      </View>
-    );
-  }
-  return (
-    <View style={[styles.photoContainer, { width: slideWidth }]}>
-      <Image
-        source={{ uri: resolved }}
-        style={styles.photo}
-        resizeMode="cover"
-        blurRadius={locked ? 40 : 0}
-        onError={() => setFailed(true)}
-      />
-      {locked && (
-        <View style={styles.blurOverlay}>
-          <Ionicons name="lock-closed" size={28} color="#fff" />
-          <Text style={styles.blurText}>Upgrade to view</Text>
-        </View>
-      )}
+    <View style={[s.statChip, { backgroundColor: c.surface2 }]}>
+      <Ionicons name={icon} size={13} color={c.primary} />
+      <Text style={[s.statChipText, { color: c.textPrimary }]} numberOfLines={1}>
+        {label}
+      </Text>
     </View>
   );
 }
-
-const cb = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingHorizontal: spacing.gutter,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 0.5,
-    borderBottomColor: colours.hairline,
-  },
-  info: { flex: 1 },
-  label: { ...type.headline, color: colours.fgStrong },
-  hint: { ...type.footnote, color: colours.textMuted, marginTop: 2 },
-  whyRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  why: { ...type.subhead, color: colours.accent, fontFamily: 'Inter-SemiBold' },
-});
-
-// ─── Verification Badges ─────────────────────────────────────────────────────
-
-// The BADGES array that used to live here modelled Mobile / ID / Education /
-// Income tiers. Three of those were REMOVED from the product: govt-ID collection
-// stopped on 2026-07-02 and education/income tiers never shipped. Verification is
-// selfie-only now, so there is exactly one badge to show.
-//
-// This row also never rendered. It was invoked as `<VerificationRow />` with no
-// props while requiring `phoneVerified` to be truthy — and `phoneVerified` is not
-// even part of the profile payload. The single trust signal on the screen where a
-// matrimonial decision actually gets made was dead code.
-
-function VerificationRow({ photoVerified }: { photoVerified?: boolean }) {
-  if (!photoVerified) return null;
-  return (
-    <View style={vr.row}>
-      <View style={[vr.badge, { borderColor: colours.success }]}>
-        <Ionicons name="checkmark-circle" size={12} color={colours.success} />
-        <Text style={[vr.text, { color: colours.success }]}>Photo verified</Text>
-      </View>
-    </View>
-  );
-}
-
-const vr = StyleSheet.create({
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    borderWidth: 1,
-    borderRadius: borderRadius.full,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-  },
-  text: { fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.medium },
-});
-
-// ─── Accordion Section ───────────────────────────────────────────────────────
-
-interface AccordionProps {
-  title: string;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
-}
-
-function Accordion({ title, children, defaultOpen = false }: AccordionProps) {
-  const { c } = useTheme();
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <View style={[acc.container, { borderBottomColor: c.border }]}>
-      <TouchableOpacity
-        style={acc.header}
-        onPress={() => setOpen((v) => !v)}
-        testID={`accordion-${title}`}
-        accessibilityLabel={title}
-        accessibilityRole="button"
-        accessibilityState={{ expanded: open }}
-      >
-        <Text style={[acc.title, { color: c.fgStrong }]}>{title}</Text>
-        <Ionicons
-          name={open ? 'chevron-up' : 'chevron-down'}
-          size={18}
-          color={c.textMuted}
-        />
-      </TouchableOpacity>
-      {open && <View style={acc.body}>{children}</View>}
-    </View>
-  );
-}
-
-const acc = StyleSheet.create({
-  container: {
-    borderBottomWidth: 1,
-    borderBottomColor: colours.border,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-  },
-  title: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.semiBold,
-    color: colours.textPrimary,
-  },
-  body: { paddingHorizontal: spacing.lg, paddingBottom: spacing.md },
-});
-
-// ─── Detail Row ──────────────────────────────────────────────────────────────
 
 function DetailRow({ label, value }: { label: string; value?: string | null }) {
   const { c } = useTheme();
   if (!value) return null;
   return (
-    <View style={[dr.row, { borderBottomColor: c.hairline }]}>
-      <Text style={[dr.label, { color: c.textSecondary }]}>{label}</Text>
-      <Text style={[dr.value, { color: c.textPrimary }]}>{value}</Text>
+    <View style={[s.detailRow, { borderBottomColor: c.hairline }]}>
+      <Text style={[s.detailLabel, { color: c.textSecondary }]}>{label}</Text>
+      <Text style={[s.detailValue, { color: c.textPrimary }]}>{value}</Text>
     </View>
   );
 }
 
-const dr = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    paddingVertical: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: colours.border + '60',
-  },
-  label: {
-    width: 130,
-    fontSize: typography.fontSize.sm,
-    color: colours.textSecondary,
-    fontFamily: typography.fontFamily.medium,
-  },
-  value: {
-    flex: 1,
-    fontSize: typography.fontSize.sm,
-    color: colours.textPrimary,
-    fontFamily: typography.fontFamily.regular,
-  },
-});
-
-// ─── Mutual Match Overlay ────────────────────────────────────────────────────
-
 function MutualMatchOverlay({ name, onDismiss }: { name: string; onDismiss: () => void }) {
   const { c } = useTheme();
   return (
-    <View style={mm.overlay}>
-      <View style={[mm.card, { backgroundColor: c.surfaceCard }]}>
+    <View style={s.mmOverlay}>
+      <View style={[s.mmCard, { backgroundColor: c.surfaceCard }]}>
         <Ionicons name="heart" size={56} color={c.primary} />
-        <Text style={[mm.title, { color: c.primary }]}>It's a Match</Text>
-        <Text style={[mm.sub, { color: c.textSecondary }]}>You and {name} liked each other.</Text>
-        <TouchableOpacity style={[mm.btn, { backgroundColor: c.primary }]} onPress={onDismiss} testID="mutual-match-dismiss">
-          <Text style={mm.btnText}>Continue Browsing</Text>
+        <Text style={[s.mmTitle, { color: c.primary }]}>It's a Match</Text>
+        <Text style={[s.mmSub, { color: c.textSecondary }]}>You and {name} liked each other.</Text>
+        <TouchableOpacity style={[s.mmBtn, { backgroundColor: c.primary }]} onPress={onDismiss} testID="mutual-match-dismiss">
+          <Text style={s.mmBtnText}>Continue Browsing</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 }
 
-const mm = StyleSheet.create({
-  overlay: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 100,
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: borderRadius.xl,
-    padding: spacing['3xl'],
-    alignItems: 'center',
-    gap: spacing.md,
-    marginHorizontal: spacing['2xl'],
-  },
-  title: {
-    fontSize: typography.fontSize['2xl'],
-    fontFamily: typography.fontFamily.bold,
-    color: colours.primary,
-  },
-  sub: { fontSize: typography.fontSize.base, color: colours.textSecondary, textAlign: 'center' },
-  btn: {
-    backgroundColor: colours.primary,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing['2xl'],
-    paddingVertical: spacing.md,
-    marginTop: spacing.sm,
-  },
-  btnText: { color: '#fff', fontFamily: typography.fontFamily.semiBold, fontSize: typography.fontSize.base },
-});
+// Warm matrimonial caption bands for interleaved photos — rotated per photo.
+// Family-forward voice, never dating-app prompts.
+function photoCaption(idx: number, firstName: string, city?: string | null): { eyebrow: string; caption: string } {
+  const bands = [
+    { eyebrow: `${firstName}'s world`, caption: 'A little more of the person behind the profile.' },
+    { eyebrow: 'Family & values', caption: 'The things that matter — captured in a moment.' },
+    { eyebrow: city ? `Life in ${city}` : 'Everyday life', caption: 'Where the everyday happens.' },
+  ];
+  return bands[idx % bands.length];
+}
 
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 export default function ProfileDetailScreen() {
-  const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { userId } = route.params;
   const queryClient = useQueryClient();
-  const user = useAuthStore((s) => s.user);
+  const user = useAuthStore((st) => st.user);
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
+  const { height: winH } = useWindowDimensions();
 
-  const { width: windowWidth } = useWindowDimensions();
-  const [photoIdx, setPhotoIdx] = useState(0);
   const [mutualMatch, setMutualMatch] = useState(false);
   const [actionDone, setActionDone] = useState<MatchAction | null>(null);
   const [blockReportVisible, setBlockReportVisible] = useState(false);
   const [breakdownVisible, setBreakdownVisible] = useState(false);
+
+  const heroH = Math.max(380, Math.round(winH * 0.56));
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler((e) => {
+    scrollY.value = e.contentOffset.y;
+  });
+
+  // Floating header: transparent over the hero, solid + titled once past it.
+  const headerBgStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [heroH - 160, heroH - 80], [0, 1], Extrapolation.CLAMP),
+  }));
+  const headerTitleStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [heroH - 120, heroH - 60], [0, 1], Extrapolation.CLAMP),
+  }));
 
   const { data: profile, isLoading } = useQuery({
     queryKey: queryKeys.profile(userId),
@@ -318,26 +136,20 @@ export default function ProfileDetailScreen() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Real compatibility (was previously faked from completionPercentage). Shares
-  // the breakdown sheet's query key so it's fetched once and stays consistent
-  // with the score shown on the Home/Search cards.
+  // Real compatibility — shares the breakdown sheet's query key so it's fetched
+  // once and stays consistent with the score on Home/Search cards.
   const { data: compat } = useQuery({
     queryKey: ['compatibility', userId],
     queryFn: () => getCompatibilityBreakdown(userId),
     staleTime: 5 * 60 * 1000,
   });
 
-  // Viewer's own profile — feeds the reverse partner-preference checklist below.
+  // Viewer's own profile — feeds the reverse partner-preference checklist.
   const { data: myProfile } = useQuery({
     queryKey: queryKeys.myProfile,
     queryFn: getMyProfile,
     staleTime: 5 * 60 * 1000,
   });
-
-  // Profile views are recorded server-side by GET /profile/:id (which this screen
-  // already issues), and that path honours the viewer's incognito setting. The
-  // client used to also POST /profile/:id/view — a route that never existed, so it
-  // 404'd on every open behind a .catch().
 
   const actionMutation = useMutation({
     mutationFn: (action: MatchAction) => performMatchAction(userId, action),
@@ -367,7 +179,7 @@ export default function ProfileDetailScreen() {
 
   if (!profile) {
     return (
-      <View style={[styles.loader, { backgroundColor: c.background }]}>
+      <View style={[s.loader, { backgroundColor: c.background }]}>
         <Text style={{ color: c.textSecondary }}>Profile not found.</Text>
       </View>
     );
@@ -376,192 +188,262 @@ export default function ProfileDetailScreen() {
   const photos: string[] = profile.profilePhoto
     ? [profile.profilePhoto, ...(profile.photos || []).filter((p) => p !== profile.profilePhoto)]
     : profile.photos || [];
+  const heroPhoto: string | null = photos[0] ?? null;
+  const restPhotos = photos.slice(1);
 
-  const isMutualOrPremium =
-    actionDone === 'like' || user?.subscriptionPlan !== 'free';
+  const isMutualOrPremium = actionDone === 'like' || user?.subscriptionPlan !== 'free';
 
   const name = `${profile.firstName} ${profile.lastName}`.trim();
   const age = profile.dateOfBirth
     ? Math.floor((Date.now() - new Date(profile.dateOfBirth).getTime()) / (365.25 * 24 * 3600 * 1000))
     : null;
 
+  // Essence chips — the at-a-glance matrimonial facts.
+  const essence: Array<{ icon: keyof typeof Ionicons.glyphMap; label: string }> = [];
+  if (profile.height) essence.push({ icon: 'resize-outline', label: `${profile.height} cm` });
+  if (profile.education) essence.push({ icon: 'school-outline', label: profile.education });
+  if (profile.religion) {
+    essence.push({
+      icon: 'people-outline',
+      label: [profile.religion, profile.caste].filter(Boolean).join(' · '),
+    });
+  }
+  if (profile.maritalStatus) essence.push({ icon: 'heart-outline', label: profile.maritalStatus.replace(/_/g, ' ') });
+  if (profile.manglikStatus) essence.push({ icon: 'moon-outline', label: `Manglik: ${profile.manglikStatus.replace(/_/g, ' ')}` });
+
+  // Interleave: photo after every other content stretch (max one per two blocks).
+  const photoAt = (i: number) => {
+    const uri = restPhotos[i];
+    if (!uri) return null;
+    const band = photoCaption(i, profile.firstName, profile.city);
+    return (
+      <RevealOnScroll scrollY={scrollY}>
+        <PhotoBlock uri={uri} eyebrow={band.eyebrow} caption={band.caption} locked={!isMutualOrPremium} />
+      </RevealOnScroll>
+    );
+  };
+
+  const hasFamily =
+    profile.familyType || profile.fatherOccupation || profile.motherOccupation || profile.numberOfSiblings;
+  const hasLifestyle = profile.diet || profile.smoking || profile.drinking;
+  const hasAstro =
+    profile.manglikStatus || profile.rashi || profile.nakshatra || profile.placeOfBirth || profile.birthTime;
+
   return (
-    <View style={[styles.wrapper, { backgroundColor: c.background }]}>
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false} testID="ProfileDetailScreen">
-        {/* Back + Menu header */}
-        <View style={[styles.absHeader, { top: insets.top + spacing.sm }]}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.iconBtn}
-            testID="back-btn"
-            accessibilityLabel="Go back"
-          >
-            <Ionicons name="arrow-back" size={22} color="#fff" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.iconBtn}
-            onPress={() => setBlockReportVisible(true)}
-            testID="menu-btn"
-            accessibilityLabel="More options"
-          >
-            <Ionicons name="ellipsis-vertical" size={22} color="#fff" />
-          </TouchableOpacity>
-        </View>
+    <View style={[s.wrapper, { backgroundColor: c.background }]}>
+      <Animated.ScrollView
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false}
+        testID="ProfileDetailScreen"
+      >
+        <HeroBlock
+          photoUri={heroPhoto}
+          name={name}
+          age={age}
+          city={profile.city}
+          profession={profile.profession}
+          verified={profile.isVerified}
+          compatScore={typeof compat?.overallScore === 'number' ? compat.overallScore : null}
+          scrollY={scrollY}
+          height={heroH}
+        />
 
-        {/* Photo gallery */}
-        <ScrollView
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onMomentumScrollEnd={(e) => {
-            const idx = Math.round(e.nativeEvent.contentOffset.x / windowWidth);
-            setPhotoIdx(idx);
-          }}
-          style={styles.photoScroll}
-          testID="photo-gallery"
-        >
-          {photos.length > 0 ? (
-            photos.map((uri, i) => (
-              <HeroPhoto key={i} uri={uri} locked={!isMutualOrPremium && i > 0} />
-            ))
-          ) : (
-            <View style={[styles.photoContainer, styles.photoFallback, { width: windowWidth, backgroundColor: c.surface2 }]}>
-              <Ionicons name="person" size={64} color={c.textMuted} />
-            </View>
-          )}
-        </ScrollView>
-
-        {/* Photo dots */}
-        {photos.length > 1 && (
-          <View style={styles.dotsRow}>
-            {photos.map((_, i) => (
-              <View key={i} style={[styles.dot, { backgroundColor: c.border }, i === photoIdx && { backgroundColor: c.primary, width: 16 }]} />
+        {/* Essence band — at-a-glance facts */}
+        {essence.length > 0 && (
+          <View style={s.essenceBand}>
+            {essence.map((e) => (
+              <StatChip key={e.label} icon={e.icon} label={e.label} />
             ))}
           </View>
         )}
 
-        {/* Name, age, location */}
-        <View style={[styles.infoSection, { borderBottomColor: c.border }]}>
-          <Text style={[styles.name, { color: c.fgStrong }]}>{name}{age ? `, ${age}` : ''}</Text>
-          <Text style={[styles.location, { color: c.textSecondary }]}>{profile.city}{profile.state ? `, ${profile.state}` : ''}</Text>
-          {profile.profession && <Text style={[styles.profession, { color: c.textSecondary }]}>{profile.profession}</Text>}
-        </View>
-
-        {/* Verification row */}
-        <VerificationRow photoVerified={profile.isVerified} />
-
-        {/* Compatibility */}
+        {/* Compatibility card */}
         {typeof compat?.overallScore === 'number' && (
-          <CompatibilityBar
-            score={compat.overallScore}
-            onWhyPress={() => setBreakdownVisible(true)}
-          />
-        )}
-
-        {/* Voice Intro — Premium+ gate applied inside component */}
-        {profile.voiceIntroUrl && (
-          <View style={[styles.section, { borderBottomColor: c.border }]}>
-            <Text style={[styles.sectionTitle, { color: c.fgStrong }]}>Voice Intro</Text>
-            <VoiceIntroRecorder
-              existingUrl={profile.voiceIntroUrl}
-              onSaved={() => null}
-              isPremiumViewer={isMutualOrPremium}
-              readOnly
-            />
-          </View>
-        )}
-
-        {/* About */}
-        {profile.bio && (
-          <View style={[styles.section, { borderBottomColor: c.border }]}>
-            <Text style={[styles.sectionTitle, { color: c.fgStrong }]}>About</Text>
-            <Text style={[styles.bioText, { color: c.textPrimary }]}>{profile.bio}</Text>
-          </View>
-        )}
-
-        {/* Interest tags */}
-        {(profile.interestTags?.length ?? 0) > 0 && (
-          <View style={[styles.section, { borderBottomColor: c.border }]}>
-            <View style={styles.tagsRow}>
-              {profile.interestTags.map((tag) => (
-                <View key={tag} style={[styles.tag, { backgroundColor: c.accentSoft }]}>
-                  <Text style={[styles.tagText, { color: c.primary }]}>{tag}</Text>
+          <RevealOnScroll scrollY={scrollY}>
+            <PressableScale onPress={() => setBreakdownVisible(true)} haptic testID="compatibility-bar">
+              <SectionCard style={s.compatCard}>
+                <View style={s.compatRow}>
+                  <CompatRing value={compat.overallScore} size={64} />
+                  <View style={s.compatInfo}>
+                    <Text style={[type.headline, { color: c.fgStrong }]}>Compatibility</Text>
+                    <Text style={[type.footnote, { color: c.textMuted, marginTop: 2 }]}>
+                      Tap to see the full breakdown
+                    </Text>
+                  </View>
+                  <View style={s.compatWhy}>
+                    <Text style={[type.subhead, { color: compatScoreColour(compat.overallScore), fontFamily: 'Inter-SemiBold' }]}>
+                      Why
+                    </Text>
+                    <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
+                  </View>
                 </View>
-              ))}
-            </View>
-          </View>
+              </SectionCard>
+            </PressableScale>
+          </RevealOnScroll>
         )}
 
-        {/* Reverse partner-preference checklist — "do you fit what they want?" */}
-        <PreferenceMatch target={profile} viewer={myProfile} targetName={profile.firstName} />
+        {/* Voice intro */}
+        {profile.voiceIntroUrl && (
+          <RevealOnScroll scrollY={scrollY}>
+            <SectionCard title="In their own voice" icon="mic-outline">
+              <VoiceIntroRecorder
+                existingUrl={profile.voiceIntroUrl}
+                onSaved={() => null}
+                isPremiumViewer={isMutualOrPremium}
+                readOnly
+              />
+            </SectionCard>
+          </RevealOnScroll>
+        )}
 
-        {/* Accordion sections */}
-        <Accordion title="Basic Details" defaultOpen>
-          <DetailRow label="Age" value={age ? `${age} years` : undefined} />
-          <DetailRow label="Height" value={profile.height ? `${profile.height} cm` : undefined} />
-          <DetailRow label="Marital Status" value={profile.maritalStatus?.replace(/_/g, ' ')} />
-        </Accordion>
+        {/* About — editorial pull-quote card */}
+        {profile.bio && (
+          <RevealOnScroll scrollY={scrollY}>
+            <SectionCard title={`About ${profile.firstName}`} icon="book-outline">
+              <Text style={[s.bioText, { color: c.textPrimary }]}>{profile.bio}</Text>
+              {(profile.interestTags?.length ?? 0) > 0 && (
+                <View style={s.tagsRow}>
+                  {profile.interestTags.map((tag) => (
+                    <View key={tag} style={[s.tag, { backgroundColor: c.accentSoft }]}>
+                      <Text style={[s.tagText, { color: c.primary }]}>{tag}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </SectionCard>
+          </RevealOnScroll>
+        )}
 
-        <Accordion title="Community">
-          <DetailRow label="Religion" value={profile.religion ?? undefined} />
-          <DetailRow label="Caste" value={profile.caste ?? undefined} />
-          <DetailRow label="Sub-caste" value={profile.subCaste ?? undefined} />
-          <DetailRow label="Mother Tongue" value={profile.motherTongue ?? undefined} />
-        </Accordion>
+        {photoAt(0)}
 
-        <Accordion title="Education & Career">
-          <DetailRow label="Education" value={profile.education ?? undefined} />
-          <DetailRow label="Degree" value={profile.degree ?? undefined} />
-          <DetailRow label="Profession" value={profile.profession ?? undefined} />
-        </Accordion>
+        {/* Family & values — the parent-friendly heart of the story */}
+        {(hasFamily || hasLifestyle) && (
+          <RevealOnScroll scrollY={scrollY}>
+            <SectionCard title="Family & values" icon="home-outline" tinted>
+              <DetailRow label="Family Type" value={profile.familyType ?? undefined} />
+              <DetailRow label="Father's Occupation" value={profile.fatherOccupation ?? undefined} />
+              <DetailRow label="Mother's Occupation" value={profile.motherOccupation ?? undefined} />
+              <DetailRow label="Siblings" value={profile.numberOfSiblings ? `${profile.numberOfSiblings}` : undefined} />
+              <DetailRow label="Diet" value={profile.diet ?? undefined} />
+              <DetailRow label="Smoking" value={profile.smoking ?? undefined} />
+              <DetailRow label="Drinking" value={profile.drinking ?? undefined} />
+            </SectionCard>
+          </RevealOnScroll>
+        )}
 
-        <Accordion title="Location">
-          <DetailRow label="City" value={profile.city} />
-          <DetailRow label="State" value={profile.state} />
-        </Accordion>
+        {photoAt(1)}
 
-        <Accordion title="Family">
-          <DetailRow label="Family Type" value={profile.familyType ?? undefined} />
-          <DetailRow label="Father's Occupation" value={profile.fatherOccupation ?? undefined} />
-          <DetailRow label="Mother's Occupation" value={profile.motherOccupation ?? undefined} />
-          <DetailRow
-            label="Siblings"
-            value={profile.numberOfSiblings ? `${profile.numberOfSiblings}` : undefined}
-          />
-        </Accordion>
+        {/* Reverse partner-preference checklist */}
+        <RevealOnScroll scrollY={scrollY}>
+          <PreferenceMatch target={profile} viewer={myProfile} targetName={profile.firstName} />
+        </RevealOnScroll>
 
-        <Accordion title="Lifestyle">
-          <DetailRow label="Diet" value={profile.diet ?? undefined} />
-          <DetailRow label="Smoking" value={profile.smoking ?? undefined} />
-          <DetailRow label="Drinking" value={profile.drinking ?? undefined} />
-        </Accordion>
+        {/* Education & career + community details */}
+        <RevealOnScroll scrollY={scrollY}>
+          <SectionCard title="Education & career" icon="school-outline">
+            <DetailRow label="Education" value={profile.education ?? undefined} />
+            <DetailRow label="Degree" value={profile.degree ?? undefined} />
+            <DetailRow label="Profession" value={profile.profession ?? undefined} />
+            <DetailRow label="City" value={profile.city} />
+            <DetailRow label="State" value={profile.state} />
+          </SectionCard>
+        </RevealOnScroll>
 
-        <Accordion title="Horoscope">
-          <DetailRow label="Manglik" value={profile.manglikStatus?.replace(/_/g, ' ')} />
-          <DetailRow label="Rashi" value={profile.rashi ?? undefined} />
-          <DetailRow label="Nakshatra" value={profile.nakshatra ?? undefined} />
-          <DetailRow label="Birth Place" value={profile.placeOfBirth ?? undefined} />
-          <DetailRow label="Birth Time" value={profile.birthTime ?? undefined} />
-          <TouchableOpacity
-            style={styles.kundliBtn}
-            onPress={() => navigation.navigate('HoroscopeMatch', {
-              userId: profile.userId,
-              name: [profile.firstName, profile.lastName].filter(Boolean).join(' '),
-            })}
-          >
-            <Ionicons name="moon-outline" size={16} color={c.primary} />
-            <Text style={[styles.kundliBtnText, { color: c.primary }]}>View Ashtakoot Guna Milan →</Text>
-          </TouchableOpacity>
-        </Accordion>
+        <RevealOnScroll scrollY={scrollY}>
+          <SectionCard title="Community" icon="people-outline">
+            <DetailRow label="Religion" value={profile.religion ?? undefined} />
+            <DetailRow label="Caste" value={profile.caste ?? undefined} />
+            <DetailRow label="Sub-caste" value={profile.subCaste ?? undefined} />
+            <DetailRow label="Mother Tongue" value={profile.motherTongue ?? undefined} />
+          </SectionCard>
+        </RevealOnScroll>
 
-        {/* Spacer for sticky action bar */}
-        <View style={{ height: 100 }} />
-      </ScrollView>
+        {photoAt(2)}
+
+        {/* Horoscope */}
+        {hasAstro && (
+          <RevealOnScroll scrollY={scrollY}>
+            <SectionCard title="Horoscope" icon="moon-outline">
+              <DetailRow label="Manglik" value={profile.manglikStatus?.replace(/_/g, ' ')} />
+              <DetailRow label="Rashi" value={profile.rashi ?? undefined} />
+              <DetailRow label="Nakshatra" value={profile.nakshatra ?? undefined} />
+              <DetailRow label="Birth Place" value={profile.placeOfBirth ?? undefined} />
+              <DetailRow label="Birth Time" value={profile.birthTime ?? undefined} />
+              <TouchableOpacity
+                style={s.kundliBtn}
+                onPress={() =>
+                  navigation.navigate('HoroscopeMatch', {
+                    userId: profile.userId,
+                    name: [profile.firstName, profile.lastName].filter(Boolean).join(' '),
+                  })
+                }
+              >
+                <Ionicons name="moon-outline" size={16} color={c.primary} />
+                <Text style={[s.kundliBtnText, { color: c.primary }]}>View Ashtakoot Guna Milan →</Text>
+              </TouchableOpacity>
+            </SectionCard>
+          </RevealOnScroll>
+        )}
+
+        {/* Remaining photos flow out the story */}
+        {restPhotos.slice(3).map((uri, i) => {
+          const band = photoCaption(3 + i, profile.firstName, profile.city);
+          return (
+            <RevealOnScroll key={uri} scrollY={scrollY}>
+              <PhotoBlock uri={uri} eyebrow={band.eyebrow} caption={band.caption} locked={!isMutualOrPremium} />
+            </RevealOnScroll>
+          );
+        })}
+
+        {/* Quiet safety footer */}
+        <TouchableOpacity
+          style={s.safetyFooter}
+          onPress={() => setBlockReportVisible(true)}
+          accessibilityLabel={`Report or block ${profile.firstName}`}
+        >
+          <Ionicons name="shield-outline" size={14} color={c.textMuted} />
+          <Text style={[type.footnote, { color: c.textMuted }]}>Report or block {profile.firstName}</Text>
+        </TouchableOpacity>
+
+        <View style={{ height: 110 }} />
+      </Animated.ScrollView>
+
+      {/* Floating header — transparent over hero, solid + titled after */}
+      <View style={[s.floatHeader, { paddingTop: insets.top + spacing.xs }]} pointerEvents="box-none">
+        <Animated.View
+          style={[StyleSheet.absoluteFill, { backgroundColor: c.background, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.border }, headerBgStyle]}
+          pointerEvents="none"
+        />
+        <PressableScale
+          scaleTo={0.9}
+          onPress={() => navigation.goBack()}
+          style={s.iconBtn}
+          testID="back-btn"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <Ionicons name="arrow-back" size={22} color="#fff" style={s.iconShadow} />
+        </PressableScale>
+        <Animated.Text style={[s.floatTitle, { color: c.fgStrong }, headerTitleStyle]} numberOfLines={1}>
+          {name}
+        </Animated.Text>
+        <PressableScale
+          scaleTo={0.9}
+          style={s.iconBtn}
+          onPress={() => setBlockReportVisible(true)}
+          testID="menu-btn"
+          accessibilityRole="button"
+          accessibilityLabel="More options"
+        >
+          <Ionicons name="ellipsis-vertical" size={22} color="#fff" style={s.iconShadow} />
+        </PressableScale>
+      </View>
 
       {/* Sticky bottom action bar */}
       <View
         style={[
-          styles.actionBar,
+          s.actionBar,
           {
             backgroundColor: c.background,
             borderTopColor: c.border,
@@ -570,41 +452,46 @@ export default function ProfileDetailScreen() {
         ]}
       >
         {actionDone === 'like' ? (
-          <View style={styles.mutualHint}>
+          <View style={s.mutualHint}>
             <Ionicons name="heart" size={20} color={c.primary} />
-            <Text style={[styles.mutualHintText, { color: c.primary }]}>
+            <Text style={[s.mutualHintText, { color: c.primary }]}>
               {mutualMatch ? "It's a match! Start chatting." : 'Interest sent!'}
             </Text>
           </View>
         ) : (
           <>
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.passBtn, { backgroundColor: c.surfaceCard, borderColor: c.border }]}
+            <PressableScale
+              style={[s.actionBtn, { backgroundColor: c.surfaceCard, borderWidth: 1, borderColor: c.border }]}
               onPress={() => handleAction('pass')}
               disabled={actionMutation.isPending}
               testID="action-pass"
+              accessibilityRole="button"
               accessibilityLabel="Pass"
             >
               <Ionicons name="close" size={24} color={c.textSecondary} />
-              <Text style={[styles.passBtnText, { color: c.textSecondary }]}>Pass</Text>
-            </TouchableOpacity>
+              <Text style={[s.actionText, { color: c.textSecondary }]}>Pass</Text>
+            </PressableScale>
 
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.shortlistBtn, { backgroundColor: c.goldSoft }]}
+            <PressableScale
+              style={[s.actionBtn, { backgroundColor: c.goldSoft, borderWidth: 1, borderColor: colours.g500 + '40' }]}
               onPress={() => handleAction('shortlist')}
               disabled={actionMutation.isPending}
+              haptic
               testID="action-shortlist"
+              accessibilityRole="button"
               accessibilityLabel="Shortlist"
             >
               <Ionicons name="bookmark" size={24} color={colours.g600} />
-              <Text style={[styles.shortlistBtnText, { color: colours.g600 }]}>Shortlist</Text>
-            </TouchableOpacity>
+              <Text style={[s.actionText, { color: colours.g600 }]}>Shortlist</Text>
+            </PressableScale>
 
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.likeBtn, { backgroundColor: c.primary }]}
+            <PressableScale
+              style={[s.actionBtn, { backgroundColor: c.primary }]}
               onPress={() => handleAction('like')}
               disabled={actionMutation.isPending}
+              haptic
               testID="action-like"
+              accessibilityRole="button"
               accessibilityLabel="Interested"
             >
               {actionMutation.isPending ? (
@@ -612,20 +499,16 @@ export default function ProfileDetailScreen() {
               ) : (
                 <>
                   <Ionicons name="heart" size={24} color="#fff" />
-                  <Text style={styles.likeBtnText}>Interested</Text>
+                  <Text style={[s.actionText, s.likeText]}>Interested</Text>
                 </>
               )}
-            </TouchableOpacity>
+            </PressableScale>
           </>
         )}
       </View>
 
-      {/* Mutual match overlay */}
-      {mutualMatch && (
-        <MutualMatchOverlay name={profile.firstName} onDismiss={() => setMutualMatch(false)} />
-      )}
+      {mutualMatch && <MutualMatchOverlay name={profile.firstName} onDismiss={() => setMutualMatch(false)} />}
 
-      {/* Block / Report sheet */}
       <BlockReportSheet
         visible={blockReportVisible}
         userId={userId}
@@ -634,7 +517,6 @@ export default function ProfileDetailScreen() {
         onBlocked={() => navigation.goBack()}
       />
 
-      {/* Compatibility breakdown sheet */}
       <CompatibilityBreakdownSheet
         visible={breakdownVisible}
         userId={userId}
@@ -646,122 +528,104 @@ export default function ProfileDetailScreen() {
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  wrapper: { flex: 1, backgroundColor: colours.background },
-  container: { flex: 1 },
+const s = StyleSheet.create({
+  wrapper: { flex: 1 },
   loader: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
-  absHeader: {
+  floatHeader: {
     position: 'absolute',
+    top: 0,
     left: 0,
     right: 0,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.xs,
     zIndex: 10,
   },
+  floatTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontFamily: 'PlayfairDisplay-Bold',
+    fontSize: 18,
+  },
   iconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.35)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  iconShadow: {
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 
-  photoScroll: { height: 380 },
-  // Width comes from useWindowDimensions at the call site — a fixed 375 letterboxed
-  // the hero and desynced the paging dots on every device that is not a 375pt iPhone.
-  photoContainer: { height: 380 },
-  photo: { width: '100%', height: '100%' },
-  photoFallback: {
-    backgroundColor: colours.surfaceCard,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  blurOverlay: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  blurText: {
-    color: '#fff',
-    fontFamily: typography.fontFamily.semiBold,
-    fontSize: typography.fontSize.sm,
-  },
-
-  dotsRow: {
+  essenceBand: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.gutter,
+    paddingTop: spacing.lg,
+  },
+  statChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    borderRadius: borderRadius.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    maxWidth: 240,
+  },
+  statChipText: { ...type.caption, fontFamily: 'Inter-Medium' },
+
+  compatCard: { marginTop: spacing.lg },
+  compatRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  compatInfo: { flex: 1 },
+  compatWhy: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+
+  bioText: { ...type.body, fontSize: 16, lineHeight: 24 },
+  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
+  tag: { borderRadius: borderRadius.pill, paddingHorizontal: spacing.sm, paddingVertical: 3 },
+  tagText: { ...type.caption },
+
+  detailRow: {
+    flexDirection: 'row',
+    paddingVertical: 7,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  detailLabel: { width: 130, ...type.footnote, fontFamily: 'Inter-Medium' },
+  detailValue: { flex: 1, ...type.footnote },
+
+  kundliBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  kundliBtnText: { ...type.subhead },
+
+  safetyFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
+    marginTop: spacing['2xl'],
     paddingVertical: spacing.sm,
   },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colours.border },
-  dotActive: { backgroundColor: colours.primary, width: 16 },
 
-  infoSection: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colours.border,
-  },
-  name: {
-    fontSize: typography.fontSize['2xl'],
-    fontFamily: typography.fontFamily.bold,
-    color: colours.textPrimary,
-    marginBottom: 4,
-  },
-  location: {
-    fontSize: typography.fontSize.sm,
-    color: colours.textSecondary,
-    marginBottom: 2,
-  },
-  profession: {
-    fontSize: typography.fontSize.sm,
-    color: colours.textSecondary,
-  },
-
-  section: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colours.border,
-  },
-  sectionTitle: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.semiBold,
-    color: colours.textPrimary,
-    marginBottom: spacing.sm,
-  },
-  bioText: {
-    fontSize: typography.fontSize.sm,
-    color: colours.textPrimary,
-    lineHeight: 22,
-  },
-
-  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  tag: {
-    backgroundColor: colours.primaryLight,
-    borderRadius: borderRadius.full,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-  },
-  tagText: {
-    fontSize: typography.fontSize.xs,
-    color: colours.primary,
-    fontFamily: typography.fontFamily.medium,
-  },
-
-  // Sticky action bar
   actionBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     flexDirection: 'row',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingTop: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: colours.border,
-    backgroundColor: colours.background,
     gap: spacing.sm,
     alignItems: 'center',
   },
@@ -775,32 +639,9 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     minHeight: 48,
   },
-  passBtn: {
-    backgroundColor: colours.surfaceCard,
-    borderWidth: 1,
-    borderColor: colours.border,
-  },
-  passBtnText: {
-    fontSize: typography.fontSize.sm,
-    color: colours.textSecondary,
-    fontFamily: typography.fontFamily.medium,
-  },
-  shortlistBtn: {
-    backgroundColor: colours.secondaryLight,
-    borderWidth: 1,
-    borderColor: colours.secondary + '40',
-  },
-  shortlistBtnText: {
-    fontSize: typography.fontSize.sm,
-    color: colours.secondary,
-    fontFamily: typography.fontFamily.medium,
-  },
-  likeBtn: { backgroundColor: colours.primary },
-  likeBtnText: {
-    fontSize: typography.fontSize.sm,
-    color: '#fff',
-    fontFamily: typography.fontFamily.semiBold,
-  },
+  actionText: { ...type.subhead },
+  likeText: { color: '#fff', fontFamily: 'Inter-SemiBold' },
+
   mutualHint: {
     flex: 1,
     flexDirection: 'row',
@@ -809,21 +650,33 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingVertical: spacing.md,
   },
-  mutualHintText: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.semiBold,
-    color: colours.primary,
-  },
-  kundliBtn: {
-    flexDirection: 'row',
+  mutualHintText: { ...type.headline },
+
+  mmOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.7)',
     alignItems: 'center',
-    gap: spacing.xs,
+    justifyContent: 'center',
+    zIndex: 100,
+  },
+  mmCard: {
+    borderRadius: borderRadius.xl,
+    padding: spacing['3xl'],
+    alignItems: 'center',
+    gap: spacing.md,
+    marginHorizontal: spacing['2xl'],
+  },
+  mmTitle: { fontFamily: 'PlayfairDisplay-Bold', fontSize: typography.fontSize['2xl'] },
+  mmSub: { ...type.body, textAlign: 'center' },
+  mmBtn: {
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing['2xl'],
+    paddingVertical: spacing.md,
     marginTop: spacing.sm,
-    paddingVertical: spacing.xs,
   },
-  kundliBtnText: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: colours.primary,
-  },
+  mmBtnText: { color: '#fff', fontFamily: typography.fontFamily.semiBold, fontSize: typography.fontSize.base },
 });
