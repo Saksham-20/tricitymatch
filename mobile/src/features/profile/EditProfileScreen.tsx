@@ -18,6 +18,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { EditProfileSkeleton } from '../../components/ui/skeletons';
 import { showToast } from '../../utils/toast';
+import PickerSheet from '../../components/ui/PickerSheet';
+import { PROFILE_PROMPTS, PromptPair, fromProfilePrompts, toProfilePrompts } from '../../constants/prompts';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
 import { getMyProfile, updateMyProfile, uploadPhoto, deletePhoto } from '../../api/profile';
@@ -324,7 +326,7 @@ const pg = StyleSheet.create({
 
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
-type Section = 'photos' | 'basic' | 'community' | 'career' | 'location' | 'about' | 'lifestyle' | 'family';
+type Section = 'photos' | 'basic' | 'community' | 'career' | 'location' | 'about' | 'prompts' | 'lifestyle' | 'family';
 
 export default function EditProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -354,6 +356,8 @@ export default function EditProfileScreen() {
   const [state, setState] = useState('');
   const [diet, setDiet] = useState<'vegetarian' | 'non-vegetarian' | 'vegan' | 'jain' | null>(null);
   const [photos, setPhotos] = useState<string[]>([]);
+  const [prompts, setPrompts] = useState<PromptPair[]>([]);
+  const [promptPickerIdx, setPromptPickerIdx] = useState<number | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
   // Hydrate form from loaded profile
@@ -375,6 +379,7 @@ export default function EditProfileScreen() {
         ? [profile.profilePhoto, ...(profile.photos || []).filter((p) => p !== profile.profilePhoto)]
         : profile.photos || [];
       setPhotos(allPhotos);
+      setPrompts(fromProfilePrompts(profile.profilePrompts as Record<string, string> | null));
       setHydrated(true);
     }
   }, [profile, hydrated]);
@@ -404,8 +409,9 @@ export default function EditProfileScreen() {
       city: city.trim(),
       state: state.trim(),
       diet: diet,
+      profilePrompts: toProfilePrompts(prompts),
     });
-  }, [firstName, lastName, height, bio, religion, caste, motherTongue, profession, education, city, state, diet, saveMutation]);
+  }, [firstName, lastName, height, bio, religion, caste, motherTongue, profession, education, city, state, diet, prompts, saveMutation]);
 
   const handleAddPhoto = useCallback(() => {
     // Expo ImagePicker integration — show alert since we can't import without native build
@@ -574,6 +580,53 @@ export default function EditProfileScreen() {
           />
         </SectionCard>
 
+        {/* Prompts — "Get to know me" Q&As shown between photos on the story */}
+        <SectionCard
+          title="Prompts"
+          expanded={expandedSection === 'prompts'}
+          onToggle={() => toggleSection('prompts')}
+        >
+          <Text style={ps.hint}>
+            Answer up to three prompts — they appear on your profile between your photos and give
+            matches something real to start from.
+          </Text>
+          {[0, 1, 2].map((i) => {
+            const pair = prompts[i];
+            return (
+              <View key={i} style={ps.slot}>
+                <TouchableOpacity
+                  style={ps.promptBtn}
+                  onPress={() => setPromptPickerIdx(i)}
+                  testID={`prompt-select-${i}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={pair?.prompt ?? 'Choose a prompt'}
+                >
+                  <Text style={pair?.prompt ? ps.promptText : ps.promptPlaceholder} numberOfLines={1}>
+                    {pair?.prompt ?? 'Choose a prompt…'}
+                  </Text>
+                  <Ionicons name="chevron-down" size={16} color={colours.textMuted} />
+                </TouchableOpacity>
+                {pair?.prompt ? (
+                  <FieldEditor
+                    label="Your answer"
+                    value={pair.answer}
+                    onChange={(text) =>
+                      setPrompts((prev) => {
+                        const next = [...prev];
+                        next[i] = { prompt: pair.prompt, answer: text };
+                        return next;
+                      })
+                    }
+                    multiline
+                    maxLength={280}
+                    testID={`prompt-answer-${i}`}
+                  />
+                ) : null}
+              </View>
+            );
+          })}
+        </SectionCard>
+
         {/* Lifestyle */}
         <SectionCard
           title="Lifestyle"
@@ -596,6 +649,24 @@ export default function EditProfileScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      <PickerSheet
+        visible={promptPickerIdx !== null}
+        title="Choose a prompt"
+        options={PROFILE_PROMPTS.filter(
+          (opt) => !prompts.some((p2, j) => j !== promptPickerIdx && p2?.prompt === opt),
+        )}
+        selected={promptPickerIdx !== null ? prompts[promptPickerIdx]?.prompt ?? null : null}
+        onSelect={(val) => {
+          if (promptPickerIdx === null) return;
+          setPrompts((prev) => {
+            const next = [...prev];
+            next[promptPickerIdx] = { prompt: String(val), answer: next[promptPickerIdx]?.answer ?? '' };
+            return next;
+          });
+        }}
+        onClose={() => setPromptPickerIdx(null)}
+      />
     </View>
   );
 }
@@ -636,4 +707,32 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     fontFamily: typography.fontFamily.regular,
   },
+});
+
+const ps = StyleSheet.create({
+  hint: {
+    fontSize: typography.fontSize.xs,
+    color: colours.textMuted,
+    marginBottom: spacing.md,
+    lineHeight: 17,
+  },
+  slot: { marginBottom: spacing.md },
+  promptBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: colours.border,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.md,
+    minHeight: 48,
+    marginBottom: spacing.sm,
+  },
+  promptText: {
+    flex: 1,
+    fontSize: typography.fontSize.sm,
+    fontFamily: typography.fontFamily.medium,
+    color: colours.textPrimary,
+  },
+  promptPlaceholder: { flex: 1, fontSize: typography.fontSize.sm, color: colours.textMuted },
 });

@@ -31,6 +31,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { getProfile, getCompatibilityBreakdown, getMyProfile } from '../../api/profile';
 import PreferenceMatch from '../../components/profile/PreferenceMatch';
 import AudioIntroChip from '../../components/profile/AudioIntroChip';
+import { fromProfilePrompts } from '../../constants/prompts';
 import { performMatchAction } from '../../api/matches';
 import { queryKeys } from '../../constants/queryKeys';
 import { useAuthStore } from '../../stores/authStore';
@@ -188,6 +189,7 @@ export default function ProfileDetailScreen() {
   const viewablePhotos = isMutualOrPremium ? photos : photos.slice(0, 1);
 
   const name = `${profile.firstName} ${profile.lastName}`.trim();
+  const promptPairs = fromProfilePrompts(profile.profilePrompts as Record<string, string> | null);
   const age = profile.dateOfBirth
     ? Math.floor((Date.now() - new Date(profile.dateOfBirth).getTime()) / (365.25 * 24 * 3600 * 1000))
     : null;
@@ -338,6 +340,20 @@ export default function ProfileDetailScreen() {
         )}
 
         {photoAt(1)}
+
+        {/* Prompts — "get to know them" Q&As */}
+        {promptPairs.length > 0 && (
+          <RevealOnScroll scrollY={scrollY}>
+            <SectionCard title={`Get to know ${profile.firstName}`} icon="chatbubble-ellipses-outline">
+              {promptPairs.map(({ prompt, answer }) => (
+                <View key={prompt} style={s.promptItem}>
+                  <Text style={[s.promptQ, { color: c.primary }]}>{prompt}</Text>
+                  <Text style={[s.promptA, { color: c.textPrimary }]}>{answer}</Text>
+                </View>
+              ))}
+            </SectionCard>
+          </RevealOnScroll>
+        )}
 
         {/* Reverse partner-preference checklist */}
         {!isSelf && (
@@ -668,6 +684,14 @@ const s = StyleSheet.create({
   compatWhy: { flexDirection: 'row', alignItems: 'center', gap: 2 },
 
   bioText: { ...type.body, fontSize: 16, lineHeight: 24 },
+  promptItem: { marginBottom: spacing.md },
+  promptQ: {
+    fontFamily: 'PlayfairDisplay-Italic',
+    fontSize: 16,
+    lineHeight: 22,
+    marginBottom: 4,
+  },
+  promptA: { ...type.callout, lineHeight: 22 },
   tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
   tag: { borderRadius: borderRadius.pill, paddingHorizontal: spacing.sm, paddingVertical: 3 },
   tagText: { ...type.caption },
