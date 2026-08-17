@@ -15,6 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import { PressableScale } from '../../components/motion';
 import { showToast } from '../../utils/toast';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
@@ -196,7 +197,8 @@ function PlanCard({ plan, isCurrent, isSelected, onSelect, currency }: PlanCardP
   const borderColour = isGold ? colours.g500 : isSelected ? colours.accent : c.border;
 
   return (
-    <TouchableOpacity
+    <PressableScale
+      haptic
       style={[
         pc.card,
         { backgroundColor: c.surfaceCard, borderColor: borderColour },
@@ -268,7 +270,7 @@ function PlanCard({ plan, isCurrent, isSelected, onSelect, currency }: PlanCardP
       {plan.contactUnlocks === null && plan.planType !== 'free' && (
         <FeatureRow label="Contact unlocks" value="Unlimited" />
       )}
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 
@@ -545,8 +547,9 @@ export default function SubscriptionScreen() {
       {/* Tab bar */}
       <View style={s.tabs}>
         {(['plans', 'history'] as const).map((t2) => (
-          <TouchableOpacity
+          <PressableScale
             key={t2}
+            haptic
             style={[s.tab, tab === t2 && s.tabActive]}
             onPress={() => setTab(t2)}
             testID={`tab-${t2}`}
@@ -556,7 +559,7 @@ export default function SubscriptionScreen() {
             <Text style={[s.tabText, tab === t2 && s.tabTextActive]}>
               {t2 === 'plans' ? 'Plans' : 'History'}
             </Text>
-          </TouchableOpacity>
+          </PressableScale>
         ))}
       </View>
 
@@ -624,7 +627,8 @@ export default function SubscriptionScreen() {
 
           {/* Subscribe CTA */}
           <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
-            <TouchableOpacity
+            <PressableScale
+              haptic
               style={[s.cta, !canUpgrade && s.ctaDisabled]}
               onPress={handleSubscribe}
               disabled={!canUpgrade || paying || verifyMutation.isPending}
@@ -644,7 +648,7 @@ export default function SubscriptionScreen() {
                     : `Subscribe to ${PLANS[selectedPlan].label} — ₹${PLANS[selectedPlan].price.toLocaleString('en-IN')}`}
                 </Text>
               )}
-            </TouchableOpacity>
+            </PressableScale>
             <Text style={s.disclaimer}>
               {isIOS
                 ? 'You’ll finish checkout securely on tricitymatch.com'

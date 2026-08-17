@@ -4,6 +4,7 @@ import {
   KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Modal, Pressable,
 } from 'react-native';
 import SmartImage from '../../components/common/SmartImage';
+import { PressableScale } from '../../components/motion';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -498,22 +499,26 @@ export default function ChatThreadScreen() {
         <View style={s.headerActions}>
           {CONFIG.IS_AGORA_CONFIGURED && (
           <>
-          <TouchableOpacity
+          <PressableScale
+            scaleTo={0.9}
+            haptic
             style={s.headerBtn}
             onPress={() => navigation.navigate('VoiceCall', { calleeId: userId, channelName: `voice_${userId}` })}
             accessibilityLabel={t('chat.voiceCall', 'Voice call')}
             testID="VoiceCallBtn"
           >
             <Ionicons name="call-outline" size={22} color={colours.textPrimary} />
-          </TouchableOpacity>
-          <TouchableOpacity
+          </PressableScale>
+          <PressableScale
+            scaleTo={0.9}
+            haptic
             style={s.headerBtn}
             onPress={() => navigation.navigate('VideoCall', { calleeId: userId, channelName: `video_${userId}`, callType: 'video' })}
             accessibilityLabel={t('chat.videoCall', 'Video call')}
             testID="VideoCallBtn"
           >
             <Ionicons name="videocam-outline" size={22} color={colours.textPrimary} />
-          </TouchableOpacity>
+          </PressableScale>
           </>
           )}
         </View>
@@ -567,7 +572,9 @@ export default function ChatThreadScreen() {
           accessibilityLabel={t('chat.typePlaceholder', 'Type a message')}
           testID="MessageInput"
         />
-        <TouchableOpacity
+        <PressableScale
+          scaleTo={0.9}
+          haptic
           style={[s.sendBtn, (!input.trim() || isSending) && s.sendBtnDisabled]}
           onPress={handleSend}
           disabled={!input.trim() || isSending}
@@ -579,7 +586,7 @@ export default function ChatThreadScreen() {
           ) : (
             <Ionicons name="send" size={18} color={!input.trim() ? colours.textMuted : '#fff'} />
           )}
-        </TouchableOpacity>
+        </PressableScale>
       </View>
 
       {/* Long-press action menu */}

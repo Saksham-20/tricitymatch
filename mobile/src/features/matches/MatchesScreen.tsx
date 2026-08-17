@@ -9,6 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import SmartImage from '../../components/common/SmartImage';
+import { PressableScale } from '../../components/motion';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -93,28 +94,28 @@ function MatchRow({ match, mode, onPress, onChat, onAccept, onDecline, onRemove 
 
       <View style={mr.actions}>
         {mode === 'mutual' && onChat && (
-          <TouchableOpacity style={mr.chatBtn} onPress={onChat} accessibilityLabel="Chat">
+          <PressableScale scaleTo={0.9} haptic style={mr.chatBtn} onPress={onChat} accessibilityRole="button" accessibilityLabel="Chat">
             <Ionicons name="chatbubble" size={16} color="#fff" />
-          </TouchableOpacity>
+          </PressableScale>
         )}
         {mode === 'liked_me' && (
           <View style={mr.acceptRow}>
             {onAccept && (
-              <TouchableOpacity style={[mr.circleBtn, { backgroundColor: colours.successBg }]} onPress={onAccept} accessibilityLabel="Accept interest">
+              <PressableScale scaleTo={0.9} haptic style={[mr.circleBtn, { backgroundColor: colours.successBg }]} onPress={onAccept} accessibilityRole="button" accessibilityLabel="Accept interest">
                 <Ionicons name="heart" size={18} color={colours.success} />
-              </TouchableOpacity>
+              </PressableScale>
             )}
             {onDecline && (
-              <TouchableOpacity style={[mr.circleBtn, { backgroundColor: colours.errorBg }]} onPress={onDecline} accessibilityLabel="Decline interest">
+              <PressableScale scaleTo={0.9} haptic style={[mr.circleBtn, { backgroundColor: colours.errorBg }]} onPress={onDecline} accessibilityRole="button" accessibilityLabel="Decline interest">
                 <Ionicons name="close" size={18} color={colours.error} />
-              </TouchableOpacity>
+              </PressableScale>
             )}
           </View>
         )}
         {mode === 'shortlisted' && onRemove && (
-          <TouchableOpacity style={[mr.circleBtn, { backgroundColor: colours.goldSoft }]} onPress={onRemove} accessibilityLabel="Remove from shortlist">
+          <PressableScale scaleTo={0.9} haptic style={[mr.circleBtn, { backgroundColor: colours.goldSoft }]} onPress={onRemove} accessibilityRole="button" accessibilityLabel="Remove from shortlist">
             <Ionicons name="bookmark" size={18} color={colours.g600} />
-          </TouchableOpacity>
+          </PressableScale>
         )}
         <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
       </View>

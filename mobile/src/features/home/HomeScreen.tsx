@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colours, type, spacing, borderRadius } from '@shared/constants/theme';
 import SmartImage from '../../components/common/SmartImage';
+import { PressableScale } from '../../components/motion';
 import { Avatar, SectionHeader, SkeletonBlock, EmptyState, CompletionRing } from '../../components/ui';
 import { getDailyFeed } from '../../api/matches';
 import { getUnreadCount } from '../../api/notifications';
@@ -49,10 +50,10 @@ function RailCard({ profile, onPress, c }: { profile: ProfileSummary; onPress: (
   const name = `${profile.firstName}${age ? `, ${age}` : ''}`;
   const compat = profile.compatibilityScore ?? 0;
   return (
-    <TouchableOpacity
+    <PressableScale
+      haptic
       style={[styles.rail, { backgroundColor: c.surface2 }]}
       onPress={onPress}
-      activeOpacity={0.9}
       testID={`match-card-${profile.userId}`}
       accessibilityLabel={`View profile of ${name}`}
     >
@@ -78,7 +79,7 @@ function RailCard({ profile, onPress, c }: { profile: ProfileSummary; onPress: (
           </View>
         )}
       </View>
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 
@@ -137,15 +138,16 @@ export default function HomeScreen() {
             <Text style={[styles.greetName, { color: c.fgStrong }]} numberOfLines={1}>{firstName}</Text>
           </View>
         </TouchableOpacity>
-        <TouchableOpacity onPress={goToNotifications} testID="notif-bell" accessibilityLabel="Notifications" style={styles.bellBtn}>
+        <PressableScale scaleTo={0.9} haptic onPress={goToNotifications} testID="notif-bell" accessibilityRole="button" accessibilityLabel="Notifications" style={styles.bellBtn}>
           <Ionicons name="notifications-outline" size={24} color={c.fgStrong} />
           {unreadCount > 0 && <View style={[styles.bellDot, { borderColor: c.background }]} />}
-        </TouchableOpacity>
+        </PressableScale>
       </View>
 
       {/* Completeness strip */}
       {completionPct < 100 && (
-        <TouchableOpacity
+        <PressableScale
+          haptic
           style={[styles.completeCard, { backgroundColor: c.surfaceCard, borderColor: c.border }]}
           onPress={goToOwnProfile}
           testID="completeness-strip"
@@ -159,7 +161,7 @@ export default function HomeScreen() {
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
-        </TouchableOpacity>
+        </PressableScale>
       )}
 
       {/* Quick actions */}
@@ -255,7 +257,8 @@ function QuickChip({ icon, label, tint, onPress, c, testID }: {
   onPress: () => void; c: ReturnType<typeof useTheme>['c']; testID?: string;
 }) {
   return (
-    <TouchableOpacity
+    <PressableScale
+      haptic
       style={[styles.quickCard, { backgroundColor: c.surfaceCard, borderColor: c.border }]}
       onPress={onPress}
       testID={testID}
@@ -263,7 +266,7 @@ function QuickChip({ icon, label, tint, onPress, c, testID }: {
     >
       <Ionicons name={icon} size={22} color={tint} />
       <Text style={[styles.quickLabel, { color: c.textPrimary }]}>{label}</Text>
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 

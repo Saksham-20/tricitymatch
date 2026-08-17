@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, FlatList } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import PickerSheet from '../../components/ui/PickerSheet';
 import OnboardingLayout from './OnboardingLayout';
 import { useOnboarding } from './OnboardingContext';
 
@@ -22,41 +23,6 @@ const INCOME_RANGES: { label: string; value: number }[] = [
   { label: 'Above ₹50 Lakhs', value: 6000000 },
   { label: 'Prefer not to say', value: 0 },
 ];
-
-interface PickerSheetProps<T> {
-  visible: boolean;
-  title: string;
-  options: { label: string; value: T }[];
-  selected: T | null;
-  onSelect: (v: T) => void;
-  onClose: () => void;
-}
-
-function PickerSheet<T>({ visible, title, options, selected, onSelect, onClose }: PickerSheetProps<T>) {
-  return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
-      <View style={styles.sheet}>
-        <Text style={styles.sheetTitle}>{title}</Text>
-        <FlatList
-          data={options}
-          keyExtractor={(item) => String(item.value)}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[styles.sheetRow, item.value === selected && styles.sheetRowActive]}
-              onPress={() => { onSelect(item.value); onClose(); }}
-              testID={`option-${item.value}`}
-            >
-              <Text style={[styles.sheetRowText, item.value === selected && styles.sheetRowTextActive]}>
-                {item.label}
-              </Text>
-            </TouchableOpacity>
-          )}
-        />
-      </View>
-    </Modal>
-  );
-}
 
 export default function Step5Screen() {
   const { t } = useTranslation();
@@ -155,7 +121,7 @@ export default function Step5Screen() {
         title={t('onboarding.step5.income')}
         options={INCOME_RANGES}
         selected={income}
-        onSelect={(v: number) => setIncome(v)}
+        onSelect={(v) => setIncome(v as number)}
         onClose={() => setIncomeSheet(false)}
       />
     </OnboardingLayout>
@@ -190,23 +156,4 @@ const styles = StyleSheet.create({
   },
   selectText: { fontSize: typography.fontSize.base, color: colours.textPrimary },
   placeholderText: { fontSize: typography.fontSize.base, color: colours.textMuted },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
-  sheet: {
-    backgroundColor: colours.background,
-    borderTopLeftRadius: borderRadius.xl,
-    borderTopRightRadius: borderRadius.xl,
-    maxHeight: '60%',
-    paddingTop: spacing.lg,
-  },
-  sheetTitle: {
-    fontSize: typography.fontSize.lg,
-    fontFamily: typography.fontFamily.semiBold,
-    color: colours.textPrimary,
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  sheetRow: { height: 52, paddingHorizontal: spacing.lg, justifyContent: 'center' },
-  sheetRowActive: { backgroundColor: colours.primaryLight },
-  sheetRowText: { fontSize: typography.fontSize.base, color: colours.textPrimary },
-  sheetRowTextActive: { color: colours.primary, fontFamily: typography.fontFamily.semiBold },
 });

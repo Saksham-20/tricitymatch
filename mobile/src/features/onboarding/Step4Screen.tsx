@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, FlatList } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import PickerSheet from '../../components/ui/PickerSheet';
 import OnboardingLayout from './OnboardingLayout';
 import { useOnboarding } from './OnboardingContext';
 
@@ -17,41 +18,6 @@ const FIELDS_OF_STUDY = [
   'Law', 'Management / MBA', 'Science', 'Computer Science / IT', 'Education',
   'Architecture', 'Agriculture', 'Other',
 ];
-
-interface PickerSheetProps {
-  visible: boolean;
-  title: string;
-  options: string[];
-  selected: string;
-  onSelect: (v: string) => void;
-  onClose: () => void;
-}
-
-function PickerSheet({ visible, title, options, selected, onSelect, onClose }: PickerSheetProps) {
-  return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
-      <View style={styles.sheet}>
-        <Text style={styles.sheetTitle}>{title}</Text>
-        <FlatList
-          data={options}
-          keyExtractor={(item) => item}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[styles.sheetRow, item === selected && styles.sheetRowActive]}
-              onPress={() => { onSelect(item); onClose(); }}
-              testID={`option-${item}`}
-            >
-              <Text style={[styles.sheetRowText, item === selected && styles.sheetRowTextActive]}>
-                {item}
-              </Text>
-            </TouchableOpacity>
-          )}
-        />
-      </View>
-    </Modal>
-  );
-}
 
 export default function Step4Screen() {
   const { t } = useTranslation();
@@ -176,23 +142,4 @@ const styles = StyleSheet.create({
   },
   selectText: { fontSize: typography.fontSize.base, color: colours.textPrimary },
   placeholderText: { fontSize: typography.fontSize.base, color: colours.textMuted },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
-  sheet: {
-    backgroundColor: colours.background,
-    borderTopLeftRadius: borderRadius.xl,
-    borderTopRightRadius: borderRadius.xl,
-    maxHeight: '60%',
-    paddingTop: spacing.lg,
-  },
-  sheetTitle: {
-    fontSize: typography.fontSize.lg,
-    fontFamily: typography.fontFamily.semiBold,
-    color: colours.textPrimary,
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  sheetRow: { height: 52, paddingHorizontal: spacing.lg, justifyContent: 'center' },
-  sheetRowActive: { backgroundColor: colours.primaryLight },
-  sheetRowText: { fontSize: typography.fontSize.base, color: colours.textPrimary },
-  sheetRowTextActive: { color: colours.primary, fontFamily: typography.fontFamily.semiBold },
 });
