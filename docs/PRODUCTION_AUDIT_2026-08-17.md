@@ -98,7 +98,26 @@ sequential passes (background opus agents stalled on the 600s watchdog twice; in
 - 39 `bg-<color>-50/100` hits are all **semantic** (admin status chips + onboarding verified/success
   green), not the rainbow info-box slop the doctrine removes. No fix needed.
 
-## 6. Not Yet Done
-- Web (frontend/) code review + design review + mobile-view polish.
-- Workflow-by-workflow QA (web Playwright + RN screens).
-- Backend IDOR tail (section 2, "Open").
+## 6. Web Authed Workflow QA (prod, Playwright @375px, QA member account)
+Walked the core member journey after login (progressive identifier→password flow works):
+- **Dashboard** — "Good morning, QA", Playfair heading (font fix confirmed authed), no error, no h-scroll.
+- **Search** — "9 profiles", results render, no error/empty.
+- **Matches** — 3 tabs (Saved/Mutual/Likes You), real data (Nikita Chadha 25), no error.
+- **Settings** — Account/Password/Privacy/Visibility sections, 0 console errors.
+- **Own Profile** — 35% strength, "10 fields missing", no `undefined`, no error.
+- **Verdict: clean.** No new defects. Only console noise = transient Cloudinary image 503s
+  (verified transient — same URL returns 200 on retry; `SmartImage` degrades to initials anyway).
+- Not exercised (mutating/destructive): chat send, payment/subscription purchase.
+
+## 7. Shipped This Session
+- **Font-CSP fix committed + deployed to prod** (`48d7241`), frontend container rebuilt + recreated
+  (`--no-deps`, co-tenants unaffected). Live-verified: Playfair/Inter/Instrument Serif now load.
+- RN brand fixes + this audit doc committed. All 19 commits pushed to origin/main.
+
+## 8. Still Open (owner decision)
+- RN larger design refactors: two coexisting typography systems; light-lock-vs-dark-theme screen
+  split (static `colours.*` vs theme `c.*`). Note: app is light-locked (`userInterfaceStyle: light`),
+  so the split is currently **not user-visible** — it's dead-weight risk, not a live bug. Decide:
+  remove the dark path, or finish theming every screen.
+- RN selfie live-camera rework; dark-mode retrofit; EAS `projectId` (still literal `tricityshadi-app`
+  → no EAS build can run) — from prior RN review, unchanged.
