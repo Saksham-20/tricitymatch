@@ -58,7 +58,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://res.cloudinary.com" />
     
-    <!-- DNS Prefetch -->
+    <!-- DNS Prefetch (preconnect for fonts.googleapis/gstatic already declared above) -->
     <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
     <link rel="dns-prefetch" href="https://res.cloudinary.com" />
     
@@ -75,24 +75,19 @@
       Measured with scripts/lcp-probe.mjs; do not move these back into a
       component.
     -->
+    <!-- Plain render-blocking stylesheet, NOT the media="print"+onload async trick.
+         That trick needs an inline `onload` handler to flip media print→all, and the
+         site CSP (script-src 'self' …, no unsafe-hashes) blocks inline event handlers
+         — so onload never fired, the link stayed media="print", and every Google font
+         (Playfair, Inter, Instrument Serif, Cormorant) failed to load on screen for
+         100% of visitors: headings fell back to Georgia/serif. A blocking link is
+         preload-scanner-discoverable here in <head>; every family is display=swap so
+         text still paints in fallback and swaps in; preconnect above offsets the block.
+         Do NOT reintroduce media="print"+onload while the CSP forbids inline handlers. -->
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Inter+Tight:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
-      media="print"
-      onload="this.media='all'"
     />
-    <!-- media="print" + onload is the standard trick for a non-render-blocking
-         stylesheet: the browser fetches it at normal priority but does not hold
-         first paint for it. Every family is declared `display=swap`, so text
-         paints in the fallback and swaps when the real face arrives — which is
-         what happened anyway while these fonts were loading late. <noscript>
-         keeps it working with JS disabled. -->
-    <noscript>
-      <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Inter+Tight:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
-        rel="stylesheet"
-      />
-    </noscript>
     
     <!-- Inline critical CSS for faster first paint -->
     <style>
