@@ -135,6 +135,14 @@ Found by driving the Android build live against prod.
   - Alternative (simpler, weaker): exempt only `/auth/login|signup|refresh` from the no-Origin block.
   - NOT recommended: allow all no-Origin writes (reopens the CSRF hole the guard closed).
 
+## 6c. CORS fix — DEPLOYED + verified (2026-08-17)
+- `corsDelegate` now allows an originless request carrying `X-App-Client: mobile`; RN axios client
+  sends it. Committed (`0b4245e`), backend rebuilt + force-recreated on prod.
+- **Verified live on prod:** (1) no-Origin + `X-App-Client:mobile` → `success:true` + tokens;
+  (2) no-Origin, no header → still `403 Not allowed by CORS` (CSRF guard intact); (3) web Origin → works.
+- **Verified in the real Android app:** login against prod now succeeds — app advances past auth into
+  the onboarding flow. The mobile-vs-prod auth blocker is closed.
+
 ## 7. Shipped This Session
 - **Font-CSP fix committed + deployed to prod** (`48d7241`), frontend container rebuilt + recreated
   (`--no-deps`, co-tenants unaffected). Live-verified: Playfair/Inter/Instrument Serif now load.
