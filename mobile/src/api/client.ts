@@ -8,7 +8,11 @@ export const apiClient = axios.create({
   baseURL: BASE_URL,
   withCredentials: true,
   timeout: 15000,
-  headers: { 'Content-Type': 'application/json' },
+  // X-App-Client lets the API allow this native client's requests, which carry no
+  // Origin header, through the production CORS no-Origin block (see backend
+  // middlewares/security.js corsDelegate). Without it, every write (login/signup
+  // included) is 403 "Not allowed by CORS" against prod.
+  headers: { 'Content-Type': 'application/json', 'X-App-Client': 'mobile' },
 });
 
 // Attach access token on every request

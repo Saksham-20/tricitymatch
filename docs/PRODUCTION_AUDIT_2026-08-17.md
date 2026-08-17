@@ -109,6 +109,32 @@ Walked the core member journey after login (progressive identifier→password fl
   (verified transient — same URL returns 200 on retry; `SmartImage` degrades to initials anyway).
 - Not exercised (mutating/destructive): chat send, payment/subscription purchase.
 
+## 6b. 🔴 CRITICAL — Mobile app cannot authenticate against production (CORS)
+
+Found by driving the Android build live against prod.
+
+- **Symptom:** RN app login shows "Something went wrong." App builds/installs/renders fine; device
+  reaches prod over HTTPS (browser loaded `/api/v1/success-stories` → JSON). Bundle verified pointing
+  at `https://tricitymatch.com/api/v1` (no localhost).
+- **Root cause:** `backend/middlewares/security.js:319-327` (`corsDelegate`). In production it **blocks
+  requests with no `Origin` header on state-changing methods** (POST/PUT/DELETE) — an intentional CSRF
+  guard for the cookie-auth SPA (SEC-2/BUG-P005). But **React Native sends no `Origin` on any request**,
+  so every mobile write — including `/auth/login` and `/auth/signup` — is 403 "Not allowed by CORS".
+- **Proof:** `POST /auth/login` with `Origin: https://tricitymatch.com` → `success:true` (+ body tokens);
+  same POST with **no** Origin → `{"code":"FORBIDDEN","message":"Not allowed by CORS"}`. GET no-Origin
+  is allowed (safe method), which is why reads/browser-nav worked.
+- **Why latent:** prior app testing ran against the LOCAL backend via `adb reverse 5001` (dev branch
+  allows no-Origin). This is the first time the app was driven against **prod** — surfacing it.
+- **Impact:** the shipped mobile app cannot log in, sign up, or perform any write against prod. Launch-blocking for mobile.
+- **Recommended fix (safe, preserves the browser CSRF guard):** have the RN client send a custom header
+  (e.g. `X-App-Client: mobile`) on all requests, and in the `!origin` state-changing branch allow the
+  request when that header is present. Browsers cannot set custom headers cross-origin without a CORS
+  preflight (which enforces the allowlist), so a cross-site attacker cannot forge it — the cookie-auth
+  CSRF protection stays intact, and the token-auth mobile app is unblocked. Two small changes: backend
+  1-line in corsDelegate + mobile axios default header. Needs a backend redeploy.
+  - Alternative (simpler, weaker): exempt only `/auth/login|signup|refresh` from the no-Origin block.
+  - NOT recommended: allow all no-Origin writes (reopens the CSRF hole the guard closed).
+
 ## 7. Shipped This Session
 - **Font-CSP fix committed + deployed to prod** (`48d7241`), frontend container rebuilt + recreated
   (`--no-deps`, co-tenants unaffected). Live-verified: Playfair/Inter/Instrument Serif now load.

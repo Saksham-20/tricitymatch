@@ -317,7 +317,15 @@ const corsDelegate = (req, callback) => {
   // no-Origin on state-changing methods (real browser writes always carry
   // Origin; provider webhooks are exempted earlier via monitoringCors).
   if (!origin) {
-    if (config.isDevelopment || SAFE_METHODS.has((req.method || '').toUpperCase())) {
+    // Native mobile clients (React Native) send NO Origin header on any request,
+    // so they'd be blocked on every state-changing call — login/signup included.
+    // They authenticate with Bearer tokens (not cookies), so the browser-CSRF
+    // rationale for the no-Origin block does not apply to them. Gate on a custom
+    // header the app sends: a cross-site browser attacker cannot set a custom
+    // header without a CORS preflight (which enforces the allowlist), so this
+    // does not reopen the cookie-CSRF hole the block closes.
+    const isNativeClient = String(req.headers['x-app-client'] || '').toLowerCase() === 'mobile';
+    if (config.isDevelopment || SAFE_METHODS.has((req.method || '').toUpperCase()) || isNativeClient) {
       return callback(null, { ...baseOptions, origin: true });
     }
     const noOriginErr = new Error('Not allowed by CORS');
@@ -342,6 +350,7 @@ const corsAllowedHeaders = [
   'Authorization',
   'X-Requested-With',
   'X-CSRF-Token',
+  'X-App-Client',
   'Accept',
   'Origin',
 ];
