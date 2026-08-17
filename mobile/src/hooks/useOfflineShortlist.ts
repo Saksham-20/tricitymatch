@@ -51,9 +51,12 @@ function clearShortlistCache(): void {
 function prewarmImages(matches: Match[]): void {
   const urls = matches
     .flatMap((m) => [m.MatchedProfile?.profilePhoto, ...(m.MatchedProfile?.photos ?? [])])
-    .filter((u): u is string => !!u)
+    // FastImage → Glide hard-crashes ("Must not be null or empty") on an empty
+    // or whitespace uri, and cannot load a relative /uploads seed path either.
+    // Only absolute http(s) URLs (real Cloudinary uploads) are safe to preload.
+    .filter((u): u is string => typeof u === 'string' && /^https?:\/\//.test(u.trim()))
     .slice(0, 50) // limit network budget
-    .map((uri) => ({ uri }));
+    .map((uri) => ({ uri: uri.trim() }));
 
   if (urls.length > 0) {
     FastImage.preload(urls);
