@@ -306,6 +306,7 @@ export default function SettingsScreen() {
           <Divider />
           <SettingRow
             icon="card-outline"
+            iconColor={colours.secondary}
             label="Subscription"
             sublabel={user?.subscriptionPlan ? `Current: ${user.subscriptionPlan.replace('_', ' ')}` : undefined}
             onPress={() => navigation.navigate('Subscription')}
@@ -331,7 +332,7 @@ export default function SettingsScreen() {
         <Section title="Privacy">
           <SettingRow
             icon="eye-off-outline"
-            iconColor={colours.secondary}
+            iconColor={colours.primary}
             label="Incognito Mode"
             sublabel="Browse profiles without being seen"
             toggle
@@ -342,7 +343,7 @@ export default function SettingsScreen() {
           <Divider />
           <SettingRow
             icon="lock-closed-outline"
-            iconColor={colours.secondary}
+            iconColor={colours.primary}
             label="Privacy Controls"
             sublabel="Profile visibility, online status & last seen"
             onPress={() => navigation.navigate('PrivacySettings')}
@@ -351,7 +352,7 @@ export default function SettingsScreen() {
           <Divider />
           <SettingRow
             icon="key-outline"
-            iconColor={colours.secondary}
+            iconColor={colours.primary}
             label="Account Security"
             sublabel="Change password & signed-in devices"
             onPress={() => navigation.navigate('AccountSecurity')}
@@ -365,7 +366,7 @@ export default function SettingsScreen() {
         <Section title="Appearance">
           <SettingRow
             icon="text-outline"
-            iconColor={colours.info}
+            iconColor={colours.primary}
             label="Elder Mode"
             sublabel="Larger text and simplified navigation"
             toggle
@@ -376,7 +377,7 @@ export default function SettingsScreen() {
           <Divider />
           <SettingRow
             icon="language-outline"
-            iconColor={colours.info}
+            iconColor={colours.primary}
             label="Language"
             value={currentLangLabel}
             onPress={() => setShowLangPicker(true)}
@@ -388,7 +389,7 @@ export default function SettingsScreen() {
         <Section title="Family">
           <SettingRow
             icon="people-outline"
-            iconColor={colours.secondary}
+            iconColor={colours.primary}
             label="Family Chat"
             sublabel="Private group chat with your family"
             onPress={() => navigation.navigate('FamilyGroups')}
@@ -397,7 +398,7 @@ export default function SettingsScreen() {
           <Divider />
           <SettingRow
             icon="shield-half-outline"
-            iconColor={colours.secondary}
+            iconColor={colours.primary}
             label="Guardian Co-Pilot"
             sublabel="Let a parent or guardian browse your matches"
             onPress={() => navigation.navigate('GuardianSetup')}
@@ -407,7 +408,7 @@ export default function SettingsScreen() {
           <Divider />
           <SettingRow
             icon="eye-outline"
-            iconColor={colours.secondary}
+            iconColor={colours.primary}
             label="Guardian Dashboard"
             sublabel="Browse matches for someone who invited you"
             onPress={() => navigation.navigate('GuardianCandidates')}
@@ -465,7 +466,7 @@ export default function SettingsScreen() {
           <Divider />
           <SettingRow
             icon="heart-outline"
-            iconColor={colours.secondary}
+            iconColor={colours.primary}
             label="Success Stories"
             sublabel="Read couples who found their match"
             onPress={() => navigation.navigate('SuccessStoriesBrowse')}
@@ -474,7 +475,7 @@ export default function SettingsScreen() {
           <Divider />
           <SettingRow
             icon="star-outline"
-            iconColor={colours.secondary}
+            iconColor={colours.primary}
             label="Share Your Story"
             sublabel="Found your match? Inspire others!"
             onPress={() => navigation.navigate('SuccessStory')}
@@ -483,7 +484,7 @@ export default function SettingsScreen() {
           <Divider />
           <SettingRow
             icon="moon-outline"
-            iconColor={colours.secondary}
+            iconColor={colours.primary}
             label="Astrologer Consult"
             sublabel="Get expert Vedic guidance for your match"
             onPress={() => navigation.navigate('AstrologerMarketplace')}

@@ -141,7 +141,7 @@ export default function PreferenceMatch({ target, viewer, targetName = 'them' }:
                 color={ok === true ? c.success : ok === false ? c.textMuted : c.textMuted}
               />
             </View>
-            <Text style={[styles.label, { color: c.textMuted }]}>{label}</Text>
+            <Text style={[styles.label, { color: c.textMuted }]} numberOfLines={1}>{label}</Text>
             <Text style={[styles.want, { color: c.textPrimary }]} numberOfLines={1}>
               {want}
             </Text>
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  label: { ...type.caption, width: 68, textTransform: 'uppercase', letterSpacing: 0.4 },
+  label: { ...type.caption, width: 84, textTransform: 'uppercase', letterSpacing: 0.3 },
   want: { ...type.subhead, flex: 1, textTransform: 'capitalize' },
   hint: { ...type.footnote },
 });
