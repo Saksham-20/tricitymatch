@@ -3,6 +3,8 @@ import {
   View, Text, TouchableOpacity, StyleSheet, Modal, FlatList,
   PanResponder, PanResponderGestureState, LayoutChangeEvent,
 } from 'react-native';
+import { PressableScale } from '../../components/motion';
+import { haptics } from '../../utils/haptics';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
 import OnboardingLayout from './OnboardingLayout';
@@ -125,10 +127,12 @@ function MultiSelectPills<T extends string>({
       <Text style={styles.label}>{label}</Text>
       <View style={styles.pillRow}>
         {anyAllowed && (
-          <TouchableOpacity
+          <PressableScale
+            scaleTo={0.95}
             style={[styles.pill, isAny && styles.pillActive]}
             onPress={() => {
               // clear = any
+              haptics.light();
               options.forEach((o) => {
                 if (selected.includes(o.key)) onToggle(o.key);
               });
@@ -137,22 +141,23 @@ function MultiSelectPills<T extends string>({
             accessibilityLabel="Any"
           >
             <Text style={[styles.pillText, isAny && styles.pillTextActive]}>Any</Text>
-          </TouchableOpacity>
+          </PressableScale>
         )}
         {options.map((opt) => {
           const active = selected.includes(opt.key);
           return (
-            <TouchableOpacity
+            <PressableScale
               key={opt.key}
+              scaleTo={0.95}
               style={[styles.pill, active && styles.pillActive]}
-              onPress={() => onToggle(opt.key)}
+              onPress={() => { haptics.light(); onToggle(opt.key); }}
               testID={`multi-${opt.key}`}
               accessibilityLabel={opt.label}
               accessibilityRole="checkbox"
               accessibilityState={{ checked: active }}
             >
               <Text style={[styles.pillText, active && styles.pillTextActive]}>{opt.label}</Text>
-            </TouchableOpacity>
+            </PressableScale>
           );
         })}
       </View>

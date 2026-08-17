@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TextInput, StyleSheet, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { PressableScale } from '../../components/motion';
+import { haptics } from '../../utils/haptics';
 import OnboardingLayout from './OnboardingLayout';
 import { useOnboarding } from './OnboardingContext';
 
@@ -85,10 +87,11 @@ export default function Step10Screen() {
             const active = selectedTags.includes(tag);
             const disabled = !active && selectedTags.length >= TAGS_MAX;
             return (
-              <TouchableOpacity
+              <PressableScale
                 key={tag}
+                scaleTo={0.95}
                 style={[styles.tag, active && styles.tagActive, disabled && styles.tagDisabled]}
-                onPress={() => toggleTag(tag)}
+                onPress={() => { haptics.light(); toggleTag(tag); }}
                 disabled={disabled}
                 testID={`tag-${tag}`}
                 accessibilityLabel={tag}
@@ -98,7 +101,7 @@ export default function Step10Screen() {
                 <Text style={[styles.tagText, active && styles.tagTextActive, disabled && styles.tagTextDisabled]}>
                   {tag}
                 </Text>
-              </TouchableOpacity>
+              </PressableScale>
             );
           })}
         </View>
