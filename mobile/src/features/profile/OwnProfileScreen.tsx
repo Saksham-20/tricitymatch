@@ -171,9 +171,12 @@ function computeMissing(profile: Profile | undefined, hasPhotos: boolean): Missi
   const items: MissingItem[] = [];
   if (!hasPhotos) items.push({ key: 'photos', label: 'Add your photos', icon: 'camera-outline' });
   if (!profile.bio) items.push({ key: 'bio', label: 'Write a short bio', icon: 'create-outline' });
-  if ((profile.interestTags?.length ?? 0) === 0) items.push({ key: 'interests', label: 'Add your interests', icon: 'pricetags-outline' });
+  // Community fields carry real weight in matrimony matching — surface them too.
+  if (!profile.religion) items.push({ key: 'religion', label: 'Add religion & community', icon: 'people-outline' });
+  if (!profile.maritalStatus) items.push({ key: 'marital', label: 'Add marital status', icon: 'heart-outline' });
   if (!profile.education) items.push({ key: 'education', label: 'Add education', icon: 'school-outline' });
   if (!profile.profession) items.push({ key: 'profession', label: 'Add profession', icon: 'briefcase-outline' });
+  if ((profile.interestTags?.length ?? 0) === 0) items.push({ key: 'interests', label: 'Add your interests', icon: 'pricetags-outline' });
   if (!profile.income) items.push({ key: 'income', label: 'Add annual income', icon: 'cash-outline' });
   if (!profile.height) items.push({ key: 'height', label: 'Add height', icon: 'resize-outline' });
   return items;
