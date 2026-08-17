@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AccessibilityInfo } from 'react-native';
+import { AccessibilityInfo, Platform } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,6 +7,8 @@ import type { MainStackParamList, MainTabParamList, AdminStackParamList, BureauS
 import { colours, tapTarget } from '@shared/constants/theme';
 import { useAuthStore } from '../stores/authStore';
 import { useUIStore } from '../stores/uiStore';
+import { TabIcon } from '../components/motion';
+import { haptics } from '../utils/haptics';
 
 // Tab Screens
 import HomeScreen from '../features/home/HomeScreen';
@@ -108,11 +110,12 @@ function BottomTabs() {
           const name = focused ? icons.active : icons.inactive;
           // Elder mode: bigger icons + larger tap zone
           const iconSize = elderMode ? 28 : 22;
-          return <Ionicons name={name} size={iconSize} color={color} />;
+          return <TabIcon name={name} size={iconSize} color={color} focused={focused} />;
         },
         tabBarItemStyle: elderMode ? { minHeight: tapTarget.elder } : {},
         animation: noAnimation ? 'none' : 'shift',
       })}
+      screenListeners={{ tabPress: () => haptics.light() }}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Search" component={SearchScreen} />
@@ -151,7 +154,15 @@ export default function MainNavigator() {
   const role = user?.role ?? 'user';
 
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false, animation: elderMode ? 'none' : 'default' }}>
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        // iOS keeps the native slide (interactive edge-swipe pop comes free);
+        // Android's stock "default" is an abrupt fade-zoom — a consistent
+        // slide-from-right reads as hierarchy on both platforms.
+        animation: elderMode ? 'none' : Platform.OS === 'android' ? 'slide_from_right' : 'default',
+      }}
+    >
       <Stack.Screen name="MainTabs" component={BottomTabs} />
       <Stack.Screen name="ProfileDetail" component={ProfileDetailScreen} />
       <Stack.Screen name="ChatThread" component={ChatThreadScreen} />
@@ -166,13 +177,22 @@ export default function MainNavigator() {
         options={{ presentation: 'fullScreenModal' }}
       />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
-      <Stack.Screen name="Subscription" component={SubscriptionScreen} />
+      {/* Sheet-like destinations rise as modals (handoff: sheets-as-screens). */}
+      <Stack.Screen
+        name="Subscription"
+        component={SubscriptionScreen}
+        options={{ presentation: 'modal', animation: elderMode ? 'none' : 'slide_from_bottom' }}
+      />
       <Stack.Screen name="Verification" component={VerificationScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="PrivacySettings" component={PrivacySettingsScreen} />
       <Stack.Screen name="AccountSecurity" component={AccountSecurityScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
-      <Stack.Screen name="SuccessStory" component={SuccessStoryScreen} />
+      <Stack.Screen
+        name="SuccessStory"
+        component={SuccessStoryScreen}
+        options={{ presentation: 'modal', animation: elderMode ? 'none' : 'slide_from_bottom' }}
+      />
       <Stack.Screen name="SuccessStoriesBrowse" component={SuccessStoriesBrowseScreen} />
       <Stack.Screen name="Support" component={SupportScreen} />
       <Stack.Screen name="Quiz" component={QuizScreen} />

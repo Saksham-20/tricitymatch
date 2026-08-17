@@ -16,6 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import { StaggeredEntrance } from '../../components/motion';
 import { showToast } from '../../utils/toast';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
@@ -102,12 +103,12 @@ const sr = StyleSheet.create({
 
 // ─── Section ──────────────────────────────────────────────────────────────────
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, index = 0, children }: { title: string; index?: number; children: React.ReactNode }) {
   return (
-    <View style={sec.container}>
+    <StaggeredEntrance index={index} style={sec.container}>
       <Text style={sec.title}>{title}</Text>
       <View style={sec.card}>{children}</View>
-    </View>
+    </StaggeredEntrance>
   );
 }
 
@@ -289,7 +290,7 @@ export default function SettingsScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
 
         {/* Account */}
-        <Section title="Account">
+        <Section title="Account" index={0}>
           <SettingRow
             icon="person-outline"
             label="Edit Profile"
@@ -330,7 +331,7 @@ export default function SettingsScreen() {
         </Section>
 
         {/* Privacy */}
-        <Section title="Privacy">
+        <Section title="Privacy" index={1}>
           <SettingRow
             icon="eye-off-outline"
             iconColor={colours.primary}
@@ -364,7 +365,7 @@ export default function SettingsScreen() {
         {/* Appearance — Dark Mode intentionally omitted: not yet themed app-wide
             (every screen uses the static light palette). Re-add when useTheme()
             is wired across screens. */}
-        <Section title="Appearance">
+        <Section title="Appearance" index={2}>
           <SettingRow
             icon="text-outline"
             iconColor={colours.primary}
@@ -387,7 +388,7 @@ export default function SettingsScreen() {
         </Section>
 
         {/* Family & Guardian */}
-        <Section title="Family">
+        <Section title="Family" index={3}>
           <SettingRow
             icon="people-outline"
             iconColor={colours.primary}
@@ -418,7 +419,7 @@ export default function SettingsScreen() {
         </Section>
 
         {/* Notifications */}
-        <Section title="Notifications">
+        <Section title="Notifications" index={4}>
           <SettingRow
             icon="notifications-outline"
             label="Notifications"
@@ -430,7 +431,7 @@ export default function SettingsScreen() {
 
         {/* Role-specific sections */}
         {(user?.role === 'admin' || user?.role === 'super_admin') && (
-          <Section title="Administration">
+          <Section title="Administration" index={5}>
             <SettingRow
               icon="shield-outline"
               iconColor={colours.error}
@@ -443,7 +444,7 @@ export default function SettingsScreen() {
         )}
 
         {user?.role === 'bureau' && (
-          <Section title="Bureau">
+          <Section title="Bureau" index={6}>
             <SettingRow
               icon="briefcase-outline"
               iconColor={colours.primary}
@@ -456,7 +457,7 @@ export default function SettingsScreen() {
         )}
 
         {/* Support */}
-        <Section title="Support">
+        <Section title="Support" index={7}>
           <SettingRow
             icon="help-circle-outline"
             iconColor={colours.textSecondary}
@@ -494,7 +495,7 @@ export default function SettingsScreen() {
         </Section>
 
         {/* About & Legal */}
-        <Section title="About & Legal">
+        <Section title="About & Legal" index={8}>
           <SettingRow
             icon="information-circle-outline"
             iconColor={colours.textSecondary}
@@ -537,7 +538,7 @@ export default function SettingsScreen() {
         </Section>
 
         {/* Danger zone */}
-        <Section title="Account Actions">
+        <Section title="Account Actions" index={9}>
           <SettingRow
             icon="log-out-outline"
             iconColor={colours.warning}

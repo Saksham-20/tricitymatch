@@ -15,7 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import { PressableScale } from '../../components/motion';
+import { PressableScale, StaggeredEntrance } from '../../components/motion';
 import { SubscriptionSkeleton, ListSkeleton } from '../../components/ui/skeletons';
 import { showToast } from '../../utils/toast';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -577,17 +577,18 @@ export default function SubscriptionScreen() {
             {plansLoading ? (
               <SubscriptionSkeleton />
             ) : (
-              PLAN_ORDER.map((planType) => {
+              PLAN_ORDER.map((planType, planIdx) => {
                 const plan = planList.find((p) => p.planType === planType) ?? PLANS[planType];
                 return (
-                  <PlanCard
-                    key={planType}
-                    plan={plan}
-                    isCurrent={planType === currentPlan}
-                    isSelected={planType === selectedPlan}
-                    onSelect={() => setSelectedPlan(planType)}
-                    currency={currency}
-                  />
+                  <StaggeredEntrance key={planType} index={planIdx}>
+                    <PlanCard
+                      plan={plan}
+                      isCurrent={planType === currentPlan}
+                      isSelected={planType === selectedPlan}
+                      onSelect={() => setSelectedPlan(planType)}
+                      currency={currency}
+                    />
+                  </StaggeredEntrance>
                 );
               })
             )}

@@ -21,7 +21,7 @@ import SmartImage, { resolveImageUri } from '../../components/common/SmartImage'
 import { OwnProfileSkeleton } from '../../components/ui/skeletons';
 import { colours, typography, type, spacing, borderRadius } from '@shared/constants/theme';
 import { CompletionRing as SharedCompletionRing } from '../../components/ui';
-import { PressableScale } from '../../components/motion';
+import { PressableScale, StaggeredEntrance } from '../../components/motion';
 import { haptics } from '../../utils/haptics';
 import { useTheme } from '../../hooks/useTheme';
 import { getMyProfile, getProfileViewers, getRecentlyViewed } from '../../api/profile';
@@ -686,30 +686,36 @@ export default function OwnProfileScreen() {
       </View>
 
       {/* Completion — one card: ring + the specific fields still missing */}
-      <CompletionCard
-        pct={profile?.completionPercentage ?? 0}
-        profile={profile}
-        hasPhotos={photos.length > 0}
-        onEdit={() => goToEdit()}
-      />
+      <StaggeredEntrance index={0}>
+        <CompletionCard
+          pct={profile?.completionPercentage ?? 0}
+          profile={profile}
+          hasPhotos={photos.length > 0}
+          onEdit={() => goToEdit()}
+        />
+      </StaggeredEntrance>
 
       {/* Profile activity (mirrors web Dashboard) */}
       {!previewMode && (
         <>
-          {isPremium ? (
+          <StaggeredEntrance index={1}>
+            {isPremium ? (
+              <ActivityRail
+                title="Profile Visitors"
+                profiles={viewers}
+                onPressProfile={(userId) => navigation.navigate('ProfileDetail', { userId })}
+              />
+            ) : (
+              <ViewersUpsell onUpgrade={goToSubscription} />
+            )}
+          </StaggeredEntrance>
+          <StaggeredEntrance index={2}>
             <ActivityRail
-              title="Profile Visitors"
-              profiles={viewers}
+              title="Recently Viewed"
+              profiles={recentlyViewed}
               onPressProfile={(userId) => navigation.navigate('ProfileDetail', { userId })}
             />
-          ) : (
-            <ViewersUpsell onUpgrade={goToSubscription} />
-          )}
-          <ActivityRail
-            title="Recently Viewed"
-            profiles={recentlyViewed}
-            onPressProfile={(userId) => navigation.navigate('ProfileDetail', { userId })}
-          />
+          </StaggeredEntrance>
         </>
       )}
 
