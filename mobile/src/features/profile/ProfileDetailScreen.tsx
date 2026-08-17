@@ -38,6 +38,7 @@ import HeroBlock from './detail/HeroBlock';
 import PhotoBlock from './detail/PhotoBlock';
 import SectionCard from './detail/SectionCard';
 import RevealOnScroll from './detail/RevealOnScroll';
+import PhotoGalleryViewer from './detail/PhotoGalleryViewer';
 import type { MainStackParamList } from '../../navigation/types';
 import type { MatchAction } from '../../types';
 
@@ -115,6 +116,7 @@ export default function ProfileDetailScreen() {
   const [actionDone, setActionDone] = useState<MatchAction | null>(null);
   const [blockReportVisible, setBlockReportVisible] = useState(false);
   const [breakdownVisible, setBreakdownVisible] = useState(false);
+  const [galleryIndex, setGalleryIndex] = useState<number | null>(null);
 
   const heroH = Math.max(380, Math.round(winH * 0.56));
   const scrollY = useSharedValue(0);
@@ -192,6 +194,8 @@ export default function ProfileDetailScreen() {
   const restPhotos = photos.slice(1);
 
   const isMutualOrPremium = actionDone === 'like' || user?.subscriptionPlan !== 'free';
+  // Free viewers only get the primary photo in the gallery; the rest stay locked.
+  const viewablePhotos = isMutualOrPremium ? photos : photos.slice(0, 1);
 
   const name = `${profile.firstName} ${profile.lastName}`.trim();
   const age = profile.dateOfBirth
@@ -218,7 +222,13 @@ export default function ProfileDetailScreen() {
     const band = photoCaption(i, profile.firstName, profile.city);
     return (
       <RevealOnScroll scrollY={scrollY}>
-        <PhotoBlock uri={uri} eyebrow={band.eyebrow} caption={band.caption} locked={!isMutualOrPremium} />
+        <PhotoBlock
+          uri={uri}
+          eyebrow={band.eyebrow}
+          caption={band.caption}
+          locked={!isMutualOrPremium}
+          onPress={isMutualOrPremium ? () => setGalleryIndex(i + 1) : undefined}
+        />
       </RevealOnScroll>
     );
   };
@@ -247,6 +257,8 @@ export default function ProfileDetailScreen() {
           compatScore={typeof compat?.overallScore === 'number' ? compat.overallScore : null}
           scrollY={scrollY}
           height={heroH}
+          photoCount={viewablePhotos.length}
+          onOpenGallery={() => setGalleryIndex(0)}
         />
 
         {/* Essence band — at-a-glance facts */}
@@ -391,7 +403,13 @@ export default function ProfileDetailScreen() {
           const band = photoCaption(3 + i, profile.firstName, profile.city);
           return (
             <RevealOnScroll key={uri} scrollY={scrollY}>
-              <PhotoBlock uri={uri} eyebrow={band.eyebrow} caption={band.caption} locked={!isMutualOrPremium} />
+              <PhotoBlock
+                uri={uri}
+                eyebrow={band.eyebrow}
+                caption={band.caption}
+                locked={!isMutualOrPremium}
+                onPress={isMutualOrPremium ? () => setGalleryIndex(4 + i) : undefined}
+              />
             </RevealOnScroll>
           );
         })}
@@ -521,6 +539,13 @@ export default function ProfileDetailScreen() {
         visible={breakdownVisible}
         userId={userId}
         onClose={() => setBreakdownVisible(false)}
+      />
+
+      <PhotoGalleryViewer
+        photos={viewablePhotos}
+        initialIndex={galleryIndex ?? 0}
+        visible={galleryIndex !== null}
+        onClose={() => setGalleryIndex(null)}
       />
     </View>
   );

@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { SharedValue, interpolate, useAnimatedStyle, Extrapolation } from 'react-native-reanimated';
 import { colours, spacing, type, borderRadius } from '@shared/constants/theme';
 import { resolveImageUri } from '../../../components/common/SmartImage';
-import { useReduceMotion } from '../../../components/motion';
+import { PressableScale, useReduceMotion } from '../../../components/motion';
 
 const AnimatedFastImage = Animated.createAnimatedComponent(FastImage);
 
@@ -20,6 +20,10 @@ interface HeroBlockProps {
   compatScore?: number | null;
   scrollY: SharedValue<number>;
   height: number;
+  /** Total viewable photos — shows the gallery chip when > 0. */
+  photoCount?: number;
+  /** Open the full-screen gallery viewer. */
+  onOpenGallery?: () => void;
 }
 
 /**
@@ -38,6 +42,8 @@ export default function HeroBlock({
   compatScore,
   scrollY,
   height,
+  photoCount = 0,
+  onOpenGallery,
 }: HeroBlockProps) {
   const { width } = useWindowDimensions();
   const reduced = useReduceMotion();
@@ -97,6 +103,22 @@ export default function HeroBlock({
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
+
+      {/* Gallery chip — all photos, one place */}
+      {photoCount > 0 && !!onOpenGallery && (
+        <PressableScale
+          scaleTo={0.92}
+          haptic
+          onPress={onOpenGallery}
+          style={[s.galleryChip, { top: 116 }]}
+          accessibilityRole="button"
+          accessibilityLabel={`View all ${photoCount} photos`}
+          testID="gallery-chip"
+        >
+          <Ionicons name="images-outline" size={15} color="#fff" />
+          <Text style={s.galleryChipText}>{photoCount}</Text>
+        </PressableScale>
+      )}
 
       {/* Identity overlay */}
       <View style={s.overlay} pointerEvents="none">
@@ -191,4 +213,16 @@ const s = StyleSheet.create({
   },
   compatChip: { backgroundColor: 'rgba(139,35,70,0.75)' },
   chipText: { ...type.caption, color: '#fff' },
+  galleryChip: {
+    position: 'absolute',
+    right: spacing.gutter,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderRadius: borderRadius.pill,
+    paddingHorizontal: 12,
+    height: 34,
+  },
+  galleryChipText: { ...type.caption, color: '#fff' },
 });

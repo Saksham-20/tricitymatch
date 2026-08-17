@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import { Ionicons } from '@expo/vector-icons';
 import { colours, spacing, type, borderRadius } from '@shared/constants/theme';
@@ -14,6 +14,8 @@ interface PhotoBlockProps {
   eyebrow?: string;
   /** Premium gate: blur + lock overlay for non-premium viewers. */
   locked?: boolean;
+  /** Tap to open the full-screen gallery viewer (unlocked photos only). */
+  onPress?: () => void;
 }
 
 /**
@@ -22,7 +24,7 @@ interface PhotoBlockProps {
  * (interleaved-content pattern; matrimonial voice, never flirty).
  * A photo that fails to load renders nothing — the story simply flows on.
  */
-export default function PhotoBlock({ uri, caption, eyebrow, locked = false }: PhotoBlockProps) {
+export default function PhotoBlock({ uri, caption, eyebrow, locked = false, onPress }: PhotoBlockProps) {
   const { c } = useTheme();
   const { width } = useWindowDimensions();
   const [failed, setFailed] = useState(false);
@@ -34,7 +36,13 @@ export default function PhotoBlock({ uri, caption, eyebrow, locked = false }: Ph
 
   return (
     <View style={s.wrap}>
-      <View style={[s.photoHolder, { width: photoW, height: photoH, backgroundColor: c.surface2 }]}>
+      <Pressable
+        onPress={onPress}
+        disabled={!onPress}
+        accessibilityRole={onPress ? 'imagebutton' : 'image'}
+        accessibilityLabel={caption ?? 'Profile photo'}
+        style={[s.photoHolder, { width: photoW, height: photoH, backgroundColor: c.surface2 }]}
+      >
         <FastImage
           source={{ uri: resolved }}
           style={StyleSheet.absoluteFill}
@@ -49,7 +57,7 @@ export default function PhotoBlock({ uri, caption, eyebrow, locked = false }: Ph
             </View>
           </View>
         )}
-      </View>
+      </Pressable>
       {!!caption && !locked && (
         <View style={s.captionBand}>
           {!!eyebrow && <Text style={[s.eyebrow, { color: c.primary }]}>{eyebrow}</Text>}
