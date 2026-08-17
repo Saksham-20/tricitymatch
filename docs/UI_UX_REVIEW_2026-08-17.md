@@ -87,6 +87,39 @@ Gates: **mobile tsc 0 · eslint 0 errors** (7 pre-existing `any` warnings untouc
 
 ---
 
+## Deep pass — Profile tab + full member-screen sweep (driven live as seeded VIP)
+
+**🔴 Native crash fixed (real prod risk):** the Matches → **Shortlisted** tab
+hard-crashed the app — `FastImage.preload` → Glide `IllegalArgumentException:
+"Must not be null or empty"`. `useOfflineShortlist.prewarmImages` filtered photo
+URLs with a bare truthy check, so a whitespace string or relative `/uploads` seed
+path reached Glide and killed the process. Now only absolute http(s) URLs preload.
+(`9d292cd`)
+
+**Profile-completion redesign (`18cba75`):** three stacked completion elements
+(ring + generic CTA + a fixed milestone strip whose 70% tip still said "Upload
+Kundli", a removed feature) → one **CompletionCard** that lists the specific
+missing high-value fields, each tappable. Member name → Playfair. Empty photo →
+real tappable "Add photos". Shared `CompletionRing` font/tick now scale with size
+(the 58pt Home mini-ring's "%" was overflowing the ticks — user-reported).
+
+**PreferenceMatch ported to RN** (`18cba75`): Jeevansathi-style "do you fit what
+they're looking for?" checklist on ProfileDetail — verified live (2/4 on a seeded
+profile).
+
+**Missing back buttons** (`18cba75`): Notifications (user-reported dead-end),
+Login, ResetPassword — all pushed screens under a global `headerShown:false`.
+
+**Settings brand tiles** (`d53f7a7`): rainbow icon tiles (blue Appearance, gold
+scattered on Privacy/Family/Support) → all burgundy; only Subscription keeps gold,
+so gold reads as "premium" again.
+
+**Chat send button** (`b3fd586`): disabled state was near-white on white — now a
+visible muted grey circle.
+
+**Swept clean** (no fix needed): Home, Conversations, Subscription, EditProfile,
+Verification, Search + FilterPanel (gorhom v4 holds), all 3 Matches tabs.
+
 ## Method notes
 - iOS sim: existing DerivedData debug `.app` loads latest JS from the running
   Metro — install + launch, no rebuild. idb taps take **points** (screenshot px ÷ 3).
