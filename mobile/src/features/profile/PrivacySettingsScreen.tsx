@@ -13,6 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import { ListSkeleton } from '../../components/ui/skeletons';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
 import { getMyProfile, updatePrivacy, type PrivacySettings } from '../../api/profile';
 import { queryKeys } from '../../constants/queryKeys';
@@ -59,8 +60,8 @@ export default function PrivacySettingsScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.loader}>
-        <ActivityIndicator size="large" color={colours.primary} />
+      <View style={styles.loader} testID="PrivacyLoading">
+        <ListSkeleton rows={5} />
       </View>
     );
   }

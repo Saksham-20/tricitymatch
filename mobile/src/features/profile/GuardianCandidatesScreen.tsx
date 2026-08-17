@@ -12,6 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import { ListSkeleton } from '../../components/ui/skeletons';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
 import { getGuardianCandidates, type GuardianLink } from '../../api/guardian';
@@ -83,7 +84,7 @@ export default function GuardianCandidatesScreen() {
       </View>
 
       {isLoading ? (
-        <ActivityIndicator size="large" color={colours.primary} style={{ marginTop: spacing['3xl'] }} />
+        <ListSkeleton rows={4} />
       ) : (
         <FlatList
           data={activeLinks}
