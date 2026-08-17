@@ -18,9 +18,10 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import SmartImage, { resolveImageUri } from '../../components/common/SmartImage';
-import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, type, spacing, borderRadius } from '@shared/constants/theme';
 import { CompletionRing as SharedCompletionRing } from '../../components/ui';
+import { PressableScale } from '../../components/motion';
+import { haptics } from '../../utils/haptics';
 import { useTheme } from '../../hooks/useTheme';
 import { getMyProfile, getProfileViewers, getRecentlyViewed } from '../../api/profile';
 import { getPhotoVerification } from '../../api/verification';
@@ -151,83 +152,113 @@ const ar = StyleSheet.create({
   upsellSub: { fontSize: typography.fontSize.xs, color: colours.textMuted },
 });
 
-// ─── Milestone Strip ─────────────────────────────────────────────────────────
+// ─── Completion Card ──────────────────────────────────────────────────────────
+// One card = ring + the specific fields still missing, each tappable to the
+// editor. Replaces the old three-part stack (ring + generic CTA + a fixed
+// milestone strip whose 70% tip still told members to "Upload Kundli" — a
+// feature that was removed). Shows exactly what to do next, Shaadi/Jeevansathi
+// style, instead of an abstract percentage.
 
-const MILESTONES = [
-  { pct: 50,  label: '50%',  tip: 'Add education & profession' },
-  { pct: 70,  label: '70%',  tip: 'Upload Kundli' },
-  { pct: 80,  label: '80%',  tip: 'Add bio & interests' },
-  { pct: 100, label: '100%', tip: 'Profile complete!' },
-];
+interface MissingItem {
+  key: string;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}
 
-function MilestoneStrip({ currentPct }: { currentPct: number }) {
+/** High-value fields, in the order worth prompting. Only the unfilled ones show. */
+function computeMissing(profile: Profile | undefined, hasPhotos: boolean): MissingItem[] {
+  if (!profile) return [];
+  const items: MissingItem[] = [];
+  if (!hasPhotos) items.push({ key: 'photos', label: 'Add your photos', icon: 'camera-outline' });
+  if (!profile.bio) items.push({ key: 'bio', label: 'Write a short bio', icon: 'create-outline' });
+  if ((profile.interestTags?.length ?? 0) === 0) items.push({ key: 'interests', label: 'Add your interests', icon: 'pricetags-outline' });
+  if (!profile.education) items.push({ key: 'education', label: 'Add education', icon: 'school-outline' });
+  if (!profile.profession) items.push({ key: 'profession', label: 'Add profession', icon: 'briefcase-outline' });
+  if (!profile.income) items.push({ key: 'income', label: 'Add annual income', icon: 'cash-outline' });
+  if (!profile.height) items.push({ key: 'height', label: 'Add height', icon: 'resize-outline' });
+  return items;
+}
+
+function CompletionCard({
+  pct,
+  profile,
+  hasPhotos,
+  onEdit,
+}: {
+  pct: number;
+  profile: Profile | undefined;
+  hasPhotos: boolean;
+  onEdit: () => void;
+}) {
   const { c } = useTheme();
+  const complete = pct >= 100;
+  const missing = complete ? [] : computeMissing(profile, hasPhotos).slice(0, 4);
+
   return (
-    <View style={ms.container}>
-      <Text style={[ms.heading, { color: c.textSecondary }]}>Completion Milestones</Text>
-      <View style={ms.row}>
-        {MILESTONES.map((m) => {
-          const achieved = currentPct >= m.pct;
-          return (
-            <View key={m.pct} style={ms.item}>
-              <View style={[ms.dot, { backgroundColor: c.surfaceCard, borderColor: c.border }, achieved && ms.dotDone]}>
-                {achieved ? (
-                  <Ionicons name="checkmark" size={12} color="#fff" />
-                ) : (
-                  <Text style={[ms.dotLabel, { color: c.textMuted }]}>{m.label}</Text>
-                )}
+    <View style={[cc.card, { backgroundColor: c.surfaceCard, borderColor: c.border }]} testID="completion-ring">
+      <PressableScale
+        scaleTo={complete ? 1 : 0.99}
+        style={cc.top}
+        disabled={complete}
+        onPress={() => { haptics.light(); onEdit(); }}
+        testID="completion-edit"
+        accessibilityLabel="Complete your profile"
+      >
+        <SharedCompletionRing value={pct} size={84} />
+        <View style={cc.topText}>
+          <Text style={[cc.title, { color: c.fgStrong }]}>
+            {complete ? 'Your profile is complete' : 'Complete your profile'}
+          </Text>
+          <Text style={[cc.sub, { color: c.textMuted }]}>
+            {complete
+              ? "You're all set — you'll show up in more searches."
+              : 'A complete profile gets up to 5× more interest.'}
+          </Text>
+        </View>
+        {!complete && <Ionicons name="chevron-forward" size={20} color={c.textMuted} />}
+      </PressableScale>
+
+      {missing.length > 0 && (
+        <View style={[cc.list, { borderTopColor: c.hairline }]}>
+          {missing.map((item, i) => (
+            <PressableScale
+              key={item.key}
+              scaleTo={0.98}
+              style={[cc.row, i < missing.length - 1 && { borderBottomColor: c.hairline, borderBottomWidth: StyleSheet.hairlineWidth }]}
+              onPress={() => { haptics.light(); onEdit(); }}
+              testID={`missing-${item.key}`}
+              accessibilityLabel={item.label}
+            >
+              <View style={[cc.rowIcon, { backgroundColor: c.accentSoft }]}>
+                <Ionicons name={item.icon} size={16} color={c.primary} />
               </View>
-              {!achieved && <Text style={[ms.tip, { color: c.textMuted }]}>{m.tip}</Text>}
-            </View>
-          );
-        })}
-      </View>
+              <Text style={[cc.rowLabel, { color: c.textPrimary }]}>{item.label}</Text>
+              <Ionicons name="add-circle" size={20} color={c.primary} />
+            </PressableScale>
+          ))}
+        </View>
+      )}
     </View>
   );
 }
 
-const ms = StyleSheet.create({
-  container: { paddingHorizontal: spacing.lg, marginBottom: spacing.md },
-  heading: {
-    fontSize: typography.fontSize.xs,
-    fontFamily: typography.fontFamily.semiBold,
-    color: colours.textSecondary,
-    marginBottom: spacing.sm,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+const cc = StyleSheet.create({
+  card: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    overflow: 'hidden',
   },
-  row: { flexDirection: 'row', gap: spacing.sm },
-  item: { flex: 1, alignItems: 'center', gap: 4 },
-  dot: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: colours.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-  },
-  dotDone: { backgroundColor: colours.success || colours.primary, borderColor: colours.success || colours.primary },
-  dotLabel: { fontSize: 7, color: colours.textMuted, fontFamily: typography.fontFamily.bold },
-  tip: {
-    fontSize: typography.fontSize.xs - 1 || 10,
-    color: colours.textMuted,
-    textAlign: 'center',
-    lineHeight: 14,
-  },
+  top: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, padding: spacing.lg },
+  topText: { flex: 1 },
+  title: { ...type.headline },
+  sub: { ...type.footnote, marginTop: 3 },
+  list: { borderTopWidth: StyleSheet.hairlineWidth, paddingHorizontal: spacing.lg },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.md },
+  rowIcon: { width: 30, height: 30, borderRadius: borderRadius.sm, alignItems: 'center', justifyContent: 'center' },
+  rowLabel: { ...type.subhead, flex: 1 },
 });
-
-// ─── Completion Ring ─────────────────────────────────────────────────────────
-// Uses the shared 10-tick CompletionRing (Playfair %, brand accent).
-
-function CompletionRing({ pct }: { pct: number }) {
-  return (
-    <View style={{ alignItems: 'center', paddingVertical: spacing.md }} testID="completion-ring">
-      <SharedCompletionRing value={pct} size={100} />
-    </View>
-  );
-}
 
 // ─── Verification Badges ─────────────────────────────────────────────────────
 
@@ -448,7 +479,6 @@ function OwnGalleryPhoto({ uri, previewMode }: { uri: string; previewMode: boole
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 export default function OwnProfileScreen() {
-  const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const user = useAuthStore((s) => s.user);
   const { c } = useTheme();
@@ -566,10 +596,18 @@ export default function OwnProfileScreen() {
             <OwnGalleryPhoto key={i} uri={uri} previewMode={previewMode} />
           ))
         ) : (
-          <View style={[styles.photo, styles.photoEmpty, { width: windowWidth, backgroundColor: c.surface2 }]}>
-            <Ionicons name="camera-outline" size={48} color={c.textMuted} />
-            <Text style={[styles.photoEmptyText, { color: c.textMuted }]}>Add photos</Text>
-          </View>
+          <TouchableOpacity
+            style={[styles.photo, styles.photoEmpty, { width: windowWidth, backgroundColor: c.surface2 }]}
+            onPress={() => goToEdit('photos')}
+            testID="add-photos-empty"
+            accessibilityLabel="Add photos"
+          >
+            <Ionicons name="camera-outline" size={44} color={c.textMuted} />
+            <View style={[styles.addPhotosBtn, { backgroundColor: c.primary }]}>
+              <Ionicons name="add" size={16} color="#fff" />
+              <Text style={styles.addPhotosBtnText}>Add photos</Text>
+            </View>
+          </TouchableOpacity>
         )}
       </ScrollView>
 
@@ -643,21 +681,13 @@ export default function OwnProfileScreen() {
         />
       </View>
 
-      {/* Completion ring */}
-      <CompletionRing pct={profile?.completionPercentage ?? 0} />
-      {(profile?.completionPercentage ?? 0) < 100 && (
-        <TouchableOpacity
-          style={[styles.completeBtn, { backgroundColor: c.accentSoft }]}
-          onPress={() => goToEdit()}
-          testID="complete-profile-btn"
-          accessibilityLabel="Complete profile"
-        >
-          <Text style={[styles.completeBtnText, { color: c.primary }]}>Complete your profile → Better matches</Text>
-        </TouchableOpacity>
-      )}
-
-      {/* Milestone strip */}
-      <MilestoneStrip currentPct={profile?.completionPercentage ?? 0} />
+      {/* Completion — one card: ring + the specific fields still missing */}
+      <CompletionCard
+        pct={profile?.completionPercentage ?? 0}
+        profile={profile}
+        hasPhotos={photos.length > 0}
+        onEdit={() => goToEdit()}
+      />
 
       {/* Profile activity (mirrors web Dashboard) */}
       {!previewMode && (
@@ -858,6 +888,20 @@ const styles = StyleSheet.create({
     color: colours.textMuted,
     fontFamily: typography.fontFamily.medium,
   },
+  addPhotosBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.pill,
+    marginTop: spacing.xs,
+  },
+  addPhotosBtnText: {
+    color: '#fff',
+    fontSize: typography.fontSize.sm,
+    fontFamily: typography.fontFamily.semiBold,
+  },
 
   dotsRow: {
     flexDirection: 'row',
@@ -883,7 +927,7 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: typography.fontSize['2xl'],
-    fontFamily: typography.fontFamily.bold,
+    fontFamily: typography.fontFamily.display, // Playfair — the member's name is the identity
     color: colours.textPrimary,
     marginBottom: 4,
   },

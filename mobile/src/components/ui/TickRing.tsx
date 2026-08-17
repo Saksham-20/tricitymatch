@@ -104,12 +104,20 @@ export default function TickRing({
 
 interface RingLabelProps { value: number; caption?: string; }
 
-/** Completion ring — 10-tick rim + Playfair % + caption. */
+/** Completion ring — 10-tick rim + Playfair % + caption.
+ *  Font and tick length scale with `size` so the number never collides with the
+ *  rim (a fixed 22pt % overflowed the ticks at the small 58pt Home-card size). */
 export function CompletionRing({ value, caption = 'COMPLETE', size = 88 }: RingLabelProps & { size?: number }) {
+  const pctFont = Math.round(size * 0.26);
+  const tickLen = Math.max(6, Math.round(size * 0.13));
+  // A caption inside a small ring crowds the number — only show it with room.
+  const showCaption = !!caption && size >= 72;
   return (
-    <TickRing value={value} size={size} ticks={10} tickLength={10}>
-      <Text style={styles.bigPct}>{Math.round(value)}%</Text>
-      {caption ? <Text style={styles.caption}>{caption}</Text> : null}
+    <TickRing value={value} size={size} ticks={10} tickLength={tickLen}>
+      <Text style={[styles.bigPct, { fontSize: pctFont, lineHeight: Math.round(pctFont * 1.1) }]}>
+        {Math.round(value)}%
+      </Text>
+      {showCaption ? <Text style={styles.caption}>{caption}</Text> : null}
     </TickRing>
   );
 }

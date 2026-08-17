@@ -192,7 +192,19 @@ export default function NotificationsScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]} testID="NotificationsScreen">
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Notifications</Text>
+        <View style={styles.headerLeft}>
+          {navigation.canGoBack() && (
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.backBtn}
+              accessibilityLabel="Go back"
+              testID="notifications-back"
+            >
+              <Ionicons name="arrow-back" size={24} color={colours.textPrimary} />
+            </TouchableOpacity>
+          )}
+          <Text style={styles.headerTitle}>Notifications</Text>
+        </View>
         {hasUnread && (
           <TouchableOpacity
             onPress={() => markAllReadMutation.mutate()}
@@ -264,6 +276,16 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colours.surfaceCard,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flexShrink: 1,
+  },
+  backBtn: {
+    marginLeft: -spacing.sm,
+    padding: spacing.xs,
   },
   headerTitle: {
     fontSize: typography.fontSize['2xl'],

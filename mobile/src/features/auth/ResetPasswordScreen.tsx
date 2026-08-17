@@ -104,6 +104,17 @@ export default function ResetPasswordScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        {navigation.canGoBack() && (
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backBtn}
+            accessibilityLabel="Go back"
+            testID="reset-back"
+          >
+            <Ionicons name="arrow-back" size={24} color={colours.textPrimary} />
+          </TouchableOpacity>
+        )}
+
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.iconWrap}>
@@ -209,6 +220,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colours.background },
   scroll: { flex: 1 },
   content: { padding: spacing['2xl'] },
+  backBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', marginLeft: -spacing.sm, marginBottom: spacing.md },
   header: { marginBottom: spacing['2xl'], alignItems: 'flex-start' },
   iconWrap: {
     width: 60,

@@ -20,7 +20,8 @@ import { useTranslation } from 'react-i18next';
 import { colours, typography, type, spacing, borderRadius } from '@shared/constants/theme';
 import { CompatRing } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
-import { getProfile, getCompatibilityBreakdown } from '../../api/profile';
+import { getProfile, getCompatibilityBreakdown, getMyProfile } from '../../api/profile';
+import PreferenceMatch from '../../components/profile/PreferenceMatch';
 import VoiceIntroRecorder from '../../components/profile/VoiceIntroRecorder';
 import { resolveImageUri } from '../../components/common/SmartImage';
 import { performMatchAction } from '../../api/matches';
@@ -325,6 +326,13 @@ export default function ProfileDetailScreen() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // Viewer's own profile — feeds the reverse partner-preference checklist below.
+  const { data: myProfile } = useQuery({
+    queryKey: queryKeys.myProfile,
+    queryFn: getMyProfile,
+    staleTime: 5 * 60 * 1000,
+  });
+
   // Profile views are recorded server-side by GET /profile/:id (which this screen
   // already issues), and that path honours the viewer's incognito setting. The
   // client used to also POST /profile/:id/view — a route that never existed, so it
@@ -482,6 +490,9 @@ export default function ProfileDetailScreen() {
             </View>
           </View>
         )}
+
+        {/* Reverse partner-preference checklist — "do you fit what they want?" */}
+        <PreferenceMatch target={profile} viewer={myProfile} targetName={profile.firstName} />
 
         {/* Accordion sections */}
         <Accordion title="Basic Details" defaultOpen>
