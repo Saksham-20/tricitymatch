@@ -5,11 +5,11 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { HoroscopeSkeleton } from '../../components/ui/skeletons';
 import { useQuery } from '@tanstack/react-query';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { colours, type, spacing, borderRadius } from '@shared/constants/theme';
@@ -185,10 +185,7 @@ export default function HoroscopeMatchScreen() {
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         {isLoading ? (
-          <View style={s.center}>
-            <ActivityIndicator size="large" color={c.accent} />
-            <Text style={[s.loadingText, { color: c.textMuted }]}>Calculating Guna Milan…</Text>
-          </View>
+          <HoroscopeSkeleton />
         ) : isError ? (
           <View style={s.center}>
             <Ionicons name="alert-circle-outline" size={48} color={colours.error} />

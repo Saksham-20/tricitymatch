@@ -17,6 +17,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import { ChatThreadSkeleton } from '../../components/ui/skeletons';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
 import {
@@ -372,9 +373,7 @@ export default function FamilyGroupChatScreen() {
 
       {/* Messages */}
       {isLoading ? (
-        <View style={s.loadingState}>
-          <ActivityIndicator size="large" color={colours.primary} />
-        </View>
+        <ChatThreadSkeleton />
       ) : (
         <FlatList
           ref={listRef}

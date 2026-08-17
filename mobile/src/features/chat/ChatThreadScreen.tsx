@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import SmartImage from '../../components/common/SmartImage';
 import { PressableScale } from '../../components/motion';
+import { ChatThreadSkeleton } from '../../components/ui/skeletons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -458,8 +459,8 @@ export default function ChatThreadScreen() {
 
   if (isLoading) {
     return (
-      <View style={s.center} testID="ChatThreadLoading">
-        <ActivityIndicator size="large" color={colours.primary} />
+      <View style={{ flex: 1, backgroundColor: colours.background }} testID="ChatThreadLoading">
+        <ChatThreadSkeleton />
       </View>
     );
   }

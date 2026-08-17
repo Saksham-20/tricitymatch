@@ -6,13 +6,13 @@ import {
   FlatList,
   TouchableOpacity,
   Image,
-  ActivityIndicator,
   RefreshControl,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import { ListSkeleton } from '../../components/ui/skeletons';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
 import { getGuardianMatches, getGuardianShortlist } from '../../api/guardian';
@@ -162,7 +162,7 @@ export default function GuardianViewScreen() {
 
       {/* Content */}
       {activeQuery.isLoading ? (
-        <ActivityIndicator size="large" color={colours.primary} style={{ marginTop: spacing['3xl'] }} />
+        <ListSkeleton rows={6} />
       ) : (
         <FlatList
           data={profiles}

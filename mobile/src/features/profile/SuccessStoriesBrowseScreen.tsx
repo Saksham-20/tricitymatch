@@ -5,13 +5,13 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import { ListSkeleton } from '../../components/ui/skeletons';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
 import SmartImage from '../../components/common/SmartImage';
 import { getSuccessStories, type SuccessStory } from '../../api/profile';
@@ -69,9 +69,7 @@ export default function SuccessStoriesBrowseScreen() {
       </View>
 
       {isLoading ? (
-        <View style={styles.loader}>
-          <ActivityIndicator size="large" color={colours.primary} />
-        </View>
+        <ListSkeleton rows={6} />
       ) : (
         <FlatList
           data={stories}

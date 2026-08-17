@@ -5,12 +5,13 @@ import {
   FlatList,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
   RefreshControl,
 } from 'react-native';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { NotificationsSkeleton } from '../../components/ui/skeletons';
+import ListFooter from '../../components/ui/ListFooter';
 import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
@@ -182,8 +183,8 @@ export default function NotificationsScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.centered} testID="NotificationsScreen">
-        <ActivityIndicator size="large" color={colours.primary} />
+      <View style={[styles.container, { paddingTop: insets.top }]} testID="NotificationsScreen">
+        <NotificationsSkeleton />
       </View>
     );
   }
@@ -238,11 +239,7 @@ export default function NotificationsScreen() {
           if (hasNextPage && !isFetchingNextPage) fetchNextPage();
         }}
         onEndReachedThreshold={0.4}
-        ListFooterComponent={
-          isFetchingNextPage ? (
-            <ActivityIndicator style={styles.footerLoader} color={colours.primary} />
-          ) : null
-        }
+        ListFooterComponent={<ListFooter state={isFetchingNextPage ? 'loading' : 'idle'} />}
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Ionicons name="notifications-off-outline" size={56} color={colours.textMuted} />

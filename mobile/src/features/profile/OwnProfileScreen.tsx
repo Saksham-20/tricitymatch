@@ -18,6 +18,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import SmartImage, { resolveImageUri } from '../../components/common/SmartImage';
+import { OwnProfileSkeleton } from '../../components/ui/skeletons';
 import { colours, typography, type, spacing, borderRadius } from '@shared/constants/theme';
 import { CompletionRing as SharedCompletionRing } from '../../components/ui';
 import { PressableScale } from '../../components/motion';
@@ -546,8 +547,8 @@ export default function OwnProfileScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.loader, { backgroundColor: c.background }]}>
-        <ActivityIndicator size="large" color={c.primary} />
+      <View style={{ flex: 1, backgroundColor: c.background, paddingTop: insets.top }} testID="OwnProfileLoading">
+        <OwnProfileSkeleton />
       </View>
     );
   }

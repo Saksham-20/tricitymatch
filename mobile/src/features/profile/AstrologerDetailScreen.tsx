@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import { ListSkeleton } from '../../components/ui/skeletons';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
 import { getAstrologer, bookAstrologer } from '../../api/profile';
 import type { MainStackParamList } from '../../navigation/types';
@@ -79,7 +80,7 @@ export default function AstrologerDetailScreen() {
       </View>
 
       {isLoading ? (
-        <ActivityIndicator size="large" color={colours.primary} style={{ marginTop: 48 }} />
+        <ListSkeleton rows={5} />
       ) : isError || !astrologer ? (
         <View style={s.state}>
           <Ionicons name="cloud-offline-outline" size={44} color={colours.textMuted} />

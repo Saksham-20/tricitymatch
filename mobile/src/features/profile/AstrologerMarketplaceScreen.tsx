@@ -5,13 +5,13 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  ActivityIndicator,
   Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { ListSkeleton } from '../../components/ui/skeletons';
 import { useQuery } from '@tanstack/react-query';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
 import { getAstrologers } from '../../api/profile';
@@ -150,7 +150,7 @@ export default function AstrologerMarketplaceScreen() {
       </View>
 
       {isLoading ? (
-        <ActivityIndicator size="large" color={colours.primary} style={{ marginTop: 40 }} />
+        <ListSkeleton rows={5} />
       ) : (
         <FlatList
           data={filtered}

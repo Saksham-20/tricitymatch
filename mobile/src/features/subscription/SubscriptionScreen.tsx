@@ -16,6 +16,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { PressableScale } from '../../components/motion';
+import { SubscriptionSkeleton, ListSkeleton } from '../../components/ui/skeletons';
 import { showToast } from '../../utils/toast';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
@@ -574,7 +575,7 @@ export default function SubscriptionScreen() {
             <Text style={s.sectionSub}>Upgrade to find your perfect match faster</Text>
 
             {plansLoading ? (
-              <ActivityIndicator size="large" color={colours.primary} style={{ marginTop: 40 }} />
+              <SubscriptionSkeleton />
             ) : (
               PLAN_ORDER.map((planType) => {
                 const plan = planList.find((p) => p.planType === planType) ?? PLANS[planType];
@@ -662,7 +663,7 @@ export default function SubscriptionScreen() {
         <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
           <Text style={s.sectionTitle}>Payment History</Text>
           {histLoading ? (
-            <ActivityIndicator size="large" color={colours.primary} style={{ marginTop: 40 }} />
+            <ListSkeleton rows={5} />
           ) : !history?.length ? (
             <View style={s.emptyState}>
               <Ionicons name="receipt-outline" size={48} color={colours.textMuted} />

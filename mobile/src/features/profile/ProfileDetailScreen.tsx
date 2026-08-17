@@ -19,6 +19,7 @@ import { showToast } from '../../utils/toast';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, type, spacing, borderRadius } from '@shared/constants/theme';
 import { CompatRing } from '../../components/ui';
+import { ProfileDetailSkeleton } from '../../components/ui/skeletons';
 import { useTheme } from '../../hooks/useTheme';
 import { getProfile, getCompatibilityBreakdown, getMyProfile } from '../../api/profile';
 import PreferenceMatch from '../../components/profile/PreferenceMatch';
@@ -358,8 +359,8 @@ export default function ProfileDetailScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.loader, { backgroundColor: c.background }]}>
-        <ActivityIndicator size="large" color={c.primary} />
+      <View style={{ flex: 1, backgroundColor: c.background }} testID="ProfileDetailLoading">
+        <ProfileDetailSkeleton />
       </View>
     );
   }

@@ -6,7 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   Alert,
-  ActivityIndicator,
   TextInput,
   Modal,
 } from 'react-native';
@@ -14,6 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import { ListSkeleton } from '../../components/ui/skeletons';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
 import { getFamilyGroups, createFamilyGroup, type FamilyGroup } from '../../api/chat';
@@ -165,7 +165,7 @@ export default function FamilyGroupsScreen() {
       </View>
 
       {isLoading ? (
-        <ActivityIndicator size="large" color={colours.primary} style={{ marginTop: spacing['3xl'] }} />
+        <ListSkeleton rows={6} />
       ) : (
         <FlatList
           data={groups ?? []}

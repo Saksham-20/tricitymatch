@@ -11,6 +11,7 @@ import {
   Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import ListFooter from '../../components/ui/ListFooter';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -282,12 +283,7 @@ export default function SearchScreen() {
   );
 
   const renderFooter = useCallback(() => {
-    if (!isFetchingNextPage) return null;
-    return (
-      <View style={s.loadMore}>
-        <ActivityIndicator color={c.accent} />
-      </View>
-    );
+    return <ListFooter state={isFetchingNextPage ? 'loading' : 'idle'} />;
   }, [isFetchingNextPage, c.accent]);
 
   return (

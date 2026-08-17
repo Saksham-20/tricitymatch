@@ -16,6 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import { EditProfileSkeleton } from '../../components/ui/skeletons';
 import { showToast } from '../../utils/toast';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
@@ -439,8 +440,8 @@ export default function EditProfileScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.loader}>
-        <ActivityIndicator size="large" color={colours.primary} />
+      <View style={styles.loader} testID="EditProfileLoading">
+        <EditProfileSkeleton />
       </View>
     );
   }
