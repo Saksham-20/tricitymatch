@@ -4,7 +4,19 @@ import {
   KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Modal, Pressable,
 } from 'react-native';
 import SmartImage from '../../components/common/SmartImage';
-import { PressableScale } from '../../components/motion';
+import { PressableScale, useReduceMotion } from '../../components/motion';
+import Animated, {
+  Easing,
+  FadeInDown,
+  cancelAnimation,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
+import { duration } from '@shared/constants/motion';
 import { ChatThreadSkeleton } from '../../components/ui/skeletons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -53,12 +65,38 @@ function canEdit(createdAt: string): boolean {
   return Date.now() - new Date(createdAt).getTime() < 15 * 60 * 1000;
 }
 
-// ─── Typing indicator ───────────────────────────────────────────────────────
+// ─── Typing indicator — 3 dots bouncing on a 1.2s loop (handoff spec) ───────
+function TypingDot({ delay }: { delay: number }) {
+  const reduced = useReduceMotion();
+  const y = useSharedValue(0);
+  useEffect(() => {
+    if (reduced) return;
+    y.value = withDelay(
+      delay,
+      withRepeat(
+        withSequence(
+          withTiming(-4, { duration: 300, easing: Easing.inOut(Easing.quad) }),
+          withTiming(0, { duration: 300, easing: Easing.inOut(Easing.quad) }),
+          withTiming(0, { duration: 600 }),
+        ),
+        -1,
+      ),
+    );
+    return () => cancelAnimation(y);
+  }, [reduced, delay, y]);
+  const st = useAnimatedStyle(() => ({ transform: [{ translateY: y.value }] }));
+  return <Animated.View style={[s.typingDot, st]} />;
+}
+
 function TypingIndicator() {
   return (
     <View style={s.typingRow} testID="TypingIndicator">
       <View style={s.typingBubble}>
-        <Text style={s.typingDots}>•••</Text>
+        <View style={s.typingDotsRow}>
+          <TypingDot delay={0} />
+          <TypingDot delay={150} />
+          <TypingDot delay={300} />
+        </View>
       </View>
     </View>
   );
@@ -79,11 +117,20 @@ interface BubbleProps {
 }
 
 function MessageBubble({ msg, isOwn, onLongPress }: BubbleProps) {
+  const reduced = useReduceMotion();
+  // Optimistic sends render at half opacity until the server ack swaps in
+  // the real message (id no longer tmp-*).
+  const pending = msg.id.startsWith('tmp-');
+  // Entrance only for messages created in the last few seconds — history
+  // must never re-animate when pages load or the list re-renders.
+  const isFresh = Date.now() - new Date(msg.createdAt).getTime() < 3000;
+  const entering = !reduced && isFresh ? FadeInDown.duration(duration.fast * 1.5) : undefined;
   return (
+    <Animated.View entering={entering}>
     <TouchableOpacity
       onLongPress={onLongPress}
       delayLongPress={400}
-      style={[s.bubbleRow, isOwn ? s.bubbleRowOwn : s.bubbleRowTheirs]}
+      style={[s.bubbleRow, isOwn ? s.bubbleRowOwn : s.bubbleRowTheirs, pending && { opacity: 0.5 }]}
       testID={`Bubble-${msg.id}`}
       accessibilityLabel={`Message: ${msg.content}`}
     >
@@ -102,6 +149,7 @@ function MessageBubble({ msg, isOwn, onLongPress }: BubbleProps) {
         </View>
       </View>
     </TouchableOpacity>
+    </Animated.View>
   );
 }
 
@@ -791,7 +839,9 @@ const s = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 6,
   },
-  typingDots: {
+  typingDotsRow: { flexDirection: 'row', gap: 4, alignItems: 'center', height: 18 },
+  typingDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colours.textMuted },
+  typingDotsLegacy: {
     fontSize: typography.fontSize.lg,
     color: colours.textMuted,
     letterSpacing: 3,

@@ -1,13 +1,50 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, {
+  Easing,
+  cancelAnimation,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../navigation/types';
 import { useAuthStore } from '../../stores/authStore';
 import { colours, typography } from '@shared/constants/theme';
 import Logo from '../../components/common/Logo';
+import { useReduceMotion } from '../../components/motion';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Splash'>;
+
+/** One dot of the boot loader — gentle opacity pulse (handoff: 3-dot loader). */
+function LoaderDot({ delay }: { delay: number }) {
+  const reduced = useReduceMotion();
+  const o = useSharedValue(0.35);
+  useEffect(() => {
+    if (reduced) {
+      o.value = 0.7;
+      return;
+    }
+    o.value = withDelay(
+      delay,
+      withRepeat(
+        withSequence(
+          withTiming(1, { duration: 350, easing: Easing.inOut(Easing.quad) }),
+          withTiming(0.35, { duration: 350, easing: Easing.inOut(Easing.quad) }),
+        ),
+        -1,
+      ),
+    );
+    return () => cancelAnimation(o);
+  }, [reduced, delay, o]);
+  const st = useAnimatedStyle(() => ({ opacity: o.value }));
+  return <Animated.View style={[styles.dot, st]} />;
+}
 
 export default function SplashScreen() {
   const navigation = useNavigation<Nav>();
@@ -25,17 +62,22 @@ export default function SplashScreen() {
 
   return (
     <View style={styles.container} testID="SplashScreen">
+      <LinearGradient
+        colors={[colours.p600, colours.p500, colours.p700]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
       <View style={styles.logoContainer}>
         <Logo variant="white" size="xl" />
         <Text style={styles.tagline}>Find Your Perfect Match</Text>
       </View>
       {isLoading && (
-        <ActivityIndicator
-          size="large"
-          color="#FFFFFF"
-          style={styles.spinner}
-          testID="SplashScreen-loader"
-        />
+        <View style={styles.dotsRow} testID="SplashScreen-loader">
+          <LoaderDot delay={0} />
+          <LoaderDot delay={160} />
+          <LoaderDot delay={320} />
+        </View>
       )}
     </View>
   );
@@ -58,8 +100,16 @@ const styles = StyleSheet.create({
     marginTop: 12,
     letterSpacing: 0.3,
   },
-  spinner: {
+  dotsRow: {
     position: 'absolute',
     bottom: 80,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  dot: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: '#fff',
   },
 });

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -12,10 +12,12 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { duration, easing } from '@shared/constants/motion';
 import { showToast } from '../../utils/toast';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
-import { PressableScale } from '../../components/motion';
+import { PressableScale, useReduceMotion } from '../../components/motion';
 import { haptics } from '../../utils/haptics';
 import { updateMyProfile } from '../../api/profile';
 import { queryKeys } from '../../constants/queryKeys';
@@ -139,10 +141,16 @@ const QUESTIONS: Question[] = [
 
 function ProgressBar({ current, total }: { current: number; total: number }) {
   const pct = Math.round((current / total) * 100);
+  const reduced = useReduceMotion();
+  const w = useSharedValue(pct);
+  useEffect(() => {
+    w.value = reduced ? pct : withTiming(pct, { duration: duration.base, easing: Easing.bezier(...easing.std) });
+  }, [pct, reduced, w]);
+  const fill = useAnimatedStyle(() => ({ width: `${w.value}%` }));
   return (
     <View style={pb.container}>
       <View style={pb.track}>
-        <View style={[pb.fill, { width: `${pct}%` }]} />
+        <Animated.View style={[pb.fill, fill]} />
       </View>
       <Text style={pb.label}>{current} / {total}</Text>
     </View>
