@@ -74,9 +74,17 @@ function AstrologerCard({ item, onPress }: { item: Astrologer; onPress: () => vo
         )}
       </View>
 
-      {/* CTA */}
-      <View style={[c.cta, { backgroundColor: item.isOnline ? colours.primary : colours.surfaceCard }]}>
-        <Text style={[c.ctaText, { color: item.isOnline ? '#fff' : colours.textSecondary }]}>
+      {/* CTA — online: filled primary "Chat"; offline: outlined secondary "Book"
+          (a bordered pill, not bare grey text that reads as unstyled). */}
+      <View
+        style={[
+          c.cta,
+          item.isOnline
+            ? { backgroundColor: colours.primary }
+            : { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: colours.primary },
+        ]}
+      >
+        <Text style={[c.ctaText, { color: item.isOnline ? '#fff' : colours.primary }]}>
           {item.isOnline ? 'Chat' : 'Book'}
         </Text>
       </View>
