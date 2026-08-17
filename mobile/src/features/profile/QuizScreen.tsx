@@ -15,6 +15,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { PressableScale } from '../../components/motion';
+import { haptics } from '../../utils/haptics';
 import { updateMyProfile } from '../../api/profile';
 import { queryKeys } from '../../constants/queryKeys';
 import type { MainStackParamList } from '../../navigation/types';
@@ -186,6 +188,7 @@ export default function QuizScreen() {
   });
 
   const handleSelect = (value: string) => {
+    haptics.light();
     setAnswers((prev) => ({ ...prev, [question.id]: value }));
   };
 
@@ -232,8 +235,9 @@ export default function QuizScreen() {
           {question.options.map((opt) => {
             const selected = answers[question.id] === opt.value;
             return (
-              <TouchableOpacity
+              <PressableScale
                 key={opt.value}
+                scaleTo={0.98}
                 style={[styles.option, selected && styles.optionSelected]}
                 onPress={() => handleSelect(opt.value)}
                 testID={`option-${opt.value}`}
@@ -247,7 +251,7 @@ export default function QuizScreen() {
                 <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
                   {opt.label}
                 </Text>
-              </TouchableOpacity>
+              </PressableScale>
             );
           })}
         </View>
