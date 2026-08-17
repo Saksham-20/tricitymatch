@@ -1,8 +1,19 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Animated, DimensionValue, LayoutChangeEvent, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { DimensionValue, LayoutChangeEvent, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+import Animated, {
+  Easing,
+  FadeIn,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+  cancelAnimation,
+} from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { borderRadius, spacing } from '@shared/constants/theme';
+import { duration } from '@shared/constants/motion';
 import { useTheme } from '../../hooks/useTheme';
+import { useReduceMotion } from '../motion';
 
 interface SkeletonBlockProps {
   width?: DimensionValue;
@@ -11,33 +22,36 @@ interface SkeletonBlockProps {
   style?: StyleProp<ViewStyle>;
 }
 
-/** Single shimmering placeholder block — 1.5s left→right sweep (handoff motion spec). */
+/** Single shimmering placeholder block — 1.5s left→right sweep (handoff motion
+ *  spec), driven on the UI thread. Reduce-motion → static base, no sweep. */
 export function SkeletonBlock({ width = '100%', height = 16, radius = borderRadius.sm, style }: SkeletonBlockProps) {
   const { isDark } = useTheme();
+  const reduceMotion = useReduceMotion();
   const [w, setW] = useState(0);
-  const x = useRef(new Animated.Value(0)).current;
+  const x = useSharedValue(0);
 
   useEffect(() => {
-    if (!w) return;
-    const loop = Animated.loop(
-      Animated.timing(x, { toValue: 1, duration: 1500, useNativeDriver: true }),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [w, x]);
+    if (!w || reduceMotion) return;
+    x.value = 0;
+    x.value = withRepeat(withTiming(1, { duration: 1500, easing: Easing.linear }), -1);
+    return () => cancelAnimation(x);
+  }, [w, reduceMotion, x]);
+
+  const sweep = useAnimatedStyle(() => ({
+    transform: [{ translateX: -w + x.value * 2 * w }],
+  }));
 
   const base = isDark ? '#222838' : '#E8E8E8';
   const hi = isDark ? '#2C3346' : '#FBFBFB';
   const onLayout = (e: LayoutChangeEvent) => setW(e.nativeEvent.layout.width);
-  const translateX = x.interpolate({ inputRange: [0, 1], outputRange: [-w, w] });
 
   return (
     <View
       onLayout={onLayout}
       style={[{ width, height, borderRadius: radius, backgroundColor: base, overflow: 'hidden' }, style]}
     >
-      {w > 0 && (
-        <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ translateX }] }]}>
+      {w > 0 && !reduceMotion && (
+        <Animated.View style={[StyleSheet.absoluteFill, sweep]}>
           <LinearGradient
             colors={['transparent', hi, 'transparent']}
             start={{ x: 0, y: 0 }}
@@ -71,6 +85,18 @@ export function SkeletonCard() {
       <SkeletonBlock width="70%" height={16} style={styles.gapTop} />
       <SkeletonBlock width="50%" height={14} style={styles.gapTop} />
     </View>
+  );
+}
+
+/** Wrap real content so it cross-fades in when it replaces a skeleton
+ *  (handoff: skeleton → data over dur.slow). Reduce-motion renders instantly. */
+export function SkeletonFade({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
+  const reduceMotion = useReduceMotion();
+  if (reduceMotion) return <View style={style}>{children}</View>;
+  return (
+    <Animated.View entering={FadeIn.duration(duration.slow)} style={style}>
+      {children}
+    </Animated.View>
   );
 }
 

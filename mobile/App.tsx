@@ -12,12 +12,19 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
+import { toastConfig } from './src/components/ui/toastConfig';
 import { useFonts } from 'expo-font';
 import {
   PlayfairDisplay_400Regular,
   PlayfairDisplay_400Regular_Italic,
   PlayfairDisplay_700Bold,
 } from '@expo-google-fonts/playfair-display';
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from '@expo-google-fonts/inter';
 import { queryClient } from './src/constants/queryClient';
 import RootNavigator from './src/navigation/RootNavigator';
 import { colours } from '@shared/constants/theme';
@@ -43,6 +50,10 @@ export default function App() {
     'PlayfairDisplay-Regular': PlayfairDisplay_400Regular,
     'PlayfairDisplay-Italic': PlayfairDisplay_400Regular_Italic,
     'PlayfairDisplay-Bold': PlayfairDisplay_700Bold,
+    'Inter-Regular': Inter_400Regular,
+    'Inter-Medium': Inter_500Medium,
+    'Inter-SemiBold': Inter_600SemiBold,
+    'Inter-Bold': Inter_700Bold,
   });
 
   if (!fontsLoaded) {
@@ -59,7 +70,7 @@ export default function App() {
         <AppStatusBar />
         <QueryClientProvider client={queryClient}>
           <RootNavigator />
-          <Toast />
+          <Toast config={toastConfig} />
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
