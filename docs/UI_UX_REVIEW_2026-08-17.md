@@ -127,3 +127,35 @@ Verification, Search + FilterPanel (gorhom v4 holds), all 3 Matches tabs.
   a debug build to the initial route.
 - Web: `/ui-ux-pro-max` `--design-system` is a starting point, not gospel — its
   generic palette lost to the purpose-built brand (same lesson as magic-mcp).
+
+---
+
+## Complete UI overhaul — executed same day (commits `331345c` → `cdec5ca`, unpushed)
+
+Owner requested a full overhaul plan (modern-dating-app-inspired but strictly
+matrimonial, GenZ + parents). Plan approved (incl. prompts backend + dark mode);
+executed in phases, each an independent commit, live-driven on qa_api35:
+
+| Phase | Commit | What shipped |
+|---|---|---|
+| P0a | `331345c` | 🔴 **Inter fonts were never loaded** (whole app rendered system font) — fixed; branded toast system; Reanimated skeletons + SkeletonFade; layout/Screen + IconButton; SmartImage→FastImage (cache + fade, Glide-safe resolver) |
+| P0b | `2fd1349` | Outcome feedback Alert→toast on hot member paths (confirmations stay native) |
+| P0c | `c47e6bf` | Shared PickerSheet kills 5 duplicated onboarding sheets; PressableScale across Home/Matches/Subscription/Chat tap targets |
+| P1 | `c02527c` | Per-layout skeletons on every member screen; ListFooter unifies pagination |
+| P2 | `167ec74` | Android slide-from-right, modal rise for Subscription/SuccessStory, tab haptic + icon pop, StaggeredEntrance doctrine |
+| P3 | `2f61bef` | **Flagship: ProfileDetail rebuilt as photo-forward story scroll** — parallax hero (monogram fallback for 0-photo profiles), 4:5 photos with warm caption bands, editorial cards replace accordions, scroll-reveal, floating Playfair header |
+| P3b | `ad1793a` | Full-screen photo gallery viewer (arrows + counter + swipe; hero count chip) — user request |
+| P4 | `5559297` | AudioIntroChip waveform pill; long-press "appreciate" → warm ChatThread draft prefill; match-seal ring pulse; animated breakdown bars; "open my full profile preview" |
+| P5 | `e89f59b` | Chat typing dots + new-message entrance + optimistic opacity; splash 3-dot loader; quiz progress glide |
+| P7 | `bb515f1` | Profile prompts: backend already existed (mig 000008) — shipped the product's first prompt **editor** + "Get to know {name}" story card |
+| P8 | `cdec5ca` | Last member full-screen spinners → skeletons; grep gates |
+
+**Deliberate calls:** gorhom sheet consolidation parked (existing Modal sheets
+already match the spec; migration risk > gain). **Dark mode NOT enabled** —
+discovery: no Dark Mode toggle exists in Settings and ~40 member files still
+use static `colours.*`; enabling now would ship the historic mixed-theme
+illegibility. All NEW overhaul components consume `useTheme`, so the follow-up
+is wiring legacy screens + native `userInterfaceStyle` + dev-client rebuild.
+
+**Still open:** iOS sim drive of the new story scroll; elder + hi/pa passes;
+haptics activation needs a dev-client rebuild; push/deploy decision.
