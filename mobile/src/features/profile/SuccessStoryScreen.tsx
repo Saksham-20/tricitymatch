@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import { showToast } from '../../utils/toast';
 import { useNavigation } from '@react-navigation/native';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
 import { submitSuccessStory } from '../../api/profile';
@@ -36,7 +37,7 @@ export default function SuccessStoryScreen() {
         photoUri: photoUri ?? undefined,
       }),
     onSuccess: () => setSubmitted(true),
-    onError: () => Alert.alert('Error', 'Failed to submit story. Try again.'),
+    onError: () => showToast.error('Could not submit', 'Failed to submit story. Try again.'),
   });
 
   const handlePickPhoto = () => {
@@ -50,10 +51,10 @@ export default function SuccessStoryScreen() {
 
   const handleSubmit = () => {
     if (!groomName.trim() || !brideName.trim()) {
-      Alert.alert('Required', 'Please enter both names.'); return;
+      showToast.error('Names required', 'Please enter both names.'); return;
     }
     if (!story.trim() || story.trim().length < 20) {
-      Alert.alert('Story too short', 'Please share a bit more about your journey (min 20 characters).'); return;
+      showToast.error('Story too short', 'Please share a bit more about your journey (min 20 characters).'); return;
     }
     submitMut.mutate();
   };

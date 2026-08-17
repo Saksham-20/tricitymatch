@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  Alert,
   ActivityIndicator, 
   useWindowDimensions,
 } from 'react-native';
@@ -16,6 +15,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import { showToast } from '../../utils/toast';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, type, spacing, borderRadius } from '@shared/constants/theme';
 import { CompatRing } from '../../components/ui';
@@ -347,7 +347,7 @@ export default function ProfileDetailScreen() {
       queryClient.invalidateQueries({ queryKey: queryKeys.mutualMatches });
     },
     onError: () => {
-      Alert.alert('Error', 'Could not perform action. Please try again.');
+      showToast.error('Something went wrong', 'Could not perform action. Please try again.');
     },
   });
 

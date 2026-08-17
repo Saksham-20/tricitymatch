@@ -15,6 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import { showToast } from '../../utils/toast';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { colours, type, typography, spacing, borderRadius, shadows } from '@shared/constants/theme';
@@ -385,18 +386,18 @@ export default function SubscriptionScreen() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.me });
       queryClient.invalidateQueries({ queryKey: queryKeys.subscription });
-      Alert.alert('Success!', `${PLANS[selectedPlan].label} plan activated. Enjoy!`);
+      showToast.success('Plan activated', `Welcome to ${PLANS[selectedPlan].label}. Enjoy!`);
       navigation.goBack();
     },
     onError: () => {
-      Alert.alert('Verification Failed', 'Payment could not be verified. Contact support if amount was deducted.');
+      showToast.error('Verification failed', 'Payment could not be verified. Contact support if amount was deducted.');
     },
   });
 
   // iOS: send the buyer to the website to pay (avoids Apple's IAP + ~30% cut).
   const openWebsiteCheckout = () => {
     Linking.openURL(WEB_SUBSCRIPTION_URL).catch(() =>
-      Alert.alert('Could not open browser', `Visit ${WEB_SUBSCRIPTION_URL} to subscribe.`),
+      showToast.error('Could not open browser', `Visit ${WEB_SUBSCRIPTION_URL} to subscribe.`),
     );
   };
 
@@ -426,7 +427,7 @@ export default function SubscriptionScreen() {
           `Card and UPI payments are not available in this build. Subscribe at ${WEB_SUBSCRIPTION_URL} instead.`,
         );
       } else {
-        Alert.alert('Payment Cancelled', 'No charge was made.');
+        showToast.info('Payment cancelled', 'No charge was made.');
       }
     } finally {
       setPaying(false);
@@ -441,7 +442,7 @@ export default function SubscriptionScreen() {
       await finishGooglePlayPurchase();
       queryClient.invalidateQueries({ queryKey: queryKeys.me });
       queryClient.invalidateQueries({ queryKey: queryKeys.subscription });
-      Alert.alert('Success!', `${PLANS[selectedPlan].label} plan activated. Enjoy!`);
+      showToast.success('Plan activated', `Welcome to ${PLANS[selectedPlan].label}. Enjoy!`);
       navigation.goBack();
     } catch (e: any) {
       if (e?.message === IAP_UNAVAILABLE) {
@@ -450,7 +451,7 @@ export default function SubscriptionScreen() {
           'Google Play billing needs the Play Store build. Use Card / UPI, or subscribe on our website.',
         );
       } else {
-        Alert.alert('Payment Cancelled', 'No charge was made.');
+        showToast.info('Payment cancelled', 'No charge was made.');
       }
     } finally {
       setPaying(false);
@@ -512,7 +513,7 @@ export default function SubscriptionScreen() {
         razorpay_signature: paymentResult.razorpay_signature,
       });
       queryClient.invalidateQueries({ queryKey: queryKeys.me });
-      Alert.alert('Unlocks added', `${unlocks} contact unlock${unlocks === 1 ? '' : 's'} credited.`);
+      showToast.success('Unlocks added', `${unlocks} contact unlock${unlocks === 1 ? '' : 's'} credited.`);
     } catch (e) {
       if (e instanceof PaymentsUnavailableError) {
         Alert.alert(
@@ -520,7 +521,7 @@ export default function SubscriptionScreen() {
           `Card and UPI payments are not available in this build. Buy unlocks at ${WEB_SUBSCRIPTION_URL} instead.`,
         );
       } else {
-        Alert.alert('Payment Cancelled', 'No charge was made.');
+        showToast.info('Payment cancelled', 'No charge was made.');
       }
     } finally {
       setPaying(false);

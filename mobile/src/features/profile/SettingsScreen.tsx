@@ -16,6 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import { showToast } from '../../utils/toast';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
@@ -250,7 +251,7 @@ export default function SettingsScreen() {
       setIncognito(val);
       queryClient.invalidateQueries({ queryKey: queryKeys.me });
     },
-    onError: () => Alert.alert('Error', 'Could not update incognito mode.'),
+    onError: () => showToast.error('Could not update', 'Incognito mode was not changed.'),
   });
 
   const deleteMutation = useMutation({
@@ -259,7 +260,7 @@ export default function SettingsScreen() {
       setShowDeleteModal(false);
       await logout();
     },
-    onError: () => Alert.alert('Error', 'Could not delete account. Please try again.'),
+    onError: () => showToast.error('Could not delete account', 'Please try again.'),
   });
 
   const handleBiometricToggle = (val: boolean) => {

@@ -16,6 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import { showToast } from '../../utils/toast';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
 import { getMyProfile, updateMyProfile, uploadPhoto, deletePhoto } from '../../api/profile';
@@ -384,7 +385,7 @@ export default function EditProfileScreen() {
       navigation.goBack();
     },
     onError: () => {
-      Alert.alert('Error', 'Could not save profile. Please try again.');
+      showToast.error('Could not save', 'Your changes were not saved. Please try again.');
     },
   });
 

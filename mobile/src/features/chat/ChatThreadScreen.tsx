@@ -11,6 +11,7 @@ import type { RouteProp } from '@react-navigation/native';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
+import { showToast } from '../../utils/toast';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
 import { useAuthStore } from '../../stores/authStore';
 import { useSocket } from '../../hooks/useSocket';
@@ -130,7 +131,7 @@ function ContactUnlockBanner({ userId, onUnlocked }: ContactBannerProps) {
       onUnlocked(res.phone);
     },
     onError: () => {
-      Alert.alert(t('error', 'Error'), t('chat.unlockFailed', 'Could not unlock contact. Check your quota.'));
+      showToast.error(t('error', 'Error'), t('chat.unlockFailed', 'Could not unlock contact. Check your quota.'));
     },
   });
 
@@ -428,7 +429,7 @@ export default function ChatThreadScreen() {
   );
 
   const handleReport = useCallback((_msg: Message) => {
-    Alert.alert(t('chat.reportSent', 'Report submitted. Thank you.'));
+    showToast.success(t('chat.reportSent', 'Report submitted. Thank you.'));
   }, [t]);
 
   // Render list item with optional date separator

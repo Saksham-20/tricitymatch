@@ -7,12 +7,12 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { showToast } from '../../utils/toast';
 import { useNavigation } from '@react-navigation/native';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
 import { apiClient } from '../../api/client';
@@ -27,7 +27,7 @@ export default function ContactScreen() {
 
   const submit = async () => {
     if (!form.name.trim() || !form.email.trim() || !form.message.trim()) {
-      Alert.alert('Missing details', 'Please fill in your name, email and message.');
+      showToast.error('Missing details', 'Please fill in your name, email and message.');
       return;
     }
     setSending(true);
@@ -39,11 +39,11 @@ export default function ContactScreen() {
         subject: form.subject.trim() || undefined,
         message: form.message.trim(),
       });
-      Alert.alert('Message sent', 'Thanks for reaching out — we’ll get back to you soon.');
+      showToast.success('Message sent', 'Thanks for reaching out — we’ll get back to you soon.');
       setForm({ name: '', email: '', phone: '', subject: '', message: '' });
       navigation.goBack();
     } catch {
-      Alert.alert('Could not send', 'Something went wrong. Please try again or email support@tricitymatch.com.');
+      showToast.error('Could not send', 'Please try again or email support@tricitymatch.com.');
     } finally {
       setSending(false);
     }

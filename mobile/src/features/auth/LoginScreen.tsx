@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
+import { showToast } from '../../utils/toast';
 import Animated from 'react-native-reanimated';
 import * as LocalAuthentication from 'expo-local-authentication';
 import type { AuthStackParamList } from '../../navigation/types';
@@ -89,7 +90,7 @@ export default function LoginScreen() {
 
   const handleBiometric = async () => {
     if (bioAttempts >= BIO_MAX_ATTEMPTS) {
-      Alert.alert('Too many attempts', 'Biometric login locked. Use email and password.');
+      showToast.error('Too many attempts', 'Biometric login locked. Use email and password.');
       return;
     }
     try {
@@ -114,10 +115,10 @@ export default function LoginScreen() {
             setAccessToken(refreshed.accessToken);
             setUser(refreshed.user);
           } else {
-            Alert.alert('Session expired', 'Please sign in with your email and password.');
+            showToast.info('Session expired', 'Please sign in with your email and password.');
           }
         } catch {
-          Alert.alert('Sign in failed', 'Please sign in with your email and password.');
+          showToast.error('Sign in failed', 'Please sign in with your email and password.');
         } finally {
           setLoading(false);
         }
@@ -126,7 +127,7 @@ export default function LoginScreen() {
         if (bioAttempts + 1 >= BIO_MAX_ATTEMPTS) {
           cache.setBoolean(CACHE_KEYS.BIOMETRIC_ENABLED, false);
           setBiometricEnabled(false);
-          Alert.alert('Biometric locked', 'Too many failed attempts. Use email and password.');
+          showToast.error('Biometric locked', 'Too many failed attempts. Use email and password.');
         }
       }
     } catch {

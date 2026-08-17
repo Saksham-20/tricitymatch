@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,6 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import { showToast } from '../../utils/toast';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
 import { PressableScale } from '../../components/motion';
@@ -176,14 +176,11 @@ export default function QuizScreen() {
       updateMyProfile({ quizAnswers } as any),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.me });
-      Alert.alert(
-        'Quiz Saved',
-        'Your answers help us find better matches for you.',
-        [{ text: 'View Profile', onPress: () => navigation.goBack() }],
-      );
+      showToast.success('Quiz saved', 'Your answers help us find better matches for you.');
+      navigation.goBack();
     },
     onError: () => {
-      Alert.alert('Error', 'Could not save quiz. Please try again.');
+      showToast.error('Could not save quiz', 'Please try again.');
     },
   });
 
