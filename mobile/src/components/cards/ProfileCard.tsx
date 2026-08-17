@@ -113,7 +113,7 @@ export default function ProfileCard({
         </View>
         <View style={s.compactActions}>
           <TouchableOpacity style={[s.iconBtn, { backgroundColor: c.surface2 }]} onPress={shortlist} accessibilityLabel="Shortlist" testID={`shortlist-${profile.id}`}>
-            <Ionicons name="bookmark-outline" size={20} color={colours.g600} />
+            <Ionicons name="bookmark-outline" size={20} color={colours.accent} />
           </TouchableOpacity>
           <LikeButton
             style={[s.iconBtn, { backgroundColor: colours.accentSoft }]}
@@ -158,7 +158,7 @@ export default function ProfileCard({
         <View style={s.overlay} pointerEvents="none">
           <View style={s.nameRow}>
             <Text style={s.name} numberOfLines={1}>{name}{age ? `, ${age}` : ''}</Text>
-            {profile.isVerified && <Ionicons name="checkmark-circle" size={16} color="#5DD27A" />}
+            {profile.isVerified && <Ionicons name="checkmark-circle" size={16} color={colours.success} />}
           </View>
           <Text style={s.meta} numberOfLines={1}>
             {[profile.profession, profile.city].filter(Boolean).join(' · ')}
@@ -179,8 +179,8 @@ export default function ProfileCard({
           <Text style={[s.actionLabel, { color: c.textSecondary }]}>Pass</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[s.actionBtn, s.actionMid, { borderColor: c.border }]} onPress={shortlist} accessibilityLabel="Shortlist" testID={`shortlist-${profile.id}`}>
-          <Ionicons name="bookmark-outline" size={20} color={colours.g600} />
-          <Text style={[s.actionLabel, { color: colours.g600 }]}>Shortlist</Text>
+          <Ionicons name="bookmark-outline" size={20} color={colours.accent} />
+          <Text style={[s.actionLabel, { color: colours.accent }]}>Shortlist</Text>
         </TouchableOpacity>
         <LikeButton
           style={[s.actionBtn, s.likeBtn]}
@@ -250,5 +250,5 @@ const s = StyleSheet.create({
   compatFill: { height: 5, borderRadius: borderRadius.pill },
   compatPct: { ...type.caption, color: colours.textMuted, minWidth: 32, textAlign: 'right' },
   compactActions: { flexDirection: 'row', gap: 8 },
-  iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: borderRadius.pill },
+  iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: borderRadius.pill },
 });

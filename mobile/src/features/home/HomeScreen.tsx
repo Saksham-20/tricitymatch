@@ -66,7 +66,7 @@ function RailCard({ profile, onPress, c }: { profile: ProfileSummary; onPress: (
       <View style={styles.railBody} pointerEvents="none">
         <View style={styles.railNameRow}>
           <Text style={styles.railName} numberOfLines={1}>{name}</Text>
-          {profile.isVerified && <Ionicons name="checkmark-circle" size={14} color="#5DD27A" />}
+          {profile.isVerified && <Ionicons name="checkmark-circle" size={14} color={colours.success} />}
         </View>
         <Text style={styles.railMeta} numberOfLines={1}>
           {[profile.city, profile.profession].filter(Boolean).join(' · ')}
