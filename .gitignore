@@ -138,6 +138,20 @@ buck-out/
 web-build/
 
 # @end expo-cli
+# Agent/skill tooling + generated outputs — never commit
+.agents/
+.claude/skills/brag
+.claude/settings.local.json
+skills-lock.json
+brag-output*/
+graphify-out/
+audit/
+qa-evidence/
+scripts/load-test-*results*.json
+__pycache__/
+*.pyc
+/web-*.png
+
 # UX audit scratch artifacts
 .playwright-mcp/
 /home-desktop.jpeg
