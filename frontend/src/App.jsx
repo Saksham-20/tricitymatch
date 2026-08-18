@@ -46,6 +46,7 @@ const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const Terms = lazy(() => import('./pages/Terms'));
 const Privacy = lazy(() => import('./pages/Privacy'));
+const DeleteAccount = lazy(() => import('./pages/DeleteAccount'));
 const About = lazy(() => import('./pages/About'));
 const Contact = lazy(() => import('./pages/Contact'));
 const Safety = lazy(() => import('./pages/Safety'));
@@ -167,6 +168,11 @@ const AnimatedRoutes = () => {
           <Route path="/privacy" element={
             <PageTransition>
               <Privacy />
+            </PageTransition>
+          } />
+          <Route path="/delete-account" element={
+            <PageTransition>
+              <DeleteAccount />
             </PageTransition>
           } />
           <Route path="/about" element={

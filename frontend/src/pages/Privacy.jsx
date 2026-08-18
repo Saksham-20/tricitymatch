@@ -15,7 +15,7 @@ export default function Privacy() {
 
         <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-8 md:p-12">
           <h1 className="text-3xl font-bold text-neutral-900 mb-2">Privacy Policy</h1>
-          <p className="text-sm text-neutral-600 mb-8">Last updated: July 2026</p>
+          <p className="text-sm text-neutral-600 mb-8">Last updated: August 2026</p>
 
           <div className="prose prose-sm max-w-none text-neutral-700 space-y-6">
             <section>
@@ -73,17 +73,17 @@ export default function Privacy() {
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">6. Data Security</h2>
-              <p>We use industry-standard safeguards, including encryption in transit (HTTPS), secure httpOnly authentication cookies, and hashed passwords. While we work hard to protect your data, no method of transmission or storage is completely secure, and we cannot guarantee absolute security.</p>
+              <p>We use industry-standard safeguards, including encryption in transit (HTTPS), secure httpOnly authentication cookies, and hashed passwords. While we work hard to protect your data, no method of transmission or storage is completely secure, and we cannot guarantee absolute security. In the event of a personal data breach affecting you, we will notify you and the Data Protection Board of India as required under the Digital Personal Data Protection Act, 2023.</p>
             </section>
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">7. Data Retention</h2>
-              <p>We keep your data while your account is active. When you delete your account, your profile is removed from public view and permanently purged within a reasonable period, except where limited information must be retained to meet legal, security, or fraud-prevention obligations.</p>
+              <p>We keep your data while your account is active. When you delete your account, your profile is removed from public view and permanently purged within a reasonable period, except where limited information must be retained to meet legal, security, or fraud-prevention obligations. See <Link to="/delete-account" className="text-primary-600 underline hover:text-primary-700">How to delete your account</Link> for step-by-step instructions on the website and mobile apps.</p>
             </section>
 
             <section>
               <h2 className="text-lg font-bold text-neutral-900 mb-2">8. Your Rights</h2>
-              <p>You have the right to access, correct, update, or delete your personal data, and to withdraw consent for optional processing such as verification. You can manage most of this directly from your profile and settings, or by contacting us at <a href="mailto:privacy@tricitymatch.com" className="text-primary-600 underline hover:text-primary-700">privacy@tricitymatch.com</a>.</p>
+              <p>Under the Digital Personal Data Protection Act, 2023, you have the right to access, correct, update, or erase your personal data, to withdraw consent for optional processing such as verification, to have your grievances redressed, and to nominate another individual to exercise these rights on your behalf if you are unable to. You can manage most of this directly from your profile and settings, or by contacting us at <a href="mailto:privacy@tricitymatch.com" className="text-primary-600 underline hover:text-primary-700">privacy@tricitymatch.com</a>.</p>
             </section>
 
             <section>

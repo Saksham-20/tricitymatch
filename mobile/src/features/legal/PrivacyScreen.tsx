@@ -1,10 +1,10 @@
 import React from 'react';
 import { LegalLayout, Section, Para, Bullet } from './LegalLayout';
 
-// Mirrors frontend/src/pages/Privacy.jsx (Last updated: July 2026).
+// Mirrors frontend/src/pages/Privacy.jsx (Last updated: August 2026).
 export default function PrivacyScreen() {
   return (
-    <LegalLayout title="Privacy Policy" subtitle="Last updated: July 2026">
+    <LegalLayout title="Privacy Policy" subtitle="Last updated: August 2026">
       <Section>
         <Para>
           TricityMatch respects your privacy. This policy explains what personal information we
@@ -46,7 +46,7 @@ export default function PrivacyScreen() {
       </Section>
 
       <Section heading="6. Data Security">
-        <Para>We use industry-standard safeguards, including encryption in transit (HTTPS), secure authentication tokens, and hashed passwords. No method of transmission or storage is completely secure, and we cannot guarantee absolute security.</Para>
+        <Para>We use industry-standard safeguards, including encryption in transit (HTTPS), secure authentication tokens, and hashed passwords. No method of transmission or storage is completely secure, and we cannot guarantee absolute security. In the event of a personal data breach affecting you, we will notify you and the Data Protection Board of India as required under the Digital Personal Data Protection Act, 2023.</Para>
       </Section>
 
       <Section heading="7. Data Retention">
@@ -54,7 +54,7 @@ export default function PrivacyScreen() {
       </Section>
 
       <Section heading="8. Your Rights">
-        <Para>You have the right to access, correct, update, or delete your personal data, and to withdraw consent for optional processing such as verification. You can manage most of this from your profile and settings, or by contacting us at privacy@tricitymatch.com.</Para>
+        <Para>Under the Digital Personal Data Protection Act, 2023, you have the right to access, correct, update, or erase your personal data, to withdraw consent for optional processing such as verification, to have your grievances redressed, and to nominate another individual to exercise these rights on your behalf if you are unable to. You can manage most of this from your profile and settings — including deleting your account from Settings → Delete Account — or by contacting us at privacy@tricitymatch.com. Full deletion steps: tricitymatch.com/delete-account.</Para>
       </Section>
 
       <Section heading="9. Cookies & Local Storage">
