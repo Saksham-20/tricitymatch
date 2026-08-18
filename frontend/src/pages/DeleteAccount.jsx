@@ -33,7 +33,7 @@ export default function DeleteAccount() {
               <ol className="list-decimal pl-5 space-y-1">
                 <li>Log in at <Link to="/login" className="text-primary-600 underline hover:text-primary-700">tricitymatch.com/login</Link></li>
                 <li>Go to <strong>Settings</strong></li>
-                <li>Open the <strong>Account</strong> section and choose <strong>Delete Account</strong></li>
+                <li>Open the <strong>Danger Zone</strong> tab and choose <strong>Delete My Account</strong></li>
                 <li>Confirm with your password</li>
               </ol>
             </section>
