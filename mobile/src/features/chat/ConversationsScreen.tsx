@@ -1,4 +1,5 @@
 import React, { useCallback } from 'react';
+import { useTabBarClearance } from '../../hooks/useTabBarClearance';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl,
 } from 'react-native';
@@ -88,6 +89,7 @@ function ConversationCard({ item, locked = false, onPress }: ConversationCardPro
 }
 
 export default function ConversationsScreen() {
+  const tabClearance = useTabBarClearance();
   const { t } = useTranslation();
   const { c } = useTheme();
   const s = React.useMemo(() => makeS(c), [c]);
@@ -202,7 +204,7 @@ export default function ConversationsScreen() {
             />
           }
           ItemSeparatorComponent={() => <View style={[s.separator, { backgroundColor: c.hairline }]} />}
-          contentContainerStyle={conversations.length === 0 ? s.emptyContainer : undefined}
+          contentContainerStyle={conversations.length === 0 ? s.emptyContainer : { paddingBottom: tabClearance }}
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} colors={[c.accent]} tintColor={c.accent} />}
         />
       )}

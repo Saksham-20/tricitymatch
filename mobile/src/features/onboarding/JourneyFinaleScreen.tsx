@@ -18,6 +18,7 @@ import { getDailyFeed } from '../../api/matches';
 import SmartImage from '../../components/common/SmartImage';
 import { useReduceMotion, PressableScale } from '../../components/motion';
 import { useOnboarding, JOURNEY_DONE_KEY } from './OnboardingContext';
+import { useBiodataShare } from '../../hooks/useBiodataShare';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import type { ProfileSummary } from '../../types';
 
@@ -42,6 +43,7 @@ export default function JourneyFinaleScreen() {
   const { t } = useTranslation();
   const { exit } = useOnboarding();
   const reduced = useReduceMotion();
+  const { share: shareBiodata, busy: biodataBusy } = useBiodataShare();
 
   const [phase, setPhase] = useState<'loading' | 'reveal' | 'early' | 'error'>('loading');
   const [stageIndex, setStageIndex] = useState(0);
@@ -147,6 +149,12 @@ export default function JourneyFinaleScreen() {
             <Text style={st.sub}>{t('journey.errorSub', 'Your answers are saved. Check your matches from the Home tab.')}</Text>
           </View>
         )}
+
+        {/* Completion energy -> the biodata share loop (D5 flagship) */}
+        <PressableScale haptic style={st.quizBtn} onPress={shareBiodata} accessibilityRole="button" testID="biodata-cta">
+          <Ionicons name={biodataBusy ? 'hourglass-outline' : 'logo-whatsapp'} size={18} color={colours.success} />
+          <Text style={[st.quizText, { color: colours.success }]}>{t('journey.biodataCta', 'Share your new biodata on WhatsApp')}</Text>
+        </PressableScale>
 
         <PressableScale haptic style={st.quizBtn} onPress={goQuiz} accessibilityRole="button" testID="quiz-cta">
           <Ionicons name="sparkles-outline" size={18} color={c.primary} />

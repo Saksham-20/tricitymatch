@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useTabBarClearance } from '../../hooks/useTabBarClearance';
+import { useBiodataShare } from '../../hooks/useBiodataShare';
 import {
   View,
   Text,
@@ -30,8 +32,6 @@ import { getPhotoVerification } from '../../api/verification';
 import { formatDate } from '../../utils/dateUtils';
 import { queryKeys } from '../../constants/queryKeys';
 import { useAuthStore } from '../../stores/authStore';
-import { showToast } from '../../utils/toast';
-import { CONFIG } from '../../constants/config';
 import { toProfileCode } from '../../utils/profileCode';
 import type { MainStackParamList } from '../../navigation/types';
 import type { Profile, ProfileSummary } from '../../types';
@@ -493,6 +493,8 @@ function OwnGalleryPhoto({ uri, previewMode }: { uri: string; previewMode: boole
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 export default function OwnProfileScreen() {
+  const tabClearance = useTabBarClearance();
+  const { share: shareBiodata, busy: biodataBusy } = useBiodataShare();
   const navigation = useNavigation<Nav>();
   const user = useAuthStore((s) => s.user);
   const { c } = useTheme();
@@ -538,7 +540,6 @@ export default function OwnProfileScreen() {
   };
 
   const [photoIdx, setPhotoIdx] = useState(0);
-  const [biodataBusy, setBiodataBusy] = useState(false);
 
   const photos: string[] =
     profile?.profilePhoto
@@ -574,39 +575,7 @@ export default function OwnProfileScreen() {
   // D5 biodata flagship: download the PDF with the auth header, then hand the
   // FILE to the share sheet (WhatsApp-first). expo-file-system ships with the
   // expo package; lazy-required so Expo Go without it degrades to a toast.
-  const shareBiodata = async () => {
-    if (biodataBusy) return;
-    setBiodataBusy(true);
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let FileSystem: any = null;
-      try { FileSystem = require('expo-file-system/legacy'); } catch { /* fall through */ }
-      if (!FileSystem?.downloadAsync) {
-        try { FileSystem = require('expo-file-system'); } catch { FileSystem = null; }
-      }
-      if (!FileSystem?.downloadAsync) {
-        showToast.error('Not available', 'Biodata download needs a native build.');
-        return;
-      }
-      const token = useAuthStore.getState().accessToken;
-      const dest = `${FileSystem.cacheDirectory}biodata-tricitymatch.pdf`;
-      const res = await FileSystem.downloadAsync(
-        `${CONFIG.API_URL}/profile/me/biodata?template=classic`,
-        dest,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (res.status !== 200) throw new Error(`HTTP ${res.status}`);
-      await Share.share(
-        Platform.OS === 'ios'
-          ? { url: res.uri, title: 'Marriage Biodata' }
-          : { message: 'My marriage biodata (PDF) — made with TricityMatch, tricitymatch.com', url: res.uri, title: 'Marriage Biodata' }
-      );
-    } catch {
-      showToast.error('Error', 'Could not prepare your biodata. Please try again.');
-    } finally {
-      setBiodataBusy(false);
-    }
-  };
+
   const shareProfileCode = () => {
     if (!profileCode) return;
     Share.share({
@@ -617,6 +586,7 @@ export default function OwnProfileScreen() {
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: c.background }]}
+      contentContainerStyle={{ paddingBottom: tabClearance }}
       showsVerticalScrollIndicator={false}
       testID="OwnProfileScreen"
     >

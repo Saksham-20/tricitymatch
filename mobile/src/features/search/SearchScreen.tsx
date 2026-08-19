@@ -1,4 +1,6 @@
 import React, { useCallback, useRef, useState } from 'react';
+import { requestNotifPrime } from '../../utils/notifPrime';
+import { useTabBarClearance } from '../../hooks/useTabBarClearance';
 import {
   View,
   Text,
@@ -189,6 +191,7 @@ const makeSs = (c: ThemeColours) => StyleSheet.create({
 // ─── SearchScreen ─────────────────────────────────────────────────────────────
 
 export default function SearchScreen() {
+  const tabClearance = useTabBarClearance();
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -281,6 +284,8 @@ export default function SearchScreen() {
   const handleAction = useCallback(
     (userId: string, action: MatchAction) => {
       actionMutation.mutate({ userId, action });
+      // First like = the moment push notifications become genuinely useful.
+      if (action === 'like') requestNotifPrime();
     },
     [actionMutation]
   );
@@ -404,7 +409,7 @@ export default function SearchScreen() {
           data={[1, 2, 3]}
           keyExtractor={(i) => String(i)}
           renderItem={() => <CardSkeleton />}
-          contentContainerStyle={s.list}
+          contentContainerStyle={[s.list, { paddingBottom: tabClearance }]}
           scrollEnabled={false}
         />
       ) : isError ? (
@@ -432,7 +437,7 @@ export default function SearchScreen() {
           data={profiles}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
-          contentContainerStyle={s.list}
+          contentContainerStyle={[s.list, { paddingBottom: tabClearance }]}
           onEndReached={onEndReached}
           onEndReachedThreshold={0.3}
           ListFooterComponent={renderFooter}

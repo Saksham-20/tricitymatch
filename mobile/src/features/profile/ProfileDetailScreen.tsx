@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { requestNotifPrime } from '../../utils/notifPrime';
 import {
   View,
   Text,
@@ -164,6 +165,8 @@ export default function ProfileDetailScreen() {
   const handleAction = (action: MatchAction, note?: string) => {
     if (actionDone) return;
     actionMutation.mutate({ action, note });
+    // First like = the moment push notifications become genuinely useful.
+    if (action === 'like') requestNotifPrime();
   };
 
   if (isLoading) {

@@ -12,11 +12,11 @@ import { cache } from '../utils/cache';
  * 3. Handles background-tap initial notification
  * 4. Refreshes token when FCM rotates it
  */
-export const useNotificationHandler = (userId: string | undefined) => {
+export const useNotificationHandler = (userId: string | undefined, enabled = true) => {
   const tokenRegisteredRef = useRef(false);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !enabled) return;
 
     let messaging: any = null;
     let unsubscribeOnMessage: (() => void) | null = null;
@@ -77,7 +77,7 @@ export const useNotificationHandler = (userId: string | undefined) => {
       unsubscribeOnMessage?.();
       unsubscribeTokenRefresh?.();
     };
-  }, [userId]);
+  }, [userId, enabled]);
 
   const deregisterToken = async () => {
     const token = cache.getString('fcm_token');

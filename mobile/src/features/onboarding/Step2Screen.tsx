@@ -77,7 +77,9 @@ export default function Step2Screen() {
         />
       </View>
 
-      {/* Sub-caste (optional) */}
+      {/* Sub-caste + gotra reveal only once caste is filled — irrelevant
+          questions stay out of sight (NN/g: shortest path for each user) */}
+      {!!caste.trim() && (
       <View>
         <Text style={styles.label}>
           {t('onboarding.step2.subCaste')}
@@ -94,8 +96,10 @@ export default function Step2Screen() {
           accessibilityLabel={t('onboarding.step2.subCaste')}
         />
       </View>
+      )}
 
       {/* Gotra (optional) */}
+      {!!caste.trim() && (
       <View>
         <Text style={styles.label}>
           {t('onboarding.step2.gotra')}
@@ -112,6 +116,7 @@ export default function Step2Screen() {
           accessibilityLabel={t('onboarding.step2.gotra')}
         />
       </View>
+      )}
 
       {/* Mother tongue */}
       <View>

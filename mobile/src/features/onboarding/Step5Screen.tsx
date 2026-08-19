@@ -75,7 +75,8 @@ export default function Step5Screen() {
         </TouchableOpacity>
       </View>
 
-      {/* Employer (optional) */}
+      {/* Employer + income reveal after profession is chosen */}
+      {!!profession && (
       <View>
         <Text style={styles.label}>
           {t('onboarding.step5.employer')}
@@ -92,8 +93,10 @@ export default function Step5Screen() {
           accessibilityLabel={t('onboarding.step5.employer')}
         />
       </View>
+      )}
 
       {/* Income */}
+      {!!profession && (
       <View>
         <Text style={styles.label}>
           {t('onboarding.step5.income')}
@@ -110,6 +113,7 @@ export default function Step5Screen() {
           </Text>
         </TouchableOpacity>
       </View>
+      )}
 
       <PickerSheet
         visible={profSheet}

@@ -10,6 +10,10 @@ import { colours, tapTarget } from '@shared/constants/theme';
 import { useAuthStore } from '../stores/authStore';
 import { useUIStore } from '../stores/uiStore';
 import { TabIcon } from '../components/motion';
+import FloatingTabBar from '../components/navigation/FloatingTabBar';
+import NotificationPrimingSheet from '../components/NotificationPrimingSheet';
+import { useNotificationHandler } from '../hooks/useNotificationHandler';
+import { getNotifPrimeState } from '../utils/notifPrime';
 import { haptics } from '../utils/haptics';
 
 // Tab Screens
@@ -112,6 +116,9 @@ function BottomTabs() {
 
   return (
     <Tab.Navigator
+      // Floating pill (HIG 2026) for the standard app; elder mode keeps the
+      // docked full-width bar with larger targets.
+      tabBar={elderMode ? undefined : (props) => <FloatingTabBar {...props} icons={TAB_ICONS} />}
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: c.primary,
@@ -153,6 +160,13 @@ function AdminNavigator() {
 export default function MainNavigator() {
   const { elderMode } = useUIStore();
   const { user } = useAuthStore();
+  // Push registration mounts only after the member accepted the priming sheet
+  // (which we show after their first like — never on cold start).
+  const [pushEnabled, setPushEnabled] = React.useState(false);
+  React.useEffect(() => {
+    getNotifPrimeState().then((prime) => { if (prime === 'accepted') setPushEnabled(true); });
+  }, []);
+  useNotificationHandler(user?.id, pushEnabled);
   const role = user?.role ?? 'user';
   const astrologerOn = user?.features?.astrologerMarketplace ?? false;
   // The provider sits ABOVE the Main stack, so its navigation handle is the
@@ -257,6 +271,7 @@ export default function MainNavigator() {
         <Stack.Screen name="AdminStack" component={AdminNavigator} />
       )}
     </Stack.Navigator>
+    <NotificationPrimingSheet onAccepted={() => setPushEnabled(true)} />
     </OnboardingProvider>
   );
 }

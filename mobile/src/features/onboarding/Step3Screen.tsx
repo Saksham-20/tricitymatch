@@ -69,11 +69,15 @@ export default function Step3Screen() {
         </View>
       </View>
 
-      {/* Birth details */}
+      {/* Birth details reveal only after manglik is answered — kundli
+          questions stay hidden until the member engages with the topic */}
+      {manglikStatus && (
       <View>
         <Text style={styles.sectionHeader}>{t('onboarding.step3.birthDetails')}</Text>
       </View>
+      )}
 
+      {manglikStatus && (
       <View>
         <Text style={styles.label}>
           {t('onboarding.step3.birthTime')}
@@ -90,7 +94,9 @@ export default function Step3Screen() {
           accessibilityLabel={t('onboarding.step3.birthTime')}
         />
       </View>
+      )}
 
+      {manglikStatus && (
       <View>
         <Text style={styles.label}>
           {t('onboarding.step3.birthPlace')}
@@ -110,6 +116,7 @@ export default function Step3Screen() {
           accessibilityLabel={t('onboarding.step3.birthPlace')}
         />
       </View>
+      )}
     </OnboardingLayout>
   );
 }

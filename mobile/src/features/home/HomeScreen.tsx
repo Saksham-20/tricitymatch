@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect } from 'react';
+import { useTabBarClearance } from '../../hooks/useTabBarClearance';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View,
@@ -22,6 +23,8 @@ import { PressableScale } from '../../components/motion';
 import { Avatar, SectionHeader, SkeletonBlock, EmptyState, CompletionRing } from '../../components/ui';
 import { getDailyFeed } from '../../api/matches';
 import { getUnreadCount } from '../../api/notifications';
+import { getCommunityStats } from '../../api/stats';
+import DiscoverCards from './DiscoverCards';
 import { queryKeys } from '../../constants/queryKeys';
 import { useAuthStore } from '../../stores/authStore';
 import { useTheme } from '../../hooks/useTheme';
@@ -92,6 +95,7 @@ function RailCard({ profile, onPress }: { profile: ProfileSummary; onPress: () =
 }
 
 export default function HomeScreen() {
+  const tabClearance = useTabBarClearance();
   const { t } = useTranslation();
   const { c } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
@@ -130,6 +134,13 @@ export default function HomeScreen() {
     staleTime: 60 * 1000,
   });
 
+  // Honest social proof — server-side count of profiles that joined this week.
+  const { data: communityStats } = useQuery({
+    queryKey: ['stats', 'community'],
+    queryFn: getCommunityStats,
+    staleTime: 60 * 60 * 1000,
+  });
+
   const unreadCount = countData?.count ?? 0;
   const completionPct = user?.Profile?.completionPercentage ?? 0;
   const firstName = user?.Profile?.firstName ?? user?.email?.split('@')[0] ?? 'there';
@@ -152,7 +163,7 @@ export default function HomeScreen() {
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: c.background }]}
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.md }]}
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.md, paddingBottom: tabClearance }]}
       showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} tintColor={c.accent} />}
       testID="HomeScreen"
@@ -275,6 +286,20 @@ export default function HomeScreen() {
             );
           })}
 
+      {/* Honest social proof + a reason to come back tomorrow */}
+      {!!communityStats?.newThisWeek && (
+        <View style={[styles.communityStrip, { backgroundColor: c.accentSoft }]} testID="community-strip">
+          <Ionicons name="sparkles-outline" size={15} color={c.accent} />
+          <Text style={[styles.communityText, { color: c.accent }]}>
+            {t('home.newThisWeek', '{{count}} new Tricity profiles joined this week', { count: communityStats.newThisWeek })}
+          </Text>
+        </View>
+      )}
+      <Text style={[styles.midnightLine, { color: c.textMuted }]}>{t('home.midnight', 'Fresh matches drop every midnight')}</Text>
+
+      {/* Stage-aware discovery cards fill the fold for thin dashboards */}
+      <DiscoverCards />
+
       <View style={{ height: 32 }} />
     </ScrollView>
   );
@@ -301,6 +326,14 @@ function QuickChip({ icon, label, tint, onPress, testID }: {
 }
 
 const makeStyles = (c: ThemeColours) => StyleSheet.create({
+  communityStrip: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    marginHorizontal: spacing.gutter, marginTop: spacing.lg,
+    paddingHorizontal: spacing.md, paddingVertical: 10,
+    borderRadius: borderRadius.md,
+  },
+  communityText: { fontSize: 13, fontWeight: '600' },
+  midnightLine: { fontSize: 12, textAlign: 'center', marginTop: spacing.md },
   railReason: { fontSize: 11, color: 'rgba(255,255,255,0.85)', marginTop: 3 },
   container: { flex: 1 },
   content: { paddingBottom: 24 },

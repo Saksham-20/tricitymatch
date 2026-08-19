@@ -18,7 +18,7 @@ import { duration, easing } from '@shared/constants/motion';
 import { Button } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
 import { useReduceMotion } from '../../components/motion';
-import { useOnboarding } from './OnboardingContext';
+import { useOnboarding, chapterForStep, JOURNEY_CHAPTERS, JOURNEY_ENDOWED_PROGRESS } from './OnboardingContext';
 
 interface OnboardingLayoutProps {
   /** Kept for testIDs; progress derives from the journey context. */
@@ -47,7 +47,13 @@ export default function OnboardingLayout({
   const styles = React.useMemo(() => makeStyles(c), [c]);
   const { goBack, exit, isSaving, currentStep, stepCount } = useOnboarding();
   const reduced = useReduceMotion();
-  const progress = Math.max(0, Math.min(1, (currentStep + 1) / stepCount));
+
+  // Chapters, not step numbers: the header names where you are, the bar shows
+  // how far. Endowed-progress credit — signup already covered the basics, so
+  // the journey never starts from an empty bar (Nunes & Drèze).
+  const chapter = chapterForStep(currentStep);
+  const journeyFraction = Math.max(0, Math.min(1, (currentStep + 1) / stepCount));
+  const progress = JOURNEY_ENDOWED_PROGRESS + (1 - JOURNEY_ENDOWED_PROGRESS) * journeyFraction;
 
   // Animated progress fill: measure the track once, then spring the fill width
   // to the new step so the bar glides instead of jumping. Reduce-motion jumps.
@@ -61,6 +67,14 @@ export default function OnboardingLayout({
       ? target
       : withTiming(target, { duration: duration.slow, easing: Easing.bezier(...easing.std) });
   }, [trackW, progress, reduced, fillW]);
+
+  // Warm one-liner at the top of each new chapter (skip the very first).
+  const chapterDoneLine =
+    chapter.isChapterStart && chapter.chapterIndex > 0
+      ? t(`journey.chapterDone.${JOURNEY_CHAPTERS[chapter.chapterIndex - 1].i18nKey}`, '')
+      : currentStep === 0
+        ? t('journey.endowed', "You're already a quarter done — signup covered the basics.")
+        : '';
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} testID={`OnboardingStep${step}`}>
@@ -77,7 +91,7 @@ export default function OnboardingLayout({
           </TouchableOpacity>
         )}
         <Text style={[styles.stepLabel, { color: c.textMuted }]}>
-          {t('onboarding.progress', { current: currentStep + 1, total: stepCount })}
+          {t(`journey.chapters.${chapter.i18nKey}`, chapter.fallback)}
         </Text>
         {skippable ? (
           <TouchableOpacity onPress={onSkip} testID="btn-skip" accessibilityLabel={t('common.skip')}>
@@ -88,9 +102,21 @@ export default function OnboardingLayout({
         )}
       </View>
 
-      {/* Progress bar */}
+      {/* Progress bar + chapter dots (no numerals — chapters orient instead) */}
       <View style={[styles.progressTrack, { backgroundColor: c.surface2 }]} onLayout={onTrackLayout}>
         <Animated.View style={[styles.progressFill, fillStyle]} />
+      </View>
+      <View style={styles.dotRow} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        {JOURNEY_CHAPTERS.map((ch, i) => (
+          <View
+            key={ch.i18nKey}
+            style={[
+              styles.chapterDot,
+              { backgroundColor: i < chapter.chapterIndex ? c.accent : i === chapter.chapterIndex ? c.accent : c.surface2 },
+              i === chapter.chapterIndex && styles.chapterDotActive,
+            ]}
+          />
+        ))}
       </View>
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -100,6 +126,12 @@ export default function OnboardingLayout({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          {chapterDoneLine ? (
+            <View style={[styles.chapterDone, { backgroundColor: c.accentSoft }]}>
+              <Ionicons name="checkmark-circle" size={15} color={c.accent} />
+              <Text style={[styles.chapterDoneText, { color: c.accent }]}>{chapterDoneLine}</Text>
+            </View>
+          ) : null}
           <Text style={[styles.title, { color: c.fgStrong }]}>{title}</Text>
           {subtitle ? <Text style={[styles.subtitle, { color: c.textMuted }]}>{subtitle}</Text> : null}
           <View style={styles.content}>{children}</View>
@@ -155,6 +187,25 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     backgroundColor: c.accent,
     borderRadius: borderRadius.pill,
   },
+  dotRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  chapterDot: { width: 6, height: 6, borderRadius: 3 },
+  chapterDotActive: { width: 16, borderRadius: 3 },
+  chapterDone: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
+    borderRadius: borderRadius.pill,
+    marginTop: spacing.lg,
+  },
+  chapterDoneText: { ...type.footnote },
   scrollContent: { padding: spacing.gutter, paddingBottom: spacing['3xl'] },
   title: {
     ...type.title1,

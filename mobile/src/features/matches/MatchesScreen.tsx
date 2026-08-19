@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { useTabBarClearance } from '../../hooks/useTabBarClearance';
 import {
   View,
   Text,
@@ -157,6 +158,7 @@ const makeMr = (c: ThemeColours) => StyleSheet.create({
 // ─── Tab Content ──────────────────────────────────────────────────────────────
 
 function TabContent({ activeTab }: { activeTab: TabKey }) {
+  const tabClearance = useTabBarClearance();
   const navigation = useNavigation<Nav>();
   const { c } = useTheme();
   const queryClient = useQueryClient();
@@ -310,7 +312,7 @@ function TabContent({ activeTab }: { activeTab: TabKey }) {
         refreshControl={
           <RefreshControl refreshing={false} onRefresh={refetch} tintColor={c.accent} />
         }
-        contentContainerStyle={{ paddingBottom: spacing['5xl'] }}
+        contentContainerStyle={{ paddingBottom: spacing['5xl'] + tabClearance }}
         testID={`matches-list-${activeTab}`}
       />
       <MatchCelebration

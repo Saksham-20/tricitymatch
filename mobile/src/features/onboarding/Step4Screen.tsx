@@ -64,7 +64,8 @@ export default function Step4Screen() {
         </TouchableOpacity>
       </View>
 
-      {/* Field of study */}
+      {/* Field of study + institution reveal after qualification is chosen */}
+      {!!education && (
       <View>
         <Text style={styles.label}>{t('onboarding.step4.fieldOfStudy')}</Text>
         <TouchableOpacity
@@ -78,8 +79,10 @@ export default function Step4Screen() {
           </Text>
         </TouchableOpacity>
       </View>
+      )}
 
       {/* Institution (optional) */}
+      {!!education && (
       <View>
         <Text style={styles.label}>
           {t('onboarding.step4.institution')}
@@ -96,6 +99,7 @@ export default function Step4Screen() {
           accessibilityLabel={t('onboarding.step4.institution')}
         />
       </View>
+      )}
 
       <PickerSheet
         visible={qualSheet}

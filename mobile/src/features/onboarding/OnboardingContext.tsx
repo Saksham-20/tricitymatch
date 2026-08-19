@@ -25,6 +25,59 @@ export const JOURNEY_STEPS = [
 ] as const;
 export type JourneyStepName = (typeof JOURNEY_STEPS)[number];
 
+/**
+ * Chapters, not steps (NN/g: keep a clear mental model of process length, but
+ * numerals read as bureaucracy — 4 named chapters orient without counting).
+ * `i18nKey` resolves under `journey.chapters.*`; `doneKey` is the warm one-line
+ * celebration shown at the top of the NEXT chapter's first screen.
+ */
+export const JOURNEY_CHAPTERS = [
+  { i18nKey: 'roots', fallback: 'Your Roots', steps: ['Step2', 'Step3'] },
+  { i18nKey: 'life', fallback: 'Your Life', steps: ['Step4', 'Step5', 'Step6', 'Step7'] },
+  { i18nKey: 'world', fallback: 'Your World', steps: ['Step8', 'Step9', 'Step10'] },
+  { i18nKey: 'match', fallback: 'Your Match', steps: ['Step11', 'Step12'] },
+] as const;
+
+/** Signup already collected name/gender/DOB — the bar starts endowed, not at 0. */
+export const JOURNEY_ENDOWED_PROGRESS = 0.2;
+
+export interface ChapterPosition {
+  chapterIndex: number;
+  i18nKey: string;
+  fallback: string;
+  stepInChapter: number;
+  chapterLength: number;
+  isChapterStart: boolean;
+}
+
+export const chapterForStep = (stepIndex: number): ChapterPosition => {
+  let offset = 0;
+  for (let ci = 0; ci < JOURNEY_CHAPTERS.length; ci++) {
+    const ch = JOURNEY_CHAPTERS[ci];
+    if (stepIndex < offset + ch.steps.length) {
+      return {
+        chapterIndex: ci,
+        i18nKey: ch.i18nKey,
+        fallback: ch.fallback,
+        stepInChapter: stepIndex - offset,
+        chapterLength: ch.steps.length,
+        isChapterStart: stepIndex === offset,
+      };
+    }
+    offset += ch.steps.length;
+  }
+  // Finale (or out of range): report as past the last chapter.
+  const last = JOURNEY_CHAPTERS[JOURNEY_CHAPTERS.length - 1];
+  return {
+    chapterIndex: JOURNEY_CHAPTERS.length - 1,
+    i18nKey: last.i18nKey,
+    fallback: last.fallback,
+    stepInChapter: last.steps.length,
+    chapterLength: last.steps.length,
+    isChapterStart: false,
+  };
+};
+
 /** AsyncStorage keys for the auto-present / re-prompt (7d) logic. */
 export const JOURNEY_PROMPTED_AT_KEY = 'journey:promptedAt';
 export const JOURNEY_DONE_KEY = 'journey:completed';
