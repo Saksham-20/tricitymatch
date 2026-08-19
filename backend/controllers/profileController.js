@@ -12,6 +12,8 @@ const { PAID_PLANS } = require('../constants/plans');
 const { calculateCompatibility, getCompatibilityBreakdown: calcBreakdown, getAshtakootScore, isManglikCompatible, getRashiCompatibility } = require('../utils/compatibility');
 const { getNumerologyMatch } = require('../utils/numerology');
 const { generateKundliPDF } = require('../utils/kundli');
+const { generateBiodataPDF, TEMPLATES: BIODATA_TEMPLATES } = require('../utils/biodata');
+const { toProfileCode } = require('../utils/profileCode');
 const { notify } = require('../utils/notifyUser');
 const { trackEvent } = require('../utils/trackEvent');
 
@@ -1141,5 +1143,54 @@ exports.downloadKundliReport = asyncHandler(async (req, res) => {
 
   generateKundliPDF(res, {
     myProfile, theirProfile, ashtakoot, manglikCompatible, manglikDetail, rashiScore, numerology, summary,
+  });
+});
+
+
+// ==================== BIODATA PDF (D5 flagship) ====================
+
+// Fetch the profile photo into a buffer BEFORE the PDF stream starts — never
+// mid-stream (kundli-pdf-crash class). 2s timeout, silent skip on any failure.
+// ES12: pins a Cloudinary f_jpg transform — profile photos are often served as
+// webp via f_auto and pdfkit decodes only JPEG/PNG.
+const fetchBiodataPhoto = async (url) => {
+  if (!url || !/^https?:\/\//.test(url)) return null; // dev-relative /uploads/* paths have no fetchable host
+  const jpgUrl = url.includes('/upload/')
+    ? url.replace('/upload/', '/upload/f_jpg,w_400,h_500,c_fill/')
+    : url;
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 2000);
+    const resp = await fetch(jpgUrl, { signal: ctrl.signal });
+    clearTimeout(timer);
+    if (!resp.ok) return null;
+    return Buffer.from(await resp.arrayBuffer());
+  } catch {
+    return null;
+  }
+};
+
+// @route   GET /api/profile/me/biodata?template=classic|modern
+// @desc    Download own marriage-biodata PDF. FREE for every tier — the
+//          branded footer on a WhatsApp-forwarded PDF is the acquisition loop.
+// @access  Private
+exports.downloadBiodata = asyncHandler(async (req, res) => {
+  const profile = await Profile.findOne({ where: { userId: req.user.id } });
+  if (!profile) {
+    throw createError.notFound('Complete your profile first');
+  }
+
+  const template = BIODATA_TEMPLATES[req.query.template] ? req.query.template : 'classic';
+
+  // Owner decision 2026-08-19: photo in v1 — buffered before doc.pipe(res).
+  const photoBuffer = await fetchBiodataPhoto(profile.profilePhoto);
+
+  trackEvent(req.user.id, 'biodata_downloaded');
+
+  generateBiodataPDF(res, {
+    profile: profile.toJSON(),
+    template,
+    photoBuffer,
+    profileCode: toProfileCode(req.user.id),
   });
 });

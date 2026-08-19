@@ -26,10 +26,45 @@ const Message = sequelize.define('Message', {
   content: {
     type: DataTypes.TEXT,
     allowNull: false,
+    // D2: length rules apply to TEXT messages only — a voice message stores ''
+    // (the bubble renders from mediaUrl). Conditional validator instead of the
+    // static len rule so voice rows don't fail notEmpty.
     validate: {
-      notEmpty: true,
-      len: [1, 2000]
+      textContentLength(value) {
+        if ((this.messageType || 'text') !== 'text') return;
+        if (typeof value !== 'string' || value.length < 1 || value.length > 2000) {
+          throw new Error('Message content must be 1-2000 characters');
+        }
+      }
     }
+  },
+  messageType: {
+    type: DataTypes.ENUM('text', 'voice'),
+    allowNull: false,
+    defaultValue: 'text'
+  },
+  mediaUrl: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  mediaDurationMs: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  replyToId: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'Messages',
+      key: 'id'
+    }
+  },
+  // { "❤️": [userId, …] } — allowlist in constants/chat.js; toggled under a
+  // row lock in chatController (ES3).
+  reactions: {
+    type: DataTypes.JSONB,
+    allowNull: false,
+    defaultValue: {}
   },
   isRead: {
     type: DataTypes.BOOLEAN,

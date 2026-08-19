@@ -5,7 +5,14 @@
 
 const express = require('express');
 const router = express.Router();
-const { searchProfiles, getSuggestions, getProfileByCode } = require('../controllers/searchController');
+const {
+  searchProfiles,
+  getSuggestions,
+  getProfileByCode,
+  getSavedSearches,
+  createSavedSearch,
+  deleteSavedSearch
+} = require('../controllers/searchController');
 const { auth } = require('../middlewares/auth');
 const { handleValidationErrors } = require('../middlewares/errorHandler');
 const { searchLimiter } = require('../middlewares/security');
@@ -36,6 +43,12 @@ router.get('/suggestions',
   handleValidationErrors,
   getSuggestions
 );
+
+// Saved searches (stored in Profile.lifestylePreferences.savedSearches — the
+// location the Bull saved-search-alerts job reads; cap 5)
+router.get('/saved', getSavedSearches);
+router.post('/saved', createSavedSearch);
+router.delete('/saved/:id', deleteSavedSearch);
 
 // Look up a single profile by its public shareable code (TCS-XXXXXXXX)
 router.get('/by-code',

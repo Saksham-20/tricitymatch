@@ -43,7 +43,17 @@ router.use('/report', reportRouter);
 router.use('/notifications', notificationRoutes);
 router.use('/calls', callRoutes);
 router.use('/guardian', guardianRoutes);
-router.use('/astrologers', astrologerRoutes);
+// D7: astrologer marketplace ships DARK — flag off means these routes 404 as
+// if they don't exist (true hide + kill switch, no app-store release needed).
+// Flag is checked per-request, so flipping ASTROLOGER_MARKETPLACE needs only a
+// backend restart. Clients read user.features.astrologerMarketplace.
+router.use('/astrologers', (req, res, next) => {
+  const config = require('../config/env');
+  if (!config.features.astrologerMarketplace) {
+    return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: `Route ${req.originalUrl} not found` } });
+  }
+  next();
+}, astrologerRoutes);
 router.use('/groups', groupRoutes);
 // Member invites — mixed: /invite/:token is public, /invite/my-link is authed
 router.use('/invite', inviteRoutes);

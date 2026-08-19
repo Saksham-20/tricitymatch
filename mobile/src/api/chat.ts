@@ -36,6 +36,8 @@ interface RawConversation {
   user: { id: string; name: string; profilePhoto: string | null };
   lastMessage: { content: string; createdAt: string; isRead: boolean } | null;
   unreadCount: number;
+  /** D1 (additive): reply-window state when this thread runs on a free-reply grant. */
+  replyWindow?: import('@shared/types/chat').ReplyWindow | null;
 }
 
 
@@ -60,6 +62,11 @@ const toMessagePreview = (
   senderId: '',
   receiverId: conversationUserId,
   content: preview.content,
+  messageType: 'text',
+  mediaUrl: null,
+  mediaDurationMs: null,
+  replyToId: null,
+  reactions: {},
   isRead: preview.isRead,
   deliveredAt: null,
   readAt: null,
@@ -88,6 +95,8 @@ export const getConversations = async (): Promise<Conversation[]> => {
       unreadCount: c.unreadCount ?? 0,
       isOnline: false,
       lastActive: null,
+      // D1: non-null only when this thread runs on a free-reply grant (ES5)
+      replyWindow: c.replyWindow ?? null,
     };
   });
 };

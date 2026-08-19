@@ -199,10 +199,16 @@ const requirePremium = asyncHandler(async (req, res, next) => {
  * likes-you, profile viewers, contact unlock, the kundli PDF and invoices, so
  * teaching it about the chat flag would give all of those away for free.
  *
- * Route-level check only. The per-thread mutual-match rule stays in
- * `chatController` (it 403s a non-mutual thread regardless of plan), so the
- * route gate does not need the other user's id — and `GET /conversations`
- * genuinely has none.
+ * Route-level check. The per-thread mutual-match rule stays in
+ * `chatController` (it 403s a non-mutual thread regardless of plan). D1: the
+ * other user's id IS now passed when the route carries one (params.userId for
+ * thread reads, body.receiverId for sends) so the free-reply grant branch can
+ * resolve per-pair access; `GET /conversations` genuinely has none and the
+ * grant branch handles the null case (any held grant → may list).
+ *
+ * NOTE (ES7): this reads req.body, so it must never gate a multipart route —
+ * multer parses the body AFTER route middleware runs. Multipart chat routes
+ * gate paid-only at the route and verify the pair in-controller.
  */
 const requireChatAccess = asyncHandler(async (req, res, next) => {
   const userId = req.user?.id;
@@ -211,15 +217,17 @@ const requireChatAccess = asyncHandler(async (req, res, next) => {
     throw createError.unauthorized('Authentication required');
   }
 
-  const access = await hasChatAccess(userId);
+  const otherUserId = req.params?.userId || req.body?.receiverId || null;
+  const access = await hasChatAccess(userId, otherUserId);
 
   if (!access.allowed) {
     throw createError.forbidden('Premium subscription required', 'PREMIUM_REQUIRED');
   }
 
-  // May be null for a free member chatting under the flag. Nothing in
-  // chatController reads it (verified) — it is attached only so a future
-  // handler sees the same shape `requirePremium` provides.
+  // Full access object for D1 consumers (sendMessage re-checks the grant under
+  // a row lock; getMessages echoes reason+replyWindow to the client). The two
+  // legacy fields stay for shape parity with `requirePremium`.
+  req.chatAccess = access;
   req.subscription = access.subscription;
   req.chatAccessReason = access.reason;
   next();

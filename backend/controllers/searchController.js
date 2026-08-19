@@ -9,6 +9,7 @@ const Sequelize = require('sequelize');
 const { PAID_PLANS } = require('../constants/plans');
 const { calculateCompatibility, isManglikCompatible } = require('../utils/compatibility');
 const { toProfileCode, parseProfileCode } = require('../utils/profileCode');
+const { randomUUID } = require('crypto');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 
 // Escape special characters for LIKE patterns to prevent injection
@@ -597,4 +598,113 @@ exports.getProfileByCode = asyncHandler(async (req, res) => {
       isSelf,
     },
   });
+});
+
+
+// ==================== SAVED SEARCHES (Phase A step 6) ====================
+// Stored in Profile.lifestylePreferences.savedSearches — the exact location the
+// Bull `saved-search-alerts` job already reads, so saving here lights up the
+// existing daily alert with zero migration. Filters are whitelisted to the
+// job's shape: { gender, religion, caste, city[], ageMin, ageMax }.
+
+const MAX_SAVED_SEARCHES = 5;
+
+const sanitizeSavedFilters = (raw) => {
+  if (!raw || typeof raw !== 'object') return {};
+  const filters = {};
+  if (typeof raw.gender === 'string' && ['male', 'female'].includes(raw.gender)) filters.gender = raw.gender;
+  if (typeof raw.religion === 'string' && raw.religion.trim()) filters.religion = raw.religion.trim().slice(0, 50);
+  if (typeof raw.caste === 'string' && raw.caste.trim()) filters.caste = raw.caste.trim().slice(0, 50);
+  if (Array.isArray(raw.city)) {
+    const cities = raw.city.filter(c => typeof c === 'string' && c.trim()).map(c => c.trim().slice(0, 60)).slice(0, 10);
+    if (cities.length) filters.city = cities;
+  }
+  const ageMin = parseInt(raw.ageMin, 10);
+  const ageMax = parseInt(raw.ageMax, 10);
+  if (Number.isFinite(ageMin) && ageMin >= 18 && ageMin <= 80) filters.ageMin = ageMin;
+  if (Number.isFinite(ageMax) && ageMax >= 18 && ageMax <= 80) filters.ageMax = ageMax;
+  if (filters.ageMin && filters.ageMax && filters.ageMin > filters.ageMax) {
+    delete filters.ageMax;
+  }
+  return filters;
+};
+
+// @route   GET /api/search/saved
+// @desc    List the current user's saved searches
+// @access  Private
+exports.getSavedSearches = asyncHandler(async (req, res) => {
+  const profile = await Profile.findOne({ where: { userId: req.user.id }, attributes: ['id', 'lifestylePreferences'] });
+  const savedSearches = profile?.lifestylePreferences?.savedSearches;
+  res.json({
+    success: true,
+    savedSearches: Array.isArray(savedSearches) ? savedSearches : []
+  });
+});
+
+// @route   POST /api/search/saved
+// @desc    Save a named search (cap 5)
+// @access  Private
+exports.createSavedSearch = asyncHandler(async (req, res) => {
+  const name = typeof req.body.name === 'string' ? req.body.name.replace(/<[^>]*>/g, '').trim().slice(0, 60) : '';
+  if (!name) {
+    throw createError.badRequest('Search name is required');
+  }
+
+  const filters = sanitizeSavedFilters(req.body.filters);
+  if (Object.keys(filters).length === 0) {
+    throw createError.badRequest('At least one filter is required');
+  }
+
+  const profile = await Profile.findOne({ where: { userId: req.user.id } });
+  if (!profile) {
+    throw createError.notFound('Profile not found');
+  }
+
+  const prefs = { ...(profile.lifestylePreferences || {}) };
+  const existing = Array.isArray(prefs.savedSearches) ? prefs.savedSearches : [];
+
+  if (existing.some(s => s.name === name)) {
+    throw createError.conflict('A saved search with this name already exists');
+  }
+  if (existing.length >= MAX_SAVED_SEARCHES) {
+    throw createError.badRequest(`You can save up to ${MAX_SAVED_SEARCHES} searches`);
+  }
+
+  const saved = { id: randomUUID(), name, filters };
+  prefs.savedSearches = [...existing, saved];
+
+  // JSONB mutation trap: reassign + mark changed, or Sequelize silently skips
+  // the column on save.
+  profile.lifestylePreferences = prefs;
+  profile.changed('lifestylePreferences', true);
+  await profile.save();
+
+  res.status(201).json({ success: true, savedSearch: saved });
+});
+
+// @route   DELETE /api/search/saved/:id
+// @desc    Delete a saved search
+// @access  Private
+exports.deleteSavedSearch = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const profile = await Profile.findOne({ where: { userId: req.user.id } });
+  if (!profile) {
+    throw createError.notFound('Profile not found');
+  }
+
+  const prefs = { ...(profile.lifestylePreferences || {}) };
+  const existing = Array.isArray(prefs.savedSearches) ? prefs.savedSearches : [];
+  const next = existing.filter(s => s.id !== id);
+
+  if (next.length === existing.length) {
+    throw createError.notFound('Saved search not found');
+  }
+
+  prefs.savedSearches = next;
+  profile.lifestylePreferences = prefs;
+  profile.changed('lifestylePreferences', true);
+  await profile.save();
+
+  res.json({ success: true, deletedId: id });
 });

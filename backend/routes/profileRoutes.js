@@ -16,6 +16,7 @@ const {
   unlockContact,
   getProfileViewers,
   getRecentlyViewed,
+  downloadBiodata,
   getCompatibilityBreakdown,
   getHoroscopeMatch,
   downloadKundliReport,
@@ -80,6 +81,10 @@ router.get('/me/viewers', auth, requirePremium, getProfileViewers);
 
 // Get profiles the current user recently viewed (all tiers — own activity)
 router.get('/me/recently-viewed', auth, getRecentlyViewed);
+
+// Download own marriage-biodata PDF (D5 — FREE for every tier; branded footer
+// is the acquisition loop). ?template=classic|modern
+router.get('/me/biodata', auth, downloadBiodata);
 
 // Delete a gallery photo
 router.delete('/me/photo', 

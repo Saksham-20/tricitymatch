@@ -9,6 +9,7 @@ const {
   matchAction,
   getLikes,
   getShortlist,
+  getSentInterests,
   getMutualMatches,
   getDailyMatches
 } = require('../controllers/matchController');
@@ -45,6 +46,13 @@ router.get('/shortlist',
   paginationRules,
   handleValidationErrors,
   getShortlist
+);
+
+// Get profiles the current user has liked (sent interests) — D3
+router.get('/sent',
+  paginationRules,
+  handleValidationErrors,
+  getSentInterests
 );
 
 // Get mutual matches

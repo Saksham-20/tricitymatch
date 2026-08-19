@@ -3,7 +3,7 @@
  * Real-time communication with proper security
  */
 
-const { Message, Match, GroupMember } = require('../models');
+const { Match, GroupMember } = require('../models');
 const { Op } = require('sequelize');
 const jwt = require('jsonwebtoken');
 const cookie = require('cookie');
@@ -213,51 +213,13 @@ const initializeSocket = (io) => {
     });
 
     // ==================== SEND MESSAGE ====================
-    // Note: Messages are created via REST API, socket just broadcasts
-    socket.on('send-message', async ({ roomId, message }) => {
-      try {
-        // Rate limit check
-        if (!checkRateLimit(socket.id, 'send-message')) {
-          socket.emit('error', { code: 'RATE_LIMITED', message: 'Too many messages. Please slow down.' });
-          return;
-        }
-
-        // Validate message object
-        if (!message || !message.id || !message.receiverId) {
-          socket.emit('error', { code: 'INVALID_MESSAGE', message: 'Invalid message format' });
-          return;
-        }
-
-        // Extract receiver ID
-        const userIds = roomId.split('_room_');
-        const receiverId = userIds.find(id => id !== userId);
-
-        if (!receiverId || receiverId !== message.receiverId) {
-          socket.emit('error', { code: 'INVALID_RECEIVER', message: 'Invalid receiver' });
-          return;
-        }
-
-        // Verify the message was actually created by this user
-        const dbMessage = await Message.findByPk(message.id);
-        if (!dbMessage || dbMessage.senderId !== userId) {
-          logSecurityEvent('socket_message_spoofing', userId, { 
-            messageId: message.id,
-            socketId: socket.id 
-          });
-          socket.emit('error', { code: 'UNAUTHORIZED', message: 'Unauthorized' });
-          return;
-        }
-
-        // Broadcast to room
-        io.to(roomId).emit('message', message);
-        
-        // Also notify receiver's personal room
-        io.to(`user_${receiverId}`).emit('message', message);
-      } catch (error) {
-        log.error('Send message error', { userId, error: error.message });
-        socket.emit('error', { code: 'SEND_FAILED', message: 'Failed to send message' });
-      }
-    });
+    // ES1: message broadcast is now server-authoritative — the REST sendMessage
+    // handler emits both the legacy 'message' event and the namespaced
+    // 'message:new' after creating the row (chatController.emitToConversation).
+    // The client relay is intentionally a silent no-op (SOCK-3 pattern): old
+    // shipped builds still emit this after their REST call, and rebroadcasting
+    // it here would deliver every message twice.
+    socket.on('send-message', () => {});
 
     // ==================== TYPING INDICATOR ====================
     socket.on('typing', async ({ receiverId, isTyping }) => {
@@ -281,30 +243,11 @@ const initializeSocket = (io) => {
     });
 
     // ==================== MESSAGE EDITED ====================
-    socket.on('message-edited', async ({ roomId, message }) => {
-      try {
-        if (!message || !message.id) return;
-
-        // Verify message ownership
-        const dbMessage = await Message.findByPk(message.id);
-        if (!dbMessage || dbMessage.senderId !== userId) {
-          socket.emit('error', { code: 'UNAUTHORIZED', message: 'Unauthorized' });
-          return;
-        }
-
-        // Broadcast to room
-        socket.to(roomId).emit('message-edited', { message });
-
-        // Notify receiver's personal room
-        const userIds = roomId.split('_room_');
-        const receiverId = userIds.find(id => id !== userId);
-        if (receiverId) {
-          socket.to(`user_${receiverId}`).emit('message-edited', { message });
-        }
-      } catch (error) {
-        log.error('Message edited error', { userId, error: error.message });
-      }
-    });
+    // ES1: edits are broadcast authoritatively by the REST PUT handler
+    // (chatController.editMessage) after verifying ownership + time limit.
+    // Client relay no-opped for the same duplicate-delivery reason as
+    // 'send-message' above.
+    socket.on('message-edited', () => {});
 
     // ==================== MESSAGE DELETED ====================
     // SOCK-3: deletion is now broadcast authoritatively by the REST DELETE handler

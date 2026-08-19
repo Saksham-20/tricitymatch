@@ -100,8 +100,15 @@ describe('route manifest', () => {
     // And that the paths the deleted shared/constants/routes.ts claimed do NOT exist.
     expect(routes).not.toContain('POST /api/v1/auth/refresh-token');
     expect(routes).not.toContain('POST /api/v1/auth/device-token');
-    expect(routes).not.toContain('GET /api/v1/search/saved');
     expect(routes).not.toContain('GET /api/v1/verification/me');
+    // Phase A (2026-08-19): saved searches + sent interests + rich chat +
+    // biodata are now REAL routes — pin them so a refactor can't drop them
+    // while the clients ship UI against them.
+    expect(routes).toContain('GET /api/v1/search/saved');
+    expect(routes).toContain('GET /api/v1/match/sent');
+    expect(routes).toContain('POST /api/v1/chat/messages/voice');
+    expect(routes).toContain('POST /api/v1/chat/messages/:messageId/reactions');
+    expect(routes).toContain('GET /api/v1/profile/me/biodata');
   });
 
   it('writes the manifest the mobile conformance test reads', () => {

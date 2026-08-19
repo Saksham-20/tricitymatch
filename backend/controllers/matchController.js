@@ -8,7 +8,7 @@ const { Op, QueryTypes } = require('sequelize');
 const { randomUUID } = require('crypto');
 const sequelize = require('../config/database');
 const { PAID_PLANS } = require('../constants/plans');
-const { calculateCompatibility } = require('../utils/compatibility');
+const { calculateCompatibility, getCompatibilityBreakdown, deriveReasons } = require('../utils/compatibility');
 const { getOrSet } = require('../utils/cache');
 const { sendMatchNotification } = require('../utils/emailService');
 const { notify } = require('../utils/notifyUser');
@@ -60,22 +60,69 @@ exports.matchAction = asyncHandler(async (req, res) => {
       compatibilityScore = calculateCompatibility(currentProfile, matchedProfile);
     }
 
+    // D3 like-with-note — accepted only with a 'like'. The note is tag-stripped
+    // and capped; likedItem is validated AGAINST THE TARGET'S PROFILE and
+    // stored as a content SNAPSHOT (ES8: {type:'photo', photoUrl} |
+    // {type:'prompt', promptText}), never an index — indexes rot when the
+    // target deletes or reorders their gallery.
+    let note = null;
+    let likedItem = null;
+    if (action === 'like') {
+      if (typeof req.body.note === 'string' && req.body.note.trim()) {
+        note = req.body.note.replace(/<[^>]*>/g, '').trim().slice(0, 280) || null;
+      }
+      const rawItem = req.body.likedItem;
+      if (rawItem && typeof rawItem === 'object' && matchedProfile) {
+        if (rawItem.type === 'photo' && typeof rawItem.photoUrl === 'string') {
+          const gallery = [matchedProfile.profilePhoto, ...(matchedProfile.photos || [])].filter(Boolean);
+          if (gallery.includes(rawItem.photoUrl)) {
+            likedItem = { type: 'photo', photoUrl: rawItem.photoUrl };
+          }
+        } else if (rawItem.type === 'prompt' && typeof rawItem.promptText === 'string') {
+          const promptValues = Object.values(matchedProfile.profilePrompts || {})
+            .filter(v => typeof v === 'string');
+          if (promptValues.includes(rawItem.promptText)) {
+            likedItem = { type: 'prompt', promptText: rawItem.promptText.slice(0, 300) };
+          }
+        }
+      }
+    }
+    const hasNoteContent = Boolean(note || likedItem);
+
     if (match) {
-      // Update existing match
+      // Update existing match. ES4: this ORM branch is the SECOND write path —
+      // it must apply the same note semantics as the upsert below: a re-like
+      // WITH a note overwrites, a plain re-like preserves the existing note,
+      // and a non-like action clears it (a pass shouldn't carry a love note).
       match.action = action;
       match.compatibilityScore = compatibilityScore;
+      if (action !== 'like') {
+        match.note = null;
+        match.likedItem = null;
+      } else if (hasNoteContent) {
+        match.note = note;
+        match.likedItem = likedItem;
+      }
       await match.save({ transaction: t });
     } else {
       // Upsert, not create: the find-then-create above is not atomic, so a
       // double-tapped Like raced itself into the (userId, matchedUserId) unique
       // index. In Postgres that aborts the surrounding transaction, so the
       // second tap came back as a 500 instead of simply being the same like.
+      // R1: every new column must appear in BOTH the INSERT list and the
+      // DO UPDATE SET list, or the conflict path silently drops it.
       await sequelize.query(
-        `INSERT INTO "Matches" ("id", "userId", "matchedUserId", "action", "compatibilityScore", "createdAt", "updatedAt")
-         VALUES (:id, :userId, :matchedUserId, :action, :score, NOW(), NOW())
+        `INSERT INTO "Matches" ("id", "userId", "matchedUserId", "action", "compatibilityScore", "note", "likedItem", "createdAt", "updatedAt")
+         VALUES (:id, :userId, :matchedUserId, :action, :score, :note, :likedItem, NOW(), NOW())
          ON CONFLICT ("userId", "matchedUserId")
          DO UPDATE SET "action" = EXCLUDED."action",
                        "compatibilityScore" = EXCLUDED."compatibilityScore",
+                       "note" = CASE WHEN EXCLUDED."action" = 'like'
+                                     THEN COALESCE(EXCLUDED."note", "Matches"."note")
+                                     ELSE NULL END,
+                       "likedItem" = CASE WHEN EXCLUDED."action" = 'like'
+                                          THEN COALESCE(EXCLUDED."likedItem", "Matches"."likedItem")
+                                          ELSE NULL END,
                        "updatedAt" = NOW()`,
         {
           replacements: {
@@ -84,6 +131,8 @@ exports.matchAction = asyncHandler(async (req, res) => {
             matchedUserId: userId,
             action,
             score: compatibilityScore,
+            note,
+            likedItem: likedItem ? JSON.stringify(likedItem) : null,
           },
           type: QueryTypes.INSERT,
           transaction: t,
@@ -164,8 +213,18 @@ exports.matchAction = asyncHandler(async (req, res) => {
           sendMatchNotification(currentUser.email, matchedName, matchedProfileUrl),
         ]).catch(err => log.error('Failed to send match emails', { error: err.message }));
       } else if (result.match.action === 'like') {
-        // One-way like — notify the liked user in-app only (no email, avoid spam)
-        await notify(userId, 'new_match', 'Someone liked your profile!', `${currentName} liked your profile. Like them back to connect!`, result.match.id);
+        // One-way like — notify the liked user in-app only (no email, avoid spam).
+        // D3: a like-with-note leads with what was liked + the note.
+        const item = result.match.likedItem;
+        const noteText = result.match.note;
+        let body;
+        if (item || noteText) {
+          const what = item?.type === 'prompt' ? 'prompt' : item ? 'photo' : 'profile';
+          body = `${currentName} liked your ${what}${noteText ? `: "${noteText}"` : ''}`;
+        } else {
+          body = `${currentName} liked your profile. Like them back to connect!`;
+        }
+        await notify(userId, 'new_match', 'Someone liked your profile!', body, result.match.id);
       }
     } catch (error) {
       log.error('Error sending match notifications', { error: error.message, userId, currentUserId });
@@ -279,6 +338,10 @@ const computeDailyMatches = async (userId) => {
         premiumPlan: item.plan,
         isBoosted: item.isBoosted,
         isVerified: verifiedIds.has(raw.userId),
+        // D4: "why this match" chips — computed only for the final sliced set
+        // (audit #6: avoids breakdown calls on the 4x over-fetch). Throw-safe:
+        // deriveReasons returns [] on bad data.
+        reasons: deriveReasons(getCompatibilityBreakdown(currentProfile, item.profile)),
       };
     });
 
@@ -304,7 +367,7 @@ exports.getDailyMatches = asyncHandler(async (req, res) => {
   const isPremiumViewer = !!viewerSub;
   const visibleCount = isPremiumViewer ? 15 : 5;
 
-  const cacheKey = `daily-matches:${userId}:${istDateKey()}`;
+  const cacheKey = `daily-matches:v2:${userId}:${istDateKey()}`;
   // Cache the full ranked set once per IST day; recompute on Redis miss.
   const fullSet = await getOrSet(cacheKey, () => computeDailyMatches(userId), secondsToNextISTMidnight());
 
@@ -357,7 +420,10 @@ exports.getLikes = asyncHandler(async (req, res) => {
       userId: like.userId,
       ...like.User.Profile.toJSON(),
       likedAt: like.createdAt,
-      compatibilityScore: like.compatibilityScore
+      compatibilityScore: like.compatibilityScore,
+      // D3 (additive): the note + liked-item snapshot the liker attached
+      note: like.note || null,
+      likedItem: like.likedItem || null
     }));
 
   res.json({
@@ -415,6 +481,61 @@ exports.getShortlist = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     shortlisted: validShortlisted,
+    pagination: {
+      page,
+      limit,
+      total: count,
+      pages: Math.ceil(count / limit)
+    }
+  });
+});
+
+// @route   GET /api/match/sent
+// @desc    Profiles the current user has liked (sent interests) — D3
+// @access  Private
+exports.getSentInterests = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 20;
+  const offset = (page - 1) * limit;
+
+  const { count, rows: sent } = await Match.findAndCountAll({
+    where: {
+      userId,
+      action: 'like'
+    },
+    include: [
+      {
+        model: User,
+        as: 'MatchedUser',
+        attributes: ['id'],
+        include: [{
+          model: Profile,
+          where: { isActive: true },
+          attributes: ['firstName', 'lastName', 'city', 'profilePhoto', 'gender', 'dateOfBirth', 'education', 'profession']
+        }]
+      }
+    ],
+    order: [['createdAt', 'DESC']],
+    limit,
+    offset
+  });
+
+  const validSent = sent
+    .filter(match => match.MatchedUser?.Profile)
+    .map(match => ({
+      userId: match.matchedUserId,
+      ...match.MatchedUser.Profile.toJSON(),
+      likedAt: match.createdAt,
+      compatibilityScore: match.compatibilityScore,
+      isMutual: match.isMutual,
+      note: match.note || null,
+      likedItem: match.likedItem || null
+    }));
+
+  res.json({
+    success: true,
+    sent: validSent,
     pagination: {
       page,
       limit,

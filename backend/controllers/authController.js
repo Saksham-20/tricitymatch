@@ -52,6 +52,8 @@ const withDerivedUserFields = async (userInstance) => {
   // ends up advertising premium chat that is actually free (or the reverse).
   user.features = {
     freeChatForMutuals: config.features.freeChatForMutuals,
+    freeReplyWindow: config.features.freeReplyWindow,
+    astrologerMarketplace: config.features.astrologerMarketplace,
     foundingOpen: config.founding.isOpen(),
   };
   return user;

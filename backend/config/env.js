@@ -338,6 +338,15 @@ const config = {
     // today's behaviour (chat is premium-only). Two-way door — flipping it
     // writes nothing to the database, so flipping back restores the gate.
     freeChatForMutuals: optionalBoolean('FREE_CHAT_FOR_MUTUALS', false),
+    // D1 free-reply window: a premium member's first message grants the free
+    // receiver a limited reply window (constants/chat.js). Ships DARK in prod
+    // (owner decision 2026-08-19 — flip once mutual-match liquidity supports
+    // it). Two-way door: flipping only changes whether NEW grants are created
+    // and whether existing grants authorize; rows persist harmlessly when off.
+    freeReplyWindow: optionalBoolean('FREE_REPLY_WINDOW', false),
+    // D7: astrologer marketplace visibility. Default OFF — routes 404 and
+    // clients hide the entry points until the owner turns it on.
+    astrologerMarketplace: optionalBoolean('ASTROLOGER_MARKETPLACE', false),
   },
 
   // Monitoring & Alerting

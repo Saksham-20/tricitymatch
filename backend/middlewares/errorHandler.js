@@ -216,6 +216,12 @@ const errorHandler = (err, req, res, next) => {
     response.error.details = error.details;
   }
 
+  // D1: REPLY_WINDOW_ENDED carries the window state (own counters only — not
+  // sensitive) so the client can render exhausted-vs-expired paywall copy.
+  if (error.replyWindow) {
+    response.error.replyWindow = error.replyWindow;
+  }
+
   // Include stack trace in development only
   if (config.isDevelopment) {
     response.error.stack = error.stack;

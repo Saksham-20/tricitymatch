@@ -24,6 +24,7 @@ const GroupMessage = require('./GroupMessage');
 const ContactMessage = require('./ContactMessage');
 const UnlockPurchase = require('./UnlockPurchase');
 const AnalyticsEvent = require('./AnalyticsEvent');
+const ChatGrant = require('./ChatGrant');
 
 // Define Relationships
 User.hasOne(Profile, { foreignKey: 'userId', onDelete: 'CASCADE' });
@@ -47,6 +48,9 @@ User.hasMany(Message, { foreignKey: 'senderId', as: 'SentMessages' });
 User.hasMany(Message, { foreignKey: 'receiverId', as: 'ReceivedMessages' });
 Message.belongsTo(User, { foreignKey: 'senderId', as: 'Sender' });
 Message.belongsTo(User, { foreignKey: 'receiverId', as: 'Receiver' });
+// D2 quote-reply: self-FK, ON DELETE SET NULL (deleting the quoted message
+// degrades the quote, never cascades the reply away).
+Message.belongsTo(Message, { foreignKey: 'replyToId', as: 'ReplyTo' });
 
 // ProfileView relationships
 User.hasMany(ProfileView, { foreignKey: 'viewerId', as: 'ProfileViews' });
@@ -80,6 +84,12 @@ User.hasMany(ContactUnlock, { foreignKey: 'userId', as: 'ContactUnlocks', onDele
 User.hasMany(ContactUnlock, { foreignKey: 'targetUserId', as: 'UnlockedBy', onDelete: 'CASCADE' });
 ContactUnlock.belongsTo(User, { foreignKey: 'userId', as: 'Unlocker' });
 ContactUnlock.belongsTo(User, { foreignKey: 'targetUserId', as: 'UnlockedUser' });
+
+// ChatGrant relationships (D1 free-reply window)
+User.hasMany(ChatGrant, { foreignKey: 'premiumUserId', as: 'GrantsGiven', onDelete: 'CASCADE' });
+User.hasMany(ChatGrant, { foreignKey: 'freeUserId', as: 'GrantsHeld', onDelete: 'CASCADE' });
+ChatGrant.belongsTo(User, { foreignKey: 'premiumUserId', as: 'PremiumUser' });
+ChatGrant.belongsTo(User, { foreignKey: 'freeUserId', as: 'FreeUser' });
 
 // ReferralCode relationships
 User.hasMany(ReferralCode, { foreignKey: 'marketingUserId', onDelete: 'CASCADE' });
@@ -166,5 +176,6 @@ module.exports = {
   ContactMessage,
   UnlockPurchase,
   AnalyticsEvent,
+  ChatGrant,
 };
 

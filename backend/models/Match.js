@@ -38,6 +38,18 @@ const Match = sequelize.define('Match', {
   mutualMatchDate: {
     type: DataTypes.DATE,
     allowNull: true
+  },
+  // D3 like-with-note (like action only; sanitized + capped in controller)
+  note: {
+    type: DataTypes.STRING(280),
+    allowNull: true
+  },
+  // D3/ES8: SNAPSHOT of the liked thing — {type:'photo', photoUrl} |
+  // {type:'prompt', promptText}. Never index-keyed (indexes rot on gallery
+  // delete/reorder); clients render from the snapshot.
+  likedItem: {
+    type: DataTypes.JSONB,
+    allowNull: true
   }
 }, {
   hooks: {

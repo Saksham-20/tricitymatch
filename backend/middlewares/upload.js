@@ -218,6 +218,36 @@ const uploadVoiceIntro = multer({
   limits: { fileSize: MAX_AUDIO_SIZE },
 }).single('voiceIntro');
 
+// D2 voice messages — cloned from voiceIntroStorage (same audio filter and
+// Cloudinary 'video' resource type), separate folder, 5MB cap. Deliberately
+// NOT wired through validateUploadedFiles: that magic-byte check rejects
+// audio containers; Cloudinary's allowed_formats decode-validates instead
+// (same posture as voice intros).
+const VOICE_MESSAGE_MAX_SIZE = 5 * 1024 * 1024;
+
+const voiceMessageStorage = config.cloudinary.isConfigured()
+  ? new CloudinaryStorage({
+      cloudinary,
+      params: {
+        folder: `${config.cloudinary.folder}/voice-messages`,
+        resource_type: 'video', // Cloudinary uses 'video' for audio
+        allowed_formats: ['mp3', 'm4a', 'aac', 'ogg', 'wav', 'webm'],
+      },
+    })
+  : multer.diskStorage({
+      destination: (req, file, cb) => cb(null, config.upload.dir),
+      filename: (req, file, cb) => {
+        const suffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        cb(null, `voice-message-${suffix}${path.extname(file.originalname)}`);
+      },
+    });
+
+const uploadVoiceMessage = multer({
+  storage: voiceMessageStorage,
+  fileFilter: audioFileFilter,
+  limits: { fileSize: VOICE_MESSAGE_MAX_SIZE },
+}).single('audio');
+
 // Video file filter for video intros
 const videoFileFilter = (req, file, cb) => {
   if (!ALLOWED_VIDEO_TYPES.includes(file.mimetype)) {
@@ -399,6 +429,7 @@ module.exports = {
   uploadPhotos,
   uploadDocuments,
   uploadVoiceIntro,
+  uploadVoiceMessage,
   uploadVideoIntro,
   validateUploadedFiles,
   deleteFromCloudinary,

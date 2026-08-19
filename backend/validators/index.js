@@ -374,6 +374,22 @@ const matchActionValidation = [
   body('action')
     .isIn(['like', 'shortlist', 'pass'])
     .withMessage('Action must be like, shortlist, or pass'),
+  // D3 like-with-note (optional; only honoured with action 'like' — the
+  // controller sanitizes the note and validates likedItem against the target
+  // profile, storing a content snapshot, never an index)
+  body('note')
+    .optional({ values: 'falsy' })
+    .isString()
+    .isLength({ max: 280 })
+    .withMessage('Note must be at most 280 characters'),
+  body('likedItem')
+    .optional({ values: 'falsy' })
+    .isObject()
+    .withMessage('likedItem must be an object'),
+  body('likedItem.type')
+    .optional()
+    .isIn(['photo', 'prompt'])
+    .withMessage('likedItem.type must be photo or prompt'),
 ];
 
 // ==================== CHAT VALIDATORS ====================
@@ -388,6 +404,24 @@ const sendMessageValidation = [
     .withMessage('Message content is required')
     .isLength({ max: 2000 })
     .withMessage('Message must not exceed 2000 characters'),
+  // D2 quote-reply (optional; premium + pair-membership enforced in controller)
+  body('replyToId')
+    .optional({ values: 'falsy' })
+    .isUUID(4)
+    .withMessage('replyToId must be a valid UUID'),
+];
+
+// D2 reactions — emoji membership in REACTION_EMOJIS is enforced in the
+// controller (single source of truth in constants/chat.js); this only shapes.
+const reactionValidation = [
+  param('messageId')
+    .isUUID(4)
+    .withMessage('Message ID must be a valid UUID'),
+  body('emoji')
+    .isString()
+    .withMessage('emoji is required')
+    .isLength({ min: 1, max: 8 })
+    .withMessage('emoji must be a single emoji'),
 ];
 
 const editMessageValidation = [
@@ -637,6 +671,7 @@ module.exports = {
   matchActionValidation,
   // Chat
   sendMessageValidation,
+  reactionValidation,
   editMessageValidation,
   deleteMessageValidation,
   getMessagesValidation,

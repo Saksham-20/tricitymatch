@@ -39,6 +39,10 @@ export interface PlanFeatures {
   durationDays: number | null;
   contactUnlocks: number | null;
   canChat: boolean;
+  /** D2 rich chat: reactions / voice notes / quote-replies (premium-only). */
+  canReact: boolean;
+  canVoiceNote: boolean;
+  canReplyQuote: boolean;
   canSeeWhoLikedMe: boolean;
   canMakeVoiceVideoCalls: boolean;
   canUseAdvancedFilters: boolean;

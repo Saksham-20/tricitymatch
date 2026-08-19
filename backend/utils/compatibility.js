@@ -541,9 +541,46 @@ const getCompatibilityBreakdown = (profile1, profile2) => {
   return breakdown;
 };
 
+/**
+ * D4 — "why this match" chips derived from a breakdown. Priority-ordered,
+ * a category earns a chip only at score ≥ 70, capped at 3. Pure + throw-safe:
+ * bad profile data yields [] and the card simply renders without chips.
+ */
+const REASON_PRIORITY = ['location', 'horoscope', 'community', 'lifestyle', 'age'];
+
+const deriveReasons = (breakdown) => {
+  try {
+    if (!breakdown || !breakdown.categories) return [];
+    const reasons = [];
+    for (const key of REASON_PRIORITY) {
+      const cat = breakdown.categories[key];
+      if (!cat || typeof cat.score !== 'number' || cat.score < 70) continue;
+      let label = null;
+      if (key === 'location') {
+        label = cat.detail === 'Same city' ? 'Same city' : 'Same state';
+      } else if (key === 'horoscope') {
+        const m = /Ashtakoot: (\d+)\/36/.exec(cat.detail || '');
+        label = m ? `Kundli ${m[1]}/36` : 'Horoscope match';
+      } else if (key === 'community') {
+        label = cat.detail === 'Same religion & caste' ? 'Same community' : 'Same religion';
+      } else if (key === 'lifestyle') {
+        label = 'Lifestyle match';
+      } else if (key === 'age') {
+        label = 'Similar age';
+      }
+      if (label) reasons.push(label);
+      if (reasons.length === 3) break;
+    }
+    return reasons;
+  } catch {
+    return [];
+  }
+};
+
 module.exports = {
   calculateCompatibility,
   getCompatibilityBreakdown,
+  deriveReasons,
   getAshtakootScore,
   calculateAge,
   isManglikCompatible,
