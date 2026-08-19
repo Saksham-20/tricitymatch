@@ -187,7 +187,7 @@ export default function CreateAccountScreen() {
         <View style={st.footerRow}>
           <Text style={st.footerText}>{t('auth.signup.haveAccount', 'Already have an account?')}</Text>
           <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-            <Text style={st.link}> {t('auth.login.title', 'Log in')}</Text>
+            <Text style={st.link}> {t('auth.login.signIn', 'Sign in')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
