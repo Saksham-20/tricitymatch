@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import {
   View,
   Text,
@@ -13,7 +14,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { ListSkeleton } from '../../components/ui/skeletons';
 import { useQuery } from '@tanstack/react-query';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { getAstrologers } from '../../api/profile';
 import type { Astrologer } from '../../api/profile';
 import type { MainStackParamList } from '../../navigation/types';
@@ -31,46 +32,48 @@ const SPECIALITY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 
 
 function AstrologerCard({ item, onPress }: { item: Astrologer; onPress: () => void }) {
+  const { c } = useTheme();
+  const cs = React.useMemo(() => makeCs(c), [c]);
   return (
-    <TouchableOpacity style={c.card} onPress={onPress} activeOpacity={0.8}>
+    <TouchableOpacity style={cs.card} onPress={onPress} activeOpacity={0.8}>
       {/* Avatar + Online */}
-      <View style={c.avatarWrap}>
+      <View style={cs.avatarWrap}>
         {item.avatarUrl ? (
-          <Image source={{ uri: item.avatarUrl }} style={c.avatar} />
+          <Image source={{ uri: item.avatarUrl }} style={cs.avatar} />
         ) : (
-          <View style={c.avatarPlaceholder}>
-            <Text style={c.avatarInitial}>{item.name.charAt(0)}</Text>
+          <View style={cs.avatarPlaceholder}>
+            <Text style={cs.avatarInitial}>{item.name.charAt(0)}</Text>
           </View>
         )}
-        {item.isOnline && <View style={c.onlineDot} />}
+        {item.isOnline && <View style={cs.onlineDot} />}
       </View>
 
       {/* Info */}
-      <View style={c.info}>
-        <Text style={c.name}>{item.name}</Text>
-        <Text style={c.experience}>{item.experience} yrs exp · {item.languages.join(', ')}</Text>
+      <View style={cs.info}>
+        <Text style={cs.name}>{item.name}</Text>
+        <Text style={cs.experience}>{item.experience} yrs exp · {item.languages.join(', ')}</Text>
 
         {/* Specialities */}
-        <View style={c.chips}>
+        <View style={cs.chips}>
           {item.speciality.slice(0, 2).map(s => (
-            <View key={s} style={c.chip}>
-              <Ionicons name={SPECIALITY_ICONS[s] ?? 'star-outline'} size={11} color={colours.primary} />
-              <Text style={c.chipText}>{s}</Text>
+            <View key={s} style={cs.chip}>
+              <Ionicons name={SPECIALITY_ICONS[s] ?? 'star-outline'} size={11} color={c.primary} />
+              <Text style={cs.chipText}>{s}</Text>
             </View>
           ))}
         </View>
 
         {/* Rating + Price */}
-        <View style={c.footer}>
-          <View style={c.ratingRow}>
-            <Ionicons name="star" size={12} color={colours.secondary} />
-            <Text style={c.rating}>{item.rating} ({item.reviewCount})</Text>
+        <View style={cs.footer}>
+          <View style={cs.ratingRow}>
+            <Ionicons name="star" size={12} color={c.secondary} />
+            <Text style={cs.rating}>{item.rating} ({item.reviewCount})</Text>
           </View>
-          <Text style={c.price}>₹{item.pricePerMin}/min</Text>
+          <Text style={cs.price}>₹{item.pricePerMin}/min</Text>
         </View>
 
         {!item.isOnline && item.nextAvailable && (
-          <Text style={c.nextAvail}>Next: {item.nextAvailable}</Text>
+          <Text style={cs.nextAvail}>Next: {item.nextAvailable}</Text>
         )}
       </View>
 
@@ -78,13 +81,13 @@ function AstrologerCard({ item, onPress }: { item: Astrologer; onPress: () => vo
           (a bordered pill, not bare grey text that reads as unstyled). */}
       <View
         style={[
-          c.cta,
+          cs.cta,
           item.isOnline
-            ? { backgroundColor: colours.primary }
-            : { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: colours.primary },
+            ? { backgroundColor: c.primary }
+            : { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: c.primary },
         ]}
       >
-        <Text style={[c.ctaText, { color: item.isOnline ? '#fff' : colours.primary }]}>
+        <Text style={[cs.ctaText, { color: item.isOnline ? '#fff' : c.primary }]}>
           {item.isOnline ? 'Chat' : 'Book'}
         </Text>
       </View>
@@ -93,6 +96,8 @@ function AstrologerCard({ item, onPress }: { item: Astrologer; onPress: () => vo
 }
 
 export default function AstrologerMarketplaceScreen() {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const insets = useSafeAreaInsets();
   const nav = useNavigation<Nav>();
   const [filter, setFilter] = useState<'all' | 'online'>('all');
@@ -115,7 +120,7 @@ export default function AstrologerMarketplaceScreen() {
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => nav.goBack()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <Ionicons name="arrow-back" size={24} color={colours.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
         </TouchableOpacity>
         <View style={s.headerText}>
           <Text style={s.title}>Astrologer Consult</Text>
@@ -126,7 +131,7 @@ export default function AstrologerMarketplaceScreen() {
 
       {/* Banner */}
       <View style={s.banner}>
-        <Ionicons name="planet-outline" size={28} color={colours.primary} style={s.bannerEmoji} />
+        <Ionicons name="planet-outline" size={28} color={c.primary} style={s.bannerEmoji} />
         <View style={s.bannerText}>
           <Text style={s.bannerTitle}>Get a Kundli reading</Text>
           <Text style={s.bannerBody}>Consult certified Vedic astrologers for marriage timing and compatibility.</Text>
@@ -164,7 +169,7 @@ export default function AstrologerMarketplaceScreen() {
           )}
           ListEmptyComponent={
             <View style={s.empty}>
-              <Ionicons name="moon-outline" size={48} color={colours.textMuted} />
+              <Ionicons name="moon-outline" size={48} color={c.textMuted} />
               <Text style={s.emptyText}>
                 {filter === 'online'
                   ? 'No astrologers online right now'
@@ -183,52 +188,52 @@ export default function AstrologerMarketplaceScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  container:   { flex: 1, backgroundColor: colours.background },
-  header:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingTop: spacing.xl, paddingBottom: spacing.sm, borderBottomWidth: 1, borderBottomColor: colours.border },
+const makeS = (c: ThemeColours) => StyleSheet.create({
+  container:   { flex: 1, backgroundColor: c.background },
+  header:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingTop: spacing.xl, paddingBottom: spacing.sm, borderBottomWidth: 1, borderBottomColor: c.border },
   headerText:  { flex: 1, alignItems: 'center' },
-  title:       { fontSize: typography.fontSize.lg, fontFamily: typography.fontFamily.semiBold, color: colours.textPrimary },
-  subtitle:    { fontSize: typography.fontSize.xs, color: colours.textSecondary },
+  title:       { fontSize: typography.fontSize.lg, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
+  subtitle:    { fontSize: typography.fontSize.xs, color: c.textSecondary },
 
-  banner:      { flexDirection: 'row', alignItems: 'center', backgroundColor: colours.secondaryLight, margin: spacing.md, borderRadius: borderRadius.lg, padding: spacing.md, gap: spacing.sm },
+  banner:      { flexDirection: 'row', alignItems: 'center', backgroundColor: c.secondaryLight, margin: spacing.md, borderRadius: borderRadius.lg, padding: spacing.md, gap: spacing.sm },
   bannerEmoji: { fontSize: 32 },
   bannerText:  { flex: 1 },
-  bannerTitle: { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: colours.textPrimary },
-  bannerBody:  { fontSize: typography.fontSize.xs, color: colours.textSecondary, marginTop: 2 },
+  bannerTitle: { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
+  bannerBody:  { fontSize: typography.fontSize.xs, color: c.textSecondary, marginTop: 2 },
 
   pills:       { flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.md, marginBottom: spacing.xs },
-  pill:        { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: borderRadius.full, borderWidth: 1, borderColor: colours.border },
-  pillActive:  { backgroundColor: colours.primary, borderColor: colours.primary },
-  pillDot:     { width: 7, height: 7, borderRadius: 4, backgroundColor: colours.success },
-  pillText:    { fontSize: typography.fontSize.sm, color: colours.textSecondary },
+  pill:        { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: borderRadius.full, borderWidth: 1, borderColor: c.border },
+  pillActive:  { backgroundColor: c.primary, borderColor: c.primary },
+  pillDot:     { width: 7, height: 7, borderRadius: 4, backgroundColor: c.success },
+  pillText:    { fontSize: typography.fontSize.sm, color: c.textSecondary },
   pillTextActive: { color: '#fff', fontFamily: typography.fontFamily.medium },
 
   empty:       { alignItems: 'center', paddingVertical: 60, gap: spacing.sm },
-  emptyText:   { fontSize: typography.fontSize.base, color: colours.textMuted },
-  emptySub:    { fontSize: typography.fontSize.sm, color: colours.textMuted, textAlign: 'center', paddingHorizontal: spacing.xl },
+  emptyText:   { fontSize: typography.fontSize.base, color: c.textMuted },
+  emptySub:    { fontSize: typography.fontSize.sm, color: c.textMuted, textAlign: 'center', paddingHorizontal: spacing.xl },
 });
 
-const c = StyleSheet.create({
-  card:            { flexDirection: 'row', alignItems: 'center', backgroundColor: colours.surfaceCard, borderRadius: borderRadius.lg, padding: spacing.md, marginBottom: spacing.sm, gap: spacing.sm },
+const makeCs = (c: ThemeColours) => StyleSheet.create({
+  card:            { flexDirection: 'row', alignItems: 'center', backgroundColor: c.surfaceCard, borderRadius: borderRadius.lg, padding: spacing.md, marginBottom: spacing.sm, gap: spacing.sm },
   avatarWrap:      { position: 'relative' },
   avatar:          { width: 60, height: 60, borderRadius: 30 },
-  avatarPlaceholder: { width: 60, height: 60, borderRadius: 30, backgroundColor: colours.primaryLight, alignItems: 'center', justifyContent: 'center' },
-  avatarInitial:   { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: colours.primary },
-  onlineDot:       { position: 'absolute', bottom: 2, right: 2, width: 12, height: 12, borderRadius: 6, backgroundColor: colours.success, borderWidth: 2, borderColor: colours.surfaceCard },
+  avatarPlaceholder: { width: 60, height: 60, borderRadius: 30, backgroundColor: c.primaryLight, alignItems: 'center', justifyContent: 'center' },
+  avatarInitial:   { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: c.primary },
+  onlineDot:       { position: 'absolute', bottom: 2, right: 2, width: 12, height: 12, borderRadius: 6, backgroundColor: c.success, borderWidth: 2, borderColor: c.surfaceCard },
 
   info:       { flex: 1 },
-  name:       { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: colours.textPrimary },
-  experience: { fontSize: typography.fontSize.xs, color: colours.textSecondary, marginTop: 1 },
+  name:       { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
+  experience: { fontSize: typography.fontSize.xs, color: c.textSecondary, marginTop: 1 },
 
   chips:      { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
-  chip:       { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: colours.primaryLight, borderRadius: borderRadius.sm, paddingHorizontal: 6, paddingVertical: 2 },
-  chipText:   { fontSize: 10, color: colours.primary },
+  chip:       { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: c.primaryLight, borderRadius: borderRadius.sm, paddingHorizontal: 6, paddingVertical: 2 },
+  chipText:   { fontSize: 10, color: c.primary },
 
   footer:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
   ratingRow:  { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  rating:     { fontSize: typography.fontSize.xs, color: colours.textSecondary },
-  price:      { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold, color: colours.secondary },
-  nextAvail:  { fontSize: typography.fontSize.xs, color: colours.textMuted, marginTop: 2 },
+  rating:     { fontSize: typography.fontSize.xs, color: c.textSecondary },
+  price:      { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold, color: c.secondary },
+  nextAvail:  { fontSize: typography.fontSize.xs, color: c.textMuted, marginTop: 2 },
 
   cta:        { borderRadius: borderRadius.md, paddingHorizontal: spacing.sm, paddingVertical: 6, alignItems: 'center', minWidth: 48 },
   ctaText:    { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold },

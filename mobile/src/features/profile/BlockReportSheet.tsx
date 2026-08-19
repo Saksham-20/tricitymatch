@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import {
   View,
   Text,
@@ -14,7 +15,7 @@ import {
 } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { blockUser, reportUser, type ReportReason } from '../../api/block';
 import { queryKeys } from '../../constants/queryKeys';
 
@@ -50,6 +51,8 @@ interface Props {
 type Sheet = 'menu' | 'report';
 
 export default function BlockReportSheet({ visible, userId, userName, onClose, onBlocked }: Props) {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const queryClient = useQueryClient();
   const [sheet, setSheet] = useState<Sheet>('menu');
   const [category, setCategory] = useState<ReportCategory | null>(null);
@@ -135,9 +138,9 @@ export default function BlockReportSheet({ visible, userId, userName, onClose, o
               testID="menu-report"
               accessibilityLabel={`Report ${userName}`}
             >
-              <Ionicons name="flag-outline" size={20} color={colours.warning} />
+              <Ionicons name="flag-outline" size={20} color={c.warning} />
               <Text style={s.menuLabel}>Report this profile</Text>
-              <Ionicons name="chevron-forward" size={16} color={colours.textMuted} />
+              <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
             </TouchableOpacity>
 
             <View style={s.divider} />
@@ -150,11 +153,11 @@ export default function BlockReportSheet({ visible, userId, userName, onClose, o
               accessibilityLabel={`Block ${userName}`}
             >
               {blockMutation.isPending ? (
-                <ActivityIndicator size="small" color={colours.error} />
+                <ActivityIndicator size="small" color={c.error} />
               ) : (
-                <Ionicons name="ban-outline" size={20} color={colours.error} />
+                <Ionicons name="ban-outline" size={20} color={c.error} />
               )}
-              <Text style={[s.menuLabel, { color: colours.error }]}>Block this user</Text>
+              <Text style={[s.menuLabel, { color: c.error }]}>Block this user</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={s.cancelBtn} onPress={handleClose} testID="menu-cancel">
@@ -166,7 +169,7 @@ export default function BlockReportSheet({ visible, userId, userName, onClose, o
             <View style={s.handle} />
             <View style={s.reportHeader}>
               <TouchableOpacity onPress={() => setSheet('menu')} testID="report-back">
-                <Ionicons name="arrow-back" size={20} color={colours.textPrimary} />
+                <Ionicons name="arrow-back" size={20} color={c.textPrimary} />
               </TouchableOpacity>
               <Text style={s.heading}>Report {userName}</Text>
               <View style={{ width: 20 }} />
@@ -188,7 +191,7 @@ export default function BlockReportSheet({ visible, userId, userName, onClose, o
                     {cat}
                   </Text>
                   {category === cat && (
-                    <Ionicons name="checkmark-circle" size={18} color={colours.primary} />
+                    <Ionicons name="checkmark-circle" size={18} color={c.primary} />
                   )}
                 </TouchableOpacity>
               ))}
@@ -197,7 +200,7 @@ export default function BlockReportSheet({ visible, userId, userName, onClose, o
               <TextInput
                 style={s.descInput}
                 placeholder="Describe the issue..."
-                placeholderTextColor={colours.textMuted}
+                placeholderTextColor={c.textMuted}
                 value={description}
                 onChangeText={setDescription}
                 multiline
@@ -228,26 +231,26 @@ export default function BlockReportSheet({ visible, userId, userName, onClose, o
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (c: ThemeColours) => StyleSheet.create({
   backdrop:            { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
-  sheet:               { backgroundColor: colours.background, borderTopLeftRadius: borderRadius.xl, borderTopRightRadius: borderRadius.xl, padding: spacing.xl, paddingBottom: spacing['3xl'], maxHeight: '80%' },
-  handle:              { width: 40, height: 4, borderRadius: 2, backgroundColor: colours.border, alignSelf: 'center', marginBottom: spacing.lg },
-  heading:             { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: colours.textPrimary, textAlign: 'center', marginBottom: spacing.lg },
+  sheet:               { backgroundColor: c.background, borderTopLeftRadius: borderRadius.xl, borderTopRightRadius: borderRadius.xl, padding: spacing.xl, paddingBottom: spacing['3xl'], maxHeight: '80%' },
+  handle:              { width: 40, height: 4, borderRadius: 2, backgroundColor: c.border, alignSelf: 'center', marginBottom: spacing.lg },
+  heading:             { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: c.textPrimary, textAlign: 'center', marginBottom: spacing.lg },
   menuItem:            { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.md },
-  menuLabel:           { flex: 1, fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.medium, color: colours.textPrimary },
-  divider:             { height: 1, backgroundColor: colours.border, marginVertical: spacing.sm },
+  menuLabel:           { flex: 1, fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.medium, color: c.textPrimary },
+  divider:             { height: 1, backgroundColor: c.border, marginVertical: spacing.sm },
   cancelBtn:           { alignItems: 'center', paddingVertical: spacing.md, marginTop: spacing.sm },
-  cancelText:          { fontSize: typography.fontSize.base, color: colours.textSecondary, fontFamily: typography.fontFamily.medium },
+  cancelText:          { fontSize: typography.fontSize.base, color: c.textSecondary, fontFamily: typography.fontFamily.medium },
   reportHeader:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg },
-  sectionLabel:        { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold, color: colours.textMuted, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: spacing.sm, marginTop: spacing.md },
+  sectionLabel:        { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold, color: c.textMuted, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: spacing.sm, marginTop: spacing.md },
   categoriesScroll:    { maxHeight: 320 },
-  categoryRow:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colours.border },
-  categoryRowSelected: { backgroundColor: colours.primaryLight, marginHorizontal: -spacing.xl, paddingHorizontal: spacing.xl },
-  categoryText:        { fontSize: typography.fontSize.base, color: colours.textPrimary, fontFamily: typography.fontFamily.regular },
-  categoryTextSelected:{ fontFamily: typography.fontFamily.semiBold, color: colours.primary },
-  descInput:           { borderWidth: 1, borderColor: colours.border, borderRadius: borderRadius.md, padding: spacing.md, fontSize: typography.fontSize.sm, color: colours.textPrimary, minHeight: 80, textAlignVertical: 'top', fontFamily: typography.fontFamily.regular },
-  charCount:           { fontSize: typography.fontSize.xs, color: colours.textMuted, textAlign: 'right', marginTop: 4, marginBottom: spacing.sm },
-  submitBtn:           { backgroundColor: colours.primary, borderRadius: borderRadius.md, paddingVertical: spacing.md, alignItems: 'center', marginTop: spacing.md },
-  submitBtnDisabled:   { backgroundColor: colours.textMuted },
+  categoryRow:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: c.border },
+  categoryRowSelected: { backgroundColor: c.primaryLight, marginHorizontal: -spacing.xl, paddingHorizontal: spacing.xl },
+  categoryText:        { fontSize: typography.fontSize.base, color: c.textPrimary, fontFamily: typography.fontFamily.regular },
+  categoryTextSelected:{ fontFamily: typography.fontFamily.semiBold, color: c.primary },
+  descInput:           { borderWidth: 1, borderColor: c.border, borderRadius: borderRadius.md, padding: spacing.md, fontSize: typography.fontSize.sm, color: c.textPrimary, minHeight: 80, textAlignVertical: 'top', fontFamily: typography.fontFamily.regular },
+  charCount:           { fontSize: typography.fontSize.xs, color: c.textMuted, textAlign: 'right', marginTop: 4, marginBottom: spacing.sm },
+  submitBtn:           { backgroundColor: c.primary, borderRadius: borderRadius.md, paddingVertical: spacing.md, alignItems: 'center', marginTop: spacing.md },
+  submitBtnDisabled:   { backgroundColor: c.textMuted },
   submitText:          { color: '#fff', fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.bold },
 });

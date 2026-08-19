@@ -32,10 +32,16 @@ describe('plan enum ripple', () => {
     const mapBody = (name: string) => {
       const start = src.indexOf(`const ${name}`);
       expect(start).toBeGreaterThan(-1);
-      return src.slice(start, src.indexOf('};', start));
+      // Plain maps end '};', theme factories end '});' — stop at whichever
+      // comes first so both shapes stay covered.
+      const ends = ['};', '});']
+        .map((t) => src.indexOf(t, start))
+        .filter((i) => i > -1);
+      return src.slice(start, Math.min(...ends));
     };
 
-    const colourMap = mapBody('PLAN_COLOUR');
+    // Phase E+F theme sweep: PLAN_COLOUR became the factory makePlanColour(c).
+    const colourMap = mapBody('makePlanColour');
     const iconMap = mapBody('PLAN_ICON');
 
     for (const tier of ALL_TIERS) {

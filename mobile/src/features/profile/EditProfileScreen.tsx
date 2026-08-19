@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import {
   View,
   Text,
@@ -21,7 +22,7 @@ import { showToast } from '../../utils/toast';
 import PickerSheet from '../../components/ui/PickerSheet';
 import { PROFILE_PROMPTS, PromptPair, fromProfilePrompts, toProfilePrompts } from '../../constants/prompts';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { getMyProfile, updateMyProfile, uploadPhoto, deletePhoto } from '../../api/profile';
 import { queryKeys } from '../../constants/queryKeys';
 import type { MainStackParamList } from '../../navigation/types';
@@ -48,6 +49,8 @@ function FieldEditor({
   label, value, onChange, multiline, maxLength, keyboardType = 'default',
   textContentType, autoComplete, autoCapitalize, testID,
 }: FieldEditorProps) {
+  const { c } = useTheme();
+  const fe = React.useMemo(() => makeFe(c), [c]);
   return (
     <View style={fe.container}>
       <Text style={fe.label}>{label}</Text>
@@ -66,7 +69,7 @@ function FieldEditor({
         autoCapitalize={autoCapitalize ?? (multiline ? 'sentences' : 'words')}
         testID={testID ?? `field-${label}`}
         accessibilityLabel={label}
-        placeholderTextColor={colours.textMuted}
+        placeholderTextColor={c.textMuted}
         placeholder={`Enter ${label.toLowerCase()}`}
       />
       {maxLength && (
@@ -76,24 +79,24 @@ function FieldEditor({
   );
 }
 
-const fe = StyleSheet.create({
+const makeFe = (c: ThemeColours) => StyleSheet.create({
   container: { marginBottom: spacing.md },
   label: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     marginBottom: 6,
   },
   input: {
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     fontSize: typography.fontSize.base,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     fontFamily: typography.fontFamily.regular,
-    backgroundColor: colours.background,
+    backgroundColor: c.background,
     minHeight: 48,
   },
   inputMulti: {
@@ -103,7 +106,7 @@ const fe = StyleSheet.create({
   },
   counter: {
     fontSize: typography.fontSize.xs,
-    color: colours.textMuted,
+    color: c.textMuted,
     textAlign: 'right',
     marginTop: 4,
   },
@@ -120,6 +123,8 @@ interface SelectPillProps<T extends string> {
 }
 
 function SelectPill<T extends string>({ label, options, selected, onSelect, testPrefix }: SelectPillProps<T>) {
+  const { c } = useTheme();
+  const sp = React.useMemo(() => makeSp(c), [c]);
   return (
     <View style={sp.container}>
       <Text style={sp.label}>{label}</Text>
@@ -145,12 +150,12 @@ function SelectPill<T extends string>({ label, options, selected, onSelect, test
   );
 }
 
-const sp = StyleSheet.create({
+const makeSp = (c: ThemeColours) => StyleSheet.create({
   container: { marginBottom: spacing.md },
   label: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     marginBottom: 6,
   },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
@@ -159,15 +164,15 @@ const sp = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.full,
     borderWidth: 1,
-    borderColor: colours.border,
-    backgroundColor: colours.background,
+    borderColor: c.border,
+    backgroundColor: c.background,
     minHeight: 36,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pillActive: { borderColor: colours.primary, backgroundColor: colours.primaryLight },
-  pillText: { fontSize: typography.fontSize.sm, color: colours.textSecondary },
-  pillTextActive: { color: colours.primary, fontFamily: typography.fontFamily.medium },
+  pillActive: { borderColor: c.primary, backgroundColor: c.primaryLight },
+  pillText: { fontSize: typography.fontSize.sm, color: c.textSecondary },
+  pillTextActive: { color: c.primary, fontFamily: typography.fontFamily.medium },
 });
 
 // ─── Section Card ─────────────────────────────────────────────────────────────
@@ -180,6 +185,8 @@ interface SectionCardProps {
 }
 
 function SectionCard({ title, children, expanded, onToggle }: SectionCardProps) {
+  const { c } = useTheme();
+  const sc = React.useMemo(() => makeSc(c), [c]);
   return (
     <View style={sc.card}>
       <TouchableOpacity
@@ -191,21 +198,21 @@ function SectionCard({ title, children, expanded, onToggle }: SectionCardProps) 
         accessibilityState={{ expanded }}
       >
         <Text style={sc.title}>{title}</Text>
-        <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={colours.textMuted} />
+        <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={c.textMuted} />
       </TouchableOpacity>
       {expanded && <View style={sc.body}>{children}</View>}
     </View>
   );
 }
 
-const sc = StyleSheet.create({
+const makeSc = (c: ThemeColours) => StyleSheet.create({
   card: {
     marginHorizontal: spacing.lg,
     marginBottom: spacing.md,
-    backgroundColor: colours.surfaceCard,
+    backgroundColor: c.surfaceCard,
     borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
     overflow: 'hidden',
   },
   header: {
@@ -217,7 +224,7 @@ const sc = StyleSheet.create({
   title: {
     fontSize: typography.fontSize.base,
     fontFamily: typography.fontFamily.semiBold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
   body: { padding: spacing.lg, paddingTop: 0 },
 });
@@ -232,6 +239,8 @@ interface PhotoGridProps {
 }
 
 function PhotoGrid({ photos, onAdd, onRemove, loading }: PhotoGridProps) {
+  const { c } = useTheme();
+  const pg = React.useMemo(() => makePg(c), [c]);
   const slots = Array.from({ length: 6 });
   return (
     <View style={pg.grid}>
@@ -249,7 +258,7 @@ function PhotoGrid({ photos, onAdd, onRemove, loading }: PhotoGridProps) {
                     testID={`remove-photo-${i}`}
                     accessibilityLabel="Remove photo"
                   >
-                    <Ionicons name="close-circle" size={22} color={colours.error} />
+                    <Ionicons name="close-circle" size={22} color={c.error} />
                   </TouchableOpacity>
                 )}
                 {i === 0 && (
@@ -267,9 +276,9 @@ function PhotoGrid({ photos, onAdd, onRemove, loading }: PhotoGridProps) {
                 accessibilityLabel="Add photo"
               >
                 {loading && i === photos.length ? (
-                  <ActivityIndicator size="small" color={colours.primary} />
+                  <ActivityIndicator size="small" color={c.primary} />
                 ) : (
-                  <Ionicons name="add" size={28} color={colours.textMuted} />
+                  <Ionicons name="add" size={28} color={c.textMuted} />
                 )}
               </TouchableOpacity>
             )}
@@ -280,7 +289,7 @@ function PhotoGrid({ photos, onAdd, onRemove, loading }: PhotoGridProps) {
   );
 }
 
-const pg = StyleSheet.create({
+const makePg = (c: ThemeColours) => StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -292,7 +301,7 @@ const pg = StyleSheet.create({
     aspectRatio: 0.85,
     borderRadius: borderRadius.md,
     overflow: 'hidden',
-    backgroundColor: colours.border,
+    backgroundColor: c.border,
     position: 'relative',
   },
   photo: { width: '100%', height: '100%' },
@@ -308,7 +317,7 @@ const pg = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderStyle: 'dashed',
     borderRadius: borderRadius.md,
   },
@@ -316,7 +325,7 @@ const pg = StyleSheet.create({
     position: 'absolute',
     bottom: 4,
     left: 4,
-    backgroundColor: colours.primary,
+    backgroundColor: c.primary,
     borderRadius: 4,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -329,6 +338,9 @@ const pg = StyleSheet.create({
 type Section = 'photos' | 'basic' | 'community' | 'career' | 'location' | 'about' | 'prompts' | 'lifestyle' | 'family';
 
 export default function EditProfileScreen() {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
+  const ps = React.useMemo(() => makePs(c), [c]);
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
@@ -462,7 +474,7 @@ export default function EditProfileScreen() {
           accessibilityLabel="Cancel"
           style={styles.headerBtn}
         >
-          <Ionicons name="arrow-back" size={22} color={colours.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Edit Profile</Text>
         <TouchableOpacity
@@ -473,7 +485,7 @@ export default function EditProfileScreen() {
           style={styles.headerBtn}
         >
           {saveMutation.isPending ? (
-            <ActivityIndicator size="small" color={colours.primary} />
+            <ActivityIndicator size="small" color={c.primary} />
           ) : (
             <Text style={styles.saveText}>Save</Text>
           )}
@@ -604,7 +616,7 @@ export default function EditProfileScreen() {
                   <Text style={pair?.prompt ? ps.promptText : ps.promptPlaceholder} numberOfLines={1}>
                     {pair?.prompt ?? 'Choose a prompt…'}
                   </Text>
-                  <Ionicons name="chevron-down" size={16} color={colours.textMuted} />
+                  <Ionicons name="chevron-down" size={16} color={c.textMuted} />
                 </TouchableOpacity>
                 {pair?.prompt ? (
                   <FieldEditor
@@ -673,8 +685,8 @@ export default function EditProfileScreen() {
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  wrapper: { flex: 1, backgroundColor: colours.background },
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
+  wrapper: { flex: 1, backgroundColor: c.background },
   loader: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   container: { flex: 1 },
 
@@ -686,33 +698,33 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     paddingBottom: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colours.border,
-    backgroundColor: colours.background,
+    borderBottomColor: c.border,
+    backgroundColor: c.background,
   },
   headerBtn: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   headerTitle: {
     fontSize: typography.fontSize.lg,
     fontFamily: typography.fontFamily.semiBold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
   saveText: {
     fontSize: typography.fontSize.base,
     fontFamily: typography.fontFamily.semiBold,
-    color: colours.primary,
+    color: c.primary,
   },
 
   photoHint: {
     fontSize: typography.fontSize.xs,
-    color: colours.textMuted,
+    color: c.textMuted,
     marginTop: spacing.sm,
     fontFamily: typography.fontFamily.regular,
   },
 });
 
-const ps = StyleSheet.create({
+const makePs = (c: ThemeColours) => StyleSheet.create({
   hint: {
     fontSize: typography.fontSize.xs,
-    color: colours.textMuted,
+    color: c.textMuted,
     marginBottom: spacing.md,
     lineHeight: 17,
   },
@@ -722,7 +734,7 @@ const ps = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.sm,
     paddingHorizontal: spacing.md,
     minHeight: 48,
@@ -732,7 +744,7 @@ const ps = StyleSheet.create({
     flex: 1,
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
-  promptPlaceholder: { flex: 1, fontSize: typography.fontSize.sm, color: colours.textMuted },
+  promptPlaceholder: { flex: 1, fontSize: typography.fontSize.sm, color: c.textMuted },
 });

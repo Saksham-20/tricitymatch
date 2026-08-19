@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
+import { useTheme } from '../../../hooks/useTheme';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { SharedValue, interpolate, useAnimatedStyle, Extrapolation } from 'react-native-reanimated';
-import { colours, spacing, type, borderRadius } from '@shared/constants/theme';
+import { colours, spacing, type, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { resolveImageUri } from '../../../components/common/SmartImage';
 import { PressableScale, useReduceMotion } from '../../../components/motion';
 
@@ -45,6 +46,8 @@ export default function HeroBlock({
   photoCount = 0,
   onOpenGallery,
 }: HeroBlockProps) {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const { width } = useWindowDimensions();
   const reduced = useReduceMotion();
   const [failed, setFailed] = useState(false);
@@ -83,7 +86,7 @@ export default function HeroBlock({
         />
       ) : (
         <Animated.View style={[StyleSheet.absoluteFill, imgStyle]}>
-          <LinearGradient colors={[colours.p100, colours.p50]} style={StyleSheet.absoluteFill} />
+          <LinearGradient colors={[c.p100, c.p50]} style={StyleSheet.absoluteFill} />
           <View style={s.monogramWrap}>
             <Text style={s.monogram}>{monogram}</Text>
           </View>
@@ -161,13 +164,13 @@ export default function HeroBlock({
   );
 }
 
-const s = StyleSheet.create({
-  wrap: { overflow: 'hidden', backgroundColor: colours.p50 },
+const makeS = (c: ThemeColours) => StyleSheet.create({
+  wrap: { overflow: 'hidden', backgroundColor: c.p50 },
   monogramWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   monogram: {
     fontFamily: 'PlayfairDisplay-Bold',
     fontSize: 140,
-    color: colours.p300,
+    color: c.p300,
   },
   overlay: {
     position: 'absolute',

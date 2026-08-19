@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import {
   View,
   Text,
@@ -13,7 +14,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { getAdminStats, getVerificationQueue, getReportsQueue } from '../../api/admin';
 import type { AdminStackParamList } from '../../navigation/types';
 
@@ -48,10 +49,13 @@ interface StatCardProps {
   color?: string;
 }
 
-function StatCard({ icon, label, value, color = colours.primary }: StatCardProps) {
+function StatCard({ icon, label, value, color }: StatCardProps) {
+  const { c } = useTheme();
+  const tint = color ?? c.primary;
+  const s = React.useMemo(() => makeS(c), [c]);
   return (
-    <View style={[s.statCard, { borderLeftColor: color }]}>
-      <Ionicons name={icon} size={22} color={color} />
+    <View style={[s.statCard, { borderLeftColor: tint }]}>
+      <Ionicons name={icon} size={22} tint={tint} />
       <Text style={s.statValue}>{value}</Text>
       <Text style={s.statLabel}>{label}</Text>
     </View>
@@ -68,21 +72,25 @@ interface QueueRowProps {
 }
 
 function QueueRow({ icon, label, count, color, onPress, testID }: QueueRowProps) {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   return (
     <TouchableOpacity style={s.queueRow} onPress={onPress} testID={testID} accessibilityRole="button">
       <View style={[s.queueIcon, { backgroundColor: color + '20' }]}>
         <Ionicons name={icon} size={20} color={color} />
       </View>
       <Text style={s.queueLabel}>{label}</Text>
-      <View style={[s.badge, { backgroundColor: count > 0 ? color : colours.textMuted }]}>
+      <View style={[s.badge, { backgroundColor: count > 0 ? color : c.textMuted }]}>
         <Text style={s.badgeText}>{count > 99 ? '99+' : count}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={16} color={colours.textMuted} />
+      <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
     </TouchableOpacity>
   );
 }
 
 export default function AdminHomeScreen() {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const nav = useNavigation<Nav>();
 
   const statsQ = useQuery<AdminStats>({
@@ -135,11 +143,11 @@ export default function AdminHomeScreen() {
           accessibilityLabel="Back"
           testID="admin-back"
         >
-          <Ionicons name="arrow-back" size={24} color={colours.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
         </TouchableOpacity>
         <Text style={s.title}>Admin Console</Text>
         {isLoading ? (
-          <ActivityIndicator size="small" color={colours.primary} />
+          <ActivityIndicator size="small" color={c.primary} />
         ) : (
           <View style={s.headerSpacer} />
         )}
@@ -152,18 +160,18 @@ export default function AdminHomeScreen() {
         <Text style={s.sectionTitle}>Overview</Text>
         <View style={s.statsGrid}>
           <StatCard icon="people" label="Total Users" value={(stats.totalUsers ?? 0).toLocaleString()} />
-          <StatCard icon="card" label="Active Subs" value={(stats.activeSubscribers ?? 0).toLocaleString()} color={colours.info} />
+          <StatCard icon="card" label="Active Subs" value={(stats.activeSubscribers ?? 0).toLocaleString()} color={c.info} />
           <StatCard
             icon="cash"
             label="Revenue This Month"
             value={`₹${(stats.revenueThisMonth ?? 0).toLocaleString()}`}
-            color={colours.success}
+            color={c.success}
           />
           <StatCard
             icon="shield-checkmark"
             label="Verified Users"
             value={(stats.verifiedUsers ?? 0).toLocaleString()}
-            color={colours.badgeEducation}
+            color={c.badgeEducation}
           />
         </View>
 
@@ -173,7 +181,7 @@ export default function AdminHomeScreen() {
             icon="shield-checkmark-outline"
             label="Verification Requests"
             count={pendingVerif}
-            color={colours.warning}
+            color={c.warning}
             onPress={() => nav.navigate('VerificationQueue')}
             testID="queue-verif"
           />
@@ -182,7 +190,7 @@ export default function AdminHomeScreen() {
             icon="flag-outline"
             label="Reported Users"
             count={openReports}
-            color={colours.error}
+            color={c.error}
             onPress={() => nav.navigate('ReportsQueue')}
             testID="queue-reports"
           />
@@ -192,8 +200,8 @@ export default function AdminHomeScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colours.background },
+const makeS = (c: ThemeColours) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.background },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -201,20 +209,20 @@ const s = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colours.border,
+    borderBottomColor: c.border,
   },
   title: {
     flex: 1,
     fontSize: typography.fontSize['2xl'],
     fontFamily: typography.fontFamily.bold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
   headerSpacer: { width: 24 },
   scroll: { padding: spacing.lg, gap: spacing.sm },
   sectionTitle: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.semiBold,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: spacing.xs,
@@ -227,7 +235,7 @@ const s = StyleSheet.create({
   },
   statCard: {
     width: '47%',
-    backgroundColor: colours.surfaceCard,
+    backgroundColor: c.surfaceCard,
     borderRadius: borderRadius.md,
     padding: spacing.md,
     borderLeftWidth: 3,
@@ -236,15 +244,15 @@ const s = StyleSheet.create({
   statValue: {
     fontSize: typography.fontSize.xl,
     fontFamily: typography.fontFamily.bold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
   statLabel: {
     fontSize: typography.fontSize.xs,
     fontFamily: typography.fontFamily.regular,
-    color: colours.textSecondary,
+    color: c.textSecondary,
   },
   queuesCard: {
-    backgroundColor: colours.surfaceCard,
+    backgroundColor: c.surfaceCard,
     borderRadius: borderRadius.md,
     overflow: 'hidden',
   },
@@ -265,7 +273,7 @@ const s = StyleSheet.create({
     flex: 1,
     fontSize: typography.fontSize.base,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
   badge: {
     minWidth: 24,
@@ -282,7 +290,7 @@ const s = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: colours.border,
+    backgroundColor: c.border,
     marginLeft: spacing.md + 36 + spacing.sm,
   },
 });

@@ -16,7 +16,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { colours, type, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, type, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import {
   getMutualMatches,
   getShortlisted,
@@ -62,6 +62,7 @@ interface MatchRowProps {
 
 function MatchRow({ match, mode, onPress, onChat, onAccept, onDecline, onRemove }: MatchRowProps) {
   const { c } = useTheme();
+  const mr = React.useMemo(() => makeMr(c), [c]);
   const profile = match.MatchedProfile;
   const name = profile ? `${profile.firstName} ${profile.lastName}` : 'Unknown';
   const age = profile?.dateOfBirth
@@ -109,20 +110,20 @@ function MatchRow({ match, mode, onPress, onChat, onAccept, onDecline, onRemove 
         {mode === 'liked_me' && (
           <View style={mr.acceptRow}>
             {onAccept && (
-              <PressableScale scaleTo={0.9} haptic style={[mr.circleBtn, { backgroundColor: colours.successBg }]} onPress={onAccept} accessibilityRole="button" accessibilityLabel="Accept interest">
-                <Ionicons name="heart" size={18} color={colours.success} />
+              <PressableScale scaleTo={0.9} haptic style={[mr.circleBtn, { backgroundColor: c.successBg }]} onPress={onAccept} accessibilityRole="button" accessibilityLabel="Accept interest">
+                <Ionicons name="heart" size={18} color={c.success} />
               </PressableScale>
             )}
             {onDecline && (
-              <PressableScale scaleTo={0.9} haptic style={[mr.circleBtn, { backgroundColor: colours.errorBg }]} onPress={onDecline} accessibilityRole="button" accessibilityLabel="Decline interest">
-                <Ionicons name="close" size={18} color={colours.error} />
+              <PressableScale scaleTo={0.9} haptic style={[mr.circleBtn, { backgroundColor: c.errorBg }]} onPress={onDecline} accessibilityRole="button" accessibilityLabel="Decline interest">
+                <Ionicons name="close" size={18} color={c.error} />
               </PressableScale>
             )}
           </View>
         )}
         {mode === 'shortlisted' && onRemove && (
-          <PressableScale scaleTo={0.9} haptic style={[mr.circleBtn, { backgroundColor: colours.goldSoft }]} onPress={onRemove} accessibilityRole="button" accessibilityLabel="Remove from shortlist">
-            <Ionicons name="bookmark" size={18} color={colours.g600} />
+          <PressableScale scaleTo={0.9} haptic style={[mr.circleBtn, { backgroundColor: c.goldSoft }]} onPress={onRemove} accessibilityRole="button" accessibilityLabel="Remove from shortlist">
+            <Ionicons name="bookmark" size={18} color={c.g600} />
           </PressableScale>
         )}
         <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
@@ -130,7 +131,7 @@ function MatchRow({ match, mode, onPress, onChat, onAccept, onDecline, onRemove 
     </TouchableOpacity>
   );
 }
-const mr = StyleSheet.create({
+const makeMr = (c: ThemeColours) => StyleSheet.create({
   noteLine: { fontSize: 12, fontStyle: 'italic', marginTop: 3 },
   row: {
     flexDirection: 'row', alignItems: 'center',
@@ -138,16 +139,16 @@ const mr = StyleSheet.create({
     borderBottomWidth: 0.5, gap: 13,
   },
   body: { flex: 1, gap: 3 },
-  name: { ...type.headline, color: colours.fgStrong },
-  sub: { ...type.footnote, color: colours.textMuted },
+  name: { ...type.headline, color: c.fgStrong },
+  sub: { ...type.footnote, color: c.textMuted },
   compatRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: 4 },
-  compatBar: { flex: 1, height: 5, backgroundColor: colours.surface2, borderRadius: borderRadius.pill, overflow: 'hidden' },
+  compatBar: { flex: 1, height: 5, backgroundColor: c.surface2, borderRadius: borderRadius.pill, overflow: 'hidden' },
   compatFill: { height: 5, borderRadius: borderRadius.pill },
-  compatPct: { ...type.caption, color: colours.textMuted, minWidth: 30, textAlign: 'right' },
+  compatPct: { ...type.caption, color: c.textMuted, minWidth: 30, textAlign: 'right' },
   actions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   chatBtn: {
     width: 42, height: 42, borderRadius: 21,
-    backgroundColor: colours.accent, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: c.accent, alignItems: 'center', justifyContent: 'center',
   },
   acceptRow: { flexDirection: 'row', gap: spacing.sm },
   circleBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },

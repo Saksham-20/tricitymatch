@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTheme } from '../hooks/useTheme';
 import { AccessibilityInfo, Platform } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
@@ -96,6 +97,7 @@ const TAB_ICONS: Record<string, { active: IoniconName; inactive: IoniconName }> 
 
 function BottomTabs() {
   const { elderMode } = useUIStore();
+  const { c } = useTheme();
   const [reduceMotion, setReduceMotion] = useState(false);
 
   useEffect(() => {
@@ -112,8 +114,8 @@ function BottomTabs() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: colours.primary,
-        tabBarInactiveTintColor: colours.textMuted,
+        tabBarActiveTintColor: c.primary,
+        tabBarInactiveTintColor: c.textMuted,
         tabBarStyle: { height: tabBarHeight },
         tabBarLabelStyle,
         tabBarIcon: ({ focused, color }) => {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { colours, type } from '@shared/constants/theme';
+import { type } from '@shared/constants/theme';
+import { useTheme } from '../../hooks/useTheme';
 
 /**
  * Rough 0–4 strength score.
@@ -20,7 +21,7 @@ export function scorePassword(pw: string): number {
 }
 
 const LABELS = ['', 'Weak', 'Fair', 'Good', 'Strong'];
-const segColour = [colours.border, colours.error, colours.warning, colours.g500, colours.success];
+
 
 interface Props {
   /** pass either a raw password or a precomputed 0–4 score */
@@ -31,6 +32,8 @@ interface Props {
 
 /** 4-segment password-strength bar — fills red → amber → gold → green. */
 export default function PasswordStrength({ password, score, showLabel = true }: Props) {
+  const { c } = useTheme();
+  const segColour = [c.border, c.error, c.warning, c.g500, c.success];
   const s = score ?? scorePassword(password ?? '');
   return (
     <View style={styles.wrap}>
@@ -38,7 +41,7 @@ export default function PasswordStrength({ password, score, showLabel = true }: 
         {[1, 2, 3, 4].map((n) => (
           <View
             key={n}
-            style={[styles.seg, { backgroundColor: n <= s ? segColour[s] : colours.surface2 }]}
+            style={[styles.seg, { backgroundColor: n <= s ? segColour[s] : c.surface2 }]}
           />
         ))}
       </View>

@@ -1,10 +1,13 @@
 import React from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import { View, Text, StyleSheet } from 'react-native';
 import { LegalLayout, Section, Para, Bullet } from './LegalLayout';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 
 // Mirrors frontend/src/pages/Safety.jsx
 export default function SafetyScreen() {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   return (
     <LegalLayout title="Safety & Trust" subtitle="Your trust comes first">
       <View style={s.emergency}>
@@ -42,7 +45,7 @@ export default function SafetyScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  emergency:     { backgroundColor: colours.error + '15', borderRadius: borderRadius.md, borderWidth: 1, borderColor: colours.error + '40', padding: spacing.md, marginBottom: spacing.lg },
-  emergencyText: { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: colours.error, textAlign: 'center' },
+const makeS = (c: ThemeColours) => StyleSheet.create({
+  emergency:     { backgroundColor: c.error + '15', borderRadius: borderRadius.md, borderWidth: 1, borderColor: c.error + '40', padding: spacing.md, marginBottom: spacing.lg },
+  emergencyText: { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: c.error, textAlign: 'center' },
 });

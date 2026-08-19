@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import {
   View, Text, TouchableOpacity, Image, StyleSheet, Modal, Animated, Easing,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { callColours } from '../../features/calls/callTheme';
 import { useCallStore } from '../../stores/callStore';
 import { declineCall } from '../../api/calls';
@@ -21,6 +22,8 @@ interface Props {
 }
 
 export default function IncomingCallModal({ invitation }: Props) {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const navigation = useNavigation<Nav>();
   const { clearIncomingCall } = useCallStore();
 
@@ -110,7 +113,7 @@ export default function IncomingCallModal({ invitation }: Props) {
               <Image source={{ uri: invitation.callerPhoto }} style={styles.avatar} testID="CallerPhoto" />
             ) : (
               <View style={[styles.avatar, styles.avatarFallback]}>
-                <Ionicons name="person" size={48} color={colours.textMuted} />
+                <Ionicons name="person" size={48} color={c.textMuted} />
               </View>
             )}
           </Animated.View>
@@ -128,7 +131,7 @@ export default function IncomingCallModal({ invitation }: Props) {
             <ActionBtn
               icon="call"
               label="Accept"
-              color={colours.success}
+              color={c.success}
               onPress={handleAccept}
               testID="AcceptBtn"
             />
@@ -136,7 +139,7 @@ export default function IncomingCallModal({ invitation }: Props) {
               icon="call"
               iconStyle={{ transform: [{ rotate: '135deg' }] }}
               label="Decline"
-              color={colours.error}
+              color={c.error}
               onPress={handleDecline}
               testID="DeclineBtn"
             />
@@ -158,6 +161,8 @@ interface ActionBtnProps {
 }
 
 function ActionBtn({ icon, iconStyle, label, color, onPress, testID }: ActionBtnProps) {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   return (
     <View style={styles.actionWrap}>
       <TouchableOpacity
@@ -176,7 +181,7 @@ function ActionBtn({ icon, iconStyle, label, color, onPress, testID }: ActionBtn
 }
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: callColours.scrimDark,
@@ -194,7 +199,7 @@ const styles = StyleSheet.create({
   callTypeLabel: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textMuted,
+    color: c.textMuted,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
@@ -206,10 +211,10 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     borderWidth: 3,
-    borderColor: colours.primary,
+    borderColor: c.primary,
   },
   avatarFallback: {
-    backgroundColor: colours.surfaceCard,
+    backgroundColor: c.surfaceCard,
     alignItems: 'center',
     justifyContent: 'center',
   },

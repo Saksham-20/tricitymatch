@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import {
   View,
   Text,
@@ -15,10 +16,12 @@ import { useMutation } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { showToast } from '../../utils/toast';
 import { useNavigation } from '@react-navigation/native';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { submitSuccessStory } from '../../api/profile';
 
 export default function SuccessStoryScreen() {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const nav = useNavigation();
   const [groomName, setGroomName] = useState('');
   const [brideName, setBrideName] = useState('');
@@ -64,7 +67,7 @@ export default function SuccessStoryScreen() {
       <SafeAreaView style={s.safe} testID="SuccessStoryScreen-success">
         <View style={s.successContainer}>
           <View style={s.successIcon}>
-            <Ionicons name="heart" size={48} color={colours.primary} />
+            <Ionicons name="heart" size={48} color={c.primary} />
           </View>
           <Text style={s.successTitle}>Story Submitted!</Text>
           <Text style={s.successBody}>
@@ -86,7 +89,7 @@ export default function SuccessStoryScreen() {
     <SafeAreaView style={s.safe} testID="SuccessStoryScreen">
       <View style={s.header}>
         <TouchableOpacity onPress={() => nav.goBack()} style={s.backBtn} accessibilityLabel="Go back">
-          <Ionicons name="arrow-back" size={22} color={colours.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
         </TouchableOpacity>
         <Text style={s.title}>Share Your Story</Text>
       </View>
@@ -103,7 +106,7 @@ export default function SuccessStoryScreen() {
           value={groomName}
           onChangeText={setGroomName}
           placeholder="Rahul Sharma"
-          placeholderTextColor={colours.textMuted}
+          placeholderTextColor={c.textMuted}
           maxLength={60}
           testID="groom-name"
           accessibilityLabel="Groom's name"
@@ -115,7 +118,7 @@ export default function SuccessStoryScreen() {
           value={brideName}
           onChangeText={setBrideName}
           placeholder="Priya Verma"
-          placeholderTextColor={colours.textMuted}
+          placeholderTextColor={c.textMuted}
           maxLength={60}
           testID="bride-name"
           accessibilityLabel="Bride's name"
@@ -138,7 +141,7 @@ export default function SuccessStoryScreen() {
             );
           }}
           placeholder="DD/MM/YYYY"
-          placeholderTextColor={colours.textMuted}
+          placeholderTextColor={c.textMuted}
           maxLength={10}
           keyboardType="numeric"
           testID="wedding-date"
@@ -151,7 +154,7 @@ export default function SuccessStoryScreen() {
           value={story}
           onChangeText={setStory}
           placeholder="How did you find each other on TricityMatch? Share your journey..."
-          placeholderTextColor={colours.textMuted}
+          placeholderTextColor={c.textMuted}
           multiline
           maxLength={1000}
           textAlignVertical="top"
@@ -167,7 +170,7 @@ export default function SuccessStoryScreen() {
             <Text style={s.photoText}>Photo selected</Text>
           ) : (
             <>
-              <Ionicons name="image-outline" size={24} color={colours.textMuted} />
+              <Ionicons name="image-outline" size={24} color={c.textMuted} />
               <Text style={s.photoText}>Add a photo</Text>
             </>
           )}
@@ -193,15 +196,15 @@ export default function SuccessStoryScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colours.background },
+const makeS = (c: ThemeColours) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.background },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colours.border,
+    borderBottomColor: c.border,
     gap: spacing.sm,
   },
   backBtn: { padding: spacing.xs },
@@ -209,48 +212,48 @@ const s = StyleSheet.create({
     flex: 1,
     fontSize: typography.fontSize.lg,
     fontFamily: typography.fontFamily.bold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
   scroll: { padding: spacing.lg, gap: spacing.sm, paddingBottom: spacing.xl * 2 },
   subtitle: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.regular,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     marginBottom: spacing.sm,
     lineHeight: 20,
   },
   label: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.semiBold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     marginTop: spacing.sm,
     marginBottom: spacing.xs,
   },
   input: {
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.sm,
     padding: spacing.sm,
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.regular,
-    color: colours.textPrimary,
-    backgroundColor: colours.surfaceCard,
+    color: c.textPrimary,
+    backgroundColor: c.surfaceCard,
   },
   storyInput: {
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.sm,
     padding: spacing.sm,
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.regular,
-    color: colours.textPrimary,
-    backgroundColor: colours.surfaceCard,
+    color: c.textPrimary,
+    backgroundColor: c.surfaceCard,
     minHeight: 120,
   },
   charCount: {
     fontSize: typography.fontSize.xs,
     fontFamily: typography.fontFamily.regular,
-    color: colours.textMuted,
+    color: c.textMuted,
     textAlign: 'right',
     marginTop: 2,
   },
@@ -260,23 +263,23 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.sm,
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderStyle: 'dashed',
     borderRadius: borderRadius.md,
     paddingVertical: spacing.lg,
-    backgroundColor: colours.surfaceCard,
+    backgroundColor: c.surfaceCard,
   },
   photoText: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textSecondary,
+    color: c.textSecondary,
   },
   submitBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
-    backgroundColor: colours.primary,
+    backgroundColor: c.primary,
     paddingVertical: spacing.md,
     borderRadius: borderRadius.md,
     marginTop: spacing.lg,
@@ -299,24 +302,24 @@ const s = StyleSheet.create({
     width: 88,
     height: 88,
     borderRadius: 44,
-    backgroundColor: colours.primary + '15',
+    backgroundColor: c.primary + '15',
     alignItems: 'center',
     justifyContent: 'center',
   },
   successTitle: {
     fontSize: typography.fontSize['2xl'],
     fontFamily: typography.fontFamily.bold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
   successBody: {
     fontSize: typography.fontSize.base,
     fontFamily: typography.fontFamily.regular,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
   },
   doneBtn: {
-    backgroundColor: colours.primary,
+    backgroundColor: c.primary,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
     borderRadius: borderRadius.md,

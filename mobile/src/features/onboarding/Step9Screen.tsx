@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import PickerSheet from '../../components/ui/PickerSheet';
 import OnboardingLayout from './OnboardingLayout';
 import { useOnboarding } from './OnboardingContext';
@@ -31,6 +32,8 @@ const FAMILY_VALUES_OPTIONS: { key: FamilyValues; label: string }[] = [
 function CounterInput({
   label, value, onChange, testID,
 }: { label: string; value: number; onChange: (v: number) => void; testID: string }) {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   return (
     <View>
       <Text style={styles.label}>{label}</Text>
@@ -58,6 +61,8 @@ function CounterInput({
 }
 
 export default function Step9Screen() {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const { t } = useTranslation();
   const { data, saveAndNext } = useOnboarding();
 
@@ -212,24 +217,24 @@ export default function Step9Screen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
   label: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     marginBottom: spacing.sm,
   },
-  optional: { color: colours.textMuted, fontFamily: typography.fontFamily.regular },
+  optional: { color: c.textMuted, fontFamily: typography.fontFamily.regular },
   selectBtn: {
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.sm,
     paddingHorizontal: spacing.md,
     height: 48,
     justifyContent: 'center',
   },
-  selectText: { fontSize: typography.fontSize.base, color: colours.textPrimary },
-  placeholderText: { fontSize: typography.fontSize.base, color: colours.textMuted },
+  selectText: { fontSize: typography.fontSize.base, color: c.textPrimary },
+  placeholderText: { fontSize: typography.fontSize.base, color: c.textMuted },
   siblingRow: { flexDirection: 'row', gap: spacing.lg },
   siblingItem: { flex: 1 },
   counterRow: {
@@ -241,21 +246,21 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderWidth: 1.5,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
   counterBtnText: {
     fontSize: typography.fontSize.xl,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     fontFamily: typography.fontFamily.medium,
     lineHeight: typography.fontSize.xl * 1.2,
   },
   counterValue: {
     fontSize: typography.fontSize.xl,
     fontFamily: typography.fontFamily.semiBold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     minWidth: 32,
     textAlign: 'center',
   },
@@ -268,20 +273,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderWidth: 1.5,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.full,
     minHeight: 40,
     justifyContent: 'center',
     alignItems: 'center',
   },
   pillActive: {
-    borderColor: colours.primary,
-    backgroundColor: colours.primaryLight,
+    borderColor: c.primary,
+    backgroundColor: c.primaryLight,
   },
   pillText: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
-  pillTextActive: { color: colours.primary },
+  pillTextActive: { color: c.primary },
 });

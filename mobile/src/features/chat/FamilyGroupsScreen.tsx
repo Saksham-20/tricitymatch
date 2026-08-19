@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import {
   View,
   Text,
@@ -15,7 +16,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { ListSkeleton } from '../../components/ui/skeletons';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { getFamilyGroups, createFamilyGroup, type FamilyGroup } from '../../api/chat';
 import { queryKeys } from '../../constants/queryKeys';
 import type { MainStackParamList } from '../../navigation/types';
@@ -29,6 +30,8 @@ function CreateGroupModal({ visible, onClose, onCreate }: {
   onClose: () => void;
   onCreate: (name: string) => void;
 }) {
+  const { c } = useTheme();
+  const cm = React.useMemo(() => makeCm(c), [c]);
   const [name, setName] = useState('');
 
   const handleCreate = () => {
@@ -69,23 +72,25 @@ function CreateGroupModal({ visible, onClose, onCreate }: {
   );
 }
 
-const cm = StyleSheet.create({
+const makeCm = (c: ThemeColours) => StyleSheet.create({
   overlay:   { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' },
-  sheet:     { backgroundColor: colours.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: spacing.xl, paddingBottom: spacing['3xl'] },
-  handle:    { width: 40, height: 4, borderRadius: 2, backgroundColor: colours.border, alignSelf: 'center', marginBottom: spacing.lg },
-  title:     { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: colours.textPrimary, marginBottom: spacing.sm },
-  hint:      { fontSize: typography.fontSize.sm, color: colours.textSecondary, marginBottom: spacing.lg, lineHeight: 20 },
-  label:     { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold, color: colours.textSecondary, marginBottom: spacing.xs },
-  input:     { borderWidth: 1, borderColor: colours.border, borderRadius: borderRadius.md, padding: spacing.md, fontSize: typography.fontSize.base, color: colours.textPrimary, marginBottom: spacing.lg },
-  createBtn: { backgroundColor: colours.primary, borderRadius: borderRadius.md, paddingVertical: spacing.md, alignItems: 'center', marginBottom: spacing.sm },
+  sheet:     { backgroundColor: c.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: spacing.xl, paddingBottom: spacing['3xl'] },
+  handle:    { width: 40, height: 4, borderRadius: 2, backgroundColor: c.border, alignSelf: 'center', marginBottom: spacing.lg },
+  title:     { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: c.textPrimary, marginBottom: spacing.sm },
+  hint:      { fontSize: typography.fontSize.sm, color: c.textSecondary, marginBottom: spacing.lg, lineHeight: 20 },
+  label:     { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold, color: c.textSecondary, marginBottom: spacing.xs },
+  input:     { borderWidth: 1, borderColor: c.border, borderRadius: borderRadius.md, padding: spacing.md, fontSize: typography.fontSize.base, color: c.textPrimary, marginBottom: spacing.lg },
+  createBtn: { backgroundColor: c.primary, borderRadius: borderRadius.md, paddingVertical: spacing.md, alignItems: 'center', marginBottom: spacing.sm },
   createText:{ color: '#fff', fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold },
   cancelBtn: { alignItems: 'center', paddingVertical: spacing.sm },
-  cancelText:{ fontSize: typography.fontSize.base, color: colours.textSecondary },
+  cancelText:{ fontSize: typography.fontSize.base, color: c.textSecondary },
 });
 
 // ─── Group row ─────────────────────────────────────────────────────────────────
 
 function GroupRow({ group, onPress }: { group: FamilyGroup; onPress: () => void }) {
+  const { c } = useTheme();
+  const gr = React.useMemo(() => makeGr(c), [c]);
   return (
     <TouchableOpacity style={gr.row} onPress={onPress} testID={`group-row-${group.id}`} accessibilityLabel={`Open ${group.name} group chat`}>
       <View style={gr.avatar}>
@@ -95,22 +100,24 @@ function GroupRow({ group, onPress }: { group: FamilyGroup; onPress: () => void 
         <Text style={gr.name}>{group.name}</Text>
         <Text style={gr.sub}>{group.members.length} member{group.members.length !== 1 ? 's' : ''}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={18} color={colours.textMuted} />
+      <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
     </TouchableOpacity>
   );
 }
 
-const gr = StyleSheet.create({
-  row:    { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg, backgroundColor: colours.background, borderBottomWidth: 1, borderBottomColor: colours.border },
-  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colours.primary, alignItems: 'center', justifyContent: 'center' },
+const makeGr = (c: ThemeColours) => StyleSheet.create({
+  row:    { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg, backgroundColor: c.background, borderBottomWidth: 1, borderBottomColor: c.border },
+  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center' },
   info:   { flex: 1 },
-  name:   { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: colours.textPrimary },
-  sub:    { fontSize: typography.fontSize.xs, color: colours.textSecondary, marginTop: 2 },
+  name:   { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
+  sub:    { fontSize: typography.fontSize.xs, color: c.textSecondary, marginTop: 2 },
 });
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function FamilyGroupsScreen() {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const queryClient = useQueryClient();
@@ -143,7 +150,7 @@ export default function FamilyGroupsScreen() {
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} testID="back-btn" accessibilityLabel="Go back">
-          <Ionicons name="arrow-back" size={22} color={colours.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
         </TouchableOpacity>
         <Text style={s.title}>Family Chat</Text>
         <TouchableOpacity
@@ -152,13 +159,13 @@ export default function FamilyGroupsScreen() {
           testID="add-group-btn"
           accessibilityLabel="Create family group"
         >
-          <Ionicons name="add" size={24} color={colours.primary} />
+          <Ionicons name="add" size={24} color={c.primary} />
         </TouchableOpacity>
       </View>
 
       {/* Intro */}
       <View style={s.banner}>
-        <Ionicons name="people-circle-outline" size={28} color={colours.primary} />
+        <Ionicons name="people-circle-outline" size={28} color={c.primary} />
         <Text style={s.bannerText}>
           Invite family members to a private group chat. Discuss matches together before making decisions.
         </Text>
@@ -173,7 +180,7 @@ export default function FamilyGroupsScreen() {
           renderItem={({ item }) => <GroupRow group={item} onPress={() => openGroup(item)} />}
           ListEmptyComponent={
             <View style={s.emptyState}>
-              <Ionicons name="chatbubbles-outline" size={52} color={colours.textMuted} />
+              <Ionicons name="chatbubbles-outline" size={52} color={c.textMuted} />
               <Text style={s.emptyTitle}>No Family Groups Yet</Text>
               <Text style={s.emptyHint}>Create a group and invite your parents or siblings to discuss matches together.</Text>
               <TouchableOpacity
@@ -199,17 +206,17 @@ export default function FamilyGroupsScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  wrapper:    { flex: 1, backgroundColor: colours.background },
-  header:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, backgroundColor: colours.background, borderBottomWidth: 1, borderBottomColor: colours.border },
+const makeS = (c: ThemeColours) => StyleSheet.create({
+  wrapper:    { flex: 1, backgroundColor: c.background },
+  header:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, backgroundColor: c.background, borderBottomWidth: 1, borderBottomColor: c.border },
   backBtn:    { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  title:      { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: colours.textPrimary },
+  title:      { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: c.textPrimary },
   addBtn:     { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  banner:     { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, backgroundColor: colours.primaryLight, padding: spacing.lg },
-  bannerText: { flex: 1, fontSize: typography.fontSize.sm, color: colours.textSecondary, lineHeight: 20 },
+  banner:     { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, backgroundColor: c.primaryLight, padding: spacing.lg },
+  bannerText: { flex: 1, fontSize: typography.fontSize.sm, color: c.textSecondary, lineHeight: 20 },
   emptyState: { alignItems: 'center', gap: spacing.md, paddingTop: 80, paddingHorizontal: spacing.xl },
-  emptyTitle: { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.semiBold, color: colours.textSecondary },
-  emptyHint:  { fontSize: typography.fontSize.sm, color: colours.textMuted, textAlign: 'center', lineHeight: 20 },
-  createCta:  { flexDirection: 'row', alignItems: 'center', backgroundColor: colours.primary, borderRadius: borderRadius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.lg, marginTop: spacing.sm },
+  emptyTitle: { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.semiBold, color: c.textSecondary },
+  emptyHint:  { fontSize: typography.fontSize.sm, color: c.textMuted, textAlign: 'center', lineHeight: 20 },
+  createCta:  { flexDirection: 'row', alignItems: 'center', backgroundColor: c.primary, borderRadius: borderRadius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.lg, marginTop: spacing.sm },
   ctaText:    { color: '#fff', fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold },
 });

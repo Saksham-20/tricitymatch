@@ -1,7 +1,8 @@
 import React from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import { StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colours, spacing, typography } from '@shared/constants/theme';
+import { colours, spacing, typography, type ThemeColours } from '@shared/constants/theme';
 import { fontSize as scaledFontSize, tapSize } from '../../utils/elderTheme';
 
 interface ListRowProps {
@@ -31,6 +32,8 @@ export default function ListRow({
   elder = false,
   testID,
 }: ListRowProps) {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const Container: React.ElementType = onPress ? TouchableOpacity : View;
   const minHeight = tapSize(elder);
 
@@ -45,7 +48,7 @@ export default function ListRow({
     >
       {icon ? (
         <View style={styles.iconWrap}>
-          <Ionicons name={icon} size={20} color={destructive ? colours.error : colours.primary} />
+          <Ionicons name={icon} size={20} color={destructive ? c.error : c.primary} />
         </View>
       ) : null}
       <Text
@@ -63,26 +66,26 @@ export default function ListRow({
         <Switch
           value={!!switchValue}
           onValueChange={onSwitchChange}
-          trackColor={{ false: colours.border, true: colours.primary }}
-          thumbColor={colours.surfaceCard}
+          trackColor={{ false: c.border, true: c.primary }}
+          thumbColor={c.surfaceCard}
           testID={testID ? `${testID}-switch` : undefined}
         />
       ) : rightElement ? (
         rightElement
       ) : onPress ? (
-        <Ionicons name="chevron-forward" size={18} color={colours.textMuted} />
+        <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
       ) : null}
     </Container>
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     gap: spacing.md,
-    backgroundColor: colours.surfaceCard,
+    backgroundColor: c.surfaceCard,
   },
   iconWrap: {
     width: 32,
@@ -91,14 +94,14 @@ const styles = StyleSheet.create({
   label: {
     flex: 1,
     fontFamily: typography.fontFamily.regular,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
   value: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.regular,
-    color: colours.textMuted,
+    color: c.textMuted,
   },
   destructiveText: {
-    color: colours.error,
+    color: c.error,
   },
 });

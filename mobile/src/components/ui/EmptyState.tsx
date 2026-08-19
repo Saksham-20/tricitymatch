@@ -1,7 +1,8 @@
 import React, { ComponentProps } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { borderRadius, colours, spacing, type } from '@shared/constants/theme';
+import { borderRadius, colours, spacing, type, type ThemeColours } from '@shared/constants/theme';
 import Button from './Button';
 
 interface EmptyStateProps {
@@ -25,12 +26,14 @@ export default function EmptyState({
   variant = 'empty',
   testID,
 }: EmptyStateProps) {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const isError = variant === 'error';
   const glyph = icon ?? (isError ? 'alert-circle-outline' : 'heart-outline');
   return (
     <View style={styles.container} testID={testID}>
       <View style={[styles.iconCircle, isError && styles.iconCircleError]}>
-        <Ionicons name={glyph} size={28} color={isError ? colours.error : colours.accent} />
+        <Ionicons name={glyph} size={28} color={isError ? c.error : c.accent} />
       </View>
       <Text style={styles.title}>{title}</Text>
       {description ? <Text style={styles.description}>{description}</Text> : null}
@@ -49,7 +52,7 @@ export default function EmptyState({
 
 export type EmptyStateIcon = ComponentProps<typeof EmptyState>['icon'];
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -60,21 +63,21 @@ const styles = StyleSheet.create({
     width: 66,
     height: 66,
     borderRadius: borderRadius.pill,
-    backgroundColor: colours.accentSoft,
+    backgroundColor: c.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.lg,
   },
-  iconCircleError: { backgroundColor: colours.errorBg },
+  iconCircleError: { backgroundColor: c.errorBg },
   title: {
     ...type.title3,
-    color: colours.fgStrong,
+    color: c.fgStrong,
     textAlign: 'center',
     marginBottom: 6,
   },
   description: {
     ...type.subhead,
-    color: colours.textMuted,
+    color: c.textMuted,
     textAlign: 'center',
     marginBottom: 18,
     maxWidth: 280,

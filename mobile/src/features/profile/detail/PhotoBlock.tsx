@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import { Ionicons } from '@expo/vector-icons';
-import { colours, spacing, type, borderRadius } from '@shared/constants/theme';
+import { colours, spacing, type, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { resolveImageUri } from '../../../components/common/SmartImage';
 import { useTheme } from '../../../hooks/useTheme';
 
@@ -28,6 +28,7 @@ interface PhotoBlockProps {
  */
 export default function PhotoBlock({ uri, caption, eyebrow, locked = false, onPress, onLongPress }: PhotoBlockProps) {
   const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const { width } = useWindowDimensions();
   const [failed, setFailed] = useState(false);
   const resolved = resolveImageUri(uri);
@@ -71,7 +72,7 @@ export default function PhotoBlock({ uri, caption, eyebrow, locked = false, onPr
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (c: ThemeColours) => StyleSheet.create({
   wrap: { paddingHorizontal: spacing.gutter, marginTop: spacing.xl },
   photoHolder: {
     borderRadius: borderRadius.lg,
@@ -91,7 +92,7 @@ const s = StyleSheet.create({
   },
   eyebrow: {
     ...type.micro,
-    color: colours.primary,
+    color: c.primary,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 2,
@@ -100,6 +101,6 @@ const s = StyleSheet.create({
     fontFamily: 'PlayfairDisplay-Italic',
     fontSize: 16,
     lineHeight: 22,
-    color: colours.textSecondary,
+    color: c.textSecondary,
   },
 });

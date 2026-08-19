@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import { View, Text, TextInput, StyleSheet, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { PressableScale } from '../../components/motion';
 import { haptics } from '../../utils/haptics';
 import OnboardingLayout from './OnboardingLayout';
@@ -19,6 +20,8 @@ const INTEREST_TAGS = [
 ];
 
 export default function Step10Screen() {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const { t } = useTranslation();
   const { data, saveAndNext } = useOnboarding();
 
@@ -64,7 +67,7 @@ export default function Step10Screen() {
           value={bio}
           onChangeText={(text) => setBio(text.slice(0, BIO_MAX))}
           placeholder="Tell potential matches a bit about yourself — your values, what you're looking for, what makes you unique..."
-          placeholderTextColor={colours.textMuted}
+          placeholderTextColor={c.textMuted}
           multiline
           numberOfLines={5}
           textAlignVertical="top"
@@ -110,7 +113,7 @@ export default function Step10Screen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
   labelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -120,27 +123,27 @@ const styles = StyleSheet.create({
   label: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
   charCount: {
     fontSize: typography.fontSize.xs,
-    color: colours.textMuted,
+    color: c.textMuted,
     fontFamily: typography.fontFamily.regular,
   },
   textarea: {
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.md,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     fontSize: typography.fontSize.base,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     minHeight: 120,
     lineHeight: typography.fontSize.base * 1.5,
   },
   hint: {
     fontSize: typography.fontSize.xs,
-    color: colours.textMuted,
+    color: c.textMuted,
     marginBottom: spacing.md,
   },
   tagGrid: {
@@ -152,15 +155,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderWidth: 1.5,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.full,
     minHeight: 36,
     justifyContent: 'center',
     alignItems: 'center',
   },
   tagActive: {
-    borderColor: colours.primary,
-    backgroundColor: colours.primaryLight,
+    borderColor: c.primary,
+    backgroundColor: c.primaryLight,
   },
   tagDisabled: {
     opacity: 0.4,
@@ -168,13 +171,13 @@ const styles = StyleSheet.create({
   tagText: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.regular,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
   tagTextActive: {
-    color: colours.primary,
+    color: c.primary,
     fontFamily: typography.fontFamily.medium,
   },
   tagTextDisabled: {
-    color: colours.textMuted,
+    color: c.textMuted,
   },
 });

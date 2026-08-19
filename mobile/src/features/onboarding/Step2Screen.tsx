@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import PickerSheet from '../../components/ui/PickerSheet';
 import OnboardingLayout from './OnboardingLayout';
 import { useOnboarding } from './OnboardingContext';
@@ -16,6 +17,8 @@ const MOTHER_TONGUES = [
 ];
 
 export default function Step2Screen() {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const { t } = useTranslation();
   const { data, saveAndNext } = useOnboarding();
 
@@ -67,7 +70,7 @@ export default function Step2Screen() {
           value={caste}
           onChangeText={setCaste}
           placeholder="e.g. Jat, Khatri, Brahmin"
-          placeholderTextColor={colours.textMuted}
+          placeholderTextColor={c.textMuted}
           autoCapitalize="words"
           testID="input-caste"
           accessibilityLabel={t('onboarding.step2.caste')}
@@ -85,7 +88,7 @@ export default function Step2Screen() {
           value={subCaste}
           onChangeText={setSubCaste}
           placeholder="Sub-caste"
-          placeholderTextColor={colours.textMuted}
+          placeholderTextColor={c.textMuted}
           autoCapitalize="words"
           testID="input-subCaste"
           accessibilityLabel={t('onboarding.step2.subCaste')}
@@ -103,7 +106,7 @@ export default function Step2Screen() {
           value={gotra}
           onChangeText={setGotra}
           placeholder="e.g. Kashyap, Bharadwaj"
-          placeholderTextColor={colours.textMuted}
+          placeholderTextColor={c.textMuted}
           autoCapitalize="words"
           testID="input-gotra"
           accessibilityLabel={t('onboarding.step2.gotra')}
@@ -145,32 +148,32 @@ export default function Step2Screen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
   label: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     marginBottom: spacing.sm,
   },
-  optional: { color: colours.textMuted, fontFamily: typography.fontFamily.regular },
+  optional: { color: c.textMuted, fontFamily: typography.fontFamily.regular },
   input: {
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     fontSize: typography.fontSize.base,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     minHeight: 48,
   },
   selectBtn: {
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.sm,
     paddingHorizontal: spacing.md,
     height: 48,
     justifyContent: 'center',
   },
-  selectText: { fontSize: typography.fontSize.base, color: colours.textPrimary },
-  placeholderText: { fontSize: typography.fontSize.base, color: colours.textMuted },
+  selectText: { fontSize: typography.fontSize.base, color: c.textPrimary },
+  placeholderText: { fontSize: typography.fontSize.base, color: c.textMuted },
 });

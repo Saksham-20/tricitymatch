@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import {
   View,
   Text,
@@ -18,13 +19,15 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import type { AuthStackParamList } from '../../navigation/types';
 import { resetPassword } from '../../api/auth';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { PASSWORD_RULES_ATTR, passwordProblem } from '../../utils/passwordRule';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'ResetPassword'>;
 type RouteProps = RouteProp<AuthStackParamList, 'ResetPassword'>;
 
 export default function ResetPasswordScreen() {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const route = useRoute<RouteProps>();
@@ -77,7 +80,7 @@ export default function ResetPasswordScreen() {
   if (success) {
     return (
       <View style={styles.successContainer} testID="ResetPasswordScreen-success">
-        <Ionicons name="checkmark-circle" size={56} color={colours.success} style={{ marginBottom: spacing.md }} />
+        <Ionicons name="checkmark-circle" size={56} color={c.success} style={{ marginBottom: spacing.md }} />
         <Text style={styles.successTitle}>{t('auth.resetPassword.success')}</Text>
         <Text style={styles.successSubtitle}>You can now sign in with your new password.</Text>
         <TouchableOpacity
@@ -111,14 +114,14 @@ export default function ResetPasswordScreen() {
             accessibilityLabel="Go back"
             testID="reset-back"
           >
-            <Ionicons name="arrow-back" size={24} color={colours.textPrimary} />
+            <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
           </TouchableOpacity>
         )}
 
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.iconWrap}>
-            <Ionicons name="lock-closed-outline" size={28} color={colours.primary} />
+            <Ionicons name="lock-closed-outline" size={28} color={c.primary} />
           </View>
           <Text style={styles.title}>{t('auth.resetPassword.title')}</Text>
           <Text style={styles.subtitle}>Choose a new password for your account.</Text>
@@ -140,7 +143,7 @@ export default function ResetPasswordScreen() {
               value={password}
               onChangeText={(v) => { setPassword(v); setFieldErrors((p) => ({ ...p, password: '' })); }}
               placeholder="Min. 8 chars, with a number & symbol"
-              placeholderTextColor={colours.textMuted}
+              placeholderTextColor={c.textMuted}
               secureTextEntry={!showPassword}
               textContentType="newPassword"
               autoComplete="new-password"
@@ -156,7 +159,7 @@ export default function ResetPasswordScreen() {
               accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
               testID="ResetPasswordScreen-togglePassword"
             >
-              <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colours.textMuted} />
+              <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={c.textMuted} />
             </TouchableOpacity>
           </View>
           {fieldErrors.password ? (
@@ -174,7 +177,7 @@ export default function ResetPasswordScreen() {
               value={confirmPassword}
               onChangeText={(v) => { setConfirmPassword(v); setFieldErrors((p) => ({ ...p, confirmPassword: '' })); }}
               placeholder="Re-enter new password"
-              placeholderTextColor={colours.textMuted}
+              placeholderTextColor={c.textMuted}
               secureTextEntry={!showConfirm}
               textContentType="newPassword"
               autoComplete="new-password"
@@ -189,7 +192,7 @@ export default function ResetPasswordScreen() {
               accessibilityLabel={showConfirm ? 'Hide password' : 'Show password'}
               testID="ResetPasswordScreen-toggleConfirm"
             >
-              <Ionicons name={showConfirm ? 'eye-off-outline' : 'eye-outline'} size={20} color={colours.textMuted} />
+              <Ionicons name={showConfirm ? 'eye-off-outline' : 'eye-outline'} size={20} color={c.textMuted} />
             </TouchableOpacity>
           </View>
           {fieldErrors.confirmPassword ? (
@@ -216,8 +219,8 @@ export default function ResetPasswordScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colours.background },
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
+  flex: { flex: 1, backgroundColor: c.background },
   scroll: { flex: 1 },
   content: { padding: spacing['2xl'] },
   backBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', marginLeft: -spacing.sm, marginBottom: spacing.md },
@@ -226,7 +229,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: colours.primaryLight,
+    backgroundColor: c.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,
@@ -234,43 +237,43 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.fontSize['3xl'],
     fontFamily: typography.fontFamily.bold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     marginBottom: spacing.sm,
   },
   subtitle: {
     fontSize: typography.fontSize.base,
     fontFamily: typography.fontFamily.regular,
-    color: colours.textSecondary,
+    color: c.textSecondary,
   },
   errorBanner: {
-    backgroundColor: colours.errorBg,
+    backgroundColor: c.errorBg,
     borderRadius: borderRadius.md,
     padding: spacing.md,
     marginBottom: spacing.lg,
     borderLeftWidth: 3,
-    borderLeftColor: colours.error,
+    borderLeftColor: c.error,
   },
-  errorText: { fontSize: typography.fontSize.sm, color: colours.error, fontFamily: typography.fontFamily.medium },
+  errorText: { fontSize: typography.fontSize.sm, color: c.error, fontFamily: typography.fontFamily.medium },
   fieldGroup: { marginBottom: spacing.lg },
   label: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     marginBottom: spacing.sm,
   },
   input: {
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.md,
     paddingHorizontal: spacing.lg,
     paddingVertical: 14,
     fontSize: typography.fontSize.base,
     fontFamily: typography.fontFamily.regular,
-    color: colours.textPrimary,
-    backgroundColor: colours.background,
+    color: c.textPrimary,
+    backgroundColor: c.background,
     minHeight: 52,
   },
-  inputError: { borderColor: colours.error },
+  inputError: { borderColor: c.error },
   passwordContainer: { position: 'relative' },
   passwordInput: { paddingRight: 52 },
   eyeBtn: {
@@ -285,12 +288,12 @@ const styles = StyleSheet.create({
   eyeText: { fontSize: 18 },
   fieldError: {
     fontSize: typography.fontSize.xs,
-    color: colours.error,
+    color: c.error,
     marginTop: spacing.xs,
     fontFamily: typography.fontFamily.regular,
   },
   primaryBtn: {
-    backgroundColor: colours.primary,
+    backgroundColor: c.primary,
     borderRadius: borderRadius.md,
     paddingVertical: 16,
     alignItems: 'center',
@@ -306,7 +309,7 @@ const styles = StyleSheet.create({
   // Success state
   successContainer: {
     flex: 1,
-    backgroundColor: colours.background,
+    backgroundColor: c.background,
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing['3xl'],
@@ -315,14 +318,14 @@ const styles = StyleSheet.create({
   successTitle: {
     fontSize: typography.fontSize.xl,
     fontFamily: typography.fontFamily.bold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     textAlign: 'center',
     marginBottom: spacing.md,
   },
   successSubtitle: {
     fontSize: typography.fontSize.base,
     fontFamily: typography.fontFamily.regular,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
     marginBottom: spacing['3xl'],
   },

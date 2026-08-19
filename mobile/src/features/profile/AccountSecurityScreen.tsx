@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import { borderRadius, colours, spacing, type } from '@shared/constants/theme';
+import { borderRadius, colours, spacing, type, type ThemeColours } from '@shared/constants/theme';
 import {
   Button,
   Card,
@@ -36,16 +37,16 @@ const apiMessage = (err: unknown, fallback: string): string => {
  * available underneath — enough to recognise a session, honest about the rest.
  */
 const deviceLabel = (ua: string | null): { label: string; icon: keyof typeof Ionicons.glyphMap } => {
-  const s = (ua ?? '').toLowerCase();
-  if (!s) return { label: 'Unknown device', icon: 'help-circle-outline' };
-  if (s.includes('tricitymatch') || s.includes('okhttp') || s.includes('expo')) {
+  const ua2 = (ua ?? '').toLowerCase();
+  if (!ua2) return { label: 'Unknown device', icon: 'help-circle-outline' };
+  if (ua2.includes('tricitymatch') || ua2.includes('okhttp') || ua2.includes('expo')) {
     return { label: 'TricityMatch app', icon: 'phone-portrait-outline' };
   }
-  if (s.includes('android')) return { label: 'Android device', icon: 'phone-portrait-outline' };
-  if (s.includes('iphone')) return { label: 'iPhone', icon: 'phone-portrait-outline' };
-  if (s.includes('ipad')) return { label: 'iPad', icon: 'tablet-portrait-outline' };
-  if (s.includes('mac os') || s.includes('macintosh')) return { label: 'Mac', icon: 'desktop-outline' };
-  if (s.includes('windows')) return { label: 'Windows PC', icon: 'desktop-outline' };
+  if (ua2.includes('android')) return { label: 'Android device', icon: 'phone-portrait-outline' };
+  if (ua2.includes('iphone')) return { label: 'iPhone', icon: 'phone-portrait-outline' };
+  if (ua2.includes('ipad')) return { label: 'iPad', icon: 'tablet-portrait-outline' };
+  if (ua2.includes('mac os') || ua2.includes('macintosh')) return { label: 'Mac', icon: 'desktop-outline' };
+  if (ua2.includes('windows')) return { label: 'Windows PC', icon: 'desktop-outline' };
   return { label: 'Web browser', icon: 'globe-outline' };
 };
 
@@ -71,10 +72,12 @@ function SessionRow({
   onRevoke: (s: AuthSession) => void;
   revoking: boolean;
 }) {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const { label, icon } = deviceLabel(session.userAgent);
   return (
     <View style={s.sessionRow} testID={`session-${session.id}`}>
-      <Ionicons name={icon} size={20} color={colours.textSecondary} />
+      <Ionicons name={icon} size={20} color={c.textSecondary} />
       <View style={s.sessionInfo}>
         <View style={s.sessionTitleRow}>
           <Text style={s.sessionLabel}>{label}</Text>
@@ -105,6 +108,8 @@ function SessionRow({
 }
 
 export default function AccountSecurityScreen() {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const storeLogout = useAuthStore((state) => state.logout);
@@ -235,7 +240,7 @@ export default function AccountSecurityScreen() {
 
           {formError ? (
             <View style={s.errorBanner} testID="password-error">
-              <Ionicons name="alert-circle" size={15} color={colours.error} />
+              <Ionicons name="alert-circle" size={15} color={c.error} />
               <Text style={s.errorText}>{formError}</Text>
             </View>
           ) : null}
@@ -300,25 +305,25 @@ export default function AccountSecurityScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  wrapper:  { flex: 1, backgroundColor: colours.background },
+const makeS = (c: ThemeColours) => StyleSheet.create({
+  wrapper:  { flex: 1, backgroundColor: c.background },
   content:  { padding: spacing.lg, paddingBottom: spacing['3xl'], gap: spacing.md },
 
   card:      { padding: spacing.lg, gap: spacing.md },
-  cardTitle: { ...type.headline, color: colours.textPrimary },
-  cardBody:  { ...type.footnote, color: colours.textSecondary },
+  cardTitle: { ...type.headline, color: c.textPrimary },
+  cardBody:  { ...type.footnote, color: c.textSecondary },
 
-  errorBanner: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, backgroundColor: colours.errorBg, borderRadius: borderRadius.md, padding: spacing.md },
-  errorText:   { flex: 1, ...type.footnote, color: colours.error },
+  errorBanner: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, backgroundColor: c.errorBg, borderRadius: borderRadius.md, padding: spacing.md },
+  errorText:   { flex: 1, ...type.footnote, color: c.error },
 
   skeletons:  { gap: spacing.sm },
-  emptyNote:  { ...type.footnote, color: colours.textMuted },
+  emptyNote:  { ...type.footnote, color: c.textMuted },
 
-  sessionRow:     { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colours.border },
+  sessionRow:     { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: c.border },
   sessionInfo:    { flex: 1, gap: 2 },
   sessionTitleRow:{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  sessionLabel:   { ...type.callout, color: colours.textPrimary },
-  sessionMeta:    { ...type.footnote, color: colours.textMuted },
-  currentChip:    { backgroundColor: colours.p100, borderRadius: borderRadius.full, paddingHorizontal: spacing.sm, paddingVertical: 2 },
-  currentChipText:{ ...type.micro, color: colours.p500 },
+  sessionLabel:   { ...type.callout, color: c.textPrimary },
+  sessionMeta:    { ...type.footnote, color: c.textMuted },
+  currentChip:    { backgroundColor: c.p100, borderRadius: borderRadius.full, paddingHorizontal: spacing.sm, paddingVertical: 2 },
+  currentChipText:{ ...type.micro, color: c.p500 },
 });

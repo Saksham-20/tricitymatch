@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import {
   View,
   Text,
@@ -19,7 +20,7 @@ import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-q
 import { Ionicons } from '@expo/vector-icons';
 import { ChatThreadSkeleton } from '../../components/ui/skeletons';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import {
   getGroupThread,
   sendGroupMessage,
@@ -64,6 +65,8 @@ interface BubbleProps {
 }
 
 function GroupMessageBubble({ msg, isOwn, showSender }: BubbleProps) {
+  const { c } = useTheme();
+  const bub = React.useMemo(() => makeBub(c), [c]);
   return (
     <View style={[bub.row, isOwn && bub.rowOwn]}>
       <View style={[bub.bubble, isOwn ? bub.ownBubble : bub.theirBubble]}>
@@ -80,17 +83,17 @@ function GroupMessageBubble({ msg, isOwn, showSender }: BubbleProps) {
   );
 }
 
-const bub = StyleSheet.create({
+const makeBub = (c: ThemeColours) => StyleSheet.create({
   row:        { flexDirection: 'row', marginVertical: 2, paddingHorizontal: spacing.md },
   rowOwn:     { justifyContent: 'flex-end' },
   bubble:     { maxWidth: '75%', borderRadius: borderRadius.lg, padding: spacing.sm, paddingHorizontal: spacing.md },
-  ownBubble:  { backgroundColor: colours.primary, borderBottomRightRadius: 4 },
-  theirBubble:{ backgroundColor: colours.surfaceCard, borderBottomLeftRadius: 4, borderWidth: 1, borderColor: colours.border },
-  senderName: { fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.semiBold, color: colours.primary, marginBottom: 2 },
-  content:    { fontSize: typography.fontSize.base, color: colours.textPrimary, lineHeight: 22 },
+  ownBubble:  { backgroundColor: c.primary, borderBottomRightRadius: 4 },
+  theirBubble:{ backgroundColor: c.surfaceCard, borderBottomLeftRadius: 4, borderWidth: 1, borderColor: c.border },
+  senderName: { fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.semiBold, color: c.primary, marginBottom: 2 },
+  content:    { fontSize: typography.fontSize.base, color: c.textPrimary, lineHeight: 22 },
   ownContent: { color: '#fff' },
   meta:       { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 2 },
-  metaText:   { fontSize: 10, color: colours.textMuted },
+  metaText:   { fontSize: 10, color: c.textMuted },
   ownMeta:    { color: 'rgba(255,255,255,0.7)' },
 });
 
@@ -105,6 +108,8 @@ interface InviteModalProps {
 const RELATION_OPTIONS = ['Father', 'Mother', 'Brother', 'Sister', 'Uncle', 'Aunt', 'Other'];
 
 function InviteModal({ visible, groupId, onClose }: InviteModalProps) {
+  const { c } = useTheme();
+  const im = React.useMemo(() => makeIm(c), [c]);
   const [phone, setPhone] = useState('');
   const [relation, setRelation] = useState('Father');
   const [loading, setLoading] = useState(false);
@@ -186,26 +191,29 @@ function InviteModal({ visible, groupId, onClose }: InviteModalProps) {
   );
 }
 
-const im = StyleSheet.create({
+const makeIm = (c: ThemeColours) => StyleSheet.create({
   overlay:       { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' },
-  sheet:         { backgroundColor: colours.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: spacing.xl, paddingBottom: spacing['3xl'] },
-  handle:        { width: 40, height: 4, borderRadius: 2, backgroundColor: colours.border, alignSelf: 'center', marginBottom: spacing.lg },
-  title:         { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: colours.textPrimary, marginBottom: spacing.lg },
-  label:         { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold, color: colours.textSecondary, marginBottom: spacing.xs },
-  input:         { borderWidth: 1, borderColor: colours.border, borderRadius: borderRadius.md, padding: spacing.md, fontSize: typography.fontSize.base, color: colours.textPrimary, marginBottom: spacing.lg },
-  chip:          { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.full, borderWidth: 1, borderColor: colours.border, backgroundColor: colours.surfaceCard },
-  chipActive:    { borderColor: colours.primary, backgroundColor: colours.primaryLight },
-  chipText:      { fontSize: typography.fontSize.sm, color: colours.textSecondary },
-  chipTextActive:{ color: colours.primary, fontFamily: typography.fontFamily.semiBold },
-  sendBtn:       { backgroundColor: colours.primary, borderRadius: borderRadius.md, paddingVertical: spacing.md, alignItems: 'center', marginBottom: spacing.sm },
+  sheet:         { backgroundColor: c.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: spacing.xl, paddingBottom: spacing['3xl'] },
+  handle:        { width: 40, height: 4, borderRadius: 2, backgroundColor: c.border, alignSelf: 'center', marginBottom: spacing.lg },
+  title:         { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: c.textPrimary, marginBottom: spacing.lg },
+  label:         { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold, color: c.textSecondary, marginBottom: spacing.xs },
+  input:         { borderWidth: 1, borderColor: c.border, borderRadius: borderRadius.md, padding: spacing.md, fontSize: typography.fontSize.base, color: c.textPrimary, marginBottom: spacing.lg },
+  chip:          { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.full, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceCard },
+  chipActive:    { borderColor: c.primary, backgroundColor: c.primaryLight },
+  chipText:      { fontSize: typography.fontSize.sm, color: c.textSecondary },
+  chipTextActive:{ color: c.primary, fontFamily: typography.fontFamily.semiBold },
+  sendBtn:       { backgroundColor: c.primary, borderRadius: borderRadius.md, paddingVertical: spacing.md, alignItems: 'center', marginBottom: spacing.sm },
   sendText:      { color: '#fff', fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold },
   cancelBtn:     { alignItems: 'center', paddingVertical: spacing.sm },
-  cancelText:    { fontSize: typography.fontSize.base, color: colours.textSecondary },
+  cancelText:    { fontSize: typography.fontSize.base, color: c.textSecondary },
 });
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function FamilyGroupChatScreen() {
+  const { c } = useTheme();
+  const sep = React.useMemo(() => makeSep(c), [c]);
+  const s = React.useMemo(() => makeS(c), [c]);
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
@@ -334,7 +342,7 @@ export default function FamilyGroupChatScreen() {
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} testID="back-btn" accessibilityLabel="Go back">
-          <Ionicons name="arrow-back" size={22} color={colours.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
         </TouchableOpacity>
         <View style={s.headerInfo}>
           <View style={s.groupAvatarCircle}>
@@ -352,7 +360,7 @@ export default function FamilyGroupChatScreen() {
             testID="invite-btn"
             accessibilityLabel="Invite family member"
           >
-            <Ionicons name="person-add-outline" size={22} color={colours.primary} />
+            <Ionicons name="person-add-outline" size={22} color={c.primary} />
           </TouchableOpacity>
           <TouchableOpacity
             style={s.headerBtn}
@@ -360,14 +368,14 @@ export default function FamilyGroupChatScreen() {
             testID="leave-btn"
             accessibilityLabel="Leave group"
           >
-            <Ionicons name="exit-outline" size={22} color={colours.error} />
+            <Ionicons name="exit-outline" size={22} color={c.error} />
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Family group notice banner */}
       <View style={s.noticeBanner}>
-        <Ionicons name="information-circle-outline" size={14} color={colours.primary} style={{ marginRight: 4 }} />
+        <Ionicons name="information-circle-outline" size={14} color={c.primary} style={{ marginRight: 4 }} />
         <Text style={s.noticeText}>Family group · Only members you invite can see this chat</Text>
       </View>
 
@@ -384,10 +392,10 @@ export default function FamilyGroupChatScreen() {
           contentContainerStyle={s.listContent}
           onEndReached={() => hasNextPage && fetchNextPage()}
           onEndReachedThreshold={0.3}
-          ListFooterComponent={isFetchingNextPage ? <ActivityIndicator size="small" color={colours.primary} style={{ marginVertical: spacing.md }} /> : null}
+          ListFooterComponent={isFetchingNextPage ? <ActivityIndicator size="small" color={c.primary} style={{ marginVertical: spacing.md }} /> : null}
           ListEmptyComponent={
             <View style={s.emptyState}>
-              <Ionicons name="chatbubbles-outline" size={48} color={colours.textMuted} />
+              <Ionicons name="chatbubbles-outline" size={48} color={c.textMuted} />
               <Text style={s.emptyTitle}>Start the Conversation</Text>
               <Text style={s.emptyHint}>Share updates with your family about this match</Text>
             </View>
@@ -402,7 +410,7 @@ export default function FamilyGroupChatScreen() {
           value={text}
           onChangeText={setText}
           placeholder="Message your family…"
-          placeholderTextColor={colours.textMuted}
+          placeholderTextColor={c.textMuted}
           multiline
           maxLength={2000}
           testID="message-input"
@@ -415,7 +423,7 @@ export default function FamilyGroupChatScreen() {
           testID="send-btn"
           accessibilityLabel="Send message"
         >
-          <Ionicons name="send" size={20} color={text.trim() ? '#fff' : colours.textMuted} />
+          <Ionicons name="send" size={20} color={text.trim() ? '#fff' : c.textMuted} />
         </TouchableOpacity>
       </View>
 
@@ -424,30 +432,30 @@ export default function FamilyGroupChatScreen() {
   );
 }
 
-const sep = StyleSheet.create({
+const makeSep = (c: ThemeColours) => StyleSheet.create({
   container: { alignItems: 'center', marginVertical: spacing.md },
-  label:     { fontSize: typography.fontSize.xs, color: colours.textMuted, backgroundColor: colours.surfaceCard, paddingHorizontal: spacing.md, paddingVertical: 3, borderRadius: borderRadius.full },
+  label:     { fontSize: typography.fontSize.xs, color: c.textMuted, backgroundColor: c.surfaceCard, paddingHorizontal: spacing.md, paddingVertical: 3, borderRadius: borderRadius.full },
 });
 
-const s = StyleSheet.create({
-  wrapper:          { flex: 1, backgroundColor: colours.background },
-  header:           { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, backgroundColor: colours.background, borderBottomWidth: 1, borderBottomColor: colours.border },
+const makeS = (c: ThemeColours) => StyleSheet.create({
+  wrapper:          { flex: 1, backgroundColor: c.background },
+  header:           { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, backgroundColor: c.background, borderBottomWidth: 1, borderBottomColor: c.border },
   backBtn:          { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   headerInfo:       { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  groupAvatarCircle:{ width: 36, height: 36, borderRadius: 18, backgroundColor: colours.primary, alignItems: 'center', justifyContent: 'center' },
-  groupName:        { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: colours.textPrimary },
-  memberCount:      { fontSize: typography.fontSize.xs, color: colours.textSecondary },
+  groupAvatarCircle:{ width: 36, height: 36, borderRadius: 18, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center' },
+  groupName:        { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
+  memberCount:      { fontSize: typography.fontSize.xs, color: c.textSecondary },
   headerActions:    { flexDirection: 'row', gap: 4 },
   headerBtn:        { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
-  noticeBanner:     { flexDirection: 'row', alignItems: 'center', backgroundColor: colours.primaryLight, paddingHorizontal: spacing.lg, paddingVertical: spacing.xs },
-  noticeText:       { fontSize: typography.fontSize.xs, color: colours.primary },
+  noticeBanner:     { flexDirection: 'row', alignItems: 'center', backgroundColor: c.primaryLight, paddingHorizontal: spacing.lg, paddingVertical: spacing.xs },
+  noticeText:       { fontSize: typography.fontSize.xs, color: c.primary },
   loadingState:     { flex: 1, alignItems: 'center', justifyContent: 'center' },
   listContent:      { paddingVertical: spacing.md },
   emptyState:       { alignItems: 'center', justifyContent: 'center', gap: spacing.md, paddingTop: 80, transform: [{ scaleY: -1 }] },
-  emptyTitle:       { fontSize: typography.fontSize.lg, fontFamily: typography.fontFamily.semiBold, color: colours.textSecondary },
-  emptyHint:        { fontSize: typography.fontSize.sm, color: colours.textMuted, textAlign: 'center' },
-  inputBar:         { flexDirection: 'row', alignItems: 'flex-end', padding: spacing.sm, borderTopWidth: 1, borderTopColor: colours.border, backgroundColor: colours.background, gap: spacing.sm },
-  input:            { flex: 1, borderWidth: 1, borderColor: colours.border, borderRadius: 20, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, maxHeight: 120, fontSize: typography.fontSize.base, color: colours.textPrimary, backgroundColor: colours.surfaceCard },
-  sendBtn:          { width: 42, height: 42, borderRadius: 21, backgroundColor: colours.primary, alignItems: 'center', justifyContent: 'center' },
-  sendBtnDisabled:  { backgroundColor: colours.surfaceCard },
+  emptyTitle:       { fontSize: typography.fontSize.lg, fontFamily: typography.fontFamily.semiBold, color: c.textSecondary },
+  emptyHint:        { fontSize: typography.fontSize.sm, color: c.textMuted, textAlign: 'center' },
+  inputBar:         { flexDirection: 'row', alignItems: 'flex-end', padding: spacing.sm, borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.background, gap: spacing.sm },
+  input:            { flex: 1, borderWidth: 1, borderColor: c.border, borderRadius: 20, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, maxHeight: 120, fontSize: typography.fontSize.base, color: c.textPrimary, backgroundColor: c.surfaceCard },
+  sendBtn:          { width: 42, height: 42, borderRadius: 21, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center' },
+  sendBtnDisabled:  { backgroundColor: c.surfaceCard },
 });

@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import {
   View,
   Text,
@@ -16,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { AuthStackParamList } from '../../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUIStore } from '../../stores/uiStore';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import Logo from '../../components/common/Logo';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Welcome'>;
@@ -60,6 +61,8 @@ const LANGUAGES: { code: 'en' | 'hi' | 'pa'; label: string }[] = [
 ];
 
 export default function WelcomeScreen() {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const navigation = useNavigation<Nav>();
   const { t, i18n } = useTranslation();
   const { language, setLanguage } = useUIStore();
@@ -124,7 +127,7 @@ export default function WelcomeScreen() {
             testID={`WelcomeScreen-card-${i}`}
           >
             <View style={styles.cardIconWrap}>
-              <Ionicons name={card.icon} size={26} color={colours.primary} />
+              <Ionicons name={card.icon} size={26} color={c.primary} />
             </View>
             <Text style={styles.cardTitle}>{t(card.titleKey, card.titleFallback)}</Text>
             <Text style={styles.cardSubtitle}>{t(card.subtitleKey, card.subtitleFallback)}</Text>
@@ -162,10 +165,10 @@ export default function WelcomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colours.background,
+    backgroundColor: c.background,
   },
   langRow: {
     flexDirection: 'row',
@@ -178,16 +181,16 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: borderRadius.full,
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
   },
   langBtnActive: {
-    backgroundColor: colours.primary,
-    borderColor: colours.primary,
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
   langText: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textSecondary,
+    color: c.textSecondary,
   },
   langTextActive: {
     color: '#FFFFFF',
@@ -201,7 +204,7 @@ const styles = StyleSheet.create({
   heroSubtitle: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.regular,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     marginTop: 4,
   },
   cardsScroll: {
@@ -219,15 +222,15 @@ const styles = StyleSheet.create({
     minHeight: 200,
     justifyContent: 'center',
     marginRight: 0,
-    backgroundColor: colours.surfaceCard,
+    backgroundColor: c.surfaceCard,
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
   },
   cardIconWrap: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: colours.primaryLight,
+    backgroundColor: c.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,
@@ -235,14 +238,14 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: typography.fontSize.xl,
     fontFamily: typography.fontFamily.bold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     textAlign: 'center',
     marginBottom: spacing.sm,
   },
   cardSubtitle: {
     fontSize: typography.fontSize.base,
     fontFamily: typography.fontFamily.regular,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
     lineHeight: typography.fontSize.base * 1.5,
   },
@@ -256,10 +259,10 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: colours.border,
+    backgroundColor: c.border,
   },
   dotActive: {
-    backgroundColor: colours.primary,
+    backgroundColor: c.primary,
     width: 20,
   },
   ctaContainer: {
@@ -269,7 +272,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   primaryBtn: {
-    backgroundColor: colours.primary,
+    backgroundColor: c.primary,
     borderRadius: borderRadius.md,
     paddingVertical: 16,
     alignItems: 'center',
@@ -290,6 +293,6 @@ const styles = StyleSheet.create({
   secondaryBtnText: {
     fontSize: typography.fontSize.base,
     fontFamily: typography.fontFamily.medium,
-    color: colours.primary,
+    color: c.primary,
   },
 });

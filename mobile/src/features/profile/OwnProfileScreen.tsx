@@ -20,7 +20,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import SmartImage, { resolveImageUri } from '../../components/common/SmartImage';
 import { OwnProfileSkeleton } from '../../components/ui/skeletons';
-import { colours, typography, type, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, type, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { CompletionRing as SharedCompletionRing } from '../../components/ui';
 import { PressableScale, StaggeredEntrance } from '../../components/motion';
 import { haptics } from '../../utils/haptics';
@@ -56,6 +56,7 @@ function ActivityRail({
   onPressProfile: (userId: string) => void;
 }) {
   const { c } = useTheme();
+  const ar = React.useMemo(() => makeAr(c), [c]);
   if (profiles.length === 0) return null;
   return (
     <View style={ar.section}>
@@ -91,6 +92,7 @@ function ActivityRail({
 
 function ViewersUpsell({ onUpgrade }: { onUpgrade: () => void }) {
   const { c } = useTheme();
+  const ar = React.useMemo(() => makeAr(c), [c]);
   return (
     <View style={ar.section}>
       <Text style={[ar.heading, { color: c.textSecondary }]}>Profile Visitors</Text>
@@ -111,12 +113,12 @@ function ViewersUpsell({ onUpgrade }: { onUpgrade: () => void }) {
   );
 }
 
-const ar = StyleSheet.create({
+const makeAr = (c: ThemeColours) => StyleSheet.create({
   section: { marginBottom: spacing.lg },
   heading: {
     fontSize: typography.fontSize.xs,
     fontFamily: typography.fontFamily.semiBold,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     marginBottom: spacing.sm,
     marginHorizontal: spacing.lg,
     textTransform: 'uppercase',
@@ -128,32 +130,32 @@ const ar = StyleSheet.create({
     width: 88,
     height: 88,
     borderRadius: borderRadius.md,
-    backgroundColor: colours.surfaceCard,
+    backgroundColor: c.surfaceCard,
     marginBottom: 6,
   },
   name: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.semiBold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
-  meta: { fontSize: typography.fontSize.xs, color: colours.textMuted },
+  meta: { fontSize: typography.fontSize.xs, color: c.textMuted },
   upsell: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     marginHorizontal: spacing.lg,
     padding: spacing.md,
-    backgroundColor: colours.primaryLight,
+    backgroundColor: c.primaryLight,
     borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: colours.primary + '40',
+    borderColor: c.primary + '40',
   },
   upsellTitle: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.semiBold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
-  upsellSub: { fontSize: typography.fontSize.xs, color: colours.textMuted },
+  upsellSub: { fontSize: typography.fontSize.xs, color: c.textMuted },
 });
 
 // ─── Completion Card ──────────────────────────────────────────────────────────
@@ -281,10 +283,10 @@ const cc = StyleSheet.create({
  * "Get Verified" CTA below them was shown unconditionally — including to members
  * who were already verified.
  */
-const VERIFICATION_TIERS = [
-  { key: 'mobile', label: 'Mobile', color: colours.badgeMobile },
-  { key: 'photo', label: 'Photo', color: colours.badgeID },
-] as const;
+const makeVerificationTiers = (c: ThemeColours) => ([
+  { key: 'mobile', label: 'Mobile', color: c.badgeMobile },
+  { key: 'photo', label: 'Photo', color: c.badgeID },
+] as const);
 
 interface VerifBadgesProps {
   phoneVerified: boolean;
@@ -294,6 +296,8 @@ interface VerifBadgesProps {
 
 function VerificationBadges({ phoneVerified, photoVerified, onGetVerified }: VerifBadgesProps) {
   const { c } = useTheme();
+  const vb = React.useMemo(() => makeVb(c), [c]);
+  const VERIFICATION_TIERS = React.useMemo(() => makeVerificationTiers(c), [c]);
   const earned = [phoneVerified, photoVerified];
   return (
     <View style={vb.container}>
@@ -324,7 +328,7 @@ function VerificationBadges({ phoneVerified, photoVerified, onGetVerified }: Ver
   );
 }
 
-const vb = StyleSheet.create({
+const makeVb = (c: ThemeColours) => StyleSheet.create({
   container: { paddingHorizontal: spacing.lg, marginBottom: spacing.lg },
   row: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm },
   badge: {
@@ -332,27 +336,27 @@ const vb = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.full,
     paddingHorizontal: spacing.sm,
     paddingVertical: 3,
   },
   badgeText: {
     fontSize: typography.fontSize.xs,
-    color: colours.textMuted,
+    color: c.textMuted,
     fontFamily: typography.fontFamily.medium,
   },
   ctaBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: colours.primaryLight,
+    backgroundColor: c.primaryLight,
     borderRadius: borderRadius.md,
     padding: spacing.md,
   },
   ctaText: {
     fontSize: typography.fontSize.sm,
-    color: colours.primary,
+    color: c.primary,
     fontFamily: typography.fontFamily.medium,
   },
 });
@@ -368,6 +372,7 @@ interface SectionRowProps {
 
 function SectionRow({ label, value, onEdit, testID }: SectionRowProps) {
   const { c } = useTheme();
+  const sr = React.useMemo(() => makeSr(c), [c]);
   return (
     <TouchableOpacity
       style={[sr.row, { borderBottomColor: c.border }]}
@@ -384,26 +389,26 @@ function SectionRow({ label, value, onEdit, testID }: SectionRowProps) {
   );
 }
 
-const sr = StyleSheet.create({
+const makeSr = (c: ThemeColours) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colours.border,
+    borderBottomColor: c.border,
   },
   label: {
     fontSize: typography.fontSize.xs,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     fontFamily: typography.fontFamily.medium,
     marginBottom: 2,
   },
   value: {
     fontSize: typography.fontSize.sm,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     fontFamily: typography.fontFamily.regular,
   },
-  empty: { color: colours.textMuted, fontStyle: 'italic' },
+  empty: { color: c.textMuted, fontStyle: 'italic' },
 });
 
 // ─── Section Card ─────────────────────────────────────────────────────────────
@@ -416,6 +421,7 @@ interface SectionCardProps {
 
 function SectionCard({ title, children, onEdit }: SectionCardProps) {
   const { c } = useTheme();
+  const sc = React.useMemo(() => makeSc(c), [c]);
   return (
     <View style={[sc.card, { backgroundColor: c.surfaceCard, borderColor: c.border }]}>
       <View style={sc.header}>
@@ -431,15 +437,15 @@ function SectionCard({ title, children, onEdit }: SectionCardProps) {
   );
 }
 
-const sc = StyleSheet.create({
+const makeSc = (c: ThemeColours) => StyleSheet.create({
   card: {
     marginHorizontal: spacing.lg,
     marginBottom: spacing.md,
-    backgroundColor: colours.surfaceCard,
+    backgroundColor: c.surfaceCard,
     borderRadius: borderRadius.md,
     padding: spacing.lg,
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
   },
   header: {
     flexDirection: 'row',
@@ -450,7 +456,7 @@ const sc = StyleSheet.create({
   title: {
     fontSize: typography.fontSize.base,
     fontFamily: typography.fontFamily.semiBold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
 });
 
@@ -459,6 +465,7 @@ const sc = StyleSheet.create({
 // "Add photos" prompt instead of a blank white box.
 function OwnGalleryPhoto({ uri, previewMode }: { uri: string; previewMode: boolean }) {
   const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   // One slide == one viewport, or pagingEnabled drifts and the dot index
   // (contentOffset.x / width) stops matching the photo on screen.
   const { width: slideWidth } = useWindowDimensions();
@@ -489,6 +496,7 @@ export default function OwnProfileScreen() {
   const navigation = useNavigation<Nav>();
   const user = useAuthStore((s) => s.user);
   const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
   const [previewMode, setPreviewMode] = useState(false);
@@ -530,6 +538,7 @@ export default function OwnProfileScreen() {
   };
 
   const [photoIdx, setPhotoIdx] = useState(0);
+  const [biodataBusy, setBiodataBusy] = useState(false);
 
   const photos: string[] =
     profile?.profilePhoto
@@ -565,7 +574,6 @@ export default function OwnProfileScreen() {
   // D5 biodata flagship: download the PDF with the auth header, then hand the
   // FILE to the share sheet (WhatsApp-first). expo-file-system ships with the
   // expo package; lazy-required so Expo Go without it degrades to a toast.
-  const [biodataBusy, setBiodataBusy] = useState(false);
   const shareBiodata = async () => {
     if (biodataBusy) return;
     setBiodataBusy(true);
@@ -936,8 +944,8 @@ export default function OwnProfileScreen() {
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colours.background },
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   loader: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
   header: {
@@ -950,7 +958,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: typography.fontSize['2xl'],
     fontFamily: typography.fontFamily.bold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
 
   photoScroll: { height: 320 },
@@ -958,14 +966,14 @@ const styles = StyleSheet.create({
   // the hero and desynced the paging dots on every device that is not a 375pt iPhone.
   photo: { height: 320 },
   photoEmpty: {
-    backgroundColor: colours.surfaceCard,
+    backgroundColor: c.surfaceCard,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
   },
   photoEmptyText: {
     fontSize: typography.fontSize.sm,
-    color: colours.textMuted,
+    color: c.textMuted,
     fontFamily: typography.fontFamily.medium,
   },
   addPhotosBtn: {
@@ -994,9 +1002,9 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: colours.border,
+    backgroundColor: c.border,
   },
-  dotActive: { backgroundColor: colours.primary, width: 16 },
+  dotActive: { backgroundColor: c.primary, width: 16 },
 
   nameRow: {
     flexDirection: 'row',
@@ -1008,18 +1016,18 @@ const styles = StyleSheet.create({
   name: {
     fontSize: typography.fontSize['2xl'],
     fontFamily: typography.fontFamily.display, // Playfair — the member's name is the identity
-    color: colours.textPrimary,
+    color: c.textPrimary,
     marginBottom: 4,
   },
   subText: {
     fontSize: typography.fontSize.sm,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     fontFamily: typography.fontFamily.regular,
     marginBottom: 2,
   },
 
   planBadge: {
-    backgroundColor: colours.primaryLight,
+    backgroundColor: c.primaryLight,
     borderRadius: borderRadius.md,
     padding: spacing.sm,
     alignItems: 'center',
@@ -1028,11 +1036,11 @@ const styles = StyleSheet.create({
   planText: {
     fontSize: typography.fontSize.xs,
     fontFamily: typography.fontFamily.semiBold,
-    color: colours.primary,
+    color: c.primary,
   },
   upgradeText: {
     fontSize: typography.fontSize.xs,
-    color: colours.primary,
+    color: c.primary,
     fontFamily: typography.fontFamily.medium,
     marginTop: 2,
   },
@@ -1060,44 +1068,44 @@ const styles = StyleSheet.create({
   previewLabel: {
     flex: 1,
     fontSize: typography.fontSize.sm,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     fontFamily: typography.fontFamily.medium,
   },
 
   completeBtn: {
     marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
-    backgroundColor: colours.primaryLight,
+    backgroundColor: c.primaryLight,
     borderRadius: borderRadius.md,
     padding: spacing.md,
     alignItems: 'center',
   },
   completeBtnText: {
     fontSize: typography.fontSize.sm,
-    color: colours.primary,
+    color: c.primary,
     fontFamily: typography.fontFamily.medium,
   },
 
   bioText: {
     fontSize: typography.fontSize.sm,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     lineHeight: 22,
   },
   addText: {
     fontSize: typography.fontSize.sm,
-    color: colours.primary,
+    color: c.primary,
     fontFamily: typography.fontFamily.medium,
   },
   tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
   tag: {
-    backgroundColor: colours.primaryLight,
+    backgroundColor: c.primaryLight,
     borderRadius: borderRadius.full,
     paddingHorizontal: spacing.sm,
     paddingVertical: 3,
   },
   tagText: {
     fontSize: typography.fontSize.xs,
-    color: colours.primary,
+    color: c.primary,
     fontFamily: typography.fontFamily.medium,
   },
   quizBanner: {
@@ -1107,18 +1115,18 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.lg,
     marginBottom: spacing.md,
     padding: spacing.md,
-    backgroundColor: colours.primaryLight,
+    backgroundColor: c.primaryLight,
     borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: colours.primary + '40',
+    borderColor: c.primary + '40',
   },
   quizBannerTitle: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.semiBold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
   quizBannerSub: {
     fontSize: typography.fontSize.xs,
-    color: colours.textMuted,
+    color: c.textMuted,
   },
 });

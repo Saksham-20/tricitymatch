@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import {
   View,
   Text,
@@ -11,7 +12,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import Animated, { useAnimatedStyle, useSharedValue, withDelay, withTiming, Easing } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { getCompatibilityBreakdown } from '../../api/profile';
 import type { CompatibilityCategory } from '../../api/profile';
 
@@ -30,6 +31,8 @@ const CATEGORY_META: Record<string, { label: string; icon: keyof typeof Ionicons
 };
 
 function ScoreBar({ score, color, index = 0 }: { score: number; color: string; index?: number }) {
+  const { c } = useTheme();
+  const sb = React.useMemo(() => makeSb(c), [c]);
   // Koota-bar fill: 0 → value on mount, 40ms stagger per row (handoff spec).
   const clamped = Math.max(0, Math.min(100, score));
   const progress = useSharedValue(0);
@@ -47,26 +50,28 @@ function ScoreBar({ score, color, index = 0 }: { score: number; color: string; i
   );
 }
 
-const sb = StyleSheet.create({
+const makeSb = (c: ThemeColours) => StyleSheet.create({
   track: {
     flex: 1,
     height: 6,
-    backgroundColor: colours.border,
+    backgroundColor: c.border,
     borderRadius: 3,
     overflow: 'hidden',
   },
   fill: { height: '100%', borderRadius: 3 },
 });
 
-function scoreColor(score: number) {
-  if (score >= 75) return colours.success;
-  if (score >= 50) return colours.warning;
-  return colours.error;
+function scoreColor(score: number, c: ThemeColours) {
+  if (score >= 75) return c.success;
+  if (score >= 50) return c.warning;
+  return c.error;
 }
 
 function CategoryRow({ catKey, data, index = 0 }: { catKey: string; data: CompatibilityCategory; index?: number }) {
+  const { c } = useTheme();
+  const cr = React.useMemo(() => makeCr(c), [c]);
   const meta = CATEGORY_META[catKey] || { label: catKey, icon: 'ellipse' as keyof typeof Ionicons.glyphMap };
-  const color = scoreColor(data.score);
+  const color = scoreColor(data.score, c);
   return (
     <View style={cr.row}>
       <View style={[cr.iconWrap, { backgroundColor: color + '20' }]}>
@@ -84,7 +89,7 @@ function CategoryRow({ catKey, data, index = 0 }: { catKey: string; data: Compat
   );
 }
 
-const cr = StyleSheet.create({
+const makeCr = (c: ThemeColours) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -107,7 +112,7 @@ const cr = StyleSheet.create({
   label: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.semiBold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
   score: {
     fontSize: typography.fontSize.sm,
@@ -115,12 +120,14 @@ const cr = StyleSheet.create({
   },
   detail: {
     fontSize: typography.fontSize.xs,
-    color: colours.textMuted,
+    color: c.textMuted,
     marginTop: 4,
   },
 });
 
 export default function CompatibilityBreakdownSheet({ visible, userId, onClose }: Props) {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const { data, isLoading, isError } = useQuery({
     queryKey: ['compatibility', userId],
     queryFn: () => getCompatibilityBreakdown(userId),
@@ -147,17 +154,17 @@ export default function CompatibilityBreakdownSheet({ visible, userId, onClose }
         <View style={styles.header}>
           <Text style={styles.title}>Why This Match?</Text>
           <TouchableOpacity onPress={onClose} testID="breakdown-close" accessibilityLabel="Close">
-            <Ionicons name="close" size={24} color={colours.textSecondary} />
+            <Ionicons name="close" size={24} color={c.textSecondary} />
           </TouchableOpacity>
         </View>
 
         {isLoading ? (
           <View style={styles.center}>
-            <ActivityIndicator size="large" color={colours.primary} />
+            <ActivityIndicator size="large" color={c.primary} />
           </View>
         ) : isError ? (
           <View style={styles.center}>
-            <Ionicons name="alert-circle-outline" size={40} color={colours.textMuted} />
+            <Ionicons name="alert-circle-outline" size={40} color={c.textMuted} />
             <Text style={styles.errorText}>Could not load breakdown.</Text>
           </View>
         ) : (
@@ -202,7 +209,7 @@ export default function CompatibilityBreakdownSheet({ visible, userId, onClose }
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.45)',
@@ -217,7 +224,7 @@ const styles = StyleSheet.create({
   handle: {
     width: 36,
     height: 4,
-    backgroundColor: colours.border,
+    backgroundColor: c.border,
     borderRadius: 2,
     alignSelf: 'center',
     marginBottom: spacing.sm,
@@ -229,12 +236,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colours.border,
+    borderBottomColor: c.border,
   },
   title: {
     fontSize: typography.fontSize.lg,
     fontFamily: typography.fontFamily.bold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
   center: {
     alignItems: 'center',
@@ -244,12 +251,12 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: typography.fontSize.sm,
-    color: colours.textMuted,
+    color: c.textMuted,
     textAlign: 'center',
   },
   scroll: { paddingHorizontal: spacing.lg },
   overallCard: {
-    backgroundColor: colours.primaryLight + '30',
+    backgroundColor: c.primaryLight + '30',
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
     marginVertical: spacing.lg,
@@ -257,44 +264,44 @@ const styles = StyleSheet.create({
   },
   overallLabel: {
     fontSize: typography.fontSize.sm,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     fontFamily: typography.fontFamily.medium,
     marginBottom: 4,
   },
   overallScore: {
     fontSize: typography.fontSize['4xl'] || 36,
     fontFamily: typography.fontFamily.bold,
-    color: colours.primary,
+    color: c.primary,
     lineHeight: 44,
   },
   overallBar: {
     width: '100%',
     height: 8,
-    backgroundColor: colours.border,
+    backgroundColor: c.border,
     borderRadius: 4,
     overflow: 'hidden',
     marginVertical: spacing.sm,
   },
   overallFill: {
     height: '100%',
-    backgroundColor: colours.primary,
+    backgroundColor: c.primary,
     borderRadius: 4,
   },
   overallHint: {
     fontSize: typography.fontSize.xs,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
   },
   breakdown: { paddingTop: spacing.sm },
   breakdownTitle: {
     fontSize: typography.fontSize.base,
     fontFamily: typography.fontFamily.semiBold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     marginBottom: spacing.lg,
   },
   footerNote: {
     fontSize: typography.fontSize.xs,
-    color: colours.textMuted,
+    color: c.textMuted,
     textAlign: 'center',
     paddingHorizontal: spacing.sm,
     paddingTop: spacing.sm,

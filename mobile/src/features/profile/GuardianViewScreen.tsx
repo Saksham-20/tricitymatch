@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import {
   View,
   Text,
@@ -14,7 +15,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { ListSkeleton } from '../../components/ui/skeletons';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { getGuardianMatches, getGuardianShortlist } from '../../api/guardian';
 import { queryKeys } from '../../constants/queryKeys';
 import type { MainStackParamList } from '../../navigation/types';
@@ -41,6 +42,8 @@ interface ROCardProps {
 }
 
 function ReadOnlyProfileCard({ profile, onPress }: ROCardProps) {
+  const { c } = useTheme();
+  const rc = React.useMemo(() => makeRc(c), [c]);
   const name = [profile.firstName, profile.lastName].filter(Boolean).join(' ');
   const photo = profile.photos?.[0];
 
@@ -50,7 +53,7 @@ function ReadOnlyProfileCard({ profile, onPress }: ROCardProps) {
         <Image source={{ uri: photo }} style={rc.photo} resizeMode="cover" />
       ) : (
         <View style={[rc.photo, rc.photoPlaceholder]}>
-          <Ionicons name="person" size={32} color={colours.textMuted} />
+          <Ionicons name="person" size={32} color={c.textMuted} />
         </View>
       )}
       <View style={rc.info}>
@@ -61,7 +64,7 @@ function ReadOnlyProfileCard({ profile, onPress }: ROCardProps) {
         {profile.education && <Text style={rc.detail}>{profile.education}</Text>}
         {profile.compatibilityScore != null && (
           <View style={rc.compatRow}>
-            <Ionicons name="heart" size={12} color={colours.primary} />
+            <Ionicons name="heart" size={12} color={c.primary} />
             <Text style={rc.compatText}>{profile.compatibilityScore}% match</Text>
           </View>
         )}
@@ -70,28 +73,30 @@ function ReadOnlyProfileCard({ profile, onPress }: ROCardProps) {
       <View style={rc.viewOnlyBadge}>
         <Text style={rc.viewOnlyText}>View Only</Text>
       </View>
-      <Ionicons name="chevron-forward" size={18} color={colours.textMuted} />
+      <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
     </TouchableOpacity>
   );
 }
 
-const rc = StyleSheet.create({
-  card:            { flexDirection: 'row', alignItems: 'center', backgroundColor: colours.background, borderBottomWidth: 1, borderBottomColor: colours.border, padding: spacing.md, gap: spacing.md },
+const makeRc = (c: ThemeColours) => StyleSheet.create({
+  card:            { flexDirection: 'row', alignItems: 'center', backgroundColor: c.background, borderBottomWidth: 1, borderBottomColor: c.border, padding: spacing.md, gap: spacing.md },
   photo:           { width: 64, height: 64, borderRadius: borderRadius.md },
-  photoPlaceholder:{ backgroundColor: colours.surfaceCard, alignItems: 'center', justifyContent: 'center' },
+  photoPlaceholder:{ backgroundColor: c.surfaceCard, alignItems: 'center', justifyContent: 'center' },
   info:            { flex: 1, gap: 3 },
-  name:            { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: colours.textPrimary },
-  sub:             { fontSize: typography.fontSize.sm, color: colours.textSecondary },
-  detail:          { fontSize: typography.fontSize.xs, color: colours.textMuted },
+  name:            { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
+  sub:             { fontSize: typography.fontSize.sm, color: c.textSecondary },
+  detail:          { fontSize: typography.fontSize.xs, color: c.textMuted },
   compatRow:       { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
-  compatText:      { fontSize: typography.fontSize.xs, color: colours.primary, fontFamily: typography.fontFamily.medium },
-  viewOnlyBadge:   { paddingHorizontal: 6, paddingVertical: 2, backgroundColor: colours.border, borderRadius: borderRadius.full },
-  viewOnlyText:    { fontSize: 10, color: colours.textMuted },
+  compatText:      { fontSize: typography.fontSize.xs, color: c.primary, fontFamily: typography.fontFamily.medium },
+  viewOnlyBadge:   { paddingHorizontal: 6, paddingVertical: 2, backgroundColor: c.border, borderRadius: borderRadius.full },
+  viewOnlyText:    { fontSize: 10, color: c.textMuted },
 });
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function GuardianViewScreen() {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
@@ -130,7 +135,7 @@ export default function GuardianViewScreen() {
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} testID="back-btn" accessibilityLabel="Go back">
-          <Ionicons name="arrow-back" size={22} color={colours.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
         </TouchableOpacity>
         <View style={s.headerTitle}>
           <Text style={s.title}>{candidateName}</Text>
@@ -141,7 +146,7 @@ export default function GuardianViewScreen() {
 
       {/* Read-only banner */}
       <View style={s.readOnlyBanner}>
-        <Ionicons name="eye-outline" size={14} color={colours.primary} style={{ marginRight: 4 }} />
+        <Ionicons name="eye-outline" size={14} color={c.primary} style={{ marginRight: 4 }} />
         <Text style={s.readOnlyText}>Read-only · You can browse but not take any actions</Text>
       </View>
 
@@ -174,12 +179,12 @@ export default function GuardianViewScreen() {
             <RefreshControl
               refreshing={activeQuery.isFetching && !activeQuery.isLoading}
               onRefresh={() => activeQuery.refetch()}
-              tintColor={colours.primary}
+              tintColor={c.primary}
             />
           }
           ListEmptyComponent={
             <View style={s.emptyState}>
-              <Ionicons name={activeTab === 'matches' ? 'heart-outline' : 'bookmark-outline'} size={48} color={colours.textMuted} />
+              <Ionicons name={activeTab === 'matches' ? 'heart-outline' : 'bookmark-outline'} size={48} color={c.textMuted} />
               <Text style={s.emptyTitle}>
                 {activeTab === 'matches' ? 'No Mutual Matches Yet' : 'No Shortlisted Profiles'}
               </Text>
@@ -196,21 +201,21 @@ export default function GuardianViewScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  wrapper:       { flex: 1, backgroundColor: colours.background },
-  header:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, backgroundColor: colours.background, borderBottomWidth: 1, borderBottomColor: colours.border },
+const makeS = (c: ThemeColours) => StyleSheet.create({
+  wrapper:       { flex: 1, backgroundColor: c.background },
+  header:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, backgroundColor: c.background, borderBottomWidth: 1, borderBottomColor: c.border },
   backBtn:       { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   headerTitle:   { alignItems: 'center' },
-  title:         { fontSize: typography.fontSize.lg, fontFamily: typography.fontFamily.bold, color: colours.textPrimary },
-  titleSub:      { fontSize: typography.fontSize.xs, color: colours.textSecondary },
-  readOnlyBanner:{ flexDirection: 'row', alignItems: 'center', backgroundColor: colours.primaryLight, paddingHorizontal: spacing.lg, paddingVertical: spacing.xs },
-  readOnlyText:  { fontSize: typography.fontSize.xs, color: colours.primary },
-  tabBar:        { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: colours.border, backgroundColor: colours.background },
+  title:         { fontSize: typography.fontSize.lg, fontFamily: typography.fontFamily.bold, color: c.textPrimary },
+  titleSub:      { fontSize: typography.fontSize.xs, color: c.textSecondary },
+  readOnlyBanner:{ flexDirection: 'row', alignItems: 'center', backgroundColor: c.primaryLight, paddingHorizontal: spacing.lg, paddingVertical: spacing.xs },
+  readOnlyText:  { fontSize: typography.fontSize.xs, color: c.primary },
+  tabBar:        { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: c.border, backgroundColor: c.background },
   tab:           { flex: 1, paddingVertical: spacing.md, alignItems: 'center' },
-  tabActive:     { borderBottomWidth: 2, borderBottomColor: colours.primary },
-  tabLabel:      { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.medium, color: colours.textMuted },
-  tabLabelActive:{ color: colours.primary, fontFamily: typography.fontFamily.semiBold },
+  tabActive:     { borderBottomWidth: 2, borderBottomColor: c.primary },
+  tabLabel:      { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.medium, color: c.textMuted },
+  tabLabelActive:{ color: c.primary, fontFamily: typography.fontFamily.semiBold },
   emptyState:    { alignItems: 'center', gap: spacing.md, paddingTop: 80, paddingHorizontal: spacing.xl },
-  emptyTitle:    { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.semiBold, color: colours.textSecondary },
-  emptyHint:     { fontSize: typography.fontSize.sm, color: colours.textMuted, textAlign: 'center' },
+  emptyTitle:    { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.semiBold, color: c.textSecondary },
+  emptyHint:     { fontSize: typography.fontSize.sm, color: c.textMuted, textAlign: 'center' },
 });

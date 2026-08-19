@@ -9,6 +9,8 @@
  * can read it without pretending the server stores it.
  */
 import React, { useState } from 'react';
+import { PressableScale } from '../../components/motion';
+import { useTheme } from '../../hooks/useTheme';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
   ActivityIndicator, KeyboardAvoidingView, Platform,
@@ -22,7 +24,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { AuthStackParamList } from '../../navigation/types';
 import { signup } from '../../api/auth';
 import { useAuthStore } from '../../stores/authStore';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'SignupBasics'>;
 type Route = RouteProp<AuthStackParamList, 'SignupBasics'>;
@@ -39,6 +41,8 @@ const REGISTERING_FOR: { key: string; label: string; icon: keyof typeof Ionicons
 export const REGISTERING_FOR_KEY = 'registeringFor';
 
 export default function BasicsScreen() {
+  const { c } = useTheme();
+  const st = React.useMemo(() => makeSt(c), [c]);
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
@@ -124,7 +128,7 @@ export default function BasicsScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <TouchableOpacity onPress={() => navigation.goBack()} style={st.back} accessibilityLabel="Back">
-          <Ionicons name="arrow-back" size={24} color={colours.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
         </TouchableOpacity>
 
         <Text style={st.stepTag}>{t('auth.signup.stepTwo', 'Step 2 of 2')}</Text>
@@ -144,7 +148,7 @@ export default function BasicsScreen() {
                 accessibilityState={{ selected: active }}
                 testID={`profile-for-${opt.key}`}
               >
-                <Ionicons name={opt.icon} size={16} color={active ? '#fff' : colours.textSecondary} />
+                <Ionicons name={opt.icon} size={16} color={active ? '#fff' : c.textSecondary} />
                 <Text style={[st.chipText, active && st.chipTextActive]}>{opt.label}</Text>
               </TouchableOpacity>
             );
@@ -158,7 +162,7 @@ export default function BasicsScreen() {
             value={firstName}
             onChangeText={setFirstName}
             placeholder="First name"
-            placeholderTextColor={colours.textMuted}
+            placeholderTextColor={c.textMuted}
             autoCapitalize="words"
             autoComplete="given-name"
             testID="first-name-input"
@@ -168,7 +172,7 @@ export default function BasicsScreen() {
             value={lastName}
             onChangeText={setLastName}
             placeholder="Last name"
-            placeholderTextColor={colours.textMuted}
+            placeholderTextColor={c.textMuted}
             autoCapitalize="words"
             autoComplete="family-name"
             testID="last-name-input"
@@ -188,7 +192,7 @@ export default function BasicsScreen() {
                 accessibilityState={{ selected: active }}
                 testID={`gender-${g}`}
               >
-                <Ionicons name={g === 'male' ? 'male' : 'female'} size={18} color={active ? '#fff' : colours.textSecondary} />
+                <Ionicons name={g === 'male' ? 'male' : 'female'} size={18} color={active ? '#fff' : c.textSecondary} />
                 <Text style={[st.genderText, active && st.chipTextActive]}>{g === 'male' ? 'Male' : 'Female'}</Text>
               </TouchableOpacity>
             );
@@ -201,7 +205,7 @@ export default function BasicsScreen() {
           value={dobDisplay}
           onChangeText={handleDobChange}
           placeholder="DD/MM/YYYY"
-          placeholderTextColor={colours.textMuted}
+          placeholderTextColor={c.textMuted}
           keyboardType="numeric"
           maxLength={10}
           testID="dob-input"
@@ -211,7 +215,7 @@ export default function BasicsScreen() {
 
         {error ? <Text style={st.error} accessibilityLiveRegion="polite">{error}</Text> : null}
 
-        <TouchableOpacity
+        <PressableScale haptic
           style={[st.cta, (!isValid || loading) && st.ctaDisabled]}
           onPress={handleCreate}
           disabled={loading}
@@ -222,48 +226,48 @@ export default function BasicsScreen() {
           {loading
             ? <ActivityIndicator size="small" color="#fff" />
             : <Text style={st.ctaText}>{t('auth.signup.createProfile', 'Create my profile')}</Text>}
-        </TouchableOpacity>
+        </PressableScale>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-const st = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colours.background },
+const makeSt = (c: ThemeColours) => StyleSheet.create({
+  flex: { flex: 1, backgroundColor: c.background },
   content: { paddingHorizontal: spacing.gutter, paddingBottom: spacing['3xl'] },
   back: { marginBottom: spacing.md, alignSelf: 'flex-start' },
-  stepTag: { fontSize: typography.fontSize.xs, color: colours.primary, fontFamily: typography.fontFamily.semiBold, letterSpacing: 1, textTransform: 'uppercase' },
-  title: { fontSize: typography.fontSize['2xl'], fontFamily: typography.fontFamily.bold, color: colours.textPrimary, marginTop: 4 },
-  sub: { fontSize: typography.fontSize.sm, color: colours.textMuted, marginTop: 4, marginBottom: spacing.xl },
-  label: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.medium, color: colours.textSecondary, marginBottom: spacing.xs, marginTop: spacing.md },
+  stepTag: { fontSize: typography.fontSize.xs, color: c.primary, fontFamily: typography.fontFamily.semiBold, letterSpacing: 1, textTransform: 'uppercase' },
+  title: { fontSize: typography.fontSize['2xl'], fontFamily: typography.fontFamily.bold, color: c.textPrimary, marginTop: 4 },
+  sub: { fontSize: typography.fontSize.sm, color: c.textMuted, marginTop: 4, marginBottom: spacing.xl },
+  label: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.medium, color: c.textSecondary, marginBottom: spacing.xs, marginTop: spacing.md },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: spacing.md, paddingVertical: 8,
-    borderRadius: borderRadius.pill, borderWidth: 1, borderColor: colours.border,
-    backgroundColor: colours.surfaceCard,
+    borderRadius: borderRadius.pill, borderWidth: 1, borderColor: c.border,
+    backgroundColor: c.surfaceCard,
   },
-  chipActive: { backgroundColor: colours.primary, borderColor: colours.primary },
-  chipText: { fontSize: typography.fontSize.sm, color: colours.textSecondary },
+  chipActive: { backgroundColor: c.primary, borderColor: c.primary },
+  chipText: { fontSize: typography.fontSize.sm, color: c.textSecondary },
   chipTextActive: { color: '#fff', fontFamily: typography.fontFamily.semiBold },
   nameRow: { flexDirection: 'row', gap: spacing.sm },
   input: {
-    borderWidth: 1, borderColor: colours.border, borderRadius: borderRadius.md,
-    backgroundColor: colours.surfaceCard, paddingHorizontal: spacing.md,
-    minHeight: 50, fontSize: typography.fontSize.base, color: colours.textPrimary,
+    borderWidth: 1, borderColor: c.border, borderRadius: borderRadius.md,
+    backgroundColor: c.surfaceCard, paddingHorizontal: spacing.md,
+    minHeight: 50, fontSize: typography.fontSize.base, color: c.textPrimary,
   },
-  inputError: { borderColor: colours.error },
+  inputError: { borderColor: c.error },
   genderBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    minHeight: 50, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colours.border,
-    backgroundColor: colours.surfaceCard,
+    minHeight: 50, borderRadius: borderRadius.md, borderWidth: 1, borderColor: c.border,
+    backgroundColor: c.surfaceCard,
   },
-  genderBtnActive: { backgroundColor: colours.primary, borderColor: colours.primary },
-  genderText: { fontSize: typography.fontSize.base, color: colours.textSecondary },
-  hint: { fontSize: typography.fontSize.xs, color: colours.textMuted, marginTop: 4 },
-  error: { color: colours.error, fontSize: typography.fontSize.sm, marginTop: spacing.sm },
+  genderBtnActive: { backgroundColor: c.primary, borderColor: c.primary },
+  genderText: { fontSize: typography.fontSize.base, color: c.textSecondary },
+  hint: { fontSize: typography.fontSize.xs, color: c.textMuted, marginTop: 4 },
+  error: { color: c.error, fontSize: typography.fontSize.sm, marginTop: spacing.sm },
   cta: {
-    backgroundColor: colours.primary, borderRadius: borderRadius.pill,
+    backgroundColor: c.primary, borderRadius: borderRadius.pill,
     minHeight: 52, alignItems: 'center', justifyContent: 'center', marginTop: spacing.xl,
   },
   ctaDisabled: { opacity: 0.5 },

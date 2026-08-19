@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import {
   View,
   Text,
@@ -14,7 +15,7 @@ import { NotificationsSkeleton } from '../../components/ui/skeletons';
 import ListFooter from '../../components/ui/ListFooter';
 import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import type { Notification, NotificationType } from '../../types';
 import type { MainStackParamList } from '../../navigation/types';
 import {
@@ -25,18 +26,18 @@ import {
 
 type NavProp = NavigationProp<MainStackParamList>;
 
-const ICON_MAP: Record<NotificationType, { name: React.ComponentProps<typeof Ionicons>['name']; color: string }> = {
-  new_match:              { name: 'heart',              color: colours.primary },
+const makeIconMap = (c: ThemeColours): Record<NotificationType, { name: React.ComponentProps<typeof Ionicons>['name']; color: string }> => ({
+  new_match:              { name: 'heart',              color: c.primary },
   new_message:            { name: 'chatbubble',         color: '#3B82F6' },
-  interest_received:      { name: 'star',               color: colours.warning },
-  interest_accepted:      { name: 'checkmark-circle',   color: colours.success },
-  verification_approved:  { name: 'shield-checkmark',   color: colours.success },
+  interest_received:      { name: 'star',               color: c.warning },
+  interest_accepted:      { name: 'checkmark-circle',   color: c.success },
+  verification_approved:  { name: 'shield-checkmark',   color: c.success },
   verification_rejected:  { name: 'shield-outline',     color: '#EF4444' },
-  subscription_expiring:  { name: 'time',               color: colours.warning },
-  profile_view:           { name: 'eye',                color: colours.textMuted },
-  report_reviewed:        { name: 'flag',               color: colours.warning },
-  system:                 { name: 'information-circle', color: colours.textMuted },
-};
+  subscription_expiring:  { name: 'time',               color: c.warning },
+  profile_view:           { name: 'eye',                color: c.textMuted },
+  report_reviewed:        { name: 'flag',               color: c.warning },
+  system:                 { name: 'information-circle', color: c.textMuted },
+});
 
 function navigateForNotification(nav: NavProp, type: NotificationType, relatedId: string | null) {
   switch (type) {
@@ -70,6 +71,9 @@ function NotificationItem({
   item: Notification;
   onPress: (item: Notification) => void;
 }) {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
+  const ICON_MAP = React.useMemo(() => makeIconMap(c), [c]);
   const icon = ICON_MAP[item.type] ?? ICON_MAP.system;
   const relTime = formatRelativeTime(item.createdAt);
 
@@ -109,6 +113,8 @@ function formatRelativeTime(iso: string): string {
 }
 
 export default function NotificationsScreen() {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const navigation = useNavigation<NavProp>();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
@@ -201,7 +207,7 @@ export default function NotificationsScreen() {
               accessibilityLabel="Go back"
               testID="notifications-back"
             >
-              <Ionicons name="arrow-back" size={24} color={colours.textPrimary} />
+              <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
             </TouchableOpacity>
           )}
           <Text style={styles.headerTitle}>Notifications</Text>
@@ -231,8 +237,8 @@ export default function NotificationsScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            colors={[colours.primary]}
-            tintColor={colours.primary}
+            colors={[c.primary]}
+            tintColor={c.primary}
           />
         }
         onEndReached={() => {
@@ -242,7 +248,7 @@ export default function NotificationsScreen() {
         ListFooterComponent={<ListFooter state={isFetchingNextPage ? 'loading' : 'idle'} />}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Ionicons name="notifications-off-outline" size={56} color={colours.textMuted} />
+            <Ionicons name="notifications-off-outline" size={56} color={c.textMuted} />
             <Text style={styles.emptyTitle}>No notifications yet</Text>
             <Text style={styles.emptyBody}>
               We'll let you know when you get a new match, message, or interest.
@@ -254,16 +260,16 @@ export default function NotificationsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colours.background,
+    backgroundColor: c.background,
   },
   centered: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colours.background,
+    backgroundColor: c.background,
   },
   header: {
     flexDirection: 'row',
@@ -272,7 +278,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colours.surfaceCard,
+    borderBottomColor: c.surfaceCard,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -287,11 +293,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: typography.fontSize['2xl'],
     fontWeight: '700',
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
   markAllText: {
     fontSize: typography.fontSize.sm,
-    color: colours.primary,
+    color: c.primary,
     fontWeight: '600',
   },
   listContent: {
@@ -302,10 +308,10 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    backgroundColor: colours.background,
+    backgroundColor: c.background,
   },
   itemUnread: {
-    backgroundColor: colours.primaryLight,
+    backgroundColor: c.primaryLight,
   },
   iconWrap: {
     width: 44,
@@ -328,24 +334,24 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: typography.fontSize.sm,
     fontWeight: '600',
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
   unreadDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: colours.primary,
+    backgroundColor: c.primary,
     marginLeft: spacing.sm,
   },
   body: {
     fontSize: typography.fontSize.xs,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     lineHeight: 18,
     marginBottom: 4,
   },
   time: {
     fontSize: typography.fontSize.xs,
-    color: colours.textMuted,
+    color: c.textMuted,
   },
   emptyContent: {
     flex: 1,
@@ -360,13 +366,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: typography.fontSize.lg,
     fontWeight: '700',
-    color: colours.textPrimary,
+    color: c.textPrimary,
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
   },
   emptyBody: {
     fontSize: typography.fontSize.sm,
-    color: colours.textMuted,
+    color: c.textMuted,
     textAlign: 'center',
     lineHeight: 22,
   },

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import {
   View, Text, TouchableOpacity, StyleSheet, Image,
   Alert, ActivityIndicator,
@@ -7,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { useOnboarding } from './OnboardingContext';
 import { uploadPhoto } from '../../api/profile';
 
@@ -15,6 +16,8 @@ const MAX_PHOTOS = 6;
 const SLOT_SIZE = 104;
 
 export default function Step12Screen() {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const { t } = useTranslation();
   const { saveAndNext, goBack, currentStep } = useOnboarding();
 
@@ -104,7 +107,7 @@ export default function Step12Screen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={goBack} style={styles.backBtn} testID="btn-back" accessibilityLabel={t('common.back')}>
-          <Ionicons name="arrow-back" size={24} color={colours.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.stepLabel}>{t('onboarding.progress', { current: 12, total: 14 })}</Text>
         <TouchableOpacity onPress={handleSkip} testID="btn-skip" accessibilityLabel={t('common.skip')}>
@@ -129,7 +132,7 @@ export default function Step12Screen() {
             t('onboarding.step12.guide3'),
           ].map((g, i) => (
             <View key={i} style={styles.guideRow}>
-              <Ionicons name="checkmark-circle" size={16} color={colours.success} />
+              <Ionicons name="checkmark-circle" size={16} color={c.success} />
               <Text style={styles.guideText}>{g}</Text>
             </View>
           ))}
@@ -153,10 +156,10 @@ export default function Step12Screen() {
                   accessibilityLabel={t('onboarding.step12.addPhoto')}
                 >
                   {isLoading ? (
-                    <ActivityIndicator color={colours.primary} />
+                    <ActivityIndicator color={c.primary} />
                   ) : (
                     <>
-                      <Ionicons name="add" size={32} color={colours.primary} />
+                      <Ionicons name="add" size={32} color={c.primary} />
                       <Text style={styles.addSlotText}>
                         {i === 0 ? t('onboarding.step12.addFirst') : t('onboarding.step12.addMore')}
                       </Text>
@@ -236,8 +239,8 @@ export default function Step12Screen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colours.background },
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.background },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -248,37 +251,37 @@ const styles = StyleSheet.create({
   backBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   stepLabel: {
     fontSize: typography.fontSize.sm,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     fontFamily: typography.fontFamily.medium,
   },
   skipText: {
     fontSize: typography.fontSize.sm,
-    color: colours.primary,
+    color: c.primary,
     fontFamily: typography.fontFamily.medium,
   },
   progressTrack: {
     height: 4,
-    backgroundColor: colours.border,
+    backgroundColor: c.border,
     marginHorizontal: spacing.lg,
     borderRadius: borderRadius.full,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: colours.primary,
+    backgroundColor: c.primary,
     borderRadius: borderRadius.full,
   },
   body: { flex: 1, padding: spacing.lg },
   title: {
     fontSize: typography.fontSize['2xl'],
     fontFamily: typography.fontFamily.bold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
   },
   subtitle: {
     fontSize: typography.fontSize.base,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     marginBottom: spacing.lg,
     lineHeight: typography.fontSize.base * 1.5,
   },
@@ -286,7 +289,7 @@ const styles = StyleSheet.create({
   guideRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   guideText: {
     fontSize: typography.fontSize.sm,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     fontFamily: typography.fontFamily.regular,
   },
   grid: {
@@ -312,16 +315,16 @@ const styles = StyleSheet.create({
     height: SLOT_SIZE,
     borderRadius: borderRadius.md,
     borderWidth: 2,
-    borderColor: colours.primary,
+    borderColor: c.primary,
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
-    backgroundColor: colours.primaryLight,
+    backgroundColor: c.primaryLight,
   },
   addSlotText: {
     fontSize: typography.fontSize.xs,
-    color: colours.primary,
+    color: c.primary,
     fontFamily: typography.fontFamily.medium,
     textAlign: 'center',
   },
@@ -329,7 +332,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 4,
     left: 4,
-    backgroundColor: colours.primary,
+    backgroundColor: c.primary,
     borderRadius: borderRadius.sm,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -343,7 +346,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -8,
     right: -8,
-    backgroundColor: colours.error,
+    backgroundColor: c.error,
     borderRadius: borderRadius.full,
     width: 22,
     height: 22,
@@ -367,17 +370,17 @@ const styles = StyleSheet.create({
   },
   countHint: {
     fontSize: typography.fontSize.xs,
-    color: colours.textMuted,
+    color: c.textMuted,
     textAlign: 'center',
   },
   footer: {
     padding: spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: colours.border,
-    backgroundColor: colours.background,
+    borderTopColor: c.border,
+    backgroundColor: c.background,
   },
   continueBtn: {
-    backgroundColor: colours.primary,
+    backgroundColor: c.primary,
     borderRadius: borderRadius.md,
     height: 52,
     alignItems: 'center',

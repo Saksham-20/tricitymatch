@@ -1,4 +1,5 @@
 import React, { forwardRef, useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import {
   StyleProp,
   StyleSheet,
@@ -10,7 +11,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { borderRadius, colours, type } from '@shared/constants/theme';
+import { borderRadius, colours, type, type ThemeColours } from '@shared/constants/theme';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -28,6 +29,8 @@ const Input = forwardRef<TextInput, InputProps>(function Input(
   { label, error, helper, secureToggle, toggleTestID, secureTextEntry, style, containerStyle, testID, onFocus, onBlur, ...rest },
   ref
 ) {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const [hidden, setHidden] = useState(!!secureTextEntry);
   const [focused, setFocused] = useState(false);
 
@@ -44,7 +47,7 @@ const Input = forwardRef<TextInput, InputProps>(function Input(
             !!error && styles.inputError,
             style,
           ]}
-          placeholderTextColor={colours.n400}
+          placeholderTextColor={c.n400}
           secureTextEntry={secureToggle ? hidden : secureTextEntry}
           testID={testID}
           onFocus={(e) => { setFocused(true); onFocus?.(e); }}
@@ -58,7 +61,7 @@ const Input = forwardRef<TextInput, InputProps>(function Input(
             accessibilityLabel={hidden ? 'Show password' : 'Hide password'}
             testID={toggleTestID ?? (testID ? `${testID}-toggle` : undefined)}
           >
-            <Ionicons name={hidden ? 'eye-off-outline' : 'eye-outline'} size={20} color={colours.textMuted} />
+            <Ionicons name={hidden ? 'eye-off-outline' : 'eye-outline'} size={20} color={c.textMuted} />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -73,36 +76,36 @@ const Input = forwardRef<TextInput, InputProps>(function Input(
 
 export default Input;
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
   group: { marginBottom: 15 },
   label: {
     ...type.footnote,
     fontFamily: 'Inter-SemiBold',
-    color: colours.textPrimary,
+    color: c.textPrimary,
     marginBottom: 6,
   },
   fieldRow: { position: 'relative' },
   input: {
     borderWidth: 1.5,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.md,
     paddingHorizontal: 14,
     paddingVertical: 13,
     ...type.body,
-    color: colours.fgStrong,
-    backgroundColor: colours.surfaceCard,
+    color: c.fgStrong,
+    backgroundColor: c.surfaceCard,
     minHeight: 50,
   },
   inputWithIcon: { paddingRight: 52 },
   inputFocused: {
-    borderColor: colours.accent,
-    shadowColor: colours.accent,
+    borderColor: c.accent,
+    shadowColor: c.accent,
     shadowOpacity: 0.18,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 0 },
     elevation: 2,
   },
-  inputError: { borderColor: colours.error },
+  inputError: { borderColor: c.error },
   eyeBtn: {
     position: 'absolute',
     right: 14,
@@ -115,12 +118,12 @@ const styles = StyleSheet.create({
   errorText: {
     ...type.caption,
     fontFamily: 'Inter-Medium',
-    color: colours.error,
+    color: c.error,
     marginTop: 5,
   },
   helperText: {
     ...type.caption,
-    color: colours.textMuted,
+    color: c.textMuted,
     marginTop: 5,
   },
 });

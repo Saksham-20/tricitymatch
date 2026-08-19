@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import {
   View,
   Text,
@@ -14,7 +15,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { ListSkeleton } from '../../components/ui/skeletons';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { getMyProfile, updatePrivacy, type PrivacySettings } from '../../api/profile';
 import { queryKeys } from '../../constants/queryKeys';
 import type { MainStackParamList } from '../../navigation/types';
@@ -23,6 +24,8 @@ type Nav = NativeStackNavigationProp<MainStackParamList>;
 type Visibility = 'everyone' | 'matches_only';
 
 export default function PrivacySettingsScreen() {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const navigation = useNavigation<Nav>();
   const queryClient = useQueryClient();
 
@@ -70,7 +73,7 @@ export default function PrivacySettingsScreen() {
     <SafeAreaView style={styles.safe} testID="PrivacySettingsScreen">
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} testID="back-btn" accessibilityLabel="Back">
-          <Ionicons name="chevron-back" size={26} color={colours.textPrimary} />
+          <Ionicons name="chevron-back" size={26} color={c.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Privacy</Text>
         <View style={{ width: 26 }} />
@@ -113,8 +116,8 @@ export default function PrivacySettingsScreen() {
             <Switch
               value={showOnlineStatus}
               onValueChange={setShowOnlineStatus}
-              trackColor={{ false: colours.border, true: colours.primary + '80' }}
-              thumbColor={showOnlineStatus ? colours.primary : colours.textMuted}
+              trackColor={{ false: c.border, true: c.primary + '80' }}
+              thumbColor={showOnlineStatus ? c.primary : c.textMuted}
               testID="toggle-online-status"
             />
           </View>
@@ -127,8 +130,8 @@ export default function PrivacySettingsScreen() {
             <Switch
               value={showLastSeen}
               onValueChange={setShowLastSeen}
-              trackColor={{ false: colours.border, true: colours.primary + '80' }}
-              thumbColor={showLastSeen ? colours.primary : colours.textMuted}
+              trackColor={{ false: c.border, true: c.primary + '80' }}
+              thumbColor={showLastSeen ? c.primary : c.textMuted}
               testID="toggle-last-seen"
             />
           </View>
@@ -159,9 +162,9 @@ export default function PrivacySettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colours.background },
-  loader: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colours.background },
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.background },
+  loader: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.background },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -169,29 +172,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colours.border,
+    borderBottomColor: c.border,
   },
   headerTitle: {
     fontSize: typography.fontSize.lg,
     fontFamily: typography.fontFamily.bold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
   body: { padding: spacing.lg },
   sectionTitle: {
     fontSize: typography.fontSize.xs,
     fontFamily: typography.fontFamily.semiBold,
-    color: colours.textMuted,
+    color: c.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: spacing.sm,
   },
   segment: {
     flexDirection: 'row',
-    backgroundColor: colours.surfaceCard,
+    backgroundColor: c.surfaceCard,
     borderRadius: borderRadius.md,
     padding: 4,
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
   },
   segmentBtn: {
     flex: 1,
@@ -199,37 +202,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: borderRadius.sm,
   },
-  segmentBtnActive: { backgroundColor: colours.primary },
+  segmentBtnActive: { backgroundColor: c.primary },
   segmentText: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textSecondary,
+    color: c.textSecondary,
   },
   segmentTextActive: { color: '#fff', fontFamily: typography.fontFamily.semiBold },
   hint: {
     fontSize: typography.fontSize.xs,
-    color: colours.textMuted,
+    color: c.textMuted,
     marginTop: spacing.sm,
     marginBottom: spacing.xl,
     lineHeight: 18,
   },
   toggleCard: {
-    backgroundColor: colours.surfaceCard,
+    backgroundColor: c.surfaceCard,
     borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
     paddingHorizontal: spacing.lg,
   },
   toggleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md },
   toggleLabel: {
     fontSize: typography.fontSize.base,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
-  toggleSub: { fontSize: typography.fontSize.xs, color: colours.textSecondary, marginTop: 2 },
-  divider: { height: 1, backgroundColor: colours.border },
+  toggleSub: { fontSize: typography.fontSize.xs, color: c.textSecondary, marginTop: 2 },
+  divider: { height: 1, backgroundColor: c.border },
   saveBtn: {
-    backgroundColor: colours.primary,
+    backgroundColor: c.primary,
     borderRadius: borderRadius.md,
     paddingVertical: spacing.md,
     alignItems: 'center',
@@ -243,13 +246,13 @@ const styles = StyleSheet.create({
   savedNote: {
     textAlign: 'center',
     marginTop: spacing.md,
-    color: colours.success || colours.primary,
+    color: c.success || c.primary,
     fontFamily: typography.fontFamily.medium,
   },
   errorNote: {
     textAlign: 'center',
     marginTop: spacing.md,
-    color: colours.error,
+    color: c.error,
     fontFamily: typography.fontFamily.medium,
   },
 });

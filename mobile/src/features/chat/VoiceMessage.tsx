@@ -5,9 +5,10 @@
  * (no-op alert in Expo Go, same pattern as VoiceIntroRecorder).
  */
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import { View, Text, TouchableOpacity, ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 
 const MAX_SEC = 60;
 
@@ -29,6 +30,8 @@ interface RecorderProps {
 }
 
 export function VoiceRecorderStrip({ onSend, onClose }: RecorderProps) {
+  const { c } = useTheme();
+  const vs = React.useMemo(() => makeVs(c), [c]);
   const [phase, setPhase] = useState<'recording' | 'review' | 'uploading' | 'failed'>('recording');
   const [elapsed, setElapsed] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -131,12 +134,12 @@ export function VoiceRecorderStrip({ onSend, onClose }: RecorderProps) {
       {phase === 'recording' && (
         <>
           <View style={vs.redDot} />
-          <Text style={[vs.timer, warn && { color: colours.error }]}>
+          <Text style={[vs.timer, warn && { color: c.error }]}>
             {fmt(elapsed)}{warn ? ' · stopping soon' : ''}
           </Text>
           <View style={{ flex: 1 }} />
           <TouchableOpacity onPress={onClose} style={vs.iconBtn} accessibilityLabel="Cancel recording">
-            <Ionicons name="trash-outline" size={22} color={colours.textMuted} />
+            <Ionicons name="trash-outline" size={22} color={c.textMuted} />
           </TouchableOpacity>
           <TouchableOpacity onPress={stopRecording} style={vs.stopBtn} accessibilityLabel="Stop recording">
             <Ionicons name="stop" size={20} color="#fff" />
@@ -146,12 +149,12 @@ export function VoiceRecorderStrip({ onSend, onClose }: RecorderProps) {
       {phase === 'review' && (
         <>
           <TouchableOpacity onPress={togglePlay} style={vs.playBtn} accessibilityLabel={playing ? 'Pause preview' : 'Play preview'}>
-            <Ionicons name={playing ? 'pause' : 'play'} size={18} color={colours.primary} />
+            <Ionicons name={playing ? 'pause' : 'play'} size={18} color={c.primary} />
           </TouchableOpacity>
           <Text style={vs.timer}>{fmt(Math.round(durationRef.current / 1000))}</Text>
           <View style={{ flex: 1 }} />
           <TouchableOpacity onPress={onClose} style={vs.iconBtn} accessibilityLabel="Discard voice message">
-            <Ionicons name="trash-outline" size={22} color={colours.textMuted} />
+            <Ionicons name="trash-outline" size={22} color={c.textMuted} />
           </TouchableOpacity>
           <TouchableOpacity onPress={send} style={vs.sendBtn} accessibilityLabel="Send voice message">
             <Ionicons name="send" size={18} color="#fff" />
@@ -160,19 +163,19 @@ export function VoiceRecorderStrip({ onSend, onClose }: RecorderProps) {
       )}
       {phase === 'uploading' && (
         <>
-          <ActivityIndicator size="small" color={colours.primary} />
+          <ActivityIndicator size="small" color={c.primary} />
           <Text style={[vs.timer, { marginLeft: spacing.sm }]}>Sending…</Text>
         </>
       )}
       {phase === 'failed' && (
         <>
-          <Text style={[vs.timer, { color: colours.error }]}>Upload failed</Text>
+          <Text style={[vs.timer, { color: c.error }]}>Upload failed</Text>
           <View style={{ flex: 1 }} />
           <TouchableOpacity onPress={send} style={vs.iconBtn} accessibilityLabel="Retry send">
-            <Ionicons name="refresh" size={22} color={colours.primary} />
+            <Ionicons name="refresh" size={22} color={c.primary} />
           </TouchableOpacity>
           <TouchableOpacity onPress={onClose} style={vs.iconBtn} accessibilityLabel="Discard">
-            <Ionicons name="close" size={22} color={colours.textMuted} />
+            <Ionicons name="close" size={22} color={c.textMuted} />
           </TouchableOpacity>
         </>
       )}
@@ -182,6 +185,8 @@ export function VoiceRecorderStrip({ onSend, onClose }: RecorderProps) {
 
 // ─── Playback bubble ─────────────────────────────────────────────────────────
 export function VoiceMessageBubble({ uri, durationMs, own }: { uri: string | null; durationMs: number | null; own: boolean }) {
+  const { c } = useTheme();
+  const vs = React.useMemo(() => makeVs(c), [c]);
   const [state, setState] = useState<'idle' | 'loading' | 'playing' | 'failed'>('idle');
   const [progress, setProgress] = useState(0);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -215,7 +220,7 @@ export function VoiceMessageBubble({ uri, durationMs, own }: { uri: string | nul
     }
   };
 
-  const fg = own ? '#fff' : colours.textPrimary;
+  const fg = own ? '#fff' : c.textPrimary;
   if (state === 'failed') {
     return (
       <TouchableOpacity onPress={() => { soundRef.current = null; setState('idle'); toggle(); }} style={vs.bubbleRowInner}>
@@ -228,22 +233,22 @@ export function VoiceMessageBubble({ uri, durationMs, own }: { uri: string | nul
     <View style={vs.bubbleRowInner} accessibilityLabel="Voice message">
       <TouchableOpacity onPress={toggle} style={[vs.playBtnSmall, own && { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
         {state === 'loading' ? (
-          <ActivityIndicator size="small" color={own ? '#fff' : colours.primary} />
+          <ActivityIndicator size="small" color={own ? '#fff' : c.primary} />
         ) : (
-          <Ionicons name={state === 'playing' ? 'pause' : 'play'} size={16} color={own ? '#fff' : colours.primary} />
+          <Ionicons name={state === 'playing' ? 'pause' : 'play'} size={16} color={own ? '#fff' : c.primary} />
         )}
       </TouchableOpacity>
       <View style={[vs.track, own && { backgroundColor: 'rgba(255,255,255,0.3)' }]}>
-        <View style={[vs.fill, own ? { backgroundColor: '#fff' } : { backgroundColor: colours.primary }, { width: `${Math.round(progress * 100)}%` }]} />
+        <View style={[vs.fill, own ? { backgroundColor: '#fff' } : { backgroundColor: c.primary }, { width: `${Math.round(progress * 100)}%` }]} />
       </View>
-      <Text style={[vs.duration, { color: own ? 'rgba(255,255,255,0.8)' : colours.textMuted }]}>
+      <Text style={[vs.duration, { color: own ? 'rgba(255,255,255,0.8)' : c.textMuted }]}>
         {fmt(Math.round((durationMs || 0) / 1000))}
       </Text>
     </View>
   );
 }
 
-const vs = StyleSheet.create({
+const makeVs = (c: ThemeColours) => StyleSheet.create({
   strip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -251,15 +256,15 @@ const vs = StyleSheet.create({
     paddingVertical: spacing.sm,
     minHeight: 56,
   },
-  redDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colours.error, marginRight: spacing.sm },
-  timer: { fontSize: typography.fontSize.sm, color: colours.textPrimary, fontVariant: ['tabular-nums'] },
+  redDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: c.error, marginRight: spacing.sm },
+  timer: { fontSize: typography.fontSize.sm, color: c.textPrimary, fontVariant: ['tabular-nums'] },
   iconBtn: { padding: spacing.sm },
   stopBtn: {
-    width: 44, height: 44, borderRadius: 22, backgroundColor: colours.error,
+    width: 44, height: 44, borderRadius: 22, backgroundColor: c.error,
     alignItems: 'center', justifyContent: 'center', marginLeft: spacing.xs,
   },
   sendBtn: {
-    width: 44, height: 44, borderRadius: 22, backgroundColor: colours.primary,
+    width: 44, height: 44, borderRadius: 22, backgroundColor: c.primary,
     alignItems: 'center', justifyContent: 'center', marginLeft: spacing.xs,
   },
   playBtn: {

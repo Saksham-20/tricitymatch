@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import { Modal, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,7 +12,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import { colours, type } from '@shared/constants/theme';
+import { colours, type, type ThemeColours } from '@shared/constants/theme';
 import { spring } from '@shared/constants/motion';
 import { haptics } from '../../utils/haptics';
 import { useReduceMotion } from '../motion';
@@ -30,6 +31,8 @@ interface Props {
  * gold seal, name line, message / keep-browsing CTAs.
  */
 export default function MatchCelebration({ visible, name, onClose, onMessage }: Props) {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const reduced = useReduceMotion();
   const scale = useSharedValue(reduced ? 1 : 0);
   const pulse = useSharedValue(0);
@@ -63,12 +66,12 @@ export default function MatchCelebration({ visible, name, onClose, onMessage }: 
         <Animated.View style={[styles.pulseRing, pulseStyle]} pointerEvents="none" />
         <Animated.View style={sealStyle}>
           <LinearGradient
-            colors={[colours.g300, colours.g600]}
+            colors={[c.g300, c.g600]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.seal}
           >
-            <Ionicons name="heart" size={48} color={colours.goldText} />
+            <Ionicons name="heart" size={48} color={c.goldText} />
           </LinearGradient>
         </Animated.View>
         <Text style={styles.title}>It's a match!</Text>
@@ -84,7 +87,7 @@ export default function MatchCelebration({ visible, name, onClose, onMessage }: 
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
   scrim: {
     flex: 1,
     alignItems: 'center',
@@ -98,7 +101,7 @@ const styles = StyleSheet.create({
     height: 104,
     borderRadius: 52,
     borderWidth: 2,
-    borderColor: colours.g300,
+    borderColor: c.g300,
   },
   seal: {
     width: 104,

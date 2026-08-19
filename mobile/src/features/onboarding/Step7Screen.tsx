@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { PressableScale } from '../../components/motion';
 import { haptics } from '../../utils/haptics';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import OnboardingLayout from './OnboardingLayout';
 import { useOnboarding } from './OnboardingContext';
 import type { MaritalStatus } from '../../types';
@@ -16,6 +17,8 @@ const MARITAL_OPTIONS: { key: MaritalStatus; tKey: string }[] = [
 ];
 
 export default function Step7Screen() {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const { t } = useTranslation();
   const { data, saveAndNext } = useOnboarding();
 
@@ -111,7 +114,7 @@ export default function Step7Screen() {
             value={childrenCount}
             onChangeText={setChildrenCount}
             placeholder="0"
-            placeholderTextColor={colours.textMuted}
+            placeholderTextColor={c.textMuted}
             keyboardType="number-pad"
             maxLength={1}
             testID="input-childrenCount"
@@ -123,54 +126,54 @@ export default function Step7Screen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
   label: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     marginBottom: spacing.sm,
   },
   optionsContainer: { gap: spacing.sm },
   optionBtn: {
     height: 52,
     borderWidth: 1.5,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.sm,
     justifyContent: 'center',
     paddingHorizontal: spacing.lg,
   },
-  optionBtnActive: { borderColor: colours.primary, backgroundColor: colours.primaryLight },
+  optionBtnActive: { borderColor: c.primary, backgroundColor: c.primaryLight },
   optionBtnText: {
     fontSize: typography.fontSize.base,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
-  optionBtnTextActive: { color: colours.primary },
+  optionBtnTextActive: { color: c.primary },
   row: { flexDirection: 'row', gap: spacing.sm },
   yesNoBtn: {
     flex: 1,
     height: 48,
     borderWidth: 1.5,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  yesNoBtnActive: { borderColor: colours.primary, backgroundColor: colours.primaryLight },
+  yesNoBtnActive: { borderColor: c.primary, backgroundColor: c.primaryLight },
   yesNoBtnText: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
-  yesNoBtnTextActive: { color: colours.primary },
+  yesNoBtnTextActive: { color: c.primary },
   input: {
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     fontSize: typography.fontSize.base,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     minHeight: 48,
     width: 100,
   },

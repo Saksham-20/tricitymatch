@@ -4,8 +4,9 @@
  * a live +91 pill appears for phone input. Reports the parsed identity up.
  */
 import React from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 
 export type ContactKind = 'email' | 'phone' | null;
 
@@ -36,6 +37,8 @@ interface Props {
 }
 
 export default function SmartContactInput({ value, onChange, editable = true, testID }: Props) {
+  const { c } = useTheme();
+  const st = React.useMemo(() => makeSt(c), [c]);
   const parsed = parseContact(value);
   return (
     <View style={st.wrap}>
@@ -49,7 +52,7 @@ export default function SmartContactInput({ value, onChange, editable = true, te
         value={value}
         onChangeText={(txt) => onChange(txt, parseContact(txt))}
         placeholder="Email or mobile number"
-        placeholderTextColor={colours.textMuted}
+        placeholderTextColor={c.textMuted}
         keyboardType="email-address"
         autoCapitalize="none"
         autoCorrect={false}
@@ -62,14 +65,14 @@ export default function SmartContactInput({ value, onChange, editable = true, te
   );
 }
 
-const st = StyleSheet.create({
+const makeSt = (c: ThemeColours) => StyleSheet.create({
   wrap: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.md,
-    backgroundColor: colours.surfaceCard,
+    backgroundColor: c.surfaceCard,
     paddingHorizontal: spacing.md,
   },
   pill: {
@@ -79,11 +82,11 @@ const st = StyleSheet.create({
     paddingVertical: 3,
     marginRight: spacing.sm,
   },
-  pillText: { fontSize: typography.fontSize.sm, color: colours.primary, fontWeight: '600' },
+  pillText: { fontSize: typography.fontSize.sm, color: c.primary, fontWeight: '600' },
   input: {
     flex: 1,
     minHeight: 50,
     fontSize: typography.fontSize.base,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
 });

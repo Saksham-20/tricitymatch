@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import { View, Text, Image, StyleSheet } from 'react-native';
 import { colours, typography } from '@shared/constants/theme';
 
@@ -29,12 +30,13 @@ const textSizes = {
 };
 
 export default function Logo({ variant = 'default', size = 'md', showText = true }: LogoProps) {
+  const { c } = useTheme();
   const isWhite = variant === 'white';
   const isStacked = variant === 'stacked';
   const isIcon = variant === 'icon';
 
   const badgeSize = badgeSizes[size];
-  const textColor = isWhite ? '#FFFFFF' : colours.textPrimary;
+  const textColor = isWhite ? '#FFFFFF' : c.textPrimary;
 
   const mark = (
     <Image

@@ -8,7 +8,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
-import { colours, type, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, type, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { Avatar, EmptyState as SharedEmpty, GoldLock, SkeletonRow } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../stores/authStore';
@@ -46,6 +46,7 @@ interface ConversationCardProps {
 
 function ConversationCard({ item, locked = false, onPress }: ConversationCardProps) {
   const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const { profile, lastMessage, unreadCount, isOnline } = item;
   const name = `${profile.firstName} ${profile.lastName}`;
   const unread = unreadCount > 0 && !locked;
@@ -89,6 +90,7 @@ function ConversationCard({ item, locked = false, onPress }: ConversationCardPro
 export default function ConversationsScreen() {
   const { t } = useTranslation();
   const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
@@ -208,7 +210,7 @@ export default function ConversationsScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (c: ThemeColours) => StyleSheet.create({
   container: { flex: 1 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -228,9 +230,9 @@ const s = StyleSheet.create({
   bold: { fontFamily: 'Inter-Bold' },
   semibold: { fontFamily: 'Inter-SemiBold' },
   badge: {
-    backgroundColor: colours.accent, borderRadius: borderRadius.pill,
+    backgroundColor: c.accent, borderRadius: borderRadius.pill,
     minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5,
   },
   badgeText: { ...type.micro, color: '#fff' },
-  separator: { height: 0.5, backgroundColor: colours.hairline, marginLeft: 54 + 13 + spacing.gutter },
+  separator: { height: 0.5, backgroundColor: c.hairline, marginLeft: 54 + 13 + spacing.gutter },
 });

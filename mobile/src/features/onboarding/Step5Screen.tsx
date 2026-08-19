@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import PickerSheet from '../../components/ui/PickerSheet';
 import OnboardingLayout from './OnboardingLayout';
 import { useOnboarding } from './OnboardingContext';
@@ -25,6 +26,8 @@ const INCOME_RANGES: { label: string; value: number }[] = [
 ];
 
 export default function Step5Screen() {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const { t } = useTranslation();
   const { data, saveAndNext } = useOnboarding();
 
@@ -83,7 +86,7 @@ export default function Step5Screen() {
           value={employer}
           onChangeText={setEmployer}
           placeholder="Company / organisation name"
-          placeholderTextColor={colours.textMuted}
+          placeholderTextColor={c.textMuted}
           autoCapitalize="words"
           testID="input-employer"
           accessibilityLabel={t('onboarding.step5.employer')}
@@ -128,32 +131,32 @@ export default function Step5Screen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
   label: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     marginBottom: spacing.sm,
   },
-  optional: { color: colours.textMuted, fontFamily: typography.fontFamily.regular },
+  optional: { color: c.textMuted, fontFamily: typography.fontFamily.regular },
   input: {
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     fontSize: typography.fontSize.base,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     minHeight: 48,
   },
   selectBtn: {
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.sm,
     paddingHorizontal: spacing.md,
     height: 48,
     justifyContent: 'center',
   },
-  selectText: { fontSize: typography.fontSize.base, color: colours.textPrimary },
-  placeholderText: { fontSize: typography.fontSize.base, color: colours.textMuted },
+  selectText: { fontSize: typography.fontSize.base, color: c.textPrimary },
+  placeholderText: { fontSize: typography.fontSize.base, color: c.textMuted },
 });

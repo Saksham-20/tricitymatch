@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import {
   View, Text, TouchableOpacity, Image, StyleSheet,
   ActivityIndicator, StatusBar,
@@ -8,7 +9,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { callColours } from './callTheme';
 import { useAuthStore } from '../../stores/authStore';
 import { useCallStore } from '../../stores/callStore';
@@ -40,6 +41,8 @@ function formatDuration(secs: number): string {
 }
 
 export default function VoiceCallScreen() {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { callId: incomingCallId, channelName, calleeId } = route.params;
@@ -251,7 +254,7 @@ export default function VoiceCallScreen() {
           <Image source={{ uri: calleePhoto }} style={styles.avatar} />
         ) : (
           <View style={[styles.avatar, styles.avatarPlaceholder]}>
-            <Ionicons name="person" size={72} color={colours.textMuted} />
+            <Ionicons name="person" size={72} color={c.textMuted} />
           </View>
         )}
       </View>
@@ -261,7 +264,7 @@ export default function VoiceCallScreen() {
       <Text style={styles.status} testID="CallStatus">{phaseLabel[phase]}</Text>
 
       {phase === 'connecting' && (
-        <ActivityIndicator color={colours.primary} style={{ marginTop: spacing.md }} />
+        <ActivityIndicator color={c.primary} style={{ marginTop: spacing.md }} />
       )}
 
       {/* Controls */}
@@ -305,6 +308,8 @@ interface CallButtonProps {
 }
 
 function CallButton({ icon, label, onPress, variant = 'default', active, testID }: CallButtonProps) {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   return (
     <View style={styles.btnWrap}>
       <TouchableOpacity
@@ -320,7 +325,7 @@ function CallButton({ icon, label, onPress, variant = 'default', active, testID 
         <Ionicons
           name={icon}
           size={28}
-          color={variant === 'end' || active ? colours.background : colours.textPrimary}
+          color={variant === 'end' || active ? c.background : c.textPrimary}
         />
       </TouchableOpacity>
       <Text style={styles.btnLabel}>{label}</Text>
@@ -329,7 +334,7 @@ function CallButton({ icon, label, onPress, variant = 'default', active, testID 
 }
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: callColours.overlay,
@@ -345,10 +350,10 @@ const styles = StyleSheet.create({
     height: 140,
     borderRadius: 70,
     borderWidth: 3,
-    borderColor: colours.primary,
+    borderColor: c.primary,
   },
   avatarPlaceholder: {
-    backgroundColor: colours.surfaceCard,
+    backgroundColor: c.surfaceCard,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -382,13 +387,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   btnEnd: {
-    backgroundColor: colours.error,
+    backgroundColor: c.error,
     width: 72,
     height: 72,
     borderRadius: 36,
   },
   btnActive: {
-    backgroundColor: colours.primary,
+    backgroundColor: c.primary,
   },
   btnLabel: {
     fontSize: typography.fontSize.xs,

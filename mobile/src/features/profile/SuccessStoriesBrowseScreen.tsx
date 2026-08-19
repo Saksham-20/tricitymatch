@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import {
   View,
   Text,
@@ -12,7 +13,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { ListSkeleton } from '../../components/ui/skeletons';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import SmartImage from '../../components/common/SmartImage';
 import { getSuccessStories, type SuccessStory } from '../../api/profile';
 import type { MainStackParamList } from '../../navigation/types';
@@ -20,6 +21,8 @@ import type { MainStackParamList } from '../../navigation/types';
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 
 function StoryCard({ story }: { story: SuccessStory }) {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   return (
     <View style={styles.card} testID={`story-${story.id}`}>
       <SmartImage uri={story.photoUrl} name={story.coupleNames} style={styles.photo} initialSize={40} />
@@ -44,6 +47,8 @@ function StoryCard({ story }: { story: SuccessStory }) {
 }
 
 export default function SuccessStoriesBrowseScreen() {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const navigation = useNavigation<Nav>();
 
   const { data: stories = [], isLoading } = useQuery({
@@ -56,7 +61,7 @@ export default function SuccessStoriesBrowseScreen() {
     <SafeAreaView style={styles.safe} testID="SuccessStoriesBrowseScreen">
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} testID="back-btn" accessibilityLabel="Back">
-          <Ionicons name="chevron-back" size={26} color={colours.textPrimary} />
+          <Ionicons name="chevron-back" size={26} color={c.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Success Stories</Text>
         <TouchableOpacity
@@ -64,7 +69,7 @@ export default function SuccessStoriesBrowseScreen() {
           testID="share-story-btn"
           accessibilityLabel="Share your story"
         >
-          <Ionicons name="add-circle-outline" size={24} color={colours.primary} />
+          <Ionicons name="add-circle-outline" size={24} color={c.primary} />
         </TouchableOpacity>
       </View>
 
@@ -78,7 +83,7 @@ export default function SuccessStoriesBrowseScreen() {
           contentContainerStyle={styles.list}
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Ionicons name="heart-outline" size={48} color={colours.textMuted} />
+              <Ionicons name="heart-outline" size={48} color={c.textMuted} />
               <Text style={styles.emptyTitle}>No stories yet</Text>
               <Text style={styles.emptySub}>Be the first to share your TricityMatch journey.</Text>
               <TouchableOpacity
@@ -96,8 +101,8 @@ export default function SuccessStoriesBrowseScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colours.background },
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.background },
   loader: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row',
@@ -106,27 +111,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colours.border,
+    borderBottomColor: c.border,
   },
   headerTitle: {
     fontSize: typography.fontSize.lg,
     fontFamily: typography.fontFamily.bold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
   list: { padding: spacing.lg, gap: spacing.lg },
   card: {
-    backgroundColor: colours.surfaceCard,
+    backgroundColor: c.surfaceCard,
     borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
     overflow: 'hidden',
     marginBottom: spacing.lg,
   },
-  photo: { width: '100%', height: 200, backgroundColor: colours.background },
+  photo: { width: '100%', height: 200, backgroundColor: c.background },
   cardBody: { padding: spacing.lg },
   tagPill: {
     alignSelf: 'flex-start',
-    backgroundColor: colours.primaryLight,
+    backgroundColor: c.primaryLight,
     borderRadius: borderRadius.full,
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
@@ -134,12 +139,12 @@ const styles = StyleSheet.create({
   },
   tagText: {
     fontSize: typography.fontSize.xs,
-    color: colours.primary,
+    color: c.primary,
     fontFamily: typography.fontFamily.semiBold,
   },
   quote: {
     fontSize: typography.fontSize.base,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     fontStyle: 'italic',
     lineHeight: 24,
     marginBottom: spacing.sm,
@@ -147,25 +152,25 @@ const styles = StyleSheet.create({
   names: {
     fontSize: typography.fontSize.base,
     fontFamily: typography.fontFamily.semiBold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
-  meta: { fontSize: typography.fontSize.xs, color: colours.textMuted, marginTop: 2 },
+  meta: { fontSize: typography.fontSize.xs, color: c.textMuted, marginTop: 2 },
   empty: { alignItems: 'center', paddingTop: 80, gap: spacing.sm },
   emptyTitle: {
     fontSize: typography.fontSize.lg,
     fontFamily: typography.fontFamily.semiBold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     marginTop: spacing.sm,
   },
   emptySub: {
     fontSize: typography.fontSize.sm,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
     paddingHorizontal: spacing.xl,
   },
   emptyBtn: {
     marginTop: spacing.lg,
-    backgroundColor: colours.primary,
+    backgroundColor: c.primary,
     borderRadius: borderRadius.md,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,

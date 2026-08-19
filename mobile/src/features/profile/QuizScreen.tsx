@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import {
   View,
   Text,
@@ -16,7 +17,7 @@ import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from '
 import { duration, easing } from '@shared/constants/motion';
 import { showToast } from '../../utils/toast';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { PressableScale, useReduceMotion } from '../../components/motion';
 import { haptics } from '../../utils/haptics';
 import { updateMyProfile } from '../../api/profile';
@@ -140,6 +141,8 @@ const QUESTIONS: Question[] = [
 // ─── Progress Bar ─────────────────────────────────────────────────────────────
 
 function ProgressBar({ current, total }: { current: number; total: number }) {
+  const { c } = useTheme();
+  const pb = React.useMemo(() => makePb(c), [c]);
   const pct = Math.round((current / total) * 100);
   const reduced = useReduceMotion();
   const w = useSharedValue(pct);
@@ -157,16 +160,18 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
   );
 }
 
-const pb = StyleSheet.create({
+const makePb = (c: ThemeColours) => StyleSheet.create({
   container: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg, marginBottom: spacing.lg },
-  track: { flex: 1, height: 6, backgroundColor: colours.border, borderRadius: 3, overflow: 'hidden' },
-  fill: { height: '100%', backgroundColor: colours.primary, borderRadius: 3 },
-  label: { fontSize: typography.fontSize.xs, color: colours.textMuted, fontFamily: typography.fontFamily.medium, minWidth: 36 },
+  track: { flex: 1, height: 6, backgroundColor: c.border, borderRadius: 3, overflow: 'hidden' },
+  fill: { height: '100%', backgroundColor: c.primary, borderRadius: 3 },
+  label: { fontSize: typography.fontSize.xs, color: c.textMuted, fontFamily: typography.fontFamily.medium, minWidth: 36 },
 });
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function QuizScreen() {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
@@ -220,7 +225,7 @@ export default function QuizScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBack} testID="quiz-back" accessibilityLabel="Back">
-          <Ionicons name="arrow-back" size={22} color={colours.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Compatibility Quiz</Text>
         <View style={{ width: 22 }} />
@@ -298,8 +303,8 @@ export default function QuizScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  wrapper: { flex: 1, backgroundColor: colours.background || '#fff' },
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
+  wrapper: { flex: 1, backgroundColor: c.background || '#fff' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -308,12 +313,12 @@ const styles = StyleSheet.create({
     paddingTop: spacing['2xl'] || 32,
     paddingBottom: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colours.border,
+    borderBottomColor: c.border,
   },
   headerTitle: {
     fontSize: typography.fontSize.lg,
     fontFamily: typography.fontFamily.bold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
   scroll: { flex: 1 },
   questionCard: {
@@ -321,13 +326,13 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     marginBottom: spacing.xl || spacing.lg,
     padding: spacing.lg,
-    backgroundColor: colours.primaryLight,
+    backgroundColor: c.primaryLight,
     borderRadius: borderRadius.lg,
   },
   questionNumber: {
     fontSize: typography.fontSize.xs,
     fontFamily: typography.fontFamily.semiBold,
-    color: colours.primary,
+    color: c.primary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: spacing.sm,
@@ -335,7 +340,7 @@ const styles = StyleSheet.create({
   questionText: {
     fontSize: typography.fontSize.lg,
     fontFamily: typography.fontFamily.bold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     lineHeight: 26,
   },
   options: { paddingHorizontal: spacing.lg, gap: spacing.sm },
@@ -345,49 +350,49 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     padding: spacing.md,
     borderWidth: 1.5,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.md,
     backgroundColor: '#fff',
   },
   optionSelected: {
-    borderColor: colours.primary,
-    backgroundColor: colours.primaryLight,
+    borderColor: c.primary,
+    backgroundColor: c.primaryLight,
   },
   radio: {
     width: 20,
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: colours.border,
+    borderColor: c.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  radioSelected: { borderColor: colours.primary },
+  radioSelected: { borderColor: c.primary },
   radioDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: colours.primary,
+    backgroundColor: c.primary,
   },
   optionText: {
     flex: 1,
     fontSize: typography.fontSize.sm,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     fontFamily: typography.fontFamily.regular,
     lineHeight: 20,
   },
   optionTextSelected: {
-    color: colours.primary,
+    color: c.primary,
     fontFamily: typography.fontFamily.medium,
   },
   footer: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: colours.border,
+    borderTopColor: c.border,
   },
   nextBtn: {
-    backgroundColor: colours.primary,
+    backgroundColor: c.primary,
     borderRadius: borderRadius.md,
     paddingVertical: spacing.md,
     alignItems: 'center',

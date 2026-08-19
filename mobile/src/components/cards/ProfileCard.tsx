@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Dimensions, StyleProp, ViewSt
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated from 'react-native-reanimated';
-import { colours, type, spacing, borderRadius, shadows, darkShadows } from '@shared/constants/theme';
+import { colours, type, spacing, borderRadius, shadows, darkShadows, type ThemeColours } from '@shared/constants/theme';
 import type { ProfileSummary } from '../../types';
 import SmartImage from '../common/SmartImage';
 import Avatar from '../ui/Avatar';
@@ -78,6 +78,7 @@ export default function ProfileCard({
   testID,
 }: ProfileCardProps) {
   const { c, isDark } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const sh = isDark ? darkShadows : shadows;
   const age = ageFromDob(profile.dateOfBirth);
   const name = `${profile.firstName} ${profile.lastName}`;
@@ -113,11 +114,11 @@ export default function ProfileCard({
         </View>
         <View style={s.compactActions}>
           <TouchableOpacity style={[s.iconBtn, { backgroundColor: c.surface2 }]} onPress={shortlist} accessibilityLabel="Shortlist" testID={`shortlist-${profile.id}`}>
-            <Ionicons name="bookmark-outline" size={20} color={colours.accent} />
+            <Ionicons name="bookmark-outline" size={20} color={c.accent} />
           </TouchableOpacity>
           <LikeButton
-            style={[s.iconBtn, { backgroundColor: colours.accentSoft }]}
-            iconColor={colours.accent}
+            style={[s.iconBtn, { backgroundColor: c.accentSoft }]}
+            iconColor={c.accent}
             onLike={onLike}
             testID={`like-${profile.id}`}
           />
@@ -158,7 +159,7 @@ export default function ProfileCard({
         <View style={s.overlay} pointerEvents="none">
           <View style={s.nameRow}>
             <Text style={s.name} numberOfLines={1}>{name}{age ? `, ${age}` : ''}</Text>
-            {profile.isVerified && <Ionicons name="checkmark-circle" size={16} color={colours.success} />}
+            {profile.isVerified && <Ionicons name="checkmark-circle" size={16} color={c.success} />}
           </View>
           <Text style={s.meta} numberOfLines={1}>
             {[profile.profession, profile.city].filter(Boolean).join(' · ')}
@@ -179,8 +180,8 @@ export default function ProfileCard({
           <Text style={[s.actionLabel, { color: c.textSecondary }]}>Pass</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[s.actionBtn, s.actionMid, { borderColor: c.border }]} onPress={shortlist} accessibilityLabel="Shortlist" testID={`shortlist-${profile.id}`}>
-          <Ionicons name="bookmark-outline" size={20} color={colours.accent} />
-          <Text style={[s.actionLabel, { color: colours.accent }]}>Shortlist</Text>
+          <Ionicons name="bookmark-outline" size={20} color={c.accent} />
+          <Text style={[s.actionLabel, { color: c.accent }]}>Shortlist</Text>
         </TouchableOpacity>
         <LikeButton
           style={[s.actionBtn, s.likeBtn]}
@@ -197,7 +198,7 @@ export default function ProfileCard({
 
 const CARD_W = Math.min(SCREEN_W - spacing.gutter * 2, 400);
 
-const s = StyleSheet.create({
+const makeS = (c: ThemeColours) => StyleSheet.create({
   // ── Full card ──────────────────────────────────────────────────────────────
   card: {
     borderRadius: borderRadius.lg,
@@ -207,12 +208,12 @@ const s = StyleSheet.create({
     overflow: 'hidden',
   },
   photoWrapper: { position: 'relative' },
-  photo: { width: '100%', height: CARD_W * 1.12, backgroundColor: colours.surface2 },
+  photo: { width: '100%', height: CARD_W * 1.12, backgroundColor: c.surface2 },
   scrim: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 },
   topRow: { position: 'absolute', top: 10, left: 10, right: 10, flexDirection: 'row' },
   boostedTag: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
-    backgroundColor: colours.accent, borderRadius: borderRadius.pill,
+    backgroundColor: c.accent, borderRadius: borderRadius.pill,
     paddingHorizontal: spacing.sm, paddingVertical: 3,
   },
   boostedText: { ...type.micro, color: '#fff' },
@@ -234,7 +235,7 @@ const s = StyleSheet.create({
   },
   actionMid: { borderLeftWidth: 0.5, borderRightWidth: 0.5 },
   actionLabel: { ...type.subhead, fontFamily: 'Inter-SemiBold' },
-  likeBtn: { backgroundColor: colours.accent },
+  likeBtn: { backgroundColor: c.accent },
 
   // ── Compact row ──────────────────────────────────────────────────────────
   compactCard: {
@@ -243,12 +244,12 @@ const s = StyleSheet.create({
     borderBottomWidth: 0.5,
   },
   compactInfo: { flex: 1 },
-  compactName: { ...type.headline, color: colours.fgStrong },
-  compactSub: { ...type.footnote, color: colours.textMuted, marginTop: 1 },
+  compactName: { ...type.headline, color: c.fgStrong },
+  compactSub: { ...type.footnote, color: c.textMuted, marginTop: 1 },
   compatRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: 6 },
-  compatBar: { flex: 1, height: 5, backgroundColor: colours.surface2, borderRadius: borderRadius.pill, overflow: 'hidden' },
+  compatBar: { flex: 1, height: 5, backgroundColor: c.surface2, borderRadius: borderRadius.pill, overflow: 'hidden' },
   compatFill: { height: 5, borderRadius: borderRadius.pill },
-  compatPct: { ...type.caption, color: colours.textMuted, minWidth: 32, textAlign: 'right' },
+  compatPct: { ...type.caption, color: c.textMuted, minWidth: 32, textAlign: 'right' },
   compactActions: { flexDirection: 'row', gap: 8 },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: borderRadius.pill },
 });

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import {
   View,
   Text,
@@ -27,11 +28,13 @@ import { CONFIG } from '../../constants/config';
 import { cache, CACHE_KEYS } from '../../utils/cache';
 import { secureStorage } from '../../utils/secureStorage';
 import { useShake } from '../../components/motion';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
 export default function LoginScreen() {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -227,7 +230,7 @@ export default function LoginScreen() {
             accessibilityLabel="Go back"
             testID="login-back"
           >
-            <Ionicons name="arrow-back" size={24} color={colours.textPrimary} />
+            <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
           </TouchableOpacity>
         )}
 
@@ -252,7 +255,7 @@ export default function LoginScreen() {
             value={email}
             onChangeText={(v) => { setEmail(v); setError(''); }}
             placeholder="you@example.com"
-            placeholderTextColor={colours.textMuted}
+            placeholderTextColor={c.textMuted}
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
@@ -285,7 +288,7 @@ export default function LoginScreen() {
               value={password}
               onChangeText={(v) => { setPassword(v); setError(''); }}
               placeholder="••••••••"
-              placeholderTextColor={colours.textMuted}
+              placeholderTextColor={c.textMuted}
               secureTextEntry={!showPassword}
               textContentType="password"
               autoComplete="current-password"
@@ -300,7 +303,7 @@ export default function LoginScreen() {
               accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
               testID="LoginScreen-togglePassword"
             >
-              <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colours.textMuted} />
+              <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={c.textMuted} />
             </TouchableOpacity>
           </View>
         </View>
@@ -339,7 +342,7 @@ export default function LoginScreen() {
               testID="LoginScreen-google"
             >
               <View style={styles.btnRow}>
-                <Ionicons name="logo-google" size={18} color={colours.textPrimary} />
+                <Ionicons name="logo-google" size={18} color={c.textPrimary} />
                 <Text style={styles.googleBtnText}>{t('auth.login.googleSignIn')}</Text>
               </View>
             </TouchableOpacity>
@@ -356,8 +359,8 @@ export default function LoginScreen() {
             testID="LoginScreen-biometric"
           >
             <View style={styles.btnRow}>
-              <Ionicons name="finger-print" size={18} color={bioAttempts >= BIO_MAX_ATTEMPTS ? colours.textMuted : colours.primary} />
-              <Text style={[styles.biometricBtnText, bioAttempts >= BIO_MAX_ATTEMPTS && { color: colours.textMuted }]}>
+              <Ionicons name="finger-print" size={18} color={bioAttempts >= BIO_MAX_ATTEMPTS ? c.textMuted : c.primary} />
+              <Text style={[styles.biometricBtnText, bioAttempts >= BIO_MAX_ATTEMPTS && { color: c.textMuted }]}>
                 {biometricEnabled ? 'Sign in with Face ID / Touch ID' : 'Use biometric login'}
               </Text>
             </View>
@@ -386,7 +389,7 @@ export default function LoginScreen() {
         <View style={styles.bioModalBackdrop}>
           <View style={styles.bioModalCard}>
             <View style={styles.bioModalIconWrap}>
-              <Ionicons name="finger-print" size={32} color={colours.primary} />
+              <Ionicons name="finger-print" size={32} color={c.primary} />
             </View>
             <Text style={styles.bioModalTitle}>Enable Face ID / Touch ID?</Text>
             <Text style={styles.bioModalBody}>
@@ -415,8 +418,8 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colours.background },
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
+  flex: { flex: 1, backgroundColor: c.background },
   scroll: { flex: 1 },
   content: {
     padding: spacing['2xl'],
@@ -426,25 +429,25 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.fontSize['3xl'],
     fontFamily: typography.fontFamily.bold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
   subtitle: {
     fontSize: typography.fontSize.base,
     fontFamily: typography.fontFamily.regular,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     marginTop: spacing.xs,
   },
   errorBanner: {
-    backgroundColor: colours.errorBg,
+    backgroundColor: c.errorBg,
     borderRadius: borderRadius.md,
     padding: spacing.md,
     marginBottom: spacing.lg,
     borderLeftWidth: 3,
-    borderLeftColor: colours.error,
+    borderLeftColor: c.error,
   },
   errorText: {
     fontSize: typography.fontSize.sm,
-    color: colours.error,
+    color: c.error,
     fontFamily: typography.fontFamily.medium,
   },
   fieldGroup: { marginBottom: spacing.lg },
@@ -457,24 +460,24 @@ const styles = StyleSheet.create({
   label: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     marginBottom: spacing.sm,
   },
   forgotLink: {
     fontSize: typography.fontSize.sm,
-    color: colours.primary,
+    color: c.primary,
     fontFamily: typography.fontFamily.medium,
   },
   input: {
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.md,
     paddingHorizontal: spacing.lg,
     paddingVertical: 14,
     fontSize: typography.fontSize.base,
     fontFamily: typography.fontFamily.regular,
-    color: colours.textPrimary,
-    backgroundColor: colours.background,
+    color: c.textPrimary,
+    backgroundColor: c.background,
     minHeight: 52,
   },
   passwordContainer: { position: 'relative' },
@@ -490,7 +493,7 @@ const styles = StyleSheet.create({
   },
   eyeText: { fontSize: 18 },
   primaryBtn: {
-    backgroundColor: colours.primary,
+    backgroundColor: c.primary,
     borderRadius: borderRadius.md,
     paddingVertical: 16,
     alignItems: 'center',
@@ -510,26 +513,26 @@ const styles = StyleSheet.create({
     marginVertical: spacing['2xl'],
     gap: spacing.md,
   },
-  dividerLine: { flex: 1, height: 1, backgroundColor: colours.border },
+  dividerLine: { flex: 1, height: 1, backgroundColor: c.border },
   dividerText: {
     fontSize: typography.fontSize.sm,
-    color: colours.textMuted,
+    color: c.textMuted,
     fontFamily: typography.fontFamily.regular,
   },
   googleBtn: {
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.md,
     paddingVertical: 14,
     alignItems: 'center',
     minHeight: 52,
     justifyContent: 'center',
-    backgroundColor: colours.background,
+    backgroundColor: c.background,
   },
   googleBtnText: {
     fontSize: typography.fontSize.base,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
   biometricBtn: {
     alignItems: 'center',
@@ -541,7 +544,7 @@ const styles = StyleSheet.create({
   biometricBtnText: {
     fontSize: typography.fontSize.base,
     fontFamily: typography.fontFamily.medium,
-    color: colours.primary,
+    color: c.primary,
   },
   footerLink: {
     alignItems: 'center',
@@ -553,7 +556,7 @@ const styles = StyleSheet.create({
   footerLinkText: {
     fontSize: typography.fontSize.base,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textSecondary,
+    color: c.textSecondary,
   },
   bioModalBackdrop: {
     flex: 1,
@@ -563,7 +566,7 @@ const styles = StyleSheet.create({
     padding: spacing['2xl'],
   },
   bioModalCard: {
-    backgroundColor: colours.background,
+    backgroundColor: c.background,
     borderRadius: borderRadius.xl,
     padding: spacing['2xl'],
     alignItems: 'center',
@@ -579,7 +582,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: colours.primaryLight,
+    backgroundColor: c.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.sm,
@@ -587,19 +590,19 @@ const styles = StyleSheet.create({
   bioModalTitle: {
     fontSize: typography.fontSize.xl,
     fontFamily: typography.fontFamily.bold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     textAlign: 'center',
   },
   bioModalBody: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.regular,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: spacing.sm,
   },
   bioModalPrimary: {
-    backgroundColor: colours.primary,
+    backgroundColor: c.primary,
     borderRadius: borderRadius.md,
     paddingVertical: spacing.md,
     width: '100%',
@@ -620,7 +623,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   bioModalSecondaryText: {
-    color: colours.textSecondary,
+    color: c.textSecondary,
     fontFamily: typography.fontFamily.medium,
     fontSize: typography.fontSize.base,
   },

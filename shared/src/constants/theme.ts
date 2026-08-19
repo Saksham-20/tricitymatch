@@ -239,3 +239,8 @@ export const darkColours = {
 } as const;
 
 export type Palette = typeof colours;
+
+// Widened palette for theme-aware style factories: both light `colours` and
+// `darkColours` satisfy it, so `makeStyles = (c: ThemeColours) => …` accepts
+// whichever `useTheme()` returns.
+export type ThemeColours = { [K in keyof typeof colours]: string };

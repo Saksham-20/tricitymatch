@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import {
   View, Text, TouchableOpacity, StyleSheet, Modal, FlatList,
   PanResponder, PanResponderGestureState, LayoutChangeEvent,
@@ -6,7 +7,7 @@ import {
 import { PressableScale } from '../../components/motion';
 import { haptics } from '../../utils/haptics';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import OnboardingLayout from './OnboardingLayout';
 import { useOnboarding } from './OnboardingContext';
 
@@ -34,6 +35,8 @@ interface RangeSliderProps {
 }
 
 function RangeSlider({ min, max, low, high, onLowChange, onHighChange, formatLabel, testID }: RangeSliderProps) {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const trackWidth = useRef(TRACK_WIDTH_FALLBACK);
 
   const posFromVal = (v: number) => ((v - min) / (max - min)) * trackWidth.current;
@@ -121,6 +124,8 @@ interface MultiSelectPillsProps<T extends string> {
 function MultiSelectPills<T extends string>({
   label, options, selected, onToggle, anyAllowed = false,
 }: MultiSelectPillsProps<T>) {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const isAny = selected.length === 0;
   return (
     <View>
@@ -176,6 +181,8 @@ interface PickerSheetProps {
 }
 
 function PickerSheet({ visible, title, options, selected, onSelect, onClose }: PickerSheetProps) {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
@@ -226,6 +233,8 @@ const DIET_OPTIONS: { key: Diet; label: string }[] = [
 const MANGLIK_OPTIONS = ['Any', 'Manglik Only', 'Non-Manglik Only'];
 
 export default function Step11Screen() {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const { t } = useTranslation();
   const { data, saveAndNext } = useOnboarding();
 
@@ -401,11 +410,11 @@ export default function Step11Screen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
   label: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     marginBottom: spacing.sm,
   },
   sliderContainer: { paddingHorizontal: THUMB_SIZE / 2 },
@@ -413,11 +422,11 @@ const styles = StyleSheet.create({
   sliderLabel: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.semiBold,
-    color: colours.primary,
+    color: c.primary,
   },
   track: {
     height: 6,
-    backgroundColor: colours.border,
+    backgroundColor: c.border,
     borderRadius: borderRadius.full,
     position: 'relative',
     marginVertical: THUMB_SIZE / 2,
@@ -425,7 +434,7 @@ const styles = StyleSheet.create({
   trackFill: {
     position: 'absolute',
     height: '100%',
-    backgroundColor: colours.primary,
+    backgroundColor: c.primary,
     borderRadius: borderRadius.full,
   },
   thumb: {
@@ -433,7 +442,7 @@ const styles = StyleSheet.create({
     width: THUMB_SIZE,
     height: THUMB_SIZE,
     borderRadius: THUMB_SIZE / 2,
-    backgroundColor: colours.primary,
+    backgroundColor: c.primary,
     top: -(THUMB_SIZE / 2 - 3),
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -446,32 +455,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderWidth: 1.5,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.full,
     minHeight: 36,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  pillActive: { borderColor: colours.primary, backgroundColor: colours.primaryLight },
+  pillActive: { borderColor: c.primary, backgroundColor: c.primaryLight },
   pillText: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
-  pillTextActive: { color: colours.primary },
+  pillTextActive: { color: c.primary },
   selectBtn: {
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.sm,
     paddingHorizontal: spacing.md,
     height: 48,
     justifyContent: 'center',
   },
-  selectText: { fontSize: typography.fontSize.base, color: colours.textPrimary },
-  placeholderText: { fontSize: typography.fontSize.base, color: colours.textMuted },
+  selectText: { fontSize: typography.fontSize.base, color: c.textPrimary },
+  placeholderText: { fontSize: typography.fontSize.base, color: c.textMuted },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
   sheet: {
-    backgroundColor: colours.background,
+    backgroundColor: c.background,
     borderTopLeftRadius: borderRadius.xl,
     borderTopRightRadius: borderRadius.xl,
     maxHeight: '60%',
@@ -480,12 +489,12 @@ const styles = StyleSheet.create({
   sheetTitle: {
     fontSize: typography.fontSize.lg,
     fontFamily: typography.fontFamily.semiBold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.md,
   },
   sheetRow: { height: 52, paddingHorizontal: spacing.lg, justifyContent: 'center' },
-  sheetRowActive: { backgroundColor: colours.primaryLight },
-  sheetRowText: { fontSize: typography.fontSize.base, color: colours.textPrimary },
-  sheetRowTextActive: { color: colours.primary, fontFamily: typography.fontFamily.semiBold },
+  sheetRowActive: { backgroundColor: c.primaryLight },
+  sheetRowText: { fontSize: typography.fontSize.base, color: c.textPrimary },
+  sheetRowTextActive: { color: c.primary, fontFamily: typography.fontFamily.semiBold },
 });

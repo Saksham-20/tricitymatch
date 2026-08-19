@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import {
   View,
   Text,
@@ -14,11 +15,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { showToast } from '../../utils/toast';
 import { useNavigation } from '@react-navigation/native';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { apiClient } from '../../api/client';
 
 // Public contact form → POST /contact (mirrors frontend/src/pages/Contact.jsx).
 export default function ContactScreen() {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const navigation = useNavigation();
   const [form, setForm] = useState({ name: '', email: '', phone: '', subject: '', message: '' });
   const [sending, setSending] = useState(false);
@@ -53,7 +56,7 @@ export default function ContactScreen() {
     <SafeAreaView style={s.wrapper}>
       <View style={s.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.back} accessibilityLabel="Go back">
-          <Ionicons name="arrow-back" size={22} color={colours.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>Contact Us</Text>
         <View style={{ width: 40 }} />
@@ -92,6 +95,8 @@ function Field({
   keyboardType?: 'default' | 'email-address' | 'phone-pad';
   autoCapitalize?: 'none' | 'sentences';
 }) {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   return (
     <View style={s.field}>
       <Text style={s.label}>{label}</Text>
@@ -100,7 +105,7 @@ function Field({
         value={value}
         onChangeText={onChange}
         placeholder={placeholder}
-        placeholderTextColor={colours.textMuted}
+        placeholderTextColor={c.textMuted}
         multiline={multiline}
         numberOfLines={multiline ? 5 : 1}
         keyboardType={keyboardType}
@@ -110,20 +115,20 @@ function Field({
   );
 }
 
-const s = StyleSheet.create({
-  wrapper:     { flex: 1, backgroundColor: colours.background },
-  header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colours.border },
+const makeS = (c: ThemeColours) => StyleSheet.create({
+  wrapper:     { flex: 1, backgroundColor: c.background },
+  header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: c.border },
   back:        { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: colours.textPrimary },
+  headerTitle: { flex: 1, textAlign: 'center', fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
   content:     { padding: spacing.lg, paddingBottom: spacing['4xl'] },
-  title:       { fontSize: typography.fontSize['2xl'], fontFamily: typography.fontFamily.bold, color: colours.textPrimary },
-  subtitle:    { fontSize: typography.fontSize.sm, color: colours.textSecondary, marginTop: 2, marginBottom: spacing.lg },
+  title:       { fontSize: typography.fontSize['2xl'], fontFamily: typography.fontFamily.bold, color: c.textPrimary },
+  subtitle:    { fontSize: typography.fontSize.sm, color: c.textSecondary, marginTop: 2, marginBottom: spacing.lg },
   field:       { marginBottom: spacing.md },
-  label:       { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold, color: colours.textPrimary, marginBottom: spacing.xs },
-  input:       { borderWidth: 1, borderColor: colours.border, borderRadius: borderRadius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, fontSize: typography.fontSize.base, color: colours.textPrimary, backgroundColor: colours.surfaceCard },
+  label:       { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary, marginBottom: spacing.xs },
+  input:       { borderWidth: 1, borderColor: c.border, borderRadius: borderRadius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, fontSize: typography.fontSize.base, color: c.textPrimary, backgroundColor: c.surfaceCard },
   inputMultiline: { minHeight: 110, textAlignVertical: 'top' },
-  cta:         { backgroundColor: colours.primary, borderRadius: borderRadius.md, paddingVertical: spacing.md, alignItems: 'center', marginTop: spacing.sm },
+  cta:         { backgroundColor: c.primary, borderRadius: borderRadius.md, paddingVertical: spacing.md, alignItems: 'center', marginTop: spacing.sm },
   ctaDisabled: { opacity: 0.6 },
   ctaText:     { color: '#fff', fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.bold },
-  altContact:  { fontSize: typography.fontSize.sm, color: colours.textMuted, textAlign: 'center', marginTop: spacing.lg },
+  altContact:  { fontSize: typography.fontSize.sm, color: c.textMuted, textAlign: 'center', marginTop: spacing.lg },
 });

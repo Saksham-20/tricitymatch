@@ -1,7 +1,8 @@
 import React from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colours, typography, spacing } from '@shared/constants/theme';
+import { colours, typography, spacing, type ThemeColours } from '@shared/constants/theme';
 
 interface Props {
   lastSyncedLabel?: string | null;
@@ -10,6 +11,8 @@ interface Props {
 }
 
 export default function OfflineBanner({ lastSyncedLabel, isStale, onRefresh }: Props) {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   return (
     <View style={s.banner} testID="offline-banner" accessibilityLiveRegion="polite">
       <Ionicons name="cloud-offline-outline" size={16} color="#fff" />
@@ -33,11 +36,11 @@ export default function OfflineBanner({ lastSyncedLabel, isStale, onRefresh }: P
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (c: ThemeColours) => StyleSheet.create({
   banner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colours.textSecondary,
+    backgroundColor: c.textSecondary,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     gap: spacing.sm,

@@ -16,7 +16,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colours, type, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, type, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import SmartImage from '../../components/common/SmartImage';
 import { PressableScale } from '../../components/motion';
 import { Avatar, SectionHeader, SkeletonBlock, EmptyState, CompletionRing } from '../../components/ui';
@@ -47,7 +47,9 @@ function greeting(): string {
 const scoreColour = (p: number) => (p >= 90 ? colours.success : p >= 75 ? colours.g500 : colours.p500);
 
 // ─── Rail card (166×226 scrim photo) ─────────────────────────────────────────
-function RailCard({ profile, onPress, c }: { profile: ProfileSummary; onPress: () => void; c: ReturnType<typeof useTheme>['c'] }) {
+function RailCard({ profile, onPress }: { profile: ProfileSummary; onPress: () => void }) {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const age = ageFromDob(profile.dateOfBirth);
   const name = `${profile.firstName}${age ? `, ${age}` : ''}`;
   const compat = profile.compatibilityScore ?? 0;
@@ -69,7 +71,7 @@ function RailCard({ profile, onPress, c }: { profile: ProfileSummary; onPress: (
       <View style={styles.railBody} pointerEvents="none">
         <View style={styles.railNameRow}>
           <Text style={styles.railName} numberOfLines={1}>{name}</Text>
-          {profile.isVerified && <Ionicons name="checkmark-circle" size={14} color={colours.success} />}
+          {profile.isVerified && <Ionicons name="checkmark-circle" size={14} color={c.success} />}
         </View>
         <Text style={styles.railMeta} numberOfLines={1}>
           {[profile.city, profile.profession].filter(Boolean).join(' · ')}
@@ -92,6 +94,7 @@ function RailCard({ profile, onPress, c }: { profile: ProfileSummary; onPress: (
 export default function HomeScreen() {
   const { t } = useTranslation();
   const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const user = useAuthStore((s) => s.user);
@@ -191,9 +194,9 @@ export default function HomeScreen() {
 
       {/* Quick actions */}
       <View style={styles.quickRow}>
-        <QuickChip icon="heart" label="Liked you" tint={colours.accent} onPress={goToMatches} c={c} testID="quick-liked-you" />
-        <QuickChip icon="eye" label="Visitors" tint={colours.g600} onPress={goToOwnProfile} c={c} testID="quick-profile-views" />
-        <QuickChip icon="search" label="Search" tint={colours.accent} onPress={goToSearch} c={c} testID="quick-search" />
+        <QuickChip icon="heart" label="Liked you" tint={c.accent} onPress={goToMatches} testID="quick-liked-you" />
+        <QuickChip icon="eye" label="Visitors" tint={c.g600} onPress={goToOwnProfile} testID="quick-profile-views" />
+        <QuickChip icon="search" label="Search" tint={c.accent} onPress={goToSearch} testID="quick-search" />
       </View>
 
       {/* Today's Matches */}
@@ -219,7 +222,7 @@ export default function HomeScreen() {
         <FlatList
           data={todaysMatches}
           keyExtractor={(item) => item.userId}
-          renderItem={({ item }) => <RailCard profile={item} onPress={() => goToProfile(item.userId)} c={c} />}
+          renderItem={({ item }) => <RailCard profile={item} onPress={() => goToProfile(item.userId)} />}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.railScroll}
@@ -277,10 +280,12 @@ export default function HomeScreen() {
   );
 }
 
-function QuickChip({ icon, label, tint, onPress, c, testID }: {
+function QuickChip({ icon, label, tint, onPress, testID }: {
   icon: keyof typeof Ionicons.glyphMap; label: string; tint: string;
-  onPress: () => void; c: ReturnType<typeof useTheme>['c']; testID?: string;
+  onPress: () => void; testID?: string;
 }) {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   return (
     <PressableScale
       haptic
@@ -295,7 +300,7 @@ function QuickChip({ icon, label, tint, onPress, c, testID }: {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
   railReason: { fontSize: 11, color: 'rgba(255,255,255,0.85)', marginTop: 3 },
   container: { flex: 1 },
   content: { paddingBottom: 24 },
@@ -310,7 +315,7 @@ const styles = StyleSheet.create({
   bellBtn: { padding: 4, position: 'relative' },
   bellDot: {
     position: 'absolute', top: 3, right: 3, width: 10, height: 10, borderRadius: 5,
-    backgroundColor: colours.accent, borderWidth: 1.5,
+    backgroundColor: c.accent, borderWidth: 1.5,
   },
 
   completeCard: {

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import {
   View,
   Text,
@@ -15,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { getVerificationQueue, approveVerification, rejectVerification } from '../../api/admin';
 import SmartImage from '../../components/common/SmartImage';
 import type { Verification } from '../../types';
@@ -54,6 +55,8 @@ function VerifCard({
   onApprove: (id: string) => void;
   onReject: (id: string, name: string) => void;
 }) {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const name = nameOf(item);
   const profilePhoto = item.User?.Profile?.profilePhoto ?? item.User?.Profile?.photos?.[0] ?? null;
 
@@ -84,8 +87,8 @@ function VerifCard({
           testID={`reject-btn-${item.id}`}
           accessibilityLabel="Reject verification"
         >
-          <Ionicons name="close" size={16} color={colours.error} />
-          <Text style={[s.btnText, { color: colours.error }]}>Reject</Text>
+          <Ionicons name="close" size={16} color={c.error} />
+          <Text style={[s.btnText, { color: c.error }]}>Reject</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[s.btn, s.approveBtn]}
@@ -102,6 +105,8 @@ function VerifCard({
 }
 
 export default function VerificationQueueScreen() {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const nav = useNavigation();
   const qc = useQueryClient();
   const [rejectTarget, setRejectTarget] = useState<{ id: string; name: string } | null>(null);
@@ -156,14 +161,14 @@ export default function VerificationQueueScreen() {
     <SafeAreaView style={s.safe} testID="VerificationQueueScreen">
       <View style={s.header}>
         <TouchableOpacity onPress={() => nav.goBack()} style={s.backBtn} accessibilityLabel="Go back">
-          <Ionicons name="arrow-back" size={22} color={colours.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
         </TouchableOpacity>
         <Text style={s.title}>Verification Queue</Text>
-        {isLoading && <ActivityIndicator size="small" color={colours.primary} />}
+        {isLoading && <ActivityIndicator size="small" color={c.primary} />}
       </View>
 
       {isLoading ? (
-        <ActivityIndicator style={s.loader} color={colours.primary} />
+        <ActivityIndicator style={s.loader} color={c.primary} />
       ) : (
         <FlatList
           data={data ?? []}
@@ -175,7 +180,7 @@ export default function VerificationQueueScreen() {
           refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} />}
           ListEmptyComponent={
             <View style={s.empty}>
-              <Ionicons name="checkmark-circle-outline" size={48} color={colours.textMuted} />
+              <Ionicons name="checkmark-circle-outline" size={48} color={c.textMuted} />
               <Text style={s.emptyText}>Queue is clear</Text>
             </View>
           }
@@ -199,7 +204,7 @@ export default function VerificationQueueScreen() {
               value={reason}
               onChangeText={setReason}
               placeholder="e.g. Document unclear, mismatch with profile..."
-              placeholderTextColor={colours.textMuted}
+              placeholderTextColor={c.textMuted}
               multiline
               maxLength={300}
               testID="reject-reason-input"
@@ -228,15 +233,15 @@ export default function VerificationQueueScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colours.background },
+const makeS = (c: ThemeColours) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.background },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colours.border,
+    borderBottomColor: c.border,
     gap: spacing.sm,
   },
   backBtn: { padding: spacing.xs },
@@ -244,12 +249,12 @@ const s = StyleSheet.create({
     flex: 1,
     fontSize: typography.fontSize.lg,
     fontFamily: typography.fontFamily.bold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
   loader: { marginTop: spacing.xl },
   list: { padding: spacing.md, gap: spacing.md },
   card: {
-    backgroundColor: colours.surfaceCard,
+    backgroundColor: c.surfaceCard,
     borderRadius: borderRadius.md,
     padding: spacing.md,
     gap: spacing.sm,
@@ -258,24 +263,24 @@ const s = StyleSheet.create({
   cardDate: {
     fontSize: typography.fontSize.xs,
     fontFamily: typography.fontFamily.regular,
-    color: colours.textSecondary,
+    color: c.textSecondary,
   },
   cardName: {
     fontSize: typography.fontSize.base,
     fontFamily: typography.fontFamily.semiBold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
   cardEmail: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.regular,
-    color: colours.textSecondary,
+    color: c.textSecondary,
   },
   compareRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
   compareCell: { flex: 1, gap: 4 },
   compareLabel: {
     fontSize: typography.fontSize.xs,
     fontFamily: typography.fontFamily.semiBold,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
@@ -283,7 +288,7 @@ const s = StyleSheet.create({
     width: '100%',
     aspectRatio: 1,
     borderRadius: borderRadius.md,
-    backgroundColor: colours.surfaceCard,
+    backgroundColor: c.surfaceCard,
   },
   actions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
   btn: {
@@ -295,14 +300,14 @@ const s = StyleSheet.create({
     borderRadius: borderRadius.sm,
     gap: spacing.xs,
   },
-  rejectBtn: { borderWidth: 1, borderColor: colours.error },
-  approveBtn: { backgroundColor: colours.success },
+  rejectBtn: { borderWidth: 1, borderColor: c.error },
+  approveBtn: { backgroundColor: c.success },
   btnText: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold },
   empty: { alignItems: 'center', justifyContent: 'center', paddingTop: 80, gap: spacing.md },
   emptyText: {
     fontSize: typography.fontSize.base,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textMuted,
+    color: c.textMuted,
   },
   modalBackdrop: {
     flex: 1,
@@ -313,7 +318,7 @@ const s = StyleSheet.create({
   },
   modalCard: {
     width: '100%',
-    backgroundColor: colours.surfaceCard,
+    backgroundColor: c.surfaceCard,
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
     gap: spacing.md,
@@ -321,24 +326,24 @@ const s = StyleSheet.create({
   modalTitle: {
     fontSize: typography.fontSize.lg,
     fontFamily: typography.fontFamily.bold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
   modalSub: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.regular,
-    color: colours.textSecondary,
+    color: c.textSecondary,
   },
-  modalBold: { fontFamily: typography.fontFamily.semiBold, color: colours.textPrimary },
+  modalBold: { fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
   reasonInput: {
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.sm,
     padding: spacing.sm,
     minHeight: 80,
     textAlignVertical: 'top',
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.regular,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
   modalActions: { flexDirection: 'row', gap: spacing.sm },
   modalCancel: {
@@ -346,19 +351,19 @@ const s = StyleSheet.create({
     paddingVertical: spacing.sm,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.sm,
   },
   modalCancelText: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textSecondary,
+    color: c.textSecondary,
   },
   modalConfirm: {
     flex: 1,
     paddingVertical: spacing.sm,
     alignItems: 'center',
-    backgroundColor: colours.error,
+    backgroundColor: c.error,
     borderRadius: borderRadius.sm,
   },
   modalConfirmText: {

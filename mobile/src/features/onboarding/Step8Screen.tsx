@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { PressableScale } from '../../components/motion';
 import { haptics } from '../../utils/haptics';
 import OnboardingLayout from './OnboardingLayout';
@@ -21,6 +22,8 @@ interface RadioGroupProps<T extends string> {
 function RadioGroup<T extends string>({
   label, options, selected, onSelect, testPrefix,
 }: RadioGroupProps<T>) {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   return (
     <View>
       <Text style={styles.label}>{label}</Text>
@@ -136,11 +139,11 @@ export default function Step8Screen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
   label: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     marginBottom: spacing.sm,
   },
   pillRow: {
@@ -152,22 +155,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderWidth: 1.5,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.full,
     minHeight: 44,
     justifyContent: 'center',
     alignItems: 'center',
   },
   pillActive: {
-    borderColor: colours.primary,
-    backgroundColor: colours.primaryLight,
+    borderColor: c.primary,
+    backgroundColor: c.primaryLight,
   },
   pillText: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
   pillTextActive: {
-    color: colours.primary,
+    color: c.primary,
   },
 });

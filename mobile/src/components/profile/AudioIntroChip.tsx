@@ -11,7 +11,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { colours, spacing, type, borderRadius } from '@shared/constants/theme';
+import { colours, spacing, type, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { resolveImageUri } from '../common/SmartImage';
 import { PressableScale, useReduceMotion } from '../motion';
 import { useTheme } from '../../hooks/useTheme';
@@ -29,6 +29,8 @@ function getAV(): any | null {
 
 /** One bar of the pseudo-waveform — loops its own scaleY while playing. */
 function WaveBar({ playing, delay, color }: { playing: boolean; delay: number; color: string }) {
+  const { c } = useTheme();
+  const wave = React.useMemo(() => makeWave(c), [c]);
   const reduced = useReduceMotion();
   const h = useSharedValue(0.4);
 
@@ -170,6 +172,6 @@ const chip = StyleSheet.create({
   bars: { flexDirection: 'row', alignItems: 'center', gap: 3, height: 22 },
 });
 
-const wave = StyleSheet.create({
-  bar: { width: 3, height: 18, borderRadius: 2, backgroundColor: colours.primary },
+const makeWave = (c: ThemeColours) => StyleSheet.create({
+  bar: { width: 3, height: 18, borderRadius: 2, backgroundColor: c.primary },
 });

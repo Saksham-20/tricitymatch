@@ -17,7 +17,7 @@ import BottomSheet, {
   BottomSheetBackdrop,
 } from '@gorhom/bottom-sheet';
 import { Ionicons } from '@expo/vector-icons';
-import { colours, type, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, type, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { Button, Switch } from '../ui';
 import { useTheme } from '../../hooks/useTheme';
 import { haptics } from '../../utils/haptics';
@@ -88,6 +88,7 @@ function ChipGroup<T extends string>({ options, selected, onToggle }: {
   options: { label: string; value: T }[]; selected: T[] | undefined; onToggle: (val: T) => void;
 }) {
   const { c } = useTheme();
+  const cg = React.useMemo(() => makeCg(c), [c]);
   return (
     <View style={cg.wrap}>
       {options.map((o) => {
@@ -98,7 +99,7 @@ function ChipGroup<T extends string>({ options, selected, onToggle }: {
             style={[
               cg.chip,
               { backgroundColor: c.surface2, borderColor: c.border },
-              active && { backgroundColor: colours.accentSoft, borderColor: colours.accent },
+              active && { backgroundColor: c.accentSoft, borderColor: c.accent },
             ]}
             onPress={() => { haptics.light(); onToggle(o.value); }}
             accessibilityLabel={o.label}
@@ -110,11 +111,11 @@ function ChipGroup<T extends string>({ options, selected, onToggle }: {
     </View>
   );
 }
-const cg = StyleSheet.create({
+const makeCg = (c: ThemeColours) => StyleSheet.create({
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, paddingVertical: spacing.sm },
   chip: { paddingHorizontal: 13, paddingVertical: 7, borderRadius: borderRadius.pill, borderWidth: 1 },
   label: { ...type.subhead },
-  labelActive: { color: colours.accent, fontFamily: 'Inter-SemiBold' },
+  labelActive: { color: c.accent, fontFamily: 'Inter-SemiBold' },
 });
 
 function RangeRow({ label, min, max, absMin, absMax, onChangeMin, onChangeMax, unit }: {
@@ -169,6 +170,7 @@ const rr = StyleSheet.create({
 
 function GotraTagInput({ excluded, onChange }: { excluded: string[]; onChange: (v: string[]) => void }) {
   const { c } = useTheme();
+  const gt = React.useMemo(() => makeGt(c), [c]);
   const [text, setText] = useState('');
   const add = () => { const v = text.trim(); if (v && !excluded.includes(v)) onChange([...excluded, v]); setText(''); };
   return (
@@ -195,7 +197,7 @@ function GotraTagInput({ excluded, onChange }: { excluded: string[]; onChange: (
             <View key={x} style={gt.chip}>
               <Text style={gt.chipText}>{x}</Text>
               <TouchableOpacity onPress={() => onChange(excluded.filter((y) => y !== x))} accessibilityLabel={`Remove ${x}`}>
-                <Ionicons name="close-circle" size={14} color={colours.accent} />
+                <Ionicons name="close-circle" size={14} color={c.accent} />
               </TouchableOpacity>
             </View>
           ))}
@@ -204,28 +206,29 @@ function GotraTagInput({ excluded, onChange }: { excluded: string[]; onChange: (
     </View>
   );
 }
-const gt = StyleSheet.create({
+const makeGt = (c: ThemeColours) => StyleSheet.create({
   container: { paddingVertical: spacing.sm },
   label: { ...type.subhead, fontFamily: 'Inter-Medium', marginBottom: spacing.sm },
   row: { flexDirection: 'row', gap: spacing.sm },
   input: { flex: 1, borderWidth: 1.5, borderRadius: borderRadius.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, ...type.body },
-  addBtn: { width: 44, height: 44, backgroundColor: colours.accent, borderRadius: borderRadius.sm, alignItems: 'center', justifyContent: 'center' },
+  addBtn: { width: 44, height: 44, backgroundColor: c.accent, borderRadius: borderRadius.sm, alignItems: 'center', justifyContent: 'center' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.sm },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colours.accentSoft, borderRadius: borderRadius.pill, paddingHorizontal: spacing.sm, paddingVertical: 4 },
-  chipText: { ...type.caption, color: colours.accent, fontFamily: 'Inter-Medium' },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: c.accentSoft, borderRadius: borderRadius.pill, paddingHorizontal: spacing.sm, paddingVertical: 4 },
+  chipText: { ...type.caption, color: c.accent, fontFamily: 'Inter-Medium' },
 });
 
 function RadioGroup<T>({ options, selected, onSelect }: {
   options: { label: string; value: T }[]; selected: T | undefined; onSelect: (val: T) => void;
 }) {
   const { c } = useTheme();
+  const radio = React.useMemo(() => makeRadio(c), [c]);
   return (
     <View style={radio.container}>
       {options.map((o) => {
         const active = selected === o.value;
         return (
           <TouchableOpacity key={String(o.value ?? 'any')} style={radio.option} onPress={() => onSelect(o.value)} accessibilityLabel={o.label}>
-            <View style={[radio.dot, { borderColor: active ? colours.accent : c.border }]}>
+            <View style={[radio.dot, { borderColor: active ? c.accent : c.border }]}>
               {active && <View style={radio.dotFill} />}
             </View>
             <Text style={[radio.label, { color: active ? c.fgStrong : c.textSecondary }, active && radio.labelActive]}>{o.label}</Text>
@@ -235,11 +238,11 @@ function RadioGroup<T>({ options, selected, onSelect }: {
     </View>
   );
 }
-const radio = StyleSheet.create({
+const makeRadio = (c: ThemeColours) => StyleSheet.create({
   container: { paddingVertical: spacing.xs },
   option: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm },
   dot: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  dotFill: { width: 10, height: 10, borderRadius: 5, backgroundColor: colours.accent },
+  dotFill: { width: 10, height: 10, borderRadius: 5, backgroundColor: c.accent },
   label: { ...type.body },
   labelActive: { fontFamily: 'Inter-Medium' },
 });
@@ -250,6 +253,7 @@ const FilterPanel = forwardRef<FilterPanelHandle, Props>(({
   filters, onChange, resultCount, loadingCount, onApply, onReset, onSaveSearch,
 }, ref) => {
   const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const sheetRef = useRef<BottomSheet>(null);
   const [sections, setSections] = useState({
     demographics: true, community: false, location: false, education: false, lifestyle: false, cultural: false,
@@ -369,11 +373,11 @@ const FilterPanel = forwardRef<FilterPanelHandle, Props>(({
 FilterPanel.displayName = 'FilterPanel';
 export default FilterPanel;
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
   handle: { width: 38 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.gutter, paddingVertical: spacing.md, borderBottomWidth: 0.5 },
   headerTitle: { ...type.title3, fontFamily: 'PlayfairDisplay-Bold' },
-  resetText: { ...type.subhead, color: colours.accent, fontFamily: 'Inter-SemiBold' },
+  resetText: { ...type.subhead, color: c.accent, fontFamily: 'Inter-SemiBold' },
   content: { paddingHorizontal: spacing.gutter, paddingBottom: spacing['2xl'] },
   section: { paddingVertical: spacing.sm },
   subLabel: { ...type.subhead, fontFamily: 'Inter-Medium', marginTop: spacing.sm, marginBottom: 2 },

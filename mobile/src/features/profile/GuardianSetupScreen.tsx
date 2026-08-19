@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import {
   View,
   Text,
@@ -17,7 +18,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { ListSkeleton } from '../../components/ui/skeletons';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import {
   getMyGuardianLinks,
   inviteGuardian,
@@ -36,6 +37,8 @@ function InviteGuardianModal({ visible, onClose, onCreate }: {
   onClose: () => void;
   onCreate: (email: string) => void;
 }) {
+  const { c } = useTheme();
+  const im = React.useMemo(() => makeIm(c), [c]);
   const [email, setEmail] = useState('');
 
   const handleSend = () => {
@@ -80,27 +83,28 @@ function InviteGuardianModal({ visible, onClose, onCreate }: {
   );
 }
 
-const im = StyleSheet.create({
+const makeIm = (c: ThemeColours) => StyleSheet.create({
   overlay:  { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' },
-  sheet:    { backgroundColor: colours.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: spacing.xl, paddingBottom: spacing['3xl'] },
-  handle:   { width: 40, height: 4, borderRadius: 2, backgroundColor: colours.border, alignSelf: 'center', marginBottom: spacing.lg },
-  title:    { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: colours.textPrimary, marginBottom: spacing.sm },
-  hint:     { fontSize: typography.fontSize.sm, color: colours.textSecondary, marginBottom: spacing.lg, lineHeight: 20 },
-  label:    { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold, color: colours.textSecondary, marginBottom: spacing.xs },
-  input:    { borderWidth: 1, borderColor: colours.border, borderRadius: borderRadius.md, padding: spacing.md, fontSize: typography.fontSize.base, color: colours.textPrimary, marginBottom: spacing.lg },
-  sendBtn:  { backgroundColor: colours.primary, borderRadius: borderRadius.md, paddingVertical: spacing.md, alignItems: 'center', marginBottom: spacing.sm },
+  sheet:    { backgroundColor: c.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: spacing.xl, paddingBottom: spacing['3xl'] },
+  handle:   { width: 40, height: 4, borderRadius: 2, backgroundColor: c.border, alignSelf: 'center', marginBottom: spacing.lg },
+  title:    { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: c.textPrimary, marginBottom: spacing.sm },
+  hint:     { fontSize: typography.fontSize.sm, color: c.textSecondary, marginBottom: spacing.lg, lineHeight: 20 },
+  label:    { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold, color: c.textSecondary, marginBottom: spacing.xs },
+  input:    { borderWidth: 1, borderColor: c.border, borderRadius: borderRadius.md, padding: spacing.md, fontSize: typography.fontSize.base, color: c.textPrimary, marginBottom: spacing.lg },
+  sendBtn:  { backgroundColor: c.primary, borderRadius: borderRadius.md, paddingVertical: spacing.md, alignItems: 'center', marginBottom: spacing.sm },
   sendText: { color: '#fff', fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold },
   cancelBtn:{ alignItems: 'center', paddingVertical: spacing.sm },
-  cancelText:{ fontSize: typography.fontSize.base, color: colours.textSecondary },
+  cancelText:{ fontSize: typography.fontSize.base, color: c.textSecondary },
 });
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
 function StatusPill({ status }: { status: GuardianLink['status'] }) {
+  const { c } = useTheme();
   const cfg = {
-    pending: { label: 'Invite Sent', bg: colours.warning + '20', color: colours.warning },
-    active:  { label: 'Active',      bg: colours.success + '20', color: colours.success },
-    revoked: { label: 'Revoked',     bg: colours.border,          color: colours.textMuted },
+    pending: { label: 'Invite Sent', bg: c.warning + '20', color: c.warning },
+    active:  { label: 'Active',      bg: c.success + '20', color: c.success },
+    revoked: { label: 'Revoked',     bg: c.border,          color: c.textMuted },
   }[status];
   return (
     <View style={[sp.pill, { backgroundColor: cfg.bg }]}>
@@ -117,6 +121,8 @@ const sp = StyleSheet.create({
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function GuardianSetupScreen() {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
@@ -167,7 +173,7 @@ export default function GuardianSetupScreen() {
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} testID="back-btn" accessibilityLabel="Go back">
-          <Ionicons name="arrow-back" size={22} color={colours.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
         </TouchableOpacity>
         <Text style={s.title}>Guardian Co-Pilot</Text>
         <View style={{ width: 40 }} />
@@ -176,7 +182,7 @@ export default function GuardianSetupScreen() {
       <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
         {/* Feature intro */}
         <View style={s.introBanner}>
-          <Ionicons name="shield-half-outline" size={36} color={colours.primary} />
+          <Ionicons name="shield-half-outline" size={36} color={c.primary} />
           <Text style={s.introTitle}>Involve Your Family</Text>
           <Text style={s.introSub}>
             Invite a parent, sibling, or trusted relative as your guardian. They get read-only access to browse your matches and shortlist — but cannot send messages or take match actions.
@@ -187,12 +193,12 @@ export default function GuardianSetupScreen() {
         <View style={s.permCard}>
           <Text style={s.permHeading}>What guardians can do</Text>
           {[
-            { icon: 'checkmark-circle' as const,    color: colours.success, label: 'View your match list' },
-            { icon: 'checkmark-circle' as const,    color: colours.success, label: 'View your shortlisted profiles' },
-            { icon: 'checkmark-circle' as const,    color: colours.success, label: 'View full profile details of matches' },
-            { icon: 'close-circle' as const,        color: colours.error,   label: 'Send messages (not allowed)' },
-            { icon: 'close-circle' as const,        color: colours.error,   label: 'Like, decline, or shortlist (not allowed)' },
-            { icon: 'close-circle' as const,        color: colours.error,   label: 'See your private conversations (not allowed)' },
+            { icon: 'checkmark-circle' as const,    color: c.success, label: 'View your match list' },
+            { icon: 'checkmark-circle' as const,    color: c.success, label: 'View your shortlisted profiles' },
+            { icon: 'checkmark-circle' as const,    color: c.success, label: 'View full profile details of matches' },
+            { icon: 'close-circle' as const,        color: c.error,   label: 'Send messages (not allowed)' },
+            { icon: 'close-circle' as const,        color: c.error,   label: 'Like, decline, or shortlist (not allowed)' },
+            { icon: 'close-circle' as const,        color: c.error,   label: 'See your private conversations (not allowed)' },
           ].map((row, i) => (
             <View key={i} style={s.permRow}>
               <Ionicons name={row.icon} size={18} color={row.color} />
@@ -216,7 +222,7 @@ export default function GuardianSetupScreen() {
 
         {activeLinks.length >= 3 && (
           <View style={s.limitNote}>
-            <Ionicons name="information-circle-outline" size={16} color={colours.textMuted} />
+            <Ionicons name="information-circle-outline" size={16} color={c.textMuted} />
             <Text style={s.limitNoteText}>Maximum 3 active guardians allowed.</Text>
           </View>
         )}
@@ -230,7 +236,7 @@ export default function GuardianSetupScreen() {
             {links.map((link) => (
               <View key={link.id} style={s.linkRow} testID={`guardian-row-${link.id}`}>
                 <View style={s.linkAvatar}>
-                  <Ionicons name="person" size={18} color={colours.primary} />
+                  <Ionicons name="person" size={18} color={c.primary} />
                 </View>
                 <View style={s.linkInfo}>
                   <Text style={s.linkName}>{link.guardianName}</Text>
@@ -243,7 +249,7 @@ export default function GuardianSetupScreen() {
                     testID={`revoke-btn-${link.id}`}
                     accessibilityLabel={`Revoke ${link.guardianName}`}
                   >
-                    <Ionicons name="trash-outline" size={18} color={colours.error} />
+                    <Ionicons name="trash-outline" size={18} color={c.error} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -265,31 +271,31 @@ export default function GuardianSetupScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  wrapper:      { flex: 1, backgroundColor: colours.background },
-  header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, backgroundColor: colours.background, borderBottomWidth: 1, borderBottomColor: colours.border },
+const makeS = (c: ThemeColours) => StyleSheet.create({
+  wrapper:      { flex: 1, backgroundColor: c.background },
+  header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, backgroundColor: c.background, borderBottomWidth: 1, borderBottomColor: c.border },
   backBtn:      { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  title:        { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: colours.textPrimary },
+  title:        { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: c.textPrimary },
   content:      { padding: spacing.lg, paddingBottom: spacing['3xl'], gap: spacing.lg },
-  introBanner:  { alignItems: 'center', backgroundColor: colours.primaryLight, borderRadius: borderRadius.lg, padding: spacing.xl, gap: spacing.sm },
-  introTitle:   { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: colours.primary, textAlign: 'center' },
-  introSub:     { fontSize: typography.fontSize.sm, color: colours.textSecondary, textAlign: 'center', lineHeight: 22 },
-  permCard:     { backgroundColor: colours.surfaceCard, borderRadius: borderRadius.lg, padding: spacing.lg, borderWidth: 1, borderColor: colours.border },
-  permHeading:  { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: colours.textPrimary, marginBottom: spacing.md },
+  introBanner:  { alignItems: 'center', backgroundColor: c.primaryLight, borderRadius: borderRadius.lg, padding: spacing.xl, gap: spacing.sm },
+  introTitle:   { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: c.primary, textAlign: 'center' },
+  introSub:     { fontSize: typography.fontSize.sm, color: c.textSecondary, textAlign: 'center', lineHeight: 22 },
+  permCard:     { backgroundColor: c.surfaceCard, borderRadius: borderRadius.lg, padding: spacing.lg, borderWidth: 1, borderColor: c.border },
+  permHeading:  { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary, marginBottom: spacing.md },
   permRow:      { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm },
-  permLabel:    { fontSize: typography.fontSize.sm, color: colours.textSecondary },
-  inviteBtn:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: colours.primary, borderRadius: borderRadius.md, paddingVertical: spacing.md },
+  permLabel:    { fontSize: typography.fontSize.sm, color: c.textSecondary },
+  inviteBtn:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: c.primary, borderRadius: borderRadius.md, paddingVertical: spacing.md },
   inviteBtnText:{ color: '#fff', fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold },
-  limitNote:    { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md, backgroundColor: colours.surfaceCard, borderRadius: borderRadius.md },
-  limitNoteText:{ fontSize: typography.fontSize.sm, color: colours.textMuted },
+  limitNote:    { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md, backgroundColor: c.surfaceCard, borderRadius: borderRadius.md },
+  limitNoteText:{ fontSize: typography.fontSize.sm, color: c.textMuted },
   linksList:    { gap: spacing.sm },
-  linksHeading: { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: colours.textPrimary, marginBottom: spacing.xs },
-  linkRow:      { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colours.surfaceCard, borderRadius: borderRadius.md, padding: spacing.md, borderWidth: 1, borderColor: colours.border },
-  linkAvatar:   { width: 36, height: 36, borderRadius: 18, backgroundColor: colours.primaryLight, alignItems: 'center', justifyContent: 'center' },
+  linksHeading: { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary, marginBottom: spacing.xs },
+  linkRow:      { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: c.surfaceCard, borderRadius: borderRadius.md, padding: spacing.md, borderWidth: 1, borderColor: c.border },
+  linkAvatar:   { width: 36, height: 36, borderRadius: 18, backgroundColor: c.primaryLight, alignItems: 'center', justifyContent: 'center' },
   linkInfo:     { flex: 1 },
-  linkName:     { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold, color: colours.textPrimary },
-  linkPhone:    { fontSize: typography.fontSize.xs, color: colours.textSecondary },
+  linkName:     { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
+  linkPhone:    { fontSize: typography.fontSize.xs, color: c.textSecondary },
   revokeBtn:    { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   emptyLinks:   { alignItems: 'center', paddingVertical: spacing.xl },
-  emptyText:    { fontSize: typography.fontSize.sm, color: colours.textMuted },
+  emptyText:    { fontSize: typography.fontSize.sm, color: c.textMuted },
 });

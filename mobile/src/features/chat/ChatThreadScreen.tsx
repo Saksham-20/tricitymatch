@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import {
   View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Modal, Pressable,
@@ -26,7 +27,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { showToast } from '../../utils/toast';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { useAuthStore } from '../../stores/authStore';
 import { useSocket } from '../../hooks/useSocket';
 import { unlockContact } from '../../api/matches';
@@ -70,6 +71,8 @@ function canEdit(createdAt: string): boolean {
 
 // ─── Typing indicator — 3 dots bouncing on a 1.2s loop (handoff spec) ───────
 function TypingDot({ delay }: { delay: number }) {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const reduced = useReduceMotion();
   const y = useSharedValue(0);
   useEffect(() => {
@@ -92,6 +95,8 @@ function TypingDot({ delay }: { delay: number }) {
 }
 
 function TypingIndicator() {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   return (
     <View style={s.typingRow} testID="TypingIndicator">
       <View style={s.typingBubble}>
@@ -120,6 +125,8 @@ interface BubbleProps {
 }
 
 function MessageBubble({ msg, isOwn, onLongPress }: BubbleProps) {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const reduced = useReduceMotion();
   // Optimistic sends render at half opacity until the server ack swaps in
   // the real message (id no longer tmp-*).
@@ -181,6 +188,8 @@ function MessageBubble({ msg, isOwn, onLongPress }: BubbleProps) {
 
 // ─── Date separator ──────────────────────────────────────────────────────────
 function DateSeparator({ label }: { label: string }) {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   return (
     <View style={s.dateSep}>
       <View style={s.dateLine} />
@@ -197,6 +206,8 @@ interface ContactBannerProps {
 }
 
 function ContactUnlockBanner({ userId, onUnlocked }: ContactBannerProps) {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const { t } = useTranslation();
   const [phone, setPhone] = useState<string | null>(null);
 
@@ -225,7 +236,7 @@ function ContactUnlockBanner({ userId, onUnlocked }: ContactBannerProps) {
   if (phone) {
     return (
       <View style={s.contactBanner} testID="ContactBannerUnlocked">
-        <Ionicons name="call" size={16} color={colours.success} />
+        <Ionicons name="call" size={16} color={c.success} />
         <Text style={s.contactPhone}>{phone}</Text>
       </View>
     );
@@ -239,9 +250,9 @@ function ContactUnlockBanner({ userId, onUnlocked }: ContactBannerProps) {
       accessibilityLabel={t('chat.requestContact', 'Request Contact')}
       testID="ContactUnlockBanner"
     >
-      <Ionicons name="person-add-outline" size={16} color={colours.primary} />
+      <Ionicons name="person-add-outline" size={16} color={c.primary} />
       <Text style={s.contactBannerText}>{t('chat.requestContact', 'Request Contact')}</Text>
-      {isPending && <ActivityIndicator size="small" color={colours.primary} style={{ marginLeft: 8 }} />}
+      {isPending && <ActivityIndicator size="small" color={c.primary} style={{ marginLeft: 8 }} />}
     </TouchableOpacity>
   );
 }
@@ -261,6 +272,8 @@ interface ActionMenuProps {
 }
 
 function MessageActionMenu({ msg, isOwn, visible, canRich, onClose, onEdit, onDelete, onReport, onReact, onReply }: ActionMenuProps) {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const { t } = useTranslation();
   if (!msg) return null;
 
@@ -290,7 +303,7 @@ function MessageActionMenu({ msg, isOwn, visible, canRich, onClose, onEdit, onDe
               onPress={() => { onReply(msg); onClose(); }}
               testID="MenuReply"
             >
-              <Ionicons name="return-up-back" size={18} color={colours.textPrimary} />
+              <Ionicons name="return-up-back" size={18} color={c.textPrimary} />
               <Text style={s.menuItemText}>{t('chat.reply', 'Reply')}</Text>
             </TouchableOpacity>
           )}
@@ -300,7 +313,7 @@ function MessageActionMenu({ msg, isOwn, visible, canRich, onClose, onEdit, onDe
               onPress={() => { onEdit(msg); onClose(); }}
               testID="MenuEdit"
             >
-              <Ionicons name="pencil" size={18} color={colours.textPrimary} />
+              <Ionicons name="pencil" size={18} color={c.textPrimary} />
               <Text style={s.menuItemText}>{t('chat.edit', 'Edit')}</Text>
             </TouchableOpacity>
           )}
@@ -310,8 +323,8 @@ function MessageActionMenu({ msg, isOwn, visible, canRich, onClose, onEdit, onDe
               onPress={() => { onDelete(msg); onClose(); }}
               testID="MenuDelete"
             >
-              <Ionicons name="trash" size={18} color={colours.error} />
-              <Text style={[s.menuItemText, { color: colours.error }]}>{t('chat.delete', 'Delete')}</Text>
+              <Ionicons name="trash" size={18} color={c.error} />
+              <Text style={[s.menuItemText, { color: c.error }]}>{t('chat.delete', 'Delete')}</Text>
             </TouchableOpacity>
           )}
           {!isOwn && (
@@ -320,8 +333,8 @@ function MessageActionMenu({ msg, isOwn, visible, canRich, onClose, onEdit, onDe
               onPress={() => { onReport(msg); onClose(); }}
               testID="MenuReport"
             >
-              <Ionicons name="flag" size={18} color={colours.warning} />
-              <Text style={[s.menuItemText, { color: colours.warning }]}>{t('chat.report', 'Report')}</Text>
+              <Ionicons name="flag" size={18} color={c.warning} />
+              <Text style={[s.menuItemText, { color: c.warning }]}>{t('chat.report', 'Report')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -332,6 +345,8 @@ function MessageActionMenu({ msg, isOwn, visible, canRich, onClose, onEdit, onDe
 
 // ─── Main screen ─────────────────────────────────────────────────────────────
 export default function ChatThreadScreen() {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
@@ -645,7 +660,7 @@ export default function ChatThreadScreen() {
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, backgroundColor: colours.background }} testID="ChatThreadLoading">
+      <View style={{ flex: 1, backgroundColor: c.background }} testID="ChatThreadLoading">
         <ChatThreadSkeleton />
       </View>
     );
@@ -658,11 +673,11 @@ export default function ChatThreadScreen() {
     return (
       <View style={[s.gateWrap, { paddingTop: insets.top }]} testID="ChatThreadGate">
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.gateBack} accessibilityLabel={t('back', 'Back')}>
-          <Ionicons name="arrow-back" size={24} color={colours.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
         </TouchableOpacity>
         <View style={s.gateBody}>
           <View style={s.gateIcon}>
-            <Ionicons name="lock-closed" size={32} color={colours.secondary} />
+            <Ionicons name="lock-closed" size={32} color={c.secondary} />
           </View>
           <Text style={s.gateTitle}>{t('chat.gateTitle', 'Chat is a premium feature')}</Text>
           <Text style={s.gateLine}>
@@ -699,7 +714,7 @@ export default function ChatThreadScreen() {
           accessibilityLabel={t('back', 'Back')}
           testID="BackBtn"
         >
-          <Ionicons name="arrow-back" size={24} color={colours.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -728,7 +743,7 @@ export default function ChatThreadScreen() {
             accessibilityLabel={t('chat.voiceCall', 'Voice call')}
             testID="VoiceCallBtn"
           >
-            <Ionicons name="call-outline" size={22} color={colours.textPrimary} />
+            <Ionicons name="call-outline" size={22} color={c.textPrimary} />
           </PressableScale>
           <PressableScale
             scaleTo={0.9}
@@ -738,7 +753,7 @@ export default function ChatThreadScreen() {
             accessibilityLabel={t('chat.videoCall', 'Video call')}
             testID="VideoCallBtn"
           >
-            <Ionicons name="videocam-outline" size={22} color={colours.textPrimary} />
+            <Ionicons name="videocam-outline" size={22} color={c.textPrimary} />
           </PressableScale>
           </>
           )}
@@ -761,7 +776,7 @@ export default function ChatThreadScreen() {
           isFetchingNextPage ? (
             <ActivityIndicator
               size="small"
-              color={colours.primary}
+              color={c.primary}
               style={{ marginVertical: spacing.sm }}
             />
           ) : null
@@ -772,10 +787,10 @@ export default function ChatThreadScreen() {
       {/* Edit banner */}
       {editingMsg && (
         <View style={s.editBanner} testID="EditBanner">
-          <Ionicons name="pencil" size={14} color={colours.primary} />
+          <Ionicons name="pencil" size={14} color={c.primary} />
           <Text style={s.editBannerText} numberOfLines={1}>{editingMsg.content}</Text>
           <TouchableOpacity onPress={() => { setEditingMsg(null); setInput(''); }}>
-            <Ionicons name="close" size={18} color={colours.textMuted} />
+            <Ionicons name="close" size={18} color={c.textMuted} />
           </TouchableOpacity>
         </View>
       )}
@@ -783,12 +798,12 @@ export default function ChatThreadScreen() {
       {/* Reply-quote banner (D2, premium) */}
       {replyingTo && !editingMsg && (
         <View style={s.editBanner} testID="ReplyBanner">
-          <Ionicons name="return-up-back" size={14} color={colours.primary} />
+          <Ionicons name="return-up-back" size={14} color={c.primary} />
           <Text style={s.editBannerText} numberOfLines={1}>
             {replyingTo.messageType === 'voice' ? 'Voice message' : replyingTo.content}
           </Text>
           <TouchableOpacity onPress={() => setReplyingTo(null)} accessibilityLabel="Cancel reply">
-            <Ionicons name="close" size={18} color={colours.textMuted} />
+            <Ionicons name="close" size={18} color={c.textMuted} />
           </TouchableOpacity>
         </View>
       )}
@@ -822,7 +837,7 @@ export default function ChatThreadScreen() {
             value={input}
             onChangeText={handleInputChange}
             placeholder={t('chat.typePlaceholder', 'Type a message…')}
-            placeholderTextColor={colours.textMuted}
+            placeholderTextColor={c.textMuted}
             multiline
             maxLength={2000}
             accessibilityLabel={t('chat.typePlaceholder', 'Type a message')}
@@ -838,7 +853,7 @@ export default function ChatThreadScreen() {
               accessibilityLabel={t('chat.recordVoice', 'Record a voice message')}
               testID="MicBtn"
             >
-              <Ionicons name="mic-outline" size={20} color={colours.textSecondary} />
+              <Ionicons name="mic-outline" size={20} color={c.textSecondary} />
             </PressableScale>
           )}
           <PressableScale
@@ -853,7 +868,7 @@ export default function ChatThreadScreen() {
             {isSending ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
-              <Ionicons name="send" size={18} color={!input.trim() ? colours.textMuted : '#fff'} />
+              <Ionicons name="send" size={18} color={!input.trim() ? c.textMuted : '#fff'} />
             )}
           </PressableScale>
         </View>
@@ -887,7 +902,7 @@ export default function ChatThreadScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (c: ThemeColours) => StyleSheet.create({
   // ── Phase C additions ──────────────────────────────────────────────────────
   quoteBlock: {
     borderLeftWidth: 2,
@@ -897,20 +912,20 @@ const s = StyleSheet.create({
     borderRadius: 4,
   },
   quoteBlockOwn: { borderLeftColor: 'rgba(255,255,255,0.5)', backgroundColor: 'rgba(255,255,255,0.12)' },
-  quoteBlockTheirs: { borderLeftColor: colours.primary, backgroundColor: 'rgba(0,0,0,0.04)' },
-  quoteText: { fontSize: typography.fontSize.xs, color: colours.textMuted },
+  quoteBlockTheirs: { borderLeftColor: c.primary, backgroundColor: 'rgba(0,0,0,0.04)' },
+  quoteText: { fontSize: typography.fontSize.xs, color: c.textMuted },
   reactionRow: { flexDirection: 'row', gap: 4, marginTop: 2, marginHorizontal: spacing.md },
   reactionPill: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
-    backgroundColor: colours.surfaceCard, borderWidth: 1, borderColor: colours.border,
+    backgroundColor: c.surfaceCard, borderWidth: 1, borderColor: c.border,
     borderRadius: 12, paddingHorizontal: 6, paddingVertical: 2,
   },
   reactionEmoji: { fontSize: 13 },
-  reactionCount: { fontSize: typography.fontSize.xs, color: colours.textMuted, fontVariant: ['tabular-nums'] },
+  reactionCount: { fontSize: typography.fontSize.xs, color: c.textMuted, fontVariant: ['tabular-nums'] },
   emojiRow: {
     flexDirection: 'row', justifyContent: 'space-between',
     paddingHorizontal: spacing.sm, paddingBottom: spacing.sm,
-    borderBottomWidth: 1, borderBottomColor: colours.border, marginBottom: spacing.xs,
+    borderBottomWidth: 1, borderBottomColor: c.border, marginBottom: spacing.xs,
   },
   emojiBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   emojiText: { fontSize: 22 },
@@ -919,49 +934,49 @@ const s = StyleSheet.create({
     marginRight: spacing.xs,
   },
   meterText: {
-    fontSize: typography.fontSize.xs, color: colours.textMuted,
+    fontSize: typography.fontSize.xs, color: c.textMuted,
     paddingHorizontal: spacing.md, paddingTop: 4, fontVariant: ['tabular-nums'],
   },
-  meterWarn: { color: colours.secondary, fontWeight: '600' },
+  meterWarn: { color: c.secondary, fontWeight: '600' },
   paywallBar: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
     paddingHorizontal: spacing.md, paddingTop: spacing.sm,
-    borderTopWidth: 1, borderTopColor: colours.border, backgroundColor: colours.surfaceCard,
+    borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.surfaceCard,
   },
-  paywallTitle: { fontSize: typography.fontSize.sm, fontWeight: '600', color: colours.textPrimary },
-  paywallLine: { fontSize: typography.fontSize.xs, color: colours.textMuted, marginTop: 2 },
+  paywallTitle: { fontSize: typography.fontSize.sm, fontWeight: '600', color: c.textPrimary },
+  paywallLine: { fontSize: typography.fontSize.xs, color: c.textMuted, marginTop: 2 },
   paywallCta: {
-    backgroundColor: colours.secondary, borderRadius: 22, paddingHorizontal: spacing.lg,
+    backgroundColor: c.secondary, borderRadius: 22, paddingHorizontal: spacing.lg,
     minHeight: 44, alignItems: 'center', justifyContent: 'center',
   },
   paywallCtaText: { color: '#fff', fontWeight: '700', fontSize: typography.fontSize.sm },
-  gateWrap: { flex: 1, backgroundColor: colours.background },
+  gateWrap: { flex: 1, backgroundColor: c.background },
   gateBack: { padding: spacing.md, alignSelf: 'flex-start' },
   gateBody: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl },
   gateIcon: {
-    width: 72, height: 72, borderRadius: 36, backgroundColor: colours.goldSoft,
+    width: 72, height: 72, borderRadius: 36, backgroundColor: c.goldSoft,
     alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
   },
   gateTitle: {
-    fontSize: typography.fontSize.xl, fontWeight: '700', color: colours.textPrimary,
+    fontSize: typography.fontSize.xl, fontWeight: '700', color: c.textPrimary,
     textAlign: 'center', marginBottom: spacing.xs,
   },
-  gateLine: { fontSize: typography.fontSize.sm, color: colours.textMuted, textAlign: 'center', marginBottom: spacing.lg },
+  gateLine: { fontSize: typography.fontSize.sm, color: c.textMuted, textAlign: 'center', marginBottom: spacing.lg },
   gateCta: {
-    backgroundColor: colours.primary, borderRadius: 24, paddingHorizontal: spacing.xl,
+    backgroundColor: c.primary, borderRadius: 24, paddingHorizontal: spacing.xl,
     minHeight: 48, alignItems: 'center', justifyContent: 'center',
   },
   gateCtaText: { color: '#fff', fontWeight: '700' },
 
   container: {
     flex: 1,
-    backgroundColor: colours.background,
+    backgroundColor: c.background,
   },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colours.background,
+    backgroundColor: c.background,
   },
   // Header
   header: {
@@ -969,9 +984,9 @@ const s = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.sm,
     paddingBottom: 10,
-    backgroundColor: colours.surfaceCard,
+    backgroundColor: c.surfaceCard,
     borderBottomWidth: 1,
-    borderBottomColor: colours.border,
+    borderBottomColor: c.border,
   },
   backBtn: {
     padding: spacing.xs,
@@ -989,19 +1004,19 @@ const s = StyleSheet.create({
     borderRadius: 19,
   },
   headerAvatarFallback: {
-    backgroundColor: colours.primaryLight,
+    backgroundColor: c.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerAvatarInitial: {
     fontSize: typography.fontSize.base,
     fontFamily: typography.fontFamily.bold,
-    color: colours.primary,
+    color: c.primary,
   },
   headerName: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.semiBold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     flex: 1,
   },
   headerActions: {
@@ -1018,19 +1033,19 @@ const s = StyleSheet.create({
     gap: spacing.xs,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs + 2,
-    backgroundColor: colours.primaryLight + '30',
+    backgroundColor: c.primaryLight + '30',
     borderBottomWidth: 1,
-    borderBottomColor: colours.border,
+    borderBottomColor: c.border,
   },
   contactBannerText: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.medium,
-    color: colours.primary,
+    color: c.primary,
   },
   contactPhone: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.semiBold,
-    color: colours.success,
+    color: c.success,
   },
   // List
   listContent: {
@@ -1054,13 +1069,13 @@ const s = StyleSheet.create({
     borderRadius: borderRadius.lg,
   },
   bubbleOwn: {
-    backgroundColor: colours.primary,
+    backgroundColor: c.primary,
     borderBottomRightRadius: 4,
   },
   bubbleTheirs: {
-    backgroundColor: colours.surfaceCard,
+    backgroundColor: c.surfaceCard,
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderBottomLeftRadius: 4,
   },
   bubbleText: {
@@ -1072,7 +1087,7 @@ const s = StyleSheet.create({
     color: '#fff',
   },
   bubbleTextTheirs: {
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
   editedTag: {
     fontSize: typography.fontSize.xs - 1,
@@ -1083,7 +1098,7 @@ const s = StyleSheet.create({
     color: 'rgba(255,255,255,0.6)',
   },
   editedTagTheirs: {
-    color: colours.textMuted,
+    color: c.textMuted,
   },
   bubbleMeta: {
     flexDirection: 'row',
@@ -1100,7 +1115,7 @@ const s = StyleSheet.create({
     color: 'rgba(255,255,255,0.65)',
   },
   msgTimeTheirs: {
-    color: colours.textMuted,
+    color: c.textMuted,
   },
   receipt: {
     fontSize: typography.fontSize.xs,
@@ -1119,12 +1134,12 @@ const s = StyleSheet.create({
   dateLine: {
     flex: 1,
     height: 1,
-    backgroundColor: colours.border,
+    backgroundColor: c.border,
   },
   dateLabel: {
     fontSize: typography.fontSize.xs,
     fontFamily: typography.fontFamily.regular,
-    color: colours.textMuted,
+    color: c.textMuted,
   },
   // Typing indicator
   typingRow: {
@@ -1132,18 +1147,18 @@ const s = StyleSheet.create({
     marginVertical: spacing.xs,
   },
   typingBubble: {
-    backgroundColor: colours.surfaceCard,
+    backgroundColor: c.surfaceCard,
     borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
     paddingHorizontal: spacing.sm,
     paddingVertical: 6,
   },
   typingDotsRow: { flexDirection: 'row', gap: 4, alignItems: 'center', height: 18 },
-  typingDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colours.textMuted },
+  typingDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: c.textMuted },
   typingDotsLegacy: {
     fontSize: typography.fontSize.lg,
-    color: colours.textMuted,
+    color: c.textMuted,
     letterSpacing: 3,
   },
   // Edit banner
@@ -1153,14 +1168,14 @@ const s = StyleSheet.create({
     gap: spacing.xs,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
-    backgroundColor: colours.primaryLight + '20',
+    backgroundColor: c.primaryLight + '20',
     borderTopWidth: 1,
-    borderTopColor: colours.border,
+    borderTopColor: c.border,
   },
   editBannerText: {
     flex: 1,
     fontSize: typography.fontSize.xs,
-    color: colours.primary,
+    color: c.primary,
     fontFamily: typography.fontFamily.medium,
   },
   // Input bar
@@ -1169,35 +1184,35 @@ const s = StyleSheet.create({
     alignItems: 'flex-end',
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
-    backgroundColor: colours.surfaceCard,
+    backgroundColor: c.surfaceCard,
     borderTopWidth: 1,
-    borderTopColor: colours.border,
+    borderTopColor: c.border,
     gap: spacing.xs,
   },
   input: {
     flex: 1,
     minHeight: 40,
     maxHeight: 120,
-    backgroundColor: colours.background,
+    backgroundColor: c.background,
     borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.regular,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
   sendBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colours.primary,
+    backgroundColor: c.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sendBtnDisabled: {
-    backgroundColor: colours.n200,
+    backgroundColor: c.n200,
   },
   // Action menu
   menuOverlay: {
@@ -1207,7 +1222,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   menuCard: {
-    backgroundColor: colours.surfaceCard,
+    backgroundColor: c.surfaceCard,
     borderRadius: borderRadius.lg,
     paddingVertical: spacing.xs,
     minWidth: 200,
@@ -1227,6 +1242,6 @@ const s = StyleSheet.create({
   menuItemText: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
 });

@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { HoroscopeSkeleton } from '../../components/ui/skeletons';
 import { useQuery } from '@tanstack/react-query';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
-import { colours, type, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, type, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { getHoroscopeCompatibility } from '../../api/profile';
 import type { GunaDetail } from '../../api/profile';
 import { CompatRing } from '../../components/ui';
@@ -23,11 +23,11 @@ import type { MainStackParamList } from '../../navigation/types';
 type Route = RouteProp<MainStackParamList, 'HoroscopeMatch'>;
 
 // Brand guna fill: strong = burgundy, mid = warning, weak = destructive (no rainbow).
-function gunaColour(pct: number, isNull: boolean): string {
-  if (isNull) return colours.textMuted;
-  if (pct >= 60) return colours.p500;
-  if (pct >= 30) return colours.warning;
-  return colours.error;
+function gunaColour(pct: number, isNull: boolean, c: ThemeColours): string {
+  if (isNull) return c.textMuted;
+  if (pct >= 60) return c.p500;
+  if (pct >= 30) return c.warning;
+  return c.error;
 }
 
 function GunaBar({ name, score, max, detail, index = 0 }: { name: string; score: number | null; max: number; detail: string; index?: number }) {
@@ -35,7 +35,7 @@ function GunaBar({ name, score, max, detail, index = 0 }: { name: string; score:
   const pct = score !== null ? (score / max) * 100 : 0;
   const isNull = score === null;
   const scoreLabel = isNull ? '?' : `${score}/${max}`;
-  const barColour = gunaColour(pct, isNull);
+  const barColour = gunaColour(pct, isNull, c);
   // koota bars stagger 40ms each (handoff motion spec)
   const progress = useFillAnimation(isNull ? 0 : pct, { delayMs: index * 40 });
   const fillStyle = useAnimatedStyle(() => ({ width: `${progress.value}%` }));
@@ -57,10 +57,12 @@ function GunaBar({ name, score, max, detail, index = 0 }: { name: string; score:
 }
 
 function DoshaTag({ label, present }: { label: string; present: boolean }) {
+  const { c } = useTheme();
+  const d = React.useMemo(() => makeD(c), [c]);
   if (!present) return null;
   return (
     <View style={d.tag}>
-      <Ionicons name="warning" size={12} color={colours.warning} />
+      <Ionicons name="warning" size={12} color={c.warning} />
       <Text style={d.tagText}>{label}</Text>
     </View>
   );
@@ -71,6 +73,7 @@ export default function HoroscopeMatchScreen() {
   const nav = useNavigation();
   const route = useRoute<Route>();
   const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const { userId, name } = route.params;
 
   const { data, isLoading, isError } = useQuery({
@@ -121,8 +124,8 @@ export default function HoroscopeMatchScreen() {
           <Text style={[s.sectionTitle, { color: c.fgStrong }]}>Manglik Compatibility</Text>
           {(() => {
             const manglikUnknown = /unknown/i.test(manglikDetail);
-            const bg = manglikUnknown ? c.surface2 : manglikCompatible ? colours.successBg : colours.warningBg;
-            const fg = manglikUnknown ? c.textSecondary : manglikCompatible ? colours.success : colours.warning;
+            const bg = manglikUnknown ? c.surface2 : manglikCompatible ? c.successBg : c.warningBg;
+            const fg = manglikUnknown ? c.textSecondary : manglikCompatible ? c.success : c.warning;
             const icon = manglikUnknown ? 'help-circle' : manglikCompatible ? 'checkmark-circle' : 'alert-circle';
             return (
               <View style={[s.manglikBadge, { backgroundColor: bg }]}>
@@ -149,7 +152,7 @@ export default function HoroscopeMatchScreen() {
             <Text style={[s.sectionTitle, { color: c.fgStrong }]}>Rashi Compatibility</Text>
             <Text style={[s.sectionSub, { color: c.textMuted }]}>Nakshatra not provided — using Rashi as fallback</Text>
             <View style={[s.rashiRow, { backgroundColor: c.surface2 }]}>
-              <View style={[s.rashiBar, { width: `${rashiScore}%`, backgroundColor: colours.p500 }]} />
+              <View style={[s.rashiBar, { width: `${rashiScore}%`, backgroundColor: c.p500 }]} />
               <Text style={[s.rashiPct, { color: c.fgStrong }]}>{rashiScore}%</Text>
             </View>
           </View>
@@ -188,7 +191,7 @@ export default function HoroscopeMatchScreen() {
           <HoroscopeSkeleton />
         ) : isError ? (
           <View style={s.center}>
-            <Ionicons name="alert-circle-outline" size={48} color={colours.error} />
+            <Ionicons name="alert-circle-outline" size={48} color={c.error} />
             <Text style={s.errorText}>Could not load horoscope data</Text>
           </View>
         ) : renderScore()}
@@ -197,7 +200,7 @@ export default function HoroscopeMatchScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (c: ThemeColours) => StyleSheet.create({
   container:    { flex: 1 },
   header:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.sm, borderBottomWidth: 0.5 },
   headerCenter: { flex: 1, alignItems: 'center' },
@@ -206,7 +209,7 @@ const s = StyleSheet.create({
   scroll:       { padding: spacing.gutter, paddingBottom: spacing['4xl'] },
   center:       { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: spacing['5xl'] },
   loadingText:  { marginTop: spacing.md, ...type.body },
-  errorText:    { marginTop: spacing.sm, ...type.body, color: colours.error, textAlign: 'center' },
+  errorText:    { marginTop: spacing.sm, ...type.body, color: c.error, textAlign: 'center' },
 
   scoreCard:    { flexDirection: 'row', alignItems: 'center', borderRadius: borderRadius.lg, borderWidth: 1, padding: spacing.lg, marginBottom: spacing.lg, gap: spacing.lg },
   ringEmpty:    { width: 84, height: 84, borderRadius: 42, borderWidth: 4, alignItems: 'center', justifyContent: 'center' },
@@ -246,7 +249,7 @@ const g = StyleSheet.create({
   scoreLabel: { ...type.caption, fontFamily: 'Inter-SemiBold', width: 34, textAlign: 'right' },
 });
 
-const d = StyleSheet.create({
-  tag:     { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colours.warningBg, borderRadius: borderRadius.sm, paddingHorizontal: spacing.sm, paddingVertical: 4 },
-  tagText: { ...type.caption, color: colours.warning, fontFamily: 'Inter-Medium' },
+const makeD = (c: ThemeColours) => StyleSheet.create({
+  tag:     { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: c.warningBg, borderRadius: borderRadius.sm, paddingHorizontal: spacing.sm, paddingVertical: 4 },
+  tagText: { ...type.caption, color: c.warning, fontFamily: 'Inter-Medium' },
 });

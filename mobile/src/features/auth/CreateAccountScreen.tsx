@@ -6,6 +6,8 @@
  * the server derives onboardingComplete=true and the app lands on Main.
  */
 import React, { useState } from 'react';
+import { PressableScale } from '../../components/motion';
+import { useTheme } from '../../hooks/useTheme';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
   ActivityIndicator, KeyboardAvoidingView, Platform, Linking,
@@ -20,12 +22,14 @@ import { sendOtp, verifyOtp } from '../../api/auth';
 import SmartContactInput, { parseContact } from '../../components/forms/SmartContactInput';
 import OtpInput from '../../components/forms/OtpInput';
 import { PasswordStrength } from '../../components/ui';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { passwordProblem } from '../../utils/passwordRule';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Signup'>;
 
 export default function CreateAccountScreen() {
+  const { c } = useTheme();
+  const st = React.useMemo(() => makeSt(c), [c]);
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -94,7 +98,7 @@ export default function CreateAccountScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <TouchableOpacity onPress={() => navigation.goBack()} style={st.back} accessibilityLabel={t('common.back', 'Back')}>
-          <Ionicons name="arrow-back" size={24} color={colours.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
         </TouchableOpacity>
 
         <Text style={st.title}>{t('auth.signup.title', 'Create your account')}</Text>
@@ -117,7 +121,7 @@ export default function CreateAccountScreen() {
               value={password}
               onChangeText={setPassword}
               placeholder={t('auth.passwordPlaceholder', 'At least 8 characters')}
-              placeholderTextColor={colours.textMuted}
+              placeholderTextColor={c.textMuted}
               secureTextEntry={!showPassword}
               autoCapitalize="none"
               editable={!otpActive}
@@ -125,7 +129,7 @@ export default function CreateAccountScreen() {
               testID="password-input"
             />
             <TouchableOpacity onPress={() => setShowPassword((v) => !v)} accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}>
-              <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colours.textMuted} />
+              <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={c.textMuted} />
             </TouchableOpacity>
           </View>
           {password.length > 0 && <PasswordStrength password={password} />}
@@ -142,7 +146,7 @@ export default function CreateAccountScreen() {
           <Ionicons
             name={termsAccepted ? 'checkbox' : 'square-outline'}
             size={22}
-            color={termsAccepted ? colours.primary : colours.textMuted}
+            color={termsAccepted ? c.primary : c.textMuted}
           />
           <Text style={st.termsText}>
             {t('auth.signup.agree', 'I agree to the')}{' '}
@@ -155,7 +159,7 @@ export default function CreateAccountScreen() {
         {error ? <Text style={st.error} accessibilityLiveRegion="polite">{error}</Text> : null}
 
         {otpPhase === 'idle' || otpPhase === 'sending' ? (
-          <TouchableOpacity
+          <PressableScale haptic
             style={[st.cta, (!formValid || otpPhase === 'sending') && st.ctaDisabled]}
             onPress={handleSendOtp}
             disabled={otpPhase === 'sending'}
@@ -166,14 +170,14 @@ export default function CreateAccountScreen() {
             {otpPhase === 'sending'
               ? <ActivityIndicator size="small" color="#fff" />
               : <Text style={st.ctaText}>{t('auth.signup.sendCode', 'Send verification code')}</Text>}
-          </TouchableOpacity>
+          </PressableScale>
         ) : (
           <View style={st.otpBlock}>
             <Text style={st.otpTitle}>
               {t('auth.signup.enterCode', 'Enter the 4-digit code sent to')} {parsed.kind === 'phone' ? `+91 ${parsed.value}` : parsed.value}
             </Text>
             <OtpInput onComplete={handleVerify} disabled={otpPhase === 'verifying'} resetKey={otpResetKey} />
-            {otpPhase === 'verifying' && <ActivityIndicator size="small" color={colours.primary} style={{ marginTop: spacing.sm }} />}
+            {otpPhase === 'verifying' && <ActivityIndicator size="small" color={c.primary} style={{ marginTop: spacing.sm }} />}
             <TouchableOpacity onPress={handleSendOtp} style={{ marginTop: spacing.md }} accessibilityLabel="Resend code">
               <Text style={st.link}>{t('auth.signup.resend', 'Resend code')}</Text>
             </TouchableOpacity>
@@ -191,32 +195,32 @@ export default function CreateAccountScreen() {
   );
 }
 
-const st = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colours.background },
+const makeSt = (c: ThemeColours) => StyleSheet.create({
+  flex: { flex: 1, backgroundColor: c.background },
   content: { paddingHorizontal: spacing.gutter, paddingBottom: spacing['3xl'] },
   back: { marginBottom: spacing.md, alignSelf: 'flex-start' },
-  title: { fontSize: typography.fontSize['2xl'], fontFamily: typography.fontFamily.bold, color: colours.textPrimary },
-  sub: { fontSize: typography.fontSize.sm, color: colours.textMuted, marginTop: 4, marginBottom: spacing.xl },
+  title: { fontSize: typography.fontSize['2xl'], fontFamily: typography.fontFamily.bold, color: c.textPrimary },
+  sub: { fontSize: typography.fontSize.sm, color: c.textMuted, marginTop: 4, marginBottom: spacing.xl },
   field: { marginBottom: spacing.lg },
-  label: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.medium, color: colours.textSecondary, marginBottom: spacing.xs },
+  label: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.medium, color: c.textSecondary, marginBottom: spacing.xs },
   pwWrap: {
     flexDirection: 'row', alignItems: 'center',
-    borderWidth: 1, borderColor: colours.border, borderRadius: borderRadius.md,
-    backgroundColor: colours.surfaceCard, paddingHorizontal: spacing.md,
+    borderWidth: 1, borderColor: c.border, borderRadius: borderRadius.md,
+    backgroundColor: c.surfaceCard, paddingHorizontal: spacing.md,
   },
-  pwInput: { flex: 1, minHeight: 50, fontSize: typography.fontSize.base, color: colours.textPrimary },
+  pwInput: { flex: 1, minHeight: 50, fontSize: typography.fontSize.base, color: c.textPrimary },
   termsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.lg },
-  termsText: { flex: 1, fontSize: typography.fontSize.sm, color: colours.textSecondary },
-  link: { color: colours.primary, fontFamily: typography.fontFamily.semiBold },
-  error: { color: colours.error, fontSize: typography.fontSize.sm, marginBottom: spacing.md },
+  termsText: { flex: 1, fontSize: typography.fontSize.sm, color: c.textSecondary },
+  link: { color: c.primary, fontFamily: typography.fontFamily.semiBold },
+  error: { color: c.error, fontSize: typography.fontSize.sm, marginBottom: spacing.md },
   cta: {
-    backgroundColor: colours.primary, borderRadius: borderRadius.pill,
+    backgroundColor: c.primary, borderRadius: borderRadius.pill,
     minHeight: 52, alignItems: 'center', justifyContent: 'center',
   },
   ctaDisabled: { opacity: 0.5 },
   ctaText: { color: '#fff', fontFamily: typography.fontFamily.bold, fontSize: typography.fontSize.base },
   otpBlock: { alignItems: 'center', paddingVertical: spacing.md },
-  otpTitle: { fontSize: typography.fontSize.sm, color: colours.textSecondary, marginBottom: spacing.md, textAlign: 'center' },
+  otpTitle: { fontSize: typography.fontSize.sm, color: c.textSecondary, marginBottom: spacing.md, textAlign: 'center' },
   footerRow: { flexDirection: 'row', justifyContent: 'center', marginTop: spacing.xl },
-  footerText: { color: colours.textMuted, fontSize: typography.fontSize.sm },
+  footerText: { color: c.textMuted, fontSize: typography.fontSize.sm },
 });

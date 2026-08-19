@@ -4,8 +4,9 @@
  * `resetKey` prop after a failed verify.
  */
 import React, { useEffect, useRef, useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import { View, TextInput, StyleSheet, Pressable, Text } from 'react-native';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 
 const LENGTH = 4;
 
@@ -18,6 +19,8 @@ interface Props {
 }
 
 export default function OtpInput({ onComplete, disabled = false, resetKey = 0, testID }: Props) {
+  const { c } = useTheme();
+  const st = React.useMemo(() => makeSt(c), [c]);
   const [code, setCode] = useState('');
   const inputRef = useRef<TextInput>(null);
 
@@ -60,16 +63,16 @@ export default function OtpInput({ onComplete, disabled = false, resetKey = 0, t
   );
 }
 
-const st = StyleSheet.create({
+const makeSt = (c: ThemeColours) => StyleSheet.create({
   hidden: { position: 'absolute', opacity: 0, height: 1, width: 1 },
   row: { flexDirection: 'row', gap: spacing.sm, justifyContent: 'center' },
   box: {
     width: 52, height: 60,
-    borderWidth: 1.5, borderColor: colours.border, borderRadius: borderRadius.md,
-    backgroundColor: colours.surfaceCard,
+    borderWidth: 1.5, borderColor: c.border, borderRadius: borderRadius.md,
+    backgroundColor: c.surfaceCard,
     alignItems: 'center', justifyContent: 'center',
   },
-  boxActive: { borderColor: colours.primary },
-  boxFilled: { borderColor: colours.primary, backgroundColor: '#FDF2F5' },
-  digit: { fontSize: typography.fontSize.xl, fontWeight: '700', color: colours.textPrimary },
+  boxActive: { borderColor: c.primary },
+  boxFilled: { borderColor: c.primary, backgroundColor: '#FDF2F5' },
+  digit: { fontSize: typography.fontSize.xl, fontWeight: '700', color: c.textPrimary },
 });

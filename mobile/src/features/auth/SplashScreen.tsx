@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
@@ -15,7 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../navigation/types';
 import { useAuthStore } from '../../stores/authStore';
-import { colours, typography } from '@shared/constants/theme';
+import { colours, typography, type ThemeColours } from '@shared/constants/theme';
 import Logo from '../../components/common/Logo';
 import { useReduceMotion } from '../../components/motion';
 
@@ -23,6 +24,8 @@ type Nav = NativeStackNavigationProp<AuthStackParamList, 'Splash'>;
 
 /** One dot of the boot loader — gentle opacity pulse (handoff: 3-dot loader). */
 function LoaderDot({ delay }: { delay: number }) {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const reduced = useReduceMotion();
   const o = useSharedValue(0.35);
   useEffect(() => {
@@ -47,6 +50,8 @@ function LoaderDot({ delay }: { delay: number }) {
 }
 
 export default function SplashScreen() {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const navigation = useNavigation<Nav>();
   const { isLoading, isAuthenticated } = useAuthStore();
 
@@ -63,7 +68,7 @@ export default function SplashScreen() {
   return (
     <View style={styles.container} testID="SplashScreen">
       <LinearGradient
-        colors={[colours.p600, colours.p500, colours.p700]}
+        colors={[c.p600, c.p500, c.p700]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -83,10 +88,10 @@ export default function SplashScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colours.primary,
+    backgroundColor: c.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },

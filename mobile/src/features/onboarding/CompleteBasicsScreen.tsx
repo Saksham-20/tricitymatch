@@ -7,6 +7,8 @@
  * Main. Everything else is the in-app journey's job.
  */
 import React, { useEffect, useState } from 'react';
+import { PressableScale } from '../../components/motion';
+import { useTheme } from '../../hooks/useTheme';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
   ActivityIndicator, KeyboardAvoidingView, Platform,
@@ -17,9 +19,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { getMyProfile, updateMyProfile } from '../../api/profile';
 import { getMe } from '../../api/auth';
 import { useAuthStore } from '../../stores/authStore';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 
 export default function CompleteBasicsScreen() {
+  const { c } = useTheme();
+  const st = React.useMemo(() => makeSt(c), [c]);
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const setUser = useAuthStore((s) => s.setUser);
@@ -118,7 +122,7 @@ export default function CompleteBasicsScreen() {
             value={firstName}
             onChangeText={setFirstName}
             placeholder="First name"
-            placeholderTextColor={colours.textMuted}
+            placeholderTextColor={c.textMuted}
             autoCapitalize="words"
             testID="first-name-input"
           />
@@ -127,7 +131,7 @@ export default function CompleteBasicsScreen() {
             value={lastName}
             onChangeText={setLastName}
             placeholder="Last name"
-            placeholderTextColor={colours.textMuted}
+            placeholderTextColor={c.textMuted}
             autoCapitalize="words"
             testID="last-name-input"
           />
@@ -146,7 +150,7 @@ export default function CompleteBasicsScreen() {
                 accessibilityState={{ selected: active }}
                 testID={`gender-${g}`}
               >
-                <Ionicons name={g === 'male' ? 'male' : 'female'} size={18} color={active ? '#fff' : colours.textSecondary} />
+                <Ionicons name={g === 'male' ? 'male' : 'female'} size={18} color={active ? '#fff' : c.textSecondary} />
                 <Text style={[st.genderText, active && st.genderTextActive]}>{g === 'male' ? 'Male' : 'Female'}</Text>
               </TouchableOpacity>
             );
@@ -159,7 +163,7 @@ export default function CompleteBasicsScreen() {
           value={dobDisplay}
           onChangeText={handleDobChange}
           placeholder="DD/MM/YYYY"
-          placeholderTextColor={colours.textMuted}
+          placeholderTextColor={c.textMuted}
           keyboardType="numeric"
           maxLength={10}
           testID="dob-input"
@@ -167,7 +171,7 @@ export default function CompleteBasicsScreen() {
         {dobError ? <Text style={st.error}>{dobError}</Text> : null}
         {error ? <Text style={st.error} accessibilityLiveRegion="polite">{error}</Text> : null}
 
-        <TouchableOpacity
+        <PressableScale haptic
           style={[st.cta, (!isValid || loading) && st.ctaDisabled]}
           onPress={handleContinue}
           disabled={loading}
@@ -178,36 +182,36 @@ export default function CompleteBasicsScreen() {
           {loading
             ? <ActivityIndicator size="small" color="#fff" />
             : <Text style={st.ctaText}>{t('common.continue', 'Continue')}</Text>}
-        </TouchableOpacity>
+        </PressableScale>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-const st = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colours.background },
+const makeSt = (c: ThemeColours) => StyleSheet.create({
+  flex: { flex: 1, backgroundColor: c.background },
   content: { paddingHorizontal: spacing.gutter, paddingBottom: spacing['3xl'] },
-  title: { fontSize: typography.fontSize['2xl'], fontFamily: typography.fontFamily.bold, color: colours.textPrimary },
-  sub: { fontSize: typography.fontSize.sm, color: colours.textMuted, marginTop: 4, marginBottom: spacing.xl },
-  label: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.medium, color: colours.textSecondary, marginBottom: spacing.xs, marginTop: spacing.md },
+  title: { fontSize: typography.fontSize['2xl'], fontFamily: typography.fontFamily.bold, color: c.textPrimary },
+  sub: { fontSize: typography.fontSize.sm, color: c.textMuted, marginTop: 4, marginBottom: spacing.xl },
+  label: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.medium, color: c.textSecondary, marginBottom: spacing.xs, marginTop: spacing.md },
   nameRow: { flexDirection: 'row', gap: spacing.sm },
   input: {
-    borderWidth: 1, borderColor: colours.border, borderRadius: borderRadius.md,
-    backgroundColor: colours.surfaceCard, paddingHorizontal: spacing.md,
-    minHeight: 50, fontSize: typography.fontSize.base, color: colours.textPrimary,
+    borderWidth: 1, borderColor: c.border, borderRadius: borderRadius.md,
+    backgroundColor: c.surfaceCard, paddingHorizontal: spacing.md,
+    minHeight: 50, fontSize: typography.fontSize.base, color: c.textPrimary,
   },
-  inputError: { borderColor: colours.error },
+  inputError: { borderColor: c.error },
   genderBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    minHeight: 50, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colours.border,
-    backgroundColor: colours.surfaceCard,
+    minHeight: 50, borderRadius: borderRadius.md, borderWidth: 1, borderColor: c.border,
+    backgroundColor: c.surfaceCard,
   },
-  genderBtnActive: { backgroundColor: colours.primary, borderColor: colours.primary },
-  genderText: { fontSize: typography.fontSize.base, color: colours.textSecondary },
+  genderBtnActive: { backgroundColor: c.primary, borderColor: c.primary },
+  genderText: { fontSize: typography.fontSize.base, color: c.textSecondary },
   genderTextActive: { color: '#fff', fontFamily: typography.fontFamily.semiBold },
-  error: { color: colours.error, fontSize: typography.fontSize.sm, marginTop: spacing.sm },
+  error: { color: c.error, fontSize: typography.fontSize.sm, marginTop: spacing.sm },
   cta: {
-    backgroundColor: colours.primary, borderRadius: borderRadius.pill,
+    backgroundColor: c.primary, borderRadius: borderRadius.pill,
     minHeight: 52, alignItems: 'center', justifyContent: 'center', marginTop: spacing.xl,
   },
   ctaDisabled: { opacity: 0.5 },

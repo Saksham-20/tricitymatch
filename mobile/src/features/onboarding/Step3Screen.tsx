@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { PressableScale } from '../../components/motion';
 import { haptics } from '../../utils/haptics';
 import OnboardingLayout from './OnboardingLayout';
@@ -16,6 +17,8 @@ const MANGLIK_OPTIONS: { key: ManglikStatus; tKey: string }[] = [
 ];
 
 export default function Step3Screen() {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const { t } = useTranslation();
   const { data, saveAndNext } = useOnboarding();
 
@@ -81,7 +84,7 @@ export default function Step3Screen() {
           value={birthTime}
           onChangeText={setBirthTime}
           placeholder="HH:MM (e.g. 06:30)"
-          placeholderTextColor={colours.textMuted}
+          placeholderTextColor={c.textMuted}
           keyboardType="numbers-and-punctuation"
           testID="input-birthTime"
           accessibilityLabel={t('onboarding.step3.birthTime')}
@@ -98,7 +101,7 @@ export default function Step3Screen() {
           value={placeOfBirth}
           onChangeText={setPlaceOfBirth}
           placeholder="City of birth"
-          placeholderTextColor={colours.textMuted}
+          placeholderTextColor={c.textMuted}
           autoCapitalize="words"
           autoComplete="postal-address-locality"
           textContentType="addressCity"
@@ -111,18 +114,18 @@ export default function Step3Screen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
   label: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     marginBottom: spacing.sm,
   },
-  optional: { color: colours.textMuted, fontFamily: typography.fontFamily.regular },
+  optional: { color: c.textMuted, fontFamily: typography.fontFamily.regular },
   sectionHeader: {
     fontSize: typography.fontSize.base,
     fontFamily: typography.fontFamily.semiBold,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     marginTop: spacing.sm,
   },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
@@ -130,26 +133,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     height: 44,
     borderWidth: 1.5,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  optionBtnActive: { borderColor: colours.primary, backgroundColor: colours.primaryLight },
+  optionBtnActive: { borderColor: c.primary, backgroundColor: c.primaryLight },
   optionBtnText: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
-  optionBtnTextActive: { color: colours.primary },
+  optionBtnTextActive: { color: c.primary },
   input: {
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     fontSize: typography.fontSize.base,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     minHeight: 48,
   },
 });

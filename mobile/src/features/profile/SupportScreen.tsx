@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import {
   View,
   Text,
@@ -11,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 
 const WHATSAPP_NUMBER = '919876543210';
 const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=Hi+TricityMatch+Support%2C+I+need+help+with`;
@@ -44,6 +45,8 @@ const FAQ: Array<{ q: string; a: string }> = [
 ];
 
 function FaqItem({ q, a }: { q: string; a: string }) {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const [open, setOpen] = useState(false);
 
   const toggle = () => {
@@ -58,7 +61,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
         <Ionicons
           name={open ? 'chevron-up' : 'chevron-down'}
           size={18}
-          color={colours.textSecondary}
+          color={c.textSecondary}
         />
       </View>
       {open && <Text style={s.faqA}>{a}</Text>}
@@ -79,21 +82,25 @@ function ContactRow({
   onPress: () => void;
   testID?: string;
 }) {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   return (
     <TouchableOpacity style={s.contactRow} onPress={onPress} testID={testID} accessibilityRole="button">
       <View style={s.contactIcon}>
-        <Ionicons name={icon} size={22} color={colours.primary} />
+        <Ionicons name={icon} size={22} color={c.primary} />
       </View>
       <View style={s.contactText}>
         <Text style={s.contactLabel}>{label}</Text>
         <Text style={s.contactSub}>{sub}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={16} color={colours.textMuted} />
+      <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
     </TouchableOpacity>
   );
 }
 
 export default function SupportScreen() {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const nav = useNavigation();
 
   const openWhatsApp = () => {
@@ -110,7 +117,7 @@ export default function SupportScreen() {
     <SafeAreaView style={s.safe} testID="SupportScreen">
       <View style={s.header}>
         <TouchableOpacity onPress={() => nav.goBack()} style={s.backBtn} accessibilityLabel="Go back">
-          <Ionicons name="arrow-back" size={22} color={colours.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
         </TouchableOpacity>
         <Text style={s.title}>Help & Support</Text>
       </View>
@@ -146,7 +153,7 @@ export default function SupportScreen() {
         </View>
 
         <View style={s.footerNote}>
-          <Ionicons name="information-circle-outline" size={16} color={colours.textMuted} />
+          <Ionicons name="information-circle-outline" size={16} color={c.textMuted} />
           <Text style={s.footerText}>TricityMatch — Chandigarh, Mohali, Panchkula</Text>
         </View>
       </ScrollView>
@@ -154,15 +161,15 @@ export default function SupportScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colours.background },
+const makeS = (c: ThemeColours) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.background },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colours.border,
+    borderBottomColor: c.border,
     gap: spacing.sm,
   },
   backBtn: { padding: spacing.xs },
@@ -170,20 +177,20 @@ const s = StyleSheet.create({
     flex: 1,
     fontSize: typography.fontSize.lg,
     fontFamily: typography.fontFamily.bold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
   scroll: { padding: spacing.lg, gap: spacing.sm },
   sectionTitle: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.semiBold,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginTop: spacing.md,
     marginBottom: spacing.xs,
   },
   contactCard: {
-    backgroundColor: colours.surfaceCard,
+    backgroundColor: c.surfaceCard,
     borderRadius: borderRadius.md,
     overflow: 'hidden',
   },
@@ -197,7 +204,7 @@ const s = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colours.primary + '15',
+    backgroundColor: c.primary + '15',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -205,15 +212,15 @@ const s = StyleSheet.create({
   contactLabel: {
     fontSize: typography.fontSize.base,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
   contactSub: {
     fontSize: typography.fontSize.xs,
     fontFamily: typography.fontFamily.regular,
-    color: colours.textSecondary,
+    color: c.textSecondary,
   },
   faqCard: {
-    backgroundColor: colours.surfaceCard,
+    backgroundColor: c.surfaceCard,
     borderRadius: borderRadius.md,
     overflow: 'hidden',
   },
@@ -223,16 +230,16 @@ const s = StyleSheet.create({
     flex: 1,
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
   faqA: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.regular,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     marginTop: spacing.sm,
     lineHeight: 20,
   },
-  divider: { height: 1, backgroundColor: colours.border },
+  divider: { height: 1, backgroundColor: c.border },
   footerNote: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -244,6 +251,6 @@ const s = StyleSheet.create({
   footerText: {
     fontSize: typography.fontSize.xs,
     fontFamily: typography.fontFamily.regular,
-    color: colours.textMuted,
+    color: c.textMuted,
   },
 });

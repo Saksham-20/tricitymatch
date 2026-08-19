@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import {
   View,
   Text,
@@ -20,7 +21,7 @@ import { StaggeredEntrance } from '../../components/motion';
 import { showToast } from '../../utils/toast';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { cache, CACHE_KEYS } from '../../utils/cache';
 import { updateMyProfile } from '../../api/profile';
 import { deleteAccount } from '../../api/auth';
@@ -59,6 +60,8 @@ function SettingRow({
   icon, iconColor, label, sublabel, value,
   toggle, toggleValue, onToggle, onPress, destructive, testID,
 }: SettingRowProps) {
+  const { c } = useTheme();
+  const sr = React.useMemo(() => makeSr(c), [c]);
   return (
     <TouchableOpacity
       style={sr.row}
@@ -68,42 +71,44 @@ function SettingRow({
       accessibilityLabel={label}
       accessibilityRole={toggle ? 'switch' : onPress ? 'button' : 'none'}
     >
-      <View style={[sr.iconWrap, { backgroundColor: (iconColor ?? colours.primary) + '15' }]}>
-        <Ionicons name={icon as any} size={18} color={iconColor ?? colours.primary} />
+      <View style={[sr.iconWrap, { backgroundColor: (iconColor ?? c.primary) + '15' }]}>
+        <Ionicons name={icon as any} size={18} color={iconColor ?? c.primary} />
       </View>
       <View style={sr.info}>
-        <Text style={[sr.label, destructive && { color: colours.error }]}>{label}</Text>
+        <Text style={[sr.label, destructive && { color: c.error }]}>{label}</Text>
         {sublabel ? <Text style={sr.sub}>{sublabel}</Text> : null}
       </View>
       {toggle ? (
         <Switch
           value={toggleValue}
           onValueChange={onToggle}
-          trackColor={{ false: colours.border, true: colours.primary + '80' }}
-          thumbColor={toggleValue ? colours.primary : colours.textMuted}
+          trackColor={{ false: c.border, true: c.primary + '80' }}
+          thumbColor={toggleValue ? c.primary : c.textMuted}
           testID={`${testID ?? label}-switch`}
         />
       ) : value ? (
         <Text style={sr.value}>{value}</Text>
       ) : onPress ? (
-        <Ionicons name="chevron-forward" size={16} color={colours.textMuted} />
+        <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
       ) : null}
     </TouchableOpacity>
   );
 }
 
-const sr = StyleSheet.create({
-  row:     { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, paddingHorizontal: spacing.lg, backgroundColor: colours.background, minHeight: 56 },
+const makeSr = (c: ThemeColours) => StyleSheet.create({
+  row:     { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, paddingHorizontal: spacing.lg, backgroundColor: c.background, minHeight: 56 },
   iconWrap:{ width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: spacing.md },
   info:    { flex: 1 },
-  label:   { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.medium, color: colours.textPrimary },
-  sub:     { fontSize: typography.fontSize.xs, color: colours.textSecondary, marginTop: 2 },
-  value:   { fontSize: typography.fontSize.sm, color: colours.textSecondary, fontFamily: typography.fontFamily.regular },
+  label:   { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.medium, color: c.textPrimary },
+  sub:     { fontSize: typography.fontSize.xs, color: c.textSecondary, marginTop: 2 },
+  value:   { fontSize: typography.fontSize.sm, color: c.textSecondary, fontFamily: typography.fontFamily.regular },
 });
 
 // ─── Section ──────────────────────────────────────────────────────────────────
 
 function Section({ title, index = 0, children }: { title: string; index?: number; children: React.ReactNode }) {
+  const { c } = useTheme();
+  const sec = React.useMemo(() => makeSec(c), [c]);
   return (
     <StaggeredEntrance index={index} style={sec.container}>
       <Text style={sec.title}>{title}</Text>
@@ -112,14 +117,15 @@ function Section({ title, index = 0, children }: { title: string; index?: number
   );
 }
 
-const sec = StyleSheet.create({
+const makeSec = (c: ThemeColours) => StyleSheet.create({
   container: { marginBottom: spacing.xl },
-  title:     { fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.semiBold, color: colours.textMuted, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: spacing.sm, paddingHorizontal: spacing.lg },
-  card:      { backgroundColor: colours.background, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colours.border },
+  title:     { fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.semiBold, color: c.textMuted, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: spacing.sm, paddingHorizontal: spacing.lg },
+  card:      { backgroundColor: c.background, borderTopWidth: 1, borderBottomWidth: 1, borderColor: c.border },
 });
 
 function Divider() {
-  return <View style={{ height: 1, backgroundColor: colours.border, marginLeft: 68 }} />;
+  const { c } = useTheme();
+  return <View style={{ height: 1, backgroundColor: c.border, marginLeft: 68 }} />;
 }
 
 // ─── Language Picker Modal ─────────────────────────────────────────────────────
@@ -130,6 +136,8 @@ function LanguagePicker({ visible, current, onSelect, onClose }: {
   onSelect: (lang: Language) => void;
   onClose: () => void;
 }) {
+  const { c } = useTheme();
+  const lp = React.useMemo(() => makeLp(c), [c]);
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <TouchableOpacity style={lp.backdrop} activeOpacity={1} onPress={onClose}>
@@ -147,7 +155,7 @@ function LanguagePicker({ visible, current, onSelect, onClose }: {
               <Text style={lp.optionMain}>{opt.native}</Text>
               <Text style={lp.optionSub}>{opt.label}</Text>
               {opt.code === current && (
-                <Ionicons name="checkmark" size={20} color={colours.primary} style={{ marginLeft: 'auto' }} />
+                <Ionicons name="checkmark" size={20} color={c.primary} style={{ marginLeft: 'auto' }} />
               )}
             </TouchableOpacity>
           ))}
@@ -157,14 +165,14 @@ function LanguagePicker({ visible, current, onSelect, onClose }: {
   );
 }
 
-const lp = StyleSheet.create({
+const makeLp = (c: ThemeColours) => StyleSheet.create({
   backdrop:   { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  sheet:      { backgroundColor: colours.background, borderTopLeftRadius: borderRadius.xl, borderTopRightRadius: borderRadius.xl, padding: spacing.xl, paddingBottom: spacing['3xl'] },
-  handle:     { width: 40, height: 4, borderRadius: 2, backgroundColor: colours.border, alignSelf: 'center', marginBottom: spacing.lg },
-  heading:    { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: colours.textPrimary, marginBottom: spacing.lg },
-  option:     { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colours.border, gap: spacing.md },
-  optionMain: { fontSize: typography.fontSize.lg, fontFamily: typography.fontFamily.semiBold, color: colours.textPrimary },
-  optionSub:  { fontSize: typography.fontSize.sm, color: colours.textSecondary, marginLeft: spacing.sm },
+  sheet:      { backgroundColor: c.background, borderTopLeftRadius: borderRadius.xl, borderTopRightRadius: borderRadius.xl, padding: spacing.xl, paddingBottom: spacing['3xl'] },
+  handle:     { width: 40, height: 4, borderRadius: 2, backgroundColor: c.border, alignSelf: 'center', marginBottom: spacing.lg },
+  heading:    { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: c.textPrimary, marginBottom: spacing.lg },
+  option:     { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: c.border, gap: spacing.md },
+  optionMain: { fontSize: typography.fontSize.lg, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
+  optionSub:  { fontSize: typography.fontSize.sm, color: c.textSecondary, marginLeft: spacing.sm },
 });
 
 // ─── Delete Account Modal ─────────────────────────────────────────────────────
@@ -175,11 +183,13 @@ function DeleteModal({ visible, onClose, onConfirm, loading }: {
   onConfirm: () => void;
   loading: boolean;
 }) {
+  const { c } = useTheme();
+  const dm = React.useMemo(() => makeDm(c), [c]);
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={dm.backdrop}>
         <View style={dm.card} testID="delete-account-modal">
-          <Ionicons name="warning" size={40} color={colours.error} />
+          <Ionicons name="warning" size={40} color={c.error} />
           <Text style={dm.title}>Delete Account</Text>
           <Text style={dm.body}>
             This will permanently delete your profile, matches, and all data. This cannot be undone.
@@ -206,20 +216,22 @@ function DeleteModal({ visible, onClose, onConfirm, loading }: {
   );
 }
 
-const dm = StyleSheet.create({
+const makeDm = (c: ThemeColours) => StyleSheet.create({
   backdrop:    { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
-  card:        { backgroundColor: colours.background, borderRadius: borderRadius.xl, padding: spacing['2xl'], alignItems: 'center', gap: spacing.md, width: '100%' },
-  title:       { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: colours.textPrimary },
-  body:        { fontSize: typography.fontSize.sm, color: colours.textSecondary, textAlign: 'center', lineHeight: 22 },
-  confirmBtn:  { backgroundColor: colours.error, borderRadius: borderRadius.md, paddingVertical: spacing.md, width: '100%', alignItems: 'center', marginTop: spacing.sm },
+  card:        { backgroundColor: c.background, borderRadius: borderRadius.xl, padding: spacing['2xl'], alignItems: 'center', gap: spacing.md, width: '100%' },
+  title:       { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: c.textPrimary },
+  body:        { fontSize: typography.fontSize.sm, color: c.textSecondary, textAlign: 'center', lineHeight: 22 },
+  confirmBtn:  { backgroundColor: c.error, borderRadius: borderRadius.md, paddingVertical: spacing.md, width: '100%', alignItems: 'center', marginTop: spacing.sm },
   confirmText: { color: '#fff', fontFamily: typography.fontFamily.bold, fontSize: typography.fontSize.base },
   cancelBtn:   { paddingVertical: spacing.sm, width: '100%', alignItems: 'center' },
-  cancelText:  { color: colours.textSecondary, fontSize: typography.fontSize.base },
+  cancelText:  { color: c.textSecondary, fontSize: typography.fontSize.base },
 });
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function SettingsScreen() {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const queryClient = useQueryClient();
@@ -281,7 +293,7 @@ export default function SettingsScreen() {
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} testID="back-btn" accessibilityLabel="Go back">
-          <Ionicons name="arrow-back" size={22} color={colours.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
         </TouchableOpacity>
         <Text style={s.title}>Settings</Text>
         <View style={{ width: 40 }} />
@@ -308,7 +320,7 @@ export default function SettingsScreen() {
           <Divider />
           <SettingRow
             icon="card-outline"
-            iconColor={colours.secondary}
+            iconColor={c.secondary}
             label="Subscription"
             sublabel={user?.subscriptionPlan ? `Current: ${user.subscriptionPlan.replace('_', ' ')}` : undefined}
             onPress={() => navigation.navigate('Subscription')}
@@ -334,7 +346,7 @@ export default function SettingsScreen() {
         <Section title="Privacy" index={1}>
           <SettingRow
             icon="eye-off-outline"
-            iconColor={colours.primary}
+            iconColor={c.primary}
             label="Incognito Mode"
             sublabel="Browse profiles without being seen"
             toggle
@@ -345,7 +357,7 @@ export default function SettingsScreen() {
           <Divider />
           <SettingRow
             icon="lock-closed-outline"
-            iconColor={colours.primary}
+            iconColor={c.primary}
             label="Privacy Controls"
             sublabel="Profile visibility, online status & last seen"
             onPress={() => navigation.navigate('PrivacySettings')}
@@ -354,7 +366,7 @@ export default function SettingsScreen() {
           <Divider />
           <SettingRow
             icon="key-outline"
-            iconColor={colours.primary}
+            iconColor={c.primary}
             label="Account Security"
             sublabel="Change password & signed-in devices"
             onPress={() => navigation.navigate('AccountSecurity')}
@@ -368,7 +380,7 @@ export default function SettingsScreen() {
         <Section title="Appearance" index={2}>
           <SettingRow
             icon="text-outline"
-            iconColor={colours.primary}
+            iconColor={c.primary}
             label="Elder Mode"
             sublabel="Larger text and simplified navigation"
             toggle
@@ -379,7 +391,7 @@ export default function SettingsScreen() {
           <Divider />
           <SettingRow
             icon="language-outline"
-            iconColor={colours.primary}
+            iconColor={c.primary}
             label="Language"
             value={currentLangLabel}
             onPress={() => setShowLangPicker(true)}
@@ -391,7 +403,7 @@ export default function SettingsScreen() {
         <Section title="Family" index={3}>
           <SettingRow
             icon="people-outline"
-            iconColor={colours.primary}
+            iconColor={c.primary}
             label="Family Chat"
             sublabel="Private group chat with your family"
             onPress={() => navigation.navigate('FamilyGroups')}
@@ -400,7 +412,7 @@ export default function SettingsScreen() {
           <Divider />
           <SettingRow
             icon="shield-half-outline"
-            iconColor={colours.primary}
+            iconColor={c.primary}
             label="Guardian Co-Pilot"
             sublabel="Let a parent or guardian browse your matches"
             onPress={() => navigation.navigate('GuardianSetup')}
@@ -410,7 +422,7 @@ export default function SettingsScreen() {
           <Divider />
           <SettingRow
             icon="eye-outline"
-            iconColor={colours.primary}
+            iconColor={c.primary}
             label="Guardian Dashboard"
             sublabel="Browse matches for someone who invited you"
             onPress={() => navigation.navigate('GuardianCandidates')}
@@ -434,7 +446,7 @@ export default function SettingsScreen() {
           <Section title="Administration" index={5}>
             <SettingRow
               icon="shield-outline"
-              iconColor={colours.error}
+              iconColor={c.error}
               label="Admin Panel"
               sublabel="Verify users, review reports"
               onPress={() => navigation.navigate('AdminStack', { screen: 'AdminHome' })}
@@ -447,7 +459,7 @@ export default function SettingsScreen() {
         <Section title="Support" index={7}>
           <SettingRow
             icon="help-circle-outline"
-            iconColor={colours.textSecondary}
+            iconColor={c.textSecondary}
             label="Help & Support"
             onPress={() => navigation.navigate('Support')}
             testID="setting-support"
@@ -455,7 +467,7 @@ export default function SettingsScreen() {
           <Divider />
           <SettingRow
             icon="heart-outline"
-            iconColor={colours.primary}
+            iconColor={c.primary}
             label="Success Stories"
             sublabel="Read couples who found their match"
             onPress={() => navigation.navigate('SuccessStoriesBrowse')}
@@ -464,7 +476,7 @@ export default function SettingsScreen() {
           <Divider />
           <SettingRow
             icon="star-outline"
-            iconColor={colours.primary}
+            iconColor={c.primary}
             label="Share Your Story"
             sublabel="Found your match? Inspire others!"
             onPress={() => navigation.navigate('SuccessStory')}
@@ -475,7 +487,7 @@ export default function SettingsScreen() {
               <Divider />
               <SettingRow
                 icon="moon-outline"
-                iconColor={colours.primary}
+                iconColor={c.primary}
                 label="Astrologer Consult"
                 sublabel="Get expert Vedic guidance for your match"
                 onPress={() => navigation.navigate('AstrologerMarketplace')}
@@ -489,7 +501,7 @@ export default function SettingsScreen() {
         <Section title="About & Legal" index={8}>
           <SettingRow
             icon="information-circle-outline"
-            iconColor={colours.textSecondary}
+            iconColor={c.textSecondary}
             label="About TricityMatch"
             onPress={() => navigation.navigate('About')}
             testID="setting-about"
@@ -497,7 +509,7 @@ export default function SettingsScreen() {
           <Divider />
           <SettingRow
             icon="shield-checkmark-outline"
-            iconColor={colours.textSecondary}
+            iconColor={c.textSecondary}
             label="Safety & Trust"
             onPress={() => navigation.navigate('Safety')}
             testID="setting-safety"
@@ -505,7 +517,7 @@ export default function SettingsScreen() {
           <Divider />
           <SettingRow
             icon="mail-outline"
-            iconColor={colours.textSecondary}
+            iconColor={c.textSecondary}
             label="Contact Us"
             onPress={() => navigation.navigate('Contact')}
             testID="setting-contact"
@@ -513,7 +525,7 @@ export default function SettingsScreen() {
           <Divider />
           <SettingRow
             icon="document-text-outline"
-            iconColor={colours.textSecondary}
+            iconColor={c.textSecondary}
             label="Terms of Service"
             onPress={() => navigation.navigate('Terms')}
             testID="setting-terms"
@@ -521,7 +533,7 @@ export default function SettingsScreen() {
           <Divider />
           <SettingRow
             icon="lock-closed-outline"
-            iconColor={colours.textSecondary}
+            iconColor={c.textSecondary}
             label="Privacy Policy"
             onPress={() => navigation.navigate('Privacy')}
             testID="setting-privacy-policy"
@@ -532,7 +544,7 @@ export default function SettingsScreen() {
         <Section title="Account Actions" index={9}>
           <SettingRow
             icon="log-out-outline"
-            iconColor={colours.warning}
+            iconColor={c.warning}
             label="Log Out"
             onPress={() =>
               Alert.alert('Log Out', 'Are you sure you want to log out?', [
@@ -545,7 +557,7 @@ export default function SettingsScreen() {
           <Divider />
           <SettingRow
             icon="trash-outline"
-            iconColor={colours.error}
+            iconColor={c.error}
             label="Delete Account"
             sublabel="Permanently remove all your data"
             destructive
@@ -574,9 +586,9 @@ export default function SettingsScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  wrapper:  { flex: 1, backgroundColor: colours.surfaceCard },
-  header:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, backgroundColor: colours.background, borderBottomWidth: 1, borderBottomColor: colours.border },
+const makeS = (c: ThemeColours) => StyleSheet.create({
+  wrapper:  { flex: 1, backgroundColor: c.surfaceCard },
+  header:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, backgroundColor: c.background, borderBottomWidth: 1, borderBottomColor: c.border },
   backBtn:  { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  title:    { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: colours.textPrimary },
+  title:    { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: c.textPrimary },
 });

@@ -7,6 +7,7 @@
  * element on this screen is the locked tease card (DS7).
  */
 import React, { useEffect, useRef, useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
@@ -15,9 +16,9 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { getDailyFeed } from '../../api/matches';
 import SmartImage from '../../components/common/SmartImage';
-import { useReduceMotion } from '../../components/motion';
+import { useReduceMotion, PressableScale } from '../../components/motion';
 import { useOnboarding, JOURNEY_DONE_KEY } from './OnboardingContext';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import type { ProfileSummary } from '../../types';
 
 const STAGES = [
@@ -35,6 +36,8 @@ const ageFrom = (dob: string | null): string => {
 };
 
 export default function JourneyFinaleScreen() {
+  const { c } = useTheme();
+  const st = React.useMemo(() => makeSt(c), [c]);
   const navigation = useNavigation<any>();
   const { t } = useTranslation();
   const { exit } = useOnboarding();
@@ -86,7 +89,7 @@ export default function JourneyFinaleScreen() {
     return (
       <SafeAreaView style={st.safe} testID="JourneyFinaleLoading">
         <View style={st.center}>
-          <ActivityIndicator size="large" color={colours.primary} />
+          <ActivityIndicator size="large" color={c.primary} />
           <Text style={st.stageText} accessibilityLiveRegion="polite">
             {reduced ? t('journey.finding', 'Finding matches…') : STAGES[stageIndex]}
           </Text>
@@ -121,7 +124,7 @@ export default function JourneyFinaleScreen() {
             </View>
             {/* DS7: the one gold element — locked tease */}
             <View style={st.tease}>
-              <Ionicons name="lock-closed" size={16} color={colours.secondary} />
+              <Ionicons name="lock-closed" size={16} color={c.secondary} />
               <Text style={st.teaseText}>{t('journey.tease', 'More members liked profiles like yours — see who, with Premium.')}</Text>
             </View>
           </>
@@ -129,7 +132,7 @@ export default function JourneyFinaleScreen() {
 
         {phase === 'early' && (
           <View style={st.center}>
-            <Ionicons name="leaf-outline" size={40} color={colours.primary} />
+            <Ionicons name="leaf-outline" size={40} color={c.primary} />
             <Text style={st.title}>{t('journey.earlyTitle', "You're early")}</Text>
             <Text style={st.sub}>
               {t('journey.earlySub', "New Tricity profiles arrive weekly — we'll notify you as soon as strong matches appear.")}
@@ -139,56 +142,56 @@ export default function JourneyFinaleScreen() {
 
         {phase === 'error' && (
           <View style={st.center}>
-            <Ionicons name="cloud-offline-outline" size={40} color={colours.textMuted} />
+            <Ionicons name="cloud-offline-outline" size={40} color={c.textMuted} />
             <Text style={st.title}>{t('journey.errorTitle', "Couldn't load matches")}</Text>
             <Text style={st.sub}>{t('journey.errorSub', 'Your answers are saved. Check your matches from the Home tab.')}</Text>
           </View>
         )}
 
-        <TouchableOpacity style={st.quizBtn} onPress={goQuiz} accessibilityRole="button" testID="quiz-cta">
-          <Ionicons name="sparkles-outline" size={18} color={colours.primary} />
+        <PressableScale haptic style={st.quizBtn} onPress={goQuiz} accessibilityRole="button" testID="quiz-cta">
+          <Ionicons name="sparkles-outline" size={18} color={c.primary} />
           <Text style={st.quizText}>{t('journey.quizCta', 'Take the 2-minute personality quiz')}</Text>
-        </TouchableOpacity>
+        </PressableScale>
 
-        <TouchableOpacity style={st.cta} onPress={exit} accessibilityRole="button" testID="done-btn">
+        <PressableScale haptic style={st.cta} onPress={exit} accessibilityRole="button" testID="done-btn">
           <Text style={st.ctaText}>
             {phase === 'reveal' ? t('journey.explore', 'Explore my matches') : t('journey.done', 'Go to my dashboard')}
           </Text>
-        </TouchableOpacity>
+        </PressableScale>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const st = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colours.background },
+const makeSt = (c: ThemeColours) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.background },
   content: { padding: spacing.gutter, paddingBottom: spacing['3xl'], flexGrow: 1, justifyContent: 'center' },
   center: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xl },
-  stageText: { fontSize: typography.fontSize.base, color: colours.textSecondary, marginTop: spacing.md },
-  title: { fontSize: typography.fontSize['2xl'], fontFamily: typography.fontFamily.bold, color: colours.textPrimary, textAlign: 'center', marginTop: spacing.sm },
-  sub: { fontSize: typography.fontSize.sm, color: colours.textMuted, textAlign: 'center', marginTop: spacing.xs, marginBottom: spacing.lg },
+  stageText: { fontSize: typography.fontSize.base, color: c.textSecondary, marginTop: spacing.md },
+  title: { fontSize: typography.fontSize['2xl'], fontFamily: typography.fontFamily.bold, color: c.textPrimary, textAlign: 'center', marginTop: spacing.sm },
+  sub: { fontSize: typography.fontSize.sm, color: c.textMuted, textAlign: 'center', marginTop: spacing.xs, marginBottom: spacing.lg },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'center' },
   card: {
     width: '47%', borderRadius: borderRadius.lg, overflow: 'hidden',
-    backgroundColor: colours.surfaceCard, borderWidth: 1, borderColor: colours.border,
+    backgroundColor: c.surfaceCard, borderWidth: 1, borderColor: c.border,
   },
   cardImg: { width: '100%', aspectRatio: 0.9 },
   cardMeta: { padding: spacing.sm },
-  cardName: { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: colours.textPrimary },
-  cardCity: { fontSize: typography.fontSize.xs, color: colours.textMuted, marginTop: 2 },
+  cardName: { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
+  cardCity: { fontSize: typography.fontSize.xs, color: c.textMuted, marginTop: 2 },
   tease: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    backgroundColor: colours.goldSoft, borderRadius: borderRadius.md,
+    backgroundColor: c.goldSoft, borderRadius: borderRadius.md,
     padding: spacing.md, marginTop: spacing.lg,
   },
-  teaseText: { flex: 1, fontSize: typography.fontSize.sm, color: colours.textPrimary },
+  teaseText: { flex: 1, fontSize: typography.fontSize.sm, color: c.textPrimary },
   quizBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     minHeight: 48, marginTop: spacing.xl,
   },
-  quizText: { fontSize: typography.fontSize.sm, color: colours.primary, fontFamily: typography.fontFamily.semiBold },
+  quizText: { fontSize: typography.fontSize.sm, color: c.primary, fontFamily: typography.fontFamily.semiBold },
   cta: {
-    backgroundColor: colours.primary, borderRadius: borderRadius.pill,
+    backgroundColor: c.primary, borderRadius: borderRadius.pill,
     minHeight: 52, alignItems: 'center', justifyContent: 'center', marginTop: spacing.sm,
   },
   ctaText: { color: '#fff', fontFamily: typography.fontFamily.bold, fontSize: typography.fontSize.base },

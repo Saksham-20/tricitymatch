@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { ListSkeleton } from '../../components/ui/skeletons';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { getAstrologer, bookAstrologer } from '../../api/profile';
 import type { MainStackParamList } from '../../navigation/types';
 
@@ -31,6 +32,8 @@ const DURATIONS = [15, 30, 45, 60];
  * rather than reporting a confirmation that has not happened.
  */
 export default function AstrologerDetailScreen() {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const insets = useSafeAreaInsets();
   const nav = useNavigation();
   const route = useRoute<Route>();
@@ -73,7 +76,7 @@ export default function AstrologerDetailScreen() {
     <View style={[s.container, { paddingTop: insets.top }]}>
       <View style={s.header}>
         <TouchableOpacity onPress={() => nav.goBack()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <Ionicons name="arrow-back" size={24} color={colours.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
         </TouchableOpacity>
         <Text style={s.headerTitle} numberOfLines={1}>{astrologer?.name ?? astrologerName}</Text>
         <View style={{ width: 24 }} />
@@ -83,7 +86,7 @@ export default function AstrologerDetailScreen() {
         <ListSkeleton rows={5} />
       ) : isError || !astrologer ? (
         <View style={s.state}>
-          <Ionicons name="cloud-offline-outline" size={44} color={colours.textMuted} />
+          <Ionicons name="cloud-offline-outline" size={44} color={c.textMuted} />
           <Text style={s.stateText}>Could not load this astrologer.</Text>
           <TouchableOpacity onPress={() => refetch()} style={s.retryBtn}>
             <Text style={s.retryText}>Try again</Text>
@@ -102,7 +105,7 @@ export default function AstrologerDetailScreen() {
               </Text>
               {astrologer.reviewCount > 0 && (
                 <View style={s.ratingRow}>
-                  <Ionicons name="star" size={14} color={colours.secondary} />
+                  <Ionicons name="star" size={14} color={c.secondary} />
                   <Text style={s.ratingText}>
                     {astrologer.rating} ({astrologer.reviewCount} reviews)
                   </Text>
@@ -175,8 +178,8 @@ export default function AstrologerDetailScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colours.background },
+const makeS = (c: ThemeColours) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -184,56 +187,56 @@ const s = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colours.border,
+    borderBottomColor: c.border,
   },
   headerTitle: {
     flex: 1,
     textAlign: 'center',
     fontSize: typography.fontSize.lg,
     fontFamily: typography.fontFamily.semiBold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
   },
   scroll: { padding: spacing.md, paddingBottom: 120 },
 
   state: { alignItems: 'center', paddingTop: 64, gap: spacing.sm },
-  stateText: { fontSize: typography.fontSize.base, color: colours.textMuted },
-  retryBtn: { marginTop: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: borderRadius.full, borderWidth: 1, borderColor: colours.primary },
-  retryText: { color: colours.primary, fontFamily: typography.fontFamily.semiBold },
+  stateText: { fontSize: typography.fontSize.base, color: c.textMuted },
+  retryBtn: { marginTop: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: borderRadius.full, borderWidth: 1, borderColor: c.primary },
+  retryText: { color: c.primary, fontFamily: typography.fontFamily.semiBold },
 
   profileCard: { alignItems: 'center', paddingVertical: spacing.xl, gap: spacing.xs },
   avatarWrap: {
-    width: 76, height: 76, borderRadius: 38, backgroundColor: colours.primary,
+    width: 76, height: 76, borderRadius: 38, backgroundColor: c.primary,
     alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm,
   },
   avatarText: { fontSize: typography.fontSize['3xl'], fontFamily: typography.fontFamily.bold, color: '#fff' },
-  name: { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: colours.textPrimary },
-  meta: { fontSize: typography.fontSize.sm, color: colours.textSecondary },
+  name: { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: c.textPrimary },
+  meta: { fontSize: typography.fontSize.sm, color: c.textSecondary },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
-  ratingText: { fontSize: typography.fontSize.sm, color: colours.textSecondary },
+  ratingText: { fontSize: typography.fontSize.sm, color: c.textSecondary },
 
   section: { marginTop: spacing.lg, gap: spacing.sm },
-  sectionTitle: { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: colours.textPrimary },
+  sectionTitle: { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, justifyContent: 'center' },
-  chip: { backgroundColor: colours.surfaceCard, borderRadius: borderRadius.full, paddingHorizontal: spacing.sm, paddingVertical: 4, borderWidth: 1, borderColor: colours.border },
-  chipText: { fontSize: typography.fontSize.xs, color: colours.textSecondary },
+  chip: { backgroundColor: c.surfaceCard, borderRadius: borderRadius.full, paddingHorizontal: spacing.sm, paddingVertical: 4, borderWidth: 1, borderColor: c.border },
+  chipText: { fontSize: typography.fontSize.xs, color: c.textSecondary },
 
   durationRow: { flexDirection: 'row', gap: spacing.xs },
-  durationBtn: { flex: 1, alignItems: 'center', paddingVertical: spacing.sm, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colours.border },
-  durationBtnActive: { borderColor: colours.primary, backgroundColor: colours.primaryLight },
-  durationLabel: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold, color: colours.textPrimary },
-  durationPrice: { fontSize: typography.fontSize.xs, color: colours.textMuted },
-  durationLabelActive: { color: colours.primary },
-  slotNote: { fontSize: typography.fontSize.xs, color: colours.textMuted },
+  durationBtn: { flex: 1, alignItems: 'center', paddingVertical: spacing.sm, borderRadius: borderRadius.md, borderWidth: 1, borderColor: c.border },
+  durationBtnActive: { borderColor: c.primary, backgroundColor: c.primaryLight },
+  durationLabel: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
+  durationPrice: { fontSize: typography.fontSize.xs, color: c.textMuted },
+  durationLabelActive: { color: c.primary },
+  slotNote: { fontSize: typography.fontSize.xs, color: c.textMuted },
 
   bookBar: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    padding: spacing.md, backgroundColor: colours.background,
-    borderTopWidth: 1, borderTopColor: colours.border,
+    padding: spacing.md, backgroundColor: c.background,
+    borderTopWidth: 1, borderTopColor: c.border,
   },
-  bookPrice: { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: colours.textPrimary },
-  bookDuration: { fontSize: typography.fontSize.xs, color: colours.textMuted },
-  bookBtn: { backgroundColor: colours.primary, borderRadius: borderRadius.lg, paddingHorizontal: spacing.lg, paddingVertical: 14 },
-  bookBtnDisabled: { backgroundColor: colours.textMuted },
+  bookPrice: { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: c.textPrimary },
+  bookDuration: { fontSize: typography.fontSize.xs, color: c.textMuted },
+  bookBtn: { backgroundColor: c.primary, borderRadius: borderRadius.lg, paddingHorizontal: spacing.lg, paddingVertical: 14 },
+  bookBtnDisabled: { backgroundColor: c.textMuted },
   bookBtnText: { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: '#fff' },
 });

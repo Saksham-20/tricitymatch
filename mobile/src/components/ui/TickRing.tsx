@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
-import { colours, type } from '@shared/constants/theme';
+import { colours, type, type ThemeColours } from '@shared/constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import { useFillAnimation } from '../motion';
 
@@ -39,6 +39,8 @@ function Tick({
   onColor: string;
   offColor: string;
 }) {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const angle = (360 / ticks) * index;
   const radius = size / 2;
   const animatedStyle = useAnimatedStyle(() => ({
@@ -76,6 +78,7 @@ export default function TickRing({
   children,
 }: TickRingProps) {
   const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const fillColor = color ?? c.accent;
   const v = Math.max(0, Math.min(100, value));
   const progress = useFillAnimation(v);
@@ -108,6 +111,8 @@ interface RingLabelProps { value: number; caption?: string; }
  *  Font and tick length scale with `size` so the number never collides with the
  *  rim (a fixed 22pt % overflowed the ticks at the small 58pt Home-card size). */
 export function CompletionRing({ value, caption = 'COMPLETE', size = 88 }: RingLabelProps & { size?: number }) {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const pctFont = Math.round(size * 0.26);
   const tickLen = Math.max(6, Math.round(size * 0.13));
   // A caption inside a small ring crowds the number — only show it with room.
@@ -127,6 +132,8 @@ const compatColour = (pct: number) =>
 
 /** Compatibility ring — 24-tick gauge tinted by score + center %. */
 export function CompatRing({ value, size = 64 }: { value: number; size?: number }) {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const colour = compatColour(value);
   return (
     <TickRing value={value} size={size} ticks={24} tickLength={size * 0.12} tickWidth={2.5} color={colour}>
@@ -136,11 +143,11 @@ export function CompatRing({ value, size = 64 }: { value: number; size?: number 
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
   tick: { position: 'absolute' },
   center: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
-  bigPct: { ...type.title2, color: colours.fgStrong, lineHeight: 26 },
-  caption: { ...type.micro, color: colours.textMuted, letterSpacing: 1, marginTop: 1 },
+  bigPct: { ...type.title2, color: c.fgStrong, lineHeight: 26 },
+  caption: { ...type.micro, color: c.textMuted, letterSpacing: 1, marginTop: 1 },
   midPct: { ...type.headline, fontFamily: 'Inter-Bold', lineHeight: 18 },
-  pctMark: { ...type.micro, color: colours.textMuted, marginTop: -2 },
+  pctMark: { ...type.micro, color: c.textMuted, marginTop: -2 },
 });

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import {
   View, Text, TouchableOpacity, Image, StyleSheet,
   ActivityIndicator, StatusBar, PanResponder, Animated, Dimensions,
@@ -9,7 +10,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { callColours } from './callTheme';
 import { useCallStore } from '../../stores/callStore';
 import { useSocket } from '../../hooks/useSocket';
@@ -50,6 +51,8 @@ function formatDuration(secs: number): string {
 }
 
 export default function VideoCallScreen() {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { callId: incomingCallId, channelName, calleeId } = route.params;
@@ -289,12 +292,12 @@ export default function VideoCallScreen() {
               <Image source={{ uri: calleePhoto }} style={styles.remoteAvatar} />
             ) : (
               <View style={[styles.remoteAvatar, styles.remoteAvatarFallback]}>
-                <Ionicons name="person" size={80} color={colours.textMuted} />
+                <Ionicons name="person" size={80} color={c.textMuted} />
               </View>
             )}
             <Text style={styles.remoteName}>{calleeName || 'Connecting…'}</Text>
             {phase === 'ringing' && <Text style={styles.remoteStatus}>Ringing…</Text>}
-            {phase === 'connecting' && <ActivityIndicator color={colours.primary} style={{ marginTop: spacing.md }} />}
+            {phase === 'connecting' && <ActivityIndicator color={c.primary} style={{ marginTop: spacing.md }} />}
           </View>
         )}
       </TouchableOpacity>
@@ -314,7 +317,7 @@ export default function VideoCallScreen() {
             />
           ) : (
             <View style={styles.pipFallback}>
-              <Ionicons name="videocam" size={20} color={colours.background} />
+              <Ionicons name="videocam" size={20} color={c.background} />
             </View>
           )}
         </Animated.View>
@@ -366,6 +369,8 @@ interface VideoBtnProps {
 }
 
 function VideoBtn({ icon, label, onPress, variant = 'default', active, testID }: VideoBtnProps) {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   return (
     <View style={styles.btnWrap}>
       <TouchableOpacity
@@ -377,7 +382,7 @@ function VideoBtn({ icon, label, onPress, variant = 'default', active, testID }:
         <Ionicons
           name={icon}
           size={24}
-          color={variant === 'end' || active ? colours.background : colours.textPrimary}
+          color={variant === 'end' || active ? c.background : c.textPrimary}
         />
       </TouchableOpacity>
       <Text style={styles.btnLabel}>{label}</Text>
@@ -386,7 +391,7 @@ function VideoBtn({ icon, label, onPress, variant = 'default', active, testID }:
 }
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: callColours.black,
@@ -403,10 +408,10 @@ const styles = StyleSheet.create({
     height: 160,
     borderRadius: 80,
     borderWidth: 3,
-    borderColor: colours.primary,
+    borderColor: c.primary,
   },
   remoteAvatarFallback: {
-    backgroundColor: colours.surfaceCard,
+    backgroundColor: c.surfaceCard,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -427,7 +432,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     overflow: 'hidden',
     borderWidth: 2,
-    borderColor: colours.primary,
+    borderColor: c.primary,
   },
   pipFallback: {
     flex: 1,
@@ -480,13 +485,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   btnEnd: {
-    backgroundColor: colours.error,
+    backgroundColor: c.error,
     width: 64,
     height: 64,
     borderRadius: 32,
   },
   btnActive: {
-    backgroundColor: colours.primary,
+    backgroundColor: c.primary,
   },
   btnLabel: {
     fontSize: typography.fontSize.xs,

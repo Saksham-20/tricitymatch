@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming, Easing } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { colours, type, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, type, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { duration, easing } from '@shared/constants/motion';
 import { Button } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
@@ -44,6 +44,7 @@ export default function OnboardingLayout({
 }: OnboardingLayoutProps) {
   const { t } = useTranslation();
   const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const { goBack, exit, isSaving, currentStep, stepCount } = useOnboarding();
   const reduced = useReduceMotion();
   const progress = Math.max(0, Math.min(1, (currentStep + 1) / stepCount));
@@ -120,10 +121,10 @@ export default function OnboardingLayout({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: colours.background,
+    backgroundColor: c.background,
   },
   flex: { flex: 1 },
   header: {
@@ -139,34 +140,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stepLabel: { ...type.subhead, color: colours.textMuted },
+  stepLabel: { ...type.subhead, color: c.textMuted },
   headerRight: { width: 40 },
-  skipText: { ...type.subhead, color: colours.accent },
+  skipText: { ...type.subhead, color: c.accent },
   progressTrack: {
     height: 6,
-    backgroundColor: colours.surface2,
+    backgroundColor: c.surface2,
     marginHorizontal: spacing.gutter,
     borderRadius: borderRadius.pill,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: colours.accent,
+    backgroundColor: c.accent,
     borderRadius: borderRadius.pill,
   },
   scrollContent: { padding: spacing.gutter, paddingBottom: spacing['3xl'] },
   title: {
     ...type.title1,
     fontFamily: 'PlayfairDisplay-Bold',
-    color: colours.fgStrong,
+    color: c.fgStrong,
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
   },
-  subtitle: { ...type.body, color: colours.textMuted, marginBottom: spacing['2xl'] },
+  subtitle: { ...type.body, color: c.textMuted, marginBottom: spacing['2xl'] },
   content: { gap: spacing.lg },
   footer: {
     padding: spacing.gutter,
     borderTopWidth: 0.5,
-    borderTopColor: colours.hairline,
+    borderTopColor: c.hairline,
   },
 });

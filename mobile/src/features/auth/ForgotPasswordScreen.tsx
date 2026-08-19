@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import {
   View,
   Text,
@@ -17,11 +18,13 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import type { AuthStackParamList } from '../../navigation/types';
 import { forgotPassword } from '../../api/auth';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'ForgotPassword'>;
 
 export default function ForgotPasswordScreen() {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -63,7 +66,7 @@ export default function ForgotPasswordScreen() {
     return (
       <View style={styles.successContainer} testID="ForgotPasswordScreen-success">
         <View style={styles.successIcon}>
-          <Ionicons name="mail-outline" size={30} color={colours.primary} />
+          <Ionicons name="mail-outline" size={30} color={c.primary} />
         </View>
         <Text style={styles.successTitle}>{t('auth.forgotPassword.success')}</Text>
         <Text style={styles.successSubtitle}>
@@ -100,14 +103,14 @@ export default function ForgotPasswordScreen() {
           accessibilityLabel={t('common.back')}
           testID="ForgotPasswordScreen-back"
         >
-          <Ionicons name="chevron-back" size={18} color={colours.textSecondary} />
+          <Ionicons name="chevron-back" size={18} color={c.textSecondary} />
           <Text style={styles.backText}>{t('common.back')}</Text>
         </TouchableOpacity>
 
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.iconWrap}>
-            <Ionicons name="key-outline" size={28} color={colours.primary} />
+            <Ionicons name="key-outline" size={28} color={c.primary} />
           </View>
           <Text style={styles.title}>{t('auth.forgotPassword.title')}</Text>
           <Text style={styles.subtitle}>{t('auth.forgotPassword.subtitle')}</Text>
@@ -128,7 +131,7 @@ export default function ForgotPasswordScreen() {
             value={email}
             onChangeText={(v) => { setEmail(v); setError(''); }}
             placeholder="you@example.com"
-            placeholderTextColor={colours.textMuted}
+            placeholderTextColor={c.textMuted}
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
@@ -161,18 +164,18 @@ export default function ForgotPasswordScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colours.background },
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
+  flex: { flex: 1, backgroundColor: c.background },
   scroll: { flex: 1 },
   content: { padding: spacing['2xl'] },
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, marginBottom: spacing.lg, minHeight: 40, alignSelf: 'flex-start' },
-  backText: { fontSize: typography.fontSize.base, color: colours.textSecondary, fontFamily: typography.fontFamily.medium },
+  backText: { fontSize: typography.fontSize.base, color: c.textSecondary, fontFamily: typography.fontFamily.medium },
   header: { marginBottom: spacing['2xl'], alignItems: 'flex-start' },
   iconWrap: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: colours.primaryLight,
+    backgroundColor: c.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,
@@ -180,45 +183,45 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.fontSize['3xl'],
     fontFamily: typography.fontFamily.bold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     marginBottom: spacing.sm,
   },
   subtitle: {
     fontSize: typography.fontSize.base,
     fontFamily: typography.fontFamily.regular,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     lineHeight: typography.fontSize.base * 1.5,
   },
   errorBanner: {
-    backgroundColor: colours.errorBg,
+    backgroundColor: c.errorBg,
     borderRadius: borderRadius.md,
     padding: spacing.md,
     marginBottom: spacing.lg,
     borderLeftWidth: 3,
-    borderLeftColor: colours.error,
+    borderLeftColor: c.error,
   },
-  errorText: { fontSize: typography.fontSize.sm, color: colours.error, fontFamily: typography.fontFamily.medium },
+  errorText: { fontSize: typography.fontSize.sm, color: c.error, fontFamily: typography.fontFamily.medium },
   fieldGroup: { marginBottom: spacing.lg },
   label: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.medium,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     marginBottom: spacing.sm,
   },
   input: {
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.md,
     paddingHorizontal: spacing.lg,
     paddingVertical: 14,
     fontSize: typography.fontSize.base,
     fontFamily: typography.fontFamily.regular,
-    color: colours.textPrimary,
-    backgroundColor: colours.background,
+    color: c.textPrimary,
+    backgroundColor: c.background,
     minHeight: 52,
   },
   primaryBtn: {
-    backgroundColor: colours.primary,
+    backgroundColor: c.primary,
     borderRadius: borderRadius.md,
     paddingVertical: 16,
     alignItems: 'center',
@@ -234,7 +237,7 @@ const styles = StyleSheet.create({
   // Success state
   successContainer: {
     flex: 1,
-    backgroundColor: colours.background,
+    backgroundColor: c.background,
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing['3xl'],
@@ -243,7 +246,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: colours.primaryLight,
+    backgroundColor: c.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing['2xl'],
@@ -252,14 +255,14 @@ const styles = StyleSheet.create({
   successTitle: {
     fontSize: typography.fontSize.xl,
     fontFamily: typography.fontFamily.bold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     textAlign: 'center',
     marginBottom: spacing.md,
   },
   successSubtitle: {
     fontSize: typography.fontSize.base,
     fontFamily: typography.fontFamily.regular,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
     lineHeight: typography.fontSize.base * 1.5,
     marginBottom: spacing['3xl'],

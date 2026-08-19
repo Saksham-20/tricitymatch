@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
-import { colours, type, borderRadius } from '@shared/constants/theme';
+import { colours, type, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import { CompatRing } from '../ui/TickRing';
 import { useFillAnimation } from '../motion';
@@ -14,6 +14,8 @@ interface Props {
 
 /** Bar whose fill width animates 0→pct on view (handoff "fill on view"). */
 function AnimatedBar({ pct, colour, track }: { pct: number; colour: string; track: string }) {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const progress = useFillAnimation(pct);
   const fillStyle = useAnimatedStyle(() => ({ width: `${progress.value}%` }));
   return (
@@ -32,6 +34,7 @@ const scoreColour = (pct: number): string => {
 
 export default function CompatibilityMeter({ score, ring }: Props) {
   const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const clamp = Math.max(0, Math.min(100, score));
   const colour = scoreColour(clamp);
 
@@ -63,14 +66,14 @@ export default function CompatibilityMeter({ score, ring }: Props) {
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (c: ThemeColours) => StyleSheet.create({
   container: { paddingVertical: 8 },
   ringRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   ringText: { flex: 1 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  label: { ...type.subhead, fontFamily: 'Inter-SemiBold', color: colours.fgStrong },
+  label: { ...type.subhead, fontFamily: 'Inter-SemiBold', color: c.fgStrong },
   pct: { ...type.subhead, fontFamily: 'Inter-Bold' },
-  bar: { height: 8, backgroundColor: colours.surface2, borderRadius: borderRadius.pill, overflow: 'hidden' },
+  bar: { height: 8, backgroundColor: c.surface2, borderRadius: borderRadius.pill, overflow: 'hidden' },
   fill: { height: 8, borderRadius: borderRadius.pill },
-  hint: { ...type.caption, color: colours.textMuted, marginTop: 4 },
+  hint: { ...type.caption, color: c.textMuted, marginTop: 4 },
 });

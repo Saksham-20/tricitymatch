@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import { View, Text, StyleSheet, ImageStyle, StyleProp } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import { colours, typography } from '@shared/constants/theme';
+import { colours, typography, type ThemeColours } from '@shared/constants/theme';
 import { CONFIG } from '../../constants/config';
 
 // Resolve a stored photo path into something React Native can load:
@@ -34,6 +35,8 @@ interface Props {
 // FastImage for disk/memory caching, with a 200ms fade-in on load so photos
 // never pop in harshly.
 export default function SmartImage({ uri, name, style, initialSize = 28 }: Props) {
+  const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const [failed, setFailed] = useState(false);
   const opacity = useSharedValue(0);
   const resolved = resolveImageUri(uri);
@@ -63,19 +66,19 @@ export default function SmartImage({ uri, name, style, initialSize = 28 }: Props
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
   holder: {
-    backgroundColor: colours.p100,
+    backgroundColor: c.p100,
     overflow: 'hidden',
   },
   fallback: {
-    backgroundColor: colours.p100,
+    backgroundColor: c.p100,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
   initial: {
-    color: colours.p700,
+    color: c.p700,
     fontFamily: typography.fontFamily.display,
   },
 });

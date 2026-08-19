@@ -1,7 +1,8 @@
 import React from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import { View, Text, StyleSheet } from 'react-native';
 import { LegalLayout, Section, Para } from './LegalLayout';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 
 // Mirrors frontend/src/pages/About.jsx
 const STATS = [
@@ -21,6 +22,8 @@ const VALUES = [
 ];
 
 export default function AboutScreen() {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   return (
     <LegalLayout title="About Us" subtitle="Our story · Tricity only · Since 2011">
       <Section>
@@ -56,13 +59,13 @@ export default function AboutScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (c: ThemeColours) => StyleSheet.create({
   statsGrid:  { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.lg },
-  statCard:   { flexBasis: '47%', flexGrow: 1, backgroundColor: colours.surfaceCard, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colours.border, padding: spacing.md },
-  statValue:  { fontSize: typography.fontSize['2xl'], fontFamily: typography.fontFamily.bold, color: colours.primary },
-  statLabel:  { fontSize: typography.fontSize.sm, color: colours.textSecondary, marginTop: 2 },
+  statCard:   { flexBasis: '47%', flexGrow: 1, backgroundColor: c.surfaceCard, borderRadius: borderRadius.md, borderWidth: 1, borderColor: c.border, padding: spacing.md },
+  statValue:  { fontSize: typography.fontSize['2xl'], fontFamily: typography.fontFamily.bold, color: c.primary },
+  statLabel:  { fontSize: typography.fontSize.sm, color: c.textSecondary, marginTop: 2 },
   valueRow:   { flexDirection: 'row', gap: spacing.md, marginTop: spacing.md },
-  valueNum:   { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.bold, color: colours.primary, width: 28 },
-  valueTitle: { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: colours.textPrimary },
-  valueDesc:  { fontSize: typography.fontSize.sm, color: colours.textSecondary, lineHeight: 20, marginTop: 2 },
+  valueNum:   { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.bold, color: c.primary, width: 28 },
+  valueTitle: { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
+  valueDesc:  { fontSize: typography.fontSize.sm, color: c.textSecondary, lineHeight: 20, marginTop: 2 },
 });

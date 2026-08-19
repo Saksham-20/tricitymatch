@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colours } from '@shared/constants/theme';
+import { colours, type ThemeColours } from '@shared/constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import SmartImage from '../common/SmartImage';
 
@@ -24,6 +24,7 @@ interface AvatarProps {
  */
 export default function Avatar({ uri, name, size = 48, square, verified, online, style }: AvatarProps) {
   const { c } = useTheme();
+  const styles = React.useMemo(() => makeStyles(c), [c]);
   const radius = square ? Math.round(size * 0.28) : size / 2;
   const badge = Math.max(16, Math.round(size * 0.34));
 
@@ -63,12 +64,12 @@ export default function Avatar({ uri, name, size = 48, square, verified, online,
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColours) => StyleSheet.create({
   badge: {
     position: 'absolute',
     bottom: -2,
     right: -2,
-    backgroundColor: colours.success,
+    backgroundColor: c.success,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -80,7 +81,7 @@ const styles = StyleSheet.create({
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: colours.success,
+    backgroundColor: c.success,
     borderWidth: 2,
   },
 });

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import {
   ActivityIndicator,
   Alert,
@@ -7,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { colours, spacing, typography, borderRadius } from '@shared/constants/theme';
+import { colours, spacing, typography, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { deleteVoiceIntro, uploadVoiceIntro } from '../../api/profile';
 
 const MAX_DURATION_MS = 30_000;
@@ -27,6 +28,8 @@ export default function VoiceIntroRecorder({
   isPremiumViewer = true,
   readOnly = false,
 }: Props) {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const [state, setState] = useState<RecordingState>('idle');
   const [elapsed, setElapsed] = useState(0);
   const [localUri, setLocalUri] = useState<string | null>(null);
@@ -287,7 +290,7 @@ export default function VoiceIntroRecorder({
 
       {state === 'uploading' && (
         <View style={s.uploadingRow}>
-          <ActivityIndicator color={colours.primary} />
+          <ActivityIndicator color={c.primary} />
           <Text style={s.uploadingTxt}>Uploading…</Text>
         </View>
       )}
@@ -295,9 +298,9 @@ export default function VoiceIntroRecorder({
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (c: ThemeColours) => StyleSheet.create({
   container: {
-    backgroundColor: colours.surfaceCard,
+    backgroundColor: c.surfaceCard,
     borderRadius: borderRadius.lg,
     padding: spacing.md,
     marginVertical: spacing.sm,
@@ -305,12 +308,12 @@ const s = StyleSheet.create({
   title: {
     fontSize: typography.fontSize.base,
     fontFamily: typography.fontFamily.semiBold,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   subtitle: {
     fontSize: typography.fontSize.sm,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     marginBottom: spacing.sm,
   },
   existingRow: {
@@ -321,7 +324,7 @@ const s = StyleSheet.create({
   existingLabel: {
     flex: 1,
     fontSize: typography.fontSize.sm,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     marginLeft: spacing.xs,
   },
   controls: {
@@ -331,7 +334,7 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: colours.primary,
+    backgroundColor: c.primary,
     borderRadius: borderRadius.md,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
@@ -352,16 +355,16 @@ const s = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: colours.error,
+    backgroundColor: c.error,
   },
   elapsedTxt: {
     flex: 1,
     fontSize: typography.fontSize.sm,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     fontFamily: typography.fontFamily.semiBold,
   },
   stopBtn: {
-    backgroundColor: colours.error,
+    backgroundColor: c.error,
     borderRadius: borderRadius.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
@@ -380,7 +383,7 @@ const s = StyleSheet.create({
   previewLabel: {
     flex: 1,
     fontSize: typography.fontSize.sm,
-    color: colours.textSecondary,
+    color: c.textSecondary,
   },
   discardBtn: {
     paddingHorizontal: spacing.sm,
@@ -388,10 +391,10 @@ const s = StyleSheet.create({
   },
   discardTxt: {
     fontSize: typography.fontSize.sm,
-    color: colours.error,
+    color: c.error,
   },
   saveBtn: {
-    backgroundColor: colours.primary,
+    backgroundColor: c.primary,
     borderRadius: borderRadius.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
@@ -409,20 +412,20 @@ const s = StyleSheet.create({
   },
   uploadingTxt: {
     fontSize: typography.fontSize.sm,
-    color: colours.textSecondary,
+    color: c.textSecondary,
   },
   deleteBtn: {
     paddingHorizontal: spacing.sm,
   },
   deleteTxt: {
     fontSize: typography.fontSize.sm,
-    color: colours.error,
+    color: c.error,
   },
   iconBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: colours.primary,
+    backgroundColor: c.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -437,17 +440,17 @@ const s = StyleSheet.create({
   progressBarWrap: {
     flex: 1,
     height: 4,
-    backgroundColor: colours.border,
+    backgroundColor: c.border,
     borderRadius: 2,
     overflow: 'hidden',
   },
   progressBar: {
     height: 4,
-    backgroundColor: colours.primary,
+    backgroundColor: c.primary,
     borderRadius: 2,
   },
   gateHint: {
     fontSize: typography.fontSize.xs,
-    color: colours.textMuted,
+    color: c.textMuted,
   },
 });

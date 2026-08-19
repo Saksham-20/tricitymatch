@@ -17,7 +17,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, type, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, type, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { getProfileByCode, search, createSavedSearch } from '../../api/search';
 import { showToast } from '../../utils/toast';
 import { performMatchAction } from '../../api/matches';
@@ -48,6 +48,8 @@ const DEFAULT_FILTERS: SearchFilters = {
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
 function CardSkeleton() {
+  const { c } = useTheme();
+  const sk = React.useMemo(() => makeSk(c), [c]);
   return (
     <View style={sk.card}>
       <SkeletonBlock width="100%" height={CARD_PHOTO_H} radius={0} />
@@ -60,15 +62,15 @@ function CardSkeleton() {
   );
 }
 const CARD_PHOTO_H = 240;
-const sk = StyleSheet.create({
+const makeSk = (c: ThemeColours) => StyleSheet.create({
   card: {
-    backgroundColor: colours.surfaceCard,
+    backgroundColor: c.surfaceCard,
     borderRadius: borderRadius.lg,
     marginHorizontal: spacing.gutter,
     marginBottom: spacing.lg,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
   },
   body: { padding: spacing.md },
 });
@@ -86,6 +88,8 @@ function SortPicker({
   onSelect: (v: SortOption) => void;
   onClose: () => void;
 }) {
+  const { c } = useTheme();
+  const sp = React.useMemo(() => makeSp(c), [c]);
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableOpacity style={sp.backdrop} onPress={onClose} activeOpacity={1}>
@@ -98,7 +102,7 @@ function SortPicker({
               onPress={() => { onSelect(o.value); onClose(); }}
             >
               <Text style={[sp.optLabel, current === o.value && sp.optActive]}>{o.label}</Text>
-              {current === o.value && <Ionicons name="checkmark" size={18} color={colours.primary} />}
+              {current === o.value && <Ionicons name="checkmark" size={18} color={c.primary} />}
             </TouchableOpacity>
           ))}
         </View>
@@ -106,13 +110,13 @@ function SortPicker({
     </Modal>
   );
 }
-const sp = StyleSheet.create({
+const makeSp = (c: ThemeColours) => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: colours.background, borderTopLeftRadius: borderRadius.xl, borderTopRightRadius: borderRadius.xl, padding: spacing.lg, paddingBottom: spacing['3xl'] },
-  title: { fontSize: typography.fontSize.lg, fontFamily: typography.fontFamily.bold, color: colours.textPrimary, marginBottom: spacing.md },
+  sheet: { backgroundColor: c.background, borderTopLeftRadius: borderRadius.xl, borderTopRightRadius: borderRadius.xl, padding: spacing.lg, paddingBottom: spacing['3xl'] },
+  title: { fontSize: typography.fontSize.lg, fontFamily: typography.fontFamily.bold, color: c.textPrimary, marginBottom: spacing.md },
   option: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.md },
-  optLabel: { fontSize: typography.fontSize.base, color: colours.textSecondary, fontFamily: typography.fontFamily.regular },
-  optActive: { color: colours.primary, fontFamily: typography.fontFamily.semiBold },
+  optLabel: { fontSize: typography.fontSize.base, color: c.textSecondary, fontFamily: typography.fontFamily.regular },
+  optActive: { color: c.primary, fontFamily: typography.fontFamily.semiBold },
 });
 
 // ─── Save Search Modal ────────────────────────────────────────────────────────
@@ -126,6 +130,8 @@ function SaveSearchModal({
   onSave: (name: string) => void;
   onClose: () => void;
 }) {
+  const { c } = useTheme();
+  const ss = React.useMemo(() => makeSs(c), [c]);
   const [name, setName] = useState('');
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -137,7 +143,7 @@ function SaveSearchModal({
             value={name}
             onChangeText={setName}
             placeholder="e.g. Punjabi Doctor in Chandigarh"
-            placeholderTextColor={colours.textMuted}
+            placeholderTextColor={c.textMuted}
             returnKeyType="done"
             accessibilityLabel="Search name"
           />
@@ -158,25 +164,25 @@ function SaveSearchModal({
     </Modal>
   );
 }
-const ss = StyleSheet.create({
+const makeSs = (c: ThemeColours) => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: colours.background, borderTopLeftRadius: borderRadius.xl, borderTopRightRadius: borderRadius.xl, padding: spacing.lg, paddingBottom: spacing['3xl'] },
-  title: { fontSize: typography.fontSize.lg, fontFamily: typography.fontFamily.bold, color: colours.textPrimary, marginBottom: spacing.md },
+  sheet: { backgroundColor: c.background, borderTopLeftRadius: borderRadius.xl, borderTopRightRadius: borderRadius.xl, padding: spacing.lg, paddingBottom: spacing['3xl'] },
+  title: { fontSize: typography.fontSize.lg, fontFamily: typography.fontFamily.bold, color: c.textPrimary, marginBottom: spacing.md },
   input: {
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
     borderRadius: borderRadius.md,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     fontSize: typography.fontSize.base,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     fontFamily: typography.fontFamily.regular,
     marginBottom: spacing.lg,
   },
   row: { flexDirection: 'row', gap: spacing.md },
-  cancelBtn: { flex: 1, borderWidth: 1, borderColor: colours.border, borderRadius: borderRadius.md, paddingVertical: spacing.md, alignItems: 'center' },
-  cancelText: { color: colours.textSecondary, fontFamily: typography.fontFamily.medium, fontSize: typography.fontSize.base },
-  saveBtn: { flex: 1, backgroundColor: colours.primary, borderRadius: borderRadius.md, paddingVertical: spacing.md, alignItems: 'center' },
+  cancelBtn: { flex: 1, borderWidth: 1, borderColor: c.border, borderRadius: borderRadius.md, paddingVertical: spacing.md, alignItems: 'center' },
+  cancelText: { color: c.textSecondary, fontFamily: typography.fontFamily.medium, fontSize: typography.fontSize.base },
+  saveBtn: { flex: 1, backgroundColor: c.primary, borderRadius: borderRadius.md, paddingVertical: spacing.md, alignItems: 'center' },
   saveText: { color: '#fff', fontFamily: typography.fontFamily.bold, fontSize: typography.fontSize.base },
 });
 
@@ -187,6 +193,7 @@ export default function SearchScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const queryClient = useQueryClient();
   const filterRef = useRef<FilterPanelHandle>(null);
 
@@ -335,12 +342,12 @@ export default function SearchScreen() {
             accessibilityLabel={`Open profile ${formatProfileCode(typedCode)}`}
             testID="open-profile-code"
           >
-            <Ionicons name="id-card-outline" size={16} color={colours.accent} />
+            <Ionicons name="id-card-outline" size={16} color={c.accent} />
             <Text style={[s.codeText, { color: c.fgStrong }]} numberOfLines={1}>
               Open profile {formatProfileCode(typedCode)}
             </Text>
             {codeLookup.isPending ? (
-              <ActivityIndicator size="small" color={colours.accent} />
+              <ActivityIndicator size="small" color={c.accent} />
             ) : (
               <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
             )}
@@ -358,14 +365,14 @@ export default function SearchScreen() {
             style={[
               s.toolBtn,
               { backgroundColor: c.surface2, borderColor: c.border },
-              hasFilters && { backgroundColor: colours.accentSoft, borderColor: colours.accent },
+              hasFilters && { backgroundColor: c.accentSoft, borderColor: c.accent },
             ]}
             onPress={() => { haptics.light(); filterRef.current?.open(); }}
             accessibilityLabel="Open filters"
             testID="filter-btn"
           >
-            <Ionicons name="options" size={16} color={hasFilters ? colours.accent : c.textSecondary} />
-            <Text style={[s.toolBtnText, { color: hasFilters ? colours.accent : c.textSecondary }]}>
+            <Ionicons name="options" size={16} color={hasFilters ? c.accent : c.textSecondary} />
+            <Text style={[s.toolBtnText, { color: hasFilters ? c.accent : c.textSecondary }]}>
               Filters{hasFilters ? ' •' : ''}
             </Text>
           </TouchableOpacity>
@@ -467,20 +474,20 @@ export default function SearchScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (c: ThemeColours) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colours.background,
+    backgroundColor: c.background,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colours.surfaceCard,
+    backgroundColor: c.surfaceCard,
     margin: spacing.lg,
     marginBottom: spacing.sm,
     borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: c.border,
     paddingHorizontal: spacing.md,
     height: 48,
   },
@@ -496,11 +503,11 @@ const s = StyleSheet.create({
     minHeight: 44,
   },
   codeText: { flex: 1, ...type.subhead },
-  codeError: { ...type.footnote, color: colours.error },
+  codeError: { ...type.footnote, color: c.error },
   searchInput: {
     flex: 1,
     fontSize: typography.fontSize.base,
-    color: colours.textPrimary,
+    color: c.textPrimary,
     fontFamily: typography.fontFamily.regular,
   },
   toolbar: {
@@ -519,13 +526,13 @@ const s = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.full,
     borderWidth: 1,
-    borderColor: colours.border,
-    backgroundColor: colours.background,
+    borderColor: c.border,
+    backgroundColor: c.background,
   },
-  toolBtnActive: { borderColor: colours.primary, backgroundColor: colours.primaryLight },
+  toolBtnActive: { borderColor: c.primary, backgroundColor: c.primaryLight },
   toolBtnText: {
     fontSize: typography.fontSize.sm,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     fontFamily: typography.fontFamily.medium,
   },
   sortBtn: {
@@ -535,7 +542,7 @@ const s = StyleSheet.create({
   },
   sortText: {
     fontSize: typography.fontSize.sm,
-    color: colours.textSecondary,
+    color: c.textSecondary,
     fontFamily: typography.fontFamily.medium,
   },
   countRow: {
@@ -544,7 +551,7 @@ const s = StyleSheet.create({
   },
   countText: {
     fontSize: typography.fontSize.sm,
-    color: colours.textMuted,
+    color: c.textMuted,
     fontFamily: typography.fontFamily.regular,
   },
   list: {

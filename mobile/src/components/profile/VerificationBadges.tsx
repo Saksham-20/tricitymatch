@@ -1,7 +1,8 @@
 import React from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colours, typography, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 
 interface Props {
   mobile?: boolean;
@@ -12,14 +13,16 @@ interface Props {
 
 type BadgeConfig = { label: string; icon: keyof typeof Ionicons.glyphMap; color: string };
 
-const BADGES: Record<string, BadgeConfig> = {
-  mobile:    { label: 'Mobile',    icon: 'phone-portrait',  color: colours.badgeMobile },
-  id:        { label: 'ID',        icon: 'card',            color: colours.badgeID },
-  education: { label: 'Education', icon: 'school',          color: colours.badgeEducation },
-  income:    { label: 'Income',    icon: 'cash',            color: colours.badgeIncome },
-};
+const makeBadges = (c: ThemeColours): Record<string, BadgeConfig> => ({
+  mobile:    { label: 'Mobile',    icon: 'phone-portrait',  color: c.badgeMobile },
+  id:        { label: 'ID',        icon: 'card',            color: c.badgeID },
+  education: { label: 'Education', icon: 'school',          color: c.badgeEducation },
+  income:    { label: 'Income',    icon: 'cash',            color: c.badgeIncome },
+});
 
 export default function VerificationBadges({ mobile, id, education, income }: Props) {
+  const { c } = useTheme();
+  const BADGES_BY_THEME = React.useMemo(() => makeBadges(c), [c]);
   const earned = [
     mobile    && 'mobile',
     id        && 'id',
@@ -32,7 +35,7 @@ export default function VerificationBadges({ mobile, id, education, income }: Pr
   return (
     <View style={s.row} testID="VerificationBadges">
       {earned.map((key) => {
-        const cfg = BADGES[key];
+        const cfg = BADGES_BY_THEME[key];
         return (
           <View key={key} style={[s.badge, { backgroundColor: cfg.color + '18' }]}>
             <Ionicons name={cfg.icon} size={11} color={cfg.color} />

@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { borderRadius, colours, shadows, spacing, type } from '@shared/constants/theme';
+import { borderRadius, colours, shadows, spacing, type, type ThemeColours } from '@shared/constants/theme';
+import { useTheme } from '../../hooks/useTheme';
 import { haptics } from '../../utils/haptics';
 import { PressableScale } from '../motion';
 
@@ -36,10 +37,10 @@ interface ButtonProps {
 }
 
 // Brand gradients (handoff): primary burgundy p500→p600, gold g400→g600.
-const GRADIENTS: Partial<Record<ButtonVariant, [string, string]>> = {
-  primary: [colours.p500, colours.p600],
-  gold: [colours.g400, colours.g600],
-};
+const makeGradients = (c: ThemeColours): Partial<Record<ButtonVariant, [string, string]>> => ({
+  primary: [c.p500, c.p600],
+  gold: [c.g400, c.g600],
+});
 
 const SIZES: Record<ButtonSize, { minHeight: number; radius: number; font: TextStyle }> = {
   sm: { minHeight: 38, radius: borderRadius.sm, font: type.subhead },
@@ -61,10 +62,11 @@ export default function Button({
   accessibilityLabel,
   style,
 }: ButtonProps) {
+  const { c } = useTheme();
   const isDisabled = disabled || loading;
-  const v = variantStyles[variant];
+  const v = React.useMemo(() => makeVariantStyles(c), [c])[variant];
   const sz = SIZES[size];
-  const gradient = GRADIENTS[variant];
+  const gradient = React.useMemo(() => makeGradients(c), [c])[variant];
 
   const handlePress = (e: GestureResponderEvent) => {
     if (haptic) haptics.light();
@@ -143,41 +145,41 @@ type Variant = {
   spinnerColor: string;
 };
 
-const variantStyles: Record<ButtonVariant, Variant> = {
+const makeVariantStyles = (c: ThemeColours): Record<ButtonVariant, Variant> => ({
   primary: {
-    container: { backgroundColor: colours.p500 },
+    container: { backgroundColor: c.p500 },
     shadow: shadows.e3,
-    text: { color: colours.onPrimary },
-    spinnerColor: colours.onPrimary,
+    text: { color: c.onPrimary },
+    spinnerColor: c.onPrimary,
   },
   gold: {
-    container: { backgroundColor: colours.g500 },
+    container: { backgroundColor: c.g500 },
     shadow: shadows.gold,
-    text: { color: colours.goldText, fontFamily: type.headline.fontFamily },
-    spinnerColor: colours.goldText,
+    text: { color: c.goldText, fontFamily: type.headline.fontFamily },
+    spinnerColor: c.goldText,
   },
   secondary: {
     container: {
       backgroundColor: 'transparent',
       borderWidth: 1.5,
-      borderColor: colours.accent,
+      borderColor: c.accent,
     },
-    text: { color: colours.accent },
-    spinnerColor: colours.accent,
+    text: { color: c.accent },
+    spinnerColor: c.accent,
   },
   ghost: {
-    container: { backgroundColor: colours.surface2 },
-    text: { color: colours.fgStrong },
-    spinnerColor: colours.accent,
+    container: { backgroundColor: c.surface2 },
+    text: { color: c.fgStrong },
+    spinnerColor: c.accent,
   },
   danger: {
-    container: { backgroundColor: colours.error },
-    text: { color: colours.onPrimary },
-    spinnerColor: colours.onPrimary,
+    container: { backgroundColor: c.error },
+    text: { color: c.onPrimary },
+    spinnerColor: c.onPrimary,
   },
   text: {
     container: { backgroundColor: 'transparent', minHeight: 44, paddingHorizontal: spacing.sm },
-    text: { color: colours.accent, fontFamily: type.subhead.fontFamily },
-    spinnerColor: colours.accent,
+    text: { color: c.accent, fontFamily: type.subhead.fontFamily },
+    spinnerColor: c.accent,
   },
-};
+});

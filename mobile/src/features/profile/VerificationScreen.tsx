@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
-import { colours, spacing, borderRadius, type } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type, type ThemeColours } from '@shared/constants/theme';
 import { Button, Card, EmptyState, ScreenHeader, SkeletonBlock, TickRing } from '../../components/ui';
 import { getPhotoVerification, submitVerification } from '../../api/verification';
 import { useAuthStore } from '../../stores/authStore';
@@ -53,19 +54,21 @@ async function captureSelfie(): Promise<PickedFile | null> {
 const trustScoreOf = (status: PhotoVerification['status']) =>
   status === 'approved' ? 100 : status === 'pending' ? 50 : 0;
 
-const STATUS_META: Record<string, { label: string; tint: string; bg: string; icon: keyof typeof Ionicons.glyphMap }> = {
-  approved: { label: 'Verified',     tint: colours.success, bg: colours.successBg, icon: 'checkmark-circle' },
-  pending:  { label: 'Under review', tint: colours.warning, bg: colours.warningBg, icon: 'time-outline' },
-  rejected: { label: 'Rejected',     tint: colours.error,   bg: colours.errorBg,   icon: 'close-circle' },
-  flagged:  { label: 'Flagged',      tint: colours.error,   bg: colours.errorBg,   icon: 'flag' },
-};
+const makeStatusMeta = (c: ThemeColours): Record<string, { label: string; tint: string; bg: string; icon: keyof typeof Ionicons.glyphMap }> => ({
+  approved: { label: 'Verified',     tint: c.success, bg: c.successBg, icon: 'checkmark-circle' },
+  pending:  { label: 'Under review', tint: c.warning, bg: c.warningBg, icon: 'time-outline' },
+  rejected: { label: 'Rejected',     tint: c.error,   bg: c.errorBg,   icon: 'close-circle' },
+  flagged:  { label: 'Flagged',      tint: c.error,   bg: c.errorBg,   icon: 'flag' },
+});
 
 function StatusPill({ status }: { status: PhotoVerification['status'] }) {
-  const meta = STATUS_META[status];
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
+  const meta = React.useMemo(() => makeStatusMeta(c), [c])[status];
   if (!meta) {
     return (
-      <View style={[s.pill, { backgroundColor: colours.n100 }]}>
-        <Text style={[s.pillText, { color: colours.textSecondary }]}>Not started</Text>
+      <View style={[s.pill, { backgroundColor: c.n100 }]}>
+        <Text style={[s.pillText, { color: c.textSecondary }]}>Not started</Text>
       </View>
     );
   }
@@ -90,6 +93,8 @@ const PERKS = [
 ];
 
 export default function VerificationScreen() {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const phoneVerified = useAuthStore((st) => st.user?.phoneVerified ?? false);
@@ -149,7 +154,7 @@ export default function VerificationScreen() {
         <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
           {/* Trust score */}
           <Card style={s.trustCard}>
-            <TickRing value={isLoading ? 0 : trust} size={78} ticks={10} color={colours.g500}>
+            <TickRing value={isLoading ? 0 : trust} size={78} ticks={10} color={c.g500}>
               <Text style={s.trustPct}>{isLoading ? '—' : `${trust}%`}</Text>
             </TickRing>
             <View style={s.trustCopy}>
@@ -165,14 +170,14 @@ export default function VerificationScreen() {
             <Text style={s.cardLabel}>STATUS</Text>
             <View style={s.statusRow}>
               <View style={s.statusLeft}>
-                <Ionicons name="phone-portrait-outline" size={18} color={colours.badgeMobile} />
+                <Ionicons name="phone-portrait-outline" size={18} color={c.badgeMobile} />
                 <Text style={s.statusName}>Mobile number</Text>
               </View>
               <StatusPill status={phoneVerified ? 'approved' : 'not_submitted'} />
             </View>
             <View style={[s.statusRow, s.statusRowLast]}>
               <View style={s.statusLeft}>
-                <Ionicons name="camera-outline" size={18} color={colours.p500} />
+                <Ionicons name="camera-outline" size={18} color={c.p500} />
                 <Text style={s.statusName}>Photo verification</Text>
               </View>
               {isLoading ? <SkeletonBlock width={96} height={22} radius={borderRadius.full} /> : <StatusPill status={status} />}
@@ -191,7 +196,7 @@ export default function VerificationScreen() {
               <Text style={s.perksLabel}>WHY GET VERIFIED</Text>
               {PERKS.map((perk) => (
                 <View key={perk} style={s.perkRow}>
-                  <Ionicons name="checkmark-circle" size={15} color={colours.success} />
+                  <Ionicons name="checkmark-circle" size={15} color={c.success} />
                   <Text style={s.perkText}>{perk}</Text>
                 </View>
               ))}
@@ -199,7 +204,7 @@ export default function VerificationScreen() {
 
             {data?.adminNotes ? (
               <View style={s.notesBanner} testID="admin-notes">
-                <Ionicons name="alert-circle" size={15} color={colours.error} />
+                <Ionicons name="alert-circle" size={15} color={c.error} />
                 <Text style={s.notesText}>{data.adminNotes}</Text>
               </View>
             ) : null}
@@ -207,16 +212,16 @@ export default function VerificationScreen() {
             {isLoading ? (
               <SkeletonBlock height={48} radius={borderRadius.md} />
             ) : status === 'approved' ? (
-              <View style={[s.resultBanner, { backgroundColor: colours.successBg }]}>
-                <Ionicons name="checkmark-circle" size={18} color={colours.success} />
-                <Text style={[s.resultText, { color: colours.success }]}>
+              <View style={[s.resultBanner, { backgroundColor: c.successBg }]}>
+                <Ionicons name="checkmark-circle" size={18} color={c.success} />
+                <Text style={[s.resultText, { color: c.success }]}>
                   Your profile is verified. The badge is live for other members.
                 </Text>
               </View>
             ) : status === 'pending' ? (
-              <View style={[s.resultBanner, { backgroundColor: colours.warningBg }]}>
-                <Ionicons name="time-outline" size={18} color={colours.warning} />
-                <Text style={[s.resultText, { color: colours.warning }]}>
+              <View style={[s.resultBanner, { backgroundColor: c.warningBg }]}>
+                <Ionicons name="time-outline" size={18} color={c.warning} />
+                <Text style={[s.resultText, { color: c.warning }]}>
                   Your selfie is with our team. Reviews usually finish within 24–48 hours.
                 </Text>
               </View>
@@ -247,7 +252,7 @@ export default function VerificationScreen() {
           </Card>
 
           <View style={s.note}>
-            <Ionicons name="lock-closed-outline" size={14} color={colours.textMuted} />
+            <Ionicons name="lock-closed-outline" size={14} color={c.textMuted} />
             <Text style={s.noteText}>
               Your selfie is only used to confirm it matches your profile photos. We never show it to
               other members.
@@ -259,48 +264,48 @@ export default function VerificationScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  wrapper:     { flex: 1, backgroundColor: colours.background },
+const makeS = (c: ThemeColours) => StyleSheet.create({
+  wrapper:     { flex: 1, backgroundColor: c.background },
   content:     { padding: spacing.lg, paddingBottom: spacing['3xl'], gap: spacing.md },
 
   trustCard:   { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, padding: spacing.lg },
-  trustPct:    { ...type.title3, color: colours.g600 },
+  trustPct:    { ...type.title3, color: c.g600 },
   trustCopy:   { flex: 1, gap: 4 },
-  trustTitle:  { ...type.title3, color: colours.textPrimary },
-  trustSub:    { ...type.footnote, color: colours.textSecondary },
+  trustTitle:  { ...type.title3, color: c.textPrimary },
+  trustSub:    { ...type.footnote, color: c.textSecondary },
 
   card:        { padding: spacing.lg, gap: spacing.md },
-  cardLabel:   { ...type.micro, color: colours.textMuted, letterSpacing: 0.6 },
+  cardLabel:   { ...type.micro, color: c.textMuted, letterSpacing: 0.6 },
 
-  statusRow:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: spacing.md, borderBottomWidth: 1, borderBottomColor: colours.border },
+  statusRow:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: spacing.md, borderBottomWidth: 1, borderBottomColor: c.border },
   statusRowLast:  { paddingBottom: 0, borderBottomWidth: 0 },
   statusLeft:     { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  statusName:     { ...type.callout, color: colours.textPrimary },
+  statusName:     { ...type.callout, color: c.textPrimary },
 
   pill:        { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: spacing.md, paddingVertical: 5, borderRadius: borderRadius.full },
   pillText:    { ...type.caption },
 
-  sectionTitle:{ ...type.headline, color: colours.textPrimary },
-  sectionBody: { ...type.footnote, color: colours.textSecondary },
+  sectionTitle:{ ...type.headline, color: c.textPrimary },
+  sectionBody: { ...type.footnote, color: c.textSecondary },
 
-  perks:       { backgroundColor: colours.goldSoft, borderRadius: borderRadius.md, padding: spacing.md, gap: spacing.sm },
-  perksLabel:  { ...type.micro, color: colours.g700, letterSpacing: 0.6 },
+  perks:       { backgroundColor: c.goldSoft, borderRadius: borderRadius.md, padding: spacing.md, gap: spacing.sm },
+  perksLabel:  { ...type.micro, color: c.g700, letterSpacing: 0.6 },
   perkRow:     { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
-  perkText:    { flex: 1, ...type.footnote, color: colours.textPrimary },
+  perkText:    { flex: 1, ...type.footnote, color: c.textPrimary },
 
-  notesBanner: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, backgroundColor: colours.errorBg, borderRadius: borderRadius.md, padding: spacing.md },
-  notesText:   { flex: 1, ...type.footnote, color: colours.error },
+  notesBanner: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, backgroundColor: c.errorBg, borderRadius: borderRadius.md, padding: spacing.md },
+  notesText:   { flex: 1, ...type.footnote, color: c.error },
 
   resultBanner:{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderRadius: borderRadius.md, padding: spacing.md },
   resultText:  { flex: 1, ...type.footnote },
 
   steps:       { flexDirection: 'row', gap: spacing.sm },
-  step:        { flex: 1, alignItems: 'center', backgroundColor: colours.surfaceCard, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colours.border, padding: spacing.md, gap: 4 },
-  stepNum:     { width: 22, height: 22, borderRadius: 11, backgroundColor: colours.p100, alignItems: 'center', justifyContent: 'center' },
-  stepNumText: { ...type.micro, color: colours.p500 },
-  stepTitle:   { ...type.caption, color: colours.textPrimary, textAlign: 'center' },
-  stepDesc:    { ...type.micro, fontFamily: 'Inter-Regular', color: colours.textMuted, textAlign: 'center' },
+  step:        { flex: 1, alignItems: 'center', backgroundColor: c.surfaceCard, borderRadius: borderRadius.md, borderWidth: 1, borderColor: c.border, padding: spacing.md, gap: 4 },
+  stepNum:     { width: 22, height: 22, borderRadius: 11, backgroundColor: c.p100, alignItems: 'center', justifyContent: 'center' },
+  stepNumText: { ...type.micro, color: c.p500 },
+  stepTitle:   { ...type.caption, color: c.textPrimary, textAlign: 'center' },
+  stepDesc:    { ...type.micro, fontFamily: 'Inter-Regular', color: c.textMuted, textAlign: 'center' },
 
   note:        { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, paddingHorizontal: spacing.xs },
-  noteText:    { flex: 1, ...type.footnote, color: colours.textMuted },
+  noteText:    { flex: 1, ...type.footnote, color: c.textMuted },
 });

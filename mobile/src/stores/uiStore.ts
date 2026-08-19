@@ -25,8 +25,9 @@ interface UIState {
   initFromCache: () => void;
 }
 
-/** See the note on `darkModeOverride` above. RN-G sets this back to `null`. */
-export const DEFAULT_DARK_MODE_OVERRIDE: boolean | null = false;
+/** null = follow the system scheme. Flipped from `false` after the Phase E+F
+ * makeStyles(c) sweep converted every module-scope light palette. */
+export const DEFAULT_DARK_MODE_OVERRIDE: boolean | null = null;
 
 export const useUIStore = create<UIState>((set) => ({
   language: 'en',
