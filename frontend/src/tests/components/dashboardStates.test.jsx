@@ -53,7 +53,15 @@ const completeProfile = {
 
 const renderDash = () => render(<MemoryRouter><Dashboard /></MemoryRouter>);
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  // Pre-claim the once-per-day staged-loader slot so tests exercise the real
+  // data states, not the DS6 theater (which holds the reveal up to 1.5s).
+  // setup.js replaces sessionStorage with vi.fn() mocks, so stub getItem.
+  window.sessionStorage.getItem.mockImplementation((key) =>
+    key.startsWith('staged:') ? '1' : null
+  );
+});
 
 describe('Dashboard error state', () => {
   it('renders the error banner with retry when requests fail — not the empty-profile card', async () => {

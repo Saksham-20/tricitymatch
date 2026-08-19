@@ -35,18 +35,20 @@ import { getImageUrl } from '../utils/cloudinary';
 import { ProfileCard } from '../components/cards';
 import { FilterPanel } from '../components/search';
 import InviteLink from '../components/common/InviteLink';
+import { Skeleton } from '../components/ui';
+import StagedLoader, { useStagedReveal } from '../components/ui/StagedLoader';
 
 // ─── Card skeleton for loading state ──────────────────────────────────────
 const CardSkeleton = () => (
-  <div className="bg-white rounded-2xl border border-neutral-100 shadow-card overflow-hidden animate-pulse">
-    <div className="h-52 bg-neutral-200" />
+  <div className="bg-white rounded-2xl border border-neutral-100 shadow-card overflow-hidden">
+    <Skeleton className="h-52 w-full rounded-none" />
     <div className="p-4 space-y-3">
-      <div className="h-4 w-3/4 bg-neutral-200 rounded-lg" />
-      <div className="h-3 w-1/2 bg-neutral-100 rounded" />
-      <div className="h-3 w-2/3 bg-neutral-100 rounded" />
+      <Skeleton className="h-4 w-3/4" />
+      <Skeleton className="h-3 w-1/2" />
+      <Skeleton className="h-3 w-2/3" />
       <div className="flex gap-2 pt-2">
-        <div className="flex-1 h-9 bg-neutral-100 rounded-xl" />
-        <div className="flex-1 h-9 bg-neutral-100 rounded-xl" />
+        <Skeleton className="flex-1 h-9 rounded-xl" />
+        <Skeleton className="flex-1 h-9 rounded-xl" />
       </div>
     </div>
   </div>
@@ -58,6 +60,14 @@ const Search = () => {
   const [profiles, setProfiles]   = useState([]);
   const [loading, setLoading]     = useState(false);
   const [searchError, setSearchError] = useState(false);
+  // DS6: on Search the theater only fills the REAL wait (maxHoldMs 0) —
+  // results are never delayed; once per day, then plain skeletons.
+  const { showTheater, skip: skipTheater } = useStagedReveal({
+    key: 'search',
+    loading,
+    error: searchError,
+    maxHoldMs: 0,
+  });
   const [page, setPage]           = useState(1);
   const [hasMore, setHasMore]     = useState(true);
   const [sortBy, setSortBy]       = useState('compatibility');
@@ -345,11 +355,15 @@ const Search = () => {
               </div>
             )}
 
-            {/* ── Loading skeleton ──────────────────────────────────────── */}
+            {/* ── Loading: staged theater once/day, else skeleton ───────── */}
             {loading && profiles.length === 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-                {Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={i} />)}
-              </div>
+              showTheater ? (
+                <StagedLoader onSkip={skipTheater} />
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                  {Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={i} />)}
+                </div>
+              )
             )}
 
             {/* ── Error state — distinct from empty: server broke, filters didn't ── */}

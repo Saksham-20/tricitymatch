@@ -280,6 +280,7 @@ const Navbar = () => {
                   <Link
                     key={path}
                     to={path}
+                    viewTransition
                     aria-current={isActive(path) ? 'page' : undefined}
                     className={`relative flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
                       isActive(path)

@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 import { ProfileCard } from '../components/cards';
 import InviteLink from '../components/common/InviteLink';
 import SectionHeader from '../components/common/SectionHeader';
+import { Skeleton } from '../components/ui';
 
 // Each tab maps to a match endpoint + the response key it returns.
 const TABS = [
@@ -66,14 +67,14 @@ const TABS = [
 ];
 
 const CardSkeleton = () => (
-  <div className="bg-white dark:bg-[#1a1f2e] rounded-3xl overflow-hidden shadow-card animate-pulse">
-    <div className="h-56 bg-neutral-100 dark:bg-neutral-800" />
+  <div className="bg-white dark:bg-[#1a1f2e] rounded-3xl overflow-hidden shadow-card">
+    <Skeleton className="h-56 w-full rounded-none" />
     <div className="p-5 space-y-3">
-      <div className="h-5 w-2/3 bg-neutral-100 dark:bg-neutral-800 rounded" />
-      <div className="h-1.5 w-full bg-neutral-100 dark:bg-neutral-800 rounded-full" />
+      <Skeleton className="h-5 w-2/3" />
+      <Skeleton className="h-1.5 w-full rounded-full" />
       <div className="flex gap-2">
-        <div className="h-6 w-16 bg-neutral-100 dark:bg-neutral-800 rounded-lg" />
-        <div className="h-6 w-20 bg-neutral-100 dark:bg-neutral-800 rounded-lg" />
+        <Skeleton className="h-6 w-16" />
+        <Skeleton className="h-6 w-20" />
       </div>
     </div>
   </div>

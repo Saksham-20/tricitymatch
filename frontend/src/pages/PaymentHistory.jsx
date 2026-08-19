@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { FiDownload, FiCreditCard, FiTrendingUp, FiCalendar } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
+import { Skeleton } from '../components/ui';
 
 // Plan chip — on-system (burgundy/gold tiers, neutral free)
 const PLAN_LABELS = {
@@ -49,7 +50,7 @@ const RowSkeleton = () => (
   <tr className="border-b border-neutral-50 dark:border-neutral-800">
     {[...Array(6)].map((_, i) => (
       <td key={i} className="px-4 py-4">
-        <div className="h-4 w-16 bg-neutral-100 dark:bg-neutral-800 rounded animate-pulse" />
+        <Skeleton className="h-4 w-16" />
       </td>
     ))}
   </tr>

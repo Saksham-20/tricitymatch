@@ -21,28 +21,30 @@ import UpgradeModal from '../components/common/UpgradeModal';
 import SectionHeader from '../components/common/SectionHeader';
 import FoundingBadge from '../components/common/FoundingBadge';
 import InviteLink from '../components/common/InviteLink';
+import { Skeleton } from '../components/ui';
+import StagedLoader, { useStagedReveal } from '../components/ui/StagedLoader';
 
 // ─── Skeleton loaders ──────────────────────────────────────────────────────
 const StatSkeleton = () => (
-  <div className="bg-white rounded-2xl border border-neutral-100 shadow-card p-5 animate-pulse">
+  <div className="bg-white rounded-2xl border border-neutral-100 shadow-card p-5">
     <div className="flex items-start justify-between">
       <div className="space-y-2 flex-1">
-        <div className="h-3 w-24 bg-neutral-200 rounded" />
-        <div className="h-8 w-14 bg-neutral-200 rounded-lg" />
-        <div className="h-2.5 w-16 bg-neutral-100 rounded" />
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-8 w-14" />
+        <Skeleton className="h-2.5 w-16" />
       </div>
-      <div className="w-12 h-12 bg-neutral-100 rounded-2xl" />
+      <Skeleton className="w-12 h-12 rounded-2xl" />
     </div>
   </div>
 );
 
 const CardSkeleton = () => (
-  <div className="bg-white rounded-2xl border border-neutral-100 shadow-card overflow-hidden animate-pulse flex-shrink-0 w-64 md:w-auto">
-    <div className="h-52 bg-neutral-200" />
+  <div className="bg-white rounded-2xl border border-neutral-100 shadow-card overflow-hidden flex-shrink-0 w-64 md:w-auto">
+    <Skeleton className="h-52 w-full rounded-none" />
     <div className="p-4 space-y-2">
-      <div className="h-4 w-3/4 bg-neutral-200 rounded" />
-      <div className="h-3 w-1/2 bg-neutral-100 rounded" />
-      <div className="h-3 w-2/3 bg-neutral-100 rounded" />
+      <Skeleton className="h-4 w-3/4" />
+      <Skeleton className="h-3 w-1/2" />
+      <Skeleton className="h-3 w-2/3" />
     </div>
   </div>
 );
@@ -293,6 +295,13 @@ const Dashboard = () => {
   const [verifyNudgeDismissed, setVerifyNudgeDismissed] = useState(
     () => sessionStorage.getItem('verifyNudgeDismissed') === '1'
   );
+  // Once-per-day labor-illusion loader over the daily-matches reveal (DS6).
+  const { showTheater, skip: skipTheater } = useStagedReveal({
+    key: 'daily',
+    loading,
+    error: loadError,
+    maxHoldMs: 1500,
+  });
 
   // Time-based greeting
   const greeting = useMemo(() => {
@@ -490,16 +499,25 @@ const Dashboard = () => {
     },
   ];
 
-  // ── Loading skeleton ───────────────────────────────────────────────────────
+  // ── Loading: once/day staged reveal (DS6, ≤1.5s hold), else plain skeleton ─
+  if (showTheater) {
+    return (
+      <div className="min-h-screen bg-neutral-50 py-8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <StagedLoader onSkip={skipTheater} className="min-h-[60vh]" />
+        </div>
+      </div>
+    );
+  }
   if (loading) {
     return (
       <div className="min-h-screen bg-neutral-50 py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto space-y-8">
           {/* Greeting skeleton */}
-          <div className="bg-white rounded-3xl border border-neutral-100 shadow-card p-8 animate-pulse">
-            <div className="h-5 w-36 bg-neutral-200 rounded mb-3" />
-            <div className="h-9 w-72 bg-neutral-200 rounded-xl mb-2" />
-            <div className="h-4 w-56 bg-neutral-100 rounded" />
+          <div className="bg-white rounded-3xl border border-neutral-100 shadow-card p-8">
+            <Skeleton className="h-5 w-36 mb-3" />
+            <Skeleton className="h-9 w-72 mb-2" />
+            <Skeleton className="h-4 w-56" />
           </div>
           {/* Stats skeleton */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

@@ -37,6 +37,7 @@ const BottomNav = ({ unreadCount = 0 }) => {
             <Link
               key={item.path}
               to={item.path}
+              viewTransition
               aria-current={active ? 'page' : undefined}
               aria-label={item.label}
               className="relative flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors duration-200"

@@ -336,6 +336,9 @@ const StickyCTA = () => {
 };
 
 /* ── HOME ─────────────────────────────────────────────────────── */
+const supportsScrollTimeline =
+  typeof CSS !== 'undefined' && CSS.supports?.('animation-timeline: scroll()');
+
 const Home = () => {
   const [activeCity, setActiveCity]       = useState(0);
   const [matchIdx, setMatchIdx]           = useState(0);
@@ -463,8 +466,13 @@ const Home = () => {
       <FontLoader />
       <Cursor />
 
-      {/* ── SCROLL BAR ── */}
-      <motion.div className="scroll-bar" style={{ scaleX: progressScaleX }} />
+      {/* ── SCROLL BAR ── CSS scroll-timeline where supported (runs off the
+          main thread); framer-motion baseline everywhere else. */}
+      {supportsScrollTimeline ? (
+        <div className="scroll-progress" aria-hidden="true" />
+      ) : (
+        <motion.div className="scroll-bar" style={{ scaleX: progressScaleX }} />
+      )}
 
       {/* ── ANNOUNCEMENT ── */}
       <AnimatePresence>
