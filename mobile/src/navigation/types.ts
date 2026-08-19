@@ -7,27 +7,15 @@ export type AuthStackParamList = {
   Welcome: undefined;
   Login: undefined;
   Signup: undefined;
+  SignupBasics: { contactKind: 'email' | 'phone'; contactValue: string; password: string };
   ForgotPassword: undefined;
   ResetPassword: { token: string };
 };
 
-// Onboarding Stack
+// Onboarding Stack — legacy-account gate only (D6: signup collects basics,
+// preference steps live in the Main stack as the journey group)
 export type OnboardingStackParamList = {
-  Step0: undefined;
-  Step1: undefined;
-  Step2: undefined;
-  Step3: undefined;
-  Step4: undefined;
-  Step5: undefined;
-  Step6: undefined;
-  Step7: undefined;
-  Step8: undefined;
-  Step9: undefined;
-  Step10: undefined;
-  Step11: undefined;
-  Step12: undefined;
-  Step13: undefined;
-  Step14: undefined;
+  CompleteBasics: undefined;
 };
 
 // Bottom Tabs
@@ -64,6 +52,19 @@ export type MainStackParamList = {
   SuccessStoriesBrowse: undefined;
   Support: undefined;
   Quiz: undefined;
+  // Preferences journey (D6) — skippable modal group reusing Step2–12
+  Step2: undefined;
+  Step3: undefined;
+  Step4: undefined;
+  Step5: undefined;
+  Step6: undefined;
+  Step7: undefined;
+  Step8: undefined;
+  Step9: undefined;
+  Step10: undefined;
+  Step11: undefined;
+  Step12: undefined;
+  JourneyFinale: undefined;
   // Static content / legal
   Terms: undefined;
   Privacy: undefined;

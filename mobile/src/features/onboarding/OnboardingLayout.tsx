@@ -20,9 +20,8 @@ import { useTheme } from '../../hooks/useTheme';
 import { useReduceMotion } from '../../components/motion';
 import { useOnboarding } from './OnboardingContext';
 
-const TOTAL_STEPS = 14;
-
 interface OnboardingLayoutProps {
+  /** Kept for testIDs; progress derives from the journey context. */
   step: number;
   title: string;
   subtitle?: string;
@@ -45,9 +44,9 @@ export default function OnboardingLayout({
 }: OnboardingLayoutProps) {
   const { t } = useTranslation();
   const { c } = useTheme();
-  const { goBack, isSaving } = useOnboarding();
+  const { goBack, exit, isSaving, currentStep, stepCount } = useOnboarding();
   const reduced = useReduceMotion();
-  const progress = Math.max(0, Math.min(1, step / TOTAL_STEPS));
+  const progress = Math.max(0, Math.min(1, (currentStep + 1) / stepCount));
 
   // Animated progress fill: measure the track once, then spring the fill width
   // to the new step so the bar glides instead of jumping. Reduce-motion jumps.
@@ -66,15 +65,18 @@ export default function OnboardingLayout({
     <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} testID={`OnboardingStep${step}`}>
       {/* Header */}
       <View style={styles.header}>
-        {step > 1 ? (
+        {currentStep > 0 ? (
           <TouchableOpacity onPress={goBack} style={styles.backBtn} testID="btn-back" accessibilityLabel={t('common.back')}>
             <Ionicons name="arrow-back" size={24} color={c.fgStrong} />
           </TouchableOpacity>
         ) : (
-          <View style={styles.headerRight} />
+          // First journey screen: journey is skippable — close returns to Main.
+          <TouchableOpacity onPress={exit} style={styles.backBtn} testID="btn-close" accessibilityLabel={t('common.close', 'Close')}>
+            <Ionicons name="close" size={24} color={c.fgStrong} />
+          </TouchableOpacity>
         )}
         <Text style={[styles.stepLabel, { color: c.textMuted }]}>
-          {t('onboarding.progress', { current: step, total: TOTAL_STEPS })}
+          {t('onboarding.progress', { current: currentStep + 1, total: stepCount })}
         </Text>
         {skippable ? (
           <TouchableOpacity onPress={onSkip} testID="btn-skip" accessibilityLabel={t('common.skip')}>

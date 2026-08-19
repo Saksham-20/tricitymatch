@@ -27,8 +27,21 @@ export const login = async (email: string, password: string): Promise<AuthResult
   return persistTokens(res.data);
 };
 
-export const signup = async (email: string, password: string): Promise<AuthResult> => {
-  const res = await apiClient.post<AuthEnvelope>('/auth/signup', { email, password });
+// D6 door: signup carries the basics so the server derives
+// onboardingComplete=true and RootNavigator goes straight to Main. Identity is
+// EITHER email or phone (flexible auth) — pass the other as undefined.
+export interface SignupPayload {
+  email?: string;
+  phone?: string;
+  password: string;
+  firstName?: string;
+  lastName?: string;
+  gender?: string;
+  dateOfBirth?: string;
+}
+
+export const signup = async (payload: SignupPayload): Promise<AuthResult> => {
+  const res = await apiClient.post<AuthEnvelope>('/auth/signup', payload);
   return persistTokens(res.data);
 };
 
@@ -56,12 +69,12 @@ export const resetPassword = async (token: string, password: string): Promise<vo
   await apiClient.post('/auth/reset-password', { token, password });
 };
 
-export const sendOtp = async (phone: string): Promise<void> => {
-  await apiClient.post('/auth/send-otp', { type: 'phone', target: phone });
+export const sendOtp = async (target: string, type: 'phone' | 'email' = 'phone'): Promise<void> => {
+  await apiClient.post('/auth/send-otp', { type, target });
 };
 
-export const verifyOtp = async (phone: string, otp: string): Promise<void> => {
-  await apiClient.post('/auth/verify-otp', { type: 'phone', target: phone, code: otp });
+export const verifyOtp = async (target: string, otp: string, type: 'phone' | 'email' = 'phone'): Promise<void> => {
+  await apiClient.post('/auth/verify-otp', { type, target, code: otp });
 };
 
 export const getMe = async (): Promise<AuthUser> => {

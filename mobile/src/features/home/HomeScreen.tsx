@@ -1,4 +1,5 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View,
   Text,
@@ -27,6 +28,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { haptics } from '../../utils/haptics';
 import type { MainStackParamList } from '../../navigation/types';
 import type { ProfileSummary } from '../../types';
+import { useOnboarding, JOURNEY_DONE_KEY, JOURNEY_PROMPTED_AT_KEY } from '../onboarding/OnboardingContext';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 
@@ -93,6 +95,25 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const user = useAuthStore((s) => s.user);
+  const { start: startJourney } = useOnboarding();
+
+  // D6 auto-present: open the preferences journey once on first Main entry,
+  // re-prompt after 7 days, never after completion. start({auto:true}) also
+  // declines by itself when every required field is already filled.
+  useEffect(() => {
+    (async () => {
+      try {
+        if (await AsyncStorage.getItem(JOURNEY_DONE_KEY)) return;
+        const promptedAt = Number((await AsyncStorage.getItem(JOURNEY_PROMPTED_AT_KEY)) ?? 0);
+        if (Date.now() - promptedAt < 7 * 24 * 60 * 60 * 1000) return;
+        const presented = await startJourney({ auto: true });
+        if (presented) await AsyncStorage.setItem(JOURNEY_PROMPTED_AT_KEY, String(Date.now()));
+      } catch {
+        // Quiet — the completeness strip stays as the manual entry point.
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const { data: feed, isLoading: feedLoading, refetch: refetchFeed, isRefetching, isError } = useQuery({
     queryKey: queryKeys.dailyMatches,
@@ -153,7 +174,7 @@ export default function HomeScreen() {
         <PressableScale
           haptic
           style={[styles.completeCard, { backgroundColor: c.surfaceCard, borderColor: c.border }]}
-          onPress={goToOwnProfile}
+          onPress={() => startJourney()}
           testID="completeness-strip"
           accessibilityLabel={`Profile ${completionPct}% complete, tap to edit`}
         >

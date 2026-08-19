@@ -6,7 +6,8 @@ import type { AuthStackParamList } from './types';
 import SplashScreen from '../features/auth/SplashScreen';
 import WelcomeScreen from '../features/auth/WelcomeScreen';
 import LoginScreen from '../features/auth/LoginScreen';
-import SignupScreen from '../features/auth/SignupScreen';
+import CreateAccountScreen from '../features/auth/CreateAccountScreen';
+import BasicsScreen from '../features/auth/BasicsScreen';
 import ForgotPasswordScreen from '../features/auth/ForgotPasswordScreen';
 import ResetPasswordScreen from '../features/auth/ResetPasswordScreen';
 
@@ -18,7 +19,8 @@ export default function AuthNavigator() {
       <Stack.Screen name="Splash" component={SplashScreen} />
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
-      <Stack.Screen name="Signup" component={SignupScreen} />
+      <Stack.Screen name="Signup" component={CreateAccountScreen} />
+      <Stack.Screen name="SignupBasics" component={BasicsScreen} />
       <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
       <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
     </Stack.Navigator>

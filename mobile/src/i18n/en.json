@@ -22,7 +22,8 @@
     "or": "or",
     "optional": "Optional",
     "permissionRequired": "Permission required",
-    "remove": "Remove"
+    "remove": "Remove",
+    "close": "Close"
   },
   "auth": {
     "login": {
@@ -52,7 +53,23 @@
         "weak": "Weak",
         "medium": "Medium",
         "strong": "Strong"
-      }
+      },
+      "doorSub": "Two steps. About two minutes.",
+      "sendCode": "Send verification code",
+      "enterCode": "Enter the 4-digit code sent to",
+      "resend": "Resend code",
+      "agree": "I agree to the",
+      "haveAccount": "Already have an account?",
+      "stepTwo": "Step 2 of 2",
+      "basicsTitle": "A few basics",
+      "basicsSub": "This creates the profile — everything else can wait.",
+      "profileFor": "This profile is for",
+      "fullName": "Full name",
+      "gender": "Gender",
+      "dob": "Date of birth",
+      "dobHint": "Members must be 18–65. Shown as age only.",
+      "createProfile": "Create my profile",
+      "legacySub": "Finish setting up your profile — this takes under a minute."
     },
     "forgotPassword": {
       "title": "Forgot Password",
@@ -68,7 +85,10 @@
       "confirmPassword": "Confirm Password",
       "reset": "Reset Password",
       "success": "Password reset successfully."
-    }
+    },
+    "emailOrPhone": "Email or mobile number",
+    "password": "Password",
+    "passwordPlaceholder": "At least 8 characters"
   },
   "onboarding": {
     "progress": "Step {{current}} of {{total}}",
@@ -435,5 +455,18 @@
     },
     "getStarted": "Get Started",
     "signIn": "Already a member? Sign In"
+  },
+  "journey": {
+    "finding": "Finding matches…",
+    "revealTitle": "Your matches are ready",
+    "revealSub": "Curated from verified Tricity profiles, using everything you just shared.",
+    "tease": "More members liked profiles like yours — see who, with Premium.",
+    "earlyTitle": "You're early",
+    "earlySub": "New Tricity profiles arrive weekly — we'll notify you as soon as strong matches appear.",
+    "errorTitle": "Couldn't load matches",
+    "errorSub": "Your answers are saved. Check your matches from the Home tab.",
+    "quizCta": "Take the 2-minute personality quiz",
+    "explore": "Explore my matches",
+    "done": "Go to my dashboard"
   }
 }

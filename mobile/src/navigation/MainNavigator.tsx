@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AccessibilityInfo, Platform } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useNavigation } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import type { MainStackParamList, MainTabParamList, AdminStackParamList } from './types';
@@ -34,6 +35,22 @@ import SuccessStoryScreen from '../features/profile/SuccessStoryScreen';
 import SuccessStoriesBrowseScreen from '../features/profile/SuccessStoriesBrowseScreen';
 import QuizScreen from '../features/profile/QuizScreen';
 import HoroscopeMatchScreen from '../features/profile/HoroscopeMatchScreen';
+
+// Preferences journey (D6): the old onboarding Step2–12 run as a skippable
+// modal group inside the Main stack, wrapped by OnboardingProvider.
+import { OnboardingProvider } from '../features/onboarding/OnboardingContext';
+import Step2Screen from '../features/onboarding/Step2Screen';
+import Step3Screen from '../features/onboarding/Step3Screen';
+import Step4Screen from '../features/onboarding/Step4Screen';
+import Step5Screen from '../features/onboarding/Step5Screen';
+import Step6Screen from '../features/onboarding/Step6Screen';
+import Step7Screen from '../features/onboarding/Step7Screen';
+import Step8Screen from '../features/onboarding/Step8Screen';
+import Step9Screen from '../features/onboarding/Step9Screen';
+import Step10Screen from '../features/onboarding/Step10Screen';
+import Step11Screen from '../features/onboarding/Step11Screen';
+import Step12Screen from '../features/onboarding/Step12Screen';
+import JourneyFinaleScreen from '../features/onboarding/JourneyFinaleScreen';
 
 // Verification
 
@@ -136,8 +153,16 @@ export default function MainNavigator() {
   const { user } = useAuthStore();
   const role = user?.role ?? 'user';
   const astrologerOn = user?.features?.astrologerMarketplace ?? false;
+  // The provider sits ABOVE the Main stack, so its navigation handle is the
+  // ROOT navigator's — journey routes must be addressed nested.
+  const rootNavigation = useNavigation<any>();
+  const navigateToStep = React.useCallback(
+    (name: string) => rootNavigation.navigate('Main', { screen: name }),
+    [rootNavigation],
+  );
 
   return (
+    <OnboardingProvider navigateToStep={navigateToStep}>
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
@@ -208,10 +233,28 @@ export default function MainNavigator() {
         </>
       )}
 
+      {/* Preferences journey (D6) — skippable, resumable; entered via
+          HomeScreen auto-prompt or profile-completion CTAs */}
+      <Stack.Group screenOptions={{ gestureEnabled: false, animation: elderMode ? 'none' : 'slide_from_bottom' }}>
+        <Stack.Screen name="Step2" component={Step2Screen} />
+        <Stack.Screen name="Step3" component={Step3Screen} />
+        <Stack.Screen name="Step4" component={Step4Screen} />
+        <Stack.Screen name="Step5" component={Step5Screen} />
+        <Stack.Screen name="Step6" component={Step6Screen} />
+        <Stack.Screen name="Step7" component={Step7Screen} />
+        <Stack.Screen name="Step8" component={Step8Screen} />
+        <Stack.Screen name="Step9" component={Step9Screen} />
+        <Stack.Screen name="Step10" component={Step10Screen} />
+        <Stack.Screen name="Step11" component={Step11Screen} />
+        <Stack.Screen name="Step12" component={Step12Screen} />
+        <Stack.Screen name="JourneyFinale" component={JourneyFinaleScreen} />
+      </Stack.Group>
+
       {/* Role-gated: admin only */}
       {(role === 'admin' || role === 'super_admin') && (
         <Stack.Screen name="AdminStack" component={AdminNavigator} />
       )}
     </Stack.Navigator>
+    </OnboardingProvider>
   );
 }
