@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Platform } from 'react-native';
+import { NativeModules, Platform } from 'react-native';
 import { registerFcmToken, removeFcmToken } from '../api/notifications';
 import { cache } from '../utils/cache';
 
@@ -23,6 +23,16 @@ export const useNotificationHandler = (userId: string | undefined, enabled = tru
     let unsubscribeTokenRefresh: (() => void) | null = null;
 
     const init = async () => {
+      // Probe the NATIVE module first (haptics doctrine, R3-1): a require() of a
+      // package Metro couldn't resolve throws "Requiring unknown module" through
+      // a dev LogBox overlay even inside try/catch, blocking the UI. When the
+      // native side is absent there is nothing to register anyway, so skip the
+      // require entirely; real FCM lights up once @react-native-firebase/messaging
+      // is installed and the client rebuilt.
+      if (!NativeModules.RNFBMessagingModule) {
+        __DEV__ && console.debug('[FCM] native messaging module not present — skipping registration');
+        return;
+      }
       try {
         messaging = require('@react-native-firebase/messaging').default;
       } catch {

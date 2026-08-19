@@ -258,6 +258,11 @@ const FilterPanel = forwardRef<FilterPanelHandle, Props>(({
   const [sections, setSections] = useState({
     demographics: true, community: false, location: false, education: false, lifestyle: false, cultural: false,
   });
+  // gorhom v5 keeps a CLOSED sheet's backdrop mounted full-screen and clickable
+  // (accessibility dump: Button "Bottom sheet backdrop" [0,136][1080,2337]),
+  // which silently swallowed every touch on the Search screen. Track openness in
+  // React state and only render the backdrop while the sheet is actually open.
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   useImperativeHandle(ref, () => ({
     open: () => sheetRef.current?.expand(),
@@ -266,7 +271,9 @@ const FilterPanel = forwardRef<FilterPanelHandle, Props>(({
 
   const toggle = (key: keyof typeof sections) => setSections((s) => ({ ...s, [key]: !s[key] }));
   const renderBackdrop = useCallback(
-    (props: any) => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />, []
+    (props: any) =>
+      sheetOpen ? <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} /> : null,
+    [sheetOpen]
   );
   const update = (partial: Partial<SearchFilters>) => onChange({ ...filters, ...partial });
 
@@ -275,7 +282,12 @@ const FilterPanel = forwardRef<FilterPanelHandle, Props>(({
       ref={sheetRef}
       index={-1}
       snapPoints={SNAP_POINTS}
+      // v5 defaults enableDynamicSizing to TRUE, which with fixed snapPoints
+      // mis-measures the closed sheet: its invisible container swallowed every
+      // touch on the Search screen (list, filters, search box all dead).
+      enableDynamicSizing={false}
       enablePanDownToClose
+      onChange={(i) => setSheetOpen(i >= 0)}
       backdropComponent={renderBackdrop}
       backgroundStyle={{ backgroundColor: c.sheetBg }}
       handleIndicatorStyle={[styles.handle, { backgroundColor: c.n300 }]}
