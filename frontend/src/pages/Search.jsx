@@ -79,6 +79,21 @@ const Search = () => {
 
   useEffect(() => { searchProfiles(); }, [page]);
 
+  // Apply a saved search: map the stored shape back onto the filter state and
+  // re-run from page 1.
+  const handleApplySavedSearch = (saved) => {
+    setFilters((prev) => ({
+      ...prev,
+      religion: saved.religion || '',
+      caste: saved.caste || '',
+      city: Array.isArray(saved.city) ? (saved.city[0] || '') : (saved.city || ''),
+      ageMin: saved.ageMin ? String(saved.ageMin) : '',
+      ageMax: saved.ageMax ? String(saved.ageMax) : '',
+    }));
+    setPage(1);
+    setTimeout(() => searchProfiles({ overridePage: 1 }), 0);
+  };
+
   const handleIdSearch = async (e) => {
     e.preventDefault();
     const code = idQuery.trim();
@@ -279,6 +294,7 @@ const Search = () => {
               onFilterChange={handleFilterChange}
               onApply={handleApplyFilters}
               onClear={handleClearFilters}
+              onApplySaved={handleApplySavedSearch}
             />
           </motion.div>
 

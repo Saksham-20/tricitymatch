@@ -34,7 +34,161 @@ const BUNDLES = [
 // Tier order — a member can only move UP while a paid plan is active (mirrors
 // the backend createOrder rule). Lower/equal paid tiers show as "Included".
 // nri === vip rank (parallel premium).
-const TIER_RANK = { free: 0, basic_premium: 1, premium_plus: 2, elite: 3, vip: 4, nri: 4 };
+// founding_premium is rank 0 (a granted free-premium — holders can buy any
+// paid tier), matching backend TIER_RANK; the old `?? 0` fallback only
+// happened to be right.
+const TIER_RANK = { free: 0, founding_premium: 0, basic_premium: 1, premium_plus: 2, elite: 3, vip: 4, nri: 4 };
+
+// ─── Long-scroll paywall sections (B6) ─────────────────────────
+// Comparison matrix — DS11: real table ≥640px, per-plan accordion below.
+const COMPARE_ROWS = [
+  { label: 'Contact unlocks', values: ['0', '5', '10', '25', 'Unlimited'] },
+  { label: 'Chat with matches', values: [false, true, true, true, true] },
+  { label: 'See who likes you', values: [false, true, true, true, true] },
+  { label: 'Reactions, voice notes & quote replies', values: [false, true, true, true, true] },
+  { label: 'Advanced filters', values: [false, true, true, true, true] },
+  { label: 'Voice & video calls', values: [false, false, true, true, true] },
+  { label: 'Profile boost', values: [false, false, false, true, true] },
+  { label: 'Relationship manager', values: [false, false, false, false, true] },
+];
+const COMPARE_COLS = ['Free', 'Basic', 'Plus', 'Elite', 'VIP'];
+
+const CompareCell = ({ v }) => (
+  typeof v === 'boolean'
+    ? (v ? <FiCheck className="w-4 h-4 text-success mx-auto" aria-label="Included" /> : <span className="text-neutral-300" aria-label="Not included">—</span>)
+    : <span className="text-sm font-medium text-neutral-700">{v}</span>
+);
+
+const ComparisonSection = () => {
+  const [openCol, setOpenCol] = useState(4);
+  return (
+    <section className="mt-14" aria-labelledby="compare-heading">
+      <h2 id="compare-heading" className="font-display text-2xl font-bold text-neutral-900 text-center mb-6">Compare plans</h2>
+      {/* Table ≥ sm */}
+      <div className="hidden sm:block overflow-x-auto rounded-2xl border border-neutral-100 shadow-card bg-white">
+        <table className="w-full text-center">
+          <thead>
+            <tr className="border-b border-neutral-100">
+              <th className="py-3 px-4 text-left text-xs font-semibold text-neutral-400 uppercase tracking-wide">Feature</th>
+              {COMPARE_COLS.map((c) => (
+                <th key={c} className="py-3 px-3 text-xs font-bold text-neutral-700">{c}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {COMPARE_ROWS.map((row) => (
+              <tr key={row.label} className="border-b border-neutral-50 last:border-0">
+                <td className="py-3 px-4 text-left text-sm text-neutral-600">{row.label}</td>
+                {row.values.map((v, i) => <td key={i} className="py-3 px-3"><CompareCell v={v} /></td>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {/* Accordion < sm */}
+      <div className="sm:hidden space-y-2">
+        {COMPARE_COLS.map((c, ci) => (
+          <div key={c} className="rounded-2xl border border-neutral-100 bg-white overflow-hidden">
+            <button
+              onClick={() => setOpenCol(openCol === ci ? -1 : ci)}
+              className="w-full flex items-center justify-between px-4 py-3 text-sm font-bold text-neutral-800"
+              aria-expanded={openCol === ci}
+            >
+              {c}
+              <span className="text-neutral-400">{openCol === ci ? '−' : '+'}</span>
+            </button>
+            {openCol === ci && (
+              <ul className="px-4 pb-3 space-y-1.5">
+                {COMPARE_ROWS.map((row) => (
+                  <li key={row.label} className="flex items-center justify-between text-sm">
+                    <span className="text-neutral-600">{row.label}</span>
+                    <CompareCell v={row.values[ci]} />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+};
+
+const SuccessStrip = () => {
+  const [stories, setStories] = useState(null);
+  useEffect(() => {
+    api.get('/success-stories')
+      .then((res) => setStories((res.data.stories || res.data.successStories || []).slice(0, 3)))
+      .catch(() => setStories([]));
+  }, []);
+  if (!stories || stories.length === 0) return null;
+  return (
+    <section className="mt-14" aria-labelledby="stories-heading">
+      <h2 id="stories-heading" className="font-display text-2xl font-bold text-neutral-900 text-center mb-6">Matches that became marriages</h2>
+      <div className="grid sm:grid-cols-3 gap-4">
+        {stories.map((st) => (
+          <figure key={st.id} className="rounded-2xl border border-neutral-100 bg-white shadow-card p-5">
+            <blockquote className="text-sm text-neutral-600 leading-relaxed line-clamp-4">“{st.story || st.content || ''}”</blockquote>
+            <figcaption className="mt-3 text-sm font-semibold text-primary-700">{st.coupleNames || st.title || 'A TricityMatch couple'}</figcaption>
+          </figure>
+        ))}
+      </div>
+    </section>
+  );
+};
+
+const FAQS = [
+  { q: 'Can I upgrade later?', a: 'Yes — you can move up to a higher plan any time while your current plan is active. The new plan starts fresh from the day you upgrade.' },
+  { q: 'Is my payment secure?', a: 'All payments run through Razorpay over SSL. We never see or store your card details.' },
+  { q: 'What are contact unlocks?', a: 'Each unlock reveals a member\u2019s phone number so your families can talk directly. VIP has no limit.' },
+  { q: 'Do unused days carry over?', a: 'Upgrading starts a full fresh term on the new plan; remaining days on the old plan are not added on top.' },
+  { q: 'Can my parents manage this account?', a: 'Yes — the Guardian feature lets a family member view matches and shortlists for you.' },
+];
+
+const FaqSection = () => {
+  const [open, setOpen] = useState(0);
+  return (
+    <section className="mt-14 max-w-2xl mx-auto" aria-labelledby="faq-heading">
+      <h2 id="faq-heading" className="font-display text-2xl font-bold text-neutral-900 text-center mb-6">Common questions</h2>
+      <div className="space-y-2">
+        {FAQS.map((f, i) => (
+          <div key={f.q} className="rounded-2xl border border-neutral-100 bg-white overflow-hidden">
+            <button
+              onClick={() => setOpen(open === i ? -1 : i)}
+              className="w-full flex items-center justify-between px-5 py-4 text-left text-sm font-semibold text-neutral-800"
+              aria-expanded={open === i}
+            >
+              {f.q}
+              <span className="text-neutral-400 ml-3 flex-shrink-0">{open === i ? '−' : '+'}</span>
+            </button>
+            {open === i && <p className="px-5 pb-4 text-sm text-neutral-500 leading-relaxed">{f.a}</p>}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+};
+
+// DS11: sticky compact CTA bar on mobile after the first fold (free members).
+const StickyCtaBar = ({ show }) => {
+  const [pastFold, setPastFold] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setPastFold(window.scrollY > 640);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+  if (!show || !pastFold) return null;
+  return (
+    <div className="sm:hidden fixed bottom-20 inset-x-4 z-40">
+      <button
+        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        className="w-full flex items-center justify-center gap-2 min-h-[48px] rounded-full bg-gradient-hero text-white text-sm font-bold shadow-burgundy-lg"
+      >
+        <FaCrown className="w-4 h-4 text-gold-300" /> View plans
+      </button>
+    </div>
+  );
+};
 
 // ─── Single plan card ─────────────────────────
 const PlanCard = ({ planKey, plan, isPopular, isCurrent, currentPlanType, isProcessing, freeChatForMutuals, onSubscribe }) => {
@@ -137,6 +291,9 @@ const PlanCard = ({ planKey, plan, isPopular, isCurrent, currentPlanType, isProc
             )}
             {perMonth && (
               <span className="text-xs text-neutral-400">≈ ₹{perMonth.toLocaleString('en-IN')}/month</span>
+            )}
+            {plan.durationDays > 0 && displayPrice > 0 && (
+              <span className="text-xs text-neutral-400">· ₹{Math.max(1, Math.round(displayPrice / plan.durationDays))}/day</span>
             )}
           </div>
         )}
@@ -606,6 +763,24 @@ const Subscription = () => {
           isProcessing={processingPlan === 'nri'}
           onSubscribe={handleSubscribe}
         />
+
+        {/* Long-scroll paywall: comparison → proof → FAQ → closing CTA */}
+        <ComparisonSection />
+        <SuccessStrip />
+        <FaqSection />
+
+        <section className="mt-14 text-center">
+          <h2 className="font-display text-2xl font-bold text-neutral-900 mb-2">Your family is waiting to hear good news</h2>
+          <p className="text-sm text-neutral-500 mb-5">Join the Tricity members already talking to their matches.</p>
+          <button
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-hero text-white rounded-full font-semibold hover:shadow-burgundy hover:scale-105 transition-all"
+          >
+            <FaCrown className="w-4 h-4 text-gold-300" /> Choose a plan
+          </button>
+        </section>
+
+        <StickyCtaBar show={(currentPlanType || 'free') === 'free'} />
 
         {/* Footer note */}
         <motion.p

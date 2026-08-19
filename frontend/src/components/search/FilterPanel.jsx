@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import SavedSearches from './SavedSearches';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiFilter, FiX, FiMapPin, FiBriefcase, FiBook, FiCalendar,
@@ -332,6 +333,7 @@ const FilterPanel = ({
   onFilterChange,
   onApply,
   onClear,
+  onApplySaved,
   activeCount = 0,
 }) => {
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -400,6 +402,7 @@ const FilterPanel = ({
             )}
           </div>
 
+          {onApplySaved && <SavedSearches filters={filters} onApplySaved={onApplySaved} />}
           <FilterContent filters={filters} onChange={handleChange} />
 
           {/* Apply */}
@@ -502,7 +505,8 @@ const FilterPanel = ({
 
               {/* Scrollable content */}
               <div className="flex-1 overflow-y-auto px-5 py-2">
-                <FilterContent filters={filters} onChange={handleChange} />
+                {onApplySaved && <SavedSearches filters={filters} onApplySaved={onApplySaved} />}
+          <FilterContent filters={filters} onChange={handleChange} />
               </div>
 
               {/* Sticky apply */}

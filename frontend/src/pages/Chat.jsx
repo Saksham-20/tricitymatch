@@ -1,60 +1,38 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
-import { FiSend, FiMessageCircle, FiCheck, FiEdit2, FiTrash2, FiX, FiChevronLeft, FiMoreVertical, FiSmile, FiLock } from 'react-icons/fi';
-import { BsCheck, BsCheckAll } from 'react-icons/bs';
+import { FiSend, FiMessageCircle, FiChevronLeft, FiMoreVertical, FiLock, FiMic, FiX, FiCornerUpLeft } from 'react-icons/fi';
 import { API_BASE_URL } from '../utils/api';
 import { getImageUrl } from '../utils/cloudinary';
 import { sanitizeText } from '../utils/sanitize';
 import UpgradeModal from '../components/common/UpgradeModal';
+import MessageBubble from '../components/chat/MessageBubble';
+import VoiceRecorder from '../components/chat/VoiceRecorder';
+import ReplyMeter from '../components/chat/ReplyMeter';
+import PaywalledComposer from '../components/chat/PaywalledComposer';
+import FirstReplyUpsell, { upsellSeenKey } from '../components/chat/FirstReplyUpsell';
 
 // Environment check for logging
 const isDev = import.meta.env.DEV;
 
 // Custom scrollbar styles (injected once)
 const scrollbarStyles = `
-  .chat-scrollbar::-webkit-scrollbar {
-    width: 6px;
-  }
-  .chat-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .chat-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(156, 163, 175, 0.5);
-    border-radius: 3px;
-  }
-  .chat-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(156, 163, 175, 0.7);
-  }
-  .sidebar-scrollbar::-webkit-scrollbar {
-    width: 4px;
-  }
-  .sidebar-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .sidebar-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(156, 163, 175, 0.3);
-    border-radius: 2px;
-  }
-  .message-enter {
-    animation: messageSlideIn 0.3s ease-out;
-  }
+  .chat-scrollbar::-webkit-scrollbar { width: 6px; }
+  .chat-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .chat-scrollbar::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.5); border-radius: 3px; }
+  .chat-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(156, 163, 175, 0.7); }
+  .sidebar-scrollbar::-webkit-scrollbar { width: 4px; }
+  .sidebar-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .sidebar-scrollbar::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.3); border-radius: 2px; }
+  .message-enter { animation: messageSlideIn 0.3s ease-out; }
   @keyframes messageSlideIn {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
   }
-  .typing-indicator span {
-    animation: typingBounce 1.4s infinite ease-in-out;
-  }
+  .typing-indicator span { animation: typingBounce 1.4s infinite ease-in-out; }
   .typing-indicator span:nth-child(1) { animation-delay: 0s; }
   .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
   .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
@@ -63,33 +41,6 @@ const scrollbarStyles = `
     30% { transform: translateY(-4px); }
   }
 `;
-
-// Message status tick component - WhatsApp style
-const MessageTicks = ({ message, isSent }) => {
-  if (!isSent) return null;
-  
-  if (message.isRead) {
-    return (
-      <span className="inline-flex items-center ml-1" title="Read">
-        <BsCheckAll className="w-4 h-4 text-gold-400" />
-      </span>
-    );
-  }
-  
-  if (message.deliveredAt) {
-    return (
-      <span className="inline-flex items-center ml-1">
-        <BsCheckAll className="w-4 h-4 text-white/60" />
-      </span>
-    );
-  }
-  
-  return (
-    <span className="inline-flex items-center ml-1">
-      <BsCheck className="w-4 h-4 text-white/60" />
-    </span>
-  );
-};
 
 // Typing indicator component
 const TypingIndicator = () => (
@@ -111,13 +62,38 @@ const DateSeparator = ({ date }) => (
   </div>
 );
 
+// Sidebar avatar with initials fallback
+const ConversationAvatar = ({ name, photo, size = 'w-14 h-14', textSize = 'text-lg' }) => (
+  photo ? (
+    <>
+      <img
+        src={getImageUrl(photo, API_BASE_URL, 'thumbnail')}
+        alt={name || 'Profile'}
+        className={`${size} rounded-full object-cover ring-2 ring-white shadow-md`}
+        loading="lazy"
+        onError={(e) => {
+          e.target.style.display = 'none';
+          if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'flex';
+        }}
+      />
+      <div className={`${size} rounded-full bg-gradient-hero flex items-center justify-center text-white font-bold ${textSize} ring-2 ring-white shadow-md hidden`} aria-hidden="true">
+        {(name || '?')[0]}
+      </div>
+    </>
+  ) : (
+    <div className={`${size} rounded-full bg-gradient-hero flex items-center justify-center text-white font-bold ${textSize} ring-2 ring-white shadow-md`}>
+      {(name || '?')[0]}
+    </div>
+  )
+);
+
 const Chat = () => {
   const { socket } = useSocket();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [matches, setMatches] = useState([]);
-  const [selectedMatch, setSelectedMatch] = useState(null);
+  const [conversations, setConversations] = useState([]);
+  const [selected, setSelected] = useState(null); // {userId, name, firstName, profilePhoto, replyWindow, locked}
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -129,21 +105,31 @@ const Chat = () => {
   const [showMobileSidebar, setShowMobileSidebar] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  // Access lost WHILE the thread is open — the subscription expired, or the
-  // free-chat flag was turned off under a free member. The thread stays on
-  // screen and readable (their history is theirs); only the composer closes.
-  // Wiping the screen to a paywall at the moment someone is mid-sentence reads
-  // as data loss, not as a gate.
+  const [upgradeFeature, setUpgradeFeature] = useState('Chat & Messaging');
+  // Access lost WHILE the thread is open — subscription expired, or the flag
+  // turned off. Thread stays readable; only the composer closes.
   const [revoked, setRevoked] = useState(false);
-  // Has any thread successfully opened this session? It is what separates "you
-  // never had chat access" (show the gate) from "your access just ended"
-  // (keep the conversation, close the composer). The mutual-match list this
-  // page renders from is NOT premium-gated, so without this the gate screen is
-  // unreachable and a free member lands on a thread that 403s on every action.
+  // D1: per-thread access from GET /chat/messages — {reason, replyWindow}.
+  const [chatAccess, setChatAccess] = useState(null);
+  // Live window state — updated on every send (post-increment) and on the 403
+  // backstop; a local timer flips `active` at expiresAt (DS local-timer rule).
+  const [replyWindow, setReplyWindow] = useState(null);
+  // D2 rich composer state
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [showRecorder, setShowRecorder] = useState(false);
+  const [pickerFor, setPickerFor] = useState(null);
+  const [showFirstReplyUpsell, setShowFirstReplyUpsell] = useState(false);
+
   const chatEverWorked = useRef(false);
   const messagesEndRef = useRef(null);
   const editInputRef = useRef(null);
   const chatContainerRef = useRef(null);
+  const composerInputRef = useRef(null);
+
+  const isPaid = (user?.subscriptionPlan || 'free') !== 'free';
+  // Reactions / voice notes / quote-replies are premium features (DS7:
+  // free members see neutral locked affordances).
+  const canRich = isPaid;
 
   // Inject custom scrollbar styles
   useEffect(() => {
@@ -157,99 +143,126 @@ const Chat = () => {
   }, []);
 
   useEffect(() => {
-    loadMutualMatches();
+    loadConversations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // DS local-timer: flip the window inactive the moment expiresAt passes —
+  // the 403 from the server is the backstop, not the primary UX.
   useEffect(() => {
-    if (selectedMatch && socket) {
+    if (!replyWindow?.active || !replyWindow?.expiresAt) return undefined;
+    const ms = new Date(replyWindow.expiresAt).getTime() - Date.now();
+    if (ms <= 0) {
+      setReplyWindow((w) => (w ? { ...w, active: false } : w));
+      return undefined;
+    }
+    const t = setTimeout(() => setReplyWindow((w) => (w ? { ...w, active: false } : w)), ms);
+    return () => clearTimeout(t);
+  }, [replyWindow?.active, replyWindow?.expiresAt]);
+
+  useEffect(() => {
+    if (selected && !selected.locked && socket) {
       loadMessages();
-      // Use _room_ as separator since UUIDs contain hyphens
-      const roomId = [user.id, selectedMatch.userId].sort().join('_room_');
+      const roomId = [user.id, selected.userId].sort().join('_room_');
       socket.emit('join-room', roomId);
 
-      socket.on('message', (message) => {
-        // Only process messages for this conversation
-        if (message.senderId === selectedMatch.userId || message.receiverId === selectedMatch.userId) {
-          // Prevent duplicates: don't add if we sent it (already added locally)
-          // and check if message already exists by ID
-          setMessages(prev => {
-            // Skip if message already exists
-            if (prev.some(m => m.id === message.id)) {
-              return prev;
-            }
-            // Skip if we sent this message (already added when sending)
-            if (message.senderId === user.id) {
-              return prev;
-            }
-            return [...prev, message];
-          });
-        }
-      });
+      const isForThread = (m) => m.senderId === selected.userId || m.receiverId === selected.userId;
 
-      // Handle edited messages from other user
-      socket.on('message-edited', (data) => {
-        if (data.message) {
-          setMessages(prev => prev.map(m => 
-            m.id === data.message.id ? data.message : m
-          ));
-        }
-      });
+      // ES1: the server now broadcasts authoritatively from REST — the client
+      // listens to the namespaced events and NEVER re-emits messages itself.
+      // Dedupe by id: the server emits to the pair room AND the personal room,
+      // and our own sends are appended locally from the REST response.
+      const addMessage = (message) => {
+        if (!message || !isForThread(message)) return;
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === message.id)) return prev;
+          if (message.senderId === user.id) return prev;
+          return [...prev, message];
+        });
+      };
 
-      // Handle deleted messages from other user
-      socket.on('message-deleted', (data) => {
-        if (data.messageId) {
-          setMessages(prev => prev.filter(m => m.id !== data.messageId));
-        }
-      });
+      const onNew = ({ message }) => addMessage(message);
+      const onEdited = ({ message }) => {
+        if (!message) return;
+        setMessages((prev) => prev.map((m) => (m.id === message.id ? message : m)));
+      };
+      const onDeleted = ({ messageId }) => {
+        if (!messageId) return;
+        setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      };
+      const onReaction = ({ messageId, reactions }) => {
+        if (!messageId) return;
+        setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, reactions } : m)));
+      };
+      const onTyping = (data) => {
+        if (data.userId === selected.userId) setIsTyping(data.isTyping);
+      };
 
-      // Handle typing indicator
-      socket.on('user_typing', (data) => {
-        if (data.userId === selectedMatch.userId) {
-          setIsTyping(data.isTyping);
-        }
-      });
+      socket.on('message:new', onNew);
+      socket.on('message:edited', onEdited);
+      socket.on('message:deleted', onDeleted);
+      socket.on('message:reaction', onReaction);
+      socket.on('user_typing', onTyping);
 
       return () => {
         socket.emit('leave-room', roomId);
-        socket.off('message');
-        socket.off('message-edited');
-        socket.off('message-deleted');
-        socket.off('user_typing');
+        socket.off('message:new', onNew);
+        socket.off('message:edited', onEdited);
+        socket.off('message:deleted', onDeleted);
+        socket.off('message:reaction', onReaction);
+        socket.off('user_typing', onTyping);
         setIsTyping(false);
       };
     }
-  }, [selectedMatch, socket, user.id]);
+    return undefined;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected, socket, user.id]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  const loadMutualMatches = async () => {
+  // B1: sidebar now reads /chat/conversations — real previews + unread counts
+  // + per-row replyWindow. ES5: for a free member (no free-chat flag), rows
+  // WITHOUT a grant render locked; the server keeps returning them.
+  const toRow = useCallback((c) => {
+    const name = c.user?.name || '';
+    const locked =
+      (user?.subscriptionPlan || 'free') === 'free' &&
+      !user?.features?.freeChatForMutuals &&
+      !c.replyWindow;
+    return {
+      userId: c.userId,
+      name,
+      firstName: name.split(' ')[0] || '',
+      profilePhoto: c.user?.profilePhoto || null,
+      lastMessage: c.lastMessage,
+      unreadCount: c.unreadCount || 0,
+      replyWindow: c.replyWindow || null,
+      locked,
+    };
+  }, [user]);
+
+  const loadConversations = async () => {
     try {
-      const response = await api.get('/match/mutual');
-      if (isDev) {
-        console.log('Mutual matches response:', response.data);
-      }
+      const response = await api.get('/chat/conversations');
+      const rows = (response.data.conversations || []).map(toRow);
+      setConversations(rows);
+      chatEverWorked.current = true;
 
-      const mutualMatches = response.data.mutualMatches || [];
-      setMatches(mutualMatches);
-
-      if (mutualMatches.length > 0) {
-        // Deep-link: /chat?to=<userId> (e.g. the Message CTA on a Mutual
-        // match card) opens that person's thread; otherwise the first match.
+      if (rows.length > 0) {
+        // Deep-link: /chat?to=<userId> opens that thread; otherwise the first
+        // openable one.
         const targetId = searchParams.get('to');
-        const target = targetId && mutualMatches.find((m) => m.userId === targetId);
-        setSelectedMatch(target || mutualMatches[0]);
+        const target = targetId && rows.find((r) => r.userId === targetId);
+        setSelected(target || rows.find((r) => !r.locked) || rows[0]);
         if (targetId) {
           setShowMobileSidebar(false);
           setSearchParams({}, { replace: true });
         }
       }
     } catch (error) {
-      if (isDev) {
-        console.error('Failed to load mutual matches:', error.response?.data || error.message);
-      }
-      // 403 PREMIUM_REQUIRED or SUBSCRIPTION_EXPIRED: show upgrade modal
+      if (isDev) console.error('Failed to load conversations:', error.response?.data || error.message);
       if (error.response?.status === 403) {
         const code = error.response?.data?.error?.code;
         if (code === 'PREMIUM_REQUIRED' || code === 'SUBSCRIPTION_EXPIRED') {
@@ -257,7 +270,7 @@ const Chat = () => {
           setShowUpgradeModal(true);
         }
       } else {
-        toast.error('Failed to load matches');
+        toast.error('Failed to load conversations');
       }
     } finally {
       setLoading(false);
@@ -265,26 +278,22 @@ const Chat = () => {
   };
 
   const loadMessages = async () => {
-    if (!selectedMatch) return;
+    if (!selected) return;
     try {
-      const response = await api.get(`/chat/messages/${selectedMatch.userId}`);
-      if (isDev) {
-        console.log('Messages response:', response.data);
-      }
+      const response = await api.get(`/chat/messages/${selected.userId}`);
       setMessages(response.data.messages || []);
+      // D1: the thread response carries {reason, replyWindow} — drives the
+      // composer state machine (normal / meter / paywalled).
+      const access = response.data.chatAccess || null;
+      setChatAccess(access);
+      setReplyWindow(access?.replyWindow || null);
       chatEverWorked.current = true;
       setRevoked(false);
     } catch (error) {
-      if (isDev) {
-        console.error('Failed to load messages:', error.response?.data || error.message);
-      }
+      if (isDev) console.error('Failed to load messages:', error.response?.data || error.message);
       if (error.response?.status === 403) {
         const code = error.response?.data?.error?.code;
         if (code === 'PREMIUM_REQUIRED' || code === 'SUBSCRIPTION_EXPIRED') {
-          // Two different situations, two different screens. If no thread has
-          // ever opened in this session the member simply has no chat access —
-          // show the gate. If one HAS opened, they are losing access
-          // mid-conversation, so keep the history and close only the composer.
           if (chatEverWorked.current) {
             setRevoked(true);
             toast.error(error.response?.data?.message || 'Premium subscription required');
@@ -300,56 +309,56 @@ const Chat = () => {
     }
   };
 
+  const appendOwn = (sentMessage) => {
+    setMessages((prev) => (prev.some((m) => m.id === sentMessage.id) ? prev : [...prev, sentMessage]));
+  };
+
   const sendMessage = async (e) => {
     e.preventDefault();
     const messageContent = newMessage.trim();
-    if (!messageContent || !selectedMatch || sending) return;
+    if (!messageContent || !selected || sending) return;
 
-    // Clear input immediately for better UX
     setNewMessage('');
     setSending(true);
 
     try {
       const response = await api.post('/chat/messages', {
-        receiverId: selectedMatch.userId,
-        content: messageContent
+        receiverId: selected.userId,
+        content: messageContent,
+        ...(replyingTo ? { replyToId: replyingTo.id } : {}),
       });
 
       const sentMessage = response.data.message;
       chatEverWorked.current = true;
+      appendOwn(sentMessage);
+      setReplyingTo(null);
 
-      // Add message to local state
-      setMessages(prev => {
-        // Check if already exists (prevent duplicates)
-        if (prev.some(m => m.id === sentMessage.id)) {
-          return prev;
+      // D1: post-increment window state → meter + first-reply upsell (DS3:
+      // dismissible inline card, once per pair).
+      if (response.data.replyWindow) {
+        const w = response.data.replyWindow;
+        setReplyWindow(w);
+        if (w.messagesUsed === 1 && !localStorage.getItem(upsellSeenKey(selected.userId))) {
+          setShowFirstReplyUpsell(true);
         }
-        return [...prev, sentMessage];
-      });
-
-      // Broadcast via socket for real-time delivery to receiver
-      if (socket) {
-        const roomId = [user.id, selectedMatch.userId].sort().join('_room_');
-        socket.emit('send-message', {
-          roomId,
-          message: sentMessage
-        });
       }
+      // No socket emit: the server broadcasts authoritatively (ES1).
     } catch (error) {
-      if (isDev) {
-        console.error('Failed to send message:', error.response?.data || error.message);
-      }
-      // Restore the message if failed
+      if (isDev) console.error('Failed to send message:', error.response?.data || error.message);
       setNewMessage(messageContent);
       if (error.response?.status === 403) {
-        const code = error.response?.data?.error?.code;
-        // Entitlement lost mid-thread: close the composer with a persistent
-        // inline notice instead of a toast that scrolls away, and leave the
-        // conversation readable.
-        if (code === 'PREMIUM_REQUIRED' || code === 'SUBSCRIPTION_EXPIRED') {
+        const errBody = error.response?.data?.error;
+        const code = errBody?.code;
+        if (code === 'REPLY_WINDOW_ENDED') {
+          // 403 backstop: trust the server's state; the paywalled composer
+          // takes over (DS1).
+          setReplyWindow(errBody.replyWindow || { active: false, messagesRemaining: 0, messagesUsed: 5, firstReplyAt: null, expiresAt: null });
+        } else if (code === 'PREMIUM_REQUIRED' || code === 'SUBSCRIPTION_EXPIRED') {
           setRevoked(true);
+          toast.error(error.response?.data?.error?.message || 'Premium subscription required to send messages');
+        } else {
+          toast.error(errBody?.message || 'Failed to send message');
         }
-        toast.error(error.response?.data?.message || 'Premium subscription required to send messages');
       } else {
         toast.error('Failed to send message');
       }
@@ -358,145 +367,118 @@ const Chat = () => {
     }
   };
 
-  // Start editing a message
+  // D2: voice note — multipart to the dedicated route; server broadcasts.
+  const sendVoice = async (blob, durationMs) => {
+    const form = new FormData();
+    form.append('audio', blob, 'voice-message.webm');
+    form.append('receiverId', selected.userId);
+    form.append('durationMs', String(Math.round(durationMs)));
+    const response = await api.post('/chat/messages/voice', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    appendOwn(response.data.message);
+  };
+
+  // D2: reaction toggle — optimistic with revert on failure (DS8).
+  const toggleReaction = async (messageId, emoji) => {
+    setPickerFor(null);
+    const prevMessages = messages;
+    setMessages((prev) => prev.map((m) => {
+      if (m.id !== messageId) return m;
+      const reactions = { ...(m.reactions || {}) };
+      const users = new Set(reactions[emoji] || []);
+      users.has(user.id) ? users.delete(user.id) : users.add(user.id);
+      if (users.size) reactions[emoji] = [...users]; else delete reactions[emoji];
+      return { ...m, reactions };
+    }));
+    try {
+      const response = await api.post(`/chat/messages/${messageId}/reactions`, { emoji });
+      setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, reactions: response.data.reactions } : m)));
+    } catch (error) {
+      setMessages(prevMessages);
+      toast.error(error.response?.data?.error?.message || 'Could not react');
+    }
+  };
+
   const startEditing = (message) => {
     setEditingMessage(message.id);
     setEditContent(message.content);
     setTimeout(() => editInputRef.current?.focus(), 0);
   };
 
-  // Cancel editing
   const cancelEditing = () => {
     setEditingMessage(null);
     setEditContent('');
   };
 
-  // Save edited message
   const saveEdit = async (messageId) => {
     if (!editContent.trim()) {
       toast.error('Message cannot be empty');
       return;
     }
-
     try {
-      const response = await api.put(`/chat/messages/${messageId}`, {
-        content: editContent
-      });
-
+      const response = await api.put(`/chat/messages/${messageId}`, { content: editContent });
       const updatedMessage = response.data.message;
-      
-      // Update local state
-      setMessages(prev => prev.map(m => 
-        m.id === messageId ? updatedMessage : m
-      ));
-
-      // Broadcast via socket
-      if (socket && selectedMatch) {
-        const roomId = [user.id, selectedMatch.userId].sort().join('_room_');
-        socket.emit('message-edited', {
-          roomId,
-          message: updatedMessage
-        });
-      }
-
+      setMessages((prev) => prev.map((m) => (m.id === messageId ? updatedMessage : m)));
+      // Server broadcasts the edit (ES1) — no client emit.
       setEditingMessage(null);
       setEditContent('');
       toast.success('Message updated');
     } catch (error) {
-      if (isDev) {
-        console.error('Failed to edit message:', error.response?.data || error.message);
-      }
+      if (isDev) console.error('Failed to edit message:', error.response?.data || error.message);
       toast.error(error.response?.data?.message || 'Failed to edit message');
     }
   };
 
-  // Delete a message
   const deleteMessage = async (messageId) => {
     try {
-      const response = await api.delete(`/chat/messages/${messageId}`);
-      
-      // Remove from local state
-      setMessages(prev => prev.filter(m => m.id !== messageId));
-
-      // Broadcast via socket
-      if (socket && selectedMatch) {
-        const roomId = [user.id, selectedMatch.userId].sort().join('_room_');
-        socket.emit('message-deleted', {
-          roomId,
-          messageId,
-          receiverId: response.data.receiverId
-        });
-      }
-
+      await api.delete(`/chat/messages/${messageId}`);
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      // Server broadcasts the deletion (SOCK-3/ES1) — no client emit.
       setDeleteConfirm(null);
       toast.success('Message deleted');
     } catch (error) {
-      if (isDev) {
-        console.error('Failed to delete message:', error.response?.data || error.message);
-      }
+      if (isDev) console.error('Failed to delete message:', error.response?.data || error.message);
       toast.error(error.response?.data?.message || 'Failed to delete message');
     }
   };
 
-  // Check if message can be edited (within 15 minutes)
   const canEditMessage = (message) => {
     if (message.senderId !== user.id) return false;
     const messageAge = Date.now() - new Date(message.createdAt).getTime();
-    const maxEditTime = 15 * 60 * 1000; // 15 minutes
-    return messageAge < maxEditTime;
+    return messageAge < 15 * 60 * 1000;
   };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Handle typing indicator
   const typingTimeoutRef = useRef(null);
   const handleTyping = (value) => {
     setNewMessage(value);
-    
-    if (socket && selectedMatch) {
-      // Emit typing start
-      socket.emit('typing', { receiverId: selectedMatch.userId, isTyping: true });
-      
-      // Clear existing timeout
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-      
-      // Set timeout to stop typing indicator
+    if (socket && selected) {
+      socket.emit('typing', { receiverId: selected.userId, isTyping: true });
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = setTimeout(() => {
-        socket.emit('typing', { receiverId: selectedMatch.userId, isTyping: false });
+        socket.emit('typing', { receiverId: selected.userId, isTyping: false });
       }, 1500);
     }
   };
 
-  // Format message date for grouping
   const formatMessageDate = (dateString) => {
     const date = new Date(dateString);
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-    
-    if (date.toDateString() === today.toDateString()) {
-      return 'Today';
-    } else if (date.toDateString() === yesterday.toDateString()) {
-      return 'Yesterday';
-    } else {
-      return date.toLocaleDateString('en-US', { 
-        weekday: 'long', 
-        month: 'short', 
-        day: 'numeric' 
-      });
-    }
+    if (date.toDateString() === today.toDateString()) return 'Today';
+    if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+    return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
   };
 
-  // Group messages by date
-  const groupMessagesByDate = (messages) => {
+  const groupMessagesByDate = (msgs) => {
     const groups = [];
     let currentDate = null;
-    
-    messages.forEach((message, index) => {
+    msgs.forEach((message, index) => {
       const messageDate = formatMessageDate(message.createdAt);
       if (messageDate !== currentDate) {
         currentDate = messageDate;
@@ -504,14 +486,29 @@ const Chat = () => {
       }
       groups.push({ type: 'message', message, key: message.id || index });
     });
-    
     return groups;
   };
 
-  // Select match and hide mobile sidebar
-  const handleSelectMatch = (match) => {
-    setSelectedMatch(match);
+  const handleSelect = (row) => {
+    if (row.locked) {
+      // ES5 locked row: readable context, tap explains instead of erroring.
+      setUpgradeFeature('Chat & Messaging');
+      setShowUpgradeModal(true);
+      return;
+    }
+    setSelected(row);
+    setMessages([]);
+    setChatAccess(null);
+    setReplyWindow(null);
+    setShowFirstReplyUpsell(false);
+    setReplyingTo(null);
+    setShowRecorder(false);
     setShowMobileSidebar(false);
+  };
+
+  const openLockedAffordance = (featureLabel) => {
+    setUpgradeFeature(featureLabel);
+    setShowUpgradeModal(true);
   };
 
   if (loading) {
@@ -548,26 +545,18 @@ const Chat = () => {
             </button>
           </div>
         </div>
-        <UpgradeModal
-          isOpen={showUpgradeModal}
-          onClose={() => setShowUpgradeModal(false)}
-          feature="Chat & Messaging"
-        />
+        <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} feature="Chat & Messaging" />
       </>
     );
   }
 
-  if (matches.length === 0) {
+  if (conversations.length === 0) {
     return (
       <div className="min-h-screen bg-[#FDF8F2] flex items-center justify-center p-4">
         <div className="text-center max-w-md">
           <div className="w-24 h-24 mx-auto mb-6 bg-primary-100 rounded-full flex items-center justify-center">
             <FiMessageCircle className="w-12 h-12 text-primary-400" />
           </div>
-          {/* True for every plan: a thread needs a mutual match, so this is the
-              honest explainer whether or not FREE_CHAT_FOR_MUTUALS is on. With
-              the flag on it is also the ONLY thing standing between a free
-              member and chat, which is why it explains rather than upsells. */}
           <h2 className="text-2xl font-bold font-display text-neutral-800 mb-3">Chat opens when you both match</h2>
           <p className="text-neutral-500 mb-6 leading-relaxed">
             When you and someone else both like each other, you&apos;ll be able to start a conversation here.
@@ -584,80 +573,71 @@ const Chat = () => {
   }
 
   const groupedMessages = groupMessagesByDate(messages);
+  // Composer state machine: grant thread → active (meter) or ended (paywall).
+  const isGrantThread = chatAccess?.reason === 'free_reply_window';
+  const windowEnded = isGrantThread && replyWindow && !replyWindow.active;
+  const endReason = replyWindow?.messagesRemaining === 0 ? 'exhausted' : 'expired';
 
   return (
     <div className="h-[calc(100dvh-8rem)] md:h-screen -mb-24 md:mb-0 flex bg-neutral-100 dark:bg-[#14182a] overflow-hidden">
-      {/* Matches Sidebar */}
+      {/* Conversations Sidebar */}
       <div className={`
         ${showMobileSidebar ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         absolute md:relative z-20 w-full md:w-80 lg:w-96 h-full
         bg-white dark:bg-[#1a1f2e] border-r border-neutral-200 dark:border-neutral-800 flex flex-col
         transition-transform duration-300 ease-in-out
       `}>
-        {/* Sidebar Header — burgundy-tinted wash (not a slab) */}
         <div className="relative p-4 border-b border-neutral-100 dark:border-neutral-800 bg-primary-50 dark:bg-primary-900/20 overflow-hidden">
           <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-primary-500 to-primary-700" />
           <h2 className="text-xl font-bold font-display text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
             <FiMessageCircle className="w-6 h-6 text-primary-500" />
             Messages
           </h2>
-          <p className="text-neutral-500 text-sm mt-1">{matches.length} conversation{matches.length !== 1 ? 's' : ''}</p>
+          <p className="text-neutral-500 text-sm mt-1">{conversations.length} conversation{conversations.length !== 1 ? 's' : ''}</p>
         </div>
 
-        {/* Matches List */}
         <div className="flex-1 overflow-y-auto sidebar-scrollbar">
-          {matches.map((match) => {
-            const isSelected = selectedMatch?.userId === match.userId;
+          {conversations.map((row) => {
+            const isSelected = selected?.userId === row.userId;
+            const preview = row.lastMessage
+              ? (row.lastMessage.messageType === 'voice' ? 'Voice message' : sanitizeText(row.lastMessage.content))
+              : 'Say hello';
             return (
               <div
-                key={match.userId}
-                onClick={() => handleSelectMatch(match)}
+                key={row.userId}
+                onClick={() => handleSelect(row)}
                 className={`
                   relative p-4 cursor-pointer transition-all duration-200
-                  hover:bg-primary-50 border-l-4 
-                  ${isSelected 
-                    ? 'bg-primary-50 border-l-primary-500' 
-                    : 'border-l-transparent hover:border-l-primary-300'
-                  }
+                  hover:bg-primary-50 border-l-4
+                  ${isSelected ? 'bg-primary-50 border-l-primary-500' : 'border-l-transparent hover:border-l-primary-300'}
+                  ${row.locked ? 'opacity-70' : ''}
                 `}
               >
                 <div className="flex items-center gap-3">
-                  {/* Avatar */}
                   <div className="relative flex-shrink-0">
-                    {(match.profilePhoto || match.profile_photo) ? (
-                      <>
-                        <img
-                          src={getImageUrl(match.profilePhoto || match.profile_photo, API_BASE_URL, 'thumbnail')}
-                          alt={match.firstName || 'Profile'}
-                          className="w-14 h-14 rounded-full object-cover ring-2 ring-white shadow-md"
-                          loading="lazy"
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'flex';
-                          }}
-                        />
-                        <div className="w-14 h-14 rounded-full bg-gradient-hero flex items-center justify-center text-white font-bold text-lg ring-2 ring-white shadow-md hidden" aria-hidden="true">
-                          {(match.firstName || '?')[0]}
-                        </div>
-                      </>
-                    ) : (
-                      <div className="w-14 h-14 rounded-full bg-gradient-hero flex items-center justify-center text-white font-bold text-lg ring-2 ring-white shadow-md">
-                        {(match.firstName || '?')[0]}
-                      </div>
+                    <ConversationAvatar name={row.firstName} photo={row.profilePhoto} />
+                    {row.unreadCount > 0 && !row.locked && (
+                      <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-primary-600 text-white text-[11px] font-semibold flex items-center justify-center tabular-nums">
+                        {row.unreadCount > 9 ? '9+' : row.unreadCount}
+                      </span>
                     )}
                   </div>
 
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <h3 className={`font-semibold truncate ${isSelected ? 'text-primary-600' : 'text-neutral-800'}`}>
-                        {match.firstName} {match.lastName}
+                      <h3 className={`font-semibold truncate flex items-center gap-1.5 ${isSelected ? 'text-primary-600' : 'text-neutral-800 dark:text-neutral-100'}`}>
+                        {row.name}
+                        {row.locked && <FiLock className="w-3.5 h-3.5 text-neutral-400 flex-shrink-0" aria-label="Premium required" />}
                       </h3>
-                      <span className="text-xs text-neutral-400">
-                        {match.matchedAt ? new Date(match.matchedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+                      <span className="text-xs text-neutral-400 flex-shrink-0">
+                        {row.lastMessage?.createdAt
+                          ? new Date(row.lastMessage.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                          : ''}
                       </span>
                     </div>
-                    <p className="text-sm text-neutral-500 truncate mt-0.5">{match.city}</p>
+                    <p className={`text-sm truncate mt-0.5 ${row.unreadCount > 0 && !row.locked ? 'text-neutral-800 dark:text-neutral-200 font-medium' : 'text-neutral-500'}`}>
+                      {row.locked ? 'Upgrade to open this conversation' : preview}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -668,14 +648,13 @@ const Chat = () => {
 
       {/* Chat Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        {selectedMatch ? (
+        {selected && !selected.locked ? (
           <>
             {/* Chat Header */}
             <div className="flex-shrink-0 px-4 py-3 bg-white dark:bg-[#1a1f2e] border-b border-neutral-200 dark:border-neutral-800 shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  {/* Back button for mobile */}
-                  <button 
+                  <button
                     onClick={() => setShowMobileSidebar(true)}
                     aria-label="Back to conversations"
                     className="md:hidden p-2 -ml-2 hover:bg-neutral-100 rounded-full transition-colors"
@@ -683,41 +662,17 @@ const Chat = () => {
                     <FiChevronLeft className="w-5 h-5 text-neutral-600" />
                   </button>
 
-                  {/* Avatar + name — tap to view full profile */}
                   <button
                     type="button"
-                    onClick={() => navigate(`/profile/${selectedMatch.userId}`)}
+                    onClick={() => navigate(`/profile/${selected.userId}`)}
                     className="flex items-center gap-3 -m-1 p-1 rounded-xl hover:bg-neutral-100 transition-colors text-left"
-                    aria-label={`View ${selectedMatch.firstName || 'match'}'s profile`}
+                    aria-label={`View ${selected.firstName || 'match'}'s profile`}
                   >
                     <div className="relative">
-                      {(selectedMatch.profilePhoto || selectedMatch.profile_photo) ? (
-                        <>
-                          <img
-                            src={getImageUrl(selectedMatch.profilePhoto || selectedMatch.profile_photo, API_BASE_URL, 'avatar')}
-                            alt={`Profile photo of ${selectedMatch.firstName || 'Match'}`}
-                            className="w-11 h-11 rounded-full object-cover ring-2 ring-primary-100"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                              if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'flex';
-                            }}
-                          />
-                          <div className="w-11 h-11 rounded-full bg-gradient-hero flex items-center justify-center text-white font-semibold ring-2 ring-primary-100 hidden" aria-hidden="true">
-                            {(selectedMatch.firstName || '?')[0]}
-                          </div>
-                        </>
-                      ) : (
-                        <div className="w-11 h-11 rounded-full bg-gradient-hero flex items-center justify-center text-white font-semibold ring-2 ring-primary-100">
-                          {(selectedMatch.firstName || '?')[0]}
-                        </div>
-                      )}
+                      <ConversationAvatar name={selected.firstName} photo={selected.profilePhoto} size="w-11 h-11" textSize="text-base" />
                     </div>
-
-                    {/* Info */}
                     <div>
-                      <h3 className="font-semibold text-neutral-800">
-                        {selectedMatch.firstName} {selectedMatch.lastName}
-                      </h3>
+                      <h3 className="font-semibold text-neutral-800 dark:text-neutral-100">{selected.name}</h3>
                       <p className="text-xs text-neutral-400 font-medium">
                         {isTyping ? <span className="text-success">typing…</span> : 'View profile'}
                       </p>
@@ -725,9 +680,8 @@ const Chat = () => {
                   </button>
                 </div>
 
-                {/* Actions — view full profile */}
                 <button
-                  onClick={() => navigate(`/profile/${selectedMatch.userId}`)}
+                  onClick={() => navigate(`/profile/${selected.userId}`)}
                   aria-label="View profile"
                   title="View profile"
                   className="p-2 hover:bg-neutral-100 rounded-full transition-colors"
@@ -744,148 +698,56 @@ const Chat = () => {
               role="log"
               aria-label="Chat messages"
             >
-              {/* Chat start message */}
               <div className="flex justify-center mb-6">
                 <div className="px-4 py-2 bg-white/90 backdrop-blur rounded-full shadow-sm border border-gold-200">
                   <p className="text-xs text-neutral-600">
-                    You matched with {selectedMatch.firstName}! Make a meaningful connection...
+                    You matched with {selected.firstName}! Make a meaningful connection...
                   </p>
                 </div>
               </div>
 
               {groupedMessages.map((item) => {
-                if (item.type === 'date') {
-                  return <DateSeparator key={item.key} date={item.date} />;
-                }
-
+                if (item.type === 'date') return <DateSeparator key={item.key} date={item.date} />;
                 const message = item.message;
-                const isSentByMe = message.senderId === user.id;
-                const isEditing = editingMessage === message.id;
-                const showDeleteConfirm = deleteConfirm === message.id;
-                
                 return (
-                  <div
+                  <MessageBubble
                     key={item.key}
-                    className={`mb-3 flex message-enter ${isSentByMe ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div className={`group relative flex items-end gap-2 max-w-[85%] md:max-w-[70%] ${isSentByMe ? 'flex-row-reverse' : ''}`}>
-                      {/* Edit/Delete buttons */}
-                      {isSentByMe && !isEditing && !showDeleteConfirm && (
-                        <div className="opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center gap-0.5 mb-1">
-                          {canEditMessage(message) && (
-                            <button
-                              onClick={() => startEditing(message)}
-                              className="p-1.5 rounded-full bg-white/80 hover:bg-white text-neutral-400 hover:text-primary-500 transition-colors shadow-sm"
-                              aria-label="Edit message"
-                            >
-                              <FiEdit2 className="w-3 h-3" />
-                            </button>
-                          )}
-                          <button
-                            onClick={() => setDeleteConfirm(message.id)}
-                            className="p-1.5 rounded-full bg-white/80 hover:bg-white text-neutral-400 hover:text-destructive transition-colors shadow-sm"
-                            aria-label="Delete message"
-                          >
-                            <FiTrash2 className="w-3 h-3" />
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Delete confirmation */}
-                      {showDeleteConfirm && (
-                        <div className="flex items-center gap-1 mb-1 bg-white rounded-full px-3 py-1.5 shadow-md border border-destructive-light">
-                          <span className="text-xs text-destructive font-medium">Delete?</span>
-                          <button
-                            onClick={() => deleteMessage(message.id)}
-                            className="px-2 py-0.5 rounded-full bg-destructive hover:bg-destructive/90 text-white text-xs font-medium transition-colors"
-                          >
-                            Yes
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirm(null)}
-                            className="px-2 py-0.5 rounded-full bg-neutral-200 hover:bg-neutral-300 text-neutral-600 text-xs font-medium transition-colors"
-                          >
-                            No
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Message bubble */}
-                      <div
-                        className={`
-                          relative px-4 py-2.5 rounded-2xl shadow-sm
-                          ${isSentByMe
-                            ? 'message-sent'
-                            : 'message-received'
-                          }
-                        `}
-                      >
-                        {isEditing ? (
-                          <div className="space-y-2 min-w-[200px]">
-                            <input
-                              ref={editInputRef}
-                              type="text"
-                              value={editContent}
-                              onChange={(e) => setEditContent(e.target.value)}
-                              aria-label="Edit message text"
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                  e.preventDefault();
-                                  saveEdit(message.id);
-                                } else if (e.key === 'Escape') {
-                                  cancelEditing();
-                                }
-                              }}
-                              className="w-full px-3 py-1.5 rounded-lg text-neutral-800 text-sm bg-white/90 focus:outline-none focus:ring-2 focus:ring-primary-300"
-                              autoFocus
-                            />
-                            <div className="flex justify-end gap-1">
-                              <button
-                                type="button"
-                                onClick={cancelEditing}
-                                className="p-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
-                                title="Cancel (Esc)"
-                                aria-label="Cancel edit"
-                              >
-                                <FiX className="w-4 h-4" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => saveEdit(message.id)}
-                                className="p-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
-                                title="Save (Enter)"
-                                aria-label="Save edit"
-                              >
-                                <FiCheck className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <>
-                            <p className="break-words text-[15px] leading-relaxed">{sanitizeText(message.content)}</p>
-                            <div className={`flex items-center justify-end gap-1.5 mt-1 ${
-                              isSentByMe ? 'text-white/70' : 'text-neutral-400'
-                            }`}>
-                              {message.isEdited && (
-                                <span className="text-[10px] italic">edited</span>
-                              )}
-                              <span className="text-[10px]">
-                                {new Date(message.createdAt).toLocaleTimeString([], { 
-                                  hour: '2-digit', 
-                                  minute: '2-digit' 
-                                })}
-                              </span>
-                              <MessageTicks message={message} isSent={isSentByMe} />
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                    message={message}
+                    myUserId={user.id}
+                    canRich={canRich}
+                    canEdit={canEditMessage(message)}
+                    isEditing={editingMessage === message.id}
+                    editContent={editContent}
+                    setEditContent={setEditContent}
+                    editInputRef={editInputRef}
+                    onStartEdit={startEditing}
+                    onCancelEdit={cancelEditing}
+                    onSaveEdit={saveEdit}
+                    showDeleteConfirm={deleteConfirm === message.id}
+                    onAskDelete={setDeleteConfirm}
+                    onConfirmDelete={deleteMessage}
+                    onCancelDelete={() => setDeleteConfirm(null)}
+                    pickerOpen={pickerFor === message.id}
+                    onOpenPicker={setPickerFor}
+                    onClosePicker={() => setPickerFor(null)}
+                    onReact={toggleReaction}
+                    onReply={(m) => { setReplyingTo(m); composerInputRef.current?.focus(); }}
+                    onLockedAffordance={openLockedAffordance}
+                  />
                 );
               })}
 
-              {/* Typing indicator */}
+              {showFirstReplyUpsell && replyWindow && (
+                <FirstReplyUpsell
+                  name={selected.name}
+                  remaining={replyWindow.messagesRemaining}
+                  onDismiss={() => {
+                    localStorage.setItem(upsellSeenKey(selected.userId), '1');
+                    setShowFirstReplyUpsell(false);
+                  }}
+                />
+              )}
+
               {isTyping && (
                 <div className="mb-3 flex justify-start message-enter">
                   <TypingIndicator />
@@ -895,10 +757,9 @@ const Chat = () => {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Message Input */}
+            {/* Composer */}
             <div className="flex-shrink-0 p-4 bg-white dark:bg-[#1a1f2e] border-t border-neutral-200 dark:border-neutral-800">
               {revoked ? (
-                /* Composer closed, history intact. */
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-2xl bg-neutral-100 dark:bg-[#14182a] px-4 py-3">
                   <FiLock className="w-4 h-4 flex-shrink-0 text-neutral-500 dark:text-neutral-400" aria-hidden="true" />
                   <p className="flex-1 text-sm text-neutral-600 dark:text-neutral-300">
@@ -911,43 +772,81 @@ const Chat = () => {
                     See plans
                   </Link>
                 </div>
-              ) : (
-              <form onSubmit={sendMessage} className="flex items-end gap-3">
-                {/* Input container */}
-                <div className="flex-1 relative">
-                  <input
-                    type="text"
-                    value={newMessage}
-                    onChange={(e) => handleTyping(e.target.value)}
-                    placeholder="Make a meaningful connection..."
-                    aria-label="Type your message"
-                    className="w-full px-5 py-3 bg-neutral-100 rounded-full text-neutral-800 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all duration-200"
-                    disabled={sending}
-                  />
+              ) : windowEnded ? (
+                /* DS1: scripted paywalled composer — thread above stays readable. */
+                <PaywalledComposer
+                  name={selected.name}
+                  avatarUrl={selected.profilePhoto ? getImageUrl(selected.profilePhoto, API_BASE_URL, 'avatar') : null}
+                  reason={endReason}
+                />
+              ) : showRecorder ? (
+                <div className="rounded-2xl bg-neutral-100 dark:bg-[#14182a] px-4 py-3">
+                  <VoiceRecorder onSend={sendVoice} onClose={() => setShowRecorder(false)} />
                 </div>
+              ) : (
+                <>
+                  {replyingTo && (
+                    <div className="mb-2 flex items-center gap-2 px-3 py-2 rounded-xl bg-neutral-100 dark:bg-[#14182a] border-l-2 border-primary-400">
+                      <FiCornerUpLeft className="w-3.5 h-3.5 text-neutral-400 flex-shrink-0" aria-hidden="true" />
+                      <p className="flex-1 text-xs text-neutral-500 line-clamp-1">
+                        {replyingTo.messageType === 'voice' ? 'Voice message' : sanitizeText(replyingTo.content)}
+                      </p>
+                      <button onClick={() => setReplyingTo(null)} aria-label="Cancel reply" className="p-1 rounded-full hover:bg-neutral-200 text-neutral-400">
+                        <FiX className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+                  <form onSubmit={sendMessage} className="flex items-end gap-2">
+                    <div className="flex-1 relative">
+                      <input
+                        ref={composerInputRef}
+                        type="text"
+                        value={newMessage}
+                        onChange={(e) => handleTyping(e.target.value)}
+                        placeholder="Make a meaningful connection..."
+                        aria-label="Type your message"
+                        className="w-full px-5 py-3 bg-neutral-100 rounded-full text-neutral-800 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all duration-200"
+                        disabled={sending}
+                      />
+                    </div>
 
-                {/* Send button */}
-                <button 
-                  type="submit" 
-                  disabled={sending || !newMessage.trim()}
-                  aria-label="Send message"
-                  className={`
-                    p-3 rounded-full transition-all duration-200
-                    ${newMessage.trim() 
-                      ? 'bg-gradient-hero text-white shadow-burgundy hover:shadow-burgundy-lg hover:scale-105' 
-                      : 'bg-neutral-200 text-neutral-400'
-                    }
-                    disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
-                  `}
-                >
-                  <FiSend className={`w-5 h-5 ${sending ? 'animate-pulse' : ''} ${newMessage.trim() ? '' : 'opacity-50'}`} />
-                </button>
-              </form>
+                    {/* Voice note — premium; free members see the neutral
+                        locked affordance (DS7), grant threads are text-only. */}
+                    {!newMessage.trim() && !isGrantThread && (
+                      <button
+                        type="button"
+                        onClick={() => (canRich ? setShowRecorder(true) : openLockedAffordance('Voice notes'))}
+                        aria-label={canRich ? 'Record a voice message' : 'Voice notes — premium feature'}
+                        className="relative p-3 rounded-full bg-neutral-200 hover:bg-neutral-300 text-neutral-500 transition-colors"
+                      >
+                        <FiMic className="w-5 h-5" />
+                        {!canRich && <FiLock className="w-2.5 h-2.5 absolute top-1.5 right-1.5 text-neutral-400" aria-hidden="true" />}
+                      </button>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={sending || !newMessage.trim()}
+                      aria-label="Send message"
+                      className={`
+                        p-3 rounded-full transition-all duration-200
+                        ${newMessage.trim()
+                          ? 'bg-gradient-hero text-white shadow-burgundy hover:shadow-burgundy-lg hover:scale-105'
+                          : 'bg-neutral-200 text-neutral-400'
+                        }
+                        disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
+                      `}
+                    >
+                      <FiSend className={`w-5 h-5 ${sending ? 'animate-pulse' : ''} ${newMessage.trim() ? '' : 'opacity-50'}`} />
+                    </button>
+                  </form>
+                  {/* DS3: meter last in the hierarchy — muted, warns at ≤2. */}
+                  {isGrantThread && <ReplyMeter replyWindow={replyWindow} />}
+                </>
               )}
             </div>
           </>
         ) : (
-          /* No chat selected */
           <div className="flex-1 flex items-center justify-center bg-[#FDF8F2]">
             <div className="text-center p-8">
               <div className="w-32 h-32 mx-auto mb-6 bg-primary-100 rounded-full flex items-center justify-center">
@@ -963,15 +862,13 @@ const Chat = () => {
       </div>
 
       {/* Mobile overlay */}
-      {showMobileSidebar && selectedMatch && (
-        <div 
-          className="md:hidden fixed inset-0 bg-black/50 z-10"
-          onClick={() => setShowMobileSidebar(false)}
-        />
+      {showMobileSidebar && selected && (
+        <div className="md:hidden fixed inset-0 bg-black/50 z-10" onClick={() => setShowMobileSidebar(false)} />
       )}
+
+      <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} feature={upgradeFeature} />
     </div>
   );
 };
 
 export default Chat;
-

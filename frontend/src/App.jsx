@@ -22,6 +22,14 @@ const SignupRedirect = () => {
 import { Toaster } from 'react-hot-toast';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import { AuthProvider, useAuth } from './context/AuthContext';
+
+// D7: astrologer marketplace ships dark — the server flag (echoed on
+// user.features) decides visibility; routes bounce to the dashboard when off.
+const AstrologerGate = ({ children }) => {
+  const { user } = useAuth();
+  if (!user?.features?.astrologerMarketplace) return <Navigate to="/dashboard" replace />;
+  return children;
+};
 import { OnboardingProvider } from './context/OnboardingContext';
 import { SocketProvider } from './context/SocketContext';
 import { CallProvider } from './context/CallContext';
@@ -355,9 +363,11 @@ const AnimatedRoutes = () => {
             path="/astrologers"
             element={
               <ProtectedRoute>
-                <PageTransition>
-                  <Astrologers />
-                </PageTransition>
+                <AstrologerGate>
+                  <PageTransition>
+                    <Astrologers />
+                  </PageTransition>
+                </AstrologerGate>
               </ProtectedRoute>
             }
           />
@@ -365,9 +375,11 @@ const AnimatedRoutes = () => {
             path="/astrologers/bookings"
             element={
               <ProtectedRoute>
-                <PageTransition>
-                  <AstrologerBookings />
-                </PageTransition>
+                <AstrologerGate>
+                  <PageTransition>
+                    <AstrologerBookings />
+                  </PageTransition>
+                </AstrologerGate>
               </ProtectedRoute>
             }
           />
@@ -375,9 +387,11 @@ const AnimatedRoutes = () => {
             path="/astrologers/:id"
             element={
               <ProtectedRoute>
-                <PageTransition>
-                  <AstrologerDetail />
-                </PageTransition>
+                <AstrologerGate>
+                  <PageTransition>
+                    <AstrologerDetail />
+                  </PageTransition>
+                </AstrologerGate>
               </ProtectedRoute>
             }
           />

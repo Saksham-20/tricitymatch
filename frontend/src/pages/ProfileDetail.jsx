@@ -21,6 +21,7 @@ import { ImageLightbox } from '../components/ui/ImageLightbox';
 import FloatingActionBar from '../components/profile/FloatingActionBar';
 import PreferenceMatch from '../components/profile/PreferenceMatch';
 import UpgradeModal from '../components/common/UpgradeModal';
+import LikeNoteModal from '../components/profile/LikeNoteModal';
 import { friendlyLabel, formatEnum } from '../constants/profileOptions';
 
 // ─── Compatibility Ring ──────────────────────────────────────────────────────
@@ -112,6 +113,8 @@ const ProfileDetail = () => {
   const [contactUnlocksRemaining, setContactUnlocksRemaining] = useState(0);
   const [unlockedContact, setUnlockedContact] = useState(null);
   const [isLiked, setIsLiked] = useState(false);
+  // D3 like-with-note: {type:'photo', photoUrl} | {type:'prompt', promptText}
+  const [likeNoteTarget, setLikeNoteTarget] = useState(null);
   const [isShortlisted, setIsShortlisted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [unlockLoading, setUnlockLoading] = useState(false);
@@ -244,6 +247,23 @@ const ProfileDetail = () => {
       }
     } finally {
       setKundliLoading(false);
+    }
+  };
+
+  // D3: like with an attached note + the liked-item snapshot (DS5). The plain
+  // one-tap like below is unchanged.
+  const sendLikeWithNote = async (note) => {
+    try {
+      await api.post(`/match/${userId}`, {
+        action: 'like',
+        ...(note ? { note } : {}),
+        likedItem: likeNoteTarget,
+      });
+      setIsLiked(true);
+      toast.success('Like sent!');
+    } catch {
+      toast.error('Failed to send like');
+      throw new Error('like failed');
     }
   };
 
@@ -394,7 +414,7 @@ const ProfileDetail = () => {
                       key={photo}
                       type="button"
                       onClick={() => setLightbox({ open: true, src: url, alt: `${firstName} ${i + 1}` })}
-                      className={`relative overflow-hidden bg-primary-100 dark:bg-primary-900/40 hover:brightness-95 transition-all focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-inset cursor-pointer ${isFirst && allPhotos.length >= 3 ? 'row-span-2 col-span-1' : ''}`}
+                      className={`group relative overflow-hidden bg-primary-100 dark:bg-primary-900/40 hover:brightness-95 transition-all focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-inset cursor-pointer ${isFirst && allPhotos.length >= 3 ? 'row-span-2 col-span-1' : ''}`}
                     >
                       <span className="absolute inset-0 flex items-center justify-center text-7xl font-display font-semibold text-primary-700/40 dark:text-primary-300/40 select-none">{firstName[0]}</span>
                       <img src={url} alt={`${firstName} ${i + 1}`} className="relative w-full h-full object-cover" loading={i === 0 ? 'eager' : 'lazy'} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
@@ -402,6 +422,19 @@ const ProfileDetail = () => {
                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
                           <span className="text-white text-xl font-bold">+{allPhotos.length - 5}</span>
                         </div>
+                      )}
+                      {/* D3: explicit like-with-note affordance on the photo */}
+                      {!isOverlay && (
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          aria-label="Like this photo with a note"
+                          onClick={(e) => { e.stopPropagation(); setLikeNoteTarget({ type: 'photo', photoUrl: photo }); }}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); setLikeNoteTarget({ type: 'photo', photoUrl: photo }); } }}
+                          className="absolute top-2 right-2 p-2 rounded-full bg-black/35 hover:bg-black/55 text-white opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                        >
+                          <FiHeart className="w-4 h-4" />
+                        </span>
                       )}
                     </button>
                   );
@@ -608,9 +641,18 @@ const ProfileDetail = () => {
                         <Card title="Get to Know Me" icon={FiUser}>
                           <div className="space-y-3">
                             {profilePrompts.map(({ q, a }, i) => (
-                              <div key={i} className="p-4 bg-primary-50/60 rounded-xl border border-primary-100">
-                                <p className="text-[11px] font-bold text-primary-400 uppercase tracking-wide mb-1.5">{sanitizeText(q)}</p>
-                                <p className="text-sm text-neutral-700 leading-relaxed">{sanitizeText(a)}</p>
+                              <div key={i} className="relative p-4 bg-primary-50/60 rounded-xl border border-primary-100">
+                                <p className="text-[11px] font-bold text-primary-400 uppercase tracking-wide mb-1.5 pr-8">{sanitizeText(q)}</p>
+                                <p className="text-sm text-neutral-700 leading-relaxed pr-8">{sanitizeText(a)}</p>
+                                {/* D3: like this specific answer, with a note */}
+                                <button
+                                  type="button"
+                                  aria-label="Like this answer with a note"
+                                  onClick={() => setLikeNoteTarget({ type: 'prompt', promptText: a })}
+                                  className="absolute top-3 right-3 p-2 rounded-full text-primary-300 hover:text-primary-600 hover:bg-primary-100 transition-colors"
+                                >
+                                  <FiHeart className="w-4 h-4" />
+                                </button>
                               </div>
                             ))}
                           </div>
@@ -979,6 +1021,16 @@ const ProfileDetail = () => {
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
         feature={upgradeFeature}
+      />
+
+      {/* D3 like-with-note (DS5: shows the liked thing above the note field) */}
+      <LikeNoteModal
+        open={Boolean(likeNoteTarget)}
+        target={likeNoteTarget}
+        name={fullName}
+        photoSrc={likeNoteTarget?.type === 'photo' ? getImageUrl(likeNoteTarget.photoUrl, API_BASE_URL, 'full') : null}
+        onClose={() => setLikeNoteTarget(null)}
+        onSend={sendLikeWithNote}
       />
     </>
   );

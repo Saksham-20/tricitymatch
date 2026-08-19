@@ -16,6 +16,7 @@ import { getImageUrl } from '../utils/cloudinary';
 import { sanitizeText, sanitizeUrl } from '../utils/sanitize';
 import { toProfileCode } from '../utils/profileCode';
 import VideoIntroManager from '../components/profile/VideoIntroManager';
+import BiodataCard from '../components/profile/BiodataCard';
 import FoundingBadge from '../components/common/FoundingBadge';
 import { useAuth } from '../context/AuthContext';
 import { ImageLightbox } from '../components/ui/ImageLightbox';
@@ -331,6 +332,9 @@ const MyProfileView = () => {
                 )}
               </div>
             </div>
+
+            {/* D5 flagship: shareable marriage-biodata PDF */}
+            <BiodataCard profile={profile} />
 
             {/* Video intro */}
             <div className="bg-white rounded-2xl border border-neutral-100 p-5">

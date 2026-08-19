@@ -391,7 +391,10 @@ const AccountTab = () => {
           {[
             { to: '/verification', icon: FiShield, label: 'Verification' },
             { to: '/guardian',     icon: FiUsers,  label: 'Guardian & Family' },
-            { to: '/astrologers',  icon: FiStar,   label: 'Talk to an Astrologer' },
+            // D7: astrologer entry only when the server flag is on
+            ...(user?.features?.astrologerMarketplace
+              ? [{ to: '/astrologers', icon: FiStar, label: 'Talk to an Astrologer' }]
+              : []),
           ].map(({ to, icon: Icon, label }) => (
             <Link key={to} to={to} className="flex items-center justify-between p-4 hover:bg-neutral-50 transition-colors">
               <span className="flex items-center gap-3 text-sm font-medium text-neutral-800">

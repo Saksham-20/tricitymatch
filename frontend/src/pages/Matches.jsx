@@ -1,7 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiBookmark, FiHeart, FiUsers, FiAlertCircle, FiLock, FiSearch } from 'react-icons/fi';
+import { FiBookmark, FiHeart, FiUsers, FiAlertCircle, FiLock, FiSearch, FiSend } from 'react-icons/fi';
+import { sanitizeText } from '../utils/sanitize';
+import { getImageUrl } from '../utils/cloudinary';
+import { API_BASE_URL } from '../utils/api';
 import { FaCrown } from 'react-icons/fa';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
@@ -20,7 +23,7 @@ const TABS = [
     empty: {
       title: 'Nothing saved yet',
       line: 'Tap the bookmark on a profile to save it here for later.',
-      supply: 'We\u2019re verifying new Tricity members by hand every week, so this list grows as the community does.',
+      supply: 'We’re verifying new Tricity members by hand every week, so this list grows as the community does.',
     },
   },
   {
@@ -36,6 +39,18 @@ const TABS = [
     },
   },
   {
+    id: 'sent',
+    label: 'Sent',
+    icon: FiSend,
+    endpoint: '/match/sent',
+    respKey: 'sent',
+    empty: {
+      title: 'You haven’t reached out yet',
+      line: 'Profiles you like show up here — today’s matches are waiting.',
+      supply: 'Expressing interest is free, and a thoughtful like is how every mutual match starts.',
+    },
+  },
+  {
     id: 'likes',
     label: 'Likes You',
     icon: FiHeart,
@@ -45,7 +60,7 @@ const TABS = [
     empty: {
       title: 'No interests received yet',
       line: 'Members who like you will appear here.',
-      supply: 'A complete, photo-verified profile gets seen first \u2014 and the more Tricity families here, the more eyes on yours.',
+      supply: 'A complete, photo-verified profile gets seen first — and the more Tricity families here, the more eyes on yours.',
     },
   },
 ];
@@ -230,15 +245,43 @@ export default function Matches() {
                 const pid = profile.userId || profile.id;
                 if (!pid) return null;
                 return (
-                  <ProfileCard
-                    key={`match-${pid}`}
-                    profile={profile}
-                    userId={pid}
-                    index={i}
-                    primaryCta={active === 'mutual' ? 'message' : 'interest'}
-                    onLike={() => handleAction(pid, 'like')}
-                    onShortlist={() => handleAction(pid, 'shortlist')}
-                  />
+                  <div key={`match-${pid}`} className="flex flex-col">
+                    {/* D3/DS5: a like-with-note leads with the quoted note +
+                        the liked-item snapshot above the standard card. */}
+                    {(profile.note || profile.likedItem) && (
+                      <div className="mb-2 px-4 py-3 rounded-2xl bg-primary-50/70 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800 flex items-start gap-3">
+                        {profile.likedItem?.type === 'photo' && profile.likedItem.photoUrl && (
+                          <img
+                            src={getImageUrl(profile.likedItem.photoUrl, API_BASE_URL, 'thumbnail')}
+                            alt=""
+                            className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                          />
+                        )}
+                        <div className="min-w-0">
+                          {profile.likedItem && (
+                            <p className="text-[11px] font-bold text-primary-400 uppercase tracking-wide">
+                              {active === 'sent' ? 'You liked' : 'Liked'} {profile.likedItem.type === 'prompt' ? 'their answer' : 'a photo'}
+                            </p>
+                          )}
+                          {profile.likedItem?.type === 'prompt' && profile.likedItem.promptText && (
+                            <p className="text-xs text-neutral-500 line-clamp-1">“{sanitizeText(profile.likedItem.promptText)}”</p>
+                          )}
+                          {profile.note && (
+                            <p className="text-sm text-neutral-700 dark:text-neutral-200 line-clamp-2">“{sanitizeText(profile.note)}”</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    <ProfileCard
+                      profile={profile}
+                      userId={pid}
+                      index={i}
+                      primaryCta={active === 'mutual' ? 'message' : 'interest'}
+                      onLike={() => handleAction(pid, 'like')}
+                      onShortlist={() => handleAction(pid, 'shortlist')}
+                    />
+                  </div>
                 );
               })}
             </AnimatePresence>

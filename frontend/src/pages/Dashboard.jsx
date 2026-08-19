@@ -154,6 +154,18 @@ const SuggestionCard = ({ profile, index }) => {
           <span className={`text-xs font-bold ml-auto ${scoreColor}`}>{Math.round(score)}% match</span>
         )}
       </div>
+
+      {/* D4: "why this match" chips — server-derived, present only on the
+          daily set; existing pill idiom (DS10), capped at 3 by the server. */}
+      {profile.reasons?.length > 0 && (
+        <div className="px-3 pb-3 -mt-1 flex flex-wrap gap-1.5">
+          {profile.reasons.map((r) => (
+            <span key={r} className="px-2 py-0.5 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 text-[11px] font-medium">
+              {r}
+            </span>
+          ))}
+        </div>
+      )}
     </motion.div>
   );
 };
