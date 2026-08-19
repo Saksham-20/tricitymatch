@@ -93,6 +93,7 @@ describe('route manifest', () => {
     // Spot-check the exact paths that historically differed from what the RN
     // client called.
     expect(routes).toContain('POST /api/v1/auth/refresh');
+    expect(routes).toContain('GET /api/v1/stats/community');
     expect(routes).toContain('GET /api/v1/match/mutual');
     expect(routes).toContain('GET /api/v1/match/shortlist');
     expect(routes).toContain('GET /api/v1/match/likes');

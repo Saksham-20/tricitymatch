@@ -74,6 +74,7 @@
     "GET /api/v1/search/by-code",
     "GET /api/v1/search/saved",
     "GET /api/v1/search/suggestions",
+    "GET /api/v1/stats/community",
     "GET /api/v1/subscription/history",
     "GET /api/v1/subscription/invoice/:subscriptionId",
     "GET /api/v1/subscription/my-subscription",
