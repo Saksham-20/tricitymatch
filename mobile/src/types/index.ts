@@ -12,5 +12,4 @@ export type {
   Notification, NotificationType,
   CallSession, CallInvitation, AgoraTokenResponse, CallType, CallStatus,
   Verification, PhotoVerification, DocumentType, VerificationStatus,
-  BureauClient, MatchProposal, BureauEarnings, ProposalStatus,
 } from '@shared/index';

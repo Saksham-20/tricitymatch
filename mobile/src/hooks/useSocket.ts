@@ -50,7 +50,9 @@ export function useSocket(handlers?: SocketEventHandlers) {
     });
 
     socketInstance.on('connect', () => {
-      socketInstance?.emit('join-room', { userId: user.id });
+      // Personal room (`user_<id>`) is joined SERVER-side on connect; pair
+      // rooms are joined per-thread via joinThread below. The old emit here
+      // sent `{userId}` where the server expects a roomId string — a no-op.
     });
 
     socketInstance.on('new-match', (data: { matchedUserId: string; compatibilityScore: number }) => {
@@ -65,7 +67,7 @@ export function useSocket(handlers?: SocketEventHandlers) {
       handlersRef.current?.onNewNotification?.();
     });
 
-    socketInstance.on('message-received', (msg: Message) => {
+    const onIncomingMessage = (msg: Message) => {
       // Update thread cache for the sender's conversation
       queryClient.setQueryData<{ pages: { messages: Message[]; nextCursor: string | null }[] }>(
         queryKeys.thread(msg.senderId),
@@ -88,13 +90,44 @@ export function useSocket(handlers?: SocketEventHandlers) {
         );
       });
       handlersRef.current?.onMessageReceived?.(msg);
-    });
+    };
 
-    socketInstance.on('typing-indicator', (data: { userId: string; isTyping: boolean }) => {
+    // D2/ES1: server-authoritative broadcasts. Listen to the namespaced event;
+    // dedupe by id because the server emits to both the pair room and the
+    // personal room (and legacy 'message' fires too on current servers).
+    const seenIds = new Set<string>();
+    const dedupe = (msg: Message | undefined) => {
+      if (!msg?.id || msg.senderId === user.id) return;
+      if (seenIds.has(msg.id)) return;
+      seenIds.add(msg.id);
+      if (seenIds.size > 200) seenIds.clear();
+      onIncomingMessage(msg);
+    };
+    socketInstance.on('message:new', (data: { message: Message }) => dedupe(data?.message));
+    socketInstance.on('message', (msg: Message) => dedupe(msg));
+
+    // Server emits 'user_typing' (the old 'typing-indicator' name never existed).
+    socketInstance.on('user_typing', (data: { userId: string; isTyping: boolean }) => {
       handlersRef.current?.onTypingIndicator?.(data);
     });
 
-    socketInstance.on('message-edited', (msg: Message) => {
+    // D2: reactions — update every cached thread page containing the message.
+    socketInstance.on('message:reaction', (data: { messageId: string; reactions: Record<string, string[]> }) => {
+      if (!data?.messageId) return;
+      queryClient.setQueriesData<{ pages: { messages: Message[]; nextCursor: string | null }[] }>(
+        { queryKey: ['chat', 'thread'] },
+        (old) => {
+          if (!old) return old;
+          const pages = old.pages.map((page) => ({
+            ...page,
+            messages: page.messages.map((m) => (m.id === data.messageId ? { ...m, reactions: data.reactions } : m)),
+          }));
+          return { ...old, pages };
+        }
+      );
+    });
+
+    const onEditedMessage = (msg: Message) => {
       queryClient.setQueryData<{ pages: { messages: Message[]; nextCursor: string | null }[] }>(
         queryKeys.thread(msg.senderId === user.id ? msg.receiverId : msg.senderId),
         (old) => {
@@ -107,25 +140,29 @@ export function useSocket(handlers?: SocketEventHandlers) {
         }
       );
       handlersRef.current?.onMessageEdited?.(msg);
-    });
+    };
+    // Both the legacy and namespaced edit events carry a { message } envelope.
+    socketInstance.on('message-edited', (data: { message: Message }) => data?.message && onEditedMessage(data.message));
+    socketInstance.on('message:edited', (data: { message: Message }) => data?.message && onEditedMessage(data.message));
 
-    socketInstance.on('message-deleted', (data: { messageId: string; senderId: string; deletedForBoth: boolean }) => {
-      const otherUserId = data.senderId === user.id ? undefined : data.senderId;
-      if (otherUserId) {
-        queryClient.setQueryData<{ pages: { messages: Message[]; nextCursor: string | null }[] }>(
-          queryKeys.thread(otherUserId),
-          (old) => {
-            if (!old) return old;
-            const pages = old.pages.map((page) => ({
-              ...page,
-              messages: page.messages.filter((m) => m.id !== data.messageId),
-            }));
-            return { ...old, pages };
-          }
-        );
-      }
-      handlersRef.current?.onMessageDeleted?.(data);
-    });
+    const onDeletedMessage = (data: { messageId: string }) => {
+      if (!data?.messageId) return;
+      // The payload carries only messageId — filter it from every cached thread.
+      queryClient.setQueriesData<{ pages: { messages: Message[]; nextCursor: string | null }[] }>(
+        { queryKey: ['chat', 'thread'] },
+        (old) => {
+          if (!old) return old;
+          const pages = old.pages.map((page) => ({
+            ...page,
+            messages: page.messages.filter((m) => m.id !== data.messageId),
+          }));
+          return { ...old, pages };
+        }
+      );
+      handlersRef.current?.onMessageDeleted?.({ messageId: data.messageId, deletedForBoth: true });
+    };
+    socketInstance.on('message-deleted', onDeletedMessage);
+    socketInstance.on('message:deleted', onDeletedMessage);
 
     socketInstance.on('call-incoming', (invitation: CallInvitation) => {
       setIncomingCall(invitation);
@@ -181,14 +218,22 @@ export function useSocket(handlers?: SocketEventHandlers) {
     socketInstance?.emit('typing', { receiverId, isTyping });
   }, []);
 
-  const emitSeen = useCallback((messageId: string) => {
-    socketInstance?.emit('message-seen', { messageId });
-  }, []);
+  // Pair-room join for a thread — the server verifies mutual + entitlement.
+  const joinThread = useCallback((otherUserId: string) => {
+    if (!user) return;
+    socketInstance?.emit('join-room', [user.id, otherUserId].sort().join('_room_'));
+  }, [user]);
+
+  const leaveThread = useCallback((otherUserId: string) => {
+    if (!user) return;
+    socketInstance?.emit('leave-room', [user.id, otherUserId].sort().join('_room_'));
+  }, [user]);
 
   return {
     isConnected: socketInstance?.connected ?? false,
     emitTyping,
-    emitSeen,
+    joinThread,
+    leaveThread,
     socket: socketInstance,
   };
 }

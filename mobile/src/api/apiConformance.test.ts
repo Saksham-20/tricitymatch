@@ -66,14 +66,12 @@ interface CallSite {
 /**
  * Modules excluded from the "must exist on the server" assertion.
  *
- * `bureau.ts` calls /bureau/clients, /bureau/earnings and /bureau/proposals.
- * There is no bureauRoutes.js on the backend at all — the entire RN bureau
- * feature talks to endpoints that have never existed. It is known dead code
- * awaiting the bureau-channel memo decision (docs/BUREAU_CHANNEL_MEMO_2026-08-09.md),
- * and deleting a feature is an owner call, not a test's. It is listed here
- * explicitly so it stays visible rather than quietly passing.
+ * Empty since 2026-08-19: the RN bureau feature (the one known-dead module —
+ * it called /bureau/* endpoints that never existed on the server) was deleted
+ * under the modernization plan, per the standing bureau-channel memo
+ * (docs/BUREAU_CHANNEL_MEMO_2026-08-09.md).
  */
-const KNOWN_DEAD_MODULES = new Set(['bureau.ts']);
+const KNOWN_DEAD_MODULES = new Set<string>([]);
 
 const collectCallSites = (): CallSite[] => {
   const sites: CallSite[] = [];
@@ -117,11 +115,10 @@ describe('api conformance', () => {
   });
 
   it('pins the known-dead modules so they cannot be forgotten', () => {
-    // If someone builds the backend for these, or deletes the RN feature, this
-    // fails and forces the exclusion list to be updated rather than left to rot.
-    const bureau = readFileSync(join(API_DIR, 'bureau.ts'), 'utf8');
-    expect(bureau).toMatch(/\/bureau\//);
-    expect([...KNOWN_DEAD_MODULES]).toEqual(['bureau.ts']);
+    // The bureau module (the only historical entry) is deleted — the list must
+    // stay empty until a module genuinely ships ahead of its backend.
+    expect([...KNOWN_DEAD_MODULES]).toEqual([]);
+    expect(readdirSync(API_DIR)).not.toContain('bureau.ts');
   });
 
   it('no client path hardcodes the api prefix (baseURL already carries it)', () => {

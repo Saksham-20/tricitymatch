@@ -13,7 +13,6 @@ export type { Subscription, SubscriptionPlanType, SubscriptionStatus, PlanFeatur
 export type { Notification, NotificationType } from './types/notification';
 export type { CallSession, CallInvitation, AgoraTokenResponse, CallType, CallStatus } from './types/call';
 export type { Verification, PhotoVerification, DocumentType, VerificationStatus } from './types/verification';
-export type { BureauClient, MatchProposal, BureauEarnings, ProposalStatus } from './types/bureau';
 
 // Constants
 export { colours, darkColours, typography, spacing, borderRadius, tapTarget } from './constants/theme';

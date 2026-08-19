@@ -30,7 +30,10 @@ import { colours, typography, spacing, borderRadius } from '@shared/constants/th
 import { useAuthStore } from '../../stores/authStore';
 import { useSocket } from '../../hooks/useSocket';
 import { unlockContact } from '../../api/matches';
-import { getThread, sendMessage, editMessage, deleteMessage } from '../../api/chat';
+import { getThread, sendMessage, editMessage, deleteMessage, sendVoiceMessage, toggleReaction } from '../../api/chat';
+import { VoiceRecorderStrip, VoiceMessageBubble } from './VoiceMessage';
+import { REACTION_EMOJIS } from '@shared/constants/chat';
+import type { ReplyWindow } from '@shared/types/chat';
 import { getProfile } from '../../api/profile';
 import { CONFIG } from '../../constants/config';
 import { queryKeys } from '../../constants/queryKeys';
@@ -134,19 +137,42 @@ function MessageBubble({ msg, isOwn, onLongPress }: BubbleProps) {
       testID={`Bubble-${msg.id}`}
       accessibilityLabel={`Message: ${msg.content}`}
     >
-      <View style={[s.bubble, isOwn ? s.bubbleOwn : s.bubbleTheirs]}>
-        <Text style={[s.bubbleText, isOwn ? s.bubbleTextOwn : s.bubbleTextTheirs]}>
-          {msg.content}
-        </Text>
-        {msg.isEdited && (
-          <Text style={[s.editedTag, isOwn ? s.editedTagOwn : s.editedTagTheirs]}>edited</Text>
-        )}
-        <View style={s.bubbleMeta}>
-          <Text style={[s.msgTime, isOwn ? s.msgTimeOwn : s.msgTimeTheirs]}>
-            {formatMsgTime(msg.createdAt)}
-          </Text>
-          {isOwn && <ReadReceipt msg={msg} />}
+      <View>
+        <View style={[s.bubble, isOwn ? s.bubbleOwn : s.bubbleTheirs]}>
+          {msg.ReplyTo && (
+            <View style={[s.quoteBlock, isOwn ? s.quoteBlockOwn : s.quoteBlockTheirs]}>
+              <Text style={[s.quoteText, isOwn && { color: 'rgba(255,255,255,0.85)' }]} numberOfLines={2}>
+                {msg.ReplyTo.messageType === 'voice' ? 'Voice message' : msg.ReplyTo.content}
+              </Text>
+            </View>
+          )}
+          {msg.messageType === 'voice' ? (
+            <VoiceMessageBubble uri={msg.mediaUrl} durationMs={msg.mediaDurationMs} own={isOwn} />
+          ) : (
+            <Text style={[s.bubbleText, isOwn ? s.bubbleTextOwn : s.bubbleTextTheirs]}>
+              {msg.content}
+            </Text>
+          )}
+          {msg.isEdited && (
+            <Text style={[s.editedTag, isOwn ? s.editedTagOwn : s.editedTagTheirs]}>edited</Text>
+          )}
+          <View style={s.bubbleMeta}>
+            <Text style={[s.msgTime, isOwn ? s.msgTimeOwn : s.msgTimeTheirs]}>
+              {formatMsgTime(msg.createdAt)}
+            </Text>
+            {isOwn && <ReadReceipt msg={msg} />}
+          </View>
         </View>
+        {Object.keys(msg.reactions || {}).length > 0 && (
+          <View style={[s.reactionRow, isOwn && { alignSelf: 'flex-end' }]}>
+            {Object.entries(msg.reactions).filter(([, u]) => u?.length).map(([emoji, users]) => (
+              <View key={emoji} style={s.reactionPill}>
+                <Text style={s.reactionEmoji}>{emoji}</Text>
+                {users.length > 1 && <Text style={s.reactionCount}>{users.length}</Text>}
+              </View>
+            ))}
+          </View>
+        )}
       </View>
     </TouchableOpacity>
     </Animated.View>
@@ -225,13 +251,16 @@ interface ActionMenuProps {
   msg: Message | null;
   isOwn: boolean;
   visible: boolean;
+  canRich: boolean;
   onClose: () => void;
   onEdit: (msg: Message) => void;
   onDelete: (msg: Message) => void;
   onReport: (msg: Message) => void;
+  onReact: (msg: Message, emoji: string) => void;
+  onReply: (msg: Message) => void;
 }
 
-function MessageActionMenu({ msg, isOwn, visible, onClose, onEdit, onDelete, onReport }: ActionMenuProps) {
+function MessageActionMenu({ msg, isOwn, visible, canRich, onClose, onEdit, onDelete, onReport, onReact, onReply }: ActionMenuProps) {
   const { t } = useTranslation();
   if (!msg) return null;
 
@@ -239,6 +268,32 @@ function MessageActionMenu({ msg, isOwn, visible, onClose, onEdit, onDelete, onR
     <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
       <Pressable style={s.menuOverlay} onPress={onClose}>
         <View style={s.menuCard}>
+          {/* D2 reactions — premium; six-emoji allowlist mirrors the server */}
+          {canRich && (
+            <View style={s.emojiRow}>
+              {REACTION_EMOJIS.map((e) => (
+                <TouchableOpacity
+                  key={e}
+                  onPress={() => { onReact(msg, e); onClose(); }}
+                  style={s.emojiBtn}
+                  accessibilityLabel={`React ${e}`}
+                  testID={`React-${e}`}
+                >
+                  <Text style={s.emojiText}>{e}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+          {canRich && (
+            <TouchableOpacity
+              style={s.menuItem}
+              onPress={() => { onReply(msg); onClose(); }}
+              testID="MenuReply"
+            >
+              <Ionicons name="return-up-back" size={18} color={colours.textPrimary} />
+              <Text style={s.menuItemText}>{t('chat.reply', 'Reply')}</Text>
+            </TouchableOpacity>
+          )}
           {isOwn && canEdit(msg.createdAt) && (
             <TouchableOpacity
               style={s.menuItem}
@@ -306,10 +361,17 @@ export default function ChatThreadScreen() {
   const [input, setInput] = useState(draft ?? '');
   const [editingMsg, setEditingMsg] = useState<Message | null>(null);
   const [selectedMsg, setSelectedMsg] = useState<Message | null>(null);
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+  const [showRecorder, setShowRecorder] = useState(false);
   const [isOtherTyping, setIsOtherTyping] = useState(false);
+  // D1: live window state — seeded from the thread response, advanced by every
+  // send, and flipped inactive by the local expiry timer (403 is the backstop).
+  const [replyWindow, setReplyWindow] = useState<ReplyWindow | null>(null);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { emitTyping, emitSeen } = useSocket({
+  const isPaid = (user?.subscriptionPlan ?? 'free') !== 'free';
+
+  const { emitTyping, joinThread, leaveThread } = useSocket({
     onTypingIndicator: (data) => {
       if (data.userId === userId) {
         setIsOtherTyping(data.isTyping);
@@ -319,12 +381,13 @@ export default function ChatThreadScreen() {
         }
       }
     },
-    onMessageReceived: (msg) => {
-      if (msg.senderId === userId) {
-        emitSeen(msg.id);
-      }
-    },
   });
+
+  // Join the pair room so the server-authoritative broadcasts reach this device.
+  useEffect(() => {
+    joinThread(userId);
+    return () => leaveThread(userId);
+  }, [userId, joinThread, leaveThread]);
 
   // Load thread (cursor-based, scroll up = load more)
   const {
@@ -333,19 +396,43 @@ export default function ChatThreadScreen() {
     hasNextPage,
     isFetchingNextPage,
     isLoading,
+    error: threadError,
   } = useInfiniteQuery({
     queryKey: queryKeys.thread(userId),
     queryFn: ({ pageParam }) => getThread(userId, pageParam as string | undefined),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
+    retry: (count, err) => {
+      // 403 = no chat access for this thread — a real state, not a flake.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if ((err as any)?.response?.status === 403) return false;
+      return count < 2;
+    },
   });
+
+  const chatAccess = data?.pages?.[0]?.chatAccess ?? null;
+  const isGrantThread = chatAccess?.reason === 'free_reply_window';
+
+  // Seed the live window from the thread response.
+  useEffect(() => {
+    if (chatAccess?.replyWindow) setReplyWindow(chatAccess.replyWindow);
+  }, [chatAccess?.replyWindow]);
+
+  // Local expiry timer (DS): flip inactive the moment expiresAt passes.
+  useEffect(() => {
+    if (!replyWindow?.active || !replyWindow.expiresAt) return undefined;
+    const ms = new Date(replyWindow.expiresAt).getTime() - Date.now();
+    if (ms <= 0) { setReplyWindow((w) => (w ? { ...w, active: false } : w)); return undefined; }
+    const tmr = setTimeout(() => setReplyWindow((w) => (w ? { ...w, active: false } : w)), ms);
+    return () => clearTimeout(tmr);
+  }, [replyWindow?.active, replyWindow?.expiresAt]);
 
   // Flatten pages; pages[0] = newest page (inverted FlatList shows newest at bottom)
   const messages: Message[] = data?.pages.flatMap((p) => p.messages) ?? [];
 
   // Send message
   const { mutate: doSend, isPending: isSending } = useMutation({
-    mutationFn: (content: string) => sendMessage(userId, content),
+    mutationFn: (content: string) => sendMessage(userId, content, replyingTo?.id),
     onMutate: async (content) => {
       const optimistic: Message = {
         id: `tmp-${Date.now()}`,
@@ -376,7 +463,14 @@ export default function ChatThreadScreen() {
       );
       return { optimistic };
     },
-    onError: (_err, _content, ctx) => {
+    onError: (err, _content, ctx) => {
+      // 403 backstop: trust the server's window state; the paywalled composer
+      // takes over.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const errBody = (err as any)?.response?.data?.error;
+      if (errBody?.code === 'REPLY_WINDOW_ENDED') {
+        setReplyWindow(errBody.replyWindow ?? { active: false, messagesRemaining: 0, messagesUsed: 5, firstReplyAt: null, expiresAt: null });
+      }
       // Remove optimistic message on failure
       if (ctx?.optimistic) {
         queryClient.setQueryData<{ pages: { messages: Message[]; nextCursor: string | null }[] }>(
@@ -392,7 +486,7 @@ export default function ChatThreadScreen() {
         );
       }
     },
-    onSuccess: (realMsg, _content, ctx) => {
+    onSuccess: (res, _content, ctx) => {
       // Replace optimistic with real message
       queryClient.setQueryData<{ pages: { messages: Message[]; nextCursor: string | null }[] }>(
         queryKeys.thread(userId),
@@ -401,12 +495,14 @@ export default function ChatThreadScreen() {
           const pages = old.pages.map((page) => ({
             ...page,
             messages: page.messages.map((m) =>
-              m.id === ctx?.optimistic.id ? realMsg : m
+              m.id === ctx?.optimistic.id ? res.message : m
             ),
           }));
           return { ...old, pages };
         }
       );
+      // D1: post-increment window state drives the meter.
+      if (res.replyWindow) setReplyWindow(res.replyWindow);
       queryClient.invalidateQueries({ queryKey: queryKeys.conversations });
     },
   });
@@ -447,6 +543,42 @@ export default function ChatThreadScreen() {
     },
   });
 
+  // D2: voice note — append the server message to the cache on success.
+  const sendVoice = useCallback(async (uri: string, durationMs: number) => {
+    const msg = await sendVoiceMessage(userId, uri, durationMs);
+    queryClient.setQueryData<{ pages: { messages: Message[]; nextCursor: string | null }[] }>(
+      queryKeys.thread(userId),
+      (old) => {
+        if (!old) return { pages: [{ messages: [msg], nextCursor: null }], pageParams: [undefined] };
+        const pages = [...old.pages];
+        if (!pages[0].messages.some((m) => m.id === msg.id)) {
+          pages[0] = { ...pages[0], messages: [msg, ...pages[0].messages] };
+        }
+        return { ...old, pages };
+      }
+    );
+    queryClient.invalidateQueries({ queryKey: queryKeys.conversations });
+  }, [userId, queryClient]);
+
+  // D2: reaction toggle — optimistic with server reconcile.
+  const { mutate: doReact } = useMutation({
+    mutationFn: ({ id, emoji }: { id: string; emoji: string }) => toggleReaction(id, emoji),
+    onSuccess: (reactions, vars) => {
+      queryClient.setQueryData<{ pages: { messages: Message[]; nextCursor: string | null }[] }>(
+        queryKeys.thread(userId),
+        (old) => {
+          if (!old) return old;
+          const pages = old.pages.map((page) => ({
+            ...page,
+            messages: page.messages.map((m) => (m.id === vars.id ? { ...m, reactions } : m)),
+          }));
+          return { ...old, pages };
+        }
+      );
+    },
+    onError: () => showToast.error(t('error', 'Error'), t('chat.reactFailed', 'Could not react')),
+  });
+
   const handleSend = useCallback(() => {
     const text = input.trim();
     if (!text) return;
@@ -455,6 +587,7 @@ export default function ChatThreadScreen() {
       setEditingMsg(null);
     } else {
       doSend(text);
+      setReplyingTo(null);
     }
     setInput('');
     emitTyping(userId, false);
@@ -517,6 +650,40 @@ export default function ChatThreadScreen() {
       </View>
     );
   }
+
+  // Deep-link hole (C2): a free member can land here from a notification tap.
+  // A 403 renders a real gate instead of an empty thread that errors on send.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if ((threadError as any)?.response?.status === 403) {
+    return (
+      <View style={[s.gateWrap, { paddingTop: insets.top }]} testID="ChatThreadGate">
+        <TouchableOpacity onPress={() => navigation.goBack()} style={s.gateBack} accessibilityLabel={t('back', 'Back')}>
+          <Ionicons name="arrow-back" size={24} color={colours.textPrimary} />
+        </TouchableOpacity>
+        <View style={s.gateBody}>
+          <View style={s.gateIcon}>
+            <Ionicons name="lock-closed" size={32} color={colours.secondary} />
+          </View>
+          <Text style={s.gateTitle}>{t('chat.gateTitle', 'Chat is a premium feature')}</Text>
+          <Text style={s.gateLine}>
+            {t('chat.gateLine', 'Upgrade to start the conversation with {{name}}.', { name: name || 'your match' })}
+          </Text>
+          <TouchableOpacity
+            style={s.gateCta}
+            onPress={() => navigation.navigate('Subscription')}
+            testID="ChatGateUpgrade"
+          >
+            <Text style={s.gateCtaText}>{t('chat.gateCta', 'See plans')}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  const windowEnded = isGrantThread && replyWindow != null && !replyWindow.active;
+  const endHeadline = replyWindow?.messagesRemaining === 0
+    ? t('chat.windowExhausted', "You've used your 5 free replies")
+    : t('chat.windowExpired', 'Your 48-hour reply window ended');
 
   return (
     <KeyboardAvoidingView
@@ -613,51 +780,179 @@ export default function ChatThreadScreen() {
         </View>
       )}
 
-      {/* Input bar */}
-      <View style={[s.inputBar, { paddingBottom: Math.max(insets.bottom, spacing.xs) }]}>
-        <TextInput
-          style={s.input}
-          value={input}
-          onChangeText={handleInputChange}
-          placeholder={t('chat.typePlaceholder', 'Type a message…')}
-          placeholderTextColor={colours.textMuted}
-          multiline
-          maxLength={2000}
-          accessibilityLabel={t('chat.typePlaceholder', 'Type a message')}
-          testID="MessageInput"
-        />
-        <PressableScale
-          scaleTo={0.9}
-          haptic
-          style={[s.sendBtn, (!input.trim() || isSending) && s.sendBtnDisabled]}
-          onPress={handleSend}
-          disabled={!input.trim() || isSending}
-          accessibilityLabel={t('chat.send', 'Send')}
-          testID="SendBtn"
-        >
-          {isSending ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Ionicons name="send" size={18} color={!input.trim() ? colours.textMuted : '#fff'} />
+      {/* Reply-quote banner (D2, premium) */}
+      {replyingTo && !editingMsg && (
+        <View style={s.editBanner} testID="ReplyBanner">
+          <Ionicons name="return-up-back" size={14} color={colours.primary} />
+          <Text style={s.editBannerText} numberOfLines={1}>
+            {replyingTo.messageType === 'voice' ? 'Voice message' : replyingTo.content}
+          </Text>
+          <TouchableOpacity onPress={() => setReplyingTo(null)} accessibilityLabel="Cancel reply">
+            <Ionicons name="close" size={18} color={colours.textMuted} />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {windowEnded ? (
+        /* DS1: scripted paywalled composer — thread stays readable above. */
+        <View style={[s.paywallBar, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]} testID="PaywalledComposer">
+          <View style={{ flex: 1 }}>
+            <Text style={s.paywallTitle}>{endHeadline}</Text>
+            <Text style={s.paywallLine}>
+              {t('chat.windowKeepTalking', '{{name}} can still write to you — upgrade to keep talking.', { name: (name || 'They').split(' ')[0] })}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={s.paywallCta}
+            onPress={() => navigation.navigate('Subscription')}
+            testID="PaywallUpgrade"
+          >
+            <Text style={s.paywallCtaText}>{t('chat.upgrade', 'Upgrade')}</Text>
+          </TouchableOpacity>
+        </View>
+      ) : showRecorder ? (
+        <View style={{ paddingBottom: Math.max(insets.bottom, spacing.xs) }}>
+          <VoiceRecorderStrip onSend={sendVoice} onClose={() => setShowRecorder(false)} />
+        </View>
+      ) : (
+      <View style={{ paddingBottom: Math.max(insets.bottom, spacing.xs) }}>
+        <View style={s.inputBar}>
+          <TextInput
+            style={s.input}
+            value={input}
+            onChangeText={handleInputChange}
+            placeholder={t('chat.typePlaceholder', 'Type a message…')}
+            placeholderTextColor={colours.textMuted}
+            multiline
+            maxLength={2000}
+            accessibilityLabel={t('chat.typePlaceholder', 'Type a message')}
+            testID="MessageInput"
+          />
+          {/* D2 voice note — premium only; grant threads are text-only (D1). */}
+          {isPaid && !isGrantThread && !input.trim() && !editingMsg && (
+            <PressableScale
+              scaleTo={0.9}
+              haptic
+              style={s.micBtn}
+              onPress={() => setShowRecorder(true)}
+              accessibilityLabel={t('chat.recordVoice', 'Record a voice message')}
+              testID="MicBtn"
+            >
+              <Ionicons name="mic-outline" size={20} color={colours.textSecondary} />
+            </PressableScale>
           )}
-        </PressableScale>
+          <PressableScale
+            scaleTo={0.9}
+            haptic
+            style={[s.sendBtn, (!input.trim() || isSending) && s.sendBtnDisabled]}
+            onPress={handleSend}
+            disabled={!input.trim() || isSending}
+            accessibilityLabel={t('chat.send', 'Send')}
+            testID="SendBtn"
+          >
+            {isSending ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Ionicons name="send" size={18} color={!input.trim() ? colours.textMuted : '#fff'} />
+            )}
+          </PressableScale>
+        </View>
+        {/* DS3: the meter is last in the hierarchy — muted, warns at ≤2 */}
+        {isGrantThread && replyWindow?.active && (
+          <Text
+            style={[s.meterText, replyWindow.messagesRemaining <= 2 && s.meterWarn]}
+            accessibilityLiveRegion="polite"
+            testID="ReplyMeter"
+          >
+            {t('chat.repliesLeft', '{{count}} free replies left', { count: replyWindow.messagesRemaining })}
+          </Text>
+        )}
       </View>
+      )}
 
       {/* Long-press action menu */}
       <MessageActionMenu
         msg={selectedMsg}
         isOwn={isOwn}
         visible={selectedMsg !== null}
+        canRich={isPaid}
         onClose={() => setSelectedMsg(null)}
         onEdit={(msg) => { setEditingMsg(msg); setInput(msg.content); }}
         onDelete={handleDeletePrompt}
         onReport={handleReport}
+        onReact={(msg, emoji) => doReact({ id: msg.id, emoji })}
+        onReply={setReplyingTo}
       />
     </KeyboardAvoidingView>
   );
 }
 
 const s = StyleSheet.create({
+  // ── Phase C additions ──────────────────────────────────────────────────────
+  quoteBlock: {
+    borderLeftWidth: 2,
+    paddingLeft: spacing.sm,
+    paddingVertical: 2,
+    marginBottom: spacing.xs,
+    borderRadius: 4,
+  },
+  quoteBlockOwn: { borderLeftColor: 'rgba(255,255,255,0.5)', backgroundColor: 'rgba(255,255,255,0.12)' },
+  quoteBlockTheirs: { borderLeftColor: colours.primary, backgroundColor: 'rgba(0,0,0,0.04)' },
+  quoteText: { fontSize: typography.fontSize.xs, color: colours.textMuted },
+  reactionRow: { flexDirection: 'row', gap: 4, marginTop: 2, marginHorizontal: spacing.md },
+  reactionPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: colours.surfaceCard, borderWidth: 1, borderColor: colours.border,
+    borderRadius: 12, paddingHorizontal: 6, paddingVertical: 2,
+  },
+  reactionEmoji: { fontSize: 13 },
+  reactionCount: { fontSize: typography.fontSize.xs, color: colours.textMuted, fontVariant: ['tabular-nums'] },
+  emojiRow: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    paddingHorizontal: spacing.sm, paddingBottom: spacing.sm,
+    borderBottomWidth: 1, borderBottomColor: colours.border, marginBottom: spacing.xs,
+  },
+  emojiBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  emojiText: { fontSize: 22 },
+  micBtn: {
+    width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center',
+    marginRight: spacing.xs,
+  },
+  meterText: {
+    fontSize: typography.fontSize.xs, color: colours.textMuted,
+    paddingHorizontal: spacing.md, paddingTop: 4, fontVariant: ['tabular-nums'],
+  },
+  meterWarn: { color: colours.secondary, fontWeight: '600' },
+  paywallBar: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    paddingHorizontal: spacing.md, paddingTop: spacing.sm,
+    borderTopWidth: 1, borderTopColor: colours.border, backgroundColor: colours.surfaceCard,
+  },
+  paywallTitle: { fontSize: typography.fontSize.sm, fontWeight: '600', color: colours.textPrimary },
+  paywallLine: { fontSize: typography.fontSize.xs, color: colours.textMuted, marginTop: 2 },
+  paywallCta: {
+    backgroundColor: colours.secondary, borderRadius: 22, paddingHorizontal: spacing.lg,
+    minHeight: 44, alignItems: 'center', justifyContent: 'center',
+  },
+  paywallCtaText: { color: '#fff', fontWeight: '700', fontSize: typography.fontSize.sm },
+  gateWrap: { flex: 1, backgroundColor: colours.background },
+  gateBack: { padding: spacing.md, alignSelf: 'flex-start' },
+  gateBody: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl },
+  gateIcon: {
+    width: 72, height: 72, borderRadius: 36, backgroundColor: colours.goldSoft,
+    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
+  },
+  gateTitle: {
+    fontSize: typography.fontSize.xl, fontWeight: '700', color: colours.textPrimary,
+    textAlign: 'center', marginBottom: spacing.xs,
+  },
+  gateLine: { fontSize: typography.fontSize.sm, color: colours.textMuted, textAlign: 'center', marginBottom: spacing.lg },
+  gateCta: {
+    backgroundColor: colours.primary, borderRadius: 24, paddingHorizontal: spacing.xl,
+    minHeight: 48, alignItems: 'center', justifyContent: 'center',
+  },
+  gateCtaText: { color: '#fff', fontWeight: '700' },
+
   container: {
     flex: 1,
     backgroundColor: colours.background,

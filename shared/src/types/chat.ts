@@ -18,6 +18,8 @@ export interface Message {
   replyToId: string | null;
   reactions: MessageReactions;
   isRead: boolean;
+  /** Server-included quote of the replied-to message (null once deleted). */
+  ReplyTo?: Pick<Message, 'id' | 'content' | 'messageType' | 'senderId'> | null;
   deliveredAt: string | null;
   readAt: string | null;
   isEdited: boolean;

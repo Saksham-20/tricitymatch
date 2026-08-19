@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   Modal,
   useWindowDimensions,
+  Pressable,
+  TextInput,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -102,6 +104,9 @@ export default function ProfileDetailScreen() {
 
   const [mutualMatch, setMutualMatch] = useState(false);
   const [actionDone, setActionDone] = useState<MatchAction | null>(null);
+  // D3 like-with-note (DS5): opened only from the explicit long-press affordance.
+  const [noteSheetOpen, setNoteSheetOpen] = useState(false);
+  const [noteText, setNoteText] = useState('');
   const [blockReportVisible, setBlockReportVisible] = useState(false);
   const [breakdownVisible, setBreakdownVisible] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState<number | null>(null);
@@ -143,7 +148,8 @@ export default function ProfileDetailScreen() {
   });
 
   const actionMutation = useMutation({
-    mutationFn: (action: MatchAction) => performMatchAction(userId, action),
+    mutationFn: ({ action, note }: { action: MatchAction; note?: string }) =>
+      performMatchAction(userId, action, note ? { note } : undefined),
     onSuccess: (data) => {
       setActionDone(data.match.action);
       if (data.isMutualMatch) setMutualMatch(true);
@@ -155,9 +161,9 @@ export default function ProfileDetailScreen() {
     },
   });
 
-  const handleAction = (action: MatchAction) => {
+  const handleAction = (action: MatchAction, note?: string) => {
     if (actionDone) return;
-    actionMutation.mutate(action);
+    actionMutation.mutate({ action, note });
   };
 
   if (isLoading) {
@@ -520,11 +526,14 @@ export default function ProfileDetailScreen() {
             <PressableScale
               style={[s.actionBtn, { backgroundColor: c.primary }]}
               onPress={() => handleAction('like')}
+              onLongPress={() => setNoteSheetOpen(true)}
+              delayLongPress={350}
               disabled={actionMutation.isPending}
               haptic
               testID="action-like"
               accessibilityRole="button"
-              accessibilityLabel="Interested"
+              accessibilityLabel="Interested — long press to add a note"
+              accessibilityHint="Long press to send your like with a personal note"
             >
               {actionMutation.isPending ? (
                 <ActivityIndicator size="small" color="#fff" />
@@ -561,6 +570,40 @@ export default function ProfileDetailScreen() {
         onClose={() => setBlockReportVisible(false)}
         onBlocked={() => navigation.goBack()}
       />
+
+      {/* D3 like-with-note sheet (DS5) — opened by long-pressing Interested */}
+      <Modal visible={noteSheetOpen} transparent animationType="slide" onRequestClose={() => setNoteSheetOpen(false)}>
+        <Pressable style={ns.backdrop} onPress={() => setNoteSheetOpen(false)}>
+          <View style={[ns.sheet, { backgroundColor: c.background }]} onStartShouldSetResponder={() => true}>
+            <Text style={[ns.title, { color: c.fgStrong }]}>Like with a note</Text>
+            <TextInput
+              style={[ns.input, { borderColor: c.border, color: c.fgStrong }]}
+              value={noteText}
+              onChangeText={(txt) => setNoteText(txt.slice(0, 280))}
+              placeholder="Say what caught your eye… (optional)"
+              placeholderTextColor={c.textMuted}
+              multiline
+              accessibilityLabel="Note to send with your like"
+            />
+            <Text style={[ns.counter, { color: c.textMuted }]}>{noteText.length}/280</Text>
+            <PressableScale
+              style={[ns.sendBtn, { backgroundColor: c.primary }]}
+              haptic
+              onPress={() => {
+                setNoteSheetOpen(false);
+                handleAction('like', noteText.trim() || undefined);
+                setNoteText('');
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Send like with note"
+              testID="send-like-note"
+            >
+              <Ionicons name="heart" size={18} color="#fff" />
+              <Text style={ns.sendText}>Send like</Text>
+            </PressableScale>
+          </View>
+        </Pressable>
+      </Modal>
 
       <CompatibilityBreakdownSheet
         visible={breakdownVisible}
@@ -778,4 +821,22 @@ const s = StyleSheet.create({
   },
   mutualHintText: { ...type.headline },
 
+});
+
+
+// D3 like-with-note sheet styles
+const ns = StyleSheet.create({
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: spacing.lg, paddingBottom: spacing['3xl'] },
+  title: { fontSize: typography.fontSize.lg, fontFamily: typography.fontFamily.bold, marginBottom: spacing.md },
+  input: {
+    borderWidth: 1, borderRadius: borderRadius.md, padding: spacing.md, minHeight: 88,
+    fontSize: typography.fontSize.base, textAlignVertical: 'top',
+  },
+  counter: { fontSize: typography.fontSize.xs, alignSelf: 'flex-end', marginTop: 4, fontVariant: ['tabular-nums'] },
+  sendBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    borderRadius: 24, minHeight: 48, marginTop: spacing.md,
+  },
+  sendText: { color: '#fff', fontFamily: typography.fontFamily.bold, fontSize: typography.fontSize.base },
 });

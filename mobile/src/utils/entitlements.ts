@@ -23,6 +23,7 @@ export type ChatAccessReason =
   | 'paid'
   | 'free_chat_flag'
   | 'free_chat_mutual'
+  | 'free_reply_window'
   | 'premium_required'
   | 'not_mutual';
 
@@ -46,13 +47,23 @@ export const hasChatAccess = (user: AuthUser | null, isMutual?: boolean): ChatAc
   // it as flag-off: refusing to show a chat list is recoverable, wrongly showing
   // one the server will 403 is a broken screen.
   const freeChatForMutuals = user?.features?.freeChatForMutuals ?? false;
-  if (!freeChatForMutuals) return { allowed: false, reason: 'premium_required' };
+  if (freeChatForMutuals) {
+    if (isMutual === undefined) return { allowed: true, reason: 'free_chat_flag' };
+    if (isMutual) return { allowed: true, reason: 'free_chat_mutual' };
+  }
 
-  if (isMutual === undefined) return { allowed: true, reason: 'free_chat_flag' };
+  // D1 free-reply window: with the flag on, a free member MAY hold grants — a
+  // list-level check must let them reach the conversations screen, where the
+  // SERVER answers per-thread (grant rows carry replyWindow; others 403/lock).
+  // Display-only mirror of the grant branch in backend/utils/entitlements.js.
+  if (user?.features?.freeReplyWindow) {
+    return { allowed: true, reason: 'free_reply_window' };
+  }
 
-  return isMutual
-    ? { allowed: true, reason: 'free_chat_mutual' }
-    : { allowed: false, reason: 'not_mutual' };
+  if (freeChatForMutuals && isMutual === false) {
+    return { allowed: false, reason: 'not_mutual' };
+  }
+  return { allowed: false, reason: 'premium_required' };
 };
 
 /** Convenience for render-time gating. */

@@ -3,7 +3,7 @@ import { AccessibilityInfo, Platform } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import type { MainStackParamList, MainTabParamList, AdminStackParamList, BureauStackParamList } from './types';
+import type { MainStackParamList, MainTabParamList, AdminStackParamList } from './types';
 import { colours, tapTarget } from '@shared/constants/theme';
 import { useAuthStore } from '../stores/authStore';
 import { useUIStore } from '../stores/uiStore';
@@ -58,11 +58,6 @@ import AdminHomeScreen from '../features/admin/AdminHomeScreen';
 import VerificationQueueScreen from '../features/admin/VerificationQueueScreen';
 import ReportsQueueScreen from '../features/admin/ReportsQueueScreen';
 
-// Bureau
-import BureauHomeScreen from '../features/bureau/BureauHomeScreen';
-import ClientRosterScreen from '../features/bureau/ClientRosterScreen';
-import MatchProposalScreen from '../features/bureau/MatchProposalScreen';
-import EarningsScreen from '../features/bureau/EarningsScreen';
 
 // Astrologer marketplace (APP-059)
 import AstrologerMarketplaceScreen from '../features/profile/AstrologerMarketplaceScreen';
@@ -71,7 +66,6 @@ import AstrologerDetailScreen from '../features/profile/AstrologerDetailScreen';
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const Stack = createNativeStackNavigator<MainStackParamList>();
 const AdminStack = createNativeStackNavigator<AdminStackParamList>();
-const BureauStack = createNativeStackNavigator<BureauStackParamList>();
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -137,21 +131,11 @@ function AdminNavigator() {
   );
 }
 
-function BureauNavigator() {
-  return (
-    <BureauStack.Navigator screenOptions={{ headerShown: false }}>
-      <BureauStack.Screen name="BureauHome" component={BureauHomeScreen} />
-      <BureauStack.Screen name="ClientRoster" component={ClientRosterScreen} />
-      <BureauStack.Screen name="MatchProposal" component={MatchProposalScreen} />
-      <BureauStack.Screen name="Earnings" component={EarningsScreen} />
-    </BureauStack.Navigator>
-  );
-}
-
 export default function MainNavigator() {
   const { elderMode } = useUIStore();
   const { user } = useAuthStore();
   const role = user?.role ?? 'user';
+  const astrologerOn = user?.features?.astrologerMarketplace ?? false;
 
   return (
     <Stack.Navigator
@@ -216,18 +200,17 @@ export default function MainNavigator() {
       {/* Horoscope match (APP-055) */}
       <Stack.Screen name="HoroscopeMatch" component={HoroscopeMatchScreen} />
 
-      {/* Astrologer marketplace (APP-059) */}
-      <Stack.Screen name="AstrologerMarketplace" component={AstrologerMarketplaceScreen} />
-      <Stack.Screen name="AstrologerDetail" component={AstrologerDetailScreen} />
+      {/* Astrologer marketplace (APP-059) — D7: server-flagged, ships dark */}
+      {astrologerOn && (
+        <>
+          <Stack.Screen name="AstrologerMarketplace" component={AstrologerMarketplaceScreen} />
+          <Stack.Screen name="AstrologerDetail" component={AstrologerDetailScreen} />
+        </>
+      )}
 
       {/* Role-gated: admin only */}
       {(role === 'admin' || role === 'super_admin') && (
         <Stack.Screen name="AdminStack" component={AdminNavigator} />
-      )}
-
-      {/* Role-gated: bureau only */}
-      {role === 'bureau' && (
-        <Stack.Screen name="BureauStack" component={BureauNavigator} />
       )}
     </Stack.Navigator>
   );

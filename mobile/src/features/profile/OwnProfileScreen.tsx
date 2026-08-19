@@ -11,6 +11,7 @@ import {
   ActivityIndicator, 
   useWindowDimensions,
   Share,
+  Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,6 +30,8 @@ import { getPhotoVerification } from '../../api/verification';
 import { formatDate } from '../../utils/dateUtils';
 import { queryKeys } from '../../constants/queryKeys';
 import { useAuthStore } from '../../stores/authStore';
+import { showToast } from '../../utils/toast';
+import { CONFIG } from '../../constants/config';
 import { toProfileCode } from '../../utils/profileCode';
 import type { MainStackParamList } from '../../navigation/types';
 import type { Profile, ProfileSummary } from '../../types';
@@ -558,6 +561,44 @@ export default function OwnProfileScreen() {
     : user?.email ?? '';
 
   const profileCode = toProfileCode(profile?.userId ?? user?.id);
+
+  // D5 biodata flagship: download the PDF with the auth header, then hand the
+  // FILE to the share sheet (WhatsApp-first). expo-file-system ships with the
+  // expo package; lazy-required so Expo Go without it degrades to a toast.
+  const [biodataBusy, setBiodataBusy] = useState(false);
+  const shareBiodata = async () => {
+    if (biodataBusy) return;
+    setBiodataBusy(true);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let FileSystem: any = null;
+      try { FileSystem = require('expo-file-system/legacy'); } catch { /* fall through */ }
+      if (!FileSystem?.downloadAsync) {
+        try { FileSystem = require('expo-file-system'); } catch { FileSystem = null; }
+      }
+      if (!FileSystem?.downloadAsync) {
+        showToast.error('Not available', 'Biodata download needs a native build.');
+        return;
+      }
+      const token = useAuthStore.getState().accessToken;
+      const dest = `${FileSystem.cacheDirectory}biodata-tricitymatch.pdf`;
+      const res = await FileSystem.downloadAsync(
+        `${CONFIG.API_URL}/profile/me/biodata?template=classic`,
+        dest,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.status !== 200) throw new Error(`HTTP ${res.status}`);
+      await Share.share(
+        Platform.OS === 'ios'
+          ? { url: res.uri, title: 'Marriage Biodata' }
+          : { message: 'My marriage biodata (PDF) — made with TricityMatch, tricitymatch.com', url: res.uri, title: 'Marriage Biodata' }
+      );
+    } catch {
+      showToast.error('Error', 'Could not prepare your biodata. Please try again.');
+    } finally {
+      setBiodataBusy(false);
+    }
+  };
   const shareProfileCode = () => {
     if (!profileCode) return;
     Share.share({
@@ -670,6 +711,20 @@ export default function OwnProfileScreen() {
           <Ionicons name="share-outline" size={16} color={c.primary} />
         </TouchableOpacity>
       ) : null}
+
+      {/* D5 flagship: shareable marriage-biodata PDF */}
+      <TouchableOpacity
+        style={[styles.codeChip, { borderColor: c.border, backgroundColor: c.surfaceCard }]}
+        onPress={shareBiodata}
+        disabled={biodataBusy}
+        testID="biodata-chip"
+        accessibilityLabel="Share my marriage biodata PDF"
+      >
+        <Ionicons name="document-text-outline" size={16} color={c.textSecondary} />
+        <Text style={[styles.codeLabel, { color: c.textMuted }]}>Marriage biodata</Text>
+        <Text style={[styles.codeValue, { color: c.fgStrong }]}>{biodataBusy ? 'Preparing…' : 'Share PDF'}</Text>
+        <Ionicons name="share-outline" size={16} color={c.primary} />
+      </TouchableOpacity>
 
       {/* Preview toggle */}
       <View style={styles.previewRow}>

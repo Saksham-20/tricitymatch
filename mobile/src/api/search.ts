@@ -49,3 +49,32 @@ export const getSuggestions = async (limit = 10): Promise<ProfileSummary[]> => {
 
 // NOTE: saved-searches have no backend endpoint yet — the save UI is hidden in FilterPanel.
 // See CLAUDE.md Known Issues. Re-add functions here when the server side ships.
+
+
+// ─── Saved searches (Phase A step 6) ─────────────────────────────────────────
+export interface SavedSearch {
+  id: string;
+  name: string;
+  filters: {
+    gender?: string;
+    religion?: string;
+    caste?: string;
+    city?: string[];
+    ageMin?: number;
+    ageMax?: number;
+  };
+}
+
+export const getSavedSearches = async (): Promise<SavedSearch[]> => {
+  const res = await apiClient.get<{ savedSearches: SavedSearch[] }>('/search/saved');
+  return res.data.savedSearches ?? [];
+};
+
+export const createSavedSearch = async (name: string, filters: SavedSearch['filters']): Promise<SavedSearch> => {
+  const res = await apiClient.post<{ savedSearch: SavedSearch }>('/search/saved', { name, filters });
+  return res.data.savedSearch;
+};
+
+export const deleteSavedSearch = async (id: string): Promise<void> => {
+  await apiClient.delete(`/search/saved/${id}`);
+};

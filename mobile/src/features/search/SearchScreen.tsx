@@ -18,7 +18,8 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, type, spacing, borderRadius } from '@shared/constants/theme';
-import { getProfileByCode, search } from '../../api/search';
+import { getProfileByCode, search, createSavedSearch } from '../../api/search';
+import { showToast } from '../../utils/toast';
 import { performMatchAction } from '../../api/matches';
 import { queryKeys } from '../../constants/queryKeys';
 import ProfileCard from '../../components/cards/ProfileCard';
@@ -242,7 +243,27 @@ export default function SearchScreen() {
   const profiles: ProfileSummary[] = data?.pages.flatMap((p) => p.profiles) ?? [];
   const total: number = data?.pages[0]?.total ?? 0;
 
-  // Saved-searches have no backend yet — the save UI is hidden. See CLAUDE.md Known Issues.
+  // Saved searches (Phase A step 6) — backend is live now; map the active
+  // filter state to the saved shape the daily alert job reads.
+  const saveSearchMutation = useMutation({
+    mutationFn: (nm: string) => {
+      const f: Parameters<typeof createSavedSearch>[1] = {};
+      if (filters.religion) f.religion = filters.religion;
+      if (filters.caste) f.caste = filters.caste;
+      if (filters.city?.length) f.city = filters.city;
+      if (filters.ageMin) f.ageMin = filters.ageMin;
+      if (filters.ageMax) f.ageMax = filters.ageMax;
+      return createSavedSearch(nm, f);
+    },
+    onSuccess: () => {
+      setShowSaveModal(false);
+      showToast.success(t('search.saved', 'Search saved'), t('search.savedSub', "We'll alert you about new matching profiles"));
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message;
+      showToast.error(t('error', 'Error'), msg ?? t('search.saveFailed', 'Could not save search'));
+    },
+  });
 
   // ── Match actions ───────────────────────────────────────────────────────
   const actionMutation = useMutation({
@@ -421,6 +442,14 @@ export default function SearchScreen() {
         resultCount={total}
         onApply={() => refetch()}
         onReset={() => setFilters(DEFAULT_FILTERS)}
+        onSaveSearch={() => setShowSaveModal(true)}
+      />
+
+      {/* Saved-search naming sheet (backend live — Phase A step 6) */}
+      <SaveSearchModal
+        visible={showSaveModal}
+        onSave={(nm) => saveSearchMutation.mutate(nm)}
+        onClose={() => setShowSaveModal(false)}
       />
 
       {/* Sort Picker */}

@@ -1,6 +1,7 @@
 import { apiClient } from './client';
 import { toProfileSummary } from './profileSummary';
 import type { Conversation, Message, ProfileSummary } from '../types';
+import type { ChatAccess, ReplyWindow } from '@shared/types/chat';
 
 // ─── Family group chat types ──────────────────────────────────────────────────
 export interface FamilyGroup {
@@ -104,9 +105,11 @@ export const getConversations = async (): Promise<Conversation[]> => {
 export const getThread = async (userId: string, cursor?: string): Promise<{
   messages: Message[];
   nextCursor: string | null;
+  /** D1 (additive): {reason, replyWindow} — drives the composer state machine. */
+  chatAccess: ChatAccess | null;
 }> => {
   const page = cursor ? Number(cursor) : 1;
-  const res = await apiClient.get<{ messages: Message[]; pagination: { page: number; pages: number } }>(
+  const res = await apiClient.get<{ messages: Message[]; pagination: { page: number; pages: number }; chatAccess?: ChatAccess }>(
     `/chat/messages/${userId}`,
     { params: { page, limit: 30 } }
   );
@@ -115,12 +118,50 @@ export const getThread = async (userId: string, cursor?: string): Promise<{
   // scroll). The RN thread renders an inverted FlatList and prepends optimistic sends
   // at index 0, so it needs newest-first; reverse here.
   const messages = (res.data.messages ?? []).slice().reverse();
-  return { messages, nextCursor: cur < pages ? String(cur + 1) : null };
+  return { messages, nextCursor: cur < pages ? String(cur + 1) : null, chatAccess: res.data.chatAccess ?? null };
 };
 
-export const sendMessage = async (receiverId: string, content: string): Promise<Message> => {
-  const res = await apiClient.post<{ message: Message }>('/chat/send', { receiverId, content });
+export const sendMessage = async (
+  receiverId: string,
+  content: string,
+  replyToId?: string,
+): Promise<{ message: Message; replyWindow: ReplyWindow | null }> => {
+  const res = await apiClient.post<{ message: Message; replyWindow?: ReplyWindow }>('/chat/send', {
+    receiverId,
+    content,
+    ...(replyToId ? { replyToId } : {}),
+  });
+  return { message: res.data.message, replyWindow: res.data.replyWindow ?? null };
+};
+
+// D2: voice note — multipart to the dedicated premium route. `uri` is the
+// local recording file (expo-av); RN FormData takes {uri, name, type}.
+export const sendVoiceMessage = async (
+  receiverId: string,
+  uri: string,
+  durationMs: number,
+): Promise<Message> => {
+  const form = new FormData();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  form.append('audio', { uri, name: 'voice-message.m4a', type: 'audio/mp4' } as any);
+  form.append('receiverId', receiverId);
+  form.append('durationMs', String(Math.round(durationMs)));
+  const res = await apiClient.post<{ message: Message }>('/chat/messages/voice', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
   return res.data.message;
+};
+
+// D2: toggle an emoji reaction (premium; 6-emoji allowlist server-enforced).
+export const toggleReaction = async (
+  messageId: string,
+  emoji: string,
+): Promise<Record<string, string[]>> => {
+  const res = await apiClient.post<{ reactions: Record<string, string[]> }>(
+    `/chat/messages/${messageId}/reactions`,
+    { emoji },
+  );
+  return res.data.reactions;
 };
 
 export const editMessage = async (messageId: string, content: string): Promise<Message> => {

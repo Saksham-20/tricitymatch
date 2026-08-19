@@ -39,14 +39,16 @@ function formatTime(iso: string): string {
 
 interface ConversationCardProps {
   item: Conversation;
+  /** ES5: free member without a grant on this pair — muted row, lock glyph. */
+  locked?: boolean;
   onPress: () => void;
 }
 
-function ConversationCard({ item, onPress }: ConversationCardProps) {
+function ConversationCard({ item, locked = false, onPress }: ConversationCardProps) {
   const { c } = useTheme();
   const { profile, lastMessage, unreadCount, isOnline } = item;
   const name = `${profile.firstName} ${profile.lastName}`;
-  const unread = unreadCount > 0;
+  const unread = unreadCount > 0 && !locked;
 
   return (
     <TouchableOpacity
@@ -57,9 +59,12 @@ function ConversationCard({ item, onPress }: ConversationCardProps) {
     >
       <Avatar uri={profile.profilePhoto} name={name} size={54} online={isOnline} verified={profile.isVerified} />
 
-      <View style={s.cardBody}>
+      <View style={[s.cardBody, locked && { opacity: 0.65 }]}>
         <View style={s.cardRow}>
-          <Text style={[s.cardName, { color: c.fgStrong }, unread && s.bold]} numberOfLines={1}>{name}</Text>
+          <Text style={[s.cardName, { color: c.fgStrong }, unread && s.bold]} numberOfLines={1}>
+            {name}{locked ? '  ' : ''}
+            {locked && <Ionicons name="lock-closed" size={12} color={c.textMuted} />}
+          </Text>
           {lastMessage && <Text style={[s.cardTime, { color: unread ? c.accent : c.textMuted }]}>{formatTime(lastMessage.createdAt)}</Text>}
         </View>
         <View style={s.cardRow}>
@@ -68,7 +73,7 @@ function ConversationCard({ item, onPress }: ConversationCardProps) {
             numberOfLines={1}
             ellipsizeMode="tail"
           >
-            {lastMessage?.content ?? '—'}
+            {locked ? 'Upgrade to open this conversation' : (lastMessage?.content ?? '—')}
           </Text>
           {unread && (
             <View style={s.badge}>
@@ -96,11 +101,16 @@ export default function ConversationsScreen() {
   const authUser = useAuthStore((st) => st.user);
   const hasPlus = canUseChat(authUser);
 
-  const { data: conversations = [], isLoading, isRefetching, refetch } = useQuery({
+  const { data: conversations = [], isLoading, isRefetching, refetch, error: convError } = useQuery({
     queryKey: queryKeys.conversations,
     queryFn: getConversations,
     enabled: hasPlus,
     staleTime: 30_000,
+    retry: (count, err) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if ((err as any)?.response?.status === 403) return false;
+      return count < 2;
+    },
   });
 
   useSocket({
@@ -109,8 +119,22 @@ export default function ConversationsScreen() {
     },
   });
 
+  // ES5: a free member with grants sees ALL mutual threads; rows without a
+  // grant (replyWindow === null, no flag/paid access) render locked and open
+  // the plans screen instead of a thread that would 403.
+  const isFreeMember = (authUser?.subscriptionPlan ?? 'free') === 'free';
+  const rowLocked = useCallback(
+    (conv: Conversation) =>
+      isFreeMember && !(authUser?.features?.freeChatForMutuals ?? false) && !conv.replyWindow,
+    [isFreeMember, authUser]
+  );
+
   const handlePress = useCallback(
     (conv: Conversation) => {
+      if (rowLocked(conv)) {
+        navigation.navigate('Subscription');
+        return;
+      }
       queryClient.setQueryData<Conversation[]>(queryKeys.conversations, (old) =>
         old?.map((c) => (c.userId === conv.userId ? { ...c, unreadCount: 0 } : c)) ?? []
       );
@@ -121,10 +145,15 @@ export default function ConversationsScreen() {
         photo: conv.profile.profilePhoto ?? undefined,
       });
     },
-    [navigation, queryClient]
+    [navigation, queryClient, rowLocked]
   );
 
-  if (!hasPlus) {
+  // A free member whose list-level access came from the free-reply flag but
+  // who holds ZERO grants gets a server 403 — that is the classic gate.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const deniedByServer = (convError as any)?.response?.status === 403;
+
+  if (!hasPlus || deniedByServer) {
     return (
       <View style={[s.container, { backgroundColor: c.background, paddingTop: insets.top }]} testID="ConversationsUpgradeGate">
         <View style={s.header}>
@@ -162,7 +191,7 @@ export default function ConversationsScreen() {
         <FlatList
           data={conversations}
           keyExtractor={(item) => item.userId}
-          renderItem={({ item }) => <ConversationCard item={item} onPress={() => handlePress(item)} />}
+          renderItem={({ item }) => <ConversationCard item={item} locked={rowLocked(item)} onPress={() => handlePress(item)} />}
           ListEmptyComponent={
             <SharedEmpty
               icon="chatbubbles-outline"

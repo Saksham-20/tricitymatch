@@ -46,14 +46,6 @@ export type AdminStackParamList = {
   ReportsQueue: undefined;
 };
 
-// Bureau Stack
-export type BureauStackParamList = {
-  BureauHome: undefined;
-  ClientRoster: undefined;
-  MatchProposal: { profileId: string };
-  Earnings: undefined;
-};
-
 // Main Stack (wraps tabs + modals)
 export type MainStackParamList = {
   MainTabs: NavigatorScreenParams<MainTabParamList>;
@@ -85,9 +77,8 @@ export type MainStackParamList = {
   GuardianSetup: undefined;
   GuardianCandidates: undefined;
   GuardianView: { candidateId: string; candidateName: string };
-  // Admin + Bureau
+  // Admin
   AdminStack: NavigatorScreenParams<AdminStackParamList>;
-  BureauStack: NavigatorScreenParams<BureauStackParamList>;
   // Horoscope match (APP-055)
   HoroscopeMatch: { userId: string; name: string };
   // Astrologer marketplace (APP-059)

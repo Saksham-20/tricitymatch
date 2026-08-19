@@ -443,19 +443,6 @@ export default function SettingsScreen() {
           </Section>
         )}
 
-        {user?.role === 'bureau' && (
-          <Section title="Bureau" index={6}>
-            <SettingRow
-              icon="briefcase-outline"
-              iconColor={colours.primary}
-              label="Bureau Dashboard"
-              sublabel="Manage clients and proposals"
-              onPress={() => navigation.navigate('BureauStack', { screen: 'BureauHome' })}
-              testID="setting-bureau-panel"
-            />
-          </Section>
-        )}
-
         {/* Support */}
         <Section title="Support" index={7}>
           <SettingRow
@@ -483,15 +470,19 @@ export default function SettingsScreen() {
             onPress={() => navigation.navigate('SuccessStory')}
             testID="setting-success-story"
           />
-          <Divider />
-          <SettingRow
-            icon="moon-outline"
-            iconColor={colours.primary}
-            label="Astrologer Consult"
-            sublabel="Get expert Vedic guidance for your match"
-            onPress={() => navigation.navigate('AstrologerMarketplace')}
-            testID="setting-astrologer"
-          />
+          {user?.features?.astrologerMarketplace && (
+            <>
+              <Divider />
+              <SettingRow
+                icon="moon-outline"
+                iconColor={colours.primary}
+                label="Astrologer Consult"
+                sublabel="Get expert Vedic guidance for your match"
+                onPress={() => navigation.navigate('AstrologerMarketplace')}
+                testID="setting-astrologer"
+              />
+            </>
+          )}
         </Section>
 
         {/* About & Legal */}

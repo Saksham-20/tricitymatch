@@ -21,6 +21,7 @@ import {
   getMutualMatches,
   getShortlisted,
   getLikedMe,
+  getSentInterests,
   performMatchAction,
 } from '../../api/matches';
 import { queryKeys } from '../../constants/queryKeys';
@@ -37,11 +38,12 @@ import { hasPremiumAccess } from '../../utils/entitlements';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 
-type TabKey = 'mutual' | 'shortlisted' | 'liked_me';
+type TabKey = 'mutual' | 'shortlisted' | 'liked_me' | 'sent';
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'mutual',      label: 'Mutual' },
   { key: 'shortlisted', label: 'Shortlisted' },
   { key: 'liked_me',    label: 'Liked Me' },
+  { key: 'sent',        label: 'Sent' },
 ];
 
 const scoreColour = (p: number) => (p >= 90 ? colours.success : p >= 75 ? colours.g500 : colours.p500);
@@ -90,6 +92,12 @@ function MatchRow({ match, mode, onPress, onChat, onAccept, onDecline, onRemove 
             <Text style={[mr.compatPct, { color: c.textMuted }]}>{compat}%</Text>
           </View>
         )}
+        {/* D3: a like-with-note leads with the quoted note (liked_me + sent). */}
+        {(mode === 'liked_me' || mode === 'sent') && match.note ? (
+          <Text style={[mr.noteLine, { color: c.textSecondary }]} numberOfLines={2}>
+            “{match.note}”
+          </Text>
+        ) : null}
       </View>
 
       <View style={mr.actions}>
@@ -123,6 +131,7 @@ function MatchRow({ match, mode, onPress, onChat, onAccept, onDecline, onRemove 
   );
 }
 const mr = StyleSheet.create({
+  noteLine: { fontSize: 12, fontStyle: 'italic', marginTop: 3 },
   row: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: spacing.gutter, paddingVertical: 11,
@@ -164,6 +173,7 @@ function TabContent({ activeTab }: { activeTab: TabKey }) {
 
   const mutualQuery   = useQuery({ queryKey: queryKeys.mutualMatches,  queryFn: getMutualMatches,  enabled: activeTab === 'mutual' });
   const likedMeQuery  = useQuery({ queryKey: queryKeys.likedMe,        queryFn: getLikedMe,        enabled: activeTab === 'liked_me' });
+  const sentQuery     = useQuery({ queryKey: queryKeys.sentInterests,  queryFn: getSentInterests,  enabled: activeTab === 'sent' });
 
   // Shortlisted uses offline-aware hook
   const {
@@ -192,6 +202,7 @@ function TabContent({ activeTab }: { activeTab: TabKey }) {
   const queryMap = {
     mutual:   mutualQuery,
     liked_me: likedMeQuery,
+    sent:     sentQuery,
   };
 
   // For shortlisted tab, use offline hook data; for others use React Query
@@ -210,10 +221,11 @@ function TabContent({ activeTab }: { activeTab: TabKey }) {
     refetch = q.refetch;
   }
 
-  const emptyConfigs: Record<TabKey, { icon: 'heart-circle-outline' | 'bookmark-outline' | 'heart-outline'; title: string; sub: string }> = {
+  const emptyConfigs: Record<TabKey, { icon: 'heart-circle-outline' | 'bookmark-outline' | 'heart-outline' | 'paper-plane-outline'; title: string; sub: string }> = {
     mutual:      { icon: 'heart-circle-outline', title: 'No mutual matches yet',    sub: "When you both like each other, you'll appear here." },
     shortlisted: { icon: 'bookmark-outline',     title: 'Your shortlist is empty',  sub: 'Shortlist profiles to revisit them anytime.' },
     liked_me:    { icon: 'heart-outline',        title: 'No one has liked you yet', sub: 'Improve your profile to attract more attention.' },
+    sent:        { icon: 'paper-plane-outline',  title: "You haven't reached out yet", sub: "Profiles you like show up here — today's matches are waiting." },
   };
 
   if (activeTab === 'liked_me' && !hasPlus) {

@@ -13,6 +13,10 @@ export interface Match {
   mutualMatchDate: string | null;
   createdAt: string;
   updatedAt: string;
+  /** D3 like-with-note — optional note the liker attached (like action only). */
+  note?: string | null;
+  /** D3/ES8 — content SNAPSHOT of the liked thing (never index-keyed). */
+  likedItem?: { type: 'photo'; photoUrl: string } | { type: 'prompt'; promptText: string } | null;
   // Associations
   MatchedProfile?: ProfileSummary;
 }

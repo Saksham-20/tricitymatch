@@ -3,7 +3,9 @@ import type { Subscription, SubscriptionPlanType } from './subscription';
 
 export type { Profile, Subscription, SubscriptionPlanType };
 
-export type UserRole = 'user' | 'admin' | 'super_admin' | 'marketing_manager' | 'marketing' | 'bureau';
+// 'bureau' removed 2026-08-19: enum_Users_role never had the value and no
+// /bureau routes exist — the type was lying (docs/BUREAU_CHANNEL_MEMO_2026-08-09.md).
+export type UserRole = 'user' | 'admin' | 'super_admin' | 'marketing_manager' | 'marketing';
 export type UserStatus = 'active' | 'inactive' | 'banned' | 'pending' | 'deleted';
 
 export interface User {
@@ -39,6 +41,10 @@ export interface User {
 export interface AuthFeatures {
   /** When on, mutual matches can chat without a paid plan. */
   freeChatForMutuals: boolean;
+  /** D1: premium first messages grant free receivers a limited reply window. */
+  freeReplyWindow?: boolean;
+  /** D7: astrologer marketplace visibility (ships dark). */
+  astrologerMarketplace?: boolean;
   /** Whether the founding-member window is currently open. */
   foundingOpen: boolean;
 }

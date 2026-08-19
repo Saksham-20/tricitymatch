@@ -19,6 +19,9 @@ interface RawMatchItem {
   compatibilityScore?: string | number | null;
   matchedAt?: string;
   likedAt?: string;
+  note?: string | null;
+  likedItem?: Match['likedItem'];
+  isMutual?: boolean;
 }
 
 const toMatch = (m: RawMatchItem, isMutual: boolean): Match => {
@@ -30,8 +33,10 @@ const toMatch = (m: RawMatchItem, isMutual: boolean): Match => {
     matchedUserId: m.userId,
     action: 'like' as MatchAction,
     compatibilityScore: score,
-    isMutual,
+    isMutual: m.isMutual ?? isMutual,
     mutualMatchDate: m.matchedAt ?? null,
+    note: m.note ?? null,
+    likedItem: m.likedItem ?? null,
     createdAt: when,
     updatedAt: when,
     MatchedProfile: toProfileSummary({
@@ -52,9 +57,11 @@ const toMatch = (m: RawMatchItem, isMutual: boolean): Match => {
 
 export const performMatchAction = async (
   userId: string,
-  action: MatchAction
+  action: MatchAction,
+  // D3 like-with-note: only honoured with action 'like'.
+  extras?: { note?: string; likedItem?: Match['likedItem'] }
 ): Promise<MatchActionResponse> => {
-  const res = await apiClient.post<MatchActionResponse>(`/match/${userId}`, { action });
+  const res = await apiClient.post<MatchActionResponse>(`/match/${userId}`, { action, ...(extras ?? {}) });
   return res.data;
 };
 
@@ -76,6 +83,12 @@ export const getShortlisted = async (): Promise<Match[]> => {
 export const getLikedMe = async (): Promise<Match[]> => {
   const res = await apiClient.get<{ likes: RawMatchItem[] }>('/match/likes');
   return (res.data.likes ?? []).map((m) => toMatch(m, false));
+};
+
+// D3: profiles the member has liked (sent interests).
+export const getSentInterests = async (): Promise<Match[]> => {
+  const res = await apiClient.get<{ sent: RawMatchItem[] }>('/match/sent');
+  return (res.data.sent ?? []).map((m) => toMatch(m, false));
 };
 
 export const unlockContact = async (userId: string): Promise<{ phone: string }> => {

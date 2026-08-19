@@ -150,6 +150,8 @@ export interface ProfileSummary {
   isVerified?: boolean;
   compatibilityScore?: number;
   isBoosted?: boolean;
+  /** D4: server-derived "why this match" chips (daily set only, max 3). */
+  reasons?: string[];
 }
 
 export interface SearchFilters {

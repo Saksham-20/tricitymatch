@@ -78,6 +78,10 @@ function RailCard({ profile, onPress, c }: { profile: ProfileSummary; onPress: (
             <Text style={styles.railChipText}>{compat}%</Text>
           </View>
         )}
+        {/* D4: the top "why this match" reason (server-derived, chips capped 3) */}
+        {profile.reasons && profile.reasons.length > 0 && (
+          <Text style={styles.railReason} numberOfLines={1}>{profile.reasons[0]}</Text>
+        )}
       </View>
     </PressableScale>
   );
@@ -271,6 +275,7 @@ function QuickChip({ icon, label, tint, onPress, c, testID }: {
 }
 
 const styles = StyleSheet.create({
+  railReason: { fontSize: 11, color: 'rgba(255,255,255,0.85)', marginTop: 3 },
   container: { flex: 1 },
   content: { paddingBottom: 24 },
 
