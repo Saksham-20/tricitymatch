@@ -99,25 +99,31 @@ const ReligionStep = () => {
             </AnimatePresence>
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.18 }}
-            className="grid grid-cols-1 sm:grid-cols-2 gap-4"
-          >
-            <FormField
-              label="Sub-caste"
-              placeholder="Optional"
-              value={formData.subCaste}
-              onChange={(value) => updateFormData('subCaste', value)}
-            />
-            <FormField
-              label="Gotra"
-              placeholder="Optional"
-              value={formData.gotra}
-              onChange={(value) => updateFormData('gotra', value)}
-            />
-          </motion.div>
+          {/* Progressive reveal: sub-caste/gotra only make sense once a community
+              is chosen — hidden until then to keep the form short (shortest path). */}
+          <AnimatePresence>
+            {!!(formData.caste || '').trim() && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="grid grid-cols-1 sm:grid-cols-2 gap-4 overflow-hidden"
+              >
+                <FormField
+                  label="Sub-caste"
+                  placeholder="Optional"
+                  value={formData.subCaste}
+                  onChange={(value) => updateFormData('subCaste', value)}
+                />
+                <FormField
+                  label="Gotra"
+                  placeholder="Optional"
+                  value={formData.gotra}
+                  onChange={(value) => updateFormData('gotra', value)}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
       <motion.div
         initial={{ opacity: 0, y: 10 }}

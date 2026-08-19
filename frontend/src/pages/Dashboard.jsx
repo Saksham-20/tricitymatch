@@ -292,6 +292,7 @@ const Dashboard = () => {
   const [loadError, setLoadError]       = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState(null);
+  const [community, setCommunity] = useState(null);
   const [verifyNudgeDismissed, setVerifyNudgeDismissed] = useState(
     () => sessionStorage.getItem('verifyNudgeDismissed') === '1'
   );
@@ -320,6 +321,13 @@ const Dashboard = () => {
   useEffect(() => {
     api.get('/verification/status')
       .then(r => setVerificationStatus(r.data?.verification?.status || 'not_submitted'))
+      .catch(() => {});
+  }, []);
+
+  // Community pulse — "N new members this week" social proof (best-effort).
+  useEffect(() => {
+    api.get('/stats/community')
+      .then(r => setCommunity(r.data?.stats || null))
       .catch(() => {});
   }, []);
 
@@ -589,19 +597,34 @@ const Dashboard = () => {
                   </h1>
                   <p className="text-neutral-500 text-base">{greeting.subtext}</p>
 
-                  {stats.viewsThisWeek > 5 && (
-                    <motion.div
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.5 }}
-                      className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 bg-primary-50 dark:bg-primary-900/30 border border-primary-100 dark:border-primary-800 rounded-full"
-                    >
-                      <FiStar className="w-3.5 h-3.5 text-primary-500" />
-                      <span className="text-primary-700 dark:text-primary-300 text-xs font-medium">
-                        {stats.viewsThisWeek} profile views this week
-                      </span>
-                    </motion.div>
-                  )}
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {stats.viewsThisWeek > 5 && (
+                      <motion.div
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.5 }}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary-50 dark:bg-primary-900/30 border border-primary-100 dark:border-primary-800 rounded-full"
+                      >
+                        <FiStar className="w-3.5 h-3.5 text-primary-500" />
+                        <span className="text-primary-700 dark:text-primary-300 text-xs font-medium">
+                          {stats.viewsThisWeek} profile views this week
+                        </span>
+                      </motion.div>
+                    )}
+                    {community?.newThisWeek > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.6 }}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-success-50 dark:bg-success-500/15 border border-success-100 dark:border-success-500/30 rounded-full"
+                      >
+                        <FiUsers className="w-3.5 h-3.5 text-success" />
+                        <span className="text-success text-xs font-medium">
+                          {community.newThisWeek} new {community.newThisWeek === 1 ? 'member' : 'members'} joined this week
+                        </span>
+                      </motion.div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Right: Quick actions — 1 primary + 1 ghost */}
@@ -921,6 +944,11 @@ const Dashboard = () => {
                 </button>
               </div>
             )}
+
+            {/* Anticipation line — the daily set refreshes at midnight IST. */}
+            <p className="mt-3 text-center text-xs text-neutral-400">
+              Fresh matches arrive at midnight — check back tomorrow.
+            </p>
           </motion.section>
         )}
 

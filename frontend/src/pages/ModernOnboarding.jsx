@@ -719,6 +719,13 @@ const ModernOnboardingContent = () => {
                   >
                     Explore my dashboard first
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/profile')}
+                    className="w-full py-1.5 text-xs font-medium text-success hover:underline underline-offset-2 transition-colors"
+                  >
+                    Create your biodata — share it on WhatsApp
+                  </button>
                 </div>
               </motion.div>
             </motion.div>

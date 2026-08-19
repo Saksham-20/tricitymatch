@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
 import Select from '../../ui/Select';
@@ -62,28 +62,34 @@ const HoroscopeStep = () => {
         />
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.25 }}
-        className="grid grid-cols-1 sm:grid-cols-2 gap-4"
-      >
-        <FormField
-          label="Place of Birth"
-          placeholder="City / town"
-          value={formData.placeOfBirth}
-          onChange={(value) => updateFormData('placeOfBirth', value)}
-        />
-        <div>
-          <FormField
-            label="Time of Birth"
-            type="time"
-            value={formData.birthTime}
-            onChange={(value) => updateFormData('birthTime', value)}
-          />
-          <p className="text-xs text-neutral-400 mt-1.5">As close as you know — used for Kundli matching.</p>
-        </div>
-      </motion.div>
+      {/* Progressive reveal: birth place/time only appear once a Manglik status
+          is chosen — a member who skips horoscope skips the whole section. */}
+      <AnimatePresence>
+        {!!formData.manglikStatus && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="grid grid-cols-1 sm:grid-cols-2 gap-4 overflow-hidden"
+          >
+            <FormField
+              label="Place of Birth"
+              placeholder="City / town"
+              value={formData.placeOfBirth}
+              onChange={(value) => updateFormData('placeOfBirth', value)}
+            />
+            <div>
+              <FormField
+                label="Time of Birth"
+                type="time"
+                value={formData.birthTime}
+                onChange={(value) => updateFormData('birthTime', value)}
+              />
+              <p className="text-xs text-neutral-400 mt-1.5">As close as you know — used for Kundli matching.</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <motion.div
         initial={{ opacity: 0, y: 10 }}

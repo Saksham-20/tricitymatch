@@ -310,6 +310,7 @@ const SessionsSection = () => {
 };
 
 const AccountTab = () => {
+  const { user } = useAuth();
   const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [loading, setLoading] = useState(false);
   const [show, setShow] = useState({ current: false, newPw: false, confirm: false });

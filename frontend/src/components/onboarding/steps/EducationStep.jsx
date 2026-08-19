@@ -76,19 +76,23 @@ const EducationStep = () => {
         />
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.25 }}
-      >
-        <Select
-          label="Annual Income"
-          options={INCOME_RANGES}
-          value={formData.income}
-          onChange={(value) => updateFormData('income', value)}
-          placeholder="Select income range"
-        />
-      </motion.div>
+      {/* Progressive reveal: income follows profession — mirrors the mobile
+          journey (details only after the field they qualify is filled). */}
+      {formData.profession && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <Select
+            label="Annual Income"
+            options={INCOME_RANGES}
+            value={formData.income}
+            onChange={(value) => updateFormData('income', value)}
+            placeholder="Select income range"
+          />
+        </motion.div>
+      )}
 
       <motion.div
         initial={{ opacity: 0, y: 10 }}
