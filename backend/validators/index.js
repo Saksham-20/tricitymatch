@@ -538,6 +538,23 @@ const searchValidation = [
     .isInt({ min: 0, max: 100000000 })
     .withMessage('Income max must be a non-negative integer')
     .toInt(),
+  // Neither of these was validated, so `?interestTags[0][x]=1` put an object
+  // into a Postgres array-overlap parameter and returned a 500.
+  query('interestTags')
+    .optional()
+    .customSanitizer((value) => (Array.isArray(value) ? value : [value]))
+    .custom((tags) => tags.every((t) => typeof t === 'string' && t.length > 0 && t.length <= 50))
+    .withMessage('interestTags must be strings of at most 50 characters'),
+  query('interestTags.*')
+    .optional()
+    .isString()
+    .trim()
+    .isLength({ min: 1, max: 50 }),
+  query('verifiedOnly')
+    .optional()
+    .isBoolean()
+    .withMessage('verifiedOnly must be a boolean')
+    .toBoolean(),
 ];
 
 // ==================== SUBSCRIPTION VALIDATORS ====================
@@ -627,6 +644,37 @@ const deletePhotoValidation = [
 // ==================== CONTACT VALIDATOR ====================
 // Public contact form. Sanitize free-text (escape) since the message is stored
 // and surfaced to admins / emailed — prevents stored XSS.
+// Public success-story submission. This endpoint had NO validator at all, so
+// coupleNames/quote/location were stored raw and `quote` was entirely
+// unbounded. Rows land as status:'draft' for admin review, so the escaping here
+// is defence-in-depth for whatever renders them later.
+const successStoryValidation = [
+  body('coupleNames')
+    .optional({ checkFalsy: true })
+    .trim().isLength({ max: 255 }).withMessage('Couple names are too long').escape(),
+  body('groomName')
+    .optional({ checkFalsy: true })
+    .trim().isLength({ max: 120 }).withMessage('Name is too long').escape(),
+  body('brideName')
+    .optional({ checkFalsy: true })
+    .trim().isLength({ max: 120 }).withMessage('Name is too long').escape(),
+  body('quote')
+    .optional({ checkFalsy: true })
+    .trim().isLength({ max: 5000 }).withMessage('Story must be at most 5000 characters').escape(),
+  body('story')
+    .optional({ checkFalsy: true })
+    .trim().isLength({ max: 5000 }).withMessage('Story must be at most 5000 characters').escape(),
+  body('location')
+    .optional({ checkFalsy: true })
+    .trim().isLength({ max: 255 }).withMessage('Location is too long').escape(),
+  body('marriedOn')
+    .optional({ checkFalsy: true })
+    .isISO8601().withMessage('Wedding date must be a valid date').toDate(),
+  body('weddingDate')
+    .optional({ checkFalsy: true })
+    .isISO8601().withMessage('Wedding date must be a valid date').toDate(),
+];
+
 const contactValidation = [
   body('name')
     .trim()
@@ -657,6 +705,7 @@ module.exports = {
   // Auth
   signupValidation,
   contactValidation,
+  successStoryValidation,
   loginValidation,
   changeEmailRequestValidation,
   changeEmailVerifyValidation,

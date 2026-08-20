@@ -145,16 +145,21 @@ exports.addMember = asyncHandler(async (req, res) => {
   if (membership.role !== 'owner') throw createError.forbidden('Only the group owner can add members');
 
   // Accept either a userId or a phone number (families invite relatives by phone).
+  //
+  // The phone branch used to answer "No registered user found with that phone
+  // number", which turned this into a membership oracle for the whole user
+  // base: any authenticated user could spin up a throwaway group and probe
+  // phone numbers one at a time. Both branches now fail identically so a hit
+  // and a miss are indistinguishable.
   let target = null;
   if (bodyUserId) {
     target = await User.findByPk(bodyUserId, { attributes: ['id'] });
   } else if (phone) {
     target = await User.findOne({ where: { phone: String(phone).trim() }, attributes: ['id'] });
-    if (!target) throw createError.badRequest('No registered user found with that phone number');
   } else {
     throw createError.badRequest('userId or phone is required');
   }
-  if (!target) throw createError.badRequest('User not found');
+  if (!target) throw createError.badRequest('Could not add that member');
   const newUserId = target.id;
 
   const count = await GroupMember.count({ where: { groupId } });

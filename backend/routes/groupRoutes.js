@@ -7,6 +7,7 @@
 
 const express = require('express');
 const router = express.Router();
+const { matchActionLimiter } = require('../middlewares/security');
 const {
   createGroup,
   getMyGroups,
@@ -32,8 +33,11 @@ router.get('/:groupId', getGroup);
 router.delete('/:groupId', deleteGroup);
 
 // Members
-router.post('/:groupId/members', addMember);
-router.post('/:groupId/invite', addMember); // alias: invite by phone/userId
+// Rate-limited: both aliases accept a phone number and probe the user table, so
+// without a per-user budget they remain a cheap enumeration surface even with
+// the response now generic.
+router.post('/:groupId/members', matchActionLimiter, addMember);
+router.post('/:groupId/invite', matchActionLimiter, addMember); // alias: invite by phone/userId
 router.delete('/:groupId/leave', leaveGroup);
 router.delete('/:groupId/members/:memberUserId', removeMember);
 
