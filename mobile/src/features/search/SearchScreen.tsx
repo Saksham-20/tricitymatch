@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ListFooter from '../../components/ui/ListFooter';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
@@ -199,6 +199,14 @@ export default function SearchScreen() {
   const s = React.useMemo(() => makeS(c), [c]);
   const queryClient = useQueryClient();
   const filterRef = useRef<FilterPanelHandle>(null);
+
+  // Close the filter sheet whenever Search loses focus. The tab navigator keeps
+  // this screen mounted, and gorhom's BottomSheet holds its own position, so a
+  // sheet left open stayed open: every subsequent visit to Search opened with
+  // the filters covering the results instead of the profile list.
+  useFocusEffect(
+    useCallback(() => () => filterRef.current?.close(), [])
+  );
 
   const [nameQuery, setNameQuery] = useState('');
   const [filters, setFilters] = useState<SearchFilters>(DEFAULT_FILTERS);
