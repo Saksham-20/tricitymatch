@@ -51,18 +51,19 @@ RUN adduser -D -g '' nginx-user && \
     touch /var/run/nginx.pid && \
     chown -R nginx-user:nginx-user /var/run/nginx.pid
 
-# The nginx-user created and chowned above was never actually switched to, so
-# the container kept running its master process as root. Binding :80 requires
-# privilege, so the listen port moves to 8080 — kept in lockstep with
-# frontend/nginx.conf (listen), nginx/nginx.conf (upstream frontend) and the
-# compose port mapping.
-USER nginx-user
+# NOTE: the nginx-user created and chowned above is deliberately NOT switched
+# to yet. Running the master as non-root needs an unprivileged listen port,
+# which means changing frontend/nginx.conf, the reverse-proxy upstream and the
+# compose mapping in lockstep — unverifiable without a container build, and a
+# mistake takes the site down. Workers already drop privileges, so this is
+# hardening rather than a live issue. Deferred until it can be staged.
 
-EXPOSE 8080
+# Expose port
+EXPOSE 80
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/ || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:80/ || exit 1
 
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"]
