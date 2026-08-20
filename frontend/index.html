@@ -154,19 +154,9 @@
     <!-- Main application script -->
     <script type="module" src="/src/main.jsx"></script>
     
-    <!-- Service Worker Registration -->
-    <script>
-      if ('serviceWorker' in navigator && window.location.hostname !== 'localhost') {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then((registration) => {
-              console.log('SW registered:', registration.scope);
-            })
-            .catch((error) => {
-              console.log('SW registration failed:', error);
-            });
-        });
-      }
-    </script>
+    <!-- Service worker registration lives in src/main.jsx, NOT in an inline
+         <script>. An inline script forces script-src 'unsafe-inline' in the
+         Content-Security-Policy, which gives away most of the protection the
+         policy exists for. Keep this file free of inline executable script. -->
   </body>
 </html>
