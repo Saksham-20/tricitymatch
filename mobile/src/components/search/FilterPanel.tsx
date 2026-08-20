@@ -1,5 +1,6 @@
 import React, {
   useCallback,
+  useEffect,
   useRef,
   useState,
   forwardRef,
@@ -19,6 +20,7 @@ import BottomSheet, {
 import { Ionicons } from '@expo/vector-icons';
 import { colours, type, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { Button, Switch } from '../ui';
+import { useUIStore } from '../../stores/uiStore';
 import { useTheme } from '../../hooks/useTheme';
 import { haptics } from '../../utils/haptics';
 import type { SearchFilters, Diet, MaritalStatus, ManglikStatus } from '../../types';
@@ -263,6 +265,16 @@ const FilterPanel = forwardRef<FilterPanelHandle, Props>(({
   // which silently swallowed every touch on the Search screen. Track openness in
   // React state and only render the backdrop while the sheet is actually open.
   const [sheetOpen, setSheetOpen] = useState(false);
+
+  // Tell the floating tab bar to get out of the way — it is absolutely
+  // positioned over the whole screen and otherwise covers this sheet's own
+  // "Save search" and "Show N profiles" buttons.
+  const setBottomSheetOpen = useUIStore((st) => st.setBottomSheetOpen);
+  useEffect(() => {
+    setBottomSheetOpen(sheetOpen);
+    // Unmounting while open must not leave the tab bar hidden for good.
+    return () => setBottomSheetOpen(false);
+  }, [sheetOpen, setBottomSheetOpen]);
 
   useImperativeHandle(ref, () => ({
     open: () => sheetRef.current?.expand(),
