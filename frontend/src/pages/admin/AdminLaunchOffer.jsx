@@ -60,6 +60,10 @@ export default function AdminLaunchOffer() {
         plans: Object.fromEntries(PLAN_KEYS.map((k) => {
           const p = offer.plans?.[k] || {};
           return [k, {
+            // A withdrawn tier is not on sale at all — no card, and create-order
+            // refuses it. Three well-differentiated tiers convert better than
+            // five, so withdrawing one is a real pricing lever, not a stopgap.
+            hidden: Boolean(p.hidden),
             price: rupees(p.amount),
             duration: p.duration ?? '',
             // Empty string = unlimited, mirroring the API's null.
@@ -108,6 +112,9 @@ export default function AdminLaunchOffer() {
         subline: form.subline,
         plans: Object.fromEntries(PLAN_KEYS.map((k) => {
           const p = form.plans[k];
+          // Withdrawn tiers post as a bare { hidden: true } — no price travels
+          // with them, so un-hiding later cannot resurrect a stale amount.
+          if (p.hidden) return [k, { hidden: true }];
           return [k, {
             amount: Math.round(Number(p.price) * 100),
             duration: Number(p.duration),
@@ -233,6 +240,7 @@ export default function AdminLaunchOffer() {
             <thead>
               <tr className="text-left text-neutral-500 border-b border-neutral-200">
                 <th className="py-2 pr-3">Plan</th>
+                <th className="py-2 pr-3">On sale</th>
                 <th className="py-2 pr-3">Launch ₹</th>
                 <th className="py-2 pr-3">Days</th>
                 <th className="py-2 pr-3">Unlocks</th>
@@ -248,20 +256,30 @@ export default function AdminLaunchOffer() {
                   <tr key={k} className="border-b border-neutral-100 last:border-0">
                     <td className="py-2 pr-3 font-medium text-neutral-800">{PLAN_LABELS[k]}</td>
                     <td className="py-2 pr-3">
-                      <input type="number" min="1" value={p.price} onChange={(e) => setPlanField(k, 'price', e.target.value)}
-                        className="w-24 border border-neutral-200 rounded-lg px-2 py-1.5" required />
+                      <label className="inline-flex items-center gap-2 text-xs text-neutral-600">
+                        <input
+                          type="checkbox"
+                          checked={!p.hidden}
+                          onChange={(e) => setPlanField(k, 'hidden', !e.target.checked)}
+                        />
+                        {p.hidden ? 'Withdrawn' : 'On sale'}
+                      </label>
                     </td>
                     <td className="py-2 pr-3">
-                      <input type="number" min="1" max="730" value={p.duration} onChange={(e) => setPlanField(k, 'duration', e.target.value)}
-                        className="w-20 border border-neutral-200 rounded-lg px-2 py-1.5" required />
+                      <input type="number" min="1" value={p.price} disabled={p.hidden} onChange={(e) => setPlanField(k, 'price', e.target.value)}
+                        className="w-24 border border-neutral-200 rounded-lg px-2 py-1.5 disabled:bg-neutral-100 disabled:text-neutral-400" required={!p.hidden} />
                     </td>
                     <td className="py-2 pr-3">
-                      <input type="number" min="0" value={p.contactUnlocks} placeholder="∞" onChange={(e) => setPlanField(k, 'contactUnlocks', e.target.value)}
-                        className="w-20 border border-neutral-200 rounded-lg px-2 py-1.5" />
+                      <input type="number" min="1" max="730" value={p.duration} disabled={p.hidden} onChange={(e) => setPlanField(k, 'duration', e.target.value)}
+                        className="w-20 border border-neutral-200 rounded-lg px-2 py-1.5 disabled:bg-neutral-100 disabled:text-neutral-400" required={!p.hidden} />
                     </td>
                     <td className="py-2 pr-3">
-                      <input type="number" min="0" value={p.mrp} onChange={(e) => setPlanField(k, 'mrp', e.target.value)}
-                        className="w-24 border border-neutral-200 rounded-lg px-2 py-1.5" />
+                      <input type="number" min="0" value={p.contactUnlocks} placeholder="∞" disabled={p.hidden} onChange={(e) => setPlanField(k, 'contactUnlocks', e.target.value)}
+                        className="w-20 border border-neutral-200 rounded-lg px-2 py-1.5 disabled:bg-neutral-100 disabled:text-neutral-400" />
+                    </td>
+                    <td className="py-2 pr-3">
+                      <input type="number" min="0" value={p.mrp} disabled={p.hidden} onChange={(e) => setPlanField(k, 'mrp', e.target.value)}
+                        className="w-24 border border-neutral-200 rounded-lg px-2 py-1.5 disabled:bg-neutral-100 disabled:text-neutral-400" />
                     </td>
                     <td className="py-2 text-neutral-500 whitespace-nowrap">
                       {reg ? `₹${reg.price.toLocaleString('en-IN')} / ${reg.durationDays}d` : '—'}

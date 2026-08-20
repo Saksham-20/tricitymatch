@@ -55,11 +55,22 @@ const withDerivedUserFields = async (userInstance) => {
   // Server-owned feature flags. The client branches on THIS and never on a
   // VITE_/EXPO_PUBLIC_ build var: a build-baked copy drifts from the server and
   // ends up advertising premium chat that is actually free (or the reverse).
+  const foundingOpen = require('../utils/launchOffer').getFoundingState().open;
   user.features = {
     freeChatForMutuals: config.features.freeChatForMutuals,
     freeReplyWindow: config.features.freeReplyWindow,
     astrologerMarketplace: config.features.astrologerMarketplace,
-    foundingOpen: require('../utils/launchOffer').getFoundingState().open,
+    foundingOpen,
+    // Server-decided, because the three conditions live in three different
+    // places (the offer window, a User column, the entitlement query) and a
+    // client that assembled them itself would offer a "Claim" button that
+    // 409s. Mirrors the gates in subscriptionController.claimFounding.
+    canClaimFounding: foundingOpen && !user.isFoundingMember && !activeSub,
+    // Contact unlocks each side of an accepted invite receives. Lives here so a
+    // surface can make the claim WITHOUT calling /invite/my-link, which mints a
+    // token as a side effect — an invite card that renders for everyone must
+    // not mint a token for everyone. 0 means the reward is off.
+    inviteRewardUnlocks: require('../utils/inviteReward').INVITE_REWARD_UNLOCKS(),
   };
   return user;
 };
@@ -280,7 +291,15 @@ exports.signup = asyncHandler(async (req, res) => {
   // Funnel stage 3 — account-bound, so the partial unique index makes it
   // once-per-user on its own. Fire-and-forget: never awaited.
   trackEvent(result.id, 'account_created');
-  if (invitedBy) trackEvent(result.id, 'invited_signup');
+  if (invitedBy) {
+    trackEvent(result.id, 'invited_signup');
+    // Reward BOTH sides. Deliberately outside the signup transaction and
+    // never awaited into the response path's failure modes — rewardInvite
+    // swallows its own errors by contract, because a reward that fails must
+    // not cost anyone their account. Awaited so the grant below sees any
+    // credit that landed as pending.
+    await require('../utils/inviteReward').rewardInvite(result.id, invitedBy);
+  }
 
   // Founding-member grant (Phase S). Deliberately OUTSIDE the signup
   // transaction: any error raised inside a Postgres transaction poisons it, so

@@ -16,16 +16,24 @@ type LivePlan = {
   contactUnlocks?: number | null;
   badge?: string | null;
   isLaunchPrice?: boolean;
+  /** 'nri' marks a segment tier the screen hides from members it doesn't apply to. */
+  segment?: string | null;
 };
 type LiveBundle = { bundleId: string; label?: string; name?: string; unlocks: number; price: number; mrp?: number | null };
 
 export const getPlans = async (): Promise<PlanFeatures[]> => {
   const res = await apiClient.get<{ plans: Record<string, LivePlan> }>('/subscription/plans');
   const live = res.data.plans ?? {};
+  // A tier the server omitted is WITHDRAWN for the current offer window and is
+  // refused at checkout. Falling back to the shared constant for it — which is
+  // what `if (!l) return base` used to do for every key — rendered a buyable
+  // card at the regular price for a plan create-order rejects. Only fall back
+  // wholesale when the server sent no plans at all (a failed/empty response).
+  const served = Object.keys(live).length > 0;
   return PLAN_ORDER.map((planType) => {
     const base = PLANS[planType];
     const l = live[planType];
-    if (!l) return base;
+    if (!l) return served ? null : base;
     return {
       ...base,
       price: typeof l.price === 'number' ? l.price : base.price,
@@ -37,8 +45,9 @@ export const getPlans = async (): Promise<PlanFeatures[]> => {
         ? (l.contactUnlocks === -1 ? null : l.contactUnlocks)
         : base.contactUnlocks,
       badge: l.badge ?? base.badge,
+      segment: l.segment ?? null,
     };
-  });
+  }).filter((p): p is PlanFeatures => p !== null);
 };
 
 // Live unlock top-ups. The launch offer can reprice a bundle or withdraw it

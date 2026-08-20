@@ -1101,6 +1101,10 @@ exports.getLaunchOffer = asyncHandler(async (req, res) => {
       durationDays: live.duration,
       contactUnlocks: live.contactUnlocks,
       isLaunchPrice: Boolean(live.isLaunchPrice),
+      // Withdrawn for the current window: no card is rendered and create-order
+      // refuses it. The regular figures above still resolve, because members
+      // already holding the tier must keep working.
+      hidden: Boolean(live.hidden),
     };
   }
 

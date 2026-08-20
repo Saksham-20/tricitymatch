@@ -110,6 +110,15 @@ const User = sequelize.define('User', {
     allowNull: true,
     unique: true
   },
+  // Unlock credits earned before the member had anywhere to put them (see
+  // migration 000055). Moved onto `Subscription.contactUnlocksAllowed` the
+  // moment a subscription becomes active, so the entitlement is still read from
+  // exactly one place. NEVER read directly by a gate.
+  pendingUnlockCredits: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0
+  },
   // Self-FK to the inviting member. ON DELETE SET NULL (migration 000048) so
   // removing an inviter never cascades away the accounts they brought in.
   invitedBy: {

@@ -359,6 +359,11 @@ const config = {
     // being a scriptable export of every phone number in the directory.
     // 0 disables the ceiling.
     unlimitedDailyUnlockCap: optionalNumber('UNLIMITED_DAILY_UNLOCK_CAP', 25),
+    // Contact unlocks granted to EACH side of an accepted member invite
+    // (utils/inviteReward.js). Costs no cash and attacks the constraint that
+    // actually binds at launch — how many profiles there are to unlock.
+    // 0 disables the reward without removing the invite flow.
+    inviteRewardUnlocks: optionalNumber('INVITE_REWARD_UNLOCKS', 3),
   },
 
   // Monitoring & Alerting

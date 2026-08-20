@@ -59,7 +59,10 @@ const PLANS = {
     durationLabel: '90 days',
     contactUnlocks: 15,
     popular: true,
-    badge: 'Most Popular',
+    // Deliberately NOT "Most Popular": that is a social-proof claim, and this
+    // site has no purchase history to back it. "Recommended" is an editorial
+    // claim we can actually stand behind.
+    badge: 'Recommended',
     features: [
       'view_contacts',
       'unlimited_messages',
@@ -76,7 +79,7 @@ const PLANS = {
     duration: 180,         // 180 days
     durationLabel: '6 months',
     contactUnlocks: 30,
-    badge: 'Best Value',
+    badge: null,
     features: [
       'view_contacts',
       'unlimited_messages',
@@ -94,6 +97,9 @@ const PLANS = {
     duration: 360,         // 360 days (12 months)
     durationLabel: '12 months',
     contactUnlocks: null,  // Unlimited
+    // Lowest ₹/month on the ladder at both regular and launch prices — a
+    // checkable claim, unlike a popularity one.
+    badge: 'Best Value',
     features: [
       'view_contacts',
       'unlimited_messages',
@@ -152,13 +158,23 @@ const createOrder = async (planType, userId) => {
     throw new Error('Invalid plan type');
   }
 
+  // Effective (launch-adjusted) plan — this is what the member is charged.
+  // Resolved BEFORE the gateway check: whether a tier is on sale is a property
+  // of the request, not of our Razorpay configuration, and reporting a
+  // misconfigured gateway for a plan that does not exist is a misleading error.
+  const plan = getPlanDetails(planType);
+  // A tier withdrawn for the launch window is refused at checkout, not merely
+  // un-rendered: the plan list is a client-side hint and a stale app build (or
+  // a hand-crafted request) would otherwise still be able to buy it.
+  if (!plan || plan.hidden) {
+    throw new Error('Invalid plan type');
+  }
+
   const razorpayInstance = getRazorpayInstance();
   if (!razorpayInstance) {
     throw new Error('Razorpay is not configured. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in environment variables.');
   }
 
-  // Effective (launch-adjusted) plan — this is what the member is charged.
-  const plan = getPlanDetails(planType);
   const options = {
     amount: plan.amount,
     currency: 'INR',
@@ -217,6 +233,18 @@ const getPlanDetails = (planType) => {
 };
 
 /**
+ * May a member BUY this tier right now? False for unknown tiers and for tiers
+ * withdrawn by the launch offer. Read this (not `getPlanDetails` truthiness)
+ * anywhere a purchase or a plan-card render is being gated — getPlanDetails
+ * deliberately keeps resolving withdrawn tiers so existing subscriptions,
+ * invoices and webhooks continue to work.
+ */
+const isPlanPurchasable = (planType) => {
+  const plan = getPlanDetails(planType);
+  return Boolean(plan) && !plan.hidden;
+};
+
+/**
  * Create a generic Razorpay order for any amount (used by astrologer bookings etc).
  * @param {number} amountPaise  Amount in paise (INR × 100)
  * @param {string} userId
@@ -271,6 +299,7 @@ module.exports = {
   createBundleOrder,
   verifyPayment,
   getPlanDetails,
+  isPlanPurchasable,
   getBundleDetails,
   PLANS,
   UNLOCK_BUNDLES

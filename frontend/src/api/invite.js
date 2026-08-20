@@ -23,7 +23,7 @@ export const resolveInvite = async (token) => {
   }
 };
 
-/** @returns {Promise<{token: string, url: string}>} throws so callers can retry. */
+/** @returns {Promise<{token: string, url: string, rewardUnlocks: number}>} throws so callers can retry. */
 export const getMyInviteLink = async () => {
   const { data } = await api.get('/invite/my-link');
   return data.invite;

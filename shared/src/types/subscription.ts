@@ -34,8 +34,15 @@ export interface PlanFeatures {
   mrp?: number;
   /** Effective per-month price (rupees, rounded) for the "₹X/month" line. */
   perMonth?: number;
-  /** Presentation badge, e.g. "Most Popular" / "Best Value" / "NRI". */
+  /** Presentation badge, e.g. "Recommended" / "Best Value" / "NRI". */
   badge?: string;
+  /**
+   * Audience marker from GET /subscription/plans. 'nri' means a parallel
+   * segment tier rather than a rung on the ladder — surfaces hide it from
+   * members it does not apply to, because an extra card every buyer has to
+   * read and rule out costs conversion on the tiers that do apply.
+   */
+  segment?: string | null;
   durationDays: number | null;
   contactUnlocks: number | null;
   canChat: boolean;

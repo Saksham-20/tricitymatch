@@ -20,7 +20,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
 import { getPhotoVerification } from '../../api/verification';
 import { getSuccessStories } from '../../api/profile';
-import { getMyInviteLink } from '../../api/invite';
+import { getMyInvite } from '../../api/invite';
 import { getMyProfile } from '../../api/profile';
 import { queryKeys } from '../../constants/queryKeys';
 import { showToast } from '../../utils/toast';
@@ -36,6 +36,10 @@ export default function DiscoverCards() {
   const navigation = useNavigation<Nav>();
   const user = useAuthStore((s) => s.user);
   const [inviteBusy, setInviteBusy] = useState(false);
+  // Server-owned and env-tunable; 0 means the reward is off and the card makes
+  // no claim. Read off the auth user so the card never mints an invite token
+  // just to render.
+  const inviteReward = useAuthStore((s) => s.user?.features?.inviteRewardUnlocks) ?? 0;
 
   const completionPct = user?.Profile?.completionPercentage ?? 0;
   const isFree = (user?.subscriptionPlan ?? 'free') === 'free';
@@ -67,7 +71,7 @@ export default function DiscoverCards() {
     if (inviteBusy) return;
     setInviteBusy(true);
     try {
-      const url = await getMyInviteLink();
+      const { url } = await getMyInvite();
       await Share.share({
         message: `Looking for a match in the Tricity? Join me on TricityMatch — ${url}`,
       });
@@ -117,7 +121,11 @@ export default function DiscoverCards() {
                 </View>
                 <View style={styles.body}>
                   <Text style={styles.title}>{t('discover.inviteTitle', 'Know someone searching?')}</Text>
-                  <Text style={styles.sub}>{t('discover.inviteSub', 'Every good match starts with someone you trust. Share your invite.')}</Text>
+                  <Text style={styles.sub}>
+                    {inviteReward > 0
+                      ? t('discover.inviteSubReward', `You both get ${inviteReward} contact unlocks when they join.`)
+                      : t('discover.inviteSub', 'Every good match starts with someone you trust. Share your invite.')}
+                  </Text>
                 </View>
                 <Ionicons name={inviteBusy ? 'hourglass-outline' : 'share-social-outline'} size={18} color={c.textMuted} />
               </PressableScale>

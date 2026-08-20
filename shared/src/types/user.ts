@@ -47,6 +47,20 @@ export interface AuthFeatures {
   astrologerMarketplace?: boolean;
   /** Whether the founding-member window is currently open. */
   foundingOpen: boolean;
+  /**
+   * Whether THIS member can still take a founding place. Server-decided: the
+   * three conditions (window open, never claimed, no active plan) live in three
+   * different places, and a client that assembled them itself would offer a
+   * Claim button the server 409s.
+   */
+  canClaimFounding?: boolean;
+  /**
+   * Contact unlocks each side of an accepted invite receives. 0 = reward off.
+   * Read this rather than hardcoding a number in copy — it is env-tunable, and
+   * it is served here so an invite card can state the reward without calling
+   * /invite/my-link, which mints an invite token as a side effect.
+   */
+  inviteRewardUnlocks?: number;
 }
 
 export interface AuthUser extends User {

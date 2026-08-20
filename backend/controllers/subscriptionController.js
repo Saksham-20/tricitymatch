@@ -12,12 +12,16 @@ const {
   UNLIMITED_PLANS,
   TIER_RANK,
   FOUNDING_CONTACT_UNLOCKS,
+  FOUNDING_PLAN,
   GOOGLE_PLAY_PRODUCTS,
 } = require('../constants/plans');
+const { grantFoundingIfOpen } = require('../utils/foundingGrant');
+const { applyPendingCredits } = require('../utils/inviteReward');
 const {
   createOrder: razorpayCreateOrder,
   verifyPayment: razorpayVerifyPayment,
   getPlanDetails,
+  isPlanPurchasable,
   createBundleOrder: razorpayCreateBundleOrder,
   getBundleDetails,
   PLANS,
@@ -49,6 +53,14 @@ exports.createOrder = asyncHandler(async (req, res) => {
   // through to Razorpay, which has no order for it.
   if (!PURCHASABLE_PLANS.includes(planType)) {
     throw createError.badRequest('Invalid plan type');
+  }
+
+  // …and against the live offer, which can WITHDRAW a tier. PURCHASABLE_PLANS
+  // is the static enum allowlist; a withdrawn tier is still in it. Checking
+  // here as well as in razorpay.createOrder means the request fails with a
+  // clean 400 before a transaction is opened.
+  if (!isPlanPurchasable(planType)) {
+    throw createError.badRequest('That plan is not available right now');
   }
 
   // Tier rank — a paid member can only move UP a tier while their plan is active.
@@ -203,6 +215,11 @@ exports.verifyPayment = asyncHandler(async (req, res) => {
     sub.contactUnlocksAllowed = planDetails.contactUnlocks;
     sub.contactUnlocksUsed = 0;
     await sub.save({ transaction: t });
+
+    // Invite credits earned while the member had no subscription to hold them
+    // move onto this row now. Inside the transaction on purpose: if the
+    // activation rolls back, the balance must not have been spent.
+    await applyPendingCredits(userId, sub, t);
 
     // Supersede any OTHER subscription that's still pending OR active (the plan
     // being upgraded FROM) so exactly one active subscription remains per user.
@@ -410,6 +427,8 @@ exports.verifyGooglePlay = asyncHandler(async (req, res) => {
       contactUnlocksUsed: 0,
     }, { transaction: t });
 
+    await applyPendingCredits(userId, sub, t);
+
     // Supersede any other pending/active subscription (upgrade-from tier).
     await Subscription.update(
       { status: 'cancelled' },
@@ -492,7 +511,11 @@ exports.getPlans = asyncHandler(async (req, res) => {
   const unlockLine = (p) => (p.contactUnlocks === null ? 'Unlimited contact unlocks' : `${p.contactUnlocks} contact unlocks`);
   const validityLine = (p) => `${p.durationLabel} of full access`;
 
-  const FEATURE_COPY = (key, p) => ({
+  // `prevName` is the tier BELOW this one that is actually being shown, not the
+  // one below it in the enum. The launch offer can withdraw a tier, and a card
+  // reading "Everything in Elite" beside a page with no Elite card is a
+  // dangling reference the reader cannot resolve.
+  const FEATURE_COPY = (key, p, prevName) => ({
     basic_premium: [
       'View contact details',
       'Unlimited messages',
@@ -501,28 +524,27 @@ exports.getPlans = asyncHandler(async (req, res) => {
       unlockLine(p),
     ],
     premium_plus: [
-      'Everything in Basic',
+      prevName ? `Everything in ${prevName}` : 'Everything in Free',
       unlockLine(p),
       'Profile boost',
       'Spotlight listing',
       'Priority customer support',
     ],
     elite: [
-      'Everything in Premium',
+      prevName ? `Everything in ${prevName}` : 'Everything in Free',
       unlockLine(p),
       'Priority ranking in search',
       validityLine(p),
-      'Best value per month',
     ],
     vip: [
-      'Everything in Elite',
+      prevName ? `Everything in ${prevName}` : 'Everything in Free',
       unlockLine(p),
       'Verified badge',
       validityLine(p),
       'Dedicated relationship advisor',
     ],
     nri: [
-      'Everything in VIP',
+      prevName ? `Everything in ${prevName}` : 'Everything in Free',
       unlockLine(p),
       'Priority NRI support',
       'Timezone-aware matching',
@@ -552,9 +574,28 @@ exports.getPlans = asyncHandler(async (req, res) => {
   // Build every paid tier from the EFFECTIVE plan (regular tier with the launch
   // offer overlaid when one is running) — the same read `createOrder` charges
   // from, so the card can never advertise a price the checkout won't honour.
+  // Resolve the visible ladder first: the "Everything in X" line on each card
+  // has to name the tier the reader can actually see above it.
+  const visible = [];
   for (const key of ['basic_premium', 'premium_plus', 'elite', 'vip', 'nri']) {
     const p = getPlanDetails(key);
     if (!p) continue;
+    // Withdrawn for the launch window — `createOrder` refuses it, so it must
+    // not appear as a card either. getPlanDetails still resolves it (existing
+    // subscribers on that tier keep working); `hidden` is the purchase gate.
+    if (p.hidden) continue;
+    visible.push([key, p]);
+  }
+
+  // NRI Connect is a parallel segment tier, not the top of the ladder, so it
+  // never supplies the "Everything in X" reference for the tier after it.
+  const ladder = visible.filter(([key]) => key !== 'nri');
+
+  for (const [key, p] of visible) {
+    const ladderIdx = ladder.findIndex(([k]) => k === key);
+    const prevName = key === 'nri'
+      ? (ladder.length ? ladder[ladder.length - 1][1].name : null)
+      : (ladderIdx > 0 ? ladder[ladderIdx - 1][1].name : null);
     const price = p.amount / 100;
     plans[key] = {
       name: p.name,
@@ -571,7 +612,13 @@ exports.getPlans = asyncHandler(async (req, res) => {
       isLaunchPrice: Boolean(p.isLaunchPrice),
       regularPrice: p.regularAmount ? p.regularAmount / 100 : null,
       regularDurationDays: p.regularDuration || null,
-      features: FEATURE_COPY(key, p),
+      // Audience marker. This endpoint is PUBLIC (no req.user), so the server
+      // cannot filter by residency — it labels instead and the clients hide a
+      // segment card from members it does not apply to. NRI Connect is a
+      // parallel tier, not a rung: shown to everyone it just becomes a fifth
+      // card that every buyer has to read and rule out.
+      segment: key === 'nri' ? 'nri' : null,
+      features: FEATURE_COPY(key, p, prevName),
     };
   }
 
@@ -665,6 +712,11 @@ exports.webhook = asyncHandler(async (req, res) => {
         subscription.contactUnlocksAllowed = planDetails.contactUnlocks;
         subscription.contactUnlocksUsed = 0;
         await subscription.save({ transaction: t });
+
+        // Same as verifyPayment — this is the fallback leg of the SAME
+        // activation, so it has to apply pending credits too or which leg ran
+        // would decide whether a member got their invite rewards.
+        await applyPendingCredits(subscription.userId, subscription, t);
 
         // Supersede every OTHER pending-or-active row, exactly as
         // `verifyPayment` does. The webhook is the FALLBACK leg — it runs when
@@ -995,3 +1047,72 @@ exports.verifyBundlePayment = asyncHandler(async (req, res) => {
   });
 });
 
+
+/**
+ * POST /subscription/claim-founding
+ *
+ * The founding grant is minted at SIGNUP (utils/foundingGrant.js), which left a
+ * gap: every account created BEFORE the window opened never received it, and
+ * the offer is advertised as "the first N members" — not "the first N members
+ * who happened to sign up on the right day". This lets one of those members
+ * take the place they were promised, while the window is open and under cap.
+ *
+ * Gates, in order, all of them refusals rather than silent no-ops so the UI can
+ * say why:
+ *   1. window open           (settings-backed, fail-closed)
+ *   2. never claimed before  (`Users.isFoundingMember` outlives the row, so an
+ *                            expired grant cannot be re-claimed in a loop)
+ *   3. no active plan        (a paying member must not be downgraded onto a
+ *                            free grant, and the grant must not stack)
+ *   4. cap not reached       (enforced inside grantFoundingIfOpen)
+ */
+exports.claimFounding = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+
+  const founding = getFoundingState();
+  if (!founding.open) {
+    throw createError.badRequest('The founding offer has closed');
+  }
+
+  const user = await User.findByPk(userId, { attributes: ['id', 'isFoundingMember'] });
+  if (!user) {
+    throw createError.notFound('User not found');
+  }
+  if (user.isFoundingMember) {
+    throw createError.conflict('You have already claimed the founding offer', 'FOUNDING_ALREADY_CLAIMED');
+  }
+
+  const active = await Subscription.findOne({
+    where: {
+      userId,
+      status: 'active',
+      endDate: { [Op.gt]: new Date() },
+    },
+  });
+  if (active) {
+    throw createError.conflict('You already have an active plan', 'SUBSCRIPTION_ACTIVE');
+  }
+
+  const granted = await grantFoundingIfOpen(userId);
+  if (!granted) {
+    // grantFoundingIfOpen swallows its own failures by contract, so the only
+    // thing distinguishable here is "no place left" versus an internal fault.
+    throw createError.conflict(
+      'All founding places have been taken',
+      'FOUNDING_CAP_REACHED'
+    );
+  }
+
+  const subscription = await Subscription.findOne({
+    where: { userId, planType: FOUNDING_PLAN, status: 'active' },
+    order: [['createdAt', 'DESC']],
+  });
+
+  log.info('Founding offer claimed', { userId });
+
+  res.json({
+    success: true,
+    message: `You're a founding member — ${founding.grantDays} days of premium, on us.`,
+    subscription,
+  });
+});

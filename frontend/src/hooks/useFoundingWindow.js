@@ -19,7 +19,7 @@ import api from '../api/axios';
  *    on the same page load.
  */
 
-const CLOSED = { open: false, endsAt: null, contactUnlocks: 5 };
+const CLOSED = { open: false, endsAt: null, contactUnlocks: 3 };
 
 let cached = null;
 let inflight = null;

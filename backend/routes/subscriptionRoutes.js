@@ -18,6 +18,7 @@ const {
   createBundleOrder,
   verifyBundlePayment,
   verifyGooglePlay,
+  claimFounding,
 } = require('../controllers/subscriptionController');
 const { auth, requirePremium } = require('../middlewares/auth');
 const { handleValidationErrors, createError } = require('../middlewares/errorHandler');
@@ -82,6 +83,12 @@ router.post('/webhook', (req, res, next) => {
 
 // Get current subscription
 router.get('/my-subscription', auth, getMySubscription);
+
+// Claim the founding-member grant. Rate-limited on the payment limiter even
+// though no money moves: it mints an entitlement, and the member cap is a
+// read-then-insert count, so an unthrottled endpoint is the one way to make
+// the cap overshoot meaningfully.
+router.post('/claim-founding', auth, paymentLimiter, claimFounding);
 
 // Create payment order
 router.post('/create-order', 

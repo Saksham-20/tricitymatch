@@ -22,7 +22,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { colours, type, typography, spacing, borderRadius, shadows, type ThemeColours } from '@shared/constants/theme';
 import { useTheme } from '../../hooks/useTheme';
-import { PLANS, PLAN_ORDER, UNLOCK_BUNDLES } from '@shared/constants/plans';
+import { PLANS, UNLOCK_BUNDLES } from '@shared/constants/plans';
 import {
   getPlans,
   getUnlockBundles,
@@ -549,6 +549,12 @@ export default function SubscriptionScreen() {
   const canUpgrade = selectedPlan !== 'free' && selectedPlan !== currentPlan;
   const planList = (plans ?? Object.values(PLANS)) as PlanFeatures[];
 
+  // NRI Connect is a segment tier. Members who declared NRI status see it, and
+  // so does anyone already on it (otherwise the page would hide their own
+  // plan); everyone else is spared a card they would only have to rule out.
+  const showsNri = user?.Profile?.isNri === true || currentPlan === 'nri';
+  const visiblePlans = planList.filter((p) => p.segment !== 'nri' || showsNri);
+
   return (
     <View style={[s.wrapper, { paddingTop: insets.top }]} testID="SubscriptionScreen">
       {/* Header */}
@@ -592,8 +598,12 @@ export default function SubscriptionScreen() {
             {plansLoading ? (
               <SubscriptionSkeleton />
             ) : (
-              PLAN_ORDER.map((planType, planIdx) => {
-                const plan = planList.find((p) => p.planType === planType) ?? PLANS[planType];
+              // Iterate the SERVER's list, not PLAN_ORDER: a tier the offer
+              // withdrew is absent from it, and the old `?? PLANS[planType]`
+              // fallback re-materialised exactly that card at the regular
+              // price — buyable in the UI, refused at checkout.
+              visiblePlans.map((plan, planIdx) => {
+                const planType = plan.planType;
                 return (
                   <StaggeredEntrance key={planType} index={planIdx}>
                     <PlanCard

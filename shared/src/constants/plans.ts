@@ -20,15 +20,16 @@ export const PLANS: Record<SubscriptionPlanType, PlanFeatures> = {
   },
   // Founding-member grant (Phase S). Never sold — `price: 0` and deliberately
   // absent from PLAN_ORDER, so it can never render as a purchasable card.
-  // Capabilities mirror basic_premium exactly (including 5 contact unlocks:
-  // the backend writes that number explicitly on the granted row because a
-  // null there would mean UNLIMITED).
+  // Capabilities mirror basic_premium exactly. The unlock count below is a
+  // FALLBACK: the live figure is admin-editable (backend utils/launchOffer.js
+  // founding.contactUnlocks, currently 3) and the backend writes it explicitly
+  // onto the granted row, because a null there would mean UNLIMITED.
   founding_premium: {
     planType: 'founding_premium',
     label: 'Founding Premium',
     price: 0,
     durationDays: null,
-    contactUnlocks: 5,
+    contactUnlocks: 3,
     canChat: true,
     canReact: true,
     canVoiceNote: true,
@@ -65,7 +66,7 @@ export const PLANS: Record<SubscriptionPlanType, PlanFeatures> = {
     price: 2499,
     mrp: 3999,
     perMonth: 833,
-    badge: 'Most Popular',
+    badge: 'Recommended',
     durationDays: 90,
     contactUnlocks: 15,
     canChat: true,
@@ -85,7 +86,6 @@ export const PLANS: Record<SubscriptionPlanType, PlanFeatures> = {
     price: 3999,
     mrp: 6999,
     perMonth: 667,
-    badge: 'Best Value',
     durationDays: 180,
     contactUnlocks: 30,
     canChat: true,
@@ -105,6 +105,7 @@ export const PLANS: Record<SubscriptionPlanType, PlanFeatures> = {
     price: 5999,
     mrp: 11999,
     perMonth: 500,
+    badge: 'Best Value',
     durationDays: 360,
     contactUnlocks: null,
     canChat: true,

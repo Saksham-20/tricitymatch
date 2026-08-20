@@ -41,11 +41,19 @@ describe('flag ON (free members message their mutual matches)', () => {
 });
 
 describe('the "Everything in X" chains stay valid in both worlds', () => {
-  it.each([false, true])('higher tiers are untouched (flag=%s)', (flag) => {
-    expect(planFeatures('premium_plus', flag)[0]).toBe('Everything in Basic');
-    expect(planFeatures('elite', flag)[0]).toBe('Everything in Premium');
-    expect(planFeatures('vip', flag)[0]).toBe('Everything in Elite');
-    expect(planFeatures('nri', flag)[0]).toBe('Everything in VIP');
+  // The chain names the tier RENDERED below this one, passed in by the caller —
+  // it is no longer baked into the copy. The launch offer can withdraw a tier,
+  // and a card that referred to a plan absent from the page (which is what
+  // "Everything in Elite" became) points the reader at nothing.
+  it.each([false, true])('higher tiers chain off the tier shown below them (flag=%s)', (flag) => {
+    expect(planFeatures('premium_plus', flag, null, 'Basic')[0]).toBe('Everything in Basic');
+    expect(planFeatures('elite', flag, null, 'Premium')[0]).toBe('Everything in Premium');
+    expect(planFeatures('vip', flag, null, 'Premium')[0]).toBe('Everything in Premium');
+    expect(planFeatures('nri', flag, null, 'VIP')[0]).toBe('Everything in VIP');
+  });
+
+  it.each([false, true])('falls back to Free when nothing is shown below (flag=%s)', (flag) => {
+    expect(planFeatures('vip', flag)[0]).toBe('Everything in Free');
   });
 });
 

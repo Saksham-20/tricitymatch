@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
-import { FiCheck, FiArrowRight, FiZap, FiShield, FiClock, FiGlobe, FiPlusCircle } from 'react-icons/fi';
+import { FiCheck, FiArrowRight, FiZap, FiShield, FiClock, FiGlobe, FiPlusCircle, FiStar } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 import { razorpay } from '../config';
 import { loadRazorpayScript, ensurePaymentsAvailable } from '../utils/razorpayCheckout';
@@ -21,8 +21,22 @@ const PLAN_CONFIG = {
   nri:            { label: 'NRI Connect', accent: 'gold', icon: FiGlobe, cta: 'Get NRI Connect', duration: '6 months', price: 9999 },
 };
 
-// The five tiers shown in the main comparison grid (NRI gets its own block).
+// Every tier that MAY appear in the main comparison grid (NRI gets its own
+// block). Which of these actually render is decided by the server: the launch
+// offer can withdraw a tier, and a withdrawn tier is refused at checkout, so
+// rendering a card for one would be an advertised price the server won't take.
 const GRID_KEYS = ['free', 'basic_premium', 'premium_plus', 'elite', 'vip'];
+
+// Desktop column count, derived from how many cards actually render. Hardcoding
+// `lg:grid-cols-5` left a dead column the day a tier was withdrawn. Tailwind
+// needs whole class names to survive its scanner, hence the lookup.
+const GRID_COLS = {
+  1: 'lg:grid-cols-1',
+  2: 'lg:grid-cols-2',
+  3: 'lg:grid-cols-3',
+  4: 'lg:grid-cols-4',
+  5: 'lg:grid-cols-5',
+};
 
 // À-la-carte contact-unlock top-ups. FALLBACK ONLY — the live list (prices and
 // which bundles are on sale at all) comes from GET /subscription/plans, because
@@ -47,17 +61,26 @@ const TIER_RANK = { free: 0, founding_premium: 0, basic_premium: 1, premium_plus
 // The unlock row is FILLED FROM THE LIVE PLANS (see ComparisonSection) — the
 // launch offer moves those caps, and a frozen row here contradicted the cards
 // sitting directly above it.
+// Capabilities are keyed BY TIER, not positional. A positional array silently
+// mis-labels every column the moment a tier is withdrawn — and it also forced
+// the table to render a column for a plan the server refuses to sell.
 const COMPARE_ROWS = [
-  { label: 'Contact unlocks', values: ['0', '—', '—', '—', 'Unlimited'] },
-  { label: 'Chat with matches', values: [false, true, true, true, true] },
-  { label: 'See who likes you', values: [false, true, true, true, true] },
-  { label: 'Reactions, voice notes & quote replies', values: [false, true, true, true, true] },
-  { label: 'Advanced filters', values: [false, true, true, true, true] },
-  { label: 'Voice & video calls', values: [false, false, true, true, true] },
-  { label: 'Profile boost', values: [false, false, false, true, true] },
-  { label: 'Relationship manager', values: [false, false, false, false, true] },
+  { label: 'Contact unlocks', unlocks: true },
+  { label: 'Chat with matches', by: { free: false, basic_premium: true, premium_plus: true, elite: true, vip: true } },
+  { label: 'See who likes you', by: { free: false, basic_premium: true, premium_plus: true, elite: true, vip: true } },
+  { label: 'Reactions, voice notes & quote replies', by: { free: false, basic_premium: true, premium_plus: true, elite: true, vip: true } },
+  { label: 'Advanced filters', by: { free: false, basic_premium: true, premium_plus: true, elite: true, vip: true } },
+  { label: 'Voice & video calls', by: { free: false, basic_premium: false, premium_plus: true, elite: true, vip: true } },
+  { label: 'Profile boost', by: { free: false, basic_premium: false, premium_plus: false, elite: true, vip: true } },
+  { label: 'Relationship manager', by: { free: false, basic_premium: false, premium_plus: false, elite: false, vip: true } },
 ];
-const COMPARE_COLS = ['Free', 'Basic', 'Plus', 'Elite', 'VIP'];
+const COMPARE_LABELS = {
+  free: 'Free',
+  basic_premium: 'Basic',
+  premium_plus: 'Plus',
+  elite: 'Elite',
+  vip: 'VIP',
+};
 
 const CompareCell = ({ v }) => (
   typeof v === 'boolean'
@@ -65,21 +88,25 @@ const CompareCell = ({ v }) => (
     : <span className="text-sm font-medium text-neutral-700">{v}</span>
 );
 
-const ComparisonSection = ({ plans = {} }) => {
-  const [openCol, setOpenCol] = useState(4);
+const ComparisonSection = ({ plans = {}, planKeys = [] }) => {
+  // Columns are exactly the tiers rendered as cards above, so the table can
+  // never offer a comparison for something that isn't on sale.
+  const cols = planKeys.filter((k) => COMPARE_LABELS[k]);
+  const [openCol, setOpenCol] = useState(Math.max(0, cols.length - 1));
 
-  // Column order mirrors COMPARE_COLS: Free, Basic, Plus, Elite, VIP.
   const unlockCell = (key) => {
+    if (key === 'free') return '0';
     const v = plans?.[key]?.contactUnlocks;
     if (v === -1) return 'Unlimited';
     if (typeof v === 'number') return String(v);
     return '—';
   };
-  const rows = COMPARE_ROWS.map((row) => (
-    row.label === 'Contact unlocks'
-      ? { ...row, values: ['0', unlockCell('basic_premium'), unlockCell('premium_plus'), unlockCell('elite'), unlockCell('vip')] }
-      : row
-  ));
+  const rows = COMPARE_ROWS.map((row) => ({
+    ...row,
+    values: cols.map((key) => (row.unlocks ? unlockCell(key) : Boolean(row.by?.[key]))),
+  }));
+
+  if (cols.length === 0) return null;
 
   return (
     <section className="mt-14" aria-labelledby="compare-heading">
@@ -90,8 +117,8 @@ const ComparisonSection = ({ plans = {} }) => {
           <thead>
             <tr className="border-b border-neutral-100">
               <th className="py-3 px-4 text-left text-xs font-semibold text-neutral-400 uppercase tracking-wide">Feature</th>
-              {COMPARE_COLS.map((c) => (
-                <th key={c} className="py-3 px-3 text-xs font-bold text-neutral-700">{c}</th>
+              {cols.map((key) => (
+                <th key={key} className="py-3 px-3 text-xs font-bold text-neutral-700">{COMPARE_LABELS[key]}</th>
               ))}
             </tr>
           </thead>
@@ -107,14 +134,14 @@ const ComparisonSection = ({ plans = {} }) => {
       </div>
       {/* Accordion < sm */}
       <div className="sm:hidden space-y-2">
-        {COMPARE_COLS.map((c, ci) => (
-          <div key={c} className="rounded-2xl border border-neutral-100 bg-white overflow-hidden">
+        {cols.map((key, ci) => (
+          <div key={key} className="rounded-2xl border border-neutral-100 bg-white overflow-hidden">
             <button
               onClick={() => setOpenCol(openCol === ci ? -1 : ci)}
               className="w-full flex items-center justify-between px-4 py-3 text-sm font-bold text-neutral-800"
               aria-expanded={openCol === ci}
             >
-              {c}
+              {COMPARE_LABELS[key]}
               <span className="text-neutral-400">{openCol === ci ? '−' : '+'}</span>
             </button>
             {openCol === ci && (
@@ -211,10 +238,10 @@ const StickyCtaBar = ({ show }) => {
 };
 
 // ─── Single plan card ─────────────────────────
-const PlanCard = ({ planKey, plan, isPopular, isCurrent, currentPlanType, isProcessing, freeChatForMutuals, onSubscribe }) => {
+const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanType, isProcessing, freeChatForMutuals, onSubscribe }) => {
   const cfg = PLAN_CONFIG[planKey] || PLAN_CONFIG.free;
   const Icon = cfg.icon;
-  const features = planFeatures(planKey, freeChatForMutuals, plan);
+  const features = planFeatures(planKey, freeChatForMutuals, plan, prevName);
   const free = planKey === 'free';
   const gold = cfg.accent === 'gold';
   const displayPrice = plan.price || cfg.price || 0;
@@ -377,7 +404,7 @@ const PlanCard = ({ planKey, plan, isPopular, isCurrent, currentPlanType, isProc
 };
 
 // ─── NRI Connect block (own styled band, shown to everyone) ────────────
-const NriBlock = ({ plan, currency, isCurrent, currentPlanType, isProcessing, onSubscribe }) => {
+const NriBlock = ({ plan, topLadderName, currency, isCurrent, currentPlanType, isProcessing, onSubscribe }) => {
   const cfg = PLAN_CONFIG.nri;
   const price = plan?.price || cfg.price;
   const mrp = plan?.mrp || null;
@@ -408,7 +435,7 @@ const NriBlock = ({ plan, currency, isCurrent, currentPlanType, isProcessing, on
             and prices shown in your own currency.
           </p>
           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
-            {planFeatures('nri', false, plan).map((f, i) => (
+            {planFeatures('nri', false, plan, topLadderName).map((f, i) => (
               <li key={i} className="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-300">
                 <FiCheck className="w-3.5 h-3.5 text-gold-600 dark:text-gold-400 flex-shrink-0" />{f}
               </li>
@@ -546,9 +573,72 @@ const LaunchBanner = ({ offer }) => {
   );
 };
 
+// ─── Founding-member band ──────────────────────────────────────────────
+// Two honest states, never a third. A member who HOLDS the grant is told what
+// they hold and when it lapses; a member who can still take a place is offered
+// it. Anyone else — already paying, already claimed and expired, window closed
+// — sees nothing, because the alternative is advertising an entitlement the
+// server would refuse. `canClaimFounding` is decided server-side for exactly
+// that reason (see backend withDerivedUserFields).
+const FoundingBand = ({ user, founding, currentSub, onClaim, claiming }) => {
+  const holdsGrant = currentSub?.planType === 'founding_premium' && currentSub?.status === 'active';
+  const canClaim = Boolean(user?.features?.canClaimFounding);
+
+  if (!holdsGrant && !canClaim) return null;
+
+  const unlocks = founding?.contactUnlocks ?? null;
+  const days = founding?.grantDays ?? null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="mb-8 rounded-2xl border border-gold-200 bg-gold-50 px-5 py-5 flex flex-col sm:flex-row sm:items-center gap-4"
+    >
+      <div className="w-10 h-10 rounded-full bg-gold flex items-center justify-center flex-shrink-0">
+        <FiStar className="w-5 h-5 text-white" />
+      </div>
+
+      {holdsGrant ? (
+        <div className="flex-1">
+          <p className="text-sm font-bold text-gold-800">You are a founding member</p>
+          <p className="text-sm text-gold-700/80 mt-0.5">
+            Premium is on us
+            {currentSub?.endDate && ` until ${new Date(currentSub.endDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`}
+            . Pick a plan below whenever you want to carry on past that.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="flex-1">
+            <p className="text-sm font-bold text-gold-800">
+              Founding offer{days ? ` — ${days} days of premium, free` : ' — premium, free'}
+            </p>
+            <p className="text-sm text-gold-700/80 mt-0.5">
+              You joined early enough to claim a place.
+              {unlocks !== null && ` Includes ${unlocks} contact unlock${unlocks === 1 ? '' : 's'}.`}
+              {' '}No card, no auto-renewal.
+            </p>
+          </div>
+          <button
+            onClick={onClaim}
+            disabled={claiming}
+            aria-busy={claiming || undefined}
+            className="min-h-[44px] px-6 py-2.5 text-sm font-semibold rounded-xl bg-gold text-white hover:bg-gold-600 shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed flex-shrink-0"
+          >
+            {claiming
+              ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Claiming…</>
+              : <>Claim my free month <FiArrowRight className="w-4 h-4" /></>}
+          </button>
+        </>
+      )}
+    </motion.div>
+  );
+};
+
 // ─────────────────────────────────────────────
 const Subscription = () => {
-  const { user } = useAuth();
+  const { user, checkAuth } = useAuth();
   // Server-owned flag (see backend withDerivedUserFields). Absent ⇒ false, so
   // an older/failed /auth/me payload shows the paid-chat copy — the
   // conservative direction: it under-promises rather than advertising a free
@@ -560,6 +650,10 @@ const Subscription = () => {
   // load shows regular pricing with no discount claim rather than promising an
   // offer that checkout would not honour.
   const [launchOffer, setLaunchOffer] = useState({ active: false });
+  // Founding-window state (grant length + unlock count). Server-owned and
+  // fail-closed for the same reason as launchOffer.
+  const [founding, setFounding] = useState({ open: false });
+  const [claimingFounding, setClaimingFounding] = useState(false);
   const [currentSub, setCurrentSub] = useState(null);
   const [loading, setLoading] = useState(true);
   const [processingPlan, setProcessingPlan] = useState(null);
@@ -580,6 +674,7 @@ const Subscription = () => {
         setBundles(Object.values(liveBundles));
       }
       setLaunchOffer(plansRes.data.launchOffer || { active: false });
+      setFounding(plansRes.data.founding || { open: false });
       setCurrentSub(subRes.data.subscription);
     } catch {
       toast.error('Failed to load subscription data');
@@ -683,6 +778,26 @@ const Subscription = () => {
     }
   };
 
+  const handleClaimFounding = async () => {
+    if (claimingFounding) return;
+    setClaimingFounding(true);
+    try {
+      const res = await api.post('/subscription/claim-founding');
+      toast.success(res.data?.message || 'Founding membership activated');
+      // Both have to move: the subscription drives this page, and
+      // `canClaimFounding` on the user is what hides the button everywhere else.
+      await Promise.all([loadData(), checkAuth()]);
+    } catch (error) {
+      toast.error(
+        error.response?.data?.error?.message ||
+        error.response?.data?.message ||
+        'Could not claim the founding offer'
+      );
+    } finally {
+      setClaimingFounding(false);
+    }
+  };
+
   // Friendly plan name display
   const planDisplayName = (type) => {
     const names = {
@@ -707,8 +822,8 @@ const Subscription = () => {
             <div className="h-10 w-72 bg-neutral-200 dark:bg-neutral-800 rounded-xl animate-pulse" />
             <div className="h-4 w-96 max-w-full bg-neutral-100 dark:bg-neutral-800/60 rounded animate-pulse" />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 items-start">
-            {[0, 1, 2, 3, 4].map((i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 items-start">
+            {[0, 1, 2, 3].map((i) => (
               <div key={i} className="bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-card p-6 space-y-4 animate-pulse">
                 <div className="h-6 w-28 bg-neutral-200 dark:bg-neutral-800 rounded-lg" />
                 <div className="h-10 w-32 bg-neutral-200 dark:bg-neutral-800 rounded-lg" />
@@ -731,15 +846,29 @@ const Subscription = () => {
   const showBundles = currentSub?.status === 'active'
     && currentSub?.contactUnlocksAllowed != null;
 
-  // Build the grid list from the API (fallback to config) — NRI excluded (own block).
-  const gridPlans = GRID_KEYS.map((key) => [
-    key,
-    plans[key] || {
-      name: PLAN_CONFIG[key].label,
-      price: PLAN_CONFIG[key].price || 0,
-      duration: PLAN_CONFIG[key].duration || null,
-    },
-  ]);
+  // Build the grid list from the API — NRI excluded (own block). A tier the API
+  // omitted is WITHDRAWN and must not render; the PLAN_CONFIG fallback is only
+  // for the case where the request failed outright and we have nothing at all,
+  // otherwise it would resurrect exactly the card the server just withdrew.
+  const apiServedPlans = Boolean(plans.basic_premium || plans.premium_plus || plans.vip);
+  const gridPlans = GRID_KEYS
+    .filter((key) => (apiServedPlans ? key === 'free' || Boolean(plans[key]) : true))
+    .map((key) => [
+      key,
+      plans[key] || {
+        name: PLAN_CONFIG[key].label,
+        price: PLAN_CONFIG[key].price || 0,
+        duration: PLAN_CONFIG[key].duration || null,
+      },
+    ]);
+
+  // NRI Connect is a segment tier, not a rung on the ladder. Shown to everyone
+  // it is just one more card each buyer has to read and rule out, which is the
+  // cost every extra option carries. Members who declared NRI status see it;
+  // so does anyone already holding it, or the page would hide their own plan.
+  const showNri = Boolean(plans.nri) && (
+    user?.Profile?.isNri === true || currentSub?.planType === 'nri'
+  );
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-[#0f1117]">
@@ -765,6 +894,13 @@ const Subscription = () => {
 
         {/* Launch offer (server-gated) */}
         <LaunchBanner offer={launchOffer} />
+        <FoundingBand
+          user={user}
+          founding={founding}
+          currentSub={currentSub}
+          onClaim={handleClaimFounding}
+          claiming={claimingFounding}
+        />
 
         {/* Payments-unavailable notice */}
         {!razorpay.isConfigured && (
@@ -809,8 +945,8 @@ const Subscription = () => {
           </motion.div>
         )}
 
-        {/* Plan grid — 5 columns on desktop (NRI has its own block below) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 items-start">
+        {/* Plan grid — column count follows the number of live tiers */}
+        <div className={`grid grid-cols-1 sm:grid-cols-2 ${GRID_COLS[gridPlans.length] || 'lg:grid-cols-4'} gap-5 items-start`}>
           {gridPlans.map(([key, plan], idx) => (
             <motion.div
               key={key}
@@ -821,7 +957,10 @@ const Subscription = () => {
               <PlanCard
                 planKey={key}
                 plan={plan}
-                isPopular={key === 'premium_plus' || plan.popular}
+                // The tier actually rendered below this one — not the one below
+                // it in the enum, which may have been withdrawn.
+                prevName={idx > 0 ? (gridPlans[idx - 1][1].name || PLAN_CONFIG[gridPlans[idx - 1][0]]?.label) : null}
+                isPopular={Boolean(plan.popular)}
                 isCurrent={currentSub?.planType === key && currentSub?.status === 'active'}
                 currentPlanType={currentPlanType}
                 isProcessing={processingPlan === key}
@@ -837,18 +976,23 @@ const Subscription = () => {
           <BundleBlock bundles={bundles} processingBundle={processingBundle} onBuy={handleBuyBundle} />
         )}
 
-        {/* NRI Connect band — shown to everyone */}
+        {/* NRI Connect band — segment tier, shown only where it applies */}
+        {showNri && (
         <NriBlock
           plan={plans.nri}
+          // NRI sits beside the ladder, not on top of it, so it chains off the
+          // highest tier the member can actually see.
+          topLadderName={gridPlans.length > 1 ? gridPlans[gridPlans.length - 1][1].name : null}
           currency={currency}
           isCurrent={currentSub?.planType === 'nri' && currentSub?.status === 'active'}
           currentPlanType={currentPlanType}
           isProcessing={processingPlan === 'nri'}
           onSubscribe={handleSubscribe}
         />
+        )}
 
         {/* Long-scroll paywall: comparison → proof → FAQ → closing CTA */}
-        <ComparisonSection plans={plans} />
+        <ComparisonSection plans={plans} planKeys={gridPlans.map(([key]) => key)} />
         <SuccessStrip />
         <FaqSection />
 

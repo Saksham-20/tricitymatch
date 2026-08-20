@@ -125,6 +125,7 @@
     "POST /api/v1/profile/voice-intro",
     "POST /api/v1/report/:userId",
     "POST /api/v1/search/saved",
+    "POST /api/v1/subscription/claim-founding",
     "POST /api/v1/subscription/create-order",
     "POST /api/v1/subscription/google-verify",
     "POST /api/v1/subscription/unlock-bundle/create-order",

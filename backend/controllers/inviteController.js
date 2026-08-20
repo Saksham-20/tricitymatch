@@ -53,11 +53,19 @@ exports.getMyInviteLink = asyncHandler(async (req, res) => {
   const token = await getOrCreateInviteToken(req.user.id);
   if (!token) throw createError.internal('Could not create your invite link. Please try again.');
 
+  // The reward is served from the server, not baked into client copy: it is
+  // env-tunable (INVITE_REWARD_UNLOCKS) and can be switched off entirely, and a
+  // hardcoded "get 3 unlocks" line would keep promising a reward after that.
+  // 0 means the reward is off — surfaces then show the invite without a claim.
+  const { INVITE_REWARD_UNLOCKS } = require('../utils/inviteReward');
+  const rewardUnlocks = INVITE_REWARD_UNLOCKS();
+
   res.json({
     success: true,
     invite: {
       token,
       url: buildInviteUrl(token, config.server.frontendUrl),
+      rewardUnlocks: rewardUnlocks > 0 ? rewardUnlocks : 0,
     },
   });
 });

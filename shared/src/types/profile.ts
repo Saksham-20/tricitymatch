@@ -69,6 +69,12 @@ export interface Profile {
   motherTongue: string | null;
   // Marital
   maritalStatus: MaritalStatus | null;
+  /**
+   * Declared during onboarding (`Profiles.isNri`). Drives whether the NRI
+   * Connect tier is offered at all — it is a segment plan, not a rung, and
+   * showing it to every member just adds a card each buyer must rule out.
+   */
+  isNri?: boolean | null;
   numberOfChildren: number;
   // Horoscope
   placeOfBirth: string | null;

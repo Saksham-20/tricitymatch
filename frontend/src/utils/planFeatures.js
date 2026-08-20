@@ -4,6 +4,13 @@
 // (free members message their mutual matches), and with it off, promising free
 // chat is a lie in the other direction. `planFeatures()` below is the only
 // place either line is written.
+// Placeholder for the "Everything in <the tier below this one>" line. It is
+// resolved at render time, NOT written here, because the launch offer can
+// withdraw a tier: a VIP card reading "Everything in Elite" beside a page with
+// no Elite card is a dangling reference the reader cannot resolve, and that is
+// exactly what shipped when this list hardcoded the chain.
+const EVERYTHING_IN = '\u0000EVERYTHING_IN';
+
 const PLAN_FEATURES = {
   free: [
     'Create profile',
@@ -19,28 +26,28 @@ const PLAN_FEATURES = {
     '5 contact unlocks',
   ],
   premium_plus: [
-    'Everything in Basic',
+    EVERYTHING_IN,
     '15 contact unlocks',
     'Profile boost',
     'Spotlight listing',
     'Priority customer support',
   ],
   elite: [
-    'Everything in Premium',
+    EVERYTHING_IN,
     '30 contact unlocks',
     'Priority ranking in search',
     '6-month validity',
     'Best value per month',
   ],
   vip: [
-    'Everything in Elite',
+    EVERYTHING_IN,
     'Unlimited contact unlocks',
     'Verified badge',
     'Full-year validity',
     'Dedicated relationship advisor',
   ],
   nri: [
-    'Everything in VIP',
+    EVERYTHING_IN,
     'Unlimited contact unlocks',
     'Priority NRI support',
     'Timezone-aware matching',
@@ -57,7 +64,7 @@ const PLAN_FEATURES = {
  * Every "Everything in X" chain above stays valid either way, because only the
  * bottom two rungs move.
  */
-export const planFeatures = (planKey, freeChatForMutuals, livePlan) => {
+export const planFeatures = (planKey, freeChatForMutuals, livePlan, prevName) => {
   const base = PLAN_FEATURES[planKey] || [];
   const list = !freeChatForMutuals
     ? base
@@ -72,7 +79,14 @@ export const planFeatures = (planKey, freeChatForMutuals, livePlan) => {
         ]
         : base;
 
-  return retermForLivePlan(list, livePlan);
+  // Resolve the chain line against the tier actually shown below this one.
+  // With no previous tier (everything below was withdrawn) the honest
+  // comparison is against Free.
+  const chained = list.map((line) =>
+    (line === EVERYTHING_IN ? `Everything in ${prevName || 'Free'}` : line)
+  );
+
+  return retermForLivePlan(chained, livePlan);
 };
 
 /**

@@ -109,6 +109,29 @@ const grantFoundingIfOpen = async (userId, options = {}) => {
       { where: { id: userId }, transaction }
     );
 
+    // An invite reward earned before this grant existed has been parked on
+    // Users.pendingUnlockCredits (there was no subscription row to hold it).
+    // This is the member's first row, so move the balance onto it now —
+    // otherwise a member who arrived through an invite would hold credits that
+    // no gate can see until they eventually pay for something.
+    try {
+      const created = await Subscription.findOne({
+        where: { userId, planType: FOUNDING_PLAN, status: 'active' },
+        order: [['createdAt', 'DESC']],
+        transaction,
+      });
+      if (created) {
+        await require('./inviteReward').applyPendingCredits(userId, created, transaction);
+      }
+    } catch (err) {
+      // Same swallow contract as the rest of this function: a credit that fails
+      // to migrate must never cost the member their account or their grant.
+      log.warn('Pending credit application failed during founding grant', {
+        userId,
+        error: err.message,
+      });
+    }
+
     log.info('Founding grant issued', { userId, endDate: endDate.toISOString() });
     return true;
   } catch (error) {

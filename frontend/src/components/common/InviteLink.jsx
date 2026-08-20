@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { FiCheck, FiCopy, FiLink, FiShare2, FiAlertCircle } from 'react-icons/fi';
 import { getMyInviteLink } from '../../api/invite';
+import { useAuth } from '../../context/AuthContext';
 
 /**
  * Member invite link — the SEND half (Phase S, F6).
@@ -20,6 +21,12 @@ import { getMyInviteLink } from '../../api/invite';
  */
 
 const SHARE_TEXT = 'I’m on TricityMatch — a verified, Tricity-only matrimonial community. Join me:';
+
+// Reward line. Rendered only when the server reports a live reward, and worded
+// for both sides because that is what actually happens (utils/inviteReward.js
+// credits the inviter and the invitee equally).
+const rewardLine = (n) =>
+  `You both get ${n} contact unlock${n === 1 ? '' : 's'} when they join.`;
 
 const copyToClipboard = async (text) => {
   try {
@@ -47,7 +54,17 @@ const copyToClipboard = async (text) => {
 };
 
 export default function InviteLink({ variant = 'card', className = '' }) {
+  const { user } = useAuth();
   const [url, setUrl] = useState('');
+  // Server-owned and env-tunable (INVITE_REWARD_UNLOCKS). 0 means the reward is
+  // switched off — the invite still works, it just makes no claim, rather than
+  // a hardcoded line that keeps promising unlocks nobody receives. Read off the
+  // auth user so the `inline` variant can state the reward WITHOUT fetching:
+  // that fetch mints an invite token, and an empty state must not mint one for
+  // someone who never clicks.
+  const reward = Number(user?.features?.inviteRewardUnlocks) > 0
+    ? Number(user.features.inviteRewardUnlocks)
+    : 0;
   const [state, setState] = useState(variant === 'inline' ? 'idle' : 'loading'); // idle|loading|ready|error
   const [copied, setCopied] = useState(false);
 
@@ -117,7 +134,9 @@ export default function InviteLink({ variant = 'card', className = '' }) {
           <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
             {state === 'error'
               ? 'Could not load your link.'
-              : 'Share your personal link — they’ll see your first name when they join.'}
+              : reward > 0
+                ? rewardLine(reward)
+                : 'Share your personal link — they’ll see your first name when they join.'}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -158,6 +177,11 @@ export default function InviteLink({ variant = 'card', className = '' }) {
             Every good match starts with someone you already trust. Send your invite link to a family
             or friend looking for a match in the Tricity.
           </p>
+          {reward > 0 && (
+            <p className="text-sm font-medium text-primary-700 dark:text-primary-300 mt-2">
+              {rewardLine(reward)}
+            </p>
+          )}
         </div>
       </div>
 

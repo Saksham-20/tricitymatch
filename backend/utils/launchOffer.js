@@ -42,26 +42,45 @@ const DEFAULT_WINDOW_DAYS = 90;
  * so the strike-through compares like with like (₹2,999 → ₹1,299 for 180 days
  * of VIP, not ₹5,999 → ₹1,299 for half the term).
  *
- * Per-month rate falls as commitment rises — 299 / 275 / 237 / 217 — so the
- * ladder still rewards the longer plan. Basic keeps a 30-day tenure on purpose:
- * the founding grant is 30 days, and a paid tier shorter than the free grant
- * would be worse than free.
+ * THREE purchasable tiers, not five. Pricing-page research is consistent that
+ * three well-differentiated tiers convert materially better than four or more
+ * (Price Intelligently's 512-company set: ~30% higher ARPU at three packages),
+ * because every extra card turns the decision into a multi-variable comparison
+ * — here price × tenure × unlock count — and buyers abandon rather than solve
+ * it. `elite` is therefore HIDDEN for the launch window: it sat between the
+ * 90-day and 180-day tiers and differentiated on nothing a buyer can feel.
+ * Hidden plans are refused at checkout, not merely un-rendered (see
+ * overlayPlan → getPlanDetails → createOrder), and the enum value survives so
+ * legacy `elite` rows keep resolving.
+ *
+ * Per-month rate falls as commitment rises — 399 / 333 / 217 — so the longer
+ * plan always visibly wins. The 180-day tier is only ₹300 above the 90-day one
+ * while doubling the term and lifting the unlock cap, which is deliberate: the
+ * middle tier's job is to make the top tier the obvious buy. Basic keeps a
+ * 30-day tenure on purpose: the founding grant is 30 days, and a paid tier
+ * shorter than the free grant would be worse than free.
+ *
+ * Unlock counts are generous relative to the old ladder on purpose. With a few
+ * hundred profiles a "6 contact unlocks" cap reads as stingy rather than
+ * premium, and it costs nothing to widen while supply is the binding
+ * constraint — the rolling-24h ceiling in `middlewares/auth.js` is what
+ * actually stops harvesting, not the per-plan number.
  *
  * `amount` and `mrp` are PAISE. `duration` is days. `contactUnlocks: null`
  * means unlimited — see `middlewares/auth.js` checkContactUnlockLimit.
  */
 const DEFAULT_PLAN_OFFERS = {
-  basic_premium: { amount: 29900,  mrp: 129900, duration: 30,  contactUnlocks: 6 },
-  premium_plus:  { amount: 54900,  mrp: 169900, duration: 60,  contactUnlocks: 15 },
-  elite:         { amount: 94900,  mrp: 269900, duration: 120, contactUnlocks: 30 },
+  basic_premium: { amount: 39900,  mrp: 129900, duration: 30,  contactUnlocks: 10 },
+  premium_plus:  { amount: 99900,  mrp: 249900, duration: 90,  contactUnlocks: 30 },
+  elite:         { hidden: true },
   vip:           { amount: 129900, mrp: 299900, duration: 180, contactUnlocks: null },
-  nri:           { amount: 229900, mrp: 499900, duration: 90,  contactUnlocks: null },
+  nri:           { amount: 149900, mrp: 499900, duration: 90,  contactUnlocks: null },
 };
 
 /**
  * Unlock top-ups must stay priced ABOVE every finite plan's per-unlock rate,
  * or buying bundles beats subscribing. At launch rates the cheapest plan rate
- * is ₹49.8/unlock (Basic ₹299 ÷ 6), so: ₹66/unlock and ₹55/unlock here.
+ * is ₹33.3/unlock (Premium ₹999 ÷ 30), so: ₹66/unlock and ₹55/unlock here.
  *
  * bundle_25 is HIDDEN during the launch window: any price that clears the
  * per-unlock floor lands at or above the ₹1,299 VIP plan, which would make
@@ -106,6 +125,13 @@ const buildDefaults = (now = new Date()) => {
 let cached = null;        // last known-good offer blob
 let cachedAt = 0;         // ms epoch of the last successful load
 let refreshing = false;   // in-flight guard for the lazy revalidate
+// Set once `__setCacheForTests` is used. The lazy revalidate below fires off an
+// un-awaited DB read whenever the cache is stale — and `__setCacheForTests(null)`
+// makes it stale by definition — so a suite that injects a blob would leave a
+// Sequelize connect in flight, landing after Jest tears the environment down
+// ("require a file after the Jest environment has been torn down", then a hard
+// crash inside pg). Tests own the cache outright; they never want a refresh.
+let cacheInjected = false;
 
 const readFromDb = async () => {
   // Lazy require: keeps this module unit-testable without a live Sequelize
@@ -116,6 +142,7 @@ const readFromDb = async () => {
 };
 
 const scheduleRefresh = () => {
+  if (cacheInjected) return;
   if (refreshing) return;
   if (Date.now() - cachedAt < CACHE_TTL_MS) return;
   refreshing = true;
@@ -196,12 +223,21 @@ const isPositiveInt = (n) => Number.isInteger(n) && n > 0;
  * Merge the launch override for one plan onto its regular definition.
  * Returns the base plan untouched when the offer is off, the tier has no
  * override, or the override is malformed.
+ *
+ * A WITHDRAWN tier resolves to the regular plan carrying `hidden: true` — it
+ * is deliberately NOT null. Two different questions are asked of this
+ * function: "what may a member buy" (getPlans, createOrder — these must honour
+ * `hidden`) and "what does this existing subscription mean" (my-subscription,
+ * invoices, the webhook, admin grants — these must still resolve, or hiding a
+ * tier would break every member already holding it). Returning null would
+ * silently answer the second question wrong.
  */
 const overlayPlan = (planType, basePlan) => {
   if (!basePlan) return basePlan;
   if (!isOfferActive()) return basePlan;
 
   const o = getOffer()?.plans?.[planType];
+  if (o && o.hidden) return { ...basePlan, hidden: true };
   if (!o || !isPositiveInt(o.amount) || !isPositiveInt(o.duration)) return basePlan;
 
   // `contactUnlocks` is only honoured when explicitly present AND either null
@@ -330,6 +366,12 @@ const saveOffer = async (patch, adminId) => {
   for (const key of validPlanKeys) {
     const src = plansIn[key] ?? current.plans?.[key];
     if (!src) continue;
+    // A withdrawn tier carries no price to validate. Persisted as a bare
+    // { hidden: true } so a later un-hide can't resurrect a stale amount.
+    if (src.hidden) {
+      next.plans[key] = { hidden: true };
+      continue;
+    }
     const amount = Number(src.amount);
     const duration = Number(src.duration);
     if (!isPositiveInt(amount) || amount > 10000000) {
@@ -406,10 +448,15 @@ const saveOffer = async (patch, adminId) => {
   return next;
 };
 
-/** Test seam — inject a blob without touching the DB. */
+/**
+ * Test seam — inject a blob without touching the DB. Also disables the lazy
+ * background revalidate for the rest of the process: a test that owns the cache
+ * must not have a DB read racing its teardown.
+ */
 const __setCacheForTests = (value) => {
   cached = value;
   cachedAt = value ? Date.now() : 0;
+  cacheInjected = true;
 };
 
 module.exports = {

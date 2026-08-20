@@ -50,7 +50,10 @@ const createError = {
   forbidden: (message = 'Access denied', code = ErrorTypes.AUTHORIZATION_ERROR) =>
     new AppError(message, 403, code),
   notFound: (message = 'Resource not found') => new AppError(message, 404, ErrorTypes.NOT_FOUND),
-  conflict: (message) => new AppError(message, 409, ErrorTypes.CONFLICT),
+  // Optional `code`, same contract as `forbidden` above and for the same
+  // reason: the client branches on it. No existing caller passed a second
+  // argument, so widening the signature cannot change any current behaviour.
+  conflict: (message, code = ErrorTypes.CONFLICT) => new AppError(message, 409, code),
   validation: (message, details = null) => new AppError(message, 400, ErrorTypes.VALIDATION_ERROR, details),
   rateLimit: (message = 'Too many requests') => new AppError(message, 429, ErrorTypes.RATE_LIMIT),
   internal: (message = 'Internal server error') => new AppError(message, 500, ErrorTypes.INTERNAL_ERROR),
