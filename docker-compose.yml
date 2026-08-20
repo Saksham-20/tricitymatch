@@ -14,7 +14,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
       POSTGRES_DB: ${DB_NAME:-matrimony_dev}
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
@@ -88,7 +88,7 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: ${DB_USER:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
       DB_NAME: ${DB_NAME:-matrimony_dev}
       DB_POOL_MAX: ${DB_POOL_MAX:-20}
       DB_DISABLE_SSL: ${DB_DISABLE_SSL:-true}
@@ -132,9 +132,9 @@ services:
       SMS_API_KEY: ${SMS_API_KEY:-}
       MSG91_TEMPLATE_ID: ${MSG91_TEMPLATE_ID:-}
       SMS_SENDER_ID: ${SMS_SENDER_ID:-TRISHD}
-      # ⚠️ PRE-LAUNCH TESTING ONLY — remove before real users
-      ALLOW_INSECURE_PROD: ${ALLOW_INSECURE_PROD:-false}
-      OTP_BYPASS_CODES: ${OTP_BYPASS_CODES:-}
+      # ALLOW_INSECURE_PROD / OTP_BYPASS_CODES deliberately NOT plumbed here.
+      # Both are pre-launch-only devices and config/env.js now refuses to boot
+      # in production if either is set (master OTP codes verify any account).
       # FCM Push Notifications
       FCM_PROJECT_ID: ${FCM_PROJECT_ID:-}
       FCM_SERVICE_ACCOUNT_PATH: ${FCM_SERVICE_ACCOUNT_PATH:-}
@@ -155,7 +155,11 @@ services:
       ALERT_EMAILS: ${ALERT_EMAILS:-}
     # Host port 5001 avoids conflict with other app on 5000; set VITE_API_URL to match for frontend build
     ports:
-      - "${BACKEND_PORT:-5001}:5000"
+      # Loopback only: the reverse proxy reaches this over the docker network
+      # (or via 127.0.0.1 for a host nginx). Publishing it on the public
+      # interface exposed the API over plain HTTP, bypassing TLS/HSTS and
+      # the nginx rate-limit zones.
+      - "127.0.0.1:${BACKEND_PORT:-5001}:5000"
     volumes:
       - backend_uploads:/app/uploads
       - backend_logs:/app/logs
@@ -194,7 +198,7 @@ services:
     depends_on:
       - backend
     ports:
-      - "${FRONTEND_PORT:-3000}:80"
+      - "127.0.0.1:${FRONTEND_PORT:-3000}:8080"
     networks:
       - tricitymatch-network
     deploy:
@@ -255,9 +259,9 @@ services:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
       - '--storage.tsdb.retention.time=15d'
-      - '--web.enable-lifecycle'
     ports:
-      - "${PROMETHEUS_PORT:-9090}:9090"
+      # Loopback only — Prometheus has NO authentication of its own.
+      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
     networks:
       - tricitymatch-network
     profiles:
@@ -286,7 +290,7 @@ services:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
     ports:
-      - "${GRAFANA_PORT:-3001}:3000"
+      - "127.0.0.1:${GRAFANA_PORT:-3001}:3000"
     networks:
       - tricitymatch-network
     depends_on:

@@ -83,11 +83,17 @@ app.use(securityHeaders);
 // SEC-2: health/monitoring probes legitimately arrive with no Origin header
 // (Docker healthcheck, internal cron). Exempt those paths with a permissive CORS
 // so the strict policy below can safely reject no-origin requests to the API.
-const monitoringCors = cors({ origin: true, credentials: true });
+// `origin: true` reflects whatever Origin the caller sends and, combined with
+// credentials:true, applied to cookie-authenticated admin routes under
+// /monitoring. Only SameSite=strict stood between that and a cross-site
+// credentialed read. Probes send no Origin at all, so they do not need
+// reflection — allow the no-Origin case and nothing else.
+const monitoringCors = cors({ origin: false, credentials: false });
 // BUG-P005: use the per-request delegate so the no-Origin policy can vary by
 // method — same-origin browser GET/HEAD carry no Origin and must be allowed,
 // while no-Origin writes stay rejected. corsOptions kept for any legacy import.
 const strictCors = cors(corsDelegate);
+const webhookCors = cors({ origin: false, credentials: false });
 // Provider webhooks are server-to-server (no Origin header) and authenticated by
 // HMAC signature, not CORS. Strict CORS would 403 them, dropping payment/BG-check
 // callbacks — so exempt webhook paths (they still verify signatures downstream).
@@ -97,7 +103,9 @@ app.use((req, res, next) => {
     return monitoringCors(req, res, next);
   }
   if (isWebhookPath(req.path)) {
-    return monitoringCors(req, res, next);
+    // Server-to-server, authenticated by HMAC. No browser origin is involved,
+    // so it must not be granted a credentialed cross-origin allowance either.
+    return webhookCors(req, res, next);
   }
   return strictCors(req, res, next);
 });
