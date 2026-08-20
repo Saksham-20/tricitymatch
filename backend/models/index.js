@@ -22,6 +22,7 @@ const Group = require('./Group');
 const GroupMember = require('./GroupMember');
 const GroupMessage = require('./GroupMessage');
 const ContactMessage = require('./ContactMessage');
+const AppSetting = require('./AppSetting');
 const UnlockPurchase = require('./UnlockPurchase');
 const AnalyticsEvent = require('./AnalyticsEvent');
 const ChatGrant = require('./ChatGrant');
@@ -174,6 +175,7 @@ module.exports = {
   GroupMember,
   GroupMessage,
   ContactMessage,
+  AppSetting,
   UnlockPurchase,
   AnalyticsEvent,
   ChatGrant,

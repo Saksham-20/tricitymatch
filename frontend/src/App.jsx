@@ -58,6 +58,7 @@ const DeleteAccount = lazy(() => import('./pages/DeleteAccount'));
 const About = lazy(() => import('./pages/About'));
 const Contact = lazy(() => import('./pages/Contact'));
 const Safety = lazy(() => import('./pages/Safety'));
+const Help = lazy(() => import('./pages/Help'));
 const SuccessStories = lazy(() => import('./pages/SuccessStories'));
 const CityMatrimony = lazy(() => import('./pages/CityMatrimony'));
 
@@ -79,6 +80,7 @@ const AdminReferralCodes = lazy(() => import('./pages/admin/AdminReferralCodes')
 const AdminLeads = lazy(() => import('./pages/admin/AdminLeads'));
 const AdminSuccessStories = lazy(() => import('./pages/admin/AdminSuccessStories'));
 const AdminContactMessages = lazy(() => import('./pages/admin/AdminContactMessages'));
+const AdminLaunchOffer = lazy(() => import('./pages/admin/AdminLaunchOffer'));
 
 // Marketing pages
 const MarketingLayout = lazy(() => import('./pages/marketing/MarketingLayout'));
@@ -196,6 +198,11 @@ const AnimatedRoutes = () => {
           <Route path="/safety" element={
             <PageTransition>
               <Safety />
+            </PageTransition>
+          } />
+          <Route path="/help" element={
+            <PageTransition>
+              <Help />
             </PageTransition>
           } />
           <Route path="/success-stories" element={
@@ -436,6 +443,7 @@ const AnimatedRoutes = () => {
             <Route path="leads"                    element={<AdminLeads />} />
             <Route path="success-stories"          element={<AdminSuccessStories />} />
             <Route path="contact-messages"         element={<AdminContactMessages />} />
+            <Route path="launch-offer"             element={<AdminLaunchOffer />} />
           </Route>
 
           {/* 404 */}

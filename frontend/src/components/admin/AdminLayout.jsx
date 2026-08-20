@@ -12,6 +12,7 @@ const navItems = [
   { to: '/admin/users',            label: 'Users',             icon: FiUsers },
   { to: '/admin/verifications',    label: 'Verifications',     icon: FiCheckCircle },
   { to: '/admin/subscriptions',    label: 'Subscriptions',     icon: FiCreditCard },
+  { to: '/admin/launch-offer',     label: 'Pricing & Offers',  icon: FiTag },
   { to: '/admin/revenue',          label: 'Revenue',           icon: FiTrendingUp },
   { to: '/admin/reports',          label: 'Reports',           icon: FiFlag },
   { to: '/admin/contact-messages', label: 'Support Inbox',     icon: FiInbox },

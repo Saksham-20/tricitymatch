@@ -54,3 +54,32 @@ describe('unknown tier', () => {
     expect(planFeatures('does_not_exist', true)).toEqual([]);
   });
 });
+
+/**
+ * Launch offer re-terms plans at runtime (price, tenure, unlock cap), so the
+ * card copy must follow the live plan rather than the frozen strings. A stale
+ * "5 contact unlocks" beside a plan the server sells with 6 is a false claim on
+ * the buy button.
+ */
+describe('feature copy follows the live plan', () => {
+  it('rewrites the unlock line from the live plan', () => {
+    const copy = planFeatures('basic_premium', false, { contactUnlocks: 6, duration: '1 month' });
+    expect(copy).toContain('6 contact unlocks');
+    expect(copy).not.toContain('5 contact unlocks');
+  });
+
+  it('renders -1 as unlimited', () => {
+    expect(planFeatures('elite', false, { contactUnlocks: -1, duration: '4 months' }))
+      .toContain('Unlimited contact unlocks');
+  });
+
+  it('rewrites the validity claim to the live tenure', () => {
+    const copy = planFeatures('vip', false, { contactUnlocks: -1, duration: '6 months' });
+    expect(copy).toContain('6 months of full access');
+    expect(copy).not.toContain('Full-year validity');
+  });
+
+  it('leaves copy untouched when no live plan is supplied', () => {
+    expect(planFeatures('basic_premium', false)).toContain('5 contact unlocks');
+  });
+});

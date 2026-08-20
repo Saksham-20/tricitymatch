@@ -65,6 +65,7 @@ describe('public founding window', () => {
     config.founding.endsAt = '2026-12-31';
     const body = await callGetPlans();
     expect(body.founding).toEqual({
+      grantDays: 30,
       open: true,
       endsAt: '2026-12-31',
       contactUnlocks: FOUNDING_CONTACT_UNLOCKS,

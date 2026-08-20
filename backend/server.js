@@ -336,6 +336,19 @@ const startServer = async () => {
       console.log('✓ Database migrations up to date');
     }
 
+    // Warm the admin-editable launch-offer / founding-window settings. Sync
+    // reads downstream (getPlanDetails runs inside payment transactions) serve
+    // off this cache; a failure here just means regular pricing, never free.
+    try {
+      const { initLaunchOffer } = require('./utils/launchOffer');
+      const offer = await initLaunchOffer();
+      console.log(offer?.enabled
+        ? `✓ Launch offer active (ends ${offer.endsAt || 'when switched off'})`
+        : '✓ Launch offer loaded (inactive — regular pricing)');
+    } catch (error) {
+      console.log('⚠ Launch offer settings unavailable — regular pricing in effect');
+    }
+
     // Initialize Redis cache (optional - degrades gracefully)
     try {
       await initRedis();

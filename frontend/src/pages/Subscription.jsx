@@ -24,11 +24,14 @@ const PLAN_CONFIG = {
 // The five tiers shown in the main comparison grid (NRI gets its own block).
 const GRID_KEYS = ['free', 'basic_premium', 'premium_plus', 'elite', 'vip'];
 
-// À-la-carte contact-unlock top-ups (mirrors backend UNLOCK_BUNDLES; prices ₹).
-const BUNDLES = [
-  { id: 'bundle_3',  unlocks: 3,  price: 599 },
-  { id: 'bundle_10', unlocks: 10, price: 1499 },
-  { id: 'bundle_25', unlocks: 25, price: 3499 },
+// À-la-carte contact-unlock top-ups. FALLBACK ONLY — the live list (prices and
+// which bundles are on sale at all) comes from GET /subscription/plans, because
+// the launch offer can reprice a bundle or withdraw it entirely, and a
+// hardcoded card would advertise a price the server refuses to charge.
+const BUNDLES_FALLBACK = [
+  { bundleId: 'bundle_3',  unlocks: 3,  price: 599 },
+  { bundleId: 'bundle_10', unlocks: 10, price: 1499 },
+  { bundleId: 'bundle_25', unlocks: 25, price: 3499 },
 ];
 
 // Tier order — a member can only move UP while a paid plan is active (mirrors
@@ -41,8 +44,11 @@ const TIER_RANK = { free: 0, founding_premium: 0, basic_premium: 1, premium_plus
 
 // ─── Long-scroll paywall sections (B6) ─────────────────────────
 // Comparison matrix — DS11: real table ≥640px, per-plan accordion below.
+// The unlock row is FILLED FROM THE LIVE PLANS (see ComparisonSection) — the
+// launch offer moves those caps, and a frozen row here contradicted the cards
+// sitting directly above it.
 const COMPARE_ROWS = [
-  { label: 'Contact unlocks', values: ['0', '5', '10', '25', 'Unlimited'] },
+  { label: 'Contact unlocks', values: ['0', '—', '—', '—', 'Unlimited'] },
   { label: 'Chat with matches', values: [false, true, true, true, true] },
   { label: 'See who likes you', values: [false, true, true, true, true] },
   { label: 'Reactions, voice notes & quote replies', values: [false, true, true, true, true] },
@@ -59,8 +65,22 @@ const CompareCell = ({ v }) => (
     : <span className="text-sm font-medium text-neutral-700">{v}</span>
 );
 
-const ComparisonSection = () => {
+const ComparisonSection = ({ plans = {} }) => {
   const [openCol, setOpenCol] = useState(4);
+
+  // Column order mirrors COMPARE_COLS: Free, Basic, Plus, Elite, VIP.
+  const unlockCell = (key) => {
+    const v = plans?.[key]?.contactUnlocks;
+    if (v === -1) return 'Unlimited';
+    if (typeof v === 'number') return String(v);
+    return '—';
+  };
+  const rows = COMPARE_ROWS.map((row) => (
+    row.label === 'Contact unlocks'
+      ? { ...row, values: ['0', unlockCell('basic_premium'), unlockCell('premium_plus'), unlockCell('elite'), unlockCell('vip')] }
+      : row
+  ));
+
   return (
     <section className="mt-14" aria-labelledby="compare-heading">
       <h2 id="compare-heading" className="font-display text-2xl font-bold text-neutral-900 text-center mb-6">Compare plans</h2>
@@ -76,7 +96,7 @@ const ComparisonSection = () => {
             </tr>
           </thead>
           <tbody>
-            {COMPARE_ROWS.map((row) => (
+            {rows.map((row) => (
               <tr key={row.label} className="border-b border-neutral-50 last:border-0">
                 <td className="py-3 px-4 text-left text-sm text-neutral-600">{row.label}</td>
                 {row.values.map((v, i) => <td key={i} className="py-3 px-3"><CompareCell v={v} /></td>)}
@@ -99,7 +119,7 @@ const ComparisonSection = () => {
             </button>
             {openCol === ci && (
               <ul className="px-4 pb-3 space-y-1.5">
-                {COMPARE_ROWS.map((row) => (
+                {rows.map((row) => (
                   <li key={row.label} className="flex items-center justify-between text-sm">
                     <span className="text-neutral-600">{row.label}</span>
                     <CompareCell v={row.values[ci]} />
@@ -194,7 +214,7 @@ const StickyCtaBar = ({ show }) => {
 const PlanCard = ({ planKey, plan, isPopular, isCurrent, currentPlanType, isProcessing, freeChatForMutuals, onSubscribe }) => {
   const cfg = PLAN_CONFIG[planKey] || PLAN_CONFIG.free;
   const Icon = cfg.icon;
-  const features = planFeatures(planKey, freeChatForMutuals);
+  const features = planFeatures(planKey, freeChatForMutuals, plan);
   const free = planKey === 'free';
   const gold = cfg.accent === 'gold';
   const displayPrice = plan.price || cfg.price || 0;
@@ -286,7 +306,7 @@ const PlanCard = ({ planKey, plan, isPopular, isCurrent, currentPlanType, isProc
             )}
             {discountPct > 0 && (
               <span className="text-[11px] font-bold text-success bg-success-50 border border-success-100 px-1.5 py-0.5 rounded">
-                Flat {discountPct}% off
+                {plan.isLaunchPrice ? `Launch price · ${discountPct}% off` : `Flat ${discountPct}% off`}
               </span>
             )}
             {perMonth && (
@@ -386,7 +406,7 @@ const NriBlock = ({ plan, currency, isCurrent, currentPlanType, isProcessing, on
             and prices shown in your own currency.
           </p>
           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
-            {planFeatures('nri', false).map((f, i) => (
+            {planFeatures('nri', false, plan).map((f, i) => (
               <li key={i} className="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-300">
                 <FiCheck className="w-3.5 h-3.5 text-gold-600 dark:text-gold-400 flex-shrink-0" />{f}
               </li>
@@ -397,14 +417,14 @@ const NriBlock = ({ plan, currency, isCurrent, currentPlanType, isProcessing, on
         <div className="lg:w-64 flex-shrink-0 text-center lg:text-right">
           <div className="flex items-baseline justify-center lg:justify-end gap-1">
             <span className="text-4xl font-bold text-gold-600 dark:text-gold-400">₹{price.toLocaleString('en-IN')}</span>
-            <span className="text-sm text-neutral-500 dark:text-neutral-400">/6 months</span>
+            <span className="text-sm text-neutral-500 dark:text-neutral-400">/{plan?.duration || cfg.duration || '6 months'}</span>
           </div>
           {(mrp && mrp > price) && (
             <div className="flex items-center justify-center lg:justify-end gap-2 mt-1">
               <span className="text-sm text-neutral-400 dark:text-neutral-500 line-through">₹{mrp.toLocaleString('en-IN')}</span>
               {discountPct > 0 && (
                 <span className="text-[11px] font-bold text-success bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 px-1.5 py-0.5 rounded">
-                  Flat {discountPct}% off
+                  {plan?.isLaunchPrice ? `Launch price · ${discountPct}% off` : `Flat ${discountPct}% off`}
                 </span>
               )}
             </div>
@@ -440,7 +460,7 @@ const NriBlock = ({ plan, currency, isCurrent, currentPlanType, isProcessing, on
 };
 
 // ─── Contact-unlock top-up block (active finite-plan members only) ──────
-const BundleBlock = ({ processingBundle, onBuy }) => (
+const BundleBlock = ({ bundles, processingBundle, onBuy }) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
@@ -454,16 +474,21 @@ const BundleBlock = ({ processingBundle, onBuy }) => (
       Top up your current plan anytime. Unlocks add to your active plan and stay valid until it expires.
     </p>
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      {BUNDLES.map((b) => {
+      {bundles.map((b) => {
         const perUnlock = Math.round(b.price / b.unlocks);
-        const busy = processingBundle === b.id;
+        const busy = processingBundle === b.bundleId;
         return (
-          <div key={b.id} className="flex flex-col bg-white rounded-xl border border-neutral-200 p-5 shadow-card">
+          <div key={b.bundleId} className="flex flex-col bg-white rounded-xl border border-neutral-200 p-5 shadow-card">
             <p className="text-2xl font-bold text-neutral-900">{b.unlocks} <span className="text-sm font-medium text-neutral-500">unlocks</span></p>
-            <p className="text-lg font-semibold text-primary-600 mt-1">₹{b.price.toLocaleString('en-IN')}</p>
+            <div className="flex items-baseline gap-2 mt-1">
+              <p className="text-lg font-semibold text-primary-600">₹{b.price.toLocaleString('en-IN')}</p>
+              {b.mrp > b.price && (
+                <span className="text-xs text-neutral-400 line-through">₹{b.mrp.toLocaleString('en-IN')}</span>
+              )}
+            </div>
             <p className="text-xs text-neutral-400 mb-4">₹{perUnlock} per unlock</p>
             <button
-              onClick={() => !busy && onBuy(b.id)}
+              onClick={() => !busy && onBuy(b.bundleId)}
               disabled={busy}
               aria-busy={busy || undefined}
               className="mt-auto w-full min-h-[44px] py-2.5 text-sm font-semibold rounded-lg bg-primary-500 text-white hover:bg-primary-600 shadow-burgundy transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
@@ -479,6 +504,46 @@ const BundleBlock = ({ processingBundle, onBuy }) => (
   </motion.div>
 );
 
+// ─── Launch-offer banner ───────────────────────────────────────────────
+// Renders only while the server says an offer is live. `endsAt` is shown as a
+// plain day count, not a ticking timer: a countdown that keeps running after
+// the offer lapses is worse than no countdown, and the server is the clock.
+const LaunchBanner = ({ offer }) => {
+  if (!offer?.active) return null;
+
+  const daysLeft = offer.endsAt
+    ? Math.max(0, Math.ceil((new Date(offer.endsAt) - Date.now()) / 86400000))
+    : null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="mb-8 rounded-2xl border border-gold-200 bg-gold-50 px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3"
+    >
+      <div className="w-9 h-9 rounded-full bg-gold flex items-center justify-center flex-shrink-0">
+        <FaCrown className="w-4 h-4 text-white" />
+      </div>
+      <div className="flex-1">
+        <p className="text-sm font-bold text-gold-800">
+          {offer.headline || 'Launch offer'}
+          {daysLeft !== null && (
+            <span className="ml-2 font-semibold text-gold-700">
+              · {daysLeft === 0 ? 'ends today' : `${daysLeft} day${daysLeft === 1 ? '' : 's'} left`}
+            </span>
+          )}
+        </p>
+        {offer.subline && <p className="text-sm text-gold-700/80 mt-0.5">{offer.subline}</p>}
+      </div>
+      {offer.endsAt && (
+        <p className="text-xs text-gold-700/70 sm:text-right">
+          Prices return to normal on {new Date(offer.endsAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+        </p>
+      )}
+    </motion.div>
+  );
+};
+
 // ─────────────────────────────────────────────
 const Subscription = () => {
   const { user } = useAuth();
@@ -488,6 +553,11 @@ const Subscription = () => {
   // feature the server would refuse.
   const freeChatForMutuals = Boolean(user?.features?.freeChatForMutuals);
   const [plans, setPlans] = useState({});
+  const [bundles, setBundles] = useState(BUNDLES_FALLBACK);
+  // Launch-offer state is server-owned and defaults to inactive, so a failed
+  // load shows regular pricing with no discount claim rather than promising an
+  // offer that checkout would not honour.
+  const [launchOffer, setLaunchOffer] = useState({ active: false });
   const [currentSub, setCurrentSub] = useState(null);
   const [loading, setLoading] = useState(true);
   const [processingPlan, setProcessingPlan] = useState(null);
@@ -503,6 +573,11 @@ const Subscription = () => {
         api.get('/subscription/my-subscription'),
       ]);
       setPlans(plansRes.data.plans || {});
+      const liveBundles = plansRes.data.bundles;
+      if (liveBundles && Object.keys(liveBundles).length) {
+        setBundles(Object.values(liveBundles));
+      }
+      setLaunchOffer(plansRes.data.launchOffer || { active: false });
       setCurrentSub(subRes.data.subscription);
     } catch {
       toast.error('Failed to load subscription data');
@@ -614,6 +689,9 @@ const Subscription = () => {
       elite: 'Elite',
       vip: 'VIP',
       nri: 'NRI Connect',
+      // Granted, never sold — but it IS what an active founding member holds,
+      // and the banner rendered the raw enum ("founding_premium") without it.
+      founding_premium: 'Founding Member',
     };
     return names[type] || type;
   };
@@ -683,6 +761,9 @@ const Subscription = () => {
           </p>
         </motion.div>
 
+        {/* Launch offer (server-gated) */}
+        <LaunchBanner offer={launchOffer} />
+
         {/* Payments-unavailable notice */}
         {!razorpay.isConfigured && (
           <motion.div
@@ -751,7 +832,7 @@ const Subscription = () => {
 
         {/* Contact-unlock top-ups (active finite plan only) */}
         {showBundles && (
-          <BundleBlock processingBundle={processingBundle} onBuy={handleBuyBundle} />
+          <BundleBlock bundles={bundles} processingBundle={processingBundle} onBuy={handleBuyBundle} />
         )}
 
         {/* NRI Connect band — shown to everyone */}
@@ -765,7 +846,7 @@ const Subscription = () => {
         />
 
         {/* Long-scroll paywall: comparison → proof → FAQ → closing CTA */}
-        <ComparisonSection />
+        <ComparisonSection plans={plans} />
         <SuccessStrip />
         <FaqSection />
 

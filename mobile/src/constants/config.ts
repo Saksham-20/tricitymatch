@@ -37,6 +37,12 @@ export const CONFIG = {
   GOOGLE_CLIENT_ID:     process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ?? '',
   SENTRY_DSN:           process.env.EXPO_PUBLIC_SENTRY_DSN ?? '',
 
+  // Support channels. The WhatsApp number was hardcoded to 919876543210 — a
+  // placeholder that shipped as a real, tappable "WhatsApp Support" button
+  // going nowhere. Unset now means the channel is HIDDEN, not fake.
+  SUPPORT_EMAIL:    process.env.EXPO_PUBLIC_SUPPORT_EMAIL ?? 'support@tricitymatch.com',
+  SUPPORT_WHATSAPP: process.env.EXPO_PUBLIC_SUPPORT_WHATSAPP ?? '',
+
   IS_DEV: process.env.NODE_ENV !== 'production',
 
   // Feature gates. A feature whose credentials are absent must be HIDDEN, not
@@ -49,5 +55,11 @@ export const CONFIG = {
   IS_GOOGLE_CONFIGURED:   isConfigured(
     process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
     (v) => v.endsWith('.apps.googleusercontent.com')
+  ),
+  // A WhatsApp number must be digits-only with a country code (wa.me format),
+  // and must not be the old 9876543210 placeholder series.
+  IS_WHATSAPP_CONFIGURED: isConfigured(
+    process.env.EXPO_PUBLIC_SUPPORT_WHATSAPP,
+    (v) => /^[0-9]{10,15}$/.test(v) && !v.includes('9876543210')
   ),
 } as const;

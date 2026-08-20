@@ -110,6 +110,9 @@ export default function AdminContactMessages() {
   const [search, setSearch] = useState('');
   const [expanded, setExpanded] = useState(null);
   const [savingId, setSavingId] = useState(null);
+  const [replyDraft, setReplyDraft] = useState({});   // id → text
+  const [replyingId, setReplyingId] = useState(null);
+  const [replyError, setReplyError] = useState({});   // id → message
 
   const fetchMessages = useCallback(async () => {
     try {
@@ -131,6 +134,28 @@ export default function AdminContactMessages() {
   }, [page, status, search]);
 
   useEffect(() => { fetchMessages(); }, [fetchMessages]);
+
+  // Send an in-product reply. NOT optimistic: the server only records the reply
+  // once the email actually went out, so the row must reflect the server's
+  // answer — an admin who believes they replied and did not is the failure this
+  // whole path exists to prevent.
+  const sendReply = async (id) => {
+    const body = (replyDraft[id] || '').trim();
+    if (body.length < 2) return;
+    setReplyingId(id);
+    setReplyError((e) => ({ ...e, [id]: '' }));
+    try {
+      const res = await apiClient.post(`/admin/contact-messages/${id}/reply`, { body });
+      const updated = res.data.message;
+      setMessages((rows) => rows.map((m) => (m.id === id ? { ...m, ...updated } : m)));
+      setReplyDraft((d) => ({ ...d, [id]: '' }));
+      setNewCount((c) => (messages.find((m) => m.id === id)?.status === 'new' ? Math.max(0, c - 1) : c));
+    } catch (err) {
+      setReplyError((e) => ({ ...e, [id]: err.response?.data?.error?.message || 'Reply failed to send' }));
+    } finally {
+      setReplyingId(null);
+    }
+  };
 
   const changeStatus = async (id, nextStatus) => {
     setSavingId(id);
@@ -269,7 +294,7 @@ export default function AdminContactMessages() {
                             href={`mailto:${m.email}?subject=${encodeURIComponent(`Re: ${m.subject || 'Your enquiry'}`)}`}
                             className="inline-flex items-center gap-1 text-sm text-primary-700 hover:underline py-2"
                           >
-                            <Mail size={14} /> Reply
+                            <Mail size={14} /> Email
                           </a>
                         </div>
                       </td>
@@ -278,6 +303,45 @@ export default function AdminContactMessages() {
                       <tr key={`${m.id}-body`}>
                         <td colSpan={4} className="border p-4 bg-neutral-50">
                           <p className="whitespace-pre-wrap text-sm text-neutral-800">{m.message}</p>
+
+                          {m.replyBody ? (
+                            <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-3">
+                              <p className="text-xs font-semibold text-green-800 mb-1">
+                                Replied {m.repliedAt ? formatDate(m.repliedAt) : ''}
+                              </p>
+                              <p className="whitespace-pre-wrap text-sm text-green-900">{m.replyBody}</p>
+                            </div>
+                          ) : (
+                            <div className="mt-4" onClick={(e) => e.stopPropagation()}>
+                              <label htmlFor={`reply-${m.id}`} className="block text-xs font-semibold text-neutral-600 mb-1">
+                                Reply to {m.name} &lt;{m.email}&gt;
+                              </label>
+                              <textarea
+                                id={`reply-${m.id}`}
+                                rows={4}
+                                value={replyDraft[m.id] || ''}
+                                onChange={(e) => setReplyDraft((d) => ({ ...d, [m.id]: e.target.value }))}
+                                maxLength={5000}
+                                placeholder="Write the answer the member will receive by email…"
+                                className="w-full border border-neutral-200 rounded-lg p-3 text-sm"
+                              />
+                              {replyError[m.id] && (
+                                <p className="text-sm text-red-700 mt-1">{replyError[m.id]}</p>
+                              )}
+                              <div className="flex items-center gap-3 mt-2">
+                                <button
+                                  onClick={() => sendReply(m.id)}
+                                  disabled={replyingId === m.id || (replyDraft[m.id] || '').trim().length < 2}
+                                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-600 text-white text-sm font-semibold disabled:opacity-50"
+                                >
+                                  <Mail size={14} /> {replyingId === m.id ? 'Sending…' : 'Send reply'}
+                                </button>
+                                <span className="text-xs text-neutral-400">
+                                  Sends from support and marks the enquiry resolved.
+                                </span>
+                              </div>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     )}

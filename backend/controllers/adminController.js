@@ -9,10 +9,10 @@ const sequelize = require('../config/database');
 const { PAID_PLANS, ALL_PLANS, UNLIMITED_PLANS, FOUNDING_PLAN, FOUNDING_CONTACT_UNLOCKS } = require('../constants/plans');
 const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
-const { logAudit } = require('../middlewares/logger');
+const { log, logAudit } = require('../middlewares/logger');
 const { generateInvoicePDF } = require('../utils/invoice');
 const { notify } = require('../utils/notifyUser');
-const { sendVerificationApproved, sendVerificationRejected } = require('../utils/email');
+const { sendVerificationApproved, sendVerificationRejected, sendSupportReply } = require('../utils/email');
 
 // Escape special characters for LIKE patterns
 const escapeLikePattern = (str) => {
@@ -501,7 +501,8 @@ exports.updateSubscription = asyncHandler(async (req, res) => {
   // it closes the offer is retrospective ("founding families"), and an admin
   // override is the one remaining way to mint a new founding row — so it is
   // gated here rather than trusted.
-  if (planType === FOUNDING_PLAN && !config.founding.isOpen()) {
+  const foundingState = require('../utils/launchOffer').getFoundingState();
+  if (planType === FOUNDING_PLAN && !foundingState.open) {
     throw createError.badRequest(
       'The founding-member period has closed — founding_premium can no longer be granted. Choose a paid plan instead.'
     );
@@ -527,8 +528,8 @@ exports.updateSubscription = asyncHandler(async (req, res) => {
   // unlocks in middlewares/auth.js. Same explicit bundle as utils/foundingGrant.
   const subEndDate = endDate
     ? new Date(endDate)
-    : isFounding && config.founding.endsAt
-      ? new Date(config.founding.endsAt)
+    : isFounding && foundingState.endsAt
+      ? new Date(foundingState.endsAt)
       : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
   const subscription = await Subscription.create({
@@ -539,7 +540,7 @@ exports.updateSubscription = asyncHandler(async (req, res) => {
     endDate: subEndDate,
     amount: planDetails ? planDetails.amount / 100 : 0,
     contactUnlocksAllowed: isFounding
-      ? FOUNDING_CONTACT_UNLOCKS
+      ? (foundingState.contactUnlocks ?? FOUNDING_CONTACT_UNLOCKS)
       : (planDetails ? planDetails.contactUnlocks : null),
     contactUnlocksUsed: 0,
   });
@@ -1066,6 +1067,131 @@ exports.updateContactMessage = asyncHandler(async (req, res) => {
   await message.save();
 
   logAudit('contact_message_status_changed', req.user.id, { id, previous, status });
+
+  res.json({ success: true, message });
+});
+
+// ==================== LAUNCH OFFER (PRICING) ====================
+
+// @route   GET /api/v1/admin/launch-offer
+// @desc    Current launch-offer config + the regular ladder it overlays
+// @access  Private/Admin
+// The response deliberately carries BOTH ladders: an admin editing launch
+// prices needs to see what each tier reverts to when the window closes, and
+// the effective (charged) price so there is no doubt what a member pays today.
+exports.getLaunchOffer = asyncHandler(async (req, res) => {
+  const { getOffer, buildDefaults, getOfferState, getFoundingState } = require('../utils/launchOffer');
+  const { PLANS, UNLOCK_BUNDLES, getPlanDetails, getBundleDetails } = require('../utils/razorpay');
+
+  const offer = getOffer() || buildDefaults();
+
+  const regular = {};
+  const effective = {};
+  for (const key of Object.keys(PLANS)) {
+    const base = PLANS[key];
+    const live = getPlanDetails(key);
+    regular[key] = {
+      name: base.name,
+      price: base.amount / 100,
+      durationDays: base.duration,
+      contactUnlocks: base.contactUnlocks,
+    };
+    effective[key] = {
+      price: live.amount / 100,
+      durationDays: live.duration,
+      contactUnlocks: live.contactUnlocks,
+      isLaunchPrice: Boolean(live.isLaunchPrice),
+    };
+  }
+
+  const bundles = {};
+  for (const id of Object.keys(UNLOCK_BUNDLES)) {
+    const live = getBundleDetails(id);
+    bundles[id] = {
+      name: UNLOCK_BUNDLES[id].name,
+      unlocks: UNLOCK_BUNDLES[id].unlocks,
+      regularPrice: UNLOCK_BUNDLES[id].amount / 100,
+      price: live ? live.amount / 100 : null,
+      hidden: !live,
+    };
+  }
+
+  res.json({
+    success: true,
+    offer,
+    state: getOfferState(),
+    founding: getFoundingState(),
+    regular,
+    effective,
+    bundles,
+  });
+});
+
+// @route   PUT /api/v1/admin/launch-offer
+// @desc    Update launch pricing / deadline / founding window
+// @access  Private/Admin
+// Validation lives in utils/launchOffer.saveOffer (one place, so the HTTP path
+// and any future script path cannot diverge on what a legal price is).
+exports.updateLaunchOffer = asyncHandler(async (req, res) => {
+  const { saveOffer, OfferValidationError, getOfferState, getFoundingState } = require('../utils/launchOffer');
+
+  let saved;
+  try {
+    saved = await saveOffer(req.body, req.user.id);
+  } catch (err) {
+    if (err instanceof OfferValidationError) throw createError.badRequest(err.message);
+    throw err;
+  }
+
+  logAudit('launch_offer_updated', req.user.id, {
+    enabled: saved.enabled,
+    endsAt: saved.endsAt,
+    foundingEnabled: saved.founding?.enabled,
+    foundingCap: saved.founding?.memberCap,
+  });
+
+  res.json({
+    success: true,
+    offer: saved,
+    state: getOfferState(),
+    founding: getFoundingState(),
+  });
+});
+
+// @route   POST /api/v1/admin/contact-messages/:id/reply
+// @desc    Reply to a support enquiry (emails the enquirer, records the reply)
+// @access  Private/Admin
+// Support used to be write-only: the form stored the enquiry and fired a
+// notification at SUPPORT_EMAIL, and answering meant finding whatever mailbox
+// that landed in. This is the answer path — and unlike the notification, a
+// FAILED send is reported, because an admin who thinks they replied and did
+// not is worse than one who knows the send failed.
+exports.replyToContactMessage = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const body = String(req.body?.body ?? '').trim();
+
+  if (body.length < 2) throw createError.badRequest('Reply body is required');
+  if (body.length > 5000) throw createError.badRequest('Reply is too long (max 5000 characters)');
+
+  const message = await ContactMessage.findByPk(id);
+  if (!message) throw createError.notFound('Message not found');
+
+  const result = await sendSupportReply(message.email, message.name, body, message.message);
+  if (!result?.success) {
+    log.error('Support reply failed to send', { id, error: result?.error });
+    throw createError.internal(
+      `Reply could not be sent: ${result?.error || result?.reason || 'email provider unavailable'}. Nothing was recorded — try again.`
+    );
+  }
+
+  message.replyBody = body;
+  message.repliedAt = new Date();
+  message.repliedBy = req.user.id;
+  // Answering IS resolving; leaving it "new" after a reply is how inboxes rot.
+  message.status = 'resolved';
+  await message.save();
+
+  logAudit('contact_message_replied', req.user.id, { id, to: message.email });
 
   res.json({ success: true, message });
 });

@@ -25,6 +25,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { PLANS, PLAN_ORDER, UNLOCK_BUNDLES } from '@shared/constants/plans';
 import {
   getPlans,
+  getUnlockBundles,
   createOrder,
   verifyPayment,
   verifyGooglePlay,
@@ -378,6 +379,13 @@ export default function SubscriptionScreen() {
   const bundlesEligible =
     currentPlan !== 'free' && currentPlanCaps?.contactUnlocks !== null;
 
+  // Live top-ups: the launch offer can reprice or withdraw a bundle, and a
+  // withdrawn bundle is refused at checkout — never render the static list.
+  const { data: liveBundles } = useQuery({
+    queryKey: [...queryKeys.plans, 'bundles'],
+    queryFn: getUnlockBundles,
+  });
+
   const { data: plans, isLoading: plansLoading } = useQuery({
     queryKey: queryKeys.plans,
     queryFn: getPlans,
@@ -505,7 +513,8 @@ export default function SubscriptionScreen() {
     setPaying(true);
     try {
       const order = await createBundleOrder(bundleId);
-      const bundle = UNLOCK_BUNDLES[bundleId];
+      const bundle = (liveBundles ?? []).find((b) => b.bundleId === bundleId)
+        ?? UNLOCK_BUNDLES[bundleId];
       const paymentResult = await openRazorpay({
         key: CONFIG.RAZORPAY_KEY_ID,
         amount: order.amount,
@@ -604,7 +613,7 @@ export default function SubscriptionScreen() {
               <View style={s.bundles}>
                 <Text style={s.bundlesTitle}>Need more contact unlocks?</Text>
                 <Text style={s.bundlesSub}>Top up without changing your plan.</Text>
-                {Object.values(UNLOCK_BUNDLES).map((b) => {
+                {(liveBundles ?? Object.values(UNLOCK_BUNDLES)).map((b) => {
                   const local = formatLocalPrice(b.price, currency);
                   return (
                     <TouchableOpacity

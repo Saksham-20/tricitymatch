@@ -1,6 +1,10 @@
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const config = require('../config/env');
+// Launch-offer overlay. Every price/tenure read below goes through it, so the
+// amount charged, the amount displayed and the tenure written onto the
+// Subscription row are resolved from ONE place and cannot drift apart.
+const { overlayPlan, overlayBundle } = require('./launchOffer');
 
 // Lazy initialization - only create Razorpay instance if valid keys are provided
 let razorpay = null;
@@ -153,7 +157,8 @@ const createOrder = async (planType, userId) => {
     throw new Error('Razorpay is not configured. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in environment variables.');
   }
 
-  const plan = PLANS[planType];
+  // Effective (launch-adjusted) plan — this is what the member is charged.
+  const plan = getPlanDetails(planType);
   const options = {
     amount: plan.amount,
     currency: 'INR',
@@ -199,8 +204,16 @@ const verifyPayment = (razorpayOrderId, razorpayPaymentId, razorpaySignature) =>
   );
 };
 
+/**
+ * Effective plan definition: the regular tier with the launch offer overlaid
+ * when one is active. This is the ONLY plan read used by createOrder,
+ * verify-payment, the Razorpay webhook, the Google Play path and admin grants,
+ * so a launch price change moves all of them at once.
+ */
 const getPlanDetails = (planType) => {
-  return PLANS[planType] || null;
+  const base = PLANS[planType];
+  if (!base) return null;
+  return overlayPlan(planType, base);
 };
 
 /**
@@ -233,7 +246,9 @@ const createGenericOrder = async (amountPaise, userId, notes = {}) => {
  * @param {string} userId
  */
 const createBundleOrder = async (bundleId, userId) => {
-  const bundle = UNLOCK_BUNDLES[bundleId];
+  // getBundleDetails (not the raw map) so a bundle WITHDRAWN for the launch
+  // window is rejected at purchase, not merely hidden in the UI.
+  const bundle = getBundleDetails(bundleId);
   if (!bundle) {
     throw new Error('Invalid bundle id');
   }
@@ -245,7 +260,9 @@ const createBundleOrder = async (bundleId, userId) => {
   return { ...order, bundleId, unlocks: bundle.unlocks };
 };
 
-const getBundleDetails = (bundleId) => UNLOCK_BUNDLES[bundleId] || null;
+// Effective bundle: launch price overlaid, or null when the bundle is
+// withdrawn for the launch window (see utils/launchOffer.js).
+const getBundleDetails = (bundleId) => overlayBundle(bundleId, UNLOCK_BUNDLES[bundleId] || null);
 
 module.exports = {
   getRazorpayInstance,

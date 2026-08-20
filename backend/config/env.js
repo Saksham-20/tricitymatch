@@ -352,6 +352,15 @@ const config = {
     astrologerMarketplace: optionalBoolean('ASTROLOGER_MARKETPLACE', false),
   },
 
+  // Abuse ceilings that are not rate limiters (those live in middlewares/security).
+  limits: {
+    // Rolling-24h contact-unlock ceiling for UNLIMITED tiers (vip / nri).
+    // "Unlimited" is a product promise; this stops one cheap subscription from
+    // being a scriptable export of every phone number in the directory.
+    // 0 disables the ceiling.
+    unlimitedDailyUnlockCap: optionalNumber('UNLIMITED_DAILY_UNLOCK_CAP', 25),
+  },
+
   // Monitoring & Alerting
   monitoring: {
     enabled: optionalBoolean('MONITORING_ENABLED', true),

@@ -7,7 +7,7 @@ import {
   FiUser, FiLock, FiBell, FiAlertTriangle, FiEye, FiEyeOff,
   FiMoon, FiShield, FiCheck, FiUpload, FiClock, FiX, FiCamera,
   FiFileText, FiUsers, FiStar, FiChevronRight, FiMonitor, FiSmartphone,
-  FiRefreshCw, FiAlertCircle,
+  FiRefreshCw, FiAlertCircle, FiHelpCircle,
 } from 'react-icons/fi';
 import useDarkMode from '../hooks/useDarkMode';
 import useElderMode from '../hooks/useElderMode';
@@ -387,7 +387,7 @@ const AccountTab = () => {
       </div>
 
       <div>
-        <SectionHeader title="More" desc="Verification, family & astrology services" />
+        <SectionHeader title="More" desc="Verification, family, support & astrology services" />
         <div className="rounded-2xl border border-neutral-100 divide-y divide-neutral-100 overflow-hidden max-w-sm">
           {[
             { to: '/verification', icon: FiShield, label: 'Verification' },
@@ -396,6 +396,9 @@ const AccountTab = () => {
             ...(user?.features?.astrologerMarketplace
               ? [{ to: '/astrologers', icon: FiStar, label: 'Talk to an Astrologer' }]
               : []),
+            // Members had no in-product route to support at all — the contact
+            // form was reachable only from the marketing footer.
+            { to: '/help', icon: FiHelpCircle, label: 'Help & Support' },
           ].map(({ to, icon: Icon, label }) => (
             <Link key={to} to={to} className="flex items-center justify-between p-4 hover:bg-neutral-50 transition-colors">
               <span className="flex items-center gap-3 text-sm font-medium text-neutral-800">

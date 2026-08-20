@@ -69,7 +69,8 @@ describe('founding_premium tier placement', () => {
 
   it('bundles a FINITE contact-unlock allowance (NULL would mean unlimited)', () => {
     expect(typeof FOUNDING_CONTACT_UNLOCKS).toBe('number');
-    expect(FOUNDING_CONTACT_UNLOCKS).toBe(5);
+    // Default fallback; the live value is admin-editable (utils/launchOffer.js).
+    expect(FOUNDING_CONTACT_UNLOCKS).toBe(3);
   });
 
   it('has no entry in the razorpay price map (it is granted, never priced)', () => {

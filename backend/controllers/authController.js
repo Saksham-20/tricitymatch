@@ -59,7 +59,7 @@ const withDerivedUserFields = async (userInstance) => {
     freeChatForMutuals: config.features.freeChatForMutuals,
     freeReplyWindow: config.features.freeReplyWindow,
     astrologerMarketplace: config.features.astrologerMarketplace,
-    foundingOpen: config.founding.isOpen(),
+    foundingOpen: require('../utils/launchOffer').getFoundingState().open,
   };
   return user;
 };

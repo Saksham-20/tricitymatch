@@ -54,8 +54,25 @@ describe('grantFoundingIfOpen — the explicit bundle', () => {
     // amount 0, not NULL — admin revenue sums stay correct
     expect(row.amount).toBe(0);
     expect(row.autoRenew).toBe(false);
-    // cohort end date, not signup+30d
-    expect(row.endDate).toEqual(new Date('2099-01-01'));
+    // Per-member term: signup + grantDays (default 30), NOT the cohort deadline.
+    const expected = Date.now() + 30 * 24 * 60 * 60 * 1000;
+    expect(Math.abs(row.endDate.getTime() - expected)).toBeLessThan(60 * 1000);
+  });
+
+  it('clamps the per-member term to the window deadline (a last-day signup cannot out-live the offer)', async () => {
+    const soon = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000); // window ends in 2 days
+    const { __setCacheForTests } = require('../../utils/launchOffer');
+    __setCacheForTests({
+      enabled: true,
+      founding: { enabled: true, endsAt: soon.toISOString(), memberCap: 0, grantDays: 30, contactUnlocks: 3 },
+    });
+
+    await grantFoundingIfOpen('user-1');
+    const row = Subscription.create.mock.calls[0][0];
+    expect(row.endDate.getTime()).toBe(soon.getTime());
+    expect(row.contactUnlocksAllowed).toBe(3);
+
+    __setCacheForTests(null);
   });
 
   it('stamps Users.isFoundingMember so the badge survives upgrade/expiry', async () => {
