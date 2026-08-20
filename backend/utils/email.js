@@ -174,6 +174,16 @@ const brandLayout = ({ eyebrow, bodyHtml, preheader = '', cta }) => `
 </body>
 </html>`;
 
+// Support replies and enquiry quotes are HUMAN-TYPED text landing in an HTML
+// email, so they are escaped before interpolation. Everything else in this file
+// is developer-authored copy.
+const escapeHtml = (str) => String(str ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
+
 // Small reusable panel (used for plan box, reason box, etc.)
 const panel = (inner, { accent = BRAND.burgundy } = {}) =>
   `<div style="background:${BRAND.bg};border:1px solid ${BRAND.panelBorder};border-left:3px solid ${accent};border-radius:8px;padding:16px 18px;margin:20px 0;">${inner}</div>`;
@@ -345,6 +355,26 @@ const templates = {
     }),
     text: `Hi ${name || 'there'}, Security alert: ${title}. ${detail}${when ? ' When: ' + when + '.' : ''} If this wasn't you, reset your password immediately at ${config.server.frontendUrl}/settings.`,
   }),
+
+  // Support agent's answer to a contact-form enquiry. `replyTo` is the support
+  // address so the member can simply hit Reply and continue the thread — the
+  // whole point of the reply path is that support stops being write-only.
+  supportReply: (name, replyBody, originalMessage) => ({
+    subject: 'Re: your message to TricityMatch',
+    replyTo: config.email.support,
+    html: brandLayout({
+      eyebrow: 'Support',
+      preheader: 'A reply from the TricityMatch support team.',
+      bodyHtml: `
+        <p style="margin-top:0;">Hi ${escapeHtml(name || 'there')},</p>
+        <p>Thanks for writing to us. Here's our reply:</p>
+        ${panel(`<div style="white-space:pre-wrap;">${escapeHtml(replyBody)}</div>`)}
+        ${originalMessage ? `<p style="color:${BRAND.soft};font-size:13px;margin-top:24px;">You wrote:</p>${panel(`<div style="white-space:pre-wrap;color:${BRAND.soft};font-size:13px;">${escapeHtml(originalMessage)}</div>`, { accent: BRAND.gold })}` : ''}
+        <p style="margin-bottom:0;">Just reply to this email if you need anything else.</p>
+      `,
+    }),
+    text: `Hi ${name || 'there'},\n\n${replyBody}\n\n— TricityMatch Support (${config.email.support})`,
+  }),
 };
 
 // Send email. Accepts three call shapes (all historically used in this codebase):
@@ -414,8 +444,13 @@ const sendOtpEmail = (to, code, purpose) => sendEmail(to, 'otpCode', { code, pur
 const sendSecurityAlert = (to, name, title, detail, when) =>
   sendEmail(to, 'securityAlert', { name, title, detail, when });
 
+// Reply to a contact-form enquiry (admin support inbox).
+const sendSupportReply = (to, name, replyBody, originalMessage) =>
+  sendEmail(to, 'supportReply', { name, replyBody, originalMessage });
+
 module.exports = {
   sendEmail,
+  sendSupportReply,
   sendWelcomeEmail,
   sendPasswordResetEmail,
   sendMatchNotification,

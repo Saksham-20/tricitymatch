@@ -21,12 +21,14 @@ const {
   createBundleOrder: razorpayCreateBundleOrder,
   getBundleDetails,
   PLANS,
+  UNLOCK_BUNDLES,
 } = require('../utils/razorpay');
 const { sendSubscriptionConfirmation } = require('../utils/email');
 const config = require('../config/env');
 const { createError, asyncHandler, AppError } = require('../middlewares/errorHandler');
 const { log, logAudit } = require('../middlewares/logger');
 const { generateInvoicePDF } = require('../utils/invoice');
+const { getOfferState, getFoundingState } = require('../utils/launchOffer');
 const { notify } = require('../utils/notifyUser');
 
 // @route   POST /api/subscription/create-order
@@ -483,43 +485,50 @@ exports.getPlans = asyncHandler(async (req, res) => {
   // Human-readable marketing bullets per tier. Price/tenure/unlocks/mrp/badge
   // are pulled from the razorpay PLANS map (single source of truth) so the two
   // never drift; only the display copy lives here.
-  const FEATURE_COPY = {
+  // Bullets are BUILT from the effective plan, never hardcoded: the launch
+  // offer changes unlock counts and tenures at runtime, and a frozen string
+  // ("5 contact unlocks", "Full-year validity") silently becomes a false claim
+  // on the card the moment pricing moves.
+  const unlockLine = (p) => (p.contactUnlocks === null ? 'Unlimited contact unlocks' : `${p.contactUnlocks} contact unlocks`);
+  const validityLine = (p) => `${p.durationLabel} of full access`;
+
+  const FEATURE_COPY = (key, p) => ({
     basic_premium: [
       'View contact details',
       'Unlimited messages',
       'See who viewed profile',
       'Advanced search filters',
-      '5 contact unlocks',
+      unlockLine(p),
     ],
     premium_plus: [
       'Everything in Basic',
-      '15 contact unlocks',
+      unlockLine(p),
       'Profile boost',
       'Spotlight listing',
       'Priority customer support',
     ],
     elite: [
       'Everything in Premium',
-      '30 contact unlocks',
+      unlockLine(p),
       'Priority ranking in search',
-      '6-month validity',
+      validityLine(p),
       'Best value per month',
     ],
     vip: [
       'Everything in Elite',
-      'Unlimited contact unlocks',
+      unlockLine(p),
       'Verified badge',
-      'Full-year validity',
+      validityLine(p),
       'Dedicated relationship advisor',
     ],
     nri: [
       'Everything in VIP',
-      'Unlimited contact unlocks',
+      unlockLine(p),
       'Priority NRI support',
       'Timezone-aware matching',
       'Prices shown in your local currency',
     ],
-  };
+  }[key] || []);
 
   // perMonth (rupees, rounded) = price / (durationDays / 30)
   const perMonth = (rupees, durationDays) =>
@@ -540,9 +549,11 @@ exports.getPlans = asyncHandler(async (req, res) => {
     },
   };
 
-  // Build every paid tier from PLANS in ladder order.
+  // Build every paid tier from the EFFECTIVE plan (regular tier with the launch
+  // offer overlaid when one is running) — the same read `createOrder` charges
+  // from, so the card can never advertise a price the checkout won't honour.
   for (const key of ['basic_premium', 'premium_plus', 'elite', 'vip', 'nri']) {
-    const p = PLANS[key];
+    const p = getPlanDetails(key);
     if (!p) continue;
     const price = p.amount / 100;
     plans[key] = {
@@ -555,13 +566,40 @@ exports.getPlans = asyncHandler(async (req, res) => {
       contactUnlocks: p.contactUnlocks === null ? -1 : p.contactUnlocks,
       popular: p.popular || false,
       badge: p.badge || null,
-      features: FEATURE_COPY[key] || [],
+      // Launch-offer provenance for the pricing UI: `isLaunchPrice` drives the
+      // offer chip, `regularPrice` names what it reverts to.
+      isLaunchPrice: Boolean(p.isLaunchPrice),
+      regularPrice: p.regularAmount ? p.regularAmount / 100 : null,
+      regularDurationDays: p.regularDuration || null,
+      features: FEATURE_COPY(key, p),
     };
   }
+
+  // Unlock top-ups, minus any bundle withdrawn for the launch window.
+  const bundles = {};
+  for (const id of Object.keys(UNLOCK_BUNDLES)) {
+    const b = getBundleDetails(id);
+    if (!b) continue;
+    bundles[id] = {
+      bundleId: id,
+      name: b.name,
+      unlocks: b.unlocks,
+      price: b.amount / 100,
+      mrp: b.mrp ? b.mrp / 100 : null,
+      isLaunchPrice: Boolean(b.isLaunchPrice),
+    };
+  }
+
+  const founding = getFoundingState();
 
   res.json({
     success: true,
     plans,
+    bundles,
+    // Launch-offer state (admin-editable, time-boxed). `active:false` means the
+    // regular ladder is what is being served — surfaces must not promise a
+    // discount off this.
+    launchOffer: getOfferState(),
     // Public founding-window state (Phase S). This is the ONLY public source of
     // truth for "may a surface promise a free premium period?" — the landing
     // band, the city pages and the signup kicker all read it and default to
@@ -570,9 +608,10 @@ exports.getPlans = asyncHandler(async (req, res) => {
     // would promise an entitlement nobody receives. `contactUnlocks` is echoed
     // so the copy can name the real cap instead of hand-waving "premium".
     founding: {
-      open: config.founding.isOpen(),
-      endsAt: config.founding.isOpen() ? config.founding.endsAt : null,
-      contactUnlocks: FOUNDING_CONTACT_UNLOCKS,
+      open: founding.open,
+      endsAt: founding.endsAt,
+      contactUnlocks: founding.contactUnlocks,
+      grantDays: founding.grantDays,
     },
   });
 });

@@ -27,6 +27,9 @@ const {
   toggleReferralCode,
   getLeads,
   getContactMessages,
+  replyToContactMessage,
+  getLaunchOffer,
+  updateLaunchOffer,
   updateContactMessage,
   getSuccessStories,
   createSuccessStory,
@@ -131,6 +134,21 @@ router.put(
   handleValidationErrors,
   updateContactMessage
 );
+router.post(
+  '/contact-messages/:id/reply',
+  param('id').isUUID(4),
+  body('body').isString().trim().isLength({ min: 2, max: 5000 }),
+  handleValidationErrors,
+  replyToContactMessage
+);
+
+// ==================== LAUNCH OFFER (PRICING) ====================
+
+// Body shape is validated inside utils/launchOffer.saveOffer — a nested
+// price/tenure map is far better checked there (one place) than re-declared as
+// express-validator chains that would drift from it.
+router.get('/launch-offer', getLaunchOffer);
+router.put('/launch-offer', updateLaunchOffer);
 
 // ==================== SUCCESS STORIES ====================
 

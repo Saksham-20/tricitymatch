@@ -57,17 +57,47 @@ const PLAN_FEATURES = {
  * Every "Everything in X" chain above stays valid either way, because only the
  * bottom two rungs move.
  */
-export const planFeatures = (planKey, freeChatForMutuals) => {
+export const planFeatures = (planKey, freeChatForMutuals, livePlan) => {
   const base = PLAN_FEATURES[planKey] || [];
-  if (!freeChatForMutuals) return base;
-  if (planKey === 'free') return [...base, 'Chat with your mutual matches'];
-  if (planKey === 'basic_premium') {
-    return [
-      'View contact details',
-      '5 contact unlocks',
-      'See who viewed profile',
-      'Advanced search filters',
-    ];
-  }
-  return base;
+  const list = !freeChatForMutuals
+    ? base
+    : planKey === 'free'
+      ? [...base, 'Chat with your mutual matches']
+      : planKey === 'basic_premium'
+        ? [
+          'View contact details',
+          '5 contact unlocks',
+          'See who viewed profile',
+          'Advanced search filters',
+        ]
+        : base;
+
+  return retermForLivePlan(list, livePlan);
+};
+
+/**
+ * Rewrite the two lines that go stale the moment pricing moves: the unlock
+ * count and the validity claim. The launch offer re-terms plans at runtime, so
+ * a card that says "5 contact unlocks" beside a plan the server sells with 6 —
+ * or "Full-year validity" on a 6-month launch term — is simply false.
+ *
+ * `livePlan` is a plan object from GET /subscription/plans (`contactUnlocks`
+ * is -1 for unlimited there). Without it the static copy is returned unchanged.
+ */
+const retermForLivePlan = (list, livePlan) => {
+  if (!livePlan) return list;
+
+  const unlocks = livePlan.contactUnlocks;
+  const unlockLine = unlocks === -1
+    ? 'Unlimited contact unlocks'
+    : typeof unlocks === 'number'
+      ? `${unlocks} contact unlock${unlocks === 1 ? '' : 's'}`
+      : null;
+  const validityLine = livePlan.duration ? `${livePlan.duration} of full access` : null;
+
+  return list.map((line) => {
+    if (unlockLine && /contact unlocks?$/i.test(line)) return unlockLine;
+    if (validityLine && /validity$/i.test(line)) return validityLine;
+    return line;
+  });
 };

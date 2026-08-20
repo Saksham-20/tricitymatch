@@ -9,6 +9,7 @@ import {
 import { FaInstagram, FaFacebook, FaTwitter, FaWhatsapp } from 'react-icons/fa';
 import api from '../api/axios';
 import useFoundingWindow from '../hooks/useFoundingWindow';
+import { support } from '../config';
 
 /* Testimonials come ONLY from published admin success stories — the section is
    hidden until at least one real story exists. Never seed fabricated couples. */
@@ -1352,7 +1353,9 @@ const Home = () => {
               {[
                 { icon: <FaInstagram />, label: 'Instagram', href: 'https://www.instagram.com/tricitymatch' },
                 { icon: <FaFacebook />, label: 'Facebook', href: 'https://www.facebook.com/tricitymatch' },
-                { icon: <FaWhatsapp />, label: 'WhatsApp', href: 'https://wa.me/919876543210' },
+                // WhatsApp only renders when a real number is configured —
+                // the old hardcoded link opened a chat with nobody.
+                ...(support.whatsapp ? [{ icon: <FaWhatsapp />, label: 'WhatsApp', href: `https://wa.me/${support.whatsapp}` }] : []),
                 { icon: <FaTwitter />, label: 'Twitter', href: 'https://twitter.com/tricitymatch' },
               ].map(s => (
                 <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" aria-label={s.label}
@@ -1370,7 +1373,14 @@ const Home = () => {
             // theory, orphaned in practice.
             { title: 'Cities',   links: [['Matrimony in Chandigarh', '/matrimony/chandigarh'], ['Matrimony in Mohali', '/matrimony/mohali'], ['Matrimony in Panchkula', '/matrimony/panchkula']] },
             { title: 'Company',  links: [['About Us', '/about'], ['Contact', '/contact'], ['Safety Centre', '/safety'], ['Privacy Policy', '/privacy'], ['Terms of Service', '/terms']] },
-            { title: 'Contact',  links: [['support@tricitymatch.com', null], ['+91 98765 43210', null], ['Sector 17, Chandigarh', null]] },
+            // Phone and address are config-gated for the same reason as WhatsApp:
+            // a placeholder number in the footer is worse than no number.
+            { title: 'Contact',  links: [
+              [support.email, null],
+              ...(support.phone ? [[support.phone, null]] : []),
+              ...(support.address ? [[support.address, null]] : []),
+              ['Help Centre', '/help'],
+            ] },
           ].map(col => (
             <div key={col.title}>
               <h3 style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--gold-text)', fontWeight: 500, marginBottom: 20 }}>{col.title}</h3>

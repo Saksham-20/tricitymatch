@@ -13,8 +13,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { CONFIG } from '../../constants/config';
 
-const WHATSAPP_NUMBER = '919876543210';
+// Support channels come from config — an unconfigured channel is HIDDEN rather
+// than rendered as a dead button. (This screen used to hardcode a placeholder
+// WhatsApp number, so "WhatsApp Support" opened a chat with nobody.)
+const WHATSAPP_NUMBER = CONFIG.SUPPORT_WHATSAPP;
 const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=Hi+TricityMatch+Support%2C+I+need+help+with`;
 
 const FAQ: Array<{ q: string; a: string }> = [
@@ -110,7 +114,7 @@ export default function SupportScreen() {
   };
 
   const openEmail = () => {
-    Linking.openURL('mailto:support@tricitymatch.com?subject=Support+Request');
+    Linking.openURL(`mailto:${CONFIG.SUPPORT_EMAIL}?subject=Support+Request`);
   };
 
   return (
@@ -125,18 +129,22 @@ export default function SupportScreen() {
       <ScrollView contentContainerStyle={s.scroll}>
         <Text style={s.sectionTitle}>Contact Us</Text>
         <View style={s.contactCard}>
-          <ContactRow
-            icon="logo-whatsapp"
-            label="WhatsApp Support"
-            sub="Fastest — typically responds within 1 hour"
-            onPress={openWhatsApp}
-            testID="whatsapp-btn"
-          />
-          <View style={s.divider} />
+          {CONFIG.IS_WHATSAPP_CONFIGURED && (
+            <>
+              <ContactRow
+                icon="logo-whatsapp"
+                label="WhatsApp Support"
+                sub="Chat with our team"
+                onPress={openWhatsApp}
+                testID="whatsapp-btn"
+              />
+              <View style={s.divider} />
+            </>
+          )}
           <ContactRow
             icon="mail-outline"
             label="Email Support"
-            sub="support@tricitymatch.com"
+            sub={CONFIG.SUPPORT_EMAIL}
             onPress={openEmail}
             testID="email-btn"
           />

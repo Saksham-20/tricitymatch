@@ -39,6 +39,20 @@ const ContactMessage = sequelize.define('ContactMessage', {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  // Admin reply (migration 000054). Recorded so the thread is auditable and a
+  // second admin can see the enquiry was already answered.
+  replyBody: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  repliedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  repliedBy: {
+    type: DataTypes.UUID,
+    allowNull: true,
+  },
 });
 
 module.exports = ContactMessage;

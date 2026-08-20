@@ -14,7 +14,8 @@
  *   - startDate           now
  *   - endDate             FOUNDING_PERIOD_ENDS (cohort expires together, not
  *                         30 days after each individual signup)
- *   - contactUnlocksAllowed  FOUNDING_CONTACT_UNLOCKS (5) — **never NULL**.
+ *   - contactUnlocksAllowed  the configured founding unlocks (default 3) —
+ *                         **never NULL**.
  *                         NULL means UNLIMITED in `middlewares/auth.js`
  *                         (checkContactUnlockLimit), so a defaulted grant would
  *                         give every self-signup unlimited contact unlocks =
@@ -33,9 +34,10 @@
  * are log.warn'd and the signup proceeds.
  */
 
-const config = require('../config/env');
 const { log } = require('../middlewares/logger');
 const { FOUNDING_PLAN, FOUNDING_CONTACT_UNLOCKS } = require('../constants/plans');
+// Admin-editable founding window (settings-backed, env fallback).
+const { getFoundingState } = require('./launchOffer');
 
 /**
  * Grant the founding-member bundle to a freshly created user, if the founding
@@ -52,11 +54,19 @@ const grantFoundingIfOpen = async (userId, options = {}) => {
   try {
     if (!userId) return false;
 
-    // Gate 1 — the date. `isOpen()` is false when FOUNDING_PERIOD_ENDS is unset,
-    // unparseable, or in the past. Unset is the default: no env, no grants.
-    if (!config.founding.isOpen()) return false;
+    // Gate 1 — the window. Settings win, env is the fallback; either way an
+    // unset/past deadline means CLOSED, so silence never mints free premium.
+    const founding = getFoundingState();
+    if (!founding.open) return false;
 
-    const endDate = new Date(config.founding.endsAt);
+    // Per-member term (default 30 days), never past the window deadline.
+    const endDate = new Date(Date.now() + founding.grantDays * 24 * 60 * 60 * 1000);
+    if (founding.endsAt) {
+      const windowEnd = new Date(founding.endsAt);
+      if (Number.isFinite(windowEnd.getTime()) && windowEnd < endDate) {
+        endDate.setTime(windowEnd.getTime());
+      }
+    }
 
     // Models are required lazily so this util can be unit-tested against a
     // mocked models module without dragging a live Sequelize connection in at
@@ -69,7 +79,7 @@ const grantFoundingIfOpen = async (userId, options = {}) => {
     // accounts. That is ACCEPTED and deliberate: serialising every signup behind
     // a lock (or a unique counter row) to protect a soft marketing cap is a bad
     // trade. Overshoot is bounded by concurrency, not by traffic volume.
-    const cap = config.founding.memberCap;
+    const cap = founding.memberCap;
     if (cap && cap > 0) {
       const granted = await Subscription.count({
         where: { planType: FOUNDING_PLAN },
@@ -86,7 +96,7 @@ const grantFoundingIfOpen = async (userId, options = {}) => {
         startDate: new Date(),
         endDate,
         // EXPLICIT. NULL here = unlimited unlocks. See the header note.
-        contactUnlocksAllowed: FOUNDING_CONTACT_UNLOCKS,
+        contactUnlocksAllowed: founding.contactUnlocks ?? FOUNDING_CONTACT_UNLOCKS,
         contactUnlocksUsed: 0,
         amount: 0,
         autoRenew: false,

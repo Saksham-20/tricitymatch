@@ -53,6 +53,22 @@ export const agora = {
   isConfigured: !!(import.meta.env.VITE_AGORA_APP_ID && String(import.meta.env.VITE_AGORA_APP_ID).trim()),
 };
 
+// Support channels. The footer shipped a hardcoded WhatsApp link and phone
+// number (…9876543210) that were placeholders — real, clickable, and going
+// nowhere. Unset now means the channel is HIDDEN rather than fake.
+const isRealPhone = (value) => {
+  const digits = String(value || '').replace(/\D/g, '');
+  return digits.length >= 10 && !digits.includes('9876543210');
+};
+
+export const support = {
+  email: import.meta.env.VITE_SUPPORT_EMAIL || 'support@tricitymatch.com',
+  // wa.me format: country code + number, digits only.
+  whatsapp: isRealPhone(import.meta.env.VITE_SUPPORT_WHATSAPP) ? String(import.meta.env.VITE_SUPPORT_WHATSAPP).replace(/\D/g, '') : '',
+  phone: isRealPhone(import.meta.env.VITE_SUPPORT_PHONE) ? String(import.meta.env.VITE_SUPPORT_PHONE).trim() : '',
+  address: import.meta.env.VITE_SUPPORT_ADDRESS || '',
+};
+
 // Cloudinary Configuration
 export const cloudinary = {
   cloudName: import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '',

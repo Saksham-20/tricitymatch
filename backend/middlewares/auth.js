@@ -274,8 +274,26 @@ const checkContactUnlockLimit = asyncHandler(async (req, res, next) => {
     throw createError.forbidden('Premium subscription required', 'PREMIUM_REQUIRED');
   }
 
-  // NULL contactUnlocksAllowed = unlimited unlocks
+  // NULL contactUnlocksAllowed = unlimited unlocks — but "unlimited" is a
+  // product promise, not a licence to drain the directory. A single cheap
+  // launch-priced VIP would otherwise be enough to script every phone number
+  // in the database out of it, so unlimited tiers get a rolling 24h ceiling.
+  // A real member never approaches it; a harvester hits it in minutes.
   if (subscription.contactUnlocksAllowed === null) {
+    const cap = config.limits?.unlimitedDailyUnlockCap ?? 25;
+    if (cap > 0) {
+      const { ContactUnlock } = require('../models');
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const usedToday = await ContactUnlock.count({
+        where: { userId: req.user.id, createdAt: { [Op.gte]: since } },
+      });
+      if (usedToday >= cap) {
+        throw createError.forbidden(
+          `Daily limit of ${cap} contact unlocks reached. It resets on a rolling 24-hour basis.`,
+          'DAILY_UNLOCK_LIMIT_REACHED'
+        );
+      }
+    }
     return next();
   }
 

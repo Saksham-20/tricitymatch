@@ -20,13 +20,15 @@
 // UNLIMITED_PLANS (so it gets neither boost nor unlimited unlocks).
 const FOUNDING_PLAN = 'founding_premium';
 
-// Contact unlocks bundled with the founding grant — basic_premium-grade.
+// Contact unlocks bundled with the founding grant. DEFAULT ONLY — the live
+// value is admin-editable via `utils/launchOffer.js` getFoundingState(); this
+// constant is the fallback when no settings row has loaded yet.
 // MUST be a finite number and MUST be written explicitly on the granted row:
 // `Subscription.contactUnlocksAllowed = NULL` means UNLIMITED
 // (`middlewares/auth.js` checkContactUnlockLimit), so a grant that left the
 // column at its default would hand every self-signup unlimited contact
 // unlocks — a scriptable phone-number harvest.
-const FOUNDING_CONTACT_UNLOCKS = 5;
+const FOUNDING_CONTACT_UNLOCKS = 3;
 
 // Every paying/paid-grade tier. Used for `requirePremium` and any "is this a
 // paid member" gate. Adding a tier here automatically extends all those gates.

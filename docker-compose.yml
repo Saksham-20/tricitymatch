@@ -193,6 +193,10 @@ services:
         VITE_RAZORPAY_KEY_ID: ${VITE_RAZORPAY_KEY_ID:-}
         VITE_CLOUDINARY_CLOUD_NAME: ${VITE_CLOUDINARY_CLOUD_NAME:-}
         VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
+        VITE_SUPPORT_EMAIL: ${VITE_SUPPORT_EMAIL:-}
+        VITE_SUPPORT_WHATSAPP: ${VITE_SUPPORT_WHATSAPP:-}
+        VITE_SUPPORT_PHONE: ${VITE_SUPPORT_PHONE:-}
+        VITE_SUPPORT_ADDRESS: ${VITE_SUPPORT_ADDRESS:-}
     container_name: tricitymatch-frontend
     restart: unless-stopped
     depends_on:
