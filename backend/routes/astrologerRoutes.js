@@ -118,16 +118,38 @@ router.post('/book', auth, asyncHandler(async (req, res) => {
 
   const amountPaise = ast.pricePerMin * dur * 100; // INR → paise
 
+  // This catch used to swallow EVERY failure — network blip, Razorpay 5xx, rate
+  // limit, rejected amount — and fall through to creating the booking as
+  // 'confirmed' with no payment attached, i.e. a free consultation. Only the
+  // genuinely-unconfigured case may skip payment, and only outside production.
   let razorpayOrderId = null;
-  try {
-    const order = await createGenericOrder(amountPaise, req.user.id, {
-      astrologerId,
-      durationMin: String(dur),
-      type: 'astrologer_booking',
-    });
+  const paymentsConfigured = config.razorpay.isConfigured();
+
+  if (paymentsConfigured) {
+    let order;
+    try {
+      order = await createGenericOrder(amountPaise, req.user.id, {
+        astrologerId,
+        durationMin: String(dur),
+        type: 'astrologer_booking',
+      });
+    } catch (err) {
+      log.error('Astrologer booking order creation failed', {
+        error: err.message,
+        userId: req.user.id,
+        astrologerId,
+        amountPaise,
+      });
+      throw new AppError('Could not start payment for this booking. Please try again.', 502);
+    }
     razorpayOrderId = order.orderId;
-  } catch (err) {
-    log.warn('Razorpay not configured — booking without payment order', { error: err.message });
+  } else if (config.isProduction) {
+    // Never hand out unpaid bookings in production.
+    throw new AppError('Payments are not available right now. Please try again later.', 503);
+  } else {
+    log.warn('Razorpay not configured — dev-only booking without payment order', {
+      userId: req.user.id,
+    });
   }
 
   const booking = await AstrologerBooking.create({
@@ -168,6 +190,35 @@ router.post('/book/:bookingId/verify-payment', auth, asyncHandler(async (req, re
   });
   if (!booking) throw new AppError('Booking not found', 404);
   if (booking.status !== 'pending_payment') throw new AppError('Booking not awaiting payment', 400);
+
+  // The signature only proves that SOME (order, payment) pair is genuine — not
+  // that it belongs to THIS booking. Without binding, one real payment (even a
+  // cheap one) could be replayed against every other pending booking to confirm
+  // them all for free. The subscription path binds by looking the row up via
+  // razorpayOrderId; do the equivalent here.
+  if (!booking.razorpayOrderId || razorpay_order_id !== booking.razorpayOrderId) {
+    log.security('Astrologer payment order mismatch', {
+      userId: req.user.id,
+      bookingId: booking.id,
+      submittedOrderId: razorpay_order_id,
+    });
+    throw new AppError('Payment does not belong to this booking', 400);
+  }
+
+  // A payment id may settle exactly one booking. Belt-and-braces alongside the
+  // unique index added in migration 000052.
+  const alreadyUsed = await AstrologerBooking.findOne({
+    where: { razorpayPaymentId: razorpay_payment_id },
+    attributes: ['id'],
+  });
+  if (alreadyUsed) {
+    log.security('Astrologer payment id replay attempt', {
+      userId: req.user.id,
+      bookingId: booking.id,
+      reusedBy: alreadyUsed.id,
+    });
+    throw new AppError('This payment has already been used', 409);
+  }
 
   const isValid = verifyPayment(razorpay_order_id, razorpay_payment_id, razorpay_signature);
   if (!isValid) throw new AppError('Payment verification failed — invalid signature', 400);

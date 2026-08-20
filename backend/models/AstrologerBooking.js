@@ -43,6 +43,11 @@ const AstrologerBooking = sequelize.define('AstrologerBooking', {
   razorpayPaymentId: {
     type: DataTypes.STRING(128),
     allowNull: true,
+    // Unique like razorpayOrderId above: one payment settles one booking.
+    // Without this, a single genuine (order, payment, signature) triple could
+    // be replayed to confirm every other pending booking. DB-enforced by
+    // migration 000052 as a partial unique index (NULLs stay free).
+    unique: true,
   },
   agoraChannel: {
     type: DataTypes.STRING(128),
