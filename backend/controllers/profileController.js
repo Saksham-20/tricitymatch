@@ -494,7 +494,11 @@ exports.deleteProfilePhoto = asyncHandler(async (req, res) => {
  * Returns the gated profile plus the mutual-match flag callers need.
  * Throws 404 when the target is absent/inactive, 403 when a gate rejects.
  */
-const assertProfileVisible = async (viewerId, targetUserId, { viewerRole } = {}) => {
+const assertProfileVisible = async (
+  viewerId,
+  targetUserId,
+  { viewerRole, enforceVisibilityPreference = true } = {}
+) => {
   const profile = await Profile.findOne({
     where: { userId: targetUserId, isActive: true },
     include: [
@@ -539,8 +543,14 @@ const assertProfileVisible = async (viewerId, targetUserId, { viewerRole } = {})
   });
   const isMutual = existingMatch?.isMutual || false;
 
+  // enforceVisibilityPreference=false is used only for contact details the
+  // viewer has ALREADY paid to unlock: flipping a profile to matches_only is a
+  // discovery preference and must not retroactively confiscate something that
+  // was bought. Account status and blocks are still enforced above — those are
+  // withdrawal of consent, not a display setting.
   const isAdminViewer = viewerRole === 'admin' || viewerRole === 'super_admin';
-  if (profile.profileVisibility === 'matches_only' && !isMutual && !isAdminViewer) {
+  if (enforceVisibilityPreference
+      && profile.profileVisibility === 'matches_only' && !isMutual && !isAdminViewer) {
     throw createError.forbidden(
       'This profile is only visible to their matches.',
       'PROFILE_MATCHES_ONLY'
@@ -785,16 +795,24 @@ exports.unlockContact = asyncHandler(async (req, res) => {
     throw createError.badRequest('Cannot unlock your own contact');
   }
 
+  // Check if already unlocked
+  const existing = await ContactUnlock.findOne({ where: { userId, targetUserId } });
+
   // Validate the target BEFORE any quota is consumed. This handler used to go
   // straight to the INSERT, so unlocking a deleted/suspended/nonexistent user
   // burned one of the plan's paid unlocks permanently and returned
   // {phone: null, email: null}. It also ignored the block list and the target's
   // matches_only setting, letting a premium member buy contact details for a
   // profile they are not even allowed to view.
-  await assertProfileVisible(userId, targetUserId, { viewerRole: req.user.role });
-
-  // Check if already unlocked
-  const existing = await ContactUnlock.findOne({ where: { userId, targetUserId } });
+  //
+  // An unlock that was ALREADY paid for keeps resolving even if the target
+  // later switches to matches_only — that setting governs discovery, not a
+  // refund of something purchased. Account deletion/suspension and an explicit
+  // block still stop it, because those are a withdrawal of consent.
+  await assertProfileVisible(userId, targetUserId, {
+    viewerRole: req.user.role,
+    enforceVisibilityPreference: !existing,
+  });
   if (existing) {
     const tp = await Profile.findOne({
       where: { userId: targetUserId },

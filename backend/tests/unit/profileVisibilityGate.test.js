@@ -110,6 +110,35 @@ describe('assertProfileVisible', () => {
     await expect(assertProfileVisible(VIEWER, VIEWER)).resolves.toMatchObject({ isSelf: true });
   });
 
+  it('can skip the matches_only preference for already-paid access', async () => {
+    // Contact details already unlocked: flipping to matches_only is a discovery
+    // preference and must not retroactively confiscate a purchase.
+    Profile.findOne.mockResolvedValue(visibleProfile({ profileVisibility: 'matches_only' }));
+    Match.findOne.mockResolvedValue(null);
+
+    await expect(
+      assertProfileVisible(VIEWER, TARGET, { enforceVisibilityPreference: false })
+    ).resolves.toBeDefined();
+  });
+
+  it('still enforces blocks even for already-paid access', async () => {
+    Profile.findOne.mockResolvedValue(visibleProfile({ profileVisibility: 'matches_only' }));
+    Block.findOne.mockResolvedValue({ id: 'block-1' });
+
+    await expect(
+      assertProfileVisible(VIEWER, TARGET, { enforceVisibilityPreference: false })
+    ).rejects.toMatchObject({ statusCode: 403 });
+  });
+
+  it('still enforces account status even for already-paid access', async () => {
+    // Inner join on status='active' means a deleted account yields no row.
+    Profile.findOne.mockResolvedValue(null);
+
+    await expect(
+      assertProfileVisible(VIEWER, TARGET, { enforceVisibilityPreference: false })
+    ).rejects.toMatchObject({ statusCode: 404 });
+  });
+
   it('returns the profile for an ordinary visible target', async () => {
     const profile = visibleProfile();
     Profile.findOne.mockResolvedValue(profile);

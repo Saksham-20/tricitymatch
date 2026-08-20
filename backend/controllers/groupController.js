@@ -8,6 +8,7 @@
 const { Group, GroupMember, GroupMessage, User, Profile } = require('../models');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { log } = require('../middlewares/logger');
+const { notify } = require('../utils/notifyUser');
 
 const MAX_MESSAGE_LENGTH = 2000;
 const MAX_MEMBERS = 20;
@@ -169,6 +170,27 @@ exports.addMember = asyncHandler(async (req, res) => {
   if (existing) throw createError.conflict('User is already a member');
 
   const member = await GroupMember.create({ groupId, userId: newUserId, role: 'member' });
+
+  // Tell the person they were added. There is no accept step — an owner can put
+  // anyone into a family group, and that group's messages become readable
+  // immediately — so silence meant a stranger could be reading a family's
+  // conversation without ever knowing. Notifying at least makes it visible and
+  // actionable: DELETE /groups/:groupId/leave is already available to them.
+  // (A proper pending-invite state needs a schema change and is a product call.)
+  try {
+    const group = await Group.findByPk(groupId, { attributes: ['name'] });
+    await notify(
+      newUserId,
+      'system',
+      'You were added to a family group',
+      `You are now a member of "${group?.name || 'a family group'}". You can leave at any time from the group screen.`,
+      groupId
+    );
+  } catch (err) {
+    // Never fail the add because the notification could not be delivered.
+    log.error('Group add notification failed', { groupId, newUserId, error: err.message });
+  }
+
   res.status(201).json({ success: true, member });
 });
 
