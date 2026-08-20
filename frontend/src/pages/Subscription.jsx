@@ -254,8 +254,10 @@ const PlanCard = ({ planKey, plan, isPopular, isCurrent, currentPlanType, isProc
         <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-gold-400 to-gold-600 rounded-t-2xl" />
       )}
       {badge && (
-        <div className="absolute -top-0.5 left-1/2 -translate-x-1/2">
-          <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-b-xl ${
+        // whitespace-nowrap: in a five-column grid the ribbon wrapped to two
+        // lines and overlapped the plan title underneath it.
+        <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 whitespace-nowrap">
+          <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-[11px] sm:text-xs font-semibold rounded-b-xl ${
             isPopular
               ? 'bg-primary-500 text-white shadow-burgundy'
               : 'bg-gold text-neutral-900 shadow-gold'
@@ -267,7 +269,7 @@ const PlanCard = ({ planKey, plan, isPopular, isCurrent, currentPlanType, isProc
       )}
 
       {/* Header */}
-      <div className={`px-6 pt-8 pb-6 ${badge ? 'pt-10' : ''}`}>
+      <div className={`px-6 pt-8 pb-6 ${badge ? 'pt-12' : ''}`}>
         <div className="flex items-center gap-2.5 mb-4">
           {Icon && (
             <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
