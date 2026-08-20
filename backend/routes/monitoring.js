@@ -97,7 +97,12 @@ router.get('/health/ready', asyncHandler(async (req, res) => {
  *       200:
  *         description: Full health report
  */
-router.get('/health/full', asyncHandler(async (req, res) => {
+// SECURITY: this is the only route in this file that lacked auth. It returns
+// environment, version, pid, memory/CPU/disk, DB + Redis reachability and raw
+// error strings, and each call does real DB/Redis round-trips (amplification).
+// It also sits before the API rate limiter, so it was uncapped. Gated to admins
+// to match every sibling route here; use /health or /health/ready for probes.
+router.get('/health/full', authenticate, adminAuth, asyncHandler(async (req, res) => {
   const redisClient = getRedisClient();
   const health = await fullHealthCheck(redisClient);
   

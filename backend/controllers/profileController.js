@@ -14,6 +14,7 @@ const { getNumerologyMatch } = require('../utils/numerology');
 const { generateKundliPDF } = require('../utils/kundli');
 const { generateBiodataPDF, TEMPLATES: BIODATA_TEMPLATES } = require('../utils/biodata');
 const { toProfileCode } = require('../utils/profileCode');
+const { sanitizeSavedSearchList } = require('../utils/savedSearches');
 const { notify } = require('../utils/notifyUser');
 const { trackEvent } = require('../utils/trackEvent');
 
@@ -250,6 +251,22 @@ exports.updateProfile = asyncHandler(async (req, res) => {
       updateData.socialMediaLinks = normalizeSocialLinks(updateData.socialMediaLinks);
     }
 
+    // lifestylePreferences is a client-editable JSONB blob that ALSO happens to
+    // hold savedSearches, which the weekly-digest job feeds into a Sequelize
+    // `where`. Writing it through this generic path bypassed the saved-search
+    // endpoint's whitelist and its 5-entry cap, so re-apply both here. Only the
+    // savedSearches key is touched; the rest of the blob is preserved.
+    if (Object.prototype.hasOwnProperty.call(updateData, 'lifestylePreferences')) {
+      const lp = updateData.lifestylePreferences;
+      if (lp && typeof lp === 'object' && !Array.isArray(lp)
+          && Object.prototype.hasOwnProperty.call(lp, 'savedSearches')) {
+        updateData.lifestylePreferences = {
+          ...lp,
+          savedSearches: sanitizeSavedSearchList(lp.savedSearches),
+        };
+      }
+    }
+
     // Normalize file path: Cloudinary returns full URL; local storage returns path — store URL path for local
     const getStoredPath = (file) => {
       if (!file || !file.path) return null;
@@ -464,6 +481,77 @@ exports.deleteProfilePhoto = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * Shared visibility gate for any endpoint that reads ANOTHER user's profile.
+ *
+ * getProfile grew four gates over time (active account, active profile,
+ * matches_only, block) but its siblings — compatibility, horoscope-match and
+ * the Kundli PDF — fetched the target with a bare Profile.findOne and so
+ * skipped every one of them. The PDF renders full name, exact DOB and place of
+ * birth, which made it an enumeration oracle over the whole user table
+ * including deleted, suspended, matches_only and blocking members.
+ *
+ * Returns the gated profile plus the mutual-match flag callers need.
+ * Throws 404 when the target is absent/inactive, 403 when a gate rejects.
+ */
+const assertProfileVisible = async (viewerId, targetUserId, { viewerRole } = {}) => {
+  const profile = await Profile.findOne({
+    where: { userId: targetUserId, isActive: true },
+    include: [
+      {
+        model: User,
+        attributes: ['id', 'status'],
+        where: { status: 'active' },
+        required: true,
+      },
+    ],
+  });
+
+  if (!profile) {
+    throw createError.notFound('Profile not found');
+  }
+
+  // Viewing yourself bypasses the visibility gates — getProfile does this by
+  // short-circuiting to getMyProfile, and without the equivalent here a member
+  // whose own profile is set to matches_only got a 403 on their OWN
+  // compatibility/horoscope.
+  if (viewerId === targetUserId) {
+    return { profile, isMutual: false, isSelf: true };
+  }
+
+  // Blocks are bidirectional and must not reveal which direction fired.
+  const blockExists = await Block.findOne({
+    where: {
+      [Op.or]: [
+        { blockerId: viewerId, blockedUserId: targetUserId },
+        { blockerId: targetUserId, blockedUserId: viewerId },
+      ],
+    },
+    attributes: ['id'],
+  });
+  if (blockExists) {
+    throw createError.forbidden('Cannot perform this action');
+  }
+
+  const existingMatch = await Match.findOne({
+    where: { userId: viewerId, matchedUserId: targetUserId },
+    attributes: ['isMutual'],
+  });
+  const isMutual = existingMatch?.isMutual || false;
+
+  const isAdminViewer = viewerRole === 'admin' || viewerRole === 'super_admin';
+  if (profile.profileVisibility === 'matches_only' && !isMutual && !isAdminViewer) {
+    throw createError.forbidden(
+      'This profile is only visible to their matches.',
+      'PROFILE_MATCHES_ONLY'
+    );
+  }
+
+  return { profile, isMutual };
+};
+
+exports.assertProfileVisible = assertProfileVisible;
+
 // @route   GET /api/profile/:userId
 // @desc    Get user profile by ID (with privacy checks)
 // @access  Private
@@ -495,6 +583,22 @@ exports.getProfile = asyncHandler(async (req, res) => {
 
   if (!profile) {
     throw createError.notFound('Profile not found');
+  }
+
+  // Blocks are bidirectional; matchAction already gates on this but the profile
+  // read did not, so a blocked user could still open the full profile by URL.
+  // Message stays generic so it never reveals which direction blocked.
+  const blockExists = await Block.findOne({
+    where: {
+      [Op.or]: [
+        { blockerId: viewerId, blockedUserId: userId },
+        { blockerId: userId, blockedUserId: viewerId },
+      ],
+    },
+    attributes: ['id'],
+  });
+  if (blockExists) {
+    throw createError.forbidden('Cannot perform this action');
   }
 
   // Check subscription for contact visibility
@@ -680,6 +784,14 @@ exports.unlockContact = asyncHandler(async (req, res) => {
   if (userId === targetUserId) {
     throw createError.badRequest('Cannot unlock your own contact');
   }
+
+  // Validate the target BEFORE any quota is consumed. This handler used to go
+  // straight to the INSERT, so unlocking a deleted/suspended/nonexistent user
+  // burned one of the plan's paid unlocks permanently and returned
+  // {phone: null, email: null}. It also ignored the block list and the target's
+  // matches_only setting, letting a premium member buy contact details for a
+  // profile they are not even allowed to view.
+  await assertProfileVisible(userId, targetUserId, { viewerRole: req.user.role });
 
   // Check if already unlocked
   const existing = await ContactUnlock.findOne({ where: { userId, targetUserId } });
@@ -921,12 +1033,12 @@ exports.getRecentlyViewed = asyncHandler(async (req, res) => {
 // @access  Private
 exports.getCompatibilityBreakdown = asyncHandler(async (req, res) => {
   const { userId } = req.params;
-  const [myProfile, theirProfile] = await Promise.all([
-    Profile.findOne({ where: { userId: req.user.id } }),
-    Profile.findOne({ where: { userId } }),
-  ]);
+  const myProfile = await Profile.findOne({ where: { userId: req.user.id } });
   if (!myProfile) throw createError.notFound('Your profile not found');
-  if (!theirProfile) throw createError.notFound('Profile not found');
+
+  const { profile: theirProfile } = await assertProfileVisible(req.user.id, userId, {
+    viewerRole: req.user.role,
+  });
 
   const overallScore = calculateCompatibility(myProfile, theirProfile);
   const breakdown = calcBreakdown(myProfile, theirProfile);
@@ -1053,12 +1165,12 @@ exports.deleteVideoIntro = asyncHandler(async (req, res) => {
 // @access  Private
 exports.getHoroscopeMatch = asyncHandler(async (req, res) => {
   const { userId } = req.params;
-  const [myProfile, theirProfile] = await Promise.all([
-    Profile.findOne({ where: { userId: req.user.id } }),
-    Profile.findOne({ where: { userId } }),
-  ]);
+  const myProfile = await Profile.findOne({ where: { userId: req.user.id } });
   if (!myProfile) throw createError.notFound('Your profile not found');
-  if (!theirProfile) throw createError.notFound('Profile not found');
+
+  const { profile: theirProfile } = await assertProfileVisible(req.user.id, userId, {
+    viewerRole: req.user.role,
+  });
 
   // Full Ashtakoot if both have nakshatra
   const ashtakoot = getAshtakootScore(myProfile.nakshatra, theirProfile.nakshatra);
@@ -1109,12 +1221,12 @@ exports.getHoroscopeMatch = asyncHandler(async (req, res) => {
 // @access  Private (premium)
 exports.downloadKundliReport = asyncHandler(async (req, res) => {
   const { userId } = req.params;
-  const [myProfile, theirProfile] = await Promise.all([
-    Profile.findOne({ where: { userId: req.user.id } }),
-    Profile.findOne({ where: { userId } }),
-  ]);
+  const myProfile = await Profile.findOne({ where: { userId: req.user.id } });
   if (!myProfile) throw createError.notFound('Your profile not found');
-  if (!theirProfile) throw createError.notFound('Profile not found');
+
+  const { profile: theirProfile } = await assertProfileVisible(req.user.id, userId, {
+    viewerRole: req.user.role,
+  });
 
   const ashtakoot = getAshtakootScore(myProfile.nakshatra, theirProfile.nakshatra);
   const manglikCompatible = isManglikCompatible(myProfile.manglikStatus, theirProfile.manglikStatus);

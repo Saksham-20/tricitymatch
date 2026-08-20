@@ -3,6 +3,7 @@
 const express = require('express');
 const router = express.Router();
 const { auth, requirePremium } = require('../middlewares/auth');
+const { matchActionLimiter } = require('../middlewares/security');
 const {
   getAgoraToken,
   initiateCall,
@@ -13,8 +14,10 @@ const {
 } = require('../controllers/callController');
 
 // All call endpoints require auth + Premium+ subscription
-router.get('/agora-token', auth, requirePremium, getAgoraToken);
-router.post('/initiate', auth, requirePremium, initiateCall);
+// Token minting and call initiation both had only the global limiter in front
+// of them; the first hands out RTC credentials, the second rings other members.
+router.get('/agora-token', auth, requirePremium, matchActionLimiter, getAgoraToken);
+router.post('/initiate', auth, requirePremium, matchActionLimiter, initiateCall);
 router.get('/history', auth, getCallHistory);
 router.put('/:id/accept', auth, acceptCall);
 router.put('/:id/decline', auth, declineCall);
