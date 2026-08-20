@@ -4,6 +4,7 @@
  */
 
 const config = require('../config/env');
+const { sanitizeSavedSearchList } = require('./savedSearches');
 const { log } = require('../middlewares/logger');
 
 // Job queues
@@ -345,7 +346,9 @@ const setupCleanupProcessor = (queue) => {
         if (!profile) continue;
 
         // Extract saved searches from lifestylePreferences.savedSearches
-        const savedSearches = profile.lifestylePreferences?.savedSearches;
+        // Defensive: these rows predate the sanitiser being applied on the profile
+    // update path, so re-validate rather than trusting whatever is stored.
+    const savedSearches = sanitizeSavedSearchList(profile.lifestylePreferences?.savedSearches);
         if (!Array.isArray(savedSearches) || savedSearches.length === 0) continue;
 
         for (const search of savedSearches) {

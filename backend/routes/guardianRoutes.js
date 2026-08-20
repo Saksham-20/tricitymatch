@@ -120,9 +120,17 @@ router.post('/invite', auth, asyncHandler(async (req, res) => {
 }));
 
 // DELETE /guardian/:linkId — revoke guardian access
+//
+// Either party may revoke. This was scoped to candidateId only, so a guardian
+// who had been linked to someone else's profile — which happens automatically
+// when the invited email already belongs to a user, with no accept step — had
+// no way to detach themselves from it.
 router.delete('/:linkId', auth, asyncHandler(async (req, res) => {
   const link = await GuardianLink.findOne({
-    where: { id: req.params.linkId, candidateId: req.user.id },
+    where: {
+      id: req.params.linkId,
+      [Op.or]: [{ candidateId: req.user.id }, { guardianId: req.user.id }],
+    },
   });
   if (!link) throw new AppError('Guardian link not found', 404);
 

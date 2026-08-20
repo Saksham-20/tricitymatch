@@ -8,7 +8,7 @@ const { User, Profile, RefreshToken, ReferralCode, MarketingLead } = require('..
 const { sendWelcomeEmail, sendPasswordResetEmail, sendEmail, sendOtpEmail, sendSecurityAlert } = require('../utils/email');
 const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
-const { recordFailedLogin, clearLoginAttempts } = require('../middlewares/security');
+const { recordFailedLogin, clearLoginAttempts, loginLookupKey } = require('../middlewares/security');
 const { log } = require('../middlewares/logger');
 const { OAuth2Client } = require('google-auth-library');
 const smsService = require('../utils/smsService');
@@ -16,8 +16,13 @@ const { trackEvent } = require('../utils/trackEvent');
 const { grantFoundingIfOpen } = require('../utils/foundingGrant');
 const { getActiveSubscription } = require('../utils/entitlements');
 
-// Cookie configuration: use Secure only over HTTPS so cookies work when frontend is http://
-const useSecureCookies = config.isProduction && (config.server.frontendUrl || '').startsWith('https');
+// Cookie configuration: Secure is UNCONDITIONAL in production. This used to be
+// gated on FRONTEND_URL starting with 'https', with a `|| ''` fallback — so an
+// unset or http FRONTEND_URL silently shipped the auth cookies without Secure,
+// i.e. the failure mode was open. Production is HTTPS-only (env.js refuses to
+// boot on a non-https FRONTEND_URL), so there is no legitimate prod case for a
+// plaintext auth cookie. Dev stays off so http://localhost keeps working.
+const useSecureCookies = config.isProduction;
 const getCookieOptions = (maxAge) => ({
   httpOnly: true,
   secure: useSecureCookies,
@@ -341,7 +346,9 @@ exports.login = asyncHandler(async (req, res) => {
   }
 
   const isEmail = rawIdentifier.includes('@');
-  const lookupKey = isEmail ? rawIdentifier.toLowerCase() : rawIdentifier;
+  // Shared with checkAccountLockout so the lockout gate keys off exactly what
+  // we record failures against (see loginLookupKey in middlewares/security).
+  const lookupKey = loginLookupKey(req.body);
   const where = isEmail ? { email: lookupKey } : { phone: lookupKey };
 
   // Find user by email or phone
@@ -351,9 +358,19 @@ exports.login = asyncHandler(async (req, res) => {
     throw createError.unauthorized('Invalid credentials');
   }
 
-  // OAuth-only accounts have no password set
+  // OAuth-only accounts have no password set.
+  //
+  // This branch used to name the auth method, and it fires BEFORE any password
+  // check — so it confirmed both that the account exists and how it signs in,
+  // to an unauthenticated caller, for free. The two branches around it were
+  // deliberately given one constant message for exactly this reason; this one
+  // undercut them. Return the same constant message and count the attempt so
+  // lockout applies. (UX tradeoff: a Google-only user who types a password now
+  // sees a generic failure and must use the Google button, which is present on
+  // the login page.)
   if (!user.password) {
-    throw createError.unauthorized('This account uses Google sign-in. Please continue with Google.');
+    await recordFailedLogin(lookupKey);
+    throw createError.unauthorized('Invalid credentials');
   }
 
   // Check password
@@ -977,7 +994,12 @@ exports.googleAuth = asyncHandler(async (req, res) => {
     }
   }
 
-  if (user.status === 'banned') throw createError.forbidden('Your account has been suspended');
+  // Every other auth path rejects `status !== 'active'`; this one checked only
+  // for 'banned', so inactive / pending / deleted accounts could still sign in
+  // through Google.
+  if (user.status !== 'active') {
+    throw createError.forbidden('Account is not active. Please contact support.');
+  }
 
   user.lastLogin = new Date();
   await user.save();

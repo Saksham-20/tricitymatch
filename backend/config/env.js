@@ -374,21 +374,48 @@ if (isProduction) {
   const allowInsecureProd = optionalBoolean('ALLOW_INSECURE_PROD', false);
 
   // ── Always fatal: core auth/session/db/url integrity ──
-  // JWT secret must not be the dev default
-  if (!config.auth.jwtSecret || config.auth.jwtSecret.includes('dev-secret')) {
-    errors.push('JWT_SECRET must be a strong secret in production (not the dev placeholder)');
+  // Master OTP codes verify ANY phone/email, for ANY account. Shipping them to
+  // production is a universal account-takeover primitive, so it is fatal here
+  // and NOT downgradable by ALLOW_INSECURE_PROD. Previously this only produced
+  // a console warning — and that warning lived inside the ALLOW_INSECURE_PROD
+  // branch, so with the flag off it printed nothing at all.
+  if (config.sms.bypassCodes.length > 0) {
+    errors.push('OTP_BYPASS_CODES must be empty in production (master OTP codes bypass all verification)');
   }
 
-  // Cookie secret must be set, not the dev default, and at least 32 chars
+  // The escape hatch itself is a pre-launch-only device. Leaving it on in
+  // production means booting with an unverifiable payment webhook and no OTP
+  // delivery, so refuse rather than warn.
+  if (allowInsecureProd) {
+    errors.push('ALLOW_INSECURE_PROD must not be enabled in production');
+  }
+
+  // JWT secret must not be the dev default or any placeholder value
+  if (!config.auth.jwtSecret || config.auth.jwtSecret.includes('dev-secret')) {
+    errors.push('JWT_SECRET must be a strong secret in production (not the dev placeholder)');
+  } else if (!hasRealSecret(config.auth.jwtSecret)) {
+    errors.push('JWT_SECRET looks like a placeholder value — set a real random secret');
+  }
+
+  // Cookie secret must be set, not the dev default, at least 32 chars, and not
+  // a placeholder. Length alone passed strings like 'example-example-...'.
   if (!config.security.cookieSecret || config.security.cookieSecret === 'dev-cookie-secret') {
     errors.push('COOKIE_SECRET must be set to a strong random value in production');
   } else if (config.security.cookieSecret.length < 32) {
     errors.push('COOKIE_SECRET must be at least 32 characters in production');
+  } else if (!hasRealSecret(config.security.cookieSecret)) {
+    errors.push('COOKIE_SECRET looks like a placeholder value — set a real random secret');
   }
 
-  // Database password must not be the bare default 'root'
-  if (!config.database.password || config.database.password === 'root') {
+  // Database password must not be a well-known default. 'root' alone was
+  // checked, which let the docker-compose default (`postgres`) sail through.
+  const WEAK_DB_PASSWORDS = ['root', 'postgres', 'password', 'admin', 'changeme', 'secret'];
+  if (!config.database.password) {
     errors.push('DB_PASSWORD must be set in production');
+  } else if (WEAK_DB_PASSWORDS.includes(String(config.database.password).toLowerCase())) {
+    errors.push('DB_PASSWORD is a well-known default value — set a strong password');
+  } else if (!hasRealSecret(config.database.password)) {
+    errors.push('DB_PASSWORD looks like a placeholder value — set a strong password');
   }
 
   // FRONTEND_URL must be a real HTTPS URL
@@ -422,9 +449,6 @@ if (isProduction) {
   if (warnings.length > 0) {
     console.warn('\n⚠️  ALLOW_INSECURE_PROD is ON — running with unconfigured providers (PRE-LAUNCH ONLY):\n');
     warnings.forEach(w => console.warn(`  ! ${w}`));
-    if (config.sms.bypassCodes.length > 0) {
-      console.warn(`  ! OTP_BYPASS_CODES active (${config.sms.bypassCodes.length} master code(s)) — REMOVE before real users.`);
-    }
     console.warn('\nThese MUST be resolved before onboarding real users.\n');
   }
 

@@ -18,6 +18,7 @@ import { type ThemeColours, borderRadius } from '@shared/constants/theme';
 import { TabIcon } from '../motion';
 import { PressableScale } from '../motion';
 import { useTheme } from '../../hooks/useTheme';
+import { useUIStore } from '../../stores/uiStore';
 import { haptics } from '../../utils/haptics';
 
 /** Bottom padding tab screens need so content scrolls clear of the pill. */
@@ -43,7 +44,12 @@ export default function FloatingTabBar({ state, descriptors, navigation, icons }
     const h = Keyboard.addListener(hideEvt, () => setKeyboardUp(false));
     return () => { s.remove(); h.remove(); };
   }, []);
-  if (keyboardUp) return null;
+  // Stay out from under modal sheets. The pill is absolutely positioned over
+  // the whole screen, so it otherwise floats on top of an open sheet and
+  // covers that sheet's own footer buttons.
+  const sheetUp = useUIStore((s) => s.bottomSheetOpen);
+
+  if (keyboardUp || sheetUp) return null;
 
   return (
     <View pointerEvents="box-none" style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 12) }]}>

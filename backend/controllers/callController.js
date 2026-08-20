@@ -2,7 +2,7 @@
 
 const { v4: uuidv4 } = require('uuid');
 const { Op } = require('sequelize');
-const { CallSession, User, Profile, Match } = require('../models');
+const { CallSession, User, Profile, Match, AstrologerBooking } = require('../models');
 const { generateRtcToken } = require('../utils/agoraToken');
 const { getIO } = require('../utils/socket');
 const { notify } = require('../utils/notifyUser');
@@ -11,9 +11,52 @@ const { log } = require('../middlewares/logger');
 const config = require('../config/env');
 
 // GET /calls/agora-token?channel=<name>&type=voice|video
+//
+// SECURITY: an Agora RTC token is a joining credential for whatever channel it
+// names. This endpoint used to mint one for ANY channel string with uid=0, so
+// any premium member could sit on a stranger's live call — initiateCall's
+// mutual-match gate was bypassable simply by asking for the channel directly.
+// Astrologer channels are the guessable `ast_<bookingId>`, making it worse.
+// The caller must now prove membership of the channel they are asking for.
 exports.getAgoraToken = asyncHandler(async (req, res) => {
   const { channel, type = 'voice' } = req.query;
   if (!channel) throw createError.validation('channel query param required');
+  if (typeof channel !== 'string' || channel.length > 64) {
+    throw createError.validation('Invalid channel');
+  }
+
+  // Member↔member call: caller must be a participant in a live session.
+  const call = await CallSession.findOne({
+    where: {
+      channelName: channel,
+      status: { [Op.in]: ['initiated', 'accepted'] },
+      [Op.or]: [{ callerId: req.user.id }, { calleeId: req.user.id }],
+    },
+    attributes: ['id'],
+  });
+
+  let authorized = !!call;
+
+  // Astrologer consultation: caller must own the booking backing the channel.
+  if (!authorized) {
+    const booking = await AstrologerBooking.findOne({
+      where: {
+        agoraChannel: channel,
+        userId: req.user.id,
+        status: { [Op.in]: ['confirmed', 'in_progress'] },
+      },
+      attributes: ['id'],
+    });
+    authorized = !!booking;
+  }
+
+  if (!authorized) {
+    log.security('Agora token denied — caller not a channel participant', {
+      userId: req.user.id,
+      channel,
+    });
+    throw createError.forbidden('You are not a participant in this call');
+  }
 
   const result = generateRtcToken(channel, 0);
 
@@ -107,8 +150,14 @@ exports.endCall = asyncHandler(async (req, res) => {
     ? Math.floor((now - new Date(call.startedAt)) / 1000)
     : null;
 
+  // Only the outcomes this endpoint can legitimately produce. The client used
+  // to supply `status` verbatim, constrained solely by the Sequelize ENUM, so a
+  // participant could mark an ended call as accepted/declined/missed.
+  const requested = req.body.status;
+  const status = ['ended', 'missed'].includes(requested) ? requested : 'ended';
+
   await call.update({
-    status: req.body.status || 'ended',
+    status,
     endedAt: now,
     durationSeconds,
   });

@@ -607,27 +607,9 @@ exports.getProfileByCode = asyncHandler(async (req, res) => {
 // existing daily alert with zero migration. Filters are whitelisted to the
 // job's shape: { gender, religion, caste, city[], ageMin, ageMax }.
 
-const MAX_SAVED_SEARCHES = 5;
-
-const sanitizeSavedFilters = (raw) => {
-  if (!raw || typeof raw !== 'object') return {};
-  const filters = {};
-  if (typeof raw.gender === 'string' && ['male', 'female'].includes(raw.gender)) filters.gender = raw.gender;
-  if (typeof raw.religion === 'string' && raw.religion.trim()) filters.religion = raw.religion.trim().slice(0, 50);
-  if (typeof raw.caste === 'string' && raw.caste.trim()) filters.caste = raw.caste.trim().slice(0, 50);
-  if (Array.isArray(raw.city)) {
-    const cities = raw.city.filter(c => typeof c === 'string' && c.trim()).map(c => c.trim().slice(0, 60)).slice(0, 10);
-    if (cities.length) filters.city = cities;
-  }
-  const ageMin = parseInt(raw.ageMin, 10);
-  const ageMax = parseInt(raw.ageMax, 10);
-  if (Number.isFinite(ageMin) && ageMin >= 18 && ageMin <= 80) filters.ageMin = ageMin;
-  if (Number.isFinite(ageMax) && ageMax >= 18 && ageMax <= 80) filters.ageMax = ageMax;
-  if (filters.ageMin && filters.ageMax && filters.ageMin > filters.ageMax) {
-    delete filters.ageMax;
-  }
-  return filters;
-};
+// Sanitiser + cap live in utils/savedSearches so PUT /profile/me (which can
+// also write lifestylePreferences.savedSearches) enforces the same rules.
+const { MAX_SAVED_SEARCHES, sanitizeSavedFilters } = require('../utils/savedSearches');
 
 // @route   GET /api/search/saved
 // @desc    List the current user's saved searches

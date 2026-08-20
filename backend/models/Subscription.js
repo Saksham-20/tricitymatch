@@ -84,8 +84,12 @@ const Subscription = sequelize.define('Subscription', {
   indexes: [
     // For checking active subscriptions (most common query)
     { fields: ['userId', 'status', 'planType'] },
-    // For finding subscriptions by payment ID
-    { fields: ['razorpayPaymentId'] }
+    // Unique (partial, NULLs allowed) — a payment identifier may activate
+    // exactly one subscription. Keyed on the token alone, NOT (userId, token):
+    // scoping it per-user let one Google Play purchase token activate the tier
+    // on unlimited accounts. Enforced in DB by migration 000052; only a
+    // constraint holds under concurrent requests.
+    { fields: ['razorpayPaymentId'], unique: true, where: { razorpayPaymentId: { [require('sequelize').Op.ne]: null } } }
   ]
 });
 

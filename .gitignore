@@ -166,3 +166,9 @@ audit/screenshots/
 /*-768.jpeg
 /*-1440.png
 /*-1440.jpeg
+
+# Final pre-launch QA evidence (2026-08-20). Screenshots live at the repo root
+# where the owner asked for them, but stay untracked — 7 MB of PNGs is not
+# something to carry in git history forever. The written report is in
+# docs/QA_FINAL_2026-08-20.md and IS tracked.
+/qa-final-2026-08-20/

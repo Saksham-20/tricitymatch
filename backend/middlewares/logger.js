@@ -15,6 +15,84 @@ const LOG_LEVELS = {
 
 const currentLevel = config.isDevelopment ? LOG_LEVELS.DEBUG : LOG_LEVELS.INFO;
 
+// ==================== REDACTION ====================
+//
+// There was no redaction anywhere in the backend, so any caller passing a token
+// or password through `meta` wrote it to the log verbatim, and request logging
+// emitted `req.originalUrl` raw — which leaks the secret for token-in-path
+// routes such as GET /invite/:token (those also land in nginx access logs).
+//
+// Redaction happens in formatLogEntry so it covers EVERY call site, including
+// ones added later, rather than depending on each caller remembering.
+
+const SENSITIVE_KEY_PATTERN =
+  /(pass(word|wd)?|token|secret|api[-_]?key|authorization|cookie|otp|cvv|card|pin|credential|signature|jwt)/i;
+
+// Keys that carry a secret in their VALUE and must never be printed.
+const REDACTED = '[REDACTED]';
+const MAX_REDACT_DEPTH = 6;
+
+const redactValue = (value, depth = 0) => {
+  if (value === null || value === undefined) return value;
+  if (depth >= MAX_REDACT_DEPTH) return value;
+
+  if (Array.isArray(value)) {
+    return value.map((v) => redactValue(v, depth + 1));
+  }
+
+  if (typeof value === 'object') {
+    // Errors are not plain objects; keep their useful surface.
+    if (value instanceof Error) {
+      return { name: value.name, message: value.message, stack: value.stack };
+    }
+    const out = {};
+    for (const [k, v] of Object.entries(value)) {
+      out[k] = SENSITIVE_KEY_PATTERN.test(k) ? REDACTED : redactValue(v, depth + 1);
+    }
+    return out;
+  }
+
+  return value;
+};
+
+/**
+ * Strip secrets carried in a URL: both the path segment of token-bearing routes
+ * and any sensitive query parameter. Returns the path with values masked.
+ */
+const SECRET_PATH_PREFIXES = [
+  '/invite/',
+  '/api/invite/',
+  '/api/v1/invite/',
+  '/auth/reset-password/',
+  '/api/v1/auth/reset-password/',
+];
+
+const redactUrl = (url) => {
+  if (typeof url !== 'string' || !url) return url;
+
+  let [pathPart, queryPart] = url.split('?');
+
+  for (const prefix of SECRET_PATH_PREFIXES) {
+    if (pathPart.startsWith(prefix)) {
+      pathPart = `${prefix}${REDACTED}`;
+      break;
+    }
+  }
+
+  if (!queryPart) return pathPart;
+
+  const safeQuery = queryPart
+    .split('&')
+    .map((pair) => {
+      const [k, ...rest] = pair.split('=');
+      if (!rest.length) return k;
+      return SENSITIVE_KEY_PATTERN.test(k) ? `${k}=${REDACTED}` : pair;
+    })
+    .join('&');
+
+  return `${pathPart}?${safeQuery}`;
+};
+
 // Format log entry
 const formatLogEntry = (level, message, meta = {}) => {
   const entry = {
@@ -22,8 +100,13 @@ const formatLogEntry = (level, message, meta = {}) => {
     level,
     message,
     environment: config.env,
-    ...meta,
+    ...redactValue(meta),
   };
+
+  // `url` is a structural field rather than a secret-named key, so it needs its
+  // own pass — the secret lives in the path/query, not under a telling key.
+  if (typeof entry.url === 'string') entry.url = redactUrl(entry.url);
+  if (typeof entry.path === 'string') entry.path = redactUrl(entry.path);
 
   // Remove undefined values
   Object.keys(entry).forEach(key => {
@@ -207,8 +290,11 @@ const devLogger = (req, res, next) => {
                        res.statusCode >= 300 ? '\x1b[36m' : // Cyan
                        '\x1b[32m'; // Green
     
+    // Same redaction as the structured logger. This path only runs in
+    // development, but dev console output routinely gets pasted into issues and
+    // screenshots, so it must not print invite/reset tokens either.
     console.log(
-      `${statusColor}${req.method}\x1b[0m ${req.originalUrl} ` +
+      `${statusColor}${req.method}\x1b[0m ${redactUrl(req.originalUrl)} ` +
       `${statusColor}${res.statusCode}\x1b[0m ` +
       `\x1b[90m${duration}ms\x1b[0m ` +
       `${req.user?.id ? `[${req.user.id.substring(0, 8)}]` : ''}`
@@ -228,3 +314,6 @@ module.exports.logSecurityEvent = logSecurityEvent;
 module.exports.logAudit = logAudit;
 module.exports.createTimer = createTimer;
 module.exports.requestLogger = requestLogger;
+// Exported for tests — redaction is a security control, so it gets pinned.
+module.exports.redactValue = redactValue;
+module.exports.redactUrl = redactUrl;

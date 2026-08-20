@@ -68,7 +68,9 @@ const submitSuccessStory = asyncHandler(async (req, res) => {
 
   const record = await SuccessStory.create({
     coupleNames: names.slice(0, 255),
-    quote: text,
+    // Hard cap independent of the validator: `quote` was previously written
+    // with no length bound at all.
+    quote: text.slice(0, 5000),
     marriedOn: marriedOn || weddingDate || null,
     location: location ? String(location).trim().slice(0, 255) : null,
     status: 'draft', // never auto-publish user-submitted content

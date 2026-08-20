@@ -65,6 +65,10 @@ const ensureBody = (req, res, next) => {
 router.put('/me', 
   auth, 
   profileUpdateLimiter,
+  // This route accepts a profile photo plus the full gallery (5 MB each), but
+  // carried only the 10/min text-update limiter — ~600 uploads/hr per account.
+  // uploadLimiter (20/hr) is what the dedicated media routes already use.
+  uploadLimiter,
   uploadPhotos,
   ensureBody,
   validateUploadedFiles,
@@ -133,21 +137,41 @@ router.get('/:userId',
 );
 
 // Unlock contact details for a profile (premium only, with unlock limit check)
+// getProfileValidation runs BEFORE checkContactUnlockLimit so a malformed id
+// can never reach the quota-consuming handler.
 router.post('/:userId/unlock-contact',
   auth,
   requirePremium,
+  getProfileValidation,
+  handleValidationErrors,
   checkContactUnlockLimit,
   unlockContact
 );
 
 // Compatibility breakdown (APP-049 — "Why This Match")
-router.get('/:userId/compatibility', auth, getCompatibilityBreakdown);
+router.get('/:userId/compatibility',
+  auth,
+  getProfileValidation,
+  handleValidationErrors,
+  getCompatibilityBreakdown
+);
 
 // Horoscope / Ashtakoot match (APP-055)
-router.get('/:userId/horoscope-match', auth, getHoroscopeMatch);
+router.get('/:userId/horoscope-match',
+  auth,
+  getProfileValidation,
+  handleValidationErrors,
+  getHoroscopeMatch
+);
 
 // Downloadable Kundli matchmaking report PDF (premium)
-router.get('/:userId/horoscope-match/pdf', auth, requirePremium, downloadKundliReport);
+router.get('/:userId/horoscope-match/pdf',
+  auth,
+  requirePremium,
+  getProfileValidation,
+  handleValidationErrors,
+  downloadKundliReport
+);
 
 module.exports = router;
 

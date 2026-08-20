@@ -134,8 +134,11 @@ router.post('/logout', auth, logout);
 router.post('/logout-all', auth, logoutAll);
 
 // Change password
+// Credential-changing endpoint: password guessing against `currentPassword`
+// had only the global limiter in front of it.
 router.post('/change-password', 
   auth,
+  passwordResetSubmitLimiter,
   [
     body('currentPassword').notEmpty().withMessage('Current password is required'),
     body('newPassword')

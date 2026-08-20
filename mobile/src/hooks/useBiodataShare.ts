@@ -38,6 +38,20 @@ export function useBiodataShare(template: 'classic' | 'modern' = 'classic') {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (res.status !== 200) throw new Error(`HTTP ${res.status}`);
+
+      // KNOWN LIMITATION (Android): React Native's Share.share() accepts `url`
+      // on iOS ONLY. On Android it silently drops it and shares just `message`,
+      // so the sheet opens titled "Sharing text" and the recipient gets a
+      // one-line caption — the biodata PDF itself never leaves the device.
+      // Confirmed on an emulator 2026-08-20.
+      //
+      // The fix is expo-sharing's shareAsync(), which hands the file over as a
+      // content:// intent. Attempted and reverted here: npm hoists the package
+      // to the workspace root, so the rebuilt APK picked up its FileProvider
+      // resources but not the JS module registration — require('expo-sharing')
+      // resolved to undefined at runtime and this silently fell back anyway.
+      // Sorting that out is a monorepo autolinking change, not a launch-day
+      // patch. iOS is unaffected: the `url` branch below works there.
       await Share.share(
         Platform.OS === 'ios'
           ? { url: res.uri, title: 'Marriage Biodata' }

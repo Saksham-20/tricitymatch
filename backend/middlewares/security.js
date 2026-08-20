@@ -256,17 +256,20 @@ const getAllowedOrigins = () => {
     if (u) list.add(u);
     try {
       const parsed = new URL(u);
-      // Add http <-> https variant
-      const other = parsed.protocol === 'https:' ? `http://${parsed.host}` : `https://${parsed.host}`;
-      list.add(other);
-      // Add www <-> non-www variant for both schemes
       const host = parsed.host;
       const wwwHost = host.startsWith('www.') ? host : `www.${host}`;
       const noWwwHost = host.startsWith('www.') ? host.slice(4) : host;
-      list.add(`https://${wwwHost}`);
-      list.add(`http://${wwwHost}`);
-      list.add(`https://${noWwwHost}`);
-      list.add(`http://${noWwwHost}`);
+
+      // In production the site is HTTPS-only (env.js refuses to boot otherwise),
+      // so generating http:// twins of the real origin just created accepted
+      // credentialed origins on a downgraded scheme. Only the www/non-www
+      // variants are generated there; both schemes stay available in dev, where
+      // the frontend legitimately runs on plain http.
+      const schemes = config.isProduction ? ['https'] : ['http', 'https'];
+      for (const scheme of schemes) {
+        list.add(`${scheme}://${wwwHost}`);
+        list.add(`${scheme}://${noWwwHost}`);
+      }
     } catch (_) { /* ignore */ }
   };
   add(config.server.frontendUrl);
@@ -478,18 +481,36 @@ const _delLockoutData = async (key) => {
   _fallbackAttempts.delete(key);
 };
 
+/**
+ * Derive the lockout key for a login attempt.
+ *
+ * MUST stay identical to the lookup key authController.login records failures
+ * against. This gate previously read req.body.email only, but the flexible
+ * login accepts `identifier` (email OR phone) and every modern client sends
+ * that — so the middleware hit its `if (!email) return next()` bail on
+ * effectively every request and the lockout never fired. recordFailedLogin was
+ * writing `lockout:<identifier>` keys that nothing ever read, leaving only the
+ * per-IP authLimiter (trivially distributed) in front of password guessing.
+ * Both sides now call this one function so they cannot drift again.
+ */
+const loginLookupKey = (body = {}) => {
+  const raw = (body.identifier ?? body.email ?? '').toString().trim();
+  if (!raw) return null;
+  return raw.includes('@') ? raw.toLowerCase() : raw;
+};
+
 const checkAccountLockout = asyncHandler(async (req, res, next) => {
   // QA/e2e kill switch (dev-only, see config.security.disableRateLimits)
   if (config.security.disableRateLimits) {
     return next();
   }
 
-  const email = req.body.email?.toLowerCase();
-  if (!email) {
+  const identifier = loginLookupKey(req.body);
+  if (!identifier) {
     return next();
   }
 
-  const key = `lockout:${email}`;
+  const key = `lockout:${identifier}`;
   const data = await _getLockoutData(key);
   const lockoutMs = config.auth.lockoutDuration * 60 * 1000;
 
@@ -511,11 +532,12 @@ const checkAccountLockout = asyncHandler(async (req, res, next) => {
   next();
 });
 
-const recordFailedLogin = async (email) => {
+// `identifier` is an email OR a phone — whatever loginLookupKey produced.
+const recordFailedLogin = async (identifier) => {
   if (config.security.disableRateLimits) {
     return 0;
   }
-  const key = `lockout:${email?.toLowerCase()}`;
+  const key = `lockout:${identifier?.toLowerCase()}`;
   const data = (await _getLockoutData(key)) || { count: 0, lastAttempt: 0, lockTime: 0 };
 
   data.count += 1;
@@ -529,8 +551,8 @@ const recordFailedLogin = async (email) => {
   return data.count;
 };
 
-const clearLoginAttempts = async (email) => {
-  const key = `lockout:${email?.toLowerCase()}`;
+const clearLoginAttempts = async (identifier) => {
+  const key = `lockout:${identifier?.toLowerCase()}`;
   await _delLockoutData(key);
 };
 
@@ -582,6 +604,7 @@ module.exports = {
   checkAccountLockout,
   recordFailedLogin,
   clearLoginAttempts,
+  loginLookupKey,
   // Utilities
   requestId,
   extractIp,

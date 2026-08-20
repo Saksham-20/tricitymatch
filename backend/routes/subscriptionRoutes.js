@@ -131,7 +131,10 @@ router.post('/unlock-bundle/verify-payment',
 );
 
 // Cancel active subscription (with pro-rated refund attempt)
-router.delete('/current', auth, cancelSubscription);
+// paymentLimiter like every other money-moving route here: cancellation issues
+// a Razorpay refund, so leaving it on the global limiter alone allowed rapid
+// buy/cancel churn against the payment provider.
+router.delete('/current', auth, paymentLimiter, cancelSubscription);
 
 // Payment history
 router.get('/history', auth, getPaymentHistory);

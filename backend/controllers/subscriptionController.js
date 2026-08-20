@@ -335,6 +335,19 @@ exports.verifyGooglePlay = asyncHandler(async (req, res) => {
     throw createError.badRequest('Google Play purchase is not active');
   }
 
+  // If the client stamped the purchase with an account binding, enforce it.
+  // Checked conditionally: the field is only present when the buyer flow set
+  // it, so requiring it outright would reject otherwise-valid purchases.
+  const boundAccount = purchase.obfuscatedExternalAccountId;
+  if (boundAccount && boundAccount !== userId) {
+    log.security('Google Play purchase bound to a different account', {
+      userId,
+      boundAccount,
+      productId,
+    });
+    throw createError.badRequest('This purchase belongs to a different account');
+  }
+
   // Acknowledge within Google's 3-day window (else auto-refund).
   if (purchase.acknowledgementState === 0) {
     try {
@@ -350,15 +363,34 @@ exports.verifyGooglePlay = asyncHandler(async (req, res) => {
   }
 
   const subscription = await sequelize.transaction(async (t) => {
-    // Idempotency: same purchaseToken already activated → return it.
+    // Idempotency is keyed on the purchase token ALONE, deliberately not on
+    // (userId, token). Scoping it to the user meant one real purchase token —
+    // shared, resold or leaked — activated the tier on an unbounded number of
+    // accounts, since each new account simply found no row of its own.
     const existing = await Subscription.findOne({
-      where: { userId, razorpayPaymentId: purchaseToken, status: 'active' },
+      where: { razorpayPaymentId: purchaseToken },
       transaction: t,
     });
-    if (existing) return existing;
+    if (existing) {
+      if (existing.userId !== userId) {
+        log.security('Google Play purchase token replay across accounts', {
+          userId,
+          ownerUserId: existing.userId,
+          productId,
+        });
+        throw createError.conflict('This purchase is already linked to another account');
+      }
+      if (existing.status === 'active') return existing;
+      throw createError.conflict('This purchase has already been used');
+    }
 
     const now = new Date();
-    const endDate = new Date(Number(purchase.expiryTimeMillis) || now.getTime() + planDetails.duration * 86400000);
+    // Clamp the end date: expiryTimeMillis is attacker-visible in the sense that
+    // a malformed/oversized value would otherwise grant an unbounded term.
+    const planEnd = now.getTime() + planDetails.duration * 86400000;
+    const googleEnd = Number(purchase.expiryTimeMillis) || planEnd;
+    const MAX_TERM_MS = 400 * 86400000; // Google's longest base plan + slack
+    const endDate = new Date(Math.min(googleEnd, now.getTime() + MAX_TERM_MS));
 
     const sub = await Subscription.create({
       userId,
@@ -742,8 +774,35 @@ exports.cancelSubscription = asyncHandler(async (req, res) => {
         const end = new Date(subscription.endDate);
         const totalDays = Math.max((end - start) / (1000 * 60 * 60 * 24), 1);
         const remainingDays = Math.max((end - now) / (1000 * 60 * 60 * 24), 0);
-        const refundFraction = remainingDays / totalDays;
+        const timeUnusedFraction = Math.min(Math.max(remainingDays / totalDays, 0), 1);
+
+        // The refund used to be purely time-based, which ignored the part of the
+        // plan that is consumed instantly: contact unlocks. Buying the top tier,
+        // spending every unlock on day 0 and cancelling returned ~99.7% of the
+        // price while keeping the phone numbers and emails — repeatable with a
+        // fresh account each time.
+        //
+        // Value delivered is therefore whichever is greater: elapsed time, or
+        // the share of unlocks already spent. Unlimited plans (allowed === null)
+        // have no unlock meter, so they stay time-only.
+        const allowed = subscription.contactUnlocksAllowed;
+        const used = subscription.contactUnlocksUsed || 0;
+        const unlocksUnusedFraction =
+          allowed === null || allowed === undefined || allowed <= 0
+            ? 1
+            : Math.min(Math.max(1 - used / allowed, 0), 1);
+
+        const refundFraction = Math.min(timeUnusedFraction, unlocksUnusedFraction);
         const refundAmountPaise = Math.floor(parseFloat(subscription.amount) * 100 * refundFraction);
+
+        log.info('Cancellation refund computed', {
+          subscriptionId: subscription.id,
+          timeUnusedFraction: Number(timeUnusedFraction.toFixed(4)),
+          unlocksUnusedFraction: Number(unlocksUnusedFraction.toFixed(4)),
+          contactUnlocksUsed: used,
+          contactUnlocksAllowed: allowed,
+          refundAmountPaise,
+        });
 
         if (refundAmountPaise >= 100) { // Min ₹1 refund
           const refund = await rzp.payments.refund(subscription.razorpayPaymentId, {

@@ -51,6 +51,13 @@ RUN adduser -D -g '' nginx-user && \
     touch /var/run/nginx.pid && \
     chown -R nginx-user:nginx-user /var/run/nginx.pid
 
+# NOTE: the nginx-user created and chowned above is deliberately NOT switched
+# to yet. Running the master as non-root needs an unprivileged listen port,
+# which means changing frontend/nginx.conf, the reverse-proxy upstream and the
+# compose mapping in lockstep — unverifiable without a container build, and a
+# mistake takes the site down. Workers already drop privileges, so this is
+# hardening rather than a live issue. Deferred until it can be staged.
+
 # Expose port
 EXPOSE 80
 

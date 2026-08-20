@@ -3,7 +3,7 @@
  * Real-time communication with proper security
  */
 
-const { Match, GroupMember } = require('../models');
+const { Match, GroupMember, User } = require('../models');
 const { Op } = require('sequelize');
 const jwt = require('jsonwebtoken');
 const cookie = require('cookie');
@@ -104,7 +104,23 @@ const authenticateSocket = async (socket, next) => {
       return next(new Error('Invalid token type'));
     }
 
-    socket.userId = decoded.userId;
+    // A valid JWT is not enough: REST's `auth` middleware re-loads the user and
+    // rejects status !== 'active', but this path never did. A member who was
+    // banned, suspended or self-deleted therefore kept a live socket for the
+    // remaining lifetime of their access token — still in their user_<id> room,
+    // still receiving group broadcasts and presence. Mirror the REST check.
+    const user = await User.findByPk(decoded.userId, { attributes: ['id', 'status'] });
+
+    if (!user || user.status !== 'active') {
+      logSecurityEvent('socket_auth_failed', null, {
+        reason: 'inactive_account',
+        socketId: socket.id,
+        userId: decoded.userId,
+      });
+      return next(new Error('Account is not active'));
+    }
+
+    socket.userId = user.id;
     next();
   } catch (error) {
     if (error.name === 'TokenExpiredError') {

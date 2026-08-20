@@ -20,13 +20,13 @@ const statsRoutes = require('./statsRoutes');
 const { getPublicSuccessStories } = require('../controllers/adminController');
 const { submitContact, submitSuccessStory } = require('../controllers/contactController');
 const { contactLimiter } = require('../middlewares/security');
-const { contactValidation } = require('../validators');
+const { contactValidation, successStoryValidation } = require('../validators');
 const { handleValidationErrors } = require('../middlewares/errorHandler');
 
 // Public success stories (no auth) — social proof for the marketing site
 router.get('/success-stories', getPublicSuccessStories);
 // Public success-story submission (no auth, rate-limited) — lands as a draft for admin review
-router.post('/success-stories', contactLimiter, submitSuccessStory);
+router.post('/success-stories', contactLimiter, successStoryValidation, handleValidationErrors, submitSuccessStory);
 
 // Public contact form (no auth) — stores enquiry + best-effort emails support
 router.post('/contact', contactLimiter, contactValidation, handleValidationErrors, submitContact);

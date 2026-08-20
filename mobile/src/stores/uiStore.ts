@@ -19,9 +19,19 @@ interface UIState {
   // restore `null` here so the system preference is honoured again.
   darkModeOverride: boolean | null;
 
+  /**
+   * A modal bottom sheet is covering a tab screen. Ephemeral — never cached.
+   * The floating pill tab bar is position:absolute over the whole screen, so
+   * without this it draws ON TOP of an open sheet and hides that sheet's own
+   * footer CTAs — Search's filter sheet lost both "Save search" and
+   * "Show N profiles" behind it, on iOS and Android alike.
+   */
+  bottomSheetOpen: boolean;
+
   setLanguage: (lang: Language) => void;
   setElderMode: (enabled: boolean) => void;
   setDarkModeOverride: (value: boolean | null) => void;
+  setBottomSheetOpen: (open: boolean) => void;
   initFromCache: () => void;
 }
 
@@ -33,6 +43,7 @@ export const useUIStore = create<UIState>((set) => ({
   language: 'en',
   elderMode: false,
   darkModeOverride: DEFAULT_DARK_MODE_OVERRIDE,
+  bottomSheetOpen: false,
 
   setLanguage: (language) => {
     cache.setString(CACHE_KEYS.LANGUAGE, language);
@@ -52,6 +63,8 @@ export const useUIStore = create<UIState>((set) => ({
     }
     set({ darkModeOverride: value });
   },
+
+  setBottomSheetOpen: (bottomSheetOpen) => set({ bottomSheetOpen }),
 
   initFromCache: () => {
     const lang = cache.getString(CACHE_KEYS.LANGUAGE) as Language | undefined;
