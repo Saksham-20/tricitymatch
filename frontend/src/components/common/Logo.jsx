@@ -42,10 +42,15 @@ const Logo = ({
     ? `flex flex-col items-center ${s.gap}`
     : `flex items-center ${s.gap}`;
 
+  // ?v= is a cache-buster, not decoration. /images/logo.svg is a stable path
+  // (Vite content-hashes only js/css) and nginx serves it `immutable` for a
+  // year, so a browser holding the previous mark never refetches it — which is
+  // why the navbar kept showing the old TS logo after the TM swap shipped.
+  // Bump v on every future change to the logo artwork.
   const content = (
     <span className={`${wrapperLayout} ${className}`}>
       <img
-        src="/images/logo.svg"
+        src="/images/logo.svg?v=2"
         alt="TricityMatch logo"
         className={`${s.img} object-contain flex-shrink-0 rounded-lg`}
         loading="eager"
