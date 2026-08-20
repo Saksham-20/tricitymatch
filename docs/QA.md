@@ -22,18 +22,18 @@
 | Env | Web | API | Notes |
 |-----|-----|-----|-------|
 | Dev (local) | http://localhost:3000 | :5001 (`/api`) | `npm run dev`; Postgres :5432, Redis :6379(opt) |
-| Prod | https://tricityshadi.com | same origin `/api` | VPS `178.16.138.82`, containers `tricitymatch-*` (FE 3002→80, BE 5002→5000) |
+| Prod | https://tricitymatch.com | same origin `/api` | VPS `178.16.138.82`, containers `tricitymatch-*` (FE 3002→80, BE 5002→5000) |
 
 **Credentials / fixtures**
 - Admin: `admin@tricitymatch.com` / `Pass@1234` (seeded; → `/admin/dashboard`).
 - Fresh user: signup via API `POST /api/v1/auth/signup` (email/password/phoneNumber/firstName/lastName/gender/dateOfBirth) or onboarding UI; seeded password `Pass@1234`.
 - Premium-gated screens need a user with `planType` ∈ `basic_premium`/`premium_plus`/`vip`.
 - OTP bypass (dev + ALLOW_INSECURE_PROD): `000000` / `123456`.
-- Mark test data `qa.*@tricityshadi.com`; delete after.
+- Mark test data `qa.*@tricitymatch.com`; delete after.
 
 **Config-gated (skip, note — not failures):** Razorpay (placeholder), Email/SMTP, Google OAuth, SMS OTP delivery, FCM push, Agora calls (`VITE_AGORA_APP_ID` / `EXPO_PUBLIC_*`).
 
-> **Shared VPS rule:** co-tenants on the box. Scope every prod command to `tricityshadi.com` / `tricitymatch-*`. Never global `docker`/`compose down`/`prune`. `nginx -t` before any reload. Deploy = pull → `docker compose build frontend` (or backend) → `up -d --no-deps --force-recreate <service>`.
+> **Shared VPS rule:** co-tenants on the box. Scope every prod command to `tricitymatch.com` (+ legacy `tricityshadi.com`) / `tricitymatch-*`. Never global `docker`/`compose down`/`prune`. `nginx -t` before any reload. Deploy = pull → `docker compose build frontend` (or backend) → `up -d --no-deps --force-recreate <service>`.
 
 ---
 

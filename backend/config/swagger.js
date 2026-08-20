@@ -36,7 +36,7 @@ const options = {
       `,
       contact: {
         name: 'TricityMatch Support',
-        email: 'support@tricityshadi.com',
+        email: 'support@tricitymatch.com',
       },
       license: {
         name: 'MIT',

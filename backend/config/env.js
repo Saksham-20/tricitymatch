@@ -196,11 +196,11 @@ const config = {
     user: optionalString('EMAIL_USER'),
     password: optionalString('EMAIL_PASSWORD'),
     // Shared identity (used by both Resend + SMTP). `from` must be an address on
-    // a domain verified in Resend, e.g. noreply@tricityshadi.com.
-    from: optionalString('EMAIL_FROM', 'noreply@tricityshadi.com'),
+    // a domain verified in Resend, e.g. noreply@tricitymatch.com.
+    from: optionalString('EMAIL_FROM', 'noreply@tricitymatch.com'),
     fromName: optionalString('EMAIL_FROM_NAME', 'TricityMatch'),
-    replyTo: optionalString('EMAIL_REPLY_TO', optionalString('SUPPORT_EMAIL', 'support@tricityshadi.com')),
-    support: optionalString('SUPPORT_EMAIL', 'support@tricityshadi.com'),
+    replyTo: optionalString('EMAIL_REPLY_TO', optionalString('SUPPORT_EMAIL', 'support@tricitymatch.com')),
+    support: optionalString('SUPPORT_EMAIL', 'support@tricitymatch.com'),
     // SMTP creds present (real, not placeholder)
     smtpConfigured: () => {
       const u = optionalString('EMAIL_USER');
@@ -259,7 +259,7 @@ const config = {
 
   // Admin
   admin: {
-    email: optionalString('ADMIN_EMAIL', 'admin@tricityshadi.com'),
+    email: optionalString('ADMIN_EMAIL', 'admin@tricitymatch.com'),
   },
 
   // Google OAuth
@@ -272,6 +272,9 @@ const config = {
   // serviceAccountJson = raw JSON string of a Play-linked service account with
   // the "View financial data / manage orders" permission (androidpublisher).
   googlePlay: {
+    // NOT a brand typo: `com.tricityshadi.app` is the shipped Android package ID.
+    // A package name is permanent once published — it must keep matching
+    // mobile/app.json, or receipt verification fails against the wrong app.
     packageName: optionalString('GOOGLE_PLAY_PACKAGE_NAME', 'com.tricityshadi.app'),
     serviceAccountJson: optionalString('GOOGLE_PLAY_SERVICE_ACCOUNT_JSON'),
     isConfigured: () => !!optionalString('GOOGLE_PLAY_SERVICE_ACCOUNT_JSON'),

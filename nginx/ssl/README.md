@@ -4,8 +4,8 @@ Place your SSL certificate files here:
 
 ```
 ssl/
-├── tricityshadi.com.crt    (full chain — cert + intermediates)
-├── tricityshadi.com.key    (private key, 0600 permissions)
+├── fullchain.pem           (full chain — cert + intermediates)
+├── privkey.pem             (private key, 0600 permissions)
 └── dhparam.pem             (2048-bit DH params: openssl dhparam -out dhparam.pem 2048)
 ```
 
@@ -16,17 +16,17 @@ ssl/
 apt install certbot python3-certbot-nginx
 
 # Issue cert (HTTP challenge — nginx must be running with port 80 open)
-certbot certonly --webroot -w /var/www/certbot -d tricityshadi.com -d www.tricityshadi.com
+certbot certonly --webroot -w /var/www/certbot -d tricitymatch.com -d www.tricitymatch.com
 
-# Certs land in: /etc/letsencrypt/live/tricityshadi.com/
+# Certs land in: /etc/letsencrypt/live/tricitymatch.com/
 # Symlink or copy into ./nginx/ssl/
 ```
 
 ## nginx.conf SSL block (update paths when certs are in place)
 
 ```nginx
-ssl_certificate     /etc/nginx/ssl/tricityshadi.com.crt;
-ssl_certificate_key /etc/nginx/ssl/tricityshadi.com.key;
+ssl_certificate     /etc/nginx/ssl/fullchain.pem;
+ssl_certificate_key /etc/nginx/ssl/privkey.pem;
 ssl_dhparam         /etc/nginx/ssl/dhparam.pem;
 ssl_protocols       TLSv1.2 TLSv1.3;
 ssl_ciphers         ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256;

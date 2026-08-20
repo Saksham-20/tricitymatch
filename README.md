@@ -21,7 +21,7 @@
 
 TricityMatch is a hyperlocal matrimonial platform targeting Chandigarh, Mohali, and Panchkula. Full-stack monorepo: React 18 SPA + Express.js REST API + PostgreSQL + Redis + Socket.io real-time messaging. Deployed via Docker Compose behind Nginx.
 
-**Live site:** [tricityshadi.com](https://tricityshadi.com)
+**Live site:** [tricitymatch.com](https://tricitymatch.com)
 
 ---
 
@@ -494,7 +494,7 @@ ISC License — see [LICENSE](LICENSE) for details.
 ## Support
 
 - **Issues:** Open a GitHub issue
-- **Email:** support@tricityshadi.com
+- **Email:** support@tricitymatch.com
 
 ---
 

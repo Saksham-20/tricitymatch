@@ -283,7 +283,7 @@ sudo chown -R $USER:$USER nginx/ssl
 nano nginx/nginx.conf
 ```
 
-Replace every `tricityshadi.com` and `www.tricityshadi.com` with **yourdomain.com** and **www.yourdomain.com**. Save: `Ctrl+O`, `Enter`, `Ctrl+X`.
+Replace every `tricitymatch.com` and `www.tricitymatch.com` with **yourdomain.com** and **www.yourdomain.com**. Save: `Ctrl+O`, `Enter`, `Ctrl+X`.
 
 **6B.6 — `.env` for domain**
 

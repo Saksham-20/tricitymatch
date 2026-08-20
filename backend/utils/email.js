@@ -53,7 +53,7 @@ const getTransporter = () => {
   return transporter;
 };
 
-// "TricityMatch <noreply@tricityshadi.com>"
+// "TricityMatch <noreply@tricitymatch.com>"
 const fromHeader = () => `${config.email.fromName} <${config.email.from || config.email.user}>`;
 
 // Single-provider send primitives. Throw on failure so the router can fall back.

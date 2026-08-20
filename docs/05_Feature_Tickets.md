@@ -230,7 +230,7 @@ Tickets are ordered by execution sequence within each phase — implement in ord
 **Tasks:**
 - Forgot password: email input → `POST /auth/forgot-password` → success message
 - Reset password: token from deep link → new password form → `POST /auth/reset-password`
-- Deep link scheme: `tricityshadi://reset-password?token=xxx`
+- Deep link scheme: `tricitymatch://reset-password?token=xxx`
 
 **Acceptance Criteria:**
 - [ ] Deep link opens Reset Password screen with token pre-filled
@@ -389,7 +389,7 @@ Tickets are ordered by execution sequence within each phase — implement in ord
 - `MainNavigator`: Bottom tab bar with 5 tabs (or 4 in Elder Mode)
 - Tab icons (Ionicons), active rose-600 / inactive gray-400
 - Unread badge on Messages tab (sourced from `notifications` query)
-- Deep link handler: `tricityshadi://profile/:id`, `tricityshadi://chat/:userId`
+- Deep link handler: `tricitymatch://profile/:id`, `tricitymatch://chat/:userId`
 
 **Acceptance Criteria:**
 - [ ] Auth state change immediately switches navigator (no flicker)

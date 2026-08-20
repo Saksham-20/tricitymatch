@@ -9,7 +9,7 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#8B2346"
+      "backgroundColor": "#B30021"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -30,7 +30,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#B60D2F"
+        "backgroundColor": "#B30021"
       },
       "package": "com.tricityshadi.app",
       "versionCode": 1,

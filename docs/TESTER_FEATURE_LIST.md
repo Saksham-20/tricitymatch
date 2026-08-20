@@ -3,7 +3,7 @@
 A matrimonial site for the Tricity (Chandigarh · Mohali · Panchkula).
 Thanks for helping test it! Here's what to try. Takes ~10 minutes.
 
-**Website:** https://tricityshadi.com
+**Website:** https://tricitymatch.com
 
 ---
 

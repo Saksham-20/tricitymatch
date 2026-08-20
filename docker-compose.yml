@@ -115,10 +115,10 @@ services:
       EMAIL_PORT: ${EMAIL_PORT:-587}
       EMAIL_USER: ${EMAIL_USER}
       EMAIL_PASSWORD: ${EMAIL_PASSWORD}
-      EMAIL_FROM: ${EMAIL_FROM:-noreply@tricityshadi.com}
+      EMAIL_FROM: ${EMAIL_FROM:-noreply@tricitymatch.com}
       EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-TricityMatch}
       EMAIL_REPLY_TO: ${EMAIL_REPLY_TO:-}
-      SUPPORT_EMAIL: ${SUPPORT_EMAIL:-support@tricityshadi.com}
+      SUPPORT_EMAIL: ${SUPPORT_EMAIL:-support@tricitymatch.com}
       # Cloudinary
       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}

@@ -489,7 +489,7 @@ import axios from 'axios';
 import { useAuthStore } from '../stores/authStore';
 import { refreshAccessToken } from './auth';
 
-const API_BASE = process.env.EXPO_PUBLIC_API_URL; // e.g. https://tricityshadi.com/api/v1
+const API_BASE = process.env.EXPO_PUBLIC_API_URL; // e.g. https://tricitymatch.com/api/v1
 
 export const apiClient = axios.create({
   baseURL: API_BASE,
@@ -532,8 +532,8 @@ apiClient.interceptors.response.use(
 ### Mobile app `.env` (via Expo env)
 
 ```bash
-EXPO_PUBLIC_API_URL=https://tricityshadi.com/api/v1
-EXPO_PUBLIC_WS_URL=https://tricityshadi.com
+EXPO_PUBLIC_API_URL=https://tricitymatch.com/api/v1
+EXPO_PUBLIC_WS_URL=https://tricitymatch.com
 EXPO_PUBLIC_AGORA_APP_ID=your-agora-app-id
 EXPO_PUBLIC_RAZORPAY_KEY_ID=rzp_live_xxxx
 EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME=your-cloud-name
@@ -552,10 +552,10 @@ EXPO_PUBLIC_GOOGLE_CLIENT_ID=xxxx.apps.googleusercontent.com
     },
     "preview": {
       "distribution": "internal",
-      "env": { "EXPO_PUBLIC_API_URL": "https://staging.tricityshadi.com/api/v1" }
+      "env": { "EXPO_PUBLIC_API_URL": "https://staging.tricitymatch.com/api/v1" }
     },
     "production": {
-      "env": { "EXPO_PUBLIC_API_URL": "https://tricityshadi.com/api/v1" }
+      "env": { "EXPO_PUBLIC_API_URL": "https://tricitymatch.com/api/v1" }
     }
   }
 }

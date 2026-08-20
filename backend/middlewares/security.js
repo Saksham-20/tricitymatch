@@ -312,7 +312,7 @@ const corsDelegate = (req, callback) => {
 
   // SEC-2 / BUG-P005: browsers DO NOT attach an Origin header to same-origin
   // GET/HEAD requests. Since the SPA and API share the production origin
-  // (tricityshadi.com), the entire read path of the app arrives with no Origin.
+  // (tricitymatch.com), the entire read path of the app arrives with no Origin.
   // Allow no-Origin for safe (non-mutating) methods + preflight; keep rejecting
   // no-Origin on state-changing methods (real browser writes always carry
   // Origin; provider webhooks are exempted earlier via monitoringCors).

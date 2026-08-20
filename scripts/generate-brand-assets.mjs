@@ -1,28 +1,35 @@
 #!/usr/bin/env node
 /**
- * TricityMatch brand asset pipeline (P1.1 + E2).
+ * TricityMatch brand asset pipeline.
  *
  * SINGLE SOURCE OF TRUTH for the "TM" monogram. Everything downstream —
  * frontend/public/images/logo.svg, frontend/public/favicon.svg, the favicon +
  * PWA icon PNGs, the OG share card, and mobile/assets/*.png — is generated from
- * the letterform paths in this file. Re-run after any change to the mark:
+ * the letterform geometry in this file. Re-run after any change to the mark:
  *
  *     node scripts/generate-brand-assets.mjs
  *
  * Design notes
  * ------------
- * The mark is a serif "TM" monogram in cream (#FDF8F2) on the brand burgundy
- * (#8B2346). Letterforms are hand-authored PATHS, never <text>: an SVG loaded
- * through <img> is an isolated document and cannot see the page's webfonts, so
- * a text-based mark would silently fall back to Times on every surface.
+ * The mark is a serif "TM" monogram in white on the logo red (#B30021),
+ * traced from the master Illustrator artwork ("final TM.svg", 1000x1000).
+ * Letterforms are POLYGONS, never <text>: an SVG loaded through <img> is an
+ * isolated document and cannot see the page's webfonts, so a text-based mark
+ * would silently fall back to Times on every surface.
  *
- * Three cuts (per plan P1.1):
- *   1. MARK    — refined Didone-ish letterforms with bracketed serifs. Used at
- *                40-96px beside the wordmark (Logo.jsx) and for the app icons.
- *   2. FAVICON — heavier stems, flat slab serifs, wider T/M gap, larger optical
- *                size. A two-letter refined serif monogram is mud at 16px.
- *   3. LOCKUP  — mark + Playfair wordmark, used only for the OG card (rendered
- *                server-side by sharp/librsvg where the real font IS available).
+ * The logo red (#B30021) is the mark's OWN colour and is intentionally distinct
+ * from the UI brand burgundy (#8B2346) that the design system still uses for
+ * buttons, headers and premium surfaces. Do not swap one for the other.
+ *
+ * Cuts:
+ *   1. LOGO     — the artwork as drawn. Web/app mark; callers apply their own
+ *                 corner rounding (Logo.jsx `rounded-lg`, Logo.tsx borderRadius).
+ *   2. FAVICON  — glyphs enlarged to ~90% of the plate. A serif monogram set at
+ *                 the artwork's default 78% is mud at 16px.
+ *   3. MASKABLE — glyphs pulled inside the maskable safe circle (outer 20% of a
+ *                 PWA/Android icon is croppable).
+ *   4. ADAPTIVE — Android adaptive foreground; safe zone is the centre 66%.
+ *   5. SPLASH   — glyphs only on transparency (Expo paints the red behind).
  *
  * Gold (#C9A227) is deliberately absent from the logo cuts — the design system
  * reserves gold for premium/VIP surfaces. It appears only on the OG card, which
@@ -37,79 +44,69 @@ import { fileURLToPath } from 'node:url';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 /* ── Brand tokens ─────────────────────────────────────────────────────────── */
-const BURGUNDY = '#8B2346';
+const RED = '#B30021'; // the logo's own red, from the master artwork
+const WHITE = '#FFFFFF';
+const BURGUNDY = '#8B2346'; // UI brand colour — OG card field only
 const BURGUNDY_DEEP = '#6B1D3A';
 const CREAM = '#FDF8F2';
 const GOLD = '#C9A227';
 const GOLD_LIGHT = '#E8C34A'; // AA on burgundy (5.1:1); #C9A227 is only 3.4:1
 
-/* ── Cut 1: refined mark ───────────────────────────────────────────────────
- * 256-unit grid. Letterforms occupy x 30..226, y 80..176 → optically centred
- * on (128,128). Thick verticals + hairline horizontals + bracketed serifs give
- * the Playfair/Didone voice without depending on a font being present.
+/* ── The mark ──────────────────────────────────────────────────────────────
+ * 1000-unit grid, traced verbatim from the master artwork. The two glyphs are
+ * optically centred on (500,500): bbox x 110.4..889.6, y 251.64..748.36, so the
+ * mark occupies 77.9% of the plate width and 49.7% of its height.
  */
-const MARK_PATHS = [
-  // T — bar 30..106 with serif drops at both ends, stem 60..76, bracketed foot
-  'M30 80 L106 80 L106 102 L98 102 Q98 94 90 94 L76 94 L76 152 Q76 170 92 172 ' +
-    'L92 176 L44 176 L44 172 Q60 170 60 152 L60 94 L46 94 Q38 94 38 102 L30 102 Z',
-  // M left stem (top slab serif + bracketed foot)
-  'M118 80 L150 80 L150 88 L142 88 L142 152 Q142 168 158 172 L158 176 L110 176 ' +
-    'L110 172 Q126 168 126 152 L126 88 L118 88 Z',
-  // M vee — thick left diagonal / matching right diagonal, apex at (168,148)
-  'M126 88 L142 88 L168 148 L194 88 L210 88 L172 176 L164 176 Z',
-  // M right stem
-  'M186 80 L218 80 L218 88 L210 88 L210 152 Q210 168 226 172 L226 176 L178 176 ' +
-    'L178 172 Q194 168 194 152 L194 88 L186 88 Z',
+const GLYPHS = [
+  // glyph A — the M with its swash entry stroke
+  `396.44 385.76 396.44 395.26 404.75 395.85 414.84 398.82 423.74 404.16 432.05 412.47 ` +
+    `441.55 429.08 446.29 447.48 447.48 485.46 445.11 505.64 437.98 532.94 421.96 573.88 ` +
+    `414.25 598.22 409.5 623.14 408.91 643.91 413.06 672.4 420.18 692.57 432.05 712.16 ` +
+    `449.26 728.77 465.88 738.27 478.34 742.42 498.52 745.39 529.38 744.8 529.38 735.3 ` +
+    `513.95 734.12 496.14 729.37 478.93 721.65 464.1 711.56 453.41 700.88 445.11 689.01 ` +
+    `437.98 674.18 433.83 659.93 432.05 648.66 431.46 628.48 434.42 602.96 441.55 573.88 ` +
+    `456.38 527.6 462.91 494.96 463.5 461.13 461.13 439.76 463.5 442.73 600.59 745.39 ` +
+    `649.25 745.39 764.98 474.78 782.19 437.39 782.78 706.22 781 715.72 775.66 728.77 ` +
+    `761.41 737.68 752.51 740.05 742.42 740.64 743.02 748.36 889.01 748.36 889.01 740.64 ` +
+    `870.61 738.27 856.96 730.56 851.62 721.65 848.06 708.6 847.46 437.39 850.43 422.55 ` +
+    `856.96 410.09 863.49 403.56 871.8 398.82 881.89 395.85 889.6 395.26 889.6 385.76 ` +
+    `782.78 385.76 646.88 701.48 643.32 696.73 502.08 385.76 396.44 385.76`,
+  // glyph B — the T
+  `125.83 251.64 110.4 311.58 112.77 312.17 119.3 311.58 127.02 300.3 166.78 280.13 ` +
+    `185.17 273.6 198.23 271.23 227.9 270.04 300.9 270.63 300.3 678.93 299.12 699.7 ` +
+    `296.15 712.16 289.62 724.62 271.23 732.34 249.27 734.71 249.86 743.02 417.81 743.02 ` +
+    `418.4 735.3 398.82 733.52 388.13 731.15 373.3 722.25 366.18 705.63 363.21 691.98 ` +
+    `362.62 270.63 444.51 271.23 471.22 273.6 493.18 277.75 512.17 283.69 527.6 292 ` +
+    `539.46 302.68 544.81 311.58 547.18 312.77 553.71 310.99 538.87 252.23 125.83 251.64`,
 ];
-const MARK_BOX = { x0: 30, x1: 226, y0: 80, y1: 176 };
 
-/* ── Cut 2: favicon (heavy) ────────────────────────────────────────────────
- * Same 256-unit grid, letterforms at x 26..230, y 64..192 — 33% larger optical
- * size, 50% thicker stems, flat slab serifs, and an 18-unit T/M gap so the two
- * letters stay separate at 16px (≈1.4 device px of air).
- */
-const FAVICON_PATHS = [
-  // T — 22-unit stem, flat slab serifs
-  'M26 64 L102 64 L102 94 L90 94 L90 84 L75 84 L75 172 L90 172 L90 192 L38 192 ' +
-    'L38 172 L53 172 L53 84 L38 84 L38 94 L26 94 Z',
-  // M left stem — 20 units, keeping the counters open enough to survive 16px
-  'M120 64 L164 64 L164 76 L152 76 L152 180 L164 180 L164 192 L118 192 L118 180 ' +
-    'L132 180 L132 76 L120 76 Z',
-  // M vee — apex at (174,138); counters ~12 units wide at mid-height
-  'M132 76 L152 76 L174 138 L196 76 L216 76 L179 180 L169 180 Z',
-  // M right stem
-  'M184 64 L228 64 L228 76 L216 76 L216 180 L230 180 L230 192 L184 192 L184 180 ' +
-    'L196 180 L196 76 L184 76 Z',
-];
-const FAVICON_BOX = { x0: 26, x1: 230, y0: 64, y1: 192 };
+const GRID = 1000;
+const GLYPH_BOX = { x0: 110.4, x1: 889.6, y0: 251.64, y1: 748.36 };
 
 /* ── SVG builders ─────────────────────────────────────────────────────────── */
 
-/** Scale a path set about the 256-grid centre. */
-function glyphGroup(paths, { scale = 1, fill = CREAM, dx = 0, dy = 0 } = {}) {
-  const body = paths.map((d) => `    <path d="${d}" />`).join('\n');
-  const t = `translate(${128 + dx} ${128 + dy}) scale(${scale}) translate(-128 -128)`;
+/** Scale the glyph set about the plate centre. */
+function glyphGroup({ scale = 1, fill = WHITE } = {}) {
+  const body = GLYPHS.map((points) => `    <polygon points="${points}" />`).join('\n');
+  const c = GRID / 2;
+  const t = `translate(${c} ${c}) scale(${scale}) translate(${-c} ${-c})`;
   return `  <g fill="${fill}" transform="${t}">\n${body}\n  </g>`;
 }
 
 /**
  * @param {object} o
- * @param {'rounded'|'square'|'none'} o.field  burgundy plate style
- * @param {number} o.scale                     glyph scale about centre
+ * @param {'square'|'none'} o.field  red plate, or glyphs on transparency
+ * @param {number} o.scale           glyph scale about centre
  */
-function buildSvg({ paths, field = 'rounded', scale = 1, glyphFill = CREAM, title }) {
-  let plate = '';
-  if (field === 'rounded') {
-    plate = `  <rect width="256" height="256" rx="57" ry="57" fill="${BURGUNDY}" />`;
-  } else if (field === 'square') {
-    plate = `  <rect width="256" height="256" fill="${BURGUNDY}" />`;
-  }
+function buildSvg({ field = 'square', scale = 1, glyphFill = WHITE, plateFill = RED, title }) {
+  const plate =
+    field === 'square' ? `  <rect width="${GRID}" height="${GRID}" fill="${plateFill}" />` : '';
   return [
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img"' +
-      ` aria-label="${title}">`,
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${GRID} ${GRID}" width="${GRID}"` +
+      ` height="${GRID}" role="img" aria-label="${title}">`,
     `  <title>${title}</title>`,
     plate,
-    glyphGroup(paths, { scale, fill: glyphFill }),
+    glyphGroup({ scale, fill: glyphFill }),
     '</svg>',
     '',
   ]
@@ -117,51 +114,86 @@ function buildSvg({ paths, field = 'rounded', scale = 1, glyphFill = CREAM, titl
     .join('\n');
 }
 
-/**
- * Largest glyph scale that keeps the mark inside a maskable safe circle
- * (Android/PWA crop the outer 20%, so content must fit r = 0.4 * size).
- */
-function maskableScale(box, safeRatio = 0.4) {
-  const halfW = Math.max(128 - box.x0, box.x1 - 128);
-  const halfH = Math.max(128 - box.y0, box.y1 - 128);
-  const r = Math.hypot(halfW, halfH);
-  return (safeRatio * 256) / r;
+/** Largest glyph scale whose bbox still fits a centred safe circle of r = ratio * GRID. */
+function safeCircleScale(ratio) {
+  const halfW = Math.max(GRID / 2 - GLYPH_BOX.x0, GLYPH_BOX.x1 - GRID / 2);
+  const halfH = Math.max(GRID / 2 - GLYPH_BOX.y0, GLYPH_BOX.y1 - GRID / 2);
+  return (ratio * GRID) / Math.hypot(halfW, halfH);
+}
+
+/** Glyph scale that makes the mark span `ratio` of the plate width. */
+function widthScale(ratio) {
+  return (ratio * GRID) / (GLYPH_BOX.x1 - GLYPH_BOX.x0);
 }
 
 /* ── Rendered variants ────────────────────────────────────────────────────── */
 const SVG = {
-  // Web/app mark — rounded burgundy plate, 8.5% breathing room.
-  logo: buildSvg({ paths: MARK_PATHS, field: 'rounded', scale: 1.08, title: 'TricityMatch' }),
-  // Favicon — heavy cut, rounded plate.
-  favicon: buildSvg({ paths: FAVICON_PATHS, field: 'rounded', scale: 1, title: 'TricityMatch' }),
-  // Maskable / full-bleed app icon — square plate, glyphs inside the safe circle.
-  maskable: buildSvg({
-    paths: MARK_PATHS,
-    field: 'square',
-    scale: maskableScale(MARK_BOX),
-    title: 'TricityMatch',
-  }),
+  // Web/app mark — the artwork as drawn. Callers round the corners themselves.
+  logo: buildSvg({ title: 'TricityMatch' }),
+  // Favicon — glyphs pushed out to 90% width so the serif survives 16px.
+  favicon: buildSvg({ scale: widthScale(0.9), title: 'TricityMatch' }),
+  // Maskable / full-bleed app icon — outer 20% is croppable.
+  maskable: buildSvg({ scale: safeCircleScale(0.4), title: 'TricityMatch' }),
   // Android adaptive foreground — safe zone is the centre 66%.
-  adaptive: buildSvg({
-    paths: MARK_PATHS,
-    field: 'square',
-    scale: maskableScale(MARK_BOX, 0.33),
-    title: 'TricityMatch',
-  }),
-  // Splash — glyphs only on transparency (Expo paints #8B2346 behind).
-  splash: buildSvg({ paths: MARK_PATHS, field: 'none', scale: 1.08, title: 'TricityMatch' }),
+  adaptive: buildSvg({ scale: safeCircleScale(0.33), title: 'TricityMatch' }),
+  // Splash — glyphs only on transparency (Expo paints #B30021 behind).
+  splash: buildSvg({ field: 'none', title: 'TricityMatch' }),
 };
 
-/* ── OG share card (E2) ────────────────────────────────────────────────────
+/** Android round launcher icon: red disc, glyphs inside the inscribed safe area. */
+function roundSvg() {
+  const c = GRID / 2;
+  const s = safeCircleScale(0.4);
+  const body = GLYPHS.map((points) => `    <polygon points="${points}" />`).join('\n');
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${GRID} ${GRID}" width="${GRID}" height="${GRID}" role="img" aria-label="TricityMatch">
+  <title>TricityMatch</title>
+  <circle cx="${c}" cy="${c}" r="${c}" fill="${RED}" />
+  <g fill="${WHITE}" transform="translate(${c} ${c}) scale(${s}) translate(${-c} ${-c})">
+${body}
+  </g>
+</svg>
+`;
+}
+
+/** Full-screen iOS PWA startup image: mark centred on the red field. */
+function appleSplashSvg(w, h) {
+  const markWidth = 0.6 * Math.min(w, h);
+  const s = markWidth / (GLYPH_BOX.x1 - GLYPH_BOX.x0);
+  const tx = w / 2 - s * (GRID / 2);
+  const ty = h / 2 - s * (GRID / 2);
+  const body = GLYPHS.map((points) => `    <polygon points="${points}" />`).join('\n');
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+  <rect width="${w}" height="${h}" fill="${RED}" />
+  <g fill="${WHITE}" transform="translate(${tx} ${ty}) scale(${s})">
+${body}
+  </g>
+</svg>
+`;
+}
+
+/* The 40 sizes Apple's launch-image matrix covers, as `${width}-${height}`. */
+const APPLE_SPLASH_SIZES = [
+  '640-1136', '750-1334', '828-1792', '1125-2436', '1136-640', '1170-2532',
+  '1179-2556', '1206-2622', '1242-2208', '1242-2688', '1260-2736', '1284-2778',
+  '1290-2796', '1320-2868', '1334-750', '1488-2266', '1536-2048', '1620-2160',
+  '1640-2360', '1668-2224', '1668-2388', '1792-828', '2048-1536', '2048-2732',
+  '2160-1620', '2208-1242', '2224-1668', '2266-1488', '2360-1640', '2388-1668',
+  '2436-1125', '2532-1170', '2556-1179', '2622-1206', '2688-1242', '2732-2048',
+  '2736-1260', '2778-1284', '2796-1290', '2868-1320',
+];
+
+/* ── OG share card ─────────────────────────────────────────────────────────
  * 1200x630. Rendered by librsvg where Playfair Display resolves from the
  * system, so the wordmark can be real text here. NO NUMBERS — the whole point
- * of the P0.1b truth pass.
+ * of the truth pass. The field stays UI burgundy; the logo sits on a white
+ * tile because red-on-burgundy has no contrast.
  */
 function ogCardSvg() {
+  const TILE = 128;
   const markTile = [
-    `  <g transform="translate(90 132) scale(0.5)">`,
-    `    <rect width="256" height="256" rx="57" ry="57" fill="${CREAM}" />`,
-    glyphGroup(MARK_PATHS, { scale: 1.08, fill: BURGUNDY })
+    `  <g transform="translate(90 132) scale(${TILE / GRID})">`,
+    `    <rect width="${GRID}" height="${GRID}" rx="223" ry="223" fill="${WHITE}" />`,
+    glyphGroup({ fill: RED })
       .split('\n')
       .map((l) => `  ${l}`)
       .join('\n'),
@@ -197,10 +229,33 @@ ${markTile}
 `;
 }
 
+/** Xcode .colorset Contents.json for a hex colour. */
+function colorsetJson(hex) {
+  const f = (i) => (parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16) / 255).toFixed(15);
+  return `${JSON.stringify(
+    {
+      colors: [
+        {
+          color: {
+            components: { alpha: '1.000', blue: f(2), green: f(1), red: f(0) },
+            'color-space': 'srgb',
+          },
+          idiom: 'universal',
+        },
+      ],
+      info: { version: 1, author: 'expo' },
+    },
+    null,
+    2
+  )}\n`;
+}
+
 /* ── Emit ─────────────────────────────────────────────────────────────────── */
 
 const png = (svg, size, height) =>
-  sharp(Buffer.from(svg)).resize(size, height ?? size, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).png({ compressionLevel: 9 });
+  sharp(Buffer.from(svg))
+    .resize(size, height ?? size, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .png({ compressionLevel: 9 });
 
 async function out(path, buffer) {
   const full = resolve(ROOT, path);
@@ -218,7 +273,7 @@ async function main() {
   await out('frontend/public/favicon.svg', SVG.favicon);
   await out('mobile/assets/logo.svg', SVG.logo);
 
-  // 2. Favicon PNGs (heavy cut — never masked by the browser) ---------------
+  // 2. Favicon PNGs (enlarged cut — never masked by the browser) ------------
   console.log('\nFavicons');
   for (const size of [16, 32]) {
     await out(`frontend/public/icons/favicon-${size}x${size}.png`, await png(SVG.favicon, size).toBuffer());
@@ -237,20 +292,73 @@ async function main() {
   await out('frontend/public/icons/apple-touch-icon.png', await png(SVG.maskable, 180).toBuffer());
   await out('frontend/public/icons/apple-icon-180.png', await png(SVG.maskable, 180).toBuffer());
 
-  // 5. OG share card -------------------------------------------------------
+  // 5. iOS PWA startup images ---------------------------------------------
+  // NOTE: nothing currently links these (no <link rel="apple-touch-startup-image">
+  // in index.html and no manifest entry) — they ship as dead weight. Kept in
+  // brand so they are correct if/when they get wired up.
+  console.log('\niOS startup images');
+  for (const size of APPLE_SPLASH_SIZES) {
+    const [w, h] = size.split('-').map(Number);
+    await out(
+      `frontend/public/icons/apple-splash-${size}.jpg`,
+      await sharp(Buffer.from(appleSplashSvg(w, h))).jpeg({ quality: 86, mozjpeg: true }).toBuffer()
+    );
+  }
+
+  // 6. OG share card -------------------------------------------------------
   console.log('\nSocial');
   await out(
     'frontend/public/images/og-card.png',
     await sharp(Buffer.from(ogCardSvg())).png({ compressionLevel: 9 }).toBuffer()
   );
 
-  // 6. Mobile assets (assets only — bundle IDs / RN source untouched) -------
+  // 7. Mobile assets (assets only — bundle IDs / RN source untouched) -------
   console.log('\nMobile assets');
   await out('mobile/assets/logo.png', await png(SVG.logo, 512).toBuffer());
   await out('mobile/assets/icon.png', await png(SVG.maskable, 1024).toBuffer());
   await out('mobile/assets/adaptive-icon.png', await png(SVG.adaptive, 1024).toBuffer());
   await out('mobile/assets/splash.png', await png(SVG.splash, 1200).toBuffer());
   await out('mobile/assets/favicon.png', await png(SVG.favicon, 48).toBuffer());
+
+
+  // 8. Committed native projects -------------------------------------------
+  // `mobile/ios` and `mobile/android` are checked in (bare workflow), so they
+  // hold their own baked copies of the icon. Writing them here keeps the app
+  // icon correct WITHOUT a full `expo prebuild`, which would churn native
+  // config right before a store build. Re-run prebuild and these are simply
+  // regenerated from app.json to the same result.
+  console.log('\nNative — Android');
+  // Expo writes PNG bytes under a .webp extension; Android reads by content.
+  const ANDROID_DPI = [
+    ['mdpi', 48, 108, 288],
+    ['hdpi', 72, 162, 432],
+    ['xhdpi', 96, 216, 576],
+    ['xxhdpi', 144, 324, 864],
+    ['xxxhdpi', 192, 432, 1152],
+  ];
+  const roundSvgStr = roundSvg();
+  for (const [dpi, launcher, foreground, splash] of ANDROID_DPI) {
+    const res = `mobile/android/app/src/main/res`;
+    await out(`${res}/mipmap-${dpi}/ic_launcher.webp`, await png(SVG.maskable, launcher).toBuffer());
+    await out(`${res}/mipmap-${dpi}/ic_launcher_round.webp`, await png(roundSvgStr, launcher).toBuffer());
+    await out(`${res}/mipmap-${dpi}/ic_launcher_foreground.webp`, await png(SVG.adaptive, foreground).toBuffer());
+    await out(`${res}/drawable-${dpi}/splashscreen_logo.png`, await png(SVG.splash, splash).toBuffer());
+  }
+
+  console.log('\nNative — iOS');
+  const XC = 'mobile/ios/TricityMatch/Images.xcassets';
+  // App Store rejects an alpha channel on the marketing icon — flatten it.
+  await out(
+    `${XC}/AppIcon.appiconset/App-Icon-1024x1024@1x.png`,
+    await sharp(Buffer.from(SVG.maskable)).resize(1024, 1024).flatten({ background: RED }).png({ compressionLevel: 9 }).toBuffer()
+  );
+  for (const name of ['image.png', 'image@2x.png', 'image@3x.png']) {
+    await out(`${XC}/SplashScreenLogo.imageset/${name}`, await png(SVG.splash, 1200).toBuffer());
+  }
+  await out(
+    `${XC}/SplashScreenBackground.colorset/Contents.json`,
+    Buffer.from(colorsetJson(RED))
+  );
 
   console.log('\nDone.');
 }

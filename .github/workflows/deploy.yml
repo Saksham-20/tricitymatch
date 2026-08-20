@@ -22,7 +22,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     environment:
       name: staging
-      url: https://staging.tricityshadi.com
+      url: https://staging.tricitymatch.com
 
     steps:
       - name: Checkout code
@@ -80,7 +80,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     environment:
       name: production
-      url: https://tricityshadi.com
+      url: https://tricitymatch.com
 
     steps:
       - name: Checkout code

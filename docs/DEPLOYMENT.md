@@ -135,11 +135,11 @@ nano .env
 mkdir -p nginx/ssl
 
 # Get Let's Encrypt certificate
-sudo certbot certonly --standalone -d tricityshadi.com -d www.tricityshadi.com
+sudo certbot certonly --standalone -d tricitymatch.com -d www.tricitymatch.com
 
 # Copy certificates
-sudo cp /etc/letsencrypt/live/tricityshadi.com/fullchain.pem nginx/ssl/
-sudo cp /etc/letsencrypt/live/tricityshadi.com/privkey.pem nginx/ssl/
+sudo cp /etc/letsencrypt/live/tricitymatch.com/fullchain.pem nginx/ssl/
+sudo cp /etc/letsencrypt/live/tricitymatch.com/privkey.pem nginx/ssl/
 ```
 
 ### 5. Deploy
@@ -420,4 +420,4 @@ For issues:
 1. Check application logs
 2. Review this guide
 3. Check GitHub Issues
-4. Contact: support@tricityshadi.com
+4. Contact: support@tricitymatch.com

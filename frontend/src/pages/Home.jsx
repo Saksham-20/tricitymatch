@@ -52,25 +52,7 @@ const FontLoader = () => (
     .ht-sans    { font-family: var(--sans) !important; }
     .ht-mono    { font-family: var(--mono) !important; }
 
-    /* ── Custom cursor ── */
-    body { cursor: none; overflow-x: hidden; }
-    @media (max-width: 900px) { body { cursor: auto; } }
-    .cur-dot, .cur-ring {
-      position: fixed; pointer-events: none; z-index: 9999;
-      top: 0; left: 0; transform: translate(-50%,-50%); will-change: transform;
-    }
-    .cur-dot {
-      width: 6px; height: 6px; background: var(--burgundy); border-radius: 50%;
-      transition: width .2s, height .2s, background .2s;
-    }
-    .cur-ring {
-      width: 36px; height: 36px; border: 1px solid var(--burgundy); border-radius: 50%;
-      transition: width .25s cubic-bezier(.2,.8,.2,1), height .25s, opacity .2s, border-color .2s;
-    }
-    body.cur-dk .cur-dot  { background: var(--cream); }
-    body.cur-dk .cur-ring { border-color: var(--cream); }
-    body.cur-hov .cur-ring { width: 64px; height: 64px; background: rgba(124,29,58,.08); }
-    @media (max-width: 900px) { .cur-dot, .cur-ring { display: none; } }
+    body { overflow-x: hidden; }
 
     /* ── Headings on dark panels ──
        index.css colours h1/h2/h3 with an ELEMENT rule, which beats the inherited
@@ -259,8 +241,6 @@ const FontLoader = () => (
         transition-duration: .001ms !important;
         scroll-behavior: auto !important;
       }
-      body { cursor: auto !important; }
-      .cur-dot, .cur-ring { display: none !important; }
       .ribbon-track { animation: none !important; }
     }
 
@@ -272,44 +252,6 @@ const FontLoader = () => (
     }
   `}</style>
 );
-
-/* ── CURSOR ──────────────────────────────────────────────────── */
-function Cursor() {
-  useEffect(() => {
-    const dot  = document.querySelector('.cur-dot');
-    const ring = document.querySelector('.cur-ring');
-    if (!dot || !ring) return;
-    let mx = 0, my = 0, rx = 0, ry = 0;
-    const onMove = (e) => {
-      mx = e.clientX; my = e.clientY;
-      dot.style.transform = `translate(${mx}px, ${my}px) translate(-50%,-50%)`;
-    };
-    const tick = () => {
-      rx += (mx - rx) * 0.18; ry += (my - ry) * 0.18;
-      ring.style.transform = `translate(${rx}px, ${ry}px) translate(-50%,-50%)`;
-      requestAnimationFrame(tick);
-    };
-    window.addEventListener('mousemove', onMove);
-    tick();
-    const addHov = (sel) => document.querySelectorAll(sel).forEach(el => {
-      el.addEventListener('mouseenter', () => document.body.classList.add('cur-hov'));
-      el.addEventListener('mouseleave', () => document.body.classList.remove('cur-hov'));
-    });
-    const addDk = (sel) => document.querySelectorAll(sel).forEach(el => {
-      el.addEventListener('mouseenter', () => document.body.classList.add('cur-dk'));
-      el.addEventListener('mouseleave', () => document.body.classList.remove('cur-dk'));
-    });
-    addHov('a, button, .why-tile, .city-strip, .faq-row, .ms-row, .tilt-card');
-    addDk('.section-dark, .ribbon-band, .matches-section, .cities-section, .cta-section, footer');
-    return () => window.removeEventListener('mousemove', onMove);
-  }, []);
-  return (
-    <>
-      <div className="cur-ring" />
-      <div className="cur-dot" />
-    </>
-  );
-}
 
 /* ── STICKY CTA — mobile-only bottom bar ─────────────────────────── */
 const StickyCTA = () => {
@@ -464,7 +406,6 @@ const Home = () => {
     <div style={{ background: 'var(--cream)', fontFamily: 'var(--sans)', color: 'var(--ink)', overflowX: 'clip' }}>
       <Seo path="/" />
       <FontLoader />
-      <Cursor />
 
       {/* ── SCROLL BAR ── CSS scroll-timeline where supported (runs off the
           main thread); framer-motion baseline everywhere else. */}
@@ -1409,10 +1350,10 @@ const Home = () => {
             </p>
             <div style={{ display: 'flex', gap: 12 }}>
               {[
-                { icon: <FaInstagram />, label: 'Instagram', href: 'https://www.instagram.com/tricityshadi' },
-                { icon: <FaFacebook />, label: 'Facebook', href: 'https://www.facebook.com/tricityshadi' },
+                { icon: <FaInstagram />, label: 'Instagram', href: 'https://www.instagram.com/tricitymatch' },
+                { icon: <FaFacebook />, label: 'Facebook', href: 'https://www.facebook.com/tricitymatch' },
                 { icon: <FaWhatsapp />, label: 'WhatsApp', href: 'https://wa.me/919876543210' },
-                { icon: <FaTwitter />, label: 'Twitter', href: 'https://twitter.com/tricityshadi' },
+                { icon: <FaTwitter />, label: 'Twitter', href: 'https://twitter.com/tricitymatch' },
               ].map(s => (
                 <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" aria-label={s.label}
                   style={{ width: 44, height: 44, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--line-on-dk)', color: 'rgba(253,248,242,.5)', transition: 'all .3s', textDecoration: 'none' }}

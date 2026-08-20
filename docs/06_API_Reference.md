@@ -4,7 +4,7 @@
 All endpoints are under `/api/v1` unless noted. Legacy alias `/api` also works for some routes.
 
 **Base URL (dev):** `http://localhost:5001/api/v1`  
-**Base URL (prod):** `https://tricityshadi.com/api/v1`
+**Base URL (prod):** `https://tricitymatch.com/api/v1`
 
 ---
 
