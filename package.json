@@ -87,7 +87,13 @@
       "cloudinary": "^2.10.0"
     },
     "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react-dom": "18.3.1",
+    "socket.io": {
+      "socket.io-parser": "^4.2.7"
+    },
+    "socket.io-client": {
+      "socket.io-parser": "^4.2.7"
+    }
   },
   "dependencies": {
     "@expo/config-plugins": "9.0.17",
