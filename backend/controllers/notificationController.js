@@ -93,7 +93,16 @@ exports.deleteNotification = asyncHandler(async (req, res) => {
 // @access  Private
 exports.registerFcmToken = asyncHandler(async (req, res) => {
   const { token } = req.body;
-  if (!token || typeof token !== 'string' || token.length < 10) {
+  // Upper bound as well as lower. Real FCM registration tokens are ~150-200
+  // characters; without a ceiling a member could park ten multi-megabyte
+  // strings in this JSONB column, which every push fan-out then reads.
+  const MAX_FCM_TOKEN_LENGTH = 512;
+  if (
+    !token ||
+    typeof token !== 'string' ||
+    token.length < 10 ||
+    token.length > MAX_FCM_TOKEN_LENGTH
+  ) {
     throw createError.badRequest('Valid FCM token required');
   }
 
@@ -114,7 +123,7 @@ exports.registerFcmToken = asyncHandler(async (req, res) => {
 // @access  Private
 exports.removeFcmToken = asyncHandler(async (req, res) => {
   const { token } = req.body;
-  if (!token) throw createError.badRequest('FCM token required');
+  if (!token || typeof token !== 'string') throw createError.badRequest('FCM token required');
 
   const user = await User.findByPk(req.user.id, { attributes: ['id', 'fcmTokens'] });
   const updated = (user.fcmTokens || []).filter(t => t !== token);

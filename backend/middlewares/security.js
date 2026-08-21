@@ -300,6 +300,15 @@ const securityHeaders = helmet({
       fontSrc: ["'self'", 'https://fonts.gstatic.com'],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
+      // frameguard below sends X-Frame-Options: DENY, but CSP frame-ancestors
+      // SUPERSEDES that header in every modern browser — and helmet's default
+      // for this directive is 'self'. The effective policy was therefore
+      // "framable by same origin" while the header said DENY, and the two
+      // disagreeing is exactly the condition under which some browsers drop
+      // framing protection entirely. Nothing frames this app (Razorpay is
+      // framed BY us, via frame-src). Verified live on production:
+      // `frame-ancestors 'self'` alongside `X-Frame-Options: DENY`.
+      frameAncestors: ["'none'"],
     },
   },
   crossOriginEmbedderPolicy: false, // Required for Cloudinary images

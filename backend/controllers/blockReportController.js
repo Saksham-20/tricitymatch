@@ -93,7 +93,9 @@ exports.reportUser = asyncHandler(async (req, res) => {
     reporterId,
     reportedUserId,
     reason,
-    description: description?.substring(0, 1000) || null,
+    // typeof guard, not just optional chaining: a JSON body can send a number
+    // or an array here, and `.substring` on either is a TypeError -> 500.
+    description: typeof description === 'string' ? description.substring(0, 1000) : null,
     status: 'pending',
   });
 
