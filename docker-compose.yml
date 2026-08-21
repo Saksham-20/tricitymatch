@@ -402,7 +402,7 @@ services:
     restart: unless-stopped
     environment:
       REDIS_ADDR: "redis://redis:6379"
-      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     ports:
       - "127.0.0.1:${REDIS_EXPORTER_PORT:-9121}:9121"
     networks:
@@ -438,7 +438,7 @@ services:
     # sslmode=disable is correct ONLY because postgres here is container-internal on a
     # private bridge with no host port. Set PG_EXPORTER_SSLMODE=require for a managed DB.
     environment:
-      DATA_SOURCE_NAME: "postgresql://${PG_EXPORTER_USER:?PG_EXPORTER_USER must be set}:${PG_EXPORTER_PASSWORD:?PG_EXPORTER_PASSWORD must be set}@postgres:5432/${DB_NAME:?DB_NAME must be set}?sslmode=${PG_EXPORTER_SSLMODE:-disable}"
+      DATA_SOURCE_NAME: "postgresql://${PG_EXPORTER_USER:-tm_exporter}:${PG_EXPORTER_PASSWORD:-}@postgres:5432/${DB_NAME:-matrimony_dev}?sslmode=${PG_EXPORTER_SSLMODE:-disable}"
     ports:
       - "127.0.0.1:${PG_EXPORTER_PORT:-9187}:9187"
     networks:
