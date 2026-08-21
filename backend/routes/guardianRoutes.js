@@ -5,6 +5,7 @@
  */
 
 const express = require('express');
+const { param } = require('express-validator');
 const router = express.Router();
 const crypto = require('crypto');
 const { auth } = require('../middlewares/auth');
@@ -15,7 +16,13 @@ const { log } = require('../middlewares/logger');
 const { notify } = require('../utils/notifyUser');
 const { matchActionLimiter, sensitiveActionLimiter } = require('../middlewares/security');
 
+const { handleValidationErrors } = require('../middlewares/errorHandler');
+
 const MAX_GUARDIANS = 3;
+
+// :linkId and :candidateId are uuid columns; an arbitrary string otherwise
+// reaches Postgres and returns 500 with the driver's error text.
+const uuidParam = (name) => [param(name).isUUID(4).withMessage(`Invalid ${name}`), handleValidationErrors];
 
 // ─── Candidate routes ─────────────────────────────────────────────────────────
 
@@ -126,7 +133,7 @@ router.post('/invite', auth, matchActionLimiter, asyncHandler(async (req, res) =
 // who had been linked to someone else's profile — which happens automatically
 // when the invited email already belongs to a user, with no accept step — had
 // no way to detach themselves from it.
-router.delete('/:linkId', auth, asyncHandler(async (req, res) => {
+router.delete('/:linkId', auth, uuidParam('linkId'), asyncHandler(async (req, res) => {
   const link = await GuardianLink.findOne({
     where: {
       id: req.params.linkId,
@@ -171,7 +178,7 @@ router.get('/my-candidates', auth, asyncHandler(async (req, res) => {
 }));
 
 // GET /guardian/candidate/:candidateId/matches — read-only mutual matches for a candidate
-router.get('/candidate/:candidateId/matches', auth, asyncHandler(async (req, res) => {
+router.get('/candidate/:candidateId/matches', auth, uuidParam('candidateId'), asyncHandler(async (req, res) => {
   const { candidateId } = req.params;
 
   const link = await GuardianLink.findOne({
@@ -205,7 +212,7 @@ router.get('/candidate/:candidateId/matches', auth, asyncHandler(async (req, res
 }));
 
 // GET /guardian/candidate/:candidateId/shortlisted — read-only shortlist
-router.get('/candidate/:candidateId/shortlisted', auth, asyncHandler(async (req, res) => {
+router.get('/candidate/:candidateId/shortlisted', auth, uuidParam('candidateId'), asyncHandler(async (req, res) => {
   const { candidateId } = req.params;
 
   const link = await GuardianLink.findOne({

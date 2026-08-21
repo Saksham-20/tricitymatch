@@ -977,8 +977,17 @@ exports.googleAuth = asyncHandler(async (req, res) => {
     throw createError.unauthorized('Invalid Google credential');
   }
 
-  const { sub: googleId, email, given_name: firstName, family_name: lastName, email_verified } = payload;
+  const { sub: googleId, email, given_name: rawFirstName, family_name: rawLastName, email_verified } = payload;
   if (!email_verified) throw createError.badRequest('Google account email is not verified');
+
+  // Names arriving on this path never pass signupValidation, so they skip the
+  // [a-zA-Z\s'-] restriction every other write path enforces. The account
+  // holder controls their own Google display name, so this is untrusted input:
+  // hold it to the same charset and length as a native signup.
+  const sanitizeGoogleName = (value) =>
+    String(value ?? '').replace(/[^a-zA-Z\s'-]/g, '').trim().slice(0, 50);
+  const firstName = sanitizeGoogleName(rawFirstName);
+  const lastName = sanitizeGoogleName(rawLastName);
 
   const sequelize = require('../config/database');
 

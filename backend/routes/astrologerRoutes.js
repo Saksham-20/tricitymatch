@@ -4,6 +4,7 @@
  */
 
 const express = require('express');
+const { param } = require('express-validator');
 const router = express.Router();
 const { auth } = require('../middlewares/auth');
 const { asyncHandler, AppError } = require('../middlewares/errorHandler');
@@ -14,6 +15,11 @@ const config = require('../config/env');
 const { log } = require('../middlewares/logger');
 const { notify } = require('../utils/notifyUser');
 const { paymentLimiter } = require('../middlewares/security');
+const { handleValidationErrors } = require('../middlewares/errorHandler');
+
+// A malformed :id reaches Postgres as an invalid uuid literal and surfaces as an
+// unmapped SequelizeDatabaseError -> 500 with a driver message. Validate first.
+const uuidParam = (name) => [param(name).isUUID(4).withMessage('Invalid id'), handleValidationErrors];
 
 // Seed data inserted on first request if Astrologers table is empty (dev convenience)
 const SEED_ASTROLOGERS = [
@@ -81,7 +87,7 @@ router.get('/my-bookings', auth, asyncHandler(async (req, res) => {
 }));
 
 // GET /astrologers/:id — single astrologer detail
-router.get('/:id', auth, asyncHandler(async (req, res) => {
+router.get('/:id', auth, uuidParam('id'), asyncHandler(async (req, res) => {
   await ensureSeeded();
   const ast = await Astrologer.findOne({ where: { id: req.params.id, isActive: true } });
   if (!ast) throw new AppError('Astrologer not found', 404);
@@ -181,7 +187,7 @@ router.post('/book', auth, paymentLimiter, asyncHandler(async (req, res) => {
 }));
 
 // POST /astrologers/book/:bookingId/verify-payment — confirm Razorpay payment
-router.post('/book/:bookingId/verify-payment', auth, asyncHandler(async (req, res) => {
+router.post('/book/:bookingId/verify-payment', auth, uuidParam('bookingId'), asyncHandler(async (req, res) => {
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
   if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
@@ -233,7 +239,7 @@ router.post('/book/:bookingId/verify-payment', auth, asyncHandler(async (req, re
 }));
 
 // POST /astrologers/book/:bookingId/start-call — get Agora token to start consultation
-router.post('/book/:bookingId/start-call', auth, asyncHandler(async (req, res) => {
+router.post('/book/:bookingId/start-call', auth, uuidParam('bookingId'), asyncHandler(async (req, res) => {
   const booking = await AstrologerBooking.findOne({
     where: { id: req.params.bookingId, userId: req.user.id },
     include: [{ model: Astrologer, as: 'Astrologer', attributes: ['name'] }],
@@ -262,7 +268,7 @@ router.post('/book/:bookingId/start-call', auth, asyncHandler(async (req, res) =
 }));
 
 // POST /astrologers/book/:bookingId/end-call — mark consultation completed
-router.post('/book/:bookingId/end-call', auth, asyncHandler(async (req, res) => {
+router.post('/book/:bookingId/end-call', auth, uuidParam('bookingId'), asyncHandler(async (req, res) => {
   const booking = await AstrologerBooking.findOne({
     where: { id: req.params.bookingId, userId: req.user.id },
   });

@@ -843,6 +843,38 @@ exports.unlockContact = asyncHandler(async (req, res) => {
       const subscription = req.subscription;
       let remaining = -1;
 
+      if (subscription.contactUnlocksAllowed === null) {
+        // Unlimited tier. checkContactUnlockLimit already counted the rolling
+        // 24h window, but that count ran OUTSIDE any transaction and before the
+        // insert, so N concurrent requests all read the same under-cap figure
+        // and all proceeded — the anti-harvest ceiling was bypassable simply by
+        // firing the unlocks in parallel (SEC R2: RACE-1).
+        //
+        // Re-check inside the transaction, after taking a row lock on this
+        // user's own subscription. The lock is held to commit, so concurrent
+        // unlocks by the same member serialise here and each one counts the
+        // rows the previous one committed. The row for THIS request is already
+        // inserted above, hence `>` rather than `>=`.
+        const cap = config.limits?.unlimitedDailyUnlockCap ?? 25;
+        if (cap > 0) {
+          await Subscription.findByPk(subscription.id, {
+            lock: t.LOCK.UPDATE,
+            transaction: t,
+          });
+          const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+          const usedToday = await ContactUnlock.count({
+            where: { userId, createdAt: { [Op.gte]: since } },
+            transaction: t,
+          });
+          if (usedToday > cap) {
+            throw createError.forbidden(
+              `Daily limit of ${cap} contact unlocks reached. It resets on a rolling 24-hour basis.`,
+              'DAILY_UNLOCK_LIMIT_REACHED'
+            );
+          }
+        }
+      }
+
       if (subscription.contactUnlocksAllowed !== null) {
         // Consume the quota with a single conditional UPDATE. Read-modify-write on
         // the in-memory instance let concurrent unlocks (double-taps, or several

@@ -14,12 +14,19 @@ const { hasChatAccess } = require('../utils/entitlements');
 // Socket rate limiting map
 const socketRateLimits = new Map();
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 // Rate limit config per event type
 const RATE_LIMITS = {
   'send-message': { maxRequests: 30, windowMs: 60000 }, // 30 messages/minute
   'typing': { maxRequests: 60, windowMs: 60000 }, // 60 typing events/minute
   'join-room': { maxRequests: 20, windowMs: 60000 }, // 20 room joins/minute
   'get-online-status': { maxRequests: 30, windowMs: 60000 }, // 30 status checks/minute
+  // Each join-group emit costs a GroupMember lookup. Unlimited, that is a DB
+  // query amplifier any authenticated socket can drive (SEC R2: DoS-2).
+  'join-group': { maxRequests: 20, windowMs: 60000 },
+  'leave-room': { maxRequests: 60, windowMs: 60000 },
+  'leave-group': { maxRequests: 60, windowMs: 60000 },
 };
 
 // Check socket rate limit
@@ -158,6 +165,44 @@ const getRoomId = (userId1, userId2) => {
 let subscriptionCheckInterval = null;
 let rateLimitCleanupInterval = null;
 
+// Mid-session account-status revalidation.
+//
+// authenticateSocket checks status at CONNECT. A socket is long-lived, so a
+// member banned, suspended or self-deleted after connecting kept a fully
+// privileged channel — reading rooms, relaying typing, receiving broadcasts —
+// until they happened to disconnect. The access token they hold is valid for
+// 15 minutes but the socket does not re-present it (SEC R2: AUTHZ-2).
+//
+// Re-read the row before any gated action, cached per socket so a chatty client
+// costs at most one lookup per window.
+const STATUS_RECHECK_MS = 60 * 1000;
+
+const ensureStillActive = async (socket) => {
+  const now = Date.now();
+  if (socket.lastStatusCheck && now - socket.lastStatusCheck < STATUS_RECHECK_MS) {
+    return true;
+  }
+  try {
+    const user = await User.findByPk(socket.userId, { attributes: ['id', 'status'] });
+    if (!user || user.status !== 'active') {
+      logSecurityEvent('socket_revoked_mid_session', {
+        userId: socket.userId,
+        status: user ? user.status : 'missing',
+      });
+      socket.emit('error', { code: 'ACCOUNT_INACTIVE', message: 'Your account is no longer active' });
+      socket.disconnect(true);
+      return false;
+    }
+    socket.lastStatusCheck = now;
+    return true;
+  } catch (error) {
+    // Fail CLOSED on a gated action: a status check that cannot run is not
+    // evidence the account is still good.
+    log.error('Socket status revalidation failed', { userId: socket.userId, error: error.message });
+    return false;
+  }
+};
+
 // Initialize socket handler
 const initializeSocket = (io) => {
   // Use authentication middleware
@@ -170,6 +215,10 @@ const initializeSocket = (io) => {
       console.log(`Socket connected: ${userId} (${socket.id})`);
     }
 
+    // authenticateSocket has just read the row; record that so ensureStillActive
+    // does not immediately query again on the first gated event.
+    socket.lastStatusCheck = Date.now();
+
     // Join user's personal room for notifications (all authenticated users, no premium required)
     socket.join(`user_${userId}`);
 
@@ -179,6 +228,13 @@ const initializeSocket = (io) => {
         // Rate limit check
         if (!checkRateLimit(socket.id, 'join-room')) {
           socket.emit('error', { code: 'RATE_LIMITED', message: 'Too many requests. Please slow down.' });
+          return;
+        }
+
+        if (!(await ensureStillActive(socket))) return;
+
+        if (typeof roomId !== 'string') {
+          socket.emit('error', { code: 'INVALID_ROOM', message: 'Invalid room ID' });
           return;
         }
 
@@ -221,6 +277,8 @@ const initializeSocket = (io) => {
 
     // ==================== LEAVE ROOM ====================
     socket.on('leave-room', (roomId) => {
+      if (!checkRateLimit(socket.id, 'leave-room')) return;
+      if (typeof roomId !== 'string') return;
       socket.leave(roomId);
       
       if (config.isDevelopment) {
@@ -245,6 +303,7 @@ const initializeSocket = (io) => {
       }
 
       if (!receiverId) return;
+      if (!(await ensureStillActive(socket))) return;
 
       // SOCK-6: only relay typing to a mutual match — otherwise any user could
       // push fake typing indicators by computing the deterministic room id.
@@ -281,8 +340,17 @@ const initializeSocket = (io) => {
     socket.on('join-group', async (payload) => {
       try {
         // Accept either a bare id string or an { groupId } object.
+        if (!checkRateLimit(socket.id, 'join-group')) {
+          socket.emit('error', { code: 'RATE_LIMITED', message: 'Too many requests. Please slow down.' });
+          return;
+        }
+        if (!(await ensureStillActive(socket))) return;
+
         const groupId = typeof payload === 'string' ? payload : payload && payload.groupId;
-        if (!groupId || typeof groupId !== 'string') {
+        // Shape-check before the query: groupId is a uuid column, so anything
+        // else reaches Postgres only to raise "invalid input syntax for type
+        // uuid" — a wasted round-trip per malformed emit.
+        if (!groupId || typeof groupId !== 'string' || !UUID_RE.test(groupId)) {
           socket.emit('error', { code: 'INVALID_GROUP', message: 'Invalid group id' });
           return;
         }
@@ -301,6 +369,7 @@ const initializeSocket = (io) => {
     });
 
     socket.on('leave-group', (groupId) => {
+      if (!checkRateLimit(socket.id, 'leave-group')) return;
       if (groupId && typeof groupId === 'string') socket.leave(`group_${groupId}`);
     });
 
@@ -317,6 +386,7 @@ const initializeSocket = (io) => {
       }
 
       if (!Array.isArray(userIds)) return;
+      if (!(await ensureStillActive(socket))) return;
 
       const requested = userIds.slice(0, 50).filter((id) => typeof id === 'string');
       if (requested.length === 0) {

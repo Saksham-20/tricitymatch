@@ -40,6 +40,17 @@ const config = require('../config/env');
 const INVITE_REWARD_UNLOCKS = () => config.limits?.inviteRewardUnlocks ?? 3;
 
 /**
+ * Ceiling on how many of one member's invites can ever pay a reward.
+ *
+ * Without it the reward is a free-unlock printer: signup does not require the
+ * contact to be verified, so a member could create throwaway accounts against
+ * their OWN invite link and collect 3 unlocks per account, indefinitely. Contact
+ * unlocks are phone numbers, so that converts straight into the directory export
+ * the unlimited-tier daily cap exists to prevent (SEC R2: LOGIC-1).
+ */
+const INVITE_REWARD_MAX_PER_INVITER = () => config.limits?.inviteRewardMaxPerInviter ?? 20;
+
+/**
  * Move any pending credits onto a subscription that has just become active.
  * Call INSIDE the transaction that created/activated the row.
  *
@@ -136,6 +147,49 @@ const rewardInvite = async (newUserId, inviterId) => {
   const credits = INVITE_REWARD_UNLOCKS();
   if (!inviterId || !newUserId || credits <= 0) return;
 
+  // Two abuse gates, both cheap, neither reachable by a real invited member.
+  //
+  //  1. The new account must have actually confirmed a contact. Signup accepts
+  //     an unverified account (the OTP markers are consumed opportunistically),
+  //     so without this the reward pays out for an address nobody owns. Both
+  //     shipped clients verify BEFORE creating the account — web's combined
+  //     CreateAccount step and the RN door both create-after-verify — so a real
+  //     invitee always passes.
+  //
+  //  2. A lifetime ceiling on rewarded invites per inviter, so even a member
+  //     with a supply of real numbers cannot mint unlocks without bound.
+  //
+  // Failure here is never fatal: this runs off the back of a signup.
+  try {
+    const { Op } = require('sequelize');
+    const { User } = require('../models');
+
+    const newUser = await User.findByPk(newUserId, {
+      attributes: ['id', 'emailVerified', 'phoneVerified'],
+    });
+    if (!newUser || !(newUser.emailVerified || newUser.phoneVerified)) {
+      log.info('Invite reward skipped — invitee has no verified contact', { newUserId, inviterId });
+      return;
+    }
+
+    const cap = INVITE_REWARD_MAX_PER_INVITER();
+    if (cap > 0) {
+      const priorInvites = await User.count({
+        where: { invitedBy: inviterId, id: { [Op.ne]: newUserId } },
+      });
+      if (priorInvites >= cap) {
+        log.info('Invite reward skipped — inviter at lifetime cap', { inviterId, cap, priorInvites });
+        return;
+      }
+    }
+  } catch (err) {
+    // Fail CLOSED: if the eligibility check itself cannot run, do not pay out.
+    log.warn('Invite reward eligibility check failed — reward withheld', {
+      newUserId, inviterId, error: err.message,
+    });
+    return;
+  }
+
   const [invitee, inviter] = await Promise.all([
     creditUnlocks(newUserId, credits),
     creditUnlocks(inviterId, credits),
@@ -160,4 +214,10 @@ const rewardInvite = async (newUserId, inviterId) => {
   }
 };
 
-module.exports = { rewardInvite, creditUnlocks, applyPendingCredits, INVITE_REWARD_UNLOCKS };
+module.exports = {
+  rewardInvite,
+  creditUnlocks,
+  applyPendingCredits,
+  INVITE_REWARD_UNLOCKS,
+  INVITE_REWARD_MAX_PER_INVITER,
+};

@@ -605,10 +605,16 @@ exports.getRevenueReport = asyncHandler(async (req, res) => {
   );
 
   if (format === 'csv') {
-    // Sanitize CSV fields to prevent formula injection (prefix cells that start with =+-@)
+    // Sanitize CSV fields against formula injection. Excel and Sheets also treat
+    // a leading TAB or CR as a formula lead-in, so they belong in the prefix set;
+    // and any cell is then RFC4180-quoted so a value containing a comma, quote or
+    // newline cannot break out into a new column or row. Today every column here
+    // is a date, an enum or a number, but this function is the kind of thing that
+    // gets reused for a user-supplied column later.
     const csvSafe = (v) => {
-      const s = String(v == null ? '' : v);
-      return /^[=+\-@|]/.test(s) ? `'${s}` : s;
+      const raw = String(v == null ? '' : v);
+      const guarded = /^[=+\-@|\t\r]/.test(raw) ? `'${raw}` : raw;
+      return /[",\n\r]/.test(guarded) ? `"${guarded.replace(/"/g, '""')}"` : guarded;
     };
     const rows = ['Month,Plan,Transactions,Revenue'];
     monthlyRevenue.forEach(r => {

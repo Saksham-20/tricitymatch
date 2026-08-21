@@ -369,6 +369,9 @@ const config = {
     // actually binds at launch — how many profiles there are to unlock.
     // 0 disables the reward without removing the invite flow.
     inviteRewardUnlocks: optionalNumber('INVITE_REWARD_UNLOCKS', 3),
+    // Lifetime ceiling on rewarded invites per member. 0 disables the ceiling
+    // (do not set that in production — see utils/inviteReward.js).
+    inviteRewardMaxPerInviter: optionalNumber('INVITE_REWARD_MAX_PER_INVITER', 20),
   },
 
   // Monitoring & Alerting

@@ -174,9 +174,17 @@ const brandLayout = ({ eyebrow, bodyHtml, preheader = '', cta }) => `
 </body>
 </html>`;
 
-// Support replies and enquiry quotes are HUMAN-TYPED text landing in an HTML
-// email, so they are escaped before interpolation. Everything else in this file
-// is developer-authored copy.
+// Every value that originates OUTSIDE this file is escaped before it is
+// interpolated into HTML: member names, a matched member's name, admin-typed
+// rejection reasons, support replies, plan/expiry strings and security-alert
+// detail. Only developer-authored copy is interpolated raw.
+//
+// The signup/profile validators restrict firstName to [a-zA-Z\s'-], which is
+// why this was not already exploitable — but that regex was the ONLY control
+// between a member-supplied name and outbound HTML mail, and the Google
+// sign-in path (given_name straight from the ID token) never runs it.
+// A single-control dependency on a template that reaches other people's
+// inboxes is not a place to rely on validation alone.
 const escapeHtml = (str) => String(str ?? '')
   .replace(/&/g, '&amp;')
   .replace(/</g, '&lt;')
@@ -206,7 +214,7 @@ const templates = {
       eyebrow: 'Welcome',
       preheader: 'Your TricityMatch journey starts here.',
       bodyHtml: `
-        <p style="margin-top:0;">Hi ${name},</p>
+        <p style="margin-top:0;">Hi ${escapeHtml(name)},</p>
         <p>Welcome to TricityMatch. We're glad you're here, and we'll help you find the right match with people from Chandigarh, Mohali and Panchkula.</p>
         <p style="margin-bottom:8px;">A few things to do next:</p>
         <ul style="margin:0 0 8px 0;padding-left:20px;color:${BRAND.soft};">
@@ -225,7 +233,7 @@ const templates = {
       eyebrow: 'Password Reset',
       preheader: 'Reset your TricityMatch password (link expires in 1 hour).',
       bodyHtml: `
-        <p style="margin-top:0;">Hi ${name},</p>
+        <p style="margin-top:0;">Hi ${escapeHtml(name)},</p>
         <p>We received a request to reset your password. Use the button below to choose a new one.</p>
         ${panel(`<strong>This link expires in 1 hour</strong> for your security.`, { accent: BRAND.gold })}
         <p style="color:${BRAND.soft};font-size:13px;">If you didn't request this, you can safely ignore this email — your password won't change.</p>`,
@@ -238,10 +246,10 @@ const templates = {
     subject: `You matched with ${matchName} — TricityMatch`,
     html: brandLayout({
       eyebrow: "It's a Match",
-      preheader: `You and ${matchName} liked each other.`,
+      preheader: `You and ${escapeHtml(matchName)} liked each other.`,
       bodyHtml: `
-        <p style="margin-top:0;">Hi ${name},</p>
-        <p>Good news — you and <strong>${matchName}</strong> have both expressed interest. You can now start a conversation.</p>`,
+        <p style="margin-top:0;">Hi ${escapeHtml(name)},</p>
+        <p>Good news — you and <strong>${escapeHtml(matchName)}</strong> have both expressed interest. You can now start a conversation.</p>`,
       cta: { href: `${config.server.frontendUrl}/matches`, label: 'View Match' },
     }),
     text: `Hi ${name}, you and ${matchName} matched on TricityMatch. Start a conversation: ${config.server.frontendUrl}/matches`,
@@ -252,13 +260,13 @@ const templates = {
     subject: 'Your TricityMatch membership is confirmed',
     html: brandLayout({
       eyebrow: 'Membership Confirmed',
-      preheader: `Your ${planLabel(plan)} membership is active until ${expiryDate}.`,
+      preheader: `Your ${escapeHtml(planLabel(plan))} membership is active until ${escapeHtml(expiryDate)}.`,
       bodyHtml: `
-        <p style="margin-top:0;">Hi ${name},</p>
+        <p style="margin-top:0;">Hi ${escapeHtml(name)},</p>
         <p>Thank you for upgrading. Your payment was processed successfully and your membership is now active.</p>
         ${panel(
-          `<p style="margin:0 0 6px 0;font-family:Georgia,serif;font-size:16px;color:${BRAND.burgundy};font-weight:700;">${planLabel(plan)}</p>
-           <p style="margin:0;color:${BRAND.soft};font-size:13px;">Valid until <strong style="color:${BRAND.ink};">${expiryDate}</strong></p>`,
+          `<p style="margin:0 0 6px 0;font-family:Georgia,serif;font-size:16px;color:${BRAND.burgundy};font-weight:700;">${escapeHtml(planLabel(plan))}</p>
+           <p style="margin:0;color:${BRAND.soft};font-size:13px;">Valid until <strong style="color:${BRAND.ink};">${escapeHtml(expiryDate)}</strong></p>`,
           { accent: BRAND.gold }
         )}
         <p style="margin-bottom:8px;">Your membership includes:</p>
@@ -279,9 +287,9 @@ const templates = {
       eyebrow: 'Verification Update',
       preheader: 'We could not verify your photo this time.',
       bodyHtml: `
-        <p style="margin-top:0;">Hi ${name},</p>
+        <p style="margin-top:0;">Hi ${escapeHtml(name)},</p>
         <p>We weren't able to verify your profile from the selfie you submitted.</p>
-        ${reason ? panel(`<strong>Reason:</strong> ${reason}`) : ''}
+        ${reason ? panel(`<strong>Reason:</strong> ${escapeHtml(reason)}`) : ''}
         <p style="margin-bottom:8px;">Please re-take your live selfie, making sure it is:</p>
         <ul style="margin:0 0 8px 0;padding-left:20px;color:${BRAND.soft};">
           <li>Clear and well-lit</li>
@@ -299,7 +307,7 @@ const templates = {
       eyebrow: 'Profile Verified',
       preheader: 'Your verified badge is now live.',
       bodyHtml: `
-        <p style="margin-top:0;">Hi ${name},</p>
+        <p style="margin-top:0;">Hi ${escapeHtml(name)},</p>
         <p>Congratulations — your profile is now verified. A verified badge is live on your profile, which builds trust and typically brings more responses.</p>`,
       cta: { href: `${config.server.frontendUrl}/profile`, label: 'View Your Profile' },
     }),
@@ -312,7 +320,7 @@ const templates = {
       eyebrow: 'Your Weekly Matches',
       preheader: `${matchCount} new profiles match your preferences this week.`,
       bodyHtml: `
-        <p style="margin-top:0;">Hi ${name},</p>
+        <p style="margin-top:0;">Hi ${escapeHtml(name)},</p>
         <p>New members have joined TricityMatch this week who match your preferences — here's a look.</p>
         ${profilesHtml || ''}
         <p style="color:${BRAND.soft};font-size:13px;text-align:center;margin-top:18px;">Log in to see full profiles and send interest.</p>`,
@@ -342,12 +350,12 @@ const templates = {
     subject: `Security alert: ${title} — TricityMatch`,
     html: brandLayout({
       eyebrow: 'Security Alert',
-      preheader: title,
+      preheader: escapeHtml(title),
       bodyHtml: `
-        <p style="margin-top:0;">Hi ${name || 'there'},</p>
-        <p>${detail}</p>
+        <p style="margin-top:0;">Hi ${escapeHtml(name || 'there')},</p>
+        <p>${escapeHtml(detail)}</p>
         ${panel(
-          `${when ? `<p style="margin:0 0 6px 0;"><strong>When:</strong> ${when}</p>` : ''}<p style="margin:0;color:${BRAND.soft};">If this was you, no action is needed.</p>`,
+          `${when ? `<p style="margin:0 0 6px 0;"><strong>When:</strong> ${escapeHtml(when)}</p>` : ''}<p style="margin:0;color:${BRAND.soft};">If this was you, no action is needed.</p>`,
           { accent: BRAND.gold }
         )}
         <p><strong>If this wasn't you</strong>, reset your password immediately and review your active sessions.</p>`,

@@ -166,19 +166,44 @@ const del = async (key) => {
   }
 };
 
+// SCAN page size. Large enough that invalidating a user's handful of keys is a
+// couple of round-trips, small enough that no single call blocks Redis.
+const SCAN_BATCH = 500;
+
+const escapeRegExp = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 /**
  * Delete multiple keys matching pattern
  */
 const delPattern = async (pattern) => {
   try {
     if (isRedisAvailable()) {
-      const keys = await redisClient.keys(pattern);
-      if (keys.length > 0) {
-        await redisClient.del(...keys);
-      }
+      // SCAN, never KEYS. KEYS is O(N) over the ENTIRE keyspace and blocks the
+      // single Redis thread for every other caller — and this runs on the
+      // profile-write path, so any authenticated user could stall the whole
+      // cache by repeatedly saving their profile (SEC R2: DoS-1).
+      let cursor = '0';
+      do {
+        const [next, batch] = await redisClient.scan(
+          cursor, 'MATCH', pattern, 'COUNT', SCAN_BATCH
+        );
+        cursor = next;
+        if (batch.length > 0) {
+          // UNLINK frees memory in a background thread; DEL is the fallback for
+          // Redis < 4 and for clients that do not expose unlink().
+          if (typeof redisClient.unlink === 'function') {
+            await redisClient.unlink(...batch);
+          } else {
+            await redisClient.del(...batch);
+          }
+        }
+      } while (cursor !== '0');
     } else {
-      // Memory cache pattern matching
-      const regex = new RegExp(pattern.replace(/\*/g, '.*'));
+      // Memory cache pattern matching. Escape everything except the glob star so
+      // a key fragment containing regex metacharacters cannot widen the match.
+      const regex = new RegExp(
+        `^${pattern.split('*').map(escapeRegExp).join('.*')}$`
+      );
       for (const key of memoryCache.keys()) {
         if (regex.test(key)) {
           memoryCache.delete(key);
@@ -266,8 +291,10 @@ const cleanupMemoryCache = () => {
   }
 };
 
-// Run cleanup every minute
-setInterval(cleanupMemoryCache, 60000);
+// Run cleanup every minute. unref'd so this timer never by itself keeps the
+// process (or a Jest worker) alive.
+const memoryCacheSweep = setInterval(cleanupMemoryCache, 60000);
+if (typeof memoryCacheSweep.unref === 'function') memoryCacheSweep.unref();
 
 /**
  * Get cache statistics
