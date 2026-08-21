@@ -71,6 +71,11 @@ const hasRealSecret = (value) => {
   const placeholderTokens = [
     'your-', 'xxxxxxxx', 'placeholder', 'add_real', 'change-this', 'change-me',
     'changeme', 'replace-me', 'replace_me', 'example', 'dummy', 'todo', '<',
+    // Shipped-template phrasings. .env.example's COOKIE_SECRET value
+    // ('another-secure-random-string-for-cookies') matched none of the tokens
+    // above and is over 32 chars, so copying the template into production
+    // booted with a publicly-known cookie secret.
+    'random-string', 'secure-random', '-for-cookies',
   ];
   return !placeholderTokens.some((t) => normalized.includes(t));
 };
@@ -435,6 +440,66 @@ if (isProduction) {
   // FRONTEND_URL must be a real HTTPS URL
   if (!config.server.frontendUrl || !config.server.frontendUrl.startsWith('https://')) {
     errors.push('FRONTEND_URL must use https:// in production');
+  }
+
+  // CSRF_SECRET had NO production validation of any kind, and docker-compose
+  // never passed it through, so production ran with it empty.
+  if (!config.security.csrfSecret) {
+    errors.push('CSRF_SECRET must be set in production');
+  } else if (config.security.csrfSecret === 'dev-csrf-secret') {
+    errors.push('CSRF_SECRET must not be the development default in production');
+  } else if (config.security.csrfSecret.length < 32) {
+    errors.push('CSRF_SECRET must be at least 32 characters in production');
+  } else if (!hasRealSecret(config.security.csrfSecret)) {
+    errors.push('CSRF_SECRET looks like a placeholder value \u2014 set a real random secret');
+  }
+
+  // Distinct secrets. Reusing one value means a single disclosure compromises
+  // session signing, cookie integrity and CSRF at the same time.
+  const seenSecrets = new Map();
+  for (const [secretName, secretValue] of [
+    ['JWT_SECRET', config.auth.jwtSecret],
+    ['COOKIE_SECRET', config.security.cookieSecret],
+    ['CSRF_SECRET', config.security.csrfSecret],
+  ]) {
+    if (!secretValue) continue;
+    if (seenSecrets.has(secretValue)) {
+      errors.push(`${secretName} must not reuse the same value as ${seenSecrets.get(secretValue)}`);
+    } else {
+      seenSecrets.set(secretValue, secretName);
+    }
+  }
+
+  // Redis stores plaintext OTP codes, login-lockout counters and cached profile
+  // payloads. Unauthenticated Redis is readable by anything that can reach the
+  // port, including any other container on a shared bridge network.
+  if (!config.redis.password) {
+    errors.push('REDIS_PASSWORD must be set in production (Redis holds OTP codes and lockout state)');
+  }
+
+  // A low bcrypt cost silently destroys password-hash strength.
+  if (!Number.isFinite(config.auth.bcryptRounds) || config.auth.bcryptRounds < 10) {
+    errors.push('BCRYPT_ROUNDS must be at least 10 in production');
+  }
+
+  // The development database name in production means either the wrong database
+  // or an unreviewed deployment. Either way, stop.
+  if (config.database.name === 'matrimony_dev') {
+    errors.push('DB_NAME is still the development default (matrimony_dev) \u2014 set the production database name');
+  }
+
+  // DB_DISABLE_SSL=true turns off TLS to the database with no other signal.
+  // Defensible only for a container-internal Postgres on a private network,
+  // which should be stated explicitly rather than defaulted into.
+  if (optionalBoolean('DB_DISABLE_SSL', false)
+      && !optionalBoolean('DB_SSL_INTERNAL_NETWORK_ACKNOWLEDGED', false)) {
+    errors.push('DB_DISABLE_SSL=true disables database TLS \u2014 set DB_SSL_INTERNAL_NETWORK_ACKNOWLEDGED=true to confirm Postgres is container-internal on a private network');
+  }
+
+  // CORS_ORIGIN is an allowlist input; a localhost value in production is a
+  // copy-pasted dev template.
+  if (config.security.corsOrigin && config.security.corsOrigin.includes('localhost')) {
+    errors.push('CORS_ORIGIN must not contain localhost in production');
   }
 
   // ── Provider gaps: fatal normally, warnings under ALLOW_INSECURE_PROD ──

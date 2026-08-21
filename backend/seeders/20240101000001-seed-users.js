@@ -2,8 +2,24 @@
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 
+// Refuse to run outside development. This seeder creates 30+ logins that all
+// share one hardcoded password, and that password is published in the project's
+// QA documentation. `sequelize-cli db:seed:all` against production would mint a
+// fleet of known-credential accounts on a live matrimonial database.
+const assertNotProduction = (name) => {
+  const env = process.env.NODE_ENV || 'development';
+  if (env === 'production' && process.env.ALLOW_SEED_IN_PRODUCTION !== 'true') {
+    throw new Error(
+      `${name} refuses to run with NODE_ENV=production: it creates accounts with a `
+      + 'well-known shared password. Set ALLOW_SEED_IN_PRODUCTION=true only if you '
+      + 'genuinely intend to seed test accounts into the production database.'
+    );
+  }
+};
+
 module.exports = {
   async up(queryInterface, Sequelize) {
+    assertNotProduction('seed-users');
     const hashedPassword = await bcrypt.hash('Pass@1234', 10);
     const now = new Date();
 

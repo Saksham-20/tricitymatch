@@ -38,7 +38,9 @@
     "qa:mobile": "npx playwright test --project=mobile-chrome",
     "test:mobile": "npm run test --workspace=mobile",
     "typecheck": "npm run typecheck --workspace=mobile",
-    "postinstall": "node scripts/fix-mobile-hoisting.cjs && node scripts/patch-native-modules.cjs"
+    "postinstall": "node scripts/fix-mobile-hoisting.cjs && node scripts/patch-native-modules.cjs",
+    "scan:secrets": "node scripts/scan-secrets.mjs",
+    "scan:secrets:history": "node scripts/scan-secrets.mjs --history"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.1",
@@ -68,6 +70,9 @@
     "shared/**/*.ts": [
       "node scripts/prettier-staged.cjs",
       "node scripts/mobile-typecheck-staged.cjs"
+    ],
+    "*": [
+      "node scripts/scan-secrets.mjs --staged"
     ]
   },
   "engines": {
@@ -93,7 +98,14 @@
     },
     "socket.io-client": {
       "socket.io-parser": "^4.2.7"
-    }
+    },
+    "ip-address": "^10.5.0",
+    "fast-uri": "^3.1.5",
+    "js-yaml": "^4.3.1",
+    "nanoid": "^3.3.18",
+    "brace-expansion@1": "1.1.18",
+    "brace-expansion@2": "2.1.4",
+    "brace-expansion@5": "5.0.9"
   },
   "dependencies": {
     "@expo/config-plugins": "9.0.17",

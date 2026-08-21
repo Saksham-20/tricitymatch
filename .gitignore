@@ -172,3 +172,11 @@ audit/screenshots/
 # something to carry in git history forever. The written report is in
 # docs/QA_FINAL_2026-08-20.md and IS tracked.
 /qa-final-2026-08-20/
+
+# Seed credential artifacts (deep audit 2026-08-21).
+# These documented a single shared password for every seeded account and were
+# tracked in git. They stay on disk for local QA but are no longer distributed.
+backend/seeders/ACCOUNT_CREDENTIALS.md
+backend/seeders/ACCOUNTS.txt
+backend/seeders/SEEDER_ACCOUNTS.txt
+backend/seeders/test-accounts.json

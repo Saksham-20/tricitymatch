@@ -10,6 +10,8 @@ services:
   # ==================== DATABASE ====================
   postgres:
     image: postgres:15-alpine
+    security_opt:
+      - no-new-privileges:true
     container_name: tricitymatch-db
     restart: unless-stopped
     environment:
@@ -42,10 +44,15 @@ services:
   # ==================== REDIS ====================
   redis:
     image: redis:7-alpine
+    security_opt:
+      - no-new-privileges:true
     container_name: tricitymatch-redis
     restart: unless-stopped
     environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      # Required. Redis holds plaintext OTPs, login-lockout counters and cached
+      # profiles; an empty value silently dropped --requirepass and left it open
+      # to every container on this bridge network.
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
     command: ["sh", "-c", "exec redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru $$([ -n \"$$REDIS_PASSWORD\" ] && echo --requirepass \"$$REDIS_PASSWORD\")"]
     volumes:
       - redis_data:/data
@@ -76,6 +83,13 @@ services:
       target: production
     container_name: tricitymatch-backend
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    # Already runs as a non-root user (backend/Dockerfile) and needs no Linux
+    # capabilities. postgres/redis/nginx need specific caps at init and are left
+    # alone until they can be validated on a host with Docker.
+    cap_drop:
+      - ALL
     depends_on:
       postgres:
         condition: service_healthy
@@ -95,7 +109,7 @@ services:
       # Redis
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
       # Auth
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRY: ${JWT_EXPIRY:-15m}
@@ -126,7 +140,9 @@ services:
       # Agora (video/voice calls)
       AGORA_APP_ID: ${AGORA_APP_ID:-}
       AGORA_APP_CERTIFICATE: ${AGORA_APP_CERTIFICATE:-}
-      AGORA_TOKEN_EXPIRY: ${AGORA_TOKEN_EXPIRY:-3600}
+      # config/env.js reads AGORA_TOKEN_EXPIRY_SECONDS; the old AGORA_TOKEN_EXPIRY
+      # name was never read, so any configured value was silently ignored.
+      AGORA_TOKEN_EXPIRY_SECONDS: ${AGORA_TOKEN_EXPIRY_SECONDS:-${AGORA_TOKEN_EXPIRY:-3600}}
       # SMS / OTP (MSG91 4-digit; authkey IP-whitelist must include VPS egress IP)
       SMS_PROVIDER: ${SMS_PROVIDER:-dev}
       SMS_API_KEY: ${SMS_API_KEY:-}
@@ -135,13 +151,14 @@ services:
       # ALLOW_INSECURE_PROD / OTP_BYPASS_CODES deliberately NOT plumbed here.
       # Both are pre-launch-only devices and config/env.js now refuses to boot
       # in production if either is set (master OTP codes verify any account).
-      # FCM Push Notifications
-      FCM_PROJECT_ID: ${FCM_PROJECT_ID:-}
-      FCM_SERVICE_ACCOUNT_PATH: ${FCM_SERVICE_ACCOUNT_PATH:-}
-      # Background check (APP-060)
-      BG_CHECK_PROVIDER: ${BG_CHECK_PROVIDER:-}
-      BG_CHECK_API_KEY: ${BG_CHECK_API_KEY:-}
-      BG_CHECK_API_SECRET: ${BG_CHECK_API_SECRET:-}
+      # FCM Push Notifications. config/env.js reads FIREBASE_*; the old FCM_* names
+      # matched nothing, so push notifications could never be configured under Docker.
+      # The FCM_* fallbacks keep an existing .env working through the rename.
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-${FCM_PROJECT_ID:-}}
+      FIREBASE_SERVICE_ACCOUNT_PATH: ${FIREBASE_SERVICE_ACCOUNT_PATH:-${FCM_SERVICE_ACCOUNT_PATH:-}}
+      # BG_CHECK_* removed: the background-check feature was deleted 2026-07-07 and
+      # no code reads these. Plumbing them injected real KYC-vendor credentials into
+      # a container that ignored them, and into `docker inspect` output.
       # Founding-member offer (Phase S). Unset = offer CLOSED, no grants fire.
       # FOUNDING_PERIOD_ENDS is an ISO date; FOUNDING_MEMBER_CAP 0/unset = no cap.
       FOUNDING_PERIOD_ENDS: ${FOUNDING_PERIOD_ENDS:-}
@@ -150,6 +167,20 @@ services:
       # flag that is not in this allowlist stays off in prod no matter what the
       # env file says — the CORS_ORIGIN failure, already made once.
       FREE_CHAT_FOR_MUTUALS: ${FREE_CHAT_FOR_MUTUALS:-false}
+      # Security controls. These were absent from the allowlist, so production ran on
+      # config/env.js defaults and silently ignored the stricter values documented in
+      # .env.production.example. CSRF_SECRET in particular could never be set at all.
+      CSRF_SECRET: ${CSRF_SECRET:?CSRF_SECRET must be set}
+      BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:-12}
+      MAX_LOGIN_ATTEMPTS: ${MAX_LOGIN_ATTEMPTS:-5}
+      LOCKOUT_DURATION_MINUTES: ${LOCKOUT_DURATION_MINUTES:-10}
+      RESET_TOKEN_EXPIRY: ${RESET_TOKEN_EXPIRY:-1h}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-900000}
+      RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS:-100}
+      AUTH_RATE_LIMIT_MAX: ${AUTH_RATE_LIMIT_MAX:-5}
+      AUTH_RATE_LIMIT_WINDOW_MS: ${AUTH_RATE_LIMIT_WINDOW_MS:-900000}
+      MAX_REQUEST_SIZE: ${MAX_REQUEST_SIZE:-10mb}
+      MAX_FILE_SIZE: ${MAX_FILE_SIZE:-5242880}
       # Monitoring
       MONITORING_ENABLED: ${MONITORING_ENABLED:-true}
       ALERT_EMAILS: ${ALERT_EMAILS:-}
@@ -199,6 +230,8 @@ services:
         VITE_SUPPORT_ADDRESS: ${VITE_SUPPORT_ADDRESS:-}
     container_name: tricitymatch-frontend
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       - backend
     ports:
@@ -217,7 +250,11 @@ services:
 
   # ==================== NGINX REVERSE PROXY ====================
   nginx:
-    image: nginx:alpine
+    # Pinned: 'nginx:alpine' floated across major versions, so a rebuild could
+    # silently change the TLS/HTTP stack. Bump deliberately, not by accident.
+    image: nginx:1.27-alpine
+    security_opt:
+      - no-new-privileges:true
     container_name: tricitymatch-nginx
     restart: unless-stopped
     depends_on:
@@ -253,6 +290,8 @@ services:
   # ==================== PROMETHEUS ====================
   prometheus:
     image: prom/prometheus:v2.47.0
+    security_opt:
+      - no-new-privileges:true
     container_name: tricitymatch-prometheus
     restart: unless-stopped
     volumes:
@@ -283,6 +322,8 @@ services:
   # ==================== GRAFANA ====================
   grafana:
     image: grafana/grafana:10.1.0
+    security_opt:
+      - no-new-privileges:true
     container_name: tricitymatch-grafana
     restart: unless-stopped
     environment:
@@ -305,6 +346,117 @@ services:
       resources:
         limits:
           memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ==================== EXPORTERS ====================
+  # Ported from the former monitoring/docker-compose.monitoring.yml (deleted 2026-08-21,
+  # security audit R1). That file published all of these on 0.0.0.0 with no authentication,
+  # and mounted the entire host filesystem into node-exporter. These definitions are the
+  # hardened replacement: loopback-only, no host-root mount, least-privilege DB role.
+  #
+  # None of these exporters has any authentication of its own. They MUST stay on 127.0.0.1
+  # and be reached through an authenticated tunnel, never published to a host interface.
+  node-exporter:
+    image: prom/node-exporter:v1.6.1
+    container_name: tricitymatch-node-exporter
+    restart: unless-stopped
+    # /proc and /sys are required for host metrics. The former "/:/rootfs:ro" mount is
+    # deliberately NOT restored -- it exposed every file on a shared VPS, including the
+    # co-tenant sites, to anything that could reach this container.
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--web.listen-address=:9100'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - "127.0.0.1:${NODE_EXPORTER_PORT:-9100}:9100"
+    networks:
+      - tricitymatch-network
+    profiles:
+      - monitoring
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.55.0
+    container_name: tricitymatch-redis-exporter
+    restart: unless-stopped
+    environment:
+      REDIS_ADDR: "redis://redis:6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
+    ports:
+      - "127.0.0.1:${REDIS_EXPORTER_PORT:-9121}:9121"
+    networks:
+      - tricitymatch-network
+    depends_on:
+      redis:
+        condition: service_healthy
+    profiles:
+      - monitoring
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.14.0
+    container_name: tricitymatch-postgres-exporter
+    restart: unless-stopped
+    # Deliberately NOT ${DB_USER}/${DB_PASSWORD}: the application role is the database
+    # owner, and metrics scraping needs no write access at all. Create a dedicated role:
+    #   CREATE ROLE tm_exporter LOGIN PASSWORD '<strong>';
+    #   GRANT pg_monitor TO tm_exporter;
+    # sslmode=disable is correct ONLY because postgres here is container-internal on a
+    # private bridge with no host port. Set PG_EXPORTER_SSLMODE=require for a managed DB.
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${PG_EXPORTER_USER:?PG_EXPORTER_USER must be set}:${PG_EXPORTER_PASSWORD:?PG_EXPORTER_PASSWORD must be set}@postgres:5432/${DB_NAME:?DB_NAME must be set}?sslmode=${PG_EXPORTER_SSLMODE:-disable}"
+    ports:
+      - "127.0.0.1:${PG_EXPORTER_PORT:-9187}:9187"
+    networks:
+      - tricitymatch-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - monitoring
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    deploy:
+      resources:
+        limits:
+          memory: 128M
     logging:
       driver: "json-file"
       options:

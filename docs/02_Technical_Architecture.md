@@ -370,7 +370,7 @@ module.exports = { generateToken, getChannelName };
 ```bash
 # Firebase (Push Notifications)
 FIREBASE_PROJECT_ID=your-project-id
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n..."
+FIREBASE_PRIVATE_KEY="<PEM_PRIVATE_KEY_BLOCK>"   # never commit the real value
 FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxx@project.iam.gserviceaccount.com
 
 # Agora (Voice/Video)
