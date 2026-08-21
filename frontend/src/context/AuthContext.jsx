@@ -46,12 +46,34 @@ const USER_SCOPED_STORAGE_KEYS = [
   'onboarding_step',
 ];
 
+// The service worker caches GET /api/* responses in Cache Storage
+// (public/sw.js networkFirst). /auth/* is excluded, but profiles, matches and
+// conversation lists are not -- so another member's data persisted on disk after
+// logout and was served to the next person to use the browser. Nothing anywhere
+// deleted these caches.
+const clearRuntimeApiCache = async () => {
+  try {
+    if (!('caches' in window)) return;
+    const names = await window.caches.keys();
+    await Promise.all(
+      names
+        .filter((name) => name.includes('runtime'))
+        .map((name) => window.caches.delete(name))
+    );
+  } catch {
+    // Cache Storage is unavailable in some private-browsing modes; never let
+    // this block a logout.
+  }
+};
+
 const clearUserScopedStorage = () => {
   try {
     USER_SCOPED_STORAGE_KEYS.forEach((k) => window.localStorage.removeItem(k));
   } catch {
     // Ignore storage issues.
   }
+  // Fire-and-forget: logout must not wait on Cache Storage.
+  void clearRuntimeApiCache();
 };
 
 const routeNeedsAuthCheck = (pathname = '/') =>

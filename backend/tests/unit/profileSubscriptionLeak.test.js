@@ -119,3 +119,59 @@ describe('getProfile subscription disclosure', () => {
     expect(ProfileView.create).not.toHaveBeenCalled();
   });
 });
+
+describe('media intro gating', () => {
+  // The mobile client gates voice-intro playback in the UI (AudioIntroChip shows
+  // a padlock for a free, non-mutual viewer) but the URL itself was never
+  // redacted server-side, so the Cloudinary media link shipped in the JSON and
+  // could be fetched with curl. A gate that exists only in the client is not a
+  // gate.
+  const withMedia = () => makeProfile({
+    voiceIntroUrl: 'https://res.cloudinary.com/x/voice.m4a',
+    videoIntroUrl: 'https://res.cloudinary.com/x/video.mp4',
+    toJSON() {
+      return {
+        userId: TARGET,
+        User: { id: TARGET, status: 'active' },
+        voiceIntroUrl: 'https://res.cloudinary.com/x/voice.m4a',
+        videoIntroUrl: 'https://res.cloudinary.com/x/video.mp4',
+      };
+    },
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    Block.findOne.mockResolvedValue(null);
+    Match.findOne.mockResolvedValue(null);
+    Subscription.findOne.mockResolvedValue(null);
+    ContactUnlock.findOne.mockResolvedValue(null);
+    Verification.findOne.mockResolvedValue(null);
+    User.findByPk.mockResolvedValue({ phone: null, email: null });
+    ProfileView.create.mockResolvedValue({});
+    Profile.findOne.mockResolvedValue(withMedia());
+  });
+
+  it('redacts voice and video intro URLs for a free, non-mutual viewer', async () => {
+    const { res } = await runGetProfile();
+    const body = res.json.mock.calls[0][0];
+    expect(body.profile.voiceIntroUrl).toBeNull();
+    expect(body.profile.videoIntroUrl).toBeNull();
+  });
+
+  it('serves them to a viewer on a paid plan', async () => {
+    Subscription.findOne.mockResolvedValue({
+      planType: 'premium_plus', status: 'active',
+      contactUnlocksAllowed: 15, contactUnlocksUsed: 0,
+    });
+    const { res } = await runGetProfile();
+    const body = res.json.mock.calls[0][0];
+    expect(body.profile.voiceIntroUrl).toBe('https://res.cloudinary.com/x/voice.m4a');
+  });
+
+  it('serves them to a mutual match', async () => {
+    Match.findOne.mockResolvedValue({ isMutual: true, action: 'like' });
+    const { res } = await runGetProfile();
+    const body = res.json.mock.calls[0][0];
+    expect(body.profile.voiceIntroUrl).toBe('https://res.cloudinary.com/x/voice.m4a');
+  });
+});

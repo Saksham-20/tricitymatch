@@ -5,8 +5,14 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Least privilege: without this, every job -- including the third-party actions
+# that receive the production SSH private key -- inherits the repository default
+# GITHUB_TOKEN scope.
+permissions:
+  contents: read
+
 env:
-  NODE_VERSION: '18.x'
+  NODE_VERSION: '20.x'
 
 jobs:
   # ==================== RUN CI CHECKS ====================
@@ -26,20 +32,20 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       - name: Login to Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ${{ secrets.REGISTRY_URL }}
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
       - name: Build and push backend image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: ./backend
           file: ./backend/Dockerfile
@@ -49,7 +55,7 @@ jobs:
             ${{ secrets.REGISTRY_URL }}/tricitymatch-backend:${{ github.sha }}
 
       - name: Build and push frontend image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: ./frontend
           file: ./frontend/Dockerfile
@@ -61,16 +67,19 @@ jobs:
             VITE_API_URL=${{ secrets.STAGING_API_URL }}
 
       - name: Deploy to staging server
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@7eaf76671a0d7eec5d98ee897acda4f968735a17 # v1.2.0
         with:
           host: ${{ secrets.STAGING_HOST }}
           username: ${{ secrets.STAGING_USERNAME }}
           key: ${{ secrets.STAGING_SSH_KEY }}
           script: |
-            cd /opt/tricitymatch
-            docker-compose pull
-            docker-compose up -d --force-recreate
-            docker system prune -f
+            set -euo pipefail
+            cd "${DEPLOY_DIR:-/var/www/tricitymatch}"
+            docker compose pull
+            docker compose up -d --force-recreate
+            # `docker system prune -f` deliberately removed: this is a SHARED host
+            # and prune is global, so it would delete co-tenant images, networks
+            # and build cache. The project's own rules forbid it.
 
   # ==================== DEPLOY TO PRODUCTION ====================
   deploy-production:
@@ -84,54 +93,66 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       - name: Login to Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ${{ secrets.REGISTRY_URL }}
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
-      - name: Retag images for production
-        run: |
-          docker pull ${{ secrets.REGISTRY_URL }}/tricitymatch-backend:${{ github.sha }}
-          docker tag ${{ secrets.REGISTRY_URL }}/tricitymatch-backend:${{ github.sha }} ${{ secrets.REGISTRY_URL }}/tricitymatch-backend:latest
-          docker push ${{ secrets.REGISTRY_URL }}/tricitymatch-backend:latest
-          
-          docker pull ${{ secrets.REGISTRY_URL }}/tricitymatch-frontend:${{ github.sha }}
-          docker tag ${{ secrets.REGISTRY_URL }}/tricitymatch-frontend:${{ github.sha }} ${{ secrets.REGISTRY_URL }}/tricitymatch-frontend:latest
-          docker push ${{ secrets.REGISTRY_URL }}/tricitymatch-frontend:latest
+      # Deliberately no `:latest` retag. Production used to pull a MUTABLE tag,
+      # which means no immutable deploy artefact, no rollback target, and a race
+      # between the retag and the pull. The commit-SHA tags built by ci.yml are
+      # the deploy artefact; IMAGE_TAG below pins the deploy to this commit.
 
       - name: Deploy to production server
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@7eaf76671a0d7eec5d98ee897acda4f968735a17 # v1.2.0
         with:
           host: ${{ secrets.PRODUCTION_HOST }}
           username: ${{ secrets.PRODUCTION_USERNAME }}
           key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          # Pins the deploy to this exact commit, so a rollback is
+          # `IMAGE_TAG=<older-sha> docker compose up -d` rather than a rebuild.
+          envs: IMAGE_TAG
           script: |
-            cd /opt/tricitymatch
-            
-            # Create backup before deploy
-            docker exec postgres pg_dump -U postgres tricitymatch > backup_$(date +%Y%m%d_%H%M%S).sql
-            
-            # Pull and deploy
-            docker-compose pull
-            docker-compose up -d --force-recreate
-            
-            # Health check
+            # set -e matters: without it the old script continued past a FAILED
+            # backup and deployed anyway.
+            set -euo pipefail
+            cd "${DEPLOY_DIR:-/var/www/tricitymatch}"
+
+            # Encrypted, verified backup before deploy.
+            #
+            # The previous command was:
+            #   docker exec postgres pg_dump -U postgres tricitymatch > backup_....sql
+            # and it was wrong three ways: the container is named tricitymatch-db,
+            # the database is ${DB_NAME} not "tricitymatch", and the output was an
+            # unencrypted world-readable dump of every PII column written into the
+            # deploy directory with no retention, on a host shared with five other
+            # sites. Because there was no `set -e`, it also failed silently and the
+            # deploy proceeded with no backup at all.
+            bash scripts/backup-db.sh
+
+            docker compose pull
+            docker compose up -d --force-recreate
+
+            # Health check. The old check hit port 5000, which nothing listens on --
+            # the backend publishes on 127.0.0.1:5002 in production -- so this gate
+            # passed a deploy it had never actually verified.
             sleep 10
-            curl -f http://localhost:5000/api/health || exit 1
-            
-            # Cleanup
-            docker system prune -f
+            curl -fsS "http://127.0.0.1:${BACKEND_PORT:-5002}/api/monitoring/health" > /dev/null
+
+            # No `docker system prune -f`: this is a SHARED host and prune is
+            # global, so it would delete co-tenant images, networks and build
+            # cache. The project's own operating rules forbid it.
 
       - name: Notify on success
         if: success()
-        uses: slackapi/slack-github-action@v1.24.0
+        uses: slackapi/slack-github-action@37ebaef184d7626c5f204ab8d3baff4262dd30f0 # v1.27.0
         with:
           payload: |
             {
@@ -160,7 +181,7 @@ jobs:
 
       - name: Notify on failure
         if: failure()
-        uses: slackapi/slack-github-action@v1.24.0
+        uses: slackapi/slack-github-action@37ebaef184d7626c5f204ab8d3baff4262dd30f0 # v1.27.0
         with:
           payload: |
             {

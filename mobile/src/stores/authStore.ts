@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { AuthUser, SubscriptionPlanType } from '../types';
-import { cache, CACHE_KEYS } from '../utils/cache';
+import { cache, CACHE_KEYS, clearAccountScopedCache } from '../utils/cache';
 import { secureStorage } from '../utils/secureStorage';
 import { removeFcmToken } from '../api/notifications';
 import { setCrashReportingUser } from '../utils/crashReporting';
@@ -43,7 +43,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       cache.delete('fcm_token');
     }
     await secureStorage.deleteRefreshToken();
-    cache.delete(CACHE_KEYS.USER);
+    // Wipe every account-scoped cache, not just the user object. Logout used to
+    // delete two keys, which left the offline shortlist -- up to 200 other
+    // members' profiles, including religion, caste and income -- on disk for
+    // whoever signed in next on the same device.
+    clearAccountScopedCache();
     setCrashReportingUser(null);
     set({ user: null, accessToken: null, isAuthenticated: false });
   },

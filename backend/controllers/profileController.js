@@ -646,6 +646,16 @@ exports.getProfile = asyncHandler(async (req, res) => {
     profileData.photos = [];
   }
 
+  // Voice and video intros are gated in the mobile UI (AudioIntroChip refuses to
+  // play and shows a padlock for a free, non-mutual viewer) but the URL itself
+  // was never redacted here -- so the Cloudinary media link shipped in the JSON
+  // and could simply be fetched with curl. A gate that exists only in the client
+  // is not a gate. Same rule the client applies: mutual match, or a paid plan.
+  if (!isMutual && !hasPremiumAccess) {
+    profileData.voiceIntroUrl = null;
+    profileData.videoIntroUrl = null;
+  }
+
   // Only fetch contact details from DB when the viewer has actually earned access.
   // This prevents any accidental leakage through JSON serialisation.
   if (hasPremiumAccess && isContactUnlocked) {

@@ -58,3 +58,35 @@ export const CACHE_KEYS = {
   SHORTLIST_INDEX: 'shortlist_index',
   SHORTLIST_SYNC_TIME: 'shortlist_last_sync',
 } as const;
+
+/**
+ * Keys that belong to the DEVICE rather than to the signed-in account, and so
+ * survive logout. Everything else is wiped.
+ *
+ * The default is deliberately inverted (wipe unless listed). Logout previously
+ * deleted an allowlist of two keys, so every cache added afterwards -- notably
+ * the offline shortlist, which stores up to 200 other members' profiles --
+ * stayed on disk for whoever signed in next on the same device. An allowlist of
+ * things to DELETE drifts silently; an allowlist of things to KEEP fails safe.
+ */
+const DEVICE_SCOPED_KEYS: string[] = [
+  CACHE_KEYS.LANGUAGE,
+  CACHE_KEYS.ELDER_MODE,
+  CACHE_KEYS.DARK_MODE,
+];
+
+/**
+ * Wipe everything belonging to the signed-in account, preserving only
+ * device-level display preferences.
+ */
+export const clearAccountScopedCache = (): void => {
+  const preserved = DEVICE_SCOPED_KEYS
+    .map((key) => [key, storage.getString(key)] as const)
+    .filter(([, value]) => value !== undefined);
+
+  storage.clearAll();
+
+  for (const [key, value] of preserved) {
+    if (value !== undefined) storage.set(key, value);
+  }
+};

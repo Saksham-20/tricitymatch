@@ -1,5 +1,9 @@
 {
   "compilerOptions": {
+    // TypeScript 6 deprecates baseUrl. The path aliases here still rely on it,
+    // and CI now treats tsc as a real gate (it was `|| true`), so silence the
+    // deprecation deliberately rather than letting it fail the build.
+    "ignoreDeprecations": "6.0",
     "target": "ES2020",
     "useDefineForClassFields": true,
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
