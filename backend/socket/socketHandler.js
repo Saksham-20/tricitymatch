@@ -3,7 +3,7 @@
  * Real-time communication with proper security
  */
 
-const { Match, GroupMember, User } = require('../models');
+const { Match, GroupMember, User, Profile } = require('../models');
 const { Op } = require('sequelize');
 const jwt = require('jsonwebtoken');
 const cookie = require('cookie');
@@ -318,12 +318,51 @@ const initializeSocket = (io) => {
 
       if (!Array.isArray(userIds)) return;
 
+      const requested = userIds.slice(0, 50).filter((id) => typeof id === 'string');
+      if (requested.length === 0) {
+        socket.emit('online-status', {});
+        return;
+      }
+
+      // This handler used to answer for ANY user id with no relationship check
+      // and without honouring the target's own showOnlineStatus preference, so
+      // any authenticated socket could probe presence across the whole user
+      // table (and build a live activity profile of a specific member).
+      //
+      // Presence is now limited to people the caller actually shares a mutual
+      // match with -- the same relationship the chat UI needs it for -- and the
+      // target's privacy setting is respected. Ids the caller is not entitled
+      // to are simply absent from the reply rather than reported false, so the
+      // response never distinguishes "offline" from "not allowed".
+      const mutuals = await Match.findAll({
+        where: {
+          isMutual: true,
+          [Op.or]: [
+            { userId, matchedUserId: { [Op.in]: requested } },
+            { userId: { [Op.in]: requested }, matchedUserId: userId },
+          ],
+        },
+        attributes: ['userId', 'matchedUserId'],
+      });
+
+      const allowed = new Set();
+      for (const m of mutuals) {
+        allowed.add(m.userId === userId ? m.matchedUserId : m.userId);
+      }
+      if (allowed.size === 0) {
+        socket.emit('online-status', {});
+        return;
+      }
+
+      const visible = await Profile.findAll({
+        where: { userId: { [Op.in]: [...allowed] }, showOnlineStatus: true },
+        attributes: ['userId'],
+      });
+
       const onlineStatuses = {};
-      // Limit to 50 users
-      for (const id of userIds.slice(0, 50)) {
-        if (typeof id !== 'string') continue;
-        const room = io.sockets.adapter.rooms.get(`user_${id}`);
-        onlineStatuses[id] = room ? room.size > 0 : false;
+      for (const p of visible) {
+        const room = io.sockets.adapter.rooms.get(`user_${p.userId}`);
+        onlineStatuses[p.userId] = room ? room.size > 0 : false;
       }
 
       socket.emit('online-status', onlineStatuses);

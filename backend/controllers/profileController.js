@@ -573,43 +573,20 @@ exports.getProfile = asyncHandler(async (req, res) => {
     return exports.getMyProfile(req, res);
   }
 
-  const profile = await Profile.findOne({
-    where: { userId, isActive: true },
-    include: [
-      {
-        model: User,
-        // Only fetch fields safe to return publicly; contact details are gated below.
-        // Account status is an inner join on purpose: deleting an account sets
-        // User.status='deleted' but leaves Profile.isActive alone, so filtering on
-        // the profile only kept deleted/suspended members readable to anyone who
-        // still had the direct URL — search hid them, this endpoint did not.
-        attributes: ['id', 'status'],
-        where: { status: 'active' },
-        required: true,
-        include: [{ model: Subscription, where: { status: 'active' }, required: false }]
-      }
-    ]
+  // Single authoritative gate. This used to be three inline checks (active-user
+  // inner join, bidirectional block, matches_only) that duplicated
+  // assertProfileVisible line for line — and divergence between the two copies
+  // is exactly how the previous IDOR was introduced. One implementation now.
+  //
+  // The old query also carried `include: [{ model: Subscription, ... }]` nested
+  // under User. Nothing read it — the target's plan is re-fetched below as
+  // `targetSubscription` — but profile.toJSON() serialised it straight into the
+  // response, so every viewer received the target's full subscription row
+  // including razorpayOrderId, razorpayPaymentId, razorpaySignature, amount and
+  // their remaining contact-unlock quota. Removed.
+  const { profile } = await assertProfileVisible(viewerId, userId, {
+    viewerRole: req.user.role,
   });
-
-  if (!profile) {
-    throw createError.notFound('Profile not found');
-  }
-
-  // Blocks are bidirectional; matchAction already gates on this but the profile
-  // read did not, so a blocked user could still open the full profile by URL.
-  // Message stays generic so it never reveals which direction blocked.
-  const blockExists = await Block.findOne({
-    where: {
-      [Op.or]: [
-        { blockerId: viewerId, blockedUserId: userId },
-        { blockerId: userId, blockedUserId: viewerId },
-      ],
-    },
-    attributes: ['id'],
-  });
-  if (blockExists) {
-    throw createError.forbidden('Cannot perform this action');
-  }
 
   // Check subscription for contact visibility
   const viewerSubscription = await Subscription.findOne({
@@ -654,17 +631,8 @@ exports.getProfile = asyncHandler(async (req, res) => {
   const isShortlisted = existingMatch && existingMatch.action === 'shortlist';
   const isMutual = existingMatch?.isMutual || false;
 
-  // M-2 (2026-07-01 pentest): enforce the target's "matches only" privacy setting.
-  // Previously profileVisibility was saved but never read, so any logged-in user
-  // could view a full profile regardless. Non-mutual viewers (except admins) are
-  // now blocked; NULL/'everyone' stay visible to all.
-  const isAdminViewer = req.user.role === 'admin' || req.user.role === 'super_admin';
-  if (profile.profileVisibility === 'matches_only' && !isMutual && !isAdminViewer) {
-    throw createError.forbidden(
-      'This profile is only visible to their matches.',
-      'PROFILE_MATCHES_ONLY'
-    );
-  }
+  // (matches_only, block and account-status gates are enforced by
+  // assertProfileVisible above.)
 
   // Prepare response with privacy checks
   const profileData = profile.toJSON();

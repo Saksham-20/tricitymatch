@@ -182,8 +182,13 @@ const sendOtp = async (rawPhone) => {
     // Production: warn about dev mode, don't log the OTP code (security)
     if (config.server.isProduction) {
       log.error(`[OTP PROD-DEV-MODE] SMS not configured in production. OTP for ${phone} generated but not sent.`);
-    } else {
+    } else if (config.isDevelopment) {
+      // Only genuine development prints the code. The previous `else` also
+      // covered 'staging', 'qa' and any unrecognised NODE_ENV, and the code sits
+      // in the message string where the log redactor cannot mask it.
       log.info(`[OTP DEV] Code for ${phone}: ${code}`);
+    } else {
+      log.warn(`[OTP] SMS not configured for NODE_ENV=${config.env}; code generated but not logged.`);
     }
     return { success: true, message: 'OTP sent (dev mode — check server logs)', isDev: true };
   }

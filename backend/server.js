@@ -20,6 +20,7 @@ const {
   corsOptions,
   corsDelegate,
   apiLimiter,
+  monitoringLimiter,
   sanitizeRequest,
   requestId,
   extractIp
@@ -27,6 +28,7 @@ const {
 const { errorHandler, notFoundHandler } = require('./middlewares/errorHandler');
 const logger = require('./middlewares/logger');
 
+const { redactUrl } = require('./middlewares/logger');
 // Import routes and socket handler
 const sequelize = require('./config/database');
 const routes = require('./routes');
@@ -177,7 +179,11 @@ if (config.isDevelopment) {
           timestamp: new Date().toISOString(),
           requestId: req.id,
           method: req.method,
-          url: req.originalUrl,
+          // redactUrl masks secret-bearing path segments (invite tokens, reset
+          // tokens) and sensitive query params. This logger bypassed it entirely,
+          // so production logged those URLs in full on every 4xx/5xx -- exactly
+          // the case the redaction was written for.
+          url: redactUrl(req.originalUrl),
           status: res.statusCode,
           duration,
           ip: req.clientIp,
@@ -210,8 +216,10 @@ app.use('/uploads', (req, res, next) => {
 // ==================== ROUTES ====================
 
 // Monitoring routes (before rate limiting for health checks)
-app.use('/monitoring', monitoringRoutes);
-app.use('/api/monitoring', monitoringRoutes);
+// /monitoring is NOT under app.use('/api', apiLimiter), so it needs its own
+// limiter: /health/ready does a live DB authenticate() + Redis round-trip.
+app.use('/monitoring', monitoringLimiter, monitoringRoutes);
+app.use('/api/monitoring', monitoringLimiter, monitoringRoutes);
 
 // API routes with version prefix
 app.use('/api/v1', routes);

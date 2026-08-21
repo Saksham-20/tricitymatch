@@ -646,17 +646,25 @@ exports.resetPassword = asyncHandler(async (req, res) => {
     throw createError.notFound('User not found');
   }
 
-  // Verify the password fingerprint matches — if the password has already been changed
-  // (e.g. token used once, or user reset password via another method), reject the token.
-  if (decoded.pwdFp) {
-    const currentFp = require('crypto')
-      .createHash('sha256')
-      .update(user.password)
-      .digest('hex')
-      .substring(0, 16);
-    if (currentFp !== decoded.pwdFp) {
-      throw createError.badRequest('Reset token has already been used or is no longer valid');
-    }
+  // Verify the password fingerprint matches — if the password has already been
+  // changed (token used once, or reset via another path), reject the token.
+  //
+  // This used to be `if (decoded.pwdFp)`, so a token that simply OMITTED the
+  // claim skipped the single-use check entirely and stayed valid for its full
+  // hour, reusable any number of times. Absence of the claim is now fatal.
+  if (!decoded.pwdFp) {
+    throw createError.badRequest('Reset token is malformed or is no longer valid');
+  }
+  const currentFp = require('crypto')
+    .createHash('sha256')
+    .update(user.password)
+    .digest('hex')
+    .substring(0, 16);
+  // timingSafeEqual over equal-length hex; both sides are 16 chars by construction.
+  const fpMatches = currentFp.length === decoded.pwdFp.length
+    && require('crypto').timingSafeEqual(Buffer.from(currentFp), Buffer.from(decoded.pwdFp));
+  if (!fpMatches) {
+    throw createError.badRequest('Reset token has already been used or is no longer valid');
   }
 
   // Update password (will be hashed by model hook)
@@ -867,7 +875,10 @@ exports.sendOtp = asyncHandler(async (req, res) => {
     await cacheSet(`otp:${target}`, payload, 600);
     await sendOtpEmail(target, code, 'verify your email');
     // Dev affordance: log the code when no email channel is configured.
-    if (!config.email.isConfigured() && !config.server.isProduction) {
+    // Gate on isDevelopment, not !isProduction: the negative form is also true
+    // for 'staging', 'qa' or any unrecognised NODE_ENV. The code is interpolated
+    // into the message string, where redactValue can never reach it.
+    if (!config.email.isConfigured() && config.isDevelopment) {
       log.info(`[EMAIL-OTP DEV] Code for ${target}: ${code}`);
     }
     res.json({ success: true, message: 'OTP sent to email' });
@@ -1071,7 +1082,8 @@ exports.requestEmailChange = asyncHandler(async (req, res) => {
   await cacheSet(`email-change:${normalized}`, payload, 600);
   await sendOtpEmail(normalized, code, 'confirm your new email address');
   // Dev affordance (matches smsService): log the code when email isn't configured.
-  if (!config.email.isConfigured() && !config.server.isProduction) {
+  // isDevelopment, not !isProduction -- see the note in sendOtp.
+  if (!config.email.isConfigured() && config.isDevelopment) {
     log.info(`[EMAIL-CHANGE DEV] Code for ${normalized}: ${code}`);
   }
 

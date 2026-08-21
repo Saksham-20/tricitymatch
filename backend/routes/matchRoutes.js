@@ -15,14 +15,14 @@ const {
 } = require('../controllers/matchController');
 const { auth, requirePremium, verifyTargetUser } = require('../middlewares/auth');
 const { handleValidationErrors } = require('../middlewares/errorHandler');
-const { matchActionLimiter } = require('../middlewares/security');
+const { matchActionLimiter, expensiveReadLimiter } = require('../middlewares/security');
 const { matchActionValidation, paginationRules } = require('../validators');
 
 // All match routes require authentication
 router.use(auth);
 
 // Matches of the day (cached daily set; free 5 / premium 15)
-router.get('/daily', getDailyMatches);
+router.get('/daily', expensiveReadLimiter, getDailyMatches);
 
 // Perform match action (like/shortlist/pass) - rate limited for swiping
 router.post('/:userId', 

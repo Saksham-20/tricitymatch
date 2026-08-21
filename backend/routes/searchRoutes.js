@@ -15,9 +15,9 @@ const {
 } = require('../controllers/searchController');
 const { auth } = require('../middlewares/auth');
 const { handleValidationErrors } = require('../middlewares/errorHandler');
-const { searchLimiter } = require('../middlewares/security');
+const { searchLimiter, profileUpdateLimiter } = require('../middlewares/security');
 const { searchValidation, paginationRules } = require('../validators');
-const { query } = require('express-validator');
+const { query, param } = require('express-validator');
 
 // All search routes require authentication
 router.use(auth);
@@ -47,8 +47,8 @@ router.get('/suggestions',
 // Saved searches (stored in Profile.lifestylePreferences.savedSearches — the
 // location the Bull saved-search-alerts job reads; cap 5)
 router.get('/saved', getSavedSearches);
-router.post('/saved', createSavedSearch);
-router.delete('/saved/:id', deleteSavedSearch);
+router.post('/saved', profileUpdateLimiter, createSavedSearch);
+router.delete('/saved/:id', profileUpdateLimiter, param('id').isUUID(4), handleValidationErrors, deleteSavedSearch);
 
 // Look up a single profile by its public shareable code (TCS-XXXXXXXX)
 router.get('/by-code',

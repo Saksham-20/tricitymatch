@@ -8,6 +8,7 @@
  */
 
 const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
+const { RedisRateLimitStore } = require('./rateLimitStore');
 const jwt = require('jsonwebtoken');
 const helmet = require('helmet');
 const config = require('../config/env');
@@ -16,8 +17,19 @@ const { createError, asyncHandler } = require('./errorHandler');
 // ==================== RATE LIMITERS ====================
 
 // Create a rate limiter factory
+let limiterSeq = 0;
+
 const createRateLimiter = (options) => {
+  // Counters live in Redis. The default MemoryStore kept them in the process
+  // heap, so every limit reset on restart/deploy and the effective ceiling
+  // multiplied by the replica count. The store falls back to MemoryStore when
+  // Redis is unavailable, so this degrades rather than failing open.
+  // Each limiter gets its own key namespace; without it every limiter mounted
+  // on a request would share one counter.
+  const storePrefix = `rl:${options.name || `l${limiterSeq++}`}:`;
+
   return rateLimit({
+    store: new RedisRateLimitStore({ prefix: storePrefix }),
     windowMs: options.windowMs || 15 * 60 * 1000, // 15 minutes default
     max: options.max || 100,
     message: {
@@ -58,6 +70,7 @@ const createRateLimiter = (options) => {
 // use a ceiling that matches how chatty the SPA actually is. Anonymous traffic
 // still falls back to per-IP limiting.
 const apiLimiter = createRateLimiter({
+  name: 'apiLimiter',
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 900, // per user (or per IP when unauthenticated)
   message: 'Too many API requests, please try again later',
@@ -85,6 +98,7 @@ const apiLimiter = createRateLimiter({
 // lockout below (config.auth.maxLoginAttempts / lockoutDuration); this IP limiter
 // is only a backstop against spray attacks, so it can be generous.
 const authLimiter = createRateLimiter({
+  name: 'authLimiter',
   windowMs: 10 * 60 * 1000, // 10 minutes
   max: 20, // 20 FAILED attempts per IP
   message: 'Too many login attempts. Please try again later.',
@@ -98,6 +112,7 @@ const authLimiter = createRateLimiter({
 // budget: doing so meant one active tab could exhaust the pool and lock the whole
 // IP out of /auth/login.
 const refreshLimiter = createRateLimiter({
+  name: 'refreshLimiter',
   windowMs: 10 * 60 * 1000, // 10 minutes
   max: 60, // plenty for many concurrent sessions behind one NAT
   message: 'Too many session refresh attempts. Please try again later.',
@@ -110,6 +125,7 @@ const refreshLimiter = createRateLimiter({
 // (and everyone sharing their NAT'd IP) out of registering for a full hour —
 // a silent conversion killer. Junk requests are still covered by apiLimiter.
 const signupLimiter = createRateLimiter({
+  name: 'signupLimiter',
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 5, // 5 real signups per hour per IP (families often register together)
   message: 'Too many accounts created, please try again after an hour',
@@ -119,6 +135,7 @@ const signupLimiter = createRateLimiter({
 
 // Public contact form limiter — anti-spam without blocking genuine enquiries
 const contactLimiter = createRateLimiter({
+  name: 'contactLimiter',
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 5, // 5 enquiries per hour per IP
   message: 'Too many messages sent, please try again after an hour',
@@ -130,6 +147,7 @@ const contactLimiter = createRateLimiter({
 // swept for valid links while staying invisible to a real invitee (who resolves
 // once per page load, plus retries).
 const inviteLimiter = createRateLimiter({
+  name: 'inviteLimiter',
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 30, // 30 lookups per 15 min per IP
   message: 'Too many invite lookups, please try again shortly',
@@ -138,6 +156,7 @@ const inviteLimiter = createRateLimiter({
 
 // OTP send/verify limiter — separate from auth limiter so OTP calls don't exhaust login pool
 const otpLimiter = createRateLimiter({
+  name: 'otpLimiter',
   windowMs: 10 * 60 * 1000, // 10 minutes
   max: 10, // 10 OTP attempts per 10 min per IP (generous for real users, tight enough vs bots)
   message: 'Too many verification attempts, please try again in 10 minutes',
@@ -147,6 +166,7 @@ const otpLimiter = createRateLimiter({
 // Password reset REQUEST limiter — throttles how often reset emails can be
 // triggered for an IP. Successful sends still count (that is the abuse vector).
 const passwordResetLimiter = createRateLimiter({
+  name: 'passwordResetLimiter',
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 5, // 5 reset emails per hour per IP (was 3 — too tight behind shared NAT)
   message: 'Too many password reset attempts, please try again later',
@@ -159,6 +179,7 @@ const passwordResetLimiter = createRateLimiter({
 // endpoint requires a signed, single-use reset token, so it is not a spray
 // surface; only failed submissions count.
 const passwordResetSubmitLimiter = createRateLimiter({
+  name: 'passwordResetSubmitLimiter',
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 20, // 20 FAILED submissions per hour per IP
   message: 'Too many password reset attempts, please try again later',
@@ -168,6 +189,7 @@ const passwordResetSubmitLimiter = createRateLimiter({
 
 // Search limiter
 const searchLimiter = createRateLimiter({
+  name: 'searchLimiter',
   windowMs: 60 * 1000, // 1 minute
   max: 30, // 30 searches per minute
   message: 'Too many search requests, please slow down',
@@ -175,6 +197,7 @@ const searchLimiter = createRateLimiter({
 
 // Chat/message limiter
 const messageLimiter = createRateLimiter({
+  name: 'messageLimiter',
   windowMs: 60 * 1000, // 1 minute
   max: 60, // 60 messages per minute
   message: 'Too many messages sent, please slow down',
@@ -182,6 +205,7 @@ const messageLimiter = createRateLimiter({
 
 // Profile update limiter
 const profileUpdateLimiter = createRateLimiter({
+  name: 'profileUpdateLimiter',
   windowMs: 60 * 1000, // 1 minute
   max: 10, // 10 updates per minute
   message: 'Too many profile updates, please slow down',
@@ -189,6 +213,7 @@ const profileUpdateLimiter = createRateLimiter({
 
 // Match action limiter
 const matchActionLimiter = createRateLimiter({
+  name: 'matchActionLimiter',
   windowMs: 60 * 1000, // 1 minute
   max: 60, // 60 actions per minute (for swiping)
   message: 'Too many match actions, please slow down',
@@ -196,6 +221,7 @@ const matchActionLimiter = createRateLimiter({
 
 // File upload limiter
 const uploadLimiter = createRateLimiter({
+  name: 'uploadLimiter',
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 20, // 20 uploads per hour
   message: 'Too many file uploads, please try again later',
@@ -203,9 +229,56 @@ const uploadLimiter = createRateLimiter({
 
 // Admin endpoints limiter
 const adminLimiter = createRateLimiter({
+  name: 'adminLimiter',
   windowMs: 60 * 1000, // 1 minute
   max: 100, // 100 requests per minute for admins
   message: 'Too many admin requests',
+  keyGenerator: (req) => req.user?.id || ipKeyGenerator(req.ip),
+});
+
+// ── Limiters added by the 2026-08-21 deep audit ──
+
+// The /monitoring mount sits OUTSIDE app.use('/api', apiLimiter), so every
+// endpoint under it was completely unthrottled. /health/ready performs a live
+// database authenticate() plus a Redis round-trip per call, which made it free
+// amplification against our own datastores from any unauthenticated client.
+// Generous enough for real uptime probes, bounded enough to stop a flood.
+const monitoringLimiter = createRateLimiter({
+  name: 'monitoringLimiter',
+  windowMs: 60 * 1000,
+  max: 120,
+  message: 'Too many monitoring requests',
+});
+
+// Endpoints that confirm or reject a credential, where the limiter IS the
+// brute-force control. DELETE /auth/account compares a password and had no
+// dedicated limiter at all -- only apiLimiter's 900-per-15-minutes budget.
+const sensitiveActionLimiter = createRateLimiter({
+  name: 'sensitiveActionLimiter',
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  message: 'Too many attempts, please try again later',
+  keyGenerator: (req) => req.user?.id || ipKeyGenerator(req.ip),
+});
+
+// Reads that cost real server work: PDF rendering with an outbound image fetch,
+// and the compatibility engine over the daily candidate set.
+const expensiveReadLimiter = createRateLimiter({
+  name: 'expensiveReadLimiter',
+  windowMs: 60 * 1000,
+  max: 20,
+  message: 'Too many requests, please slow down',
+  keyGenerator: (req) => req.user?.id || ipKeyGenerator(req.ip),
+});
+
+// Anything that creates a live payment-provider order. subscriptionRoutes had
+// its own local copy of this; POST /astrologers/book had none, so it could mint
+// unbounded Razorpay orders.
+const paymentLimiter = createRateLimiter({
+  name: 'paymentLimiter',
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  message: 'Too many payment attempts, please try again later',
   keyGenerator: (req) => req.user?.id || ipKeyGenerator(req.ip),
 });
 
@@ -594,6 +667,10 @@ module.exports = {
   matchActionLimiter,
   uploadLimiter,
   adminLimiter,
+  monitoringLimiter,
+  sensitiveActionLimiter,
+  expensiveReadLimiter,
+  paymentLimiter,
   createRateLimiter,
   // Security
   securityHeaders,

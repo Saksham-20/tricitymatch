@@ -4,6 +4,7 @@
  */
 
 const express = require('express');
+const crypto = require('crypto');
 const router = express.Router();
 const { auth, marketingAuth } = require('../middlewares/auth');
 const { asyncHandler, createError, handleValidationErrors } = require('../middlewares/errorHandler');
@@ -149,12 +150,22 @@ router.post('/referral-codes', asyncHandler(async (req, res) => {
   // Auto-generate code: username prefix + random suffix
   const user = await require('../models').User.findByPk(userId, { attributes: ['email'] });
   const prefix = (user.email.split('@')[0] || 'MKT').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
-  const suffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+  // Math.random() gave ~20 bits from a non-cryptographic PRNG, and a referral
+  // code is a guessable-value problem: codes carry attribution and, in this
+  // product, reward credit. Use the CSPRNG and an unambiguous alphabet.
+  const randomSuffix = (len = 6) => {
+    const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no I/O/0/1
+    const bytes = crypto.randomBytes(len);
+    let out = '';
+    for (let i = 0; i < len; i++) out += ALPHABET[bytes[i] % ALPHABET.length];
+    return out;
+  };
+  const suffix = randomSuffix();
   const code = `${prefix}${suffix}`;
 
   const existing = await ReferralCode.findOne({ where: { code } });
   if (existing) {
-    const code2 = `${prefix}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    const code2 = `${prefix}${randomSuffix()}`;
     const referralCode = await ReferralCode.create({
       code: code2,
       marketingUserId: userId,

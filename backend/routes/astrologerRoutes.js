@@ -13,6 +13,7 @@ const { generateRtcToken } = require('../utils/agoraToken');
 const config = require('../config/env');
 const { log } = require('../middlewares/logger');
 const { notify } = require('../utils/notifyUser');
+const { paymentLimiter } = require('../middlewares/security');
 
 // Seed data inserted on first request if Astrologers table is empty (dev convenience)
 const SEED_ASTROLOGERS = [
@@ -88,7 +89,9 @@ router.get('/:id', auth, asyncHandler(async (req, res) => {
 }));
 
 // POST /astrologers/book — create booking + Razorpay order
-router.post('/book', auth, asyncHandler(async (req, res) => {
+// Creates a live payment-provider order; every other order-creating route
+// already carries paymentLimiter.
+router.post('/book', auth, paymentLimiter, asyncHandler(async (req, res) => {
   const { astrologerId, scheduledAt, durationMin } = req.body;
 
   if (!astrologerId || !scheduledAt || !durationMin) {

@@ -13,6 +13,7 @@ const { GuardianLink, Profile, User, Match } = require('../models');
 const { Op } = require('sequelize');
 const { log } = require('../middlewares/logger');
 const { notify } = require('../utils/notifyUser');
+const { matchActionLimiter, sensitiveActionLimiter } = require('../middlewares/security');
 
 const MAX_GUARDIANS = 3;
 
@@ -41,7 +42,7 @@ router.get('/my-guardians', auth, asyncHandler(async (req, res) => {
 }));
 
 // POST /guardian/invite — invite a guardian by email
-router.post('/invite', auth, asyncHandler(async (req, res) => {
+router.post('/invite', auth, matchActionLimiter, asyncHandler(async (req, res) => {
   const { email, name, phone, relationship } = req.body;
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     throw new AppError('Valid email required', 400);

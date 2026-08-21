@@ -65,6 +65,12 @@ const SECRET_PATH_PREFIXES = [
   '/api/v1/invite/',
   '/auth/reset-password/',
   '/api/v1/auth/reset-password/',
+  // Guardian invite tokens are 32-byte bearer secrets carried in the URL path.
+  // They were absent here, so every 4xx/5xx on this route logged the token
+  // verbatim to the application log (and to any upstream proxy access log).
+  '/guardian/resolve-invite/',
+  '/api/guardian/resolve-invite/',
+  '/api/v1/guardian/resolve-invite/',
 ];
 
 const redactUrl = (url) => {

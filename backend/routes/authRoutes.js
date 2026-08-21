@@ -33,6 +33,7 @@ const {
   signupLimiter,
   passwordResetLimiter,
   passwordResetSubmitLimiter,
+  sensitiveActionLimiter,
   checkAccountLockout
 } = require('../middlewares/security');
 const {
@@ -181,6 +182,9 @@ router.delete('/sessions/:sessionId',
 // Delete account (soft-delete, requires password confirmation)
 router.delete('/account',
   auth,
+  // Compares a password on every call. Without a dedicated limiter the only
+  // bound was apiLimiter's 900-per-15-minutes-per-user budget.
+  sensitiveActionLimiter,
   [body('password').notEmpty().withMessage('Password is required')],
   handleValidationErrors,
   deleteAccount

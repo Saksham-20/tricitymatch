@@ -4,6 +4,8 @@ const express = require('express');
 const router = express.Router();
 const { auth, requirePremium } = require('../middlewares/auth');
 const { matchActionLimiter } = require('../middlewares/security');
+const { param } = require('express-validator');
+const { handleValidationErrors } = require('../middlewares/errorHandler');
 const {
   getAgoraToken,
   initiateCall,
@@ -19,8 +21,8 @@ const {
 router.get('/agora-token', auth, requirePremium, matchActionLimiter, getAgoraToken);
 router.post('/initiate', auth, requirePremium, matchActionLimiter, initiateCall);
 router.get('/history', auth, getCallHistory);
-router.put('/:id/accept', auth, acceptCall);
-router.put('/:id/decline', auth, declineCall);
-router.put('/:id/end', auth, endCall);
+router.put('/:id/accept', auth, matchActionLimiter, param('id').isUUID(4), handleValidationErrors, acceptCall);
+router.put('/:id/decline', auth, matchActionLimiter, param('id').isUUID(4), handleValidationErrors, declineCall);
+router.put('/:id/end', auth, matchActionLimiter, param('id').isUUID(4), handleValidationErrors, endCall);
 
 module.exports = router;

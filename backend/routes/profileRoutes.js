@@ -28,7 +28,7 @@ const {
 const { auth, requirePremium, checkContactUnlockLimit, verifyTargetUser } = require('../middlewares/auth');
 const { uploadPhotos, validateUploadedFiles, uploadVoiceIntro, uploadVideoIntro } = require('../middlewares/upload');
 const { handleValidationErrors } = require('../middlewares/errorHandler');
-const { profileUpdateLimiter, uploadLimiter } = require('../middlewares/security');
+const { profileUpdateLimiter, uploadLimiter, expensiveReadLimiter } = require('../middlewares/security');
 const { updateProfileValidation, getProfileValidation, deletePhotoValidation } = require('../validators');
 
 // ==================== OWN PROFILE ROUTES ====================
@@ -88,7 +88,7 @@ router.get('/me/recently-viewed', auth, getRecentlyViewed);
 
 // Download own marriage-biodata PDF (D5 — FREE for every tier; branded footer
 // is the acquisition loop). ?template=classic|modern
-router.get('/me/biodata', auth, downloadBiodata);
+router.get('/me/biodata', auth, expensiveReadLimiter, downloadBiodata);
 
 // Delete a gallery photo
 router.delete('/me/photo', 

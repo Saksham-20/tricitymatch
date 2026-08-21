@@ -87,13 +87,16 @@ router.post('/messages/:messageId/reactions',
 
 // Edit a message
 router.put('/messages/:messageId',
+  // Sibling send/react routes carry messageLimiter; edit and delete did not.
+  messageLimiter,
   editMessageValidation,
   handleValidationErrors,
   editMessage
 );
 
 // Delete a message
-router.delete('/messages/:messageId', 
+router.delete('/messages/:messageId',
+  messageLimiter,
   deleteMessageValidation,
   handleValidationErrors,
   deleteMessage
