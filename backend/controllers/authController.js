@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken');
 const { User, Profile, RefreshToken, ReferralCode, MarketingLead } = require('../models');
 const { sendWelcomeEmail, sendPasswordResetEmail, sendEmail, sendOtpEmail, sendSecurityAlert } = require('../utils/email');
 const config = require('../config/env');
+const { eraseAccount } = require('../utils/accountErasure');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { recordFailedLogin, clearLoginAttempts, loginLookupKey } = require('../middlewares/security');
 const { log } = require('../middlewares/logger');
@@ -833,11 +834,15 @@ exports.deleteAccount = asyncHandler(async (req, res) => {
   const isValid = await user.comparePassword(password);
   if (!isValid) throw createError.unauthorized('Incorrect password');
 
-  // Soft-delete: mark as deleted + revoke all tokens
-  user.status = 'deleted';
-  await user.save();
+  // Real erasure. This used to be `user.status = 'deleted'` plus a token purge,
+  // which left the profile (exact DOB, birth time, place of birth, caste,
+  // income, photos), the KYC selfie and liveness video, every message, and a
+  // guardian's name and phone number in the database indefinitely -- for an
+  // endpoint that told the member their account was deleted.
+  const erased = await eraseAccount(user.id);
 
-  await RefreshToken.destroy({ where: { userId: user.id } });
+  log.info('Account erased', { userId: user.id, erased });
+
   clearAuthCookies(res);
 
   res.json({ success: true, message: 'Account deleted successfully' });
