@@ -106,6 +106,9 @@ services:
       DB_NAME: ${DB_NAME:-matrimony_dev}
       DB_POOL_MAX: ${DB_POOL_MAX:-20}
       DB_DISABLE_SSL: ${DB_DISABLE_SSL:-true}
+      # env.js requires this explicit acknowledgement when DB_DISABLE_SSL=true, so it
+      # MUST be passed through to the container (in .env alone it never reaches the app).
+      DB_SSL_INTERNAL_NETWORK_ACKNOWLEDGED: ${DB_SSL_INTERNAL_NETWORK_ACKNOWLEDGED:-false}
       # Redis
       REDIS_HOST: redis
       REDIS_PORT: 6379
