@@ -210,14 +210,21 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
   // verification. Pre-fetch the approved set and constrain the DB query so the
   // page counts stay correct (post-query filtering would break pagination).
   if (verifiedOnly === 'true' || verifiedOnly === true) {
-    const approvedVerifications = await Verification.findAll({
-      where: { status: 'approved' },
-      attributes: ['userId'],
-    });
-    const approvedIds = approvedVerifications.map((v) => v.userId);
+    // This used to SELECT every approved verification in the system and splice
+    // the result into an IN (...) list. That grows linearly with the user base
+    // and is reachable by any authenticated member at 30 requests/minute, which
+    // made it the most DoS-able query in the codebase.
+    //
+    // A correlated EXISTS keeps pagination exact (the reason the original
+    // pre-fetched rather than post-filtering) without ever materialising the
+    // approved set in application memory.
     if (!where[Op.and]) where[Op.and] = [];
-    // Empty approved set → match nothing (userId is never null).
-    where[Op.and].push({ userId: approvedIds.length ? { [Op.in]: approvedIds } : null });
+    where[Op.and].push(
+      Sequelize.literal(`EXISTS (
+        SELECT 1 FROM "Verifications" v
+        WHERE v."userId" = "Profile"."userId" AND v."status" = 'approved'
+      )`)
+    );
   }
 
   // Column-backed sorts run at the DB level so they paginate correctly;

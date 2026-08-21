@@ -16,11 +16,16 @@ const RefreshToken = sequelize.define('RefreshToken', {
       key: 'id'
     }
   },
+  // Retained, nullable, and never written (migration 000056 nulled every row).
+  //
+  // This used to hold the RAW refresh token. The old comment claimed "raw token
+  // exposure on DB breach is limited" -- that was wrong: every stored value was
+  // a directly replayable session credential for its full 7-day lifetime, and
+  // the development database held 733 of them including unrevoked, unexpired
+  // ones. Only tokenHash is ever looked up, so nothing needed the raw value.
   token: {
     type: DataTypes.STRING(512),
-    allowNull: false
-    // No unique constraint — raw token is only stored for issuance reference.
-    // All lookups use tokenHash (SHA-256). Raw token exposure on DB breach is limited.
+    allowNull: true,
   },
   tokenHash: {
     type: DataTypes.STRING(64),
@@ -69,10 +74,15 @@ const RefreshToken = sequelize.define('RefreshToken', {
     { fields: ['isRevoked'] }
   ],
   hooks: {
-    beforeCreate: (token) => {
-      // Hash the token for storage (we'll compare hashes, not raw tokens)
-      if (token.token) {
-        token.tokenHash = crypto.createHash('sha256').update(token.token).digest('hex');
+    beforeCreate: (row) => {
+      // Callers pass tokenHash explicitly. If a raw token is supplied anyway,
+      // derive the hash from it and then discard it rather than persisting a
+      // replayable credential.
+      if (row.token) {
+        if (!row.tokenHash) {
+          row.tokenHash = crypto.createHash('sha256').update(row.token).digest('hex');
+        }
+        row.token = null;
       }
     }
   }

@@ -91,8 +91,12 @@ const verifyMutualMatch = async (userId1, userId2, transaction = null) => {
 // @access  Private/Premium
 exports.getConversations = asyncHandler(async (req, res) => {
   const userId = req.user.id;
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 20;
+  // Clamp, do not trust the validator alone -- searchController.js already does
+  // this and says why. Unclamped, `?limit=100000` flowed straight into
+  // Match.findAll and then into the raw DISTINCT ON query's IN (:matchedUserIds),
+  // so one authenticated request could pull the caller's entire match graph.
+  const page = Math.max(parseInt(req.query.page) || 1, 1);
+  const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 100);
   const offset = (page - 1) * limit;
 
   // Get mutual matches (only mutual matches can have conversations)

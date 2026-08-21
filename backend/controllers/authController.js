@@ -112,7 +112,9 @@ const generateRefreshToken = async (userId, userAgent, ipAddress, existingFamily
 
   const row = await RefreshToken.create({
     userId,
-    token,
+    // The raw token is deliberately NOT persisted -- only its hash, which is
+    // the only thing any lookup uses. It is returned to the caller below and
+    // lives solely in the client's httpOnly cookie from there.
     tokenHash: RefreshToken.hashToken(token),
     family: existingFamily || require('crypto').randomUUID(),
     expiresAt,

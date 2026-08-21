@@ -186,19 +186,33 @@ const setupCleanupProcessor = (queue) => {
     const { Message } = require('../models');
     const { Op } = require('sequelize');
     
+    // This job filtered on `deletedAt`, a column that does not exist on
+    // Messages -- there is no soft delete on that model and no migration ever
+    // added one. So it has never removed a single row: chat bodies, voice-note
+    // URLs and reply quotes are retained indefinitely.
+    //
+    // Retention is a policy decision (and for a matrimonial product, silently
+    // destroying conversation history is not a change to make unprompted), so
+    // this is opt-in. Set MESSAGE_RETENTION_MONTHS to a positive number to
+    // enable it; unset or 0 keeps the previous behaviour of retaining forever,
+    // but now says so out loud instead of failing silently.
+    const retentionMonths = Number(process.env.MESSAGE_RETENTION_MONTHS) || 0;
+    if (retentionMonths <= 0) {
+      log.info('Message retention disabled — set MESSAGE_RETENTION_MONTHS to enable', {
+        retained: 'indefinitely',
+      });
+      return { cleaned: 0, disabled: true };
+    }
+
     const cutoffDate = new Date();
-    cutoffDate.setMonth(cutoffDate.getMonth() - 12); // 12 months ago
-    
-    // Only delete soft-deleted messages older than 12 months
+    cutoffDate.setMonth(cutoffDate.getMonth() - retentionMonths);
+
     const result = await Message.destroy({
-      where: {
-        deletedAt: { [Op.lt]: cutoffDate }
-      },
-      force: true
+      where: { createdAt: { [Op.lt]: cutoffDate } },
     });
-    
-    log.info('Cleaned up old messages', { count: result });
-    return { cleaned: result };
+
+    log.info('Cleaned up old messages', { count: result, retentionMonths });
+    return { cleaned: result, retentionMonths };
   });
 
   queue.process('cleanup-inactive-sessions', async (job) => {

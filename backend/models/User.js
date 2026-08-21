@@ -174,6 +174,16 @@ User.prototype.toJSON = function() {
   // the owner reads it from GET /invite/my-link and nowhere else.
   delete values.inviteToken;
 
+  // Device push tokens. Anything holding these can send push notifications that
+  // appear to come from us, to that member's devices. They were never stripped,
+  // so any endpoint serialising a whole User instance emitted every registered
+  // device token for that account.
+  delete values.fcmTokens;
+
+  // Third-party account identifier. Not a credential, but it links this member
+  // to an external identity and nothing in the API needs it.
+  delete values.googleId;
+
   return values;
 };
 
