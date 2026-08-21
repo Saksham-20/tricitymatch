@@ -247,7 +247,12 @@ router.get('/candidate/:candidateId/shortlisted', auth, uuidParam('candidateId')
 
 // POST /guardian/resolve-invite/:token — called when a new user joins and has a pending invite
 // (triggered from authController after signup, optional — links pending invites to new account)
-router.post('/resolve-invite/:token', auth, asyncHandler(async (req, res) => {
+// Round 1 added this file's sensitiveActionLimiter import and the log-redaction
+// prefix, but never applied the limiter to the route — the import sat unused and
+// the endpoint kept only the global 200/15m apiLimiter. The :token here is a
+// 32-byte bearer secret, so an unthrottled 404-vs-200 oracle is a guessing
+// surface however large the token (SEC R2: REGRESSION-1).
+router.post('/resolve-invite/:token', auth, sensitiveActionLimiter, asyncHandler(async (req, res) => {
   const { token } = req.params;
 
   const link = await GuardianLink.findOne({

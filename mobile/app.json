@@ -25,7 +25,10 @@
         "NSPhotoLibraryUsageDescription": "Photo library access is used for uploading profile photos.",
         "NSFaceIDUsageDescription": "Face ID is used for quick and secure login.",
         "NSLocalAuthenticationUsageDescription": "Biometric authentication is used for quick and secure login."
-      }
+      },
+      "associatedDomains": [
+        "applinks:tricitymatch.com"
+      ]
     },
     "android": {
       "adaptiveIcon": {
@@ -43,14 +46,12 @@
               "scheme": "https",
               "host": "tricitymatch.com",
               "pathPrefix": "/profile"
-            },
-            {
-              "scheme": "https",
-              "host": "tricitymatch.com",
-              "pathPrefix": "/reset-password"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ],
       "permissions": [

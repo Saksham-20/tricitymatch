@@ -187,16 +187,35 @@ const errorHandler = (err, req, res, next) => {
     !err.isOperational &&
     !err.statusCode;
   if (isCloudinaryError) {
-    if (config.isProduction) {
-      console.error('Cloudinary configuration error. Ensure CLOUDINARY_CLOUD_NAME is the exact cloud name from your Cloudinary dashboard (e.g. the subdomain), not a placeholder. Original:', err.message);
+    // Split on the provider's OWN status. Cloudinary answers 4xx when it
+    // rejected the FILE — an unsupported format, or a decode failure because
+    // the bytes are not really an image. That is the caller's fault, and
+    // reporting it as 502 SERVICE_UNAVAILABLE told the client "server problem,
+    // retry" (so a rejected upload looks retryable) and told the operator
+    // "Cloudinary is down" when what actually happened is that the content
+    // validation worked. Verified live: a .jpg containing HTML returns
+    // http_code 400 from Cloudinary (SEC R2: ERR-1).
+    const providerRejectedTheFile =
+      err.http_code >= 400 && err.http_code < 500;
+
+    if (providerRejectedTheFile) {
+      error = new AppError(
+        'That file could not be processed as an image. Upload a JPEG, PNG or WebP.',
+        400,
+        ErrorTypes.BAD_REQUEST
+      );
+    } else {
+      if (config.isProduction) {
+        console.error('Cloudinary configuration error. Ensure CLOUDINARY_CLOUD_NAME is the exact cloud name from your Cloudinary dashboard (e.g. the subdomain), not a placeholder. Original:', err.message);
+      }
+      error = new AppError(
+        config.isProduction
+          ? 'Image upload is temporarily unavailable. Please try again later.'
+          : `Cloudinary error: ${err.message}. Check CLOUDINARY_CLOUD_NAME (use the exact cloud name from Cloudinary dashboard).`,
+        502,
+        'SERVICE_UNAVAILABLE'
+      );
     }
-    error = new AppError(
-      config.isProduction
-        ? 'Image upload is temporarily unavailable. Please try again later.'
-        : `Cloudinary error: ${err.message}. Check CLOUDINARY_CLOUD_NAME (use the exact cloud name from Cloudinary dashboard).`,
-      502,
-      'SERVICE_UNAVAILABLE'
-    );
   }
 
   // Log the error

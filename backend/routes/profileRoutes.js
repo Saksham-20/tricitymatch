@@ -151,6 +151,7 @@ router.post('/:userId/unlock-contact',
 // Compatibility breakdown (APP-049 — "Why This Match")
 router.get('/:userId/compatibility',
   auth,
+  expensiveReadLimiter,
   getProfileValidation,
   handleValidationErrors,
   getCompatibilityBreakdown
@@ -159,6 +160,7 @@ router.get('/:userId/compatibility',
 // Horoscope / Ashtakoot match (APP-055)
 router.get('/:userId/horoscope-match',
   auth,
+  expensiveReadLimiter,
   getProfileValidation,
   handleValidationErrors,
   getHoroscopeMatch
@@ -167,6 +169,10 @@ router.get('/:userId/horoscope-match',
 // Downloadable Kundli matchmaking report PDF (premium)
 router.get('/:userId/horoscope-match/pdf',
   auth,
+  // The heaviest read in the app: full Ashtakoot computation plus a pdfkit
+  // render, streamed. The global apiLimiter would allow 200 of these per
+  // 15 minutes from one address.
+  expensiveReadLimiter,
   requirePremium,
   getProfileValidation,
   handleValidationErrors,
