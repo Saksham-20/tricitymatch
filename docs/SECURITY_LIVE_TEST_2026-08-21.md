@@ -150,3 +150,38 @@ unaffected. No production state was written.
 
 Application security is in good shape live. The exposure that remains is operational, and three of
 the four items above are configuration an operator applies, not code.
+
+---
+
+## 5b · 1000-user capacity test (post-deploy, isolated build)
+
+Run against a local instance of the **deployed** build so the app logic could actually be loaded
+(a single-source 1000-VU run against prod only exercises the per-IP/per-user limiter — proven in §4).
+Two runs, 1000 VU ramp, read-mix (50% public, 50% authenticated DB reads).
+
+**Run A — limiters ON (as prod runs):** the limiter keys authenticated traffic by user id (900 /
+15 min per user), so one test user's budget drained in seconds and 99.86% came back **429** — served
+in ~1 ms, **0 × 5xx, 0 crashes**, p95 114 ms, ~8,770 req/s. Same edge behaviour as prod: floods are
+shed cheaply.
+
+**Run B — limiters off (`DISABLE_RATE_LIMITS=true`, dev-only, hard prod guard):** the real
+capacity picture.
+
+```
+324,243 requests · 0 failed · 0 × 5xx · 0 auth errors · 0 interrupted
+2,162 req/s sustained          DB pool (20): 26 connections, no exhaustion
+latency: med 122ms · p90 720ms · p95 1.33s · max 1.77s
+memory: RSS peaked 366MB, returned to 93MB after — no leak (ramp working-set, GC'd)
+CPU: ~1 core (node single JS thread)
+```
+
+**Reading it:**
+- **Correctness at 1000 concurrent users: PASS.** 324k requests, zero errors, no crash, no memory
+  leak, the connection pool never exhausted.
+- **Throughput ceiling ~2,200 req/s**, single-JS-thread bound; p95 climbs from ~115 ms (light) to
+  **1.33 s** at 1000 VU as requests queue on the one core and the 20-connection pool.
+- This was measured on fast multi-core laptop hardware. The **production VPS is a single, slower
+  core** (§3 H-2), so real 1000-concurrent on prod would degrade further. The operative control on
+  that hardware is the rate limiter (which works) plus, for genuine launch scale, horizontal scale +
+  a CDN. A blind 1000-VU flood was **not** fired at prod: from one IP it only tests the limiter, and
+  a distributed flood would DDoS five co-tenant businesses on the shared box.
