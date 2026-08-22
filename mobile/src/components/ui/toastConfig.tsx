@@ -8,8 +8,8 @@ import { useTheme } from '../../hooks/useTheme';
 type Tone = 'success' | 'error' | 'info';
 
 const TONE: Record<Tone, { icon: keyof typeof Ionicons.glyphMap; light: string; dark: string }> = {
-  success: { icon: 'checkmark-circle', light: colours.success, dark: '#4CAF7D' },
-  error:   { icon: 'alert-circle',     light: colours.error,   dark: '#E57373' },
+  success: { icon: 'checkmark-circle', light: colours.success, dark: darkColours.successAccent },
+  error:   { icon: 'alert-circle',     light: colours.error,   dark: darkColours.error },
   info:    { icon: 'information-circle', light: colours.primary, dark: darkColours.primary },
 };
 

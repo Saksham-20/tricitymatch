@@ -52,6 +52,7 @@ export const colours = {
 
   // ── Status ─────────────────────────────────────────────────────────────────
   success:       '#2E7D32',
+  successAccent: '#2E7D32',
   warning:       '#F57C00',
   error:         '#C62828',
   info:          '#1565C0',
@@ -217,6 +218,7 @@ export const darkColours = {
   scrim:         'rgba(0,0,0,0.55)',
 
   success:       '#2E7D32',
+  successAccent: '#4CAF7D', // lighter green: darkColours.success is unreadable as an accent on surfaceCard
   warning:       '#F57C00',
   error:         '#EF5350',
   info:          '#42A5F5',

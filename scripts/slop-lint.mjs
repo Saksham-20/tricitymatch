@@ -72,9 +72,11 @@ const FILE_EXCEPTIONS = {
   'frontend/src/pages/marketing': 'separate-portal identity pending owner call',
   // Deliberate dark-navy in-call palette (2026-06-09 re-theme decision).
   'mobile/src/features/calls/callTheme.ts': 'call-screen dark-navy palette, deliberate',
-  // Admin/bureau RN screens are outside member scope (styling deferred per CLAUDE.md).
+  // Admin RN screens are outside member scope (styling deferred per CLAUDE.md).
   'mobile/src/features/admin': 'RN admin out of member scope',
-  'mobile/src/features/bureau': 'RN bureau dead code, deletion pending memo decision',
+  // WhatsApp brand green is mandated by WhatsApp's brand guidelines for a
+  // "Share on WhatsApp" CTA — it cannot be a TricityMatch token.
+  'frontend/src/components/profile/BiodataCard.jsx': 'WhatsApp brand-mandated green on the share CTA',
 };
 
 const GRADIENT_SLOP = /\b(?:from|via|to)-(?:rose|pink|purple|fuchsia|violet|indigo|cyan|teal|lime|orange)-\d{2,3}\b/g;
