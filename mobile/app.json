@@ -95,7 +95,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "tricityshadi-app"
+        "projectId": "7ca9e048-4529-49a4-be83-b5e44639a1ac"
       }
     },
     "scheme": "tricitymatch",
@@ -110,7 +110,9 @@
     "updates": {
       "enabled": true,
       "fallbackToCacheTimeout": 0,
-      "checkAutomatically": "ON_LOAD"
-    }
+      "checkAutomatically": "ON_LOAD",
+      "url": "https://u.expo.dev/7ca9e048-4529-49a4-be83-b5e44639a1ac"
+    },
+    "owner": "saksham_20"
   }
 }

@@ -10,5 +10,7 @@
     <integer>0</integer>
     <key>EXUpdatesRuntimeVersion</key>
     <string>file:fingerprint</string>
+    <key>EXUpdatesURL</key>
+    <string>https://u.expo.dev/7ca9e048-4529-49a4-be83-b5e44639a1ac</string>
   </dict>
 </plist>
