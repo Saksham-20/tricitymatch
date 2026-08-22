@@ -56,3 +56,13 @@ web-build/
 # xcodebuild -derivedDataPath output for simulator QA builds
 build-sim/
 ios/build-sim/
+
+# Store credentials. eas.json points submit.production.android at
+# ./google-play-service-account.json — a Play-publishing service-account key.
+# Nothing ignored it, so dropping the real file in would have committed it.
+google-play-service-account.json
+*-service-account.json
+# App Store Connect API keys / iOS signing material
+*.p8
+*.p12
+*.mobileprovision
