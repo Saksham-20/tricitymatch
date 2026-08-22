@@ -437,9 +437,8 @@ exports.sendMessage = asyncHandler(async (req, res) => {
     include: MESSAGE_INCLUDE
   });
 
-  // Broadcast the new message (legacy event name + namespaced; see emitToConversation)
+  // Broadcast the new message (see emitToConversation)
   emitToConversation(req, senderId, receiverId, [
-    ['message', messageWithSender],
     ['message:new', { message: messageWithSender }]
   ]);
 
@@ -526,7 +525,6 @@ exports.editMessage = asyncHandler(async (req, res) => {
 
   // Broadcast the edit authoritatively (ownership + time limit verified above)
   emitToConversation(req, userId, message.receiverId, [
-    ['message-edited', { message: updatedMessage }],
     ['message:edited', { message: updatedMessage }]
   ]);
 
@@ -562,7 +560,6 @@ exports.deleteMessage = asyncHandler(async (req, res) => {
   // SOCK-3: emit the deletion authoritatively from the server (ownership already
   // verified above) instead of trusting a client `message-deleted` socket event.
   emitToConversation(req, userId, receiverId, [
-    ['message-deleted', { messageId: deletedMessageId }],
     ['message:deleted', { messageId: deletedMessageId }]
   ]);
 
@@ -629,7 +626,6 @@ exports.sendVoiceMessage = asyncHandler(async (req, res) => {
   });
 
   emitToConversation(req, senderId, receiverId, [
-    ['message', messageWithSender],
     ['message:new', { message: messageWithSender }]
   ]);
 

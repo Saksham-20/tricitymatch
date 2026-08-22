@@ -104,7 +104,6 @@ export function useSocket(handlers?: SocketEventHandlers) {
       onIncomingMessage(msg);
     };
     socketInstance.on('message:new', (data: { message: Message }) => dedupe(data?.message));
-    socketInstance.on('message', (msg: Message) => dedupe(msg));
 
     // Server emits 'user_typing' (the old 'typing-indicator' name never existed).
     socketInstance.on('user_typing', (data: { userId: string; isTyping: boolean }) => {
@@ -141,8 +140,6 @@ export function useSocket(handlers?: SocketEventHandlers) {
       );
       handlersRef.current?.onMessageEdited?.(msg);
     };
-    // Both the legacy and namespaced edit events carry a { message } envelope.
-    socketInstance.on('message-edited', (data: { message: Message }) => data?.message && onEditedMessage(data.message));
     socketInstance.on('message:edited', (data: { message: Message }) => data?.message && onEditedMessage(data.message));
 
     const onDeletedMessage = (data: { messageId: string }) => {
@@ -161,7 +158,6 @@ export function useSocket(handlers?: SocketEventHandlers) {
       );
       handlersRef.current?.onMessageDeleted?.({ messageId: data.messageId, deletedForBoth: true });
     };
-    socketInstance.on('message-deleted', onDeletedMessage);
     socketInstance.on('message:deleted', onDeletedMessage);
 
     socketInstance.on('call-incoming', (invitation: CallInvitation) => {
