@@ -52,3 +52,7 @@ buck-out/
 # Expo
 .expo/
 web-build/
+
+# xcodebuild -derivedDataPath output for simulator QA builds
+build-sim/
+ios/build-sim/
