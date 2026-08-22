@@ -35,6 +35,11 @@ export default function GoldLock({
   testID,
 }: GoldLockProps) {
   const { c, isDark } = useTheme();
+  // With no gated content behind it the wrap has nothing to size it, so an
+  // absolutely-positioned overlay is measured against `minHeight` alone and the
+  // CTA is clipped by `overflow: hidden`. Let the overlay sit in flow instead
+  // and the wrap grows to fit it.
+  const bare = !children;
   return (
     <View style={[styles.wrap, style]} testID={testID}>
       {children ? (
@@ -51,7 +56,10 @@ export default function GoldLock({
       />
       <Animated.View
         entering={FadeIn.duration(duration.base)}
-        style={[styles.overlay, { backgroundColor: c.surfaceCard + '80' }]}
+        style={[
+          bare ? styles.overlayFlow : styles.overlay,
+          { backgroundColor: c.surfaceCard + '80' },
+        ]}
       >
         <LinearGradient
           colors={[colours.g300, colours.g500]}
@@ -76,6 +84,13 @@ const styles = StyleSheet.create({
   content: { transform: [{ scale: 1.04 }] },
   overlay: {
     ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 18,
+    gap: 8,
+  },
+  // same box, in flow — used when there is no gated content to overlay
+  overlayFlow: {
     alignItems: 'center',
     justifyContent: 'center',
     padding: 18,
