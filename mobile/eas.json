@@ -18,8 +18,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://staging.tricitymatch.com/api/v1",
-        "EXPO_PUBLIC_WS_URL": "wss://staging.tricitymatch.com"
+        "EXPO_PUBLIC_API_URL": "https://tricitymatch.com/api/v1",
+        "EXPO_PUBLIC_WS_URL": "wss://tricitymatch.com"
       },
       "channel": "preview"
     },
