@@ -28,6 +28,9 @@ const PLAN_FEATURES = {
   premium_plus: [
     EVERYTHING_IN,
     '15 contact unlocks',
+    // Re-termed from the live plan by retermForLivePlan (the regex keys off the
+    // trailing "validity"), so this string is a placeholder shape, not a claim.
+    '90-day validity',
     'Profile boost',
     'Spotlight listing',
     'Priority customer support',

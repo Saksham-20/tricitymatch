@@ -71,13 +71,19 @@ const COMPARE_ROWS = [
   { label: 'Reactions, voice notes & quote replies', by: { free: false, basic_premium: true, premium_plus: true, elite: true, vip: true } },
   { label: 'Advanced filters', by: { free: false, basic_premium: true, premium_plus: true, elite: true, vip: true } },
   { label: 'Voice & video calls', by: { free: false, basic_premium: false, premium_plus: true, elite: true, vip: true } },
-  { label: 'Profile boost', by: { free: false, basic_premium: false, premium_plus: false, elite: true, vip: true } },
+  // Premium DOES carry profile boost — backend PLANS.premium_plus lists
+  // `profile_boost`, and searchController's premiumBoost() gives it +10 in the
+  // ranking. This row said otherwise, so the table contradicted the card sitting
+  // directly above it (which reads "Profile boost" from the same server data).
+  { label: 'Profile boost', by: { free: false, basic_premium: false, premium_plus: true, elite: true, vip: true } },
   { label: 'Relationship manager', by: { free: false, basic_premium: false, premium_plus: false, elite: false, vip: true } },
 ];
 const COMPARE_LABELS = {
   free: 'Free',
   basic_premium: 'Basic',
-  premium_plus: 'Plus',
+  // Matches the card heading and the server's plan name. 'Plus' read as a
+  // different product the moment the two sat side by side.
+  premium_plus: 'Premium',
   elite: 'Elite',
   vip: 'VIP',
 };
@@ -101,10 +107,15 @@ const ComparisonSection = ({ plans = {}, planKeys = [] }) => {
     if (typeof v === 'number') return String(v);
     return '—';
   };
-  const rows = COMPARE_ROWS.map((row) => ({
-    ...row,
-    values: cols.map((key) => (row.unlocks ? unlockCell(key) : Boolean(row.by?.[key]))),
-  }));
+  const rows = COMPARE_ROWS
+    .map((row) => ({
+      ...row,
+      values: cols.map((key) => (row.unlocks ? unlockCell(key) : Boolean(row.by?.[key]))),
+    }))
+    // Drop a row no VISIBLE plan offers. With the full ladder up, "Relationship
+    // manager" separates VIP from the rest; with VIP withdrawn it is a line of
+    // dashes telling the reader about a thing nobody can buy.
+    .filter((row) => row.unlocks || row.values.some(Boolean));
 
   if (cols.length === 0) return null;
 
@@ -645,6 +656,13 @@ const Subscription = () => {
   // feature the server would refuse.
   const freeChatForMutuals = Boolean(user?.features?.freeChatForMutuals);
   const [plans, setPlans] = useState({});
+  // Did the plans request actually come back? The grid falls back to the static
+  // PLAN_CONFIG ladder ONLY when it did not. Sniffing for specific keys instead
+  // (the old `plans.basic_premium || plans.premium_plus || plans.vip`) broke the
+  // moment an admin withdrew exactly those three: the sniff read false, the
+  // fallback fired, and the page resurrected every card the server had just
+  // taken off sale — at hardcoded prices checkout refuses.
+  const [plansLoaded, setPlansLoaded] = useState(false);
   const [bundles, setBundles] = useState(BUNDLES_FALLBACK);
   // Launch-offer state is server-owned and defaults to inactive, so a failed
   // load shows regular pricing with no discount claim rather than promising an
@@ -669,6 +687,7 @@ const Subscription = () => {
         api.get('/subscription/my-subscription'),
       ]);
       setPlans(plansRes.data.plans || {});
+      setPlansLoaded(true);
       const liveBundles = plansRes.data.bundles;
       if (liveBundles && Object.keys(liveBundles).length) {
         setBundles(Object.values(liveBundles));
@@ -850,9 +869,8 @@ const Subscription = () => {
   // omitted is WITHDRAWN and must not render; the PLAN_CONFIG fallback is only
   // for the case where the request failed outright and we have nothing at all,
   // otherwise it would resurrect exactly the card the server just withdrew.
-  const apiServedPlans = Boolean(plans.basic_premium || plans.premium_plus || plans.vip);
   const gridPlans = GRID_KEYS
-    .filter((key) => (apiServedPlans ? key === 'free' || Boolean(plans[key]) : true))
+    .filter((key) => (plansLoaded ? key === 'free' || Boolean(plans[key]) : true))
     .map((key) => [
       key,
       plans[key] || {
@@ -870,6 +888,13 @@ const Subscription = () => {
     user?.Profile?.isNri === true || currentSub?.planType === 'nri'
   );
 
+  // How many PAID cards the reader actually sees. With one plan on sale
+  // "Choose Your Plan" asks a question the page does not pose — the decision is
+  // whether to buy at all, not which to buy — so the header re-words itself
+  // rather than shipping copy the layout contradicts.
+  const paidCardCount = gridPlans.filter(([key]) => key !== 'free').length + (showNri ? 1 : 0);
+  const singlePlan = paidCardCount === 1;
+
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-[#0f1117]">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -885,7 +910,7 @@ const Subscription = () => {
             <span className="text-xs font-semibold text-gold-700 uppercase tracking-wide">Membership Plans</span>
           </div>
           <h1 className="font-display text-4xl md:text-5xl font-bold text-neutral-900 dark:text-neutral-100 mb-3">
-            Choose Your Plan
+            {singlePlan ? 'Go Premium' : 'Choose Your Plan'}
           </h1>
           <p className="text-neutral-500 dark:text-neutral-400 text-lg max-w-lg mx-auto">
             Unlock premium features and find your perfect match faster.
@@ -1003,7 +1028,7 @@ const Subscription = () => {
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             className="inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-hero text-white rounded-full font-semibold hover:shadow-burgundy hover:scale-105 transition-all"
           >
-            <FaCrown className="w-4 h-4 text-gold-300" /> Choose a plan
+            <FaCrown className="w-4 h-4 text-gold-300" /> {singlePlan ? 'Go Premium' : 'Choose a plan'}
           </button>
         </section>
 

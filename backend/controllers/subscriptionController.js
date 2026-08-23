@@ -526,6 +526,7 @@ exports.getPlans = asyncHandler(async (req, res) => {
     premium_plus: [
       prevName ? `Everything in ${prevName}` : 'Everything in Free',
       unlockLine(p),
+      validityLine(p),
       'Profile boost',
       'Spotlight listing',
       'Priority customer support',

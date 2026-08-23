@@ -37,54 +37,64 @@ const CACHE_TTL_MS = 60 * 1000;
 const DEFAULT_WINDOW_DAYS = 90;
 
 /**
- * Launch ladder. Every tenure is SHORTER than the regular plan's and every
- * price is far lower; `mrp` is the regular price prorated to the launch tenure
- * so the strike-through compares like with like (₹2,999 → ₹1,299 for 180 days
- * of VIP, not ₹5,999 → ₹1,299 for half the term).
+ * Launch ladder — ONE plan on sale.
  *
- * THREE purchasable tiers, not five. Pricing-page research is consistent that
- * three well-differentiated tiers convert materially better than four or more
- * (Price Intelligently's 512-company set: ~30% higher ARPU at three packages),
- * because every extra card turns the decision into a multi-variable comparison
- * — here price × tenure × unlock count — and buyers abandon rather than solve
- * it. `elite` is therefore HIDDEN for the launch window: it sat between the
- * 90-day and 180-day tiers and differentiated on nothing a buyer can feel.
- * Hidden plans are refused at checkout, not merely un-rendered (see
- * overlayPlan → getPlanDetails → createOrder), and the enum value survives so
- * legacy `elite` rows keep resolving.
+ * At launch the site has a few hundred profiles, so the thing a buyer is
+ * actually deciding is "is this worth ₹1,199 at all", not "which of five
+ * tiers". Every extra card turns that single question into a multi-variable
+ * comparison (price × tenure × unlock count) that a buyer abandons rather than
+ * solves, and with this little supply the differentiators between tiers are
+ * ones nobody can feel yet. So: one 90-day plan with UNLIMITED contact
+ * unlocks at ₹1,199, and every other tier withdrawn.
  *
- * Per-month rate falls as commitment rises — 399 / 333 / 217 — so the longer
- * plan always visibly wins. The 180-day tier is only ₹300 above the 90-day one
- * while doubling the term and lifting the unlock cap, which is deliberate: the
- * middle tier's job is to make the top tier the obvious buy. Basic keeps a
- * 30-day tenure on purpose: the founding grant is 30 days, and a paid tier
- * shorter than the free grant would be worse than free.
+ * Withdrawn is not merely un-rendered — `overlayPlan` marks the tier
+ * `hidden`, `isPlanPurchasable` reads that, and `createOrder` refuses it. A
+ * stale app build or a hand-crafted request cannot buy a tier that is off
+ * sale. `getPlanDetails` still RESOLVES withdrawn tiers, so members already
+ * holding one keep working (invoices, my-subscription, the webhook).
  *
- * Unlock counts are generous relative to the old ladder on purpose. With a few
- * hundred profiles a "6 contact unlocks" cap reads as stingy rather than
- * premium, and it costs nothing to widen while supply is the binding
- * constraint — the rolling-24h ceiling in `middlewares/auth.js` is what
- * actually stops harvesting, not the per-plan number.
+ * Which tiers are on sale is an admin decision from here on — Admin → Pricing
+ * & Offers toggles each of the five, subject to MAX_VISIBLE_PAID_PLANS below.
+ * `premium_plus` is the one left standing because its enum key already reads
+ * "Premium", it is natively the 90-day rung, and it carries the profile-boost
+ * and spotlight entitlements the copy promises.
+ *
+ * Unlimited unlocks costs nothing to give while supply is the binding
+ * constraint, and the rolling-24h ceiling in `middlewares/auth.js`
+ * (UNLIMITED_DAILY_UNLOCK_CAP) is what actually stops phone-number harvesting
+ * — not the per-plan number.
  *
  * `amount` and `mrp` are PAISE. `duration` is days. `contactUnlocks: null`
  * means unlimited — see `middlewares/auth.js` checkContactUnlockLimit.
  */
 const DEFAULT_PLAN_OFFERS = {
-  basic_premium: { amount: 39900,  mrp: 129900, duration: 30,  contactUnlocks: 10 },
-  premium_plus:  { amount: 99900,  mrp: 249900, duration: 90,  contactUnlocks: 30 },
+  basic_premium: { hidden: true },
+  premium_plus:  { amount: 119900, mrp: 249900, duration: 90, contactUnlocks: null },
   elite:         { hidden: true },
-  vip:           { amount: 129900, mrp: 299900, duration: 180, contactUnlocks: null },
-  nri:           { amount: 149900, mrp: 499900, duration: 90,  contactUnlocks: null },
+  vip:           { hidden: true },
+  nri:           { hidden: true },
 };
 
 /**
- * Unlock top-ups must stay priced ABOVE every finite plan's per-unlock rate,
- * or buying bundles beats subscribing. At launch rates the cheapest plan rate
- * is ₹33.3/unlock (Premium ₹999 ÷ 30), so: ₹66/unlock and ₹55/unlock here.
+ * Ceiling on how many PAID cards may be on sale at once. Free is always
+ * rendered and is not a launch-offer tier, so the pricing page tops out at
+ * six cards — the five paid tiers (NRI included) plus Free. Enforced in
+ * `saveOffer` rather than left to the shape of the enum, so adding a sixth
+ * paid tier later cannot quietly push the page to seven.
+ */
+const MAX_VISIBLE_PAID_PLANS = 5;
+
+/**
+ * Unlock top-ups must stay priced ABOVE every FINITE plan's per-unlock rate,
+ * or buying bundles beats subscribing. With the single launch plan selling
+ * UNLIMITED unlocks there is no finite paid tier to invert against, so the
+ * floor is currently vacuous — these stay reachable for founding-grant members
+ * (a finite 3-unlock entitlement) and for any finite tier an admin puts back
+ * on sale. If a finite tier is re-enabled below ~66/unlock, reprice these.
  *
  * bundle_25 is HIDDEN during the launch window: any price that clears the
- * per-unlock floor lands at or above the ₹1,299 VIP plan, which would make
- * stacking bundles beat upgrading — the exact inversion the floor exists to
+ * per-unlock floor lands at or above the plan price itself, which would make
+ * stacking bundles beat subscribing — the exact inversion the floor exists to
  * prevent. Hidden bundles are rejected at purchase, not merely un-rendered.
  */
 const DEFAULT_BUNDLE_OFFERS = {
@@ -395,6 +405,19 @@ const saveOffer = async (patch, adminId) => {
     next.plans[key] = { amount, duration, contactUnlocks: unlocks, ...(mrp ? { mrp } : {}) };
   }
 
+  // A pricing page with nothing on it takes no money and gives the reader no
+  // reason to come back — and unlike a bad price, nothing downstream fails
+  // loudly when it happens, so it has to be refused here. A tier ABSENT from
+  // the blob counts as visible: with no override it falls through to its
+  // regular price, which is still on sale.
+  const visibleCount = validPlanKeys.filter((k) => !next.plans[k]?.hidden).length;
+  if (visibleCount === 0) {
+    throw new OfferValidationError('At least one plan must stay on sale - hiding every tier leaves members with no way to pay.');
+  }
+  if (visibleCount > MAX_VISIBLE_PAID_PLANS) {
+    throw new OfferValidationError(`At most ${MAX_VISIBLE_PAID_PLANS} paid plans may be on sale at once (Free is always shown, so that is ${MAX_VISIBLE_PAID_PLANS + 1} cards).`);
+  }
+
   const bundlesIn = patch.bundles && typeof patch.bundles === 'object' ? patch.bundles : (current.bundles || {});
   for (const key of validBundleKeys) {
     const src = bundlesIn[key] ?? current.bundles?.[key];
@@ -462,6 +485,7 @@ const __setCacheForTests = (value) => {
 module.exports = {
   SETTINGS_KEY,
   DEFAULT_PLAN_OFFERS,
+  MAX_VISIBLE_PAID_PLANS,
   DEFAULT_BUNDLE_OFFERS,
   DEFAULT_FOUNDING,
   buildDefaults,

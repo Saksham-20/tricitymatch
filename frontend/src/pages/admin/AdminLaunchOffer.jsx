@@ -15,6 +15,11 @@ import apiClient from '../../api/apiClient';
  */
 
 const PLAN_KEYS = ['basic_premium', 'premium_plus', 'elite', 'vip', 'nri'];
+// Mirrors MAX_VISIBLE_PAID_PLANS in backend/utils/launchOffer.js. Free is always
+// rendered and is not a launch-offer tier, so the member-facing pricing page
+// tops out at six cards: these five (NRI included) plus Free.
+const MAX_VISIBLE_PAID_PLANS = 5;
+const MAX_CARDS = MAX_VISIBLE_PAID_PLANS + 1;
 const BUNDLE_KEYS = ['bundle_3', 'bundle_10', 'bundle_25'];
 
 const PLAN_LABELS = {
@@ -99,8 +104,20 @@ export default function AdminLaunchOffer() {
   const setFounding = (field, value) =>
     setForm((f) => ({ ...f, founding: { ...f.founding, [field]: value } }));
 
+  // Cards the member-facing pricing page will render. Free always shows, so the
+  // page total is this + 1 — the number the admin is actually reasoning about.
+  // Declared above `submit` so it is initialised on every render path, not just
+  // the ones that get past the loading/error early returns.
+  const visibleCount = form ? PLAN_KEYS.filter((k) => !form.plans[k].hidden).length : 0;
+
   const submit = async (e) => {
     e.preventDefault();
+    // The server refuses this too (saveOffer) — this is here so the admin is
+    // told before the round-trip, not after.
+    if (visibleCount === 0) {
+      setError('At least one plan must stay on sale — hiding every tier leaves members with no way to pay.');
+      return;
+    }
     setSaving(true);
     setError('');
     setSaved('');
@@ -232,10 +249,30 @@ export default function AdminLaunchOffer() {
 
         {/* Plans */}
         <section className="bg-white border border-neutral-200 rounded-xl p-5 overflow-x-auto">
-          <h2 className="font-semibold text-neutral-900 mb-1">Plan pricing</h2>
+          <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
+            <h2 className="font-semibold text-neutral-900">Plan pricing &amp; which cards show</h2>
+            <span
+              className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full ${
+                visibleCount === 0
+                  ? 'bg-red-50 text-red-700 border border-red-200'
+                  : 'bg-neutral-100 text-neutral-700 border border-neutral-200'
+              }`}
+            >
+              {visibleCount + 1} of {MAX_CARDS} cards showing
+            </span>
+          </div>
           <p className="text-xs text-neutral-500 mb-4">
+            Untick <strong>On sale</strong> to hide a card. Hidden plans are <strong>refused at checkout</strong>, not just
+            un-rendered, so a stale app build cannot buy one. Free always shows and is not editable here — that is why the
+            count above is one higher than the ticks below, and why {MAX_CARDS} is the ceiling.
+            <br />
             Prices in ₹, tenure in days. Leave unlocks blank for unlimited. MRP is the struck-through anchor shown to members.
           </p>
+          {visibleCount === 0 && (
+            <p className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">
+              Every plan is withdrawn — members would have no way to pay. Put at least one back on sale before saving.
+            </p>
+          )}
           <table className="w-full text-sm min-w-[720px]">
             <thead>
               <tr className="text-left text-neutral-500 border-b border-neutral-200">
@@ -295,8 +332,9 @@ export default function AdminLaunchOffer() {
         <section className="bg-white border border-neutral-200 rounded-xl p-5">
           <h2 className="font-semibold text-neutral-900 mb-1">Contact-unlock top-ups</h2>
           <p className="text-xs text-neutral-500 mb-4">
-            Keep every bundle priced above the cheapest plan&apos;s per-unlock rate and below the top plan, or buying
-            top-ups beats subscribing. Hidden bundles are refused at checkout, not just hidden.
+            Only binds while a plan with a FINITE unlock cap is on sale: keep every bundle above that plan&apos;s
+            per-unlock rate and below its price, or buying top-ups beats subscribing. With only unlimited-unlock plans
+            up, these serve founding-grant members. Hidden bundles are refused at checkout, not just hidden.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {BUNDLE_KEYS.map((k) => {
