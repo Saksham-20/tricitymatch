@@ -170,6 +170,17 @@ services:
       # flag that is not in this allowlist stays off in prod no matter what the
       # env file says — the CORS_ORIGIN failure, already made once.
       FREE_CHAT_FOR_MUTUALS: ${FREE_CHAT_FOR_MUTUALS:-false}
+      # D1 free-reply window: after a mutual match a free member may READ
+      # forever and SEND a few messages inside 48h. Was missing from this
+      # allowlist, so setting it in .env did nothing at all — the exact failure
+      # the comment above warns about, made a second time.
+      FREE_REPLY_WINDOW: ${FREE_REPLY_WINDOW:-false}
+      ASTROLOGER_MARKETPLACE: ${ASTROLOGER_MARKETPLACE:-false}
+      # Rolling-24h ceiling on unlimited-tier contact unlocks (anti-harvest).
+      UNLIMITED_DAILY_UNLOCK_CAP: ${UNLIMITED_DAILY_UNLOCK_CAP:-}
+      # Email dry run — renders and logs, sends nothing. Defaults OFF in
+      # production (config/env.js); plumbed so a staging stack can turn it on.
+      EMAIL_DRY_RUN: ${EMAIL_DRY_RUN:-}
       # Security controls. These were absent from the allowlist, so production ran on
       # config/env.js defaults and silently ignored the stricter values documented in
       # .env.production.example. CSRF_SECRET in particular could never be set at all.
