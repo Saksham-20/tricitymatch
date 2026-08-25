@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { track, STAGES } from '../utils/analytics';
 import { Link } from 'react-router-dom';
 import { motion, useInView, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import Seo from '../components/common/Seo';
@@ -283,6 +284,11 @@ const supportsScrollTimeline =
   typeof CSS !== 'undefined' && CSS.supports?.('animation-timeline: scroll()');
 
 const Home = () => {
+  // Top of the funnel. Everything downstream is measured against this number,
+  // and until it existed there was no way to tell a quiet week from a broken
+  // one.
+  useEffect(() => { track(STAGES.LANDING); }, []);
+
   const [activeCity, setActiveCity]       = useState(0);
   const [matchIdx, setMatchIdx]           = useState(0);
   const [processActive, setProcessActive] = useState(0);
@@ -384,7 +390,8 @@ const Home = () => {
     { q: 'Only Tricity residents?',              a: 'Yes — every profile is from Chandigarh, Mohali, or Panchkula, or has direct family ties to the region. Hyperlocal is the point.' },
     { q: 'How does profile verification work?',  a: 'Members submit a live selfie — captured in the moment, never uploaded from files — that our team matches against their profile photos. The verified badge appears once approved.' },
     { q: 'Can I browse without an account?',     a: 'Preview a small selection without an account. Full profiles, photos, and chat require a verified account.' },
-    { q: 'Premium vs VIP?',                      a: 'Premium: unlimited messaging, advanced filters, Incognito mode. VIP adds a relationship manager and curated weekly hand-picked matches.' },
+    { q: 'I live abroad — can NRIs join?',       a: 'Yes, if you are from the Tricity or your family is. Where you live now does not matter; the roots do. Mark yourself as an NRI during sign-up and add your country, and families looking for an NRI alliance will see it. A parent or sibling here can search alongside you through Guardian access.' },
+    { q: 'What does Premium include?',           a: 'One plan, no tiers to compare: unlimited contact unlocks, unlimited messaging, advanced filters, Incognito mode, a profile boost and a spotlight listing, for the full term. Browsing, matching and your profile stay free.' },
     { q: 'Is my data private?',                  a: 'Yes. Conversations are encrypted in transit and access is restricted to you and your match. We never share your phone number, never sell data, never display you to non-mutual interests.' },
     { q: 'Can families participate?',             a: 'Yes — gracefully. You choose when. They get their own view and chat channel kept respectfully separate from yours.' },
   ];
@@ -1372,7 +1379,7 @@ const Home = () => {
             // internal link, /matrimony/* is sitemap-only — discoverable in
             // theory, orphaned in practice.
             { title: 'Cities',   links: [['Matrimony in Chandigarh', '/matrimony/chandigarh'], ['Matrimony in Mohali', '/matrimony/mohali'], ['Matrimony in Panchkula', '/matrimony/panchkula']] },
-            { title: 'Company',  links: [['About Us', '/about'], ['Contact', '/contact'], ['Safety Centre', '/safety'], ['Privacy Policy', '/privacy'], ['Terms of Service', '/terms']] },
+            { title: 'Company',  links: [['About Us', '/about'], ['Contact', '/contact'], ['Safety Centre', '/safety'], ['Privacy Policy', '/privacy'], ['Terms of Service', '/terms'], ['Refunds', '/refund-policy']] },
             // Phone and address are config-gated for the same reason as WhatsApp:
             // a placeholder number in the footer is worse than no number.
             { title: 'Contact',  links: [

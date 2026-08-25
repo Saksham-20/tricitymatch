@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { getUsers, updateSubscription } from '../../api/adminApi';
 import toast from 'react-hot-toast';
+import blobErrorMessage from '../../utils/blobError';
 import { FiSearch, FiEdit2, FiDownload } from 'react-icons/fi';
 import { adminGetInvoice } from '../../api/adminApi';
+import usePlanOptions from '../../hooks/usePlanOptions';
 
 // Plan keys MUST match the backend enum (constants/plans.js ALL_PLANS): the old
 // ['free','basic','premium','gold'] values did not exist server-side, so every
@@ -15,7 +17,6 @@ const PLAN_LABELS = {
   vip:           'VIP',
   nri:           'NRI Connect',
 };
-const PLAN_OPTIONS = Object.keys(PLAN_LABELS);
 
 const PlanBadge = ({ plan }) => {
   const map = {
@@ -42,6 +43,9 @@ export default function AdminSubscriptions() {
   const [overrideModal, setModal] = useState(null);
   const [newPlan, setNewPlan]     = useState('');
   const [submitting, setSubmit]   = useState(false);
+  // Options come from the API so they track what Pricing & Offers has on sale
+  // AND the backend enum — a hardcoded list has drifted from the enum before.
+  const { options: planOptions } = usePlanOptions();
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -60,7 +64,7 @@ export default function AdminSubscriptions() {
 
   const openOverride = (user) => {
     setModal(user);
-    setNewPlan(user.Subscriptions?.[0]?.planType || 'free');
+    setNewPlan(user.activePlan || 'free');
   };
 
   const handleOverride = async () => {
@@ -71,8 +75,9 @@ export default function AdminSubscriptions() {
       toast.success('Plan updated');
       setModal(null);
       fetchData();
-    } catch {
-      toast.error('Update failed');
+    } catch (err) {
+      const e = err?.response?.data?.error;
+      toast.error(e?.details?.[0]?.message ? `${e.message}: ${e.details[0].message}` : (e?.message || 'Update failed'));
     } finally {
       setSubmit(false);
     }
@@ -87,8 +92,8 @@ export default function AdminSubscriptions() {
       a.download = `invoice-${subscriptionId}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch {
-      toast.error('Failed to download invoice');
+    } catch (err) {
+      toast.error(await blobErrorMessage(err, 'Failed to download invoice'));
     }
   };
 
@@ -141,12 +146,22 @@ export default function AdminSubscriptions() {
                 </tr>
               ) : (
                 users.map((u) => {
-                  // getUsers eager-loads the latest subscription as `Subscriptions`
-                  // (a hasMany with separate:true → array), NOT `Subscription`.
-                  // Reading the singular made every row read undefined → all
-                  // showed "free". Names live on the Profile association, not the
-                  // User row.
-                  const sub = u.Subscriptions?.[0];
+                  // `activeSubscription` is derived server-side with the entitlement
+                  // predicate (active status, paid tier, endDate in the future).
+                  // The newest row alone is routinely a `pending` order nobody paid,
+                  // which rendered here as a live plan. Fall back to it only for the
+                  // invoice button, where a historic row is still downloadable.
+                  const sub = u.activeSubscription || null;
+                  // Only offer the invoice where one can actually be issued: real
+                  // money, actually received. A ₹0 founding grant and an order that
+                  // was never paid both 400 server-side, so a button there is a
+                  // button that only ever fails.
+                  const invoiceCandidate = sub || u.Subscriptions?.[0] || null;
+                  const invoiceSub = invoiceCandidate
+                    && Number(invoiceCandidate.amount) > 0
+                    && invoiceCandidate.razorpayPaymentId
+                    ? invoiceCandidate
+                    : null;
                   const name = [u.Profile?.firstName, u.Profile?.lastName].filter(Boolean).join(' ');
                   return (
                   <tr key={u.id} className="hover:bg-gray-50 transition-colors">
@@ -165,13 +180,13 @@ export default function AdminSubscriptions() {
                       {sub?.endDate ? new Date(sub.endDate).toLocaleDateString('en-IN') : '—'}
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-500">
-                      {sub?.paymentAmount ? `₹${Number(sub.paymentAmount).toLocaleString('en-IN')}` : '—'}
+                      {sub?.amount != null ? `₹${Number(sub.amount).toLocaleString('en-IN')}` : '—'}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {sub && (
+                        {invoiceSub && (
                           <button
-                            onClick={() => downloadInvoice(sub.id)}
+                            onClick={() => downloadInvoice(invoiceSub.id)}
                             className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
                             title="Download Invoice"
                           >
@@ -216,7 +231,14 @@ export default function AdminSubscriptions() {
               onChange={(e) => setNewPlan(e.target.value)}
               className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 mb-4"
             >
-              {PLAN_OPTIONS.map((p) => <option key={p} value={p}>{PLAN_LABELS[p]}</option>)}
+              {planOptions.map((p) => (
+                <option key={p.planType} value={p.planType}>
+                  {p.label}
+                  {p.durationDays ? ` — ${p.durationDays} days` : ''}
+                  {p.price ? ` · ₹${p.price.toLocaleString('en-IN')}` : ''}
+                  {p.onSale ? '' : ' (off sale)'}
+                </option>
+              ))}
             </select>
             <div className="flex gap-3">
               <button onClick={() => setModal(null)} className="flex-1 py-2.5 rounded-xl bg-gray-100 text-gray-700 text-sm font-medium">Cancel</button>

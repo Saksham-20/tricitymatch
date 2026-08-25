@@ -13,7 +13,9 @@ export default function AdminProtectedRoute({ children }) {
     );
   }
 
-  if (!isAuthenticated || !['admin', 'super_admin'].includes(user?.role)) {
+  // `sub_admin` reaches the panel; which PAGES it may open is decided per
+  // request by the server (requireAdminScope), and the sidebar hides the rest.
+  if (!isAuthenticated || !['sub_admin', 'admin', 'super_admin'].includes(user?.role)) {
     return <Navigate to="/login" replace />;
   }
 

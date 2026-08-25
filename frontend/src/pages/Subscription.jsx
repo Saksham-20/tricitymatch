@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { track, STAGES } from '../utils/analytics';
 import { motion } from 'framer-motion';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
@@ -679,6 +680,9 @@ const Subscription = () => {
   const [currency] = useState(() => detectCurrency());
 
   useEffect(() => { loadData(); }, []);
+  // Reaching the pricing page is the last stage before money; the gap between
+  // this and `checkout_started` is the one the copy has to close.
+  useEffect(() => { track(STAGES.PLANS_VIEWED); }, []);
 
   const loadData = async () => {
     try {
@@ -740,6 +744,10 @@ const Subscription = () => {
     });
 
   const handleSubscribe = async (planType) => {
+    // Fires on intent, not on success — a checkout that starts and never
+    // finishes is precisely what the abandoned-checkout mail chases, and the
+    // count of them is what says whether the payment step itself is broken.
+    track(STAGES.CHECKOUT_STARTED, { once: false });
     if (!ensurePaymentsAvailable()) return;
     if (processingPlan) return; // guard against double-submit / double order
 

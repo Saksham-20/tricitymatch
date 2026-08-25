@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
+import blobErrorMessage from '../utils/blobError';
 import { FiDownload, FiCreditCard, FiTrendingUp, FiCalendar } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
@@ -76,13 +77,18 @@ export default function PaymentHistory() {
       a.download = `invoice-${subId}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch {
-      toast.error('Failed to download invoice');
+    } catch (err) {
+      // The server explains itself ("Invoice not available for a free or granted
+      // plan"); a flat failure message hides that from the member and from us.
+      // The response is a Blob on this route, so it needs parsing first.
+      toast.error(await blobErrorMessage(err, 'Failed to download invoice'));
     }
   };
 
   // Summary derived from rows
-  const totalSpent = subscriptions.reduce((sum, s) => sum + (Number(s.paymentAmount) || 0), 0);
+  // `amount` is the column; `paymentAmount` never existed, so this read ₹0 for
+  // every member regardless of what they had paid.
+  const totalSpent = subscriptions.reduce((sum, s) => sum + (Number(s.amount) || 0), 0);
   const activeSub = subscriptions.find((s) => s.status === 'active');
 
   const summary = [
@@ -160,7 +166,7 @@ export default function PaymentHistory() {
                       <td className="px-4 py-3"><PlanBadge plan={s.planType} /></td>
                       <td className="px-4 py-3"><StatusBadge status={s.status} /></td>
                       <td className="px-4 py-3 font-medium text-neutral-800 dark:text-neutral-200">
-                        {s.paymentAmount ? `₹${Number(s.paymentAmount).toLocaleString('en-IN')}` : '—'}
+                        {s.amount != null ? `₹${Number(s.amount).toLocaleString('en-IN')}` : '—'}
                       </td>
                       <td className="px-4 py-3 text-xs text-neutral-500">
                         {s.startDate ? new Date(s.startDate).toLocaleDateString('en-IN') : '—'}
@@ -169,7 +175,12 @@ export default function PaymentHistory() {
                         {s.endDate ? new Date(s.endDate).toLocaleDateString('en-IN') : '—'}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        {s.paymentId && (
+                        {/* The API serializes `razorpayPaymentId` (the model column);
+                            reading `paymentId` meant this button never rendered for
+                            anyone, so no member could ever download an invoice.
+                            A ₹0 grant has no invoice to give — the server 400s it,
+                            so don't offer the button either. */}
+                        {s.razorpayPaymentId && Number(s.amount) > 0 && (
                           <button
                             onClick={() => downloadInvoice(s.id)}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-300 text-xs font-medium transition-colors"

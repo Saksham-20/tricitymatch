@@ -9,6 +9,7 @@ const { Op } = require('sequelize');
 const config = require('../config/env');
 const { createError, asyncHandler } = require('./errorHandler');
 const { PAID_PLANS, UNLIMITED_PLANS } = require('../constants/plans');
+const { ADMIN_ROLES, hasScope } = require('../constants/adminScopes');
 const { hasChatAccess } = require('../utils/entitlements');
 
 /**
@@ -54,9 +55,11 @@ const auth = asyncHandler(async (req, res, next) => {
       throw createError.unauthorized('Invalid token type');
     }
 
-    // Load user (minimal data for performance)
+    // Load user (minimal data for performance). `adminPermissions` rides along
+    // because requireAdminScope reads it on every admin request — leaving it
+    // out made a scoped sub-admin resolve to NO scopes and 403 on its own pages.
     const user = await User.findByPk(decoded.userId, {
-      attributes: ['id', 'email', 'role', 'status']
+      attributes: ['id', 'email', 'role', 'status', 'adminPermissions']
     });
 
     if (!user) {
@@ -127,10 +130,33 @@ const adminAuth = asyncHandler(async (req, res, next) => {
     throw createError.unauthorized('Authentication required');
   }
 
-  if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+  // `sub_admin` reaches the panel but holds only the scopes stored on its row —
+  // every route additionally passes through requireAdminScope below, so this
+  // check is the door, not the permission.
+  if (!ADMIN_ROLES.includes(req.user.role)) {
     throw createError.forbidden('Admin access required');
   }
 
+  next();
+});
+
+/**
+ * Per-route admin permission gate. Must run after `adminAuth`.
+ *
+ * `admin`/`super_admin` pass everything; a `sub_admin` passes only the scopes
+ * written on its row. This is the boundary — the sidebar hiding a link is a
+ * courtesy, and a hand-crafted request from a scoped account must still 403.
+ */
+const requireAdminScope = (scope) => asyncHandler(async (req, res, next) => {
+  if (!req.user) {
+    throw createError.unauthorized('Authentication required');
+  }
+  if (!hasScope(req.user, scope)) {
+    throw createError.forbidden(
+      `This admin account does not have the "${scope}" permission`,
+      'ADMIN_SCOPE_REQUIRED'
+    );
+  }
   next();
 });
 
@@ -415,6 +441,7 @@ module.exports = {
   auth,
   optionalAuth,
   adminAuth,
+  requireAdminScope,
   marketingAuth,
   requirePremium,
   requireChatAccess,

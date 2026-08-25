@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getUser, updateSubscription, updateVerification } from '../../api/adminApi';
+import { getUser, updateSubscription, updateVerification, cancelSubscription } from '../../api/adminApi';
+import usePlanOptions from '../../hooks/usePlanOptions';
 import toast from 'react-hot-toast';
-import { FiArrowLeft, FiDownload, FiShield, FiCheckCircle, FiXCircle } from 'react-icons/fi';
+import { FiArrowLeft, FiCheckCircle, FiXCircle } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 
 const Section = ({ title, children }) => (
@@ -19,14 +20,13 @@ const InfoRow = ({ label, value }) => (
   </div>
 );
 
-const PLAN_OPTIONS = ['free', 'basic', 'premium', 'gold'];
-
 export default function AdminUserDetail() {
   const { userId } = useParams();
   const [data, setData]     = useState(null);
   const [loading, setLoading] = useState(true);
   const [planModal, setPlanModal] = useState(false);
   const [newPlan, setNewPlan]     = useState('');
+  const { options: planOptions } = usePlanOptions();
 
   const fetchUser = async () => {
     setLoading(true);
@@ -48,8 +48,27 @@ export default function AdminUserDetail() {
       toast.success('Subscription updated');
       setPlanModal(false);
       fetchUser();
-    } catch {
-      toast.error('Update failed');
+    } catch (err) {
+      // Surface what the server said. A generic "Update failed" is how the
+      // stale plan-key bug stayed invisible: the API was answering
+      // "planType: Invalid value" and the panel showed nothing useful.
+      const e = err?.response?.data?.error;
+      toast.error(e?.details?.[0]?.message ? `${e.message}: ${e.details[0].message}` : (e?.message || 'Update failed'));
+    }
+  };
+
+  const handleCancelPlan = async () => {
+    // Confirm first: this ends a member's paid access immediately and there is
+    // no undo beyond granting it again.
+    if (!window.confirm('End this member\u2019s current plan now? Their profile and matches are unchanged.')) return;
+    const reason = window.prompt('Why is it being cancelled? (recorded in the audit log)') || '';
+    try {
+      await cancelSubscription(userId, { reason });
+      toast.success('Plan cancelled');
+      fetchUser();
+    } catch (err) {
+      const e = err?.response?.data?.error;
+      toast.error(e?.message || 'Could not cancel the plan');
     }
   };
 
@@ -75,8 +94,16 @@ export default function AdminUserDetail() {
 
   const { user, reports } = data;
   const profile = user?.Profile || null;
-  const subscription = user?.Subscriptions?.[0] || null;
+  // Server-derived: the newest row is routinely a `pending` order nobody paid
+  // or a `cancelled` row left by an override, so the panel reads the same
+  // active-plan predicate every entitlement gate uses.
+  const subscription = user?.activeSubscription || null;
+  const subscriptionHistory = user?.Subscriptions || [];
   const verifications = user?.Verifications || [];
+  // There is no `User.verificationStatus` column — the badge is derived from an
+  // approved Verification row (the same rule searchController uses). Reading
+  // the non-existent field meant this chip never rendered, for anyone.
+  const isVerified = verifications.some((v) => v.status === 'approved');
 
   return (
     <div className="space-y-5">
@@ -96,7 +123,7 @@ export default function AdminUserDetail() {
         <div className="flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-xl font-bold text-gray-900">{[profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || '—'}</h2>
-            {user.verificationStatus === 'approved' && (
+            {isVerified && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">
                 <FiCheckCircle className="w-3 h-3" /> Verified
               </span>
@@ -110,12 +137,24 @@ export default function AdminUserDetail() {
           <p className="text-gray-500 text-sm">{user.email}</p>
           <p className="text-gray-400 text-xs mt-1">ID: {user.id} · Role: {user.role} · Status: {user.status}</p>
         </div>
-        <button
-          onClick={() => { setNewPlan(subscription?.planType || 'free'); setPlanModal(true); }}
-          className="flex items-center gap-2 px-4 py-2 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-xl text-sm font-medium transition-colors"
-        >
-          <FaCrown className="w-3.5 h-3.5" /> Override Plan
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => { setNewPlan(subscription?.planType || 'free'); setPlanModal(true); }}
+            className="flex items-center gap-2 px-4 py-2 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-xl text-sm font-medium transition-colors"
+          >
+            <FaCrown className="w-3.5 h-3.5" /> Override Plan
+          </button>
+          {/* Only where there is something to end — a mis-grant or a refunded
+              payment previously had no in-product remedy at all. */}
+          {subscription && (
+            <button
+              onClick={handleCancelPlan}
+              className="flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-sm font-medium transition-colors"
+            >
+              End plan
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -161,10 +200,24 @@ export default function AdminUserDetail() {
               <InfoRow label="Status"     value={subscription.status} />
               <InfoRow label="Start Date" value={subscription.startDate ? new Date(subscription.startDate).toLocaleDateString('en-IN') : null} />
               <InfoRow label="End Date"   value={subscription.endDate ? new Date(subscription.endDate).toLocaleDateString('en-IN') : null} />
-              <InfoRow label="Amount"     value={subscription.paymentAmount ? `₹${subscription.paymentAmount}` : null} />
+              <InfoRow label="Amount"     value={subscription.amount != null ? `₹${Number(subscription.amount).toLocaleString('en-IN')}` : null} />
             </>
           ) : (
             <p className="text-sm text-gray-400">No active subscription (Free plan)</p>
+          )}
+          {subscriptionHistory.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-gray-100">
+              <p className="text-xs font-semibold text-gray-500 mb-2">History</p>
+              <div className="space-y-1">
+                {subscriptionHistory.map((h) => (
+                  <div key={h.id} className="flex items-center justify-between text-xs text-gray-500">
+                    <span className="capitalize">{String(h.planType).replace(/_/g, ' ')}</span>
+                    <span>{h.status}</span>
+                    <span>{h.endDate ? new Date(h.endDate).toLocaleDateString('en-IN') : '—'}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </Section>
 
@@ -250,12 +303,20 @@ export default function AdminUserDetail() {
             <select
               value={newPlan}
               onChange={(e) => setNewPlan(e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 mb-4"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 mb-2"
             >
-              {PLAN_OPTIONS.map((p) => (
-                <option key={p} value={p} className="capitalize">{p}</option>
+              {planOptions.map((p) => (
+                <option key={p.planType} value={p.planType}>
+                  {p.label}
+                  {p.durationDays ? ` — ${p.durationDays} days` : ''}
+                  {p.price ? ` · ₹${p.price.toLocaleString('en-IN')}` : ''}
+                  {p.onSale ? '' : ' (off sale)'}
+                </option>
               ))}
             </select>
+            <p className="text-xs text-gray-400 mb-4">
+              Term and unlocks follow the plan as currently priced in Pricing &amp; Offers.
+            </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setPlanModal(false)}

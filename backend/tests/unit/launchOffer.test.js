@@ -205,11 +205,11 @@ describe('visible-card guard', () => {
     expect(MAX_VISIBLE_PAID_PLANS).toBe(PAID_KEYS.length);
   });
 
-  it('ships ONE plan on sale by default: 90 days, unlimited unlocks, ₹1,199', () => {
+  it('ships ONE plan on sale by default: 90 days, unlimited unlocks, ₹1,099', () => {
     const onSale = PAID_KEYS.filter((k) => !DEFAULT_PLAN_OFFERS[k]?.hidden);
     expect(onSale).toEqual(['premium_plus']);
     const p = DEFAULT_PLAN_OFFERS.premium_plus;
-    expect(p.amount).toBe(119900);
+    expect(p.amount).toBe(109900);
     expect(p.duration).toBe(90);
     expect(p.contactUnlocks).toBeNull();
     // The strike-through must not claim a discount off a longer term.

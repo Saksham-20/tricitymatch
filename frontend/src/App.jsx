@@ -38,7 +38,7 @@ import ErrorBoundary from './components/common/ErrorBoundary';
 import LoadingSpinner, { PageSkeleton } from './components/common/LoadingSpinner';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import AdminProtectedRoute from './components/admin/AdminProtectedRoute';
-import AdminLayout from './components/admin/AdminLayout';
+import AdminLayout, { AdminIndexRedirect, AdminScopeRoute } from './components/admin/AdminLayout';
 import Navbar from './components/common/Navbar';
 import BottomNav from './components/common/BottomNav';
 import useRouteTitle from './components/common/RouteTitle';
@@ -55,12 +55,14 @@ const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const Terms = lazy(() => import('./pages/Terms'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const DeleteAccount = lazy(() => import('./pages/DeleteAccount'));
+const RefundPolicy = lazy(() => import('./pages/RefundPolicy'));
 const About = lazy(() => import('./pages/About'));
 const Contact = lazy(() => import('./pages/Contact'));
 const Safety = lazy(() => import('./pages/Safety'));
 const Help = lazy(() => import('./pages/Help'));
 const SuccessStories = lazy(() => import('./pages/SuccessStories'));
 const CityMatrimony = lazy(() => import('./pages/CityMatrimony'));
+const CommunityMatrimony = lazy(() => import('./pages/CommunityMatrimony'));
 
 // Modern Profile Editor (new)
 const ModernProfileEditor = lazy(() => import('./pages/ModernProfileEditor'));
@@ -81,6 +83,9 @@ const AdminLeads = lazy(() => import('./pages/admin/AdminLeads'));
 const AdminSuccessStories = lazy(() => import('./pages/admin/AdminSuccessStories'));
 const AdminContactMessages = lazy(() => import('./pages/admin/AdminContactMessages'));
 const AdminLaunchOffer = lazy(() => import('./pages/admin/AdminLaunchOffer'));
+const AdminTeam = lazy(() => import('./pages/admin/AdminTeam'));
+const AdminFunnel = lazy(() => import('./pages/admin/AdminFunnel'));
+const AdminAuditLog = lazy(() => import('./pages/admin/AdminAuditLog'));
 
 // Marketing pages
 const MarketingLayout = lazy(() => import('./pages/marketing/MarketingLayout'));
@@ -175,6 +180,11 @@ const AnimatedRoutes = () => {
               <Terms />
             </PageTransition>
           } />
+          <Route path="/refund-policy" element={
+            <PageTransition>
+              <RefundPolicy />
+            </PageTransition>
+          } />
           <Route path="/privacy" element={
             <PageTransition>
               <Privacy />
@@ -216,6 +226,15 @@ const AnimatedRoutes = () => {
           <Route path="/matrimony/:city" element={
             <PageTransition>
               <CityMatrimony />
+            </PageTransition>
+          } />
+
+          {/* Community × city long tail. More specific route first — react-router
+              v7 ranks by specificity, but keeping them adjacent makes the pair
+              obvious to the next reader. Also in sitemap.xml; do not rename. */}
+          <Route path="/matrimony/:city/:community" element={
+            <PageTransition>
+              <CommunityMatrimony />
             </PageTransition>
           } />
 
@@ -412,7 +431,8 @@ const AnimatedRoutes = () => {
               </MarketingProtectedRoute>
             }
           >
-            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route index element={<AdminIndexRedirect />} />
+            <Route path="no-access" element={<AdminScopeRoute scope="__none__"><div /></AdminScopeRoute>} />
             <Route path="dashboard"     element={<MarketingDashboard />} />
             <Route path="leads"         element={<MarketingLeads />} />
             <Route path="referral-codes" element={<MarketingReferralCodes />} />
@@ -429,21 +449,24 @@ const AnimatedRoutes = () => {
             }
           >
             <Route index element={<Navigate to="dashboard" replace />} />
-            <Route path="dashboard"     element={<AdminDashboard />} />
-            <Route path="users"         element={<AdminUsers />} />
-            <Route path="users/create"  element={<AdminCreateUser />} />
-            <Route path="users/:userId" element={<AdminUserDetail />} />
-            <Route path="verifications" element={<AdminVerifications />} />
-            <Route path="subscriptions" element={<AdminSubscriptions />} />
-            <Route path="revenue"       element={<AdminRevenue />} />
-            <Route path="reports"       element={<AdminReports />} />
-            <Route path="marketing-users"          element={<AdminMarketingUsers />} />
-            <Route path="marketing-users/:userId"  element={<AdminMarketingUserDetail />} />
-            <Route path="referral-codes"           element={<AdminReferralCodes />} />
-            <Route path="leads"                    element={<AdminLeads />} />
-            <Route path="success-stories"          element={<AdminSuccessStories />} />
-            <Route path="contact-messages"         element={<AdminContactMessages />} />
-            <Route path="launch-offer"             element={<AdminLaunchOffer />} />
+            <Route path="dashboard"     element={<AdminScopeRoute scope="users"><AdminDashboard /></AdminScopeRoute>} />
+            <Route path="users"         element={<AdminScopeRoute scope="users"><AdminUsers /></AdminScopeRoute>} />
+            <Route path="users/create"  element={<AdminScopeRoute scope="users"><AdminCreateUser /></AdminScopeRoute>} />
+            <Route path="users/:userId" element={<AdminScopeRoute scope="users"><AdminUserDetail /></AdminScopeRoute>} />
+            <Route path="verifications" element={<AdminScopeRoute scope="verifications"><AdminVerifications /></AdminScopeRoute>} />
+            <Route path="subscriptions" element={<AdminScopeRoute scope="subscriptions"><AdminSubscriptions /></AdminScopeRoute>} />
+            <Route path="revenue"       element={<AdminScopeRoute scope="revenue"><AdminRevenue /></AdminScopeRoute>} />
+            <Route path="reports"       element={<AdminScopeRoute scope="reports"><AdminReports /></AdminScopeRoute>} />
+            <Route path="marketing-users"          element={<AdminScopeRoute scope="marketing"><AdminMarketingUsers /></AdminScopeRoute>} />
+            <Route path="marketing-users/:userId"  element={<AdminScopeRoute scope="marketing"><AdminMarketingUserDetail /></AdminScopeRoute>} />
+            <Route path="referral-codes"           element={<AdminScopeRoute scope="marketing"><AdminReferralCodes /></AdminScopeRoute>} />
+            <Route path="leads"                    element={<AdminScopeRoute scope="marketing"><AdminLeads /></AdminScopeRoute>} />
+            <Route path="success-stories"          element={<AdminScopeRoute scope="stories"><AdminSuccessStories /></AdminScopeRoute>} />
+            <Route path="contact-messages"         element={<AdminScopeRoute scope="support"><AdminContactMessages /></AdminScopeRoute>} />
+            <Route path="launch-offer"             element={<AdminScopeRoute scope="pricing"><AdminLaunchOffer /></AdminScopeRoute>} />
+            <Route path="team"                     element={<AdminScopeRoute scope="team"><AdminTeam /></AdminScopeRoute>} />
+            <Route path="funnel"                   element={<AdminScopeRoute scope="users"><AdminFunnel /></AdminScopeRoute>} />
+            <Route path="audit-log"                element={<AdminScopeRoute scope="team"><AdminAuditLog /></AdminScopeRoute>} />
           </Route>
 
           {/* 404 */}

@@ -137,7 +137,11 @@ export default function AdminDashboard() {
             {[
               { label: 'Pending Verifications', to: '/admin/verifications', badge: stats.pendingVerifications },
               { label: 'Open Reports',          to: '/admin/reports',       badge: stats.openReports },
-              { label: 'Create User',           to: '/admin/users/create' },
+              // An enquiry could previously sit unanswered indefinitely: nothing
+              // anywhere in the panel said one had arrived.
+              { label: 'Unread Support',        to: '/admin/contact-messages', badge: stats.unreadSupport },
+              { label: 'Profiles With No Photo', to: '/admin/users',        badge: stats.profilesWithoutPhoto },
+              { label: 'Funnel',                to: '/admin/funnel' },
               { label: 'View Revenue',          to: '/admin/revenue' },
             ].map(({ label, to, badge }) => (
               <Link
@@ -156,6 +160,57 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Founding window — capped AND time-boxed, and until now neither figure
+          was visible anywhere. Both are spendable: the cap by signups, the
+          deadline by the calendar. */}
+      {stats.founding && (
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700">Founding window</h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {stats.founding.open
+                  ? `Open — new members are granted ${stats.founding.contactUnlocks} unlocks for ${stats.founding.grantDays} days, free.`
+                  : 'Closed — new signups no longer receive a founding grant.'}
+              </p>
+            </div>
+            <Link to="/admin/launch-offer" className="text-xs font-medium text-primary-700 hover:underline">
+              Edit in Pricing &amp; Offers
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
+            <div>
+              <p className="text-lg font-bold text-gray-900 tabular-nums">
+                {stats.founding.granted} / {stats.founding.memberCap}
+              </p>
+              <p className="text-xs text-gray-500">Grants used</p>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-gray-900">
+                {stats.founding.endsAt
+                  ? new Date(stats.founding.endsAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                  : 'No end date'}
+              </p>
+              <p className="text-xs text-gray-500">Closes</p>
+            </div>
+            <div>
+              <p className={`text-lg font-bold ${stats.founding.open ? 'text-green-600' : 'text-gray-400'}`}>
+                {stats.founding.open ? 'Open' : 'Closed'}
+              </p>
+              <p className="text-xs text-gray-500">Status</p>
+            </div>
+          </div>
+          {stats.founding.memberCap > 0 && (
+            <div className="mt-3 h-2 rounded-full bg-gray-100 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-primary-600"
+                style={{ width: `${Math.min(100, (stats.founding.granted / stats.founding.memberCap) * 100)}%` }}
+              />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

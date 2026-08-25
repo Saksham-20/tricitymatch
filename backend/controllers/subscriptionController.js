@@ -818,7 +818,12 @@ exports.getInvoice = asyncHandler(async (req, res) => {
 
   if (!subscription) throw createError.notFound('Subscription not found');
   if (!subscription.amount || parseFloat(subscription.amount) === 0) {
-    throw createError.badRequest('Invoice not available for free plan');
+    throw createError.badRequest('Invoice not available for a free or granted plan');
+  }
+  // An order that was created and never paid still carries its amount, so the
+  // amount check alone would issue a receipt for money that never arrived.
+  if (subscription.status === 'pending' && !subscription.razorpayPaymentId) {
+    throw createError.badRequest('This payment was never completed, so there is no invoice for it');
   }
 
   generateInvoicePDF(res, {

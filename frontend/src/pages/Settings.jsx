@@ -399,6 +399,12 @@ const AccountTab = () => {
             // Members had no in-product route to support at all — the contact
             // form was reachable only from the marketing footer.
             { to: '/help', icon: FiHelpCircle, label: 'Help & Support' },
+            // A promoted personal account keeps its member profile, so the panel
+            // needs a door from inside the app — otherwise the only way in is
+            // typing /admin, which nobody tells them.
+            ...(['sub_admin', 'admin', 'super_admin'].includes(user?.role)
+              ? [{ to: '/admin', icon: FiShield, label: 'Admin panel' }]
+              : []),
           ].map(({ to, icon: Icon, label }) => (
             <Link key={to} to={to} className="flex items-center justify-between p-4 hover:bg-neutral-50 transition-colors">
               <span className="flex items-center gap-3 text-sm font-medium text-neutral-800">

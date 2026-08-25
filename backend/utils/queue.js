@@ -172,6 +172,210 @@ const setupNotificationProcessor = (queue) => {
 /**
  * Setup cleanup queue processor
  */
+/**
+ * Lifecycle jobs, extracted from their queue registrations so they can be
+ * unit-tested without Redis — the dev stack has none, so a job that lives
+ * only inside a Bull closure is one nobody can exercise until production
+ * runs it for the first time, against real members.
+ */
+const runSubscriptionLifecycle = async () => {
+  const { Subscription, User, Profile } = require('../models');
+  const { Op } = require('sequelize');
+  const email = require('./email');
+  const { getPlanDetails } = require('./razorpay');
+  const { PAID_PLANS } = require('../constants/plans');
+
+  const counts = { abandoned: 0, renewal: 0, expired: 0, winback: 0 };
+  const now = Date.now();
+  // Hard ceiling per stage per run. A lifecycle job with no cap is one bad
+  // query away from mailing the entire table in a single pass — which is
+  // exactly how a batch run burns a provider's daily quota and takes OTP mail
+  // down with it. Anything beyond the cap is picked up on the next hourly run.
+  const BATCH = 200;
+  const withUser = {
+    model: User,
+    attributes: ['id', 'email'],
+    include: [{ model: Profile, attributes: ['firstName'] }],
+  };
+  const nameOf = (sub) => sub.User?.Profile?.firstName || 'there';
+  const labelOf = (planType) => getPlanDetails(planType)?.name || planType;
+
+  // Marks a mail as sent. Merges rather than replaces: the row accumulates
+  // one key per lifecycle moment over its life.
+  const mark = async (sub, key) => {
+    await sub.update({ lifecycleMail: { ...(sub.lifecycleMail || {}), [key]: new Date().toISOString() } });
+  };
+  const alreadySent = (sub, key) => Boolean((sub.lifecycleMail || {})[key]);
+  // `deliver` returns {success:false} rather than throwing when no provider is
+  // configured, so marking on a bare call would silently burn the one send this
+  // member ever gets. Only a real delivery counts.
+  const delivered = (result) => !result || result.success !== false;
+
+  // 1. Abandoned checkout — an order created 1–72h ago that was never paid.
+  //    The floor gives a genuinely slow payer time to finish; the ceiling
+  //    stops us mailing about a decision made three days ago.
+  const abandoned = await Subscription.findAll({
+    where: {
+      status: 'pending',
+      razorpayPaymentId: null,
+      createdAt: {
+        [Op.lt]: new Date(now - 60 * 60 * 1000),
+        [Op.gt]: new Date(now - 72 * 60 * 60 * 1000),
+      },
+    },
+    include: [withUser],
+    order: [['createdAt', 'ASC']],
+    limit: BATCH,
+  });
+  for (const sub of abandoned) {
+    if (alreadySent(sub, 'abandoned') || !sub.User?.email) continue;
+    try {
+      const result = await email.sendCheckoutAbandoned(sub.User.email, nameOf(sub), labelOf(sub.planType), sub.amount);
+      if (!delivered(result)) continue;
+      await mark(sub, 'abandoned');
+      counts.abandoned += 1;
+    } catch (err) {
+      log.warn('Abandoned-checkout mail failed', { subscriptionId: sub.id, error: err.message });
+    }
+  }
+
+  // 2. Renewal warning — seven days out.
+  const endingSoon = await Subscription.findAll({
+    where: {
+      status: 'active',
+      planType: { [Op.in]: PAID_PLANS },
+      endDate: { [Op.gt]: new Date(), [Op.lt]: new Date(now + 7 * 24 * 60 * 60 * 1000) },
+    },
+    include: [withUser],
+    order: [['createdAt', 'ASC']],
+    limit: BATCH,
+  });
+  for (const sub of endingSoon) {
+    if (alreadySent(sub, 'renewal') || !sub.User?.email) continue;
+    const daysLeft = Math.max(1, Math.ceil((new Date(sub.endDate) - now) / (24 * 60 * 60 * 1000)));
+    try {
+      const result = await email.sendRenewalReminder(
+        sub.User.email, nameOf(sub), labelOf(sub.planType),
+        new Date(sub.endDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+        daysLeft
+      );
+      if (!delivered(result)) continue;
+      await mark(sub, 'renewal');
+      counts.renewal += 1;
+    } catch (err) {
+      log.warn('Renewal mail failed', { subscriptionId: sub.id, error: err.message });
+    }
+  }
+
+  // 3. Just expired — within the last day, so this runs once whichever hour
+  //    the expire job flipped it.
+  const justExpired = await Subscription.findAll({
+    where: {
+      status: 'expired',
+      planType: { [Op.in]: PAID_PLANS },
+      endDate: { [Op.gt]: new Date(now - 24 * 60 * 60 * 1000), [Op.lt]: new Date() },
+    },
+    include: [withUser],
+    order: [['createdAt', 'ASC']],
+    limit: BATCH,
+  });
+  for (const sub of justExpired) {
+    if (alreadySent(sub, 'expired') || !sub.User?.email) continue;
+    try {
+      const result = await email.sendMembershipExpired(sub.User.email, nameOf(sub), labelOf(sub.planType));
+      if (!delivered(result)) continue;
+      await mark(sub, 'expired');
+      counts.expired += 1;
+    } catch (err) {
+      log.warn('Expiry mail failed', { subscriptionId: sub.id, error: err.message });
+    }
+  }
+
+  // 4. Win-back a fortnight later — but only when there is something real to
+  //    come back for. A "look what you're missing" mail listing nothing is
+  //    worse than no mail, so a zero count skips the send AND the mark, and
+  //    it gets another chance tomorrow.
+  const lapsed = await Subscription.findAll({
+    where: {
+      status: 'expired',
+      planType: { [Op.in]: PAID_PLANS },
+      endDate: {
+        [Op.gt]: new Date(now - 21 * 24 * 60 * 60 * 1000),
+        [Op.lt]: new Date(now - 14 * 24 * 60 * 60 * 1000),
+      },
+    },
+    include: [withUser],
+    order: [['createdAt', 'ASC']],
+    limit: BATCH,
+  });
+  for (const sub of lapsed) {
+    if (alreadySent(sub, 'winback') || !sub.User?.email) continue;
+    const newProfiles = await Profile.count({
+      where: { isActive: true, createdAt: { [Op.gt]: sub.endDate } },
+    });
+    if (newProfiles < 1) continue;
+    try {
+      const result = await email.sendWinBack(sub.User.email, nameOf(sub), newProfiles);
+      if (!delivered(result)) continue;
+      await mark(sub, 'winback');
+      counts.winback += 1;
+    } catch (err) {
+      log.warn('Win-back mail failed', { subscriptionId: sub.id, error: err.message });
+    }
+  }
+
+  log.info('Subscription lifecycle mail sent', counts);
+  return counts;
+};
+const runPhotoNudge = async () => {
+  const { User, Profile } = require('../models');
+  const { Op } = require('sequelize');
+  const email = require('./email');
+
+  const now = Date.now();
+  // Same reasoning as the subscription job: cap the fan-out per run.
+  const BATCH = 100;
+  const candidates = await User.findAll({
+    where: {
+      status: 'active',
+      createdAt: { [Op.lt]: new Date(now - 24 * 60 * 60 * 1000) },
+    },
+    include: [{
+      model: Profile,
+      required: true,
+      // Postgres: an empty array is not NULL, so both cases have to be named.
+      where: {
+        onboardingComplete: true,
+        [Op.or]: [{ photos: null }, { photos: { [Op.eq]: [] } }],
+      },
+      attributes: ['firstName', 'photos'],
+    }],
+    order: [['createdAt', 'ASC']],
+    limit: BATCH,
+  });
+
+  let sent = 0;
+  for (const user of candidates) {
+    const ledger = user.lifecycleMail || {};
+    const ageDays = (now - new Date(user.createdAt)) / (24 * 60 * 60 * 1000);
+    const key = !ledger.photoNudge1 ? 'photoNudge1' : (!ledger.photoNudge2 && ageDays >= 7 ? 'photoNudge2' : null);
+    if (!key || !user.email) continue;
+    try {
+      const result = await email.sendAddPhotoNudge(user.email, user.Profile?.firstName || 'there');
+      // Same rule as the subscription mails: an undelivered nudge must not
+      // consume the member's one-and-only ask.
+      if (result && result.success === false) continue;
+      await user.update({ lifecycleMail: { ...ledger, [key]: new Date().toISOString() } });
+      sent += 1;
+    } catch (err) {
+      log.warn('Photo nudge failed', { userId: user.id, error: err.message });
+    }
+  }
+
+  log.info('Photo nudges sent', { sent, candidates: candidates.length });
+  return { sent };
+};
+
 const setupCleanupProcessor = (queue) => {
   queue.process('cleanup-expired-tokens', async (job) => {
     const { RefreshToken } = require('../models');
@@ -286,16 +490,29 @@ const setupCleanupProcessor = (queue) => {
           ageWhere[Op.gte] = minDob;
         }
 
-        const matchCount = await Profile.count({
-          where: {
-            isActive: true,
-            incognitoMode: { [Op.ne]: true },
-            gender: oppositeGender,
-            createdAt: { [Op.gte]: weekAgo },
-            userId: { [Op.ne]: user.id, ...(interactedIds.length > 0 ? { [Op.notIn]: interactedIds } : {}) },
-            ...(Object.keys(ageWhere).length > 0 ? { dateOfBirth: ageWhere } : {})
-          }
+        // Profiles this member could act on but has not yet.
+        //
+        // This used to additionally require `createdAt >= weekAgo`, so only
+        // brand-new joiners counted — and in a market taking one or two signups
+        // a week the digest reached almost nobody (3 of 13 on 24 Aug 2026). The
+        // mail exists to be a weekly reason to come back, and "someone you have
+        // not seen yet" is that reason whether they joined on Tuesday or in
+        // June. New joiners are still counted first so a genuinely fresh week
+        // still leads with fresh faces.
+        const baseWhere = {
+          isActive: true,
+          incognitoMode: { [Op.ne]: true },
+          gender: oppositeGender,
+          userId: { [Op.ne]: user.id, ...(interactedIds.length > 0 ? { [Op.notIn]: interactedIds } : {}) },
+          ...(Object.keys(ageWhere).length > 0 ? { dateOfBirth: ageWhere } : {})
+        };
+
+        const newThisWeek = await Profile.count({
+          where: { ...baseWhere, createdAt: { [Op.gte]: weekAgo } }
         });
+        const matchCount = newThisWeek > 0
+          ? newThisWeek
+          : await Profile.count({ where: baseWhere });
 
         if (matchCount > 0) {
           // Email digest
@@ -439,6 +656,21 @@ const setupCleanupProcessor = (queue) => {
     log.info('Expired subscriptions', { count: result[0] });
     return { expired: result[0] };
   });
+
+  /**
+   * Subscription lifecycle mail.
+   *
+   * Until this existed a plan could be started and abandoned, or run all the
+   * way to expiry, in complete silence — the expire job above flipped a status
+   * and told nobody. Four moments, each sent at most once per subscription:
+   * the `lifecycleMail` JSONB on the row is the ledger, written AFTER a
+   * successful send so a crash mid-run retries rather than skips.
+   *
+   * Every send is individually try/caught: one bad address must not stop the
+   * rest of the run.
+   */
+  queue.process('subscription-lifecycle', () => runSubscriptionLifecycle());
+  queue.process('photo-nudge', () => runPhotoNudge());
 };
 
 /**
@@ -580,6 +812,17 @@ const scheduleCleanupJobs = async () => {
       repeat: { cron: '0 9 * * *' }
     });
 
+    // Subscription lifecycle mail — hourly, because the abandoned-checkout
+    // window is measured in hours and a next-day chase is a cold lead.
+    await cleanupQueue.add('subscription-lifecycle', {}, {
+      repeat: { cron: '30 * * * *' }
+    });
+
+    // No-photo nudge — once a day, late morning.
+    await cleanupQueue.add('photo-nudge', {}, {
+      repeat: { cron: '0 11 * * *' }
+    });
+
     log.info('Cleanup jobs scheduled');
   }
 };
@@ -618,6 +861,8 @@ const closeQueues = async () => {
 };
 
 module.exports = {
+  runSubscriptionLifecycle,
+  runPhotoNudge,
   initQueues,
   addJob,
   getQueue,

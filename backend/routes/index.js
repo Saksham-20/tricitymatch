@@ -19,7 +19,8 @@ const inviteRoutes = require('./inviteRoutes');
 const statsRoutes = require('./statsRoutes');
 const { getPublicSuccessStories } = require('../controllers/adminController');
 const { submitContact, submitSuccessStory } = require('../controllers/contactController');
-const { contactLimiter } = require('../middlewares/security');
+const { recordClientEvent } = require('../controllers/analyticsController');
+const { contactLimiter, analyticsLimiter } = require('../middlewares/security');
 const { contactValidation, successStoryValidation } = require('../validators');
 const { handleValidationErrors } = require('../middlewares/errorHandler');
 
@@ -30,6 +31,11 @@ router.post('/success-stories', contactLimiter, successStoryValidation, handleVa
 
 // Public contact form (no auth) — stores enquiry + best-effort emails support
 router.post('/contact', contactLimiter, contactValidation, handleValidationErrors, submitContact);
+
+// Traffic-stage beacon. Public by necessity — the stages it reports happen
+// before an account exists, which is exactly the half of the funnel nothing
+// else can see.
+router.post('/events', analyticsLimiter, recordClientEvent);
 
 router.use('/auth', authRoutes);
 router.use('/profile', profileRoutes);

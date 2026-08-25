@@ -73,6 +73,13 @@ const withDerivedUserFields = async (userInstance) => {
     // not mint a token for everyone. 0 means the reward is off.
     inviteRewardUnlocks: require('../utils/inviteReward').INVITE_REWARD_UNLOCKS(),
   };
+  // Admin permission scopes, resolved server-side. The panel uses them to hide
+  // nav a scoped sub-admin cannot open; every admin route re-checks them, so
+  // this is presentation only. Absent (undefined) for ordinary members.
+  const { ADMIN_ROLES, scopesFor } = require('../constants/adminScopes');
+  if (ADMIN_ROLES.includes(user.role)) {
+    user.adminScopes = scopesFor(user);
+  }
   return user;
 };
 

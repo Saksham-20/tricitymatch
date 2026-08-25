@@ -105,6 +105,15 @@ const deliver = async ({ to, subject, html, text, replyTo, channel = 'transactio
     return { success: false, reason: 'Email not configured' };
   }
 
+  // Dry run (default outside production): render everything, send nothing, and
+  // report success so callers exercise their real paths. The dev environment
+  // shares production's Resend key, so a batch job run locally would otherwise
+  // spend the live daily quota and take production OTP mail down with it.
+  if (config.email.dryRun) {
+    log.info('Email dry run — not sent', { to, subject, channel, provider: configured[0] });
+    return { success: true, dryRun: true };
+  }
+
   let lastError;
   for (const name of configured) {
     try {
@@ -329,6 +338,88 @@ const templates = {
     text: `Hi ${name}, You have ${matchCount} new profiles matching your preferences this week on TricityMatch. Log in to view them: ${config.server.frontendUrl}/search`,
   }),
 
+  // ── Lifecycle (2026-08-25 audit) ───────────────────────────────────────
+  // Four mails that did not exist: a plan could be started and abandoned, or
+  // run to expiry, in complete silence. Each is sent at most once per
+  // subscription — see `lifecycleMail` on the row.
+
+  // Someone picked a plan and did not finish paying. Warmest lead there is:
+  // they had already decided, so this reminds rather than sells.
+  checkoutAbandoned: (name, planName, price) => ({
+    subject: 'Your TricityMatch membership is one step away',
+    html: brandLayout({
+      eyebrow: 'Almost There',
+      preheader: `Your ${planName} membership was not completed.`,
+      bodyHtml: `
+        <p style="margin-top:0;">Hi ${escapeHtml(name)},</p>
+        <p>You started taking out the <strong>${escapeHtml(planName)}</strong> membership${price ? ` (₹${escapeHtml(String(price))})` : ''} but the payment was not completed — so nothing was charged.</p>
+        <p>If something went wrong at the payment step, tell us and we will sort it out. If you simply want to think about it, that is fine too.</p>`,
+      cta: { href: `${config.server.frontendUrl}/subscription`, label: 'Finish signing up' },
+    }),
+    text: `Hi ${name}, your ${planName} membership was not completed and nothing was charged. Finish here: ${config.server.frontendUrl}/subscription`,
+  }),
+
+  // Seven days out. Says the date plainly rather than manufacturing urgency.
+  renewalReminder: (name, planName, expiryDate, daysLeft) => ({
+    subject: `Your TricityMatch membership ends in ${daysLeft} days`,
+    html: brandLayout({
+      eyebrow: 'Membership Ending',
+      preheader: `Your ${planName} membership ends on ${expiryDate}.`,
+      bodyHtml: `
+        <p style="margin-top:0;">Hi ${escapeHtml(name)},</p>
+        <p>Your <strong>${escapeHtml(planName)}</strong> membership ends on <strong>${escapeHtml(expiryDate)}</strong>, in ${daysLeft} days.</p>
+        <p>After that you keep your profile and your matches, but contact details and messaging go back to the free limits. Renewing before it ends means no gap in the conversations you are already having.</p>`,
+      cta: { href: `${config.server.frontendUrl}/subscription`, label: 'Renew membership' },
+    }),
+    text: `Hi ${name}, your ${planName} membership ends on ${expiryDate} (${daysLeft} days). Renew: ${config.server.frontendUrl}/subscription`,
+  }),
+
+  // The day it lapsed.
+  membershipExpired: (name, planName) => ({
+    subject: 'Your TricityMatch membership has ended',
+    html: brandLayout({
+      eyebrow: 'Membership Ended',
+      preheader: `Your ${planName} membership has ended.`,
+      bodyHtml: `
+        <p style="margin-top:0;">Hi ${escapeHtml(name)},</p>
+        <p>Your <strong>${escapeHtml(planName)}</strong> membership ended today. Your profile, photos, matches and conversations are all still there — only contact unlocks and messaging are back to free limits.</p>
+        <p>You can pick up exactly where you left off whenever you are ready.</p>`,
+      cta: { href: `${config.server.frontendUrl}/subscription`, label: 'Renew membership' },
+    }),
+    text: `Hi ${name}, your ${planName} membership has ended. Your profile and matches are unchanged. Renew: ${config.server.frontendUrl}/subscription`,
+  }),
+
+  // A fortnight after expiry, and only if there is something real to come back
+  // for — the caller passes the count and skips the send when it is zero.
+  winBack: (name, newProfiles) => ({
+    subject: `${newProfiles} new profiles since you left TricityMatch`,
+    html: brandLayout({
+      eyebrow: 'Since You Were Away',
+      preheader: `${newProfiles} new members have joined.`,
+      bodyHtml: `
+        <p style="margin-top:0;">Hi ${escapeHtml(name)},</p>
+        <p><strong>${escapeHtml(String(newProfiles))} new members</strong> from the Tricity have joined since your membership ended. Your profile is exactly as you left it.</p>`,
+      cta: { href: `${config.server.frontendUrl}/search`, label: 'See who has joined' },
+    }),
+    text: `Hi ${name}, ${newProfiles} new members have joined TricityMatch since your membership ended. ${config.server.frontendUrl}/search`,
+  }),
+
+  // No photo on the profile. The single strongest predictor of a profile that
+  // goes nowhere, so it is worth one direct, unembarrassed ask.
+  addPhotoNudge: (name) => ({
+    subject: 'Your TricityMatch profile has no photo yet',
+    html: brandLayout({
+      eyebrow: 'One Thing Missing',
+      preheader: 'Profiles with a photo get far more interest.',
+      bodyHtml: `
+        <p style="margin-top:0;">Hi ${escapeHtml(name)},</p>
+        <p>Your profile is live, but it has no photograph — and that is the first thing families look for. Profiles with photos get several times the interest of those without.</p>
+        <p>Your photos stay private from anyone you have not matched with, and you can blur them for non-matches in Settings → Privacy.</p>`,
+      cta: { href: `${config.server.frontendUrl}/profile/edit?section=photos`, label: 'Add a photo' },
+    }),
+    text: `Hi ${name}, your TricityMatch profile has no photo yet. Add one: ${config.server.frontendUrl}/profile/edit?section=photos`,
+  }),
+
   // One-time verification code (email OTP: signup / email-change).
   otpCode: (code, purpose = 'verify your email') => ({
     subject: 'Your TricityMatch verification code',
@@ -456,8 +547,30 @@ const sendSecurityAlert = (to, name, title, detail, when) =>
 const sendSupportReply = (to, name, replyBody, originalMessage) =>
   sendEmail(to, 'supportReply', { name, replyBody, originalMessage });
 
+// ── Lifecycle senders ───────────────────────────────────────────────────
+// `sendEmail(to, name, data)` spreads data by key ORDER, so each object below
+// must list its keys in the template's parameter order.
+const sendCheckoutAbandoned = (to, name, planName, price) =>
+  sendEmail(to, 'checkoutAbandoned', { name, planName, price });
+
+const sendRenewalReminder = (to, name, planName, expiryDate, daysLeft) =>
+  sendEmail(to, 'renewalReminder', { name, planName, expiryDate, daysLeft });
+
+const sendMembershipExpired = (to, name, planName) =>
+  sendEmail(to, 'membershipExpired', { name, planName });
+
+const sendWinBack = (to, name, newProfiles) =>
+  sendEmail(to, 'winBack', { name, newProfiles });
+
+const sendAddPhotoNudge = (to, name) => sendEmail(to, 'addPhotoNudge', { name });
+
 module.exports = {
   sendEmail,
+  sendCheckoutAbandoned,
+  sendRenewalReminder,
+  sendMembershipExpired,
+  sendWinBack,
+  sendAddPhotoNudge,
   sendSupportReply,
   sendWelcomeEmail,
   sendPasswordResetEmail,

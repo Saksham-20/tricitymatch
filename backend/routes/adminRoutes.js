@@ -35,8 +35,16 @@ const {
   createSuccessStory,
   updateSuccessStory,
   deleteSuccessStory,
+  getPlanOptions,
+  cancelSubscription,
+  updateLeadStatus,
+  exportUsers,
+  getAdmins,
+  createAdmin,
+  updateUserRole,
 } = require('../controllers/adminController');
-const { auth, adminAuth } = require('../middlewares/auth');
+const { auth, adminAuth, requireAdminScope } = require('../middlewares/auth');
+const { getFunnel, getAuditLog } = require('../controllers/analyticsController');
 const { handleValidationErrors, asyncHandler } = require('../middlewares/errorHandler');
 const { adminLimiter } = require('../middlewares/security');
 const { sendPushNotification } = require('../utils/fcm');
@@ -50,36 +58,70 @@ const {
 } = require('../validators');
 const { body, param } = require('express-validator');
 
-// All admin routes require authentication and admin role
+// All admin routes require authentication and an admin-family role. Each route
+// then names the permission it needs: `admin`/`super_admin` hold every scope,
+// a `sub_admin` holds only what is stored on its row. The gate is here, not in
+// the sidebar — a hidden nav item is a courtesy, never a boundary.
 router.use(auth, adminAuth, adminLimiter);
 
 // ==================== USER MANAGEMENT ====================
 
-router.get('/users', adminSearchValidation, handleValidationErrors, getUsers);
-router.post('/users', createUser);
-router.get('/users/:userId', param('userId').isUUID(4), handleValidationErrors, getUser);
-router.put('/users/:userId/status', updateUserStatusValidation, handleValidationErrors, updateUserStatus);
-router.put('/users/:userId/subscription',
+router.get('/users', requireAdminScope('users'), adminSearchValidation, handleValidationErrors, getUsers);
+router.post('/users', requireAdminScope('users'), createUser);
+// Before /users/:userId — Express matches in declaration order, and `export`
+// would otherwise be read as a user id and rejected by the UUID validator.
+router.get('/users/export', requireAdminScope('users'), exportUsers);
+router.get('/users/:userId', requireAdminScope('users'), param('userId').isUUID(4), handleValidationErrors, getUser);
+router.put('/users/:userId/status', requireAdminScope('users'), updateUserStatusValidation, handleValidationErrors, updateUserStatus);
+router.delete('/users/:userId/subscription',
+  requireAdminScope('subscriptions'),
+  param('userId').isUUID(4),
+  handleValidationErrors,
+  cancelSubscription
+);
+router.put('/users/:userId/subscription', requireAdminScope('subscriptions'),
   param('userId').isUUID(4),
   body('planType').isIn(ALL_PLANS),
   handleValidationErrors,
   updateSubscription
 );
 
+// ==================== MEASUREMENT ====================
+
+router.get('/funnel', requireAdminScope('users'), getFunnel);
+router.get('/audit-log', requireAdminScope('team'), getAuditLog);
+
+// ==================== PLAN OPTIONS (grantable plans) ====================
+
+router.get('/plan-options', requireAdminScope('subscriptions'), getPlanOptions);
+
+// ==================== ADMIN TEAM ====================
+
+router.get('/admins', requireAdminScope('team'), getAdmins);
+router.post('/admins', requireAdminScope('team'), createAdmin);
+router.put('/users/:userId/role',
+  requireAdminScope('team'),
+  param('userId').isUUID(4),
+  body('role').isIn(['user', 'sub_admin', 'admin', 'super_admin']),
+  body('permissions').optional().isArray(),
+  handleValidationErrors,
+  updateUserRole
+);
+
 // ==================== VERIFICATION MANAGEMENT ====================
 
-router.get('/verifications', getVerifications);
-router.put('/verifications/:verificationId', updateVerificationValidation, handleValidationErrors, updateVerification);
+router.get('/verifications', requireAdminScope('verifications'), getVerifications);
+router.put('/verifications/:verificationId', requireAdminScope('verifications'), updateVerificationValidation, handleValidationErrors, updateVerification);
 
 // ==================== ANALYTICS & REVENUE ====================
 
-router.get('/analytics', getAnalytics);
-router.get('/revenue', getRevenueReport);
+router.get('/analytics', requireAdminScope('users'), getAnalytics);
+router.get('/revenue', requireAdminScope('revenue'), getRevenueReport);
 
 // ==================== REPORTS ====================
 
-router.get('/reports', getReports);
-router.put('/reports/:reportId',
+router.get('/reports', requireAdminScope('reports'), getReports);
+router.put('/reports/:reportId', requireAdminScope('reports'),
   param('reportId').isUUID(4),
   body('status').isIn(['reviewing', 'resolved', 'reviewed', 'dismissed']),
   handleValidationErrors,
@@ -88,7 +130,7 @@ router.put('/reports/:reportId',
 
 // ==================== INVOICES ====================
 
-router.get('/invoice/:subscriptionId',
+router.get('/invoice/:subscriptionId', requireAdminScope('subscriptions'),
   param('subscriptionId').isUUID(4),
   handleValidationErrors,
   adminGetInvoice
@@ -96,15 +138,15 @@ router.get('/invoice/:subscriptionId',
 
 // ==================== MARKETING USERS ====================
 
-router.get('/marketing-users', getMarketingUsers);
-router.post('/marketing-users', createMarketingUser);
-router.put('/marketing-users/:userId/status',
+router.get('/marketing-users', requireAdminScope('marketing'), getMarketingUsers);
+router.post('/marketing-users', requireAdminScope('marketing'), createMarketingUser);
+router.put('/marketing-users/:userId/status', requireAdminScope('marketing'),
   param('userId').isUUID(4),
   body('status').isIn(['active', 'inactive']),
   handleValidationErrors,
   updateMarketingUserStatus
 );
-router.get('/marketing-users/:userId/stats',
+router.get('/marketing-users/:userId/stats', requireAdminScope('marketing'),
   param('userId').isUUID(4),
   handleValidationErrors,
   getMarketingUserStats
@@ -112,9 +154,9 @@ router.get('/marketing-users/:userId/stats',
 
 // ==================== REFERRAL CODES ====================
 
-router.get('/referral-codes', getReferralCodes);
-router.post('/referral-codes', createReferralCode);
-router.put('/referral-codes/:id/toggle',
+router.get('/referral-codes', requireAdminScope('marketing'), getReferralCodes);
+router.post('/referral-codes', requireAdminScope('marketing'), createReferralCode);
+router.put('/referral-codes/:id/toggle', requireAdminScope('marketing'),
   param('id').isUUID(4),
   handleValidationErrors,
   toggleReferralCode
@@ -122,20 +164,27 @@ router.put('/referral-codes/:id/toggle',
 
 // ==================== MARKETING LEADS ====================
 
-router.get('/leads', getLeads);
+router.get('/leads', requireAdminScope('marketing'), getLeads);
+router.put('/leads/:leadId/status',
+  requireAdminScope('marketing'),
+  param('leadId').isUUID(4),
+  body('status').isIn(['new', 'contacted', 'converted', 'lost']),
+  handleValidationErrors,
+  updateLeadStatus
+);
 
 // ==================== CONTACT MESSAGES (SUPPORT INBOX) ====================
 
-router.get('/contact-messages', getContactMessages);
+router.get('/contact-messages', requireAdminScope('support'), getContactMessages);
 router.put(
-  '/contact-messages/:id',
+  '/contact-messages/:id', requireAdminScope('support'),
   param('id').isUUID(4),
   body('status').isIn(['new', 'read', 'resolved']),
   handleValidationErrors,
   updateContactMessage
 );
 router.post(
-  '/contact-messages/:id/reply',
+  '/contact-messages/:id/reply', requireAdminScope('support'),
   param('id').isUUID(4),
   body('body').isString().trim().isLength({ min: 2, max: 5000 }),
   handleValidationErrors,
@@ -147,19 +196,19 @@ router.post(
 // Body shape is validated inside utils/launchOffer.saveOffer — a nested
 // price/tenure map is far better checked there (one place) than re-declared as
 // express-validator chains that would drift from it.
-router.get('/launch-offer', getLaunchOffer);
-router.put('/launch-offer', updateLaunchOffer);
+router.get('/launch-offer', requireAdminScope('pricing'), getLaunchOffer);
+router.put('/launch-offer', requireAdminScope('pricing'), updateLaunchOffer);
 
 // ==================== SUCCESS STORIES ====================
 
-router.get('/success-stories', getSuccessStories);
-router.post('/success-stories', createSuccessStory);
-router.put('/success-stories/:id', param('id').isUUID(4), handleValidationErrors, updateSuccessStory);
-router.delete('/success-stories/:id', param('id').isUUID(4), handleValidationErrors, deleteSuccessStory);
+router.get('/success-stories', requireAdminScope('stories'), getSuccessStories);
+router.post('/success-stories', requireAdminScope('stories'), createSuccessStory);
+router.put('/success-stories/:id', requireAdminScope('stories'), param('id').isUUID(4), handleValidationErrors, updateSuccessStory);
+router.delete('/success-stories/:id', requireAdminScope('stories'), param('id').isUUID(4), handleValidationErrors, deleteSuccessStory);
 
 // ==================== PUSH NOTIFICATION SMOKE TEST ====================
 
-router.post('/push-smoke-test', [
+router.post('/push-smoke-test', requireAdminScope('users'), [
   body('userId').optional().isUUID(4).withMessage('Invalid userId'),
   body('title').optional().isString().trim().isLength({ max: 100 }),
   body('body').optional().isString().trim().isLength({ max: 200 }),

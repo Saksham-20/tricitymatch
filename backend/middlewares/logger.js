@@ -266,11 +266,37 @@ const logSecurityEvent = (event, req, additionalMeta = {}) => {
 };
 
 // Audit logging for sensitive operations
+/**
+ * Record a privileged action.
+ *
+ * Writes twice on purpose: the JSON app log stays the forensic record (it
+ * survives a database restore to an earlier point, and it is what you grep
+ * during an incident), while the `AuditLogs` row is what the admin panel can
+ * actually show someone months later. The DB write is best-effort and never
+ * awaited — an audit insert must not be able to fail the action it describes,
+ * and the log line has already captured it either way.
+ */
 const logAudit = (action, userId, details = {}) => {
   log.audit(action, {
     userId,
     ...details,
   });
+
+  try {
+    // Required lazily: models/index.js pulls in the whole registry, and this
+    // module is loaded by config/database's dependents at startup.
+    const { AuditLog } = require('../models');
+    AuditLog.create({
+      action,
+      actorId: userId || null,
+      targetUserId: details.userId || details.targetUserId || details.newUserId || null,
+      details,
+    }).catch((error) => {
+      log.warn('Audit row not persisted', { action, error: error.message });
+    });
+  } catch (error) {
+    log.warn('Audit row not persisted', { action, error: error.message });
+  }
 };
 
 // Performance timing helper

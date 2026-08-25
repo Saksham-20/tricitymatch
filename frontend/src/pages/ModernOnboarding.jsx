@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { track, STAGES } from '../utils/analytics';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useOnboarding, STEPS, OnboardingProvider } from '../context/OnboardingContext';
@@ -111,6 +112,11 @@ const ModernOnboardingContent = () => {
 
   // Build stepComponents array based on visible steps
   const stepComponents = visibleSteps.map(step => allStepComponents[step.id]);
+
+  // Someone has opened the signup flow. Paired with `account_created` on the
+  // server this is the drop-off nobody could see: how many people start and
+  // never finish.
+  useEffect(() => { track(STAGES.SIGNUP_STARTED); }, []);
 
   // "Create Profile" links live in the public footer/hero, so a signed-in member
   // can land here and be asked to pick an email and password all over again.

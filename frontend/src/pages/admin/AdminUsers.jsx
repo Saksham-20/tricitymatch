@@ -1,15 +1,15 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getUsers, updateUserStatus } from '../../api/adminApi';
+import { getUsers, updateUserStatus, exportUsers } from '../../api/adminApi';
 import toast from 'react-hot-toast';
-import { FiSearch, FiPlus, FiChevronLeft, FiChevronRight, FiEye } from 'react-icons/fi';
+import { FiSearch, FiPlus, FiChevronLeft, FiChevronRight, FiEye, FiDownload } from 'react-icons/fi';
 
 // Must match User model status enum: active/inactive/banned/pending/deleted.
 const STATUS_OPTIONS   = ['all', 'active', 'inactive', 'banned', 'pending', 'deleted'];
 // Statuses an admin can set via PUT /users/:id/status (excludes 'deleted' —
 // account deletion has its own flow — matching updateUserStatusValidation).
 const SETTABLE_STATUSES = ['active', 'inactive', 'banned', 'pending'];
-const ROLE_OPTIONS   = ['all', 'user', 'admin'];
+const ROLE_OPTIONS = ['all', 'user', 'sub_admin', 'admin', 'super_admin', 'marketing', 'marketing_manager'];
 
 const StatusBadge = ({ status }) => {
   const map = {
@@ -27,6 +27,20 @@ const StatusBadge = ({ status }) => {
 };
 
 export default function AdminUsers() {
+  const handleExport = async () => {
+    try {
+      const res = await exportUsers();
+      const url = URL.createObjectURL(new Blob([res.data], { type: 'text/csv;charset=utf-8' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tricitymatch-members-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error('Export failed');
+    }
+  };
+
   const navigate = useNavigate();
   const [users, setUsers]         = useState([]);
   const [loading, setLoading]     = useState(true);
@@ -73,12 +87,20 @@ export default function AdminUsers() {
           <h1 className="text-2xl font-bold text-gray-900">Users</h1>
           <p className="text-gray-500 text-sm mt-0.5">Manage all registered users</p>
         </div>
+        <div className="flex items-center gap-2">
+        <button
+          onClick={handleExport}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition-colors"
+        >
+          <FiDownload className="w-4 h-4" /> Export CSV
+        </button>
         <Link
           to="/admin/users/create"
           className="flex items-center gap-2 px-4 py-2 bg-primary-700 hover:bg-primary-600 text-white rounded-xl text-sm font-medium transition-colors"
         >
           <FiPlus className="w-4 h-4" /> Create User
         </Link>
+        </div>
       </div>
 
       {/* Filters */}
@@ -154,7 +176,15 @@ export default function AdminUsers() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-600 capitalize">{u.role}</td>
+                    <td className="px-4 py-3">
+                      {u.role === 'user' ? (
+                        <span className="text-gray-600 capitalize">{u.role}</span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-primary-100 text-primary-700">
+                          {String(u.role).replace(/_/g, ' ')}
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       <select
                         value={u.status}
@@ -174,9 +204,14 @@ export default function AdminUsers() {
                       {u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-IN') : '—'}
                     </td>
                     <td className="px-4 py-3">
-                      {u.Subscription ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 capitalize">
-                          {u.Subscription.planType}
+                      {/* `activePlan` is derived server-side with the same predicate the
+                          entitlement gates use. The old read was `u.Subscription`
+                          (singular) against a hasMany association the API serializes as
+                          `Subscriptions`, so this column said "Free" for every member —
+                          including one an admin had just upgraded. */}
+                      {u.activePlan && u.activePlan !== 'free' ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
+                          {String(u.activePlan).replace(/_/g, ' ')}
                         </span>
                       ) : (
                         <span className="text-xs text-gray-400">Free</span>

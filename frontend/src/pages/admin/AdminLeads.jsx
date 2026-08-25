@@ -1,8 +1,26 @@
 import { useState, useEffect } from 'react';
 import { Filter } from 'lucide-react';
 import apiClient from '../../api/apiClient';
+import toast from 'react-hot-toast';
+
+const LEAD_STATUSES = ['new', 'contacted', 'converted', 'lost'];
 
 export default function AdminLeads() {
+  const [savingId, setSavingId] = useState(null);
+
+  const handleStatusChange = async (leadId, status) => {
+    setSavingId(leadId);
+    try {
+      await apiClient.put(`/admin/leads/${leadId}/status`, { status });
+      setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, status } : l)));
+      toast.success('Lead updated');
+    } catch (err) {
+      toast.error(err?.response?.data?.error?.message || 'Could not update the lead');
+    } finally {
+      setSavingId(null);
+    }
+  };
+
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -128,13 +146,24 @@ export default function AdminLeads() {
                     <td className="border p-3">{lead.email || '-'}</td>
                     <td className="border p-3">{lead.city || '-'}</td>
                     <td className="border p-3">
-                      <span className={`px-3 py-1 rounded-full text-sm ${
-                        lead.status === 'converted' ? 'bg-green-100 text-green-700' :
-                        lead.status === 'contacted' ? 'bg-blue-100 text-blue-700' :
-                        'bg-gray-100 text-gray-700'
-                      }`}>
-                        {lead.status}
-                      </span>
+                      {/* Editable here, not just displayed: an admin covering for a
+                          marketing user previously had to sign in as them to move
+                          a lead along. */}
+                      <select
+                        value={lead.status}
+                        onChange={(e) => handleStatusChange(lead.id, e.target.value)}
+                        disabled={savingId === lead.id}
+                        className={`px-2 py-1 rounded-lg text-sm border border-transparent focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50 ${
+                          lead.status === 'converted' ? 'bg-green-100 text-green-700' :
+                          lead.status === 'contacted' ? 'bg-blue-100 text-blue-700' :
+                          lead.status === 'lost' ? 'bg-red-100 text-red-700' :
+                          'bg-gray-100 text-gray-700'
+                        }`}
+                      >
+                        {LEAD_STATUSES.map((st) => (
+                          <option key={st} value={st}>{st}</option>
+                        ))}
+                      </select>
                     </td>
                     <td className="border p-3">
                       <span className={`px-3 py-1 rounded-full text-sm ${

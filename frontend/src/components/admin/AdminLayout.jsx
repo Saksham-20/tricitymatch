@@ -1,26 +1,86 @@
 import React, { useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Navigate, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   FiGrid, FiUsers, FiCheckCircle, FiCreditCard,
   FiTrendingUp, FiFlag, FiLogOut, FiMenu, FiX,
-  FiChevronRight, FiTag, FiUserPlus, FiPhoneCall, FiHeart, FiInbox,
+  FiChevronRight, FiTag, FiUserPlus, FiPhoneCall, FiHeart, FiInbox, FiShield,
+  FiFilter, FiList,
 } from 'react-icons/fi';
 
+// `scope` is the permission the server requires for that section. A sub-admin
+// only sees what it can actually open — but the hiding is cosmetic: every one
+// of these routes is gated again by requireAdminScope on the API.
 const navItems = [
-  { to: '/admin/dashboard',        label: 'Dashboard',         icon: FiGrid },
-  { to: '/admin/users',            label: 'Users',             icon: FiUsers },
-  { to: '/admin/verifications',    label: 'Verifications',     icon: FiCheckCircle },
-  { to: '/admin/subscriptions',    label: 'Subscriptions',     icon: FiCreditCard },
-  { to: '/admin/launch-offer',     label: 'Pricing & Offers',  icon: FiTag },
-  { to: '/admin/revenue',          label: 'Revenue',           icon: FiTrendingUp },
-  { to: '/admin/reports',          label: 'Reports',           icon: FiFlag },
-  { to: '/admin/contact-messages', label: 'Support Inbox',     icon: FiInbox },
-  { to: '/admin/marketing-users',  label: 'Marketing Users',   icon: FiUserPlus },
-  { to: '/admin/referral-codes',   label: 'Referral Codes',    icon: FiTag },
-  { to: '/admin/leads',            label: 'Leads',             icon: FiPhoneCall },
-  { to: '/admin/success-stories',  label: 'Success Stories',   icon: FiHeart },
+  { to: '/admin/dashboard',        label: 'Dashboard',         icon: FiGrid,        scope: 'users' },
+  { to: '/admin/funnel',           label: 'Funnel',            icon: FiFilter,      scope: 'users' },
+  { to: '/admin/users',            label: 'Users',             icon: FiUsers,       scope: 'users' },
+  { to: '/admin/verifications',    label: 'Verifications',     icon: FiCheckCircle, scope: 'verifications' },
+  { to: '/admin/subscriptions',    label: 'Subscriptions',     icon: FiCreditCard,  scope: 'subscriptions' },
+  { to: '/admin/launch-offer',     label: 'Pricing & Offers',  icon: FiTag,         scope: 'pricing' },
+  { to: '/admin/revenue',          label: 'Revenue',           icon: FiTrendingUp,  scope: 'revenue' },
+  { to: '/admin/reports',          label: 'Reports',           icon: FiFlag,        scope: 'reports' },
+  { to: '/admin/contact-messages', label: 'Support Inbox',     icon: FiInbox,       scope: 'support' },
+  { to: '/admin/marketing-users',  label: 'Marketing Users',   icon: FiUserPlus,    scope: 'marketing' },
+  { to: '/admin/referral-codes',   label: 'Referral Codes',    icon: FiTag,         scope: 'marketing' },
+  { to: '/admin/leads',            label: 'Leads',             icon: FiPhoneCall,   scope: 'marketing' },
+  { to: '/admin/success-stories',  label: 'Success Stories',   icon: FiHeart,       scope: 'stories' },
+  { to: '/admin/team',             label: 'Admins & Roles',    icon: FiShield,      scope: 'team' },
+  { to: '/admin/audit-log',        label: 'Audit Log',         icon: FiList,        scope: 'team' },
 ];
+
+/**
+ * Where /admin should land THIS account.
+ *
+ * A support-only sub-admin has no `users` scope, so the old hardcoded redirect
+ * to the dashboard dropped them on a 403 the moment they signed in. Send
+ * everyone to the first section they can actually open.
+ */
+// Scopes for the signed-in account, or null for a full-access role. A
+// `sub_admin` whose list has not arrived yet resolves to [] rather than to
+// "everything" — the safe direction while /auth/me is in flight.
+export const useAdminScopes = () => {
+  const { user } = useAuth();
+  if (!user) return [];
+  if (user.role === 'sub_admin') return user.adminScopes || [];
+  return null;
+};
+
+export function AdminIndexRedirect() {
+  const scopes = useAdminScopes();
+  const first = scopes ? navItems.find((i) => scopes.includes(i.scope)) : navItems[0];
+  return <Navigate to={first ? first.to : '/admin/no-access'} replace />;
+}
+
+/**
+ * Route wrapper for a section a scoped admin may not hold.
+ *
+ * Without it, opening the URL directly rendered the page anyway and every
+ * request inside it 403'd — a dashboard of em-dashes that reads as "the panel
+ * is broken" rather than "this is not yours".
+ */
+export function AdminScopeRoute({ scope, children }) {
+  const scopes = useAdminScopes();
+  if (scopes && !scopes.includes(scope)) {
+    const first = navItems.find((i) => scopes.includes(i.scope));
+    return (
+      <div className="bg-white rounded-2xl p-10 border border-gray-100 text-center max-w-md mx-auto mt-10">
+        <FiShield className="w-8 h-8 text-gray-300 mx-auto mb-3" />
+        <h2 className="text-lg font-bold text-gray-900 mb-1">Not your section</h2>
+        <p className="text-sm text-gray-500 mb-5">
+          Your admin account does not have the <span className="font-medium">{scope}</span> permission.
+          Ask a full admin if you need it.
+        </p>
+        {first && (
+          <Link to={first.to} className="inline-block px-4 py-2 rounded-xl bg-primary-700 text-white text-sm font-medium">
+            Go to {first.label}
+          </Link>
+        )}
+      </div>
+    );
+  }
+  return children;
+}
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
@@ -29,8 +89,14 @@ export default function AdminLayout() {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/admin/login');
+    // /admin/login only exists as a redirect stub; send people to the real one.
+    navigate('/login');
   };
+
+  // Full-access roles have no `adminScopes` restriction; a sub_admin gets the
+  // list the server resolved for it on /auth/me.
+  const scopes = user?.role === 'sub_admin' ? (user.adminScopes || []) : null;
+  const visibleNav = scopes ? navItems.filter((i) => scopes.includes(i.scope)) : navItems;
 
   const Sidebar = ({ mobile = false }) => (
     <div className={`flex flex-col h-full bg-gray-900 ${mobile ? 'w-72' : 'w-64'}`}>
@@ -49,7 +115,7 @@ export default function AdminLayout() {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        {navItems.map(({ to, label, icon: Icon }) => (
+        {visibleNav.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}

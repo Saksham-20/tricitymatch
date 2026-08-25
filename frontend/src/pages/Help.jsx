@@ -42,6 +42,10 @@ const SECTIONS = [
         q: 'Can my parents manage my profile?',
         a: 'Yes. Guardian access lets a parent or sibling browse and shortlist on your behalf from their own login — they never see your chats. Set it up under Guardian.',
       },
+      {
+        q: 'I am an NRI — can I join?',
+        a: 'Yes, as long as you are from the Tricity or your family is. TricityMatch is hyperlocal by design: every profile is from Chandigarh, Mohali or Panchkula, or has direct family ties to the region — where you currently live does not change that. Tick "I\u2019m an NRI / currently living outside India" on the Location step and add the country you live in, and we will show that on your profile so families know an NRI alliance is on the table. Your family\u2019s Tricity location stays on the profile too, and a parent or sibling here can run the search with you through Guardian access while you are abroad.',
+      },
     ],
   },
   {
@@ -59,6 +63,10 @@ const SECTIONS = [
       {
         q: 'Do unused days or unlocks carry over?',
         a: 'No. A plan runs for its stated term, and unlocks belong to the plan that granted them. Upgrading starts a fresh full term rather than adding to the old one.',
+      },
+      {
+        q: 'Can I get a refund?',
+        a: 'Yes — ask within seven days of paying and we refund the membership in full, no justification needed (minus any contact unlocks you already used). After that a membership runs its term, but write to us anyway if something has genuinely gone wrong. The full policy is on the Refunds page.',
       },
       {
         q: 'Is my payment secure?',

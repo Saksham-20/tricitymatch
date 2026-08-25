@@ -152,6 +152,17 @@ exports.getMyProfile = asyncHandler(async (req, res) => {
   }
 
   const payload = profile.get ? profile.get({ plain: true }) : profile.toJSON();
+
+  // Own verification state, derived the same way every other surface derives it
+  // (an approved Verification row — there is no column). Without it the member's
+  // own dashboard had no way to know whether the badge had been earned, so it
+  // could not prompt for the one thing that most improves a profile's standing.
+  const approvedVerification = await Verification.findOne({
+    where: { userId: req.user.id, status: 'approved' },
+    attributes: ['id'],
+  });
+  payload.isVerified = !!approvedVerification;
+
   res.json({
     success: true,
     profile: payload

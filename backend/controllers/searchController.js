@@ -366,13 +366,21 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
 
   // Sort by compatibility if requested
   if (sortBy === 'compatibility') {
-    profilesWithCompatibility.sort((a, b) => {
+    // A profile with no photograph is the first thing a family skips, and at
+    // launch scale a page of them makes the whole directory look empty. They
+    // are not hidden — hiding a member's profile from search is a punishment,
+    // and they may still be a genuine match — but they sort below anyone who
+    // has uploaded one. The penalty is larger than any single positive nudge so
+    // it cannot be out-boosted by a paid plan.
+    const hasPhoto = (p) => Array.isArray(p.photos) && p.photos.length > 0;
+    const rank = (p) => (p.compatibilityScore || 0)
+      + premiumBoost(p.premiumPlan)
+      + (p.isBoosted ? 8 : 0)
       // Verified members get a ranking nudge (+8, on par with a referral boost)
       // so getting verified visibly pays off in where you land in results.
-      const scoreA = (a.compatibilityScore || 0) + premiumBoost(a.premiumPlan) + (a.isBoosted ? 8 : 0) + (a.isVerified ? 8 : 0);
-      const scoreB = (b.compatibilityScore || 0) + premiumBoost(b.premiumPlan) + (b.isBoosted ? 8 : 0) + (b.isVerified ? 8 : 0);
-      return scoreB - scoreA;
-    });
+      + (p.isVerified ? 8 : 0)
+      + (hasPhoto(p) ? 0 : -40);
+    profilesWithCompatibility.sort((a, b) => rank(b) - rank(a));
   }
 
   // Get total count — must apply the SAME User join as the rows query above.

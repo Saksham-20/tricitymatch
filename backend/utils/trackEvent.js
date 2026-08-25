@@ -27,6 +27,16 @@ const { log } = require('../middlewares/logger');
 // The funnel, in order. Extend here when a new stage ships (Phase S adds
 // `invited_signup`) — no migration needed, by design.
 const EVENT_TYPES = [
+  // Traffic stages — RAW COUNTERS, always emitted with userId NULL even for a
+  // signed-in visitor. They answer "how many people got this far this week",
+  // which is a volume question; deduping them per account would turn them into
+  // something else. Reported by the client beacon (POST /api/v1/events), the
+  // only place the funnel could not be measured server-side.
+  'landing_view',
+  'signup_started',
+  'plans_viewed',
+  'checkout_started',
+  // Account funnel — emitted server-side from the controllers.
   'otp_send_attempted',    // pre-account counter (userId NULL)
   'otp_verify_succeeded',  // pre-account counter (userId NULL)
   'account_created',
@@ -34,6 +44,19 @@ const EVENT_TYPES = [
   'first_interest_sent',
   'invited_signup',
 ];
+
+// Stages the browser reports. Kept as its own list so the public endpoint can
+// never be used to forge an account-funnel stage (`account_created` from a
+// curl loop would corrupt the only conversion numbers we have).
+const CLIENT_EVENT_TYPES = ['landing_view', 'signup_started', 'plans_viewed', 'checkout_started'];
+
+// Traffic stages are volume counters: force userId NULL so the partial unique
+// index never dedupes them down to one per member.
+const RAW_COUNTER_TYPES = new Set([
+  ...CLIENT_EVENT_TYPES,
+  'otp_send_attempted',
+  'otp_verify_succeeded',
+]);
 
 /**
  * Record one funnel event.
@@ -48,7 +71,7 @@ const trackEvent = async (userId, eventType) => {
       return;
     }
 
-    if (userId) {
+    if (userId && !RAW_COUNTER_TYPES.has(eventType)) {
       // Raw INSERT with ON CONFLICT rather than Model.create: a duplicate raises
       // a unique violation, and the point of the partial index is that repeats
       // are expected (every profile save, every like) — they must be a no-op,
@@ -85,5 +108,4 @@ const trackEvent = async (userId, eventType) => {
   }
 };
 
-// Single export by design: emission points only ever need trackEvent.
-module.exports = { trackEvent };
+module.exports = { trackEvent, EVENT_TYPES, CLIENT_EVENT_TYPES };

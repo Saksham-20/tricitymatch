@@ -40,12 +40,12 @@ const DEFAULT_WINDOW_DAYS = 90;
  * Launch ladder — ONE plan on sale.
  *
  * At launch the site has a few hundred profiles, so the thing a buyer is
- * actually deciding is "is this worth ₹1,199 at all", not "which of five
+ * actually deciding is "is this worth ₹1,099 at all", not "which of five
  * tiers". Every extra card turns that single question into a multi-variable
  * comparison (price × tenure × unlock count) that a buyer abandons rather than
  * solves, and with this little supply the differentiators between tiers are
  * ones nobody can feel yet. So: one 90-day plan with UNLIMITED contact
- * unlocks at ₹1,199, and every other tier withdrawn.
+ * unlocks at ₹1,099, and every other tier withdrawn.
  *
  * Withdrawn is not merely un-rendered — `overlayPlan` marks the tier
  * `hidden`, `isPlanPurchasable` reads that, and `createOrder` refuses it. A
@@ -69,7 +69,7 @@ const DEFAULT_WINDOW_DAYS = 90;
  */
 const DEFAULT_PLAN_OFFERS = {
   basic_premium: { hidden: true },
-  premium_plus:  { amount: 119900, mrp: 249900, duration: 90, contactUnlocks: null },
+  premium_plus:  { amount: 109900, mrp: 249900, duration: 90, contactUnlocks: null },
   elite:         { hidden: true },
   vip:           { hidden: true },
   nri:           { hidden: true },

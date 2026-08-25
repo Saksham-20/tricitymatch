@@ -205,6 +205,17 @@ const config = {
     from: optionalString('EMAIL_FROM', 'noreply@tricitymatch.com'),
     fromName: optionalString('EMAIL_FROM_NAME', 'TricityMatch'),
     replyTo: optionalString('EMAIL_REPLY_TO', optionalString('SUPPORT_EMAIL', 'support@tricitymatch.com')),
+    /**
+     * Dry run: render and log the mail, send nothing.
+     *
+     * Defaults ON outside production. The dev `.env` carries the SAME Resend
+     * key as production, so any dev run of a batch job spends the live daily
+     * quota — and once that quota is gone, production OTP and password-reset
+     * mail stops for everyone until it resets. That happened once; this flag
+     * is why it cannot happen twice. Set EMAIL_DRY_RUN=false locally when you
+     * genuinely need to see a real message land.
+     */
+    dryRun: optionalBoolean('EMAIL_DRY_RUN', !isProduction),
     support: optionalString('SUPPORT_EMAIL', 'support@tricitymatch.com'),
     // SMTP creds present (real, not placeholder)
     smtpConfigured: () => {

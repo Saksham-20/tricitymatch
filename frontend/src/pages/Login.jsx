@@ -60,13 +60,17 @@ const Login = () => {
   }, [phase]);
 
   const goAfterLogin = useCallback((role) => {
-    if (safeReturnTo && role !== 'admin' && role !== 'super_admin'
-        && role !== 'marketing' && role !== 'marketing_manager') {
+    // `sub_admin` belongs with the admin roles here: it signs in to work the
+    // panel. `/admin` (not `/admin/dashboard`) so the index redirect can land
+    // a scoped account on the first section it is actually allowed to open.
+    const isAdminRole = ['sub_admin', 'admin', 'super_admin'].includes(role);
+    const isMarketingRole = ['marketing', 'marketing_manager'].includes(role);
+    if (safeReturnTo && !isAdminRole && !isMarketingRole) {
       navigate(safeReturnTo);
       return;
     }
-    navigate(role === 'admin' || role === 'super_admin' ? '/admin/dashboard'
-      : role === 'marketing' || role === 'marketing_manager' ? '/marketing/dashboard'
+    navigate(isAdminRole ? '/admin'
+      : isMarketingRole ? '/marketing/dashboard'
       : '/dashboard');
   }, [navigate, safeReturnTo]);
 

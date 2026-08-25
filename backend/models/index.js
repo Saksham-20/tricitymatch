@@ -26,6 +26,7 @@ const AppSetting = require('./AppSetting');
 const UnlockPurchase = require('./UnlockPurchase');
 const AnalyticsEvent = require('./AnalyticsEvent');
 const ChatGrant = require('./ChatGrant');
+const AuditLog = require('./AuditLog');
 
 // Define Relationships
 User.hasOne(Profile, { foreignKey: 'userId', onDelete: 'CASCADE' });
@@ -34,6 +35,8 @@ Profile.belongsTo(User, { foreignKey: 'userId' });
 User.hasMany(Subscription, { foreignKey: 'userId', onDelete: 'CASCADE' });
 Subscription.belongsTo(User, { foreignKey: 'userId' });
 
+AuditLog.belongsTo(User, { foreignKey: 'actorId', as: 'Actor' });
+AuditLog.belongsTo(User, { foreignKey: 'targetUserId', as: 'TargetUser' });
 User.hasOne(Verification, { foreignKey: 'userId', onDelete: 'CASCADE' });
 Verification.belongsTo(User, { foreignKey: 'userId' });
 Verification.belongsTo(User, { foreignKey: 'verifiedBy', as: 'Verifier' });
@@ -158,6 +161,7 @@ module.exports = {
   Match,
   Message,
   Verification,
+  AuditLog,
   ProfileView,
   RefreshToken,
   Block,

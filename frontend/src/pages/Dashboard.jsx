@@ -21,6 +21,7 @@ import UpgradeModal from '../components/common/UpgradeModal';
 import SectionHeader from '../components/common/SectionHeader';
 import FoundingBadge from '../components/common/FoundingBadge';
 import InviteLink from '../components/common/InviteLink';
+import PhotoNudge from '../components/profile/PhotoNudge';
 import { Skeleton } from '../components/ui';
 import StagedLoader, { useStagedReveal } from '../components/ui/StagedLoader';
 
@@ -570,6 +571,22 @@ const Dashboard = () => {
       className="min-h-screen bg-neutral-50 pb-16"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+        {/* No photograph is the single biggest thing holding a profile back, and
+            the setup checklist below only shows under 60% complete — so this
+            sits above everything, for anyone missing one. */}
+        {!loadError && (
+          <PhotoNudge
+            hasPhoto={
+              !!profileForMeter.profilePhoto ||
+              (Array.isArray(profileForMeter.photos) && profileForMeter.photos.length > 0)
+            }
+            // Photo only here: the dashboard already has a dedicated "Get
+            // verified" card below, and two cards asking for the same thing
+            // read as nagging and get ignored as a set.
+            allow={['photo']}
+          />
+        )}
 
         {/* ── 1. Greeting Card — LIGHT hero (burgundy as accent, not flat fill) ── */}
         <motion.div variants={fadeInUp}>

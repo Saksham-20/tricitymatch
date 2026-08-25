@@ -47,8 +47,16 @@ const User = sequelize.define('User', {
     }
   },
   role: {
-    type: DataTypes.ENUM('user', 'admin', 'super_admin', 'marketing_manager', 'marketing'),
+    type: DataTypes.ENUM('user', 'sub_admin', 'admin', 'super_admin', 'marketing_manager', 'marketing'),
     defaultValue: 'user'
+  },
+  // Scope keys for `sub_admin` accounts (constants/adminScopes.js). NULL for
+  // every other role: admin/super_admin hold every scope implicitly, so a
+  // stored copy for them would go stale the moment a scope is added.
+  adminPermissions: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    defaultValue: null
   },
   status: {
     type: DataTypes.ENUM('active', 'inactive', 'banned', 'pending', 'deleted'),

@@ -154,6 +154,18 @@ const inviteLimiter = createRateLimiter({
   keyGenerator: (req) => ipKeyGenerator(req.ip),
 });
 
+// Client analytics beacon limiter. Sized for a real browsing session (a few
+// stage events per page, plus retries on a flaky connection) and no higher —
+// the endpoint is unauthenticated, and an uncapped counter endpoint is an
+// invitation to have your only conversion numbers written for you.
+const analyticsLimiter = createRateLimiter({
+  name: 'analyticsLimiter',
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 60,
+  message: 'Too many events',
+  keyGenerator: (req) => ipKeyGenerator(req.ip),
+});
+
 // OTP send/verify limiter — separate from auth limiter so OTP calls don't exhaust login pool
 const otpLimiter = createRateLimiter({
   name: 'otpLimiter',
@@ -668,6 +680,7 @@ module.exports = {
   signupLimiter,
   contactLimiter,
   inviteLimiter,
+  analyticsLimiter,
   passwordResetLimiter,
   passwordResetSubmitLimiter,
   searchLimiter,
