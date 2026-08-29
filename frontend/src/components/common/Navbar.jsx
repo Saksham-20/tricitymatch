@@ -9,7 +9,7 @@ import useDarkMode from '../../hooks/useDarkMode';
 import useElderMode from '../../hooks/useElderMode';
 import {
   FiUser, FiLogOut, FiHome, FiSearch, FiMessageCircle, FiHeart,
-  FiMenu, FiX, FiBell, FiSettings, FiCreditCard, FiChevronDown,
+  FiMenu, FiX, FiBell, FiSettings, FiCreditCard, FiChevronDown, FiBriefcase,
   FiClock, FiSun, FiMoon,
 } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
@@ -99,6 +99,15 @@ const NotificationBell = ({ count = 0 }) => {
 };
 
 // ─── Profile Dropdown ────────────────────────
+// Staff who also hold a member account get a way back to their own portal.
+const STAFF_PORTALS = {
+  marketing: { to: '/marketing/dashboard', label: 'Marketing portal' },
+  marketing_manager: { to: '/marketing/dashboard', label: 'Marketing portal' },
+  admin: { to: '/admin/dashboard', label: 'Admin panel' },
+  super_admin: { to: '/admin/dashboard', label: 'Admin panel' },
+  sub_admin: { to: '/admin/dashboard', label: 'Admin panel' },
+};
+
 const ProfileDropdown = ({ user, onLogout }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -162,6 +171,22 @@ const ProfileDropdown = ({ user, onLogout }) => {
                 </div>
               )}
             </div>
+
+            {/* Back to a staff portal. A marketing rep or admin browsing the
+                member site needs one click home; without it the only way back
+                was typing the URL. */}
+            {STAFF_PORTALS[user?.role] && (
+              <div className="border-b border-neutral-100 dark:border-[#252b3b] py-1">
+                <Link
+                  to={STAFF_PORTALS[user.role].to}
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-primary-600 dark:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
+                >
+                  <FiBriefcase className="w-4 h-4" />
+                  {STAFF_PORTALS[user.role].label}
+                </Link>
+              </div>
+            )}
 
             {/* Menu items */}
             <div className="py-1">

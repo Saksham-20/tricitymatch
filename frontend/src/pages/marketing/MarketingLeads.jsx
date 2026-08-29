@@ -1,52 +1,53 @@
-import { useState, useEffect } from 'react';
-import { Filter } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Filter, RefreshCw, CheckCircle2, Clock } from 'lucide-react';
 import apiClient from '../../api/apiClient';
-
-const STATUS_COLORS = {
-  converted: 'bg-green-100 text-green-700',
-  contacted: 'bg-blue-100 text-blue-700',
-  lost: 'bg-red-100 text-red-700',
-  new: 'bg-gray-100 text-gray-700',
-};
+import useAutoRefresh from '../../hooks/useAutoRefresh';
+import MemberReportTable from '../../components/marketing/MemberReportTable';
+import ReportSummary from '../../components/marketing/ReportSummary';
 
 export default function MarketingLeads() {
-  const [leads, setLeads] = useState([]);
+  const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [filters, setFilters] = useState({ status: '', paymentStatus: '' });
   const [updating, setUpdating] = useState(null);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [lastUpdated, setLastUpdated] = useState(null);
 
-  useEffect(() => {
-    fetchLeads();
-  }, [page, filters]);
-
-  const fetchLeads = async () => {
+  const fetchReport = useCallback(async (opts = {}) => {
+    const { quiet = false } = opts;
     try {
-      setLoading(true);
-      const params = new URLSearchParams({ page, limit: 20 });
+      if (quiet) setRefreshing(true); else setLoading(true);
+      const params = new URLSearchParams({ page, limit: 25 });
       if (filters.status) params.append('status', filters.status);
       if (filters.paymentStatus) params.append('paymentStatus', filters.paymentStatus);
-      const res = await apiClient.get(`/marketing/leads?${params}`);
-      setLeads(res.data.leads);
-      setTotalPages(res.data.pagination.pages);
+      const res = await apiClient.get(`/marketing/report?${params}`);
+      setReport(res.data);
+      setLastUpdated(new Date());
       setError('');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to fetch leads');
+      setError(err.response?.data?.message || 'Failed to load your report');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, [page, filters]);
+
+  useEffect(() => { fetchReport(); }, [fetchReport]);
+
+  // Members sign up and pay while this page sits open, so keep it current
+  // without anyone having to reload.
+  useAutoRefresh(() => fetchReport({ quiet: true }), 20000);
 
   const handleStatusChange = async (leadId, newStatus) => {
     setUpdating(leadId);
     try {
       await apiClient.put(`/marketing/leads/${leadId}/status`, { status: newStatus });
-      setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: newStatus } : l));
-      setSuccess('Status updated');
-      setTimeout(() => setSuccess(''), 2000);
+      setReport(prev => prev && ({
+        ...prev,
+        members: prev.members.map(m => (m.leadId === leadId ? { ...m, leadStatus: newStatus } : m)),
+      }));
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update status');
     } finally {
@@ -55,110 +56,98 @@ export default function MarketingLeads() {
   };
 
   const handleFilterChange = (key, value) => {
-    setFilters({ ...filters, [key]: value });
+    setFilters(prev => ({ ...prev, [key]: value }));
     setPage(1);
   };
 
+  const selectCls =
+    'border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 px-3 py-2 rounded-lg text-sm';
+
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold mb-6">My Leads</h1>
-
-      <div className="bg-white p-4 rounded-lg mb-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Filter size={20} />
-          <h2 className="text-lg font-semibold">Filters</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <div>
+          <h1 className="text-3xl font-serif font-bold text-neutral-900 dark:text-neutral-100">My Members</h1>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
+            Everyone who joined through your referral links — who signed up, and who paid.
+          </p>
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <select
-            value={filters.status}
-            onChange={(e) => handleFilterChange('status', e.target.value)}
-            className="border px-3 py-2 rounded"
-          >
+        <button
+          onClick={() => fetchReport({ quiet: true })}
+          className="flex items-center gap-2 text-sm font-medium text-neutral-600 dark:text-neutral-300 hover:text-primary-600 dark:hover:text-primary-300 transition-colors"
+        >
+          <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+          {lastUpdated
+            ? `Updated ${lastUpdated.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`
+            : 'Refresh'}
+        </button>
+      </div>
+
+      {report?.summary && <ReportSummary summary={report.summary} className="mb-6" />}
+
+      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-4 rounded-xl mb-6">
+        <div className="flex items-center gap-2 mb-4 text-neutral-900 dark:text-neutral-100">
+          <Filter size={18} />
+          <h2 className="text-base font-semibold">Filters</h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <select value={filters.status} onChange={(e) => handleFilterChange('status', e.target.value)} className={selectCls}>
             <option value="">All Status</option>
             <option value="new">New</option>
             <option value="contacted">Contacted</option>
             <option value="converted">Converted</option>
             <option value="lost">Lost</option>
           </select>
-          <select
-            value={filters.paymentStatus}
-            onChange={(e) => handleFilterChange('paymentStatus', e.target.value)}
-            className="border px-3 py-2 rounded"
-          >
+          <select value={filters.paymentStatus} onChange={(e) => handleFilterChange('paymentStatus', e.target.value)} className={selectCls}>
             <option value="">All Payment Status</option>
-            <option value="none">None</option>
+            <option value="none">Not paid</option>
             <option value="paid">Paid</option>
           </select>
         </div>
       </div>
 
-      {error && <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-4">{error}</div>}
-      {success && <div className="bg-green-100 text-green-700 p-4 rounded-lg mb-4">{success}</div>}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900 p-4 rounded-lg mb-4">
+          {error}
+        </div>
+      )}
 
       {loading ? (
-        <div className="text-center py-8">Loading...</div>
-      ) : leads.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">No leads found</div>
+        <div className="flex items-center gap-2 justify-center py-16 text-neutral-500 dark:text-neutral-400">
+          <Clock size={18} /> Loading your members…
+        </div>
+      ) : !report?.members?.length ? (
+        <div className="text-center py-16 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl">
+          <CheckCircle2 className="mx-auto mb-3 text-neutral-300 dark:text-neutral-600" size={32} />
+          <p className="text-neutral-700 dark:text-neutral-200 font-medium">No members yet</p>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
+            Share a referral link — every signup through it appears here automatically.
+          </p>
+        </div>
       ) : (
         <>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse bg-white">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="border p-3 text-left">Name</th>
-                  <th className="border p-3 text-left">Phone</th>
-                  <th className="border p-3 text-left">Email</th>
-                  <th className="border p-3 text-left">City</th>
-                  <th className="border p-3 text-left">Status</th>
-                  <th className="border p-3 text-left">Payment</th>
-                  <th className="border p-3 text-left">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {leads.map(lead => (
-                  <tr key={lead.id} className="hover:bg-gray-50">
-                    <td className="border p-3">{lead.name}</td>
-                    <td className="border p-3">{lead.phone}</td>
-                    <td className="border p-3">{lead.email || '-'}</td>
-                    <td className="border p-3">{lead.city || '-'}</td>
-                    <td className="border p-3">
-                      <select
-                        value={lead.status}
-                        onChange={(e) => handleStatusChange(lead.id, e.target.value)}
-                        disabled={updating === lead.id}
-                        className={`px-2 py-1 rounded text-sm border-0 cursor-pointer ${STATUS_COLORS[lead.status] || STATUS_COLORS.new}`}
-                      >
-                        <option value="new">New</option>
-                        <option value="contacted">Contacted</option>
-                        <option value="converted">Converted</option>
-                        <option value="lost">Lost</option>
-                      </select>
-                    </td>
-                    <td className="border p-3">
-                      <span className={`px-3 py-1 rounded-full text-sm ${
-                        lead.paymentStatus === 'paid' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                      }`}>
-                        {lead.paymentStatus}
-                      </span>
-                    </td>
-                    <td className="border p-3">{lead.amountPaid ? `₹${lead.amountPaid}` : '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="flex justify-center gap-2 mt-6">
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-              <button
-                key={p}
-                onClick={() => setPage(p)}
-                className={`px-3 py-1 rounded ${page === p ? 'bg-primary-600 text-white' : 'border'}`}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
+          <MemberReportTable
+            members={report.members}
+            onStatusChange={handleStatusChange}
+            updatingId={updating}
+          />
+          {report.pagination?.pages > 1 && (
+            <div className="flex justify-center gap-2 mt-6">
+              {Array.from({ length: report.pagination.pages }, (_, i) => i + 1).map(p => (
+                <button
+                  key={p}
+                  onClick={() => setPage(p)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    page === p
+                      ? 'bg-primary-600 text-white'
+                      : 'border border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-800'
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          )}
         </>
       )}
     </div>

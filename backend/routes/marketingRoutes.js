@@ -9,6 +9,7 @@ const router = express.Router();
 const { auth, marketingAuth } = require('../middlewares/auth');
 const { asyncHandler, createError, handleValidationErrors } = require('../middlewares/errorHandler');
 const { MarketingLead, ReferralCode, User } = require('../models');
+const { buildMarketingReport } = require('../utils/marketingReport');
 const sequelize = require('../config/database');
 const { param } = require('express-validator');
 
@@ -42,6 +43,16 @@ router.get('/dashboard', asyncHandler(async (req, res) => {
       activeReferralCodes: codesCount
     }
   });
+}));
+
+// @route   GET /api/marketing/report
+// @desc    Own referral report: every invited member, whether they signed up,
+//          and whether they paid. Same builder the admin view uses, so a rep
+//          and an admin never see two different stories about one referral.
+// @access  Private/Marketing
+router.get('/report', asyncHandler(async (req, res) => {
+  const report = await buildMarketingReport(req.user.id, req.query);
+  res.json({ success: true, ...report });
 }));
 
 // @route   GET /api/marketing/leads

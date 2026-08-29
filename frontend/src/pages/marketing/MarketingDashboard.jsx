@@ -1,81 +1,87 @@
-import { useState, useEffect } from 'react';
-import { Users, TrendingUp, IndianRupee, Code2, PhoneCall } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { RefreshCw } from 'lucide-react';
 import apiClient from '../../api/apiClient';
-
-// Tiled KPI card — mirrors the admin dashboard KpiCard so both portals read the same.
-const KpiCard = ({ icon: Icon, label, value, accent = 'primary' }) => (
-  <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
-    <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${
-      accent === 'gold' ? 'bg-gold-50 text-gold' : 'bg-primary-100 text-primary-600'
-    }`}>
-      <Icon size={22} />
-    </div>
-    <div>
-      <p className="text-2xl font-bold text-gray-900">{value ?? '—'}</p>
-      <p className="text-sm font-medium text-gray-600">{label}</p>
-    </div>
-  </div>
-);
+import useAutoRefresh from '../../hooks/useAutoRefresh';
+import ReportSummary from '../../components/marketing/ReportSummary';
+import MemberReportTable from '../../components/marketing/MemberReportTable';
 
 export default function MarketingDashboard() {
-  const [stats, setStats] = useState(null);
+  const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [lastUpdated, setLastUpdated] = useState(null);
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  const fetchStats = async () => {
+  const fetchReport = useCallback(async (opts = {}) => {
+    const { quiet = false } = opts;
     try {
-      setLoading(true);
-      const res = await apiClient.get('/marketing/dashboard');
-      setStats(res.data.stats);
+      if (quiet) setRefreshing(true); else setLoading(true);
+      // Limit 5: the dashboard shows the latest few; My Members has the rest.
+      const res = await apiClient.get('/marketing/report?limit=5');
+      setReport(res.data);
+      setLastUpdated(new Date());
       setError('');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load dashboard');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, []);
 
-  if (loading) return <div className="p-6 text-center">Loading...</div>;
+  useEffect(() => { fetchReport(); }, [fetchReport]);
+  useAutoRefresh(() => fetchReport({ quiet: true }), 20000);
+
+  if (loading) {
+    return <div className="p-6 text-center text-neutral-500 dark:text-neutral-400">Loading…</div>;
+  }
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold mb-8">Marketing Dashboard</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
+        <h1 className="text-3xl font-serif font-bold text-neutral-900 dark:text-neutral-100">Marketing Dashboard</h1>
+        <button
+          onClick={() => fetchReport({ quiet: true })}
+          className="flex items-center gap-2 text-sm font-medium text-neutral-600 dark:text-neutral-300 hover:text-primary-600 dark:hover:text-primary-300 transition-colors"
+        >
+          <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+          {lastUpdated
+            ? `Updated ${lastUpdated.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`
+            : 'Refresh'}
+        </button>
+      </div>
 
-      {error && <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-4">{error}</div>}
-
-      {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
-          <KpiCard icon={Users}      label="Total Leads"  value={stats.totalLeads} />
-          <KpiCard icon={PhoneCall}  label="Contacted"    value={stats.contactedLeads} />
-          <KpiCard icon={TrendingUp} label="Converted"    value={stats.convertedLeads} />
-          <KpiCard icon={IndianRupee} label="Revenue"     value={`₹${(stats.totalRevenue || 0).toLocaleString('en-IN')}`} accent="gold" />
-          <KpiCard icon={Code2}      label="Active Codes" value={stats.activeReferralCodes} />
+      {error && (
+        <div className="bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900 p-4 rounded-lg mb-4">
+          {error}
         </div>
       )}
 
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h2 className="text-xl font-bold mb-4">How It Works</h2>
-        <ol className="space-y-3 text-gray-700 list-none">
-          <li className="flex items-start gap-3">
-            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-100 text-primary-700 text-sm font-bold flex items-center justify-center">1</span>
-            <span>Go to <strong>Referral Codes</strong> and generate a code for your campaign.</span>
-          </li>
-          <li className="flex items-start gap-3">
-            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-100 text-primary-700 text-sm font-bold flex items-center justify-center">2</span>
-            <span>Copy the share link — it opens the signup page with your code pre-filled.</span>
-          </li>
-          <li className="flex items-start gap-3">
-            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-100 text-primary-700 text-sm font-bold flex items-center justify-center">3</span>
-            <span>Every signup via your link appears in <strong>My Leads</strong> and increments your code's signup count.</span>
-          </li>
-          <li className="flex items-start gap-3">
-            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-100 text-primary-700 text-sm font-bold flex items-center justify-center">4</span>
-            <span>Track conversions and revenue in the stats above.</span>
-          </li>
+      {report?.summary && <ReportSummary summary={report.summary} className="mb-8" />}
+
+      {report?.members?.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-xl font-serif font-bold mb-4 text-neutral-900 dark:text-neutral-100">Latest members</h2>
+          <MemberReportTable members={report.members} />
+        </div>
+      )}
+
+      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-6 rounded-xl">
+        <h2 className="text-xl font-serif font-bold mb-4 text-neutral-900 dark:text-neutral-100">How It Works</h2>
+        <ol className="space-y-3 text-neutral-700 dark:text-neutral-300 list-none">
+          {[
+            <>Go to <strong className="text-neutral-900 dark:text-neutral-100">Referral Codes</strong> and generate a code for your campaign.</>,
+            <>Copy the share link — it opens the signup page with your code pre-filled.</>,
+            <>Every signup via your link appears in <strong className="text-neutral-900 dark:text-neutral-100">My Members</strong> and increments your code's signup count.</>,
+            <>When a member pays, their plan and amount show up here automatically.</>,
+          ].map((text, i) => (
+            <li key={i} className="flex items-start gap-3">
+              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-200 text-sm font-bold flex items-center justify-center">
+                {i + 1}
+              </span>
+              <span>{text}</span>
+            </li>
+          ))}
         </ol>
       </div>
     </div>

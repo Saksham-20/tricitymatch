@@ -22,6 +22,7 @@ const {
   createMarketingUser,
   updateMarketingUserStatus,
   getMarketingUserStats,
+  getMarketingUserReport,
   getReferralCodes,
   createReferralCode,
   toggleReferralCode,
@@ -145,6 +146,11 @@ router.put('/marketing-users/:userId/status', requireAdminScope('marketing'),
   body('status').isIn(['active', 'inactive']),
   handleValidationErrors,
   updateMarketingUserStatus
+);
+router.get('/marketing-users/:userId/report', requireAdminScope('marketing'),
+  param('userId').isUUID(4),
+  handleValidationErrors,
+  getMarketingUserReport
 );
 router.get('/marketing-users/:userId/stats', requireAdminScope('marketing'),
   param('userId').isUUID(4),

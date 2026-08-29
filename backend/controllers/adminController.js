@@ -4,6 +4,7 @@
  */
 
 const { User, Profile, Subscription, Match, Verification, ProfileView, Report, ReferralCode, MarketingLead, SuccessStory, ContactMessage } = require('../models');
+const { buildMarketingReport } = require('../utils/marketingReport');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const { PAID_PLANS, ALL_PLANS, UNLIMITED_PLANS, FOUNDING_PLAN, FOUNDING_CONTACT_UNLOCKS } = require('../constants/plans');
@@ -1267,6 +1268,26 @@ exports.updateMarketingUserStatus = asyncHandler(async (req, res) => {
 // @route   GET /api/admin/marketing-users/:userId/stats
 // @desc    Get marketing user stats
 // @access  Private/Admin
+// @route   GET /api/v1/admin/marketing-users/:userId/report
+// @desc    Full referral report for one rep — every invited member, whether
+//          they signed up, and whether they paid. Same builder as the rep's
+//          own /api/marketing/report, so both sides read one story.
+// @access  Private/Admin (marketing scope)
+exports.getMarketingUserReport = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+
+  const user = await User.findByPk(userId, {
+    include: [{ model: Profile, attributes: ['firstName', 'lastName', 'city'] }],
+    attributes: { exclude: ['password'] },
+  });
+  if (!user || !['marketing', 'marketing_manager'].includes(user.role)) {
+    throw createError.notFound('Marketing user not found');
+  }
+
+  const report = await buildMarketingReport(userId, req.query);
+  res.json({ success: true, user, ...report });
+});
+
 exports.getMarketingUserStats = asyncHandler(async (req, res) => {
   const { userId } = req.params;
 
