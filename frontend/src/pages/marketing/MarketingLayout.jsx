@@ -1,6 +1,7 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { BarChart3, Users, Zap, LogOut, Globe, Search } from 'lucide-react';
+import { BarChart3, Users, Zap, LogOut, Globe, Search, Moon, Sun } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import useDarkMode from '../../hooks/useDarkMode';
 
 // The portal is a second home for a real person who also uses the site: a rep
 // showing a prospect a profile should not have to log out and back in, so the
@@ -18,6 +19,11 @@ const siteItems = [
 
 export default function MarketingLayout() {
   const { user, logout } = useAuth();
+  // The portal renders no member Navbar, which was the only thing applying the
+  // saved theme — so a hard load of /marketing/* came up light even for someone
+  // who had chosen dark. Mounting the hook here applies it, and gives the rail
+  // its own toggle.
+  const { isDark, toggle: toggleDark } = useDarkMode();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -61,7 +67,14 @@ export default function MarketingLayout() {
           ))}
         </div>
 
-        <div className="mt-auto p-4">
+        <div className="mt-auto p-4 space-y-1">
+          <button
+            onClick={toggleDark}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-neutral-700 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800 transition-colors"
+          >
+            {isDark ? <Sun size={20} /> : <Moon size={20} />}
+            {isDark ? 'Light mode' : 'Dark mode'}
+          </button>
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40 transition-colors"
