@@ -298,9 +298,17 @@ exports.getAnalytics = asyncHandler(async (req, res) => {
       },
     }),
 
-    // Revenue collected this calendar month
+    // Revenue collected this calendar month. "Collected" means a real payment
+    // reference exists: an admin grant is written with the plan's list price
+    // and no payment id, so summing on amount alone reported comped plans as
+    // money that was never taken. razorpayPaymentId also carries the Google
+    // Play purchase token, so store purchases still count.
     Subscription.sum('amount', {
-      where: { status: 'active', createdAt: { [Op.gte]: startOfMonth } },
+      where: {
+        status: 'active',
+        razorpayPaymentId: { [Op.ne]: null },
+        createdAt: { [Op.gte]: startOfMonth },
+      },
     }),
 
     // Pending verification requests
@@ -325,6 +333,7 @@ exports.getAnalytics = asyncHandler(async (req, res) => {
               SUM(amount)::float AS amount
        FROM "Subscriptions"
        WHERE "createdAt" >= :sixMonthsAgo AND status = 'active'
+         AND "razorpayPaymentId" IS NOT NULL
        GROUP BY DATE_TRUNC('month', "createdAt")
        ORDER BY DATE_TRUNC('month', "createdAt") ASC`,
       { replacements: { sixMonthsAgo }, type: sequelize.QueryTypes.SELECT }
@@ -1055,6 +1064,7 @@ exports.getRevenueReport = asyncHandler(async (req, res) => {
      FROM "Subscriptions"
      WHERE status IN ('active', 'expired')
        AND amount > 0
+       AND "razorpayPaymentId" IS NOT NULL
        AND "createdAt" >= NOW() - INTERVAL '12 months'
      GROUP BY DATE_TRUNC('month', "createdAt"), "planType"
      ORDER BY DATE_TRUNC('month', "createdAt") ASC`,
@@ -1068,7 +1078,8 @@ exports.getRevenueReport = asyncHandler(async (req, res) => {
        SUM(amount)::float AS total_revenue,
        AVG(amount)::float AS avg_transaction
      FROM "Subscriptions"
-     WHERE status IN ('active', 'expired') AND amount > 0`,
+     WHERE status IN ('active', 'expired') AND amount > 0
+       AND "razorpayPaymentId" IS NOT NULL`,
     { type: sequelize.constructor.QueryTypes.SELECT }
   );
 
