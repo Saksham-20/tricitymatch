@@ -5,6 +5,8 @@ import apiClient from '../../api/apiClient';
 import useAutoRefresh from '../../hooks/useAutoRefresh';
 import ReportSummary from '../../components/marketing/ReportSummary';
 import MemberReportTable from '../../components/marketing/MemberReportTable';
+import PayoutSection from '../../components/marketing/PayoutSection';
+import RecordPayoutForm from '../../components/admin/RecordPayoutForm';
 
 export default function AdminMarketingUserDetail() {
   const { userId } = useParams();
@@ -12,6 +14,7 @@ export default function AdminMarketingUserDetail() {
   const [user, setUser] = useState(null);
   const [report, setReport] = useState(null);
   const [codes, setCodes] = useState([]);
+  const [ledger, setLedger] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -22,13 +25,15 @@ export default function AdminMarketingUserDetail() {
     try {
       if (quiet) setRefreshing(true); else setLoading(true);
       // The same report the rep sees for themselves — one builder, one story.
-      const [reportRes, codesRes] = await Promise.all([
+      const [reportRes, codesRes, payoutRes] = await Promise.all([
         apiClient.get(`/admin/marketing-users/${userId}/report?limit=50`),
         apiClient.get(`/admin/referral-codes?marketingUserId=${userId}&limit=50`),
+        apiClient.get(`/admin/marketing-users/${userId}/payouts`),
       ]);
       setUser(reportRes.data.user);
       setReport(reportRes.data);
       setCodes(codesRes.data.codes);
+      setLedger(payoutRes.data);
       setLastUpdated(new Date());
       setError('');
     } catch (err) {
@@ -38,6 +43,23 @@ export default function AdminMarketingUserDetail() {
       setRefreshing(false);
     }
   }, [userId]);
+
+  // Every payout write returns the recomputed ledger, so the balance on screen
+  // is the server's answer rather than one the client added up itself.
+  const handleRecordPayout = async (payload) => {
+    const res = await apiClient.post(`/admin/marketing-users/${userId}/payouts`, payload);
+    setLedger({ summary: res.data.summary, payouts: res.data.payouts });
+  };
+
+  const handlePayoutStatus = async (payoutId, status) => {
+    const res = await apiClient.put(`/admin/marketing-payouts/${payoutId}`, { status });
+    setLedger({ summary: res.data.summary, payouts: res.data.payouts });
+  };
+
+  const handlePayoutDelete = async (payoutId) => {
+    const res = await apiClient.delete(`/admin/marketing-payouts/${payoutId}`);
+    setLedger({ summary: res.data.summary, payouts: res.data.payouts });
+  };
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
   useAutoRefresh(() => fetchAll({ quiet: true }), 20000);
@@ -78,6 +100,42 @@ export default function AdminMarketingUserDetail() {
       </div>
 
       {report?.summary && <ReportSummary summary={report.summary} className="mb-8" commissionLabel="Rep commission" />}
+
+      {ledger && (
+        <div className="mb-8">
+          <PayoutSection
+            ledger={ledger}
+            title="Payouts to this rep"
+            actions={(p) => (
+              <div className="flex items-center justify-end gap-3">
+                {p.status === 'pending' ? (
+                  <button
+                    onClick={() => handlePayoutStatus(p.id, 'paid')}
+                    className="text-xs font-medium text-green-700 hover:underline"
+                  >
+                    Mark paid
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handlePayoutStatus(p.id, 'pending')}
+                    className="text-xs font-medium text-gray-500 hover:underline"
+                  >
+                    Mark queued
+                  </button>
+                )}
+                <button
+                  onClick={() => handlePayoutDelete(p.id)}
+                  className="text-xs font-medium text-red-600 hover:underline"
+                >
+                  Remove
+                </button>
+              </div>
+            )}
+          >
+            <RecordPayoutForm outstanding={ledger.summary.outstanding} onSubmit={handleRecordPayout} />
+          </PayoutSection>
+        </div>
+      )}
 
       <div className="mb-8">
         <h2 className="text-xl font-bold mb-4">

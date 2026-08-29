@@ -10,6 +10,13 @@ const {
   saveCommissionSettings,
   CommissionValidationError,
 } = require('../utils/marketingCommission');
+const {
+  getPayoutLedger,
+  recordPayout,
+  updatePayoutStatus,
+  deletePayout,
+  PayoutValidationError,
+} = require('../utils/marketingPayouts');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const { PAID_PLANS, ALL_PLANS, UNLIMITED_PLANS, FOUNDING_PLAN, FOUNDING_CONTACT_UNLOCKS } = require('../constants/plans');
@@ -1293,6 +1300,80 @@ exports.updateMarketingCommission = asyncHandler(async (req, res) => {
     if (err instanceof CommissionValidationError) throw createError.badRequest(err.message);
     throw err;
   }
+});
+
+// ==================== MARKETING PAYOUTS ====================
+
+const assertMarketingUser = async (userId) => {
+  const user = await User.findByPk(userId, { attributes: ['id', 'role'] });
+  if (!user || !['marketing', 'marketing_manager'].includes(user.role)) {
+    throw createError.notFound('Marketing user not found');
+  }
+  return user;
+};
+
+// @route   GET /api/v1/admin/marketing-users/:userId/payouts
+// @desc    A rep's payout ledger — the same figures the rep sees
+// @access  Private/Admin (marketing scope)
+exports.getMarketingPayouts = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  await assertMarketingUser(userId);
+  const ledger = await getPayoutLedger(userId);
+  res.json({ success: true, ...ledger });
+});
+
+// @route   POST /api/v1/admin/marketing-users/:userId/payouts
+// @desc    Record a payout to a rep
+// @access  Private/Admin (marketing scope)
+exports.createMarketingPayout = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  await assertMarketingUser(userId);
+  try {
+    const payout = await recordPayout(userId, req.body, req.user.id);
+    logAudit('marketing_payout_recorded', req.user.id, {
+      targetUserId: userId,
+      amount: payout.amount,
+      status: payout.status,
+    });
+    const ledger = await getPayoutLedger(userId);
+    res.status(201).json({ success: true, message: 'Payout recorded', payout, ...ledger });
+  } catch (err) {
+    if (err instanceof PayoutValidationError) throw createError.badRequest(err.message);
+    throw err;
+  }
+});
+
+// @route   PUT /api/v1/admin/marketing-payouts/:payoutId
+// @desc    Move a queued payout to paid (or back)
+// @access  Private/Admin (marketing scope)
+exports.updateMarketingPayout = asyncHandler(async (req, res) => {
+  try {
+    const payout = await updatePayoutStatus(req.params.payoutId, req.body.status);
+    if (!payout) throw createError.notFound('Payout not found');
+    logAudit('marketing_payout_updated', req.user.id, {
+      payoutId: payout.id,
+      status: payout.status,
+    });
+    const ledger = await getPayoutLedger(payout.marketingUserId);
+    res.json({ success: true, message: 'Payout updated', payout, ...ledger });
+  } catch (err) {
+    if (err instanceof PayoutValidationError) throw createError.badRequest(err.message);
+    throw err;
+  }
+});
+
+// @route   DELETE /api/v1/admin/marketing-payouts/:payoutId
+// @desc    Remove a payout recorded in error
+// @access  Private/Admin (marketing scope)
+exports.deleteMarketingPayout = asyncHandler(async (req, res) => {
+  const { MarketingPayout } = require('../models');
+  const existing = await MarketingPayout.findByPk(req.params.payoutId);
+  if (!existing) throw createError.notFound('Payout not found');
+  const ownerId = existing.marketingUserId;
+  await deletePayout(req.params.payoutId);
+  logAudit('marketing_payout_deleted', req.user.id, { payoutId: req.params.payoutId, targetUserId: ownerId });
+  const ledger = await getPayoutLedger(ownerId);
+  res.json({ success: true, message: 'Payout removed', ...ledger });
 });
 
 // @route   GET /api/v1/admin/marketing-users/:userId/report

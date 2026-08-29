@@ -13,6 +13,7 @@ const Notification = require('./Notification');
 const ContactUnlock = require('./ContactUnlock');
 const ReferralCode = require('./ReferralCode');
 const MarketingLead = require('./MarketingLead');
+const MarketingPayout = require('./MarketingPayout');
 const CallSession = require('./CallSession');
 const GuardianLink = require('./GuardianLink');
 const Astrologer = require('./Astrologer');
@@ -105,6 +106,11 @@ User.hasMany(MarketingLead, { foreignKey: 'convertedUserId', as: 'ConvertedFrom'
 MarketingLead.belongsTo(User, { foreignKey: 'assignedToMarketingUserId', as: 'AssignedMarketer' });
 MarketingLead.belongsTo(User, { foreignKey: 'convertedUserId', as: 'ConvertedUser' });
 
+// MarketingPayout relationships
+User.hasMany(MarketingPayout, { foreignKey: 'marketingUserId', as: 'MarketingPayouts', onDelete: 'CASCADE' });
+MarketingPayout.belongsTo(User, { foreignKey: 'marketingUserId', as: 'MarketingUser' });
+MarketingPayout.belongsTo(User, { foreignKey: 'createdBy', as: 'RecordedBy' });
+
 // CallSession relationships
 User.hasMany(CallSession, { foreignKey: 'callerId', as: 'CallsMade', onDelete: 'CASCADE' });
 User.hasMany(CallSession, { foreignKey: 'calleeId', as: 'CallsReceived', onDelete: 'CASCADE' });
@@ -170,6 +176,7 @@ module.exports = {
   ContactUnlock,
   ReferralCode,
   MarketingLead,
+  MarketingPayout,
   CallSession,
   GuardianLink,
   Astrologer,

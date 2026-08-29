@@ -10,6 +10,7 @@ const { auth, marketingAuth } = require('../middlewares/auth');
 const { asyncHandler, createError, handleValidationErrors } = require('../middlewares/errorHandler');
 const { MarketingLead, ReferralCode, User } = require('../models');
 const { buildMarketingReport } = require('../utils/marketingReport');
+const { getPayoutLedger } = require('../utils/marketingPayouts');
 const sequelize = require('../config/database');
 const { param } = require('express-validator');
 
@@ -53,6 +54,16 @@ router.get('/dashboard', asyncHandler(async (req, res) => {
 router.get('/report', asyncHandler(async (req, res) => {
   const report = await buildMarketingReport(req.user.id, req.query);
   res.json({ success: true, ...report });
+}));
+
+// @route   GET /api/marketing/payouts
+// @desc    Own payout ledger: commission earned, what has been paid out, and
+//          what is still outstanding. Read-only — payouts are recorded by an
+//          admin, so a rep can never move their own balance.
+// @access  Private/Marketing
+router.get('/payouts', asyncHandler(async (req, res) => {
+  const ledger = await getPayoutLedger(req.user.id);
+  res.json({ success: true, ...ledger });
 }));
 
 // @route   GET /api/marketing/leads

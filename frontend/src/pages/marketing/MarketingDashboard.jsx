@@ -4,9 +4,11 @@ import apiClient from '../../api/apiClient';
 import useAutoRefresh from '../../hooks/useAutoRefresh';
 import ReportSummary from '../../components/marketing/ReportSummary';
 import MemberReportTable from '../../components/marketing/MemberReportTable';
+import PayoutSection from '../../components/marketing/PayoutSection';
 
 export default function MarketingDashboard() {
   const [report, setReport] = useState(null);
+  const [ledger, setLedger] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -17,8 +19,12 @@ export default function MarketingDashboard() {
     try {
       if (quiet) setRefreshing(true); else setLoading(true);
       // Limit 5: the dashboard shows the latest few; My Members has the rest.
-      const res = await apiClient.get('/marketing/report?limit=5');
-      setReport(res.data);
+      const [reportRes, payoutRes] = await Promise.all([
+        apiClient.get('/marketing/report?limit=5'),
+        apiClient.get('/marketing/payouts'),
+      ]);
+      setReport(reportRes.data);
+      setLedger(payoutRes.data);
       setLastUpdated(new Date());
       setError('');
     } catch (err) {
@@ -58,6 +64,12 @@ export default function MarketingDashboard() {
       )}
 
       {report?.summary && <ReportSummary summary={report.summary} className="mb-8" />}
+
+      {ledger && (
+        <div className="mb-8">
+          <PayoutSection ledger={ledger} />
+        </div>
+      )}
 
       {report?.members?.length > 0 && (
         <div className="mb-8">

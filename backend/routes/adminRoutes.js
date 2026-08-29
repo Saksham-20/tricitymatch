@@ -25,6 +25,10 @@ const {
   getMarketingUserReport,
   getMarketingCommission,
   updateMarketingCommission,
+  getMarketingPayouts,
+  createMarketingPayout,
+  updateMarketingPayout,
+  deleteMarketingPayout,
   getReferralCodes,
   createReferralCode,
   toggleReferralCode,
@@ -154,6 +158,29 @@ router.put('/marketing-commission', requireAdminScope('marketing'),
   body('rate').optional().isFloat({ min: 0, max: 100 }),
   handleValidationErrors,
   updateMarketingCommission
+);
+router.get('/marketing-users/:userId/payouts', requireAdminScope('marketing'),
+  param('userId').isUUID(4),
+  handleValidationErrors,
+  getMarketingPayouts
+);
+router.post('/marketing-users/:userId/payouts', requireAdminScope('marketing'),
+  param('userId').isUUID(4),
+  body('amount').isFloat({ gt: 0 }),
+  body('status').optional().isIn(['pending', 'paid']),
+  handleValidationErrors,
+  createMarketingPayout
+);
+router.put('/marketing-payouts/:payoutId', requireAdminScope('marketing'),
+  param('payoutId').isUUID(4),
+  body('status').isIn(['pending', 'paid']),
+  handleValidationErrors,
+  updateMarketingPayout
+);
+router.delete('/marketing-payouts/:payoutId', requireAdminScope('marketing'),
+  param('payoutId').isUUID(4),
+  handleValidationErrors,
+  deleteMarketingPayout
 );
 router.get('/marketing-users/:userId/report', requireAdminScope('marketing'),
   param('userId').isUUID(4),
