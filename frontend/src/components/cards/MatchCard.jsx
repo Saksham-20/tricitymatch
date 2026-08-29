@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { FiHeart, FiMessageCircle, FiMapPin } from 'react-icons/fi';
 import { API_BASE_URL } from '../../utils/api';
 import { getImageUrl } from '../../utils/cloudinary';
+import RetryImage from '../ui/RetryImage';
 
 /**
  * MatchCard Component - Card for displaying mutual matches
@@ -48,7 +49,7 @@ const MatchCard = ({ match, userId, index = 0, onChat }) => {
         {/* Profile Image */}
         <div className="relative mx-auto mb-4">
           {(match.profilePhoto || match.profile_photo) ? (
-            <img
+            <RetryImage
               src={getImageUrl(match.profilePhoto || match.profile_photo, API_BASE_URL, 'profile')}
               alt={`Profile photo of ${fullName}`}
               className="w-24 h-24 rounded-full mx-auto object-cover border-4 border-white shadow-lg group-hover:border-primary-100 transition-colors"

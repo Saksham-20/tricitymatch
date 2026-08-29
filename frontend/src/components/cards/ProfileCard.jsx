@@ -8,6 +8,7 @@ import {
 import { FaCrown } from 'react-icons/fa';
 import { API_BASE_URL } from '../../utils/api';
 import { getImageUrl } from '../../utils/cloudinary';
+import RetryImage from '../ui/RetryImage';
 
 /* ──────────────────────────────────────────────────────────
    Animated compatibility arc — circular score indicator
@@ -166,7 +167,7 @@ const ProfileCard = ({
           {/* Avatar */}
           <div className="relative flex-shrink-0">
             {hasPhoto ? (
-              <img
+              <RetryImage
                 src={getImageUrl(profile.profilePhoto || profile.profile_photo, API_BASE_URL, 'thumbnail')}
                 alt={`${fullName}`}
                 className="w-14 h-14 rounded-full object-cover ring-2 ring-white shadow-md"
@@ -260,7 +261,7 @@ const ProfileCard = ({
       {/* ── Photo Section ──────────────────────────── */}
       <div className="relative h-56 overflow-hidden">
         {hasPhoto ? (
-          <img
+          <RetryImage
             src={getImageUrl(profile.profilePhoto || profile.profile_photo, API_BASE_URL, 'profile')}
             alt={`${fullName}`}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"

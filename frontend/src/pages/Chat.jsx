@@ -14,6 +14,7 @@ import VoiceRecorder from '../components/chat/VoiceRecorder';
 import ReplyMeter from '../components/chat/ReplyMeter';
 import PaywalledComposer from '../components/chat/PaywalledComposer';
 import FirstReplyUpsell, { upsellSeenKey } from '../components/chat/FirstReplyUpsell';
+import RetryImage from '../components/ui/RetryImage';
 
 // Environment check for logging
 const isDev = import.meta.env.DEV;
@@ -66,7 +67,7 @@ const DateSeparator = ({ date }) => (
 const ConversationAvatar = ({ name, photo, size = 'w-14 h-14', textSize = 'text-lg' }) => (
   photo ? (
     <>
-      <img
+      <RetryImage
         src={getImageUrl(photo, API_BASE_URL, 'thumbnail')}
         alt={name || 'Profile'}
         className={`${size} rounded-full object-cover ring-2 ring-white shadow-md`}

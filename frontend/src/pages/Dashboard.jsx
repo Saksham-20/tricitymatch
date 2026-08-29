@@ -24,6 +24,7 @@ import InviteLink from '../components/common/InviteLink';
 import PhotoNudge from '../components/profile/PhotoNudge';
 import { Skeleton } from '../components/ui';
 import StagedLoader, { useStagedReveal } from '../components/ui/StagedLoader';
+import RetryImage from '../components/ui/RetryImage';
 
 // ─── Skeleton loaders ──────────────────────────────────────────────────────
 const StatSkeleton = () => (
@@ -93,7 +94,7 @@ const SuggestionCard = ({ profile, index }) => {
       {/* Photo */}
       <div className="relative h-52 overflow-hidden bg-neutral-100">
         {(profile.profilePhoto || profile.profile_photo) ? (
-          <img
+          <RetryImage
             src={getImageUrl(profile.profilePhoto || profile.profile_photo, API_BASE_URL, 'profile')}
             alt={fullName}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -882,7 +883,7 @@ const Dashboard = () => {
                         <span className="font-display text-2xl font-semibold text-primary-700 dark:text-primary-300">{initials}</span>
                       </div>
                       {viewer.profilePhoto && (
-                        <img
+                        <RetryImage
                           src={getImageUrl(viewer.profilePhoto, API_BASE_URL, 'profile')}
                           alt={viewerName}
                           className="relative w-full h-full object-cover group-hover:scale-105 transition-transform"
@@ -992,7 +993,7 @@ const Dashboard = () => {
                         <span className="font-display text-2xl font-semibold text-primary-700 dark:text-primary-300">{initials}</span>
                       </div>
                       {p.profilePhoto && (
-                        <img
+                        <RetryImage
                           src={getImageUrl(p.profilePhoto, API_BASE_URL, 'profile')}
                           alt={name}
                           className="relative w-full h-full object-cover group-hover:scale-105 transition-transform"

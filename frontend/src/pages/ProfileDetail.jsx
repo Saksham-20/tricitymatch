@@ -23,6 +23,7 @@ import PreferenceMatch from '../components/profile/PreferenceMatch';
 import UpgradeModal from '../components/common/UpgradeModal';
 import LikeNoteModal from '../components/profile/LikeNoteModal';
 import { friendlyLabel, formatEnum } from '../constants/profileOptions';
+import RetryImage from '../components/ui/RetryImage';
 
 // ─── Compatibility Ring ──────────────────────────────────────────────────────
 const CompatRing = ({ score }) => {
@@ -417,7 +418,7 @@ const ProfileDetail = () => {
                       className={`group relative overflow-hidden bg-primary-100 dark:bg-primary-900/40 hover:brightness-95 transition-all focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-inset cursor-pointer ${isFirst && allPhotos.length >= 3 ? 'row-span-2 col-span-1' : ''}`}
                     >
                       <span className="absolute inset-0 flex items-center justify-center text-7xl font-display font-semibold text-primary-700/40 dark:text-primary-300/40 select-none">{firstName[0]}</span>
-                      <img src={url} alt={`${firstName} ${i + 1}`} className="relative w-full h-full object-cover" loading={i === 0 ? 'eager' : 'lazy'} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                      <RetryImage src={url} alt={`${firstName} ${i + 1}`} className="relative w-full h-full object-cover" loading={i === 0 ? 'eager' : 'lazy'} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                       {isOverlay && (
                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
                           <span className="text-white text-xl font-bold">+{allPhotos.length - 5}</span>

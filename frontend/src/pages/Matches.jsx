@@ -12,6 +12,7 @@ import { ProfileCard } from '../components/cards';
 import InviteLink from '../components/common/InviteLink';
 import SectionHeader from '../components/common/SectionHeader';
 import { Skeleton } from '../components/ui';
+import RetryImage from '../components/ui/RetryImage';
 
 // Each tab maps to a match endpoint + the response key it returns.
 const TABS = [
@@ -252,7 +253,7 @@ export default function Matches() {
                     {(profile.note || profile.likedItem) && (
                       <div className="mb-2 px-4 py-3 rounded-2xl bg-primary-50/70 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800 flex items-start gap-3">
                         {profile.likedItem?.type === 'photo' && profile.likedItem.photoUrl && (
-                          <img
+                          <RetryImage
                             src={getImageUrl(profile.likedItem.photoUrl, API_BASE_URL, 'thumbnail')}
                             alt=""
                             className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
