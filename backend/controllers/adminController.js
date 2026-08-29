@@ -5,6 +5,11 @@
 
 const { User, Profile, Subscription, Match, Verification, ProfileView, Report, ReferralCode, MarketingLead, SuccessStory, ContactMessage } = require('../models');
 const { buildMarketingReport } = require('../utils/marketingReport');
+const {
+  getCommissionSettings,
+  saveCommissionSettings,
+  CommissionValidationError,
+} = require('../utils/marketingCommission');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const { PAID_PLANS, ALL_PLANS, UNLIMITED_PLANS, FOUNDING_PLAN, FOUNDING_CONTACT_UNLOCKS } = require('../constants/plans');
@@ -1268,6 +1273,28 @@ exports.updateMarketingUserStatus = asyncHandler(async (req, res) => {
 // @route   GET /api/admin/marketing-users/:userId/stats
 // @desc    Get marketing user stats
 // @access  Private/Admin
+// @route   GET /api/v1/admin/marketing-commission
+// @desc    Current commission rate (and any per-rep overrides)
+// @access  Private/Admin (marketing scope)
+exports.getMarketingCommission = asyncHandler(async (req, res) => {
+  const settings = await getCommissionSettings();
+  res.json({ success: true, commission: settings });
+});
+
+// @route   PUT /api/v1/admin/marketing-commission
+// @desc    Set the commission rate reps earn on what their members pay
+// @access  Private/Admin (marketing scope)
+exports.updateMarketingCommission = asyncHandler(async (req, res) => {
+  try {
+    const settings = await saveCommissionSettings(req.body, req.user.id);
+    logAudit('marketing_commission_updated', req.user.id, { rate: settings.rate });
+    res.json({ success: true, message: 'Commission updated', commission: settings });
+  } catch (err) {
+    if (err instanceof CommissionValidationError) throw createError.badRequest(err.message);
+    throw err;
+  }
+});
+
 // @route   GET /api/v1/admin/marketing-users/:userId/report
 // @desc    Full referral report for one rep — every invited member, whether
 //          they signed up, and whether they paid. Same builder as the rep's

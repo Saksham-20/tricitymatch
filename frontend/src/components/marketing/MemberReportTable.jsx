@@ -54,9 +54,10 @@ export default function MemberReportTable({ members, onStatusChange, updatingId 
             <th className={th}>Contact</th>
             <th className={th}>Code</th>
             <th className={th}>Signed up</th>
-            <th className={th}>Paid</th>
+            <th className={th}>Paid on</th>
             <th className={th}>Plan</th>
             <th className={`${th} text-right`}>Amount</th>
+            <th className={`${th} text-right`}>Commission</th>
             <th className={th}>Lead status</th>
           </tr>
         </thead>
@@ -106,6 +107,9 @@ export default function MemberReportTable({ members, onStatusChange, updatingId 
               </td>
               <td className={`${td} text-right font-semibold tabular-nums`}>
                 {m.amountPaid ? `₹${Number(m.amountPaid).toLocaleString('en-IN')}` : '—'}
+              </td>
+              <td className={`${td} text-right font-semibold tabular-nums text-gold-700 dark:text-gold-300`}>
+                {m.commission ? `₹${Number(m.commission).toLocaleString('en-IN')}` : '—'}
               </td>
               <td className={td}>
                 {onStatusChange ? (

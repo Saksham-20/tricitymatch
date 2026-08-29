@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronDown, Plus, Edit2, Power } from 'lucide-react';
 import apiClient from '../../api/apiClient';
+import CommissionSettingsCard from '../../components/admin/CommissionSettingsCard';
 
 export default function AdminMarketingUsers() {
   const [users, setUsers] = useState([]);
@@ -79,6 +80,8 @@ export default function AdminMarketingUsers() {
           <Plus size={20} /> Create User
         </button>
       </div>
+
+      <CommissionSettingsCard />
 
       {error && <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-4">{error}</div>}
       {success && <div className="bg-green-100 text-green-700 p-4 rounded-lg mb-4">{success}</div>}

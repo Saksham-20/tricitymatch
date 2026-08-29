@@ -1,4 +1,4 @@
-import { Users, UserCheck, BadgeCheck, IndianRupee, Zap } from 'lucide-react';
+import { Users, UserCheck, BadgeCheck, IndianRupee, Wallet } from 'lucide-react';
 
 /**
  * The funnel in one strip: invited → signed up → paid → money.
@@ -45,11 +45,17 @@ export default function ReportSummary({ summary, className = '' }) {
       />
       <Tile
         icon={IndianRupee}
-        label="Revenue"
+        label="Revenue collected"
         value={`₹${Number(s.revenue || 0).toLocaleString('en-IN')}`}
+        hint="Paid by your members"
+      />
+      <Tile
+        icon={Wallet}
+        label="Your commission"
+        value={`₹${Number(s.commissionEarned || 0).toLocaleString('en-IN')}`}
+        hint={s.commissionRate != null ? `${s.commissionRate}% of ₹${Number(s.revenue || 0).toLocaleString('en-IN')}` : null}
         gold
       />
-      <Tile icon={Zap} label="Active codes" value={s.activeCodes ?? 0} />
     </div>
   );
 }

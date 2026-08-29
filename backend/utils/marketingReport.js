@@ -16,6 +16,7 @@
 
 const { Op } = require('sequelize');
 const { User, Profile, Subscription, MarketingLead, ReferralCode } = require('../models');
+const { getRateForUser, commissionOn } = require('./marketingCommission');
 
 // A subscription only counts as revenue when a payment reference exists. An
 // admin grant is written with the plan's list price and no payment id, so
@@ -65,6 +66,8 @@ async function buildMarketingReport(marketingUserId, opts = {}) {
     order: [['createdAt', 'DESC']],
   });
 
+  const commissionRate = await getRateForUser(marketingUserId);
+
   const members = rows.map((lead) => {
     const u = lead.ConvertedUser;
     const subs = (u && u.Subscriptions) || [];
@@ -99,6 +102,9 @@ async function buildMarketingReport(marketingUserId, opts = {}) {
       paidAt: sub ? sub.startDate : null,
       planEndsAt: sub ? sub.endDate : null,
       paymentId: sub ? sub.razorpayPaymentId : lead.paymentId || null,
+      // Shown per row so the rep can check the total against its parts rather
+      // than being handed one number to trust.
+      commission: commissionOn(sub ? money(sub.amount) : 0, commissionRate),
       createdAt: lead.createdAt,
     };
   });
@@ -147,7 +153,10 @@ async function buildMarketingReport(marketingUserId, opts = {}) {
       totalLeads,
       signedUp: signedUpCount,
       paidMembers,
+      // Gross paid by members, and the rep's share of it at the current rate.
       revenue,
+      commissionRate,
+      commissionEarned: commissionOn(revenue, commissionRate),
       activeCodes,
       // Percentages are of the stage above, so they stay meaningful when a lead
       // exists that never became an account.

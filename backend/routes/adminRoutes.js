@@ -23,6 +23,8 @@ const {
   updateMarketingUserStatus,
   getMarketingUserStats,
   getMarketingUserReport,
+  getMarketingCommission,
+  updateMarketingCommission,
   getReferralCodes,
   createReferralCode,
   toggleReferralCode,
@@ -146,6 +148,12 @@ router.put('/marketing-users/:userId/status', requireAdminScope('marketing'),
   body('status').isIn(['active', 'inactive']),
   handleValidationErrors,
   updateMarketingUserStatus
+);
+router.get('/marketing-commission', requireAdminScope('marketing'), getMarketingCommission);
+router.put('/marketing-commission', requireAdminScope('marketing'),
+  body('rate').optional().isFloat({ min: 0, max: 100 }),
+  handleValidationErrors,
+  updateMarketingCommission
 );
 router.get('/marketing-users/:userId/report', requireAdminScope('marketing'),
   param('userId').isUUID(4),
