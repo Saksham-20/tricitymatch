@@ -77,7 +77,7 @@ export default function AdminDashboard() {
           {registrations.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={registrations}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="chart-grid" />
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />
@@ -95,7 +95,7 @@ export default function AdminDashboard() {
           {revenue.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={revenue}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="chart-grid" />
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip formatter={(v) => `₹${v.toLocaleString('en-IN')}`} />

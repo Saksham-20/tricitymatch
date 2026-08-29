@@ -1036,3 +1036,76 @@ html.dark .bg-neutral-50 { background-color: #0f1117 !important; }
 
 /* Who Viewed You lock overlay */
 html.dark .backdrop-blur-\[2px\] { background-color: rgba(15,17,23,0.80) !important; }
+
+/* =============================================== */
+/* ADMIN PANEL — dark-mode coverage                */
+/* The admin pages were written light-only with the gray-* ramp and coloured
+   status chips. The global html.dark overrides above already invert white /
+   gray surfaces and text; this block covers what they don't: the rail (which
+   the global .bg-gray-900 inversion turned near-white under white text), the
+   status chips, and hover/divider shades. Scoped to .admin-panel so member
+   pages are untouched. */
+/* =============================================== */
+
+.admin-chrome { background-color: #111827; }
+html.dark .admin-chrome { background-color: #0b0e16; }
+
+html.dark .admin-panel .hover\:bg-gray-50:hover  { background-color: #1f2536 !important; }
+html.dark .admin-panel .hover\:bg-gray-100:hover { background-color: #252b3b !important; }
+html.dark .admin-panel .hover\:bg-gray-200:hover { background-color: #303748 !important; }
+html.dark .admin-panel .hover\:bg-neutral-50:hover { background-color: #1f2536 !important; }
+html.dark .admin-panel .divide-gray-50 > :not([hidden]) ~ :not([hidden]),
+html.dark .admin-panel .divide-gray-100 > :not([hidden]) ~ :not([hidden]) { border-color: #252b3b !important; }
+html.dark .admin-panel .border-gray-50 { border-color: #252b3b !important; }
+html.dark .admin-panel .bg-gray-300 { background-color: #303748 !important; }
+
+/* Status chips: light tint + dark text → dark tint + light text */
+html.dark .admin-panel .bg-green-50,
+html.dark .admin-panel .bg-green-100  { background-color: rgba(46,125,50,0.22) !important; }
+html.dark .admin-panel .bg-red-50,
+html.dark .admin-panel .bg-red-100    { background-color: rgba(198,40,40,0.22) !important; }
+html.dark .admin-panel .bg-amber-50,
+html.dark .admin-panel .bg-amber-100,
+html.dark .admin-panel .bg-yellow-50,
+html.dark .admin-panel .bg-yellow-100,
+html.dark .admin-panel .bg-orange-100 { background-color: rgba(245,124,0,0.22) !important; }
+html.dark .admin-panel .bg-blue-50,
+html.dark .admin-panel .bg-blue-100   { background-color: rgba(21,101,192,0.28) !important; }
+html.dark .admin-panel .bg-primary-100 { background-color: rgba(139,35,70,0.32) !important; }
+html.dark .admin-panel .bg-gold-100    { background-color: rgba(201,162,39,0.22) !important; }
+
+html.dark .admin-panel .text-green-600,
+html.dark .admin-panel .text-green-700,
+html.dark .admin-panel .text-green-800 { color: #81c784 !important; }
+html.dark .admin-panel .text-red-500,
+html.dark .admin-panel .text-red-600,
+html.dark .admin-panel .text-red-700,
+html.dark .admin-panel .text-red-800 { color: #ef9a9a !important; }
+html.dark .admin-panel .text-amber-600,
+html.dark .admin-panel .text-amber-700,
+html.dark .admin-panel .text-amber-800,
+html.dark .admin-panel .text-yellow-600,
+html.dark .admin-panel .text-yellow-700,
+html.dark .admin-panel .text-yellow-800,
+html.dark .admin-panel .text-orange-700 { color: #ffcc80 !important; }
+html.dark .admin-panel .text-blue-600,
+html.dark .admin-panel .text-blue-700,
+html.dark .admin-panel .text-blue-800 { color: #90caf9 !important; }
+
+html.dark .admin-panel .border-green-200 { border-color: rgba(129,199,132,0.35) !important; }
+html.dark .admin-panel .border-red-200   { border-color: rgba(239,154,154,0.35) !important; }
+html.dark .admin-panel .border-amber-200,
+html.dark .admin-panel .border-yellow-200 { border-color: rgba(255,204,128,0.35) !important; }
+html.dark .admin-panel .border-blue-200  { border-color: rgba(144,202,249,0.35) !important; }
+html.dark .admin-panel .border-primary-100,
+html.dark .admin-panel .border-primary-200 { border-color: rgba(224,166,184,0.35) !important; }
+
+/* Hover variants on chips/buttons */
+html.dark .admin-panel .hover\:bg-red-100:hover,
+html.dark .admin-panel .hover\:bg-red-200:hover   { background-color: rgba(198,40,40,0.35) !important; }
+html.dark .admin-panel .hover\:bg-amber-200:hover { background-color: rgba(245,124,0,0.35) !important; }
+html.dark .admin-panel .hover\:bg-primary-100:hover { background-color: rgba(139,35,70,0.45) !important; }
+
+/* Recharts grid: stroke="currentColor" + this class so it follows the theme */
+.chart-grid { color: #f3f4f6; }
+html.dark .chart-grid { color: #252b3b; }

@@ -124,7 +124,7 @@ export default function AdminRevenue() {
           ) : monthly.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={monthly}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="chart-grid" />
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip formatter={(v) => `₹${v.toLocaleString('en-IN')}`} />
@@ -141,7 +141,7 @@ export default function AdminRevenue() {
           {!loading && monthly.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={monthly}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="chart-grid" />
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />

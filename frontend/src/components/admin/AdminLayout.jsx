@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Link, NavLink, Navigate, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import useDarkMode from '../../hooks/useDarkMode';
 import {
   FiGrid, FiUsers, FiCheckCircle, FiCreditCard,
   FiTrendingUp, FiFlag, FiLogOut, FiMenu, FiX,
   FiChevronRight, FiTag, FiUserPlus, FiPhoneCall, FiHeart, FiInbox, FiShield,
-  FiFilter, FiList,
+  FiFilter, FiList, FiMoon, FiSun,
 } from 'react-icons/fi';
 
 // `scope` is the permission the server requires for that section. A sub-admin
@@ -84,6 +85,11 @@ export function AdminScopeRoute({ scope, children }) {
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
+  // The panel renders no member Navbar — the only thing that applied the saved
+  // theme — so a hard load of /admin/* came up light for someone who had chosen
+  // dark (same bug the marketing portal had). Mount the hook here and give the
+  // rail its own toggle.
+  const { isDark, toggle: toggleDark } = useDarkMode();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -99,7 +105,7 @@ export default function AdminLayout() {
   const visibleNav = scopes ? navItems.filter((i) => scopes.includes(i.scope)) : navItems;
 
   const Sidebar = ({ mobile = false }) => (
-    <div className={`flex flex-col h-full bg-gray-900 ${mobile ? 'w-72' : 'w-64'}`}>
+    <div className={`flex flex-col h-full admin-chrome ${mobile ? 'w-72' : 'w-64'}`}>
       {/* Logo */}
       <div className="px-6 py-5 border-b border-gray-800">
         <div className="flex items-center gap-2">
@@ -146,6 +152,15 @@ export default function AdminLayout() {
           <p className="text-[11px] text-gray-400 truncate">{user?.email}</p>
         </div>
         <button
+          type="button"
+          onClick={toggleDark}
+          aria-pressed={isDark}
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white transition-all duration-150"
+        >
+          {isDark ? <FiSun className="w-4 h-4" /> : <FiMoon className="w-4 h-4" />}
+          {isDark ? 'Light mode' : 'Dark mode'}
+        </button>
+        <button
           onClick={handleLogout}
           className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-red-400 transition-all duration-150"
         >
@@ -157,7 +172,7 @@ export default function AdminLayout() {
   );
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="admin-panel flex h-screen bg-gray-50 overflow-hidden">
       {/* Desktop sidebar */}
       <div className="hidden md:flex flex-shrink-0">
         <Sidebar />
@@ -179,7 +194,7 @@ export default function AdminLayout() {
       {/* Main area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Mobile topbar */}
-        <div className="md:hidden flex items-center justify-between px-4 py-3 bg-gray-900 border-b border-gray-800">
+        <div className="md:hidden flex items-center justify-between px-4 py-3 admin-chrome border-b border-gray-800">
           <button
             onClick={() => setSidebarOpen(true)}
             className="text-gray-400 hover:text-white transition-colors"
