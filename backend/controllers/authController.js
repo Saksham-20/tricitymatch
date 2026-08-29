@@ -273,7 +273,12 @@ exports.signup = asyncHandler(async (req, res) => {
       // If referral code used, increment usage count and create marketing lead
       if (referralData) {
         await ReferralCode.update(
-          { usageCount: sequelize.literal('usageCount + 1') },
+          // Quote the column: Postgres folds an unquoted identifier to lower
+          // case, so `usageCount + 1` resolved to a non-existent `usagecount`
+          // and threw inside the signup transaction — every signup carrying a
+          // valid referral code rolled back with "Unable to create account",
+          // which killed the whole marketing-referral funnel silently.
+          { usageCount: sequelize.literal('"usageCount" + 1') },
           { where: { code: referralData.referralCodeUsed }, transaction: t }
         );
 
