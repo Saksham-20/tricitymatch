@@ -25,7 +25,7 @@ const Tile = ({ icon: Icon, label, value, hint, gold = false }) => (
   </div>
 );
 
-export default function ReportSummary({ summary, className = '' }) {
+export default function ReportSummary({ summary, className = '', commissionLabel = 'Your commission' }) {
   if (!summary) return null;
   const s = summary;
   return (
@@ -51,7 +51,7 @@ export default function ReportSummary({ summary, className = '' }) {
       />
       <Tile
         icon={Wallet}
-        label="Your commission"
+        label={commissionLabel}
         value={`₹${Number(s.commissionEarned || 0).toLocaleString('en-IN')}`}
         hint={s.commissionRate != null ? `${s.commissionRate}% of ₹${Number(s.revenue || 0).toLocaleString('en-IN')}` : null}
         gold

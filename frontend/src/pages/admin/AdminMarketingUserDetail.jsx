@@ -77,7 +77,7 @@ export default function AdminMarketingUserDetail() {
         </button>
       </div>
 
-      {report?.summary && <ReportSummary summary={report.summary} className="mb-8" />}
+      {report?.summary && <ReportSummary summary={report.summary} className="mb-8" commissionLabel="Rep commission" />}
 
       <div className="mb-8">
         <h2 className="text-xl font-bold mb-4">
