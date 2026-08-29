@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, TrendingUp, DollarSign, Code2, PhoneCall } from 'lucide-react';
+import { Users, TrendingUp, IndianRupee, Code2, PhoneCall } from 'lucide-react';
 import apiClient from '../../api/apiClient';
 
 // Tiled KPI card — mirrors the admin dashboard KpiCard so both portals read the same.
@@ -52,7 +52,7 @@ export default function MarketingDashboard() {
           <KpiCard icon={Users}      label="Total Leads"  value={stats.totalLeads} />
           <KpiCard icon={PhoneCall}  label="Contacted"    value={stats.contactedLeads} />
           <KpiCard icon={TrendingUp} label="Converted"    value={stats.convertedLeads} />
-          <KpiCard icon={DollarSign} label="Revenue"      value={`₹${stats.totalRevenue?.toLocaleString() || 0}`} accent="gold" />
+          <KpiCard icon={IndianRupee} label="Revenue"     value={`₹${(stats.totalRevenue || 0).toLocaleString('en-IN')}`} accent="gold" />
           <KpiCard icon={Code2}      label="Active Codes" value={stats.activeReferralCodes} />
         </div>
       )}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, TrendingUp, DollarSign } from 'lucide-react';
+import { ArrowLeft, Users, TrendingUp, IndianRupee } from 'lucide-react';
 import apiClient from '../../api/apiClient';
 
 export default function AdminMarketingUserDetail() {
@@ -73,10 +73,10 @@ export default function AdminMarketingUserDetail() {
             </div>
           </div>
           <div className="bg-white p-6 rounded-lg shadow flex items-center gap-4">
-            <DollarSign className="text-purple-600" size={28} />
+            <IndianRupee className="text-gold" size={28} />
             <div>
               <p className="text-gray-600 text-sm">Revenue</p>
-              <p className="text-2xl font-bold">₹{stats.totalRevenue?.toLocaleString() || 0}</p>
+              <p className="text-2xl font-bold">₹{(stats.totalRevenue || 0).toLocaleString('en-IN')}</p>
             </div>
           </div>
         </div>
