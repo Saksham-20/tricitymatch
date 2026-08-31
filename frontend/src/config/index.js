@@ -69,6 +69,40 @@ export const support = {
   address: import.meta.env.VITE_SUPPORT_ADDRESS || '',
 };
 
+// Legal identity, published because the law requires it to be published.
+//
+//   - Consumer Protection (E-Commerce) Rules, 2020 r.4(3)/r.5(3): an e-commerce
+//     entity must display its legal name, the address of its head office, and
+//     the name, contact and designation of its grievance officer.
+//   - IT (Intermediary Guidelines) Rules, 2021 r.3(2)(a): the Grievance
+//     Officer's name and contact must be prominently published.
+//   - DPDP Rules, 2025 r.14(3): the contact for data-protection queries and the
+//     grievance-response timeline must be published.
+//
+// Same doctrine as `support` above: a value we do not have is HIDDEN, never a
+// plausible-looking placeholder. A fabricated grievance officer is worse than a
+// missing one — it is a false statutory disclosure.
+const orEmpty = (value) => String(value || '').trim();
+
+export const legal = {
+  // Registered legal name of the operator. Falls back to the brand so the pages
+  // still read correctly before the entity is incorporated/registered.
+  entity: orEmpty(import.meta.env.VITE_LEGAL_ENTITY) || 'TricityMatch',
+  // Registered/principal place of business. Blank => the address line is omitted.
+  address: orEmpty(import.meta.env.VITE_LEGAL_ADDRESS),
+  gstin: orEmpty(import.meta.env.VITE_LEGAL_GSTIN),
+  // Named natural person, resident in India (IT Rules 2021 r.3(2)(a)).
+  grievanceOfficer: orEmpty(import.meta.env.VITE_GRIEVANCE_OFFICER),
+  grievanceEmail: orEmpty(import.meta.env.VITE_GRIEVANCE_EMAIL) || 'grievance@tricitymatch.com',
+  // DPDP contact — the person who answers questions about personal-data processing.
+  privacyEmail: orEmpty(import.meta.env.VITE_PRIVACY_EMAIL) || 'privacy@tricitymatch.com',
+  dataProtectionOfficer: orEmpty(import.meta.env.VITE_DPO_NAME),
+  // Shown as "Last updated" on both policies. One constant so the two pages,
+  // the mobile mirrors and the annual re-notification cannot drift apart.
+  termsUpdated: '26 August 2026',
+  privacyUpdated: '26 August 2026',
+};
+
 // Cloudinary Configuration
 export const cloudinary = {
   cloudName: import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '',
@@ -188,6 +222,7 @@ const config = {
   WS_URL,
   features,
   razorpay,
+  legal,
   cloudinary,
   app,
   limits,

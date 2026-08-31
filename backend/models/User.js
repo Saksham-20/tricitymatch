@@ -66,6 +66,19 @@ const User = sequelize.define('User', {
     type: DataTypes.BOOLEAN,
     defaultValue: false
   },
+  // DPDP consent record: when the holder accepted the Terms/Privacy checkbox
+  // at signup, and which version (backend/constants/legal.js TERMS_VERSION).
+  // NULL on pre-record accounts — never treated as "did not accept".
+  termsAcceptedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    defaultValue: null
+  },
+  termsVersion: {
+    type: DataTypes.STRING(32),
+    allowNull: true,
+    defaultValue: null
+  },
   lastLogin: {
     type: DataTypes.DATE,
     allowNull: true

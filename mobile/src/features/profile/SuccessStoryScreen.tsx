@@ -29,6 +29,7 @@ export default function SuccessStoryScreen() {
   const [story, setStory] = useState('');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [consent, setConsent] = useState(false);
 
   const submitMut = useMutation({
     mutationFn: () =>
@@ -58,6 +59,9 @@ export default function SuccessStoryScreen() {
     }
     if (!story.trim() || story.trim().length < 20) {
       showToast.error('Story too short', 'Please share a bit more about your journey (min 20 characters).'); return;
+    }
+    if (!consent) {
+      showToast.error('Consent needed', 'Please agree to the publishing terms to submit your story.'); return;
     }
     submitMut.mutate();
   };
@@ -177,6 +181,27 @@ export default function SuccessStoryScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
+          style={s.consentRow}
+          onPress={() => setConsent((v) => !v)}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: consent }}
+          testID="consent-checkbox"
+        >
+          <Ionicons
+            name={consent ? 'checkbox' : 'square-outline'}
+            size={22}
+            color={consent ? c.primary : c.textMuted}
+          />
+          <Text style={s.consentText}>
+            I agree to the{' '}
+            <Text style={s.link} onPress={() => (nav as any).navigate('Terms')} accessibilityRole="link">Terms &amp; Conditions</Text>
+            {' '}and{' '}
+            <Text style={s.link} onPress={() => (nav as any).navigate('Privacy')} accessibilityRole="link">Privacy Policy</Text>
+            , and consent to TricityMatch publishing our names, story and photo. I can withdraw this any time by contacting support.
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
           style={[s.submitBtn, submitMut.isPending && s.disabled]}
           onPress={handleSubmit}
           disabled={submitMut.isPending}
@@ -274,6 +299,19 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     fontFamily: typography.fontFamily.medium,
     color: c.textSecondary,
   },
+  consentRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+  },
+  consentText: {
+    flex: 1,
+    fontSize: typography.fontSize.sm,
+    color: c.textSecondary,
+    lineHeight: 20,
+  },
+  link: { color: c.primary, fontFamily: typography.fontFamily.semiBold },
   submitBtn: {
     flexDirection: 'row',
     alignItems: 'center',

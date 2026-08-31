@@ -1412,6 +1412,17 @@ const Home = () => {
         {/* Bottom bar */}
         <div className="footer-bottom-inner" style={{ padding: '16px 48px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.14em', textTransform: 'uppercase', color: 'rgba(253,248,242,.5)', flexWrap: 'wrap', gap: 16 }}>
           <span>© 2026 TricityMatch · All rights reserved</span>
+          <span>
+            Developed by{' '}
+            <a
+              href="https://www.globoniks.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: 'rgba(253,248,242,.8)', textDecoration: 'underline', textUnderlineOffset: 3 }}
+            >
+              Globoniks
+            </a>
+          </span>
           <span>Made with care in Chandigarh</span>
           <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80', animation: 'pulse 2s ease-in-out infinite' }} />

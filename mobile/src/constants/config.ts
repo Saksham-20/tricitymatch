@@ -43,6 +43,20 @@ export const CONFIG = {
   SUPPORT_EMAIL:    process.env.EXPO_PUBLIC_SUPPORT_EMAIL ?? 'support@tricitymatch.com',
   SUPPORT_WHATSAPP: process.env.EXPO_PUBLIC_SUPPORT_WHATSAPP ?? '',
 
+  // Legal identity, published because the law requires it to be published
+  // (IT Rules 2021 r.3(2)(a) — Grievance Officer by NAME; E-Commerce Rules 2020
+  // r.4(3) — legal name + office address; DPDP Rules 2025 r.14(3) — a published
+  // contact and grievance timeline). Same doctrine as the support channels
+  // above: unset means the line is OMITTED, never a plausible placeholder — a
+  // fabricated statutory disclosure is worse than a missing one.
+  LEGAL_ENTITY:       process.env.EXPO_PUBLIC_LEGAL_ENTITY ?? 'TricityMatch',
+  LEGAL_ADDRESS:      process.env.EXPO_PUBLIC_LEGAL_ADDRESS ?? '',
+  GRIEVANCE_OFFICER:  process.env.EXPO_PUBLIC_GRIEVANCE_OFFICER ?? '',
+  GRIEVANCE_EMAIL:    process.env.EXPO_PUBLIC_GRIEVANCE_EMAIL ?? 'grievance@tricitymatch.com',
+  PRIVACY_EMAIL:      process.env.EXPO_PUBLIC_PRIVACY_EMAIL ?? 'privacy@tricitymatch.com',
+  // One constant so the two apps and the website cannot drift apart.
+  LEGAL_UPDATED:      '26 August 2026',
+
   IS_DEV: process.env.NODE_ENV !== 'production',
 
   // Feature gates. A feature whose credentials are absent must be HIDDEN, not

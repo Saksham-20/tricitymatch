@@ -10,6 +10,8 @@ export type AuthStackParamList = {
   SignupBasics: { contactKind: 'email' | 'phone'; contactValue: string; password: string };
   ForgotPassword: undefined;
   ResetPassword: { token: string };
+  Terms: undefined;
+  Privacy: undefined;
 };
 
 // Onboarding Stack — legacy-account gate only (D6: signup collects basics,

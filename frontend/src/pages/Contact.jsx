@@ -4,12 +4,14 @@ import toast from 'react-hot-toast';
 import { FiCheck, FiMail, FiClock, FiShield } from 'react-icons/fi';
 import Seo from '../components/common/Seo';
 import FormField from '../components/ui/FormField';
+import CheckBox from '../components/ui/CheckBox';
 import api from '../api/axios';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function Contact() {
   const [form, setForm] = useState({ name: '', email: '', phone: '', subject: '', message: '' });
+  const [agreed, setAgreed] = useState(false);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -24,6 +26,7 @@ export default function Contact() {
     if (!form.name.trim() || form.name.trim().length < 2) e.name = 'Please enter your name';
     if (!EMAIL_RE.test(form.email)) e.email = 'Please enter a valid email';
     if (!form.message.trim() || form.message.trim().length < 10) e.message = 'Message must be at least 10 characters';
+    if (!agreed) e.agreed = 'Please agree to the Privacy Policy so we can respond to you';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -115,6 +118,22 @@ export default function Contact() {
                     }`}
                   />
                   {errors.message && <p id="contact-message-error" className="text-sm text-red-600 font-medium">{errors.message}</p>}
+                </div>
+                <div>
+                  <CheckBox
+                    checked={agreed}
+                    onChange={(v) => { setAgreed(v); if (errors.agreed) setErrors((e) => ({ ...e, agreed: undefined })); }}
+                    size="md"
+                    label={(
+                      <span className="text-sm text-neutral-600">
+                        I agree to the{' '}
+                        <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline hover:text-primary-700">Terms &amp; Conditions</Link>{' '}
+                        and{' '}
+                        <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline hover:text-primary-700">Privacy Policy</Link>, and to TricityMatch contacting me about this enquiry.
+                      </span>
+                    )}
+                  />
+                  {errors.agreed && <p className="text-sm text-red-600 font-medium mt-1.5">{errors.agreed}</p>}
                 </div>
                 <button type="submit" disabled={loading} className="btn-primary w-full justify-center">
                   {loading ? 'Sending…' : 'Send Message'}

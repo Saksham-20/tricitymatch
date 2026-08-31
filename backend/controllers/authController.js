@@ -13,6 +13,7 @@ const { recordFailedLogin, clearLoginAttempts, loginLookupKey } = require('../mi
 const { log } = require('../middlewares/logger');
 const { OAuth2Client } = require('google-auth-library');
 const smsService = require('../utils/smsService');
+const { TERMS_VERSION } = require('../constants/legal');
 const { trackEvent } = require('../utils/trackEvent');
 const { grantFoundingIfOpen } = require('../utils/foundingGrant');
 const { getActiveSubscription } = require('../utils/entitlements');
@@ -251,6 +252,10 @@ exports.signup = asyncHandler(async (req, res) => {
         status: 'active',
         emailVerified: emailWasVerified,
         phoneVerified: phoneWasVerified,
+        // Consent record (DPDP): signup is unreachable without ticking the
+        // Terms + Privacy checkbox, so account creation IS the acceptance.
+        termsAcceptedAt: new Date(),
+        termsVersion: TERMS_VERSION,
         invitedBy,
         ...(referralData && referralData)
       }, { transaction: t });
@@ -1024,6 +1029,10 @@ exports.googleAuth = asyncHandler(async (req, res) => {
           password: null,
           status: 'active',
           emailVerified: true,
+          // Google sign-in creates the account from the login page, whose
+          // "By continuing, you agree…" notice carries the same Terms/Privacy.
+          termsAcceptedAt: new Date(),
+          termsVersion: TERMS_VERSION,
         }, { transaction: t });
 
         await Profile.create({

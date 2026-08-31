@@ -10,7 +10,7 @@ import { PressableScale } from '../../components/motion';
 import { useTheme } from '../../hooks/useTheme';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
-  ActivityIndicator, KeyboardAvoidingView, Platform, Linking,
+  ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -150,9 +150,9 @@ export default function CreateAccountScreen() {
           />
           <Text style={st.termsText}>
             {t('auth.signup.agree', 'I agree to the')}{' '}
-            <Text style={st.link} onPress={() => Linking.openURL('https://tricitymatch.com/terms')}>Terms</Text>
+            <Text style={st.link} onPress={() => navigation.navigate('Terms')} accessibilityRole="link">{t('auth.signup.termsLink', 'Terms & Conditions')}</Text>
             {' '}&amp;{' '}
-            <Text style={st.link} onPress={() => Linking.openURL('https://tricitymatch.com/privacy')}>Privacy Policy</Text>
+            <Text style={st.link} onPress={() => navigation.navigate('Privacy')} accessibilityRole="link">{t('auth.signup.privacyLink', 'Privacy Policy')}</Text>
           </Text>
         </TouchableOpacity>
 

@@ -499,6 +499,13 @@ const Login = () => {
               </>
             )}
 
+            <p className="text-xs text-neutral-500 text-center leading-relaxed">
+              By continuing, you agree to our{' '}
+              <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline hover:text-primary-700">Terms &amp; Conditions</Link>{' '}
+              and{' '}
+              <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline hover:text-primary-700">Privacy Policy</Link>.
+            </p>
+
             {/* Divider */}
             <div className="relative">
               <div className="absolute inset-0 flex items-center">

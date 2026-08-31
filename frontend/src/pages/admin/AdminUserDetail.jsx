@@ -166,6 +166,13 @@ export default function AdminUserDetail() {
           <InfoRow label="Status"        value={user.status} />
           <InfoRow label="Joined"        value={user.createdAt ? new Date(user.createdAt).toLocaleString('en-IN') : null} />
           <InfoRow label="Last Login"    value={user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString('en-IN') : null} />
+          {/* DPDP consent record. NULL = account predates the record (mig 000062) — not a refusal. */}
+          <InfoRow
+            label="Terms Accepted"
+            value={user.termsAcceptedAt
+              ? `${new Date(user.termsAcceptedAt).toLocaleString('en-IN')}${user.termsVersion ? ` (v${user.termsVersion})` : ''}`
+              : 'Before consent records began'}
+          />
         </Section>
 
         {/* Profile info */}
