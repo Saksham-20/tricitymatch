@@ -140,6 +140,26 @@ const SVG = {
   splash: buildSvg({ field: 'none', title: 'TricityMatch' }),
 };
 
+/**
+ * Email header mark: RED glyphs on a WHITE rounded tile.
+ *
+ * Mail clients do not render SVG, and the header band is UI burgundy — the
+ * red-on-burgundy plate used everywhere else has no contrast there, which is
+ * the same reason the OG card sits its mark on a white tile.
+ */
+function emailLogoSvg() {
+  const s = safeCircleScale(0.36);
+  const body = GLYPHS.map((points) => `    <polygon points="${points}" />`).join('\n');
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${GRID} ${GRID}" width="${GRID}" height="${GRID}" role="img" aria-label="TricityMatch">
+  <title>TricityMatch</title>
+  <rect width="${GRID}" height="${GRID}" rx="223" ry="223" fill="${WHITE}" />
+  <g fill="${RED}" transform="translate(${GRID / 2} ${GRID / 2}) scale(${s}) translate(${-GRID / 2} ${-GRID / 2})">
+${body}
+  </g>
+</svg>
+`;
+}
+
 /** Android round launcher icon: red disc, glyphs inside the inscribed safe area. */
 function roundSvg() {
   const c = GRID / 2;
@@ -286,6 +306,10 @@ async function main() {
   }
   await out('frontend/public/icons/manifest-icon-192.maskable.png', await png(SVG.maskable, 192).toBuffer());
   await out('frontend/public/icons/manifest-icon-512.maskable.png', await png(SVG.maskable, 512).toBuffer());
+
+  // 3b. Email header mark — PNG, because mail clients cannot render SVG ----
+  console.log('\nEmail mark');
+  await out('frontend/public/icons/email-logo.png', await png(emailLogoSvg(), 240).toBuffer());
 
   // 4. Apple touch icons — iOS applies its own squircle mask ---------------
   console.log('\nApple touch icons');

@@ -141,6 +141,13 @@ const BRAND = {
   panelBorder: '#E7DCD3',
 };
 
+// Header mark. Mail clients cannot render SVG, so this is the PNG cut
+// (red glyphs on a white tile — the header band is burgundy, and the red
+// plate used elsewhere has no contrast on it) served by the web app.
+// The wordmark below it stays real text, so a client that blocks images
+// still shows the brand.
+const LOGO_URL = `${config.server.frontendUrl}/icons/email-logo.png?v=1`;
+
 /**
  * brandLayout — wraps body HTML in the shared TricityMatch shell.
  * @param {object} o
@@ -162,6 +169,7 @@ const brandLayout = ({ eyebrow, bodyHtml, preheader = '', cta }) => `
     <tr><td align="center">
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid ${BRAND.border};">
         <tr><td style="background:${BRAND.burgundy};padding:30px 32px;text-align:center;">
+          <img src="${LOGO_URL}" width="56" height="56" alt="TricityMatch" style="display:block;margin:0 auto 12px;border:0;outline:none;text-decoration:none;width:56px;height:56px;border-radius:13px;" />
           <div style="font-family:Georgia,'Times New Roman',serif;font-size:25px;font-weight:700;color:#ffffff;letter-spacing:0.5px;">TricityMatch</div>
           <div style="height:3px;width:46px;background:${BRAND.gold};margin:11px auto 0;border-radius:2px;"></div>
           ${eyebrow ? `<div style="color:#F1E2D5;font-size:11px;margin-top:12px;letter-spacing:1.5px;text-transform:uppercase;">${eyebrow}</div>` : ''}

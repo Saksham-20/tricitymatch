@@ -29,8 +29,18 @@ const ESCAPED = '&lt;img src=x onerror=&quot;alert(1)&quot;&gt;';
 // The escaped form still contains the literal text `onerror=`, which is inert.
 // What must never appear is an actual tag or an attribute that a mail client
 // could parse: `<img` opening a element, or onerror bound to a real quoted value.
+// The shell itself carries exactly one legitimate <img>: the header logo.
+// Strip that one before asserting no tag survived, so the check stays a real
+// injection test rather than a ban on images.
+const LOGO_IMG = /<img src="[^"]*\/icons\/email-logo\.png[^"]*"[^>]*>/;
+
+const stripLogo = (html) => {
+  expect(html).toMatch(LOGO_IMG);
+  return html.replace(LOGO_IMG, '');
+};
+
 const expectNoRawTag = (html) => {
-  expect(html).not.toContain('<img');
+  expect(stripLogo(html)).not.toContain('<img');
   expect(html).not.toContain('onerror="alert');
 };
 

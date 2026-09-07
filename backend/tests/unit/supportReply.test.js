@@ -54,7 +54,10 @@ describe('support reply email', () => {
     expect(html).not.toContain('<script>');
     // The tag is neutralised; the literal text "onerror=" surviving as escaped
     // copy is fine — what matters is that no tag is ever opened.
-    expect(html).not.toContain('<img');
+    // The header logo is the shell's own <img>; drop it before asserting that
+    // no tag from the member's message survived.
+    expect(html.replace(/<img src="[^"]*\/icons\/email-logo\.png[^"]*"[^>]*>/, ''))
+      .not.toContain('<img');
     expect(html).toContain('&lt;script&gt;');
     expect(html).toContain('&lt;img');
     expect(html).toContain('&lt;b&gt;Ravi&lt;/b&gt;');
