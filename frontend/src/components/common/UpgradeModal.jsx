@@ -1,37 +1,26 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { FiX, FiLock, FiArrowRight } from 'react-icons/fi';
+import { FiX, FiLock, FiArrowRight, FiZap, FiShield } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
+import api from '../../api/axios';
+import Skeleton from '../ui/Skeleton';
+import ErrorState from '../ui/ErrorState';
 
-const plans = [
-  {
-    key: 'basic_premium',
-    name: 'Basic Premium',
-    price: '₹1,500',
-    duration: '15 days',
-    contactUnlocks: '5 unlocks',
-    accent: 'primary',
-  },
-  {
-    key: 'premium_plus',
-    name: 'Premium Plus',
-    price: '₹3,000',
-    duration: '1 month',
-    contactUnlocks: '10 unlocks',
-    accent: 'primary',
-    popular: true,
-  },
-  {
-    key: 'vip',
-    name: 'VIP',
-    price: '₹7,499',
-    duration: '3 months',
-    contactUnlocks: 'Unlimited',
-    accent: 'gold',
-  },
-];
+// Presentation-only metadata (icon + accent colour), keyed by plan enum. Every
+// commercial fact here — price, tenure, contact unlocks, and which of these
+// tiers are even for sale — comes from GET /subscription/plans at render
+// time. This map must never grow a price or a duration: a hardcoded ladder
+// nobody fetched (₹1,500/15d, ₹3,000/1mo, ₹7,499/3mo, two of the three tiers
+// withdrawn) is exactly the bug this file used to ship.
+const PLAN_META = {
+  basic_premium: { icon: FiZap, accent: 'primary' },
+  premium_plus:  { icon: FaCrown, accent: 'primary' },
+  elite:         { icon: FiShield, accent: 'gold' },
+  vip:           { icon: FaCrown, accent: 'gold' },
+};
+const GRID_KEYS = ['basic_premium', 'premium_plus', 'elite', 'vip'];
 
 /**
  * Reusable upgrade prompt modal
@@ -42,8 +31,31 @@ const plans = [
  */
 const UpgradeModal = ({ isOpen, onClose, feature = 'this feature', description }) => {
   const navigate = useNavigate();
+  const [plans, setPlans] = useState({});
+  // idle | loading | loaded | error — never a static catalogue fallback. A
+  // withdrawn tier is simply absent from `plans`, the same contract
+  // Subscription.jsx already relies on.
+  const [status, setStatus] = useState('idle');
+
+  const fetchPlans = useCallback(() => {
+    setStatus('loading');
+    api.get('/subscription/plans')
+      .then(({ data }) => {
+        setPlans(data?.plans || {});
+        setStatus('loaded');
+      })
+      .catch(() => setStatus('error'));
+  }, []);
+
+  useEffect(() => {
+    if (isOpen && status === 'idle') fetchPlans();
+  }, [isOpen, status, fetchPlans]);
 
   if (!isOpen) return null;
+
+  const visiblePlans = GRID_KEYS
+    .filter((key) => Boolean(plans[key]))
+    .map((key) => [key, plans[key]]);
 
   return createPortal(
     <AnimatePresence>
@@ -95,43 +107,88 @@ const UpgradeModal = ({ isOpen, onClose, feature = 'this feature', description }
               </p>
             </div>
 
-            {/* Plan mini-cards */}
+            {/* Plan list — loading skeleton, error + retry, or the live offer.
+                Never a static catalogue: that is exactly the shape of the bug
+                this file used to ship. */}
             <div className="px-5 py-5 space-y-3 overflow-y-auto flex-1">
-              {plans.map((plan) => (
-                <button
-                  key={plan.key}
-                  onClick={() => { onClose(); navigate('/subscription'); }}
-                  className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl border transition-all hover:-translate-y-0.5 ${
-                    plan.popular
-                      ? 'border-primary-300 bg-primary-50/50 shadow-sm'
-                      : 'border-neutral-200 bg-white hover:border-primary-200'
-                  }`}
-                >
-                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                    plan.accent === 'gold' ? 'bg-gold-100' : 'bg-primary-100'
-                  }`}>
-                    <FaCrown className={`w-4 h-4 ${
-                      plan.accent === 'gold' ? 'text-gold-600' : 'text-primary-500'
-                    }`} />
-                  </div>
-
-                  <div className="flex-1 text-left">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-neutral-900">{plan.name}</span>
-                      {plan.popular && (
-                        <span className="px-1.5 py-0.5 bg-primary-500 text-white text-[9px] font-bold rounded-full uppercase">
-                          Popular
-                        </span>
-                      )}
+              {status === 'loading' && (
+                <div className="space-y-3" aria-busy="true" aria-label="Loading plans">
+                  {[0, 1].map((i) => (
+                    <div key={i} className="flex items-center gap-4 px-4 py-3.5 rounded-xl border border-neutral-200">
+                      <Skeleton variant="circle" className="w-9 h-9 flex-shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-3.5 w-28" />
+                        <Skeleton className="h-3 w-40" />
+                      </div>
                     </div>
-                    <p className="text-xs text-neutral-500">
-                      {plan.price}/{plan.duration} · {plan.contactUnlocks}
-                    </p>
-                  </div>
+                  ))}
+                </div>
+              )}
 
-                  <FiArrowRight className="w-4 h-4 text-neutral-400 flex-shrink-0" />
-                </button>
-              ))}
+              {status === 'error' && (
+                <ErrorState
+                  title="Couldn't load plans"
+                  description="We couldn't reach the pricing service. Check your connection and try again."
+                  onRetry={fetchPlans}
+                  className="py-6"
+                />
+              )}
+
+              {status === 'loaded' && visiblePlans.length === 0 && (
+                <div className="text-center py-6">
+                  <p className="text-sm text-neutral-500">Plans are being updated right now.</p>
+                  <button
+                    onClick={() => { onClose(); navigate('/subscription'); }}
+                    className="mt-3 text-sm font-semibold text-primary-600 underline underline-offset-2"
+                  >
+                    Check current plans
+                  </button>
+                </div>
+              )}
+
+              {status === 'loaded' && visiblePlans.map(([key, plan]) => {
+                const meta = PLAN_META[key] || {};
+                const Icon = meta.icon || FaCrown;
+                const gold = meta.accent === 'gold';
+                const unlocksLabel = plan.contactUnlocks === -1
+                  ? 'Unlimited unlocks'
+                  : `${plan.contactUnlocks} unlocks`;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => { onClose(); navigate('/subscription'); }}
+                    className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl border transition-all hover:-translate-y-0.5 ${
+                      plan.popular
+                        ? 'border-primary-300 bg-primary-50/50 shadow-sm'
+                        : 'border-neutral-200 bg-white hover:border-primary-200'
+                    }`}
+                  >
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                      gold ? 'bg-gold-100' : 'bg-primary-100'
+                    }`}>
+                      <Icon className={`w-4 h-4 ${
+                        gold ? 'text-gold-600' : 'text-primary-500'
+                      }`} />
+                    </div>
+
+                    <div className="flex-1 text-left">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-neutral-900">{plan.name}</span>
+                        {plan.badge && (
+                          <span className="px-1.5 py-0.5 bg-primary-500 text-white text-[9px] font-bold rounded-full uppercase">
+                            {plan.badge}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-neutral-500">
+                        ₹{plan.price.toLocaleString('en-IN')}/{plan.duration} · {unlocksLabel}
+                      </p>
+                    </div>
+
+                    <FiArrowRight className="w-4 h-4 text-neutral-400 flex-shrink-0" />
+                  </button>
+                );
+              })}
             </div>
 
             {/* Footer */}

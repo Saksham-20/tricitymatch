@@ -423,9 +423,17 @@ const Home = () => {
         <motion.div className="scroll-bar" style={{ scaleX: progressScaleX }} />
       )}
 
-      {/* ── ANNOUNCEMENT ── */}
+      {/* ── ANNOUNCEMENT ──
+          Was a hardcoded, never-verified offer ("First month Premium free for
+          Chandigarh residents") — no such offer exists, wrong on the benefit
+          (the real founding grant is `founding.grantDays` days, not a month)
+          and wrong on the geography (open to all three Tricity cities, not
+          Chandigarh alone). Driven off the same `useFoundingWindow` read the
+          FOUNDING BAND below already uses: fail-closed, so the strip renders
+          only while the server confirms the window is open, and simply does
+          not render otherwise rather than showing a claim nobody can redeem. */}
       <AnimatePresence>
-        {announcementOn && (
+        {announcementOn && founding.open && (
           <motion.div
             className="home-announce"
             initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
@@ -433,7 +441,7 @@ const Home = () => {
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '10px 40px', fontFamily: 'var(--sans)' }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--gold-lt)', animation: 'pulse 1.6s ease-in-out infinite', flexShrink: 0 }} />
-              <p><span style={{ fontWeight: 600, color: 'var(--gold-lt)' }}>Limited time:</span> First month Premium free for Chandigarh residents.{' '}
+              <p><span style={{ fontWeight: 600, color: 'var(--gold-text)' }}>Founding offer:</span> {founding.grantDays ? `${founding.grantDays} days` : 'A period'} of Premium free, open to all Tricity members.{founding.contactUnlocks != null ? ` Includes ${founding.contactUnlocks} contact unlock${founding.contactUnlocks === 1 ? '' : 's'}.` : ''}{' '}
                 <Link to="/onboarding" style={{ textDecoration: 'underline', fontWeight: 600 }}>Claim now</Link>
               </p>
               {/* padding + compensating offset: 32px hit box, icon stays at right:16 */}
@@ -578,10 +586,20 @@ const Home = () => {
                   attribute is what actually reaches the browser on this version. */}
               <img src="/images/landing/profile-priya.jpg" alt="Priya Sharma" fetchpriority="high" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 50%,rgba(0,0,0,.55))' }} />
-              <span style={{ position: 'absolute', top: 14, right: 14, fontFamily: 'var(--display)', fontSize: 36, lineHeight: 1, color: 'var(--cream)', zIndex: 3, fontStyle: 'italic' }}>97<small style={{ fontSize: 16, opacity: .7 }}>%</small></span>
+              {/* The bottom-scrim gradient only darkens from 50% down, so this
+                  badge sits over the raw photo with no scrim behind it — over
+                  a light part of a photo (sky, a wall, a curtain) the pale
+                  --cream glyph loses almost all contrast and reads as clipped
+                  or missing. A text-shadow guarantees legibility regardless of
+                  what is behind it, independent of which photo is loaded. */}
+              <span style={{ position: 'absolute', top: 14, right: 14, fontFamily: 'var(--display)', fontSize: 36, lineHeight: 1, color: 'var(--cream)', zIndex: 3, fontStyle: 'italic', textShadow: '0 2px 10px rgba(0,0,0,.65), 0 1px 3px rgba(0,0,0,.85)' }}>97<small style={{ fontSize: 16, opacity: .7 }}>%</small></span>
               <div style={{ position: 'absolute', bottom: 20, left: 20, right: 20, zIndex: 3, color: 'var(--cream)', display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <strong style={{ fontFamily: 'var(--display)', fontSize: 28, fontWeight: 400, letterSpacing: '-.01em' }}>Priya Sharma, 28</strong>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.12em', textTransform: 'uppercase', opacity: .85 }}>Mohali · MBA · Family-first</span>
+                {/* Single line, not wrap: at 2 lines this caption's own second
+                    line sat within a few px of the back card's caption peeking
+                    out below the front card, reading as one bled-together
+                    block of overlapping text. */}
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.12em', textTransform: 'uppercase', opacity: .85, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Mohali · MBA · Family-first</span>
               </div>
             </div>
           </div>

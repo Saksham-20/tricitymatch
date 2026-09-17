@@ -889,7 +889,13 @@ export default function Settings() {
           </div>
 
           {/* Content panel */}
-          <div className="flex-1 min-w-0 bg-white dark:bg-[#1a1f2e] rounded-2xl shadow-card border border-neutral-100 dark:border-neutral-800 p-6 md:p-8">
+          {/* w-full: the parent row is `items-start`, so on the sub-md column
+              layout a flex-col's cross axis (width) is NOT governed by
+              flex-1/flex-basis — a child sizes to its own content unless given
+              an explicit width. Without w-full, wide inner content (e.g. the
+              invite-code row) pushed this panel past the viewport instead of
+              wrapping inside it, causing the page-level horizontal scroll. */}
+          <div className="flex-1 min-w-0 w-full bg-white dark:bg-[#1a1f2e] rounded-2xl shadow-card border border-neutral-100 dark:border-neutral-800 p-6 md:p-8">
             <TabContent />
           </div>
         </div>

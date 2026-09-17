@@ -144,7 +144,12 @@ export default function Matches() {
         />
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-1.5 mb-6 mt-5 w-full sm:w-fit">
+        {/* overflow-x-auto + flex-none: 4 tabs (Saved/Mutual/Sent/Likes You)
+            do not fit 343px of usable width at 375px, and `flex-1` cannot
+            shrink a flex item below its own content's intrinsic width — the
+            row was pushing the whole page 51px wider than the viewport.
+            Scrolling inside this row contains it instead. */}
+        <div className="flex gap-1 bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-1.5 mb-6 mt-5 w-full sm:w-fit overflow-x-auto scrollbar-hide">
           {TABS.map((t) => {
             const Icon = t.icon;
             const isActive = active === t.id;
@@ -157,7 +162,7 @@ export default function Matches() {
                   // the tab the member is actually looking at.
                   setSearchParams(t.id === 'shortlist' ? {} : { tab: t.id }, { replace: true });
                 }}
-                className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                className={`flex-none whitespace-nowrap flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
                   isActive
                     ? 'bg-primary-500 text-white shadow-sm'
                     : 'text-neutral-500 hover:text-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800'

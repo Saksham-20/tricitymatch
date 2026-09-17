@@ -495,8 +495,16 @@ const AppContent = () => {
   useRouteTitle();
   const isAdminRoute = location.pathname.startsWith('/admin');
   const isMarketingRoute = location.pathname.startsWith('/marketing');
+  // Funnel routes ship their own full-screen layout — their own Logo(s), their
+  // own "back to home" link, their own CTA copy — and were never designed to
+  // sit under the fixed global Navbar. On /onboarding that meant two logos
+  // stacked plus a stray guest "Create Profile" CTA on top of the create-
+  // profile page itself. /login, /forgot-password and /reset-password carry
+  // the identical bespoke split-screen Logo layout, so the same one-line
+  // condition covers them safely.
+  const isFunnelRoute = ['/onboarding', '/login', '/forgot-password', '/reset-password'].includes(location.pathname);
 
-  const showBottomNav = isAuthenticated && !isAdminRoute && !isMarketingRoute;
+  const showBottomNav = isAuthenticated && !isAdminRoute && !isMarketingRoute && !isFunnelRoute;
 
   // Admin and marketing routes render without Navbar/BottomNav/Toaster
   if (isAdminRoute || isMarketingRoute) {
@@ -519,10 +527,10 @@ const AppContent = () => {
       >
         Skip to main content
       </a>
-      <Navbar />
-      <main 
-        id="main-content" 
-        tabIndex="-1" 
+      {!isFunnelRoute && <Navbar />}
+      <main
+        id="main-content"
+        tabIndex="-1"
         className={showBottomNav ? 'pb-24 md:pb-0' : ''}
       >
         <ErrorBoundary>
