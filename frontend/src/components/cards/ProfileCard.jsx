@@ -290,7 +290,7 @@ const ProfileCard = ({
         {/* Online indicator */}
         {isOnline && (
           <div className="absolute top-3.5 left-3.5 flex items-center gap-1.5 px-2.5 py-1 bg-white/85 backdrop-blur-md rounded-full shadow-sm">
-            <span className="w-2 h-2 rounded-full bg-success animate-pulse-soft" />
+            <span className="w-2 h-2 rounded-full bg-success" />
             <span className="text-[11px] font-semibold text-neutral-700">Online</span>
           </div>
         )}

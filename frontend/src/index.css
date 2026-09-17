@@ -46,6 +46,13 @@
     --input: 0 0% 91%;
     --ring: 341 71% 34%;
     --radius: 0.75rem;
+
+    /* Motion curves (doctrine 2026-09 §4.2) — the one set CSS and
+       animations.js both read from. `ease` (browser default) is still
+       correct for hover/color; `ease-in` is never used on UI. */
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);       /* entrances, exits, the default */
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);   /* on-screen movement, layout, tab indicator */
+    --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);    /* sheets and drawers */
   }
 
   html.dark {
@@ -121,82 +128,89 @@
   /* BUTTONS - Royal Elegance Theme                  */
   /* =============================================== */
   
-  /* Primary CTA - Express Interest, Connect */
+  /* Primary CTA - Express Interest, Connect
+     Named transitions (doctrine §4.3): press feedback owns `transform` at
+     120ms/--ease-out; hover's own transform+shadow run at 160ms/ease and are
+     pointer-gated so a tap doesn't leave the button stuck "raised" on touch. */
   .btn-primary {
-    @apply relative overflow-hidden px-7 py-3.5 rounded-xl font-semibold text-white transition-all duration-300;
+    @apply relative px-7 py-3.5 rounded-xl font-semibold text-white;
     background: linear-gradient(135deg, #8B2346 0%, #6B1D3A 100%);
     box-shadow: 0 4px 15px rgba(139, 35, 70, 0.25);
+    transition: transform 160ms ease, box-shadow 160ms ease;
   }
-  
-  .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(139, 35, 70, 0.35);
+
+  @media (hover: hover) and (pointer: fine) {
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(139, 35, 70, 0.35);
+    }
   }
-  
+
   .btn-primary:active {
-    transform: translateY(0) scale(0.98);
+    transform: scale(0.97);
+    transition: transform 120ms var(--ease-out);
   }
-  
+
   .btn-primary:focus-visible {
     @apply outline-none ring-2 ring-offset-2;
     ring-color: #8B2346;
   }
-  
+
   .btn-primary:disabled {
     @apply opacity-50 cursor-not-allowed;
     transform: none;
     box-shadow: none;
   }
-  
+
   /* Secondary CTA - Shortlist, Save */
   .btn-secondary {
-    @apply px-7 py-3.5 rounded-xl font-semibold transition-all duration-300 bg-white border-2;
+    @apply px-7 py-3.5 rounded-xl font-semibold bg-white border-2;
     color: #8B2346;
     border-color: #8B2346;
+    transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
   }
-  
-  .btn-secondary:hover {
-    background-color: #F8E8EC;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(139, 35, 70, 0.15);
+
+  @media (hover: hover) and (pointer: fine) {
+    .btn-secondary:hover {
+      background-color: #F8E8EC;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(139, 35, 70, 0.15);
+    }
   }
-  
+
   .btn-secondary:active {
-    transform: translateY(0) scale(0.98);
+    transform: scale(0.97);
+    transition: transform 120ms var(--ease-out);
   }
-  
-  /* Gold/Premium Button */
+
+  /* Gold/Premium Button. The infinite hover sweep (`::before`) is retired —
+     doctrine §2 ruling 7 bans idle/perpetual motion, and a premium badge
+     doesn't need to shine forever to read as premium. */
   .btn-gold {
-    @apply relative overflow-hidden px-7 py-3.5 rounded-xl font-semibold transition-all duration-300;
+    @apply relative px-7 py-3.5 rounded-xl font-semibold;
     background: linear-gradient(135deg, #C9A227 0%, #B8941F 100%);
     color: #3D2914;
     box-shadow: 0 4px 15px rgba(201, 162, 39, 0.3);
+    transition: transform 160ms ease, box-shadow 160ms ease;
   }
-  
-  .btn-gold:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(201, 162, 39, 0.4);
+
+  @media (hover: hover) and (pointer: fine) {
+    .btn-gold:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(201, 162, 39, 0.4);
+    }
   }
-  
-  .btn-gold::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-    transition: left 0.5s;
+
+  .btn-gold:active {
+    transform: scale(0.97);
+    transition: transform 120ms var(--ease-out);
   }
-  
-  .btn-gold:hover::before {
-    left: 100%;
-  }
-  
+
   /* Tertiary/Link Button */
   .btn-tertiary {
-    @apply font-medium underline-offset-4 transition-all duration-200;
+    @apply font-medium underline-offset-4;
     color: #8B2346;
+    transition: color 160ms ease;
   }
   
   .btn-tertiary:hover {
@@ -209,14 +223,17 @@
   /* =============================================== */
   
   .card {
-    @apply bg-white rounded-2xl p-6 transition-all duration-300;
+    @apply bg-white rounded-2xl p-6;
     border: 1px solid #E8E8E8;
     box-shadow: 0 4px 20px rgba(139, 35, 70, 0.08);
+    transition: transform 160ms ease, box-shadow 160ms ease;
   }
-  
-  .card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 30px rgba(139, 35, 70, 0.15);
+
+  @media (hover: hover) and (pointer: fine) {
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 30px rgba(139, 35, 70, 0.15);
+    }
   }
   
   .card-premium {
@@ -294,18 +311,20 @@
     border: 1px solid #F0E6CC;
   }
   
+  /* animate-pulse-soft retired (doctrine §2 ruling 7 — idle loops are
+     banned; a "new" badge or online dot does not need to breathe forever). */
   .badge-new {
-    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-white animate-pulse-soft;
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-white;
     background-color: #8B2346;
   }
-  
+
   .badge-online {
     @apply inline-flex items-center gap-1.5;
   }
-  
+
   .badge-online::before {
     content: '';
-    @apply w-2 h-2 rounded-full animate-pulse-soft;
+    @apply w-2 h-2 rounded-full;
     background-color: #2E7D32;
   }
 
@@ -417,10 +436,11 @@
   /* =============================================== */
   
   .nav-link {
-    @apply relative px-4 py-2.5 rounded-xl font-medium transition-all duration-200;
+    @apply relative px-4 py-2.5 rounded-xl font-medium;
     color: #5A5A5A;
+    transition: color 160ms ease, background-color 160ms ease;
   }
-  
+
   .nav-link:hover {
     color: #8B2346;
     background-color: #F8E8EC;
@@ -461,21 +481,10 @@
   .stagger-children > *:nth-child(7) { animation-delay: 300ms; }
   .stagger-children > *:nth-child(8) { animation-delay: 350ms; }
   
-  /* Heart Pulse Animation */
-  .animate-heart-pulse {
-    animation: heartPulse 0.3s ease-in-out;
-  }
-  
-  /* Glow Animation */
-  .animate-glow {
-    animation: glow 2s ease-in-out infinite;
-  }
-  
-  /* Float Animation */
-  .animate-float {
-    animation: float 3s ease-in-out infinite;
-  }
-  
+  /* animate-heart-pulse, animate-glow and animate-float retired (doctrine
+     §5 / §8 — idle loops and reflex bounce; confirmed zero usages across
+     frontend/src, so nothing needed replacing). */
+
   /* Shake Animation for Errors */
   .animate-shake {
     animation: shake 0.5s ease-in-out;
@@ -491,20 +500,13 @@
     animation: slideInRight 0.3s ease-out forwards;
   }
   
-  /* Bounce In */
-  .animate-bounce-in {
-    animation: bounceIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-  }
-  
+  /* animate-bounce-in and animate-gradient (background) retired (doctrine
+     §5 / §8 — bounce entrance and an animated-forever gradient; confirmed
+     zero usages across frontend/src). */
+
   /* Counter Animation */
   .animate-count-up {
     animation: countUp 1s ease-out forwards;
-  }
-  
-  /* Gradient Background Animation */
-  .animate-gradient {
-    background-size: 200% 200%;
-    animation: gradientShift 5s ease infinite;
   }
 
   /* =============================================== */
@@ -621,21 +623,6 @@
   100% { background-position: 200% 0; }
 }
 
-@keyframes heartPulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.3); }
-}
-
-@keyframes glow {
-  0%, 100% { box-shadow: 0 0 5px rgba(139, 35, 70, 0.3); }
-  50% { box-shadow: 0 0 20px rgba(139, 35, 70, 0.6); }
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-}
-
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
   10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
@@ -659,29 +646,6 @@
   }
 }
 
-@keyframes bounceIn {
-  0% {
-    opacity: 0;
-    transform: scale(0.3);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-  70% {
-    transform: scale(0.9);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
 @keyframes typingBounce {
   0%, 60%, 100% { transform: translateY(0); }
   30% { transform: translateY(-4px); }
@@ -690,11 +654,6 @@
 @keyframes countUp {
   from { opacity: 0; }
   to { opacity: 1; }
-}
-
-@keyframes pulse-soft {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
 }
 
 @keyframes confetti {
@@ -772,23 +731,96 @@
 /* ACCESSIBILITY - REDUCED MOTION                  */
 /* =============================================== */
 
+/* Doctrine §4.6: reduced motion means fewer and gentler, not zero. The user
+   still needs to see that the interface heard them — a button that no
+   longer visibly responds to a click reads as broken, not accessible.
+   Previously this block set every transition to 0.01ms and then separately
+   killed .btn-primary/.card/.nav-link outright, which really did produce a
+   dead interface. The replacement: stop every animation loop (skeletons,
+   confetti, the typing dots) since a loop is decorative by definition; keep
+   a short opacity/color/box-shadow transition (~150ms) so state changes are
+   still visible; and let anything transform-based (translate, scale — the
+   card lift, the button hover raise, press feedback) snap to its new state
+   instantly instead of animating, the same "settle immediately" treatment
+   already applied to scroll reveals below. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+    /* Only opacity/color/box-shadow keep a (short, still-perceptible)
+       transition. transform, width, height, clip-path etc. are dropped
+       from the list entirely, so any change to them applies instantly
+       rather than sliding, scaling or parallaxing into place. */
+    transition-property: opacity, color, background-color, border-color, box-shadow !important;
+    transition-duration: 150ms !important;
   }
-  
-  /* Ensure critical transitions remain functional but instant */
-  .btn-primary,
-  .btn-secondary,
-  .btn-gold,
-  .card,
-  .nav-link {
+
+  /* Skeleton shimmer freezes to a flat tint rather than a static frame of
+     a moving gradient — a sweep that stopped mid-sweep still reads as
+     motion that broke, a flat tint reads as "loading". */
+  .skeleton,
+  .skeleton-burgundy {
+    background: #E8E8E8 !important;
+  }
+  html.dark .skeleton,
+  html.dark .skeleton-burgundy {
+    background: #262626 !important;
+  }
+
+  /* The chat typing indicator is three permanently-bouncing dots — pure
+     animation with no accessible fallback. Say the word instead. */
+  .typing-indicator span {
+    display: none !important;
+  }
+  .typing-indicator::after {
+    content: 'typing';
+    font-size: 0.8125rem;
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* Legacy IntersectionObserver-driven scroll reveal: settle to the
+     revealed state immediately rather than staying invisible because the
+     motion that would have shown it never plays. (Framer-motion's
+     whileInView reveals are covered separately by `MotionConfig
+     reducedMotion="user"` in App.jsx, which strips their transform while
+     keeping the opacity fade.) */
+  .scroll-reveal {
+    opacity: 1 !important;
+    transform: none !important;
     transition: none !important;
+  }
+}
+
+/* =============================================== */
+/* ACCESSIBILITY - REDUCED TRANSPARENCY             */
+/* =============================================== */
+
+/* Every translucent surface already in this file (the navbar, dropdowns,
+   the mobile sidebar, the premium lock overlay, the "Who Viewed You" lock)
+   is a bg-white/NN + backdrop-blur pairing. A user who has asked for
+   reduced transparency gets a fully opaque surface with the blur dropped,
+   in both themes — translucency over moving or busy content is exactly
+   what this preference exists to remove. */
+@media (prefers-reduced-transparency: reduce) {
+  [class*="backdrop-blur"] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .bg-white\/95, .bg-white\/98, .bg-white\/90, .bg-white\/85,
+  .bg-white\/80, .bg-white\/70, .bg-white\/60, .bg-white\/40,
+  .bg-white\/30, .bg-white\/25, .bg-white\/20, .bg-white\/15 {
+    background-color: #FFFFFF !important;
+  }
+
+  html.dark .bg-white\/95, html.dark .bg-white\/98, html.dark .bg-white\/90,
+  html.dark .bg-white\/85, html.dark .bg-white\/80, html.dark .bg-white\/70,
+  html.dark .bg-white\/60, html.dark .bg-white\/40, html.dark .bg-white\/30,
+  html.dark .bg-white\/25, html.dark .bg-white\/20, html.dark .bg-white\/15 {
+    background-color: #1a1f2e !important;
   }
 }
 
