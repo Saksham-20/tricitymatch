@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 import { ProfileStrengthPanel } from '../components/profile/ProfileCompletionMeter';
@@ -10,6 +10,7 @@ import {
   FiCamera, FiChevronRight, FiEye, FiDollarSign, FiGrid,
   FiHash, FiCopy, FiAlertCircle, FiYoutube, FiLink,
 } from 'react-icons/fi';
+import { EmptyState, ErrorState } from '../components/ui';
 import { FaCrown } from 'react-icons/fa';
 import { API_BASE_URL } from '../utils/api';
 import { getImageUrl } from '../utils/cloudinary';
@@ -66,12 +67,23 @@ const DetailRow = ({ label, value, isLast }) => {
 };
 
 // ─── Stat Badge ──────────────────────────────────────────────────────────────
-const StatBadge = ({ label, value, color = 'rose' }) => (
-  <div className={`flex flex-col items-center px-4 py-3 rounded-2xl border ${color === 'rose' ? 'bg-primary-50 border-primary-100' : color === 'amber' ? 'bg-gold-50 border-gold-200' : 'bg-success-50 border-success-100'}`}>
-    <span className={`font-display text-xl font-bold ${color === 'rose' ? 'text-primary-600' : color === 'amber' ? 'text-gold-700' : 'text-success'}`}>{value}</span>
-    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wide mt-0.5">{label}</span>
-  </div>
-);
+// 'amber' (gold) removed: a photo count is a plain stat, not a premium mark
+// (doctrine §3.1 — gold means paid tier / upgrade CTA / premium mark, nothing
+// else), so the "Photos" tile now reads as a neutral tone instead.
+const STAT_TONE = {
+  rose:    { bg: 'bg-primary-50 border-primary-100',   text: 'text-primary-600' },
+  neutral: { bg: 'bg-neutral-100 border-neutral-200 dark:bg-neutral-800 dark:border-neutral-700', text: 'text-neutral-700 dark:text-neutral-200' },
+  emerald: { bg: 'bg-success-50 border-success-100',   text: 'text-success' },
+};
+const StatBadge = ({ label, value, color = 'rose' }) => {
+  const tone = STAT_TONE[color] || STAT_TONE.rose;
+  return (
+    <div className={`flex flex-col items-center px-4 py-3 rounded-2xl border ${tone.bg}`}>
+      <span className={`font-display text-xl font-bold ${tone.text}`}>{value}</span>
+      <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wide mt-0.5">{label}</span>
+    </div>
+  );
+};
 
 const SOCIAL_PLATFORMS = [
   { key: 'instagram', label: 'Instagram', icon: FiInstagram, color: '#E1306C' },
@@ -107,17 +119,25 @@ const EditBtn = ({ to, small }) => (
 // ─────────────────────────────────────────────────────────────────────────────
 const MyProfileView = () => {
   const { user: authUser } = useAuth();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  // A failed fetch is never allowed to render the same screen as "you simply
+  // haven't built a profile yet" (doctrine §6) — they need different copy and
+  // a different action (retry vs. go build one).
+  const [loadError, setLoadError] = useState(false);
   const [lightbox, setLightbox] = useState({ open: false, src: null, alt: '' });
 
   useEffect(() => { loadProfile(); }, []);
 
   const loadProfile = async () => {
     try {
+      setLoading(true);
+      setLoadError(false);
       const res = await api.get('/profile/me');
       setProfile(res.data.profile);
     } catch {
+      setLoadError(true);
       toast.error('Failed to load profile');
     } finally {
       setLoading(false);
@@ -126,29 +146,39 @@ const MyProfileView = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-neutral-50 gap-3">
+      <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-neutral-50 gap-3">
         <div className="w-9 h-9 rounded-full border-2 border-primary-200 border-t-primary-500 animate-spin" />
         <p className="text-sm text-neutral-400 font-medium">Loading your profile…</p>
       </div>
     );
   }
 
+  if (loadError && !profile) {
+    return (
+      <div className="min-h-[100dvh] flex items-center justify-center bg-neutral-50 px-4">
+        <ErrorState
+          title="Couldn't load your profile"
+          description="Something went wrong on our side or your connection dropped."
+          onRetry={loadProfile}
+          className="max-w-md"
+        />
+      </div>
+    );
+  }
+
   if (!profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50 px-4">
-        <div className="text-center max-w-md">
-          <div className="w-16 h-16 rounded-2xl bg-primary-50 flex items-center justify-center mx-auto mb-4">
-            <FiUser className="w-8 h-8 text-primary-300" />
-          </div>
-          <h2 className="text-2xl font-bold text-neutral-900 mb-2">Set up your profile</h2>
-          <p className="text-neutral-500 mb-6 text-sm leading-relaxed">
-            Add your details and photos so potential matches can find you.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/profile/edit" className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-primary-500 text-white font-semibold text-sm hover:bg-primary-600 transition-colors shadow-sm cursor-pointer">
-              <FiEdit2 className="w-4 h-4" /> Build your profile
-            </Link>
-            <Link to="/dashboard" className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl border border-neutral-200 text-neutral-700 font-medium text-sm hover:bg-neutral-50 transition-colors cursor-pointer">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-neutral-50 px-4">
+        <div className="max-w-md w-full">
+          <EmptyState
+            icon={FiUser}
+            title="Set up your profile"
+            description="Add your details and photos so potential matches can find you."
+            actionLabel="Build your profile"
+            onAction={() => navigate('/profile/edit')}
+          />
+          <div className="text-center -mt-4">
+            <Link to="/dashboard" className="text-sm text-neutral-400 hover:text-primary-500 transition-colors cursor-pointer">
               Back to dashboard
             </Link>
           </div>
@@ -201,7 +231,7 @@ const MyProfileView = () => {
 
 
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-[#0f1117] pb-16">
+    <div className="min-h-[100dvh] bg-neutral-50 dark:bg-[#0f1117] pb-16">
 
       {/* ── Sticky top bar ──────────────────────────────────────────── */}
       <div className="sticky top-0 z-30 bg-white/95 dark:bg-[#1a1f2e]/95 backdrop-blur-sm border-b border-neutral-100 dark:border-neutral-800 px-4 py-3">
@@ -243,7 +273,7 @@ const MyProfileView = () => {
                   <span className="text-7xl font-display font-semibold text-primary-700/40 dark:text-primary-300/40 select-none">{profile.firstName?.[0] || '?'}</span>
                   <Link
                     to="/profile/edit"
-                    className="absolute bottom-4 right-4 flex items-center gap-1.5 px-3 py-2 bg-white/90 backdrop-blur-sm rounded-xl text-xs font-bold text-neutral-700 hover:bg-white shadow-sm border border-neutral-100 transition-all cursor-pointer"
+                    className="absolute bottom-4 right-4 flex items-center gap-1.5 px-3 py-2 bg-white/90 backdrop-blur-sm rounded-xl text-xs font-bold text-neutral-700 hover:bg-white shadow-sm border border-neutral-100 transition-colors duration-[160ms] cursor-pointer"
                   >
                     <FiCamera className="w-3.5 h-3.5 text-primary-500" />
                     Add Photos
@@ -260,7 +290,7 @@ const MyProfileView = () => {
                         key={photo}
                         type="button"
                         onClick={() => setLightbox({ open: true, src, alt })}
-                        className={`relative overflow-hidden bg-primary-100 dark:bg-primary-900/40 hover:brightness-95 transition-all focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-inset cursor-pointer ${i === 0 && allPhotos.length >= 3 ? 'row-span-2 col-span-1' : ''}`}
+                        className={`relative overflow-hidden bg-primary-100 dark:bg-primary-900/40 hover:brightness-95 transition-[filter] duration-[160ms] focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-inset cursor-pointer ${i === 0 && allPhotos.length >= 3 ? 'row-span-2 col-span-1' : ''}`}
                       >
                         <span className="absolute inset-0 flex items-center justify-center text-6xl font-display font-semibold text-primary-700/40 dark:text-primary-300/40 select-none">{profile.firstName?.[0] || '?'}</span>
                         <RetryImage src={src} alt={alt} className="relative w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
@@ -315,7 +345,7 @@ const MyProfileView = () => {
                 {/* Quick stats */}
                 <div className="grid grid-cols-3 gap-3 mb-4">
                   <StatBadge label="Profile" value={`${completionPct}%`} color="rose" />
-                  <StatBadge label={allPhotos.length === 1 ? 'Photo' : 'Photos'} value={allPhotos.length} color="amber" />
+                  <StatBadge label={allPhotos.length === 1 ? 'Photo' : 'Photos'} value={allPhotos.length} color="neutral" />
                   <StatBadge label={isVerified ? 'Verified' : 'Unverified'} value={isVerified ? <FiCheck className="w-5 h-5" /> : <FiAlertCircle className="w-5 h-5" />} color={isVerified ? 'emerald' : 'rose'} />
                 </div>
 
@@ -400,7 +430,7 @@ const MyProfileView = () => {
                   href={sanitizeUrl(profile.spotifyPlaylist)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-3 p-3.5 bg-neutral-50 rounded-xl border border-neutral-100 hover:border-[#1DB954]/40 hover:bg-[#1DB954]/5 transition-all group cursor-pointer"
+                  className="flex items-center gap-3 p-3.5 bg-neutral-50 rounded-xl border border-neutral-100 hover:border-[#1DB954]/40 hover:bg-[#1DB954]/5 transition-colors duration-[160ms] group cursor-pointer"
                 >
                   <div className="w-10 h-10 rounded-xl bg-[#1DB954]/15 flex items-center justify-center flex-shrink-0">
                     <FiMusic className="w-4.5 h-4.5 text-[#1DB954]" />
@@ -551,18 +581,21 @@ const MyProfileView = () => {
             )}
 
             {/* Verification nudge */}
+            {/* Verification is free for every tier — gold is reserved for
+                premium marks (doctrine §3.1), so this nudge uses the same
+                primary treatment as every other non-premium CTA. */}
             {!isVerified && (
-              <div className="bg-gold-50 border border-gold-200 rounded-2xl p-4">
+              <div className="bg-primary-50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-800 rounded-2xl p-4">
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-gold-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <FiShield className="w-4 h-4 text-gold-600" />
+                  <div className="w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <FiShield className="w-4 h-4 text-primary-700 dark:text-primary-300" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-bold text-gold-700 mb-1">Get Verified</p>
-                    <p className="text-xs text-gold-700/80 leading-relaxed mb-3">
+                    <p className="text-sm font-bold text-primary-700 dark:text-primary-300 mb-1">Get Verified</p>
+                    <p className="text-xs text-primary-700/80 dark:text-primary-300/80 leading-relaxed mb-3">
                       Verified profiles get 3x more responses. Take a quick selfie to get the verified badge.
                     </p>
-                    <Link to="/verification" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gold text-neutral-900 text-xs font-bold rounded-lg hover:bg-gold-400 transition-colors cursor-pointer">
+                    <Link to="/verification" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 text-white text-xs font-bold rounded-lg hover:bg-primary-700 transition-colors cursor-pointer">
                       <FiShield className="w-3 h-3" /> Verify Now
                     </Link>
                   </div>

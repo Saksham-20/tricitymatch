@@ -3,11 +3,8 @@ import { Link } from 'react-router-dom';
 import { FiShield, FiMessageCircle, FiMapPin, FiFlag, FiCheck, FiPhone, FiArrowRight } from 'react-icons/fi';
 import Seo from '../components/common/Seo';
 
-const Eyebrow = ({ children, className = '' }) => (
-  <span className={`inline-block font-mono text-[11px] uppercase tracking-[0.2em] text-primary-600 ${className}`}>
-    {children}
-  </span>
-);
+/* The `Eyebrow` chip that used to sit above every heading on this page is
+   removed (doctrine ruling 2 — zero eyebrows, the heading carries itself). */
 
 const PILLARS = [
   {
@@ -51,7 +48,7 @@ const PILLARS = [
 
 export default function Safety() {
   return (
-    <div className="min-h-screen bg-[#FDF8F2] text-neutral-900">
+    <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-[#0f1117] text-neutral-900 dark:text-neutral-100">
       <Seo
         title="Safety & Trust"
         description="How TricityMatch keeps members safe — verification, privacy controls, and dating-safety guidance."
@@ -62,7 +59,6 @@ export default function Safety() {
       <section className="px-4 pt-24 pb-14 md:pt-32 md:pb-16">
         <div className="max-w-5xl mx-auto">
           <Link to="/" className="font-mono text-[11px] uppercase tracking-[0.16em] text-neutral-500 hover:text-primary-600 transition-colors block w-fit py-2 px-2 -mx-2 -mt-2 mb-8">← Back to home</Link>
-          <Eyebrow className="mb-5">● Safety centre · Your trust comes first</Eyebrow>
           <h1 className="font-display text-4xl md:text-6xl font-bold leading-[1.05] max-w-3xl">
             Meet with <span className="text-primary-700 italic">confidence.</span>
           </h1>
@@ -77,7 +73,7 @@ export default function Safety() {
       <section className="px-4 pb-16 md:pb-20">
         <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-px bg-neutral-200 border border-neutral-200 rounded-2xl overflow-hidden">
           {PILLARS.map(({ icon: Icon, n, t, body, points }) => (
-            <div key={n} className="bg-[#FFFAF6] p-7 md:p-9 flex flex-col">
+            <div key={n} className="bg-[#FFFAF6] dark:bg-[#1a1f2e] p-7 md:p-9 flex flex-col">
               <div className="flex items-center justify-between mb-5">
                 <span className="w-11 h-11 rounded-full bg-primary-50 text-primary-700 flex items-center justify-center">
                   <Icon className="w-5 h-5" />
@@ -109,7 +105,6 @@ export default function Safety() {
               <FiPhone className="w-6 h-6 text-[#D4B048]" />
             </span>
             <div className="flex-1">
-              <Eyebrow className="mb-2 !text-[#D4B048]">— Emergency</Eyebrow>
               <h2 className="font-display text-2xl md:text-3xl font-bold mb-2 text-[#FDF8F2]">In immediate danger? Call 112.</h2>
               <p className="text-[#FDF8F2]/70 max-w-xl">
                 For platform safety concerns, email{' '}

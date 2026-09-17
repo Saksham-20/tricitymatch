@@ -102,7 +102,7 @@ const PreferenceMatch = ({ target, viewer, targetName = 'them' }) => {
         {scored.length > 0 && (
           <span className={`px-2.5 py-1 rounded-full text-xs font-bold flex-shrink-0 ${
             matched === scored.length
-              ? 'bg-green-100 text-green-700'
+              ? 'bg-success-50 text-success'
               : matched > 0
               ? 'bg-primary-50 text-primary-700 border border-primary-100'
               : 'bg-neutral-100 text-neutral-500'
@@ -115,7 +115,7 @@ const PreferenceMatch = ({ target, viewer, targetName = 'them' }) => {
         {checks.map(({ label, want, ok }) => (
           <div key={label} className="flex items-center gap-3 py-2.5 border-b border-neutral-50 dark:border-neutral-800 last:border-b-0">
             <span className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
-              ok === true ? 'bg-green-100 text-green-600'
+              ok === true ? 'bg-success-50 text-success'
               : ok === false ? 'bg-neutral-100 text-neutral-400'
               : 'bg-neutral-50 text-neutral-300'
             }`}>

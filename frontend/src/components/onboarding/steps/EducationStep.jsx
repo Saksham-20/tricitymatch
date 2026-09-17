@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
 import Select from '../../ui/Select';
+import { staggerContainer, fadeRise } from '../../../utils/animations';
 
 const EDUCATION_DEGREES = ['12th Pass', 'Diploma', 'Bachelor', 'Master', 'PhD', 'Professional Degree', 'Other'];
 const PROFESSIONS = ['Student', 'Engineer', 'Doctor', 'Lawyer', 'Business Owner', 'Entrepreneur', 'IT Professional', 'Accountant', 'Teacher', 'Civil Servant', 'Other'];
@@ -31,12 +32,8 @@ const EducationStep = () => {
   }, []);
 
   return (
-    <div className="space-y-5">
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-      >
+    <motion.div className="space-y-5" initial="initial" animate="animate" variants={staggerContainer}>
+      <motion.div variants={fadeRise}>
         <Select
           label="Highest Education"
           options={EDUCATION_DEGREES.map(e => ({ value: e, label: e }))}
@@ -47,11 +44,7 @@ const EducationStep = () => {
       </motion.div>
 
       {formData.education && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-        >
+        <motion.div initial="initial" animate="animate" variants={fadeRise}>
           <FormField
             label="Degree / Course"
             placeholder="e.g., B.Tech, MBA, MBBS"
@@ -61,11 +54,7 @@ const EducationStep = () => {
         </motion.div>
       )}
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
+      <motion.div variants={fadeRise}>
         <Select
           label="Profession"
           options={PROFESSIONS.map(p => ({ value: p, label: p }))}
@@ -79,11 +68,7 @@ const EducationStep = () => {
       {/* Progressive reveal: income follows profession — mirrors the mobile
           journey (details only after the field they qualify is filled). */}
       {formData.profession && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
+        <motion.div initial="initial" animate="animate" variants={fadeRise}>
           <Select
             label="Annual Income"
             options={INCOME_RANGES}
@@ -94,16 +79,11 @@ const EducationStep = () => {
         </motion.div>
       )}
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600"
-      >
+      <motion.div variants={fadeRise} className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600">
         <p className="font-medium text-neutral-800 mb-1">Education &amp; career</p>
         <p>Your education and career help us find someone with similar professional background and goals.</p>
       </motion.div>
-    </div>
+    </motion.div>
   );
 };
 

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
 import Select from '../../ui/Select';
+import { staggerContainer, fadeRise } from '../../../utils/animations';
 
 const FAMILY_TYPES = [
   { value: 'joint', label: 'Joint Family' },
@@ -30,12 +31,8 @@ const FamilyStep = () => {
   }, []);
 
   return (
-    <div className="space-y-5">
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-      >
+    <motion.div className="space-y-5" initial="initial" animate="animate" variants={staggerContainer}>
+      <motion.div variants={fadeRise}>
         <Select
           label="Family Type"
           options={FAMILY_TYPES}
@@ -45,11 +42,7 @@ const FamilyStep = () => {
         />
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-      >
+      <motion.div variants={fadeRise}>
         <Select
           label="Family Status"
           options={FAMILY_STATUS}
@@ -59,12 +52,7 @@ const FamilyStep = () => {
         />
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="grid grid-cols-2 gap-4"
-      >
+      <motion.div variants={fadeRise} className="grid grid-cols-2 gap-4">
         <FormField
           label="Father's Occupation"
           placeholder="Optional"
@@ -79,11 +67,7 @@ const FamilyStep = () => {
         />
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.25 }}
-      >
+      <motion.div variants={fadeRise}>
         <FormField
           label="Number of Siblings"
           type="number"
@@ -96,16 +80,11 @@ const FamilyStep = () => {
         />
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600"
-      >
+      <motion.div variants={fadeRise} className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600">
         <p className="font-medium text-neutral-800 mb-1">Family background</p>
         <p>Your family values help us find someone with similar family expectations and beliefs.</p>
       </motion.div>
-    </div>
+    </motion.div>
   );
 };
 

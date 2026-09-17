@@ -5,7 +5,7 @@ import api from '../api/axios';
 import toast from 'react-hot-toast';
 import {
   FiSearch, FiUsers, FiArrowRight,
-  FiSliders, FiRefreshCw, FiHash, FiX, FiAlertCircle,
+  FiRefreshCw, FiHash, FiX,
 } from 'react-icons/fi';
 
 // Readable labels for active-filter chips
@@ -35,7 +35,7 @@ import { getImageUrl } from '../utils/cloudinary';
 import { ProfileCard } from '../components/cards';
 import { FilterPanel } from '../components/search';
 import InviteLink from '../components/common/InviteLink';
-import { Skeleton } from '../components/ui';
+import { Skeleton, EmptyState, ErrorState } from '../components/ui';
 import StagedLoader, { useStagedReveal } from '../components/ui/StagedLoader';
 
 // ─── Card skeleton for loading state ──────────────────────────────────────
@@ -231,7 +231,7 @@ const Search = () => {
       initial="initial"
       animate="animate"
       variants={staggerContainer}
-      className="min-h-screen bg-neutral-50 dark:bg-[#0f1117] pb-16"
+      className="min-h-[100dvh] bg-neutral-50 dark:bg-[#0f1117] pb-16"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
@@ -372,71 +372,49 @@ const Search = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 role="alert"
-                className="text-center py-16 bg-white dark:bg-[#1a1f2e] rounded-3xl border border-red-100 dark:border-red-900/40 shadow-card"
+                className="bg-white dark:bg-[#1a1f2e] rounded-3xl border border-destructive/20 dark:border-destructive/30 shadow-card"
               >
-                <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-2xl flex items-center justify-center mx-auto mb-5">
-                  <FiAlertCircle className="w-8 h-8 text-red-400" />
-                </div>
-                <h3 className="font-display text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">
-                  Something went wrong
-                </h3>
-                <p className="text-neutral-500 text-sm mb-6 max-w-xs mx-auto">
-                  We couldn't load profiles right now. Your filters are fine — please try again.
-                </p>
-                <motion.button
-                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                  onClick={() => { setPage(1); searchProfiles({ overridePage: 1 }); }}
-                  className="btn-primary inline-flex items-center gap-2 text-sm"
-                >
-                  <FiRefreshCw className="w-4 h-4" />
-                  Try Again
-                </motion.button>
+                <ErrorState
+                  title="Something went wrong"
+                  description="We couldn't load profiles right now. Your filters are fine. Please try again."
+                  onRetry={() => { setPage(1); searchProfiles({ overridePage: 1 }); }}
+                  retryLabel="Try again"
+                  className="py-16"
+                />
               </motion.div>
             )}
 
             {/* ── Empty state ────────────────────────────────────────────── */}
+            {/* Supply-aware (Phase S, E3). Two genuinely different dead ends:
+                filters that excluded everyone, and a community still being
+                built. Saying "new members join every day" in either case was
+                a fabricated activity claim — the honest landing page can't be
+                followed by a dishonest interior. */}
             {!loading && !searchError && profiles.length === 0 && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.97 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="text-center py-16 bg-white dark:bg-[#1a1f2e] rounded-3xl border border-neutral-100 dark:border-neutral-800 shadow-card"
+                className="bg-white dark:bg-[#1a1f2e] rounded-3xl border border-neutral-100 dark:border-neutral-800 shadow-card"
               >
-                <div className="w-16 h-16 bg-primary-50 dark:bg-primary-900/30 rounded-2xl flex items-center justify-center mx-auto mb-5">
-                  <FiUsers className="w-8 h-8 text-primary-400" />
-                </div>
-                {/* Supply-aware (Phase S, E3). Two genuinely different dead ends:
-                    filters that excluded everyone, and a community still being
-                    built. Saying "new members join every day" in either case was
-                    a fabricated activity claim — the honest landing page can't be
-                    followed by a dishonest interior. */}
-                <h3 className="font-display text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">
-                  {activeFilterCount > 0 ? 'No profiles match these filters' : 'The circle is still small'}
-                </h3>
-                <p className="text-neutral-500 text-sm mb-6 max-w-sm mx-auto">
-                  {activeFilterCount > 0
-                    ? 'Widen a filter or two — with a community this focused, a narrow search can rule out everyone.'
+                <EmptyState
+                  icon={FiUsers}
+                  title={activeFilterCount > 0 ? 'No profiles match these filters' : 'The circle is still small'}
+                  description={activeFilterCount > 0
+                    ? 'Widen a filter or two: with a community this focused, a narrow search can rule out everyone.'
                     : 'We verify every member by hand, one Tricity family at a time. The fastest way to find someone worth meeting is to bring someone you already trust.'}
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  {activeFilterCount > 0 && (
-                    <motion.button
-                      whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                      onClick={handleClearFilters}
-                      className="btn-primary inline-flex items-center gap-2 text-sm"
-                    >
-                      <FiSliders className="w-4 h-4" />
-                      Clear Filters
-                    </motion.button>
-                  )}
+                  actionLabel={activeFilterCount > 0 ? 'Clear filters' : undefined}
+                  onAction={activeFilterCount > 0 ? handleClearFilters : undefined}
+                  className="py-16"
+                />
+                <div className="flex flex-col sm:flex-row gap-3 justify-center -mt-4 pb-6">
                   <InviteLink variant="inline" />
-                  <motion.button
-                    whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  <button
                     onClick={() => { setPage(1); searchProfiles(); }}
                     className="btn-secondary inline-flex items-center gap-2 text-sm"
                   >
                     <FiRefreshCw className="w-4 h-4" />
                     Refresh
-                  </motion.button>
+                  </button>
                 </div>
               </motion.div>
             )}
@@ -477,7 +455,6 @@ const Search = () => {
                     className="text-center mt-10"
                   >
                     <motion.button
-                      whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setPage(p => p + 1)}
                       className="btn-secondary inline-flex items-center gap-2"

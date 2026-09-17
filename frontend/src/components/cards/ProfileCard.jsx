@@ -9,13 +9,21 @@ import { FaCrown } from 'react-icons/fa';
 import { API_BASE_URL } from '../../utils/api';
 import { getImageUrl } from '../../utils/cloudinary';
 import RetryImage from '../ui/RetryImage';
+import { staggerIndex, DUR, EASE_OUT } from '../../utils/animations';
+
+// Pointer-gated hover — touch fires a false hover on tap that would otherwise
+// leave a card stuck lifted/scaled after the finger lifts (doctrine §4.7).
+const HOVER = '[@media(hover:hover)_and_(pointer:fine)]:hover';
 
 /* ──────────────────────────────────────────────────────────
    Animated compatibility arc — circular score indicator
    ────────────────────────────────────────────────────────── */
 const CompatArc = ({ score }) => {
   if (!score) return null;
-  const color = score >= 90 ? '#2E7D32' : score >= 75 ? '#C9A227' : '#8B2346';
+  // Compatibility is shown to every member, free or paid — gold is reserved
+  // for premium marks (doctrine §3.1), so the match-quality scale is two-tier
+  // (strong / standard), never a gold middle tier.
+  const color = score >= 85 ? '#2E7D32' : '#8B2346';
   const radius = 18;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (score / 100) * circumference;
@@ -48,7 +56,10 @@ const CompatArc = ({ score }) => {
    ────────────────────────────────────────────────────────── */
 const ShimmerBar = ({ score }) => {
   if (!score) return null;
-  const color = score >= 90 ? '#2E7D32' : score >= 75 ? '#C9A227' : '#8B2346';
+  // Compatibility is shown to every member, free or paid — gold is reserved
+  // for premium marks (doctrine §3.1), so the match-quality scale is two-tier
+  // (strong / standard), never a gold middle tier.
+  const color = score >= 85 ? '#2E7D32' : '#8B2346';
   return (
     <div className="h-1.5 bg-neutral-100 rounded-full overflow-hidden">
       <motion.div
@@ -87,7 +98,7 @@ const PremiumBlur = () => (
     }}
   >
     <div className="w-12 h-12 rounded-full bg-white/90 shadow-lg flex items-center justify-center">
-      <FiLock className="w-5 h-5 text-primary-500" />
+      <FiLock className="w-5 h-5 text-gold-600" />
     </div>
     <p className="text-xs font-semibold text-neutral-800 bg-white/80 px-4 py-1.5 rounded-full shadow-sm">
       Upgrade to view
@@ -154,11 +165,10 @@ const ProfileCard = ({
   if (variant === 'compact') {
     return (
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: (index % 6) * 0.05, duration: 0.25 }}
-        whileHover={{ y: -3 }}
-        className="bg-white rounded-2xl border border-neutral-100 shadow-card hover:shadow-card-hover transition-all duration-200 p-4 cursor-pointer group"
+        transition={{ delay: staggerIndex(index), duration: DUR.content, ease: EASE_OUT }}
+        className={`bg-white rounded-2xl border border-neutral-100 shadow-card ${HOVER}:shadow-card-hover ${HOVER}:-translate-y-1 transition-[transform,box-shadow] duration-[160ms] p-4 cursor-pointer group`}
         onClick={handleCardClick}
         role="article"
         aria-label={`Profile of ${fullName}`}
@@ -220,11 +230,10 @@ const ProfileCard = ({
           {/* Like */}
           {showActions && (
             <motion.button
-              whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={handleLike}
               aria-label={isLiked ? 'Unlike' : 'Like'}
-              className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 flex-shrink-0 ${isLiked ? 'bg-primary-500 text-white' : 'bg-neutral-100 text-primary-400 hover:bg-primary-50'
+              className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-[160ms] flex-shrink-0 ${HOVER}:scale-110 ${isLiked ? 'bg-primary-500 text-white' : 'bg-neutral-100 text-primary-400 hover:bg-primary-50'
                 }`}
             >
               <FiHeart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
@@ -239,21 +248,16 @@ const ProfileCard = ({
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 20, scale: 0.96 }}
+      initial={{ opacity: 0, y: 8, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ delay: (index % 6) * 0.05, duration: 0.3 }}
-      whileHover={{ y: -6 }}
-      className="group relative bg-white rounded-3xl overflow-hidden cursor-pointer transition-all duration-300"
-      style={{
-        boxShadow: '0 4px 24px rgba(139, 35, 70, 0.07), 0 1px 4px rgba(0,0,0,0.04)',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = '0 12px 40px rgba(139, 35, 70, 0.14), 0 4px 12px rgba(0,0,0,0.06)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = '0 4px 24px rgba(139, 35, 70, 0.07), 0 1px 4px rgba(0,0,0,0.04)';
-      }}
+      exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.16, ease: 'easeOut' } }}
+      transition={{ delay: staggerIndex(index), duration: DUR.content, ease: EASE_OUT }}
+      // Shadow tokens come from tailwind.config (doctrine §3.4) instead of the
+      // hand-typed literals + JS mouseenter/leave this replaced — same reason
+      // the lift is a pointer-gated CSS class, not a framer whileHover: a tap
+      // synthesizes an enter without a reliable leave and leaves the card
+      // stuck raised.
+      className={`group relative bg-white rounded-3xl overflow-hidden cursor-pointer shadow-card ${HOVER}:shadow-card-hover ${HOVER}:-translate-y-1.5 transition-[transform,box-shadow] duration-[200ms]`}
       onClick={handleCardClick}
       role="article"
       aria-label={`Profile of ${fullName}`}
@@ -354,23 +358,21 @@ const ProfileCard = ({
         {showActions && !isPremiumLocked && (
           <div className="absolute top-3.5 right-3 flex gap-2 z-10">
             <motion.button
-              whileHover={{ scale: 1.12 }}
               whileTap={{ scale: 0.88 }}
               onClick={handleShortlist}
               aria-label={isShortlisted ? 'Remove from shortlist' : 'Shortlist'}
-              className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 ${isShortlisted
-                  ? 'bg-gold text-white'
-                  : 'bg-white/70 backdrop-blur-md text-neutral-500 hover:bg-white hover:text-gold-500 ring-1 ring-white/50'
+              className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-colors duration-[160ms] ${HOVER}:scale-110 ${isShortlisted
+                  ? 'bg-neutral-800 text-white'
+                  : 'bg-white/70 backdrop-blur-md text-neutral-500 hover:bg-white hover:text-neutral-800 ring-1 ring-white/50'
                 }`}
             >
               <FiBookmark className={`w-4.5 h-4.5 ${isShortlisted ? 'fill-current' : ''}`} />
             </motion.button>
             <motion.button
-              whileHover={{ scale: 1.12 }}
               whileTap={{ scale: 0.88 }}
               onClick={handleLike}
               aria-label={isLiked ? 'Unlike' : 'Express interest'}
-              className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 ${isLiked
+              className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-colors duration-[160ms] ${HOVER}:scale-110 ${isLiked
                   ? 'bg-primary-500 text-white'
                   : 'bg-white/70 backdrop-blur-md text-primary-400 hover:bg-white hover:text-primary-500 ring-1 ring-white/50'
                 }`}
@@ -443,7 +445,7 @@ const ProfileCard = ({
             {isPremiumLocked ? (
               <button
                 onClick={(e) => { e.stopPropagation(); navigate('/subscription'); }}
-                className="flex-1 py-3 flex items-center justify-center gap-2 bg-gradient-to-r from-gold-400 to-gold-500 text-white text-sm font-semibold rounded-2xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-gold"
+                className="flex-1 py-3 flex items-center justify-center gap-2 bg-gradient-to-r from-gold-400 to-gold-500 text-white text-sm font-semibold rounded-2xl hover:from-gold-500 hover:to-gold-600 transition-colors duration-[160ms] shadow-gold"
               >
                 <FaCrown className="w-3.5 h-3.5" />
                 Unlock Profile
@@ -451,18 +453,16 @@ const ProfileCard = ({
             ) : primaryCta === 'message' ? (
               <>
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.97 }}
                   onClick={(e) => { e.stopPropagation(); navigate(`/chat?to=${userId}`); }}
-                  className="flex-1 py-3 text-sm font-semibold rounded-2xl transition-all duration-200 bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:from-primary-600 hover:to-primary-700 shadow-burgundy inline-flex items-center justify-center gap-1.5"
+                  className="flex-1 py-3 text-sm font-semibold rounded-2xl transition-colors duration-[160ms] bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:from-primary-600 hover:to-primary-700 shadow-burgundy inline-flex items-center justify-center gap-1.5"
                 >
                   <FiMessageCircle className="w-4 h-4" /> Message
                 </motion.button>
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.97 }}
                   onClick={handleCardClick}
-                  className="flex-1 py-3 text-sm font-semibold rounded-2xl transition-all duration-200 border border-neutral-200 text-neutral-600 hover:border-primary-300 hover:text-primary-500 hover:bg-primary-50/50 flex items-center justify-center gap-1.5"
+                  className="flex-1 py-3 text-sm font-semibold rounded-2xl transition-colors duration-[160ms] border border-neutral-200 text-neutral-600 hover:border-primary-300 hover:text-primary-500 hover:bg-primary-50/50 flex items-center justify-center gap-1.5"
                 >
                   View Profile
                   <FiArrowRight className="w-3.5 h-3.5" />
@@ -471,10 +471,9 @@ const ProfileCard = ({
             ) : (
               <>
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.97 }}
                   onClick={handleLike}
-                  className={`flex-1 py-3 text-sm font-semibold rounded-2xl transition-all duration-200 ${isLiked
+                  className={`flex-1 py-3 text-sm font-semibold rounded-2xl transition-colors duration-[160ms] ${isLiked
                       ? 'bg-primary-50 text-primary-600 border border-primary-200'
                       : 'bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:from-primary-600 hover:to-primary-700 shadow-burgundy'
                     }`}
@@ -484,10 +483,9 @@ const ProfileCard = ({
                   ) : 'Express Interest'}
                 </motion.button>
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.97 }}
                   onClick={handleCardClick}
-                  className="flex-1 py-3 text-sm font-semibold rounded-2xl transition-all duration-200 border border-neutral-200 text-neutral-600 hover:border-primary-300 hover:text-primary-500 hover:bg-primary-50/50 flex items-center justify-center gap-1.5"
+                  className="flex-1 py-3 text-sm font-semibold rounded-2xl transition-colors duration-[160ms] border border-neutral-200 text-neutral-600 hover:border-primary-300 hover:text-primary-500 hover:bg-primary-50/50 flex items-center justify-center gap-1.5"
                 >
                   View Profile
                   <FiArrowRight className="w-3.5 h-3.5" />

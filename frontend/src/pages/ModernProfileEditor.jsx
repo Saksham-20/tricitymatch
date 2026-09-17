@@ -9,6 +9,7 @@ import { validateAge } from '../utils/validators';
 import useUnsavedChangesGuard from '../hooks/useUnsavedChangesGuard';
 import toast from 'react-hot-toast';
 import { FiX, FiArrowLeft, FiArrowRight, FiCheck, FiAlertCircle } from 'react-icons/fi';
+import { modal, backdrop } from '../utils/animations';
 
 // Import step components
 import BasicInfoStep from '../components/onboarding/steps/BasicInfoStep';
@@ -182,7 +183,7 @@ const ModernProfileEditorContent = () => {
   const isLastStep = currentStep === totalSteps - 1;
 
   return (
-    <div className="min-h-screen flex bg-neutral-50 dark:bg-[#0f1117] pb-16 md:pb-0">
+    <div className="min-h-[100dvh] flex bg-neutral-50 dark:bg-[#0f1117] pb-16 md:pb-0">
       {/* Left Panel — LIGHT brand rail (burgundy accent, not a slab) */}
       <div className="hidden lg:flex lg:w-[24rem] xl:w-[28rem] relative overflow-hidden bg-white dark:bg-[#1a1f2e] border-r border-neutral-100 dark:border-neutral-800">
         <div className="absolute inset-0 bg-gradient-to-b from-primary-50/70 dark:from-primary-900/20 via-white dark:via-[#1a1f2e] to-white dark:to-[#1a1f2e] pointer-events-none" />
@@ -191,9 +192,9 @@ const ModernProfileEditorContent = () => {
         {/* Content */}
         <div className="relative z-10 w-full h-full flex flex-col justify-between p-10">
           <div>
-            <div className="inline-flex items-center gap-2 mb-4 px-3 py-1 bg-gold-50 border border-gold-200 rounded-full">
-              <span className="text-gold-700 text-xs font-semibold uppercase tracking-wide">Your Profile</span>
-            </div>
+            {/* Eyebrow label removed (doctrine §2 ruling 2 — an outright ban:
+                the heading carries its own weight). It was also gold on a
+                surface with nothing premium about it (§3.1). */}
             <h2 className="font-display text-4xl font-bold text-neutral-900 dark:text-neutral-100 mb-3">
               Update Your Profile
             </h2>
@@ -293,14 +294,13 @@ const ModernProfileEditorContent = () => {
               key={idx}
               onClick={() => handleGoTo(idx)}
               aria-current={idx === currentStep ? 'step' : undefined}
-              className={`flex-1 py-4 px-4 text-center border-b-2 flex flex-col items-center gap-2 ${
+              className={`flex-1 py-4 px-4 text-center border-b-2 flex flex-col items-center gap-2 transition-colors duration-[160ms] ${
                 idx === currentStep
                   ? 'border-b-primary-600'
                   : idx < currentStep
-                  ? 'border-b-success'
-                  : 'border-b-neutral-200 hover:border-b-neutral-300'
+                  ? 'border-b-success [@media(hover:hover)_and_(pointer:fine)]:hover:bg-neutral-100 dark:[@media(hover:hover)_and_(pointer:fine)]:hover:bg-neutral-800'
+                  : 'border-b-neutral-200 hover:border-b-neutral-300 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-neutral-100 dark:[@media(hover:hover)_and_(pointer:fine)]:hover:bg-neutral-800'
               }`}
-              whileHover={{ backgroundColor: idx === currentStep ? 'transparent' : '#f5f5f5' }}
             >
               <span className={`text-xs font-semibold ${
                 idx === currentStep
@@ -326,8 +326,8 @@ const ModernProfileEditorContent = () => {
         <div className="flex-1 overflow-y-auto p-6 lg:p-8">
           {saveSuccess ? (
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1, transition: { duration: 0.28, ease: 'easeOut' } }}
               className="h-full flex flex-col items-center justify-center"
             >
               <div className="text-center">
@@ -447,19 +447,15 @@ const ExitGuardDialog = ({ open, isLoading, onKeep, onDiscard, onSave }) => {
     <AnimatePresence>
       {open && (
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          {...backdrop}
+          className="fixed inset-0 bg-black/50 z-80 flex items-center justify-center p-4"
           onClick={onKeep}
         >
           <motion.div
             role="dialog"
             aria-modal="true"
             aria-labelledby="exit-guard-title"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
+            {...modal}
             onClick={(e) => e.stopPropagation()}
             className="bg-white dark:bg-[#1a1f2e] rounded-2xl p-6 max-w-sm shadow-card"
           >

@@ -30,7 +30,7 @@ const Section = ({ icon: Icon, title, children }) => (
 
 export default function RefundPolicy() {
   return (
-    <div className="min-h-screen bg-[#FDF8F2] dark:bg-[#0f1117] text-neutral-900 dark:text-neutral-100">
+    <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-[#0f1117] text-neutral-900 dark:text-neutral-100">
       <Seo
         title="Refund & Conduct Policy"
         description="When we refund a TricityMatch membership, how to ask, and what we do about members who behave badly."
@@ -38,10 +38,9 @@ export default function RefundPolicy() {
       />
 
       <div className="max-w-3xl mx-auto px-5 sm:px-8 py-14">
-        <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-primary-600 dark:text-primary-300">
-          Refunds &amp; conduct
-        </span>
-        <h1 className="font-display text-3xl sm:text-4xl leading-tight tracking-tight mt-4">
+        {/* Doctrine ruling 2: zero eyebrows — the "Refunds & conduct" label
+            that used to sit above this heading is dropped. */}
+        <h1 className="font-display text-3xl sm:text-4xl leading-tight tracking-tight">
           If this is not what you expected, tell us.
         </h1>
         <p className="mt-5 text-base leading-relaxed text-neutral-700 dark:text-neutral-300">

@@ -6,6 +6,7 @@ import Select from '../../ui/Select';
 import FormField from '../../ui/FormField';
 import CheckBox from '../../ui/CheckBox';
 import { CITY_OPTIONS, CITY_VALUES, CITY_OTHER } from '../../../constants/profileOptions';
+import { staggerContainer, fadeRise, DUR, EASE_OUT } from '../../../utils/animations';
 
 const CITY_VALUE_SET = new Set(CITY_VALUES);
 const CITY_SELECT_OPTIONS = [...CITY_OPTIONS, { value: CITY_OTHER, label: 'Other (type your city)' }];
@@ -48,6 +49,9 @@ const LocationStep = () => {
       setCityOther(false);
       updateFormData('city', value);
     }
+    // A city was actively chosen — clear the "please select" error immediately
+    // rather than waiting for Next, per the validate-as-you-go rule.
+    setTimeout(validateStep, 0);
   };
 
   const [countryOther, setCountryOther] = useState(
@@ -64,6 +68,7 @@ const LocationStep = () => {
       setCountryOther(false);
       updateFormData('residenceCountry', value);
     }
+    setTimeout(validateStep, 0);
   };
 
   const validateStep = () => {
@@ -83,12 +88,8 @@ const LocationStep = () => {
   }, []);
 
   return (
-    <div className="space-y-5">
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-      >
+    <motion.div className="space-y-5" initial="initial" animate="animate" variants={staggerContainer}>
+      <motion.div variants={fadeRise}>
         <Select
           label="City"
           options={CITY_SELECT_OPTIONS}
@@ -103,8 +104,8 @@ const LocationStep = () => {
           {cityOther && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto', transition: { duration: DUR.accordion, ease: EASE_OUT } }}
+              exit={{ opacity: 0, height: 0, transition: { duration: DUR.accordion, ease: EASE_OUT } }}
               className="mt-3 overflow-hidden"
             >
               <FormField
@@ -119,18 +120,13 @@ const LocationStep = () => {
       </motion.div>
 
       {/* NRI / living-abroad declaration — inline, not a separate section */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-        className="rounded-lg border border-neutral-200 p-4"
-      >
+      <motion.div variants={fadeRise} className="rounded-lg border border-neutral-200 p-4">
         <div className="flex items-start gap-2.5">
           <FiGlobe className="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
             <CheckBox
               checked={!!formData.isNri}
-              onChange={() => updateFormData('isNri', !formData.isNri)}
+              onChange={() => { updateFormData('isNri', !formData.isNri); setTimeout(validateStep, 0); }}
               label="I'm an NRI / currently living outside India"
             />
             <p className="text-xs text-neutral-500 mt-1">
@@ -143,8 +139,8 @@ const LocationStep = () => {
           {formData.isNri && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto', transition: { duration: DUR.accordion, ease: EASE_OUT } }}
+              exit={{ opacity: 0, height: 0, transition: { duration: DUR.accordion, ease: EASE_OUT } }}
               className="overflow-hidden"
             >
               <div className="space-y-4 pt-4 mt-4 border-t border-neutral-100">
@@ -163,8 +159,8 @@ const LocationStep = () => {
                     {countryOther && (
                       <motion.div
                         initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto', transition: { duration: DUR.accordion, ease: EASE_OUT } }}
+                        exit={{ opacity: 0, height: 0, transition: { duration: DUR.accordion, ease: EASE_OUT } }}
                         className="mt-3 overflow-hidden"
                       >
                         <FormField
@@ -200,16 +196,11 @@ const LocationStep = () => {
         </AnimatePresence>
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600"
-      >
+      <motion.div variants={fadeRise} className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600">
         <p className="font-medium text-neutral-800 mb-1">Location-based matching</p>
         <p>We'll show you matches from your city and nearby areas.</p>
       </motion.div>
-    </div>
+    </motion.div>
   );
 };
 

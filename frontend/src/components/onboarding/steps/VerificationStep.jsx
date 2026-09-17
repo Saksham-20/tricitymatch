@@ -6,6 +6,7 @@ import OtpBoxes from '../../ui/OtpBoxes';
 import { FiCheckCircle, FiPhone, FiMail, FiEdit2, FiShield } from 'react-icons/fi';
 import api from '../../../api/axios';
 import { validateEmail } from '../../../utils/validators';
+import { fade, popIn, DUR, EASE_OUT } from '../../../utils/animations';
 
 const RESEND_COOLDOWN = 60;
 
@@ -141,7 +142,7 @@ const VerificationStep = () => {
           </div>
         </div>
         {verified ? (
-          <motion.span initial={{ scale: 0.7 }} animate={{ scale: 1 }} className="flex items-center gap-1 text-xs font-semibold text-green-600 flex-shrink-0">
+          <motion.span initial="initial" animate="animate" variants={popIn} className="flex items-center gap-1 text-xs font-semibold text-green-600 flex-shrink-0">
             <FiCheckCircle className="w-4 h-4" /> Verified
           </motion.span>
         ) : (
@@ -155,7 +156,12 @@ const VerificationStep = () => {
 
       {/* Inline editor */}
       {editing === method && (
-        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-700 space-y-3">
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto', transition: { duration: DUR.accordion, ease: EASE_OUT } }}
+          exit={{ opacity: 0, height: 0, transition: { duration: DUR.accordion, ease: EASE_OUT } }}
+          className="mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-700 space-y-3"
+        >
           <FormField
             label={method === 'email' ? 'Update email' : 'Update phone'}
             type={method === 'email' ? 'email' : 'tel'}
@@ -174,7 +180,12 @@ const VerificationStep = () => {
 
       {/* Verify flow */}
       {!verified && editing !== method && (
-        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-700 space-y-3">
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto', transition: { duration: DUR.accordion, ease: EASE_OUT } }}
+          exit={{ opacity: 0, height: 0, transition: { duration: DUR.accordion, ease: EASE_OUT } }}
+          className="mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-700 space-y-3"
+        >
           {!sent ? (
             <button
               type="button"

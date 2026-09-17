@@ -203,18 +203,20 @@ export const DashboardCompletionBanner = ({ profile = {} }) => {
   // Tier thresholds MUST match the summary variant below (85 / 60) so the same
   // profile shows the same colour+label on the dashboard and on Own Profile.
   // (Previously 70/45 here vs 85/60 below → 82% read green "complete" on the
-  // dashboard while contradicting its own "fields missing" copy, and gold
-  // "almost complete" on Own Profile.)
-  const barColor = percent >= 85 ? '#2E7D32' : percent >= 60 ? '#C9A227' : '#8B2346';
-  const bgColor  = percent >= 85 ? 'bg-success-50 border-success-100' : percent >= 60 ? 'bg-gold-50 border-gold-100' : 'bg-primary-50 border-primary-100';
-  const textColor = percent >= 85 ? 'text-success' : percent >= 60 ? 'text-gold-700' : 'text-primary-700';
+  // dashboard while contradicting its own "fields missing" copy.)
+  // Gold is premium-only (doctrine §3.1) — a free member's own completion
+  // progress is never a premium signal, so the mid tier uses the semantic
+  // `warning` token (this genuinely is a "not done yet" state) instead.
+  const barColor = percent >= 85 ? '#2E7D32' : percent >= 60 ? '#F59E0B' : '#8B2346';
+  const bgColor  = percent >= 85 ? 'bg-success-50 border-success-100' : percent >= 60 ? 'bg-warning-light border-warning/20' : 'bg-primary-50 border-primary-100';
+  const textColor = percent >= 85 ? 'text-success' : percent >= 60 ? 'text-warning' : 'text-primary-700';
 
   return (
     <div className={`rounded-2xl border overflow-hidden ${bgColor}`}>
       {/* Header row */}
       <button
         onClick={() => setExpanded(v => !v)}
-        className="w-full flex items-center gap-3 px-4 py-3.5 hover:brightness-95 transition-all text-left cursor-pointer"
+        className="w-full flex items-center gap-3 px-4 py-3.5 hover:brightness-95 transition-[filter] duration-[160ms] text-left cursor-pointer"
         aria-expanded={expanded}
       >
         {/* Mini ring */}
@@ -238,7 +240,7 @@ export const DashboardCompletionBanner = ({ profile = {} }) => {
 
         <div className="flex-1 min-w-0">
           <p className={`text-sm font-bold ${textColor}`}>
-            {remaining} field{remaining !== 1 ? 's' : ''} missing — complete your profile
+            {remaining} field{remaining !== 1 ? 's' : ''} missing. Complete your profile.
           </p>
           <p className="text-xs text-neutral-500 mt-0.5 truncate">
             {topMissing.map(f => f.label).join(', ')}{remaining > 3 ? ` +${remaining - 3} more` : ''}
@@ -295,9 +297,9 @@ export const DashboardCompletionBanner = ({ profile = {} }) => {
               })}
               <Link
                 to="/profile/edit"
-                className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-bold transition-colors cursor-pointer mt-1 ${
+                className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-bold transition-colors duration-[160ms] cursor-pointer mt-1 ${
                   percent >= 85 ? 'bg-success text-white hover:bg-success-600'
-                  : percent >= 60 ? 'bg-gold text-neutral-900 hover:brightness-95'
+                  : percent >= 60 ? 'bg-warning text-white hover:brightness-95'
                   : 'bg-primary-600 text-white hover:bg-primary-700'
                 }`}
               >
@@ -319,10 +321,13 @@ export const DashboardCompletionBanner = ({ profile = {} }) => {
 export const ProfileStrengthPanel = ({ profile = {} }) => {
   const { pending, allImportantDone, percent } = getCompletionData(profile);
 
-  const barColor = percent >= 85 ? '#2E7D32' : percent >= 60 ? '#C9A227' : '#8B2346';
+  // Gold is premium-only (doctrine §3.1) — same fix as the dashboard variant
+  // above: the mid tier is the semantic `warning` token, not a gold "almost
+  // there" badge on a free member's own completion percentage.
+  const barColor = percent >= 85 ? '#2E7D32' : percent >= 60 ? '#F59E0B' : '#8B2346';
   const label = percent >= 85 ? 'Strong profile' : percent >= 60 ? 'Almost complete' : 'Needs attention';
   const labelClass = percent >= 85 ? 'bg-success-50 text-success'
-    : percent >= 60 ? 'bg-gold-50 text-gold-700'
+    : percent >= 60 ? 'bg-warning-light text-warning'
     : 'bg-primary-50 text-primary-700';
 
   if (allImportantDone) {
@@ -372,7 +377,7 @@ export const ProfileStrengthPanel = ({ profile = {} }) => {
           <Link
             key={field.id}
             to={editLink(field.id)}
-            className="flex items-center gap-3 bg-white border border-neutral-100 rounded-2xl shadow-sm px-4 py-3.5 hover:border-primary-200 hover:bg-primary-50/40 transition-all group cursor-pointer"
+            className="flex items-center gap-3 bg-white border border-neutral-100 rounded-2xl shadow-sm px-4 py-3.5 hover:border-primary-200 hover:bg-primary-50/40 transition-colors duration-[160ms] group cursor-pointer"
           >
             <div className="w-9 h-9 rounded-xl bg-primary-50 border border-primary-100 flex items-center justify-center flex-shrink-0">
               <FiAlertCircle className="w-4 h-4 text-primary-500" />

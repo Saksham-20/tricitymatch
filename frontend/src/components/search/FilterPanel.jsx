@@ -56,7 +56,7 @@ const StyledSelect = ({ id, name, value, onChange, children }) => (
     name={name}
     value={value}
     onChange={onChange}
-    className="w-full px-3 py-2.5 text-sm bg-white border border-neutral-200 rounded-xl text-neutral-700 focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-400 transition-all duration-200 appearance-none cursor-pointer"
+    className="w-full px-3 py-2.5 text-sm bg-white border border-neutral-200 rounded-xl text-neutral-700 focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-400 transition-[border-color,box-shadow] duration-[160ms] appearance-none cursor-pointer"
   >
     {children}
   </select>
@@ -73,7 +73,7 @@ const StyledInput = ({ id, name, value, onChange, placeholder, type = 'text', mi
     placeholder={placeholder}
     min={min}
     max={max}
-    className="w-full px-3 py-2.5 text-sm bg-white border border-neutral-200 rounded-xl text-neutral-700 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-400 transition-all duration-200"
+    className="w-full px-3 py-2.5 text-sm bg-white border border-neutral-200 rounded-xl text-neutral-700 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-400 transition-[border-color,box-shadow] duration-[160ms]"
     {...rest}
   />
 );
@@ -409,7 +409,7 @@ const FilterPanel = ({
           <div className="mt-5 pt-4 border-t border-neutral-100 space-y-2.5">
             <button
               onClick={handleApply}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-primary-500 text-white text-sm font-semibold rounded-xl hover:bg-primary-600 transition-all duration-200 shadow-burgundy hover:-translate-y-0.5"
+              className="w-full flex items-center justify-center gap-2 py-3 bg-primary-500 text-white text-sm font-semibold rounded-xl hover:bg-primary-600 transition-[transform,background-color] duration-[160ms] shadow-burgundy hover:-translate-y-0.5"
             >
               <FiSearch className="w-4 h-4" />
               Apply Filters
@@ -417,7 +417,7 @@ const FilterPanel = ({
             {applied > 0 && (
               <button
                 onClick={handleClear}
-                className="w-full py-2.5 border border-neutral-200 text-neutral-600 text-sm font-medium rounded-xl hover:border-neutral-300 hover:bg-neutral-50 transition-all duration-200"
+                className="w-full py-2.5 border border-neutral-200 text-neutral-600 text-sm font-medium rounded-xl hover:border-neutral-300 hover:bg-neutral-50 transition-colors duration-[160ms]"
               >
                 Clear All
               </button>
@@ -429,7 +429,6 @@ const FilterPanel = ({
       {/* ── Mobile: Floating trigger ─────────── */}
       <div className="lg:hidden">
         <motion.button
-          whileHover={{ scale: 1.04 }}
           whileTap={{ scale: 0.96 }}
           onClick={() => setSheetOpen(true)}
           className="fixed bottom-24 right-4 z-30 flex items-center gap-2 px-4 py-3 bg-primary-500 text-white text-sm font-semibold rounded-2xl shadow-burgundy-lg"
@@ -458,10 +457,11 @@ const FilterPanel = ({
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               onClick={() => setSheetOpen(false)}
-              className="fixed inset-0 bg-black/35 backdrop-blur-sm z-[55] lg:hidden"
+              className="fixed inset-0 bg-black/35 backdrop-blur-sm z-70 lg:hidden"
             />
 
-            {/* Sheet */}
+            {/* Sheet — spring is doctrine-correct here (§4.4): this is a
+                finger-draggable bottom sheet, the one case springs are for. */}
             <motion.div
               key="sheet"
               ref={sheetRef}
@@ -469,7 +469,7 @@ const FilterPanel = ({
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 32, stiffness: 280 }}
-              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[60] lg:hidden flex flex-col"
+              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-70 lg:hidden flex flex-col"
               style={{ maxHeight: '90vh' }}
             >
               {/* Drag handle */}
@@ -513,7 +513,7 @@ const FilterPanel = ({
               <div className="flex-shrink-0 px-5 py-4 border-t border-neutral-100 bg-white space-y-2.5 pb-safe">
                 <button
                   onClick={handleApply}
-                  className="w-full flex items-center justify-center gap-2 py-3.5 bg-primary-500 text-white text-sm font-semibold rounded-xl hover:bg-primary-600 active:bg-primary-700 transition-all duration-200 shadow-burgundy"
+                  className="w-full flex items-center justify-center gap-2 py-3.5 bg-primary-500 text-white text-sm font-semibold rounded-xl hover:bg-primary-600 active:bg-primary-700 transition-colors duration-[160ms] shadow-burgundy"
                 >
                   <FiCheck className="w-4 h-4" />
                   Apply Filters

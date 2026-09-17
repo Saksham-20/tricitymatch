@@ -1,36 +1,42 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import { FiHeart, FiArrowRight } from 'react-icons/fi';
 import Seo from '../components/common/Seo';
+import Skeleton from '../components/ui/Skeleton';
+import EmptyState from '../components/ui/EmptyState';
+import ErrorState from '../components/ui/ErrorState';
 
-const Eyebrow = ({ children, className = '' }) => (
-  <span className={`inline-block font-mono text-[11px] uppercase tracking-[0.2em] text-primary-600 ${className}`}>
-    {children}
-  </span>
-);
+/* The `Eyebrow` chip that used to sit above every heading on this page is
+   removed (doctrine ruling 2 — zero eyebrows, the heading carries itself). */
 
 export default function SuccessStories() {
   const { t } = useTranslation();
   const [stories, setStories] = useState([]);
   const [loading, setLoading] = useState(true);
+  // A failed fetch used to render identically to "no stories yet" (both fell
+  // through to stories=[]) — a server outage never reads as zeros, so the
+  // error path now gets its own state and a retry that actually retries.
+  const [error, setError] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await api.get('/success-stories');
-        setStories(res.data.stories || []);
-      } catch {
-        // silent
-      } finally {
-        setLoading(false);
-      }
-    })();
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(false);
+    try {
+      const res = await api.get('/success-stories');
+      setStories(res.data.stories || []);
+    } catch {
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => { load(); }, [load]);
+
   return (
-    <div className="min-h-screen bg-[#FDF8F2] text-neutral-900">
+    <div className="min-h-[100dvh] bg-[#FDF8F2] text-neutral-900">
       <Seo
         title="Success Stories"
         description="Real couples who found their life partner on TricityMatch across Chandigarh, Mohali and Panchkula."
@@ -40,7 +46,6 @@ export default function SuccessStories() {
       {/* Hero */}
       <section className="px-4 pt-24 pb-12 md:pt-32 md:pb-14 text-center">
         <div className="max-w-3xl mx-auto">
-          <Eyebrow className="mb-5">● Real couples · Real weddings</Eyebrow>
           <h1 className="font-display text-4xl md:text-6xl font-bold leading-[1.05]">
             Found on TricityMatch,
             <span className="text-primary-700 italic"> married for life.</span>
@@ -53,27 +58,35 @@ export default function SuccessStories() {
       <section className="px-4 pb-16">
         <div className="max-w-5xl mx-auto">
           {loading ? (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3" aria-hidden="true">
               {[0, 1, 2].map((i) => (
-                <div key={i} className="bg-[#FFFAF6] border border-neutral-200 rounded-2xl p-7 animate-pulse">
-                  <div className="w-8 h-8 rounded-full bg-neutral-200 mb-5" />
-                  <div className="h-3 bg-neutral-200 rounded w-full mb-2" />
-                  <div className="h-3 bg-neutral-200 rounded w-4/5 mb-6" />
-                  <div className="h-3 bg-neutral-200 rounded w-1/2" />
+                <div key={i} className="bg-[#FFFAF6] border border-neutral-200 rounded-2xl overflow-hidden flex flex-col">
+                  <Skeleton className="w-full h-52 rounded-none" />
+                  <div className="p-7 flex flex-col flex-1">
+                    <Skeleton variant="circle" className="w-8 h-8 mb-5" />
+                    <Skeleton.Text lines={3} />
+                  </div>
                 </div>
               ))}
             </div>
+          ) : error ? (
+            <ErrorState
+              title="Couldn't load stories"
+              description="Something went wrong fetching these. Please try again."
+              onRetry={load}
+              className="max-w-md mx-auto bg-[#FFFAF6] border border-neutral-200 rounded-2xl"
+            />
           ) : stories.length === 0 ? (
-            <div className="max-w-md mx-auto text-center bg-[#FFFAF6] border border-neutral-200 rounded-2xl py-16 px-6">
-              <span className="w-12 h-12 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center mx-auto mb-4">
-                <FiHeart className="w-5 h-5" />
-              </span>
-              <p className="text-neutral-600">{t('successStories.empty')}</p>
-            </div>
+            <EmptyState
+              icon={FiHeart}
+              title="No stories yet"
+              description={t('successStories.empty')}
+              className="max-w-md mx-auto bg-[#FFFAF6] border border-neutral-200 rounded-2xl"
+            />
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {stories.map((s) => (
-                <article key={s.id} className="bg-[#FFFAF6] border border-neutral-200 rounded-2xl overflow-hidden flex flex-col hover:shadow-sm transition-shadow">
+                <article key={s.id} className="bg-[#FFFAF6] border border-neutral-200 rounded-2xl overflow-hidden flex flex-col">
                   {s.photoUrl && (
                     <img src={s.photoUrl} alt={s.coupleNames} className="w-full h-52 object-cover" loading="lazy" />
                   )}
@@ -97,10 +110,15 @@ export default function SuccessStories() {
       {/* CTA */}
       <section className="px-4 pb-24">
         <div className="max-w-5xl mx-auto rounded-3xl bg-gradient-to-br from-[#7C1D3A] to-[#5C1229] text-[#FDF8F2] px-8 py-14 text-center">
-          <Eyebrow className="mb-4 !text-[#D4B048]">— Your turn</Eyebrow>
           <h2 className="font-display text-3xl md:text-4xl font-bold mb-3 text-[#FDF8F2]">Write your own story.</h2>
+          {/* Was "Thousands of Tricity families found their forever here" — an
+              unsupported headcount, the same species of claim as the "Join
+              thousands of families" line removed from Home.jsx (see
+              docs/LEGAL_REVIEW_2026-09-17.md A-3). This page shows only real,
+              published stories; the honest claim is that they're real, not a
+              count we don't have. */}
           <p className="text-[#FDF8F2]/70 max-w-xl mx-auto mb-8">
-            Thousands of Tricity families found their forever here. Yours could be next.
+            Real Tricity couples found their forever here. Yours could be next.
           </p>
           <Link to="/onboarding" className="inline-flex items-center justify-center gap-2 bg-[#FDF8F2] text-primary-800 font-semibold px-7 py-3.5 rounded-full hover:bg-white transition-colors">
             Create free profile <FiArrowRight />

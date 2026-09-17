@@ -1,8 +1,10 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import {
   FiInstagram, FiLinkedin, FiFacebook, FiTwitter, FiYoutube, FiLink, FiEye, FiUsers, FiEyeOff, FiMusic,
 } from 'react-icons/fi';
+import { staggerContainer, fadeRise } from '../../../utils/animations';
 
 const PLATFORMS = [
   { key: 'instagram', label: 'Instagram', icon: FiInstagram, color: '#E1306C', placeholder: '@handle or profile link' },
@@ -49,17 +51,17 @@ export default function SocialConnectionsStep() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <motion.div className="max-w-2xl mx-auto" initial="initial" animate="animate" variants={staggerContainer}>
       {/* No in-body <h2> — the editor stepper already labels this section, and a
           second heading duplicated it. */}
       <p className="text-neutral-500 mb-6 text-sm">
-        Add your social profiles to look more real and approachable. Optional — you
-        choose who sees each one. These are shown as links only; we never post or
+        Add your social profiles to look more real and approachable. Optional, you
+        choose who sees each one. These are shown as links only, we never post or
         read anything.
       </p>
 
       {/* Spotify playlist — surfaced on the profile as a "my vibe" link. */}
-      <div className="rounded-xl border border-neutral-200 dark:border-neutral-700 p-4 mb-4">
+      <motion.div variants={fadeRise} className="rounded-xl border border-neutral-200 dark:border-neutral-700 p-4 mb-4">
         <label htmlFor="social-spotify" className="flex items-center gap-2 mb-2.5 text-sm font-semibold text-neutral-800 dark:text-neutral-200">
           <FiMusic className="w-4 h-4 flex-shrink-0" style={{ color: '#1DB954' }} />
           Spotify playlist
@@ -72,11 +74,11 @@ export default function SocialConnectionsStep() {
           value={formData.spotifyPlaylist || ''}
           onChange={(e) => updateFormData('spotifyPlaylist', e.target.value)}
           placeholder="open.spotify.com/playlist/…"
-          className="w-full px-3 py-2.5 text-sm bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-neutral-700 dark:text-neutral-200 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-400 transition-all"
+          className="w-full px-3 py-2.5 text-sm bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-neutral-700 dark:text-neutral-200 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-400 transition-colors duration-[160ms]"
         />
-      </div>
+      </motion.div>
 
-      <div className="space-y-4">
+      <motion.div variants={fadeRise} className="space-y-4">
         {PLATFORMS.map(({ key, label, icon: Icon, color, placeholder }) => {
           const { url, visibility } = readEntry(links[key]);
           return (
@@ -91,7 +93,7 @@ export default function SocialConnectionsStep() {
                 value={url}
                 onChange={(e) => setLink(key, { url: e.target.value })}
                 placeholder={placeholder}
-                className="w-full px-3 py-2.5 text-sm bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-neutral-700 dark:text-neutral-200 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-400 transition-all"
+                className="w-full px-3 py-2.5 text-sm bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-neutral-700 dark:text-neutral-200 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-400 transition-colors duration-[160ms]"
               />
 
               {url.trim() && (
@@ -104,7 +106,7 @@ export default function SocialConnectionsStep() {
                         type="button"
                         aria-pressed={active}
                         onClick={() => setLink(key, { visibility: value })}
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                        className={`inline-flex items-center gap-1.5 px-2.5 min-h-[44px] rounded-lg text-xs font-medium border transition-colors duration-[160ms] active:scale-[0.97] ${
                           active
                             ? 'border-primary-400 bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'
                             : 'border-neutral-200 dark:border-neutral-700 text-neutral-500 hover:bg-neutral-50 dark:hover:bg-neutral-800'
@@ -119,12 +121,12 @@ export default function SocialConnectionsStep() {
             </div>
           );
         })}
-      </div>
+      </motion.div>
 
       <p className="text-xs text-neutral-400 mt-5">
         Default visibility is <span className="font-semibold">Matches only</span>. Set a link to
         <span className="font-semibold"> Hidden</span> to keep it just for you.
       </p>
-    </div>
+    </motion.div>
   );
 }

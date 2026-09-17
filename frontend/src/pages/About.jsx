@@ -3,13 +3,8 @@ import { Link } from 'react-router-dom';
 import { FiArrowRight, FiCheck, FiShield, FiMapPin, FiHeart, FiLock, FiUsers } from 'react-icons/fi';
 import Seo from '../components/common/Seo';
 
-const Eyebrow = ({ children, className = '' }) => (
-  <span
-    className={`inline-block font-mono text-[11px] uppercase tracking-[0.2em] text-primary-600 ${className}`}
-  >
-    {children}
-  </span>
-);
+/* The `Eyebrow` chip that used to sit above every heading on this page is
+   removed (doctrine ruling 2 — zero eyebrows, the heading carries itself). */
 
 const STATS = [
   { value: 'Live selfie', label: 'Verification, never uploads' },
@@ -24,12 +19,12 @@ const VALUES = [
   { icon: FiUsers, n: '03', t: 'Family-oriented', d: 'Matching that respects family background, values, and the people who matter in the decision.' },
   { icon: FiMapPin, n: '04', t: 'Hyperlocal focus', d: 'Built only for Chandigarh, Mohali and Panchkula. Partners within driving distance.' },
   { icon: FiHeart, n: '05', t: 'Transparent pricing', d: 'Clear plans, no hidden fees, no surprise renewals. Free to start.' },
-  { icon: FiCheck, n: '06', t: 'Human-reviewed', d: 'A real safety team reviews profiles and reports — not just an algorithm.' },
+  { icon: FiCheck, n: '06', t: 'Human-reviewed', d: 'A person — not an algorithm — reviews every verification selfie and every report.' },
 ];
 
 export default function About() {
   return (
-    <div className="min-h-screen bg-[#FDF8F2] text-neutral-900">
+    <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-[#0f1117] text-neutral-900 dark:text-neutral-100">
       <Seo
         title="About Us"
         description="Learn about TricityMatch — the trusted hyperlocal matrimonial platform for Chandigarh, Mohali and Panchkula."
@@ -40,7 +35,6 @@ export default function About() {
       <section className="px-4 pt-24 pb-16 md:pt-32 md:pb-20">
         <div className="max-w-5xl mx-auto">
           <Link to="/" className="font-mono text-[11px] uppercase tracking-[0.16em] text-neutral-500 hover:text-primary-600 transition-colors block w-fit py-2 px-2 -mx-2 -mt-2 mb-8">← Back to home</Link>
-          <Eyebrow className="mb-5">● Our story · Tricity only · Founding community</Eyebrow>
           <h1 className="font-display text-4xl md:text-6xl font-bold leading-[1.05] text-neutral-900 max-w-3xl">
             Matrimony built for families,
             <span className="text-primary-700 italic"> not algorithms.</span>
@@ -68,7 +62,6 @@ export default function About() {
       <section className="px-4 py-16 md:py-24">
         <div className="max-w-5xl mx-auto grid md:grid-cols-[1fr_1.4fr] gap-10 md:gap-16">
           <div>
-            <Eyebrow className="mb-4">— Our mission</Eyebrow>
             <h2 className="font-display text-3xl md:text-4xl font-bold leading-tight">
               A serious local community, <span className="italic text-primary-700">not 50 million strangers.</span>
             </h2>
@@ -90,11 +83,10 @@ export default function About() {
       {/* Values grid */}
       <section className="px-4 pb-16 md:pb-24">
         <div className="max-w-5xl mx-auto">
-          <Eyebrow className="mb-4">— What we stand for</Eyebrow>
           <h2 className="font-display text-3xl md:text-4xl font-bold leading-tight mb-10">Six principles that shape every decision.</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-neutral-200 border border-neutral-200 rounded-2xl overflow-hidden">
             {VALUES.map(({ icon: Icon, n, t, d }) => (
-              <div key={n} className="bg-[#FFFAF6] p-7 flex flex-col">
+              <div key={n} className="bg-[#FFFAF6] dark:bg-[#1a1f2e] p-7 flex flex-col">
                 <div className="flex items-center justify-between mb-5">
                   <span className="w-10 h-10 rounded-full bg-primary-50 text-primary-700 flex items-center justify-center">
                     <Icon className="w-[18px] h-[18px]" />
@@ -112,7 +104,6 @@ export default function About() {
       {/* CTA */}
       <section className="px-4 pb-24">
         <div className="max-w-5xl mx-auto rounded-3xl bg-gradient-to-br from-[#7C1D3A] to-[#5C1229] text-[#FDF8F2] px-8 py-14 md:py-16 text-center">
-          <Eyebrow className="mb-4 !text-[#D4B048]">— Begin your journey</Eyebrow>
           <h2 className="font-display text-3xl md:text-4xl font-bold mb-3 text-[#FDF8F2]">Your forever starts with one step.</h2>
           <p className="text-[#FDF8F2]/70 max-w-xl mx-auto mb-8">
             Have questions or feedback? Reach us at{' '}

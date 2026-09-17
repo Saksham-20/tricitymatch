@@ -11,7 +11,7 @@ import {
 } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 import { formatCompatibilityScore } from '../utils/compatibility';
-import { staggerContainer, fadeInUp } from '../utils/animations';
+import { staggerContainer, fadeInUp, staggerIndex, DUR, EASE_OUT } from '../utils/animations';
 import { API_BASE_URL } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { MatchCard } from '../components/cards';
@@ -22,7 +22,7 @@ import SectionHeader from '../components/common/SectionHeader';
 import FoundingBadge from '../components/common/FoundingBadge';
 import InviteLink from '../components/common/InviteLink';
 import PhotoNudge from '../components/profile/PhotoNudge';
-import { Skeleton } from '../components/ui';
+import { Skeleton, EmptyState, ErrorState } from '../components/ui';
 import StagedLoader, { useStagedReveal } from '../components/ui/StagedLoader';
 import RetryImage from '../components/ui/RetryImage';
 
@@ -69,7 +69,7 @@ const SuggestionCard = ({ profile, index }) => {
       toast.success(next ? 'Interest expressed!' : 'Removed from your interests');
     } catch (err) {
       setIsLiked(!next); // revert optimistic update
-      toast.error(err.response?.data?.message || 'Could not update — please try again');
+      toast.error(err.response?.data?.message || 'Could not update. Please try again');
     } finally {
       setLikeBusy(false);
     }
@@ -81,15 +81,17 @@ const SuggestionCard = ({ profile, index }) => {
     ? new Date().getFullYear() - new Date(profile.dateOfBirth).getFullYear()
     : null);
   const score = profile.compatibilityScore;
-  const scoreColor = score >= 85 ? 'text-success' : score >= 70 ? 'text-gold-600' : 'text-primary-500';
+  // Shown to every member regardless of plan — gold marks premium only
+  // (doctrine §3.1), so this stays a two-tier scale, never a gold "good
+  // match" tier.
+  const scoreColor = score >= 85 ? 'text-success' : 'text-primary-500';
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: (index % 6) * 0.05 }}
-      whileHover={{ y: -5, transition: { duration: 0.2 } }}
-      className="relative bg-white rounded-2xl border border-neutral-100 shadow-card overflow-hidden group flex-shrink-0 w-56 sm:w-auto"
+      transition={{ delay: staggerIndex(index), duration: DUR.content, ease: EASE_OUT }}
+      className="relative bg-white rounded-2xl border border-neutral-100 shadow-card [@media(hover:hover)_and_(pointer:fine)]:hover:shadow-card-hover [@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-1 transition-[transform,box-shadow] duration-[200ms] overflow-hidden group flex-shrink-0 w-56 sm:w-auto"
     >
       {/* Photo */}
       <div className="relative h-52 overflow-hidden bg-neutral-100">
@@ -112,7 +114,7 @@ const SuggestionCard = ({ profile, index }) => {
         {/* Match score badge */}
         {score >= 75 && (
           <div className="absolute top-3 left-3 px-2.5 py-1 bg-neutral-900/85 backdrop-blur-sm rounded-full flex items-center gap-1.5">
-            <FiStar className="w-3 h-3 text-gold fill-gold" />
+            <FiStar className="w-3 h-3 text-white fill-white" />
             <span className="text-white text-[11px] font-bold">{Math.round(score)}%</span>
           </div>
         )}
@@ -125,7 +127,7 @@ const SuggestionCard = ({ profile, index }) => {
           disabled={likeBusy}
           aria-pressed={isLiked}
           aria-label={isLiked ? `Remove ${fullName} from your interests` : `Express interest in ${fullName}`}
-          className={`absolute top-3 right-3 z-10 w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 disabled:opacity-60 ${
+          className={`absolute top-3 right-3 z-10 w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-colors duration-[160ms] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 disabled:opacity-60 ${
             isLiked ? 'bg-primary-500 text-white' : 'bg-white/90 backdrop-blur-sm text-neutral-500 hover:text-primary-500'
           }`}
         >
@@ -253,7 +255,7 @@ const SubscriptionStatusCard = ({ subscription, navigate }) => {
               </div>
               <div className="h-2 bg-white rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-primary-400 to-primary-500 rounded-full transition-all"
+                  className="h-full bg-gradient-to-r from-primary-400 to-primary-500 rounded-full transition-[width] duration-300"
                   style={{ width: `${unlocksAllowed ? ((unlocksAllowed - unlocksLeft) / unlocksAllowed) * 100 : 0}%` }}
                 />
               </div>
@@ -479,13 +481,15 @@ const Dashboard = () => {
       numColor:  'text-primary-600',
     },
     {
+      // Plain stat, shown to every tier — not a premium marker, so it stays
+      // neutral rather than gold (doctrine §3.1).
       key:       'totalViews',
       label:     'Total Views',
       sublabel:  'All time',
       icon:      FiTrendingUp,
-      iconBg:    'bg-gold-50',
-      iconColor: 'text-gold-600',
-      numColor:  'text-gold-700',
+      iconBg:    'bg-neutral-100',
+      iconColor: 'text-neutral-500',
+      numColor:  'text-neutral-900',
     },
     {
       key:       'likesReceived',
@@ -512,7 +516,7 @@ const Dashboard = () => {
   // ── Loading: once/day staged reveal (DS6, ≤1.5s hold), else plain skeleton ─
   if (showTheater) {
     return (
-      <div className="min-h-screen bg-neutral-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-[100dvh] bg-neutral-50 py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <StagedLoader onSkip={skipTheater} className="min-h-[60vh]" />
         </div>
@@ -521,7 +525,7 @@ const Dashboard = () => {
   }
   if (loading) {
     return (
-      <div className="min-h-screen bg-neutral-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-[100dvh] bg-neutral-50 py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto space-y-8">
           {/* Greeting skeleton */}
           <div className="bg-white rounded-3xl border border-neutral-100 shadow-card p-8">
@@ -569,7 +573,7 @@ const Dashboard = () => {
       initial="initial"
       animate="animate"
       variants={staggerContainer}
-      className="min-h-screen bg-neutral-50 pb-16"
+      className="min-h-[100dvh] bg-neutral-50 pb-16"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
@@ -667,16 +671,18 @@ const Dashboard = () => {
           </div>
         </motion.div>
 
-        {/* ── 1a. Get-verified nudge — perks-led, dismissible, no hard gate. ── */}
+        {/* ── 1a. Get-verified nudge — perks-led, dismissible, no hard gate.
+               Verification is free for every tier, so this stays primary, not
+               gold (doctrine §3.1 — gold marks premium only). ── */}
         {showVerifyNudge && (
           <motion.div variants={fadeInUp}>
-            <div className="relative rounded-2xl border border-gold-200 bg-gold-50 dark:bg-gold-900/10 dark:border-gold-800 p-5 flex items-start gap-4">
-              <div className="w-11 h-11 rounded-xl bg-gold-100 dark:bg-gold-900/30 flex items-center justify-center flex-shrink-0">
-                <FiShield className="w-5 h-5 text-gold-700 dark:text-gold-300" />
+            <div className="relative rounded-2xl border border-primary-100 bg-primary-50 dark:bg-primary-900/10 dark:border-primary-800 p-5 flex items-start gap-4">
+              <div className="w-11 h-11 rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center flex-shrink-0">
+                <FiShield className="w-5 h-5 text-primary-700 dark:text-primary-300" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-display text-base font-bold text-neutral-900 dark:text-neutral-100">
-                  {verificationStatus === 'rejected' ? 'Re-submit your verification' : 'Get verified — stand out'}
+                  {verificationStatus === 'rejected' ? 'Re-submit your verification' : 'Get verified. Stand out.'}
                 </p>
                 <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-0.5">
                   Verified profiles rank higher, show a trust badge, and appear in “verified only” searches. Takes under a minute with a selfie.
@@ -706,10 +712,10 @@ const Dashboard = () => {
           <motion.div
             variants={fadeInUp}
             role="alert"
-            className="bg-white dark:bg-[#1a1f2e] border border-red-100 dark:border-red-900/40 rounded-2xl shadow-card p-5 flex items-center gap-4"
+            className="bg-white dark:bg-[#1a1f2e] border border-destructive/20 dark:border-destructive/30 rounded-2xl shadow-card p-5 flex items-center gap-4"
           >
-            <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center flex-shrink-0">
-              <FiAlertCircle className="w-5 h-5 text-red-500" />
+            <div className="w-10 h-10 rounded-xl bg-destructive-light dark:bg-destructive/20 flex items-center justify-center flex-shrink-0">
+              <FiAlertCircle className="w-5 h-5 text-destructive" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">Couldn't load your dashboard</p>
@@ -733,7 +739,7 @@ const Dashboard = () => {
                 <Link
                   key={item.id}
                   to="/profile/edit"
-                  className={`bg-white dark:bg-[#1a1f2e] rounded-2xl border shadow-card p-5 flex items-start gap-3.5 transition-all hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
+                  className={`bg-white dark:bg-[#1a1f2e] rounded-2xl border shadow-card p-5 flex items-start gap-3.5 transition-transform duration-[160ms] hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
                     item.done ? 'border-success/30' : 'border-neutral-100 dark:border-neutral-800 hover:border-primary-200'
                   }`}
                 >
@@ -762,11 +768,10 @@ const Dashboard = () => {
             return (
               <motion.div
                 key={stat.key}
-                initial={{ opacity: 0, y: 16 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.08 }}
-                whileHover={stat.to ? { y: -3, transition: { duration: 0.2 } } : undefined}
-                className="bg-white rounded-2xl border border-neutral-100 shadow-card p-5"
+                transition={{ delay: staggerIndex(i), duration: DUR.content, ease: EASE_OUT }}
+                className={`bg-white rounded-2xl border border-neutral-100 shadow-card p-5 transition-transform duration-[160ms] ${stat.to ? '[@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-1' : ''}`}
               >
                 <Wrapper {...wrapperProps}>
                 <div className="flex items-start justify-between">
@@ -776,7 +781,7 @@ const Dashboard = () => {
                       className="font-display text-3xl font-bold text-neutral-900 dark:text-neutral-100"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      transition={{ delay: 0.3 + i * 0.08 }}
+                      transition={{ delay: 0.15 + staggerIndex(i) }}
                     >
                       {value}
                     </motion.p>
@@ -817,7 +822,7 @@ const Dashboard = () => {
             >
               <SectionHeader
                 title="Mutual Matches"
-                subtitle="These people liked you back — start a conversation"
+                subtitle="These people liked you back. Start a conversation."
                 count={`${mutualMatches.length} new`}
                 countTone="ok"
                 action={
@@ -834,7 +839,7 @@ const Dashboard = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {mutualMatches.slice(0, 3).map((match, i) => (
                   <MatchCard
-                    key={`match-${match.userId}-${i}`}
+                    key={`match-${match.userId}`}
                     match={match}
                     userId={match.userId}
                     index={i}
@@ -866,17 +871,16 @@ const Dashboard = () => {
                 const initials = (viewer.firstName?.[0] || '') + (viewer.lastName?.[0] || '') || '?';
                 return (
                   <motion.div
-                    key={`viewer-${viewer.userId}-${i}`}
-                    initial={{ opacity: 0, y: 10 }}
+                    key={`viewer-${viewer.userId}`}
+                    initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    whileHover={{ y: -3 }}
+                    transition={{ delay: staggerIndex(i), duration: DUR.content, ease: EASE_OUT }}
                     role="button"
                     tabIndex={0}
                     aria-label={`View ${viewerName}'s profile`}
                     onClick={() => viewer.userId && navigate(`/profile/${viewer.userId}`)}
                     onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && viewer.userId) { e.preventDefault(); navigate(`/profile/${viewer.userId}`); } }}
-                    className="cursor-pointer bg-white rounded-xl border border-neutral-100 shadow-card overflow-hidden group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1"
+                    className="cursor-pointer bg-white rounded-xl border border-neutral-100 shadow-card overflow-hidden group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 transition-transform duration-[160ms] [@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-1"
                   >
                     <div className="relative h-28 bg-neutral-100 overflow-hidden">
                       <div className="absolute inset-0 flex items-center justify-center bg-primary-100 dark:bg-primary-900/40">
@@ -922,7 +926,6 @@ const Dashboard = () => {
                 <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-1">Premium Feature</p>
                 <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-4 max-w-xs text-center">See who's interested in your profile</p>
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setShowUpgradeModal(true)}
                   className="inline-flex items-center gap-2 px-5 py-2.5 bg-gold text-neutral-900 text-sm font-semibold rounded-xl hover:bg-gold-400 transition-colors shadow-gold"
@@ -946,7 +949,7 @@ const Dashboard = () => {
 
             <div className="flex gap-4 overflow-x-auto pb-3 md:pb-0 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:gap-5 scrollbar-hide snap-x snap-mandatory">
               {dailyMatches.map((profile, i) => (
-                <div key={`daily-${profile.userId}-${i}`} className="snap-start">
+                <div key={`daily-${profile.userId}`} className="snap-start">
                   <SuggestionCard profile={profile} index={i} />
                 </div>
               ))}
@@ -965,7 +968,7 @@ const Dashboard = () => {
 
             {/* Anticipation line — the daily set refreshes at midnight IST. */}
             <p className="mt-3 text-center text-xs text-neutral-400">
-              Fresh matches arrive at midnight — check back tomorrow.
+              Fresh matches arrive at midnight. Check back tomorrow.
             </p>
           </motion.section>
         )}
@@ -980,7 +983,7 @@ const Dashboard = () => {
                 const initials = (p.firstName?.[0] || '') + (p.lastName?.[0] || '') || '?';
                 return (
                   <div
-                    key={`recent-${p.userId}-${i}`}
+                    key={`recent-${p.userId}`}
                     role="button"
                     tabIndex={0}
                     aria-label={`View ${name}'s profile`}
@@ -1034,7 +1037,7 @@ const Dashboard = () => {
             {/* Horizontal scroll on mobile, grid on desktop */}
             <div className="flex gap-4 overflow-x-auto pb-3 md:pb-0 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:gap-5 scrollbar-hide snap-x snap-mandatory">
               {curatedSuggestions.map((profile, i) => (
-                <div key={`suggestion-${profile.userId}-${i}`} className="snap-start">
+                <div key={`suggestion-${profile.userId}`} className="snap-start">
                   <SuggestionCard profile={profile} index={i} />
                 </div>
               ))}
@@ -1061,31 +1064,18 @@ const Dashboard = () => {
           dailyMatches.length === 0 && recentlyViewed.length === 0 && (
           <motion.div
             variants={fadeInUp}
-            className="bg-white border border-neutral-100 rounded-3xl shadow-card text-center py-16 px-6"
+            className="bg-white border border-neutral-100 rounded-3xl shadow-card"
           >
-            <div className="w-20 h-20 bg-primary-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
-              <FiUsers className="w-10 h-10 text-primary-400" />
-            </div>
-            <h3 className="font-display text-2xl font-bold text-neutral-900 mb-2">
-              You&apos;re early — and that&apos;s the point
-            </h3>
-            <p className="text-neutral-500 mb-8 max-w-md mx-auto text-sm leading-relaxed">
-              We&apos;re building this community one verified Tricity family at a time, so there isn&apos;t
-              much here yet. Sharpen your preferences so we match you well from the first profile —
-              and invite someone you&apos;d trust with an introduction.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <EmptyState
+              icon={FiUsers}
+              title="You're early. That's the point."
+              description="We're building this community one verified Tricity family at a time, so there isn't much here yet. Sharpen your preferences so we match you well from the first profile, and invite someone you'd trust with an introduction."
+              actionLabel="Browse profiles"
+              onAction={() => navigate('/search')}
+              className="py-16"
+            />
+            <div className="flex flex-col sm:flex-row gap-3 justify-center -mt-4 pb-2">
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => navigate('/search')}
-                className="btn-primary inline-flex items-center gap-2"
-              >
-                <FiSearch className="w-4 h-4" />
-                Browse Profiles
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => navigate('/profile/edit')}
                 className="btn-secondary inline-flex items-center gap-2"
@@ -1094,7 +1084,7 @@ const Dashboard = () => {
                 Set Preferences
               </motion.button>
             </div>
-            <div className="mt-4 flex justify-center">
+            <div className="mt-4 flex justify-center pb-6">
               <InviteLink variant="inline" />
             </div>
           </motion.div>

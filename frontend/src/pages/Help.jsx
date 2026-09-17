@@ -19,11 +19,8 @@ import { support } from '../config';
  * product we do not have is worse than no help page.
  */
 
-const Eyebrow = ({ children, className = '' }) => (
-  <span className={`inline-block font-mono text-[11px] uppercase tracking-[0.2em] text-primary-600 ${className}`}>
-    {children}
-  </span>
-);
+/* The `Eyebrow` chip that used to sit above the heading below is removed
+   (doctrine ruling 2 — zero eyebrows, the heading carries itself). */
 
 const SECTIONS = [
   {
@@ -36,7 +33,7 @@ const SECTIONS = [
       },
       {
         q: 'Who can see my photos?',
-        a: 'You control this under Settings → Privacy. You can be visible to everyone or only to your matches, and you can hide your online status and last-seen time. Photo blur stays on for members you have not matched with.',
+        a: 'You control this under Settings → Privacy. You can be visible to everyone or only to your matches, hide your online status and last-seen time, and turn on photo blur so members you have not matched with see a blurred photo — it is off by default until you switch it on.',
       },
       {
         q: 'Can my parents manage my profile?',
@@ -98,7 +95,7 @@ const SECTIONS = [
       },
       {
         q: 'How do I delete my account?',
-        a: 'Settings → Account → Delete Account, or use the delete-account page. Your profile disappears from search immediately and your data is removed permanently within 7 days, as described in our Privacy Policy.',
+        a: 'Settings → Account → Delete Account, or use the delete-account page. Your profile, photos, verification selfie, messages, matches and guardian links are erased immediately and cannot be recovered. We keep payment records as long as tax law requires, and a moderation record if you were reported, as described in our Privacy Policy.',
       },
     ],
   },
@@ -124,7 +121,7 @@ const Faq = ({ q, a }) => {
 
 export default function Help() {
   return (
-    <div className="min-h-screen bg-[#FDF8F2] text-neutral-900">
+    <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-[#0f1117] text-neutral-900 dark:text-neutral-100">
       <Seo
         title="Help Centre"
         description="Answers about verification, plans and contact unlocks, matches and messaging, safety and account deletion on TricityMatch — plus how to reach our support team."
@@ -135,7 +132,6 @@ export default function Help() {
       <section className="px-4 pt-24 pb-12 md:pt-32 md:pb-14">
         <div className="max-w-5xl mx-auto">
           <Link to="/" className="font-mono text-[11px] uppercase tracking-[0.16em] text-neutral-500 hover:text-primary-600 transition-colors block w-fit py-2 px-2 -mx-2 -mt-2 mb-8">← Back to home</Link>
-          <Eyebrow className="mb-5">● Help centre</Eyebrow>
           <h1 className="font-display text-4xl md:text-6xl font-bold leading-[1.05] max-w-3xl">
             Answers, and a <span className="text-primary-700 italic">real person</span> when you need one.
           </h1>

@@ -49,16 +49,14 @@ export default function CityMatrimony() {
   const path = `/matrimony/${city.slug}`;
 
   return (
-    <div className="min-h-screen bg-[#FDF8F2] dark:bg-[#0f1117] text-neutral-900 dark:text-neutral-100">
+    <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-[#0f1117] text-neutral-900 dark:text-neutral-100">
       <Seo title={city.seoTitle} description={city.seoDescription} path={path} />
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section className="max-w-5xl mx-auto px-5 sm:px-8 pt-14 pb-12">
-        <span className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-primary-600 dark:text-primary-300">
-          <FiMapPin className="w-3.5 h-3.5" aria-hidden="true" />
-          Tricity only · {city.name}
-        </span>
-        <h1 className="font-display text-4xl sm:text-5xl leading-[1.08] tracking-tight mt-5">
+        {/* Doctrine ruling 2: zero eyebrows. The location tag that used to sit
+            above this heading is dropped — the heading already names the city. */}
+        <h1 className="font-display text-4xl sm:text-5xl leading-[1.08] tracking-tight">
           Matrimony in {city.name},<br />
           <em className="italic text-primary-700 dark:text-primary-300">built for {city.name}.</em>
         </h1>
@@ -87,8 +85,7 @@ export default function CityMatrimony() {
           an inherited one. */}
       <section className="bg-[#2D1A22] dark:bg-[#14182a] text-[#FDF8F2]">
         <div className="max-w-5xl mx-auto px-5 sm:px-8 py-12">
-          <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-gold-400">— Founding members</span>
-          <h2 className="font-display text-2xl sm:text-3xl leading-snug mt-4 max-w-3xl text-[#FDF8F2]">
+          <h2 className="font-display text-2xl sm:text-3xl leading-snug max-w-3xl text-[#FDF8F2]">
             We&apos;re building this one verified {city.name} family at a time —{' '}
             <em className="italic text-gold-400">
               {founding.open ? 'founding members join free.' : 'and doing it in the open.'}

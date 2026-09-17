@@ -5,6 +5,7 @@ import FormField from '../../ui/FormField';
 import Select from '../../ui/Select';
 import DobField from '../../ui/DobField';
 import { validateName, validateAge } from '../../../utils/validators';
+import { staggerContainer, fadeRise } from '../../../utils/animations';
 
 // 4'6" – 7'0" in one-inch increments, stored as cm (backend validates 100–250).
 const HEIGHT_OPTIONS = (() => {
@@ -73,9 +74,14 @@ const BasicInfoStep = () => {
     { value: 'other', label: 'Other' },
   ];
 
+  const handleFieldBlur = (field) => () => {
+    setFieldTouched(field);
+    validateStep();
+  };
+
   return (
-    <div className="space-y-5">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+    <motion.div className="space-y-5" initial="initial" animate="animate" variants={staggerContainer}>
+      <motion.div variants={fadeRise}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField
             label="First Name"
@@ -83,7 +89,7 @@ const BasicInfoStep = () => {
             placeholder="John"
             value={formData.firstName}
             onChange={(value) => updateFormData('firstName', value)}
-            onBlur={() => setFieldTouched('firstName')}
+            onBlur={handleFieldBlur('firstName')}
             error={errors.firstName}
             required
           />
@@ -93,15 +99,15 @@ const BasicInfoStep = () => {
             placeholder="Smith"
             value={formData.lastName}
             onChange={(value) => updateFormData('lastName', value)}
-            onBlur={() => setFieldTouched('lastName')}
+            onBlur={handleFieldBlur('lastName')}
             error={errors.lastName}
             required
           />
         </div>
-        <p className="text-xs text-neutral-400 mt-1.5">Your real name, as families will see it — real names build trust.</p>
+        <p className="text-xs text-neutral-400 mt-1.5">Your real name, as families will see it. Real names build trust.</p>
       </motion.div>
 
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+      <motion.div variants={fadeRise}>
         <div className="space-y-2">
           <span className="block text-sm font-medium text-neutral-900 dark:text-neutral-100">
             Gender <span className="text-red-500 ml-1">*</span>
@@ -110,21 +116,20 @@ const BasicInfoStep = () => {
             {genderOptions.map((opt) => {
               const selected = formData.gender === opt.value;
               return (
-                <motion.button
+                <button
                   key={opt.value}
                   type="button"
                   role="radio"
                   aria-checked={selected}
-                  onClick={() => { updateFormData('gender', opt.value); setFieldTouched('gender'); }}
-                  whileTap={{ scale: 0.97 }}
-                  className={`py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
+                  onClick={() => { updateFormData('gender', opt.value); setFieldTouched('gender'); validateStep(); }}
+                  className={`min-h-[44px] py-3 rounded-xl border-2 text-sm font-semibold transition-colors duration-[160ms] active:scale-[0.97] ${
                     selected
                       ? 'border-primary-600 bg-primary-50 text-primary-700 dark:bg-primary-900/30'
                       : 'border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 hover:border-primary-300'
                   }`}
                 >
                   {opt.label}
-                </motion.button>
+                </button>
               );
             })}
           </div>
@@ -132,16 +137,16 @@ const BasicInfoStep = () => {
         </div>
       </motion.div>
 
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+      <motion.div variants={fadeRise}>
         {/* Day/Month/Year selects instead of a native date input — the Android
             calendar dialog (clamped 18 years back, decades of paging) was a
             reported usability failure, and pickers are the wrong tool for a
-            birthday anyway. Year list already bounds 18–100. */}
+            birthday anyway. Year list already bounds 18-100. */}
         <DobField
           value={formData.dateOfBirth}
-          onChange={(value) => { updateFormData('dateOfBirth', value); setFieldTouched('dateOfBirth'); }}
+          onChange={(value) => { updateFormData('dateOfBirth', value); setFieldTouched('dateOfBirth'); validateStep(); }}
           error={errors.dateOfBirth}
-          hint="Used for age and horoscope matching — your exact birthday is never shown publicly."
+          hint="Used for age and horoscope matching. Your exact birthday is never shown publicly."
           required
         />
       </motion.div>
@@ -149,7 +154,7 @@ const BasicInfoStep = () => {
       {/* Height/weight are collected post-signup: self-signup stays a 2-field
           minimum, while edit + guardian flows carry the full basic profile. */}
       {mode !== 'signup' && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+        <motion.div variants={fadeRise}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select
               label="Height"
@@ -167,15 +172,15 @@ const BasicInfoStep = () => {
               placeholder="65"
               value={formData.weight}
               onChange={(value) => updateFormData('weight', value)}
-              onBlur={() => setFieldTouched('weight')}
+              onBlur={handleFieldBlur('weight')}
               error={errors.weight}
               optional
             />
           </div>
-          <p className="text-xs text-neutral-400 mt-1.5">Optional — but profiles with height filled appear in more filtered searches.</p>
+          <p className="text-xs text-neutral-400 mt-1.5">Optional, but profiles with height filled appear in more filtered searches.</p>
         </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 };
 

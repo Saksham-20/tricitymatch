@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
-import { FiArrowRight, FiChevronDown, FiMapPin, FiShield, FiUsers } from 'react-icons/fi';
+import { FiArrowRight, FiChevronDown, FiShield, FiUsers } from 'react-icons/fi';
 import Seo from '../components/common/Seo';
 import useFoundingWindow from '../hooks/useFoundingWindow';
 import { CITIES } from '../data/cityMatrimony';
@@ -39,7 +39,7 @@ export default function CommunityMatrimony() {
   const faqs = [community.faq, ...(city.faqs || []).slice(0, 2)];
 
   return (
-    <div className="min-h-screen bg-[#FDF8F2] dark:bg-[#0f1117] text-neutral-900 dark:text-neutral-100">
+    <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-[#0f1117] text-neutral-900 dark:text-neutral-100">
       <Seo
         title={title}
         description={`${community.seoName} matrimonial matches in ${city.name}, with live-selfie verification, gotra and horoscope matching, and families close enough to meet this week.`}
@@ -56,10 +56,9 @@ export default function CommunityMatrimony() {
           <span>{community.name}</span>
         </nav>
 
-        <span className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-primary-600 dark:text-primary-300 mt-5">
-          <FiMapPin className="w-3.5 h-3.5" aria-hidden="true" />
-          {city.name} · {community.name}
-        </span>
+        {/* Doctrine ruling 2: zero eyebrows. The location tag that used to sit
+            above this heading is dropped — the breadcrumb and heading already
+            name the city and community. */}
         <h1 className="font-display text-4xl sm:text-5xl leading-[1.08] tracking-tight mt-4">
           {community.name} matrimony<br />
           <em className="italic text-primary-700 dark:text-primary-300">in {city.name}.</em>
@@ -119,8 +118,7 @@ export default function CommunityMatrimony() {
       {/* ── Verification + founding ──────────────────────────────────────── */}
       <section className="bg-[#2D1A22] dark:bg-[#14182a] text-[#FDF8F2]">
         <div className="max-w-5xl mx-auto px-5 sm:px-8 py-12">
-          <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-gold-400">— Verified, not claimed</span>
-          <h2 className="font-display text-2xl sm:text-3xl leading-snug mt-4 max-w-3xl text-[#FDF8F2]">
+          <h2 className="font-display text-2xl sm:text-3xl leading-snug max-w-3xl text-[#FDF8F2]">
             Every badge here was earned with a live selfie —{' '}
             <em className="italic text-gold-400">
               {founding.open ? 'and founding members join free.' : 'checked by a person, not a score.'}

@@ -71,7 +71,7 @@ describe('Dashboard error state', () => {
 
     await waitFor(() => expect(screen.getByText(/couldn't load your dashboard/i)).toBeInTheDocument());
     expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
-    expect(screen.queryByText(/you're early — and that's the point/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/you're early\. that's the point/i)).not.toBeInTheDocument();
   });
 });
 
@@ -100,7 +100,7 @@ describe('Dashboard empty state condition', () => {
     routeApi(okEmpty(completeProfile));
     renderDash();
 
-    await waitFor(() => expect(screen.getByText(/you're early — and that's the point/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/you're early\. that's the point/i)).toBeInTheDocument());
   });
 
   it('suppresses the empty state when Today\'s Matches has content (the fixed condition)', async () => {
@@ -111,6 +111,6 @@ describe('Dashboard empty state condition', () => {
     renderDash();
 
     await waitFor(() => expect(screen.getByText("Today's Matches")).toBeInTheDocument());
-    expect(screen.queryByText(/you're early — and that's the point/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/you're early\. that's the point/i)).not.toBeInTheDocument();
   });
 });

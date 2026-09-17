@@ -53,7 +53,7 @@ const SavedSearches = ({ filters, onApplySaved }) => {
       setItems((prev) => [...prev, res.data.savedSearch]);
       setNaming(false);
       setName('');
-      toast.success('Search saved — we’ll alert you about new matches');
+      toast.success('Search saved. We’ll alert you about new matches.');
     } catch (err) {
       toast.error(err.response?.data?.error?.message || 'Could not save search');
     } finally {
@@ -82,7 +82,7 @@ const SavedSearches = ({ filters, onApplySaved }) => {
 
       {state === 'error' && (
         <button onClick={load} className="text-xs text-neutral-400 hover:text-primary-500 underline">
-          Couldn&apos;t load — retry
+          Couldn&apos;t load. Retry
         </button>
       )}
 

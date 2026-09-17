@@ -34,7 +34,16 @@ const SmartContactField = ({ value, onChange, onBlur, error, disabled, autoFocus
   const type = detectContactType(value);
   const errorId = `${id}-error`;
   const hintId = `${id}-hint`;
-  const describedBy = error ? errorId : hintId;
+  // `hint` may be explicitly '' (Login suppresses the signup OTP copy) or left
+  // undefined (falls back to the type-aware helper below).
+  const resolvedHint = hint !== undefined
+    ? hint
+    : type === 'phone'
+    ? 'We’ll text a one-time code to this number.'
+    : type === 'email'
+    ? 'We’ll email a one-time code to this address.'
+    : 'Type an email or a 10-digit mobile, we detect which automatically.';
+  const describedBy = error ? errorId : resolvedHint ? hintId : undefined;
 
   return (
     <div className="space-y-1.5">
@@ -42,7 +51,7 @@ const SmartContactField = ({ value, onChange, onBlur, error, disabled, autoFocus
         {label} <span className="text-red-500">*</span>
       </label>
       <div
-        className={`flex items-center rounded-xl border-2 bg-white dark:bg-neutral-900 transition-all focus-within:ring-2 focus-within:ring-primary-200 ${
+        className={`flex items-center rounded-xl border-2 bg-white dark:bg-neutral-900 transition-colors duration-[160ms] focus-within:ring-2 focus-within:ring-primary-200 ${
           error ? 'border-red-400' : 'border-neutral-200 dark:border-neutral-700 focus-within:border-primary-500'
         }`}
       >
@@ -72,19 +81,15 @@ const SmartContactField = ({ value, onChange, onBlur, error, disabled, autoFocus
           className="flex-1 min-w-0 bg-transparent px-2.5 py-3 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:outline-none"
         />
       </div>
-      {error ? (
-        <p id={errorId} className="text-sm text-red-600">{error}</p>
-      ) : hint !== undefined ? (
-        hint ? <p id={hintId} className="text-xs text-neutral-400">{hint}</p> : null
-      ) : (
-        <p id={hintId} className="text-xs text-neutral-400">
-          {type === 'phone'
-            ? 'We’ll text a one-time code to this number.'
-            : type === 'email'
-            ? 'We’ll email a one-time code to this address.'
-            : 'Type an email or a 10-digit mobile — we detect which automatically.'}
-        </p>
-      )}
+      {/* Reserved-height row so an error appearing on blur/submit never shifts
+          the field below it (doctrine §6: helper text present even when empty). */}
+      <div className="min-h-[20px]">
+        {error ? (
+          <p id={errorId} role="alert" className="text-sm text-red-600">{error}</p>
+        ) : resolvedHint ? (
+          <p id={hintId} className="text-xs text-neutral-400">{resolvedHint}</p>
+        ) : null}
+      </div>
     </div>
   );
 };

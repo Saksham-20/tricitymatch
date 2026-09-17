@@ -65,7 +65,7 @@ const BiodataCard = ({ profile }) => {
     download();
     const text = encodeURIComponent('Sharing my marriage biodata (PDF attached) — made with TricityMatch, tricitymatch.com');
     window.open(`https://wa.me/?text=${text}`, '_blank', 'noopener');
-    toast('PDF downloaded — attach it in WhatsApp', { icon: '📄' });
+    toast('PDF downloaded. Attach it in WhatsApp.', { icon: <FiFileText className="w-4 h-4 text-primary-500" /> });
   };
 
   return (
@@ -96,7 +96,7 @@ const BiodataCard = ({ profile }) => {
             role="radio"
             aria-checked={template === t.id}
             onClick={() => { setTemplate(t.id); setState('idle'); setPdfBlob(null); }}
-            className={`rounded-2xl border-2 p-3 text-left transition-all ${
+            className={`rounded-2xl border-2 p-3 text-left transition-colors duration-[160ms] ${
               template === t.id
                 ? 'border-primary-500 bg-primary-50/50 dark:bg-primary-900/20'
                 : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-300'
@@ -104,8 +104,11 @@ const BiodataCard = ({ profile }) => {
           >
             {/* Mini preview */}
             <div className="h-16 rounded-lg bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 mb-2 p-2 overflow-hidden">
+              {/* Preview swatches stay out of gold — this is a free-tier
+                  feature and gold reads as a premium signal (doctrine §3.1),
+                  even used purely to preview the PDF's own rule line. */}
               <div className={`h-1.5 w-1/2 rounded mb-1.5 ${t.id === 'classic' ? 'bg-primary-300' : 'bg-primary-400'}`} />
-              <div className={`h-0.5 w-full mb-1.5 ${t.id === 'classic' ? 'bg-gold-300' : 'bg-primary-200'}`} />
+              <div className={`h-0.5 w-full mb-1.5 ${t.id === 'classic' ? 'bg-neutral-400 dark:bg-neutral-500' : 'bg-primary-200'}`} />
               <div className="h-1 w-3/4 rounded bg-neutral-200 dark:bg-neutral-700 mb-1" />
               <div className="h-1 w-2/3 rounded bg-neutral-200 dark:bg-neutral-700 mb-1" />
               <div className="h-1 w-3/4 rounded bg-neutral-200 dark:bg-neutral-700" />
@@ -158,7 +161,7 @@ const BiodataCard = ({ profile }) => {
         </button>
       )}
       {state === 'error' && (
-        <p className="mt-2 text-xs text-red-600 text-center">Couldn&apos;t generate the PDF — please try again.</p>
+        <p className="mt-2 text-xs text-destructive text-center">Couldn&apos;t generate the PDF. Please try again.</p>
       )}
     </div>
   );

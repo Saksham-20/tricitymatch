@@ -8,7 +8,7 @@ import { validateEmail, IDENTIFIER_ERROR } from '../utils/validators';
 import Logo from '../components/common/Logo';
 import SmartContactField, { detectContactType, phoneDigits } from '../components/onboarding/SmartContactField';
 import { FiMail, FiPhone, FiLock, FiEye, FiEyeOff, FiHeart, FiShield, FiArrowRight, FiClock, FiEdit2 } from 'react-icons/fi';
-import { fadeInUp, staggerContainer } from '../utils/animations';
+import { fadeInUp, staggerContainer, fade, stepSlide, DUR, EASE_IN_OUT } from '../utils/animations';
 import { google as googleConfig } from '../config';
 import api from '../api/axios';
 
@@ -24,6 +24,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [shakeTrigger, setShakeTrigger] = useState(false);
   const [lockedUntil, setLockedUntil] = useState(0); // epoch ms; 0 = not locked
+  const [direction, setDirection] = useState(1); // 1 = identifier→password, -1 = back
   const passwordRef = useRef(null);
   const { login, setUser } = useAuth();
   const navigate = useNavigate();
@@ -124,10 +125,21 @@ const Login = () => {
   };
 
   const backToIdentifier = () => {
+    setDirection(-1);
     setPhase('identifier');
     setPassword('');
     setErrors({});
     setApiError('');
+  };
+
+  const validateIdentifierOnBlur = () => {
+    if (!identifier.trim()) return; // don't nag before they've typed anything
+    if (!idIsValid) setErrors({ identifier: IDENTIFIER_ERROR });
+  };
+
+  const validatePasswordOnBlur = () => {
+    if (phase !== 'password' || password) return;
+    setErrors({ password: 'Password is required' });
   };
 
   const handleSubmit = async (e) => {
@@ -146,6 +158,7 @@ const Login = () => {
         return;
       }
       setErrors({});
+      setDirection(1);
       setPhase('password');
       return;
     }
@@ -179,28 +192,20 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex bg-[#FDF8F2]">
+    <div className="min-h-[100dvh] flex bg-[#FDF8F2]">
       <Seo
         title="Login"
         description="Log in to your TricityMatch account to continue your match journey."
         path="/login"
       />
-      {/* Left Side — Editorial panel */}
+      {/* Left Side - Editorial panel */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-neutral-900">
         {/* Warm gradient wash */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary-900/90 via-neutral-900 to-neutral-900" />
 
-        {/* Rotating orbit rings */}
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 80, repeat: Infinity, ease: 'linear' }}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[38rem] h-[38rem] rounded-full border border-white/5 pointer-events-none"
-        />
-        <motion.div
-          animate={{ rotate: -360 }}
-          transition={{ duration: 55, repeat: Infinity, ease: 'linear' }}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24rem] h-[24rem] rounded-full border border-white/8 pointer-events-none"
-        />
+        {/* Orbit rings — static ambient art direction, not an idle loop */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[38rem] h-[38rem] rounded-full border border-white/5 pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24rem] h-[24rem] rounded-full border border-white/8 pointer-events-none" />
 
         {/* Top line accent */}
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary-500/40 to-transparent" />
@@ -216,12 +221,7 @@ const Login = () => {
           </div>
 
           {/* Main copy */}
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.2 }}
-            className="max-w-sm"
-          >
+          <motion.div initial="initial" animate="animate" variants={fadeInUp} className="max-w-sm">
             <p className="text-xs font-semibold text-primary-400 uppercase tracking-widest mb-5">
               Welcome back
             </p>
@@ -249,12 +249,7 @@ const Login = () => {
           </motion.div>
 
           {/* Bottom trust strip */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="flex items-center gap-5 text-xs text-white/40"
-          >
+          <motion.div initial="initial" animate="animate" variants={fade} className="flex items-center gap-5 text-xs text-white/40">
             <div className="flex items-center gap-1.5">
               <FiShield className="w-3.5 h-3.5" />
               <span>SSL Secured</span>
@@ -306,7 +301,7 @@ const Login = () => {
           <motion.form
             variants={fadeInUp}
             layout
-            transition={{ layout: { duration: 0.25, ease: 'easeOut' } }}
+            transition={{ layout: { duration: DUR.layout, ease: EASE_IN_OUT } }}
             onSubmit={handleSubmit}
             className={`card space-y-5 ${shakeTrigger ? 'animate-shake' : ''}`}
           >
@@ -315,9 +310,10 @@ const Login = () => {
               {isLocked ? (
                 <motion.div
                   role="alert"
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
+                  variants={fade}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
                   className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-gold-50 border border-gold-200 text-gold-800 text-sm"
                 >
                   <FiClock className="w-4 h-4 mt-0.5 flex-shrink-0" />
@@ -326,9 +322,10 @@ const Login = () => {
               ) : apiError ? (
                 <motion.div
                   role="alert"
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
+                  variants={fade}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
                   className="flex items-center gap-2 px-4 py-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm"
                 >
                   {apiError}
@@ -336,34 +333,22 @@ const Login = () => {
               ) : null}
             </AnimatePresence>
 
-            <AnimatePresence mode="wait" initial={false}>
+            <AnimatePresence mode="wait" initial={false} custom={direction}>
               {phase === 'identifier' ? (
-                <motion.div
-                  key="identifier"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2 }}
-                >
+                <motion.div key="identifier" custom={direction} variants={stepSlide} initial="initial" animate="animate" exit="exit">
                   <SmartContactField
                     id="login-identifier"
                     label={t('auth.emailOrPhone', 'Email or mobile number')}
                     hint=""
                     value={identifier}
                     onChange={(v) => { setIdentifier(v); if (errors.identifier) setErrors({}); if (apiError) setApiError(''); }}
+                    onBlur={validateIdentifierOnBlur}
                     error={errors.identifier}
                     autoFocus
                   />
                 </motion.div>
               ) : (
-                <motion.div
-                  key="password"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2 }}
-                  className="space-y-5"
-                >
+                <motion.div key="password" custom={direction} variants={stepSlide} initial="initial" animate="animate" exit="exit" className="space-y-5">
                   {/* Identifier recap chip */}
                   <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-neutral-50 border border-neutral-200">
                     <span className="text-neutral-400 flex-shrink-0">
@@ -414,6 +399,7 @@ const Login = () => {
                         placeholder={t('auth.passwordPlaceholder')}
                         value={password}
                         onChange={(e) => { setPassword(e.target.value); if (errors.password) setErrors({}); if (apiError) setApiError(''); }}
+                        onBlur={validatePasswordOnBlur}
                       />
                       <button
                         type="button"
@@ -427,9 +413,11 @@ const Login = () => {
                     <AnimatePresence>
                       {errors.password && (
                         <motion.p
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
+                          role="alert"
+                          variants={fade}
+                          initial="initial"
+                          animate="animate"
+                          exit="exit"
                           className="mt-2 text-sm text-destructive"
                         >
                           {errors.password}
@@ -452,11 +440,12 @@ const Login = () => {
             </AnimatePresence>
 
             {/* Submit Button */}
-            <motion.button
+            {/* Press/hover feedback comes from .btn-primary itself (index.css) —
+                pointer-gated hover + 120ms active-scale — so no framer whileHover/
+                whileTap duplicates it here. */}
+            <button
               type="submit"
               disabled={loading || isLocked}
-              whileHover={{ scale: loading || isLocked ? 1 : 1.01 }}
-              whileTap={{ scale: loading || isLocked ? 1 : 0.99 }}
               className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? (
@@ -480,7 +469,7 @@ const Login = () => {
                   <FiArrowRight className="w-5 h-5" />
                 </>
               )}
-            </motion.button>
+            </button>
 
             {/* Google Sign-In */}
             {googleConfig.isConfigured && (

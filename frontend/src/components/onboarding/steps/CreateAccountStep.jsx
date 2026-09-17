@@ -9,6 +9,7 @@ import { validateEmail, validatePassword, IDENTIFIER_ERROR } from '../../../util
 import PasswordRequirements from '../../common/PasswordRequirements';
 import api from '../../../api/axios';
 import { FiEye, FiEyeOff, FiUser, FiUsers, FiCheck, FiCheckCircle, FiEdit2, FiShield } from 'react-icons/fi';
+import { staggerContainer, fadeRise, fade } from '../../../utils/animations';
 
 const RESEND_COOLDOWN = 60;
 
@@ -169,7 +170,16 @@ const CreateAccountStep = () => {
         <SmartContactField
           value={formData.identifier}
           onChange={onIdentifierChange}
-          onBlur={() => setFieldTouched('identifier')}
+          onBlur={() => {
+            setFieldTouched('identifier');
+            // Validate format only here — the full validateStep() also flags
+            // "not yet verified", which would be a false alarm the instant the
+            // member tabs off a freshly-typed, not-yet-submitted contact field.
+            // Skip entirely on an untouched, still-empty field.
+            if (formData.identifier?.trim() && (!idType || !idValid())) {
+              setStepErrors({ ...errors, identifier: IDENTIFIER_ERROR });
+            }
+          }}
           error={errors.identifier}
           disabled={verified}
           autoFocus
@@ -189,7 +199,12 @@ const CreateAccountStep = () => {
               placeholder="••••••••"
               value={formData.password}
               onChange={(e) => updateFormData('password', e.target.value)}
-              onBlur={() => setFieldTouched('password')}
+              onBlur={() => {
+                setFieldTouched('password');
+                if (formData.password && !validatePassword(formData.password)) {
+                  setStepErrors({ ...errors, password: 'Min 8 chars (uppercase, lowercase, number, symbol)' });
+                }
+              }}
               aria-invalid={errors.password ? true : undefined}
               aria-describedby="signup-password-hint"
               className="w-full px-4 py-3 pr-11 rounded-xl border-2 border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500"
@@ -246,7 +261,7 @@ const CreateAccountStep = () => {
         {/* Verify panel */}
         <div className="rounded-2xl border-2 border-neutral-200 dark:border-neutral-700 p-4 sm:p-5">
           {verified ? (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-3">
+            <motion.div initial="initial" animate="animate" variants={fade} className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl bg-green-100 text-green-600 flex-shrink-0"><FiCheckCircle className="w-5 h-5" /></div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-green-700">{idType === 'phone' ? 'Mobile number' : 'Email'} verified</p>
@@ -295,8 +310,8 @@ const CreateAccountStep = () => {
 
   // ── Guardian (create-for-other) legacy form — verification is a later step ──
   return (
-    <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="space-y-3">
+    <motion.div className="space-y-6" initial="initial" animate="animate" variants={staggerContainer}>
+      <motion.div variants={fadeRise} className="space-y-3">
         <label className="block text-sm font-semibold text-neutral-900">Is this profile for you or someone else?</label>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
@@ -306,15 +321,19 @@ const CreateAccountStep = () => {
             const Icon = option.icon;
             const isSelected = formData.creatingFor === option.value;
             return (
-              <motion.button key={option.value} type="button" onClick={() => updateFormData('creatingFor', option.value)} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                className={`p-4 text-left rounded-lg border-2 transition-all flex items-start gap-3 ${isSelected ? 'border-primary-600 bg-primary-50' : 'border-neutral-200 bg-white hover:border-primary-300'}`}>
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => updateFormData('creatingFor', option.value)}
+                className={`p-4 text-left rounded-lg border-2 transition-colors duration-[160ms] active:scale-[0.98] flex items-start gap-3 ${isSelected ? 'border-primary-600 bg-primary-50' : 'border-neutral-200 bg-white hover:border-primary-300'}`}
+              >
                 <div className={`p-2 rounded-lg mt-0.5 ${isSelected ? 'bg-primary-100 text-primary-600' : 'bg-neutral-100 text-neutral-600'}`}><Icon size={20} /></div>
                 <div className="flex-1">
                   <p className="font-semibold text-neutral-900 text-sm">{option.label}</p>
                   <p className="text-xs text-neutral-600">{option.description}</p>
                 </div>
                 {isSelected && <FiCheck className="w-5 h-5 text-primary-600" />}
-              </motion.button>
+              </button>
             );
           })}
         </div>
@@ -322,20 +341,20 @@ const CreateAccountStep = () => {
       </motion.div>
 
       {formData.creatingFor !== 'self' && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="space-y-4">
+        <motion.div initial="initial" animate="animate" variants={fadeRise} className="space-y-4">
           <div className="pb-2 border-b border-neutral-200">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400 mb-0.5">Your details — profile creator</p>
-            <p className="text-xs text-neutral-500">This is YOUR information as the person setting up this account.</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400 mb-0.5">Your details: profile creator</p>
+            <p className="text-xs text-neutral-500">This is your information as the person setting up this account.</p>
           </div>
-          <FormField label="Your Full Name" name="yourName" autoComplete="name" placeholder="Enter your own name" value={formData.yourName || ''} onChange={(v) => updateFormData('yourName', v)} onBlur={() => setFieldTouched('yourName')} error={errors.yourName} required />
-          <FormField label="Your Phone Number" type="tel" name="yourPhone" autoComplete="tel" inputMode="numeric" placeholder="Your 10-digit phone number" value={formData.yourPhone || ''} onChange={(v) => updateFormData('yourPhone', v)} onBlur={() => setFieldTouched('yourPhone')} error={errors.yourPhone} required />
+          <FormField label="Your Full Name" name="yourName" autoComplete="name" placeholder="Enter your own name" value={formData.yourName || ''} onChange={(v) => updateFormData('yourName', v)} onBlur={() => { setFieldTouched('yourName'); validateStep(); }} error={errors.yourName} required />
+          <FormField label="Your Phone Number" type="tel" name="yourPhone" autoComplete="tel" inputMode="numeric" placeholder="Your 10-digit phone number" value={formData.yourPhone || ''} onChange={(v) => updateFormData('yourPhone', v)} onBlur={() => { setFieldTouched('yourPhone'); validateStep(); }} error={errors.yourPhone} required />
           {/* Guardian's own email — when given, we link them as a read-only
               guardian of this profile so they can keep an eye on it later. */}
-          <FormField label="Your Email" type="email" name="yourEmail" autoComplete="email" inputMode="email" placeholder="your.email@example.com" value={formData.yourEmail || ''} onChange={(v) => updateFormData('yourEmail', v)} onBlur={() => setFieldTouched('yourEmail')} error={errors.yourEmail} hint="We'll give you read-only guardian access to this profile." optional />
+          <FormField label="Your Email" type="email" name="yourEmail" autoComplete="email" inputMode="email" placeholder="your.email@example.com" value={formData.yourEmail || ''} onChange={(v) => updateFormData('yourEmail', v)} onBlur={() => { setFieldTouched('yourEmail'); validateStep(); }} error={errors.yourEmail} hint="We'll give you read-only guardian access to this profile." optional />
           <div className="space-y-2">
             <label htmlFor="onboarding-relationship" className="block text-sm font-medium text-neutral-900">Your Relationship to the Person Whose Profile This Is *</label>
-            <select id="onboarding-relationship" name="relationshipToProfile" value={formData.relationshipToProfile || ''} onChange={(e) => updateFormData('relationshipToProfile', e.target.value)} onBlur={() => setFieldTouched('relationshipToProfile')}
-              className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all">
+            <select id="onboarding-relationship" name="relationshipToProfile" value={formData.relationshipToProfile || ''} onChange={(e) => { updateFormData('relationshipToProfile', e.target.value); setTimeout(validateStep, 0); }} onBlur={() => setFieldTouched('relationshipToProfile')}
+              className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-[160ms]">
               <option value="">Select your relationship to them...</option>
               {relationshipOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
             </select>
@@ -344,7 +363,7 @@ const CreateAccountStep = () => {
         </motion.div>
       )}
 
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: formData.creatingFor !== 'self' ? 0.2 : 0.15 }} className="space-y-4">
+      <motion.div initial="initial" animate="animate" variants={fadeRise} className="space-y-4">
         {formData.creatingFor !== 'self' ? (
           <div className="pb-2 border-b border-neutral-200">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400 mb-0.5">Profile owner's login details</p>
@@ -353,13 +372,13 @@ const CreateAccountStep = () => {
         ) : (
           <h3 className="font-semibold text-neutral-900 text-sm">Account Information</h3>
         )}
-        <p className="text-xs text-neutral-500 -mb-1">Sign up with an email, a phone number, or both — at least one is required.</p>
-        <FormField label={formData.creatingFor !== 'self' ? "Profile Owner's Email" : 'Email'} type="email" name="email" autoComplete="email" inputMode="email" placeholder={formData.creatingFor !== 'self' ? 'Their email address' : 'email@example.com'} value={formData.email} onChange={(v) => updateFormData('email', v)} onBlur={() => setFieldTouched('email')} error={errors.email} />
-        <FormField label={formData.creatingFor !== 'self' ? "Profile Owner's Phone" : 'Phone'} type="tel" name="phone" autoComplete="tel" inputMode="numeric" placeholder="10-digit mobile number" value={formData.phone || ''} onChange={(v) => updateFormData('phone', v)} onBlur={() => setFieldTouched('phone')} error={errors.phone} />
+        <p className="text-xs text-neutral-500 -mb-1">Sign up with an email, a phone number, or both. At least one is required.</p>
+        <FormField label={formData.creatingFor !== 'self' ? "Profile Owner's Email" : 'Email'} type="email" name="email" autoComplete="email" inputMode="email" placeholder={formData.creatingFor !== 'self' ? 'Their email address' : 'email@example.com'} value={formData.email} onChange={(v) => updateFormData('email', v)} onBlur={() => { setFieldTouched('email'); validateStep(); }} error={errors.email} />
+        <FormField label={formData.creatingFor !== 'self' ? "Profile Owner's Phone" : 'Phone'} type="tel" name="phone" autoComplete="tel" inputMode="numeric" placeholder="10-digit mobile number" value={formData.phone || ''} onChange={(v) => updateFormData('phone', v)} onBlur={() => { setFieldTouched('phone'); validateStep(); }} error={errors.phone} />
         <div className="space-y-2">
           <label htmlFor="onboarding-password" className="block text-sm font-medium text-neutral-900">{formData.creatingFor !== 'self' ? "Profile Owner's Password *" : 'Password *'}</label>
           <div className="relative">
-            <input id="onboarding-password" name="password" autoComplete="new-password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={formData.password} onChange={(e) => updateFormData('password', e.target.value)} onBlur={() => setFieldTouched('password')}
+            <input id="onboarding-password" name="password" autoComplete="new-password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={formData.password} onChange={(e) => updateFormData('password', e.target.value)} onBlur={() => { setFieldTouched('password'); validateStep(); }}
               aria-invalid={errors.password ? true : undefined} aria-describedby="guardian-password-hint"
               className="w-full px-4 py-2.5 pr-11 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
             <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Hide password' : 'Show password'} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500">{showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}</button>
@@ -380,7 +399,7 @@ const CreateAccountStep = () => {
           {errors.account_agree && <p className="text-sm text-red-600 mt-1.5">{errors.account_agree}</p>}
         </div>
       </motion.div>
-    </div>
+    </motion.div>
   );
 };
 

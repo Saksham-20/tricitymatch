@@ -4,6 +4,7 @@ import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
 import Select from '../../ui/Select';
 import { MANGLIK_OPTIONS, NAKSHATRA_OPTIONS, ZODIAC_OPTIONS, RASHI_OPTIONS } from '../../../constants/profileOptions';
+import { staggerContainer, fadeRise, DUR, EASE_OUT } from '../../../utils/animations';
 
 // The Kundli / horoscope form. Every field is optional — many members don't know
 // their birth time or nakshatra, and horoscope is a match aid, not a gate.
@@ -14,8 +15,8 @@ const HoroscopeStep = () => {
   const { formData, updateFormData } = useOnboarding();
 
   return (
-    <div className="space-y-5">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+    <motion.div className="space-y-5" initial="initial" animate="animate" variants={staggerContainer}>
+      <motion.div variants={fadeRise}>
         <Select
           label="Manglik / Mangal Dosha"
           options={MANGLIK_OPTIONS}
@@ -25,7 +26,7 @@ const HoroscopeStep = () => {
         />
       </motion.div>
 
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+      <motion.div variants={fadeRise}>
         <Select
           label="Nakshatra (Birth star)"
           options={NAKSHATRA_OPTIONS}
@@ -36,12 +37,7 @@ const HoroscopeStep = () => {
         />
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.22 }}
-        className="grid grid-cols-1 sm:grid-cols-2 gap-4"
-      >
+      <motion.div variants={fadeRise} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Select
           label="Rashi (Moon sign)"
           options={RASHI_OPTIONS}
@@ -68,8 +64,8 @@ const HoroscopeStep = () => {
         {!!formData.manglikStatus && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto', transition: { duration: DUR.accordion, ease: EASE_OUT } }}
+            exit={{ opacity: 0, height: 0, transition: { duration: DUR.accordion, ease: EASE_OUT } }}
             className="grid grid-cols-1 sm:grid-cols-2 gap-4 overflow-hidden"
           >
             <FormField
@@ -85,22 +81,17 @@ const HoroscopeStep = () => {
                 value={formData.birthTime}
                 onChange={(value) => updateFormData('birthTime', value)}
               />
-              <p className="text-xs text-neutral-400 mt-1.5">As close as you know — used for Kundli matching.</p>
+              <p className="text-xs text-neutral-400 mt-1.5">As close as you know, used for Kundli matching.</p>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600"
-      >
+      <motion.div variants={fadeRise} className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600">
         <p className="font-medium text-neutral-800 mb-1">All optional</p>
-        <p>Horoscope details power Ashtakoot / Manglik compatibility and your Kundli match report. Fill what you know — you can add the rest later.</p>
+        <p>Horoscope details power Ashtakoot / Manglik compatibility and your Kundli match report. Fill what you know, you can add the rest later.</p>
       </motion.div>
-    </div>
+    </motion.div>
   );
 };
 

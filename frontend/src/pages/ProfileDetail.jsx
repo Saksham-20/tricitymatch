@@ -24,6 +24,7 @@ import UpgradeModal from '../components/common/UpgradeModal';
 import LikeNoteModal from '../components/profile/LikeNoteModal';
 import { friendlyLabel, formatEnum } from '../constants/profileOptions';
 import RetryImage from '../components/ui/RetryImage';
+import { ErrorState } from '../components/ui';
 
 // ─── Compatibility Ring ──────────────────────────────────────────────────────
 const CompatRing = ({ score }) => {
@@ -32,8 +33,10 @@ const CompatRing = ({ score }) => {
   const r = (size - sw * 2) / 2;
   const circ = 2 * Math.PI * r;
   const offset = circ - (score / 100) * circ;
-  const color = score >= 90 ? '#2E7D32' : score >= 75 ? '#C9A227' : '#8B2346';
-  const bg = score >= 90 ? '#E8F5E9' : score >= 75 ? '#FEFCF3' : '#FDF2F5';
+  // Compatibility is shown to every viewer, free or paid — gold is reserved
+  // for premium marks (doctrine §3.1), so this is a two-tier scale.
+  const color = score >= 90 ? '#2E7D32' : '#8B2346';
+  const bg = score >= 90 ? '#E8F5E9' : '#FDF2F5';
 
   return (
     <div className="flex flex-col items-center gap-1.5">
@@ -124,11 +127,18 @@ const ProfileDetail = () => {
   const [upgradeFeature, setUpgradeFeature] = useState('');
   const [lightbox, setLightbox] = useState({ open: false, src: null, alt: '' });
   const [activeTab, setActiveTab] = useState('about');
+  // A 404 ("this profile doesn't exist / isn't visible to you") and a genuine
+  // server failure read as the same "Profile not found" screen today, which
+  // hides real outages behind wrong copy and no retry (doctrine §6: a failed
+  // fetch never renders the same as an empty/absent result).
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => { loadProfile(); }, [userId]);
 
   const loadProfile = async () => {
     try {
+      setLoading(true);
+      setLoadError(false);
       const res = await api.get(`/profile/${userId}`);
       setProfile(res.data.profile);
       setCompatScore(res.data.compatibilityScore);
@@ -143,7 +153,15 @@ const ProfileDetail = () => {
           email: res.data.profile.User.email,
         });
       }
-    } catch {
+    } catch (err) {
+      // 404/400 = genuinely not found/not visible → the existing "Profile not
+      // found" state. Anything else (500, network) is our failure, not a
+      // missing profile — show the retry state instead.
+      if (err.response?.status && err.response.status < 500) {
+        setProfile(null);
+      } else {
+        setLoadError(true);
+      }
       toast.error('Failed to load profile');
     } finally {
       setLoading(false);
@@ -285,7 +303,7 @@ const ProfileDetail = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-neutral-50">
         <div className="flex flex-col items-center gap-3">
           <div className="w-9 h-9 rounded-full border-2 border-primary-200 border-t-primary-500 animate-spin" />
           <p className="text-sm text-neutral-400 font-medium">Loading profile…</p>
@@ -294,9 +312,22 @@ const ProfileDetail = () => {
     );
   }
 
+  if (loadError) {
+    return (
+      <div className="min-h-[100dvh] flex items-center justify-center bg-neutral-50 px-4">
+        <ErrorState
+          title="Couldn't load this profile"
+          description="Something went wrong on our side or your connection dropped."
+          onRetry={loadProfile}
+          className="max-w-md"
+        />
+      </div>
+    );
+  }
+
   if (!profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-neutral-50">
         <div className="text-center">
           <div className="w-16 h-16 rounded-2xl bg-primary-50 flex items-center justify-center mx-auto mb-4">
             <FiUser className="w-8 h-8 text-primary-300" />
@@ -366,7 +397,7 @@ const ProfileDetail = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-neutral-50 dark:bg-[#0f1117] pb-28 md:pb-12">
+      <div className="min-h-[100dvh] bg-neutral-50 dark:bg-[#0f1117] pb-28 md:pb-12">
 
         {/* ── Top bar ─────────────────────────────────────────────────── */}
         <div className="sticky top-0 z-30 bg-white/95 dark:bg-[#1a1f2e]/95 backdrop-blur-sm border-b border-neutral-100 dark:border-neutral-800 px-4 py-3">
@@ -381,7 +412,7 @@ const ProfileDetail = () => {
             <div className="hidden md:flex items-center gap-2">
               <button
                 onClick={() => handleAction('shortlist')}
-                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${isShortlisted ? 'bg-gold-50 text-gold-700 border border-gold-200' : 'border border-neutral-200 text-neutral-600 hover:border-gold-300 hover:text-gold-700'}`}
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors duration-[160ms] cursor-pointer ${isShortlisted ? 'bg-neutral-800 text-white border border-neutral-800' : 'border border-neutral-200 text-neutral-600 hover:border-neutral-400 hover:text-neutral-800'}`}
               >
                 <FiStar className="w-3.5 h-3.5" />
                 {isShortlisted ? 'Saved' : 'Save'}
@@ -389,7 +420,7 @@ const ProfileDetail = () => {
               <button
                 onClick={() => handleAction('like')}
                 disabled={isLiked}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all cursor-pointer ${isLiked ? 'bg-success-50 text-success border border-success-100' : 'bg-primary-500 text-white hover:bg-primary-600 shadow-sm hover:-translate-y-0.5'}`}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-[transform,background-color] duration-[160ms] cursor-pointer ${isLiked ? 'bg-success-50 text-success border border-success-100' : 'bg-primary-500 text-white hover:bg-primary-600 shadow-sm hover:-translate-y-0.5'}`}
               >
                 {isLiked ? <><FiCheck className="w-3.5 h-3.5" /> Interested</> : <><FiHeart className="w-3.5 h-3.5" /> Express Interest</>}
               </button>
@@ -415,7 +446,7 @@ const ProfileDetail = () => {
                       key={photo}
                       type="button"
                       onClick={() => setLightbox({ open: true, src: url, alt: `${firstName} ${i + 1}` })}
-                      className={`group relative overflow-hidden bg-primary-100 dark:bg-primary-900/40 hover:brightness-95 transition-all focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-inset cursor-pointer ${isFirst && allPhotos.length >= 3 ? 'row-span-2 col-span-1' : ''}`}
+                      className={`group relative overflow-hidden bg-primary-100 dark:bg-primary-900/40 hover:brightness-95 transition-[filter] duration-[160ms] focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-inset cursor-pointer ${isFirst && allPhotos.length >= 3 ? 'row-span-2 col-span-1' : ''}`}
                     >
                       <span className="absolute inset-0 flex items-center justify-center text-7xl font-display font-semibold text-primary-700/40 dark:text-primary-300/40 select-none">{firstName[0]}</span>
                       <RetryImage src={url} alt={`${firstName} ${i + 1}`} className="relative w-full h-full object-cover" loading={i === 0 ? 'eager' : 'lazy'} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
@@ -517,13 +548,13 @@ const ProfileDetail = () => {
                       <button
                         onClick={() => handleAction('like')}
                         disabled={isLiked}
-                        className={`flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-bold rounded-xl transition-all cursor-pointer ${isLiked ? 'bg-success-50 text-success border border-success-100' : 'bg-primary-500 text-white hover:bg-primary-600 shadow-sm hover:-translate-y-0.5'}`}
+                        className={`flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-bold rounded-xl transition-[transform,background-color] duration-[160ms] cursor-pointer ${isLiked ? 'bg-success-50 text-success border border-success-100' : 'bg-primary-500 text-white hover:bg-primary-600 shadow-sm hover:-translate-y-0.5'}`}
                       >
                         {isLiked ? <><FiCheck className="w-4 h-4" /> Interested</> : <><FiHeart className="w-4 h-4" /> Express Interest</>}
                       </button>
                       <button
                         onClick={handleMessage}
-                        className={`flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-xl transition-all cursor-pointer ${premiumAccess ? 'border border-neutral-200 text-neutral-600 hover:bg-neutral-50' : 'border border-gold-200 bg-gold-50 text-gold-700 hover:bg-gold-100'}`}
+                        className={`flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors duration-[160ms] cursor-pointer ${premiumAccess ? 'border border-neutral-200 text-neutral-600 hover:bg-neutral-50' : 'border border-gold-200 bg-gold-50 text-gold-700 hover:bg-gold-100'}`}
                       >
                         {premiumAccess ? <FiMessageCircle className="w-4 h-4" /> : <FiLock className="w-4 h-4" />} {premiumAccess ? 'Message' : 'Message (Premium)'}
                       </button>
@@ -532,13 +563,13 @@ const ProfileDetail = () => {
                       <div className="grid grid-cols-2 gap-2 mt-2">
                         <button
                           onClick={() => handleCall('voice')}
-                          className="flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-xl border border-neutral-200 text-neutral-600 hover:bg-neutral-50 transition-all cursor-pointer"
+                          className="flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-xl border border-neutral-200 text-neutral-600 hover:bg-neutral-50 transition-colors duration-[160ms] cursor-pointer"
                         >
                           {premiumAccess ? <FiPhone className="w-4 h-4" /> : <FiLock className="w-4 h-4" />} Voice Call
                         </button>
                         <button
                           onClick={() => handleCall('video')}
-                          className="flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-xl border border-neutral-200 text-neutral-600 hover:bg-neutral-50 transition-all cursor-pointer"
+                          className="flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-xl border border-neutral-200 text-neutral-600 hover:bg-neutral-50 transition-colors duration-[160ms] cursor-pointer"
                         >
                           {premiumAccess ? <FiVideo className="w-4 h-4" /> : <FiLock className="w-4 h-4" />} Video Call
                         </button>
@@ -617,7 +648,7 @@ const ProfileDetail = () => {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === tab.id ? 'bg-primary-500 text-white shadow-sm' : 'text-neutral-500 hover:text-neutral-700 hover:bg-neutral-50'}`}
+                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-colors duration-[160ms] cursor-pointer ${activeTab === tab.id ? 'bg-primary-500 text-white shadow-sm' : 'text-neutral-500 hover:text-neutral-700 hover:bg-neutral-50'}`}
                   >
                     {tab.label}
                   </button>
@@ -680,7 +711,7 @@ const ProfileDetail = () => {
                             href={sanitizeUrl(profile.spotifyPlaylist)}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-3 p-3.5 bg-neutral-50 rounded-xl border border-neutral-100 hover:border-[#1DB954]/40 hover:bg-[#1DB954]/5 transition-all group cursor-pointer"
+                            className="flex items-center gap-3 p-3.5 bg-neutral-50 rounded-xl border border-neutral-100 hover:border-[#1DB954]/40 hover:bg-[#1DB954]/5 transition-colors duration-[160ms] group cursor-pointer"
                           >
                             <div className="w-10 h-10 rounded-xl bg-[#1DB954]/15 flex items-center justify-center flex-shrink-0">
                               <FiMusic className="w-4.5 h-4.5 text-[#1DB954]" />
@@ -952,11 +983,10 @@ const ProfileDetail = () => {
                       <p className="text-xs font-bold text-neutral-400 mb-3">0 unlocks remaining</p>
                     )}
                     <motion.button
-                      whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={handleUnlockContact}
                       disabled={unlockLoading}
-                      className={`w-full flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-xl transition-all cursor-pointer ${canUnlockContact
+                      className={`w-full flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-xl transition-colors duration-[160ms] cursor-pointer ${canUnlockContact
                           ? 'bg-primary-500 text-white hover:bg-primary-600 shadow-sm'
                           : 'bg-gold text-neutral-900 hover:bg-gold-400 shadow-gold'
                         }`}

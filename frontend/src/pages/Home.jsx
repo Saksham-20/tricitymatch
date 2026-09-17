@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { track, STAGES } from '../utils/analytics';
 import { Link } from 'react-router-dom';
-import { motion, useInView, AnimatePresence, useScroll, useTransform } from 'framer-motion';
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import Seo from '../components/common/Seo';
 import {
   FiShield, FiCheckCircle, FiArrowRight, FiUsers,
@@ -11,9 +11,37 @@ import { FaInstagram, FaFacebook, FaTwitter, FaWhatsapp } from 'react-icons/fa';
 import api from '../api/axios';
 import useFoundingWindow from '../hooks/useFoundingWindow';
 import { support } from '../config';
+import { revealOnce, staggerIndex } from '../utils/animations';
+import { EDITORIAL_IMAGES } from '../data/editorialImages';
 
 /* Testimonials come ONLY from published admin success stories — the section is
    hidden until at least one real story exists. Never seed fabricated couples. */
+
+/* ── AI IMAGE DISCLOSURE ──────────────────────────────────────────
+   Doctrine ruling 15 override (owner instruction, 2026-09-17): the landing
+   photography is AI-generated for now, real photography to follow, and that
+   fact must be disclosed wherever the imagery renders — small, quiet, never
+   a banner. Self-contained contrast (near-opaque dark chip + white text) so
+   it stays >=4.5:1 regardless of what photo sits behind it, the page theme,
+   or elder mode. Reads `aiGenerated` off the manifest entry it is given, so
+   swapping an entry for a licensed photograph removes the caption on its own. */
+const AiTag = ({ entry, style }) => {
+  if (!entry?.aiGenerated) return null;
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        position: 'absolute', zIndex: 5, pointerEvents: 'none',
+        fontFamily: 'var(--sans)', fontSize: 11, lineHeight: 1.3, letterSpacing: '.01em',
+        color: '#FFFFFF', background: 'rgba(0,0,0,.62)',
+        padding: '2px 7px', borderRadius: 4, whiteSpace: 'nowrap',
+        ...style,
+      }}
+    >
+      AI-generated image
+    </span>
+  );
+};
 
 /* ── FONT LOADER ─────────────────────────────────────────────── */
 /* The @font-face families this file uses (Instrument Serif, Cormorant Garamond,
@@ -83,13 +111,18 @@ const FontLoader = () => (
     @keyframes drift-back { 0%,100%{ transform: rotate(-8deg) translateY(40px) translateX(-30px); } 50%{ transform: rotate(-10deg) translateY(50px) translateX(-40px); } }
     @keyframes drift-mid  { 0%,100%{ transform: rotate(4deg) translateY(20px) translateX(20px); }  50%{ transform: rotate(6deg) translateY(10px) translateX(30px); } }
     @keyframes drift-front{ 0%,100%{ transform: rotate(-2deg) translateY(0); } 50%{ transform: rotate(-3deg) translateY(-10px); } }
-    @keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
     @keyframes drift { 0%,100% { transform: translate(0,0); } 50% { transform: translate(80px, 60px); } }
     @keyframes count-up-in { from { opacity:0; transform: translateY(20px); } to { opacity:1; transform: translateY(0); } }
 
     /* ── WHY horizontal scroll ── */
     .why-scroller { scrollbar-width: none; scroll-snap-type: x mandatory; }
     .why-scroller::-webkit-scrollbar { display: none; }
+    /* Progress bar driven by CSS scroll-timeline, not a scroll listener —
+       only applied when JS confirms support (.why-bar-css, set from
+       supportsScrollTimeline), so the fill still tracks #why-scroller's
+       own horizontal position on browsers that lack the feature. */
+    @keyframes why-bar-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+    .why-bar-css { transform-origin: left; animation: why-bar-fill linear; animation-timeline: scroll(nearest inline); }
 
     /* ── Cities accordion ── */
     .city-strip { transition: flex .8s cubic-bezier(.2,.8,.2,1); }
@@ -119,8 +152,6 @@ const FontLoader = () => (
       /* Live pill: truncate overflow text */
       .live-pill { max-width: calc(100vw - 40px) !important; left: 50% !important; transform: translateX(-50%) !important; }
       .live-pill .live-text { max-width: 140px !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; display: inline-block !important; vertical-align: middle !important; }
-      /* Spinning badge: hide on mobile */
-      .hero-spin-badge { display: none !important; }
       /* Why section */
       #why { grid-template-columns: 1fr !important; padding: 48px 0 32px !important; }
       #why > div:first-child { position: static !important; padding: 0 20px 32px !important; }
@@ -235,12 +266,20 @@ const FontLoader = () => (
       footer { padding-bottom: 120px !important; }
     }
 
-    /* ── Reduced motion: honor OS-level user preference (a11y + battery) ── */
+    /* ── Reduced motion: honor OS-level user preference (a11y + battery) ──
+       Zeroing only animation-duration left animation-delay untouched — the
+       hero's staggered "rise" keyframes hold their FROM state (opacity: 0)
+       for the full delay (up to 0.9s) before snapping to visible, so a
+       reduced-motion screenshot taken on load read as missing content, not
+       merely unanimated. Delay is now zeroed too, so every element reaches
+       its settled, visible state immediately. */
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
         animation-duration: .001ms !important;
+        animation-delay: 0s !important;
         animation-iteration-count: 1 !important;
         transition-duration: .001ms !important;
+        transition-delay: 0s !important;
         scroll-behavior: auto !important;
       }
       .ribbon-track { animation: none !important; }
@@ -256,13 +295,22 @@ const FontLoader = () => (
 );
 
 /* ── STICKY CTA — mobile-only bottom bar ─────────────────────────── */
-const StickyCTA = () => {
+/* Was a raw `scroll` listener recomputing `window.scrollY > innerHeight * .8`
+   on every scroll frame. Doctrine §8 bans that pattern; an IntersectionObserver
+   watching the hero section do the equivalent job off the main thread — the
+   bar shows once the hero has scrolled out of view. */
+const StickyCTA = ({ heroRef }) => {
   const [show, setShow] = useState(false);
   useEffect(() => {
-    const onScroll = () => setShow(window.scrollY > window.innerHeight * 0.8);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+    const hero = heroRef?.current;
+    if (!hero) return undefined;
+    const observer = new IntersectionObserver(
+      ([entry]) => setShow(!entry.isIntersecting),
+      { rootMargin: '0px' }
+    );
+    observer.observe(hero);
+    return () => observer.disconnect();
+  }, [heroRef]);
   return (
     <div className={`sticky-cta${show ? ' show' : ''}`}>
       <div className="sc-text">
@@ -309,21 +357,18 @@ const Home = () => {
 
   /* "Just matched" live ticker removed — it showed fabricated couples as real activity. */
 
-  /* process scroll tracking */
+  const heroRef = useRef(null);
+
+  /* process scroll tracking — was a raw `scroll` listener recomputing a
+     getBoundingClientRect on every frame (doctrine §8 bans this pattern).
+     framer-motion's `useScroll` tracks the same "section scrolling through
+     the viewport" progress off the main thread; `offset: ['start start',
+     'end end']` reproduces the old (scrolled / total) math exactly. */
   const processRef = useRef(null);
-  useEffect(() => {
-    const onScroll = () => {
-      const sec = processRef.current;
-      if (!sec) return;
-      const r = sec.getBoundingClientRect();
-      const total = sec.offsetHeight - window.innerHeight;
-      const scrolled = -r.top;
-      const p = Math.max(0, Math.min(1, scrolled / total));
-      setProcessActive(Math.min(3, Math.floor(p * 4)));
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+  const { scrollYProgress: processProgress } = useScroll({ target: processRef, offset: ['start start', 'end end'] });
+  useEffect(() => processProgress.on('change', (p) => {
+    setProcessActive(Math.min(3, Math.floor(Math.max(0, Math.min(1, p)) * 4)));
+  }), [processProgress]);
 
   /* story auto-advance */
   useEffect(() => {
@@ -343,7 +388,12 @@ const Home = () => {
           who: s.coupleNames,
           where: [s.location, s.marriedOn ? `Married ${new Date(s.marriedOn).getFullYear()}` : null].filter(Boolean).join(' · '),
           tag: s.tag || '',
-          img: s.photoUrl || '/images/landing/story-meera-vikram.jpg',
+          // No stock-photo fallback: a real, named, consenting couple must
+          // never be illustrated with a picture of someone else (the old
+          // fallback pointed at an AI/stock image literally named after a
+          // different fabricated couple). `img: null` renders an initials
+          // mark instead — see the polaroid pile below.
+          img: s.photoUrl || null,
         })));
         setStoryIdx(0);
       })
@@ -351,11 +401,15 @@ const Home = () => {
     return () => { active = false; };
   }, []);
 
-  /* why-scroller progress bar */
+  /* why-scroller progress bar — CSS scroll-timeline where supported (the
+     `.why-bar-css` rule in FontLoader, gated on the same `supportsScrollTimeline`
+     feature check the vertical scroll bar above already uses), a `scroll`
+     listener only as the fallback for browsers without it. */
   useEffect(() => {
+    if (supportsScrollTimeline) return undefined;
     const scroller = document.getElementById('why-scroller');
     const bar      = document.getElementById('why-bar');
-    if (!scroller || !bar) return;
+    if (!scroller || !bar) return undefined;
     const onScroll = () => {
       const max = scroller.scrollWidth - scroller.clientWidth;
       bar.style.width = (max > 0 ? (scroller.scrollLeft / max) * 100 : 0) + '%';
@@ -364,14 +418,16 @@ const Home = () => {
     return () => scroller.removeEventListener('scroll', onScroll);
   }, []);
 
-  /* ── DATA ── */
-  const profiles = [
-    { name: 'Priya Sharma', age: 28, loc: 'Mohali',      tags: ['MBA · IIM', 'Family-first', 'Travel', 'Sufi'], match: 97, img: '/images/landing/profile-priya.jpg',  grad: 'linear-gradient(140deg,#C9B5A6,#6E574B)' },
-    { name: 'Rahul Gupta',  age: 31, loc: 'Chandigarh',  tags: ['IIT', 'Founder', 'Trekking', 'Cinema'],        match: 95, img: '/images/landing/profile-rahul.jpg',  grad: 'linear-gradient(160deg,#8B7568,#3A2F28)' },
-    { name: 'Anjali Nair',  age: 29, loc: 'Panchkula',   tags: ['Doctor · AIIMS', 'Spiritual', 'Reading'],      match: 93, img: '/images/landing/profile-anjali.jpg', grad: 'linear-gradient(150deg,#B59C82,#5C4B40)' },
-    { name: 'Karan Bedi',   age: 30, loc: 'Chandigarh',  tags: ['CA', 'Cinephile', 'Cycling'],                  match: 91, img: '/images/landing/profile-karan.jpg',  grad: 'linear-gradient(170deg,#A28D78,#4A3D34)' },
-    { name: 'Meera Kapoor', age: 27, loc: 'Panchkula',   tags: ['Design lead', 'Family-first', 'Yoga'],         match: 94, img: '/images/landing/profile-meera.jpg',  grad: 'linear-gradient(155deg,#BFA98E,#594336)' },
-  ];
+  /* ── DATA ──
+     `discoverPhotos` used to be `profiles`: five invented people with full
+     names, exact ages, cities, employers and a fabricated compatibility
+     score, rendered with a "✦ Verified" badge over the card (see the MATCHES
+     section below). Doctrine ruling 15 bans exactly this — imagery may only
+     ever be ambient art direction, never a member, never carrying a name,
+     age, city, verified tick or match percentage. There is no honest way to
+     keep the identity data, so it is gone; the photography stays as pure
+     imagery via the editorial manifest. */
+  const discoverPhotos = EDITORIAL_IMAGES.discoverGallery;
 
   const processSteps = [
     { n: '01', t: 'Create your profile',    b: 'Build a detailed profile that reflects who you truly are, then earn your verified badge with a live selfie.',       meta: ['~12 min', 'Selfie verified', 'Free'] },
@@ -381,31 +437,34 @@ const Home = () => {
   ];
 
   const cities = [
-    { tag: 'City Beautiful',       name: 'Chandigarh', desc: 'India\'s most planned city. Cosmopolitan, career-forward — and deeply family-rooted.',         img: '/images/landing/city-chandigarh.jpg' },
-    { tag: "Punjab's Rising Star", name: 'Mohali',     desc: 'Tech parks, AIIMS, IIT. Young professionals building careers without leaving culture.',         img: '/images/landing/city-mohali.jpg' },
-    { tag: 'Roots Run Deep',       name: 'Panchkula',  desc: 'Quiet, established, close-knit. Tradition and aspiration in equal measure.',                   img: '/images/landing/city-panchkula.jpg' },
+    { tag: 'City Beautiful',       name: 'Chandigarh', desc: 'India\'s most planned city. Cosmopolitan, career-forward — and deeply family-rooted.',         image: EDITORIAL_IMAGES.cities.chandigarh },
+    { tag: "Punjab's Rising Star", name: 'Mohali',     desc: 'Tech parks, AIIMS, IIT. Young professionals building careers without leaving culture.',         image: EDITORIAL_IMAGES.cities.mohali },
+    { tag: 'Roots Run Deep',       name: 'Panchkula',  desc: 'Quiet, established, close-knit. Tradition and aspiration in equal measure.',                   image: EDITORIAL_IMAGES.cities.panchkula },
   ];
 
   const faqs = [
     { q: 'Only Tricity residents?',              a: 'Yes — every profile is from Chandigarh, Mohali, or Panchkula, or has direct family ties to the region. Hyperlocal is the point.' },
     { q: 'How does profile verification work?',  a: 'Members submit a live selfie — captured in the moment, never uploaded from files — that our team matches against their profile photos. The verified badge appears once approved.' },
-    { q: 'Can I browse without an account?',     a: 'Preview a small selection without an account. Full profiles, photos, and chat require a verified account.' },
+    { q: 'Can I browse without an account?',     a: 'No — search and full profiles need a free account. Creating one takes about two minutes and you can start browsing right away.' },
     { q: 'I live abroad — can NRIs join?',       a: 'Yes, if you are from the Tricity or your family is. Where you live now does not matter; the roots do. Mark yourself as an NRI during sign-up and add your country, and families looking for an NRI alliance will see it. A parent or sibling here can search alongside you through Guardian access.' },
     { q: 'What does Premium include?',           a: 'One plan, no tiers to compare: unlimited contact unlocks, unlimited messaging, advanced filters, Incognito mode, a profile boost and a spotlight listing, for the full term. Browsing, matching and your profile stay free.' },
     { q: 'Is my data private?',                  a: 'Yes. Conversations are encrypted in transit and access is restricted to you and your match. We never share your phone number, never sell data, never display you to non-mutual interests.' },
     { q: 'Can families participate?',             a: 'Yes — gracefully. You choose when. They get their own view and chat channel kept respectfully separate from yours.' },
   ];
 
+  {/* Doctrine §8 bans numbered section markers ("01 /", "02 /") — the `tag`
+      field below used to read "01 / Security". Kept the plain category word,
+      dropped the number. */}
   const whyCards = [
-    { tag: '01 / Security',   title: 'Photo-verified profiles',   body: 'The verified badge is earned with a live selfie matched by human review — no uploads, no shortcuts.',           glyph: '◉' },
-    { tag: '02 / Technology', title: 'Intelligent matching, 40+ signals',        body: 'Values, lifestyle, family expectations — far beyond age and location.',                                  glyph: '◇' },
-    { tag: '03 / Hyperlocal', title: 'Built only for the Tricity',      body: 'Made for Chandigarh, Mohali, Panchkula. Meet partners from your community.',                            glyph: '▣' },
-    { tag: '04 / Privacy',    title: 'Incognito browsing',              body: 'Browse privately. Appear only to those you\'ve expressed interest in.',                                  glyph: '◐' },
-    { tag: '05 / Comms',      title: 'Private conversations',           body: 'Encrypted in transit, with read receipts. Phone numbers stay hidden.',                                   glyph: '▲' },
-    { tag: '06 / Values',     title: 'Family-aware flow',               body: 'Bring family in at the right moment. Respect, not pressure.',                                            glyph: '✦' },
+    { tag: 'Security',   title: 'Photo-verified profiles',   body: 'The verified badge is earned with a live selfie matched by human review — no uploads, no shortcuts.',           glyph: '◉' },
+    { tag: 'Technology', title: 'Intelligent matching, 40+ signals',        body: 'Values, lifestyle, family expectations — far beyond age and location.',                                  glyph: '◇' },
+    { tag: 'Hyperlocal', title: 'Built only for the Tricity',      body: 'Made for Chandigarh, Mohali, Panchkula. Meet partners from your community.',                            glyph: '▣' },
+    { tag: 'Privacy',    title: 'Incognito browsing',              body: 'Browse privately. Appear only to those you\'ve expressed interest in.',                                  glyph: '◐' },
+    { tag: 'Comms',      title: 'Private conversations',           body: 'Encrypted in transit, with read receipts. Phone numbers stay hidden.',                                   glyph: '▲' },
+    { tag: 'Values',     title: 'Family-aware flow',               body: 'Bring family in at the right moment. Respect, not pressure.',                                            glyph: '✦' },
   ];
 
-  const cur       = profiles[matchIdx];
+  const cur       = discoverPhotos[matchIdx];
   const curStep   = processSteps[processActive];
   const curStory  = stories[storyIdx];
 
@@ -456,24 +515,18 @@ const Home = () => {
       {/* ════════════════════════════════════════════════════════
           HERO — asymmetric split: monumental title left, fanned photo stack right
       ════════════════════════════════════════════════════════ */}
-      <section style={{
+      <section ref={heroRef} style={{
         minHeight: '100vh', display: 'grid', gridTemplateColumns: '1.1fr 0.9fr',
         paddingTop: 64, position: 'relative', boxSizing: 'border-box',
       }} className="hero-section">
 
         {/* LEFT */}
         <div style={{ padding: '28px 28px 48px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative' }}>
-          {/* Eyebrow chip */}
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 10,
-            padding: '8px 16px', borderRadius: 999, alignSelf: 'flex-start',
-            background: 'rgba(124,29,58,.07)', border: '1px solid rgba(124,29,58,.2)',
-            fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.14em', textTransform: 'uppercase',
-            color: 'var(--burgundy-dk)', animation: 'rise 1.2s .1s both',
-          }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--burgundy)', animation: 'pulse 1.6s ease-in-out infinite', flexShrink: 0 }} />
-            Serious matrimony · Tricity only · Founding members welcome
-          </div>
+          {/* Doctrine ruling 2: zero eyebrows, the heading carries itself. The
+              pill that used to sit here ("Serious matrimony · Tricity only ·
+              Founding members welcome") is removed rather than reworded —
+              the trust chips and baseline strip below the fold already carry
+              the same facts. */}
 
           {/* Headline — CRO messaging (h1 for SEO/a11y; one per page) */}
           <h1 style={{
@@ -546,7 +599,17 @@ const Home = () => {
           </div>
         </div>
 
-        {/* RIGHT — fanned photo stack */}
+        {/* RIGHT — fanned photo stack.
+            Doctrine ruling 15 + the imagery override (docs/design-handoff/
+            DOCTRINE_2026-09.md): AI-generated photography may set mood here as
+            ambient art direction, but it may never carry a name, an age, a
+            city or a match percentage, and it may never sit next to a
+            verification claim. All three used to. The rotating "VERIFIED ·
+            MATCHED · CONNECTED" ring sat directly over this stack and read as
+            a claim about the pictured people — removed along with the 97%
+            badge and the per-card names, rather than reworded, because
+            nothing here is a real member to describe. The three photos stay:
+            imagery is still allowed, just honest about being imagery. */}
         <div style={{ position: 'relative', padding: '0 36px 80px 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ position: 'relative', width: '100%', maxWidth: 240, aspectRatio: '3/4' }}>
             {/* Back card */}
@@ -557,9 +620,8 @@ const Home = () => {
               transform: 'rotate(-8deg) translateY(40px) translateX(-30px)',
               animation: 'drift-back 8s ease-in-out infinite',
             }}>
-              <img src="/images/landing/profile-anjali.jpg" alt="Anjali Nair" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src={EDITORIAL_IMAGES.heroStack.back.src} alt={EDITORIAL_IMAGES.heroStack.back.alt} decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 50%,rgba(0,0,0,.45))' }} />
-              <span style={{ position: 'absolute', bottom: 16, left: 16, fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.12em', textTransform: 'uppercase', color: 'rgba(253,248,242,.85)', zIndex: 3 }}>Anjali, 29 · Panchkula</span>
             </div>
             {/* Mid card */}
             <div style={{
@@ -569,9 +631,8 @@ const Home = () => {
               transform: 'rotate(4deg) translateY(20px) translateX(20px)',
               animation: 'drift-mid 10s ease-in-out infinite',
             }}>
-              <img src="/images/landing/profile-rahul.jpg" alt="Rahul Gupta" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src={EDITORIAL_IMAGES.heroStack.mid.src} alt={EDITORIAL_IMAGES.heroStack.mid.alt} decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 50%,rgba(0,0,0,.45))' }} />
-              <span style={{ position: 'absolute', bottom: 16, left: 16, fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.12em', textTransform: 'uppercase', color: 'rgba(253,248,242,.85)', zIndex: 3 }}>Rahul, 31 · Chandigarh</span>
             </div>
             {/* Front card — with real image */}
             <div style={{
@@ -584,37 +645,10 @@ const Home = () => {
               {/* eslint-disable-next-line react/no-unknown-property -- React 18.2 drops the
                   camelCase `fetchPriority` prop with a warning; the lowercase DOM
                   attribute is what actually reaches the browser on this version. */}
-              <img src="/images/landing/profile-priya.jpg" alt="Priya Sharma" fetchpriority="high" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src={EDITORIAL_IMAGES.heroStack.front.src} alt={EDITORIAL_IMAGES.heroStack.front.alt} fetchpriority="high" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 50%,rgba(0,0,0,.55))' }} />
-              {/* The bottom-scrim gradient only darkens from 50% down, so this
-                  badge sits over the raw photo with no scrim behind it — over
-                  a light part of a photo (sky, a wall, a curtain) the pale
-                  --cream glyph loses almost all contrast and reads as clipped
-                  or missing. A text-shadow guarantees legibility regardless of
-                  what is behind it, independent of which photo is loaded. */}
-              <span style={{ position: 'absolute', top: 14, right: 14, fontFamily: 'var(--display)', fontSize: 36, lineHeight: 1, color: 'var(--cream)', zIndex: 3, fontStyle: 'italic', textShadow: '0 2px 10px rgba(0,0,0,.65), 0 1px 3px rgba(0,0,0,.85)' }}>97<small style={{ fontSize: 16, opacity: .7 }}>%</small></span>
-              <div style={{ position: 'absolute', bottom: 20, left: 20, right: 20, zIndex: 3, color: 'var(--cream)', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <strong style={{ fontFamily: 'var(--display)', fontSize: 28, fontWeight: 400, letterSpacing: '-.01em' }}>Priya Sharma, 28</strong>
-                {/* Single line, not wrap: at 2 lines this caption's own second
-                    line sat within a few px of the back card's caption peeking
-                    out below the front card, reading as one bled-together
-                    block of overlapping text. */}
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.12em', textTransform: 'uppercase', opacity: .85, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Mohali · MBA · Family-first</span>
-              </div>
+              <AiTag entry={EDITORIAL_IMAGES.heroStack.front} style={{ bottom: 14, left: 14 }} />
             </div>
-          </div>
-
-          {/* Rotating badge */}
-          <div className="hero-spin-badge" style={{ position: 'absolute', top: 20, right: 24, width: 110, height: 110, animation: 'spin 30s linear infinite' }}>
-            <svg viewBox="0 0 200 200" style={{ width: '100%', height: '100%' }}>
-              <defs>
-                <path id="circ" d="M100,100 m-78,0 a78,78 0 1,1 156,0 a78,78 0 1,1 -156,0" />
-              </defs>
-              <text fontFamily="JetBrains Mono" fontSize="11" letterSpacing="4" fill="var(--burgundy-dk)">
-                <textPath href="#circ">VERIFIED · MATCHED · CONNECTED · IN TRICITY · VERIFIED · MATCHED · CONNECTED · </textPath>
-              </text>
-            </svg>
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--burgundy)', fontSize: 18 }}>✦</div>
           </div>
         </div>
 
@@ -653,9 +687,9 @@ const Home = () => {
           position: 'relative', maxWidth: 1280, margin: '0 auto',
           display: 'grid', gridTemplateColumns: '7fr 5fr', gap: 56, paddingBottom: 40, alignItems: 'center',
         }}>
-          {/* Left — the claim */}
+          {/* Left — the claim. Doctrine ruling 2: zero eyebrows, so no
+              "— Founding members" label above the heading. */}
           <div>
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.22em', textTransform: 'uppercase', color: 'var(--gold-text)', display: 'block', marginBottom: 20 }}>— Founding members</span>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(28px,3.6vw,48px)', lineHeight: 1.1, letterSpacing: '-.02em', margin: 0 }}>
               Tricity's newest, most carefully verified matchmaking community — {founding.open
                 ? <em style={{ fontStyle: 'italic', color: 'var(--gold-text)' }}>founding members join free.</em>
@@ -664,8 +698,13 @@ const Home = () => {
             <p style={{ fontSize: 15, lineHeight: 1.65, color: 'rgba(253,248,242,.72)', fontFamily: 'var(--sans)', maxWidth: '34em', margin: '18px 0 28px' }}>
               We&apos;re starting the honest way: no inflated numbers, every verified badge earned with a
               live selfie, and matchmaking that stays inside Chandigarh, Mohali and Panchkula.
+              {/* Was rendering the offer's CLOSING date as if it were the length of
+                  the grant — someone joining today read "free until 18 November"
+                  and received `grantDays` (30), not seven-plus months. Fixed per
+                  docs/LEGAL_REVIEW_2026-09-17.md A-7: state the grant length, then
+                  the join-by deadline, matching the announcement band above. */}
               {founding.open
-                ? ` Founding members get full membership free until ${foundingEndsLabel} — including ${founding.contactUnlocks} contact unlocks.`
+                ? ` Founding members get ${founding.grantDays ? `${founding.grantDays} days` : 'full membership'} free — including ${founding.contactUnlocks} contact unlocks — if you join before ${foundingEndsLabel}.`
                 : ' Founding members join free and shape what this becomes.'}
             </p>
             <Link to="/onboarding" style={{
@@ -688,8 +727,13 @@ const Home = () => {
             borderLeft: '1px solid var(--line-on-dk)', paddingLeft: 56,
             display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 26,
           }}>
+            {/* "seen by a person" claimed we pre-screen every profile; Terms
+                cl.6 says the opposite ("We do not screen members, and we
+                cannot"). Human review only happens for verification selfies
+                and reported profiles. Fixed per docs/LEGAL_REVIEW_2026-09-17.md
+                A-9 — draft wording used as given. */}
             {[
-              ['Verified, not vast', 'A smaller circle where every profile has been seen by a person.'],
+              ['Verified, not vast', 'A smaller circle, where the verified badge is earned in front of a person — not assumed.'],
               ['Tricity only', 'Matches you can actually meet — same city, same community.'],
               ['Families welcome', 'Parents and guardians take part, the way Tricity actually matches.'],
             ].map(([title, body]) => (
@@ -742,8 +786,7 @@ const Home = () => {
       <section id="why" style={{ display: 'grid', gridTemplateColumns: '0.85fr 2fr', padding: '64px 0 48px', alignItems: 'start' }}>
         {/* Sticky left */}
         <div style={{ position: 'sticky', top: 80, padding: '0 28px 0 40px' }}>
-          <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0 }}>
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--burgundy)', marginBottom: 24, display: 'block' }}>— Why TricityMatch</span>
+          <motion.div {...revealOnce}>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', marginBottom: 24 }}>
               Six reasons<br />this <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>isn't</em><br />another app.
             </h2>
@@ -751,7 +794,11 @@ const Home = () => {
               Scroll right to read. Each principle shapes a real product decision — not just marketing copy.
             </p>
             <div style={{ height: 2, background: 'var(--line)', borderRadius: 1, overflow: 'hidden' }}>
-              <div id="why-bar" style={{ height: '100%', background: 'var(--burgundy)', width: 0, transition: 'width .2s linear' }} />
+              <div id="why-bar" className={supportsScrollTimeline ? 'why-bar-css' : undefined}
+                style={supportsScrollTimeline
+                  ? { height: '100%', background: 'var(--burgundy)', width: '100%' }
+                  : { height: '100%', background: 'var(--burgundy)', width: 0, transition: 'width .2s linear' }}
+              />
             </div>
           </motion.div>
         </div>
@@ -759,8 +806,10 @@ const Home = () => {
         {/* Horizontal scroll */}
         <div id="why-scroller" className="why-scroller" tabIndex={0} role="group" aria-label="Why TricityMatch — scroll horizontally to read" style={{ display: 'flex', gap: 16, overflowX: 'auto', padding: '0 24px 20px', scrollSnapType: 'x mandatory' }}>
           {whyCards.map((c, i) => (
-            <motion.div key={i} initial={{ opacity: 1, y: 0 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0 }}
-              transition={{ delay: i * 0.07 }}
+            <motion.div key={i}
+              initial={revealOnce.initial}
+              whileInView={{ ...revealOnce.whileInView, transition: { ...revealOnce.whileInView.transition, delay: staggerIndex(i) } }}
+              viewport={revealOnce.viewport}
               className="why-tile"
               style={{
                 flex: '0 0 260px', scrollSnapAlign: 'start',
@@ -804,15 +853,32 @@ const Home = () => {
       </section>
 
       {/* ════════════════════════════════════════════════════════
-          MATCHES — full-bleed featured profile + side rail
-      ════════════════════════════════════════════════════════ */}
+          DISCOVER — illustrates the product, not fabricated members.
+
+          This section used to be five invented people — full names, exact
+          ages, cities, employers — each with a fabricated compatibility
+          percentage and a "✦ Verified" badge rendered over the card. On a
+          matrimonial site, where the verified badge is the trust primitive
+          the whole page argues is earned by human review, a fabricated
+          verified badge over a synthetic face was the sharpest honesty risk
+          on the page (docs/LEGAL_REVIEW_2026-09-17.md section D). Doctrine
+          ruling 15 bans it outright: imagery may set mood but never carry a
+          name, age, city, match percentage or verified tick.
+
+          Recomposed to illustrate the DISCOVERY EXPERIENCE instead of naming
+          members that do not exist — the photography stays as ambient art
+          direction (disclosed, see AiTag), the copy describes what a real
+          profile card shows once you join, and every route goes to a real
+          place (/search, /onboarding), never a fabricated `/profile/:id`. */}
       <section id="matches" className="matches-section section-dark" style={{ background: 'var(--burgundy)', color: 'var(--cream)', padding: '36px 40px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 20, marginBottom: 24, flexWrap: 'wrap' }}>
           <div>
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--gold-text)', marginBottom: 24, display: 'block' }}>— Smart matches</span>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', color: 'var(--cream)' }}>
-              Profiles matched<br /><em style={{ fontStyle: 'italic', color: 'var(--gold-text)' }}>just</em> for you.
+              See how you'll<br /><em style={{ fontStyle: 'italic', color: 'var(--gold-text)' }}>discover</em> matches.
             </h2>
+            <p style={{ fontSize: 14, lineHeight: 1.5, color: 'rgba(253,248,242,.75)', maxWidth: 420, fontFamily: 'var(--sans)', marginTop: 12 }}>
+              A compatibility score, a verified badge, and the details families check first — every real profile shows them. The photography here is illustrative, not real members.
+            </p>
           </div>
           <div style={{ fontFamily: 'var(--display)', display: 'flex', alignItems: 'baseline', gap: 8 }}>
             <AnimatePresence mode="wait">
@@ -821,48 +887,47 @@ const Home = () => {
                 0{matchIdx + 1}
               </motion.span>
             </AnimatePresence>
-            <span style={{ fontSize: 24, opacity: .55 }}>/ 0{profiles.length}</span>
+            <span style={{ fontSize: 24, opacity: .55 }}>/ 0{discoverPhotos.length}</span>
           </div>
         </div>
 
         <div className="matches-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-          {/* Feature card — photo left, details right */}
+          {/* Feature panel — ambient photo, no identity overlay */}
           <motion.div key={matchIdx} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             style={{
               borderRadius: 6, overflow: 'hidden', display: 'flex', flexDirection: 'column',
               boxShadow: '0 40px 80px -30px rgba(0,0,0,.5)',
               background: 'rgba(45,26,34,0.55)',
             }}>
-            {/* Rectangular photo — contain so full person is visible */}
-            <div style={{ position: 'relative', width: '100%', height: 340, flexShrink: 0, background: cur.grad }}>
+            <div style={{ position: 'relative', width: '100%', height: 340, flexShrink: 0 }}>
               <img
-                src={cur.img} alt={cur.name} loading="lazy" decoding="async"
-                style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center bottom', display: 'block' }}
+                src={cur.src} alt={cur.alt} loading="lazy" decoding="async"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               />
-              {/* Subtle bottom gradient only */}
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 60%,rgba(0,0,0,.4))' }} />
-              {/* Match % badge */}
-              <div style={{ position: 'absolute', top: 16, left: 16, display: 'flex', alignItems: 'baseline', gap: 6, color: 'var(--cream)', background: 'rgba(0,0,0,.45)', backdropFilter: 'blur(6px)', padding: '8px 14px', borderRadius: 999 }}>
-                <span style={{ fontFamily: 'var(--display)', fontSize: 28, lineHeight: 1, letterSpacing: '-.03em', fontStyle: 'italic' }}>
-                  {cur.match}<small style={{ fontSize: 14, opacity: .7 }}>%</small>
-                </span>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '.14em', textTransform: 'uppercase', opacity: .85, lineHeight: 1.3 }}>Compat<br />score</span>
-              </div>
-              {/* Verified badge */}
-              <span style={{ position: 'absolute', top: 16, right: 16, fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gold-text)', background: 'rgba(0,0,0,.45)', backdropFilter: 'blur(6px)', padding: '6px 12px', borderRadius: 999 }}>✦ Verified</span>
+              <AiTag entry={cur} style={{ bottom: 14, left: 14 }} />
             </div>
-            {/* Details panel */}
+            {/* Details panel — describes what a real profile card shows, never a
+                specific fabricated person. Checklist, not name-sized text, so
+                this does not read as a real member listing with a disclaimer
+                pasted underneath. */}
             <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
-              <div>
-                <span style={{ fontFamily: 'var(--display)', fontSize: 'clamp(20px,2.4vw,32px)', lineHeight: 1.05, letterSpacing: '-.02em', color: 'var(--cream)' }}>{cur.name}, <em style={{ color: 'var(--gold-text)', fontStyle: 'italic' }}>{cur.age}</em></span>
-                <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '.16em', textTransform: 'uppercase', opacity: .7, color: 'var(--cream)', marginTop: 4 }}>{cur.loc} · Tricity</div>
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {cur.tags.map((t, j) => (
-                  <span key={j} style={{ padding: '5px 12px', border: '1px solid rgba(253,248,242,.3)', borderRadius: 999, color: 'var(--cream)', fontSize: 11 }}>{t}</span>
+              <span style={{ fontFamily: 'var(--display)', fontSize: 'clamp(18px,2vw,24px)', lineHeight: 1.15, letterSpacing: '-.01em', color: 'var(--cream)' }}>
+                What a real profile shows
+              </span>
+              <ul style={{ display: 'flex', flexDirection: 'column', gap: 8, margin: 0, padding: 0, listStyle: 'none' }}>
+                {[
+                  'A photo-verified badge, earned with a live selfie',
+                  'A compatibility score across the signals families weigh',
+                  'Community, city, education and profession, at a glance',
+                ].map((line) => (
+                  <li key={line} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 13, lineHeight: 1.5, color: 'rgba(253,248,242,.85)' }}>
+                    <FiCheckCircle style={{ width: 15, height: 15, color: 'var(--gold-text)', flexShrink: 0, marginTop: 2 }} />
+                    {line}
+                  </li>
                 ))}
-              </div>
-              <Link to={`/profile/${matchIdx + 1}`} style={{
+              </ul>
+              <Link to="/onboarding" style={{
                 marginTop: 'auto',
                 fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.14em', textTransform: 'uppercase',
                 padding: '11px 20px', background: 'var(--cream)', color: 'var(--burgundy)',
@@ -871,15 +936,18 @@ const Home = () => {
               }}
                 onMouseEnter={e => { e.currentTarget.style.background = 'var(--gold)'; e.currentTarget.style.color = 'var(--ink)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'var(--cream)'; e.currentTarget.style.color = 'var(--burgundy)'; e.currentTarget.style.transform = ''; }}
-              >View full profile →</Link>
+              >Create your free profile →</Link>
             </div>
           </motion.div>
 
-          {/* Side rail */}
+          {/* Side rail — a gallery of the same ambient photography, no
+              per-thumbnail caption (one disclosure on the feature image
+              already covers this set; repeating it at 56px would be the
+              banner doctrine bans, not the quiet label it asks for). */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {profiles.map((p, i) => (
+            {discoverPhotos.map((photo, i) => (
               <div key={i} className="ms-row"
-                role="button" tabIndex={0} aria-pressed={matchIdx === i} aria-label={`View ${p.name}, ${p.match}% match`}
+                role="button" tabIndex={0} aria-pressed={matchIdx === i} aria-label={`Show photo ${i + 1} of ${discoverPhotos.length}`}
                 onClick={() => setMatchIdx(i)}
                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setMatchIdx(i); } }}
                 style={{
@@ -892,15 +960,10 @@ const Home = () => {
                 onMouseEnter={e => { if (matchIdx !== i) e.currentTarget.style.borderColor = 'var(--gold)'; }}
                 onMouseLeave={e => { if (matchIdx !== i) e.currentTarget.style.borderColor = 'var(--line-on-dk)'; }}
               >
-                {/* Rectangular thumbnail — contain so full person visible */}
-                <div style={{ width: 56, height: 64, borderRadius: 4, position: 'relative', overflow: 'hidden', flexShrink: 0, background: p.grad }}>
-                  <img src={p.img} alt={p.name} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center bottom' }} />
-                  <span style={{ position: 'absolute', bottom: 2, right: 2, background: 'var(--cream)', color: 'var(--burgundy)', padding: '2px 6px', borderRadius: 999, fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 600 }}>{p.match}%</span>
+                <div style={{ width: 56, height: 64, borderRadius: 4, position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
+                  <img src={photo.src} alt="" loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                  <span style={{ fontFamily: 'var(--display)', fontSize: 16, lineHeight: 1 }}>{p.name}, <em style={{ fontStyle: 'italic', opacity: .7 }}>{p.age}</em></span>
-                  <span style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '.14em', textTransform: 'uppercase', opacity: .8 }}>{p.loc}</span>
-                </div>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.14em', textTransform: 'uppercase', opacity: .7 }}>Photo {i + 1}</span>
                 <span style={{ color: 'var(--gold)', fontSize: 12 }}>{matchIdx === i ? '●' : '○'}</span>
               </div>
             ))}
@@ -911,7 +974,7 @@ const Home = () => {
             }}
               onMouseEnter={e => { e.currentTarget.style.background = 'var(--gold)'; e.currentTarget.style.color = 'var(--ink)'; }}
               onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--cream)'; }}
-            >View all matches →</Link>
+            >Browse real profiles →</Link>
           </div>
         </div>
       </section>
@@ -922,7 +985,6 @@ const Home = () => {
       {/* Mobile process — flat list, hidden on desktop */}
       <div className="process-steps-list" style={{ display: 'none' }}>
         <div style={{ padding: '0 0 24px', background: 'var(--cream-3)' }}>
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--burgundy)', display: 'block', marginBottom: 12 }}>— The process</span>
           <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,6vw,36px)', lineHeight: .96, letterSpacing: '-.025em' }}>
             From hello<br />to <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>forever.</em>
           </h2>
@@ -952,7 +1014,6 @@ const Home = () => {
         }}>
           {/* Left */}
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--burgundy)', marginBottom: 24, display: 'block' }}>— The process</span>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', marginBottom: 24 }}>
               From hello<br />to <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>forever.</em>
             </h2>
@@ -1036,8 +1097,7 @@ const Home = () => {
       ════════════════════════════════════════════════════════ */}
       <section id="cities" className="cities-section section-dark" style={{ background: 'var(--ink)', color: 'var(--cream)' }}>
         <div style={{ padding: '48px 40px 32px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, alignItems: 'end' }}>
-          <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0 }}>
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--gold-text)', marginBottom: 24, display: 'block' }}>— Made for Tricity</span>
+          <motion.div {...revealOnce}>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', color: 'var(--cream)' }}>
               Three cities.<br />One <em style={{ fontStyle: 'italic', color: 'var(--gold-text)' }}>community.</em>
             </h2>
@@ -1059,8 +1119,8 @@ const Home = () => {
                 borderRight: i < 2 ? '1px solid var(--line-on-dk)' : 'none',
               }}
             >
-              {/* Real image background */}
-              <img src={c.img} alt={c.name} className="city-bg" loading="lazy" decoding="async"
+              {/* Ambient background image (doctrine ruling 15) */}
+              <img src={c.image.src} alt={c.image.alt} className="city-bg" loading="lazy" decoding="async"
                 style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform: activeCity === i ? 'scale(1)' : 'scale(1.05)' }}
               />
               <div style={{
@@ -1070,6 +1130,7 @@ const Home = () => {
                   : 'linear-gradient(180deg,transparent 30%,rgba(45,26,34,.85))',
                 transition: 'background .5s',
               }} />
+              <AiTag entry={c.image} style={{ bottom: 10, right: 10, zIndex: 2 }} />
 
               {/* Vertical label (collapsed) */}
               <div style={{
@@ -1117,7 +1178,7 @@ const Home = () => {
           fontFamily: 'var(--display)', fontStyle: 'italic', fontSize: 'clamp(160px,22vw,320px)', lineHeight: .7,
           color: 'var(--burgundy)', opacity: .06, userSelect: 'none', pointerEvents: 'none',
         }}>"</span>
-        <motion.div initial={{ opacity: 0, y: 32 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0 }} style={{ position: 'relative' }}>
+        <motion.div {...revealOnce} style={{ position: 'relative' }}>
           <p style={{ fontFamily: 'var(--display)', fontSize: 'clamp(28px,4vw,62px)', lineHeight: 1.05, letterSpacing: '-.02em', maxWidth: 1100, margin: '0 auto 56px' }}>
             The right match isn't a number<br />away — <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>they're a neighbourhood</em><br />
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 24 }}>
@@ -1140,7 +1201,6 @@ const Home = () => {
       <section id="trust" className="trust-section section-dark" style={{ background: 'var(--burgundy)', color: 'var(--cream)', padding: '52px 40px' }}>
         <div className="trust-header" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'end', marginBottom: 24 }}>
           <div>
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--gold-text)', marginBottom: 24, display: 'block' }}>— Safety first</span>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', color: 'var(--cream)' }}>
               Built on trust. Backed by <em style={{ fontStyle: 'italic', color: 'var(--gold-text)' }}>action.</em>
             </h2>
@@ -1156,7 +1216,10 @@ const Home = () => {
             { n: '03', t: 'Human-moderated',        b: 'Safety team reviews flagged profiles daily.',               Icon: FiCheckCircle },
             { n: '04', t: 'Family approved',        b: 'Designed to include families, never pressure.',             Icon: FiUsers },
           ].map((it, i) => (
-            <motion.div key={i} initial={{ opacity: 1, y: 0 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0 }} transition={{ delay: i * 0.05 }}
+            <motion.div key={i}
+              initial={revealOnce.initial}
+              whileInView={{ ...revealOnce.whileInView, transition: { ...revealOnce.whileInView.transition, delay: staggerIndex(i) } }}
+              viewport={revealOnce.viewport}
               style={{ padding: '20px 18px', border: '1px solid var(--line-on-dk)', borderRadius: 4, display: 'flex', flexDirection: 'column', gap: 12, minHeight: 200, transition: 'all .4s', cursor: 'default' }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--gold)'; e.currentTarget.style.transform = 'translateY(-4px)'; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--line-on-dk)'; e.currentTarget.style.transform = ''; }}
@@ -1176,7 +1239,6 @@ const Home = () => {
       {stories.length > 0 && (
       <section className="testi-section" style={{ background: 'var(--cream)', padding: '56px 40px', overflow: 'hidden' }}>
         <div style={{ marginBottom: 40 }}>
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--burgundy)', marginBottom: 24, display: 'block' }}>— Real couples</span>
           <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em' }}>
             Stories that<br />began <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>here.</em>
           </h2>
@@ -1197,7 +1259,19 @@ const Home = () => {
                     opacity: Math.abs(offset) > 2 ? 0 : 1,
                   }}>
                   <div style={{ aspectRatio: '4/5', position: 'relative', overflow: 'hidden' }}>
-                    <img src={s.img} alt={s.who} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    {s.img ? (
+                      <img src={s.img} alt={s.who} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      /* No photo submitted with this real story — an
+                         initials mark, never a stock photo standing in for a
+                         named, consenting couple (docs/LEGAL_REVIEW_2026-09-17.md
+                         A-19, doctrine ruling 15). */
+                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--cream-2)' }}>
+                        <span style={{ fontFamily: 'var(--display)', fontSize: 40, fontStyle: 'italic', color: 'var(--burgundy)' }}>
+                          {s.who ? s.who.split(/\s|&/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('') : ''}
+                        </span>
+                      </div>
+                    )}
                     <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 60%,rgba(0,0,0,.4))' }} />
                     <span style={{ position: 'absolute', top: 16, left: 16, fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '.14em', textTransform: 'uppercase', color: 'rgba(253,248,242,.85)', zIndex: 2 }}>{s.tag}</span>
                   </div>
@@ -1245,8 +1319,7 @@ const Home = () => {
       ════════════════════════════════════════════════════════ */}
       <section id="faq" style={{ background: 'var(--cream)', padding: '64px 40px', display: 'grid', gridTemplateColumns: '0.9fr 1.1fr', gap: 48, alignItems: 'start' }}>
         <div style={{ position: 'sticky', top: 80 }}>
-          <motion.div initial={{ opacity: 0, x: -24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0 }}>
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--burgundy)', marginBottom: 24, display: 'block' }}>— FAQ</span>
+          <motion.div {...revealOnce}>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', marginBottom: 24 }}>
               Questions?<br />We've got <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>answers.</em>
             </h2>
@@ -1319,13 +1392,12 @@ const Home = () => {
         ))}
 
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <motion.div initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0 }}>
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--gold-text)', marginBottom: 32, display: 'block' }}>★ Your story awaits ★</span>
+          <motion.div {...revealOnce}>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.8vw,44px)', lineHeight: .92, letterSpacing: '-.025em', marginBottom: 32 }}>
               Every great<br />love story<br />starts with <em style={{ fontStyle: 'italic', color: 'var(--gold-text)' }}>one step.</em>
             </h2>
             <p style={{ maxWidth: 540, margin: '0 auto 32px', fontSize: 14, lineHeight: 1.5, color: 'rgba(253,248,242,.82)', fontFamily: 'var(--sans)' }}>
-              Join thousands of families who trusted TricityMatch to find their forever partner. Free to start.
+              Start where the families you'd actually meet are already looking. Free to start.
             </p>
             <div style={{ display: 'inline-flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 32 }}>
               <Link to="/onboarding" style={{
@@ -1449,7 +1521,7 @@ const Home = () => {
         </div>
       </footer>
 
-      <StickyCTA />
+      <StickyCTA heroRef={heroRef} />
     </div>
   );
 };

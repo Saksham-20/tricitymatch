@@ -52,19 +52,19 @@ export default function Contact() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50 pt-20 pb-16 px-4">
+    <div className="min-h-[100dvh] bg-neutral-50 pt-20 pb-16 px-4">
       <Seo
         title="Contact Us"
         description="Get in touch with the TricityMatch team for support, partnerships or feedback."
         path="/contact"
       />
       <div className="max-w-5xl mx-auto">
-        <Link to="/" className="text-sm text-primary-600 hover:text-primary-700 inline-block py-2 px-2 -mx-2 -mt-2 mb-4">← Back to Home</Link>
+        <Link to="/" className="text-sm text-primary-600 hover:text-primary-700 inline-block py-2 px-2 -mx-2 -mt-2 mb-4">← Back to home</Link>
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* Form */}
-          <div className="lg:col-span-3 bg-white rounded-2xl shadow-sm border border-neutral-100 p-8 md:p-10">
-            <h1 className="text-3xl font-bold text-neutral-900 mb-2">Contact Us</h1>
+          <div className="lg:col-span-3 bg-white rounded-2xl border border-neutral-100 p-8 md:p-10">
+            <h1 className="text-3xl font-bold text-neutral-900 mb-2">Contact us</h1>
             <p className="text-sm text-neutral-600 mb-8">Have a question, concern, or feedback? Send us a message and we'll get back to you.</p>
 
             {submitted ? (
@@ -76,7 +76,7 @@ export default function Contact() {
                 <p className="text-neutral-500 text-sm mb-6 max-w-sm mx-auto">
                   Thanks for reaching out — we've received your message and will reply within 24–48 hours.
                 </p>
-                <Link to="/" className="btn-primary inline-flex">Back to Home</Link>
+                <Link to="/" className="btn-primary inline-flex">Back to home</Link>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4" noValidate>
@@ -111,7 +111,7 @@ export default function Contact() {
                     onChange={(e) => set('message')(e.target.value)}
                     aria-invalid={errors.message ? true : undefined}
                     aria-describedby={errors.message ? 'contact-message-error' : undefined}
-                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition-all resize-y ${
+                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition-[border-color,box-shadow] duration-150 resize-y ${
                       errors.message
                         ? 'border-red-500 focus:ring-red-500/20 focus:ring-red-500'
                         : 'border-neutral-300 focus:ring-primary-500/20 focus:ring-primary-500'
@@ -136,7 +136,7 @@ export default function Contact() {
                   {errors.agreed && <p className="text-sm text-red-600 font-medium mt-1.5">{errors.agreed}</p>}
                 </div>
                 <button type="submit" disabled={loading} className="btn-primary w-full justify-center">
-                  {loading ? 'Sending…' : 'Send Message'}
+                  {loading ? 'Sending…' : 'Send message'}
                 </button>
               </form>
             )}
@@ -144,11 +144,11 @@ export default function Contact() {
 
           {/* Info sidebar */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6">
+            <div className="bg-white rounded-2xl border border-neutral-100 p-6">
               <div className="flex items-start gap-3">
                 <FiMail className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h2 className="text-sm font-bold text-neutral-900 mb-1">Email Support</h2>
+                  <h2 className="text-sm font-bold text-neutral-900 mb-1">Email support</h2>
                   <p className="text-sm text-neutral-600">
                     {/* py/-my pair: 24px+ hit box, zero layout shift (WCAG 2.5.8) */}
                     <a href="mailto:support@tricitymatch.com" className="inline-block py-2 -my-2 text-primary-600 hover:underline">support@tricitymatch.com</a>
@@ -156,20 +156,20 @@ export default function Contact() {
                 </div>
               </div>
             </div>
-            <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6">
+            <div className="bg-white rounded-2xl border border-neutral-100 p-6">
               <div className="flex items-start gap-3">
                 <FiClock className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h2 className="text-sm font-bold text-neutral-900 mb-1">Response Time</h2>
+                  <h2 className="text-sm font-bold text-neutral-900 mb-1">Response time</h2>
                   <p className="text-sm text-neutral-600">Within 24–48 hours on business days (Mon–Sat, 10am–6pm IST).</p>
                 </div>
               </div>
             </div>
-            <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6">
+            <div className="bg-white rounded-2xl border border-neutral-100 p-6">
               <div className="flex items-start gap-3">
                 <FiShield className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h2 className="text-sm font-bold text-neutral-900 mb-1">Report Abuse</h2>
+                  <h2 className="text-sm font-bold text-neutral-900 mb-1">Report abuse</h2>
                   <p className="text-sm text-neutral-600">
                     To report a suspicious profile, use the "Report" button on the profile, or email us with the profile ID.
                   </p>

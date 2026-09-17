@@ -7,16 +7,16 @@ import Seo from '../components/common/Seo';
 // delete their account and what happens to their data — this is that URL.
 export default function DeleteAccount() {
   return (
-    <div className="min-h-screen bg-neutral-50 pt-20 pb-16 px-4">
+    <div className="min-h-[100dvh] bg-neutral-50 pt-20 pb-16 px-4">
       <Seo
         title="Delete Your Account"
         description="How to permanently delete your TricityMatch account and data."
         path="/delete-account"
       />
       <div className="max-w-3xl mx-auto">
-        <Link to="/" className="text-sm text-primary-600 hover:text-primary-700 inline-block py-2 px-2 -mx-2 -mt-2 mb-4">← Back to Home</Link>
+        <Link to="/" className="text-sm text-primary-600 hover:text-primary-700 inline-block py-2 px-2 -mx-2 -mt-2 mb-4">← Back to home</Link>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-8 md:p-12">
+        <div className="bg-white rounded-2xl border border-neutral-100 p-8 md:p-12">
           <h1 className="text-3xl font-bold text-neutral-900 mb-2">Delete Your Account</h1>
           <p className="text-sm text-neutral-600 mb-8">Applies to the TricityMatch website and mobile apps</p>
 
@@ -66,11 +66,11 @@ export default function DeleteAccount() {
                 <li>Your contact details and notification tokens</li>
               </ul>
               <p className="mt-2">
-                Your profile is removed from public view immediately and your data is
-                permanently purged within a reasonable period. Limited records (for
-                example payment/invoice records, or data connected to a safety report)
-                may be retained where the law requires it or to prevent fraud and abuse,
-                as described in our <Link to="/privacy" className="text-primary-600 underline hover:text-primary-700">Privacy Policy</Link>.
+                Your profile and this data are erased immediately — this cannot be
+                undone. Limited records (for example payment/invoice records, or data
+                connected to a safety report) are retained where the law requires it
+                or to prevent fraud and abuse, as described in our{' '}
+                <Link to="/privacy" className="text-primary-600 underline hover:text-primary-700">Privacy Policy</Link>.
               </p>
             </section>
           </div>

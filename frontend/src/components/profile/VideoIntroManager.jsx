@@ -58,9 +58,9 @@ export default function VideoIntroManager({ videoUrl, onChange }) {
   return (
     <div>
       <div className="flex items-center gap-2 mb-3">
-        <FiVideo className="w-4 h-4 text-rose-400" />
-        <h3 className="text-sm font-bold text-slate-900">Video intro</h3>
-        <span className="text-[11px] text-slate-400">~30s · MP4/MOV/WebM · max 25MB</span>
+        <FiVideo className="w-4 h-4 text-primary-400" />
+        <h3 className="text-sm font-bold text-neutral-900">Video intro</h3>
+        <span className="text-[11px] text-neutral-400">~30s · MP4/MOV/WebM · max 25MB</span>
       </div>
 
       {src ? (
@@ -77,7 +77,7 @@ export default function VideoIntroManager({ videoUrl, onChange }) {
               type="button"
               onClick={() => inputRef.current?.click()}
               disabled={busy}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-xl border border-neutral-200 text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
             >
               <FiUploadCloud className="w-4 h-4" /> Replace
             </button>
@@ -85,7 +85,7 @@ export default function VideoIntroManager({ videoUrl, onChange }) {
               type="button"
               onClick={handleRemove}
               disabled={busy}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-xl border border-rose-100 text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-xl border border-destructive/20 text-destructive hover:bg-destructive-light disabled:opacity-50"
             >
               <FiTrash2 className="w-4 h-4" /> Remove
             </button>
@@ -96,11 +96,11 @@ export default function VideoIntroManager({ videoUrl, onChange }) {
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={busy}
-          className="w-full flex flex-col items-center justify-center gap-2 py-8 rounded-xl border-2 border-dashed border-slate-200 text-slate-500 hover:border-rose-300 hover:text-rose-500 transition-colors disabled:opacity-50"
+          className="w-full flex flex-col items-center justify-center gap-2 py-8 rounded-xl border-2 border-dashed border-neutral-200 text-neutral-500 transition-colors duration-[160ms] [@media(hover:hover)_and_(pointer:fine)]:hover:border-primary-300 [@media(hover:hover)_and_(pointer:fine)]:hover:text-primary-500 disabled:opacity-50"
         >
           {busy ? <FiLoader className="w-6 h-6 animate-spin" /> : <FiUploadCloud className="w-6 h-6" />}
           <span className="text-sm font-medium">{busy ? 'Uploading…' : 'Add a short video intro'}</span>
-          <span className="text-[11px] text-slate-400">Stand out — profiles with video get more interest</span>
+          <span className="text-[11px] text-neutral-400">Stand out. Profiles with video get more interest.</span>
         </button>
       )}
 
