@@ -155,15 +155,21 @@ const CreateAccountStep = () => {
     }
 
     // Self-signup: single identifier must be entered, valid, AND verified.
+    // Password and Terms live behind verification (Phase B of the two-phase
+    // screen below) — validating them while they aren't even rendered yet
+    // would surface an error for a field the member can't see or fix.
     const type = detectContactType(data.identifier);
     if (!type || !(type === 'email' ? validateEmail(data.email) : /^[6-9]\d{9}$/.test(phoneDigits(data.identifier)))) {
       newErrors.identifier = IDENTIFIER_ERROR;
     }
-    if (!data.password) newErrors.password = 'Password is required';
-    else if (!validatePassword(data.password)) newErrors.password = 'Min 8 chars (uppercase, lowercase, number, symbol)';
-    if (!data.account_agree) newErrors.account_agree = 'Please agree to the Terms & Privacy Policy to continue';
-    const isVerified = type === 'email' ? data.emailVerification : type === 'phone' ? data.phoneVerification : false;
-    if (!isVerified && !newErrors.identifier) newErrors.verify = `Verify your ${type === 'phone' ? 'mobile number' : 'email'} to continue`;
+    const isVerified = type === 'email' ? !!data.emailVerification : type === 'phone' ? !!data.phoneVerification : false;
+    if (isVerified) {
+      if (!data.password) newErrors.password = 'Password is required';
+      else if (!validatePassword(data.password)) newErrors.password = 'Min 8 chars (uppercase, lowercase, number, symbol)';
+      if (!data.account_agree) newErrors.account_agree = 'Please agree to the Terms & Privacy Policy to continue';
+    } else if (!newErrors.identifier) {
+      newErrors.verify = `Verify your ${type === 'phone' ? 'mobile number' : 'email'} to continue`;
+    }
 
     setStepErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -172,152 +178,178 @@ const CreateAccountStep = () => {
   useEffect(() => registerStepValidator(validateStep), []);
 
   // ── Self-signup combined UI ─────────────────────────────────────────────────
+  // Two phases driven entirely by `verified` (derived above from the existing
+  // emailVerification/phoneVerification flags — no separate phase state).
+  // Phase A: identifier + verify panel only, nothing else. Phase B (post-OTP):
+  // the verified confirmation, then password/referral/notice/terms. Matches the
+  // Shaadi/Jeevansathi/BharatMatrimony pattern of a single-field opening screen.
   if (!isGuardian) {
     const codeLen = idType === 'phone' ? 4 : 6;
     return (
       <div className="space-y-5">
-        <SmartContactField
-          value={formData.identifier}
-          onChange={onIdentifierChange}
-          onBlur={() => {
-            setFieldTouched('identifier');
-            // Validate format only here — the full validateStep() also flags
-            // "not yet verified", which would be a false alarm the instant the
-            // member tabs off a freshly-typed, not-yet-submitted contact field.
-            // Skip entirely on an untouched, still-empty field.
-            if (formData.identifier?.trim() && (!idType || !idValid())) {
-              setStepErrors({ ...errors, identifier: IDENTIFIER_ERROR });
-            }
-          }}
-          error={errors.identifier}
-          disabled={verified}
-          autoFocus
-        />
-        {accountExists && (
-          <Link to="/login" className="inline-block text-sm font-semibold text-primary-600 underline">
-            Log in instead &rarr;
-          </Link>
-        )}
-
-        {/* Password */}
-        <div className="space-y-1.5">
-          <label htmlFor="signup-password" className="block text-sm font-medium text-neutral-900 dark:text-neutral-100">
-            Password <span className="text-red-500">*</span>
-          </label>
-          <div className="relative">
-            <input
-              id="signup-password"
-              name="password"
-              autoComplete="new-password"
-              type={showPassword ? 'text' : 'password'}
-              placeholder="••••••••"
-              value={formData.password}
-              onChange={(e) => updateFormData('password', e.target.value)}
+        {!verified && (
+          <>
+            <SmartContactField
+              value={formData.identifier}
+              onChange={onIdentifierChange}
               onBlur={() => {
-                setFieldTouched('password');
-                if (formData.password && !validatePassword(formData.password)) {
-                  setStepErrors({ ...errors, password: 'Min 8 chars (uppercase, lowercase, number, symbol)' });
+                setFieldTouched('identifier');
+                // Validate format only here — the full validateStep() also flags
+                // "not yet verified", which would be a false alarm the instant the
+                // member tabs off a freshly-typed, not-yet-submitted contact field.
+                // Skip entirely on an untouched, still-empty field.
+                if (formData.identifier?.trim() && (!idType || !idValid())) {
+                  setStepErrors({ ...errors, identifier: IDENTIFIER_ERROR });
                 }
               }}
-              aria-invalid={errors.password ? true : undefined}
-              aria-describedby="signup-password-hint"
-              className="w-full px-4 py-3 pr-11 rounded-xl border-2 border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500"
-            />
-            <button type="button" onClick={() => setShowPassword((s) => !s)} aria-label={showPassword ? 'Hide password' : 'Show password'} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500">
-              {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
-            </button>
-          </div>
-          {errors.password && <p className="text-sm text-red-600">{errors.password}</p>}
-          {formData.password ? (
-            <PasswordRequirements password={formData.password} />
-          ) : !errors.password && (
-            <p id="signup-password-hint" className="text-xs text-neutral-400">At least 8 characters with uppercase, lowercase, a number, and a symbol.</p>
-          )}
-        </div>
-
-        {/* Referral (collapsed) */}
-        <div>
-          {!showReferralInput ? (
-            <button type="button" onClick={() => setShowReferralInput(true)} className="text-xs text-neutral-400 hover:text-primary-600 underline underline-offset-2">
-              Have a referral code?
-            </button>
-          ) : (
-            <input
-              type="text"
-              name="referralCode"
-              autoComplete="off"
-              placeholder="Enter referral code"
-              value={formData.referralCode || ''}
-              onChange={(e) => updateFormData('referralCode', e.target.value.toUpperCase())}
+              error={errors.identifier}
+              disabled={verified}
               autoFocus
-              className="w-full px-4 py-2.5 rounded-xl border-2 border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 uppercase tracking-wider text-sm"
             />
-          )}
-        </div>
+            {accountExists && (
+              <Link to="/login" className="inline-block text-sm font-semibold text-primary-600 underline">
+                Log in instead &rarr;
+              </Link>
+            )}
 
-        {/* Terms */}
-        <div>
-          <CheckBox
-            checked={!!formData.account_agree}
-            onChange={(checked) => updateFormData('account_agree', checked)}
-            size="md"
-            label={
-              <span className="text-sm text-neutral-600">
-                I agree to the{' '}
-                <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline hover:text-primary-700">Terms &amp; Conditions</a>{' '}and{' '}
-                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline hover:text-primary-700">Privacy Policy</a>.
-              </span>
-            }
-          />
-          {errors.account_agree && <p className="text-sm text-red-600 mt-1.5">{errors.account_agree}</p>}
-        </div>
+            {/* Verify panel — Send OTP / OTP entry. The only primary-emphasis
+                action on this phase of the screen. */}
+            <div className="rounded-2xl border-2 border-neutral-200 dark:border-neutral-700 p-4 sm:p-5">
+              {!otpSent ? (
+                <div className="flex items-start gap-3">
+                  <div className="p-2.5 rounded-xl bg-primary-50 text-primary-600 dark:bg-primary-900/30 flex-shrink-0"><FiShield className="w-5 h-5" /></div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Verify to create your account</p>
+                    <p className="text-xs text-neutral-500 mt-0.5 mb-3">We’ll send a one-time code to confirm it’s really you. Your account is created only after this.</p>
+                    <button type="button" onClick={sendOtp} disabled={otpSending} className="px-5 py-2.5 text-sm font-semibold bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 transition-colors">
+                      {otpSending ? 'Sending…' : 'Send OTP'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Enter the {codeLen}-digit code</p>
+                  <p className="text-xs text-neutral-500 -mt-1.5">Sent to <span className="font-medium text-neutral-700 dark:text-neutral-300">{idType === 'phone' ? `+91 ${idTarget()}` : formData.email}</span></p>
+                  <OtpBoxes length={codeLen} value={otpCode} onChange={setOtpCode} onComplete={verifyOtp} error={!!errors.otp} disabled={otpVerifying} autoFocus />
+                  {/* Verification fires on the last digit — no button to hunt for. */}
+                  <div className="flex items-center gap-3 min-h-[20px]">
+                    {otpVerifying ? (
+                      <span className="flex items-center gap-2 text-xs font-medium text-primary-600">
+                        <span className="w-3.5 h-3.5 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
+                        Verifying…
+                      </span>
+                    ) : (
+                      <span className="text-xs text-neutral-500">{cooldown > 0 ? `Resend in ${cooldown}s` : <button type="button" onClick={sendOtp} className="underline text-primary-600">Resend code</button>}</span>
+                    )}
+                  </div>
+                  {errors.otp && <p className="text-sm text-red-600 bg-red-50 border-l-2 border-red-400 p-2 rounded">{errors.otp}</p>}
+                </div>
+              )}
+            </div>
 
-        {/* Verify panel */}
-        <div className="rounded-2xl border-2 border-neutral-200 dark:border-neutral-700 p-4 sm:p-5">
-          {verified ? (
-            <motion.div initial="initial" animate="animate" variants={fade} className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-green-100 text-green-600 flex-shrink-0"><FiCheckCircle className="w-5 h-5" /></div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-green-700">{idType === 'phone' ? 'Mobile number' : 'Email'} verified</p>
-                <p className="text-xs text-neutral-500 truncate">{idType === 'phone' ? `+91 ${idTarget()}` : formData.email}</p>
-              </div>
-              <button type="button" onClick={() => { updateFormData(idType === 'email' ? 'emailVerification' : 'phoneVerification', false); setOtpSent(false); setOtpCode(''); }} className="flex items-center gap-1 text-xs font-medium text-primary-600 hover:text-primary-700 flex-shrink-0">
-                <FiEdit2 className="w-3.5 h-3.5" /> Change
-              </button>
-            </motion.div>
-          ) : !otpSent ? (
-            <div className="flex items-start gap-3">
-              <div className="p-2.5 rounded-xl bg-primary-50 text-primary-600 dark:bg-primary-900/30 flex-shrink-0"><FiShield className="w-5 h-5" /></div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Verify to create your account</p>
-                <p className="text-xs text-neutral-500 mt-0.5 mb-3">We’ll send a one-time code to confirm it’s really you. Your account is created only after this.</p>
-                <button type="button" onClick={sendOtp} disabled={otpSending} className="px-5 py-2.5 text-sm font-semibold bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 transition-colors">
-                  {otpSending ? 'Sending…' : 'Send OTP'}
+            {errors.verify && <p className="text-sm text-red-600 font-medium">{errors.verify}</p>}
+          </>
+        )}
+
+        {verified && (
+          <>
+            {/* Verified confirmation */}
+            <div className="rounded-2xl border-2 border-neutral-200 dark:border-neutral-700 p-4 sm:p-5">
+              <motion.div initial="initial" animate="animate" variants={fade} className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-green-100 text-green-600 flex-shrink-0"><FiCheckCircle className="w-5 h-5" /></div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-green-700">{idType === 'phone' ? 'Mobile number' : 'Email'} verified</p>
+                  <p className="text-xs text-neutral-500 truncate">{idType === 'phone' ? `+91 ${idTarget()}` : formData.email}</p>
+                </div>
+                <button type="button" onClick={() => { updateFormData(idType === 'email' ? 'emailVerification' : 'phoneVerification', false); setOtpSent(false); setOtpCode(''); }} className="flex items-center gap-1 text-xs font-medium text-primary-600 hover:text-primary-700 flex-shrink-0">
+                  <FiEdit2 className="w-3.5 h-3.5" /> Change
+                </button>
+              </motion.div>
+            </div>
+
+            {/* Password */}
+            <div className="space-y-1.5">
+              <label htmlFor="signup-password" className="block text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                Password <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  id="signup-password"
+                  name="password"
+                  autoComplete="new-password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={(e) => updateFormData('password', e.target.value)}
+                  onBlur={() => {
+                    setFieldTouched('password');
+                    if (formData.password && !validatePassword(formData.password)) {
+                      setStepErrors({ ...errors, password: 'Min 8 chars (uppercase, lowercase, number, symbol)' });
+                    }
+                  }}
+                  aria-invalid={errors.password ? true : undefined}
+                  aria-describedby="signup-password-hint"
+                  className="w-full px-4 py-3 pr-11 rounded-xl border-2 border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500"
+                />
+                <button type="button" onClick={() => setShowPassword((s) => !s)} aria-label={showPassword ? 'Hide password' : 'Show password'} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500">
+                  {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
                 </button>
               </div>
+              {errors.password && <p className="text-sm text-red-600">{errors.password}</p>}
+              {formData.password ? (
+                <PasswordRequirements password={formData.password} />
+              ) : !errors.password && (
+                <p id="signup-password-hint" className="text-xs text-neutral-400">At least 8 characters with uppercase, lowercase, a number, and a symbol.</p>
+              )}
             </div>
-          ) : (
-            <div className="space-y-3">
-              <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Enter the {codeLen}-digit code</p>
-              <p className="text-xs text-neutral-500 -mt-1.5">Sent to <span className="font-medium text-neutral-700 dark:text-neutral-300">{idType === 'phone' ? `+91 ${idTarget()}` : formData.email}</span></p>
-              <OtpBoxes length={codeLen} value={otpCode} onChange={setOtpCode} onComplete={verifyOtp} error={!!errors.otp} disabled={otpVerifying} autoFocus />
-              {/* Verification fires on the last digit — no button to hunt for. */}
-              <div className="flex items-center gap-3 min-h-[20px]">
-                {otpVerifying ? (
-                  <span className="flex items-center gap-2 text-xs font-medium text-primary-600">
-                    <span className="w-3.5 h-3.5 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
-                    Verifying…
-                  </span>
-                ) : (
-                  <span className="text-xs text-neutral-500">{cooldown > 0 ? `Resend in ${cooldown}s` : <button type="button" onClick={sendOtp} className="underline text-primary-600">Resend code</button>}</span>
-                )}
-              </div>
-              {errors.otp && <p className="text-sm text-red-600 bg-red-50 border-l-2 border-red-400 p-2 rounded">{errors.otp}</p>}
-            </div>
-          )}
-        </div>
 
-        {errors.verify && <p className="text-sm text-red-600 font-medium">{errors.verify}</p>}
+            {/* Referral (collapsed) */}
+            <div>
+              {!showReferralInput ? (
+                <button type="button" onClick={() => setShowReferralInput(true)} className="text-xs text-neutral-400 hover:text-primary-600 underline underline-offset-2">
+                  Have a referral code?
+                </button>
+              ) : (
+                <input
+                  type="text"
+                  name="referralCode"
+                  autoComplete="off"
+                  placeholder="Enter referral code"
+                  value={formData.referralCode || ''}
+                  onChange={(e) => updateFormData('referralCode', e.target.value.toUpperCase())}
+                  autoFocus
+                  className="w-full px-4 py-2.5 rounded-xl border-2 border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 uppercase tracking-wider text-sm"
+                />
+              )}
+            </div>
+
+            {/* DPDP consent notice (Legal Review B-1) — itemised, in plain text,
+                presented with the request rather than behind a policy link. */}
+            <div className="rounded-2xl border-2 border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/40 p-4 sm:p-5">
+              <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
+                <span className="block text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-1">What we will do with your information</span>
+                We use your profile details, including religion, caste, horoscope details and photographs where you choose to give them, to show your profile to other members and to suggest matches. We use your email and mobile number to sign you in, send one-time passcodes and security alerts, and to tell you about matches and messages. We never sell your data and never use it for advertising. You can see, correct, export or erase it at any time, and you can delete your account yourself.
+              </p>
+            </div>
+
+            {/* Terms */}
+            <div>
+              <CheckBox
+                checked={!!formData.account_agree}
+                onChange={(checked) => updateFormData('account_agree', checked)}
+                size="md"
+                label={
+                  <span className="text-sm text-neutral-600">
+                    I agree to the{' '}
+                    <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline hover:text-primary-700">Terms &amp; Conditions</a>{' '}and{' '}
+                    <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline hover:text-primary-700">Privacy Policy</a>.
+                  </span>
+                }
+              />
+              {errors.account_agree && <p className="text-sm text-red-600 mt-1.5">{errors.account_agree}</p>}
+            </div>
+          </>
+        )}
       </div>
     );
   }
