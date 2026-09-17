@@ -44,6 +44,7 @@ const {
   deleteSuccessStory,
   getPlanOptions,
   cancelSubscription,
+  refundSubscription,
   updateLeadStatus,
   exportUsers,
   getAdmins,
@@ -141,6 +142,17 @@ router.get('/invoice/:subscriptionId', requireAdminScope('subscriptions'),
   param('subscriptionId').isUUID(4),
   handleValidationErrors,
   adminGetInvoice
+);
+
+// Manual refund — the replacement for the automatic pro-rata refund removed
+// from DELETE /subscription/current. `amount` is rupees, a human types it in
+// against the published Refund & Conduct Policy; never derived automatically.
+router.post('/subscriptions/:subscriptionId/refund', requireAdminScope('subscriptions'),
+  param('subscriptionId').isUUID(4),
+  body('amount').isFloat({ gt: 0 }),
+  body('reason').optional().isString().isLength({ max: 500 }),
+  handleValidationErrors,
+  refundSubscription
 );
 
 // ==================== MARKETING USERS ====================

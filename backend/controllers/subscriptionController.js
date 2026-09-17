@@ -606,6 +606,12 @@ exports.getPlans = asyncHandler(async (req, res) => {
       duration: p.durationLabel,
       durationDays: p.duration,
       contactUnlocks: p.contactUnlocks === null ? -1 : p.contactUnlocks,
+      // Only meaningful when contactUnlocks is unlimited (-1). "Unlimited" is
+      // capped in practice — middlewares/auth.js `checkContactUnlockLimit`
+      // enforces a rolling-24h ceiling on unlimited tiers as an anti-harvest
+      // measure — and that cap was previously disclosed nowhere a buyer could
+      // read it. Null for finite plans, where it does not apply.
+      unlockDailyCap: p.contactUnlocks === null ? (config.limits?.unlimitedDailyUnlockCap ?? 25) : null,
       popular: p.popular || false,
       badge: p.badge || null,
       // Launch-offer provenance for the pricing UI: `isLaunchPrice` drives the
@@ -834,8 +840,28 @@ exports.getInvoice = asyncHandler(async (req, res) => {
 });
 
 // @route   DELETE /api/subscription/current
-// @desc    Cancel the current active subscription (with optional Razorpay refund)
+// @desc    Cancel the current active subscription. Access ends immediately —
+//          status flips to 'cancelled' and every entitlement read in this
+//          codebase (`requirePremium`, `requireVIP`, `hasChatAccess`, …)
+//          requires status:'active', so there is no grace period baked into
+//          this endpoint.
 // @access  Private
+//
+// This used to also compute and fire an automatic pro-rata Razorpay refund on
+// every cancellation. Removed outright (not patched) because it was quietly
+// MORE generous than what we publish: our own Refund & Conduct Policy
+// (frontend `RefundPolicy.jsx`) and Terms §13 both say a membership runs its
+// full term and the unused part is not refunded — a full refund is a manual,
+// seven-day-window request handled by a human over email, not an automatic
+// consequence of hitting this endpoint. The old computation also floored
+// "value delivered" at unlock-usage 0 for every UNLIMITED plan
+// (contactUnlocksAllowed === null → unlocksUnusedFraction = 1, i.e. refund is
+// time-only), and since 2026-08-22 the only plan on sale (`premium_plus`) is
+// exactly that: unlimited unlocks. Buy it, drain the rolling
+// `UNLIMITED_DAILY_UNLOCK_CAP` (25/day) for ten days, cancel on day 10 of 90,
+// and ~89% of the price came back after ~250 phone numbers were already
+// taken — repeatable with a fresh account. A genuine refund is now always a
+// deliberate admin decision: POST /admin/subscriptions/:subscriptionId/refund.
 exports.cancelSubscription = asyncHandler(async (req, res) => {
   const userId = req.user.id;
 
@@ -859,67 +885,25 @@ exports.cancelSubscription = asyncHandler(async (req, res) => {
     );
   });
 
-  // Attempt pro-rated refund via Razorpay if payment ID exists
-  let refundResult = null;
-  if (subscription.razorpayPaymentId && config.razorpay.isConfigured()) {
-    try {
-      const { getRazorpayInstance } = require('../utils/razorpay');
-      const rzp = getRazorpayInstance();
-      if (rzp) {
-        const now = new Date();
-        const start = new Date(subscription.startDate);
-        const end = new Date(subscription.endDate);
-        const totalDays = Math.max((end - start) / (1000 * 60 * 60 * 24), 1);
-        const remainingDays = Math.max((end - now) / (1000 * 60 * 60 * 24), 0);
-        const timeUnusedFraction = Math.min(Math.max(remainingDays / totalDays, 0), 1);
-
-        // The refund used to be purely time-based, which ignored the part of the
-        // plan that is consumed instantly: contact unlocks. Buying the top tier,
-        // spending every unlock on day 0 and cancelling returned ~99.7% of the
-        // price while keeping the phone numbers and emails — repeatable with a
-        // fresh account each time.
-        //
-        // Value delivered is therefore whichever is greater: elapsed time, or
-        // the share of unlocks already spent. Unlimited plans (allowed === null)
-        // have no unlock meter, so they stay time-only.
-        const allowed = subscription.contactUnlocksAllowed;
-        const used = subscription.contactUnlocksUsed || 0;
-        const unlocksUnusedFraction =
-          allowed === null || allowed === undefined || allowed <= 0
-            ? 1
-            : Math.min(Math.max(1 - used / allowed, 0), 1);
-
-        const refundFraction = Math.min(timeUnusedFraction, unlocksUnusedFraction);
-        const refundAmountPaise = Math.floor(parseFloat(subscription.amount) * 100 * refundFraction);
-
-        log.info('Cancellation refund computed', {
-          subscriptionId: subscription.id,
-          timeUnusedFraction: Number(timeUnusedFraction.toFixed(4)),
-          unlocksUnusedFraction: Number(unlocksUnusedFraction.toFixed(4)),
-          contactUnlocksUsed: used,
-          contactUnlocksAllowed: allowed,
-          refundAmountPaise,
-        });
-
-        if (refundAmountPaise >= 100) { // Min ₹1 refund
-          const refund = await rzp.payments.refund(subscription.razorpayPaymentId, {
-            amount: refundAmountPaise,
-            notes: { reason: 'user_cancellation', subscriptionId: subscription.id },
-          });
-          refundResult = { refundId: refund.id, amount: refundAmountPaise / 100 };
-        }
-      }
-    } catch (refundErr) {
-      log.error('Refund failed after cancellation', { error: refundErr.message, subscriptionId: subscription.id });
-    }
-  }
-
-  logAudit('subscription_cancelled', userId, { subscriptionId: subscription.id, refundResult });
+  logAudit('subscription_cancelled', userId, {
+    subscriptionId: subscription.id,
+    planType: subscription.planType,
+  });
 
   res.json({
     success: true,
-    message: 'Subscription cancelled',
-    refund: refundResult,
+    message: 'Your subscription has been cancelled and premium access has ended immediately. Cancelling does not automatically refund the unused part of your term — see our Refund & Conduct Policy, or contact support if you believe you qualify for one.',
+    subscription: {
+      id: subscription.id,
+      planType: subscription.planType,
+      status: subscription.status,
+      endDate: subscription.endDate,
+    },
+    // Kept for response-shape compatibility with any client that reads this
+    // field: cancellation never issues a refund now, so it is always null. A
+    // genuine refund is a separate, deliberate admin action — see
+    // POST /admin/subscriptions/:subscriptionId/refund.
+    refund: null,
   });
 });
 
