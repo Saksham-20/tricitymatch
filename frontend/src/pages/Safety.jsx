@@ -48,7 +48,7 @@ const PILLARS = [
 
 export default function Safety() {
   return (
-    <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-[#0f1117] text-neutral-900 dark:text-neutral-100">
+    <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-surface-dark-1 text-neutral-900 dark:text-neutral-100">
       <Seo
         title="Safety & Trust"
         description="How TricityMatch keeps members safe — verification, privacy controls, and dating-safety guidance."
@@ -73,7 +73,7 @@ export default function Safety() {
       <section className="px-4 pb-16 md:pb-20">
         <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-px bg-neutral-200 border border-neutral-200 rounded-2xl overflow-hidden">
           {PILLARS.map(({ icon: Icon, n, t, body, points }) => (
-            <div key={n} className="bg-[#FFFAF6] dark:bg-[#1a1f2e] p-7 md:p-9 flex flex-col">
+            <div key={n} className="bg-[#FFFAF6] dark:bg-surface-dark-3 p-7 md:p-9 flex flex-col">
               <div className="flex items-center justify-between mb-5">
                 <span className="w-11 h-11 rounded-full bg-primary-50 text-primary-700 flex items-center justify-center">
                   <Icon className="w-5 h-5" />

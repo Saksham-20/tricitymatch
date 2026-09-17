@@ -41,7 +41,7 @@ const LikeNoteModal = ({ open, target, name, photoSrc, onClose, onSend }) => {
         >
           <motion.div
             {...sheet}
-            className="w-full sm:max-w-md bg-white dark:bg-[#1a1f2e] rounded-t-3xl sm:rounded-3xl shadow-xl p-5"
+            className="w-full sm:max-w-md bg-white dark:bg-surface-dark-3 rounded-t-3xl sm:rounded-3xl shadow-xl p-5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
@@ -70,7 +70,7 @@ const LikeNoteModal = ({ open, target, name, photoSrc, onClose, onSend }) => {
               rows={3}
               placeholder="Add a note (optional): say what caught your eye…"
               aria-label="Note to send with your like"
-              className="w-full px-4 py-3 rounded-2xl bg-neutral-100 dark:bg-[#14182a] text-neutral-800 dark:text-neutral-100 placeholder-neutral-400 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none"
+              className="w-full px-4 py-3 rounded-2xl bg-neutral-100 dark:bg-surface-dark-2 text-neutral-800 dark:text-neutral-100 placeholder-neutral-400 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none"
             />
             <div className="flex items-center justify-between mt-3">
               <span className="text-xs text-neutral-400 tabular-nums">{note.length}/{MAX_NOTE}</span>

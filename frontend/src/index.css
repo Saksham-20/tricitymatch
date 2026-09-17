@@ -74,6 +74,33 @@
     --primary-light: 341 40% 18%;
     --gold-light: 45 30% 16%;
     --success-light: 123 25% 15%;
+    /* --destructive has no dark override in the base :root block, so error
+       text (FormField, ErrorState, inline form errors) rendered the same
+       #C62828 on a dark card as on a white one: ~2.9:1, below the 4.5:1
+       doctrine floor for body text. Lightened to Tailwind red-400, the same
+       value two independent Phase 2 passes already converged on by hand in
+       their own files before this token existed — 5.9:1+ against every
+       surface-dark-* tier. */
+    --destructive: 0 91% 71%; /* #F87171 */
+
+    /* Dark-mode surface elevation ramp (Phase 2 tokenization, doctrine
+       §3.1/§3.4). These three depth levels were previously retyped as literal
+       hex (#0f1117 / #14182a / #1a1f2e) in 36 member-facing files plus this
+       file's own dark-mode override block below — one color, one place now.
+       Stored as space-separated RGB channels (not HSL, unlike the tokens
+       above) so `rgb(var(--x) / <alpha-value>)` reproduces the source hex
+       with zero rounding drift and still supports Tailwind opacity modifiers
+       (e.g. `dark:bg-surface-dark-3/95`) — an HSL round-trip of these three
+       specific values does not land back on the same hex.
+       Ordered by elevation, darkest/lowest first:
+         1 = page canvas (was bg-neutral-50 / bg-[#FDF8F2] dark: variant)
+         2 = chrome & inset (navbar, mobile sidebar, sunken inputs, dark
+             section bands, Chat's page-within-page — sits between 1 and 3)
+         3 = raised surface (was bg-white dark: variant — cards, composer,
+             dropdowns, modals) */
+    --surface-dark-1: 15 17 23;   /* #0f1117 */
+    --surface-dark-2: 20 24 42;   /* #14182a */
+    --surface-dark-3: 26 31 46;   /* #1a1f2e */
   }
 
   /* Elder mode — larger base type + higher-contrast muted text (AA+).
@@ -820,7 +847,7 @@
   html.dark .bg-white\/85, html.dark .bg-white\/80, html.dark .bg-white\/70,
   html.dark .bg-white\/60, html.dark .bg-white\/40, html.dark .bg-white\/30,
   html.dark .bg-white\/25, html.dark .bg-white\/20, html.dark .bg-white\/15 {
-    background-color: #1a1f2e !important;
+    background-color: rgb(var(--surface-dark-3)) !important;
   }
 }
 
@@ -919,20 +946,20 @@ textarea:focus-visible {
 /* =============================================== */
 
 html.dark body {
-  background-color: #0f1117;
+  background-color: rgb(var(--surface-dark-1));
   color: #ebebeb;
 }
 
 /* Whites → dark surface */
-html.dark .bg-white { background-color: #1a1f2e !important; }
-html.dark .bg-white\/90 { background-color: rgba(26,31,46,0.90) !important; }
+html.dark .bg-white { background-color: rgb(var(--surface-dark-3)) !important; }
+html.dark .bg-white\/90 { background-color: rgb(var(--surface-dark-3) / 0.90) !important; }
 html.dark .bg-white\/15 { background-color: rgba(255,255,255,0.10) !important; }
 html.dark .bg-white\/20 { background-color: rgba(255,255,255,0.12) !important; }
 html.dark .bg-white\/25 { background-color: rgba(255,255,255,0.15) !important; }
 html.dark .bg-white\/30 { background-color: rgba(255,255,255,0.15) !important; }
-html.dark .bg-white\/70 { background-color: rgba(26,31,46,0.70) !important; }
-html.dark .bg-white\/60 { background-color: rgba(26,31,46,0.60) !important; }
-html.dark .bg-white\/40 { background-color: rgba(26,31,46,0.45) !important; }
+html.dark .bg-white\/70 { background-color: rgb(var(--surface-dark-3) / 0.70) !important; }
+html.dark .bg-white\/60 { background-color: rgb(var(--surface-dark-3) / 0.60) !important; }
+html.dark .bg-white\/40 { background-color: rgb(var(--surface-dark-3) / 0.45) !important; }
 
 /* Light status/brand tint surfaces → dark tints (were missing; lightened text
    was landing on still-light boxes in dark mode) */
@@ -944,15 +971,15 @@ html.dark .bg-warning-light { background-color: rgba(245,124,0,0.16) !important;
 html.dark .bg-destructive-light { background-color: rgba(198,40,40,0.16) !important; }
 
 /* Neutral scale — shift every shade darker */
-html.dark .bg-neutral-50  { background-color: #0f1117 !important; }
-html.dark .bg-neutral-100 { background-color: #1a1f2e !important; }
+html.dark .bg-neutral-50  { background-color: rgb(var(--surface-dark-1)) !important; }
+html.dark .bg-neutral-100 { background-color: rgb(var(--surface-dark-3)) !important; }
 html.dark .bg-neutral-200 { background-color: #252b3b !important; }
 html.dark .bg-neutral-300 { background-color: #303748 !important; }
 html.dark .bg-neutral-800 { background-color: #e2e8f0 !important; }
 html.dark .bg-neutral-900 { background-color: #f1f5f9 !important; }
 
-html.dark .bg-gray-50  { background-color: #0f1117 !important; }
-html.dark .bg-gray-100 { background-color: #1a1f2e !important; }
+html.dark .bg-gray-50  { background-color: rgb(var(--surface-dark-1)) !important; }
+html.dark .bg-gray-100 { background-color: rgb(var(--surface-dark-3)) !important; }
 html.dark .bg-gray-200 { background-color: #252b3b !important; }
 html.dark .bg-gray-900 { background-color: #f1f5f9 !important; }
 
@@ -1004,10 +1031,13 @@ html.dark .border-gray-100 { border-color: #252b3b !important; }
 html.dark .border-gray-200 { border-color: #303748 !important; }
 html.dark .border-gray-300 { border-color: #3a4257 !important; }
 
-/* Inputs & selects */
-html.dark input:not([type="submit"]):not([type="button"]):not([type="range"]),
-html.dark select,
-html.dark textarea {
+/* Inputs & selects. The three :not(.dark\:border-*) exclusions let an
+   invalid-state input keep its own red border instead of being overwritten
+   by this !important rule — an input with one of those classes has already
+   opted into a different border color on purpose. */
+html.dark input:not([type="submit"]):not([type="button"]):not([type="range"]):not(.dark\:border-red-500):not(.dark\:border-red-900):not(.dark\:border-destructive),
+html.dark select:not(.dark\:border-red-500):not(.dark\:border-destructive),
+html.dark textarea:not(.dark\:border-red-500):not(.dark\:border-destructive) {
   background-color: #252b3b !important;
   color: #ebebeb !important;
   border-color: #303748 !important;
@@ -1021,12 +1051,12 @@ html.dark textarea::placeholder {
 html.dark .shadow-card { box-shadow: 0 4px 20px rgba(0,0,0,0.4) !important; }
 
 /* Hover states for neutral backgrounds */
-html.dark .hover\:bg-neutral-50:hover  { background-color: #1a1f2e !important; }
+html.dark .hover\:bg-neutral-50:hover  { background-color: rgb(var(--surface-dark-3)) !important; }
 html.dark .hover\:bg-neutral-100:hover { background-color: #252b3b !important; }
 html.dark .hover\:bg-primary-50:hover  { background-color: #2a1020 !important; }
 
 /* Scrollbar in dark mode */
-html.dark ::-webkit-scrollbar-track { background: #1a1f2e; }
+html.dark ::-webkit-scrollbar-track { background: rgb(var(--surface-dark-3)); }
 html.dark ::-webkit-scrollbar-thumb { background: #303748; }
 html.dark ::-webkit-scrollbar-thumb:hover { background: #3a4257; }
 
@@ -1045,29 +1075,29 @@ html.dark .bg-white\/60 { background-color: rgba(20,24,38,0.62) !important; }
 
 /* Premium lock overlay — was bg-white/80 backdrop-blur */
 /* Force dark surface with dark tint */
-html.dark [class*="bg-white\/8"] { background-color: rgba(15,17,23,0.85) !important; }
+html.dark [class*="bg-white\/8"] { background-color: rgb(var(--surface-dark-1) / 0.85) !important; }
 
 /* Navbar border in dark */
 html.dark .border-b.border-neutral-100,
 html.dark nav .border-neutral-100 { border-color: #252b3b !important; }
 
 /* Mobile sidebar (bg-white fixed panel) */
-html.dark .fixed.bg-white { background-color: #14182a !important; }
+html.dark .fixed.bg-white { background-color: rgb(var(--surface-dark-2)) !important; }
 html.dark .shadow-2xl { box-shadow: 0 25px 50px rgba(0,0,0,0.6) !important; }
 
 /* Dropdown menus */
-html.dark .rounded-2xl.bg-white { background-color: #1a1f2e !important; }
-html.dark .rounded-2xl.shadow-2xl { background-color: #1a1f2e !important; }
+html.dark .rounded-2xl.bg-white { background-color: rgb(var(--surface-dark-3)) !important; }
+html.dark .rounded-2xl.shadow-2xl { background-color: rgb(var(--surface-dark-3)) !important; }
 
 /* Text overrides for dark dropdowns/menus */
 html.dark .text-neutral-700 { color: #cbd5e1 !important; }
 html.dark .text-neutral-600 { color: #94a3b8 !important; }
 
 /* bg-neutral-50 used as sidebar section bg */
-html.dark .bg-neutral-50 { background-color: #0f1117 !important; }
+html.dark .bg-neutral-50 { background-color: rgb(var(--surface-dark-1)) !important; }
 
 /* Who Viewed You lock overlay */
-html.dark .backdrop-blur-\[2px\] { background-color: rgba(15,17,23,0.80) !important; }
+html.dark .backdrop-blur-\[2px\] { background-color: rgb(var(--surface-dark-1) / 0.80) !important; }
 
 /* =============================================== */
 /* ADMIN PANEL — dark-mode coverage                */

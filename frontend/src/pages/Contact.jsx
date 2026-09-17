@@ -52,28 +52,28 @@ export default function Contact() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-neutral-50 pt-20 pb-16 px-4">
+    <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 pt-20 pb-16 px-4">
       <Seo
         title="Contact Us"
         description="Get in touch with the TricityMatch team for support, partnerships or feedback."
         path="/contact"
       />
       <div className="max-w-5xl mx-auto">
-        <Link to="/" className="text-sm text-primary-600 hover:text-primary-700 inline-block py-2 px-2 -mx-2 -mt-2 mb-4">← Back to home</Link>
+        <Link to="/" className="text-sm text-primary-600 dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-200 inline-block py-2 px-2 -mx-2 -mt-2 mb-4">← Back to home</Link>
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* Form */}
-          <div className="lg:col-span-3 bg-white rounded-2xl border border-neutral-100 p-8 md:p-10">
-            <h1 className="text-3xl font-bold text-neutral-900 mb-2">Contact us</h1>
-            <p className="text-sm text-neutral-600 mb-8">Have a question, concern, or feedback? Send us a message and we'll get back to you.</p>
+          <div className="lg:col-span-3 bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 p-8 md:p-10">
+            <h1 className="text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">Contact us</h1>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-8">Have a question, concern, or feedback? Send us a message and we'll get back to you.</p>
 
             {submitted ? (
               <div className="text-center py-10" role="status" aria-live="polite">
-                <div className="w-16 h-16 rounded-full bg-success-light flex items-center justify-center mx-auto mb-5">
-                  <FiCheck className="w-8 h-8 text-success" />
+                <div className="w-16 h-16 rounded-full bg-success-light dark:bg-success/15 flex items-center justify-center mx-auto mb-5">
+                  <FiCheck className="w-8 h-8 text-success dark:text-green-400" />
                 </div>
-                <h2 className="font-display text-2xl font-bold text-neutral-800 mb-3">Message sent</h2>
-                <p className="text-neutral-500 text-sm mb-6 max-w-sm mx-auto">
+                <h2 className="font-display text-2xl font-bold text-neutral-800 dark:text-neutral-100 mb-3">Message sent</h2>
+                <p className="text-neutral-500 dark:text-neutral-400 text-sm mb-6 max-w-sm mx-auto">
                   Thanks for reaching out — we've received your message and will reply within 24–48 hours.
                 </p>
                 <Link to="/" className="btn-primary inline-flex">Back to home</Link>
@@ -101,8 +101,8 @@ export default function Contact() {
                   value={form.subject} onChange={set('subject')}
                 />
                 <div className="space-y-2">
-                  <label htmlFor="contact-message" className="block text-sm font-medium text-neutral-900">
-                    Message<span className="text-red-500 ml-1">*</span>
+                  <label htmlFor="contact-message" className="block text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                    Message<span className="text-red-500 dark:text-red-400 ml-1">*</span>
                   </label>
                   <textarea
                     id="contact-message" name="message" rows={5}
@@ -111,13 +111,13 @@ export default function Contact() {
                     onChange={(e) => set('message')(e.target.value)}
                     aria-invalid={errors.message ? true : undefined}
                     aria-describedby={errors.message ? 'contact-message-error' : undefined}
-                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition-[border-color,box-shadow] duration-150 resize-y ${
+                    className={`w-full px-4 py-3 border rounded-lg bg-white dark:bg-surface-dark-2 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:border-transparent transition-[border-color,box-shadow] duration-150 resize-y ${
                       errors.message
-                        ? 'border-red-500 focus:ring-red-500/20 focus:ring-red-500'
-                        : 'border-neutral-300 focus:ring-primary-500/20 focus:ring-primary-500'
+                        ? 'border-red-500 dark:border-red-500 focus:ring-red-500/20 focus:ring-red-500'
+                        : 'border-neutral-300 dark:border-neutral-700 focus:ring-primary-500/20 focus:ring-primary-500 dark:focus:ring-primary-400/20 dark:focus:ring-primary-400'
                     }`}
                   />
-                  {errors.message && <p id="contact-message-error" className="text-sm text-red-600 font-medium">{errors.message}</p>}
+                  {errors.message && <p id="contact-message-error" className="text-sm text-red-600 dark:text-red-400 font-medium">{errors.message}</p>}
                 </div>
                 <div>
                   <CheckBox
@@ -125,15 +125,15 @@ export default function Contact() {
                     onChange={(v) => { setAgreed(v); if (errors.agreed) setErrors((e) => ({ ...e, agreed: undefined })); }}
                     size="md"
                     label={(
-                      <span className="text-sm text-neutral-600">
+                      <span className="text-sm text-neutral-600 dark:text-neutral-400">
                         I agree to the{' '}
-                        <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline hover:text-primary-700">Terms &amp; Conditions</Link>{' '}
+                        <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-300 underline hover:text-primary-700 dark:hover:text-primary-200">Terms &amp; Conditions</Link>{' '}
                         and{' '}
-                        <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline hover:text-primary-700">Privacy Policy</Link>, and to TricityMatch contacting me about this enquiry.
+                        <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-300 underline hover:text-primary-700 dark:hover:text-primary-200">Privacy Policy</Link>, and to TricityMatch contacting me about this enquiry.
                       </span>
                     )}
                   />
-                  {errors.agreed && <p className="text-sm text-red-600 font-medium mt-1.5">{errors.agreed}</p>}
+                  {errors.agreed && <p className="text-sm text-red-600 dark:text-red-400 font-medium mt-1.5">{errors.agreed}</p>}
                 </div>
                 <button type="submit" disabled={loading} className="btn-primary w-full justify-center">
                   {loading ? 'Sending…' : 'Send message'}
@@ -144,33 +144,33 @@ export default function Contact() {
 
           {/* Info sidebar */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="bg-white rounded-2xl border border-neutral-100 p-6">
+            <div className="bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 p-6">
               <div className="flex items-start gap-3">
-                <FiMail className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
+                <FiMail className="w-5 h-5 text-primary-600 dark:text-primary-300 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h2 className="text-sm font-bold text-neutral-900 mb-1">Email support</h2>
-                  <p className="text-sm text-neutral-600">
+                  <h2 className="text-sm font-bold text-neutral-900 dark:text-neutral-100 mb-1">Email support</h2>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
                     {/* py/-my pair: 24px+ hit box, zero layout shift (WCAG 2.5.8) */}
-                    <a href="mailto:support@tricitymatch.com" className="inline-block py-2 -my-2 text-primary-600 hover:underline">support@tricitymatch.com</a>
+                    <a href="mailto:support@tricitymatch.com" className="inline-block py-2 -my-2 text-primary-600 dark:text-primary-300 hover:underline">support@tricitymatch.com</a>
                   </p>
                 </div>
               </div>
             </div>
-            <div className="bg-white rounded-2xl border border-neutral-100 p-6">
+            <div className="bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 p-6">
               <div className="flex items-start gap-3">
-                <FiClock className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
+                <FiClock className="w-5 h-5 text-primary-600 dark:text-primary-300 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h2 className="text-sm font-bold text-neutral-900 mb-1">Response time</h2>
-                  <p className="text-sm text-neutral-600">Within 24–48 hours on business days (Mon–Sat, 10am–6pm IST).</p>
+                  <h2 className="text-sm font-bold text-neutral-900 dark:text-neutral-100 mb-1">Response time</h2>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">Within 24–48 hours on business days (Mon–Sat, 10am–6pm IST).</p>
                 </div>
               </div>
             </div>
-            <div className="bg-white rounded-2xl border border-neutral-100 p-6">
+            <div className="bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 p-6">
               <div className="flex items-start gap-3">
-                <FiShield className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
+                <FiShield className="w-5 h-5 text-primary-600 dark:text-primary-300 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h2 className="text-sm font-bold text-neutral-900 mb-1">Report abuse</h2>
-                  <p className="text-sm text-neutral-600">
+                  <h2 className="text-sm font-bold text-neutral-900 dark:text-neutral-100 mb-1">Report abuse</h2>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
                     To report a suspicious profile, use the "Report" button on the profile, or email us with the profile ID.
                   </p>
                 </div>

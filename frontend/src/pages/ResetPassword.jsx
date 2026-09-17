@@ -9,8 +9,11 @@ import Logo from '../components/common/Logo';
 import Seo from '../components/common/Seo';
 
 // --- Shared left editorial panel --------------------------------------------
+// Pinned to a literal hex, not the neutral-900 scale class — bg-neutral-900
+// inverts to a near-white under html.dark (see Login.jsx's identical note),
+// which would strand the white headline text with nothing behind it.
 const EditorialPanel = ({ headline, sub }) => (
-  <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-neutral-900">
+  <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-[#171717] dark:bg-surface-dark-2">
     <div className="absolute inset-0 bg-gradient-to-br from-primary-900/90 via-neutral-900 to-neutral-900" />
     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[38rem] h-[38rem] rounded-full border border-white/5 pointer-events-none" />
     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24rem] h-[24rem] rounded-full border border-white/8 pointer-events-none" />
@@ -51,7 +54,7 @@ const ResetPassword = () => {
 
   if (!token) {
     return (
-      <div className="min-h-[100dvh] flex bg-[#FDF8F2]">
+      <div className="min-h-[100dvh] flex bg-[#FDF8F2] dark:bg-surface-dark-1">
         <Seo title="Reset Password" description="Set a new password for your TricityMatch account." path="/reset-password" />
         <EditorialPanel
           headline={"Invalid link."}
@@ -60,12 +63,12 @@ const ResetPassword = () => {
         <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12">
           <div className="w-full max-w-md">
             <div className="lg:hidden flex justify-center mb-8"><Logo size="lg" linkTo="/" /></div>
-            <motion.div initial="initial" animate="animate" variants={fade} className="card text-center">
-              <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-5">
-                <FiLock className="w-8 h-8 text-destructive" />
+            <motion.div initial="initial" animate="animate" variants={fade} className="card dark:bg-surface-dark-3 dark:border-neutral-800 text-center">
+              <div className="w-16 h-16 rounded-full bg-destructive/10 dark:bg-red-950/30 flex items-center justify-center mx-auto mb-5">
+                <FiLock className="w-8 h-8 text-destructive dark:text-red-400" />
               </div>
-              <h2 className="font-display text-2xl font-bold text-neutral-800 mb-3">Invalid reset link</h2>
-              <p className="text-neutral-500 text-sm mb-6 leading-relaxed">
+              <h2 className="font-display text-2xl font-bold text-neutral-800 dark:text-neutral-100 mb-3">Invalid reset link</h2>
+              <p className="text-neutral-500 dark:text-neutral-400 text-sm mb-6 leading-relaxed">
                 This link is invalid or has expired. Reset links are valid for 1 hour.
               </p>
               <Link to="/forgot-password" className="btn-primary inline-flex">Request a new link</Link>
@@ -115,7 +118,7 @@ const ResetPassword = () => {
 
   if (success) {
     return (
-      <div className="min-h-[100dvh] flex bg-[#FDF8F2]">
+      <div className="min-h-[100dvh] flex bg-[#FDF8F2] dark:bg-surface-dark-1">
         <Seo title="Reset Password" description="Set a new password for your TricityMatch account." path="/reset-password" />
         <EditorialPanel
           headline={"You're all set."}
@@ -124,13 +127,13 @@ const ResetPassword = () => {
         <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12">
           <div className="w-full max-w-md">
             <div className="lg:hidden flex justify-center mb-8"><Logo size="lg" linkTo="/" /></div>
-            <motion.div initial="initial" animate="animate" variants={fade} className="card text-center">
+            <motion.div initial="initial" animate="animate" variants={fade} className="card dark:bg-surface-dark-3 dark:border-neutral-800 text-center">
               <motion.div initial="initial" animate="animate" variants={popIn}
-                className="w-16 h-16 rounded-full bg-success-light flex items-center justify-center mx-auto mb-5">
-                <FiCheck className="w-8 h-8 text-success" />
+                className="w-16 h-16 rounded-full bg-success-light dark:bg-success/15 flex items-center justify-center mx-auto mb-5">
+                <FiCheck className="w-8 h-8 text-success dark:text-green-400" />
               </motion.div>
-              <h2 className="font-display text-2xl font-bold text-neutral-800 mb-3">Password reset</h2>
-              <p className="text-neutral-500 text-sm mb-6">Your password has been reset. You can now sign in.</p>
+              <h2 className="font-display text-2xl font-bold text-neutral-800 dark:text-neutral-100 mb-3">Password reset</h2>
+              <p className="text-neutral-500 dark:text-neutral-400 text-sm mb-6">Your password has been reset. You can now sign in.</p>
               <button onClick={() => navigate('/login')} className="btn-primary inline-flex items-center gap-2">
                 Go to login
               </button>
@@ -142,7 +145,7 @@ const ResetPassword = () => {
   }
 
   return (
-    <div className="min-h-[100dvh] flex bg-[#FDF8F2]">
+    <div className="min-h-[100dvh] flex bg-[#FDF8F2] dark:bg-surface-dark-1">
       <Seo title="Reset Password" description="Set a new password for your TricityMatch account." path="/reset-password" />
       <EditorialPanel
         headline={"Create your new password."}
@@ -156,13 +159,13 @@ const ResetPassword = () => {
           </motion.div>
 
           <motion.div variants={fadeInUp} className="text-center mb-8">
-            <h1 className="text-3xl font-display font-bold text-neutral-800 mb-2">Reset password</h1>
-            <p className="text-neutral-500">Enter and confirm your new password</p>
+            <h1 className="text-3xl font-display font-bold text-neutral-800 dark:text-neutral-100 mb-2">Reset password</h1>
+            <p className="text-neutral-500 dark:text-neutral-400">Enter and confirm your new password</p>
           </motion.div>
 
-          <motion.form variants={fadeInUp} onSubmit={handleSubmit} noValidate className="card space-y-5">
+          <motion.form variants={fadeInUp} onSubmit={handleSubmit} noValidate className="card dark:bg-surface-dark-3 dark:border-neutral-800 space-y-5">
             {apiError && (
-              <p role="alert" className="px-4 py-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+              <p role="alert" className="px-4 py-3 rounded-xl bg-destructive/10 dark:bg-red-950/30 border border-destructive/20 dark:border-red-900/50 text-destructive dark:text-red-300 text-sm">
                 {apiError}
               </p>
             )}
@@ -172,10 +175,10 @@ const ResetPassword = () => {
               { id: 'confirmPassword', label: 'Confirm password',  placeholder: 'Repeat new password', hint: '' },
             ].map(({ id, label, placeholder, hint }) => (
               <div key={id}>
-                <label htmlFor={id} className="block text-sm font-medium text-neutral-700 mb-1.5">{label}</label>
+                <label htmlFor={id} className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">{label}</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <FiLock className={`w-5 h-5 ${errors[id] ? 'text-destructive' : 'text-neutral-400'}`} />
+                    <FiLock className={`w-5 h-5 ${errors[id] ? 'text-destructive dark:text-red-400' : 'text-neutral-400 dark:text-neutral-500'}`} />
                   </div>
                   <input
                     id={id}
@@ -185,7 +188,7 @@ const ResetPassword = () => {
                     required
                     aria-invalid={errors[id] ? true : undefined}
                     aria-describedby={`${id}-note`}
-                    className={`input-field pl-12 pr-12 ${errors[id] ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : ''}`}
+                    className={`input-field dark:bg-surface-dark-2 dark:border-neutral-700 dark:placeholder:text-neutral-500 dark:focus:border-primary-400 dark:focus:ring-primary-400/20 pl-12 pr-12 ${errors[id] ? 'border-destructive focus:border-destructive focus:ring-destructive/20 dark:border-red-500 dark:focus:border-red-500 dark:focus:ring-red-500/20' : ''}`}
                     placeholder={placeholder}
                     value={formData[id]}
                     onChange={handleChange}
@@ -194,7 +197,7 @@ const ResetPassword = () => {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-neutral-400 hover:text-neutral-600 transition-colors"
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-neutral-400 dark:text-neutral-500 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
                     {showPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
@@ -203,9 +206,9 @@ const ResetPassword = () => {
                 {/* Reserved row: error replaces the hint in place, nothing below shifts. */}
                 <div className="min-h-[18px] mt-1.5">
                   {errors[id] ? (
-                    <p id={`${id}-note`} role="alert" className="text-sm text-destructive">{errors[id]}</p>
+                    <p id={`${id}-note`} role="alert" className="text-sm text-destructive dark:text-red-300">{errors[id]}</p>
                   ) : hint ? (
-                    <p id={`${id}-note`} className="text-xs text-neutral-400">{hint}</p>
+                    <p id={`${id}-note`} className="text-xs text-neutral-400 dark:text-neutral-500">{hint}</p>
                   ) : null}
                 </div>
               </div>
@@ -222,7 +225,7 @@ const ResetPassword = () => {
             </button>
 
             <div className="text-center">
-              <Link to="/login" className="text-sm text-primary-500 hover:text-primary-600 font-medium inline-flex items-center gap-1 transition-colors">
+              <Link to="/login" className="text-sm text-primary-500 dark:text-primary-300 hover:text-primary-600 dark:hover:text-primary-200 font-medium inline-flex items-center gap-1 transition-colors">
                 <FiArrowLeft className="w-4 h-4" /> Back to login
               </Link>
             </div>

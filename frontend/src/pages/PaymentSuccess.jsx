@@ -84,14 +84,14 @@ export default function PaymentSuccess() {
 
   if (checking) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-[#FDF8F2] dark:bg-[#0f1117] px-4">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-[#FDF8F2] dark:bg-surface-dark-1 px-4">
         <div className="w-10 h-10 rounded-full border-2 border-primary-200 dark:border-primary-800 border-t-primary-600 dark:border-t-primary-400 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-[100dvh] flex items-center justify-center bg-[#FDF8F2] dark:bg-[#0f1117] px-4">
+    <div className="min-h-[100dvh] flex items-center justify-center bg-[#FDF8F2] dark:bg-surface-dark-1 px-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex justify-center mb-8">

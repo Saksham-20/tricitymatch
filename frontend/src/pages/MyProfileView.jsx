@@ -26,7 +26,7 @@ import RetryImage from '../components/ui/RetryImage';
 
 // ─── Card wrapper ────────────────────────────────────────────────────────────
 const Card = ({ title, icon: Icon, children, action, className = '' }) => (
-  <div className={`bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card overflow-hidden ${className}`}>
+  <div className={`bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card overflow-hidden ${className}`}>
     {title && (
       <div className="px-5 pt-4 pb-3 border-b border-neutral-50 dark:border-neutral-800 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
@@ -231,10 +231,10 @@ const MyProfileView = () => {
 
 
   return (
-    <div className="min-h-[100dvh] bg-neutral-50 dark:bg-[#0f1117] pb-16">
+    <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 pb-16">
 
       {/* ── Sticky top bar ──────────────────────────────────────────── */}
-      <div className="sticky top-0 z-30 bg-white/95 dark:bg-[#1a1f2e]/95 backdrop-blur-sm border-b border-neutral-100 dark:border-neutral-800 px-4 py-3">
+      <div className="sticky top-0 z-30 bg-white/95 dark:bg-surface-dark-3/95 backdrop-blur-sm border-b border-neutral-100 dark:border-neutral-800 px-4 py-3">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <Link to="/dashboard" className="text-sm font-semibold text-neutral-500 hover:text-primary-500 transition-colors flex items-center gap-1.5 cursor-pointer py-2 px-2 -my-2 -mx-2">
             ← Dashboard
@@ -265,7 +265,7 @@ const MyProfileView = () => {
           <div className="lg:col-span-2 space-y-5">
 
             {/* Hero card */}
-            <div className="bg-white dark:bg-[#1a1f2e] rounded-3xl border border-neutral-100 dark:border-neutral-800 shadow-card overflow-hidden">
+            <div className="bg-white dark:bg-surface-dark-3 rounded-3xl border border-neutral-100 dark:border-neutral-800 shadow-card overflow-hidden">
 
               {/* Photos */}
               {allPhotos.length === 0 ? (

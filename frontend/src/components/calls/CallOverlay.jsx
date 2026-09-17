@@ -53,7 +53,7 @@ const CallOverlay = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[200] bg-[#0f1117]/95 backdrop-blur-md flex flex-col items-center justify-between py-12"
+        className="fixed inset-0 z-[200] bg-surface-dark-1/95 backdrop-blur-md flex flex-col items-center justify-between py-12"
         role="dialog"
         aria-modal="true"
         aria-label="Call"

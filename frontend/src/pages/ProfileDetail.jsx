@@ -79,7 +79,7 @@ const Pill = ({ icon: Icon, label, value }) => {
 
 // ─── Section Card ────────────────────────────────────────────────────────────
 const Card = ({ title, icon: Icon, children, className = '' }) => (
-  <div className={`bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card overflow-hidden ${className}`}>
+  <div className={`bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card overflow-hidden ${className}`}>
     {title && (
       <div className="px-5 pt-4 pb-3 border-b border-neutral-50 dark:border-neutral-800 flex items-center gap-2.5">
         {Icon && <div className="w-7 h-7 rounded-lg bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center flex-shrink-0">
@@ -397,10 +397,10 @@ const ProfileDetail = () => {
 
   return (
     <>
-      <div className="min-h-[100dvh] bg-neutral-50 dark:bg-[#0f1117] pb-28 md:pb-12">
+      <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 pb-28 md:pb-12">
 
         {/* ── Top bar ─────────────────────────────────────────────────── */}
-        <div className="sticky top-0 z-30 bg-white/95 dark:bg-[#1a1f2e]/95 backdrop-blur-sm border-b border-neutral-100 dark:border-neutral-800 px-4 py-3">
+        <div className="sticky top-0 z-30 bg-white/95 dark:bg-surface-dark-3/95 backdrop-blur-sm border-b border-neutral-100 dark:border-neutral-800 px-4 py-3">
           <div className="max-w-3xl mx-auto flex items-center justify-between">
             <button
               onClick={() => navigate(-1)}
@@ -431,7 +431,7 @@ const ProfileDetail = () => {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
           {/* ── Hero section ─────────────────────────────────────────── */}
-          <div className="bg-white dark:bg-[#1a1f2e] rounded-3xl border border-neutral-100 dark:border-neutral-800 shadow-card overflow-hidden mb-5">
+          <div className="bg-white dark:bg-surface-dark-3 rounded-3xl border border-neutral-100 dark:border-neutral-800 shadow-card overflow-hidden mb-5">
 
             {/* Photo grid */}
             {allPhotos.length > 0 ? (
@@ -607,7 +607,7 @@ const ProfileDetail = () => {
 
               {/* Compat ring — mobile only (desktop ring lives in the hero) */}
               {compatScore && (
-                <div className="md:hidden bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-5 flex justify-center">
+                <div className="md:hidden bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-5 flex justify-center">
                   <CompatRing score={compatScore} />
                 </div>
               )}
@@ -643,7 +643,7 @@ const ProfileDetail = () => {
               </Card>
 
               {/* Tab nav */}
-              <div className="flex gap-1 bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-1.5">
+              <div className="flex gap-1 bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-1.5">
                 {tabs.map(tab => (
                   <button
                     key={tab.id}

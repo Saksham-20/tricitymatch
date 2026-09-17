@@ -165,7 +165,7 @@ export default function Notifications() {
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
-    <div className="min-h-[100dvh] bg-neutral-50 dark:bg-[#0f1117] pt-20 pb-24 md:pb-8 px-4">
+    <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 pt-20 pb-24 md:pb-8 px-4">
       <div className="max-w-xl mx-auto space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -188,7 +188,7 @@ export default function Notifications() {
         {loading ? (
           <div className="space-y-2">
             {[0, 1, 2, 3].map((i) => (
-              <div key={i} className="flex items-start gap-3 p-4 rounded-2xl shadow-card border border-neutral-100 dark:border-neutral-800 bg-white dark:bg-[#1a1f2e]">
+              <div key={i} className="flex items-start gap-3 p-4 rounded-2xl shadow-card border border-neutral-100 dark:border-neutral-800 bg-white dark:bg-surface-dark-3">
                 <Skeleton variant="circle" className="w-9 h-9 flex-shrink-0" />
                 <div className="flex-1 space-y-2">
                   <Skeleton className="h-3.5 w-2/3" />
@@ -202,7 +202,7 @@ export default function Notifications() {
             icon={FiBell}
             title="No notifications yet"
             description="We'll notify you when something happens"
-            className="bg-white dark:bg-[#1a1f2e] rounded-2xl shadow-card border border-neutral-100 dark:border-neutral-800"
+            className="bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card border border-neutral-100 dark:border-neutral-800"
           />
         ) : (
           <>
@@ -216,7 +216,7 @@ export default function Notifications() {
                       key={n.id}
                       {...listRow}
                       className={`flex items-start gap-3 p-4 rounded-2xl shadow-card border transition-[background-color,border-color] duration-[160ms] cursor-pointer ${
-                        !n.isRead ? 'border-primary-100 dark:border-primary-800 bg-primary-50/40 dark:bg-primary-900/20' : 'border-neutral-100 dark:border-neutral-800 bg-white dark:bg-[#1a1f2e]'
+                        !n.isRead ? 'border-primary-100 dark:border-primary-800 bg-primary-50/40 dark:bg-primary-900/20' : 'border-neutral-100 dark:border-neutral-800 bg-white dark:bg-surface-dark-3'
                       }`}
                       onClick={() => handleOpen(n)}
                     >

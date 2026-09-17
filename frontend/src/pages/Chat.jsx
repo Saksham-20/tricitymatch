@@ -521,9 +521,9 @@ const Chat = () => {
 
   if (loading) {
     return (
-      <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-[#14182a] flex">
+      <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-surface-dark-2 flex">
         {/* Skeleton mirrors the real two-pane layout, not a spinner. */}
-        <div className="hidden md:flex w-80 lg:w-96 h-full flex-col bg-white dark:bg-[#1a1f2e] border-r border-neutral-200 dark:border-neutral-800 p-4 space-y-4">
+        <div className="hidden md:flex w-80 lg:w-96 h-full flex-col bg-white dark:bg-surface-dark-3 border-r border-neutral-200 dark:border-neutral-800 p-4 space-y-4">
           <Skeleton className="h-6 w-32" />
           {[0, 1, 2, 3, 4].map((i) => (
             <div key={i} className="flex items-center gap-3">
@@ -557,7 +557,7 @@ const Chat = () => {
   if (accessDenied) {
     return (
       <>
-        <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-[#14182a] flex items-center justify-center p-4">
+        <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-surface-dark-2 flex items-center justify-center p-4">
           <div className="text-center max-w-md">
             <div className="w-24 h-24 mx-auto mb-6 bg-gold-50 dark:bg-gold-900/20 border border-gold-100 dark:border-gold-800/40 rounded-full flex items-center justify-center">
               <FiLock className="w-12 h-12 text-gold-600 dark:text-gold-400" />
@@ -581,7 +581,7 @@ const Chat = () => {
 
   if (loadError) {
     return (
-      <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-[#14182a] flex items-center justify-center p-4">
+      <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-surface-dark-2 flex items-center justify-center p-4">
         <ErrorState
           title="Couldn't load your conversations"
           description="The connection dropped before this finished loading. Your messages are safe — try again."
@@ -594,7 +594,7 @@ const Chat = () => {
 
   if (conversations.length === 0) {
     return (
-      <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-[#14182a] flex items-center justify-center p-4">
+      <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-surface-dark-2 flex items-center justify-center p-4">
         <EmptyState
           icon={FiMessageCircle}
           title="Chat opens when you both match"
@@ -614,12 +614,12 @@ const Chat = () => {
   const endReason = replyWindow?.messagesRemaining === 0 ? 'exhausted' : 'expired';
 
   return (
-    <div className="h-[calc(100dvh-8rem)] md:h-[100dvh] -mb-24 md:mb-0 flex bg-neutral-100 dark:bg-[#14182a] overflow-hidden">
+    <div className="h-[calc(100dvh-8rem)] md:h-[100dvh] -mb-24 md:mb-0 flex bg-neutral-100 dark:bg-surface-dark-2 overflow-hidden">
       {/* Conversations Sidebar */}
       <div className={`
         ${showMobileSidebar ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         absolute md:relative z-20 w-full md:w-80 lg:w-96 h-full
-        bg-white dark:bg-[#1a1f2e] border-r border-neutral-200 dark:border-neutral-800 flex flex-col
+        bg-white dark:bg-surface-dark-3 border-r border-neutral-200 dark:border-neutral-800 flex flex-col
         transition-transform duration-300 ease-in-out
       `}>
         <div className="relative p-4 border-b border-neutral-100 dark:border-neutral-800 bg-primary-50 dark:bg-primary-900/20 overflow-hidden">
@@ -686,7 +686,7 @@ const Chat = () => {
         {selected && !selected.locked ? (
           <>
             {/* Chat Header */}
-            <div className="flex-shrink-0 px-4 py-3 bg-white dark:bg-[#1a1f2e] border-b border-neutral-200 dark:border-neutral-800 shadow-sm">
+            <div className="flex-shrink-0 px-4 py-3 bg-white dark:bg-surface-dark-3 border-b border-neutral-200 dark:border-neutral-800 shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <button
@@ -729,7 +729,7 @@ const Chat = () => {
             {/* Messages Container */}
             <div
               ref={chatContainerRef}
-              className="flex-1 overflow-y-auto chat-scrollbar px-4 py-4 bg-[#FDF8F2] dark:bg-[#14182a]"
+              className="flex-1 overflow-y-auto chat-scrollbar px-4 py-4 bg-[#FDF8F2] dark:bg-surface-dark-2"
               role="log"
               aria-label="Chat messages"
             >
@@ -793,9 +793,9 @@ const Chat = () => {
             </div>
 
             {/* Composer */}
-            <div className="flex-shrink-0 p-4 bg-white dark:bg-[#1a1f2e] border-t border-neutral-200 dark:border-neutral-800">
+            <div className="flex-shrink-0 p-4 bg-white dark:bg-surface-dark-3 border-t border-neutral-200 dark:border-neutral-800">
               {revoked ? (
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-2xl bg-neutral-100 dark:bg-[#14182a] px-4 py-3">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-2xl bg-neutral-100 dark:bg-surface-dark-2 px-4 py-3">
                   <FiLock className="w-4 h-4 flex-shrink-0 text-neutral-500 dark:text-neutral-400" aria-hidden="true" />
                   <p className="flex-1 text-sm text-neutral-600 dark:text-neutral-300">
                     Your messaging access ended. You can still read this conversation.
@@ -815,13 +815,13 @@ const Chat = () => {
                   reason={endReason}
                 />
               ) : showRecorder ? (
-                <div className="rounded-2xl bg-neutral-100 dark:bg-[#14182a] px-4 py-3">
+                <div className="rounded-2xl bg-neutral-100 dark:bg-surface-dark-2 px-4 py-3">
                   <VoiceRecorder onSend={sendVoice} onClose={() => setShowRecorder(false)} />
                 </div>
               ) : (
                 <>
                   {replyingTo && (
-                    <div className="mb-2 flex items-center gap-2 px-3 py-2 rounded-xl bg-neutral-100 dark:bg-[#14182a] border-l-2 border-primary-400">
+                    <div className="mb-2 flex items-center gap-2 px-3 py-2 rounded-xl bg-neutral-100 dark:bg-surface-dark-2 border-l-2 border-primary-400">
                       <FiCornerUpLeft className="w-3.5 h-3.5 text-neutral-400 flex-shrink-0" aria-hidden="true" />
                       <p className="flex-1 text-xs text-neutral-500 line-clamp-1">
                         {replyingTo.messageType === 'voice' ? 'Voice message' : sanitizeText(replyingTo.content)}

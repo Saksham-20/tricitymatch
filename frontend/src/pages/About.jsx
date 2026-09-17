@@ -24,7 +24,7 @@ const VALUES = [
 
 export default function About() {
   return (
-    <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-[#0f1117] text-neutral-900 dark:text-neutral-100">
+    <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-surface-dark-1 text-neutral-900 dark:text-neutral-100">
       <Seo
         title="About Us"
         description="Learn about TricityMatch — the trusted hyperlocal matrimonial platform for Chandigarh, Mohali and Panchkula."
@@ -86,7 +86,7 @@ export default function About() {
           <h2 className="font-display text-3xl md:text-4xl font-bold leading-tight mb-10">Six principles that shape every decision.</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-neutral-200 border border-neutral-200 rounded-2xl overflow-hidden">
             {VALUES.map(({ icon: Icon, n, t, d }) => (
-              <div key={n} className="bg-[#FFFAF6] dark:bg-[#1a1f2e] p-7 flex flex-col">
+              <div key={n} className="bg-[#FFFAF6] dark:bg-surface-dark-3 p-7 flex flex-col">
                 <div className="flex items-center justify-between mb-5">
                   <span className="w-10 h-10 rounded-full bg-primary-50 text-primary-700 flex items-center justify-center">
                     <Icon className="w-[18px] h-[18px]" />

@@ -70,7 +70,7 @@ class ErrorBoundary extends Component {
       }
 
       return (
-        <div className="min-h-[100dvh] flex items-center justify-center bg-neutral-50 dark:bg-[#0f1117] p-4">
+        <div className="min-h-[100dvh] flex items-center justify-center bg-neutral-50 dark:bg-surface-dark-1 p-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

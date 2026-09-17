@@ -36,7 +36,7 @@ export default function SuccessStories() {
   useEffect(() => { load(); }, [load]);
 
   return (
-    <div className="min-h-[100dvh] bg-[#FDF8F2] text-neutral-900">
+    <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-surface-dark-1 text-neutral-900 dark:text-neutral-100">
       <Seo
         title="Success Stories"
         description="Real couples who found their life partner on TricityMatch across Chandigarh, Mohali and Panchkula."
@@ -48,9 +48,9 @@ export default function SuccessStories() {
         <div className="max-w-3xl mx-auto">
           <h1 className="font-display text-4xl md:text-6xl font-bold leading-[1.05]">
             Found on TricityMatch,
-            <span className="text-primary-700 italic"> married for life.</span>
+            <span className="text-primary-700 dark:text-primary-300 italic"> married for life.</span>
           </h1>
-          <p className="mt-6 text-lg text-neutral-600">{t('successStories.subtitle')}</p>
+          <p className="mt-6 text-lg text-neutral-600 dark:text-neutral-400">{t('successStories.subtitle')}</p>
         </div>
       </section>
 
@@ -60,7 +60,7 @@ export default function SuccessStories() {
           {loading ? (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3" aria-hidden="true">
               {[0, 1, 2].map((i) => (
-                <div key={i} className="bg-[#FFFAF6] border border-neutral-200 rounded-2xl overflow-hidden flex flex-col">
+                <div key={i} className="bg-[#FFFAF6] dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden flex flex-col">
                   <Skeleton className="w-full h-52 rounded-none" />
                   <div className="p-7 flex flex-col flex-1">
                     <Skeleton variant="circle" className="w-8 h-8 mb-5" />
@@ -74,28 +74,28 @@ export default function SuccessStories() {
               title="Couldn't load stories"
               description="Something went wrong fetching these. Please try again."
               onRetry={load}
-              className="max-w-md mx-auto bg-[#FFFAF6] border border-neutral-200 rounded-2xl"
+              className="max-w-md mx-auto bg-[#FFFAF6] dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-800 rounded-2xl"
             />
           ) : stories.length === 0 ? (
             <EmptyState
               icon={FiHeart}
               title="No stories yet"
               description={t('successStories.empty')}
-              className="max-w-md mx-auto bg-[#FFFAF6] border border-neutral-200 rounded-2xl"
+              className="max-w-md mx-auto bg-[#FFFAF6] dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-800 rounded-2xl"
             />
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {stories.map((s) => (
-                <article key={s.id} className="bg-[#FFFAF6] border border-neutral-200 rounded-2xl overflow-hidden flex flex-col">
+                <article key={s.id} className="bg-[#FFFAF6] dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden flex flex-col">
                   {s.photoUrl && (
                     <img src={s.photoUrl} alt={s.coupleNames} className="w-full h-52 object-cover" loading="lazy" />
                   )}
                   <div className="p-7 flex flex-col flex-1">
-                    <span className="font-display text-5xl leading-none text-primary-200 mb-1" aria-hidden="true">“</span>
-                    <p className="text-neutral-700 leading-relaxed mb-6 -mt-3">{s.quote}</p>
-                    <div className="mt-auto pt-4 border-t border-neutral-200">
-                      <p className="font-display text-lg font-bold text-neutral-900">{s.coupleNames}</p>
-                      <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-neutral-400 mt-1">
+                    <span className="font-display text-5xl leading-none text-primary-200 dark:text-primary-800 mb-1" aria-hidden="true">“</span>
+                    <p className="text-neutral-700 dark:text-neutral-300 leading-relaxed mb-6 -mt-3">{s.quote}</p>
+                    <div className="mt-auto pt-4 border-t border-neutral-200 dark:border-neutral-800">
+                      <p className="font-display text-lg font-bold text-neutral-900 dark:text-neutral-100">{s.coupleNames}</p>
+                      <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-neutral-400 dark:text-neutral-500 mt-1">
                         {s.location}{s.marriedOn ? ` · ${t('successStories.married')} ${new Date(s.marriedOn).getFullYear()}` : ''}
                       </p>
                     </div>

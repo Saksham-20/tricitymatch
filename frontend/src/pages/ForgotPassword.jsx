@@ -42,13 +42,16 @@ const ForgotPassword = () => {
 
   if (submitted) {
     return (
-      <div className="min-h-[100dvh] flex bg-[#FDF8F2]">
+      <div className="min-h-[100dvh] flex bg-[#FDF8F2] dark:bg-surface-dark-1">
         <Seo
           title="Forgot Password"
           description="Reset your TricityMatch password — we'll email you a secure recovery link."
           path="/forgot-password"
         />
-        <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-neutral-900">
+        {/* Pinned to a literal hex, not the neutral-900 scale class — see
+            Login.jsx's identical note (bg-neutral-900 inverts to near-white
+            under html.dark, which would strand the white headline). */}
+        <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-[#171717] dark:bg-surface-dark-2">
           <div className="absolute inset-0 bg-gradient-to-br from-primary-900/90 via-neutral-900 to-neutral-900" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[38rem] h-[38rem] rounded-full border border-white/5 pointer-events-none" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24rem] h-[24rem] rounded-full border border-white/8 pointer-events-none" />
@@ -74,14 +77,14 @@ const ForgotPassword = () => {
         <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12">
           <motion.div initial="initial" animate="animate" variants={fade} className="w-full max-w-md">
             <div className="lg:hidden flex justify-center mb-8"><Logo size="lg" linkTo="/" /></div>
-            <div className="card text-center">
+            <div className="card dark:bg-surface-dark-3 dark:border-neutral-800 text-center">
               <motion.div initial="initial" animate="animate" variants={popIn}
-                className="w-16 h-16 rounded-full bg-success-light flex items-center justify-center mx-auto mb-5">
-                <FiCheck className="w-8 h-8 text-success" />
+                className="w-16 h-16 rounded-full bg-success-light dark:bg-success/15 flex items-center justify-center mx-auto mb-5">
+                <FiCheck className="w-8 h-8 text-success dark:text-green-400" />
               </motion.div>
-              <h2 className="font-display text-2xl font-bold text-neutral-800 mb-3">Check your email</h2>
-              <p className="text-neutral-500 text-sm mb-6 leading-relaxed">
-                If an account with <strong className="text-neutral-700">{email}</strong> exists, we've sent a reset link. Check your inbox and spam folder.
+              <h2 className="font-display text-2xl font-bold text-neutral-800 dark:text-neutral-100 mb-3">Check your email</h2>
+              <p className="text-neutral-500 dark:text-neutral-400 text-sm mb-6 leading-relaxed">
+                If an account with <strong className="text-neutral-700 dark:text-neutral-300">{email}</strong> exists, we've sent a reset link. Check your inbox and spam folder.
               </p>
               <Link to="/login" className="btn-primary inline-flex items-center gap-2">
                 <FiArrowLeft className="w-4 h-4" /> Back to login
@@ -89,7 +92,7 @@ const ForgotPassword = () => {
               <button
                 type="button"
                 onClick={() => setSubmitted(false)}
-                className="block mx-auto mt-4 text-sm text-neutral-500 hover:text-primary-600 font-medium transition-colors"
+                className="block mx-auto mt-4 text-sm text-neutral-500 dark:text-neutral-400 hover:text-primary-600 dark:hover:text-primary-300 font-medium transition-colors"
               >
                 Wrong email? Use a different one
               </button>
@@ -101,14 +104,15 @@ const ForgotPassword = () => {
   }
 
   return (
-    <div className="min-h-[100dvh] flex bg-[#FDF8F2]">
+    <div className="min-h-[100dvh] flex bg-[#FDF8F2] dark:bg-surface-dark-1">
       <Seo
         title="Forgot Password"
         description="Reset your TricityMatch password — we'll email you a secure recovery link."
         path="/forgot-password"
       />
-      {/* Left editorial panel */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-neutral-900">
+      {/* Left editorial panel — pinned to a literal hex, see the submitted-state
+          note above (bg-neutral-900 inverts to near-white under html.dark). */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-[#171717] dark:bg-surface-dark-2">
         <div className="absolute inset-0 bg-gradient-to-br from-primary-900/90 via-neutral-900 to-neutral-900" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[38rem] h-[38rem] rounded-full border border-white/5 pointer-events-none" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24rem] h-[24rem] rounded-full border border-white/8 pointer-events-none" />
@@ -156,24 +160,24 @@ const ForgotPassword = () => {
           </motion.div>
 
           <motion.div variants={fadeInUp} className="text-center mb-8">
-            <h1 className="text-3xl font-display font-bold text-neutral-800 mb-2">Forgot password?</h1>
-            <p className="text-neutral-500">We'll email you a secure reset link</p>
+            <h1 className="text-3xl font-display font-bold text-neutral-800 dark:text-neutral-100 mb-2">Forgot password?</h1>
+            <p className="text-neutral-500 dark:text-neutral-400">We'll email you a secure reset link</p>
           </motion.div>
 
-          <motion.form variants={fadeInUp} onSubmit={handleSubmit} noValidate className="card space-y-5">
+          <motion.form variants={fadeInUp} onSubmit={handleSubmit} noValidate className="card dark:bg-surface-dark-3 dark:border-neutral-800 space-y-5">
             {apiError && (
-              <p role="alert" className="px-4 py-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+              <p role="alert" className="px-4 py-3 rounded-xl bg-destructive/10 dark:bg-red-950/30 border border-destructive/20 dark:border-red-900/50 text-destructive dark:text-red-300 text-sm">
                 {apiError}
               </p>
             )}
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-neutral-700 mb-1.5">
+              <label htmlFor="email" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
                 Email address
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <FiMail className={`w-5 h-5 ${error ? 'text-destructive' : 'text-neutral-400'}`} />
+                  <FiMail className={`w-5 h-5 ${error ? 'text-destructive dark:text-red-400' : 'text-neutral-400 dark:text-neutral-500'}`} />
                 </div>
                 <input
                   id="email"
@@ -184,7 +188,7 @@ const ForgotPassword = () => {
                   required
                   aria-invalid={error ? true : undefined}
                   aria-describedby={error ? 'email-error' : undefined}
-                  className={`input-field pl-12 ${error ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : ''}`}
+                  className={`input-field dark:bg-surface-dark-2 dark:border-neutral-700 dark:placeholder:text-neutral-500 dark:focus:border-primary-400 dark:focus:ring-primary-400/20 pl-12 ${error ? 'border-destructive focus:border-destructive focus:ring-destructive/20 dark:border-red-500 dark:focus:border-red-500 dark:focus:ring-red-500/20' : ''}`}
                   placeholder="you@example.com"
                   value={email}
                   onChange={(e) => { setEmail(e.target.value); if (error) setError(''); if (apiError) setApiError(''); }}
@@ -193,7 +197,7 @@ const ForgotPassword = () => {
               </div>
               {/* Reserved row so an on-blur/on-submit error never shifts the button below it. */}
               <div className="min-h-[20px] mt-1.5">
-                {error && <p id="email-error" role="alert" className="text-sm text-destructive">{error}</p>}
+                {error && <p id="email-error" role="alert" className="text-sm text-destructive dark:text-red-300">{error}</p>}
               </div>
             </div>
 
@@ -208,7 +212,7 @@ const ForgotPassword = () => {
             </button>
 
             <div className="text-center">
-              <Link to="/login" className="text-sm text-primary-500 hover:text-primary-600 font-medium inline-flex items-center gap-1 transition-colors">
+              <Link to="/login" className="text-sm text-primary-500 dark:text-primary-300 hover:text-primary-600 dark:hover:text-primary-200 font-medium inline-flex items-center gap-1 transition-colors">
                 <FiArrowLeft className="w-4 h-4" /> Back to login
               </Link>
             </div>

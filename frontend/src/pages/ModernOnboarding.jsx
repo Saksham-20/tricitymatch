@@ -316,7 +316,7 @@ const ModernOnboardingContent = () => {
   const ringC = 2 * Math.PI * ringR;
 
   return (
-    <div className="min-h-[100dvh] flex bg-neutral-50 dark:bg-[#0f1117]">
+    <div className="min-h-[100dvh] flex bg-neutral-50 dark:bg-surface-dark-1">
       {/* Once the account exists, clearDraft() has reset the wizard to a blank
           step 1 — leaving a dead "Create Account" form (and its tab stops)
           sitting behind the success card. Hide it from sight and from
@@ -326,9 +326,9 @@ const ModernOnboardingContent = () => {
         aria-hidden={previewData ? 'true' : undefined}
       >
       {/* Desktop: LIGHT brand / progress rail (burgundy as accent, never a slab) */}
-      <div className="hidden lg:flex lg:w-[22rem] xl:w-96 relative overflow-hidden bg-white dark:bg-[#1a1f2e] border-r border-neutral-100 dark:border-neutral-800">
+      <div className="hidden lg:flex lg:w-[22rem] xl:w-96 relative overflow-hidden bg-white dark:bg-surface-dark-3 border-r border-neutral-100 dark:border-neutral-800">
         {/* Subtle primary wash + faint rings (neutral, not white-on-burgundy) */}
-        <div className="absolute inset-0 bg-gradient-to-b from-primary-50/70 dark:from-primary-900/20 via-white dark:via-[#1a1f2e] to-white dark:to-[#1a1f2e] pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-primary-50/70 dark:from-primary-900/20 via-white dark:via-surface-dark-3 to-white dark:to-surface-dark-3 pointer-events-none" />
         <div className="absolute -top-24 -left-24 w-72 h-72 border border-neutral-200/60 dark:border-neutral-700/40 rounded-full pointer-events-none" />
         <div className="absolute top-1/3 -right-16 w-48 h-48 border border-gold-200/50 rounded-full pointer-events-none" />
 
@@ -377,7 +377,7 @@ const ModernOnboardingContent = () => {
                           done
                             ? 'bg-primary-500 text-white'
                             : active
-                            ? 'bg-primary-500 text-white ring-2 ring-primary-200 ring-offset-2 ring-offset-white dark:ring-offset-[#1a1f2e]'
+                            ? 'bg-primary-500 text-white ring-2 ring-primary-200 ring-offset-2 ring-offset-white dark:ring-offset-surface-dark-3'
                             : 'bg-neutral-200 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400'
                         }`}
                       >
@@ -440,7 +440,7 @@ const ModernOnboardingContent = () => {
                               done
                                 ? 'bg-primary-500 text-white'
                                 : active
-                                ? 'bg-primary-500 text-white ring-2 ring-primary-300 ring-offset-2 ring-offset-white dark:ring-offset-[#1a1f2e]'
+                                ? 'bg-primary-500 text-white ring-2 ring-primary-300 ring-offset-2 ring-offset-white dark:ring-offset-surface-dark-3'
                                 : 'bg-neutral-200 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400'
                             }`}
                           >
@@ -556,7 +556,7 @@ const ModernOnboardingContent = () => {
                     focusHeadingRef.current = false;
                   }
                 }}
-                className="bg-white dark:bg-[#1a1f2e] border border-neutral-100 dark:border-neutral-800 rounded-2xl shadow-card p-8 sm:p-10"
+                className="bg-white dark:bg-surface-dark-3 border border-neutral-100 dark:border-neutral-800 rounded-2xl shadow-card p-8 sm:p-10"
               >
                 <motion.div initial="initial" animate="animate" variants={staggerContainer}>
                   <div className="mb-8">
@@ -695,7 +695,7 @@ const ModernOnboardingContent = () => {
                 animate="animate"
                 exit="exit"
                 variants={modal}
-                className="bg-white dark:bg-[#1a1f2e] rounded-2xl p-8 w-full max-w-sm shadow-2xl text-center"
+                className="bg-white dark:bg-surface-dark-3 rounded-2xl p-8 w-full max-w-sm shadow-2xl text-center"
               >
                 <p className="text-[11px] font-semibold text-primary-600 dark:text-primary-300 uppercase tracking-widest mb-5">
                   Your profile is live
@@ -760,7 +760,7 @@ const ModernOnboardingContent = () => {
               exit="exit"
               variants={modal}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white dark:bg-[#1a1f2e] rounded-2xl p-6 max-w-sm shadow-2xl focus:outline-none"
+              className="bg-white dark:bg-surface-dark-3 rounded-2xl p-6 max-w-sm shadow-2xl focus:outline-none"
             >
               <h3 id="quit-dialog-title" className="text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-2">Save your progress?</h3>
               <p className="text-neutral-600 dark:text-neutral-400 mb-6">

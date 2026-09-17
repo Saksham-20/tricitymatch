@@ -37,18 +37,18 @@ function VerificationSkeleton() {
         <Skeleton className="h-7 w-40" />
       </div>
       <Skeleton className="h-4 w-64 mb-6" />
-      <div className="bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-6 mb-6 flex items-center gap-5">
+      <div className="bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-6 mb-6 flex items-center gap-5">
         <Skeleton variant="circle" className="w-20 h-20 flex-shrink-0" />
         <div className="flex-1 space-y-2">
           <Skeleton className="h-5 w-28" />
           <Skeleton className="h-4 w-full max-w-xs" />
         </div>
       </div>
-      <div className="bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-6 mb-6 space-y-4">
+      <div className="bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-6 mb-6 space-y-4">
         <Skeleton className="h-4 w-24" />
         <Skeleton className="h-8 w-full" />
       </div>
-      <div className="bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-6">
+      <div className="bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-6">
         <Skeleton className="h-5 w-48 mb-3" />
         <Skeleton.Text lines={2} />
       </div>
@@ -108,7 +108,7 @@ export default function Verification() {
 
   if (loadState === 'loading') {
     return (
-      <div className="min-h-[100dvh] bg-neutral-50 dark:bg-[#0f1117]">
+      <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1">
         <VerificationSkeleton />
       </div>
     );
@@ -116,7 +116,7 @@ export default function Verification() {
 
   if (loadState === 'error') {
     return (
-      <div className="min-h-[100dvh] bg-neutral-50 dark:bg-[#0f1117]">
+      <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1">
         <div className="max-w-3xl mx-auto px-4 py-8">
           <div className="flex items-center gap-3 mb-6">
             <FiShield className="w-7 h-7 text-primary-600" />
@@ -133,7 +133,7 @@ export default function Verification() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-neutral-50 dark:bg-[#0f1117]">
+    <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1">
       <motion.div initial="initial" animate="animate" variants={staggerContainer} className="max-w-3xl mx-auto px-4 py-8">
         <motion.div variants={fadeRise} className="flex items-center gap-3 mb-1">
           <FiShield className="w-7 h-7 text-primary-600" />
@@ -145,7 +145,7 @@ export default function Verification() {
             selfie verification is free for every member, so the ring reads the
             same status colour as the pill below it: neutral while unstarted,
             warning while pending, success once approved. Never gold. */}
-        <motion.div variants={fadeRise} className="bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-6 mb-6 flex items-center gap-5">
+        <motion.div variants={fadeRise} className="bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-6 mb-6 flex items-center gap-5">
           <div className="relative w-20 h-20 flex-shrink-0">
             <svg width="80" height="80" viewBox="0 0 80 80" className="-rotate-90">
               <circle cx="40" cy="40" r="30" fill="none" stroke="currentColor" className="text-neutral-200 dark:text-neutral-700" strokeWidth="6" />
@@ -166,7 +166,7 @@ export default function Verification() {
         </motion.div>
 
         {/* Status overview */}
-        <motion.div variants={fadeRise} className="bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-6 mb-6">
+        <motion.div variants={fadeRise} className="bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-6 mb-6">
           <h2 className="text-sm font-medium text-neutral-500 mb-4">{t('verification.status')}</h2>
           <div className="flex items-center justify-between">
             <span className="text-neutral-700 dark:text-neutral-300">{t('verification.tierSelfie')}</span>
@@ -178,7 +178,7 @@ export default function Verification() {
         </motion.div>
 
         {/* Photo Verification */}
-        <motion.div variants={fadeRise} className="bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-6 mb-6">
+        <motion.div variants={fadeRise} className="bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-6 mb-6">
           <h2 className="font-display text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-1">{t('verification.tierSelfie')}</h2>
           <p className="text-sm text-neutral-500 mb-4">
             Take a live selfie with your camera. Our team matches it against your profile

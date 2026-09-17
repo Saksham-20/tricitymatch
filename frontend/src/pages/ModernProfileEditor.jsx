@@ -183,10 +183,10 @@ const ModernProfileEditorContent = () => {
   const isLastStep = currentStep === totalSteps - 1;
 
   return (
-    <div className="min-h-[100dvh] flex bg-neutral-50 dark:bg-[#0f1117] pb-16 md:pb-0">
+    <div className="min-h-[100dvh] flex bg-neutral-50 dark:bg-surface-dark-1 pb-16 md:pb-0">
       {/* Left Panel — LIGHT brand rail (burgundy accent, not a slab) */}
-      <div className="hidden lg:flex lg:w-[24rem] xl:w-[28rem] relative overflow-hidden bg-white dark:bg-[#1a1f2e] border-r border-neutral-100 dark:border-neutral-800">
-        <div className="absolute inset-0 bg-gradient-to-b from-primary-50/70 dark:from-primary-900/20 via-white dark:via-[#1a1f2e] to-white dark:to-[#1a1f2e] pointer-events-none" />
+      <div className="hidden lg:flex lg:w-[24rem] xl:w-[28rem] relative overflow-hidden bg-white dark:bg-surface-dark-3 border-r border-neutral-100 dark:border-neutral-800">
+        <div className="absolute inset-0 bg-gradient-to-b from-primary-50/70 dark:from-primary-900/20 via-white dark:via-surface-dark-3 to-white dark:to-surface-dark-3 pointer-events-none" />
         <div className="absolute -top-24 -left-24 w-72 h-72 border border-neutral-200/60 dark:border-neutral-700/40 rounded-full pointer-events-none" />
 
         {/* Content */}
@@ -238,7 +238,7 @@ const ModernProfileEditorContent = () => {
       {/* Right Panel - Form */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="bg-white dark:bg-[#1a1f2e] border-b border-neutral-200 dark:border-neutral-800 px-6 py-4 flex justify-between items-center gap-3">
+        <div className="bg-white dark:bg-surface-dark-3 border-b border-neutral-200 dark:border-neutral-800 px-6 py-4 flex justify-between items-center gap-3">
           <div className="flex-1">
             <h1 className="text-xl font-bold text-neutral-900 lg:hidden">Edit Profile</h1>
           </div>
@@ -267,7 +267,7 @@ const ModernProfileEditorContent = () => {
 
         {/* Progress + section jump for mobile/tablet (no stepper below lg, so
             this is the only way to reach an arbitrary section without paging). */}
-        <div className="lg:hidden bg-white dark:bg-[#1a1f2e] px-6 py-4 border-b border-neutral-200 dark:border-neutral-800">
+        <div className="lg:hidden bg-white dark:bg-surface-dark-3 px-6 py-4 border-b border-neutral-200 dark:border-neutral-800">
           <div className="flex items-center justify-between mb-3 gap-3">
             <label htmlFor="section-jump" className="sr-only">Jump to section</label>
             <select
@@ -288,7 +288,7 @@ const ModernProfileEditorContent = () => {
         </div>
 
         {/* Desktop stepper */}
-        <nav aria-label="Profile sections" className="hidden lg:flex bg-white dark:bg-[#1a1f2e] border-b border-neutral-200 dark:border-neutral-800 overflow-x-auto">
+        <nav aria-label="Profile sections" className="hidden lg:flex bg-white dark:bg-surface-dark-3 border-b border-neutral-200 dark:border-neutral-800 overflow-x-auto">
           {visibleSteps.map((step, idx) => (
             <motion.button
               key={idx}
@@ -366,7 +366,7 @@ const ModernProfileEditorContent = () => {
 
         {/* Footer with navigation */}
         {!saveSuccess && (
-          <div className="bg-white dark:bg-[#1a1f2e] border-t border-neutral-200 dark:border-neutral-800 p-6 lg:p-8">
+          <div className="bg-white dark:bg-surface-dark-3 border-t border-neutral-200 dark:border-neutral-800 p-6 lg:p-8">
             <div className="flex gap-3 justify-between max-w-2xl mx-auto">
               <Button
                 variant="outline"
@@ -457,7 +457,7 @@ const ExitGuardDialog = ({ open, isLoading, onKeep, onDiscard, onSave }) => {
             aria-labelledby="exit-guard-title"
             {...modal}
             onClick={(e) => e.stopPropagation()}
-            className="bg-white dark:bg-[#1a1f2e] rounded-2xl p-6 max-w-sm shadow-card"
+            className="bg-white dark:bg-surface-dark-3 rounded-2xl p-6 max-w-sm shadow-card"
           >
             <h3 id="exit-guard-title" className="text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-2 flex items-center gap-2">
               <FiAlertCircle className="text-warning" />

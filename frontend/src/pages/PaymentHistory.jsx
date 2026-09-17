@@ -106,7 +106,7 @@ export default function PaymentHistory() {
   ];
 
   return (
-    <div className="min-h-[100dvh] bg-neutral-50 dark:bg-[#0f1117] pt-20 pb-24 md:pb-8 px-4">
+    <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 pt-20 pb-24 md:pb-8 px-4">
       <div className="max-w-3xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between gap-4">
@@ -126,7 +126,7 @@ export default function PaymentHistory() {
         {!loading && !loadError && subscriptions.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {summary.map((s) => (
-              <div key={s.label} className="bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-4 flex items-center gap-3">
+              <div key={s.label} className="bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-4 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center flex-shrink-0">
                   <s.icon className="w-5 h-5 text-primary-500" />
                 </div>
@@ -140,17 +140,17 @@ export default function PaymentHistory() {
         )}
 
         {loading ? (
-          <div className="bg-white dark:bg-[#1a1f2e] rounded-2xl shadow-card border border-neutral-100 dark:border-neutral-800 overflow-hidden">
+          <div className="bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card border border-neutral-100 dark:border-neutral-800 overflow-hidden">
             <table className="w-full text-sm">
               <tbody>{[0, 1, 2, 3].map((i) => <RowSkeleton key={i} />)}</tbody>
             </table>
           </div>
         ) : loadError ? (
-          <div className="bg-white dark:bg-[#1a1f2e] rounded-2xl shadow-card border border-neutral-100 dark:border-neutral-800">
+          <div className="bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card border border-neutral-100 dark:border-neutral-800">
             <ErrorState onRetry={load} />
           </div>
         ) : subscriptions.length === 0 ? (
-          <div className="bg-white dark:bg-[#1a1f2e] rounded-2xl p-12 text-center shadow-card border border-neutral-100 dark:border-neutral-800">
+          <div className="bg-white dark:bg-surface-dark-3 rounded-2xl p-12 text-center shadow-card border border-neutral-100 dark:border-neutral-800">
             <div className="w-14 h-14 rounded-full bg-gold-50 dark:bg-gold-900/20 flex items-center justify-center mx-auto mb-4">
               <FaCrown className="w-6 h-6 text-gold-500" />
             </div>
@@ -161,7 +161,7 @@ export default function PaymentHistory() {
             </Link>
           </div>
         ) : (
-          <div className="bg-white dark:bg-[#1a1f2e] rounded-2xl shadow-card border border-neutral-100 dark:border-neutral-800 overflow-hidden">
+          <div className="bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card border border-neutral-100 dark:border-neutral-800 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>

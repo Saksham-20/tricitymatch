@@ -39,7 +39,7 @@ export default function CommunityMatrimony() {
   const faqs = [community.faq, ...(city.faqs || []).slice(0, 2)];
 
   return (
-    <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-[#0f1117] text-neutral-900 dark:text-neutral-100">
+    <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-surface-dark-1 text-neutral-900 dark:text-neutral-100">
       <Seo
         title={title}
         description={`${community.seoName} matrimonial matches in ${city.name}, with live-selfie verification, gotra and horoscope matching, and families close enough to meet this week.`}
@@ -80,7 +80,7 @@ export default function CommunityMatrimony() {
       </section>
 
       {/* ── What matching looks like in this community ───────────────────── */}
-      <section className="bg-white dark:bg-[#1a1f2e] border-y border-neutral-200 dark:border-neutral-800">
+      <section className="bg-white dark:bg-surface-dark-3 border-y border-neutral-200 dark:border-neutral-800">
         <div className="max-w-5xl mx-auto px-5 sm:px-8 py-14 grid gap-10 lg:grid-cols-2">
           <div>
             <h2 className="font-display text-2xl sm:text-3xl tracking-tight">
@@ -116,7 +116,7 @@ export default function CommunityMatrimony() {
       </section>
 
       {/* ── Verification + founding ──────────────────────────────────────── */}
-      <section className="bg-[#2D1A22] dark:bg-[#14182a] text-[#FDF8F2]">
+      <section className="bg-[#2D1A22] dark:bg-surface-dark-2 text-[#FDF8F2]">
         <div className="max-w-5xl mx-auto px-5 sm:px-8 py-12">
           <h2 className="font-display text-2xl sm:text-3xl leading-snug max-w-3xl text-[#FDF8F2]">
             Every badge here was earned with a live selfie —{' '}

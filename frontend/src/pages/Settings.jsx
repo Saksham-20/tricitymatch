@@ -887,7 +887,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-neutral-50 dark:bg-[#0f1117] pt-20 pb-24 md:pb-10 px-4">
+    <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 pt-20 pb-24 md:pb-10 px-4">
       <div className="max-w-4xl mx-auto">
 
         <div className="mb-8">
@@ -899,7 +899,7 @@ export default function Settings() {
 
           {/* Sidebar nav */}
           <div className="md:w-56 flex-shrink-0 w-full">
-            <nav className="bg-white dark:bg-[#1a1f2e] rounded-2xl shadow-card border border-neutral-100 dark:border-neutral-800 overflow-hidden">
+            <nav className="bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card border border-neutral-100 dark:border-neutral-800 overflow-hidden">
               {TABS.map(({ id, label, icon: Icon, desc }) => (
                 <button
                   key={id}
@@ -941,7 +941,7 @@ export default function Settings() {
               an explicit width. Without w-full, wide inner content (e.g. the
               invite-code row) pushed this panel past the viewport instead of
               wrapping inside it, causing the page-level horizontal scroll. */}
-          <div className="flex-1 min-w-0 w-full bg-white dark:bg-[#1a1f2e] rounded-2xl shadow-card border border-neutral-100 dark:border-neutral-800 p-6 md:p-8">
+          <div className="flex-1 min-w-0 w-full bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card border border-neutral-100 dark:border-neutral-800 p-6 md:p-8">
             <TabContent />
           </div>
         </div>

@@ -185,7 +185,7 @@ const ProfileCard = ({
                 onError={() => setImgError(true)}
               />
             ) : (
-              <div className="w-14 h-14 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center text-primary-700 dark:text-primary-300 font-display font-semibold text-lg ring-2 ring-white dark:ring-[#1a1f2e] shadow-md">
+              <div className="w-14 h-14 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center text-primary-700 dark:text-primary-300 font-display font-semibold text-lg ring-2 ring-white dark:ring-surface-dark-3 shadow-md">
                 {initials}
               </div>
             )}

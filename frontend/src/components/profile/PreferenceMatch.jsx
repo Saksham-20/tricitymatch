@@ -89,7 +89,7 @@ const PreferenceMatch = ({ target, viewer, targetName = 'them' }) => {
   const matched = scored.filter((c) => c.ok).length;
 
   return (
-    <div className="bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card overflow-hidden">
+    <div className="bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card overflow-hidden">
       <div className="px-5 pt-4 pb-3 border-b border-neutral-50 dark:border-neutral-800 flex items-center gap-2.5">
         <div className="w-7 h-7 rounded-lg bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center flex-shrink-0">
           <FiHeart className="w-3.5 h-3.5 text-primary-500" />

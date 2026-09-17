@@ -121,7 +121,7 @@ const Faq = ({ q, a }) => {
 
 export default function Help() {
   return (
-    <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-[#0f1117] text-neutral-900 dark:text-neutral-100">
+    <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-surface-dark-1 text-neutral-900 dark:text-neutral-100">
       <Seo
         title="Help Centre"
         description="Answers about verification, plans and contact unlocks, matches and messaging, safety and account deletion on TricityMatch — plus how to reach our support team."

@@ -9,7 +9,7 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
   // Show loading spinner while checking auth state
   if (loading) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-neutral-50 dark:bg-[#0f1117]">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-neutral-50 dark:bg-surface-dark-1">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" aria-hidden="true"></div>
       </div>
     );

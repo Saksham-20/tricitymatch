@@ -59,7 +59,7 @@ const NotificationBell = ({ count = 0 }) => {
         {open && (
           <motion.div
             {...popIn}
-            className="absolute right-0 top-12 w-80 bg-white dark:bg-[#1a1f2e] rounded-2xl shadow-2xl dark:shadow-[0_25px_50px_rgba(0,0,0,0.6)] border border-neutral-100 dark:border-[#252b3b] overflow-hidden z-60 origin-top-right"
+            className="absolute right-0 top-12 w-80 bg-white dark:bg-surface-dark-3 rounded-2xl shadow-2xl dark:shadow-[0_25px_50px_rgba(0,0,0,0.6)] border border-neutral-100 dark:border-[#252b3b] overflow-hidden z-60 origin-top-right"
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-100 dark:border-[#252b3b]">
               <span className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">{t('navbar.notifications')}</span>
@@ -152,7 +152,7 @@ const ProfileDropdown = ({ user, onLogout }) => {
         {open && (
           <motion.div
             {...popIn}
-            className="absolute right-0 top-12 w-56 bg-white dark:bg-[#1a1f2e] rounded-2xl shadow-2xl dark:shadow-[0_25px_50px_rgba(0,0,0,0.6)] border border-neutral-100 dark:border-[#252b3b] overflow-hidden z-60 origin-top-right"
+            className="absolute right-0 top-12 w-56 bg-white dark:bg-surface-dark-3 rounded-2xl shadow-2xl dark:shadow-[0_25px_50px_rgba(0,0,0,0.6)] border border-neutral-100 dark:border-[#252b3b] overflow-hidden z-60 origin-top-right"
           >
             {/* User info */}
             <div className="px-4 py-3 border-b border-neutral-100 dark:border-[#252b3b]">
@@ -281,7 +281,7 @@ const Navbar = () => {
         transition={{ duration: 0.45, ease: 'easeOut' }}
         role="navigation"
         aria-label="Main navigation"
-        className={`fixed top-0 left-0 right-0 z-60 transition-[box-shadow,border-color] duration-300 bg-white dark:bg-[#14182a] dark:border-[#252b3b] ${
+        className={`fixed top-0 left-0 right-0 z-60 transition-[box-shadow,border-color] duration-300 bg-white dark:bg-surface-dark-2 dark:border-[#252b3b] ${
           isScrolled
             ? 'shadow-sm border-b border-neutral-100 dark:shadow-none dark:border-b'
             : 'border-b border-neutral-100/60'
@@ -385,7 +385,7 @@ const Navbar = () => {
               initial={{ x: '100%' }}
               animate={{ x: 0, transition: { duration: DUR.sheet, ease: EASE_DRAWER } }}
               exit={{ x: '100%', transition: { duration: DUR.sheetExit, ease: EASE_DRAWER } }}
-              className="fixed top-0 right-0 h-full w-72 bg-white dark:bg-[#14182a] shadow-2xl dark:shadow-[0_0_60px_rgba(0,0,0,0.7)] z-70 md:hidden flex flex-col"
+              className="fixed top-0 right-0 h-full w-72 bg-white dark:bg-surface-dark-2 shadow-2xl dark:shadow-[0_0_60px_rgba(0,0,0,0.7)] z-70 md:hidden flex flex-col"
               role="dialog"
               aria-modal="true"
               aria-label="Navigation menu"
@@ -403,7 +403,7 @@ const Navbar = () => {
 
               {/* User info (auth) */}
               {isAuthenticated && user && (
-                <div className="flex items-center gap-3 px-5 py-4 border-b border-neutral-100 dark:border-[#252b3b] bg-neutral-50 dark:bg-[#0f1117]">
+                <div className="flex items-center gap-3 px-5 py-4 border-b border-neutral-100 dark:border-[#252b3b] bg-neutral-50 dark:bg-surface-dark-1">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
                     {((user.firstName?.[0] || '') + (user.lastName?.[0] || '')).toUpperCase() || 'U'}
                   </div>
@@ -499,7 +499,7 @@ const Navbar = () => {
               </div>
 
               {/* Footer */}
-              <div className="px-5 py-4 border-t border-neutral-100 dark:border-[#252b3b] bg-neutral-50 dark:bg-[#0f1117]">
+              <div className="px-5 py-4 border-t border-neutral-100 dark:border-[#252b3b] bg-neutral-50 dark:bg-surface-dark-1">
                 <p className="text-xs text-neutral-400 text-center">
                   {t('navbar.region')}
                 </p>

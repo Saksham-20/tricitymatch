@@ -79,7 +79,7 @@ const Avatar = ({
       {online !== undefined && (
         <span
           className={cn(
-            'absolute bottom-0 right-0 rounded-full border-white dark:border-[#1a1f2e]',
+            'absolute bottom-0 right-0 rounded-full border-white dark:border-surface-dark-3',
             online ? 'bg-success' : 'bg-neutral-400',
             indicatorSizes[size]
           )}
@@ -91,7 +91,7 @@ const Avatar = ({
       {verified && (
         <span
           className={cn(
-            'absolute -bottom-0.5 -right-0.5 bg-success rounded-full p-0.5 border-2 border-white dark:border-[#1a1f2e]',
+            'absolute -bottom-0.5 -right-0.5 bg-success rounded-full p-0.5 border-2 border-white dark:border-surface-dark-3',
             size === 'xs' && 'hidden',
             (size === 'sm' || size === 'md') && 'p-0.5',
             size === 'lg' && 'p-1',

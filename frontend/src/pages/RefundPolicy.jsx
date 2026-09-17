@@ -30,7 +30,7 @@ const Section = ({ icon: Icon, title, children }) => (
 
 export default function RefundPolicy() {
   return (
-    <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-[#0f1117] text-neutral-900 dark:text-neutral-100">
+    <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-surface-dark-1 text-neutral-900 dark:text-neutral-100">
       <Seo
         title="Refund & Conduct Policy"
         description="When we refund a TricityMatch membership, how to ask, and what we do about members who behave badly."

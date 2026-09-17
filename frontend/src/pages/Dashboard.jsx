@@ -595,7 +595,7 @@ const Dashboard = () => {
 
         {/* ── 1. Greeting Card — LIGHT hero (burgundy as accent, not flat fill) ── */}
         <motion.div variants={fadeInUp}>
-          <div className="relative rounded-3xl overflow-hidden bg-white dark:bg-[#1a1f2e] border border-neutral-100 dark:border-neutral-800 shadow-card">
+          <div className="relative rounded-3xl overflow-hidden bg-white dark:bg-surface-dark-3 border border-neutral-100 dark:border-neutral-800 shadow-card">
             {/* Thin burgundy left rail + subtle primary wash */}
             <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-primary-500 to-primary-700 pointer-events-none" />
             <div className="absolute inset-0 bg-gradient-to-r from-primary-50/70 dark:from-primary-900/20 via-transparent to-transparent pointer-events-none" />
@@ -712,7 +712,7 @@ const Dashboard = () => {
           <motion.div
             variants={fadeInUp}
             role="alert"
-            className="bg-white dark:bg-[#1a1f2e] border border-destructive/20 dark:border-destructive/30 rounded-2xl shadow-card p-5 flex items-center gap-4"
+            className="bg-white dark:bg-surface-dark-3 border border-destructive/20 dark:border-destructive/30 rounded-2xl shadow-card p-5 flex items-center gap-4"
           >
             <div className="w-10 h-10 rounded-xl bg-destructive-light dark:bg-destructive/20 flex items-center justify-center flex-shrink-0">
               <FiAlertCircle className="w-5 h-5 text-destructive" />
@@ -739,7 +739,7 @@ const Dashboard = () => {
                 <Link
                   key={item.id}
                   to="/profile/edit"
-                  className={`bg-white dark:bg-[#1a1f2e] rounded-2xl border shadow-card p-5 flex items-start gap-3.5 transition-transform duration-[160ms] hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
+                  className={`bg-white dark:bg-surface-dark-3 rounded-2xl border shadow-card p-5 flex items-start gap-3.5 transition-transform duration-[160ms] hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
                     item.done ? 'border-success/30' : 'border-neutral-100 dark:border-neutral-800 hover:border-primary-200'
                   }`}
                 >
@@ -919,7 +919,7 @@ const Dashboard = () => {
                 ))}
               </div>
               {/* Overlay CTA */}
-              <div className="absolute inset-0 bg-white/80 dark:bg-[#0f1117]/85 backdrop-blur-[2px] flex flex-col items-center justify-center">
+              <div className="absolute inset-0 bg-white/80 dark:bg-surface-dark-1/85 backdrop-blur-[2px] flex flex-col items-center justify-center">
                 <div className="w-12 h-12 rounded-2xl bg-gold-50 dark:bg-[#2a2010] flex items-center justify-center mb-3">
                   <FiLock className="w-5 h-5 text-gold-600" />
                 </div>

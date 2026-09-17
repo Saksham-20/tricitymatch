@@ -231,7 +231,7 @@ const Search = () => {
       initial="initial"
       animate="animate"
       variants={staggerContainer}
-      className="min-h-[100dvh] bg-neutral-50 dark:bg-[#0f1117] pb-16"
+      className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 pb-16"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
@@ -312,7 +312,7 @@ const Search = () => {
           <motion.div variants={fadeInUp} className="lg:col-span-3">
 
             {/* Results meta bar */}
-            <div className="flex items-center justify-between mb-5 py-3 px-4 bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card">
+            <div className="flex items-center justify-between mb-5 py-3 px-4 bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card">
               <p className="text-sm text-neutral-600">
                 {loading && profiles.length === 0 ? (
                   <span className="text-neutral-400">Loading profiles…</span>
@@ -372,7 +372,7 @@ const Search = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 role="alert"
-                className="bg-white dark:bg-[#1a1f2e] rounded-3xl border border-destructive/20 dark:border-destructive/30 shadow-card"
+                className="bg-white dark:bg-surface-dark-3 rounded-3xl border border-destructive/20 dark:border-destructive/30 shadow-card"
               >
                 <ErrorState
                   title="Something went wrong"
@@ -394,7 +394,7 @@ const Search = () => {
               <motion.div
                 initial={{ opacity: 0, scale: 0.97 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-white dark:bg-[#1a1f2e] rounded-3xl border border-neutral-100 dark:border-neutral-800 shadow-card"
+                className="bg-white dark:bg-surface-dark-3 rounded-3xl border border-neutral-100 dark:border-neutral-800 shadow-card"
               >
                 <EmptyState
                   icon={FiUsers}

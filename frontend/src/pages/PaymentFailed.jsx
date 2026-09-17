@@ -6,7 +6,7 @@ import Logo from '../components/common/Logo';
 
 export default function PaymentFailed() {
   return (
-    <div className="min-h-[100dvh] flex items-center justify-center bg-[#FDF8F2] dark:bg-[#0f1117] px-4">
+    <div className="min-h-[100dvh] flex items-center justify-center bg-[#FDF8F2] dark:bg-surface-dark-1 px-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex justify-center mb-8">

@@ -56,7 +56,7 @@ const LoadingSpinner = ({
  * Full-page skeleton used while lazy chunks are loading
  */
 export const PageSkeleton = () => (
-  <div className="min-h-[100dvh] bg-neutral-50 dark:bg-[#0f1117] p-4 md:p-8">
+  <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 p-4 md:p-8">
     <div className="max-w-6xl mx-auto">
       <div className="mb-8">
         <div className="skeleton h-8 w-48 rounded-xl mb-2" />

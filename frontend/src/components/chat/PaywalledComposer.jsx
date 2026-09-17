@@ -14,7 +14,7 @@ const PaywalledComposer = ({ name, avatarUrl, reason }) => {
     : "You've used your 5 free replies";
 
   return (
-    <div className="rounded-2xl border border-gold-200 dark:border-gold-700/40 bg-white dark:bg-[#1a1f2e] px-4 py-4">
+    <div className="rounded-2xl border border-gold-200 dark:border-gold-700/40 bg-white dark:bg-surface-dark-3 px-4 py-4">
       <div className="flex items-center gap-3">
         {avatarUrl ? (
           <img src={avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />

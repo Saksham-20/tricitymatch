@@ -102,7 +102,12 @@ export default {
         },
         
         destructive: {
-          DEFAULT: "#C62828",
+          // Was a literal hex, so `--destructive`'s html.dark override in
+          // index.css (added for contrast) had nothing to attach to and
+          // text-destructive stayed #C62828 in both themes. Wired to the
+          // variable like every other themed token in this file so the
+          // dark override actually takes effect.
+          DEFAULT: "hsl(var(--destructive))",
           light: "#FFEBEE",
           foreground: "hsl(var(--destructive-foreground))",
         },
@@ -124,6 +129,16 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+
+        // Dark-mode surface elevation ramp (Phase 2 tokenization, doctrine
+        // §3.1/§3.4) — single source in index.css `html.dark`. RGB channels
+        // (not HSL, unlike the tokens above) so `<alpha-value>` reproduces the
+        // source hex exactly and slash-opacity modifiers keep working, e.g.
+        // `dark:bg-surface-dark-3/95`. 1 = page canvas (darkest), 2 = chrome
+        // & inset surfaces, 3 = raised card/composer (lightest).
+        'surface-dark-1': 'rgb(var(--surface-dark-1) / <alpha-value>)',
+        'surface-dark-2': 'rgb(var(--surface-dark-2) / <alpha-value>)',
+        'surface-dark-3': 'rgb(var(--surface-dark-3) / <alpha-value>)',
       },
       
       // Font families

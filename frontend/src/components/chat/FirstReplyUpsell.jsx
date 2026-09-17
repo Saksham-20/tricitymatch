@@ -9,7 +9,7 @@ import { FiX } from 'react-icons/fi';
 export const upsellSeenKey = (pairUserId) => `tm_first_reply_upsell_${pairUserId}`;
 
 const FirstReplyUpsell = ({ name, remaining, onDismiss }) => (
-  <div className="my-3 mx-auto max-w-md rounded-2xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-[#1a1f2e] px-4 py-3 flex items-start gap-3 shadow-sm">
+  <div className="my-3 mx-auto max-w-md rounded-2xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-surface-dark-3 px-4 py-3 flex items-start gap-3 shadow-sm">
     <div className="flex-1 min-w-0">
       <p className="text-sm text-neutral-700 dark:text-neutral-200">
         Reply sent. You have <span className="font-semibold tabular-nums">{remaining}</span> free{' '}

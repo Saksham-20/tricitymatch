@@ -33,7 +33,7 @@ const L = ({ to, children }) => (
 
 export default function Privacy() {
   return (
-    <div className="min-h-[100dvh] bg-neutral-50 dark:bg-[#0f1117] pt-20 pb-16 px-4">
+    <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 pt-20 pb-16 px-4">
       <Seo
         title="Privacy Policy"
         description="How TricityMatch collects, uses and protects your personal data."

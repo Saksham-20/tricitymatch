@@ -13,7 +13,7 @@ export const ReactionPicker = ({ onPick, onClose }) => (
   <div
     role="menu"
     aria-label="React to message"
-    className="flex items-center gap-0.5 bg-white dark:bg-[#1a1f2e] rounded-full shadow-lg border border-neutral-200 dark:border-neutral-700 px-1.5 py-1"
+    className="flex items-center gap-0.5 bg-white dark:bg-surface-dark-3 rounded-full shadow-lg border border-neutral-200 dark:border-neutral-700 px-1.5 py-1"
   >
     {REACTION_EMOJIS.map((e) => (
       <button

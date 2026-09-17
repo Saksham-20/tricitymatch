@@ -69,7 +69,7 @@ const BiodataCard = ({ profile }) => {
   };
 
   return (
-    <div className="bg-white dark:bg-[#1a1f2e] rounded-3xl border border-neutral-100 dark:border-neutral-800 shadow-card p-5">
+    <div className="bg-white dark:bg-surface-dark-3 rounded-3xl border border-neutral-100 dark:border-neutral-800 shadow-card p-5">
       <div className="flex items-center gap-2 mb-1">
         <FiFileText className="w-4 h-4 text-primary-500" aria-hidden="true" />
         <h3 className="font-display text-base font-bold text-neutral-900 dark:text-neutral-100">Marriage Biodata</h3>

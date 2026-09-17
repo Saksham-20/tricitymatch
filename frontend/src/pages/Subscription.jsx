@@ -133,7 +133,7 @@ const ComparisonSection = ({ plans = {}, planKeys = [] }) => {
     <section className="mt-14" aria-labelledby="compare-heading">
       <h2 id="compare-heading" className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 text-center mb-6">Compare plans</h2>
       {/* Table ≥ sm */}
-      <div className="hidden sm:block overflow-x-auto rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card bg-white dark:bg-[#1a1f2e]">
+      <div className="hidden sm:block overflow-x-auto rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card bg-white dark:bg-surface-dark-3">
         <table className="w-full text-center">
           <thead>
             <tr className="border-b border-neutral-100 dark:border-neutral-800">
@@ -156,7 +156,7 @@ const ComparisonSection = ({ plans = {}, planKeys = [] }) => {
       {/* Accordion < sm */}
       <div className="sm:hidden space-y-2">
         {cols.map((key, ci) => (
-          <div key={key} className="rounded-2xl border border-neutral-100 dark:border-neutral-800 bg-white dark:bg-[#1a1f2e] overflow-hidden">
+          <div key={key} className="rounded-2xl border border-neutral-100 dark:border-neutral-800 bg-white dark:bg-surface-dark-3 overflow-hidden">
             <button
               onClick={() => setOpenCol(openCol === ci ? -1 : ci)}
               className="w-full flex items-center justify-between px-4 py-3 text-sm font-bold text-neutral-800 dark:text-neutral-100"
@@ -195,7 +195,7 @@ const SuccessStrip = () => {
       <h2 id="stories-heading" className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 text-center mb-6">Matches that became marriages</h2>
       <div className="grid sm:grid-cols-3 gap-4">
         {stories.map((st) => (
-          <figure key={st.id} className="rounded-2xl border border-neutral-100 dark:border-neutral-800 bg-white dark:bg-[#1a1f2e] shadow-card p-5">
+          <figure key={st.id} className="rounded-2xl border border-neutral-100 dark:border-neutral-800 bg-white dark:bg-surface-dark-3 shadow-card p-5">
             <blockquote className="text-sm text-neutral-600 dark:text-neutral-300 leading-relaxed line-clamp-4">“{st.story || st.content || ''}”</blockquote>
             <figcaption className="mt-3 text-sm font-semibold text-primary-700 dark:text-primary-400">{st.coupleNames || st.title || 'A TricityMatch couple'}</figcaption>
           </figure>
@@ -224,7 +224,7 @@ const FaqSection = ({ unlockDailyCap }) => {
       <h2 id="faq-heading" className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 text-center mb-6">Common questions</h2>
       <div className="space-y-2">
         {faqs.map((f, i) => (
-          <div key={f.q} className="rounded-2xl border border-neutral-100 dark:border-neutral-800 bg-white dark:bg-[#1a1f2e] overflow-hidden">
+          <div key={f.q} className="rounded-2xl border border-neutral-100 dark:border-neutral-800 bg-white dark:bg-surface-dark-3 overflow-hidden">
             <button
               onClick={() => setOpen(open === i ? -1 : i)}
               className="w-full flex items-center justify-between px-5 py-4 text-left text-sm font-semibold text-neutral-800 dark:text-neutral-100"
@@ -290,7 +290,7 @@ const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanTy
       animate={{ opacity: 1, y: 0 }}
       whileHover={HOVER_CAPABLE && !free && !isCurrent ? { y: -6 } : {}}
       transition={{ duration: 0.35 }}
-      className={`relative flex flex-col bg-white dark:bg-[#1a1f2e] rounded-2xl border transition-[border-color,box-shadow,transform] duration-200 overflow-hidden ${
+      className={`relative flex flex-col bg-white dark:bg-surface-dark-3 rounded-2xl border transition-[border-color,box-shadow,transform] duration-200 overflow-hidden ${
         isPopular
           ? 'border-primary-300 dark:border-primary-700/50 shadow-burgundy-lg ring-1 ring-primary-200 dark:ring-primary-800/40 scale-[1.03]'
           : gold
@@ -538,7 +538,7 @@ const BundleBlock = ({ bundles, processingBundle, onBuy }) => (
         const perUnlock = Math.round(b.price / b.unlocks);
         const busy = processingBundle === b.bundleId;
         return (
-          <div key={b.bundleId} className="flex flex-col bg-white dark:bg-[#1a1f2e] rounded-xl border border-neutral-200 dark:border-neutral-800 p-5 shadow-card">
+          <div key={b.bundleId} className="flex flex-col bg-white dark:bg-surface-dark-3 rounded-xl border border-neutral-200 dark:border-neutral-800 p-5 shadow-card">
             <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">{b.unlocks} <span className="text-sm font-medium text-neutral-500 dark:text-neutral-400">unlocks</span></p>
             <div className="flex items-baseline gap-2 mt-1">
               <p className="text-lg font-semibold text-primary-600 dark:text-primary-400">₹{b.price.toLocaleString('en-IN')}</p>
@@ -867,7 +867,7 @@ const Subscription = () => {
 
   if (loading) {
     return (
-      <div className="min-h-[100dvh] bg-neutral-50 dark:bg-[#0f1117]">
+      <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center mb-12 flex flex-col items-center gap-3">
             <Skeleton className="h-7 w-40 rounded-full" />
@@ -876,7 +876,7 @@ const Subscription = () => {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 items-start">
             {[0, 1, 2, 3].map((i) => (
-              <div key={i} className="bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-card p-6 space-y-4">
+              <div key={i} className="bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-card p-6 space-y-4">
                 <Skeleton className="h-6 w-28 rounded-lg" />
                 <Skeleton className="h-10 w-32 rounded-lg" />
                 <Skeleton.Text lines={5} className="pt-2" />
@@ -891,7 +891,7 @@ const Subscription = () => {
 
   if (loadError) {
     return (
-      <div className="min-h-[100dvh] bg-neutral-50 dark:bg-[#0f1117] flex items-center justify-center px-4">
+      <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 flex items-center justify-center px-4">
         <ErrorState onRetry={loadData} />
       </div>
     );
@@ -933,7 +933,7 @@ const Subscription = () => {
   const singlePlan = paidCardCount === 1;
 
   return (
-    <div className="min-h-[100dvh] bg-neutral-50 dark:bg-[#0f1117]">
+    <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 
         {/* Header */}
@@ -971,7 +971,7 @@ const Subscription = () => {
             animate={{ opacity: 1, y: 0 }}
             className="mb-8 flex items-center gap-3 px-5 py-3.5 bg-neutral-100 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-2xl"
           >
-            <div className="w-8 h-8 rounded-full bg-white dark:bg-[#1a1f2e] border border-neutral-200 dark:border-neutral-700 flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 rounded-full bg-white dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-700 flex items-center justify-center flex-shrink-0">
               <FiClock className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
             </div>
             <p className="text-sm text-neutral-600 dark:text-neutral-300">

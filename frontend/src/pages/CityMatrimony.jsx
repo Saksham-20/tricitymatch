@@ -49,7 +49,7 @@ export default function CityMatrimony() {
   const path = `/matrimony/${city.slug}`;
 
   return (
-    <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-[#0f1117] text-neutral-900 dark:text-neutral-100">
+    <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-surface-dark-1 text-neutral-900 dark:text-neutral-100">
       <Seo title={city.seoTitle} description={city.seoDescription} path={path} />
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
@@ -83,7 +83,7 @@ export default function CityMatrimony() {
           renders the whole band light-on-light. Same reason the heading names
           its own colour — index.css colours h2 with an element rule that beats
           an inherited one. */}
-      <section className="bg-[#2D1A22] dark:bg-[#14182a] text-[#FDF8F2]">
+      <section className="bg-[#2D1A22] dark:bg-surface-dark-2 text-[#FDF8F2]">
         <div className="max-w-5xl mx-auto px-5 sm:px-8 py-12">
           <h2 className="font-display text-2xl sm:text-3xl leading-snug max-w-3xl text-[#FDF8F2]">
             We&apos;re building this one verified {city.name} family at a time —{' '}
@@ -117,7 +117,7 @@ export default function CityMatrimony() {
           {VERIFY_STEPS.map(({ icon: Icon, title, body }, i) => (
             <div
               key={title}
-              className="rounded-2xl bg-white dark:bg-[#1a1f2e] border border-neutral-200 dark:border-neutral-800 p-6"
+              className="rounded-2xl bg-white dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-800 p-6"
             >
               <span className="font-mono text-[11px] text-neutral-400">0{i + 1}</span>
               <Icon className="w-5 h-5 text-primary-600 dark:text-primary-300 mt-3" aria-hidden="true" />
@@ -129,7 +129,7 @@ export default function CityMatrimony() {
       </section>
 
       {/* ── Locality specifics ───────────────────────────────────────────── */}
-      <section className="bg-white dark:bg-[#1a1f2e] border-y border-neutral-200 dark:border-neutral-800">
+      <section className="bg-white dark:bg-surface-dark-3 border-y border-neutral-200 dark:border-neutral-800">
         <div className="max-w-5xl mx-auto px-5 sm:px-8 py-14 grid gap-10 lg:grid-cols-2">
           <div>
             <h2 className="font-display text-2xl sm:text-3xl tracking-tight">{city.locality.heading}</h2>
@@ -183,7 +183,7 @@ export default function CityMatrimony() {
 
       {/* ── Closing CTA + sibling cities (internal linking) ──────────────── */}
       <section className="max-w-5xl mx-auto px-5 sm:px-8 pb-20">
-        <div className="rounded-3xl bg-white dark:bg-[#1a1f2e] border border-neutral-200 dark:border-neutral-800 p-8 sm:p-10 text-center">
+        <div className="rounded-3xl bg-white dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-800 p-8 sm:p-10 text-center">
           <h2 className="font-display text-2xl sm:text-3xl tracking-tight">
             Start with a profile your family would stand behind
           </h2>
@@ -204,7 +204,7 @@ export default function CityMatrimony() {
             <Link
               key={s}
               to={`/matrimony/${s}`}
-              className="inline-flex items-center gap-2 min-h-[44px] px-5 rounded-full border border-neutral-300 dark:border-neutral-700 text-sm hover:bg-white dark:hover:bg-[#1a1f2e] transition-colors"
+              className="inline-flex items-center gap-2 min-h-[44px] px-5 rounded-full border border-neutral-300 dark:border-neutral-700 text-sm hover:bg-white dark:hover:bg-surface-dark-3 transition-colors"
             >
               <FiMapPin className="w-3.5 h-3.5 text-primary-600 dark:text-primary-300" aria-hidden="true" />
               Matrimony in {CITIES[s].name}

@@ -192,14 +192,18 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-[100dvh] flex bg-[#FDF8F2]">
+    <div className="min-h-[100dvh] flex bg-[#FDF8F2] dark:bg-surface-dark-1">
       <Seo
         title="Login"
         description="Log in to your TricityMatch account to continue your match journey."
         path="/login"
       />
-      {/* Left Side - Editorial panel */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-neutral-900">
+      {/* Left Side - Editorial panel. Pinned to a literal hex rather than the
+          neutral-900 scale class: this rail stays dark in BOTH themes, and
+          `bg-neutral-900` inverts to a near-white under html.dark (see
+          CityMatrimony.jsx's identical note), which would strand the white
+          headline text with nothing behind it. */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-[#171717] dark:bg-surface-dark-2">
         {/* Warm gradient wash */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary-900/90 via-neutral-900 to-neutral-900" />
 
@@ -276,24 +280,27 @@ const Login = () => {
             <Logo size="lg" linkTo="/" />
           </motion.div>
 
-          {/* Mobile tab switcher — Sign In / Create Profile */}
-          <motion.div variants={fadeInUp} className="lg:hidden flex rounded-2xl bg-neutral-100 p-1 mb-6">
-            <span className="flex-1 py-3 text-center text-sm font-semibold rounded-xl bg-white shadow-sm text-neutral-900">
+          {/* Mobile tab switcher — Sign In / Create Profile. Container pinned
+              off the neutral-100 scale (which the dark hack raises to the same
+              tone as the active `bg-white` pill) so the active state stays
+              visible against it in dark mode. */}
+          <motion.div variants={fadeInUp} className="lg:hidden flex rounded-2xl bg-[#F5F5F5] dark:bg-surface-dark-1 p-1 mb-6">
+            <span className="flex-1 py-3 text-center text-sm font-semibold rounded-xl bg-white dark:bg-surface-dark-3 shadow-sm text-neutral-900 dark:text-neutral-100">
               {t('navbar.signIn')}
             </span>
             <Link
               to="/signup"
-              className="flex-1 py-3 text-center text-sm font-semibold rounded-xl text-neutral-500 hover:text-neutral-700 transition-colors"
+              className="flex-1 py-3 text-center text-sm font-semibold rounded-xl text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors"
             >
               {t('navbar.createProfile')}
             </Link>
           </motion.div>
 
           <motion.div variants={fadeInUp} className="text-center mb-8 hidden lg:block">
-            <h1 className="text-3xl font-display font-bold text-neutral-800 mb-2">
+            <h1 className="text-3xl font-display font-bold text-neutral-800 dark:text-neutral-100 mb-2">
               {t('auth.welcomeBack')}
             </h1>
-            <p className="text-neutral-600">
+            <p className="text-neutral-600 dark:text-neutral-400">
               {t('auth.loginSubtitle')}
             </p>
           </motion.div>
@@ -303,7 +310,7 @@ const Login = () => {
             layout
             transition={{ layout: { duration: DUR.layout, ease: EASE_IN_OUT } }}
             onSubmit={handleSubmit}
-            className={`card space-y-5 ${shakeTrigger ? 'animate-shake' : ''}`}
+            className={`card dark:bg-surface-dark-3 dark:border-neutral-800 space-y-5 ${shakeTrigger ? 'animate-shake' : ''}`}
           >
             {/* Lockout / API Error Alert */}
             <AnimatePresence>
@@ -314,7 +321,7 @@ const Login = () => {
                   initial="initial"
                   animate="animate"
                   exit="exit"
-                  className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-gold-50 border border-gold-200 text-gold-800 text-sm"
+                  className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-gold-50 border border-gold-200 dark:border-gold-800/50 text-gold-800 dark:text-gold-300 text-sm"
                 >
                   <FiClock className="w-4 h-4 mt-0.5 flex-shrink-0" />
                   <span>Too many attempts. Please wait a few minutes, then try again.</span>
@@ -326,7 +333,7 @@ const Login = () => {
                   initial="initial"
                   animate="animate"
                   exit="exit"
-                  className="flex items-center gap-2 px-4 py-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm"
+                  className="flex items-center gap-2 px-4 py-3 rounded-xl bg-destructive/10 dark:bg-red-950/30 border border-destructive/20 dark:border-red-900/50 text-destructive dark:text-red-300 text-sm"
                 >
                   {apiError}
                 </motion.div>
@@ -350,20 +357,20 @@ const Login = () => {
               ) : (
                 <motion.div key="password" custom={direction} variants={stepSlide} initial="initial" animate="animate" exit="exit" className="space-y-5">
                   {/* Identifier recap chip */}
-                  <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-neutral-50 border border-neutral-200">
-                    <span className="text-neutral-400 flex-shrink-0">
+                  <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-neutral-50 dark:bg-surface-dark-2 border border-neutral-200 dark:border-neutral-700">
+                    <span className="text-neutral-400 dark:text-neutral-500 flex-shrink-0">
                       {idType === 'phone' ? <FiPhone className="w-4 h-4" /> : <FiMail className="w-4 h-4" />}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] text-neutral-400 uppercase tracking-wide leading-none mb-0.5">{t('auth.signingInAs', 'Signing in as')}</p>
-                      <p className="text-sm font-semibold text-neutral-800 truncate">
+                      <p className="text-[11px] text-neutral-400 dark:text-neutral-500 uppercase tracking-wide leading-none mb-0.5">{t('auth.signingInAs', 'Signing in as')}</p>
+                      <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100 truncate">
                         {idType === 'phone' ? `+91 ${phoneDigits(identifier)}` : identifier.trim()}
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={backToIdentifier}
-                      className="flex items-center gap-1 text-xs font-medium text-primary-600 hover:text-primary-700 flex-shrink-0"
+                      className="flex items-center gap-1 text-xs font-medium text-primary-600 dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-200 flex-shrink-0"
                     >
                       <FiEdit2 className="w-3.5 h-3.5" /> {t('auth.change', 'Change')}
                     </button>
@@ -382,12 +389,12 @@ const Login = () => {
 
                   {/* Password Field */}
                   <div>
-                    <label htmlFor="password" className="block text-sm font-medium text-neutral-700 mb-2">
+                    <label htmlFor="password" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
                       {t('auth.password')}
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <FiLock className={`w-5 h-5 ${errors.password ? 'text-destructive' : 'text-neutral-400'}`} />
+                        <FiLock className={`w-5 h-5 ${errors.password ? 'text-destructive dark:text-red-400' : 'text-neutral-400 dark:text-neutral-500'}`} />
                       </div>
                       <input
                         id="password"
@@ -395,7 +402,7 @@ const Login = () => {
                         ref={passwordRef}
                         type={showPassword ? 'text' : 'password'}
                         autoComplete="current-password"
-                        className={`input-field pl-12 pr-12 ${errors.password ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : ''}`}
+                        className={`input-field dark:bg-surface-dark-2 dark:border-neutral-700 dark:placeholder:text-neutral-500 dark:focus:border-primary-400 dark:focus:ring-primary-400/20 pl-12 pr-12 ${errors.password ? 'border-destructive focus:border-destructive focus:ring-destructive/20 dark:border-red-500 dark:focus:border-red-500 dark:focus:ring-red-500/20' : ''}`}
                         placeholder={t('auth.passwordPlaceholder')}
                         value={password}
                         onChange={(e) => { setPassword(e.target.value); if (errors.password) setErrors({}); if (apiError) setApiError(''); }}
@@ -405,7 +412,7 @@ const Login = () => {
                         type="button"
                         aria-label={showPassword ? 'Hide password' : 'Show password'}
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-neutral-400 hover:text-neutral-600 transition-colors"
+                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-neutral-400 dark:text-neutral-500 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
                       >
                         {showPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
                       </button>
@@ -418,7 +425,7 @@ const Login = () => {
                           initial="initial"
                           animate="animate"
                           exit="exit"
-                          className="mt-2 text-sm text-destructive"
+                          className="mt-2 text-sm text-destructive dark:text-red-300"
                         >
                           {errors.password}
                         </motion.p>
@@ -430,7 +437,7 @@ const Login = () => {
                   <div className="flex items-center justify-end -mt-2">
                     <Link
                       to="/forgot-password"
-                      className="text-sm font-medium text-primary-500 hover:text-primary-600 transition-colors"
+                      className="text-sm font-medium text-primary-500 dark:text-primary-300 hover:text-primary-600 dark:hover:text-primary-200 transition-colors"
                     >
                       {t('auth.forgotPassword')}
                     </Link>
@@ -476,10 +483,10 @@ const Login = () => {
               <>
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-neutral-200" />
+                    <div className="w-full border-t border-neutral-200 dark:border-neutral-700" />
                   </div>
                   <div className="relative flex justify-center text-sm">
-                    <span className="px-4 bg-white text-neutral-600">{t('auth.orContinueWith')}</span>
+                    <span className="px-4 bg-white dark:bg-surface-dark-3 text-neutral-600 dark:text-neutral-400">{t('auth.orContinueWith')}</span>
                   </div>
                 </div>
                 <div className={`w-full overflow-hidden rounded-xl ${googleLoading ? 'opacity-60 pointer-events-none' : ''}`}>
@@ -488,20 +495,20 @@ const Login = () => {
               </>
             )}
 
-            <p className="text-xs text-neutral-500 text-center leading-relaxed">
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 text-center leading-relaxed">
               By continuing, you agree to our{' '}
-              <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline hover:text-primary-700">Terms &amp; Conditions</Link>{' '}
+              <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-300 underline hover:text-primary-700 dark:hover:text-primary-200">Terms &amp; Conditions</Link>{' '}
               and{' '}
-              <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline hover:text-primary-700">Privacy Policy</Link>.
+              <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-300 underline hover:text-primary-700 dark:hover:text-primary-200">Privacy Policy</Link>.
             </p>
 
             {/* Divider */}
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-neutral-200" />
+                <div className="w-full border-t border-neutral-200 dark:border-neutral-700" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white text-neutral-600">New to TricityMatch?</span>
+                <span className="px-4 bg-white dark:bg-surface-dark-3 text-neutral-600 dark:text-neutral-400">New to TricityMatch?</span>
               </div>
             </div>
 

@@ -68,7 +68,7 @@ const TABS = [
 ];
 
 const CardSkeleton = () => (
-  <div className="bg-white dark:bg-[#1a1f2e] rounded-3xl overflow-hidden shadow-card">
+  <div className="bg-white dark:bg-surface-dark-3 rounded-3xl overflow-hidden shadow-card">
     <Skeleton className="h-56 w-full rounded-none" />
     <div className="p-5 space-y-3">
       <Skeleton className="h-5 w-2/3" />
@@ -137,7 +137,7 @@ export default function Matches() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-neutral-50 dark:bg-[#0f1117] pb-24 md:pb-12">
+    <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 pb-24 md:pb-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <SectionHeader
           title="My Matches"
@@ -150,7 +150,7 @@ export default function Matches() {
             shrink a flex item below its own content's intrinsic width — the
             row was pushing the whole page 51px wider than the viewport.
             Scrolling inside this row contains it instead. */}
-        <div className="flex gap-1 bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-1.5 mb-6 mt-5 w-full sm:w-fit overflow-x-auto scrollbar-hide">
+        <div className="flex gap-1 bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-1.5 mb-6 mt-5 w-full sm:w-fit overflow-x-auto scrollbar-hide">
           {TABS.map((t) => {
             const Icon = t.icon;
             const isActive = active === t.id;
