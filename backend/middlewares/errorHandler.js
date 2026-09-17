@@ -81,10 +81,18 @@ const logError = (error, req) => {
     stack: config.isDevelopment ? error.stack : undefined,
   };
 
-  // Always log errors — single-line JSON via the structured logger.
+  // express-validator messages are static strings keyed by field name (never
+  // interpolate the submitted value), so surfacing details at warn level in
+  // prod too is safe and is the only way to know WHY a 400 fired — previously
+  // every operational 4xx (signup/OTP validation, conflicts, etc.) logged
+  // nothing at all outside dev, leaving prod 400s with no diagnosable cause.
+  if (error.code === ErrorTypes.VALIDATION_ERROR && error.details) {
+    meta.details = error.details;
+  }
+
   if (error.statusCode >= 500 || !error.isOperational) {
     log.error(error.message, meta);
-  } else if (config.isDevelopment) {
+  } else {
     log.warn(error.message, meta);
   }
 };

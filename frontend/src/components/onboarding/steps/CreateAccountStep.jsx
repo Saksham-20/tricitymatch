@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
@@ -27,6 +28,11 @@ const CreateAccountStep = () => {
   const [otpCode, setOtpCode] = useState('');
   const [otpVerifying, setOtpVerifying] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  // A user retrying "Send code" after they already have an account (e.g. they
+  // signed up successfully on a prior attempt but bounced back to this step)
+  // was seeing only the plain 409 error text with no way out — they'd keep
+  // hammering Send/Resend instead of logging in. Surface a direct link.
+  const [accountExists, setAccountExists] = useState(false);
 
   const idType = detectContactType(formData.identifier);
   const verified = idType === 'email' ? !!formData.emailVerification
@@ -68,6 +74,7 @@ const CreateAccountStep = () => {
     }
     // Editing the contact resets the OTP exchange.
     if (otpSent) { setOtpSent(false); setOtpCode(''); setCooldown(0); }
+    setAccountExists(false);
   };
 
   const idTarget = () => (idType === 'email' ? formData.email : phoneDigits(formData.identifier));
@@ -81,12 +88,14 @@ const CreateAccountStep = () => {
     if (cooldown > 0) return;
 
     setOtpSending(true);
+    setAccountExists(false);
     try {
       await api.post('/auth/send-otp', { type: idType, target: idTarget() });
       setOtpSent(true);
       setCooldown(RESEND_COOLDOWN);
       setStepErrors({});
     } catch (err) {
+      setAccountExists(err.response?.data?.error?.code === 'CONFLICT');
       setStepErrors({ identifier: err.response?.data?.error?.message || 'Could not send the code. Try again.' });
     } finally {
       setOtpSending(false);
@@ -174,6 +183,11 @@ const CreateAccountStep = () => {
           disabled={verified}
           autoFocus
         />
+        {accountExists && (
+          <Link to="/login" className="inline-block text-sm font-semibold text-primary-600 underline">
+            Log in instead &rarr;
+          </Link>
+        )}
 
         {/* Password */}
         <div className="space-y-1.5">
