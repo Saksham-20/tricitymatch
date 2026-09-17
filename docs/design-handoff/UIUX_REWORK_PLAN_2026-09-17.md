@@ -128,8 +128,11 @@ and in elder mode against the doctrine §9 checklist. Admin's dark mode is expli
   page and bury it. `07_Competitive_Benchmark.md` filed this as GAP-policy and it is still open.
 - **`/subscription` rebuilt as the Free/Paid overlap pair** — same rows in both cards, Free greyed with ✗, Paid
   raised and overlapping. This is also the clean answer to the "two peer cards" problem a single-plan page has.
-- **Member proof rail** on the city and community landing pages: blurred, ID-masked, verified-ticked real
-  members, the way Shaadi does it publicly. Real members only, never AI imagery.
+- ~~**Member proof rail** on the city and community landing pages~~ — **skipped, owner decision 2026-09-17.**
+  At ~15 real production members, a masked proof rail would repeat the same 2-3 people per city (thin, not
+  reassuring) and showing a real member's city/profession/verification status on an unauthenticated public page
+  is a data-processing purpose the current bundled consent notice doesn't cover (see legal review B-1). Revisit
+  once the member base is large enough and consent explicitly covers it.
 - Section padding `py-16 md:py-24`. `revealOnce` is the only scroll motion, fires once, 550ms. No pinning, no
   scrub, no GSAP.
 

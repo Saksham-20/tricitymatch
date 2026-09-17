@@ -4,7 +4,7 @@ import { track, STAGES } from '../utils/analytics';
 import { motion } from 'framer-motion';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
-import { FiCheck, FiArrowRight, FiZap, FiShield, FiClock, FiGlobe, FiPlusCircle, FiStar } from 'react-icons/fi';
+import { FiCheck, FiX, FiArrowRight, FiZap, FiShield, FiClock, FiGlobe, FiPlusCircle, FiStar } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 import { razorpay } from '../config';
 import { loadRazorpayScript, ensurePaymentsAvailable } from '../utils/razorpayCheckout';
@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { detectCurrency, formatLocalPrice } from '../utils/currency';
 import { planFeatures } from '../utils/planFeatures';
 import { EmptyState, ErrorState, Skeleton } from '../components/ui';
+import { fadeRise } from '../utils/animations';
 
 // Gate `whileHover` behind a real pointer (doctrine §8): a touch tap on a
 // hover-capable-looking card should not fire a hover animation that then
@@ -262,6 +263,21 @@ const StickyCtaBar = ({ show }) => {
   );
 };
 
+// Which button state a plan CTA is in — used by PlanCard AND the 2-card
+// overlap pair below, so "can this tier be bought right now" is computed in
+// exactly one place. On a paid plan, only strictly higher tiers are
+// purchasable (as upgrades); lower/equal paid tiers already included.
+const getPlanCtaState = (planKey, currentPlanType, isCurrent, isProcessing) => {
+  const free = planKey === 'free';
+  const currentRank = TIER_RANK[currentPlanType] ?? 0;
+  const thisRank = TIER_RANK[planKey] ?? 0;
+  const onPaidPlan = currentRank > 0;
+  const isUpgrade = onPaidPlan && thisRank > currentRank;
+  const isIncluded = onPaidPlan && !isCurrent && !free && thisRank < currentRank;
+  const disabled = isCurrent || free || isIncluded || isProcessing;
+  return { isUpgrade, isIncluded, disabled };
+};
+
 // ─── Single plan card ─────────────────────────
 const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanType, isProcessing, freeChatForMutuals, onSubscribe }) => {
   const cfg = PLAN_CONFIG[planKey] || PLAN_CONFIG.free;
@@ -274,13 +290,7 @@ const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanTy
   const perMonth = plan.perMonth || null;
   const discountPct = mrp && mrp > displayPrice ? Math.round(((mrp - displayPrice) / mrp) * 100) : 0;
 
-  // On a paid plan, only higher tiers are purchasable (as upgrades).
-  const currentRank = TIER_RANK[currentPlanType] ?? 0;
-  const thisRank = TIER_RANK[planKey] ?? 0;
-  const onPaidPlan = currentRank > 0;
-  const isUpgrade = onPaidPlan && thisRank > currentRank;
-  const isIncluded = onPaidPlan && !isCurrent && !free && thisRank < currentRank;
-  const disabled = isCurrent || free || isIncluded || isProcessing;
+  const { isUpgrade, isIncluded, disabled } = getPlanCtaState(planKey, currentPlanType, isCurrent, isProcessing);
 
   const badge = plan.badge || (isPopular ? 'Most Popular' : null);
 
@@ -428,6 +438,162 @@ const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanTy
             : isUpgrade
             ? <>Upgrade <FiArrowRight className="w-4 h-4" /></>
             : <>{cfg.cta} <FiArrowRight className="w-4 h-4" /></>}
+        </button>
+      </div>
+    </motion.div>
+  );
+};
+
+// ─── Free/Paid overlap pair ─────────────────────────────────────────────
+// Doctrine's fix for "two peer cards": a single-plan catalogue rendered as
+// Free and Premium side by side as equal-weight cards undersells the paid
+// tier. Both cards list the SAME rows — Free is muted with a cross against
+// whatever it lacks, Paid is raised and physically overlaps it. Only makes
+// sense for exactly two cards; the caller falls back to the grid otherwise.
+const OverlapPricingPair = ({ freeEntry, paidEntry, currentPlanType, isCurrentPaid, isProcessing, freeChatForMutuals, onSubscribe }) => {
+  const [, freePlan] = freeEntry;
+  const [paidKey, paidPlan] = paidEntry;
+  const paidCfg = PLAN_CONFIG[paidKey] || PLAN_CONFIG.free;
+  const PaidIcon = paidCfg.icon;
+  const gold = paidCfg.accent === 'gold';
+
+  // Same row source PlanCard uses (`planFeatures`) — never a second,
+  // hand-typed list. "Everything in Free" is expanded into Free's own rows
+  // rather than shown as a placeholder, since there is no tier between them.
+  const freeFeatures = planFeatures('free', freeChatForMutuals, freePlan, null);
+  const paidFeaturesRaw = planFeatures(paidKey, freeChatForMutuals, paidPlan, 'Free');
+  const rows = [
+    ...freeFeatures.map((label) => ({ label, free: true })),
+    ...paidFeaturesRaw
+      .filter((label) => !/^Everything in/i.test(label))
+      .filter((label) => !freeFeatures.includes(label))
+      .map((label) => ({ label, free: false })),
+  ];
+
+  const { isUpgrade, isIncluded, disabled } = getPlanCtaState(paidKey, currentPlanType, isCurrentPaid, isProcessing);
+  // The server ALWAYS resolves a free member's subscription to the synthetic
+  // `{planType:'free', status:'active'}` row (see getMySubscription) — so a
+  // visitor with no paid plan is the common case here, not an edge case, and
+  // the Free card has to say "Current plan", not "Free forever", for them.
+  // `currentPlanType` already carries this (falls back to 'free' the same
+  // way `PlanCard`'s own `isCurrent` check does for the free key).
+  const isCurrentFree = currentPlanType === 'free';
+  const displayPrice = paidPlan.price || paidCfg.price || 0;
+  const mrp = paidPlan.mrp || null;
+  const perMonth = paidPlan.perMonth || null;
+  const discountPct = mrp && mrp > displayPrice ? Math.round(((mrp - displayPrice) / mrp) * 100) : 0;
+  const accentText = gold ? 'text-gold-600 dark:text-gold-400' : 'text-primary-500 dark:text-primary-400';
+  const accentIconBg = gold ? 'bg-gold-50 dark:bg-gold-900/20 text-gold' : 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400';
+  const accentCheckBg = gold ? 'bg-gold-100 dark:bg-gold-900/30 text-gold-700 dark:text-gold-400' : 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400';
+  const accentButton = gold ? 'bg-gold text-neutral-900 hover:bg-gold-400 shadow-gold hover:-translate-y-0.5' : 'bg-primary-500 text-white hover:bg-primary-600 shadow-burgundy hover:-translate-y-0.5';
+
+  return (
+    <motion.div {...fadeRise} className="relative mx-auto max-w-sm sm:max-w-none sm:flex sm:justify-center sm:items-start pt-4 pb-6">
+      {/* Free — full row list, muted, sits behind. Background is `bg-neutral-50`
+          ONLY — index.css already forces `html.dark .bg-neutral-50` to the
+          page-canvas tier (`surface-dark-1`, the darkest of the three), which
+          is the right muted/recede effect in dark mode too; a `dark:bg-*`
+          class here would just be dead weight under that `!important` rule. */}
+      <div className="relative z-0 flex flex-col rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 p-6 sm:w-72 sm:flex-shrink-0 sm:p-7 sm:pt-8 sm:mr-[-1.75rem]">
+        <div className="flex items-center gap-2.5">
+          <h3 className="text-base font-bold text-neutral-600 dark:text-neutral-400">{freePlan.name || PLAN_CONFIG.free.label}</h3>
+          {isCurrentFree && (
+            <span className="ml-auto px-2 py-0.5 bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 text-success text-[10px] font-bold rounded-full uppercase tracking-wide">
+              Active
+            </span>
+          )}
+        </div>
+        <p className="mt-2 text-3xl font-bold text-neutral-500 dark:text-neutral-500">Free</p>
+        <p className="text-sm text-neutral-600 dark:text-neutral-500 mb-5">Forever, no card needed</p>
+        <ul className="space-y-2.5 mb-6 flex-1">
+          {rows.map((row) => (
+            <li key={row.label} className="flex items-start gap-2.5">
+              {/* Muted is the card's own weight (grey icons, no accent, no
+                  shadow); which rows Free has is carried by the icon shape
+                  alone, never by contrast, so both states stay readable. */}
+              {row.free
+                ? <FiCheck className="w-4 h-4 mt-0.5 text-neutral-500 dark:text-neutral-400 flex-shrink-0" aria-hidden="true" />
+                : <FiX className="w-4 h-4 mt-0.5 text-neutral-500 dark:text-neutral-500 flex-shrink-0" aria-hidden="true" />}
+              <span className="text-sm leading-snug text-neutral-600 dark:text-neutral-400">{row.label}</span>
+            </li>
+          ))}
+        </ul>
+        <button
+          disabled
+          className="w-full py-3 text-sm font-semibold rounded-xl bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 cursor-default flex items-center justify-center gap-2"
+        >
+          {isCurrentFree ? <><FiCheck className="w-4 h-4" /> Current plan</> : 'Free forever'}
+        </button>
+      </div>
+
+      {/* Paid — same rows, raised and overlapping Free */}
+      <div className={`relative z-10 flex flex-col overflow-hidden rounded-2xl bg-white dark:bg-surface-dark-3 p-6 sm:w-80 sm:flex-shrink-0 sm:p-7 sm:pt-8 -mt-6 mx-3 sm:mx-0 sm:-mt-4 sm:mb-[-1rem] ${
+        gold ? 'shadow-gold-lg' : 'shadow-burgundy-lg'
+      }`}>
+        <div className={`absolute top-0 inset-x-0 h-1 bg-gradient-to-r ${gold ? 'from-gold-400 to-gold-600' : 'from-primary-500 to-primary-700'}`} />
+        <div className="flex items-center gap-2.5 mb-1">
+          {PaidIcon && (
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${accentIconBg}`}>
+              <PaidIcon className="w-4 h-4" />
+            </div>
+          )}
+          <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">{paidPlan.name || paidCfg.label}</h3>
+          {isCurrentPaid && (
+            <span className="ml-auto px-2 py-0.5 bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 text-success text-[10px] font-bold rounded-full uppercase tracking-wide">
+              Active
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-baseline gap-1.5 mb-1 flex-wrap">
+          <span className={`text-4xl font-bold ${accentText}`}>₹{displayPrice.toLocaleString('en-IN')}</span>
+          <span className="text-sm text-neutral-500 dark:text-neutral-400">/{paidPlan.duration || paidCfg.duration}</span>
+        </div>
+        {(mrp || perMonth) && (
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            {mrp && mrp > displayPrice && (
+              <span className="text-sm text-neutral-400 dark:text-neutral-500 line-through">₹{mrp.toLocaleString('en-IN')}</span>
+            )}
+            {discountPct > 0 && (
+              <span className="text-[11px] font-bold text-success bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 px-1.5 py-0.5 rounded">
+                {paidPlan.isLaunchPrice ? `Launch price · ${discountPct}% off` : `Flat ${discountPct}% off`}
+              </span>
+            )}
+            {perMonth && <span className="text-xs text-neutral-400 dark:text-neutral-500">≈ ₹{perMonth.toLocaleString('en-IN')}/month</span>}
+          </div>
+        )}
+        <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-5">Everything in Free, plus</p>
+
+        <ul className="space-y-2.5 mb-6 flex-1">
+          {rows.map((row) => (
+            <li key={row.label} className="flex items-start gap-2.5">
+              <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${accentCheckBg}`}>
+                <FiCheck className="w-2.5 h-2.5" />
+              </div>
+              <span className="text-sm text-neutral-700 dark:text-neutral-300 leading-snug">{row.label}</span>
+            </li>
+          ))}
+        </ul>
+
+        <button
+          onClick={() => !disabled && onSubscribe(paidKey)}
+          disabled={disabled}
+          aria-busy={isProcessing || undefined}
+          className={`w-full py-3 text-sm font-semibold rounded-xl transition-[background-color,box-shadow,transform] duration-200 flex items-center justify-center gap-2 disabled:cursor-not-allowed ${
+            isCurrentPaid || isIncluded
+              ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 cursor-default'
+              : accentButton
+          } ${isProcessing ? 'opacity-70' : ''}`}
+        >
+          {isProcessing
+            ? <><span className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" /> Processing…</>
+            : isCurrentPaid
+            ? <><FiCheck className="w-4 h-4" /> Current plan</>
+            : isIncluded
+            ? <><FiCheck className="w-4 h-4" /> Included</>
+            : isUpgrade
+            ? <>Upgrade <FiArrowRight className="w-4 h-4" /></>
+            : <>{paidCfg.cta} <FiArrowRight className="w-4 h-4" /></>}
         </button>
       </div>
     </motion.div>
@@ -1015,31 +1181,47 @@ const Subscription = () => {
           </motion.div>
         )}
 
-        {/* Plan grid — column count follows the number of live tiers */}
-        <div className={`grid grid-cols-1 sm:grid-cols-2 ${GRID_COLS[gridPlans.length] || 'lg:grid-cols-4'} gap-5 items-start`}>
-          {gridPlans.map(([key, plan], idx) => (
-            <motion.div
-              key={key}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.08 }}
-            >
-              <PlanCard
-                planKey={key}
-                plan={plan}
-                // The tier actually rendered below this one — not the one below
-                // it in the enum, which may have been withdrawn.
-                prevName={idx > 0 ? (gridPlans[idx - 1][1].name || PLAN_CONFIG[gridPlans[idx - 1][0]]?.label) : null}
-                isPopular={Boolean(plan.popular)}
-                isCurrent={currentSub?.planType === key && currentSub?.status === 'active'}
-                currentPlanType={currentPlanType}
-                isProcessing={processingPlan === key}
-                freeChatForMutuals={freeChatForMutuals}
-                onSubscribe={handleSubscribe}
-              />
-            </motion.div>
-          ))}
-        </div>
+        {/* Plan grid — column count follows the number of live tiers. Exactly
+            two cards (Free + the one plan on sale, the common case today) get
+            the overlap-pair treatment; three or more fall back to the equal
+            weight grid, because the overlap composition only reads correctly
+            as a two-way choice. */}
+        {gridPlans.length === 2 ? (
+          <OverlapPricingPair
+            freeEntry={gridPlans.find(([key]) => key === 'free') || gridPlans[0]}
+            paidEntry={gridPlans.find(([key]) => key !== 'free') || gridPlans[1]}
+            currentPlanType={currentPlanType}
+            isCurrentPaid={currentSub?.status === 'active' && currentSub?.planType === (gridPlans.find(([key]) => key !== 'free') || gridPlans[1])[0]}
+            isProcessing={processingPlan === (gridPlans.find(([key]) => key !== 'free') || gridPlans[1])[0]}
+            freeChatForMutuals={freeChatForMutuals}
+            onSubscribe={handleSubscribe}
+          />
+        ) : (
+          <div className={`grid grid-cols-1 sm:grid-cols-2 ${GRID_COLS[gridPlans.length] || 'lg:grid-cols-4'} gap-5 items-start`}>
+            {gridPlans.map(([key, plan], idx) => (
+              <motion.div
+                key={key}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.08 }}
+              >
+                <PlanCard
+                  planKey={key}
+                  plan={plan}
+                  // The tier actually rendered below this one — not the one below
+                  // it in the enum, which may have been withdrawn.
+                  prevName={idx > 0 ? (gridPlans[idx - 1][1].name || PLAN_CONFIG[gridPlans[idx - 1][0]]?.label) : null}
+                  isPopular={Boolean(plan.popular)}
+                  isCurrent={currentSub?.planType === key && currentSub?.status === 'active'}
+                  currentPlanType={currentPlanType}
+                  isProcessing={processingPlan === key}
+                  freeChatForMutuals={freeChatForMutuals}
+                  onSubscribe={handleSubscribe}
+                />
+              </motion.div>
+            ))}
+          </div>
+        )}
 
         {/* Contact-unlock top-ups (active finite plan only) */}
         {showBundles && (

@@ -197,6 +197,10 @@ const FontLoader = () => (
       .trust-section { padding: 40px 20px !important; }
       .trust-header { grid-template-columns: 1fr !important; }
       .trust-cards { grid-template-columns: 1fr 1fr !important; }
+      /* Refund guarantee: single column, pledge rule moves from left edge to top */
+      .refund-section { padding: 40px 20px !important; }
+      .refund-grid { grid-template-columns: 1fr !important; gap: 28px !important; }
+      .refund-pledges { border-left: none !important; border-top: 1px solid var(--line) !important; padding-left: 0 !important; padding-top: 26px !important; }
       /* Testimonials */
       .testi-section { padding: 40px 20px !important; }
       .testi-grid { grid-template-columns: 1fr !important; gap: 0 !important; }
@@ -437,30 +441,30 @@ const Home = () => {
   ];
 
   const cities = [
-    { tag: 'City Beautiful',       name: 'Chandigarh', desc: 'India\'s most planned city. Cosmopolitan, career-forward — and deeply family-rooted.',         image: EDITORIAL_IMAGES.cities.chandigarh },
+    { tag: 'City Beautiful',       name: 'Chandigarh', desc: 'India\'s most planned city. Cosmopolitan, career-forward, and deeply family-rooted.',         image: EDITORIAL_IMAGES.cities.chandigarh },
     { tag: "Punjab's Rising Star", name: 'Mohali',     desc: 'Tech parks, AIIMS, IIT. Young professionals building careers without leaving culture.',         image: EDITORIAL_IMAGES.cities.mohali },
     { tag: 'Roots Run Deep',       name: 'Panchkula',  desc: 'Quiet, established, close-knit. Tradition and aspiration in equal measure.',                   image: EDITORIAL_IMAGES.cities.panchkula },
   ];
 
   const faqs = [
-    { q: 'Only Tricity residents?',              a: 'Yes — every profile is from Chandigarh, Mohali, or Panchkula, or has direct family ties to the region. Hyperlocal is the point.' },
-    { q: 'How does profile verification work?',  a: 'Members submit a live selfie — captured in the moment, never uploaded from files — that our team matches against their profile photos. The verified badge appears once approved.' },
-    { q: 'Can I browse without an account?',     a: 'No — search and full profiles need a free account. Creating one takes about two minutes and you can start browsing right away.' },
-    { q: 'I live abroad — can NRIs join?',       a: 'Yes, if you are from the Tricity or your family is. Where you live now does not matter; the roots do. Mark yourself as an NRI during sign-up and add your country, and families looking for an NRI alliance will see it. A parent or sibling here can search alongside you through Guardian access.' },
+    { q: 'Only Tricity residents?',              a: 'Yes. Every profile is from Chandigarh, Mohali, or Panchkula, or has direct family ties to the region. Hyperlocal is the point.' },
+    { q: 'How does profile verification work?',  a: 'Members submit a live selfie, captured in the moment and never uploaded from files, that our team matches against their profile photos. The verified badge appears once approved.' },
+    { q: 'Can I browse without an account?',     a: 'No, search and full profiles need a free account. Creating one takes about two minutes and you can start browsing right away.' },
+    { q: 'I live abroad, can NRIs join?',       a: 'Yes, if you are from the Tricity or your family is. Where you live now does not matter; the roots do. Mark yourself as an NRI during sign-up and add your country, and families looking for an NRI alliance will see it. A parent or sibling here can search alongside you through Guardian access.' },
     { q: 'What does Premium include?',           a: 'One plan, no tiers to compare: unlimited contact unlocks, unlimited messaging, advanced filters, Incognito mode, a profile boost and a spotlight listing, for the full term. Browsing, matching and your profile stay free.' },
     { q: 'Is my data private?',                  a: 'Yes. Conversations are encrypted in transit and access is restricted to you and your match. We never share your phone number, never sell data, never display you to non-mutual interests.' },
-    { q: 'Can families participate?',             a: 'Yes — gracefully. You choose when. They get their own view and chat channel kept respectfully separate from yours.' },
+    { q: 'Can families participate?',             a: 'Yes, gracefully. You choose when. They get their own view and chat channel kept respectfully separate from yours.' },
   ];
 
   {/* Doctrine §8 bans numbered section markers ("01 /", "02 /") — the `tag`
       field below used to read "01 / Security". Kept the plain category word,
       dropped the number. */}
   const whyCards = [
-    { tag: 'Security',   title: 'Photo-verified profiles',   body: 'The verified badge is earned with a live selfie matched by human review — no uploads, no shortcuts.',           glyph: '◉' },
-    { tag: 'Technology', title: 'Intelligent matching, 40+ signals',        body: 'Values, lifestyle, family expectations — far beyond age and location.',                                  glyph: '◇' },
+    { tag: 'Security',   title: 'Photo-verified profiles',   body: 'The verified badge is earned with a live selfie matched by human review. No uploads, no shortcuts.',           glyph: '◉' },
+    { tag: 'Technology', title: 'Intelligent matching, 40+ signals',        body: 'Values, lifestyle, family expectations: far beyond age and location.',                                  glyph: '◇' },
     { tag: 'Hyperlocal', title: 'Built only for the Tricity',      body: 'Made for Chandigarh, Mohali, Panchkula. Meet partners from your community.',                            glyph: '▣' },
     { tag: 'Privacy',    title: 'Incognito browsing',              body: 'Browse privately. Appear only to those you\'ve expressed interest in.',                                  glyph: '◐' },
-    { tag: 'Comms',      title: 'Private conversations',           body: 'Encrypted in transit, with read receipts. Phone numbers stay hidden.',                                   glyph: '▲' },
+    { tag: 'Comms',      title: 'Private conversations',           body: 'Encrypted in transit, with read receipts. Free members read every message for free, and once a premium member you matched with reaches out, you get five free replies over the next 48 hours.', glyph: '▲' },
     { tag: 'Values',     title: 'Family-aware flow',               body: 'Bring family in at the right moment. Respect, not pressure.',                                            glyph: '✦' },
   ];
 
@@ -540,7 +544,7 @@ const Home = () => {
           }}>
             {[
               { text: 'From match',                                                   style: { color: 'var(--ink)', animationDelay: '.25s' } },
-              { text: 'to mandap —',                                                  style: { color: 'var(--ink)', animationDelay: '.4s' } },
+              { text: 'to mandap,',                                                  style: { color: 'var(--ink)', animationDelay: '.4s' } },
               { text: <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>all in the Tricity.</em>, style: { animationDelay: '.55s' } },
             ].map((line, i) => (
               <span key={i} style={{
@@ -568,7 +572,7 @@ const Home = () => {
             animation: 'rise 1.2s 0.9s both',
           }}>
             <p style={{ fontSize: 14, lineHeight: 1.5, color: 'var(--ink-soft)', maxWidth: 420, fontFamily: 'var(--sans)' }}>
-              Chandigarh, Mohali and Panchkula only — live selfie verification, private conversations, and every family close enough to meet this week. Founding members join free while we build Tricity's most carefully verified community.
+              Chandigarh, Mohali and Panchkula only: live selfie verification, private conversations, and every family close enough to meet this week. Founding members join free while we build Tricity's most carefully verified community.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-start' }}>
               <Link to="/onboarding" style={{
@@ -691,9 +695,9 @@ const Home = () => {
               "— Founding members" label above the heading. */}
           <div>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(28px,3.6vw,48px)', lineHeight: 1.1, letterSpacing: '-.02em', margin: 0 }}>
-              Tricity's newest, most carefully verified matchmaking community — {founding.open
-                ? <em style={{ fontStyle: 'italic', color: 'var(--gold-text)' }}>founding members join free.</em>
-                : <em style={{ fontStyle: 'italic', color: 'var(--gold-text)' }}>built family-first.</em>}
+              Tricity's newest, most carefully verified matchmaking community. {founding.open
+                ? <em style={{ fontStyle: 'italic', color: 'var(--gold-text)' }}>Founding members join free.</em>
+                : <em style={{ fontStyle: 'italic', color: 'var(--gold-text)' }}>Built family-first.</em>}
             </h2>
             <p style={{ fontSize: 15, lineHeight: 1.65, color: 'rgba(253,248,242,.72)', fontFamily: 'var(--sans)', maxWidth: '34em', margin: '18px 0 28px' }}>
               We&apos;re starting the honest way: no inflated numbers, every verified badge earned with a
@@ -704,7 +708,7 @@ const Home = () => {
                   docs/LEGAL_REVIEW_2026-09-17.md A-7: state the grant length, then
                   the join-by deadline, matching the announcement band above. */}
               {founding.open
-                ? ` Founding members get ${founding.grantDays ? `${founding.grantDays} days` : 'full membership'} free — including ${founding.contactUnlocks} contact unlocks — if you join before ${foundingEndsLabel}.`
+                ? ` Founding members get ${founding.grantDays ? `${founding.grantDays} days` : 'full membership'} free, including ${founding.contactUnlocks} contact unlocks, if you join before ${foundingEndsLabel}.`
                 : ' Founding members join free and shape what this becomes.'}
             </p>
             <Link to="/onboarding" style={{
@@ -733,8 +737,8 @@ const Home = () => {
                 and reported profiles. Fixed per docs/LEGAL_REVIEW_2026-09-17.md
                 A-9 — draft wording used as given. */}
             {[
-              ['Verified, not vast', 'A smaller circle, where the verified badge is earned in front of a person — not assumed.'],
-              ['Tricity only', 'Matches you can actually meet — same city, same community.'],
+              ['Verified, not vast', 'A smaller circle, where the verified badge is earned in front of a person, not assumed.'],
+              ['Tricity only', 'Matches you can actually meet: same city, same community.'],
               ['Families welcome', 'Parents and guardians take part, the way Tricity actually matches.'],
             ].map(([title, body]) => (
               <div key={title} style={{ display: 'flex', gap: 14, alignItems: 'baseline' }}>
@@ -791,7 +795,7 @@ const Home = () => {
               Six reasons<br />this <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>isn't</em><br />another app.
             </h2>
             <p style={{ maxWidth: 520, fontSize: 14, lineHeight: 1.5, color: 'var(--ink-soft)', fontFamily: 'var(--sans)', marginBottom: 32 }}>
-              Scroll right to read. Each principle shapes a real product decision — not just marketing copy.
+              Scroll right to read. Each principle shapes a real product decision, not just marketing copy.
             </p>
             <div style={{ height: 2, background: 'var(--line)', borderRadius: 1, overflow: 'hidden' }}>
               <div id="why-bar" className={supportsScrollTimeline ? 'why-bar-css' : undefined}
@@ -804,7 +808,7 @@ const Home = () => {
         </div>
 
         {/* Horizontal scroll */}
-        <div id="why-scroller" className="why-scroller" tabIndex={0} role="group" aria-label="Why TricityMatch — scroll horizontally to read" style={{ display: 'flex', gap: 16, overflowX: 'auto', padding: '0 24px 20px', scrollSnapType: 'x mandatory' }}>
+        <div id="why-scroller" className="why-scroller" tabIndex={0} role="group" aria-label="Why TricityMatch: scroll horizontally to read" style={{ display: 'flex', gap: 16, overflowX: 'auto', padding: '0 24px 20px', scrollSnapType: 'x mandatory' }}>
           {whyCards.map((c, i) => (
             <motion.div key={i}
               initial={revealOnce.initial}
@@ -846,7 +850,7 @@ const Home = () => {
               <div className="wt-tag" style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '.16em', textTransform: 'uppercase', color: 'var(--mute)', marginBottom: 10, transition: 'color .4s' }}>{c.tag}</div>
               <div style={{ fontFamily: 'var(--display)', fontSize: 22, lineHeight: 1.05, letterSpacing: '-.01em', marginBottom: 10 }}>{c.title}</div>
               <div className="wt-body" style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--ink-soft)', marginBottom: 'auto', transition: 'color .4s' }}>{c.body}</div>
-              <div className="wt-foot" style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--burgundy)', paddingTop: 24, transition: 'color .4s' }}>— learn more</div>
+              <div className="wt-foot" style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--burgundy)', paddingTop: 24, transition: 'color .4s' }}>Learn more</div>
             </motion.div>
           ))}
         </div>
@@ -877,7 +881,7 @@ const Home = () => {
               See how you'll<br /><em style={{ fontStyle: 'italic', color: 'var(--gold-text)' }}>discover</em> matches.
             </h2>
             <p style={{ fontSize: 14, lineHeight: 1.5, color: 'rgba(253,248,242,.75)', maxWidth: 420, fontFamily: 'var(--sans)', marginTop: 12 }}>
-              A compatibility score, a verified badge, and the details families check first — every real profile shows them. The photography here is illustrative, not real members.
+              A compatibility score, a verified badge, and the details families check first. Every real profile shows them. The photography here is illustrative, not real members.
             </p>
           </div>
           <div style={{ fontFamily: 'var(--display)', display: 'flex', alignItems: 'baseline', gap: 8 }}>
@@ -1018,7 +1022,7 @@ const Home = () => {
               From hello<br />to <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>forever.</em>
             </h2>
             <p style={{ maxWidth: 520, fontSize: 14, lineHeight: 1.5, color: 'var(--ink-soft)', fontFamily: 'var(--sans)' }}>
-              Four steps, designed with intentionality — because finding a partner deserves more than an algorithm.
+              Four steps, designed with intentionality, because finding a partner deserves more than an algorithm.
             </p>
             {/* Dial */}
             <div style={{ position: 'relative', width: 140, height: 140, marginTop: 24 }}>
@@ -1103,7 +1107,7 @@ const Home = () => {
             </h2>
           </motion.div>
           <p style={{ fontSize: 14, lineHeight: 1.5, color: 'rgba(253,248,242,.75)', maxWidth: 520, fontFamily: 'var(--sans)' }}>
-            Hover a strip to expand. Mass-market apps don't understand what matters here — shared roots, family values, the comfort of proximity.
+            Hover a strip to expand. Mass-market apps don't understand what matters here: shared roots, family values, the comfort of proximity.
           </p>
         </div>
 
@@ -1180,13 +1184,13 @@ const Home = () => {
         }}>"</span>
         <motion.div {...revealOnce} style={{ position: 'relative' }}>
           <p style={{ fontFamily: 'var(--display)', fontSize: 'clamp(28px,4vw,62px)', lineHeight: 1.05, letterSpacing: '-.02em', maxWidth: 1100, margin: '0 auto 56px' }}>
-            The right match isn't a number<br />away — <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>they're a neighbourhood</em><br />
+            The right match isn't a number<br />away. <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>They're a neighbourhood</em><br />
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 24 }}>
               <span style={{ display: 'inline-block', width: 80, height: 2, background: 'var(--gold)' }} />away.
             </span>
           </p>
           <p className="quote-attribution" style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--mute)', display: 'inline-flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
-            <span>— Founders, TricityMatch</span>
+            <span>Founders, TricityMatch</span>
             <span className="dot" style={{ color: 'var(--burgundy)' }}>·</span>
             <span>Chandigarh</span>
             <span className="dot" style={{ color: 'var(--burgundy)' }}>·</span>
@@ -1206,7 +1210,7 @@ const Home = () => {
             </h2>
           </div>
           <p style={{ fontSize: 14, lineHeight: 1.5, color: 'rgba(253,248,242,.75)', maxWidth: 520, fontFamily: 'var(--sans)' }}>
-            We don't just ask for trust — we earn it. Every feature is designed to protect your privacy, safety, and dignity.
+            We don't just ask for trust. We earn it. Every feature is designed to protect your privacy, safety, and dignity.
           </p>
         </div>
         <div className="trust-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
@@ -1230,6 +1234,59 @@ const Home = () => {
               <p style={{ fontSize: 13, color: 'rgba(253,248,242,.75)', lineHeight: 1.5, fontFamily: 'var(--sans)' }}>{it.b}</p>
             </motion.div>
           ))}
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════════════════════
+          REFUND GUARANTEE — a real trust pillar, not a footer link.
+
+          Shaadi treats a money-back guarantee as trust pillar #1; ours had a
+          real, generous policy sitting only on /refund-policy where nobody
+          reads it before paying. Terms below are verified against
+          pages/RefundPolicy.jsx: 7 days, full refund, no justification
+          needed, minus any contact unlocks already used. Asymmetric split
+          per doctrine ruling 14 (only the page hero may center).
+      ════════════════════════════════════════════════════════ */}
+      <section className="refund-section" style={{ background: 'var(--cream)', padding: '52px 40px', borderTop: '1px solid var(--line)' }}>
+        <div className="refund-grid" style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 56, alignItems: 'center', maxWidth: 1280, margin: '0 auto' }}>
+          <motion.div {...revealOnce}>
+            <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', marginBottom: 20 }}>
+              Try it. If it's not right,<br /><em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>get your money back.</em>
+            </h2>
+            <p style={{ maxWidth: 480, fontSize: 14, lineHeight: 1.55, color: 'var(--ink-soft)', fontFamily: 'var(--sans)', marginBottom: 24 }}>
+              Ask within seven days of paying and we refund the membership in full, no justification needed. If you've already unlocked a few contacts, we deduct only what those unlocks cost.
+            </p>
+            <Link to="/refund-policy" style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              fontFamily: 'var(--mono)', fontSize: 12, letterSpacing: '.14em', textTransform: 'uppercase',
+              padding: '12px 20px', border: '1px solid var(--line)', borderRadius: 999,
+              color: 'var(--ink)', textDecoration: 'none', transition: 'all .3s',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--burgundy)'; e.currentTarget.style.color = 'var(--cream)'; e.currentTarget.style.borderColor = 'var(--burgundy)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--ink)'; e.currentTarget.style.borderColor = 'var(--line)'; }}
+            >
+              Read the refund policy <FiArrowRight />
+            </Link>
+          </motion.div>
+
+          <div className="refund-pledges" style={{
+            borderLeft: '1px solid var(--line)', paddingLeft: 40,
+            display: 'flex', flexDirection: 'column', gap: 22,
+          }}>
+            {[
+              ['Seven days, no argument', 'Full refund if you ask within a week of paying.'],
+              ['Unlocks deducted at cost', 'Already viewed a few numbers? We deduct only what those unlocks cost, nothing more.'],
+              ['Real problems, always refunded', 'A dropped feature, a broken service, a double charge: refunded at any point in your term.'],
+            ].map(([title, body]) => (
+              <div key={title} style={{ display: 'flex', gap: 14, alignItems: 'baseline' }}>
+                <span aria-hidden="true" style={{ width: 22, height: 2, background: 'var(--burgundy)', flex: 'none', transform: 'translateY(-4px)' }} />
+                <div>
+                  <b style={{ display: 'block', fontFamily: 'var(--sans)', fontSize: 14, fontWeight: 600, letterSpacing: '.02em', color: 'var(--ink)' }}>{title}</b>
+                  <span style={{ fontFamily: 'var(--sans)', fontSize: 13, lineHeight: 1.55, color: 'var(--ink-soft)' }}>{body}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -1324,7 +1381,7 @@ const Home = () => {
               Questions?<br />We've got <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>answers.</em>
             </h2>
             <p style={{ maxWidth: 520, fontSize: 14, lineHeight: 1.5, color: 'var(--ink-soft)', fontFamily: 'var(--sans)', marginBottom: 32 }}>
-              If you don't find what you need, reach out — we respond within 24 hours, in English, Hindi or Punjabi.
+              If you don't find what you need, reach out. We respond within 24 hours, in English, Hindi or Punjabi.
             </p>
             <a href="mailto:support@tricitymatch.com" style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
