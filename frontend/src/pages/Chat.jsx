@@ -15,6 +15,7 @@ import ReplyMeter from '../components/chat/ReplyMeter';
 import PaywalledComposer from '../components/chat/PaywalledComposer';
 import FirstReplyUpsell, { upsellSeenKey } from '../components/chat/FirstReplyUpsell';
 import RetryImage from '../components/ui/RetryImage';
+import { EmptyState, ErrorState, Skeleton } from '../components/ui';
 
 // Environment check for logging
 const isDev = import.meta.env.DEV;
@@ -105,6 +106,9 @@ const Chat = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [showMobileSidebar, setShowMobileSidebar] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
+  // A dropped connection is never rendered as "no conversations yet" — that
+  // tells a member something false about their own matches.
+  const [loadError, setLoadError] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState('Chat & Messaging');
   // Access lost WHILE the thread is open — subscription expired, or the flag
@@ -245,6 +249,8 @@ const Chat = () => {
   }, [user]);
 
   const loadConversations = async () => {
+    setLoading(true);
+    setLoadError(false);
     try {
       const response = await api.get('/chat/conversations');
       const rows = (response.data.conversations || []).map(toRow);
@@ -271,6 +277,7 @@ const Chat = () => {
           setShowUpgradeModal(true);
         }
       } else {
+        setLoadError(true);
         toast.error('Failed to load conversations');
       }
     } finally {
@@ -514,13 +521,34 @@ const Chat = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#FDF8F2] flex items-center justify-center">
-        <div className="text-center">
-          <div className="relative w-16 h-16 mx-auto mb-4">
-            <div className="absolute inset-0 rounded-full border-4 border-primary-200"></div>
-            <div className="absolute inset-0 rounded-full border-4 border-primary-500 border-t-transparent animate-spin"></div>
-          </div>
-          <p className="text-neutral-500 animate-pulse">Loading conversations...</p>
+      <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-[#14182a] flex">
+        {/* Skeleton mirrors the real two-pane layout, not a spinner. */}
+        <div className="hidden md:flex w-80 lg:w-96 h-full flex-col bg-white dark:bg-[#1a1f2e] border-r border-neutral-200 dark:border-neutral-800 p-4 space-y-4">
+          <Skeleton className="h-6 w-32" />
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex items-center gap-3">
+              <Skeleton variant="circle" className="w-14 h-14 flex-shrink-0" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="h-3 w-1/2" />
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="flex-1 hidden md:flex items-center justify-center">
+          <Skeleton variant="circle" className="w-16 h-16" />
+        </div>
+        <div className="md:hidden w-full p-4 space-y-4">
+          <Skeleton className="h-6 w-32" />
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="flex items-center gap-3">
+              <Skeleton variant="circle" className="w-14 h-14 flex-shrink-0" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="h-3 w-1/2" />
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -529,18 +557,18 @@ const Chat = () => {
   if (accessDenied) {
     return (
       <>
-        <div className="min-h-screen bg-[#FDF8F2] flex items-center justify-center p-4">
+        <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-[#14182a] flex items-center justify-center p-4">
           <div className="text-center max-w-md">
-            <div className="w-24 h-24 mx-auto mb-6 bg-gold-50 border border-gold-100 rounded-full flex items-center justify-center">
-              <FiLock className="w-12 h-12 text-gold-600" />
+            <div className="w-24 h-24 mx-auto mb-6 bg-gold-50 dark:bg-gold-900/20 border border-gold-100 dark:border-gold-800/40 rounded-full flex items-center justify-center">
+              <FiLock className="w-12 h-12 text-gold-600 dark:text-gold-400" />
             </div>
-            <h2 className="text-2xl font-bold font-display text-neutral-800 mb-3">Chat is a Premium Feature</h2>
-            <p className="text-neutral-500 mb-6 leading-relaxed">
+            <h2 className="text-2xl font-bold font-display text-neutral-800 dark:text-neutral-100 mb-3">Chat is a Premium Feature</h2>
+            <p className="text-neutral-500 dark:text-neutral-400 mb-6 leading-relaxed">
               Unlock messaging to connect with your matches. Upgrade to a premium plan today.
             </p>
             <button
               onClick={() => setShowUpgradeModal(true)}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-hero text-white rounded-full font-semibold hover:shadow-burgundy hover:scale-105 transition-all duration-200"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-hero text-white rounded-full font-semibold hover:shadow-burgundy hover:scale-105 transition-[transform,box-shadow] duration-[160ms]"
             >
               Upgrade Now
             </button>
@@ -551,24 +579,30 @@ const Chat = () => {
     );
   }
 
+  if (loadError) {
+    return (
+      <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-[#14182a] flex items-center justify-center p-4">
+        <ErrorState
+          title="Couldn't load your conversations"
+          description="The connection dropped before this finished loading. Your messages are safe — try again."
+          onRetry={loadConversations}
+          className="max-w-md"
+        />
+      </div>
+    );
+  }
+
   if (conversations.length === 0) {
     return (
-      <div className="min-h-screen bg-[#FDF8F2] flex items-center justify-center p-4">
-        <div className="text-center max-w-md">
-          <div className="w-24 h-24 mx-auto mb-6 bg-primary-100 rounded-full flex items-center justify-center">
-            <FiMessageCircle className="w-12 h-12 text-primary-400" />
-          </div>
-          <h2 className="text-2xl font-bold font-display text-neutral-800 mb-3">Chat opens when you both match</h2>
-          <p className="text-neutral-500 mb-6 leading-relaxed">
-            When you and someone else both like each other, you&apos;ll be able to start a conversation here.
-          </p>
-          <a
-            href="/search"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-hero text-white rounded-full font-semibold hover:shadow-burgundy hover:scale-105 transition-all duration-200"
-          >
-            Find Your Match
-          </a>
-        </div>
+      <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-[#14182a] flex items-center justify-center p-4">
+        <EmptyState
+          icon={FiMessageCircle}
+          title="Chat opens when you both match"
+          description="When you and someone else both like each other, you'll be able to start a conversation here."
+          actionLabel="Find your match"
+          onAction={() => navigate('/search')}
+          className="max-w-md"
+        />
       </div>
     );
   }
@@ -580,7 +614,7 @@ const Chat = () => {
   const endReason = replyWindow?.messagesRemaining === 0 ? 'exhausted' : 'expired';
 
   return (
-    <div className="h-[calc(100dvh-8rem)] md:h-screen -mb-24 md:mb-0 flex bg-neutral-100 dark:bg-[#14182a] overflow-hidden">
+    <div className="h-[calc(100dvh-8rem)] md:h-[100dvh] -mb-24 md:mb-0 flex bg-neutral-100 dark:bg-[#14182a] overflow-hidden">
       {/* Conversations Sidebar */}
       <div className={`
         ${showMobileSidebar ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
@@ -608,9 +642,9 @@ const Chat = () => {
                 key={row.userId}
                 onClick={() => handleSelect(row)}
                 className={`
-                  relative p-4 cursor-pointer transition-all duration-200
-                  hover:bg-primary-50 border-l-4
-                  ${isSelected ? 'bg-primary-50 border-l-primary-500' : 'border-l-transparent hover:border-l-primary-300'}
+                  relative p-4 cursor-pointer transition-[background-color,border-color] duration-[160ms]
+                  hover:bg-primary-50 dark:hover:bg-primary-900/20 border-l-4
+                  ${isSelected ? 'bg-primary-50 dark:bg-primary-900/20 border-l-primary-500' : 'border-l-transparent hover:border-l-primary-300'}
                   ${row.locked ? 'opacity-70' : ''}
                 `}
               >
@@ -806,7 +840,7 @@ const Chat = () => {
                         onChange={(e) => handleTyping(e.target.value)}
                         placeholder="Make a meaningful connection..."
                         aria-label="Type your message"
-                        className="w-full px-5 py-3 bg-neutral-100 rounded-full text-neutral-800 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all duration-200"
+                        className="w-full px-5 py-3 text-base bg-neutral-100 dark:bg-neutral-800 rounded-full text-neutral-800 dark:text-neutral-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white dark:focus:bg-neutral-900 transition-[background-color,box-shadow] duration-[160ms]"
                         disabled={sending}
                       />
                     </div>
@@ -818,7 +852,7 @@ const Chat = () => {
                         type="button"
                         onClick={() => (canRich ? setShowRecorder(true) : openLockedAffordance('Voice notes'))}
                         aria-label={canRich ? 'Record a voice message' : 'Voice notes — premium feature'}
-                        className="relative p-3 rounded-full bg-neutral-200 hover:bg-neutral-300 text-neutral-500 transition-colors"
+                        className="relative p-3 rounded-full bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 text-neutral-500 dark:text-neutral-300 transition-colors duration-[160ms]"
                       >
                         <FiMic className="w-5 h-5" />
                         {!canRich && <FiLock className="w-2.5 h-2.5 absolute top-1.5 right-1.5 text-neutral-400" aria-hidden="true" />}
@@ -830,10 +864,10 @@ const Chat = () => {
                       disabled={sending || !newMessage.trim()}
                       aria-label="Send message"
                       className={`
-                        p-3 rounded-full transition-all duration-200
+                        p-3 rounded-full transition-[background-color,box-shadow,transform] duration-[160ms]
                         ${newMessage.trim()
                           ? 'bg-gradient-hero text-white shadow-burgundy hover:shadow-burgundy-lg hover:scale-105'
-                          : 'bg-neutral-200 text-neutral-400'
+                          : 'bg-neutral-200 dark:bg-neutral-700 text-neutral-400 dark:text-neutral-500'
                         }
                         disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
                       `}

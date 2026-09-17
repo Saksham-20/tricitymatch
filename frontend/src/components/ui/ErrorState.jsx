@@ -7,15 +7,15 @@
 import { FiAlertCircle, FiRefreshCw } from 'react-icons/fi';
 
 const ErrorState = ({
-  title = 'Something went wrong',
-  description = "We couldn't load this right now. Please try again.",
+  title = "Couldn't load this",
+  description = 'The connection dropped before this finished loading. Your data is safe — try again.',
   onRetry,
   retryLabel = 'Try again',
   className = '',
 }) => (
   <div className={`text-center py-12 px-6 ${className}`}>
-    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
-      <FiAlertCircle className="w-8 h-8 text-red-400" />
+    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-destructive-light dark:bg-destructive/15 flex items-center justify-center">
+      <FiAlertCircle className="w-8 h-8 text-destructive" />
     </div>
     <h3 className="font-display text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">
       {title}

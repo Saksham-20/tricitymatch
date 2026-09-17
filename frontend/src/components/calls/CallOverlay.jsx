@@ -21,9 +21,9 @@ const RoundButton = ({ onClick, danger, active, label, children }) => (
     type="button"
     onClick={onClick}
     aria-label={label}
-    className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg ${
+    className={`w-14 h-14 rounded-full flex items-center justify-center transition-colors duration-[160ms] shadow-lg ${
       danger
-        ? 'bg-red-500 hover:bg-red-600 text-white'
+        ? 'bg-destructive hover:bg-destructive/90 text-white'
         : active
           ? 'bg-white/30 text-white'
           : 'bg-white/15 hover:bg-white/25 text-white'

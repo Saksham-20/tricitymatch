@@ -5,14 +5,14 @@ const Progress = ({ value = 0, max = 100, showLabel = true }) => {
 
   return (
     <div className="w-full">
-      <div className="h-2 bg-neutral-200 rounded-full overflow-hidden">
+      <div className="h-2 bg-neutral-200 dark:bg-neutral-800 rounded-full overflow-hidden">
         <div
-          className="h-full bg-gradient-to-r from-primary-500 to-primary-600 transition-all duration-300"
+          className="h-full bg-gradient-to-r from-primary-500 to-primary-600 transition-[width] duration-300 ease-[var(--ease-in-out)]"
           style={{ width: `${percentage}%` }}
         />
       </div>
       {showLabel && (
-        <p className="text-xs text-neutral-600 mt-1 text-center">
+        <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1 text-center tabular-nums">
           {Math.round(percentage)}%
         </p>
       )}

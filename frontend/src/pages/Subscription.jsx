@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { track, STAGES } from '../utils/analytics';
 import { motion } from 'framer-motion';
 import api from '../api/axios';
@@ -10,6 +11,14 @@ import { loadRazorpayScript, ensurePaymentsAvailable } from '../utils/razorpayCh
 import { useAuth } from '../context/AuthContext';
 import { detectCurrency, formatLocalPrice } from '../utils/currency';
 import { planFeatures } from '../utils/planFeatures';
+import { EmptyState, ErrorState, Skeleton } from '../components/ui';
+
+// Gate `whileHover` behind a real pointer (doctrine §8): a touch tap on a
+// hover-capable-looking card should not fire a hover animation that then
+// never un-fires cleanly on mobile.
+const HOVER_CAPABLE = typeof window !== 'undefined'
+  && typeof window.matchMedia === 'function'
+  && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
 // ─── Plan card config ─────────────────────────
 // accent: 'primary' (burgundy) | 'gold' (premium/VIP only) | 'neutral'
@@ -91,8 +100,8 @@ const COMPARE_LABELS = {
 
 const CompareCell = ({ v }) => (
   typeof v === 'boolean'
-    ? (v ? <FiCheck className="w-4 h-4 text-success mx-auto" aria-label="Included" /> : <span className="text-neutral-300" aria-label="Not included">—</span>)
-    : <span className="text-sm font-medium text-neutral-700">{v}</span>
+    ? (v ? <FiCheck className="w-4 h-4 text-success mx-auto" aria-label="Included" /> : <span className="text-neutral-300 dark:text-neutral-600" aria-label="Not included">—</span>)
+    : <span className="text-sm font-medium text-neutral-700 dark:text-neutral-200">{v}</span>
 );
 
 const ComparisonSection = ({ plans = {}, planKeys = [] }) => {
@@ -122,22 +131,22 @@ const ComparisonSection = ({ plans = {}, planKeys = [] }) => {
 
   return (
     <section className="mt-14" aria-labelledby="compare-heading">
-      <h2 id="compare-heading" className="font-display text-2xl font-bold text-neutral-900 text-center mb-6">Compare plans</h2>
+      <h2 id="compare-heading" className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 text-center mb-6">Compare plans</h2>
       {/* Table ≥ sm */}
-      <div className="hidden sm:block overflow-x-auto rounded-2xl border border-neutral-100 shadow-card bg-white">
+      <div className="hidden sm:block overflow-x-auto rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card bg-white dark:bg-[#1a1f2e]">
         <table className="w-full text-center">
           <thead>
-            <tr className="border-b border-neutral-100">
-              <th className="py-3 px-4 text-left text-xs font-semibold text-neutral-400 uppercase tracking-wide">Feature</th>
+            <tr className="border-b border-neutral-100 dark:border-neutral-800">
+              <th className="py-3 px-4 text-left text-xs font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide">Feature</th>
               {cols.map((key) => (
-                <th key={key} className="py-3 px-3 text-xs font-bold text-neutral-700">{COMPARE_LABELS[key]}</th>
+                <th key={key} className="py-3 px-3 text-xs font-bold text-neutral-700 dark:text-neutral-200">{COMPARE_LABELS[key]}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.label} className="border-b border-neutral-50 last:border-0">
-                <td className="py-3 px-4 text-left text-sm text-neutral-600">{row.label}</td>
+              <tr key={row.label} className="border-b border-neutral-50 dark:border-neutral-800/60 last:border-0">
+                <td className="py-3 px-4 text-left text-sm text-neutral-600 dark:text-neutral-300">{row.label}</td>
                 {row.values.map((v, i) => <td key={i} className="py-3 px-3"><CompareCell v={v} /></td>)}
               </tr>
             ))}
@@ -147,20 +156,20 @@ const ComparisonSection = ({ plans = {}, planKeys = [] }) => {
       {/* Accordion < sm */}
       <div className="sm:hidden space-y-2">
         {cols.map((key, ci) => (
-          <div key={key} className="rounded-2xl border border-neutral-100 bg-white overflow-hidden">
+          <div key={key} className="rounded-2xl border border-neutral-100 dark:border-neutral-800 bg-white dark:bg-[#1a1f2e] overflow-hidden">
             <button
               onClick={() => setOpenCol(openCol === ci ? -1 : ci)}
-              className="w-full flex items-center justify-between px-4 py-3 text-sm font-bold text-neutral-800"
+              className="w-full flex items-center justify-between px-4 py-3 text-sm font-bold text-neutral-800 dark:text-neutral-100"
               aria-expanded={openCol === ci}
             >
               {COMPARE_LABELS[key]}
-              <span className="text-neutral-400">{openCol === ci ? '−' : '+'}</span>
+              <span className="text-neutral-400 dark:text-neutral-500">{openCol === ci ? '−' : '+'}</span>
             </button>
             {openCol === ci && (
               <ul className="px-4 pb-3 space-y-1.5">
                 {rows.map((row) => (
                   <li key={row.label} className="flex items-center justify-between text-sm">
-                    <span className="text-neutral-600">{row.label}</span>
+                    <span className="text-neutral-600 dark:text-neutral-300">{row.label}</span>
                     <CompareCell v={row.values[ci]} />
                   </li>
                 ))}
@@ -183,12 +192,12 @@ const SuccessStrip = () => {
   if (!stories || stories.length === 0) return null;
   return (
     <section className="mt-14" aria-labelledby="stories-heading">
-      <h2 id="stories-heading" className="font-display text-2xl font-bold text-neutral-900 text-center mb-6">Matches that became marriages</h2>
+      <h2 id="stories-heading" className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 text-center mb-6">Matches that became marriages</h2>
       <div className="grid sm:grid-cols-3 gap-4">
         {stories.map((st) => (
-          <figure key={st.id} className="rounded-2xl border border-neutral-100 bg-white shadow-card p-5">
-            <blockquote className="text-sm text-neutral-600 leading-relaxed line-clamp-4">“{st.story || st.content || ''}”</blockquote>
-            <figcaption className="mt-3 text-sm font-semibold text-primary-700">{st.coupleNames || st.title || 'A TricityMatch couple'}</figcaption>
+          <figure key={st.id} className="rounded-2xl border border-neutral-100 dark:border-neutral-800 bg-white dark:bg-[#1a1f2e] shadow-card p-5">
+            <blockquote className="text-sm text-neutral-600 dark:text-neutral-300 leading-relaxed line-clamp-4">“{st.story || st.content || ''}”</blockquote>
+            <figcaption className="mt-3 text-sm font-semibold text-primary-700 dark:text-primary-400">{st.coupleNames || st.title || 'A TricityMatch couple'}</figcaption>
           </figure>
         ))}
       </div>
@@ -196,31 +205,35 @@ const SuccessStrip = () => {
   );
 };
 
-const FAQS = [
+// `unlockDailyCap` is threaded in from the live plans response (never
+// hardcoded) — the anti-harvest ceiling is a config value and a frozen
+// number here would silently drift from what the server actually enforces.
+const FAQS = (unlockDailyCap) => [
   { q: 'Can I upgrade later?', a: 'Yes — you can move up to a higher plan any time while your current plan is active. The new plan starts fresh from the day you upgrade.' },
   { q: 'Is my payment secure?', a: 'All payments run through Razorpay over SSL. We never see or store your card details.' },
-  { q: 'What are contact unlocks?', a: 'Each unlock reveals a member\u2019s phone number so your families can talk directly. VIP has no limit.' },
+  { q: 'What are contact unlocks?', a: unlockDailyCap ? `Each unlock reveals a member\u2019s phone number so your families can talk directly. Unlimited-tier plans are capped at ${unlockDailyCap} unlocks a day, to keep the directory safe from bulk scraping.` : 'Each unlock reveals a member\u2019s phone number so your families can talk directly.' },
   { q: 'Do unused days carry over?', a: 'Upgrading starts a full fresh term on the new plan; remaining days on the old plan are not added on top.' },
   { q: 'Can my parents manage this account?', a: 'Yes — the Guardian feature lets a family member view matches and shortlists for you.' },
 ];
 
-const FaqSection = () => {
+const FaqSection = ({ unlockDailyCap }) => {
   const [open, setOpen] = useState(0);
+  const faqs = FAQS(unlockDailyCap);
   return (
     <section className="mt-14 max-w-2xl mx-auto" aria-labelledby="faq-heading">
-      <h2 id="faq-heading" className="font-display text-2xl font-bold text-neutral-900 text-center mb-6">Common questions</h2>
+      <h2 id="faq-heading" className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 text-center mb-6">Common questions</h2>
       <div className="space-y-2">
-        {FAQS.map((f, i) => (
-          <div key={f.q} className="rounded-2xl border border-neutral-100 bg-white overflow-hidden">
+        {faqs.map((f, i) => (
+          <div key={f.q} className="rounded-2xl border border-neutral-100 dark:border-neutral-800 bg-white dark:bg-[#1a1f2e] overflow-hidden">
             <button
               onClick={() => setOpen(open === i ? -1 : i)}
-              className="w-full flex items-center justify-between px-5 py-4 text-left text-sm font-semibold text-neutral-800"
+              className="w-full flex items-center justify-between px-5 py-4 text-left text-sm font-semibold text-neutral-800 dark:text-neutral-100"
               aria-expanded={open === i}
             >
               {f.q}
-              <span className="text-neutral-400 ml-3 flex-shrink-0">{open === i ? '−' : '+'}</span>
+              <span className="text-neutral-400 dark:text-neutral-500 ml-3 flex-shrink-0">{open === i ? '−' : '+'}</span>
             </button>
-            {open === i && <p className="px-5 pb-4 text-sm text-neutral-500 leading-relaxed">{f.a}</p>}
+            {open === i && <p className="px-5 pb-4 text-sm text-neutral-500 dark:text-neutral-400 leading-relaxed">{f.a}</p>}
           </div>
         ))}
       </div>
@@ -275,9 +288,9 @@ const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanTy
     <motion.div
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={!free && !isCurrent ? { y: -6 } : {}}
+      whileHover={HOVER_CAPABLE && !free && !isCurrent ? { y: -6 } : {}}
       transition={{ duration: 0.35 }}
-      className={`relative flex flex-col bg-white dark:bg-[#1a1f2e] rounded-2xl border transition-all duration-200 overflow-hidden ${
+      className={`relative flex flex-col bg-white dark:bg-[#1a1f2e] rounded-2xl border transition-[border-color,box-shadow,transform] duration-200 overflow-hidden ${
         isPopular
           ? 'border-primary-300 dark:border-primary-700/50 shadow-burgundy-lg ring-1 ring-primary-200 dark:ring-primary-800/40 scale-[1.03]'
           : gold
@@ -312,16 +325,16 @@ const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanTy
         <div className="flex items-center gap-2.5 mb-4">
           {Icon && (
             <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
-              gold ? 'bg-gold-50 text-gold'
-              : planKey === 'premium_plus' ? 'bg-primary-100 text-primary-600'
-              : 'bg-primary-50 text-primary-500'
+              gold ? 'bg-gold-50 dark:bg-gold-900/20 text-gold'
+              : planKey === 'premium_plus' ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400'
+              : 'bg-primary-50 dark:bg-primary-900/20 text-primary-500 dark:text-primary-400'
             }`}>
               <Icon className="w-4 h-4" />
             </div>
           )}
           <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">{plan.name || cfg.label}</h3>
           {isCurrent && (
-            <span className="ml-auto px-2 py-0.5 bg-success-50 border border-success-100 text-success text-[10px] font-bold rounded-full uppercase tracking-wide">
+            <span className="ml-auto px-2 py-0.5 bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 text-success text-[10px] font-bold rounded-full uppercase tracking-wide">
               Active
             </span>
           )}
@@ -330,37 +343,43 @@ const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanTy
         {/* Price + MRP anchor */}
         <div className="flex items-baseline gap-1.5 mb-1 flex-wrap">
           <span className={`text-4xl font-bold ${
-            gold ? 'text-gold-600'
-            : planKey === 'premium_plus' || planKey === 'basic_premium' ? 'text-primary-500'
-            : 'text-neutral-700'
+            gold ? 'text-gold-600 dark:text-gold-400'
+            : planKey === 'premium_plus' || planKey === 'basic_premium' ? 'text-primary-500 dark:text-primary-400'
+            : 'text-neutral-700 dark:text-neutral-200'
           }`}>
             {displayPrice > 0 ? `₹${displayPrice.toLocaleString('en-IN')}` : 'Free'}
           </span>
           {displayPrice > 0 && (
-            <span className="text-sm text-neutral-500">/{plan.duration || cfg.duration}</span>
+            <span className="text-sm text-neutral-500 dark:text-neutral-400">/{plan.duration || cfg.duration}</span>
           )}
         </div>
         {displayPrice > 0 && (mrp || perMonth) && (
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             {mrp && mrp > displayPrice && (
-              <span className="text-sm text-neutral-400 line-through">₹{mrp.toLocaleString('en-IN')}</span>
+              <span className="text-sm text-neutral-400 dark:text-neutral-500 line-through">₹{mrp.toLocaleString('en-IN')}</span>
             )}
             {discountPct > 0 && (
-              <span className="text-[11px] font-bold text-success bg-success-50 border border-success-100 px-1.5 py-0.5 rounded">
+              <span className="text-[11px] font-bold text-success bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 px-1.5 py-0.5 rounded">
                 {plan.isLaunchPrice ? `Launch price · ${discountPct}% off` : `Flat ${discountPct}% off`}
               </span>
             )}
             {perMonth && (
-              <span className="text-xs text-neutral-400">≈ ₹{perMonth.toLocaleString('en-IN')}/month</span>
+              <span className="text-xs text-neutral-400 dark:text-neutral-500">≈ ₹{perMonth.toLocaleString('en-IN')}/month</span>
             )}
             {plan.durationDays > 0 && displayPrice > 0 && (
-              <span className="text-xs text-neutral-400">· ₹{Math.max(1, Math.round(displayPrice / plan.durationDays))}/day</span>
+              <span className="text-xs text-neutral-400 dark:text-neutral-500">· ₹{Math.max(1, Math.round(displayPrice / plan.durationDays))}/day</span>
             )}
           </div>
         )}
         {displayPrice > 0 && plan.contactUnlocks != null && (
-          <p className="text-xs text-primary-500 font-medium mt-1">
+          <p className="text-xs text-primary-500 dark:text-primary-400 font-medium mt-1">
             {plan.contactUnlocks === -1 ? '∞ Unlimited' : plan.contactUnlocks} contact unlocks
+            {/* Fact, not a restriction: "unlimited" is capped in practice at a
+                rolling-24h ceiling (anti-harvest). Stated plainly beside the
+                benefit it qualifies, not buried in a FAQ. */}
+            {plan.contactUnlocks === -1 && plan.unlockDailyCap != null && (
+              <span className="text-neutral-400 dark:text-neutral-500 font-normal"> · up to {plan.unlockDailyCap}/day</span>
+            )}
           </p>
         )}
       </div>
@@ -371,10 +390,10 @@ const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanTy
           {features.map((f, i) => (
             <li key={i} className="flex items-start gap-2.5">
               <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                gold ? 'bg-gold-100 text-gold-700' :
-                planKey === 'premium_plus' ? 'bg-primary-100 text-primary-600' :
-                planKey === 'basic_premium' ? 'bg-primary-50 text-primary-500' :
-                'bg-neutral-100 text-neutral-500'
+                gold ? 'bg-gold-100 dark:bg-gold-900/30 text-gold-700 dark:text-gold-400' :
+                planKey === 'premium_plus' ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400' :
+                planKey === 'basic_premium' ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-500 dark:text-primary-400' :
+                'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'
               }`}>
                 <FiCheck className="w-2.5 h-2.5" />
               </div>
@@ -390,9 +409,9 @@ const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanTy
           onClick={() => !disabled && onSubscribe(planKey)}
           disabled={disabled}
           aria-busy={isProcessing || undefined}
-          className={`w-full py-3 text-sm font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 disabled:cursor-not-allowed ${
+          className={`w-full py-3 text-sm font-semibold rounded-xl transition-[background-color,box-shadow,transform] duration-200 flex items-center justify-center gap-2 disabled:cursor-not-allowed ${
             isCurrent || free || isIncluded
-              ? 'bg-neutral-100 text-neutral-500 cursor-default'
+              ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 cursor-default'
               : gold
               ? 'bg-gold text-neutral-900 hover:bg-gold-400 shadow-gold hover:-translate-y-0.5'
               : 'bg-primary-500 text-white hover:bg-primary-600 shadow-burgundy hover:-translate-y-0.5'
@@ -478,7 +497,7 @@ const NriBlock = ({ plan, topLadderName, currency, isCurrent, currentPlanType, i
             onClick={() => !disabled && onSubscribe('nri')}
             disabled={disabled}
             aria-busy={isProcessing || undefined}
-            className={`mt-4 w-full py-3 text-sm font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 disabled:cursor-not-allowed ${
+            className={`mt-4 w-full py-3 text-sm font-semibold rounded-xl transition-[background-color,box-shadow,transform] duration-200 flex items-center justify-center gap-2 disabled:cursor-not-allowed ${
               isCurrent
                 ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 cursor-default'
                 : isUnlimited
@@ -505,13 +524,13 @@ const BundleBlock = ({ bundles, processingBundle, onBuy }) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
-    className="mt-8 rounded-2xl border border-primary-200 bg-primary-50/50 p-6 lg:p-8"
+    className="mt-8 rounded-2xl border border-primary-200 dark:border-primary-800/40 bg-primary-50/50 dark:bg-primary-900/10 p-6 lg:p-8"
   >
     <div className="flex items-center gap-2.5 mb-1.5">
-      <FiPlusCircle className="w-5 h-5 text-primary-600" />
-      <h3 className="text-lg font-bold text-neutral-900">Need more contact unlocks?</h3>
+      <FiPlusCircle className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+      <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">Need more contact unlocks?</h3>
     </div>
-    <p className="text-sm text-neutral-600 mb-5 max-w-xl">
+    <p className="text-sm text-neutral-600 dark:text-neutral-300 mb-5 max-w-xl">
       Top up your current plan anytime. Unlocks add to your active plan and stay valid until it expires.
     </p>
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -519,20 +538,20 @@ const BundleBlock = ({ bundles, processingBundle, onBuy }) => (
         const perUnlock = Math.round(b.price / b.unlocks);
         const busy = processingBundle === b.bundleId;
         return (
-          <div key={b.bundleId} className="flex flex-col bg-white rounded-xl border border-neutral-200 p-5 shadow-card">
-            <p className="text-2xl font-bold text-neutral-900">{b.unlocks} <span className="text-sm font-medium text-neutral-500">unlocks</span></p>
+          <div key={b.bundleId} className="flex flex-col bg-white dark:bg-[#1a1f2e] rounded-xl border border-neutral-200 dark:border-neutral-800 p-5 shadow-card">
+            <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">{b.unlocks} <span className="text-sm font-medium text-neutral-500 dark:text-neutral-400">unlocks</span></p>
             <div className="flex items-baseline gap-2 mt-1">
-              <p className="text-lg font-semibold text-primary-600">₹{b.price.toLocaleString('en-IN')}</p>
+              <p className="text-lg font-semibold text-primary-600 dark:text-primary-400">₹{b.price.toLocaleString('en-IN')}</p>
               {b.mrp > b.price && (
-                <span className="text-xs text-neutral-400 line-through">₹{b.mrp.toLocaleString('en-IN')}</span>
+                <span className="text-xs text-neutral-400 dark:text-neutral-500 line-through">₹{b.mrp.toLocaleString('en-IN')}</span>
               )}
             </div>
-            <p className="text-xs text-neutral-400 mb-4">₹{perUnlock} per unlock</p>
+            <p className="text-xs text-neutral-400 dark:text-neutral-500 mb-4">₹{perUnlock} per unlock</p>
             <button
               onClick={() => !busy && onBuy(b.bundleId)}
               disabled={busy}
               aria-busy={busy || undefined}
-              className="mt-auto w-full min-h-[44px] py-2.5 text-sm font-semibold rounded-lg bg-primary-500 text-white hover:bg-primary-600 shadow-burgundy transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="mt-auto w-full min-h-[44px] py-2.5 text-sm font-semibold rounded-lg bg-primary-500 text-white hover:bg-primary-600 shadow-burgundy transition-[background-color,box-shadow,transform] duration-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {busy
                 ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Processing…</>
@@ -560,24 +579,24 @@ const LaunchBanner = ({ offer }) => {
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mb-8 rounded-2xl border border-gold-200 bg-gold-50 px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3"
+      className="mb-8 rounded-2xl border border-gold-200 dark:border-gold-800/40 bg-gold-50 dark:bg-gold-900/10 px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3"
     >
       <div className="w-9 h-9 rounded-full bg-gold flex items-center justify-center flex-shrink-0">
         <FaCrown className="w-4 h-4 text-white" />
       </div>
       <div className="flex-1">
-        <p className="text-sm font-bold text-gold-800">
+        <p className="text-sm font-bold text-gold-800 dark:text-gold-300">
           {offer.headline || 'Launch offer'}
           {daysLeft !== null && (
-            <span className="ml-2 font-semibold text-gold-700">
+            <span className="ml-2 font-semibold text-gold-700 dark:text-gold-400">
               · {daysLeft === 0 ? 'ends today' : `${daysLeft} day${daysLeft === 1 ? '' : 's'} left`}
             </span>
           )}
         </p>
-        {offer.subline && <p className="text-sm text-gold-700/80 mt-0.5">{offer.subline}</p>}
+        {offer.subline && <p className="text-sm text-gold-700/80 dark:text-gold-400/80 mt-0.5">{offer.subline}</p>}
       </div>
       {offer.endsAt && (
-        <p className="text-xs text-gold-700/70 sm:text-right">
+        <p className="text-xs text-gold-700/70 dark:text-gold-400/70 sm:text-right">
           Prices return to normal on {new Date(offer.endsAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
         </p>
       )}
@@ -605,7 +624,7 @@ const FoundingBand = ({ user, founding, currentSub, onClaim, claiming }) => {
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mb-8 rounded-2xl border border-gold-200 bg-gold-50 px-5 py-5 flex flex-col sm:flex-row sm:items-center gap-4"
+      className="mb-8 rounded-2xl border border-gold-200 dark:border-gold-800/40 bg-gold-50 dark:bg-gold-900/10 px-5 py-5 flex flex-col sm:flex-row sm:items-center gap-4"
     >
       <div className="w-10 h-10 rounded-full bg-gold flex items-center justify-center flex-shrink-0">
         <FiStar className="w-5 h-5 text-white" />
@@ -613,8 +632,8 @@ const FoundingBand = ({ user, founding, currentSub, onClaim, claiming }) => {
 
       {holdsGrant ? (
         <div className="flex-1">
-          <p className="text-sm font-bold text-gold-800">You are a founding member</p>
-          <p className="text-sm text-gold-700/80 mt-0.5">
+          <p className="text-sm font-bold text-gold-800 dark:text-gold-300">You are a founding member</p>
+          <p className="text-sm text-gold-700/80 dark:text-gold-400/80 mt-0.5">
             Premium is on us
             {currentSub?.endDate && ` until ${new Date(currentSub.endDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`}
             . Pick a plan below whenever you want to carry on past that.
@@ -623,10 +642,10 @@ const FoundingBand = ({ user, founding, currentSub, onClaim, claiming }) => {
       ) : (
         <>
           <div className="flex-1">
-            <p className="text-sm font-bold text-gold-800">
+            <p className="text-sm font-bold text-gold-800 dark:text-gold-300">
               Founding offer{days ? ` — ${days} days of premium, free` : ' — premium, free'}
             </p>
-            <p className="text-sm text-gold-700/80 mt-0.5">
+            <p className="text-sm text-gold-700/80 dark:text-gold-400/80 mt-0.5">
               You joined early enough to claim a place.
               {unlocks !== null && ` Includes ${unlocks} contact unlock${unlocks === 1 ? '' : 's'}.`}
               {' '}No card, no auto-renewal.
@@ -636,7 +655,7 @@ const FoundingBand = ({ user, founding, currentSub, onClaim, claiming }) => {
             onClick={onClaim}
             disabled={claiming}
             aria-busy={claiming || undefined}
-            className="min-h-[44px] px-6 py-2.5 text-sm font-semibold rounded-xl bg-gold text-white hover:bg-gold-600 shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed flex-shrink-0"
+            className="min-h-[44px] px-6 py-2.5 text-sm font-semibold rounded-xl bg-gold text-white hover:bg-gold-600 shadow-sm transition-colors duration-[160ms] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed flex-shrink-0"
           >
             {claiming
               ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Claiming…</>
@@ -675,6 +694,10 @@ const Subscription = () => {
   const [claimingFounding, setClaimingFounding] = useState(false);
   const [currentSub, setCurrentSub] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Distinct from "no plans" — a failed fetch must not silently render as an
+  // empty pricing page (doctrine's error-vs-empty rule). `plansLoaded` alone
+  // does not carry this: it only says whether the request came back.
+  const [loadError, setLoadError] = useState(false);
   const [processingPlan, setProcessingPlan] = useState(null);
   const [processingBundle, setProcessingBundle] = useState(null);
   const [currency] = useState(() => detectCurrency());
@@ -685,6 +708,7 @@ const Subscription = () => {
   useEffect(() => { track(STAGES.PLANS_VIEWED); }, []);
 
   const loadData = async () => {
+    setLoadError(false);
     try {
       const [plansRes, subRes] = await Promise.all([
         api.get('/subscription/plans'),
@@ -700,6 +724,7 @@ const Subscription = () => {
       setFounding(plansRes.data.founding || { open: false });
       setCurrentSub(subRes.data.subscription);
     } catch {
+      setLoadError(true);
       toast.error('Failed to load subscription data');
     } finally {
       setLoading(false);
@@ -842,28 +867,32 @@ const Subscription = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-neutral-50 dark:bg-[#0f1117]">
+      <div className="min-h-[100dvh] bg-neutral-50 dark:bg-[#0f1117]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center mb-12 flex flex-col items-center gap-3">
-            <div className="h-7 w-40 bg-neutral-200 dark:bg-neutral-800 rounded-full animate-pulse" />
-            <div className="h-10 w-72 bg-neutral-200 dark:bg-neutral-800 rounded-xl animate-pulse" />
-            <div className="h-4 w-96 max-w-full bg-neutral-100 dark:bg-neutral-800/60 rounded animate-pulse" />
+            <Skeleton className="h-7 w-40 rounded-full" />
+            <Skeleton className="h-10 w-72 rounded-xl" />
+            <Skeleton className="h-4 w-96 max-w-full rounded" />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 items-start">
             {[0, 1, 2, 3].map((i) => (
-              <div key={i} className="bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-card p-6 space-y-4 animate-pulse">
-                <div className="h-6 w-28 bg-neutral-200 dark:bg-neutral-800 rounded-lg" />
-                <div className="h-10 w-32 bg-neutral-200 dark:bg-neutral-800 rounded-lg" />
-                <div className="space-y-2.5 pt-2">
-                  {[0, 1, 2, 3, 4].map((j) => (
-                    <div key={j} className="h-3.5 w-full bg-neutral-100 dark:bg-neutral-800/60 rounded" />
-                  ))}
-                </div>
-                <div className="h-11 w-full bg-neutral-200 dark:bg-neutral-800 rounded-xl mt-4" />
+              <div key={i} className="bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-card p-6 space-y-4">
+                <Skeleton className="h-6 w-28 rounded-lg" />
+                <Skeleton className="h-10 w-32 rounded-lg" />
+                <Skeleton.Text lines={5} className="pt-2" />
+                <Skeleton className="h-11 w-full rounded-xl mt-4" />
               </div>
             ))}
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-[100dvh] bg-neutral-50 dark:bg-[#0f1117] flex items-center justify-center px-4">
+        <ErrorState onRetry={loadData} />
       </div>
     );
   }
@@ -904,7 +933,7 @@ const Subscription = () => {
   const singlePlan = paidCardCount === 1;
 
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-[#0f1117]">
+    <div className="min-h-[100dvh] bg-neutral-50 dark:bg-[#0f1117]">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 
         {/* Header */}
@@ -913,9 +942,9 @@ const Subscription = () => {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-12"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-gold-50 border border-gold-200 rounded-full mb-5">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-gold-50 dark:bg-gold-900/20 border border-gold-200 dark:border-gold-800/40 rounded-full mb-5">
             <FaCrown className="w-3.5 h-3.5 text-gold" />
-            <span className="text-xs font-semibold text-gold-700 uppercase tracking-wide">Membership Plans</span>
+            <span className="text-xs font-semibold text-gold-700 dark:text-gold-400 uppercase tracking-wide">Membership Plans</span>
           </div>
           <h1 className="font-display text-4xl md:text-5xl font-bold text-neutral-900 dark:text-neutral-100 mb-3">
             {singlePlan ? 'Go Premium' : 'Choose Your Plan'}
@@ -940,14 +969,14 @@ const Subscription = () => {
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-8 flex items-center gap-3 px-5 py-3.5 bg-neutral-100 border border-neutral-200 rounded-2xl"
+            className="mb-8 flex items-center gap-3 px-5 py-3.5 bg-neutral-100 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-2xl"
           >
-            <div className="w-8 h-8 rounded-full bg-white border border-neutral-200 flex items-center justify-center flex-shrink-0">
-              <FiClock className="w-4 h-4 text-neutral-500" />
+            <div className="w-8 h-8 rounded-full bg-white dark:bg-[#1a1f2e] border border-neutral-200 dark:border-neutral-700 flex items-center justify-center flex-shrink-0">
+              <FiClock className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
             </div>
-            <p className="text-sm text-neutral-600">
+            <p className="text-sm text-neutral-600 dark:text-neutral-300">
               Online payments are opening soon. To upgrade today, write to{' '}
-              <a href="mailto:support@tricitymatch.com" className="font-semibold text-primary-600 underline underline-offset-2">support@tricitymatch.com</a>.
+              <a href="mailto:support@tricitymatch.com" className="font-semibold text-primary-600 dark:text-primary-400 underline underline-offset-2">support@tricitymatch.com</a>.
             </p>
           </motion.div>
         )}
@@ -957,21 +986,29 @@ const Subscription = () => {
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-8 flex items-center gap-3 px-5 py-3.5 bg-primary-50 border border-primary-100 rounded-2xl"
+            className="mb-8 flex items-center gap-3 px-5 py-3.5 bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800/40 rounded-2xl"
           >
             <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center flex-shrink-0">
               <FiCheck className="w-4 h-4 text-white" />
             </div>
-            <p className="text-sm text-primary-700 font-medium">
+            <p className="text-sm text-primary-700 dark:text-primary-300 font-medium">
               You have an active <strong>{planDisplayName(currentSub.planType)}</strong> subscription
               {currentSub.endDate && (
-                <span className="font-normal text-primary-700/70">
+                <span className="font-normal text-primary-700/70 dark:text-primary-300/70">
                   {' '}· valid until {new Date(currentSub.endDate).toLocaleDateString()}
                 </span>
               )}
               {currentSub.contactUnlocksAllowed != null && (
                 <span className="font-normal text-success/80">
                   {' '}· {`${Math.max(0, (currentSub.contactUnlocksAllowed || 0) - (currentSub.contactUnlocksUsed || 0))} of ${currentSub.contactUnlocksAllowed}`} unlocks remaining
+                </span>
+              )}
+              {/* Unlimited plans have no `contactUnlocksAllowed` count to show —
+                  but "unlimited" is capped in practice (anti-harvest rolling
+                  24h ceiling), and that fact belongs right here, not omitted. */}
+              {currentSub.contactUnlocksAllowed == null && plans[currentSub.planType]?.unlockDailyCap != null && (
+                <span className="font-normal text-primary-700/70 dark:text-primary-300/70">
+                  {' '}· unlimited unlocks, up to {plans[currentSub.planType].unlockDailyCap}/day
                 </span>
               )}
             </p>
@@ -1027,14 +1064,14 @@ const Subscription = () => {
         {/* Long-scroll paywall: comparison → proof → FAQ → closing CTA */}
         <ComparisonSection plans={plans} planKeys={gridPlans.map(([key]) => key)} />
         <SuccessStrip />
-        <FaqSection />
+        <FaqSection unlockDailyCap={Object.values(plans).find((p) => p.contactUnlocks === -1)?.unlockDailyCap ?? null} />
 
         <section className="mt-14 text-center">
-          <h2 className="font-display text-2xl font-bold text-neutral-900 mb-2">Your family is waiting to hear good news</h2>
-          <p className="text-sm text-neutral-500 mb-5">Join the Tricity members already talking to their matches.</p>
+          <h2 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">Your family is waiting to hear good news</h2>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-5">Join the Tricity members already talking to their matches.</p>
           <button
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-hero text-white rounded-full font-semibold hover:shadow-burgundy hover:scale-105 transition-all"
+            className="inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-hero text-white rounded-full font-semibold hover:shadow-burgundy hover:scale-105 transition-[box-shadow,transform] duration-200"
           >
             <FaCrown className="w-4 h-4 text-gold-300" /> {singlePlan ? 'Go Premium' : 'Choose a plan'}
           </button>
@@ -1049,7 +1086,8 @@ const Subscription = () => {
           transition={{ delay: 0.5 }}
           className="text-center text-xs text-neutral-400 mt-10"
         >
-          All plans include SSL-secured payments via Razorpay · 100% privacy guaranteed · Cancel anytime
+          Secure payments via Razorpay · One-time payment, no auto-renewal · Full refund within 7 days — see our{' '}
+          <Link to="/refund-policy" className="underline underline-offset-2 hover:text-neutral-600 dark:hover:text-neutral-300">Refund Policy</Link>
         </motion.p>
       </div>
     </div>

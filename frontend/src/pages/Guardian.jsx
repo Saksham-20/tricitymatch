@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 import { FiUsers, FiUserPlus, FiTrash2, FiEye, FiHeart, FiStar } from 'react-icons/fi';
+import { EmptyState, ErrorState, Skeleton } from '../components/ui';
 
 export default function Guardian() {
   const { t } = useTranslation();
@@ -12,10 +13,14 @@ export default function Guardian() {
   const [email, setEmail] = useState('');
   const [inviting, setInviting] = useState(false);
   const [loading, setLoading] = useState(true);
+  // A failed fetch is never rendered as "no guardians yet" — that hides a
+  // server problem behind a claim about the member's own data.
+  const [loadError, setLoadError] = useState(false);
   const [confirmRevoke, setConfirmRevoke] = useState(null); // linkId pending confirmation
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const [g, c] = await Promise.all([
         api.get('/guardian/my-guardians'),
@@ -24,7 +29,7 @@ export default function Guardian() {
       setGuardians(g.data.guardians || []);
       setCandidates(c.data.candidates || []);
     } catch {
-      // silent
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -60,13 +65,27 @@ export default function Guardian() {
     }
   };
 
+  const rowSkeleton = (
+    <div className="space-y-3">
+      {[0, 1].map((i) => (
+        <div key={i} className="flex items-center justify-between bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl px-4 py-3">
+          <div className="space-y-1.5">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-3 w-16" />
+          </div>
+          <Skeleton className="h-4 w-20" />
+        </div>
+      ))}
+    </div>
+  );
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
       <div className="flex items-center gap-3 mb-1">
         <FiUsers className="w-7 h-7 text-primary-600" />
-        <h1 className="text-2xl font-semibold text-neutral-800">{t('guardian.title')}</h1>
+        <h1 className="text-2xl font-semibold text-neutral-800 dark:text-neutral-100">{t('guardian.title')}</h1>
       </div>
-      <p className="text-neutral-500 mb-6">{t('guardian.subtitle')}</p>
+      <p className="text-neutral-500 dark:text-neutral-400 mb-6">{t('guardian.subtitle')}</p>
 
       <div className="flex gap-2 mb-6">
         <TabBtn active={tab === 'guardians'} onClick={() => setTab('guardians')}>{t('guardian.myGuardians')}</TabBtn>
@@ -81,39 +100,41 @@ export default function Guardian() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder={t('guardian.inviteByEmail')}
-              className="flex-1 px-4 py-2.5 rounded-lg border border-neutral-200"
+              aria-label={t('guardian.inviteByEmail')}
+              className="flex-1 px-4 py-3 text-base rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-[border-color,box-shadow] duration-[160ms]"
             />
             <button
               type="submit"
               disabled={inviting}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-60 font-medium"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-60 font-medium transition-colors duration-[160ms]"
             >
               <FiUserPlus className="w-4 h-4" /> {t('guardian.invite')}
             </button>
           </form>
 
           {loading ? (
-            <p className="text-neutral-400">{t('common.loading')}</p>
+            rowSkeleton
+          ) : loadError ? (
+            <ErrorState
+              title="Couldn't load your guardians"
+              description="The connection dropped before this finished loading. Try again."
+              onRetry={load}
+            />
           ) : guardians.length === 0 ? (
-            <div className="bg-white border border-neutral-200 rounded-2xl py-12 px-6 text-center">
-              <span className="w-12 h-12 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center mx-auto mb-3">
-                <FiUsers className="w-5 h-5" />
-              </span>
-              <p className="text-sm text-neutral-500">{t('guardian.noGuardians')}</p>
-            </div>
+            <EmptyState icon={FiUsers} title={t('guardian.noGuardians')} />
           ) : (
             <ul className="space-y-3">
               {guardians.map((g) => (
-                <li key={g.linkId} className="flex items-center justify-between bg-white border border-neutral-200 rounded-xl px-4 py-3">
+                <li key={g.linkId} className="flex items-center justify-between bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl px-4 py-3">
                   <div>
-                    <p className="text-neutral-800 font-medium">{g.email}</p>
+                    <p className="text-neutral-800 dark:text-neutral-100 font-medium">{g.email}</p>
                     <span className={`text-xs capitalize ${g.status === 'active' ? 'text-success' : 'text-warning'}`}>{g.status}</span>
                   </div>
                   {confirmRevoke === g.linkId ? (
                     <div className="flex items-center gap-2 text-sm">
-                      <span className="text-neutral-500">Revoke access?</span>
-                      <button onClick={() => revoke(g.linkId)} className="px-2.5 py-1 rounded-md bg-destructive text-white font-medium hover:bg-destructive/90">Yes</button>
-                      <button onClick={() => setConfirmRevoke(null)} className="px-2.5 py-1 rounded-md bg-neutral-100 text-neutral-600 font-medium hover:bg-neutral-200">No</button>
+                      <span className="text-neutral-500 dark:text-neutral-400">Revoke access?</span>
+                      <button onClick={() => revoke(g.linkId)} className="px-2.5 py-1 rounded-md bg-destructive text-white font-medium hover:bg-destructive/90 transition-colors duration-[160ms]">Yes</button>
+                      <button onClick={() => setConfirmRevoke(null)} className="px-2.5 py-1 rounded-md bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 font-medium hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors duration-[160ms]">No</button>
                     </div>
                   ) : (
                     <button onClick={() => setConfirmRevoke(g.linkId)} className="inline-flex items-center gap-1.5 text-destructive hover:opacity-80 text-sm">
@@ -129,14 +150,15 @@ export default function Guardian() {
 
       {tab === 'candidates' && (
         loading ? (
-          <p className="text-neutral-400">{t('common.loading')}</p>
+          rowSkeleton
+        ) : loadError ? (
+          <ErrorState
+            title="Couldn't load your candidates"
+            description="The connection dropped before this finished loading. Try again."
+            onRetry={load}
+          />
         ) : candidates.length === 0 ? (
-          <div className="bg-white border border-neutral-200 rounded-2xl py-12 px-6 text-center">
-            <span className="w-12 h-12 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center mx-auto mb-3">
-              <FiHeart className="w-5 h-5" />
-            </span>
-            <p className="text-sm text-neutral-500">{t('guardian.noCandidates')}</p>
-          </div>
+          <EmptyState icon={FiHeart} title={t('guardian.noCandidates')} />
         ) : (
           <ul className="space-y-3">
             {candidates.map((c) => <CandidateCard key={c.linkId} candidate={c} />)}
@@ -151,7 +173,7 @@ function TabBtn({ active, onClick, children }) {
   return (
     <button
       onClick={onClick}
-      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${active ? 'bg-primary-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}
+      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-[160ms] ${active ? 'bg-primary-600 text-white' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700'}`}
     >
       {children}
     </button>
@@ -183,27 +205,30 @@ function CandidateCard({ candidate }) {
   const list = open === 'matches' ? matches : shortlist;
 
   return (
-    <li className="bg-white border border-neutral-200 rounded-xl px-4 py-3">
+    <li className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl px-4 py-3">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-neutral-800 font-medium">{candidate.name}</p>
+          <p className="text-neutral-800 dark:text-neutral-100 font-medium">{candidate.name}</p>
           <p className="text-xs text-neutral-400">{candidate.city} · {t('guardian.readOnly')}</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => toggle('matches')} className="inline-flex items-center gap-1.5 text-sm text-primary-600">
+          <button onClick={() => toggle('matches')} className="inline-flex items-center gap-1.5 text-sm text-primary-600 dark:text-primary-400">
             <FiHeart className="w-4 h-4" /> {t('guardian.viewMatches')}
           </button>
-          <button onClick={() => toggle('shortlist')} className="inline-flex items-center gap-1.5 text-sm text-gold-600">
+          {/* Shortlisting is a free action — gold is reserved for premium
+              marks (doctrine §3.1), so this matches "View matches" instead
+              of standing out as a false premium cue. */}
+          <button onClick={() => toggle('shortlist')} className="inline-flex items-center gap-1.5 text-sm text-primary-600 dark:text-primary-400">
             <FiStar className="w-4 h-4" /> {t('guardian.viewShortlist')}
           </button>
         </div>
       </div>
       {open && (
-        <ul className="mt-3 pt-3 border-t border-neutral-100 space-y-1.5">
+        <ul className="mt-3 pt-3 border-t border-neutral-100 dark:border-neutral-800 space-y-1.5">
           {list.length === 0 ? (
             <li className="text-sm text-neutral-400 flex items-center gap-1.5"><FiEye className="w-4 h-4" /> {t('common.empty')}</li>
           ) : list.map((m) => (
-            <li key={m.matchId} className="text-sm text-neutral-600">{m.name} · {m.city}</li>
+            <li key={m.matchId} className="text-sm text-neutral-600 dark:text-neutral-300">{m.name} · {m.city}</li>
           ))}
         </ul>
       )}

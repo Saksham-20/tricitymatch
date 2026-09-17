@@ -4,6 +4,13 @@ import { cva } from 'class-variance-authority';
 import { cn } from '../../utils/cn';
 import { ButtonLoader } from '../common/LoadingSpinner';
 
+// Mouse-only hover lift (doctrine §4.7) — computed once so a touch tap never
+// leaves the button visually "raised" with no un-hover event to release it.
+const HOVER_CAPABLE =
+  typeof window !== 'undefined' &&
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
 /**
  * Button Component
  * 
@@ -21,8 +28,10 @@ import { ButtonLoader } from '../common/LoadingSpinner';
  */
 
 const buttonVariants = cva(
-  // Base styles
-  'inline-flex items-center justify-center gap-2 font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed',
+  // Base styles — named properties at doctrine §4.3 duration (press/hover
+  // both land under 200ms; background/shadow/color are the only things that
+  // actually change here, never layout).
+  'inline-flex items-center justify-center gap-2 font-medium transition-[background-color,box-shadow,color,border-color] duration-[160ms] focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed',
   {
     variants: {
       variant: {
@@ -107,9 +116,9 @@ const Button = React.forwardRef(
       return (
         <motion.button
           {...buttonProps}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          transition={{ duration: 0.1 }}
+          whileHover={HOVER_CAPABLE ? { scale: 1.02 } : undefined}
+          whileTap={{ scale: 0.97 }}
+          transition={{ duration: 0.12 }}
         >
           {content}
         </motion.button>

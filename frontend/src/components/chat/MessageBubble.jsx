@@ -7,16 +7,21 @@
  * + small lock glyph), never gold — tapping opens the upgrade modal.
  */
 
+import { motion } from 'framer-motion';
 import { FiCheck, FiEdit2, FiTrash2, FiX, FiSmile, FiCornerUpLeft, FiLock } from 'react-icons/fi';
 import { BsCheck, BsCheckAll } from 'react-icons/bs';
 import { sanitizeText } from '../../utils/sanitize';
 import VoiceBubble from './VoiceBubble';
 import { ReactionPicker, ReactionPills } from './ReactionBar';
+import { listRow } from '../../utils/animations';
 
 const MessageTicks = ({ message, isSent }) => {
   if (!isSent) return null;
   if (message.isRead) {
-    return <span className="inline-flex items-center ml-1" title="Read"><BsCheckAll className="w-4 h-4 text-gold-400" /></span>;
+    // "Read" is a state indicator, not a premium mark — info (blue) is the
+    // universal read-receipt convention and the doctrine-sanctioned semantic
+    // tone for state (doctrine §3.1); gold is reserved for paid tiers.
+    return <span className="inline-flex items-center ml-1" title="Read"><BsCheckAll className="w-4 h-4 text-info" /></span>;
   }
   if (message.deliveredAt) {
     return <span className="inline-flex items-center ml-1"><BsCheckAll className="w-4 h-4 text-white/60" /></span>;
@@ -66,11 +71,15 @@ const MessageBubble = ({
   const isVoice = message.messageType === 'voice';
 
   return (
-    <div className={`mb-3 flex message-enter ${isSentByMe ? 'justify-end' : 'justify-start'}`}>
+    // Messages are the highest-frequency motion event in the product
+    // (doctrine §4.1/§4.5): `listRow` is transition-based, not a `@keyframes`
+    // animation, so a message sent while a previous one is still entering
+    // retargets smoothly instead of restarting from zero.
+    <motion.div {...listRow} className={`mb-3 flex ${isSentByMe ? 'justify-end' : 'justify-start'}`}>
       <div className={`group relative flex items-end gap-2 max-w-[85%] md:max-w-[70%] ${isSentByMe ? 'flex-row-reverse' : ''}`}>
         {/* Hover actions */}
         {!isEditing && !showDeleteConfirm && (
-          <div className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-200 flex items-center gap-0.5 mb-1">
+          <div className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-[160ms] flex items-center gap-0.5 mb-1">
             {/* React */}
             <button
               onClick={() => (canRich ? (pickerOpen ? onClosePicker() : onOpenPicker(message.id)) : onLockedAffordance('Reactions'))}
@@ -112,10 +121,10 @@ const MessageBubble = ({
 
         {/* Delete confirmation */}
         {showDeleteConfirm && (
-          <div className="flex items-center gap-1 mb-1 bg-white rounded-full px-3 py-1.5 shadow-md border border-destructive-light">
+          <div className="flex items-center gap-1 mb-1 bg-white dark:bg-neutral-900 rounded-full px-3 py-1.5 shadow-md border border-destructive-light dark:border-destructive/30">
             <span className="text-xs text-destructive font-medium">Delete?</span>
             <button onClick={() => onConfirmDelete(message.id)} className="px-2 py-0.5 rounded-full bg-destructive hover:bg-destructive/90 text-white text-xs font-medium transition-colors">Yes</button>
-            <button onClick={onCancelDelete} className="px-2 py-0.5 rounded-full bg-neutral-200 hover:bg-neutral-300 text-neutral-600 text-xs font-medium transition-colors">No</button>
+            <button onClick={onCancelDelete} className="px-2 py-0.5 rounded-full bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 text-neutral-600 dark:text-neutral-300 text-xs font-medium transition-colors">No</button>
           </div>
         )}
 
@@ -179,7 +188,7 @@ const MessageBubble = ({
           />
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

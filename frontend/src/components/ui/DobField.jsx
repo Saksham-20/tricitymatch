@@ -34,10 +34,10 @@ const parseValue = (value) => {
 };
 
 const selectCls = (hasError) =>
-  `w-full pl-3 pr-7 py-3 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:border-transparent transition-all appearance-none ${
+  `w-full pl-3 pr-7 py-3 text-base border rounded-lg bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:border-transparent transition-[border-color,box-shadow] duration-[160ms] appearance-none ${
     hasError
-      ? 'border-red-500 focus:ring-red-500'
-      : 'border-neutral-300 focus:ring-primary-500'
+      ? 'border-destructive focus:ring-destructive'
+      : 'border-neutral-300 dark:border-neutral-700 focus:ring-primary-500'
   }`;
 
 // appearance-none strips the native arrow, so each select gets an explicit
@@ -98,7 +98,7 @@ const DobField = ({ label = 'Date of Birth', value, onChange, error, hint, requi
     <div className="space-y-2">
       <span id="dob-label" className="block text-sm font-medium text-neutral-900 dark:text-neutral-100">
         {label}
-        {required && <span className="text-red-500 ml-1">*</span>}
+        {required && <span className="text-destructive ml-1">*</span>}
       </span>
       <div className="grid grid-cols-3 gap-2.5" role="group" aria-labelledby="dob-label" aria-describedby={error ? errorId : hint ? hintId : undefined}>
         <PartSelect id="dob-day" name="bday-day" srLabel="Day" value={parts.day} onChange={(e) => update({ day: e.target.value })} hasError={!!error}>
@@ -114,8 +114,8 @@ const DobField = ({ label = 'Date of Birth', value, onChange, error, hint, requi
           {years.map((y) => <option key={y} value={y}>{y}</option>)}
         </PartSelect>
       </div>
-      {error && <p id={errorId} className="text-sm text-red-600 font-medium">{error}</p>}
-      {hint && !error && <p id={hintId} className="text-xs text-neutral-500">{hint}</p>}
+      {error && <p id={errorId} className="text-sm text-destructive font-medium">{error}</p>}
+      {hint && !error && <p id={hintId} className="text-xs text-neutral-500 dark:text-neutral-400">{hint}</p>}
     </div>
   );
 };

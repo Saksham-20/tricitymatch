@@ -88,12 +88,12 @@ const OtpBoxes = ({
           onChange={(e) => handleChange(i, e.target.value)}
           onKeyDown={(e) => handleKeyDown(i, e)}
           onFocus={(e) => e.target.select()}
-          className={`w-11 h-12 sm:w-12 sm:h-14 text-center text-xl font-semibold rounded-xl border-2 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 transition-all duration-150 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
+          className={`w-11 h-12 sm:w-12 sm:h-14 text-center text-xl font-semibold rounded-xl border-2 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 transition-[border-color,box-shadow] duration-150 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
             error
-              ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-200'
+              ? 'border-destructive focus:border-destructive focus:ring-2 focus:ring-destructive/20'
               : c
               ? 'border-primary-500 focus:border-primary-600 focus:ring-2 focus:ring-primary-200'
-              : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200'
+              : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600 focus:border-primary-500 focus:ring-2 focus:ring-primary-200'
           }`}
         />
       ))}

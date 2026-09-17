@@ -21,13 +21,17 @@ const Badge = ({
   ...props
 }) => {
   const variants = {
-    default: 'bg-neutral-100 text-neutral-700',
-    primary: 'bg-primary-100 text-primary-700',
-    secondary: 'bg-neutral-100 text-neutral-600',
-    success: 'bg-success-50 text-success',
-    warning: 'bg-warning-light text-warning',
-    danger: 'bg-destructive-light text-destructive',
-    info: 'bg-info-light text-info',
+    default: 'bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300',
+    primary: 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300',
+    secondary: 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400',
+    success: 'bg-success-50 dark:bg-success/15 text-success',
+    warning: 'bg-warning-light dark:bg-warning/15 text-warning',
+    danger: 'bg-destructive-light dark:bg-destructive/15 text-destructive',
+    info: 'bg-info-light dark:bg-info/15 text-info',
+    // Tier badges (premium/elite/vip): the one place gold is a gradient fill
+    // rather than the brand's own btn-primary/btn-gold — these ARE the paid
+    // tier marks doctrine §3.1 reserves gold for, so they carry unchanged
+    // into dark mode (a gold-on-dark chip needs no separate treatment).
     premium: 'bg-gradient-to-r from-gold-400 to-gold-600 text-neutral-900',
     elite: 'bg-gradient-to-r from-primary-500 to-primary-700 text-white',
     vip: 'bg-gradient-to-r from-gold-400 via-gold-500 to-gold-600 text-neutral-900 shadow-sm',

@@ -66,17 +66,17 @@ const UpgradeModal = ({ isOpen, onClose, feature = 'this feature', description }
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-80"
         />
 
         {/* Modal wrapper keeps dialog fully visible across viewports */}
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+        <div className="fixed inset-0 z-80 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
           <motion.div
             initial={{ opacity: 0, scale: 0.92, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: 20 }}
             transition={{ type: 'spring', damping: 22, stiffness: 300 }}
-            className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)] my-auto"
+            className="w-full max-w-md bg-white dark:bg-neutral-900 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)] my-auto"
             role="dialog"
             aria-modal="true"
             aria-label="Upgrade to Premium"
@@ -114,7 +114,7 @@ const UpgradeModal = ({ isOpen, onClose, feature = 'this feature', description }
               {status === 'loading' && (
                 <div className="space-y-3" aria-busy="true" aria-label="Loading plans">
                   {[0, 1].map((i) => (
-                    <div key={i} className="flex items-center gap-4 px-4 py-3.5 rounded-xl border border-neutral-200">
+                    <div key={i} className="flex items-center gap-4 px-4 py-3.5 rounded-xl border border-neutral-200 dark:border-neutral-800">
                       <Skeleton variant="circle" className="w-9 h-9 flex-shrink-0" />
                       <div className="flex-1 space-y-2">
                         <Skeleton className="h-3.5 w-28" />
@@ -136,7 +136,7 @@ const UpgradeModal = ({ isOpen, onClose, feature = 'this feature', description }
 
               {status === 'loaded' && visiblePlans.length === 0 && (
                 <div className="text-center py-6">
-                  <p className="text-sm text-neutral-500">Plans are being updated right now.</p>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400">Plans are being updated right now.</p>
                   <button
                     onClick={() => { onClose(); navigate('/subscription'); }}
                     className="mt-3 text-sm font-semibold text-primary-600 underline underline-offset-2"
@@ -150,37 +150,41 @@ const UpgradeModal = ({ isOpen, onClose, feature = 'this feature', description }
                 const meta = PLAN_META[key] || {};
                 const Icon = meta.icon || FaCrown;
                 const gold = meta.accent === 'gold';
+                // "Unlimited" carries the actual daily fair-use ceiling
+                // (doctrine: state it plainly wherever the unlock benefit
+                // shows, never silently) — GET /subscription/plans serves
+                // `unlockDailyCap` only on the tier it applies to.
                 const unlocksLabel = plan.contactUnlocks === -1
-                  ? 'Unlimited unlocks'
+                  ? (plan.unlockDailyCap ? `Unlimited unlocks · up to ${plan.unlockDailyCap}/day` : 'Unlimited unlocks')
                   : `${plan.contactUnlocks} unlocks`;
                 return (
                   <button
                     key={key}
                     onClick={() => { onClose(); navigate('/subscription'); }}
-                    className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl border transition-all hover:-translate-y-0.5 ${
+                    className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl border transition-[transform,box-shadow,border-color,background-color] duration-[160ms] hover:-translate-y-0.5 ${
                       plan.popular
-                        ? 'border-primary-300 bg-primary-50/50 shadow-sm'
-                        : 'border-neutral-200 bg-white hover:border-primary-200'
+                        ? 'border-primary-300 dark:border-primary-700/50 bg-primary-50/50 dark:bg-primary-900/20 shadow-sm'
+                        : 'border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:border-primary-200 dark:hover:border-primary-800'
                     }`}
                   >
                     <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                      gold ? 'bg-gold-100' : 'bg-primary-100'
+                      gold ? 'bg-gold-100 dark:bg-gold-900/30' : 'bg-primary-100 dark:bg-primary-900/30'
                     }`}>
                       <Icon className={`w-4 h-4 ${
-                        gold ? 'text-gold-600' : 'text-primary-500'
+                        gold ? 'text-gold-600 dark:text-gold-400' : 'text-primary-500'
                       }`} />
                     </div>
 
                     <div className="flex-1 text-left">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-neutral-900">{plan.name}</span>
+                        <span className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">{plan.name}</span>
                         {plan.badge && (
                           <span className="px-1.5 py-0.5 bg-primary-500 text-white text-[9px] font-bold rounded-full uppercase">
                             {plan.badge}
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-neutral-500">
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400">
                         ₹{plan.price.toLocaleString('en-IN')}/{plan.duration} · {unlocksLabel}
                       </p>
                     </div>

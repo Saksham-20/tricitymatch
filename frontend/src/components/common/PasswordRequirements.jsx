@@ -37,18 +37,19 @@ const PasswordRequirements = ({ password = '' }) => {
         exit={{ opacity: 0, height: 0 }}
         className="mt-2 space-y-2 overflow-hidden"
       >
-        {/* Strength bar */}
+        {/* Strength bar — transform, not width, so this fires cleanly on
+            every keystroke without triggering layout (doctrine §4.5). */}
         <div className="flex items-center gap-2">
-          <div className="flex-1 h-1.5 rounded-full bg-neutral-200 overflow-hidden">
+          <div className="flex-1 h-1.5 rounded-full bg-neutral-200 dark:bg-neutral-800 overflow-hidden">
             <motion.div
-              className={`h-full rounded-full ${meta.color}`}
+              className={`h-full w-full rounded-full origin-left ${meta.color}`}
               initial={false}
-              animate={{ width: `${(strength / 4) * 100}%` }}
-              transition={{ duration: 0.25 }}
+              animate={{ scaleX: strength / 4 }}
+              transition={{ duration: 0.25, ease: [0.77, 0, 0.175, 1] }}
             />
           </div>
           {meta.label && (
-            <span className="text-[11px] font-medium text-neutral-500 w-12 text-right">{meta.label}</span>
+            <span className="text-[11px] font-medium text-neutral-500 dark:text-neutral-400 w-12 text-right">{meta.label}</span>
           )}
         </div>
 
@@ -59,13 +60,13 @@ const PasswordRequirements = ({ password = '' }) => {
             return (
               <li
                 key={rule.key}
-                className={`flex items-center gap-1.5 text-[11px] transition-colors ${
-                  ok ? 'text-success' : 'text-neutral-400'
+                className={`flex items-center gap-1.5 text-[11px] transition-colors duration-[160ms] ${
+                  ok ? 'text-success' : 'text-neutral-400 dark:text-neutral-500'
                 }`}
               >
                 <span
                   className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border ${
-                    ok ? 'bg-success border-success text-white' : 'border-neutral-300'
+                    ok ? 'bg-success border-success text-white' : 'border-neutral-300 dark:border-neutral-600'
                   }`}
                 >
                   {ok && <FiCheck className="w-2.5 h-2.5" strokeWidth={3} />}
