@@ -1,9 +1,10 @@
 import React, { useCallback } from 'react';
 import { useTabBarClearance } from '../../hooks/useTabBarClearance';
 import {
-  View, FlatList, TouchableOpacity, StyleSheet, RefreshControl,
+  View, FlatList, StyleSheet, RefreshControl,
 } from 'react-native';
 import Text from '../../components/ui/Text';
+import { PressableScale } from '../../components/motion';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -54,10 +55,12 @@ function ConversationCard({ item, locked = false, onPress }: ConversationCardPro
   const unread = unreadCount > 0 && !locked;
 
   return (
-    <TouchableOpacity
+    <PressableScale
       style={s.card}
       onPress={onPress}
       accessibilityLabel={`Chat with ${name}`}
+      accessibilityRole="button"
+      pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
       testID={`ConversationCard-${item.userId}`}
     >
       <Avatar uri={profile.profilePhoto} name={name} size={54} online={isOnline} verified={profile.isVerified} />
@@ -87,7 +90,7 @@ function ConversationCard({ item, locked = false, onPress }: ConversationCardPro
           )}
         </View>
       </View>
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 
@@ -182,13 +185,15 @@ export default function ConversationsScreen() {
     <View style={[s.container, { backgroundColor: c.background, paddingTop: insets.top }]} testID="ConversationsScreen">
       <View style={s.header}>
         <Text variant="title1" color="fgStrong">Messages</Text>
-        <TouchableOpacity
+        <PressableScale
           onPress={() => navigation.navigate('FamilyGroups')}
           accessibilityLabel="Family groups"
+          accessibilityRole="button"
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="people-outline" size={24} color={c.accent} />
-        </TouchableOpacity>
+        </PressableScale>
       </View>
       {isLoading ? (
         <View testID="ConversationsLoading">

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TextInput, StyleSheet } from 'react-native';
 import Text from '../../components/ui/Text';
 import { useTranslation } from 'react-i18next';
 import { typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { PressableScale } from '../../components/motion';
 import PickerSheet from '../../components/ui/PickerSheet';
 import OnboardingLayout from './OnboardingLayout';
 import { useOnboarding } from './OnboardingContext';
@@ -51,16 +52,18 @@ export default function Step2Screen() {
       {/* Religion */}
       <View>
         <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step2.religion')}</Text>
-        <TouchableOpacity
+        <PressableScale
           style={styles.selectBtn}
           onPress={() => setReligionSheet(true)}
           testID="select-religion"
+          accessibilityRole="button"
           accessibilityLabel={t('onboarding.step2.religion')}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text variant="callout" color={religion ? 'textPrimary' : 'textMuted'}>
             {religion || 'Select religion'}
           </Text>
-        </TouchableOpacity>
+        </PressableScale>
       </View>
 
       {/* Caste */}
@@ -122,16 +125,18 @@ export default function Step2Screen() {
       {/* Mother tongue */}
       <View>
         <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step2.motherTongue')}</Text>
-        <TouchableOpacity
+        <PressableScale
           style={styles.selectBtn}
           onPress={() => setTongueSheet(true)}
           testID="select-motherTongue"
+          accessibilityRole="button"
           accessibilityLabel={t('onboarding.step2.motherTongue')}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text variant="callout" color={motherTongue ? 'textPrimary' : 'textMuted'}>
             {motherTongue || 'Select language'}
           </Text>
-        </TouchableOpacity>
+        </PressableScale>
       </View>
 
       <PickerSheet

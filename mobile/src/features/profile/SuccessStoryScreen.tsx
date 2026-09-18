@@ -4,7 +4,6 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   TextInput,
   ActivityIndicator,
   Alert,
@@ -15,6 +14,7 @@ import { useMutation } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import Text from '../../components/ui/Text';
 import { showToast } from '../../utils/toast';
+import { PressableScale } from '../../components/motion';
 import { useNavigation } from '@react-navigation/native';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { submitSuccessStory } from '../../api/profile';
@@ -77,13 +77,15 @@ export default function SuccessStoryScreen() {
           <Text variant="callout" color="textSecondary" style={s.successBody}>
             Thank you for sharing your journey. Our team will review and publish your story shortly.
           </Text>
-          <TouchableOpacity
+          <PressableScale
             style={s.doneBtn}
             onPress={() => nav.goBack()}
             testID="done-btn"
+            accessibilityRole="button"
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Text variant="headline" style={s.doneBtnText}>Done</Text>
-          </TouchableOpacity>
+          </PressableScale>
         </View>
       </SafeAreaView>
     );
@@ -92,9 +94,16 @@ export default function SuccessStoryScreen() {
   return (
     <SafeAreaView style={s.safe} testID="SuccessStoryScreen">
       <View style={s.header}>
-        <TouchableOpacity onPress={() => nav.goBack()} style={s.backBtn} accessibilityLabel="Go back">
+        <PressableScale
+          onPress={() => nav.goBack()}
+          style={s.backBtn}
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
-        </TouchableOpacity>
+        </PressableScale>
         <Text variant="headline" color="textPrimary" style={s.title}>Share Your Story</Text>
       </View>
 
@@ -169,7 +178,13 @@ export default function SuccessStoryScreen() {
 
         {/* Photo (stub — needs native build) */}
         <Text variant="caption" color="textPrimary" style={s.label}>Wedding Photo (optional)</Text>
-        <TouchableOpacity style={s.photoBtn} onPress={handlePickPhoto} testID="photo-btn">
+        <PressableScale
+          style={s.photoBtn}
+          onPress={handlePickPhoto}
+          testID="photo-btn"
+          accessibilityRole="button"
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           {photoUri ? (
             <Text variant="subhead" color="textSecondary">Photo selected</Text>
           ) : (
@@ -178,14 +193,15 @@ export default function SuccessStoryScreen() {
               <Text variant="subhead" color="textSecondary">Add a photo</Text>
             </>
           )}
-        </TouchableOpacity>
+        </PressableScale>
 
-        <TouchableOpacity
+        <PressableScale
           style={s.consentRow}
           onPress={() => setConsent((v) => !v)}
           accessibilityRole="checkbox"
           accessibilityState={{ checked: consent }}
           testID="consent-checkbox"
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons
             name={consent ? 'checkbox' : 'square-outline'}
@@ -199,13 +215,16 @@ export default function SuccessStoryScreen() {
             <Text variant="footnote" color="primary" onPress={() => (nav as any).navigate('Privacy')} accessibilityRole="link">Privacy Policy</Text>
             , and consent to TricityMatch publishing our names, story and photo. I can withdraw this any time by contacting support.
           </Text>
-        </TouchableOpacity>
+        </PressableScale>
 
-        <TouchableOpacity
+        <PressableScale
           style={[s.submitBtn, submitMut.isPending && s.disabled]}
           onPress={handleSubmit}
           disabled={submitMut.isPending}
           testID="submit-btn"
+          accessibilityRole="button"
+          accessibilityState={{ disabled: submitMut.isPending }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           {submitMut.isPending ? (
             <ActivityIndicator size="small" color="#fff" />
@@ -215,7 +234,7 @@ export default function SuccessStoryScreen() {
               <Text variant="headline" style={s.submitBtnText}>Submit Story</Text>
             </>
           )}
-        </TouchableOpacity>
+        </PressableScale>
       </ScrollView>
     </SafeAreaView>
   );

@@ -5,7 +5,6 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   FlatList,
   RefreshControl,
 } from 'react-native';
@@ -173,13 +172,20 @@ export default function HomeScreen() {
     >
       {/* Greeting header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.greetRow} onPress={goToOwnProfile} activeOpacity={0.8}>
+        <PressableScale
+          style={styles.greetRow}
+          onPress={goToOwnProfile}
+          accessibilityRole="button"
+          accessibilityLabel="View your profile"
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Avatar uri={photo} name={firstName} size={42} />
           <View>
             <Text variant="footnote" color="textMuted">{greeting()},</Text>
             <Text variant="title2" color="fgStrong" numberOfLines={1}>{firstName}</Text>
           </View>
-        </TouchableOpacity>
+        </PressableScale>
         <PressableScale scaleTo={0.9} haptic onPress={goToNotifications} testID="notif-bell" accessibilityRole="button" accessibilityLabel="Notifications" style={styles.bellBtn}>
           <Ionicons name="notifications-outline" size={24} color={c.fgStrong} />
           {unreadCount > 0 && <View style={[styles.bellDot, { borderColor: c.background }]} />}
@@ -219,9 +225,14 @@ export default function HomeScreen() {
         count={todaysMatches.length || undefined}
         style={styles.sectionPad}
         action={
-          <TouchableOpacity onPress={goToMatches}>
+          <PressableScale
+            onPress={goToMatches}
+            accessibilityRole="link"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Text variant="subhead" color="primary">See all</Text>
-          </TouchableOpacity>
+          </PressableScale>
         }
       />
       {feedLoading ? (
@@ -271,11 +282,14 @@ export default function HomeScreen() {
             const age = ageFromDob(p.dateOfBirth);
             const name = `${p.firstName} ${p.lastName}`.trim();
             return (
-              <TouchableOpacity
+              <PressableScale
                 key={p.userId}
                 style={[styles.newRow, { borderBottomColor: c.border }]}
                 onPress={() => goToProfile(p.userId)}
                 testID={`new-profile-${p.userId}`}
+                accessibilityRole="button"
+                accessibilityLabel={`View profile of ${name}`}
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Avatar uri={p.profilePhoto} name={name} size={54} verified={p.isVerified} />
                 <View style={{ flex: 1 }}>
@@ -285,7 +299,7 @@ export default function HomeScreen() {
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
-              </TouchableOpacity>
+              </PressableScale>
             );
           })}
 

@@ -3,11 +3,11 @@ import { useTheme } from '../../hooks/useTheme';
 import {
   View,
   FlatList,
-  TouchableOpacity,
   StyleSheet,
   RefreshControl,
 } from 'react-native';
 import Text from '../../components/ui/Text';
+import { PressableScale } from '../../components/motion';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -78,12 +78,13 @@ function NotificationItem({
   const relTime = formatRelativeTime(item.createdAt);
 
   return (
-    <TouchableOpacity
+    <PressableScale
       style={[styles.item, !item.isRead && styles.itemUnread]}
       onPress={() => onPress(item)}
-      activeOpacity={0.7}
+      accessibilityRole="button"
       accessibilityLabel={`${item.title}. ${item.isRead ? 'Read' : 'Unread'}. ${relTime}`}
       testID={`notification-item-${item.id}`}
+      pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
     >
       <View style={[styles.iconWrap, { backgroundColor: icon.color + '20' }]}>
         <Ionicons name={icon.name} size={22} color={icon.color} />
@@ -96,7 +97,7 @@ function NotificationItem({
         <Text variant="footnote" color="textSecondary" style={styles.body} numberOfLines={2}>{item.body}</Text>
         <Text variant="caption" color="textMuted">{relTime}</Text>
       </View>
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 
@@ -201,26 +202,33 @@ export default function NotificationsScreen() {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           {navigation.canGoBack() && (
-            <TouchableOpacity
+            <PressableScale
               onPress={() => navigation.goBack()}
               style={styles.backBtn}
+              accessibilityRole="button"
               accessibilityLabel="Go back"
               testID="notifications-back"
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
-            </TouchableOpacity>
+            </PressableScale>
           )}
           <Text variant="title2" color="textPrimary">Notifications</Text>
         </View>
         {hasUnread && (
-          <TouchableOpacity
+          <PressableScale
             onPress={() => markAllReadMutation.mutate()}
             disabled={markAllReadMutation.isPending}
+            accessibilityRole="button"
             accessibilityLabel="Mark all notifications as read"
+            accessibilityState={{ disabled: markAllReadMutation.isPending }}
             testID="mark-all-read-button"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Text variant="subhead" color="primary">Mark all read</Text>
-          </TouchableOpacity>
+          </PressableScale>
         )}
       </View>
 

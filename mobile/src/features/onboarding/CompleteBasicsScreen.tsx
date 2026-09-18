@@ -10,7 +10,7 @@ import React, { useEffect, useState } from 'react';
 import { PressableScale } from '../../components/motion';
 import { useTheme } from '../../hooks/useTheme';
 import {
-  View, TextInput, TouchableOpacity, StyleSheet, ScrollView,
+  View, TextInput, StyleSheet, ScrollView,
   ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import Text from '../../components/ui/Text';
@@ -143,17 +143,18 @@ export default function CompleteBasicsScreen() {
           {(['male', 'female'] as const).map((g) => {
             const active = gender === g;
             return (
-              <TouchableOpacity
+              <PressableScale
                 key={g}
                 style={[st.genderBtn, active && st.genderBtnActive]}
                 onPress={() => setGender(g)}
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 testID={`gender-${g}`}
               >
                 <Ionicons name={g === 'male' ? 'male' : 'female'} size={18} color={active ? '#fff' : c.textSecondary} />
                 <Text variant="callout" color={active ? 'onPrimary' : 'textSecondary'}>{g === 'male' ? 'Male' : 'Female'}</Text>
-              </TouchableOpacity>
+              </PressableScale>
             );
           })}
         </View>

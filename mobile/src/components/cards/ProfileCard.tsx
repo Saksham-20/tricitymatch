@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Dimensions, StyleProp, ViewStyle, TextStyle } from 'react-native';
+import { View, StyleSheet, Dimensions, StyleProp, ViewStyle, TextStyle } from 'react-native';
 import Text from '../ui/Text';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -37,12 +37,19 @@ function LikeButton({
     onLike();
   };
   return (
-    <TouchableOpacity style={style} onPress={press} accessibilityLabel="Like" testID={testID} activeOpacity={0.85}>
+    <PressableScale
+      style={style}
+      onPress={press}
+      accessibilityRole="button"
+      accessibilityLabel="Like"
+      testID={testID}
+      pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    >
       <Animated.View style={popStyle}>
         <Ionicons name="heart" size={iconSize} color={iconColor} />
       </Animated.View>
       {label ? <Text variant="subhead" style={labelStyle}>{label}</Text> : null}
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 
@@ -89,7 +96,7 @@ export default function ProfileCard({
   const photoUri = profile.profilePhoto ?? profile.photos?.[0];
   const compat = profile.compatibilityScore ?? 0;
 
-  const shortlist = () => { haptics.light(); onShortlist(); };
+  const shortlist = () => { onShortlist(); };
 
   if (compact) {
     return (
@@ -117,9 +124,17 @@ export default function ProfileCard({
           )}
         </View>
         <View style={s.compactActions}>
-          <TouchableOpacity style={[s.iconBtn, { backgroundColor: c.surface2 }]} onPress={shortlist} accessibilityLabel="Shortlist" testID={`shortlist-${profile.id}`}>
+          <PressableScale
+            style={[s.iconBtn, { backgroundColor: c.surface2 }]}
+            onPress={shortlist}
+            haptic
+            accessibilityRole="button"
+            accessibilityLabel="Shortlist"
+            testID={`shortlist-${profile.id}`}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Ionicons name="bookmark-outline" size={20} color={c.accent} />
-          </TouchableOpacity>
+          </PressableScale>
           <LikeButton
             style={[s.iconBtn, { backgroundColor: c.accentSoft }]}
             iconColor={c.accent}
@@ -179,14 +194,29 @@ export default function ProfileCard({
 
       {/* Actions */}
       <View style={[s.actions, { borderTopColor: c.border }]}>
-        <TouchableOpacity style={s.actionBtn} onPress={onPass} accessibilityLabel="Pass" testID={`pass-${profile.id}`}>
+        <PressableScale
+          style={s.actionBtn}
+          onPress={onPass}
+          accessibilityRole="button"
+          accessibilityLabel="Pass"
+          testID={`pass-${profile.id}`}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="close" size={20} color={c.textSecondary} />
           <Text variant="subhead" color="textSecondary">Pass</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[s.actionBtn, s.actionMid, { borderColor: c.border }]} onPress={shortlist} accessibilityLabel="Shortlist" testID={`shortlist-${profile.id}`}>
+        </PressableScale>
+        <PressableScale
+          style={[s.actionBtn, s.actionMid, { borderColor: c.border }]}
+          onPress={shortlist}
+          haptic
+          accessibilityRole="button"
+          accessibilityLabel="Shortlist"
+          testID={`shortlist-${profile.id}`}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="bookmark-outline" size={20} color={c.accent} />
           <Text variant="subhead" color="primary">Shortlist</Text>
-        </TouchableOpacity>
+        </PressableScale>
         <LikeButton
           style={[s.actionBtn, s.likeBtn]}
           iconColor="#fff"

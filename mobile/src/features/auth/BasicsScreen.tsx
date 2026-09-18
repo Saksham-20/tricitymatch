@@ -12,7 +12,7 @@ import React, { useState } from 'react';
 import { PressableScale } from '../../components/motion';
 import { useTheme } from '../../hooks/useTheme';
 import {
-  View, TextInput, TouchableOpacity, StyleSheet, ScrollView,
+  View, TextInput, StyleSheet, ScrollView,
   ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import Text from '../../components/ui/Text';
@@ -128,9 +128,16 @@ export default function BasicsScreen() {
         contentContainerStyle={[st.content, { paddingTop: insets.top + spacing['2xl'] }]}
         keyboardShouldPersistTaps="handled"
       >
-        <TouchableOpacity onPress={() => navigation.goBack()} style={st.back} accessibilityLabel="Back">
+        <PressableScale
+          onPress={() => navigation.goBack()}
+          style={st.back}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
-        </TouchableOpacity>
+        </PressableScale>
 
         <Text variant="caption" color="primary" style={st.stepTag}>{t('auth.signup.stepTwo', 'Step 2 of 2')}</Text>
         <Text variant="title2" color="textPrimary" style={st.title}>{t('auth.signup.basicsTitle', 'A few basics')}</Text>
@@ -141,17 +148,19 @@ export default function BasicsScreen() {
           {REGISTERING_FOR.map((opt) => {
             const active = registeringFor === opt.key;
             return (
-              <TouchableOpacity
+              <PressableScale
                 key={opt.key}
                 style={[st.chip, active && st.chipActive]}
                 onPress={() => setRegisteringFor(opt.key)}
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
                 testID={`profile-for-${opt.key}`}
+                hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Ionicons name={opt.icon} size={16} color={active ? '#fff' : c.textSecondary} />
                 <Text variant={active ? 'caption' : 'footnote'} color="textSecondary" style={active ? { color: '#fff' } : undefined}>{opt.label}</Text>
-              </TouchableOpacity>
+              </PressableScale>
             );
           })}
         </View>
@@ -185,17 +194,18 @@ export default function BasicsScreen() {
           {(['male', 'female'] as const).map((g) => {
             const active = gender === g;
             return (
-              <TouchableOpacity
+              <PressableScale
                 key={g}
                 style={[st.genderBtn, active && st.genderBtnActive]}
                 onPress={() => setGender(g)}
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
                 testID={`gender-${g}`}
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Ionicons name={g === 'male' ? 'male' : 'female'} size={18} color={active ? '#fff' : c.textSecondary} />
                 <Text variant={active ? 'headline' : 'callout'} color="textSecondary" style={active ? { color: '#fff' } : undefined}>{g === 'male' ? 'Male' : 'Female'}</Text>
-              </TouchableOpacity>
+              </PressableScale>
             );
           })}
         </View>

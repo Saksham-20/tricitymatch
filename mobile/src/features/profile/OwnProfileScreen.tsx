@@ -6,7 +6,6 @@ import {
   StyleSheet,
   ScrollView,
   FlatList,
-  TouchableOpacity,
   Image,
   Switch,
   ActivityIndicator,
@@ -71,18 +70,20 @@ function ActivityRail({
           const age = ageFromDob(item.dateOfBirth);
           const name = `${item.firstName} ${item.lastName ?? ''}`.trim();
           return (
-            <TouchableOpacity
+            <PressableScale
               style={ar.card}
               onPress={() => onPressProfile(item.userId)}
               testID={`activity-card-${item.userId}`}
               accessibilityLabel={`View ${name}`}
+              accessibilityRole="button"
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <SmartImage uri={item.profilePhoto} name={item.firstName} style={[ar.avatar, { backgroundColor: c.surface2 }]} initialSize={28} />
               <Text variant="caption" color="textPrimary" style={ar.name} numberOfLines={1}>{item.firstName}</Text>
               <Text variant="footnote" color="textMuted" style={ar.meta} numberOfLines={1}>
                 {[age ? `${age}` : null, item.city].filter(Boolean).join(' · ')}
               </Text>
-            </TouchableOpacity>
+            </PressableScale>
           );
         }}
       />
@@ -96,11 +97,13 @@ function ViewersUpsell({ onUpgrade }: { onUpgrade: () => void }) {
   return (
     <View style={ar.section}>
       <Text variant="caption" color="textSecondary" style={ar.heading}>Profile Visitors</Text>
-      <TouchableOpacity
+      <PressableScale
         style={[ar.upsell, { backgroundColor: c.accentSoft, borderColor: c.primary + '40' }]}
         onPress={onUpgrade}
         testID="viewers-upsell"
         accessibilityLabel="Upgrade to see who viewed you"
+        accessibilityRole="button"
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
         <Ionicons name="eye-outline" size={20} color={c.primary} />
         <View style={{ flex: 1 }}>
@@ -108,7 +111,7 @@ function ViewersUpsell({ onUpgrade }: { onUpgrade: () => void }) {
           <Text variant="footnote" color="textMuted" style={ar.upsellSub}>Upgrade to Premium to unlock visitors</Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
-      </TouchableOpacity>
+      </PressableScale>
     </View>
   );
 }
@@ -302,15 +305,17 @@ function VerificationBadges({ phoneVerified, photoVerified, onGetVerified }: Ver
         ))}
       </View>
       {!photoVerified && (
-        <TouchableOpacity
+        <PressableScale
           style={[vb.ctaBtn, { backgroundColor: c.accentSoft }]}
           onPress={onGetVerified}
           testID="get-verified-cta"
           accessibilityLabel="Get Verified"
+          accessibilityRole="button"
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="shield-checkmark-outline" size={16} color={c.primary} />
           <Text variant="subhead" color="primary">Get Verified → Add trust badge</Text>
-        </TouchableOpacity>
+        </PressableScale>
       )}
     </View>
   );
@@ -355,11 +360,13 @@ function SectionRow({ label, value, onEdit, testID }: SectionRowProps) {
   const { c } = useTheme();
   const sr = React.useMemo(() => makeSr(c), [c]);
   return (
-    <TouchableOpacity
+    <PressableScale
       style={[sr.row, { borderBottomColor: c.border }]}
       onPress={onEdit}
       testID={testID ?? `edit-${label}`}
       accessibilityLabel={`Edit ${label}`}
+      accessibilityRole="button"
+      pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
     >
       <View style={{ flex: 1 }}>
         <Text variant="footnote" color="textSecondary" style={sr.label}>{label}</Text>
@@ -372,7 +379,7 @@ function SectionRow({ label, value, onEdit, testID }: SectionRowProps) {
         </Text>
       </View>
       <Ionicons name="pencil-outline" size={16} color={c.textMuted} />
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 
@@ -406,9 +413,16 @@ function SectionCard({ title, children, onEdit }: SectionCardProps) {
       <View style={sc.header}>
         <Text variant="headline" color="fgStrong">{title}</Text>
         {onEdit && (
-          <TouchableOpacity onPress={onEdit} testID={`edit-section-${title}`} accessibilityLabel={`Edit ${title}`}>
+          <PressableScale
+            onPress={onEdit}
+            testID={`edit-section-${title}`}
+            accessibilityLabel={`Edit ${title}`}
+            accessibilityRole="button"
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Ionicons name="pencil-outline" size={18} color={c.primary} />
-          </TouchableOpacity>
+          </PressableScale>
         )}
       </View>
       {children}
@@ -567,13 +581,16 @@ export default function OwnProfileScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
         <Text variant="title2" color="fgStrong">My Profile</Text>
-        <TouchableOpacity
+        <PressableScale
           onPress={goToSettings}
           testID="settings-btn"
           accessibilityLabel="Settings"
+          accessibilityRole="button"
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="settings-outline" size={24} color={c.textPrimary} />
-        </TouchableOpacity>
+        </PressableScale>
       </View>
 
       {/* Photo gallery */}
@@ -593,18 +610,20 @@ export default function OwnProfileScreen() {
             <OwnGalleryPhoto key={i} uri={uri} previewMode={previewMode} />
           ))
         ) : (
-          <TouchableOpacity
+          <PressableScale
             style={[styles.photo, styles.photoEmpty, { width: windowWidth, backgroundColor: c.surface2 }]}
             onPress={() => goToEdit('photos')}
             testID="add-photos-empty"
             accessibilityLabel="Add photos"
+            accessibilityRole="button"
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Ionicons name="camera-outline" size={44} color={c.textMuted} />
             <View style={[styles.addPhotosBtn, { backgroundColor: c.primary }]}>
               <Ionicons name="add" size={16} color="#fff" />
               <Text variant="caption" style={styles.addPhotosBtnText}>Add photos</Text>
             </View>
-          </TouchableOpacity>
+          </PressableScale>
         )}
       </ScrollView>
 
@@ -635,48 +654,55 @@ export default function OwnProfileScreen() {
           )}
         </View>
         {/* Plan badge — gold for paid tiers (premium/VIP), burgundy for free */}
-        <TouchableOpacity
+        <PressableScale
           style={[styles.planBadge, { backgroundColor: isPremium ? c.goldSoft : c.accentSoft }]}
           onPress={goToSubscription}
           testID="plan-badge"
           accessibilityLabel="Subscription plan"
+          accessibilityRole="button"
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text variant="caption" style={[styles.planText, { color: isPremium ? c.secondary : c.primary }]}>{planLabel}</Text>
           {user?.subscriptionPlan === 'free' && (
             <Text variant="footnote" color="primary" style={styles.upgradeText}>Upgrade ↑</Text>
           )}
-        </TouchableOpacity>
+        </PressableScale>
       </View>
 
       {/* Shareable profile ID — the other half of Search's ID lookup. Without a
           way to read your own code, looking one up is a one-way door. */}
       {profileCode ? (
-        <TouchableOpacity
+        <PressableScale
           style={[styles.codeChip, { borderColor: c.border, backgroundColor: c.surfaceCard }]}
           onPress={shareProfileCode}
           testID="profile-code-chip"
           accessibilityLabel={`Share my profile ID ${profileCode}`}
+          accessibilityRole="button"
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="id-card-outline" size={16} color={c.textSecondary} />
           <Text variant="footnote" color="textMuted" style={styles.codeLabel}>My profile ID</Text>
           <Text variant="caption" color="fgStrong" style={styles.codeValue}>{profileCode}</Text>
           <Ionicons name="share-outline" size={16} color={c.primary} />
-        </TouchableOpacity>
+        </PressableScale>
       ) : null}
 
       {/* D5 flagship: shareable marriage-biodata PDF */}
-      <TouchableOpacity
+      <PressableScale
         style={[styles.codeChip, { borderColor: c.border, backgroundColor: c.surfaceCard }]}
         onPress={shareBiodata}
         disabled={biodataBusy}
         testID="biodata-chip"
         accessibilityLabel="Share my marriage biodata PDF"
+        accessibilityRole="button"
+        accessibilityState={{ disabled: biodataBusy }}
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
         <Ionicons name="document-text-outline" size={16} color={c.textSecondary} />
         <Text variant="footnote" color="textMuted" style={styles.codeLabel}>Marriage biodata</Text>
         <Text variant="caption" color="fgStrong" style={styles.codeValue}>{biodataBusy ? 'Preparing…' : 'Share PDF'}</Text>
         <Ionicons name="share-outline" size={16} color={c.primary} />
-      </TouchableOpacity>
+      </PressableScale>
 
       {/* Preview toggle */}
       <View style={styles.previewRow}>
@@ -694,17 +720,18 @@ export default function OwnProfileScreen() {
 
       {/* Full story-scroll preview — exactly what a match sees */}
       {user?.id ? (
-        <TouchableOpacity
+        <PressableScale
           style={styles.previewRow}
           onPress={() => navigation.navigate('ProfileDetail', { userId: user.id })}
           testID="open-full-preview"
           accessibilityRole="button"
           accessibilityLabel="Open full profile preview"
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="albums-outline" size={16} color={c.textSecondary} />
           <Text variant="subhead" color="textSecondary" style={styles.previewLabel}>Open my full profile preview</Text>
           <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
-        </TouchableOpacity>
+        </PressableScale>
       ) : null}
 
       {/* Completion — one card: ring + the specific fields still missing */}
@@ -806,11 +833,13 @@ export default function OwnProfileScreen() {
       )}
 
       {/* Compatibility Quiz entry */}
-      <TouchableOpacity
+      <PressableScale
         style={[styles.quizBanner, { backgroundColor: c.accentSoft, borderColor: c.primary + '40' }]}
         onPress={() => navigation.navigate('Quiz')}
         testID="quiz-cta"
         accessibilityLabel="Take compatibility quiz"
+        accessibilityRole="button"
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
         <Ionicons name="help-circle-outline" size={22} color={c.primary} />
         <View style={{ flex: 1 }}>
@@ -818,16 +847,22 @@ export default function OwnProfileScreen() {
           <Text variant="footnote" color="textMuted">10 questions · Better match suggestions</Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
-      </TouchableOpacity>
+      </PressableScale>
 
       {/* About */}
       <SectionCard title="About Me" onEdit={() => goToEdit('about')}>
         {profile?.bio ? (
           <Text variant="footnote" color="textPrimary">{profile.bio}</Text>
         ) : (
-          <TouchableOpacity onPress={() => goToEdit('about')} testID="add-bio">
+          <PressableScale
+            onPress={() => goToEdit('about')}
+            testID="add-bio"
+            accessibilityRole="button"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Text variant="subhead" color="primary">+ Add bio</Text>
-          </TouchableOpacity>
+          </PressableScale>
         )}
         {(profile?.interestTags?.length ?? 0) > 0 && (
           <View style={styles.tagsRow}>

@@ -5,13 +5,13 @@ import {
   StyleSheet,
   TextInput,
   TextInputProps,
-  TouchableOpacity,
   View,
   ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { borderRadius, colours, type, type ThemeColours } from '@shared/constants/theme';
 import Text from './Text';
+import { PressableScale } from '../motion';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -55,14 +55,17 @@ const Input = forwardRef<TextInput, InputProps>(function Input(
           {...rest}
         />
         {secureToggle ? (
-          <TouchableOpacity
+          <PressableScale
             style={styles.eyeBtn}
             onPress={() => setHidden((v) => !v)}
+            accessibilityRole="button"
             accessibilityLabel={hidden ? 'Show password' : 'Hide password'}
             testID={toggleTestID ?? (testID ? `${testID}-toggle` : undefined)}
+            hitSlop={{ top: 4, bottom: 4, left: 8, right: 8 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Ionicons name={hidden ? 'eye-off-outline' : 'eye-outline'} size={20} color={c.textMuted} />
-          </TouchableOpacity>
+          </PressableScale>
         ) : null}
       </View>
       {error ? (

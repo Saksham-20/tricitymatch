@@ -4,7 +4,6 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   TextInput,
   Image,
   Alert,
@@ -20,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { EditProfileSkeleton } from '../../components/ui/skeletons';
 import { showToast } from '../../utils/toast';
 import PickerSheet from '../../components/ui/PickerSheet';
+import { PressableScale } from '../../components/motion';
 import { PROFILE_PROMPTS, PromptPair, fromProfilePrompts, toProfilePrompts } from '../../constants/prompts';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
@@ -127,7 +127,7 @@ function SelectPill<T extends string>({ label, options, selected, onSelect, test
         {options.map((opt) => {
           const active = selected === opt.key;
           return (
-            <TouchableOpacity
+            <PressableScale
               key={opt.key}
               style={[sp.pill, active && sp.pillActive]}
               onPress={() => onSelect(opt.key)}
@@ -135,9 +135,11 @@ function SelectPill<T extends string>({ label, options, selected, onSelect, test
               accessibilityLabel={opt.label}
               accessibilityRole="radio"
               accessibilityState={{ selected: active }}
+              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Text variant="footnote" color={active ? 'primary' : 'textSecondary'}>{opt.label}</Text>
-            </TouchableOpacity>
+            </PressableScale>
           );
         })}
       </View>
@@ -179,17 +181,18 @@ function SectionCard({ title, children, expanded, onToggle }: SectionCardProps) 
   const sc = React.useMemo(() => makeSc(c), [c]);
   return (
     <View style={sc.card}>
-      <TouchableOpacity
+      <PressableScale
         style={sc.header}
         onPress={onToggle}
         testID={`section-${title}`}
         accessibilityLabel={title}
         accessibilityRole="button"
         accessibilityState={{ expanded }}
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
         <Text variant="headline" color="textPrimary">{title}</Text>
         <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={c.textMuted} />
-      </TouchableOpacity>
+      </PressableScale>
       {expanded && <View style={sc.body}>{children}</View>}
     </View>
   );
@@ -237,14 +240,18 @@ function PhotoGrid({ photos, onAdd, onRemove, loading }: PhotoGridProps) {
               <>
                 <Image source={{ uri }} style={pg.photo} resizeMode="cover" />
                 {i > 0 && (
-                  <TouchableOpacity
+                  <PressableScale
+                    scaleTo={0.92}
                     style={pg.removeBtn}
                     onPress={() => onRemove(uri)}
                     testID={`remove-photo-${i}`}
                     accessibilityLabel="Remove photo"
+                    accessibilityRole="button"
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
                     <Ionicons name="close-circle" size={22} color={c.error} />
-                  </TouchableOpacity>
+                  </PressableScale>
                 )}
                 {i === 0 && (
                   <View style={pg.primaryBadge}>
@@ -253,19 +260,21 @@ function PhotoGrid({ photos, onAdd, onRemove, loading }: PhotoGridProps) {
                 )}
               </>
             ) : (
-              <TouchableOpacity
+              <PressableScale
                 style={pg.addBtn}
                 onPress={onAdd}
                 disabled={loading}
                 testID={`add-photo-${i}`}
                 accessibilityLabel="Add photo"
+                accessibilityRole="button"
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 {loading && i === photos.length ? (
                   <ActivityIndicator size="small" color={c.primary} />
                 ) : (
                   <Ionicons name="add" size={28} color={c.textMuted} />
                 )}
-              </TouchableOpacity>
+              </PressableScale>
             )}
           </View>
         );
@@ -453,28 +462,33 @@ export default function EditProfileScreen() {
     <View style={[styles.wrapper, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
+        <PressableScale
           onPress={() => navigation.goBack()}
           testID="back-btn"
           accessibilityLabel="Cancel"
+          accessibilityRole="button"
           style={styles.headerBtn}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
-        </TouchableOpacity>
+        </PressableScale>
         <Text variant="headline" color="textPrimary">Edit Profile</Text>
-        <TouchableOpacity
+        <PressableScale
           onPress={handleSave}
           disabled={saveMutation.isPending}
           testID="save-btn"
           accessibilityLabel="Save profile"
+          accessibilityRole="button"
+          accessibilityState={{ disabled: saveMutation.isPending }}
           style={styles.headerBtn}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           {saveMutation.isPending ? (
             <ActivityIndicator size="small" color={c.primary} />
           ) : (
             <Text variant="headline" color="primary">Save</Text>
           )}
-        </TouchableOpacity>
+        </PressableScale>
       </View>
 
       <ScrollView
@@ -591,12 +605,13 @@ export default function EditProfileScreen() {
             const pair = prompts[i];
             return (
               <View key={i} style={ps.slot}>
-                <TouchableOpacity
+                <PressableScale
                   style={ps.promptBtn}
                   onPress={() => setPromptPickerIdx(i)}
                   testID={`prompt-select-${i}`}
                   accessibilityRole="button"
                   accessibilityLabel={pair?.prompt ?? 'Choose a prompt'}
+                  pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
                   <Text
                     variant={pair?.prompt ? 'subhead' : 'footnote'}
@@ -607,7 +622,7 @@ export default function EditProfileScreen() {
                     {pair?.prompt ?? 'Choose a prompt…'}
                   </Text>
                   <Ionicons name="chevron-down" size={16} color={c.textMuted} />
-                </TouchableOpacity>
+                </PressableScale>
                 {pair?.prompt ? (
                   <FieldEditor
                     label="Your answer"

@@ -4,7 +4,6 @@ import {
   View,
   StyleSheet,
   FlatList,
-  TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
@@ -30,7 +29,6 @@ import { useOfflineShortlist } from '../../hooks/useOfflineShortlist';
 import OfflineBanner from '../../components/common/OfflineBanner';
 import { Avatar, EmptyState as SharedEmpty, GoldLock, SkeletonRow, MatchCelebration } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
-import { haptics } from '../../utils/haptics';
 import type { MainStackParamList } from '../../navigation/types';
 import type { Match, MatchAction } from '../../types';
 import { useAuthStore } from '../../stores/authStore';
@@ -76,11 +74,12 @@ function MatchRow({ match, mode, onPress, onChat, onAccept, onDecline, onRemove 
   const compat = match.compatibilityScore ?? profile?.compatibilityScore ?? 0;
 
   return (
-    <TouchableOpacity
+    <PressableScale
       style={[mr.row, { borderBottomColor: c.border }]}
       onPress={onPress}
-      activeOpacity={0.85}
+      accessibilityRole="button"
       accessibilityLabel={`${name} match`}
+      pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
     >
       <Avatar uri={photoUri} name={name} size={58} square verified={profile?.isVerified} />
 
@@ -132,7 +131,7 @@ function MatchRow({ match, mode, onPress, onChat, onAccept, onDecline, onRemove 
         )}
         <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
       </View>
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 const makeMr = (c: ThemeColours) => StyleSheet.create({
@@ -350,17 +349,19 @@ export default function MatchesScreen() {
         {TABS.map((tab) => {
           const on = activeTab === tab.key;
           return (
-            <TouchableOpacity
+            <PressableScale
               key={tab.key}
               style={s.tab}
-              onPress={() => { haptics.light(); setActiveTab(tab.key); }}
+              onPress={() => setActiveTab(tab.key)}
+              haptic
+              accessibilityRole="tab"
               accessibilityLabel={tab.label}
               accessibilityState={{ selected: on }}
               testID={`tab-${tab.key}`}
             >
               <Text variant="subhead" color={on ? 'primary' : 'textMuted'}>{tab.label}</Text>
               {on && <View style={[s.tabUnderline, { backgroundColor: c.accent }]} />}
-            </TouchableOpacity>
+            </PressableScale>
           );
         })}
       </View>

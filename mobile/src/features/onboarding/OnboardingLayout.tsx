@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  TouchableOpacity,
   StyleSheet,
   ScrollView,
   KeyboardAvoidingView,
@@ -17,7 +16,7 @@ import { spacing, borderRadius, type ThemeColours } from '@shared/constants/them
 import { duration, EASE_OUT } from '@shared/constants/motion';
 import { Button } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
-import { useReduceMotion } from '../../components/motion';
+import { PressableScale, useReduceMotion } from '../../components/motion';
 import { useOnboarding, chapterForStep, JOURNEY_CHAPTERS, JOURNEY_ENDOWED_PROGRESS } from './OnboardingContext';
 
 interface OnboardingLayoutProps {
@@ -81,22 +80,47 @@ export default function OnboardingLayout({
       {/* Header */}
       <View style={styles.header}>
         {currentStep > 0 ? (
-          <TouchableOpacity onPress={goBack} style={styles.backBtn} testID="btn-back" accessibilityLabel={t('common.back')}>
+          <PressableScale
+            scaleTo={0.92}
+            onPress={goBack}
+            style={styles.backBtn}
+            testID="btn-back"
+            accessibilityRole="button"
+            accessibilityLabel={t('common.back')}
+            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Ionicons name="arrow-back" size={24} color={c.fgStrong} />
-          </TouchableOpacity>
+          </PressableScale>
         ) : (
           // First journey screen: journey is skippable — close returns to Main.
-          <TouchableOpacity onPress={exit} style={styles.backBtn} testID="btn-close" accessibilityLabel={t('common.close', 'Close')}>
+          <PressableScale
+            scaleTo={0.92}
+            onPress={exit}
+            style={styles.backBtn}
+            testID="btn-close"
+            accessibilityRole="button"
+            accessibilityLabel={t('common.close', 'Close')}
+            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Ionicons name="close" size={24} color={c.fgStrong} />
-          </TouchableOpacity>
+          </PressableScale>
         )}
         <Text variant="subhead" color="textMuted">
           {t(`journey.chapters.${chapter.i18nKey}`, chapter.fallback)}
         </Text>
         {skippable ? (
-          <TouchableOpacity onPress={onSkip} testID="btn-skip" accessibilityLabel={t('common.skip')}>
+          <PressableScale
+            onPress={onSkip}
+            testID="btn-skip"
+            accessibilityRole="button"
+            accessibilityLabel={t('common.skip')}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Text variant="subhead" color="primary">{t('common.skip')}</Text>
-          </TouchableOpacity>
+          </PressableScale>
         ) : (
           <View style={styles.headerRight} />
         )}

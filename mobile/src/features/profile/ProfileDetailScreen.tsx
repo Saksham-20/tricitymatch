@@ -3,7 +3,6 @@ import { requestNotifPrime } from '../../utils/notifPrime';
 import {
   View,
   StyleSheet,
-  TouchableOpacity,
   ActivityIndicator,
   Modal,
   useWindowDimensions,
@@ -408,7 +407,7 @@ export default function ProfileDetailScreen() {
               <DetailRow label="Nakshatra" value={profile.nakshatra ?? undefined} />
               <DetailRow label="Birth Place" value={profile.placeOfBirth ?? undefined} />
               <DetailRow label="Birth Time" value={profile.birthTime ?? undefined} />
-              <TouchableOpacity
+              <PressableScale
                 style={s.kundliBtn}
                 onPress={() =>
                   navigation.navigate('HoroscopeMatch', {
@@ -416,10 +415,13 @@ export default function ProfileDetailScreen() {
                     name: [profile.firstName, profile.lastName].filter(Boolean).join(' '),
                   })
                 }
+                accessibilityRole="button"
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Ionicons name="moon-outline" size={16} color={c.primary} />
                 <Text variant="subhead" color="primary">View Ashtakoot Guna Milan →</Text>
-              </TouchableOpacity>
+              </PressableScale>
             </SectionCard>
           </RevealOnScroll>
         )}
@@ -442,14 +444,17 @@ export default function ProfileDetailScreen() {
 
         {/* Quiet safety footer */}
         {!isSelf && (
-        <TouchableOpacity
+        <PressableScale
           style={s.safetyFooter}
           onPress={() => setBlockReportVisible(true)}
           accessibilityLabel={`Report or block ${profile.firstName}`}
+          accessibilityRole="button"
+          hitSlop={{ top: 6, bottom: 6, left: 0, right: 0 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="shield-outline" size={14} color={c.textMuted} />
           <Text variant="footnote" color="textMuted">Report or block {profile.firstName}</Text>
-        </TouchableOpacity>
+        </PressableScale>
         )}
 
         <View style={{ height: 110 }} />
@@ -636,7 +641,13 @@ export default function ProfileDetailScreen() {
         animationType="slide"
         onRequestClose={() => setAppreciateSubject(null)}
       >
-        <TouchableOpacity style={s.appBackdrop} activeOpacity={1} onPress={() => setAppreciateSubject(null)} />
+        <PressableScale
+          scaleTo={1}
+          style={s.appBackdrop}
+          onPress={() => setAppreciateSubject(null)}
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+        />
         <View style={[s.appSheet, { backgroundColor: c.background, paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
           <View style={[s.appGrabber, { backgroundColor: c.border }]} />
           <Ionicons name="heart-circle" size={40} color={c.primary} style={{ alignSelf: 'center' }} />
@@ -645,8 +656,9 @@ export default function ProfileDetailScreen() {
             Mention what caught your eye when you connect with {profile.firstName} — thoughtful first
             messages get warmer replies.
           </Text>
-          <TouchableOpacity
+          <PressableScale
             style={[s.appCta, { backgroundColor: c.primary }]}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
             onPress={() => {
               const subject = appreciateSubject;
               setAppreciateSubject(null);
@@ -669,7 +681,7 @@ export default function ProfileDetailScreen() {
             <Text variant="headline" style={s.appCtaText}>
               {user?.subscriptionPlan !== 'free' ? 'Mention in a message' : 'Upgrade to message'}
             </Text>
-          </TouchableOpacity>
+          </PressableScale>
         </View>
       </Modal>
     </View>

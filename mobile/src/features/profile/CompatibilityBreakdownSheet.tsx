@@ -4,10 +4,10 @@ import {
   View,
   StyleSheet,
   Modal,
-  TouchableOpacity,
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
+import { PressableScale } from '../../components/motion';
 import Text from '../../components/ui/Text';
 import { useQuery } from '@tanstack/react-query';
 import Animated, { useAnimatedStyle, useSharedValue, withDelay, withTiming, Easing } from 'react-native-reanimated';
@@ -135,7 +135,13 @@ export default function CompatibilityBreakdownSheet({ visible, userId, onClose }
       transparent
       onRequestClose={onClose}
     >
-      <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
+      <PressableScale
+        style={styles.backdrop}
+        onPress={onClose}
+        scaleTo={1}
+        accessibilityRole="button"
+        accessibilityLabel="Close"
+      />
       <View style={styles.sheet}>
         {/* Handle */}
         <View style={styles.handle} />
@@ -143,9 +149,16 @@ export default function CompatibilityBreakdownSheet({ visible, userId, onClose }
         {/* Header */}
         <View style={styles.header}>
           <Text variant="headline" color="textPrimary">Why This Match?</Text>
-          <TouchableOpacity onPress={onClose} testID="breakdown-close" accessibilityLabel="Close">
+          <PressableScale
+            onPress={onClose}
+            testID="breakdown-close"
+            accessibilityLabel="Close"
+            accessibilityRole="button"
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Ionicons name="close" size={24} color={c.textSecondary} />
-          </TouchableOpacity>
+          </PressableScale>
         </View>
 
         {isLoading ? (

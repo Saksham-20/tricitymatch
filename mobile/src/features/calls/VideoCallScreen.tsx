@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
-  View, TouchableOpacity, Image, StyleSheet,
+  View, Image, StyleSheet,
   ActivityIndicator, StatusBar, PanResponder, Animated, Dimensions,
 } from 'react-native';
 import Text from '../../components/ui/Text';
+import { PressableScale } from '../../components/motion';
 import type { ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -274,10 +275,13 @@ export default function VideoCallScreen() {
       <StatusBar barStyle="light-content" backgroundColor={callColours.black} />
 
       {/* Remote video / placeholder */}
-      <TouchableOpacity
+      <PressableScale
         style={StyleSheet.absoluteFill}
-        activeOpacity={1}
+        scaleTo={1}
         onPress={resetControlsTimer}
+        accessibilityRole="button"
+        accessibilityLabel="Toggle call controls"
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         testID="TapArea"
       >
         {remoteUid && RtcRemoteView ? (
@@ -301,7 +305,7 @@ export default function VideoCallScreen() {
             {phase === 'connecting' && <ActivityIndicator color={c.primary} style={{ marginTop: spacing.md }} />}
           </View>
         )}
-      </TouchableOpacity>
+      </PressableScale>
 
       {/* PiP local camera */}
       {isCameraOn && (
@@ -374,18 +378,21 @@ function VideoBtn({ icon, label, onPress, variant = 'default', active, testID }:
   const styles = React.useMemo(() => makeStyles(c), [c]);
   return (
     <View style={styles.btnWrap}>
-      <TouchableOpacity
+      <PressableScale
         style={[styles.btn, variant === 'end' && styles.btnEnd, active && styles.btnActive]}
         onPress={onPress}
         testID={testID}
         accessibilityLabel={label}
+        accessibilityRole="button"
+        accessibilityState={{ selected: !!active }}
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
         <Ionicons
           name={icon}
           size={24}
           color={variant === 'end' || active ? c.background : c.textPrimary}
         />
-      </TouchableOpacity>
+      </PressableScale>
       <Text variant="caption" style={styles.btnLabel}>{label}</Text>
     </View>
   );

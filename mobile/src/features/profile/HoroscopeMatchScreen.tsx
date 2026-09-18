@@ -3,7 +3,6 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
 } from 'react-native';
 import Text from '../../components/ui/Text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,7 +15,7 @@ import { colours, type, spacing, borderRadius, type ThemeColours } from '@shared
 import { getHoroscopeCompatibility } from '../../api/profile';
 import type { GunaDetail } from '../../api/profile';
 import { CompatRing } from '../../components/ui';
-import { useFillAnimation } from '../../components/motion';
+import { useFillAnimation, PressableScale } from '../../components/motion';
 import { useTheme } from '../../hooks/useTheme';
 import type { MainStackParamList } from '../../navigation/types';
 
@@ -180,9 +179,15 @@ export default function HoroscopeMatchScreen() {
   return (
     <View style={[s.container, { backgroundColor: c.background, paddingTop: insets.top }]}>
       <View style={[s.header, { borderBottomColor: c.hairline }]}>
-        <TouchableOpacity onPress={() => nav.goBack()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+        <PressableScale
+          onPress={() => nav.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="arrow-back" size={24} color={c.fgStrong} />
-        </TouchableOpacity>
+        </PressableScale>
         <View style={s.headerCenter}>
           <Text variant="headline" color="fgStrong">Kundli Match</Text>
           <Text variant="footnote" color="textMuted">{name}</Text>

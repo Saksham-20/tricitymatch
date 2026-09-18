@@ -1,7 +1,8 @@
 import React from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
 import Text from '../../components/ui/Text';
+import { PressableScale } from '../../components/motion';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -24,9 +25,16 @@ export function LegalLayout({
   return (
     <SafeAreaView style={s.wrapper}>
       <View style={s.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.back} accessibilityLabel="Go back">
+        <PressableScale
+          onPress={() => navigation.goBack()}
+          style={s.back}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
-        </TouchableOpacity>
+        </PressableScale>
         <Text variant="headline" color="textPrimary" style={s.headerTitle} numberOfLines={1}>{title}</Text>
         <View style={{ width: 40 }} />
       </View>

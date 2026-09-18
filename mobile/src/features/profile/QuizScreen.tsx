@@ -4,7 +4,6 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -224,9 +223,16 @@ export default function QuizScreen() {
     <View style={[styles.wrapper, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack} testID="quiz-back" accessibilityLabel="Back">
+        <PressableScale
+          onPress={handleBack}
+          testID="quiz-back"
+          accessibilityLabel="Back"
+          accessibilityRole="button"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
-        </TouchableOpacity>
+        </PressableScale>
         <Text variant="headline" color="textPrimary">Compatibility Quiz</Text>
         <View style={{ width: 22 }} />
       </View>
@@ -276,29 +282,35 @@ export default function QuizScreen() {
       {/* Footer */}
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
         {!isLast ? (
-          <TouchableOpacity
+          <PressableScale
             style={[styles.nextBtn, !answered && styles.nextBtnDisabled]}
             onPress={handleNext}
             disabled={!answered}
             testID="quiz-next"
             accessibilityLabel="Next question"
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !answered }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Text variant="headline" style={styles.nextBtnText}>Next →</Text>
-          </TouchableOpacity>
+          </PressableScale>
         ) : (
-          <TouchableOpacity
+          <PressableScale
             style={[styles.nextBtn, (!answered || saveMutation.isPending) && styles.nextBtnDisabled]}
             onPress={handleNext}
             disabled={!answered || saveMutation.isPending}
             testID="quiz-submit"
             accessibilityLabel="Submit quiz"
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !answered || saveMutation.isPending }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             {saveMutation.isPending ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
               <Text variant="headline" style={styles.nextBtnText}>Submit Quiz</Text>
             )}
-          </TouchableOpacity>
+          </PressableScale>
         )}
       </View>
     </View>

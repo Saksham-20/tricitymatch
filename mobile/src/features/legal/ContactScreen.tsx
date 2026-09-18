@@ -5,12 +5,12 @@ import {
   StyleSheet,
   ScrollView,
   TextInput,
-  TouchableOpacity,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import Text from '../../components/ui/Text';
+import { PressableScale } from '../../components/motion';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { showToast } from '../../utils/toast';
@@ -55,9 +55,16 @@ export default function ContactScreen() {
   return (
     <SafeAreaView style={s.wrapper}>
       <View style={s.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.back} accessibilityLabel="Go back">
+        <PressableScale
+          onPress={() => navigation.goBack()}
+          style={s.back}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
-        </TouchableOpacity>
+        </PressableScale>
         <Text variant="headline" color="textPrimary" style={s.headerTitle}>Contact Us</Text>
         <View style={{ width: 40 }} />
       </View>
@@ -73,9 +80,18 @@ export default function ContactScreen() {
           <Field label="Subject (optional)" value={form.subject} onChange={set('subject')} placeholder="What's this about?" />
           <Field label="Message" value={form.message} onChange={set('message')} placeholder="How can we help?" multiline />
 
-          <TouchableOpacity style={[s.cta, sending && s.ctaDisabled]} onPress={submit} disabled={sending} testID="contact-submit">
+          <PressableScale
+            style={[s.cta, sending && s.ctaDisabled]}
+            onPress={submit}
+            disabled={sending}
+            testID="contact-submit"
+            accessibilityRole="button"
+            accessibilityLabel="Send message"
+            accessibilityState={{ disabled: sending }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             {sending ? <ActivityIndicator color="#fff" /> : <Text variant="headline" style={s.ctaText}>Send message</Text>}
-          </TouchableOpacity>
+          </PressableScale>
 
           <Text variant="subhead" color="textMuted" style={s.altContact}>Or email us at support@tricitymatch.com</Text>
         </ScrollView>

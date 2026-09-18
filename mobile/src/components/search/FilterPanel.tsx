@@ -9,7 +9,6 @@ import React, {
 import {
   View,
   StyleSheet,
-  TouchableOpacity,
   TextInput,
 } from 'react-native';
 import BottomSheet, {
@@ -22,7 +21,7 @@ import { Button, Switch } from '../ui';
 import Text from '../ui/Text';
 import { useUIStore } from '../../stores/uiStore';
 import { useTheme } from '../../hooks/useTheme';
-import { haptics } from '../../utils/haptics';
+import { PressableScale } from '../motion';
 import type { SearchFilters, Diet, MaritalStatus, ManglikStatus } from '../../types';
 
 export interface FilterPanelHandle {
@@ -75,10 +74,16 @@ function toggleArray<T>(arr: T[] | undefined, val: T): T[] {
 function Section({ title, expanded, onToggle }: { title: string; expanded: boolean; onToggle: () => void }) {
   const { c } = useTheme();
   return (
-    <TouchableOpacity style={[sh.row, { borderBottomColor: c.hairline }]} onPress={onToggle} activeOpacity={0.7}>
+    <PressableScale
+      style={[sh.row, { borderBottomColor: c.hairline }]}
+      onPress={onToggle}
+      accessibilityRole="button"
+      accessibilityState={{ expanded }}
+      pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    >
       <Text variant="headline" color="fgStrong">{title}</Text>
       <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={c.textSecondary} />
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 const sh = StyleSheet.create({
@@ -95,19 +100,24 @@ function ChipGroup<T extends string>({ options, selected, onToggle }: {
       {options.map((o) => {
         const active = (selected ?? []).includes(o.value);
         return (
-          <TouchableOpacity
+          <PressableScale
             key={o.value}
             style={[
               cg.chip,
               { backgroundColor: c.surface2, borderColor: c.border },
               active && { backgroundColor: c.accentSoft, borderColor: c.accent },
             ]}
-            onPress={() => { haptics.light(); onToggle(o.value); }}
+            onPress={() => onToggle(o.value)}
+            haptic
+            accessibilityRole="button"
             accessibilityLabel={o.label}
+            accessibilityState={{ selected: active }}
+            hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             {/* c.accent is the 'primary' alias (identical hex) — resolved via the dynamic colour prop; the active-state weight bump stays a style override */}
             <Text variant="subhead" color={active ? 'primary' : 'textPrimary'} style={[cg.label, active && cg.labelActive]}>{o.label}</Text>
-          </TouchableOpacity>
+          </PressableScale>
         );
       })}
     </View>
@@ -189,9 +199,15 @@ function GotraTagInput({ excluded, onChange }: { excluded: string[]; onChange: (
           onSubmitEditing={add}
           accessibilityLabel="Gotra exclusion input"
         />
-        <TouchableOpacity style={gt.addBtn} onPress={add} accessibilityLabel="Add gotra">
+        <PressableScale
+          style={gt.addBtn}
+          onPress={add}
+          accessibilityRole="button"
+          accessibilityLabel="Add gotra"
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="add" size={20} color="#fff" />
-        </TouchableOpacity>
+        </PressableScale>
       </View>
       {excluded.length > 0 && (
         <View style={gt.chips}>
@@ -199,9 +215,15 @@ function GotraTagInput({ excluded, onChange }: { excluded: string[]; onChange: (
             <View key={x} style={gt.chip}>
               {/* c.accent is the 'primary' alias (identical hex) */}
               <Text variant="caption" color="primary" style={gt.chipText}>{x}</Text>
-              <TouchableOpacity onPress={() => onChange(excluded.filter((y) => y !== x))} accessibilityLabel={`Remove ${x}`}>
+              <PressableScale
+                onPress={() => onChange(excluded.filter((y) => y !== x))}
+                accessibilityRole="button"
+                accessibilityLabel={`Remove ${x}`}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
                 <Ionicons name="close-circle" size={14} color={c.accent} />
-              </TouchableOpacity>
+              </PressableScale>
             </View>
           ))}
         </View>
@@ -230,12 +252,21 @@ function RadioGroup<T>({ options, selected, onSelect }: {
       {options.map((o) => {
         const active = selected === o.value;
         return (
-          <TouchableOpacity key={String(o.value ?? 'any')} style={radio.option} onPress={() => onSelect(o.value)} accessibilityLabel={o.label}>
+          <PressableScale
+            key={String(o.value ?? 'any')}
+            style={radio.option}
+            onPress={() => onSelect(o.value)}
+            accessibilityRole="radio"
+            accessibilityLabel={o.label}
+            accessibilityState={{ selected: active }}
+            hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <View style={[radio.dot, { borderColor: active ? c.accent : c.border }]}>
               {active && <View style={radio.dotFill} />}
             </View>
             <Text variant="body" color={active ? 'fgStrong' : 'textSecondary'} style={[radio.label, active && radio.labelActive]}>{o.label}</Text>
-          </TouchableOpacity>
+          </PressableScale>
         );
       })}
     </View>
@@ -308,10 +339,16 @@ const FilterPanel = forwardRef<FilterPanelHandle, Props>(({
       <View style={[styles.header, { borderBottomColor: c.hairline }]}>
         {/* deliberately serif (Playfair) for this sheet heading — mapped to title2, which natively carries that face at 22/28 instead of title3's Inter-SemiBold 20/25 */}
         <Text variant="title2" color="fgStrong">Filters</Text>
-        <TouchableOpacity onPress={onReset} accessibilityLabel="Reset all filters">
+        <PressableScale
+          onPress={onReset}
+          accessibilityRole="button"
+          accessibilityLabel="Reset all filters"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           {/* c.accent is the 'primary' alias; the extra SemiBold weight over subhead's own Medium is a deliberate emphasis override */}
           <Text variant="subhead" color="primary" style={styles.resetText}>Reset all</Text>
-        </TouchableOpacity>
+        </PressableScale>
       </View>
 
       <BottomSheetScrollView contentContainerStyle={styles.content}>

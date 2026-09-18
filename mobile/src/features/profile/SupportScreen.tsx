@@ -4,7 +4,6 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   Linking,
   LayoutAnimation,
 } from 'react-native';
@@ -12,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import Text from '../../components/ui/Text';
+import { PressableScale } from '../../components/motion';
 import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { CONFIG } from '../../constants/config';
 
@@ -59,7 +59,14 @@ function FaqItem({ q, a }: { q: string; a: string }) {
   };
 
   return (
-    <TouchableOpacity style={s.faqItem} onPress={toggle} activeOpacity={0.7} testID="faq-item">
+    <PressableScale
+      style={s.faqItem}
+      onPress={toggle}
+      testID="faq-item"
+      accessibilityRole="button"
+      accessibilityState={{ expanded: open }}
+      pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    >
       <View style={s.faqRow}>
         <Text variant="subhead" color="textPrimary" style={s.faqQ}>{q}</Text>
         <Ionicons
@@ -69,7 +76,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
         />
       </View>
       {open && <Text variant="footnote" color="textSecondary" style={s.faqA}>{a}</Text>}
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 
@@ -89,7 +96,13 @@ function ContactRow({
   const { c } = useTheme();
   const s = React.useMemo(() => makeS(c), [c]);
   return (
-    <TouchableOpacity style={s.contactRow} onPress={onPress} testID={testID} accessibilityRole="button">
+    <PressableScale
+      style={s.contactRow}
+      onPress={onPress}
+      testID={testID}
+      accessibilityRole="button"
+      pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    >
       <View style={s.contactIcon}>
         <Ionicons name={icon} size={22} color={c.primary} />
       </View>
@@ -98,7 +111,7 @@ function ContactRow({
         <Text variant="footnote" color="textSecondary">{sub}</Text>
       </View>
       <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 
@@ -120,9 +133,16 @@ export default function SupportScreen() {
   return (
     <SafeAreaView style={s.safe} testID="SupportScreen">
       <View style={s.header}>
-        <TouchableOpacity onPress={() => nav.goBack()} style={s.backBtn} accessibilityLabel="Go back">
+        <PressableScale
+          onPress={() => nav.goBack()}
+          style={s.backBtn}
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
-        </TouchableOpacity>
+        </PressableScale>
         <Text variant="headline" color="textPrimary" style={s.title}>Help & Support</Text>
       </View>
 

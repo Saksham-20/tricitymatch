@@ -1,9 +1,10 @@
 import React from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import Text from '../ui/Text';
 import { Ionicons } from '@expo/vector-icons';
 import { colours, spacing, type ThemeColours } from '@shared/constants/theme';
+import { PressableScale } from '../motion';
 
 interface Props {
   lastSyncedLabel?: string | null;
@@ -24,14 +25,17 @@ export default function OfflineBanner({ lastSyncedLabel, isStale, onRefresh }: P
         <Text variant="caption" style={s.sub}>{lastSyncedLabel}</Text>
       ) : null}
       {onRefresh ? (
-        <TouchableOpacity
+        <PressableScale
           onPress={onRefresh}
           style={s.refreshBtn}
           testID="offline-banner-refresh"
+          accessibilityRole="button"
           accessibilityLabel="Retry connection"
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="refresh-outline" size={16} color="#fff" />
-        </TouchableOpacity>
+        </PressableScale>
       ) : null}
     </View>
   );

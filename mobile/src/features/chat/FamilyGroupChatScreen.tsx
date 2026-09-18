@@ -5,7 +5,6 @@ import {
   StyleSheet,
   FlatList,
   TextInput,
-  TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
   Alert,
@@ -14,6 +13,7 @@ import {
   ScrollView,
 } from 'react-native';
 import Text from '../../components/ui/Text';
+import { PressableScale } from '../../components/motion';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -153,36 +153,50 @@ function InviteModal({ visible, groupId, onClose }: InviteModalProps) {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing.lg }}>
             <View style={{ flexDirection: 'row', gap: spacing.sm }}>
               {RELATION_OPTIONS.map((r) => (
-                <TouchableOpacity
+                <PressableScale
                   key={r}
                   style={[im.chip, relation === r && im.chipActive]}
                   onPress={() => setRelation(r)}
-                  testID={`relation-chip-${r}`}
                   accessibilityLabel={`Select relation ${r}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: relation === r }}
+                  hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                  pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  testID={`relation-chip-${r}`}
                 >
                   <Text variant="subhead" color={relation === r ? 'primary' : 'textSecondary'}>{r}</Text>
-                </TouchableOpacity>
+                </PressableScale>
               ))}
             </View>
           </ScrollView>
 
-          <TouchableOpacity
+          <PressableScale
             style={im.sendBtn}
             onPress={handleInvite}
             disabled={loading}
-            testID="send-invite-btn"
             accessibilityLabel="Send invite"
+            accessibilityRole="button"
+            accessibilityState={{ disabled: loading }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            testID="send-invite-btn"
           >
             {loading ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
               <Text variant="headline" style={im.sendText}>Send Invite via SMS</Text>
             )}
-          </TouchableOpacity>
+          </PressableScale>
 
-          <TouchableOpacity style={im.cancelBtn} onPress={onClose} testID="cancel-invite-btn" accessibilityLabel="Cancel">
+          <PressableScale
+            style={im.cancelBtn}
+            onPress={onClose}
+            accessibilityLabel="Cancel"
+            accessibilityRole="button"
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            testID="cancel-invite-btn"
+          >
             <Text variant="callout" color="textSecondary">Cancel</Text>
-          </TouchableOpacity>
+          </PressableScale>
         </View>
       </View>
     </Modal>
@@ -336,9 +350,17 @@ export default function FamilyGroupChatScreen() {
     >
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} testID="back-btn" accessibilityLabel="Go back">
+        <PressableScale
+          onPress={() => navigation.goBack()}
+          style={s.backBtn}
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
+          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          testID="back-btn"
+        >
           <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
-        </TouchableOpacity>
+        </PressableScale>
         <View style={s.headerInfo}>
           <View style={s.groupAvatarCircle}>
             <Ionicons name="people" size={18} color="#fff" />
@@ -349,22 +371,28 @@ export default function FamilyGroupChatScreen() {
           </View>
         </View>
         <View style={s.headerActions}>
-          <TouchableOpacity
+          <PressableScale
             style={s.headerBtn}
             onPress={() => setShowInvite(true)}
-            testID="invite-btn"
             accessibilityLabel="Invite family member"
+            accessibilityRole="button"
+            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            testID="invite-btn"
           >
             <Ionicons name="person-add-outline" size={22} color={c.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity
+          </PressableScale>
+          <PressableScale
             style={s.headerBtn}
             onPress={handleLeave}
-            testID="leave-btn"
             accessibilityLabel="Leave group"
+            accessibilityRole="button"
+            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            testID="leave-btn"
           >
             <Ionicons name="exit-outline" size={22} color={c.error} />
-          </TouchableOpacity>
+          </PressableScale>
         </View>
       </View>
 
@@ -411,15 +439,19 @@ export default function FamilyGroupChatScreen() {
           testID="message-input"
           accessibilityLabel="Message input"
         />
-        <TouchableOpacity
+        <PressableScale
           style={[s.sendBtn, !text.trim() && s.sendBtnDisabled]}
           onPress={handleSend}
           disabled={!text.trim()}
-          testID="send-btn"
           accessibilityLabel="Send message"
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !text.trim() }}
+          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          testID="send-btn"
         >
           <Ionicons name="send" size={20} color={text.trim() ? '#fff' : c.textMuted} />
-        </TouchableOpacity>
+        </PressableScale>
       </View>
 
       <InviteModal visible={showInvite} groupId={groupId} onClose={() => setShowInvite(false)} />

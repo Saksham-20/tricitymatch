@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TextInput, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { PressableScale } from '../../components/motion';
 import PickerSheet from '../../components/ui/PickerSheet';
 import Text from '../../components/ui/Text';
 import OnboardingLayout from './OnboardingLayout';
@@ -64,16 +65,18 @@ export default function Step5Screen() {
       {/* Profession */}
       <View>
         <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step5.profession')}</Text>
-        <TouchableOpacity
+        <PressableScale
           style={styles.selectBtn}
           onPress={() => setProfSheet(true)}
           testID="select-profession"
           accessibilityLabel={t('onboarding.step5.profession')}
+          accessibilityRole="button"
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text variant="callout" color={profession ? 'textPrimary' : 'textMuted'}>
             {profession || 'Select profession'}
           </Text>
-        </TouchableOpacity>
+        </PressableScale>
       </View>
 
       {/* Employer + income reveal after profession is chosen */}
@@ -103,16 +106,18 @@ export default function Step5Screen() {
           {t('onboarding.step5.income')}
           <Text variant="footnote" color="textMuted"> ({t('common.optional')})</Text>
         </Text>
-        <TouchableOpacity
+        <PressableScale
           style={styles.selectBtn}
           onPress={() => setIncomeSheet(true)}
           testID="select-income"
           accessibilityLabel={t('onboarding.step5.income')}
+          accessibilityRole="button"
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text variant="callout" color={income !== null ? 'textPrimary' : 'textMuted'}>
             {incomeLabel || 'Select annual income'}
           </Text>
-        </TouchableOpacity>
+        </PressableScale>
       </View>
       )}
 

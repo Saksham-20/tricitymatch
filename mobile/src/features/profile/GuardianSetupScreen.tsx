@@ -4,7 +4,6 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   Alert,
   ActivityIndicator,
   TextInput,
@@ -17,6 +16,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { ListSkeleton } from '../../components/ui/skeletons';
+import { PressableScale } from '../../components/motion';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import {
@@ -71,12 +71,26 @@ function InviteGuardianModal({ visible, onClose, onCreate }: {
             accessibilityLabel="Guardian email"
           />
 
-          <TouchableOpacity style={im.sendBtn} onPress={handleSend} testID="send-guardian-invite-btn" accessibilityLabel="Send invite">
+          <PressableScale
+            style={im.sendBtn}
+            onPress={handleSend}
+            testID="send-guardian-invite-btn"
+            accessibilityLabel="Send invite"
+            accessibilityRole="button"
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Text variant="headline" style={im.sendText}>Send Invite</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={im.cancelBtn} onPress={onClose} testID="cancel-guardian-invite-btn">
+          </PressableScale>
+          <PressableScale
+            style={im.cancelBtn}
+            onPress={onClose}
+            testID="cancel-guardian-invite-btn"
+            accessibilityRole="button"
+            hitSlop={{ top: 6, bottom: 6, left: 0, right: 0 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Text variant="callout" color="textSecondary">Cancel</Text>
-          </TouchableOpacity>
+          </PressableScale>
         </View>
       </View>
     </Modal>
@@ -172,9 +186,17 @@ export default function GuardianSetupScreen() {
     <View style={[s.wrapper, { paddingTop: insets.top }]} testID="GuardianSetupScreen">
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} testID="back-btn" accessibilityLabel="Go back">
+        <PressableScale
+          onPress={() => navigation.goBack()}
+          style={s.backBtn}
+          testID="back-btn"
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
+          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
-        </TouchableOpacity>
+        </PressableScale>
         <Text variant="title3" color="textPrimary">Guardian Co-Pilot</Text>
         <View style={{ width: 40 }} />
       </View>
@@ -209,15 +231,17 @@ export default function GuardianSetupScreen() {
 
         {/* Invite button */}
         {activeLinks.length < 3 && (
-          <TouchableOpacity
+          <PressableScale
             style={s.inviteBtn}
             onPress={() => setShowInvite(true)}
             testID="invite-guardian-btn"
             accessibilityLabel="Invite a guardian"
+            accessibilityRole="button"
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Ionicons name="person-add-outline" size={18} color="#fff" style={{ marginRight: spacing.sm }} />
             <Text variant="headline" style={s.inviteBtnText}>Invite a Guardian</Text>
-          </TouchableOpacity>
+          </PressableScale>
         )}
 
         {activeLinks.length >= 3 && (
@@ -243,14 +267,17 @@ export default function GuardianSetupScreen() {
                 </View>
                 <StatusPill status={link.status} />
                 {link.status !== 'revoked' && (
-                  <TouchableOpacity
+                  <PressableScale
                     style={s.revokeBtn}
                     onPress={() => handleRevoke(link)}
                     testID={`revoke-btn-${link.id}`}
                     accessibilityLabel={`Revoke ${link.guardianName}`}
+                    accessibilityRole="button"
+                    hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                    pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
                     <Ionicons name="trash-outline" size={18} color={c.error} />
-                  </TouchableOpacity>
+                  </PressableScale>
                 )}
               </View>
             ))}

@@ -4,7 +4,6 @@ import {
   View,
   StyleSheet,
   FlatList,
-  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -13,6 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import Text from '../../components/ui/Text';
 import { ListSkeleton } from '../../components/ui/skeletons';
+import { PressableScale } from '../../components/motion';
 import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import SmartImage from '../../components/common/SmartImage';
 import { getSuccessStories, type SuccessStory } from '../../api/profile';
@@ -60,17 +60,27 @@ export default function SuccessStoriesBrowseScreen() {
   return (
     <SafeAreaView style={styles.safe} testID="SuccessStoriesBrowseScreen">
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} testID="back-btn" accessibilityLabel="Back">
+        <PressableScale
+          onPress={() => navigation.goBack()}
+          testID="back-btn"
+          accessibilityLabel="Back"
+          accessibilityRole="button"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="chevron-back" size={26} color={c.textPrimary} />
-        </TouchableOpacity>
+        </PressableScale>
         <Text variant="headline" color="textPrimary">Success Stories</Text>
-        <TouchableOpacity
+        <PressableScale
           onPress={() => navigation.navigate('SuccessStory')}
           testID="share-story-btn"
           accessibilityLabel="Share your story"
+          accessibilityRole="button"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="add-circle-outline" size={24} color={c.primary} />
-        </TouchableOpacity>
+        </PressableScale>
       </View>
 
       {isLoading ? (
@@ -86,13 +96,15 @@ export default function SuccessStoriesBrowseScreen() {
               <Ionicons name="heart-outline" size={48} color={c.textMuted} />
               <Text variant="headline" color="textPrimary" style={styles.emptyTitle}>No stories yet</Text>
               <Text variant="footnote" color="textSecondary" style={styles.emptySub}>Be the first to share your TricityMatch journey.</Text>
-              <TouchableOpacity
+              <PressableScale
                 style={styles.emptyBtn}
                 onPress={() => navigation.navigate('SuccessStory')}
                 testID="empty-share-btn"
+                accessibilityRole="button"
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Text variant="caption" style={styles.emptyBtnText}>Share your story</Text>
-              </TouchableOpacity>
+              </PressableScale>
             </View>
           }
         />

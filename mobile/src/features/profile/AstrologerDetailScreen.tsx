@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { ListSkeleton } from '../../components/ui/skeletons';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { PressableScale } from '../../components/motion';
 import Text from '../../components/ui/Text';
 import { getAstrologer, bookAstrologer } from '../../api/profile';
 import type { MainStackParamList } from '../../navigation/types';
@@ -76,9 +77,15 @@ export default function AstrologerDetailScreen() {
   return (
     <View style={[s.container, { paddingTop: insets.top }]}>
       <View style={s.header}>
-        <TouchableOpacity onPress={() => nav.goBack()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+        <PressableScale
+          onPress={() => nav.goBack()}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
           <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
-        </TouchableOpacity>
+        </PressableScale>
         <Text variant="headline" color="textPrimary" style={s.headerTitle} numberOfLines={1}>{astrologer?.name ?? astrologerName}</Text>
         <View style={{ width: 24 }} />
       </View>
@@ -89,9 +96,15 @@ export default function AstrologerDetailScreen() {
         <View style={s.state}>
           <Ionicons name="cloud-offline-outline" size={44} color={c.textMuted} />
           <Text variant="callout" color="textMuted">Could not load this astrologer.</Text>
-          <TouchableOpacity onPress={() => refetch()} style={s.retryBtn}>
+          <PressableScale
+            onPress={() => refetch()}
+            style={s.retryBtn}
+            accessibilityRole="button"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Text variant="caption" color="primary">Try again</Text>
-          </TouchableOpacity>
+          </PressableScale>
         </View>
       ) : (
         <>
@@ -140,10 +153,15 @@ export default function AstrologerDetailScreen() {
               <Text variant="headline" color="textPrimary">Consultation Duration</Text>
               <View style={s.durationRow}>
                 {DURATIONS.map((d) => (
-                  <TouchableOpacity
+                  <PressableScale
                     key={d}
                     style={[s.durationBtn, selectedDuration === d && s.durationBtnActive]}
                     onPress={() => setSelectedDuration(d)}
+                    accessibilityRole="radio"
+                    accessibilityLabel={`${d} minutes, ₹${pricePerMin * d}`}
+                    accessibilityState={{ selected: selectedDuration === d }}
+                    hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                    pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
                     <Text variant="caption" color={selectedDuration === d ? 'primary' : 'textPrimary'}>
                       {d} min
@@ -151,7 +169,7 @@ export default function AstrologerDetailScreen() {
                     <Text variant="caption" color={selectedDuration === d ? 'primary' : 'textMuted'}>
                       ₹{pricePerMin * d}
                     </Text>
-                  </TouchableOpacity>
+                  </PressableScale>
                 ))}
               </View>
               <Text variant="caption" color="textMuted">
@@ -165,13 +183,16 @@ export default function AstrologerDetailScreen() {
               <Text variant="title3" color="textPrimary">₹{totalAmount}</Text>
               <Text variant="caption" color="textMuted">for {selectedDuration} min</Text>
             </View>
-            <TouchableOpacity
+            <PressableScale
               style={[s.bookBtn, booking && s.bookBtnDisabled]}
               onPress={handleBook}
               disabled={booking}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: booking }}
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Text variant="headline" color="onPrimary">{booking ? 'Booking…' : 'Book Consultation'}</Text>
-            </TouchableOpacity>
+            </PressableScale>
           </View>
         </>
       )}

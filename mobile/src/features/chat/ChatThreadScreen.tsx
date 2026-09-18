@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
-  View, FlatList, TextInput, TouchableOpacity, StyleSheet,
+  View, FlatList, TextInput, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Modal, Pressable,
 } from 'react-native';
 import Text from '../../components/ui/Text';
@@ -143,12 +143,14 @@ function MessageBubble({ msg, isOwn, onLongPress }: BubbleProps) {
   const entering = !reduced && isFresh ? FadeInDown.duration(duration.content) : undefined;
   return (
     <Animated.View entering={entering}>
-    <TouchableOpacity
+    <PressableScale
       onLongPress={onLongPress}
       delayLongPress={400}
       style={[s.bubbleRow, isOwn ? s.bubbleRowOwn : s.bubbleRowTheirs, pending && { opacity: 0.5 }]}
       testID={`Bubble-${msg.id}`}
       accessibilityLabel={`Message: ${msg.content}`}
+      accessibilityRole="button"
+      pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
     >
       <View>
         <View style={[s.bubble, isOwn ? s.bubbleOwn : s.bubbleTheirs]}>
@@ -187,7 +189,7 @@ function MessageBubble({ msg, isOwn, onLongPress }: BubbleProps) {
           </View>
         )}
       </View>
-    </TouchableOpacity>
+    </PressableScale>
     </Animated.View>
   );
 }
@@ -249,17 +251,20 @@ function ContactUnlockBanner({ userId, onUnlocked }: ContactBannerProps) {
   }
 
   return (
-    <TouchableOpacity
+    <PressableScale
       style={s.contactBanner}
       onPress={handleUnlock}
       disabled={isPending}
       accessibilityLabel={t('chat.requestContact', 'Request Contact')}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: isPending }}
+      pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
       testID="ContactUnlockBanner"
     >
       <Ionicons name="person-add-outline" size={16} color={c.primary} />
       <Text variant="subhead" color="primary">{t('chat.requestContact', 'Request Contact')}</Text>
       {isPending && <ActivityIndicator size="small" color={c.primary} style={{ marginLeft: 8 }} />}
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 
@@ -291,57 +296,69 @@ function MessageActionMenu({ msg, isOwn, visible, canRich, onClose, onEdit, onDe
           {canRich && (
             <View style={s.emojiRow}>
               {REACTION_EMOJIS.map((e) => (
-                <TouchableOpacity
+                <PressableScale
                   key={e}
                   onPress={() => { onReact(msg, e); onClose(); }}
                   style={s.emojiBtn}
+                  scaleTo={0.92}
                   accessibilityLabel={`React ${e}`}
+                  accessibilityRole="button"
+                  hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                  pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   testID={`React-${e}`}
                 >
                   <Text variant="title2">{e}</Text>
-                </TouchableOpacity>
+                </PressableScale>
               ))}
             </View>
           )}
           {canRich && (
-            <TouchableOpacity
+            <PressableScale
               style={s.menuItem}
               onPress={() => { onReply(msg); onClose(); }}
+              accessibilityRole="button"
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
               testID="MenuReply"
             >
               <Ionicons name="return-up-back" size={18} color={c.textPrimary} />
               <Text variant="subhead" color="textPrimary">{t('chat.reply', 'Reply')}</Text>
-            </TouchableOpacity>
+            </PressableScale>
           )}
           {isOwn && canEdit(msg.createdAt) && (
-            <TouchableOpacity
+            <PressableScale
               style={s.menuItem}
               onPress={() => { onEdit(msg); onClose(); }}
+              accessibilityRole="button"
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
               testID="MenuEdit"
             >
               <Ionicons name="pencil" size={18} color={c.textPrimary} />
               <Text variant="subhead" color="textPrimary">{t('chat.edit', 'Edit')}</Text>
-            </TouchableOpacity>
+            </PressableScale>
           )}
           {isOwn && (
-            <TouchableOpacity
+            <PressableScale
               style={s.menuItem}
               onPress={() => { onDelete(msg); onClose(); }}
+              accessibilityRole="button"
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
               testID="MenuDelete"
             >
               <Ionicons name="trash" size={18} color={c.error} />
               <Text variant="subhead" color="error">{t('chat.delete', 'Delete')}</Text>
-            </TouchableOpacity>
+            </PressableScale>
           )}
           {!isOwn && (
-            <TouchableOpacity
+            <PressableScale
               style={s.menuItem}
               onPress={() => { onReport(msg); onClose(); }}
+              accessibilityRole="button"
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
               testID="MenuReport"
             >
               <Ionicons name="flag" size={18} color={c.warning} />
               <Text variant="subhead" color="warning">{t('chat.report', 'Report')}</Text>
-            </TouchableOpacity>
+            </PressableScale>
           )}
         </View>
       </Pressable>
@@ -678,9 +695,15 @@ export default function ChatThreadScreen() {
   if ((threadError as any)?.response?.status === 403) {
     return (
       <View style={[s.gateWrap, { paddingTop: insets.top }]} testID="ChatThreadGate">
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.gateBack} accessibilityLabel={t('back', 'Back')}>
+        <PressableScale
+          onPress={() => navigation.goBack()}
+          style={s.gateBack}
+          accessibilityLabel={t('back', 'Back')}
+          accessibilityRole="button"
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
-        </TouchableOpacity>
+        </PressableScale>
         <View style={s.gateBody}>
           <View style={s.gateIcon}>
             <Ionicons name="lock-closed" size={32} color={c.secondary} />
@@ -689,13 +712,15 @@ export default function ChatThreadScreen() {
           <Text variant="footnote" color="textMuted" style={s.gateLine}>
             {t('chat.gateLine', 'Upgrade to start the conversation with {{name}}.', { name: name || 'your match' })}
           </Text>
-          <TouchableOpacity
+          <PressableScale
             style={s.gateCta}
             onPress={() => navigation.navigate('Subscription')}
+            accessibilityRole="button"
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
             testID="ChatGateUpgrade"
           >
             <Text variant="headline" style={{ color: '#fff' }}>{t('chat.gateCta', 'See plans')}</Text>
-          </TouchableOpacity>
+          </PressableScale>
         </View>
       </View>
     );
@@ -714,25 +739,30 @@ export default function ChatThreadScreen() {
     >
       {/* Header */}
       <View style={[s.header, { paddingTop: insets.top + spacing.sm }]}>
-        <TouchableOpacity
+        <PressableScale
           onPress={() => navigation.goBack()}
           style={s.backBtn}
           accessibilityLabel={t('back', 'Back')}
+          accessibilityRole="button"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           testID="BackBtn"
         >
           <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
-        </TouchableOpacity>
+        </PressableScale>
 
-        <TouchableOpacity
+        <PressableScale
           style={s.headerProfile}
           onPress={() => navigation.navigate('ProfileDetail', { userId })}
           accessibilityLabel={`View ${name}'s profile`}
+          accessibilityRole="button"
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           testID="HeaderProfile"
         >
           <SmartImage uri={photo} name={name} style={s.headerAvatar} initialSize={16} />
 
           <Text variant="subhead" color="textPrimary" style={s.headerName} numberOfLines={1}>{name}</Text>
-        </TouchableOpacity>
+        </PressableScale>
 
         {/* Calls are config-gated on the Agora credentials, matching the web app
             (which hides its call UI when VITE_AGORA_APP_ID is unset). Without
@@ -795,9 +825,15 @@ export default function ChatThreadScreen() {
         <View style={s.editBanner} testID="EditBanner">
           <Ionicons name="pencil" size={14} color={c.primary} />
           <Text variant="caption" color="primary" style={s.editBannerText} numberOfLines={1}>{editingMsg.content}</Text>
-          <TouchableOpacity onPress={() => { setEditingMsg(null); setInput(''); }}>
+          <PressableScale
+            onPress={() => { setEditingMsg(null); setInput(''); }}
+            accessibilityLabel={t('chat.cancelEdit', 'Cancel edit')}
+            accessibilityRole="button"
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Ionicons name="close" size={18} color={c.textMuted} />
-          </TouchableOpacity>
+          </PressableScale>
         </View>
       )}
 
@@ -808,9 +844,15 @@ export default function ChatThreadScreen() {
           <Text variant="caption" color="primary" style={s.editBannerText} numberOfLines={1}>
             {replyingTo.messageType === 'voice' ? 'Voice message' : replyingTo.content}
           </Text>
-          <TouchableOpacity onPress={() => setReplyingTo(null)} accessibilityLabel="Cancel reply">
+          <PressableScale
+            onPress={() => setReplyingTo(null)}
+            accessibilityLabel="Cancel reply"
+            accessibilityRole="button"
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Ionicons name="close" size={18} color={c.textMuted} />
-          </TouchableOpacity>
+          </PressableScale>
         </View>
       )}
 
@@ -823,13 +865,15 @@ export default function ChatThreadScreen() {
               {t('chat.windowKeepTalking', '{{name}} can still write to you — upgrade to keep talking.', { name: (name || 'They').split(' ')[0] })}
             </Text>
           </View>
-          <TouchableOpacity
+          <PressableScale
             style={s.paywallCta}
             onPress={() => navigation.navigate('Subscription')}
+            accessibilityRole="button"
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
             testID="PaywallUpgrade"
           >
             <Text variant="subhead" style={{ color: '#fff' }}>{t('chat.upgrade', 'Upgrade')}</Text>
-          </TouchableOpacity>
+          </PressableScale>
         </View>
       ) : showRecorder ? (
         <View style={{ paddingBottom: Math.max(insets.bottom, spacing.xs) }}>

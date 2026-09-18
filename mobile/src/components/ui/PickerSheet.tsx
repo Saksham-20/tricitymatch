@@ -1,11 +1,11 @@
 import React from 'react';
-import { FlatList, Modal, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { FlatList, Modal, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { borderRadius, spacing } from '@shared/constants/theme';
-import { haptics } from '../../utils/haptics';
 import { useTheme } from '../../hooks/useTheme';
 import Text from './Text';
+import { PressableScale } from '../motion';
 
 export interface PickerOption<T> {
   label: string;
@@ -45,7 +45,13 @@ export default function PickerSheet<T = string>({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
+      <PressableScale
+        style={styles.backdrop}
+        onPress={onClose}
+        accessibilityRole="button"
+        accessibilityLabel="Close"
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      />
       <View style={[styles.sheet, { backgroundColor: c.background, paddingBottom: insets.bottom }]}>
         <View style={[styles.grabber, { backgroundColor: c.border }]} />
         <Text variant="title3" color="textPrimary" style={styles.title}>{title}</Text>
@@ -55,22 +61,23 @@ export default function PickerSheet<T = string>({
           renderItem={({ item }) => {
             const active = item.value === selected;
             return (
-              <TouchableOpacity
+              <PressableScale
                 style={[styles.row, active && { backgroundColor: c.accentSoft }]}
                 onPress={() => {
-                  haptics.light();
                   onSelect(item.value);
                   onClose();
                 }}
+                haptic
                 testID={`option-${item.value}`}
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Text variant={active ? 'headline' : 'body'} color={active ? 'primary' : 'textPrimary'}>
                   {item.label}
                 </Text>
                 {active && <Ionicons name="checkmark" size={20} color={c.primary} />}
-              </TouchableOpacity>
+              </PressableScale>
             );
           }}
         />

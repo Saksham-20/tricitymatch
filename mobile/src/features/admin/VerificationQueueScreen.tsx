@@ -4,7 +4,6 @@ import {
   View,
   StyleSheet,
   FlatList,
-  TouchableOpacity,
   ActivityIndicator,
   Alert,
   Modal,
@@ -20,6 +19,7 @@ import { getVerificationQueue, approveVerification, rejectVerification } from '.
 import SmartImage from '../../components/common/SmartImage';
 import type { Verification } from '../../types';
 import Text from '../../components/ui/Text';
+import { PressableScale } from '../../components/motion';
 
 /**
  * Matches what `GET /admin/verifications` returns: the reviewed user arrives
@@ -81,24 +81,30 @@ function VerifCard({
       </View>
 
       <View style={s.actions}>
-        <TouchableOpacity
+        <PressableScale
           style={[s.btn, s.rejectBtn]}
           onPress={() => onReject(item.id, nameOf(item))}
           testID={`reject-btn-${item.id}`}
+          accessibilityRole="button"
           accessibilityLabel="Reject verification"
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="close" size={16} color={c.error} />
           <Text variant="caption" color="error">Reject</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
+        </PressableScale>
+        <PressableScale
           style={[s.btn, s.approveBtn]}
           onPress={() => onApprove(item.id)}
           testID={`approve-btn-${item.id}`}
+          accessibilityRole="button"
           accessibilityLabel="Approve verification"
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="checkmark" size={16} color="#fff" />
           <Text variant="caption" style={{ color: '#fff' }}>Approve</Text>
-        </TouchableOpacity>
+        </PressableScale>
       </View>
     </View>
   );
@@ -160,9 +166,16 @@ export default function VerificationQueueScreen() {
   return (
     <SafeAreaView style={s.safe} testID="VerificationQueueScreen">
       <View style={s.header}>
-        <TouchableOpacity onPress={() => nav.goBack()} style={s.backBtn} accessibilityLabel="Go back">
+        <PressableScale
+          onPress={() => nav.goBack()}
+          style={s.backBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
-        </TouchableOpacity>
+        </PressableScale>
         <Text variant="title3" color="textPrimary" style={s.title}>Verification Queue</Text>
         {isLoading && <ActivityIndicator size="small" color={c.primary} />}
       </View>
@@ -210,21 +223,32 @@ export default function VerificationQueueScreen() {
               testID="reject-reason-input"
             />
             <View style={s.modalActions}>
-              <TouchableOpacity style={s.modalCancel} onPress={() => setRejectTarget(null)}>
+              <PressableScale
+                style={s.modalCancel}
+                onPress={() => setRejectTarget(null)}
+                accessibilityRole="button"
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
                 <Text variant="subhead" color="textSecondary">Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
+              </PressableScale>
+              <PressableScale
                 style={[s.modalConfirm, mutPending && s.disabled]}
                 onPress={handleRejectConfirm}
                 disabled={mutPending}
                 testID="reject-confirm-btn"
+                accessibilityRole="button"
+                accessibilityLabel="Confirm reject"
+                accessibilityState={{ disabled: mutPending }}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 {mutPending ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
                   <Text variant="caption" style={{ color: '#fff' }}>Reject</Text>
                 )}
-              </TouchableOpacity>
+              </PressableScale>
             </View>
           </View>
         </View>

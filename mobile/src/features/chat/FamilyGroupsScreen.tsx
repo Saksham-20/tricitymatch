@@ -4,12 +4,12 @@ import {
   View,
   StyleSheet,
   FlatList,
-  TouchableOpacity,
   Alert,
   TextInput,
   Modal,
 } from 'react-native';
 import Text from '../../components/ui/Text';
+import { PressableScale } from '../../components/motion';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -60,12 +60,26 @@ function CreateGroupModal({ visible, onClose, onCreate }: {
             testID="group-name-input"
             accessibilityLabel="Group name"
           />
-          <TouchableOpacity style={cm.createBtn} onPress={handleCreate} testID="create-group-btn" accessibilityLabel="Create group">
+          <PressableScale
+            style={cm.createBtn}
+            onPress={handleCreate}
+            testID="create-group-btn"
+            accessibilityRole="button"
+            accessibilityLabel="Create group"
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Text variant="headline" style={cm.createText}>Create Group</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={cm.cancelBtn} onPress={onClose} testID="cancel-create-btn">
+          </PressableScale>
+          <PressableScale
+            style={cm.cancelBtn}
+            onPress={onClose}
+            testID="cancel-create-btn"
+            accessibilityRole="button"
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Text variant="callout" color="textSecondary">Cancel</Text>
-          </TouchableOpacity>
+          </PressableScale>
         </View>
       </View>
     </Modal>
@@ -91,7 +105,14 @@ function GroupRow({ group, onPress }: { group: FamilyGroup; onPress: () => void 
   const { c } = useTheme();
   const gr = React.useMemo(() => makeGr(c), [c]);
   return (
-    <TouchableOpacity style={gr.row} onPress={onPress} testID={`group-row-${group.id}`} accessibilityLabel={`Open ${group.name} group chat`}>
+    <PressableScale
+      style={gr.row}
+      onPress={onPress}
+      testID={`group-row-${group.id}`}
+      accessibilityRole="button"
+      accessibilityLabel={`Open ${group.name} group chat`}
+      pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    >
       <View style={gr.avatar}>
         <Ionicons name="people" size={20} color="#fff" />
       </View>
@@ -100,7 +121,7 @@ function GroupRow({ group, onPress }: { group: FamilyGroup; onPress: () => void 
         <Text variant="caption" color="textSecondary" style={gr.sub}>{group.members.length} member{group.members.length !== 1 ? 's' : ''}</Text>
       </View>
       <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 
@@ -147,18 +168,29 @@ export default function FamilyGroupsScreen() {
     <View style={s.wrapper} testID="FamilyGroupsScreen">
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} testID="back-btn" accessibilityLabel="Go back">
+        <PressableScale
+          onPress={() => navigation.goBack()}
+          style={s.backBtn}
+          testID="back-btn"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
-        </TouchableOpacity>
+        </PressableScale>
         <Text variant="title3" color="textPrimary">Family Chat</Text>
-        <TouchableOpacity
+        <PressableScale
           style={s.addBtn}
           onPress={() => setShowCreate(true)}
           testID="add-group-btn"
+          accessibilityRole="button"
           accessibilityLabel="Create family group"
+          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="add" size={24} color={c.primary} />
-        </TouchableOpacity>
+        </PressableScale>
       </View>
 
       {/* Intro */}
@@ -181,15 +213,17 @@ export default function FamilyGroupsScreen() {
               <Ionicons name="chatbubbles-outline" size={52} color={c.textMuted} />
               <Text variant="title3" color="textSecondary">No Family Groups Yet</Text>
               <Text variant="subhead" color="textMuted" style={s.emptyHint}>Create a group and invite your parents or siblings to discuss matches together.</Text>
-              <TouchableOpacity
+              <PressableScale
                 style={s.createCta}
                 onPress={() => setShowCreate(true)}
                 testID="create-cta-btn"
+                accessibilityRole="button"
                 accessibilityLabel="Create first group"
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Ionicons name="add-circle-outline" size={18} color="#fff" style={{ marginRight: spacing.sm }} />
                 <Text variant="callout" style={s.ctaText}>Create Family Group</Text>
-              </TouchableOpacity>
+              </PressableScale>
             </View>
           }
         />

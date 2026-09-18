@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
-  View, TouchableOpacity, StyleSheet, Image,
+  View, StyleSheet, Image,
   Alert, ActivityIndicator,
 } from 'react-native';
 import Text from '../../components/ui/Text';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { PressableScale } from '../../components/motion';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -107,13 +108,29 @@ export default function Step12Screen() {
     <SafeAreaView style={styles.safe} testID="OnboardingStep12">
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={goBack} style={styles.backBtn} testID="btn-back" accessibilityLabel={t('common.back')}>
+        <PressableScale
+          scaleTo={0.92}
+          onPress={goBack}
+          style={styles.backBtn}
+          testID="btn-back"
+          accessibilityRole="button"
+          accessibilityLabel={t('common.back')}
+          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
-        </TouchableOpacity>
+        </PressableScale>
         <Text variant="subhead" color="textSecondary">{t('onboarding.progress', { current: 12, total: 14 })}</Text>
-        <TouchableOpacity onPress={handleSkip} testID="btn-skip" accessibilityLabel={t('common.skip')}>
+        <PressableScale
+          onPress={handleSkip}
+          testID="btn-skip"
+          accessibilityRole="button"
+          accessibilityLabel={t('common.skip')}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Text variant="subhead" color="primary">{t('common.skip')}</Text>
-        </TouchableOpacity>
+        </PressableScale>
       </View>
 
       {/* Progress bar */}
@@ -148,13 +165,15 @@ export default function Step12Screen() {
 
             if (isUploadSlot) {
               return (
-                <TouchableOpacity
+                <PressableScale
                   key={`slot-${i}`}
                   style={styles.addSlot}
                   onPress={pickImage}
                   disabled={uploading !== null}
                   testID="btn-addPhoto"
+                  accessibilityRole="button"
                   accessibilityLabel={t('onboarding.step12.addPhoto')}
+                  pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
                   {isLoading ? (
                     <ActivityIndicator color={c.primary} />
@@ -166,7 +185,7 @@ export default function Step12Screen() {
                       </Text>
                     </>
                   )}
-                </TouchableOpacity>
+                </PressableScale>
               );
             }
 
@@ -182,36 +201,48 @@ export default function Step12Screen() {
                 )}
 
                 {/* Remove button */}
-                <TouchableOpacity
+                <PressableScale
+                  scaleTo={0.9}
                   style={styles.removeBtn}
                   onPress={() => removePhoto(i)}
                   testID={`btn-remove-${i}`}
+                  accessibilityRole="button"
                   accessibilityLabel={t('onboarding.step12.removePhoto')}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
                   <Ionicons name="close-circle" size={22} color="#fff" />
-                </TouchableOpacity>
+                </PressableScale>
 
                 {/* Reorder buttons */}
                 <View style={styles.reorderBtns}>
                   {i > 0 && (
-                    <TouchableOpacity
+                    <PressableScale
+                      scaleTo={0.9}
                       style={styles.reorderBtn}
                       onPress={() => movePhoto(i, i - 1)}
                       testID={`btn-move-left-${i}`}
+                      accessibilityRole="button"
                       accessibilityLabel="Move photo left"
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     >
                       <Ionicons name="chevron-back" size={14} color="#fff" />
-                    </TouchableOpacity>
+                    </PressableScale>
                   )}
                   {i < photos.length - 1 && (
-                    <TouchableOpacity
+                    <PressableScale
+                      scaleTo={0.9}
                       style={styles.reorderBtn}
                       onPress={() => movePhoto(i, i + 1)}
                       testID={`btn-move-right-${i}`}
+                      accessibilityRole="button"
                       accessibilityLabel="Move photo right"
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     >
                       <Ionicons name="chevron-forward" size={14} color="#fff" />
-                    </TouchableOpacity>
+                    </PressableScale>
                   )}
                 </View>
               </View>
@@ -226,15 +257,17 @@ export default function Step12Screen() {
 
       {/* Footer */}
       <View style={styles.footer}>
-        <TouchableOpacity
+        <PressableScale
           style={[styles.continueBtn, !isValid && styles.continueBtnDisabled]}
           onPress={handleContinue}
           disabled={!isValid}
           testID="btn-continue"
+          accessibilityRole="button"
           accessibilityLabel={t('onboarding.saveAndContinue')}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text variant="headline" color="onPrimary">{t('onboarding.saveAndContinue')}</Text>
-        </TouchableOpacity>
+        </PressableScale>
       </View>
     </SafeAreaView>
   );

@@ -4,7 +4,6 @@ import {
   View,
   StyleSheet,
   FlatList,
-  TouchableOpacity,
   Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ListSkeleton } from '../../components/ui/skeletons';
 import { useQuery } from '@tanstack/react-query';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { PressableScale } from '../../components/motion';
 import Text from '../../components/ui/Text';
 import { getAstrologers } from '../../api/profile';
 import type { Astrologer } from '../../api/profile';
@@ -35,7 +35,13 @@ function AstrologerCard({ item, onPress }: { item: Astrologer; onPress: () => vo
   const { c } = useTheme();
   const cs = React.useMemo(() => makeCs(c), [c]);
   return (
-    <TouchableOpacity style={cs.card} onPress={onPress} activeOpacity={0.8}>
+    <PressableScale
+      style={cs.card}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${item.name}, ${item.isOnline ? 'online now' : 'offline'}, ₹${item.pricePerMin} per minute`}
+      pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    >
       {/* Avatar + Online */}
       <View style={cs.avatarWrap}>
         {item.avatarUrl ? (
@@ -91,7 +97,7 @@ function AstrologerCard({ item, onPress }: { item: Astrologer; onPress: () => vo
           {item.isOnline ? 'Chat' : 'Book'}
         </Text>
       </View>
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 
@@ -119,9 +125,15 @@ export default function AstrologerMarketplaceScreen() {
     <View style={[s.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity onPress={() => nav.goBack()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+        <PressableScale
+          onPress={() => nav.goBack()}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
           <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
-        </TouchableOpacity>
+        </PressableScale>
         <View style={s.headerText}>
           <Text variant="headline" color="textPrimary">Astrologer Consult</Text>
           <Text variant="caption" color="textSecondary">Expert Vedic guidance for your match</Text>
@@ -141,16 +153,20 @@ export default function AstrologerMarketplaceScreen() {
       {/* Filter Pills */}
       <View style={s.pills}>
         {(['all', 'online'] as const).map(f => (
-          <TouchableOpacity
+          <PressableScale
             key={f}
             style={[s.pill, filter === f && s.pillActive]}
             onPress={() => setFilter(f)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: filter === f }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             {f === 'online' && <View style={s.pillDot} />}
             <Text variant="subhead" color={filter === f ? 'onPrimary' : 'textSecondary'}>
               {f === 'all' ? 'All Astrologers' : 'Online Now'}
             </Text>
-          </TouchableOpacity>
+          </PressableScale>
         ))}
       </View>
 

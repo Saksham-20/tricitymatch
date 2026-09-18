@@ -3,7 +3,6 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   Alert,
   ActivityIndicator,
   Platform,
@@ -560,9 +559,17 @@ export default function SubscriptionScreen() {
     <View style={[s.wrapper, { paddingTop: insets.top }]} testID="SubscriptionScreen">
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} testID="back-btn" accessibilityLabel="Go back">
+        <PressableScale
+          onPress={() => navigation.goBack()}
+          style={s.backBtn}
+          testID="back-btn"
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
+          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
-        </TouchableOpacity>
+        </PressableScale>
         <Text variant="title3" color="textPrimary">Subscription</Text>
         <View style={{ width: 40 }} />
       </View>
@@ -646,12 +653,15 @@ export default function SubscriptionScreen() {
                 {(liveBundles ?? Object.values(UNLOCK_BUNDLES)).map((b) => {
                   const local = formatLocalPrice(b.price, currency);
                   return (
-                    <TouchableOpacity
+                    <PressableScale
                       key={b.bundleId}
                       style={[s.bundleRow, { borderColor: c.border }]}
                       onPress={() => buyBundle(b.bundleId)}
                       disabled={paying}
                       testID={`bundle-${b.bundleId}`}
+                      accessibilityRole="button"
+                      accessibilityState={{ disabled: paying }}
+                      pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     >
                       <Ionicons name="lock-open-outline" size={20} color={c.primary} />
                       <View style={{ flex: 1 }}>
@@ -659,7 +669,7 @@ export default function SubscriptionScreen() {
                         {local ? <Text variant="footnote" color="textMuted" style={s.bundleLocal}>≈ {local} (charged in ₹)</Text> : null}
                       </View>
                       <Text variant="headline" color="primary">₹{b.price.toLocaleString('en-IN')}</Text>
-                    </TouchableOpacity>
+                    </PressableScale>
                   );
                 })}
               </View>

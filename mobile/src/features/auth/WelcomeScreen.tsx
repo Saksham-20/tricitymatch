@@ -2,7 +2,6 @@ import React, { useRef, useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
   View,
-  TouchableOpacity,
   ScrollView,
   StyleSheet,
   Dimensions,
@@ -10,6 +9,7 @@ import {
   NativeSyntheticEvent,
 } from 'react-native';
 import Text from '../../components/ui/Text';
+import { PressableScale } from '../../components/motion';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
@@ -85,17 +85,21 @@ export default function WelcomeScreen() {
       {/* Language selector */}
       <View style={styles.langRow} testID="WelcomeScreen-langSelector">
         {LANGUAGES.map((lang) => (
-          <TouchableOpacity
+          <PressableScale
             key={lang.code}
             style={[styles.langBtn, language === lang.code && styles.langBtnActive]}
             onPress={() => handleLanguageChange(lang.code)}
             accessibilityLabel={`Switch to ${lang.code} language`}
+            accessibilityRole="button"
+            accessibilityState={{ selected: language === lang.code }}
+            hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
             testID={`WelcomeScreen-lang-${lang.code}`}
           >
             <Text variant="subhead" color="textSecondary" style={language === lang.code ? { color: '#FFFFFF' } : undefined}>
               {lang.label}
             </Text>
-          </TouchableOpacity>
+          </PressableScale>
         ))}
       </View>
 
@@ -144,22 +148,26 @@ export default function WelcomeScreen() {
 
       {/* CTA buttons */}
       <View style={styles.ctaContainer} testID="WelcomeScreen-ctas">
-        <TouchableOpacity
+        <PressableScale
           style={styles.primaryBtn}
           onPress={() => navigation.navigate('Signup')}
           accessibilityLabel={t('welcome.getStarted', 'Get Started')}
+          accessibilityRole="button"
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           testID="WelcomeScreen-getStarted"
         >
           <Text variant="headline" style={{ color: '#FFFFFF' }}>{t('welcome.getStarted', 'Get Started')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
+        </PressableScale>
+        <PressableScale
           style={styles.secondaryBtn}
           onPress={() => navigation.navigate('Login')}
           accessibilityLabel={t('welcome.signIn', 'Already a member? Sign In')}
+          accessibilityRole="button"
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           testID="WelcomeScreen-signIn"
         >
           <Text variant="subhead" color="primary">{t('welcome.signIn', 'Already a member? Sign In')}</Text>
-        </TouchableOpacity>
+        </PressableScale>
       </View>
     </View>
   );

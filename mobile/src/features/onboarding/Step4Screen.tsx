@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TextInput, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { PressableScale } from '../../components/motion';
 import PickerSheet from '../../components/ui/PickerSheet';
 import Text from '../../components/ui/Text';
 import OnboardingLayout from './OnboardingLayout';
@@ -53,32 +54,36 @@ export default function Step4Screen() {
       {/* Highest qualification */}
       <View>
         <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step4.qualification')}</Text>
-        <TouchableOpacity
+        <PressableScale
           style={styles.selectBtn}
           onPress={() => setQualSheet(true)}
           testID="select-qualification"
+          accessibilityRole="button"
           accessibilityLabel={t('onboarding.step4.qualification')}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text variant="callout" color={education ? 'textPrimary' : 'textMuted'}>
             {education || 'Select qualification'}
           </Text>
-        </TouchableOpacity>
+        </PressableScale>
       </View>
 
       {/* Field of study + institution reveal after qualification is chosen */}
       {!!education && (
       <View>
         <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step4.fieldOfStudy')}</Text>
-        <TouchableOpacity
+        <PressableScale
           style={styles.selectBtn}
           onPress={() => setFieldSheet(true)}
           testID="select-fieldOfStudy"
+          accessibilityRole="button"
           accessibilityLabel={t('onboarding.step4.fieldOfStudy')}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text variant="callout" color={degree ? 'textPrimary' : 'textMuted'}>
             {degree || 'Select field of study'}
           </Text>
-        </TouchableOpacity>
+        </PressableScale>
       </View>
       )}
 

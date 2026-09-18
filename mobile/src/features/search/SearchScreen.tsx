@@ -6,7 +6,6 @@ import {
   StyleSheet,
   FlatList,
   TextInput,
-  TouchableOpacity,
   ActivityIndicator,
   Alert,
   Modal,
@@ -14,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Text from '../../components/ui/Text';
 import ListFooter from '../../components/ui/ListFooter';
+import { PressableScale } from '../../components/motion';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -27,7 +27,6 @@ import { queryKeys } from '../../constants/queryKeys';
 import ProfileCard from '../../components/cards/ProfileCard';
 import { EmptyState as SharedEmpty, SkeletonBlock } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
-import { haptics } from '../../utils/haptics';
 import FilterPanel, { type FilterPanelHandle } from '../../components/search/FilterPanel';
 import type { MainStackParamList } from '../../navigation/types';
 import type { SearchFilters, ProfileSummary, MatchAction } from '../../types';
@@ -94,21 +93,31 @@ function SortPicker({
   const sp = React.useMemo(() => makeSp(c), [c]);
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableOpacity style={sp.backdrop} onPress={onClose} activeOpacity={1}>
+      <PressableScale
+        style={sp.backdrop}
+        onPress={onClose}
+        scaleTo={1}
+        accessibilityRole="button"
+        accessibilityLabel="Close sort options"
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
         <View style={sp.sheet}>
           <Text variant="headline" color="textPrimary" style={sp.title}>Sort By</Text>
           {SORT_OPTIONS.map((o) => (
-            <TouchableOpacity
+            <PressableScale
               key={o.value}
               style={sp.option}
               onPress={() => { onSelect(o.value); onClose(); }}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: current === o.value }}
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Text variant="callout" color={current === o.value ? 'primary' : 'textSecondary'}>{o.label}</Text>
               {current === o.value && <Ionicons name="checkmark" size={18} color={c.primary} />}
-            </TouchableOpacity>
+            </PressableScale>
           ))}
         </View>
-      </TouchableOpacity>
+      </PressableScale>
     </Modal>
   );
 }
@@ -135,7 +144,14 @@ function SaveSearchModal({
   const [name, setName] = useState('');
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={ss.backdrop} onPress={onClose} activeOpacity={1}>
+      <PressableScale
+        style={ss.backdrop}
+        onPress={onClose}
+        scaleTo={1}
+        accessibilityRole="button"
+        accessibilityLabel="Close save search"
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
         <View style={ss.sheet} onStartShouldSetResponder={() => true}>
           <Text variant="headline" color="textPrimary" style={ss.title}>Save Search</Text>
           <TextInput
@@ -148,19 +164,27 @@ function SaveSearchModal({
             accessibilityLabel="Search name"
           />
           <View style={ss.row}>
-            <TouchableOpacity style={ss.cancelBtn} onPress={onClose}>
+            <PressableScale
+              style={ss.cancelBtn}
+              onPress={onClose}
+              accessibilityRole="button"
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
               <Text variant="subhead" color="textSecondary">Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+            </PressableScale>
+            <PressableScale
               style={[ss.saveBtn, !name.trim() && { opacity: 0.5 }]}
               onPress={() => { if (name.trim()) { onSave(name.trim()); setName(''); } }}
               disabled={!name.trim()}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !name.trim() }}
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Text variant="headline" style={ss.saveText}>Save</Text>
-            </TouchableOpacity>
+            </PressableScale>
           </View>
         </View>
-      </TouchableOpacity>
+      </PressableScale>
     </Modal>
   );
 }
@@ -345,12 +369,15 @@ export default function SearchScreen() {
       {/* Profile-ID lookup — only when what's typed could be a code */}
       {typedCode ? (
         <View style={s.codeRow}>
-          <TouchableOpacity
+          <PressableScale
             style={[s.codeBtn, { borderColor: c.border, backgroundColor: c.surfaceCard }]}
             onPress={() => codeLookup.mutate()}
             disabled={codeLookup.isPending}
             accessibilityLabel={`Open profile ${formatProfileCode(typedCode)}`}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: codeLookup.isPending }}
             testID="open-profile-code"
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Ionicons name="id-card-outline" size={16} color={c.accent} />
             <Text variant="subhead" color="fgStrong" style={s.codeText} numberOfLines={1}>
@@ -361,7 +388,7 @@ export default function SearchScreen() {
             ) : (
               <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
             )}
-          </TouchableOpacity>
+          </PressableScale>
           {codeLookupError ? (
             <Text variant="footnote" color="error" testID="code-lookup-error">{codeLookupError}</Text>
           ) : null}
@@ -371,32 +398,40 @@ export default function SearchScreen() {
       {/* Filter + Sort row */}
       <View style={s.toolbar}>
         <View style={s.toolbarLeft}>
-          <TouchableOpacity
+          <PressableScale
             style={[
               s.toolBtn,
               { backgroundColor: c.surface2, borderColor: c.border },
               hasFilters && { backgroundColor: c.accentSoft, borderColor: c.accent },
             ]}
-            onPress={() => { haptics.light(); filterRef.current?.open(); }}
+            onPress={() => filterRef.current?.open()}
+            haptic
             accessibilityLabel="Open filters"
+            accessibilityRole="button"
+            accessibilityState={{ selected: hasFilters }}
             testID="filter-btn"
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Ionicons name="options" size={16} color={hasFilters ? c.accent : c.textSecondary} />
             <Text variant="subhead" color={hasFilters ? 'primary' : 'textSecondary'}>
               Filters{hasFilters ? ' •' : ''}
             </Text>
-          </TouchableOpacity>
+          </PressableScale>
         </View>
 
-        <TouchableOpacity
+        <PressableScale
           style={s.sortBtn}
           onPress={() => setShowSort(true)}
           accessibilityLabel="Sort options"
+          accessibilityRole="button"
           testID="sort-btn"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text variant="subhead" color="textSecondary">Sort: {sortLabel}</Text>
           <Ionicons name="chevron-down" size={14} color={c.textSecondary} />
-        </TouchableOpacity>
+        </PressableScale>
       </View>
 
       {/* Result count */}

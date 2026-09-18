@@ -4,7 +4,6 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   Switch,
   Alert,
   Modal,
@@ -17,7 +16,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import Text from '../../components/ui/Text';
-import { StaggeredEntrance } from '../../components/motion';
+import { StaggeredEntrance, PressableScale } from '../../components/motion';
 import { showToast } from '../../utils/toast';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
@@ -63,13 +62,15 @@ function SettingRow({
   const { c } = useTheme();
   const sr = React.useMemo(() => makeSr(c), [c]);
   return (
-    <TouchableOpacity
+    <PressableScale
       style={sr.row}
       onPress={onPress}
       disabled={!onPress && !toggle}
       testID={testID ?? `setting-row-${label}`}
       accessibilityLabel={label}
       accessibilityRole={toggle ? 'switch' : onPress ? 'button' : 'none'}
+      accessibilityState={{ disabled: !onPress && !toggle }}
+      pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
     >
       <View style={[sr.iconWrap, { backgroundColor: (iconColor ?? c.primary) + '15' }]}>
         <Ionicons name={icon as any} size={18} color={iconColor ?? c.primary} />
@@ -91,7 +92,7 @@ function SettingRow({
       ) : onPress ? (
         <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
       ) : null}
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 
@@ -138,27 +139,37 @@ function LanguagePicker({ visible, current, onSelect, onClose }: {
   const lp = React.useMemo(() => makeLp(c), [c]);
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={lp.backdrop} activeOpacity={1} onPress={onClose}>
+      <PressableScale
+        style={lp.backdrop}
+        scaleTo={1}
+        onPress={onClose}
+        accessibilityRole="button"
+        accessibilityLabel="Close language picker"
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
         <View style={lp.sheet} testID="language-picker">
           <View style={lp.handle} />
           <Text variant="title3" color="textPrimary" style={lp.heading}>Select Language</Text>
           {LANG_OPTIONS.map((opt) => (
-            <TouchableOpacity
+            <PressableScale
               key={opt.code}
               style={lp.option}
               onPress={() => { onSelect(opt.code); onClose(); }}
               testID={`lang-option-${opt.code}`}
               accessibilityLabel={opt.label}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: opt.code === current }}
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Text variant="headline" color="textPrimary">{opt.native}</Text>
               <Text variant="footnote" color="textSecondary" style={lp.optionSub}>{opt.label}</Text>
               {opt.code === current && (
                 <Ionicons name="checkmark" size={20} color={c.primary} style={{ marginLeft: 'auto' }} />
               )}
-            </TouchableOpacity>
+            </PressableScale>
           ))}
         </View>
-      </TouchableOpacity>
+      </PressableScale>
     </Modal>
   );
 }
@@ -191,22 +202,31 @@ function DeleteModal({ visible, onClose, onConfirm, loading }: {
           <Text variant="footnote" color="textSecondary" style={dm.body}>
             This will permanently delete your profile, matches, and all data. This cannot be undone.
           </Text>
-          <TouchableOpacity
+          <PressableScale
             style={dm.confirmBtn}
             onPress={onConfirm}
             disabled={loading}
             testID="delete-confirm-btn"
             accessibilityLabel="Confirm delete account"
+            accessibilityRole="button"
+            accessibilityState={{ disabled: loading }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
               <Text variant="headline" style={dm.confirmText}>Delete My Account</Text>
             )}
-          </TouchableOpacity>
-          <TouchableOpacity style={dm.cancelBtn} onPress={onClose} testID="delete-cancel-btn">
+          </PressableScale>
+          <PressableScale
+            style={dm.cancelBtn}
+            onPress={onClose}
+            testID="delete-cancel-btn"
+            accessibilityRole="button"
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Text variant="callout" color="textSecondary">Cancel</Text>
-          </TouchableOpacity>
+          </PressableScale>
         </View>
       </View>
     </Modal>
@@ -287,9 +307,17 @@ export default function SettingsScreen() {
     <SafeAreaView style={s.wrapper} testID="SettingsScreen">
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} testID="back-btn" accessibilityLabel="Go back">
+        <PressableScale
+          onPress={() => navigation.goBack()}
+          style={s.backBtn}
+          testID="back-btn"
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
+          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
-        </TouchableOpacity>
+        </PressableScale>
         <Text variant="title3" color="textPrimary">Settings</Text>
         <View style={{ width: 40 }} />
       </View>

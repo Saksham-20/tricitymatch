@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { PressableScale } from '../../components/motion';
 import PickerSheet from '../../components/ui/PickerSheet';
 import Text from '../../components/ui/Text';
 import OnboardingLayout from './OnboardingLayout';
@@ -39,23 +40,29 @@ function CounterInput({
     <View>
       <Text variant="subhead" color="textPrimary" style={styles.label}>{label}</Text>
       <View style={styles.counterRow}>
-        <TouchableOpacity
+        <PressableScale
           style={styles.counterBtn}
           onPress={() => onChange(Math.max(0, value - 1))}
           testID={`${testID}-dec`}
           accessibilityLabel={`Decrease ${label}`}
+          accessibilityRole="button"
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text variant="title3" color="textPrimary">−</Text>
-        </TouchableOpacity>
+        </PressableScale>
         <Text variant="title3" color="textPrimary" style={styles.counterValue} testID={testID}>{value}</Text>
-        <TouchableOpacity
+        <PressableScale
           style={styles.counterBtn}
           onPress={() => onChange(Math.min(10, value + 1))}
           testID={`${testID}-inc`}
           accessibilityLabel={`Increase ${label}`}
+          accessibilityRole="button"
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text variant="title3" color="textPrimary">+</Text>
-        </TouchableOpacity>
+        </PressableScale>
       </View>
     </View>
   );
@@ -102,16 +109,18 @@ export default function Step9Screen() {
           {t('onboarding.step9.fatherOccupation')}
           <Text variant="footnote" color="textMuted"> ({t('common.optional')})</Text>
         </Text>
-        <TouchableOpacity
+        <PressableScale
           style={styles.selectBtn}
           onPress={() => setFatherSheet(true)}
           testID="select-fatherOccupation"
           accessibilityLabel={t('onboarding.step9.fatherOccupation')}
+          accessibilityRole="button"
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text variant="callout" color={fatherOccupation ? 'textPrimary' : 'textMuted'}>
             {fatherOccupation || 'Select occupation'}
           </Text>
-        </TouchableOpacity>
+        </PressableScale>
       </View>
 
       {/* Mother's occupation */}
@@ -120,16 +129,18 @@ export default function Step9Screen() {
           {t('onboarding.step9.motherOccupation')}
           <Text variant="footnote" color="textMuted"> ({t('common.optional')})</Text>
         </Text>
-        <TouchableOpacity
+        <PressableScale
           style={styles.selectBtn}
           onPress={() => setMotherSheet(true)}
           testID="select-motherOccupation"
           accessibilityLabel={t('onboarding.step9.motherOccupation')}
+          accessibilityRole="button"
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text variant="callout" color={motherOccupation ? 'textPrimary' : 'textMuted'}>
             {motherOccupation || 'Select occupation'}
           </Text>
-        </TouchableOpacity>
+        </PressableScale>
       </View>
 
       {/* Siblings */}
@@ -159,7 +170,7 @@ export default function Step9Screen() {
           {FAMILY_TYPES.map((opt) => {
             const active = familyType === opt.key;
             return (
-              <TouchableOpacity
+              <PressableScale
                 key={opt.key}
                 style={[styles.pill, active && styles.pillActive]}
                 onPress={() => setFamilyType(opt.key)}
@@ -167,9 +178,11 @@ export default function Step9Screen() {
                 accessibilityLabel={opt.label}
                 accessibilityRole="radio"
                 accessibilityState={{ selected: active }}
+                hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Text variant="subhead" color={active ? 'primary' : 'textPrimary'}>{opt.label}</Text>
-              </TouchableOpacity>
+              </PressableScale>
             );
           })}
         </View>
@@ -182,7 +195,7 @@ export default function Step9Screen() {
           {FAMILY_VALUES_OPTIONS.map((opt) => {
             const active = familyValues === opt.key;
             return (
-              <TouchableOpacity
+              <PressableScale
                 key={opt.key}
                 style={[styles.pill, active && styles.pillActive]}
                 onPress={() => setFamilyValues(opt.key)}
@@ -190,9 +203,11 @@ export default function Step9Screen() {
                 accessibilityLabel={opt.label}
                 accessibilityRole="radio"
                 accessibilityState={{ selected: active }}
+                hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Text variant="subhead" color={active ? 'primary' : 'textPrimary'}>{opt.label}</Text>
-              </TouchableOpacity>
+              </PressableScale>
             );
           })}
         </View>

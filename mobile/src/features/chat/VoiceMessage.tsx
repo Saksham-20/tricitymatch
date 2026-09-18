@@ -6,8 +6,9 @@
  */
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, TouchableOpacity, ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import Text from '../../components/ui/Text';
+import { PressableScale } from '../../components/motion';
 import { Ionicons } from '@expo/vector-icons';
 import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 
@@ -139,27 +140,60 @@ export function VoiceRecorderStrip({ onSend, onClose }: RecorderProps) {
             {fmt(elapsed)}{warn ? ' · stopping soon' : ''}
           </Text>
           <View style={{ flex: 1 }} />
-          <TouchableOpacity onPress={onClose} style={vs.iconBtn} accessibilityLabel="Cancel recording">
+          <PressableScale
+            onPress={onClose}
+            style={vs.iconBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Cancel recording"
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Ionicons name="trash-outline" size={22} color={c.textMuted} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={stopRecording} style={vs.stopBtn} accessibilityLabel="Stop recording">
+          </PressableScale>
+          <PressableScale
+            onPress={stopRecording}
+            style={vs.stopBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Stop recording"
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Ionicons name="stop" size={20} color="#fff" />
-          </TouchableOpacity>
+          </PressableScale>
         </>
       )}
       {phase === 'review' && (
         <>
-          <TouchableOpacity onPress={togglePlay} style={vs.playBtn} accessibilityLabel={playing ? 'Pause preview' : 'Play preview'}>
+          <PressableScale
+            onPress={togglePlay}
+            style={vs.playBtn}
+            accessibilityRole="button"
+            accessibilityLabel={playing ? 'Pause preview' : 'Play preview'}
+            hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Ionicons name={playing ? 'pause' : 'play'} size={18} color={c.primary} />
-          </TouchableOpacity>
+          </PressableScale>
           <Text variant="subhead" color="textPrimary" style={vs.timer}>{fmt(Math.round(durationRef.current / 1000))}</Text>
           <View style={{ flex: 1 }} />
-          <TouchableOpacity onPress={onClose} style={vs.iconBtn} accessibilityLabel="Discard voice message">
+          <PressableScale
+            onPress={onClose}
+            style={vs.iconBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Discard voice message"
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Ionicons name="trash-outline" size={22} color={c.textMuted} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={send} style={vs.sendBtn} accessibilityLabel="Send voice message">
+          </PressableScale>
+          <PressableScale
+            onPress={send}
+            style={vs.sendBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Send voice message"
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Ionicons name="send" size={18} color="#fff" />
-          </TouchableOpacity>
+          </PressableScale>
         </>
       )}
       {phase === 'uploading' && (
@@ -172,12 +206,26 @@ export function VoiceRecorderStrip({ onSend, onClose }: RecorderProps) {
         <>
           <Text variant="subhead" color="error" style={vs.timer}>Upload failed</Text>
           <View style={{ flex: 1 }} />
-          <TouchableOpacity onPress={send} style={vs.iconBtn} accessibilityLabel="Retry send">
+          <PressableScale
+            onPress={send}
+            style={vs.iconBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Retry send"
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Ionicons name="refresh" size={22} color={c.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={onClose} style={vs.iconBtn} accessibilityLabel="Discard">
+          </PressableScale>
+          <PressableScale
+            onPress={onClose}
+            style={vs.iconBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Discard"
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Ionicons name="close" size={22} color={c.textMuted} />
-          </TouchableOpacity>
+          </PressableScale>
         </>
       )}
     </View>
@@ -224,21 +272,34 @@ export function VoiceMessageBubble({ uri, durationMs, own }: { uri: string | nul
   const fg = own ? '#fff' : c.textPrimary;
   if (state === 'failed') {
     return (
-      <TouchableOpacity onPress={() => { soundRef.current = null; setState('idle'); toggle(); }} style={vs.bubbleRowInner}>
+      <PressableScale
+        onPress={() => { soundRef.current = null; setState('idle'); toggle(); }}
+        style={vs.bubbleRowInner}
+        accessibilityRole="button"
+        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
         <Ionicons name="alert-circle-outline" size={16} color={fg} />
         <Text variant="subhead" style={[vs.bubbleFail, { color: fg }]}>Couldn&apos;t play — tap to retry</Text>
-      </TouchableOpacity>
+      </PressableScale>
     );
   }
   return (
     <View style={vs.bubbleRowInner} accessibilityLabel="Voice message">
-      <TouchableOpacity onPress={toggle} style={[vs.playBtnSmall, own && { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
+      <PressableScale
+        onPress={toggle}
+        style={[vs.playBtnSmall, own && { backgroundColor: 'rgba(255,255,255,0.25)' }]}
+        accessibilityRole="button"
+        accessibilityLabel={state === 'playing' ? 'Pause voice message' : 'Play voice message'}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
         {state === 'loading' ? (
           <ActivityIndicator size="small" color={own ? '#fff' : c.primary} />
         ) : (
           <Ionicons name={state === 'playing' ? 'pause' : 'play'} size={16} color={own ? '#fff' : c.primary} />
         )}
-      </TouchableOpacity>
+      </PressableScale>
       <View style={[vs.track, own && { backgroundColor: 'rgba(255,255,255,0.3)' }]}>
         <View style={[vs.fill, own ? { backgroundColor: '#fff' } : { backgroundColor: c.primary }, { width: `${Math.round(progress * 100)}%` }]} />
       </View>

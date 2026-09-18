@@ -8,7 +8,7 @@
  */
 import React, { useEffect, useRef, useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import Text from '../../components/ui/Text';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
@@ -110,19 +110,20 @@ export default function JourneyFinaleScreen() {
             <Text variant="footnote" color="textMuted" style={st.sub}>{t('journey.revealSub', 'Curated from verified Tricity profiles, using everything you just shared.')}</Text>
             <View style={st.grid}>
               {matches.map((p) => (
-                <TouchableOpacity
+                <PressableScale
                   key={p.userId}
                   style={st.card}
                   onPress={() => navigation.navigate('ProfileDetail', { userId: p.userId })}
                   accessibilityRole="button"
                   accessibilityLabel={`${p.firstName} profile`}
+                  pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
                   <SmartImage uri={p.profilePhoto ?? p.photos?.[0] ?? null} name={`${p.firstName} ${p.lastName ?? ''}`} style={st.cardImg} />
                   <View style={st.cardMeta}>
                     <Text variant="headline" color="textPrimary" numberOfLines={1}>{p.firstName}{ageFrom(p.dateOfBirth)}</Text>
                     <Text variant="footnote" color="textMuted" style={st.cardCity} numberOfLines={1}>{p.city}</Text>
                   </View>
-                </TouchableOpacity>
+                </PressableScale>
               ))}
             </View>
             {/* DS7: the one gold element — locked tease */}

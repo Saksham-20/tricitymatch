@@ -4,7 +4,6 @@ import {
   View,
   StyleSheet,
   FlatList,
-  TouchableOpacity,
   Image,
   RefreshControl,
 } from 'react-native';
@@ -14,6 +13,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { ListSkeleton } from '../../components/ui/skeletons';
+import { PressableScale } from '../../components/motion';
 import { useTranslation } from 'react-i18next';
 import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { getGuardianMatches, getGuardianShortlist } from '../../api/guardian';
@@ -48,7 +48,14 @@ function ReadOnlyProfileCard({ profile, onPress }: ROCardProps) {
   const photo = profile.photos?.[0];
 
   return (
-    <TouchableOpacity style={rc.card} onPress={onPress} testID={`ro-card-${profile.id}`} accessibilityLabel={`View ${name}`}>
+    <PressableScale
+      style={rc.card}
+      onPress={onPress}
+      testID={`ro-card-${profile.id}`}
+      accessibilityLabel={`View ${name}`}
+      accessibilityRole="button"
+      pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    >
       {photo ? (
         <Image source={{ uri: photo }} style={rc.photo} resizeMode="cover" />
       ) : (
@@ -74,7 +81,7 @@ function ReadOnlyProfileCard({ profile, onPress }: ROCardProps) {
         <Text variant="micro" color="textMuted">View Only</Text>
       </View>
       <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 
@@ -129,9 +136,17 @@ export default function GuardianViewScreen() {
     <View style={s.wrapper} testID="GuardianViewScreen">
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} testID="back-btn" accessibilityLabel="Go back">
+        <PressableScale
+          onPress={() => navigation.goBack()}
+          style={s.backBtn}
+          testID="back-btn"
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
+          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
-        </TouchableOpacity>
+        </PressableScale>
         <View style={s.headerTitle}>
           <Text variant="headline" color="textPrimary">{candidateName}</Text>
           <Text variant="footnote" color="textSecondary">Guardian View</Text>
@@ -148,15 +163,18 @@ export default function GuardianViewScreen() {
       {/* Tabs */}
       <View style={s.tabBar}>
         {TABS.map((tab) => (
-          <TouchableOpacity
+          <PressableScale
             key={tab.key}
             style={[s.tab, activeTab === tab.key && s.tabActive]}
             onPress={() => setActiveTab(tab.key)}
             testID={`tab-${tab.key}`}
             accessibilityLabel={tab.label}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: activeTab === tab.key }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Text variant="subhead" color={activeTab === tab.key ? 'primary' : 'textMuted'}>{tab.label}</Text>
-          </TouchableOpacity>
+          </PressableScale>
         ))}
       </View>
 

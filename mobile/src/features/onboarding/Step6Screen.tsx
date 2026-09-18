@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, TextInput, TouchableOpacity, StyleSheet, Switch } from 'react-native';
+import { View, TextInput, StyleSheet, Switch } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { PressableScale } from '../../components/motion';
 import PickerSheet from '../../components/ui/PickerSheet';
 import Text from '../../components/ui/Text';
 import OnboardingLayout from './OnboardingLayout';
@@ -73,16 +74,18 @@ export default function Step6Screen() {
       {/* Current city */}
       <View>
         <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step6.city')}</Text>
-        <TouchableOpacity
+        <PressableScale
           style={styles.selectBtn}
           onPress={() => setCitySheet(true)}
           testID="select-city"
           accessibilityLabel={t('onboarding.step6.city')}
+          accessibilityRole="button"
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text variant="callout" color={city ? 'textPrimary' : 'textMuted'}>
             {city || 'Select city'}
           </Text>
-        </TouchableOpacity>
+        </PressableScale>
       </View>
 
       {/* State (auto-filled) */}
@@ -118,16 +121,18 @@ export default function Step6Screen() {
         <>
           <View>
             <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step6.country')}</Text>
-            <TouchableOpacity
+            <PressableScale
               style={styles.selectBtn}
               onPress={() => setCountrySheet(true)}
               testID="select-country"
               accessibilityLabel={t('onboarding.step6.country')}
+              accessibilityRole="button"
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Text variant="callout" color={country ? 'textPrimary' : 'textMuted'}>
                 {country || 'Select country'}
               </Text>
-            </TouchableOpacity>
+            </PressableScale>
           </View>
 
           <View>
@@ -135,16 +140,18 @@ export default function Step6Screen() {
               {t('onboarding.step6.visaStatus')}
               <Text variant="footnote" color="textMuted"> ({t('common.optional')})</Text>
             </Text>
-            <TouchableOpacity
+            <PressableScale
               style={styles.selectBtn}
               onPress={() => setVisaSheet(true)}
               testID="select-visa"
               accessibilityLabel={t('onboarding.step6.visaStatus')}
+              accessibilityRole="button"
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Text variant="callout" color={visaStatus ? 'textPrimary' : 'textMuted'}>
                 {visaStatus || 'Select visa / PR status'}
               </Text>
-            </TouchableOpacity>
+            </PressableScale>
           </View>
         </>
       )}

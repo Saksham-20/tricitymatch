@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
-  View, TouchableOpacity, Image, StyleSheet,
+  View, Image, StyleSheet,
   ActivityIndicator, StatusBar,
 } from 'react-native';
 import Text from '../../components/ui/Text';
+import { PressableScale } from '../../components/motion';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -313,7 +314,7 @@ function CallButton({ icon, label, onPress, variant = 'default', active, testID 
   const styles = React.useMemo(() => makeStyles(c), [c]);
   return (
     <View style={styles.btnWrap}>
-      <TouchableOpacity
+      <PressableScale
         style={[
           styles.btn,
           variant === 'end' && styles.btnEnd,
@@ -322,13 +323,16 @@ function CallButton({ icon, label, onPress, variant = 'default', active, testID 
         onPress={onPress}
         testID={testID}
         accessibilityLabel={label}
+        accessibilityRole="button"
+        accessibilityState={{ selected: !!active }}
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
         <Ionicons
           name={icon}
           size={28}
           color={variant === 'end' || active ? c.background : c.textPrimary}
         />
-      </TouchableOpacity>
+      </PressableScale>
       <Text variant="caption" style={styles.btnLabel}>{label}</Text>
     </View>
   );

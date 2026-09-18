@@ -4,7 +4,6 @@ import {
   View,
   StyleSheet,
   FlatList,
-  TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
@@ -14,6 +13,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { ListSkeleton } from '../../components/ui/skeletons';
+import { PressableScale } from '../../components/motion';
 import { useTranslation } from 'react-i18next';
 import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { getGuardianCandidates, type GuardianLink } from '../../api/guardian';
@@ -26,7 +26,14 @@ function CandidateRow({ link, onPress }: { link: GuardianLink; onPress: () => vo
   const { c } = useTheme();
   const cr = React.useMemo(() => makeCr(c), [c]);
   return (
-    <TouchableOpacity style={cr.row} onPress={onPress} testID={`candidate-row-${link.id}`} accessibilityLabel={`View ${link.guardianName}'s matches`}>
+    <PressableScale
+      style={cr.row}
+      onPress={onPress}
+      testID={`candidate-row-${link.id}`}
+      accessibilityLabel={`View ${link.guardianName}'s matches`}
+      accessibilityRole="button"
+      pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    >
       <View style={cr.avatar}>
         <Ionicons name="person" size={20} color={c.primary} />
       </View>
@@ -38,7 +45,7 @@ function CandidateRow({ link, onPress }: { link: GuardianLink; onPress: () => vo
         <Text variant="caption" color="primary">Browse</Text>
         <Ionicons name="chevron-forward" size={16} color={c.primary} />
       </View>
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 
@@ -74,9 +81,17 @@ export default function GuardianCandidatesScreen() {
   return (
     <View style={s.wrapper} testID="GuardianCandidatesScreen">
       <View style={s.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} testID="back-btn" accessibilityLabel="Go back">
+        <PressableScale
+          onPress={() => navigation.goBack()}
+          style={s.backBtn}
+          testID="back-btn"
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
+          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
-        </TouchableOpacity>
+        </PressableScale>
         <Text variant="title3" color="textPrimary">Guardian Dashboard</Text>
         <View style={{ width: 40 }} />
       </View>

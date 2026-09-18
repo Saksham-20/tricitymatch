@@ -4,7 +4,6 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   Switch,
   ActivityIndicator,
 } from 'react-native';
@@ -15,6 +14,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import Text from '../../components/ui/Text';
 import { ListSkeleton } from '../../components/ui/skeletons';
+import { PressableScale } from '../../components/motion';
 import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { getMyProfile, updatePrivacy, type PrivacySettings } from '../../api/profile';
 import { queryKeys } from '../../constants/queryKeys';
@@ -72,9 +72,16 @@ export default function PrivacySettingsScreen() {
   return (
     <SafeAreaView style={styles.safe} testID="PrivacySettingsScreen">
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} testID="back-btn" accessibilityLabel="Back">
+        <PressableScale
+          onPress={() => navigation.goBack()}
+          testID="back-btn"
+          accessibilityLabel="Back"
+          accessibilityRole="button"
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="chevron-back" size={26} color={c.textPrimary} />
-        </TouchableOpacity>
+        </PressableScale>
         <Text variant="headline" color="textPrimary">Privacy</Text>
         <View style={{ width: 26 }} />
       </View>
@@ -86,17 +93,20 @@ export default function PrivacySettingsScreen() {
           {(['everyone', 'matches_only'] as Visibility[]).map((opt) => {
             const active = visibility === opt;
             return (
-              <TouchableOpacity
+              <PressableScale
                 key={opt}
                 style={[styles.segmentBtn, active && styles.segmentBtnActive]}
                 onPress={() => setVisibility(opt)}
                 testID={`visibility-${opt}`}
                 accessibilityLabel={opt === 'everyone' ? 'Everyone' : 'Matches only'}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: active }}
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Text variant="subhead" color="textSecondary" style={active && styles.segmentTextActive}>
                   {opt === 'everyone' ? 'Everyone' : 'Matches only'}
                 </Text>
-              </TouchableOpacity>
+              </PressableScale>
             );
           })}
         </View>
@@ -137,19 +147,22 @@ export default function PrivacySettingsScreen() {
           </View>
         </View>
 
-        <TouchableOpacity
+        <PressableScale
           style={styles.saveBtn}
           onPress={save}
           disabled={mutation.isPending}
           testID="save-privacy"
           accessibilityLabel="Save privacy settings"
+          accessibilityRole="button"
+          accessibilityState={{ disabled: mutation.isPending }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           {mutation.isPending ? (
             <ActivityIndicator color="#fff" />
           ) : (
             <Text variant="headline" style={styles.saveText}>Save Privacy Settings</Text>
           )}
-        </TouchableOpacity>
+        </PressableScale>
 
         {mutation.isSuccess && !mutation.isPending && (
           <Text variant="subhead" color="success" style={styles.savedNote}>Saved ✓</Text>

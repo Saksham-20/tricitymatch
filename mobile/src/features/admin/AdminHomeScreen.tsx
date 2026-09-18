@@ -4,7 +4,6 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
@@ -17,6 +16,7 @@ import { colours, spacing, borderRadius, type ThemeColours } from '@shared/const
 import { getAdminStats, getVerificationQueue, getReportsQueue } from '../../api/admin';
 import type { AdminStackParamList } from '../../navigation/types';
 import Text from '../../components/ui/Text';
+import { PressableScale } from '../../components/motion';
 
 type Nav = NativeStackNavigationProp<AdminStackParamList, 'AdminHome'>;
 
@@ -75,7 +75,13 @@ function QueueRow({ icon, label, count, color, onPress, testID }: QueueRowProps)
   const { c } = useTheme();
   const s = React.useMemo(() => makeS(c), [c]);
   return (
-    <TouchableOpacity style={s.queueRow} onPress={onPress} testID={testID} accessibilityRole="button">
+    <PressableScale
+      style={s.queueRow}
+      onPress={onPress}
+      testID={testID}
+      accessibilityRole="button"
+      pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    >
       <View style={[s.queueIcon, { backgroundColor: color + '20' }]}>
         <Ionicons name={icon} size={20} color={color} />
       </View>
@@ -84,7 +90,7 @@ function QueueRow({ icon, label, count, color, onPress, testID }: QueueRowProps)
         <Text variant="caption" style={s.badgeText}>{count > 99 ? '99+' : count}</Text>
       </View>
       <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 
@@ -136,15 +142,16 @@ export default function AdminHomeScreen() {
          * navigator: an admin who opened this screen could not get out of it
          * without force-quitting. Pop the parent stack explicitly.
          */}
-        <TouchableOpacity
+        <PressableScale
           onPress={() => (nav.getParent() ?? nav).goBack()}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           accessibilityRole="button"
           accessibilityLabel="Back"
           testID="admin-back"
         >
           <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
-        </TouchableOpacity>
+        </PressableScale>
         <Text variant="title2" color="textPrimary" style={s.title}>Admin Console</Text>
         {isLoading ? (
           <ActivityIndicator size="small" color={c.primary} />

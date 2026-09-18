@@ -3,7 +3,6 @@ import { useTheme } from '../../hooks/useTheme';
 import {
   View,
   TextInput,
-  TouchableOpacity,
   StyleSheet,
   ScrollView,
   ActivityIndicator,
@@ -11,6 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import Text from '../../components/ui/Text';
+import { PressableScale } from '../../components/motion';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RouteProp } from '@react-navigation/native';
@@ -83,14 +83,16 @@ export default function ResetPasswordScreen() {
         <Ionicons name="checkmark-circle" size={56} color={c.success} style={{ marginBottom: spacing.md }} />
         <Text variant="title3" color="textPrimary" style={styles.successTitle}>{t('auth.resetPassword.success')}</Text>
         <Text variant="callout" color="textSecondary" style={styles.successSubtitle}>You can now sign in with your new password.</Text>
-        <TouchableOpacity
+        <PressableScale
           style={styles.primaryBtn}
           onPress={() => navigation.navigate('Login')}
           testID="ResetPasswordScreen-backToLogin"
           accessibilityLabel="Back to Sign In"
+          accessibilityRole="button"
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text variant="headline" style={{ color: '#FFFFFF' }}>Back to Sign In</Text>
-        </TouchableOpacity>
+        </PressableScale>
       </View>
     );
   }
@@ -108,14 +110,17 @@ export default function ResetPasswordScreen() {
         showsVerticalScrollIndicator={false}
       >
         {navigation.canGoBack() && (
-          <TouchableOpacity
+          <PressableScale
             onPress={() => navigation.goBack()}
             style={styles.backBtn}
             accessibilityLabel="Go back"
+            accessibilityRole="button"
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
             testID="reset-back"
           >
             <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
-          </TouchableOpacity>
+          </PressableScale>
         )}
 
         {/* Header */}
@@ -153,14 +158,17 @@ export default function ResetPasswordScreen() {
               accessibilityLabel={t('auth.resetPassword.newPassword')}
               testID="ResetPasswordScreen-password"
             />
-            <TouchableOpacity
+            <PressableScale
               style={styles.eyeBtn}
               onPress={() => setShowPassword((v) => !v)}
               accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+              accessibilityRole="button"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
               testID="ResetPasswordScreen-togglePassword"
             >
               <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={c.textMuted} />
-            </TouchableOpacity>
+            </PressableScale>
           </View>
           {fieldErrors.password ? (
             <Text variant="footnote" color="error" style={styles.fieldError} accessibilityLiveRegion="polite">{fieldErrors.password}</Text>
@@ -186,14 +194,17 @@ export default function ResetPasswordScreen() {
               accessibilityLabel={t('auth.resetPassword.confirmPassword')}
               testID="ResetPasswordScreen-confirmPassword"
             />
-            <TouchableOpacity
+            <PressableScale
               style={styles.eyeBtn}
               onPress={() => setShowConfirm((v) => !v)}
               accessibilityLabel={showConfirm ? 'Hide password' : 'Show password'}
+              accessibilityRole="button"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
               testID="ResetPasswordScreen-toggleConfirm"
             >
               <Ionicons name={showConfirm ? 'eye-off-outline' : 'eye-outline'} size={20} color={c.textMuted} />
-            </TouchableOpacity>
+            </PressableScale>
           </View>
           {fieldErrors.confirmPassword ? (
             <Text variant="footnote" color="error" style={styles.fieldError} accessibilityLiveRegion="polite">{fieldErrors.confirmPassword}</Text>
@@ -201,11 +212,14 @@ export default function ResetPasswordScreen() {
         </View>
 
         {/* Submit */}
-        <TouchableOpacity
+        <PressableScale
           style={[styles.primaryBtn, loading && styles.btnDisabled]}
           onPress={handleReset}
           disabled={loading}
           accessibilityLabel={t('auth.resetPassword.reset')}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: loading }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           testID="ResetPasswordScreen-submit"
         >
           {loading ? (
@@ -213,7 +227,7 @@ export default function ResetPasswordScreen() {
           ) : (
             <Text variant="headline" style={{ color: '#FFFFFF' }}>{t('auth.resetPassword.reset')}</Text>
           )}
-        </TouchableOpacity>
+        </PressableScale>
       </ScrollView>
     </KeyboardAvoidingView>
   );

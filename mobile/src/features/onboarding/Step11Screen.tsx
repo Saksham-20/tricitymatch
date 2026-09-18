@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
-  View, TouchableOpacity, StyleSheet, Modal, FlatList,
+  View, StyleSheet, Modal, FlatList,
   PanResponder, PanResponderGestureState, LayoutChangeEvent,
 } from 'react-native';
 import Text from '../../components/ui/Text';
@@ -186,22 +186,31 @@ function PickerSheet({ visible, title, options, selected, onSelect, onClose }: P
   const styles = React.useMemo(() => makeStyles(c), [c]);
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
+      <PressableScale
+        style={styles.backdrop}
+        onPress={onClose}
+        accessibilityRole="button"
+        accessibilityLabel="Close"
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      />
       <View style={styles.sheet}>
         <Text variant="headline" color="textPrimary" style={styles.sheetTitle}>{title}</Text>
         <FlatList
           data={options}
           keyExtractor={(item) => item}
           renderItem={({ item }) => (
-            <TouchableOpacity
+            <PressableScale
               style={[styles.sheetRow, item === selected && styles.sheetRowActive]}
               onPress={() => { onSelect(item); onClose(); }}
               testID={`option-${item}`}
+              accessibilityRole="button"
+              accessibilityState={{ selected: item === selected }}
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Text variant="callout" color={item === selected ? 'primary' : 'textPrimary'}>
                 {item}
               </Text>
-            </TouchableOpacity>
+            </PressableScale>
           )}
         />
       </View>
@@ -327,26 +336,34 @@ export default function Step11Screen() {
       <View>
         <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step11.religion')}</Text>
         <View style={styles.pillRow}>
-          <TouchableOpacity
+          <PressableScale
+            scaleTo={0.95}
             style={[styles.pill, religions.length === 0 && styles.pillActive]}
             onPress={() => setReligions([])}
             testID="religion-any"
+            accessibilityRole="button"
+            accessibilityState={{ selected: religions.length === 0 }}
+            hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Text variant="subhead" color={religions.length === 0 ? 'primary' : 'textPrimary'}>Any</Text>
-          </TouchableOpacity>
+          </PressableScale>
           {RELIGIONS.map((r) => {
             const active = religions.includes(r);
             return (
-              <TouchableOpacity
+              <PressableScale
                 key={r}
+                scaleTo={0.95}
                 style={[styles.pill, active && styles.pillActive]}
                 onPress={() => toggleReligion(r)}
                 testID={`religion-${r}`}
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: active }}
+                hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Text variant="subhead" color={active ? 'primary' : 'textPrimary'}>{r}</Text>
-              </TouchableOpacity>
+              </PressableScale>
             );
           })}
         </View>
@@ -355,16 +372,18 @@ export default function Step11Screen() {
       {/* Min education */}
       <View>
         <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step11.education')}</Text>
-        <TouchableOpacity
+        <PressableScale
           style={styles.selectBtn}
           onPress={() => setEducationSheet(true)}
           testID="select-prefEducation"
+          accessibilityRole="button"
           accessibilityLabel={t('onboarding.step11.education')}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text variant="callout" color={education ? 'textPrimary' : 'textMuted'}>
             {education || 'Minimum education level'}
           </Text>
-        </TouchableOpacity>
+        </PressableScale>
       </View>
 
       {/* Diet */}
@@ -379,16 +398,18 @@ export default function Step11Screen() {
       {/* Manglik preference */}
       <View>
         <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step11.manglik')}</Text>
-        <TouchableOpacity
+        <PressableScale
           style={styles.selectBtn}
           onPress={() => setManglikSheet(true)}
           testID="select-prefManglik"
+          accessibilityRole="button"
           accessibilityLabel={t('onboarding.step11.manglik')}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text variant="callout" color={manglik ? 'textPrimary' : 'textMuted'}>
             {manglik || 'Any'}
           </Text>
-        </TouchableOpacity>
+        </PressableScale>
       </View>
 
       <PickerSheet

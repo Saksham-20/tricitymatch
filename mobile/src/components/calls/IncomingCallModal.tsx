@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
-  View, TouchableOpacity, Image, StyleSheet, Modal, Animated, Easing,
+  View, Image, StyleSheet, Modal, Animated, Easing,
 } from 'react-native';
 import Text from '../ui/Text';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +13,7 @@ import { useCallStore } from '../../stores/callStore';
 import { declineCall } from '../../api/calls';
 import type { MainStackParamList } from '../../navigation/types';
 import type { CallInvitation } from '../../types';
+import { PressableScale } from '../motion';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 
@@ -166,16 +167,18 @@ function ActionBtn({ icon, iconStyle, label, color, onPress, testID }: ActionBtn
   const styles = React.useMemo(() => makeStyles(c), [c]);
   return (
     <View style={styles.actionWrap}>
-      <TouchableOpacity
+      <PressableScale
         style={[styles.actionBtn, { backgroundColor: color }]}
         onPress={onPress}
         testID={testID}
+        accessibilityRole="button"
         accessibilityLabel={label}
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
         <View style={iconStyle}>
           <Ionicons name={icon} size={28} color="#fff" />
         </View>
-      </TouchableOpacity>
+      </PressableScale>
       <Text variant="subhead" style={styles.actionLabel}>{label}</Text>
     </View>
   );

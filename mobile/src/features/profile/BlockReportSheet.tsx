@@ -4,7 +4,6 @@ import {
   View,
   StyleSheet,
   Modal,
-  TouchableOpacity,
   TextInput,
   Alert,
   ActivityIndicator,
@@ -15,6 +14,7 @@ import {
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { PressableScale } from '../../components/motion';
 import Text from '../../components/ui/Text';
 import { blockUser, reportUser, type ReportReason } from '../../api/block';
 import { queryKeys } from '../../constants/queryKeys';
@@ -125,32 +125,43 @@ export default function BlockReportSheet({ visible, userId, userName, onClose, o
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
       >
-        <TouchableOpacity style={s.backdrop} activeOpacity={1} onPress={handleClose} />
+        <PressableScale
+          style={s.backdrop}
+          onPress={handleClose}
+          scaleTo={1}
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+        />
 
         {sheet === 'menu' ? (
           <View style={s.sheet}>
             <View style={s.handle} />
             <Text variant="title3" color="textPrimary" style={s.heading}>{userName}</Text>
 
-            <TouchableOpacity
+            <PressableScale
               style={s.menuItem}
               onPress={() => setSheet('report')}
               testID="menu-report"
               accessibilityLabel={`Report ${userName}`}
+              accessibilityRole="button"
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons name="flag-outline" size={20} color={c.warning} />
               <Text variant="subhead" color="textPrimary" style={s.menuLabel}>Report this profile</Text>
               <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
-            </TouchableOpacity>
+            </PressableScale>
 
             <View style={s.divider} />
 
-            <TouchableOpacity
+            <PressableScale
               style={s.menuItem}
               onPress={handleBlock}
               disabled={blockMutation.isPending}
               testID="menu-block"
               accessibilityLabel={`Block ${userName}`}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: blockMutation.isPending }}
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               {blockMutation.isPending ? (
                 <ActivityIndicator size="small" color={c.error} />
@@ -158,19 +169,33 @@ export default function BlockReportSheet({ visible, userId, userName, onClose, o
                 <Ionicons name="ban-outline" size={20} color={c.error} />
               )}
               <Text variant="subhead" color="error" style={s.menuLabel}>Block this user</Text>
-            </TouchableOpacity>
+            </PressableScale>
 
-            <TouchableOpacity style={s.cancelBtn} onPress={handleClose} testID="menu-cancel">
+            <PressableScale
+              style={s.cancelBtn}
+              onPress={handleClose}
+              testID="menu-cancel"
+              accessibilityRole="button"
+              hitSlop={{ top: 4, bottom: 4, left: 8, right: 8 }}
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
               <Text variant="subhead" color="textSecondary">Cancel</Text>
-            </TouchableOpacity>
+            </PressableScale>
           </View>
         ) : (
           <View style={s.sheet}>
             <View style={s.handle} />
             <View style={s.reportHeader}>
-              <TouchableOpacity onPress={() => setSheet('menu')} testID="report-back">
+              <PressableScale
+                onPress={() => setSheet('menu')}
+                testID="report-back"
+                accessibilityRole="button"
+                accessibilityLabel="Back"
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
                 <Ionicons name="arrow-back" size={20} color={c.textPrimary} />
-              </TouchableOpacity>
+              </PressableScale>
               <Text variant="title3" color="textPrimary" style={s.heading}>Report {userName}</Text>
               <View style={{ width: 20 }} />
             </View>
@@ -178,7 +203,7 @@ export default function BlockReportSheet({ visible, userId, userName, onClose, o
             <Text variant="caption" color="textMuted" style={s.sectionLabel}>What's the issue?</Text>
             <ScrollView style={s.categoriesScroll} showsVerticalScrollIndicator={false}>
               {REPORT_CATEGORIES.map((cat) => (
-                <TouchableOpacity
+                <PressableScale
                   key={cat}
                   style={[s.categoryRow, category === cat && s.categoryRowSelected]}
                   onPress={() => setCategory(cat)}
@@ -186,6 +211,7 @@ export default function BlockReportSheet({ visible, userId, userName, onClose, o
                   accessibilityLabel={cat}
                   accessibilityRole="radio"
                   accessibilityState={{ selected: category === cat }}
+                  pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
                   <Text
                     variant={category === cat ? 'headline' : 'callout'}
@@ -196,7 +222,7 @@ export default function BlockReportSheet({ visible, userId, userName, onClose, o
                   {category === cat && (
                     <Ionicons name="checkmark-circle" size={18} color={c.primary} />
                   )}
-                </TouchableOpacity>
+                </PressableScale>
               ))}
 
               <Text variant="caption" color="textMuted" style={s.sectionLabel}>Additional details (optional)</Text>
@@ -214,19 +240,22 @@ export default function BlockReportSheet({ visible, userId, userName, onClose, o
               <Text variant="caption" color="textMuted" style={s.charCount}>{description.length}/500</Text>
             </ScrollView>
 
-            <TouchableOpacity
+            <PressableScale
               style={[s.submitBtn, !category && s.submitBtnDisabled]}
               onPress={handleSubmitReport}
               disabled={!category || reportMutation.isPending}
               testID="report-submit-btn"
               accessibilityLabel="Submit report"
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !category || reportMutation.isPending }}
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               {reportMutation.isPending ? (
                 <ActivityIndicator color="#fff" />
               ) : (
                 <Text variant="headline" color="onPrimary">Submit Report</Text>
               )}
-            </TouchableOpacity>
+            </PressableScale>
           </View>
         )}
       </KeyboardAvoidingView>

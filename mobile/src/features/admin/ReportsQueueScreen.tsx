@@ -4,7 +4,6 @@ import {
   View,
   StyleSheet,
   FlatList,
-  TouchableOpacity,
   ActivityIndicator,
   Alert,
   Modal,
@@ -18,6 +17,7 @@ import { useNavigation } from '@react-navigation/native';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { getReportsQueue, updateReport, updateUserStatus } from '../../api/admin';
 import Text from '../../components/ui/Text';
+import { PressableScale } from '../../components/motion';
 
 interface ReportItem {
   id: string;
@@ -95,24 +95,30 @@ function ReportCard({
       ) : null}
 
       <View style={s.actions}>
-        <TouchableOpacity
+        <PressableScale
           style={[s.btn, s.dismissBtn]}
           onPress={() => onDismiss(item.id)}
           testID={`dismiss-btn-${item.id}`}
+          accessibilityRole="button"
           accessibilityLabel="Dismiss report"
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="close-circle-outline" size={16} color={c.textSecondary} />
           <Text variant="caption" color="textSecondary">Dismiss</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
+        </PressableScale>
+        <PressableScale
           style={[s.btn, s.blockBtn]}
           onPress={() => onBlock(item.id, item.reportedUserId, displayName(item.ReportedUser, 'User'))}
           testID={`block-btn-${item.id}`}
-          accessibilityLabel="Block user"
+          accessibilityRole="button"
+          accessibilityLabel="Suspend user"
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="ban-outline" size={16} color="#fff" />
           <Text variant="caption" style={{ color: '#fff' }}>Suspend</Text>
-        </TouchableOpacity>
+        </PressableScale>
       </View>
     </View>
   );
@@ -177,9 +183,16 @@ export default function ReportsQueueScreen() {
   return (
     <SafeAreaView style={s.safe} testID="ReportsQueueScreen">
       <View style={s.header}>
-        <TouchableOpacity onPress={() => nav.goBack()} style={s.backBtn} accessibilityLabel="Go back">
+        <PressableScale
+          onPress={() => nav.goBack()}
+          style={s.backBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
-        </TouchableOpacity>
+        </PressableScale>
         <Text variant="title3" color="textPrimary" style={s.title}>Reports Queue</Text>
         {isLoading && <ActivityIndicator size="small" color={c.primary} />}
       </View>
@@ -227,21 +240,32 @@ export default function ReportsQueueScreen() {
               testID="admin-notes-input"
             />
             <View style={s.modalActions}>
-              <TouchableOpacity style={s.modalCancel} onPress={() => setBlockTarget(null)}>
+              <PressableScale
+                style={s.modalCancel}
+                onPress={() => setBlockTarget(null)}
+                accessibilityRole="button"
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
                 <Text variant="subhead" color="textSecondary">Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
+              </PressableScale>
+              <PressableScale
                 style={[s.modalConfirm, mutPending && s.disabled]}
                 onPress={handleBlockConfirm}
                 disabled={mutPending}
                 testID="block-confirm-btn"
+                accessibilityRole="button"
+                accessibilityLabel="Confirm suspend"
+                accessibilityState={{ disabled: mutPending }}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 {mutPending ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
                   <Text variant="caption" style={{ color: '#fff' }}>Suspend</Text>
                 )}
-              </TouchableOpacity>
+              </PressableScale>
             </View>
           </View>
         </View>

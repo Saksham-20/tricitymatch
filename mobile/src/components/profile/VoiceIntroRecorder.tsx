@@ -4,12 +4,12 @@ import {
   ActivityIndicator,
   Alert,
   StyleSheet,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { deleteVoiceIntro, uploadVoiceIntro } from '../../api/profile';
 import Text from '../ui/Text';
+import { PressableScale } from '../motion';
 
 const MAX_DURATION_MS = 30_000;
 
@@ -198,13 +198,16 @@ export default function VoiceIntroRecorder({
     if (!existingUrl) return null;
     return (
       <View style={s.readOnlyRow} testID="VoiceIntroPlayer">
-        <TouchableOpacity
+        <PressableScale
           style={s.iconBtn}
           onPress={state === 'playing' ? stopPlayback : playExisting}
+          accessibilityRole="button"
           accessibilityLabel={state === 'playing' ? 'Stop voice intro' : 'Play voice intro'}
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text variant="footnote" style={s.btnIcon}>{state === 'playing' ? '⏹' : '▶'}</Text>
-        </TouchableOpacity>
+        </PressableScale>
         <View style={s.progressBarWrap}>
           <View
             style={[
@@ -229,17 +232,27 @@ export default function VoiceIntroRecorder({
       {/* Existing uploaded intro */}
       {existingUrl && state === 'idle' && !localUri && (
         <View style={s.existingRow}>
-          <TouchableOpacity
+          <PressableScale
             style={s.iconBtn}
             onPress={() => playLocal(existingUrl)}
+            accessibilityRole="button"
             accessibilityLabel="Play existing voice intro"
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Text variant="footnote" style={s.btnIcon}>▶</Text>
-          </TouchableOpacity>
+          </PressableScale>
           <Text variant="subhead" color="textSecondary" style={s.existingLabel}>Voice intro saved</Text>
-          <TouchableOpacity style={s.deleteBtn} onPress={remove} accessibilityLabel="Delete voice intro">
+          <PressableScale
+            style={s.deleteBtn}
+            onPress={remove}
+            accessibilityRole="button"
+            accessibilityLabel="Delete voice intro"
+            hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Text variant="subhead" color="error" style={s.deleteTxt}>Remove</Text>
-          </TouchableOpacity>
+          </PressableScale>
         </View>
       )}
 
@@ -247,42 +260,69 @@ export default function VoiceIntroRecorder({
       {state !== 'uploading' && (
         <View style={s.controls}>
           {state === 'idle' && (
-            <TouchableOpacity style={s.recordBtn} onPress={startRecording} accessibilityLabel="Start recording">
+            <PressableScale
+              style={s.recordBtn}
+              onPress={startRecording}
+              accessibilityRole="button"
+              accessibilityLabel="Start recording"
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
               <Text variant="footnote" style={s.recordDot}>⏺</Text>
               <Text variant="subhead" style={s.recordTxt}>{existingUrl ? 'Re-record' : 'Record'}</Text>
-            </TouchableOpacity>
+            </PressableScale>
           )}
 
           {state === 'recording' && (
             <View style={s.recordingRow}>
               <View style={s.recIndicator} />
               <Text variant="subhead" color="textPrimary" style={s.elapsedTxt}>{formatTime(elapsed)} / 0:30</Text>
-              <TouchableOpacity style={s.stopBtn} onPress={stopRecording} accessibilityLabel="Stop recording">
+              <PressableScale
+                style={s.stopBtn}
+                onPress={stopRecording}
+                accessibilityRole="button"
+                accessibilityLabel="Stop recording"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
                 <Text variant="subhead" style={s.stopTxt}>Stop</Text>
-              </TouchableOpacity>
+              </PressableScale>
             </View>
           )}
 
           {(state === 'recorded' || state === 'playing') && localUri && (
             <View style={s.previewRow}>
-              <TouchableOpacity
+              <PressableScale
                 style={s.iconBtn}
                 onPress={state === 'playing' ? stopPlayback : () => playLocal(localUri)}
+                accessibilityRole="button"
                 accessibilityLabel={state === 'playing' ? 'Stop preview' : 'Preview recording'}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Text variant="footnote" style={s.btnIcon}>{state === 'playing' ? '⏹' : '▶'}</Text>
-              </TouchableOpacity>
+              </PressableScale>
               <Text variant="subhead" color="textSecondary" style={s.previewLabel}>Preview ({formatTime(elapsed)}s)</Text>
-              <TouchableOpacity
+              <PressableScale
                 style={s.discardBtn}
                 onPress={() => { setLocalUri(null); setState('idle'); }}
+                accessibilityRole="button"
                 accessibilityLabel="Discard recording"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Text variant="subhead" color="error" style={s.discardTxt}>Discard</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={s.saveBtn} onPress={upload} accessibilityLabel="Save voice intro">
+              </PressableScale>
+              <PressableScale
+                style={s.saveBtn}
+                onPress={upload}
+                accessibilityRole="button"
+                accessibilityLabel="Save voice intro"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
                 <Text variant="subhead" style={s.saveTxt}>Save</Text>
-              </TouchableOpacity>
+              </PressableScale>
             </View>
           )}
         </View>

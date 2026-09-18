@@ -3,7 +3,6 @@ import { useTheme } from '../../hooks/useTheme';
 import {
   View,
   TextInput,
-  TouchableOpacity,
   StyleSheet,
   ScrollView,
   ActivityIndicator,
@@ -27,7 +26,7 @@ import { login, refreshAccessToken } from '../../api/auth';
 import { CONFIG } from '../../constants/config';
 import { cache, CACHE_KEYS } from '../../utils/cache';
 import { secureStorage } from '../../utils/secureStorage';
-import { useShake } from '../../components/motion';
+import { useShake, PressableScale } from '../../components/motion';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
@@ -224,14 +223,17 @@ export default function LoginScreen() {
         showsVerticalScrollIndicator={false}
       >
         {navigation.canGoBack() && (
-          <TouchableOpacity
+          <PressableScale
             onPress={() => navigation.goBack()}
             style={styles.backBtn}
+            accessibilityRole="button"
             accessibilityLabel="Go back"
             testID="login-back"
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
-          </TouchableOpacity>
+          </PressableScale>
         )}
 
         {/* Header */}
@@ -273,13 +275,16 @@ export default function LoginScreen() {
         <View style={styles.fieldGroup}>
           <View style={styles.labelRow}>
             <Text variant="subhead" color="textPrimary" style={styles.label}>{t('auth.login.password')}</Text>
-            <TouchableOpacity
+            <PressableScale
               onPress={() => navigation.navigate('ForgotPassword')}
               testID="LoginScreen-forgotPassword"
+              accessibilityRole="link"
               accessibilityLabel={t('auth.login.forgotPassword')}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Text variant="subhead" color="primary">{t('auth.login.forgotPassword')}</Text>
-            </TouchableOpacity>
+            </PressableScale>
           </View>
           <View style={styles.passwordContainer}>
             <TextInput
@@ -297,31 +302,37 @@ export default function LoginScreen() {
               accessibilityLabel={t('auth.login.password')}
               testID="LoginScreen-password"
             />
-            <TouchableOpacity
+            <PressableScale
               style={styles.eyeBtn}
               onPress={() => setShowPassword((v) => !v)}
+              accessibilityRole="button"
               accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
               testID="LoginScreen-togglePassword"
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={c.textMuted} />
-            </TouchableOpacity>
+            </PressableScale>
           </View>
         </View>
 
         {/* Sign In button */}
-        <TouchableOpacity
+        <PressableScale
           style={[styles.primaryBtn, (loading || lockoutMinutes !== null) && styles.btnDisabled]}
           onPress={handleLogin}
           disabled={loading || lockoutMinutes !== null}
+          accessibilityRole="button"
           accessibilityLabel={t('auth.login.signIn')}
+          accessibilityState={{ disabled: loading || lockoutMinutes !== null }}
           testID="LoginScreen-submit"
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           {loading ? (
             <ActivityIndicator color="#FFFFFF" testID="LoginScreen-loader" />
           ) : (
             <Text variant="headline" style={{ color: '#FFFFFF' }}>{t('auth.login.signIn')}</Text>
           )}
-        </TouchableOpacity>
+        </PressableScale>
 
         {/* Google Sign-In — HIDDEN on iOS. Apple Guideline 4.8 requires "Sign in
             with Apple" alongside any third-party social login. Until that's added,
@@ -335,28 +346,33 @@ export default function LoginScreen() {
               <View style={styles.dividerLine} />
             </View>
 
-            <TouchableOpacity
+            <PressableScale
               style={styles.googleBtn}
               onPress={handleGoogleSignIn}
+              accessibilityRole="button"
               accessibilityLabel={t('auth.login.googleSignIn')}
               testID="LoginScreen-google"
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <View style={styles.btnRow}>
                 <Ionicons name="logo-google" size={18} color={c.textPrimary} />
                 <Text variant="subhead" color="textPrimary">{t('auth.login.googleSignIn')}</Text>
               </View>
-            </TouchableOpacity>
+            </PressableScale>
           </>
         )}
 
         {/* Biometric — only shown when hardware available */}
         {biometricAvailable && (
-          <TouchableOpacity
+          <PressableScale
             style={styles.biometricBtn}
             onPress={handleBiometric}
             disabled={bioAttempts >= BIO_MAX_ATTEMPTS}
+            accessibilityRole="button"
             accessibilityLabel="Sign in with biometrics"
+            accessibilityState={{ disabled: bioAttempts >= BIO_MAX_ATTEMPTS }}
             testID="LoginScreen-biometric"
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <View style={styles.btnRow}>
               <Ionicons name="finger-print" size={18} color={bioAttempts >= BIO_MAX_ATTEMPTS ? c.textMuted : c.primary} />
@@ -364,18 +380,20 @@ export default function LoginScreen() {
                 {biometricEnabled ? 'Sign in with Face ID / Touch ID' : 'Use biometric login'}
               </Text>
             </View>
-          </TouchableOpacity>
+          </PressableScale>
         )}
 
         {/* Footer */}
-        <TouchableOpacity
+        <PressableScale
           style={styles.footerLink}
           onPress={() => navigation.navigate('Signup')}
           testID="LoginScreen-signup"
+          accessibilityRole="link"
           accessibilityLabel={t('auth.login.noAccount')}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text variant="subhead" color="textSecondary">{t('auth.login.noAccount')}</Text>
-        </TouchableOpacity>
+        </PressableScale>
       </ScrollView>
 
       {/* Biometric Setup Prompt — shown after first successful login */}
@@ -395,22 +413,26 @@ export default function LoginScreen() {
             <Text variant="subhead" color="textSecondary" style={styles.bioModalBody}>
               Sign in faster next time using biometrics instead of your password.
             </Text>
-            <TouchableOpacity
+            <PressableScale
               style={styles.bioModalPrimary}
               onPress={handleEnableBiometric}
               testID="biometric-setup-enable"
+              accessibilityRole="button"
               accessibilityLabel="Enable biometric login"
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Text variant="headline" style={{ color: '#fff' }}>Enable Biometrics</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+            </PressableScale>
+            <PressableScale
               style={styles.bioModalSecondary}
               onPress={handleSkipBiometric}
               testID="biometric-setup-skip"
+              accessibilityRole="button"
               accessibilityLabel="Skip biometric setup"
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Text variant="subhead" color="textSecondary">Not now</Text>
-            </TouchableOpacity>
+            </PressableScale>
           </View>
         </View>
       </Modal>

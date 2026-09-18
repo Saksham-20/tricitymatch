@@ -3,7 +3,6 @@ import { useTheme } from '../../hooks/useTheme';
 import {
   View,
   TextInput,
-  TouchableOpacity,
   StyleSheet,
   ScrollView,
   ActivityIndicator,
@@ -19,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { AuthStackParamList } from '../../navigation/types';
 import { forgotPassword } from '../../api/auth';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { PressableScale } from '../../components/motion';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'ForgotPassword'>;
 
@@ -72,14 +72,16 @@ export default function ForgotPasswordScreen() {
         <Text variant="callout" color="textSecondary" style={styles.successSubtitle}>
           If an account exists for {email}, a reset link has been sent. Check your inbox.
         </Text>
-        <TouchableOpacity
+        <PressableScale
           style={styles.primaryBtn}
           onPress={() => navigation.navigate('Login')}
           testID="ForgotPasswordScreen-backToLogin"
+          accessibilityRole="button"
           accessibilityLabel={t('auth.forgotPassword.backToLogin')}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text variant="headline" style={{ color: '#FFFFFF' }}>{t('auth.forgotPassword.backToLogin')}</Text>
-        </TouchableOpacity>
+        </PressableScale>
       </View>
     );
   }
@@ -97,15 +99,18 @@ export default function ForgotPasswordScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Back */}
-        <TouchableOpacity
+        <PressableScale
           style={styles.backBtn}
           onPress={() => navigation.goBack()}
+          accessibilityRole="button"
           accessibilityLabel={t('common.back')}
           testID="ForgotPasswordScreen-back"
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="chevron-back" size={18} color={c.textSecondary} />
           <Text variant="subhead" color="textSecondary">{t('common.back')}</Text>
-        </TouchableOpacity>
+        </PressableScale>
 
         {/* Header */}
         <View style={styles.header}>
@@ -146,19 +151,22 @@ export default function ForgotPasswordScreen() {
         </View>
 
         {/* Submit */}
-        <TouchableOpacity
+        <PressableScale
           style={[styles.primaryBtn, loading && styles.btnDisabled]}
           onPress={handleSubmit}
           disabled={loading}
+          accessibilityRole="button"
           accessibilityLabel={t('auth.forgotPassword.sendLink')}
+          accessibilityState={{ disabled: loading }}
           testID="ForgotPasswordScreen-submit"
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           {loading ? (
             <ActivityIndicator color="#FFFFFF" testID="ForgotPasswordScreen-loader" />
           ) : (
             <Text variant="headline" style={{ color: '#FFFFFF' }}>{t('auth.forgotPassword.sendLink')}</Text>
           )}
-        </TouchableOpacity>
+        </PressableScale>
       </ScrollView>
     </KeyboardAvoidingView>
   );

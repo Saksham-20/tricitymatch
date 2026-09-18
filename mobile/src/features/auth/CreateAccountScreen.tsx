@@ -9,7 +9,7 @@ import React, { useState } from 'react';
 import { PressableScale } from '../../components/motion';
 import { useTheme } from '../../hooks/useTheme';
 import {
-  View, TextInput, TouchableOpacity, StyleSheet, ScrollView,
+  View, TextInput, StyleSheet, ScrollView,
   ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import Text from '../../components/ui/Text';
@@ -98,9 +98,16 @@ export default function CreateAccountScreen() {
         contentContainerStyle={[st.content, { paddingTop: insets.top + spacing['2xl'] }]}
         keyboardShouldPersistTaps="handled"
       >
-        <TouchableOpacity onPress={() => navigation.goBack()} style={st.back} accessibilityLabel={t('common.back', 'Back')}>
+        <PressableScale
+          onPress={() => navigation.goBack()}
+          style={st.back}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.back', 'Back')}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
-        </TouchableOpacity>
+        </PressableScale>
 
         <Text variant="title2" color="textPrimary">{t('auth.signup.title', 'Create your account')}</Text>
         <Text variant="footnote" color="textMuted" style={st.sub}>{t('auth.signup.doorSub', 'Two steps. About two minutes.')}</Text>
@@ -129,20 +136,27 @@ export default function CreateAccountScreen() {
               accessibilityLabel={t('auth.password', 'Password')}
               testID="password-input"
             />
-            <TouchableOpacity onPress={() => setShowPassword((v) => !v)} accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}>
+            <PressableScale
+              onPress={() => setShowPassword((v) => !v)}
+              accessibilityRole="button"
+              accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
               <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={c.textMuted} />
-            </TouchableOpacity>
+            </PressableScale>
           </View>
           {password.length > 0 && <PasswordStrength password={password} />}
         </View>
 
-        <TouchableOpacity
+        <PressableScale
           style={st.termsRow}
           onPress={() => setTermsAccepted((v) => !v)}
           disabled={otpActive}
           accessibilityRole="checkbox"
-          accessibilityState={{ checked: termsAccepted }}
+          accessibilityState={{ checked: termsAccepted, disabled: otpActive }}
           testID="terms-checkbox"
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons
             name={termsAccepted ? 'checkbox' : 'square-outline'}
@@ -155,7 +169,7 @@ export default function CreateAccountScreen() {
             {' '}&amp;{' '}
             <Text variant="caption" color="primary" onPress={() => navigation.navigate('Privacy')} accessibilityRole="link">{t('auth.signup.privacyLink', 'Privacy Policy')}</Text>
           </Text>
-        </TouchableOpacity>
+        </PressableScale>
 
         {error ? <Text variant="footnote" color="error" style={st.error} accessibilityLiveRegion="polite">{error}</Text> : null}
 
@@ -179,17 +193,29 @@ export default function CreateAccountScreen() {
             </Text>
             <OtpInput onComplete={handleVerify} disabled={otpPhase === 'verifying'} resetKey={otpResetKey} />
             {otpPhase === 'verifying' && <ActivityIndicator size="small" color={c.primary} style={{ marginTop: spacing.sm }} />}
-            <TouchableOpacity onPress={handleSendOtp} style={{ marginTop: spacing.md }} accessibilityLabel="Resend code">
+            <PressableScale
+              onPress={handleSendOtp}
+              style={{ marginTop: spacing.md }}
+              accessibilityRole="link"
+              accessibilityLabel="Resend code"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
               <Text variant="caption" color="primary">{t('auth.signup.resend', 'Resend code')}</Text>
-            </TouchableOpacity>
+            </PressableScale>
           </View>
         )}
 
         <View style={st.footerRow}>
           <Text variant="footnote" color="textMuted">{t('auth.signup.haveAccount', 'Already have an account?')}</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+          <PressableScale
+            onPress={() => navigation.navigate('Login')}
+            accessibilityRole="link"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Text variant="caption" color="primary"> {t('auth.login.signIn', 'Sign in')}</Text>
-          </TouchableOpacity>
+          </PressableScale>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
