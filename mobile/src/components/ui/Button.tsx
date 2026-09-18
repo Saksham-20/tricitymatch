@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { borderRadius, colours, shadows, spacing, type, type ThemeColours } from '@shared/constants/theme';
+import { borderRadius, colours, shadows, darkShadows, spacing, type, type ThemeColours } from '@shared/constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import { haptics } from '../../utils/haptics';
 import { PressableScale } from '../motion';
@@ -69,9 +69,10 @@ export default function Button({
   accessibilityLabel,
   style,
 }: ButtonProps) {
-  const { c } = useTheme();
+  const { c, isDark } = useTheme();
   const isDisabled = disabled || loading;
-  const v = React.useMemo(() => makeVariantStyles(c), [c])[variant];
+  const sh = isDark ? darkShadows : shadows;
+  const v = React.useMemo(() => makeVariantStyles(c, sh), [c, sh])[variant];
   const sz = SIZES[size];
   const gradient = React.useMemo(() => makeGradients(c), [c])[variant];
 
@@ -153,16 +154,16 @@ type Variant = {
   spinnerColor: string;
 };
 
-const makeVariantStyles = (c: ThemeColours): Record<ButtonVariant, Variant> => ({
+const makeVariantStyles = (c: ThemeColours, sh: typeof shadows | typeof darkShadows): Record<ButtonVariant, Variant> => ({
   primary: {
     container: { backgroundColor: c.p500 },
-    shadow: shadows.e3,
+    shadow: sh.e3,
     text: { color: c.onPrimary },
     spinnerColor: c.onPrimary,
   },
   gold: {
     container: { backgroundColor: c.g500 },
-    shadow: shadows.gold,
+    shadow: sh.gold,
     text: { color: c.goldText, fontFamily: type.headline.fontFamily },
     spinnerColor: c.goldText,
   },

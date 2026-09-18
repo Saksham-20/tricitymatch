@@ -17,7 +17,7 @@ export default function Card({ elevated = false, padded = true, style, children,
     <View
       style={[
         styles.base,
-        { backgroundColor: c.surfaceCard, borderColor: c.border },
+        { backgroundColor: c.surfaceCard },
         elevated ? sh.e3 : sh.e2,
         padded && styles.padded,
         style,
@@ -32,7 +32,6 @@ export default function Card({ elevated = false, padded = true, style, children,
 const styles = StyleSheet.create({
   base: {
     borderRadius: borderRadius.lg,
-    borderWidth: 1,
   },
   padded: { padding: spacing.lg },
 });

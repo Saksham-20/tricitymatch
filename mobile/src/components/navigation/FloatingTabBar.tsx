@@ -133,8 +133,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     paddingVertical: 8,
     borderRadius: borderRadius.pill,
     backgroundColor: c.surfaceCard + 'F2', // ~95% opacity themed surface
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: c.border,
     // soft brand shadow, both platforms
     shadowColor: '#000',
     shadowOpacity: 0.18,
