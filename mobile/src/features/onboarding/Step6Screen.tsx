@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, TextInput, StyleSheet, Switch } from 'react-native';
+import { View, StyleSheet, Switch } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { PressableScale } from '../../components/motion';
+import Input from '../../components/ui/Input';
 import PickerSheet from '../../components/ui/PickerSheet';
 import Text from '../../components/ui/Text';
 import OnboardingLayout from './OnboardingLayout';
@@ -89,19 +90,15 @@ export default function Step6Screen() {
       </View>
 
       {/* State (auto-filled) */}
-      <View>
-        <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step6.state')}</Text>
-        <TextInput
-          style={styles.input}
-          value={state}
-          onChangeText={setState}
-          placeholder="State"
-          placeholderTextColor={c.textMuted}
-          autoCapitalize="words"
-          testID="input-state"
-          accessibilityLabel={t('onboarding.step6.state')}
-        />
-      </View>
+      <Input
+        label={t('onboarding.step6.state')}
+        value={state}
+        onChangeText={setState}
+        placeholder="State"
+        autoCapitalize="words"
+        testID="input-state"
+        accessibilityLabel={t('onboarding.step6.state')}
+      />
 
       {/* NRI toggle */}
       <View style={styles.toggleRow}>
@@ -187,16 +184,6 @@ export default function Step6Screen() {
 const makeStyles = (c: ThemeColours) => StyleSheet.create({
   label: {
     marginBottom: spacing.sm,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    fontSize: typography.fontSize.base,
-    color: c.textPrimary,
-    minHeight: 48,
   },
   selectBtn: {
     borderWidth: 1,

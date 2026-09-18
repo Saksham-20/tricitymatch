@@ -10,6 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import Text from '../../components/ui/Text';
+import Input from '../../components/ui/Input';
 import { PressableScale } from '../../components/motion';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,7 +20,7 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import type { AuthStackParamList } from '../../navigation/types';
 import { resetPassword } from '../../api/auth';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { PASSWORD_RULES_ATTR, passwordProblem } from '../../utils/passwordRule';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'ResetPassword'>;
@@ -37,8 +38,6 @@ export default function ResetPasswordScreen() {
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
@@ -140,76 +139,42 @@ export default function ResetPasswordScreen() {
         ) : null}
 
         {/* New password */}
-        <View style={styles.fieldGroup}>
-          <Text variant="subhead" color="textPrimary" style={styles.label}>{t('auth.resetPassword.newPassword')}</Text>
-          <View style={styles.passwordContainer}>
-            <TextInput
-              style={[styles.input, styles.passwordInput, fieldErrors.password ? styles.inputError : undefined]}
-              value={password}
-              onChangeText={(v) => { setPassword(v); setFieldErrors((p) => ({ ...p, password: '' })); }}
-              placeholder="Min. 8 chars, with a number & symbol"
-              placeholderTextColor={c.textMuted}
-              secureTextEntry={!showPassword}
-              textContentType="newPassword"
-              autoComplete="new-password"
-              passwordRules={PASSWORD_RULES_ATTR}
-              returnKeyType="next"
-              onSubmitEditing={() => confirmRef.current?.focus()}
-              accessibilityLabel={t('auth.resetPassword.newPassword')}
-              testID="ResetPasswordScreen-password"
-            />
-            <PressableScale
-              style={styles.eyeBtn}
-              onPress={() => setShowPassword((v) => !v)}
-              accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
-              accessibilityRole="button"
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              testID="ResetPasswordScreen-togglePassword"
-            >
-              <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={c.textMuted} />
-            </PressableScale>
-          </View>
-          {fieldErrors.password ? (
-            <Text variant="footnote" color="error" style={styles.fieldError} accessibilityLiveRegion="polite">{fieldErrors.password}</Text>
-          ) : null}
-        </View>
+        <Input
+          label={t('auth.resetPassword.newPassword')}
+          value={password}
+          onChangeText={(v) => { setPassword(v); setFieldErrors((p) => ({ ...p, password: '' })); }}
+          placeholder="Min. 8 chars, with a number & symbol"
+          secureToggle
+          secureTextEntry
+          textContentType="newPassword"
+          autoComplete="new-password"
+          passwordRules={PASSWORD_RULES_ATTR}
+          returnKeyType="next"
+          onSubmitEditing={() => confirmRef.current?.focus()}
+          accessibilityLabel={t('auth.resetPassword.newPassword')}
+          error={fieldErrors.password}
+          testID="ResetPasswordScreen-password"
+          toggleTestID="ResetPasswordScreen-togglePassword"
+        />
 
         {/* Confirm password */}
-        <View style={styles.fieldGroup}>
-          <Text variant="subhead" color="textPrimary" style={styles.label}>{t('auth.resetPassword.confirmPassword')}</Text>
-          <View style={styles.passwordContainer}>
-            <TextInput
-              ref={confirmRef}
-              style={[styles.input, styles.passwordInput, fieldErrors.confirmPassword ? styles.inputError : undefined]}
-              value={confirmPassword}
-              onChangeText={(v) => { setConfirmPassword(v); setFieldErrors((p) => ({ ...p, confirmPassword: '' })); }}
-              placeholder="Re-enter new password"
-              placeholderTextColor={c.textMuted}
-              secureTextEntry={!showConfirm}
-              textContentType="newPassword"
-              autoComplete="new-password"
-              returnKeyType="done"
-              onSubmitEditing={handleReset}
-              accessibilityLabel={t('auth.resetPassword.confirmPassword')}
-              testID="ResetPasswordScreen-confirmPassword"
-            />
-            <PressableScale
-              style={styles.eyeBtn}
-              onPress={() => setShowConfirm((v) => !v)}
-              accessibilityLabel={showConfirm ? 'Hide password' : 'Show password'}
-              accessibilityRole="button"
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              testID="ResetPasswordScreen-toggleConfirm"
-            >
-              <Ionicons name={showConfirm ? 'eye-off-outline' : 'eye-outline'} size={20} color={c.textMuted} />
-            </PressableScale>
-          </View>
-          {fieldErrors.confirmPassword ? (
-            <Text variant="footnote" color="error" style={styles.fieldError} accessibilityLiveRegion="polite">{fieldErrors.confirmPassword}</Text>
-          ) : null}
-        </View>
+        <Input
+          ref={confirmRef}
+          label={t('auth.resetPassword.confirmPassword')}
+          value={confirmPassword}
+          onChangeText={(v) => { setConfirmPassword(v); setFieldErrors((p) => ({ ...p, confirmPassword: '' })); }}
+          placeholder="Re-enter new password"
+          secureToggle
+          secureTextEntry
+          textContentType="newPassword"
+          autoComplete="new-password"
+          returnKeyType="done"
+          onSubmitEditing={handleReset}
+          accessibilityLabel={t('auth.resetPassword.confirmPassword')}
+          error={fieldErrors.confirmPassword}
+          testID="ResetPasswordScreen-confirmPassword"
+          toggleTestID="ResetPasswordScreen-toggleConfirm"
+        />
 
         {/* Submit */}
         <PressableScale
@@ -258,38 +223,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     marginBottom: spacing.lg,
     borderLeftWidth: 3,
     borderLeftColor: c.error,
-  },
-  fieldGroup: { marginBottom: spacing.lg },
-  label: {
-    marginBottom: spacing.sm,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 14,
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textPrimary,
-    backgroundColor: c.background,
-    minHeight: 52,
-  },
-  inputError: { borderColor: c.error },
-  passwordContainer: { position: 'relative' },
-  passwordInput: { paddingRight: 52 },
-  eyeBtn: {
-    position: 'absolute',
-    right: 14,
-    top: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    minWidth: 40,
-  },
-  eyeText: { fontSize: 18 },
-  fieldError: {
-    marginTop: spacing.xs,
   },
   primaryBtn: {
     backgroundColor: c.primary,

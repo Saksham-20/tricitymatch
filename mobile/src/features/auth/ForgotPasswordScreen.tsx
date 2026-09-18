@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
   View,
-  TextInput,
   StyleSheet,
   ScrollView,
   ActivityIndicator,
@@ -10,6 +9,7 @@ import {
   Platform,
 } from 'react-native';
 import Text from '../../components/ui/Text';
+import Input from '../../components/ui/Input';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -17,7 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import type { AuthStackParamList } from '../../navigation/types';
 import { forgotPassword } from '../../api/auth';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { PressableScale } from '../../components/motion';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'ForgotPassword'>;
@@ -129,26 +129,22 @@ export default function ForgotPasswordScreen() {
         ) : null}
 
         {/* Email input */}
-        <View style={styles.fieldGroup}>
-          <Text variant="subhead" color="textPrimary" style={styles.label}>{t('auth.forgotPassword.email')}</Text>
-          <TextInput
-            style={styles.input}
-            value={email}
-            onChangeText={(v) => { setEmail(v); setError(''); }}
-            placeholder="you@example.com"
-            placeholderTextColor={c.textMuted}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            textContentType="emailAddress"
-            autoComplete="email"
-            autoFocus
-            returnKeyType="send"
-            onSubmitEditing={handleSubmit}
-            accessibilityLabel={t('auth.forgotPassword.email')}
-            testID="ForgotPasswordScreen-email"
-          />
-        </View>
+        <Input
+          label={t('auth.forgotPassword.email')}
+          value={email}
+          onChangeText={(v) => { setEmail(v); setError(''); }}
+          placeholder="you@example.com"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+          textContentType="emailAddress"
+          autoComplete="email"
+          autoFocus
+          returnKeyType="send"
+          onSubmitEditing={handleSubmit}
+          accessibilityLabel={t('auth.forgotPassword.email')}
+          testID="ForgotPasswordScreen-email"
+        />
 
         {/* Submit */}
         <PressableScale
@@ -197,22 +193,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     marginBottom: spacing.lg,
     borderLeftWidth: 3,
     borderLeftColor: c.error,
-  },
-  fieldGroup: { marginBottom: spacing.lg },
-  label: {
-    marginBottom: spacing.sm,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 14,
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textPrimary,
-    backgroundColor: c.background,
-    minHeight: 52,
   },
   primaryBtn: {
     backgroundColor: c.primary,

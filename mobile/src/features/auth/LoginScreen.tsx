@@ -12,6 +12,7 @@ import {
   Modal,
 } from 'react-native';
 import Text from '../../components/ui/Text';
+import Input from '../../components/ui/Input';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -27,7 +28,7 @@ import { CONFIG } from '../../constants/config';
 import { cache, CACHE_KEYS } from '../../utils/cache';
 import { secureStorage } from '../../utils/secureStorage';
 import { useShake, PressableScale } from '../../components/motion';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
@@ -41,7 +42,6 @@ export default function LoginScreen() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [lockoutMinutes, setLockoutMinutes] = useState<number | null>(null);
@@ -250,71 +250,52 @@ export default function LoginScreen() {
         ) : null}
 
         {/* Email input */}
-        <View style={styles.fieldGroup}>
-          <Text variant="subhead" color="textPrimary" style={styles.label}>{t('auth.login.email')}</Text>
-          <TextInput
-            style={styles.input}
-            value={email}
-            onChangeText={(v) => { setEmail(v); setError(''); }}
-            placeholder="you@example.com"
-            placeholderTextColor={c.textMuted}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            textContentType="emailAddress"
-            autoComplete="email"
-            autoFocus
-            returnKeyType="next"
-            onSubmitEditing={() => passwordRef.current?.focus()}
-            accessibilityLabel={t('auth.login.email')}
-            testID="LoginScreen-email"
-          />
-        </View>
+        <Input
+          label={t('auth.login.email')}
+          value={email}
+          onChangeText={(v) => { setEmail(v); setError(''); }}
+          placeholder="you@example.com"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+          textContentType="emailAddress"
+          autoComplete="email"
+          autoFocus
+          returnKeyType="next"
+          onSubmitEditing={() => passwordRef.current?.focus()}
+          accessibilityLabel={t('auth.login.email')}
+          testID="LoginScreen-email"
+        />
 
         {/* Password input */}
-        <View style={styles.fieldGroup}>
-          <View style={styles.labelRow}>
-            <Text variant="subhead" color="textPrimary" style={styles.label}>{t('auth.login.password')}</Text>
-            <PressableScale
-              onPress={() => navigation.navigate('ForgotPassword')}
-              testID="LoginScreen-forgotPassword"
-              accessibilityRole="link"
-              accessibilityLabel={t('auth.login.forgotPassword')}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Text variant="subhead" color="primary">{t('auth.login.forgotPassword')}</Text>
-            </PressableScale>
-          </View>
-          <View style={styles.passwordContainer}>
-            <TextInput
-              ref={passwordRef}
-              style={[styles.input, styles.passwordInput]}
-              value={password}
-              onChangeText={(v) => { setPassword(v); setError(''); }}
-              placeholder="••••••••"
-              placeholderTextColor={c.textMuted}
-              secureTextEntry={!showPassword}
-              textContentType="password"
-              autoComplete="current-password"
-              returnKeyType="done"
-              onSubmitEditing={handleLogin}
-              accessibilityLabel={t('auth.login.password')}
-              testID="LoginScreen-password"
-            />
-            <PressableScale
-              style={styles.eyeBtn}
-              onPress={() => setShowPassword((v) => !v)}
-              accessibilityRole="button"
-              accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
-              testID="LoginScreen-togglePassword"
-              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={c.textMuted} />
-            </PressableScale>
-          </View>
+        <View style={styles.labelRow}>
+          <Text variant="subhead" color="textPrimary" style={styles.label}>{t('auth.login.password')}</Text>
+          <PressableScale
+            onPress={() => navigation.navigate('ForgotPassword')}
+            testID="LoginScreen-forgotPassword"
+            accessibilityRole="link"
+            accessibilityLabel={t('auth.login.forgotPassword')}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Text variant="subhead" color="primary">{t('auth.login.forgotPassword')}</Text>
+          </PressableScale>
         </View>
+        <Input
+          ref={passwordRef}
+          value={password}
+          onChangeText={(v) => { setPassword(v); setError(''); }}
+          placeholder="••••••••"
+          secureToggle
+          secureTextEntry
+          textContentType="password"
+          autoComplete="current-password"
+          returnKeyType="done"
+          onSubmitEditing={handleLogin}
+          accessibilityLabel={t('auth.login.password')}
+          testID="LoginScreen-password"
+          toggleTestID="LoginScreen-togglePassword"
+        />
 
         {/* Sign In button */}
         <PressableScale
@@ -459,7 +440,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: c.error,
   },
-  fieldGroup: { marginBottom: spacing.lg },
   labelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -469,30 +449,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
   label: {
     marginBottom: spacing.sm,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 14,
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textPrimary,
-    backgroundColor: c.background,
-    minHeight: 52,
-  },
-  passwordContainer: { position: 'relative' },
-  passwordInput: { paddingRight: 52 },
-  eyeBtn: {
-    position: 'absolute',
-    right: 14,
-    top: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    minWidth: 40,
-  },
-  eyeText: { fontSize: 18 },
   primaryBtn: {
     backgroundColor: c.primary,
     borderRadius: borderRadius.md,

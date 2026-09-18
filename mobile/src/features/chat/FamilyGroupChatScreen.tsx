@@ -4,7 +4,6 @@ import {
   View,
   StyleSheet,
   FlatList,
-  TextInput,
   KeyboardAvoidingView,
   Platform,
   Alert,
@@ -13,6 +12,7 @@ import {
   ScrollView,
 } from 'react-native';
 import Text from '../../components/ui/Text';
+import Input from '../../components/ui/Input';
 import { PressableScale } from '../../components/motion';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -20,7 +20,7 @@ import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-q
 import { Ionicons } from '@expo/vector-icons';
 import { ChatThreadSkeleton } from '../../components/ui/skeletons';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import {
   getGroupThread,
   sendGroupMessage,
@@ -137,9 +137,8 @@ function InviteModal({ visible, groupId, onClose }: InviteModalProps) {
           <View style={im.handle} />
           <Text variant="title3" color="textPrimary" style={im.title}>Invite Family Member</Text>
 
-          <Text variant="subhead" color="textSecondary" style={im.label}>Phone Number</Text>
-          <TextInput
-            style={im.input}
+          <Input
+            label="Phone Number"
             value={phone}
             onChangeText={setPhone}
             placeholder="+91 98765 43210"
@@ -209,7 +208,6 @@ const makeIm = (c: ThemeColours) => StyleSheet.create({
   handle:        { width: 40, height: 4, borderRadius: 2, backgroundColor: c.border, alignSelf: 'center', marginBottom: spacing.lg },
   title:         { marginBottom: spacing.lg },
   label:         { marginBottom: spacing.xs },
-  input:         { borderWidth: 1, borderColor: c.border, borderRadius: borderRadius.md, padding: spacing.md, fontSize: typography.fontSize.base, color: c.textPrimary, marginBottom: spacing.lg },
   chip:          { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.full, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceCard },
   chipActive:    { borderColor: c.primary, backgroundColor: c.primaryLight },
   sendBtn:       { backgroundColor: c.primary, borderRadius: borderRadius.md, paddingVertical: spacing.md, alignItems: 'center', marginBottom: spacing.sm },
@@ -428,12 +426,12 @@ export default function FamilyGroupChatScreen() {
 
       {/* Input bar */}
       <View style={s.inputBar}>
-        <TextInput
+        <Input
+          containerStyle={s.inputContainer}
           style={s.input}
           value={text}
           onChangeText={setText}
           placeholder="Message your family…"
-          placeholderTextColor={c.textMuted}
           multiline
           maxLength={2000}
           testID="message-input"
@@ -478,7 +476,8 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   emptyState:       { alignItems: 'center', justifyContent: 'center', gap: spacing.md, paddingTop: 80, transform: [{ scaleY: -1 }] },
   emptyHint:        { textAlign: 'center' },
   inputBar:         { flexDirection: 'row', alignItems: 'flex-end', padding: spacing.sm, borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.background, gap: spacing.sm },
-  input:            { flex: 1, borderWidth: 1, borderColor: c.border, borderRadius: 20, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, maxHeight: 120, fontSize: typography.fontSize.base, color: c.textPrimary, backgroundColor: c.surfaceCard },
+  inputContainer:   { flex: 1, marginBottom: 0 },
+  input:            { maxHeight: 120 },
   sendBtn:          { width: 42, height: 42, borderRadius: 21, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center' },
   sendBtnDisabled:  { backgroundColor: c.surfaceCard },
 });

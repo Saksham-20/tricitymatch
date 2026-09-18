@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, TextInput, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { PressableScale } from '../../components/motion';
 import { haptics } from '../../utils/haptics';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import Text from '../../components/ui/Text';
+import Input from '../../components/ui/Input';
 import OnboardingLayout from './OnboardingLayout';
 import { useOnboarding } from './OnboardingContext';
 import type { MaritalStatus } from '../../types';
@@ -108,20 +109,17 @@ export default function Step7Screen() {
 
       {/* Number of children */}
       {hasChildren && (
-        <View>
-          <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step7.childrenCount')}</Text>
-          <TextInput
-            style={styles.input}
-            value={childrenCount}
-            onChangeText={setChildrenCount}
-            placeholder="0"
-            placeholderTextColor={c.textMuted}
-            keyboardType="number-pad"
-            maxLength={1}
-            testID="input-childrenCount"
-            accessibilityLabel={t('onboarding.step7.childrenCount')}
-          />
-        </View>
+        <Input
+          label={t('onboarding.step7.childrenCount')}
+          containerStyle={styles.childrenCountContainer}
+          value={childrenCount}
+          onChangeText={setChildrenCount}
+          placeholder="0"
+          keyboardType="number-pad"
+          maxLength={1}
+          testID="input-childrenCount"
+          accessibilityLabel={t('onboarding.step7.childrenCount')}
+        />
       )}
     </OnboardingLayout>
   );
@@ -152,15 +150,5 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     justifyContent: 'center',
   },
   yesNoBtnActive: { borderColor: c.primary, backgroundColor: c.primaryLight },
-  input: {
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    fontSize: typography.fontSize.base,
-    color: c.textPrimary,
-    minHeight: 48,
-    width: 100,
-  },
+  childrenCountContainer: { width: 100 },
 });

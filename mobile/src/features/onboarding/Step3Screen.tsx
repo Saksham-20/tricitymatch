@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, TextInput, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import Text from '../../components/ui/Text';
+import Input from '../../components/ui/Input';
 import { useTranslation } from 'react-i18next';
-import { typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { PressableScale } from '../../components/motion';
 import { haptics } from '../../utils/haptics';
 import OnboardingLayout from './OnboardingLayout';
@@ -79,36 +80,23 @@ export default function Step3Screen() {
       )}
 
       {manglikStatus && (
-      <View>
-        <Text variant="subhead" color="textPrimary" style={styles.label}>
-          {t('onboarding.step3.birthTime')}
-          <Text variant="footnote" color="textMuted"> ({t('common.optional')})</Text>
-        </Text>
-        <TextInput
-          style={styles.input}
+        <Input
+          label={`${t('onboarding.step3.birthTime')} (${t('common.optional')})`}
           value={birthTime}
           onChangeText={setBirthTime}
           placeholder="HH:MM (e.g. 06:30)"
-          placeholderTextColor={c.textMuted}
           keyboardType="numbers-and-punctuation"
           testID="input-birthTime"
           accessibilityLabel={t('onboarding.step3.birthTime')}
         />
-      </View>
       )}
 
       {manglikStatus && (
-      <View>
-        <Text variant="subhead" color="textPrimary" style={styles.label}>
-          {t('onboarding.step3.birthPlace')}
-          <Text variant="footnote" color="textMuted"> ({t('common.optional')})</Text>
-        </Text>
-        <TextInput
-          style={styles.input}
+        <Input
+          label={`${t('onboarding.step3.birthPlace')} (${t('common.optional')})`}
           value={placeOfBirth}
           onChangeText={setPlaceOfBirth}
           placeholder="City of birth"
-          placeholderTextColor={c.textMuted}
           autoCapitalize="words"
           autoComplete="postal-address-locality"
           textContentType="addressCity"
@@ -116,7 +104,6 @@ export default function Step3Screen() {
           testID="input-placeOfBirth"
           accessibilityLabel={t('onboarding.step3.birthPlace')}
         />
-      </View>
       )}
     </OnboardingLayout>
   );
@@ -140,14 +127,4 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     justifyContent: 'center',
   },
   optionBtnActive: { borderColor: c.primary, backgroundColor: c.primaryLight },
-  input: {
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    fontSize: typography.fontSize.base,
-    color: c.textPrimary,
-    minHeight: 48,
-  },
 });

@@ -9,7 +9,7 @@ import React, { useState } from 'react';
 import { PressableScale } from '../../components/motion';
 import { useTheme } from '../../hooks/useTheme';
 import {
-  View, TextInput, StyleSheet, ScrollView,
+  View, StyleSheet, ScrollView,
   ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import Text from '../../components/ui/Text';
@@ -23,7 +23,8 @@ import { sendOtp, verifyOtp } from '../../api/auth';
 import SmartContactInput, { parseContact } from '../../components/forms/SmartContactInput';
 import OtpInput from '../../components/forms/OtpInput';
 import { PasswordStrength } from '../../components/ui';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import Input from '../../components/ui/Input';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { passwordProblem } from '../../utils/passwordRule';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Signup'>;
@@ -37,7 +38,6 @@ export default function CreateAccountScreen() {
 
   const [contact, setContact] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   // idle → sending → sent (boxes shown) → verifying → verified
   const [otpPhase, setOtpPhase] = useState<'idle' | 'sending' | 'sent' | 'verifying' | 'verified'>('idle');
@@ -122,30 +122,18 @@ export default function CreateAccountScreen() {
         </View>
 
         <View style={st.field}>
-          <Text variant="subhead" color="textSecondary" style={st.label}>{t('auth.password', 'Password')}</Text>
-          <View style={st.pwWrap}>
-            <TextInput
-              style={st.pwInput}
-              value={password}
-              onChangeText={setPassword}
-              placeholder={t('auth.passwordPlaceholder', 'At least 8 characters')}
-              placeholderTextColor={c.textMuted}
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-              editable={!otpActive}
-              accessibilityLabel={t('auth.password', 'Password')}
-              testID="password-input"
-            />
-            <PressableScale
-              onPress={() => setShowPassword((v) => !v)}
-              accessibilityRole="button"
-              accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={c.textMuted} />
-            </PressableScale>
-          </View>
+          <Input
+            label={t('auth.password', 'Password')}
+            value={password}
+            onChangeText={setPassword}
+            placeholder={t('auth.passwordPlaceholder', 'At least 8 characters')}
+            secureTextEntry
+            secureToggle
+            autoCapitalize="none"
+            editable={!otpActive}
+            accessibilityLabel={t('auth.password', 'Password')}
+            testID="password-input"
+          />
           {password.length > 0 && <PasswordStrength password={password} />}
         </View>
 
@@ -229,12 +217,6 @@ const makeSt = (c: ThemeColours) => StyleSheet.create({
   sub: { marginTop: 4, marginBottom: spacing.xl },
   field: { marginBottom: spacing.lg },
   label: { marginBottom: spacing.xs },
-  pwWrap: {
-    flexDirection: 'row', alignItems: 'center',
-    borderWidth: 1, borderColor: c.border, borderRadius: borderRadius.md,
-    backgroundColor: c.surfaceCard, paddingHorizontal: spacing.md,
-  },
-  pwInput: { flex: 1, minHeight: 50, fontSize: typography.fontSize.base, color: c.textPrimary },
   termsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.lg },
   termsText: { flex: 1 },
   error: { marginBottom: spacing.md },

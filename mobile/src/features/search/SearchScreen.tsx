@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Text from '../../components/ui/Text';
+import Input from '../../components/ui/Input';
 import ListFooter from '../../components/ui/ListFooter';
 import { PressableScale } from '../../components/motion';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -154,12 +155,11 @@ function SaveSearchModal({
       >
         <View style={ss.sheet} onStartShouldSetResponder={() => true}>
           <Text variant="headline" color="textPrimary" style={ss.title}>Save Search</Text>
-          <TextInput
-            style={ss.input}
+          <Input
+            containerStyle={ss.inputContainer}
             value={name}
             onChangeText={setName}
             placeholder="e.g. Punjabi Doctor in Chandigarh"
-            placeholderTextColor={c.textMuted}
             returnKeyType="done"
             accessibilityLabel="Search name"
           />
@@ -192,17 +192,7 @@ const makeSs = (c: ThemeColours) => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: c.background, borderTopLeftRadius: borderRadius.xl, borderTopRightRadius: borderRadius.xl, padding: spacing.lg, paddingBottom: spacing['3xl'] },
   title: { marginBottom: spacing.md },
-  input: {
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    fontSize: typography.fontSize.base,
-    color: c.textPrimary,
-    fontFamily: typography.fontFamily.regular,
-    marginBottom: spacing.lg,
-  },
+  inputContainer: { marginBottom: spacing.lg },
   row: { flexDirection: 'row', gap: spacing.md },
   cancelBtn: { flex: 1, borderWidth: 1, borderColor: c.border, borderRadius: borderRadius.md, paddingVertical: spacing.md, alignItems: 'center' },
   saveBtn: { flex: 1, backgroundColor: c.primary, borderRadius: borderRadius.md, paddingVertical: spacing.md, alignItems: 'center' },

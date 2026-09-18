@@ -4,18 +4,18 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  TextInput,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import Text from '../../components/ui/Text';
+import Input from '../../components/ui/Input';
 import { PressableScale } from '../../components/motion';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { showToast } from '../../utils/toast';
 import { useNavigation } from '@react-navigation/native';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { apiClient } from '../../api/client';
 
 // Public contact form → POST /contact (mirrors frontend/src/pages/Contact.jsx).
@@ -74,11 +74,42 @@ export default function ContactScreen() {
           <Text variant="title2" color="textPrimary">Get in touch</Text>
           <Text variant="subhead" color="textSecondary" style={s.subtitle}>Questions, feedback, or need help? Send us a message.</Text>
 
-          <Field label="Name" value={form.name} onChange={set('name')} placeholder="Your name" />
-          <Field label="Email" value={form.email} onChange={set('email')} placeholder="you@example.com" keyboardType="email-address" autoCapitalize="none" />
-          <Field label="Phone (optional)" value={form.phone} onChange={set('phone')} placeholder="Mobile number" keyboardType="phone-pad" />
-          <Field label="Subject (optional)" value={form.subject} onChange={set('subject')} placeholder="What's this about?" />
-          <Field label="Message" value={form.message} onChange={set('message')} placeholder="How can we help?" multiline />
+          <Input
+            label="Name"
+            value={form.name}
+            onChangeText={set('name')}
+            placeholder="Your name"
+          />
+          <Input
+            label="Email"
+            value={form.email}
+            onChangeText={set('email')}
+            placeholder="you@example.com"
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+          <Input
+            label="Phone (optional)"
+            value={form.phone}
+            onChangeText={set('phone')}
+            placeholder="Mobile number"
+            keyboardType="phone-pad"
+          />
+          <Input
+            label="Subject (optional)"
+            value={form.subject}
+            onChangeText={set('subject')}
+            placeholder="What's this about?"
+          />
+          <Input
+            label="Message"
+            value={form.message}
+            onChangeText={set('message')}
+            placeholder="How can we help?"
+            multiline
+            numberOfLines={5}
+            style={s.inputMultiline}
+          />
 
           <PressableScale
             style={[s.cta, sending && s.ctaDisabled]}
@@ -100,37 +131,6 @@ export default function ContactScreen() {
   );
 }
 
-function Field({
-  label, value, onChange, placeholder, multiline, keyboardType, autoCapitalize,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  multiline?: boolean;
-  keyboardType?: 'default' | 'email-address' | 'phone-pad';
-  autoCapitalize?: 'none' | 'sentences';
-}) {
-  const { c } = useTheme();
-  const s = React.useMemo(() => makeS(c), [c]);
-  return (
-    <View style={s.field}>
-      <Text variant="subhead" color="textPrimary" style={s.label}>{label}</Text>
-      <TextInput
-        style={[s.input, multiline && s.inputMultiline]}
-        value={value}
-        onChangeText={onChange}
-        placeholder={placeholder}
-        placeholderTextColor={c.textMuted}
-        multiline={multiline}
-        numberOfLines={multiline ? 5 : 1}
-        keyboardType={keyboardType}
-        autoCapitalize={autoCapitalize}
-      />
-    </View>
-  );
-}
-
 const makeS = (c: ThemeColours) => StyleSheet.create({
   wrapper:     { flex: 1, backgroundColor: c.background },
   header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: c.border },
@@ -138,9 +138,6 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   headerTitle: { flex: 1, textAlign: 'center' },
   content:     { padding: spacing.lg, paddingBottom: spacing['4xl'] },
   subtitle:    { marginTop: 2, marginBottom: spacing.lg },
-  field:       { marginBottom: spacing.md },
-  label:       { marginBottom: spacing.xs },
-  input:       { borderWidth: 1, borderColor: c.border, borderRadius: borderRadius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, fontSize: typography.fontSize.base, color: c.textPrimary, backgroundColor: c.surfaceCard },
   inputMultiline: { minHeight: 110, textAlignVertical: 'top' },
   cta:         { backgroundColor: c.primary, borderRadius: borderRadius.md, paddingVertical: spacing.md, alignItems: 'center', marginTop: spacing.sm },
   ctaDisabled: { opacity: 0.6 },

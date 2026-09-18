@@ -1,10 +1,11 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
-  View, FlatList, TextInput, StyleSheet,
+  View, FlatList, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Modal, Pressable,
 } from 'react-native';
 import Text from '../../components/ui/Text';
+import Input from '../../components/ui/Input';
 import SmartImage from '../../components/common/SmartImage';
 import { PressableScale, useReduceMotion } from '../../components/motion';
 import Animated, {
@@ -882,12 +883,12 @@ export default function ChatThreadScreen() {
       ) : (
       <View style={{ paddingBottom: Math.max(insets.bottom, spacing.xs) }}>
         <View style={s.inputBar}>
-          <TextInput
+          <Input
+            containerStyle={s.inputContainer}
             style={s.input}
             value={input}
             onChangeText={handleInputChange}
             placeholder={t('chat.typePlaceholder', 'Type a message…')}
-            placeholderTextColor={c.textMuted}
             multiline
             maxLength={2000}
             accessibilityLabel={t('chat.typePlaceholder', 'Type a message')}
@@ -1182,19 +1183,17 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     borderTopColor: c.border,
     gap: spacing.xs,
   },
-  input: {
+  // Input primitive owns border/radius/padding/type/colour; only the
+  // composer-specific sizing (compact + capped growth) and the background
+  // (contrast against the surfaceCard bar behind it) are kept here.
+  inputContainer: {
     flex: 1,
+    marginBottom: 0,
+  },
+  input: {
     minHeight: 40,
     maxHeight: 120,
     backgroundColor: c.background,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: c.border,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textPrimary,
   },
   sendBtn: {
     width: 40,

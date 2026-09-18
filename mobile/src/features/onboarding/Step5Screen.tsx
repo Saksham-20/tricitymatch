@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, TextInput, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { PressableScale } from '../../components/motion';
 import PickerSheet from '../../components/ui/PickerSheet';
 import Text from '../../components/ui/Text';
+import Input from '../../components/ui/Input';
 import OnboardingLayout from './OnboardingLayout';
 import { useOnboarding } from './OnboardingContext';
 
@@ -82,16 +83,11 @@ export default function Step5Screen() {
       {/* Employer + income reveal after profession is chosen */}
       {!!profession && (
       <View>
-        <Text variant="subhead" color="textPrimary" style={styles.label}>
-          {t('onboarding.step5.employer')}
-          <Text variant="footnote" color="textMuted"> ({t('common.optional')})</Text>
-        </Text>
-        <TextInput
-          style={styles.input}
+        <Input
+          label={`${t('onboarding.step5.employer')} (${t('common.optional')})`}
           value={employer}
           onChangeText={setEmployer}
           placeholder="Company / organisation name"
-          placeholderTextColor={c.textMuted}
           autoCapitalize="words"
           testID="input-employer"
           accessibilityLabel={t('onboarding.step5.employer')}
@@ -144,16 +140,6 @@ export default function Step5Screen() {
 const makeStyles = (c: ThemeColours) => StyleSheet.create({
   label: {
     marginBottom: spacing.sm,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    fontSize: typography.fontSize.base,
-    color: c.textPrimary,
-    minHeight: 48,
   },
   selectBtn: {
     borderWidth: 1,

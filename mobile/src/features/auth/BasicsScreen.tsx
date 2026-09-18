@@ -12,10 +12,11 @@ import React, { useState } from 'react';
 import { PressableScale } from '../../components/motion';
 import { useTheme } from '../../hooks/useTheme';
 import {
-  View, TextInput, StyleSheet, ScrollView,
+  View, StyleSheet, ScrollView,
   ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import Text from '../../components/ui/Text';
+import Input from '../../components/ui/Input';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,7 +26,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { AuthStackParamList } from '../../navigation/types';
 import { signup } from '../../api/auth';
 import { useAuthStore } from '../../stores/authStore';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'SignupBasics'>;
 type Route = RouteProp<AuthStackParamList, 'SignupBasics'>;
@@ -167,22 +168,20 @@ export default function BasicsScreen() {
 
         <Text variant="subhead" color="textSecondary" style={st.label}>{t('auth.signup.fullName', 'Full name')}</Text>
         <View style={st.nameRow}>
-          <TextInput
-            style={[st.input, { flex: 1 }]}
+          <Input
+            containerStyle={st.nameField}
             value={firstName}
             onChangeText={setFirstName}
             placeholder="First name"
-            placeholderTextColor={c.textMuted}
             autoCapitalize="words"
             autoComplete="given-name"
             testID="first-name-input"
           />
-          <TextInput
-            style={[st.input, { flex: 1 }]}
+          <Input
+            containerStyle={st.nameField}
             value={lastName}
             onChangeText={setLastName}
             placeholder="Last name"
-            placeholderTextColor={c.textMuted}
             autoCapitalize="words"
             autoComplete="family-name"
             testID="last-name-input"
@@ -210,19 +209,17 @@ export default function BasicsScreen() {
           })}
         </View>
 
-        <Text variant="subhead" color="textSecondary" style={st.label}>{t('auth.signup.dob', 'Date of birth')}</Text>
-        <TextInput
-          style={[st.input, dobError ? st.inputError : null]}
+        <Input
+          label={t('auth.signup.dob', 'Date of birth')}
           value={dobDisplay}
           onChangeText={handleDobChange}
           placeholder="DD/MM/YYYY"
-          placeholderTextColor={c.textMuted}
           keyboardType="numeric"
           maxLength={10}
           testID="dob-input"
+          error={dobError || undefined}
+          helper={t('auth.signup.dobHint', 'Members must be 18–65. Shown as age only.')}
         />
-        <Text variant="caption" color="textMuted" style={st.hint}>{t('auth.signup.dobHint', 'Members must be 18–65. Shown as age only.')}</Text>
-        {dobError ? <Text variant="footnote" color="error" style={st.error}>{dobError}</Text> : null}
 
         {error ? <Text variant="footnote" color="error" style={st.error} accessibilityLiveRegion="polite">{error}</Text> : null}
 
@@ -260,19 +257,13 @@ const makeSt = (c: ThemeColours) => StyleSheet.create({
   },
   chipActive: { backgroundColor: c.primary, borderColor: c.primary },
   nameRow: { flexDirection: 'row', gap: spacing.sm },
-  input: {
-    borderWidth: 1, borderColor: c.border, borderRadius: borderRadius.md,
-    backgroundColor: c.surfaceCard, paddingHorizontal: spacing.md,
-    minHeight: 50, fontSize: typography.fontSize.base, color: c.textPrimary,
-  },
-  inputError: { borderColor: c.error },
+  nameField: { flex: 1 },
   genderBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
     minHeight: 50, borderRadius: borderRadius.md, borderWidth: 1, borderColor: c.border,
     backgroundColor: c.surfaceCard,
   },
   genderBtnActive: { backgroundColor: c.primary, borderColor: c.primary },
-  hint: { marginTop: 4 },
   error: { marginTop: spacing.sm },
   cta: {
     backgroundColor: c.primary, borderRadius: borderRadius.pill,

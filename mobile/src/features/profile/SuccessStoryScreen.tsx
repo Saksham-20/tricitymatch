@@ -4,7 +4,6 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  TextInput,
   ActivityIndicator,
   Alert,
   Platform,
@@ -13,10 +12,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import Text from '../../components/ui/Text';
+import Input from '../../components/ui/Input';
 import { showToast } from '../../utils/toast';
 import { PressableScale } from '../../components/motion';
 import { useNavigation } from '@react-navigation/native';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { submitSuccessStory } from '../../api/profile';
 
 export default function SuccessStoryScreen() {
@@ -113,33 +113,28 @@ export default function SuccessStoryScreen() {
         </Text>
 
         {/* Names */}
-        <Text variant="caption" color="textPrimary" style={s.label}>Groom's Name *</Text>
-        <TextInput
-          style={s.input}
+        <Input
+          label="Groom's Name *"
           value={groomName}
           onChangeText={setGroomName}
           placeholder="Rahul Sharma"
-          placeholderTextColor={c.textMuted}
           maxLength={60}
           testID="groom-name"
           accessibilityLabel="Groom's name"
         />
 
-        <Text variant="caption" color="textPrimary" style={s.label}>Bride's Name *</Text>
-        <TextInput
-          style={s.input}
+        <Input
+          label="Bride's Name *"
           value={brideName}
           onChangeText={setBrideName}
           placeholder="Priya Verma"
-          placeholderTextColor={c.textMuted}
           maxLength={60}
           testID="bride-name"
           accessibilityLabel="Bride's name"
         />
 
-        <Text variant="caption" color="textPrimary" style={s.label}>Wedding Date</Text>
-        <TextInput
-          style={s.input}
+        <Input
+          label="Wedding Date"
           value={weddingDate}
           // Numeric keypad has no "/" key, so the separators have to be
           // inserted for the user (same trap as onboarding step 1).
@@ -154,20 +149,18 @@ export default function SuccessStoryScreen() {
             );
           }}
           placeholder="DD/MM/YYYY"
-          placeholderTextColor={c.textMuted}
           maxLength={10}
           keyboardType="numeric"
           testID="wedding-date"
           accessibilityLabel="Wedding date"
         />
 
-        <Text variant="caption" color="textPrimary" style={s.label}>Your Story *</Text>
-        <TextInput
+        <Input
+          label="Your Story *"
           style={s.storyInput}
           value={story}
           onChangeText={setStory}
           placeholder="How did you find each other on TricityMatch? Share your journey..."
-          placeholderTextColor={c.textMuted}
           multiline
           maxLength={1000}
           textAlignVertical="top"
@@ -263,25 +256,7 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     marginTop: spacing.sm,
     marginBottom: spacing.xs,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: borderRadius.sm,
-    padding: spacing.sm,
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textPrimary,
-    backgroundColor: c.surfaceCard,
-  },
   storyInput: {
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: borderRadius.sm,
-    padding: spacing.sm,
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textPrimary,
-    backgroundColor: c.surfaceCard,
     minHeight: 120,
   },
   charCount: {

@@ -7,18 +7,18 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
-  TextInput,
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { getVerificationQueue, approveVerification, rejectVerification } from '../../api/admin';
 import SmartImage from '../../components/common/SmartImage';
 import type { Verification } from '../../types';
 import Text from '../../components/ui/Text';
+import Input from '../../components/ui/Input';
 import { PressableScale } from '../../components/motion';
 
 /**
@@ -212,12 +212,11 @@ export default function VerificationQueueScreen() {
             <Text variant="footnote" color="textSecondary">
               Rejecting <Text variant="caption" color="textPrimary">{rejectTarget?.name}</Text>. Provide a reason:
             </Text>
-            <TextInput
+            <Input
               style={s.reasonInput}
               value={reason}
               onChangeText={setReason}
               placeholder="e.g. Document unclear, mismatch with profile..."
-              placeholderTextColor={c.textMuted}
               multiline
               maxLength={300}
               testID="reject-reason-input"
@@ -321,15 +320,8 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     gap: spacing.md,
   },
   reasonInput: {
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: borderRadius.sm,
-    padding: spacing.sm,
     minHeight: 80,
     textAlignVertical: 'top',
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textPrimary,
   },
   modalActions: { flexDirection: 'row', gap: spacing.sm },
   modalCancel: {

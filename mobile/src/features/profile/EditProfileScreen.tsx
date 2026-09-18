@@ -4,12 +4,12 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  TextInput,
   Image,
   Alert,
   ActivityIndicator,
 } from 'react-native';
 import Text from '../../components/ui/Text';
+import Input from '../../components/ui/Input';
 import type { TextInputProps } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -22,7 +22,7 @@ import PickerSheet from '../../components/ui/PickerSheet';
 import { PressableScale } from '../../components/motion';
 import { PROFILE_PROMPTS, PromptPair, fromProfilePrompts, toProfilePrompts } from '../../constants/prompts';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { getMyProfile, updateMyProfile, uploadPhoto, deletePhoto } from '../../api/profile';
 import { queryKeys } from '../../constants/queryKeys';
 import type { MainStackParamList } from '../../navigation/types';
@@ -49,61 +49,33 @@ function FieldEditor({
   label, value, onChange, multiline, maxLength, keyboardType = 'default',
   textContentType, autoComplete, autoCapitalize, testID,
 }: FieldEditorProps) {
-  const { c } = useTheme();
-  const fe = React.useMemo(() => makeFe(c), [c]);
   return (
-    <View style={fe.container}>
-      <Text variant="subhead" color="textSecondary" style={fe.label}>{label}</Text>
-      <TextInput
-        style={[fe.input, multiline && fe.inputMulti]}
-        value={value}
-        onChangeText={onChange}
-        multiline={multiline}
-        numberOfLines={multiline ? 4 : 1}
-        blurOnSubmit={!multiline}
-        returnKeyType={multiline ? 'default' : 'done'}
-        maxLength={maxLength}
-        keyboardType={keyboardType}
-        textContentType={textContentType}
-        autoComplete={autoComplete}
-        autoCapitalize={autoCapitalize ?? (multiline ? 'sentences' : 'words')}
-        testID={testID ?? `field-${label}`}
-        accessibilityLabel={label}
-        placeholderTextColor={c.textMuted}
-        placeholder={`Enter ${label.toLowerCase()}`}
-      />
-      {maxLength && (
-        <Text variant="footnote" color="textMuted" style={fe.counter}>{value.length}/{maxLength}</Text>
-      )}
-    </View>
+    <Input
+      label={label}
+      value={value}
+      onChangeText={onChange}
+      multiline={multiline}
+      numberOfLines={multiline ? 4 : 1}
+      blurOnSubmit={!multiline}
+      returnKeyType={multiline ? 'default' : 'done'}
+      maxLength={maxLength}
+      keyboardType={keyboardType}
+      textContentType={textContentType}
+      autoComplete={autoComplete}
+      autoCapitalize={autoCapitalize ?? (multiline ? 'sentences' : 'words')}
+      testID={testID ?? `field-${label}`}
+      accessibilityLabel={label}
+      placeholder={`Enter ${label.toLowerCase()}`}
+      helper={maxLength ? `${value.length}/${maxLength}` : undefined}
+      style={multiline ? feStyles.inputMulti : undefined}
+    />
   );
 }
 
-const makeFe = (c: ThemeColours) => StyleSheet.create({
-  container: { marginBottom: spacing.md },
-  label: {
-    marginBottom: 6,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    fontSize: typography.fontSize.base,
-    color: c.textPrimary,
-    fontFamily: typography.fontFamily.regular,
-    backgroundColor: c.background,
-    minHeight: 48,
-  },
+const feStyles = StyleSheet.create({
   inputMulti: {
     height: 100,
     textAlignVertical: 'top',
-    paddingTop: spacing.sm,
-  },
-  counter: {
-    textAlign: 'right',
-    marginTop: 4,
   },
 });
 

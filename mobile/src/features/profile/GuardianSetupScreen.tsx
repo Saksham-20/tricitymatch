@@ -6,10 +6,10 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
-  TextInput,
   Modal,
 } from 'react-native';
 import Text from '../../components/ui/Text';
+import Input from '../../components/ui/Input';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -58,9 +58,8 @@ function InviteGuardianModal({ visible, onClose, onCreate }: {
             Your guardian gets read-only access to your match list and shortlist. They cannot message or take any match actions.
           </Text>
 
-          <Text variant="caption" color="textSecondary" style={im.label}>Guardian's Email</Text>
-          <TextInput
-            style={im.input}
+          <Input
+            label="Guardian's Email"
             value={email}
             onChangeText={setEmail}
             placeholder="guardian@example.com"
@@ -103,8 +102,6 @@ const makeIm = (c: ThemeColours) => StyleSheet.create({
   handle:   { width: 40, height: 4, borderRadius: 2, backgroundColor: c.border, alignSelf: 'center', marginBottom: spacing.lg },
   title:    { marginBottom: spacing.sm },
   hint:     { marginBottom: spacing.lg },
-  label:    { marginBottom: spacing.xs },
-  input:    { borderWidth: 1, borderColor: c.border, borderRadius: borderRadius.md, padding: spacing.md, fontSize: typography.fontSize.base, color: c.textPrimary, marginBottom: spacing.lg },
   sendBtn:  { backgroundColor: c.primary, borderRadius: borderRadius.md, paddingVertical: spacing.md, alignItems: 'center', marginBottom: spacing.sm },
   sendText: { color: '#fff' },
   cancelBtn:{ alignItems: 'center', paddingVertical: spacing.sm },

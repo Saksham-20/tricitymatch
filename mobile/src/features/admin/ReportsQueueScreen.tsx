@@ -7,16 +7,16 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
-  TextInput,
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { getReportsQueue, updateReport, updateUserStatus } from '../../api/admin';
 import Text from '../../components/ui/Text';
+import Input from '../../components/ui/Input';
 import { PressableScale } from '../../components/motion';
 
 interface ReportItem {
@@ -229,12 +229,11 @@ export default function ReportsQueueScreen() {
             <Text variant="footnote" color="textSecondary">
               Suspend <Text variant="caption" color="textPrimary">{blockTarget?.name}</Text> and mark report as reviewed?
             </Text>
-            <TextInput
+            <Input
               style={s.notesInput}
               value={adminNotes}
               onChangeText={setAdminNotes}
               placeholder="Admin notes (optional)..."
-              placeholderTextColor={c.textMuted}
               multiline
               maxLength={300}
               testID="admin-notes-input"
@@ -343,15 +342,8 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     gap: spacing.md,
   },
   notesInput: {
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: borderRadius.sm,
-    padding: spacing.sm,
     minHeight: 60,
     textAlignVertical: 'top',
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textPrimary,
   },
   modalActions: { flexDirection: 'row', gap: spacing.sm },
   modalCancel: {

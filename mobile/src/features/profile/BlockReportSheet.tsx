@@ -4,7 +4,6 @@ import {
   View,
   StyleSheet,
   Modal,
-  TextInput,
   Alert,
   ActivityIndicator,
   ScrollView,
@@ -13,9 +12,10 @@ import {
 } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { PressableScale } from '../../components/motion';
 import Text from '../../components/ui/Text';
+import Input from '../../components/ui/Input';
 import { blockUser, reportUser, type ReportReason } from '../../api/block';
 import { queryKeys } from '../../constants/queryKeys';
 
@@ -225,15 +225,14 @@ export default function BlockReportSheet({ visible, userId, userName, onClose, o
                 </PressableScale>
               ))}
 
-              <Text variant="caption" color="textMuted" style={s.sectionLabel}>Additional details (optional)</Text>
-              <TextInput
-                style={s.descInput}
+              <Input
+                label="Additional details (optional)"
                 placeholder="Describe the issue..."
-                placeholderTextColor={c.textMuted}
                 value={description}
                 onChangeText={setDescription}
                 multiline
                 maxLength={500}
+                style={s.descInputField}
                 testID="report-description"
                 accessibilityLabel="Report description"
               />
@@ -277,7 +276,7 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   categoriesScroll:    { maxHeight: 320 },
   categoryRow:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: c.border },
   categoryRowSelected: { backgroundColor: c.primaryLight, marginHorizontal: -spacing.xl, paddingHorizontal: spacing.xl },
-  descInput:           { borderWidth: 1, borderColor: c.border, borderRadius: borderRadius.md, padding: spacing.md, fontSize: typography.fontSize.sm, color: c.textPrimary, minHeight: 80, textAlignVertical: 'top', fontFamily: typography.fontFamily.regular },
+  descInputField:      { minHeight: 80, textAlignVertical: 'top' },
   charCount:           { textAlign: 'right', marginTop: 4, marginBottom: spacing.sm },
   submitBtn:           { backgroundColor: c.primary, borderRadius: borderRadius.md, paddingVertical: spacing.md, alignItems: 'center', marginTop: spacing.md },
   submitBtnDisabled:   { backgroundColor: c.textMuted },

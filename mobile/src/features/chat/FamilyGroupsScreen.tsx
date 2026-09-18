@@ -5,10 +5,10 @@ import {
   StyleSheet,
   FlatList,
   Alert,
-  TextInput,
   Modal,
 } from 'react-native';
 import Text from '../../components/ui/Text';
+import Input from '../../components/ui/Input';
 import { PressableScale } from '../../components/motion';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -16,7 +16,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { ListSkeleton } from '../../components/ui/skeletons';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { getFamilyGroups, createFamilyGroup, type FamilyGroup } from '../../api/chat';
 import { queryKeys } from '../../constants/queryKeys';
 import type { MainStackParamList } from '../../navigation/types';
@@ -49,9 +49,8 @@ function CreateGroupModal({ visible, onClose, onCreate }: {
           <View style={cm.handle} />
           <Text variant="title3" color="textPrimary" style={cm.title}>Create Family Group</Text>
           <Text variant="subhead" color="textSecondary" style={cm.hint}>Create a private group to discuss this match with your family. Invite members after creating.</Text>
-          <Text variant="subhead" color="textSecondary" style={cm.label}>Group Name</Text>
-          <TextInput
-            style={cm.input}
+          <Input
+            label="Group Name"
             value={name}
             onChangeText={setName}
             placeholder="e.g. Our Family Chat"
@@ -92,8 +91,6 @@ const makeCm = (c: ThemeColours) => StyleSheet.create({
   handle:    { width: 40, height: 4, borderRadius: 2, backgroundColor: c.border, alignSelf: 'center', marginBottom: spacing.lg },
   title:     { marginBottom: spacing.sm },
   hint:      { marginBottom: spacing.lg },
-  label:     { marginBottom: spacing.xs },
-  input:     { borderWidth: 1, borderColor: c.border, borderRadius: borderRadius.md, padding: spacing.md, fontSize: typography.fontSize.base, color: c.textPrimary, marginBottom: spacing.lg },
   createBtn: { backgroundColor: c.primary, borderRadius: borderRadius.md, paddingVertical: spacing.md, alignItems: 'center', marginBottom: spacing.sm },
   createText:{ color: '#fff' },
   cancelBtn: { alignItems: 'center', paddingVertical: spacing.sm },

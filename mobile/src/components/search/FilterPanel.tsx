@@ -9,15 +9,14 @@ import React, {
 import {
   View,
   StyleSheet,
-  TextInput,
 } from 'react-native';
 import BottomSheet, {
   BottomSheetScrollView,
   BottomSheetBackdrop,
 } from '@gorhom/bottom-sheet';
 import { Ionicons } from '@expo/vector-icons';
-import { colours, type, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
-import { Button, Switch } from '../ui';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { Button, Input, Switch } from '../ui';
 import Text from '../ui/Text';
 import { useUIStore } from '../../stores/uiStore';
 import { useTheme } from '../../hooks/useTheme';
@@ -134,38 +133,34 @@ function RangeRow({ label, min, max, absMin, absMax, onChangeMin, onChangeMax, u
   label: string; min: number; max: number; absMin: number; absMax: number;
   onChangeMin: (v: number) => void; onChangeMax: (v: number) => void; unit?: string;
 }) {
-  const { c } = useTheme();
   const [minText, setMinText] = useState(String(min));
   const [maxText, setMaxText] = useState(String(max));
-  const inputStyle = [rr.input, { borderColor: c.border, color: c.fgStrong, backgroundColor: c.surfaceCard }];
 
   return (
     <View style={rr.container}>
       <Text variant="subhead" color="fgStrong" style={rr.label}>{label}</Text>
       <View style={rr.row}>
-        <View style={rr.inputWrap}>
-          <Text variant="caption" color="textMuted" style={rr.sublabel}>Min{unit ? ` (${unit})` : ''}</Text>
-          <TextInput
-            style={inputStyle}
-            value={minText}
-            onChangeText={(t) => { setMinText(t); const n = parseInt(t, 10); if (!isNaN(n) && n >= absMin && n <= max) onChangeMin(n); }}
-            keyboardType="number-pad"
-            accessibilityLabel={`${label} minimum`}
-            returnKeyType="done"
-          />
-        </View>
+        <Input
+          label={`Min${unit ? ` (${unit})` : ''}`}
+          containerStyle={rr.inputWrap}
+          style={rr.inputText}
+          value={minText}
+          onChangeText={(t) => { setMinText(t); const n = parseInt(t, 10); if (!isNaN(n) && n >= absMin && n <= max) onChangeMin(n); }}
+          keyboardType="number-pad"
+          accessibilityLabel={`${label} minimum`}
+          returnKeyType="done"
+        />
         <Text variant="title3" color="textMuted" style={rr.dash}>–</Text>
-        <View style={rr.inputWrap}>
-          <Text variant="caption" color="textMuted" style={rr.sublabel}>Max{unit ? ` (${unit})` : ''}</Text>
-          <TextInput
-            style={inputStyle}
-            value={maxText}
-            onChangeText={(t) => { setMaxText(t); const n = parseInt(t, 10); if (!isNaN(n) && n >= min && n <= absMax) onChangeMax(n); }}
-            keyboardType="number-pad"
-            accessibilityLabel={`${label} maximum`}
-            returnKeyType="done"
-          />
-        </View>
+        <Input
+          label={`Max${unit ? ` (${unit})` : ''}`}
+          containerStyle={rr.inputWrap}
+          style={rr.inputText}
+          value={maxText}
+          onChangeText={(t) => { setMaxText(t); const n = parseInt(t, 10); if (!isNaN(n) && n >= min && n <= absMax) onChangeMax(n); }}
+          keyboardType="number-pad"
+          accessibilityLabel={`${label} maximum`}
+          returnKeyType="done"
+        />
       </View>
     </View>
   );
@@ -174,9 +169,8 @@ const rr = StyleSheet.create({
   container: { paddingVertical: spacing.sm },
   label: { marginBottom: spacing.sm },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  inputWrap: { flex: 1 },
-  sublabel: { marginBottom: 4 },
-  input: { borderWidth: 1.5, borderRadius: borderRadius.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, ...type.body, textAlign: 'center' },
+  inputWrap: { flex: 1, marginBottom: 0 },
+  inputText: { textAlign: 'center' },
   dash: { marginTop: 16 },
 });
 
@@ -189,12 +183,11 @@ function GotraTagInput({ excluded, onChange }: { excluded: string[]; onChange: (
     <View style={gt.container}>
       <Text variant="subhead" color="fgStrong" style={gt.label}>Exclude Gotra</Text>
       <View style={gt.row}>
-        <TextInput
-          style={[gt.input, { borderColor: c.border, color: c.fgStrong, backgroundColor: c.surfaceCard }]}
+        <Input
+          containerStyle={gt.inputWrap}
           value={text}
           onChangeText={setText}
           placeholder="Type gotra name..."
-          placeholderTextColor={c.textMuted}
           returnKeyType="done"
           onSubmitEditing={add}
           accessibilityLabel="Gotra exclusion input"
@@ -235,7 +228,7 @@ const makeGt = (c: ThemeColours) => StyleSheet.create({
   container: { paddingVertical: spacing.sm },
   label: { marginBottom: spacing.sm },
   row: { flexDirection: 'row', gap: spacing.sm },
-  input: { flex: 1, borderWidth: 1.5, borderRadius: borderRadius.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, ...type.body },
+  inputWrap: { flex: 1, marginBottom: 0 },
   addBtn: { width: 44, height: 44, backgroundColor: c.accent, borderRadius: borderRadius.sm, alignItems: 'center', justifyContent: 'center' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.sm },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: c.accentSoft, borderRadius: borderRadius.pill, paddingHorizontal: spacing.sm, paddingVertical: 4 },

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, TextInput, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
 import Text from '../../components/ui/Text';
+import Input from '../../components/ui/Input';
 import { useTranslation } from 'react-i18next';
-import { typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { PressableScale } from '../../components/motion';
 import { haptics } from '../../utils/haptics';
 import OnboardingLayout from './OnboardingLayout';
@@ -83,12 +84,11 @@ export default function Step10Screen() {
           <Text variant="subhead" color="textPrimary">{t('onboarding.step10.bio')}</Text>
           <Text variant="footnote" color="textMuted">{bio.length}/{BIO_MAX}</Text>
         </View>
-        <TextInput
+        <Input
           style={styles.textarea}
           value={bio}
           onChangeText={(text) => setBio(text.slice(0, BIO_MAX))}
           placeholder="Tell potential matches a bit about yourself — your values, what you're looking for, what makes you unique..."
-          placeholderTextColor={c.textMuted}
           multiline
           numberOfLines={5}
           textAlignVertical="top"
@@ -111,12 +111,12 @@ export default function Step10Screen() {
                 <Text variant="footnote" color="textMuted" style={styles.promptRemove}>✕</Text>
               </PressableScale>
             </View>
-            <TextInput
+            <Input
               style={styles.promptInput}
+              containerStyle={styles.promptInputContainer}
               value={p.answer}
               onChangeText={(txt) => setAnswer(idx, txt.slice(0, 200))}
               placeholder={t('onboarding.step10.promptAnswer', 'Your answer…')}
-              placeholderTextColor={c.textMuted}
               multiline
               maxLength={200}
               testID={`prompt-answer-${idx}`}
@@ -176,7 +176,8 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
   },
   promptQ: { flex: 1 },
   promptRemove: { paddingHorizontal: 6 },
-  promptInput: { minHeight: 44, fontSize: typography.fontSize.sm, color: c.textPrimary, marginTop: 4 },
+  promptInput: { minHeight: 44 },
+  promptInputContainer: { marginTop: 4 },
   promptChipRow: { gap: spacing.sm, paddingVertical: spacing.sm },
   promptChip: {
     borderWidth: 1, borderColor: c.border, borderRadius: borderRadius.pill,
@@ -189,15 +190,7 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     marginBottom: spacing.sm,
   },
   textarea: {
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    fontSize: typography.fontSize.base,
-    color: c.textPrimary,
     minHeight: 120,
-    lineHeight: typography.fontSize.base * 1.5,
   },
   hint: {
     marginBottom: spacing.md,

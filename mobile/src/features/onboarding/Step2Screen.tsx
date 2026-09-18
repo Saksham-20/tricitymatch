@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, TextInput, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import Text from '../../components/ui/Text';
+import Input from '../../components/ui/Input';
 import { useTranslation } from 'react-i18next';
-import { typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { PressableScale } from '../../components/motion';
 import PickerSheet from '../../components/ui/PickerSheet';
 import OnboardingLayout from './OnboardingLayout';
@@ -67,59 +68,41 @@ export default function Step2Screen() {
       </View>
 
       {/* Caste */}
-      <View>
-        <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step2.caste')}</Text>
-        <TextInput
-          style={styles.input}
-          value={caste}
-          onChangeText={setCaste}
-          placeholder="e.g. Jat, Khatri, Brahmin"
-          placeholderTextColor={c.textMuted}
-          autoCapitalize="words"
-          testID="input-caste"
-          accessibilityLabel={t('onboarding.step2.caste')}
-        />
-      </View>
+      <Input
+        label={t('onboarding.step2.caste')}
+        value={caste}
+        onChangeText={setCaste}
+        placeholder="e.g. Jat, Khatri, Brahmin"
+        autoCapitalize="words"
+        testID="input-caste"
+        accessibilityLabel={t('onboarding.step2.caste')}
+      />
 
       {/* Sub-caste + gotra reveal only once caste is filled — irrelevant
           questions stay out of sight (NN/g: shortest path for each user) */}
       {!!caste.trim() && (
-      <View>
-        <Text variant="subhead" color="textPrimary" style={styles.label}>
-          {t('onboarding.step2.subCaste')}
-          <Text variant="footnote" color="textMuted"> ({t('common.optional')})</Text>
-        </Text>
-        <TextInput
-          style={styles.input}
-          value={subCaste}
-          onChangeText={setSubCaste}
-          placeholder="Sub-caste"
-          placeholderTextColor={c.textMuted}
-          autoCapitalize="words"
-          testID="input-subCaste"
-          accessibilityLabel={t('onboarding.step2.subCaste')}
-        />
-      </View>
+      <Input
+        label={`${t('onboarding.step2.subCaste')} (${t('common.optional')})`}
+        value={subCaste}
+        onChangeText={setSubCaste}
+        placeholder="Sub-caste"
+        autoCapitalize="words"
+        testID="input-subCaste"
+        accessibilityLabel={t('onboarding.step2.subCaste')}
+      />
       )}
 
       {/* Gotra (optional) */}
       {!!caste.trim() && (
-      <View>
-        <Text variant="subhead" color="textPrimary" style={styles.label}>
-          {t('onboarding.step2.gotra')}
-          <Text variant="footnote" color="textMuted"> ({t('common.optional')})</Text>
-        </Text>
-        <TextInput
-          style={styles.input}
-          value={gotra}
-          onChangeText={setGotra}
-          placeholder="e.g. Kashyap, Bharadwaj"
-          placeholderTextColor={c.textMuted}
-          autoCapitalize="words"
-          testID="input-gotra"
-          accessibilityLabel={t('onboarding.step2.gotra')}
-        />
-      </View>
+      <Input
+        label={`${t('onboarding.step2.gotra')} (${t('common.optional')})`}
+        value={gotra}
+        onChangeText={setGotra}
+        placeholder="e.g. Kashyap, Bharadwaj"
+        autoCapitalize="words"
+        testID="input-gotra"
+        accessibilityLabel={t('onboarding.step2.gotra')}
+      />
       )}
 
       {/* Mother tongue */}
@@ -162,16 +145,6 @@ export default function Step2Screen() {
 const makeStyles = (c: ThemeColours) => StyleSheet.create({
   label: {
     marginBottom: spacing.sm,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    fontSize: typography.fontSize.base,
-    color: c.textPrimary,
-    minHeight: 48,
   },
   selectBtn: {
     borderWidth: 1,

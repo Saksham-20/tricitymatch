@@ -7,7 +7,6 @@ import {
   Modal,
   useWindowDimensions,
   Pressable,
-  TextInput,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,6 +15,7 @@ import type { RouteProp } from '@react-navigation/native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import Text from '../../components/ui/Text';
+import Input from '../../components/ui/Input';
 import Animated, {
   interpolate,
   useAnimatedScrollHandler,
@@ -25,7 +25,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { showToast } from '../../utils/toast';
 import { haptics } from '../../utils/haptics';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { CompatRing, MatchCelebration } from '../../components/ui';
 import { ProfileDetailSkeleton } from '../../components/ui/skeletons';
 import { PressableScale } from '../../components/motion';
@@ -591,12 +591,11 @@ export default function ProfileDetailScreen() {
         <Pressable style={ns.backdrop} onPress={() => setNoteSheetOpen(false)}>
           <View style={[ns.sheet, { backgroundColor: c.background }]} onStartShouldSetResponder={() => true}>
             <Text variant="headline" color="fgStrong" style={ns.title}>Like with a note</Text>
-            <TextInput
-              style={[ns.input, { borderColor: c.border, color: c.fgStrong }]}
+            <Input
+              style={ns.input}
               value={noteText}
               onChangeText={(txt) => setNoteText(txt.slice(0, 280))}
               placeholder="Say what caught your eye… (optional)"
-              placeholderTextColor={c.textMuted}
               multiline
               accessibilityLabel="Note to send with your like"
             />
@@ -840,10 +839,7 @@ const ns = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: spacing.lg, paddingBottom: spacing['3xl'] },
   title: { marginBottom: spacing.md },
-  input: {
-    borderWidth: 1, borderRadius: borderRadius.md, padding: spacing.md, minHeight: 88,
-    fontSize: typography.fontSize.base, textAlignVertical: 'top',
-  },
+  input: { minHeight: 88, textAlignVertical: 'top' },
   counter: { alignSelf: 'flex-end', marginTop: 4, fontVariant: ['tabular-nums'] },
   sendBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,

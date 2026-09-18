@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, TextInput, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { PressableScale } from '../../components/motion';
+import Input from '../../components/ui/Input';
 import PickerSheet from '../../components/ui/PickerSheet';
 import Text from '../../components/ui/Text';
 import OnboardingLayout from './OnboardingLayout';
@@ -89,22 +90,15 @@ export default function Step4Screen() {
 
       {/* Institution (optional) */}
       {!!education && (
-      <View>
-        <Text variant="subhead" color="textPrimary" style={styles.label}>
-          {t('onboarding.step4.institution')}
-          <Text variant="footnote" color="textMuted"> ({t('common.optional')})</Text>
-        </Text>
-        <TextInput
-          style={styles.input}
+        <Input
+          label={`${t('onboarding.step4.institution')} (${t('common.optional')})`}
           value={institution}
           onChangeText={setInstitution}
           placeholder="College / University name"
-          placeholderTextColor={c.textMuted}
           autoCapitalize="words"
           testID="input-institution"
           accessibilityLabel={t('onboarding.step4.institution')}
         />
-      </View>
       )}
 
       <PickerSheet
@@ -130,16 +124,6 @@ export default function Step4Screen() {
 const makeStyles = (c: ThemeColours) => StyleSheet.create({
   label: {
     marginBottom: spacing.sm,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    fontSize: typography.fontSize.base,
-    color: c.textPrimary,
-    minHeight: 48,
   },
   selectBtn: {
     borderWidth: 1,

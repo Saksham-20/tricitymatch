@@ -10,17 +10,18 @@ import React, { useEffect, useState } from 'react';
 import { PressableScale } from '../../components/motion';
 import { useTheme } from '../../hooks/useTheme';
 import {
-  View, TextInput, StyleSheet, ScrollView,
+  View, StyleSheet, ScrollView,
   ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import Text from '../../components/ui/Text';
+import Input from '../../components/ui/Input';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { getMyProfile, updateMyProfile } from '../../api/profile';
 import { getMe } from '../../api/auth';
 import { useAuthStore } from '../../stores/authStore';
-import { typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 
 export default function CompleteBasicsScreen() {
   const { c } = useTheme();
@@ -118,21 +119,19 @@ export default function CompleteBasicsScreen() {
 
         <Text variant="subhead" color="textSecondary" style={st.label}>{t('auth.signup.fullName', 'Full name')}</Text>
         <View style={st.nameRow}>
-          <TextInput
-            style={[st.input, { flex: 1 }]}
+          <Input
+            containerStyle={st.nameField}
             value={firstName}
             onChangeText={setFirstName}
             placeholder="First name"
-            placeholderTextColor={c.textMuted}
             autoCapitalize="words"
             testID="first-name-input"
           />
-          <TextInput
-            style={[st.input, { flex: 1 }]}
+          <Input
+            containerStyle={st.nameField}
             value={lastName}
             onChangeText={setLastName}
             placeholder="Last name"
-            placeholderTextColor={c.textMuted}
             autoCapitalize="words"
             testID="last-name-input"
           />
@@ -159,18 +158,17 @@ export default function CompleteBasicsScreen() {
           })}
         </View>
 
-        <Text variant="subhead" color="textSecondary" style={st.label}>{t('auth.signup.dob', 'Date of birth')}</Text>
-        <TextInput
-          style={[st.input, dobError ? st.inputError : null]}
+        <Input
+          label={t('auth.signup.dob', 'Date of birth')}
+          containerStyle={st.dobField}
           value={dobDisplay}
           onChangeText={handleDobChange}
           placeholder="DD/MM/YYYY"
-          placeholderTextColor={c.textMuted}
           keyboardType="numeric"
           maxLength={10}
+          error={dobError}
           testID="dob-input"
         />
-        {dobError ? <Text variant="footnote" color="error" style={st.error}>{dobError}</Text> : null}
         {error ? <Text variant="footnote" color="error" style={st.error} accessibilityLiveRegion="polite">{error}</Text> : null}
 
         <PressableScale haptic
@@ -196,12 +194,10 @@ const makeSt = (c: ThemeColours) => StyleSheet.create({
   sub: { marginTop: 4, marginBottom: spacing.xl },
   label: { marginBottom: spacing.xs, marginTop: spacing.md },
   nameRow: { flexDirection: 'row', gap: spacing.sm },
-  input: {
-    borderWidth: 1, borderColor: c.border, borderRadius: borderRadius.md,
-    backgroundColor: c.surfaceCard, paddingHorizontal: spacing.md,
-    minHeight: 50, fontSize: typography.fontSize.base, color: c.textPrimary,
-  },
-  inputError: { borderColor: c.error },
+  nameField: { flex: 1 },
+  // Compensates for the section-header Text (with its own marginTop) that used
+  // to sit above this field and is now folded into the Input's own `label`.
+  dobField: { marginTop: spacing.md },
   genderBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
     minHeight: 50, borderRadius: borderRadius.md, borderWidth: 1, borderColor: c.border,
