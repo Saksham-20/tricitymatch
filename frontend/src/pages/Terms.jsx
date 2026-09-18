@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { FiArrowLeft } from 'react-icons/fi';
 import Seo from '../components/common/Seo';
 import { legal, support } from '../config';
 
@@ -47,7 +48,9 @@ export default function Terms() {
         path="/terms"
       />
       <div className="max-w-3xl mx-auto">
-        <Link to="/" className="text-sm text-primary-700 dark:text-primary-300 inline-block py-2 px-2 -mx-2 -mt-2 mb-4">← Back to home</Link>
+        <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-primary-700 dark:text-primary-300 py-2 px-2 -mx-2 -mt-2 mb-4">
+          <FiArrowLeft className="w-4 h-4" /> Back to home
+        </Link>
 
         <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-100 dark:border-neutral-800 p-8 md:p-12">
           <h1 className="text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">Terms of Service</h1>

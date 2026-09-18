@@ -221,7 +221,10 @@ const CreateAccountStep = () => {
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Verify to create your account</p>
                     <p className="text-xs text-neutral-500 mt-0.5 mb-3">We’ll send a one-time code to confirm it’s really you. Your account is created only after this.</p>
-                    <button type="button" onClick={sendOtp} disabled={otpSending} className="px-5 py-2.5 text-sm font-semibold bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 transition-colors">
+                    {/* Shared .btn-primary (index.css) carries the funnel's one primary-CTA
+                        look plus real press feedback (:active scale(0.97) @120ms) — the ad-hoc
+                        bg-primary-600/hover classes this replaced had neither. */}
+                    <button type="button" onClick={sendOtp} disabled={otpSending} className="btn-primary text-sm">
                       {otpSending ? 'Sending…' : 'Send OTP'}
                     </button>
                   </div>
@@ -242,12 +245,12 @@ const CreateAccountStep = () => {
                       <span className="text-xs text-neutral-500">{cooldown > 0 ? `Resend in ${cooldown}s` : <button type="button" onClick={sendOtp} className="underline text-primary-600">Resend code</button>}</span>
                     )}
                   </div>
-                  {errors.otp && <p className="text-sm text-red-600 bg-red-50 border-l-2 border-red-400 p-2 rounded">{errors.otp}</p>}
+                  {errors.otp && <p className="text-sm text-destructive dark:text-red-300 bg-red-50 dark:bg-red-950/30 border-l-2 border-red-400 dark:border-red-500 p-2 rounded">{errors.otp}</p>}
                 </div>
               )}
             </div>
 
-            {errors.verify && <p className="text-sm text-red-600 font-medium">{errors.verify}</p>}
+            {errors.verify && <p className="text-sm text-destructive dark:text-red-300 font-medium">{errors.verify}</p>}
           </>
         )}
 
@@ -256,12 +259,14 @@ const CreateAccountStep = () => {
             {/* Verified confirmation */}
             <div className="rounded-2xl border-2 border-neutral-200 dark:border-neutral-700 p-4 sm:p-5">
               <motion.div initial="initial" animate="animate" variants={fade} className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-green-100 text-green-600 flex-shrink-0"><FiCheckCircle className="w-5 h-5" /></div>
+                <div className="p-2.5 rounded-xl bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 flex-shrink-0"><FiCheckCircle className="w-5 h-5" /></div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-green-700">{idType === 'phone' ? 'Mobile number' : 'Email'} verified</p>
+                  <p className="text-sm font-semibold text-green-700 dark:text-green-400">{idType === 'phone' ? 'Mobile number' : 'Email'} verified</p>
                   <p className="text-xs text-neutral-500 truncate">{idType === 'phone' ? `+91 ${idTarget()}` : formData.email}</p>
                 </div>
-                <button type="button" onClick={() => { updateFormData(idType === 'email' ? 'emailVerification' : 'phoneVerification', false); setOtpSent(false); setOtpCode(''); }} className="flex items-center gap-1 text-xs font-medium text-primary-600 hover:text-primary-700 flex-shrink-0">
+                {/* py-3.5/-my-3.5 pads the tap target to the doctrine's 44px floor
+                    without growing the visible mark (§3.5). */}
+                <button type="button" onClick={() => { updateFormData(idType === 'email' ? 'emailVerification' : 'phoneVerification', false); setOtpSent(false); setOtpCode(''); }} className="flex items-center gap-1 py-3.5 -my-3.5 text-xs font-medium text-primary-600 dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-200 flex-shrink-0">
                   <FiEdit2 className="w-3.5 h-3.5" /> Change
                 </button>
               </motion.div>
@@ -295,7 +300,7 @@ const CreateAccountStep = () => {
                   {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
                 </button>
               </div>
-              {errors.password && <p className="text-sm text-red-600">{errors.password}</p>}
+              {errors.password && <p className="text-sm text-destructive dark:text-red-300">{errors.password}</p>}
               {formData.password ? (
                 <PasswordRequirements password={formData.password} />
               ) : !errors.password && (
@@ -310,16 +315,22 @@ const CreateAccountStep = () => {
                   Have a referral code?
                 </button>
               ) : (
-                <input
-                  type="text"
-                  name="referralCode"
-                  autoComplete="off"
-                  placeholder="Enter referral code"
-                  value={formData.referralCode || ''}
-                  onChange={(e) => updateFormData('referralCode', e.target.value.toUpperCase())}
-                  autoFocus
-                  className="w-full px-4 py-2.5 rounded-xl border-2 border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 uppercase tracking-wider text-sm"
-                />
+                <div>
+                  <label htmlFor="signup-referral-code" className="block text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-1">
+                    Referral code
+                  </label>
+                  <input
+                    id="signup-referral-code"
+                    type="text"
+                    name="referralCode"
+                    autoComplete="off"
+                    placeholder="Enter referral code"
+                    value={formData.referralCode || ''}
+                    onChange={(e) => updateFormData('referralCode', e.target.value.toUpperCase())}
+                    autoFocus
+                    className="w-full px-4 py-2.5 rounded-xl border-2 border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 uppercase tracking-wider text-sm"
+                  />
+                </div>
               )}
             </div>
 
@@ -346,7 +357,7 @@ const CreateAccountStep = () => {
                   </span>
                 }
               />
-              {errors.account_agree && <p className="text-sm text-red-600 mt-1.5">{errors.account_agree}</p>}
+              {errors.account_agree && <p className="text-sm text-destructive dark:text-red-300 mt-1.5">{errors.account_agree}</p>}
             </div>
           </>
         )}

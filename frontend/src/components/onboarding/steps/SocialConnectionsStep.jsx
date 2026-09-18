@@ -106,7 +106,7 @@ export default function SocialConnectionsStep() {
                         type="button"
                         aria-pressed={active}
                         onClick={() => setLink(key, { visibility: value })}
-                        className={`inline-flex items-center gap-1.5 px-2.5 min-h-[44px] rounded-lg text-xs font-medium border transition-colors duration-[160ms] active:scale-[0.97] ${
+                        className={`inline-flex items-center gap-1.5 px-2.5 min-h-[2.75rem] rounded-lg text-xs font-medium border transition-colors duration-[160ms] active:scale-[0.97] ${
                           active
                             ? 'border-primary-400 bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'
                             : 'border-neutral-200 dark:border-neutral-700 text-neutral-500 hover:bg-neutral-50 dark:hover:bg-neutral-800'

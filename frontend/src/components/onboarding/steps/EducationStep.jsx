@@ -79,8 +79,8 @@ const EducationStep = () => {
         </motion.div>
       )}
 
-      <motion.div variants={fadeRise} className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600">
-        <p className="font-medium text-neutral-800 mb-1">Education &amp; career</p>
+      <motion.div variants={fadeRise} className="bg-neutral-100 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-lg p-4 text-sm text-neutral-600 dark:text-neutral-300">
+        <p className="font-medium text-neutral-800 dark:text-neutral-100 mb-1">Education &amp; career</p>
         <p>Your education and career help us find someone with similar professional background and goals.</p>
       </motion.div>
     </motion.div>

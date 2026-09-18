@@ -122,9 +122,9 @@ const BasicInfoStep = () => {
                   role="radio"
                   aria-checked={selected}
                   onClick={() => { updateFormData('gender', opt.value); setFieldTouched('gender'); validateStep(); }}
-                  className={`min-h-[44px] py-3 rounded-xl border-2 text-sm font-semibold transition-colors duration-[160ms] active:scale-[0.97] ${
+                  className={`min-h-[2.75rem] py-3 rounded-xl border-2 text-sm font-semibold transition-colors duration-[160ms] active:scale-[0.97] ${
                     selected
-                      ? 'border-primary-600 bg-primary-50 text-primary-700 dark:bg-primary-900/30'
+                      ? 'border-primary-600 bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'
                       : 'border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 hover:border-primary-300'
                   }`}
                 >

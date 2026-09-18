@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 import blobErrorMessage from '../utils/blobError';
-import { FiDownload, FiCreditCard, FiTrendingUp, FiCalendar } from 'react-icons/fi';
-import { FaCrown } from 'react-icons/fa';
+import { FiDownload, FiCreditCard, FiTrendingUp, FiCalendar, FiAward } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import { Skeleton, ErrorState } from '../components/ui';
 
@@ -101,7 +100,7 @@ export default function PaymentHistory() {
 
   const summary = [
     { label: 'Total Spent', value: `₹${totalSpent.toLocaleString('en-IN')}`, icon: FiTrendingUp },
-    { label: 'Active Plan', value: activeSub ? planLabel(activeSub.planType) : 'None', icon: FaCrown },
+    { label: 'Active Plan', value: activeSub ? planLabel(activeSub.planType) : 'None', icon: FiAward },
     { label: 'Renews On', value: activeSub?.endDate ? new Date(activeSub.endDate).toLocaleDateString('en-IN') : '—', icon: FiCalendar },
   ];
 
@@ -113,12 +112,12 @@ export default function PaymentHistory() {
           <div>
             <h1 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
               <FiCreditCard className="w-6 h-6 text-primary-500" />
-              Payment History
+              Payment history
             </h1>
             <p className="text-neutral-500 dark:text-neutral-400 text-sm mt-0.5">Your subscription history and invoices</p>
           </div>
-          <Link to="/subscription" className="btn-primary px-4 py-2 text-sm whitespace-nowrap">
-            Upgrade Plan
+          <Link to="/subscription" className="btn-primary inline-flex items-center justify-center min-h-[44px] px-4 py-2 text-sm whitespace-nowrap">
+            Upgrade plan
           </Link>
         </div>
 
@@ -147,17 +146,21 @@ export default function PaymentHistory() {
           </div>
         ) : loadError ? (
           <div className="bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card border border-neutral-100 dark:border-neutral-800">
-            <ErrorState onRetry={load} />
+            <ErrorState
+              title="Couldn't load your payment history"
+              description="The connection dropped before this finished loading. Try again."
+              onRetry={load}
+            />
           </div>
         ) : subscriptions.length === 0 ? (
           <div className="bg-white dark:bg-surface-dark-3 rounded-2xl p-12 text-center shadow-card border border-neutral-100 dark:border-neutral-800">
             <div className="w-14 h-14 rounded-full bg-gold-50 dark:bg-gold-900/20 flex items-center justify-center mx-auto mb-4">
-              <FaCrown className="w-6 h-6 text-gold-500" />
+              <FiAward className="w-6 h-6 text-gold-500" />
             </div>
             <p className="text-neutral-800 dark:text-neutral-200 font-semibold">No payment history yet</p>
             <p className="text-neutral-400 dark:text-neutral-500 text-sm mt-1">Upgrade to a paid plan to see your transactions here.</p>
-            <Link to="/subscription" className="btn-primary inline-flex mt-5 px-6 py-2.5 text-sm">
-              View Plans
+            <Link to="/subscription" className="btn-primary inline-flex items-center justify-center min-h-[44px] mt-5 px-6 py-2.5 text-sm">
+              View plans
             </Link>
           </div>
         ) : (
@@ -195,7 +198,7 @@ export default function PaymentHistory() {
                         {s.razorpayPaymentId && Number(s.amount) > 0 && (
                           <button
                             onClick={() => downloadInvoice(s.id)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-300 text-xs font-medium transition-colors"
+                            className="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 py-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-300 text-xs font-medium transition-colors"
                           >
                             <FiDownload className="w-3.5 h-3.5" /> PDF
                           </button>

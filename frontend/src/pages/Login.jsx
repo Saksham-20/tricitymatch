@@ -203,7 +203,7 @@ const Login = () => {
           `bg-neutral-900` inverts to a near-white under html.dark (see
           CityMatrimony.jsx's identical note), which would strand the white
           headline text with nothing behind it. */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-[#171717] dark:bg-surface-dark-2">
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-[var(--editorial-rail)] dark:bg-surface-dark-2">
         {/* Warm gradient wash */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary-900/90 via-neutral-900 to-neutral-900" />
 
@@ -226,9 +226,6 @@ const Login = () => {
 
           {/* Main copy */}
           <motion.div initial="initial" animate="animate" variants={fadeInUp} className="max-w-sm">
-            <p className="text-xs font-semibold text-primary-400 uppercase tracking-widest mb-5">
-              Welcome back
-            </p>
             <h2 className="font-display text-5xl font-bold leading-tight mb-5 text-white">
               Your journey<br />continues here.
             </h2>
@@ -321,7 +318,7 @@ const Login = () => {
                   initial="initial"
                   animate="animate"
                   exit="exit"
-                  className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-gold-50 border border-gold-200 dark:border-gold-800/50 text-gold-800 dark:text-gold-300 text-sm"
+                  className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-gold-50 dark:bg-gold-900/20 border border-gold-200 dark:border-gold-800/50 text-gold-800 dark:text-gold-300 text-sm"
                 >
                   <FiClock className="w-4 h-4 mt-0.5 flex-shrink-0" />
                   <span>Too many attempts. Please wait a few minutes, then try again.</span>
@@ -367,10 +364,13 @@ const Login = () => {
                         {idType === 'phone' ? `+91 ${phoneDigits(identifier)}` : identifier.trim()}
                       </p>
                     </div>
+                    {/* py-3.5/-my-3.5 pads the tap target to the doctrine's 44px floor
+                        without growing the visible mark (§3.5: "pad the target, do
+                        not grow the mark"). */}
                     <button
                       type="button"
                       onClick={backToIdentifier}
-                      className="flex items-center gap-1 text-xs font-medium text-primary-600 dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-200 flex-shrink-0"
+                      className="flex items-center gap-1 py-3.5 -my-3.5 text-xs font-medium text-primary-600 dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-200 flex-shrink-0"
                     >
                       <FiEdit2 className="w-3.5 h-3.5" /> {t('auth.change', 'Change')}
                     </button>

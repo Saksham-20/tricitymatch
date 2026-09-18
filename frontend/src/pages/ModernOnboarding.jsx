@@ -114,6 +114,9 @@ const ModernOnboardingContent = () => {
   // focus there, per doctrine's keyboard-path requirement.
   const quitTriggerRef = useRef(null);
   const quitDialogRef = useRef(null);
+  // Post-signup preview dialog: focus target on open (no trigger to restore
+  // focus to — the element that held it lives in the now-hidden background).
+  const previewDialogRef = useRef(null);
 
   // Build stepComponents array based on visible steps
   const stepComponents = visibleSteps.map(step => allStepComponents[step.id]);
@@ -174,9 +177,28 @@ const ModernOnboardingContent = () => {
 
   // Escape closes the quit-confirm dialog (equivalent to "Continue"); focus
   // moves into the dialog on open and back to whatever opened it on close.
+  // Tab is trapped inside the dialog while it's open — the backdrop leaves
+  // the form/rail mounted and focusable behind it, so without this a
+  // keyboard user could Tab straight past the dialog into the hidden page.
   useEffect(() => {
     if (!showQuitDialog) return undefined;
-    const onKey = (e) => { if (e.key === 'Escape') setShowQuitDialog(false); };
+    const onKey = (e) => {
+      if (e.key === 'Escape') { setShowQuitDialog(false); return; }
+      if (e.key !== 'Tab' || !quitDialogRef.current) return;
+      const focusable = Array.from(
+        quitDialogRef.current.querySelectorAll('button, [href], [tabindex]:not([tabindex="-1"])')
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
     document.addEventListener('keydown', onKey);
     quitDialogRef.current?.focus();
     return () => {
@@ -184,6 +206,20 @@ const ModernOnboardingContent = () => {
       quitTriggerRef.current?.focus();
     };
   }, [showQuitDialog]);
+
+  // The success card has no data at risk (the account already exists), so
+  // Escape and a backdrop click dismiss it the same way the low-commitment
+  // "Explore my dashboard first" button does. Focus moves in on open — the
+  // element that held it (the submit button) is inside the now-hidden
+  // background wrapper, so it would otherwise silently fall back to <body>.
+  useEffect(() => {
+    if (!previewData) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') navigate('/dashboard'); };
+    document.addEventListener('keydown', onKey);
+    previewDialogRef.current?.focus();
+    return () => document.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewData]);
 
   // Surface the first validation error when a step fails — otherwise on long
   // steps the error renders off-screen and Next looks broken.
@@ -345,7 +381,6 @@ const ModernOnboardingContent = () => {
             /* Signup is only 2 steps — a ring + stepper rail is overkill. Light
                cue: headline, slim segmented bar, two quiet step rows. */
             <div className="flex-1">
-              <p className="text-[11px] font-semibold text-primary-600 dark:text-primary-300 uppercase tracking-widest mb-2">Create your profile</p>
               <h2 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 leading-snug mb-1.5">
                 Two steps.<br />About two minutes.
               </h2>
@@ -414,7 +449,6 @@ const ModernOnboardingContent = () => {
                   </span>
                 </div>
                 <div>
-                  <p className="text-[11px] font-semibold text-primary-600 dark:text-primary-300 uppercase tracking-widest">Begin your journey</p>
                   <h2 className="font-display text-xl font-bold text-neutral-900 dark:text-neutral-100 leading-tight">Your forever starts here</h2>
                 </div>
               </div>
@@ -518,7 +552,7 @@ const ModernOnboardingContent = () => {
                 <button
                   type="button"
                   onClick={handleQuit}
-                  className="p-1.5 -mr-1.5 hover:bg-neutral-100 rounded-full transition-colors"
+                  className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] -mr-2 hover:bg-neutral-100 rounded-full transition-colors"
                   title="Exit onboarding"
                   aria-label="Exit onboarding"
                 >
@@ -556,16 +590,10 @@ const ModernOnboardingContent = () => {
                     focusHeadingRef.current = false;
                   }
                 }}
-                className="bg-white dark:bg-surface-dark-3 border border-neutral-100 dark:border-neutral-800 rounded-2xl shadow-card p-8 sm:p-10"
+                className="bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card dark:shadow-none dark:border dark:border-neutral-800 p-8 sm:p-10"
               >
                 <motion.div initial="initial" animate="animate" variants={staggerContainer}>
                   <div className="mb-8">
-                    <motion.p
-                      variants={fadeRise}
-                      className="text-xs font-semibold text-primary-600 uppercase tracking-widest mb-2"
-                    >
-                      {visibleSteps[currentStep].icon && `Step ${currentStep + 1}`}
-                    </motion.p>
                     <motion.h2
                       ref={headingRef}
                       tabIndex={-1}
@@ -686,8 +714,11 @@ const ModernOnboardingContent = () => {
               exit="exit"
               variants={backdrop}
               className="fixed inset-0 bg-black/50 flex items-center justify-center z-80 p-4"
+              onClick={() => navigate('/dashboard')}
             >
               <motion.div
+                ref={previewDialogRef}
+                tabIndex={-1}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="signup-preview-title"
@@ -695,11 +726,9 @@ const ModernOnboardingContent = () => {
                 animate="animate"
                 exit="exit"
                 variants={modal}
-                className="bg-white dark:bg-surface-dark-3 rounded-2xl p-8 w-full max-w-sm shadow-2xl text-center"
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white dark:bg-surface-dark-3 rounded-2xl p-8 w-full max-w-sm shadow-2xl text-center focus:outline-none"
               >
-                <p className="text-[11px] font-semibold text-primary-600 dark:text-primary-300 uppercase tracking-widest mb-5">
-                  Your profile is live
-                </p>
                 <div className="flex justify-center mb-4">
                   <Avatar name={fullName} size="2xl" />
                 </div>

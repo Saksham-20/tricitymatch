@@ -17,7 +17,7 @@ export default function DeleteAccount() {
         <Link to="/" className="text-sm text-primary-600 dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-200 inline-block py-2 px-2 -mx-2 -mt-2 mb-4">← Back to home</Link>
 
         <div className="bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 p-8 md:p-12">
-          <h1 className="text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">Delete Your Account</h1>
+          <h1 className="text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">Delete your account</h1>
           <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-8">Applies to the TricityMatch website and mobile apps</p>
 
           <div className="prose prose-sm max-w-none text-neutral-700 dark:text-neutral-300 space-y-6">

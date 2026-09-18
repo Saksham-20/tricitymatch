@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiCheckCircle, FiArrowRight } from 'react-icons/fi';
-import { FaCrown } from 'react-icons/fa';
+import { FiCheckCircle, FiArrowRight, FiAward } from 'react-icons/fi';
 import Logo from '../components/common/Logo';
 import api from '../api/axios';
 import { planFeatures } from '../utils/planFeatures';
 import { useAuth } from '../context/AuthContext';
+import { DUR, EASE_OUT } from '../utils/animations';
 
 // Display names for the plan enum. Kept beside the page that shows them; the
 // enum keys themselves are persisted in Postgres and never change.
@@ -84,14 +84,14 @@ export default function PaymentSuccess() {
 
   if (checking) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-[#FDF8F2] dark:bg-surface-dark-1 px-4">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-background dark:bg-surface-dark-1 px-4">
         <div className="w-10 h-10 rounded-full border-2 border-primary-200 dark:border-primary-800 border-t-primary-600 dark:border-t-primary-400 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-[100dvh] flex items-center justify-center bg-[#FDF8F2] dark:bg-surface-dark-1 px-4">
+    <div className="min-h-[100dvh] flex items-center justify-center bg-background dark:bg-surface-dark-1 px-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex justify-center mb-8">
@@ -101,17 +101,18 @@ export default function PaymentSuccess() {
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 16 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.45, ease: 'easeOut' }}
+          transition={{ duration: DUR.content, ease: EASE_OUT }}
           className="card text-center"
         >
-          {/* Animated check — celebration is one of the doctrine-sanctioned
-              first-run delight moments, so a spring is fine here (ruling 8
-              gates springs off route/tap-driven UI, not this); the entrance
-              still starts from a visible 0.5, never a banned scale(0). */}
+          {/* Animated check — a first-time, rare-tier celebration (doctrine
+              §4.1's delight budget), but ruling 8 still applies: springs are
+              reserved for surfaces a finger is actively driving, not a
+              route-loaded receipt. Duration + EASE_OUT, entrance starts from
+              the sanctioned 0.95-0.97 scale range (§4.5), never scale(0). */}
           <motion.div
-            initial={{ scale: 0.5, opacity: 0 }}
+            initial={{ scale: 0.96, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+            transition={{ delay: 0.2, duration: DUR.content, ease: EASE_OUT }}
             className="w-18 h-18 rounded-full bg-gold-50 dark:bg-gold-900/20 flex items-center justify-center mx-auto mb-5"
           >
             <FiCheckCircle className="w-9 h-9 text-gold" />
@@ -119,8 +120,8 @@ export default function PaymentSuccess() {
 
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
             <div className="flex items-center justify-center gap-2 mb-2">
-              <FaCrown className="w-4 h-4 text-gold" />
-              <h1 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100">Payment Successful!</h1>
+              <FiAward className="w-4 h-4 text-gold" />
+              <h1 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100">Payment successful</h1>
             </div>
             <p className="text-neutral-500 dark:text-neutral-400 text-sm mb-6">
               {PLAN_LABEL[plan]
@@ -153,7 +154,7 @@ export default function PaymentSuccess() {
                 Go to Dashboard <FiArrowRight className="w-4 h-4" />
               </Link>
               <Link to="/payment/history" className="btn-secondary w-full flex items-center justify-center">
-                View Payment History
+                View payment history
               </Link>
             </div>
 

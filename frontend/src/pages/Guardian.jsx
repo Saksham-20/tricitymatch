@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
@@ -12,6 +12,7 @@ export default function Guardian() {
   const [candidates, setCandidates] = useState([]);
   const [email, setEmail] = useState('');
   const [inviting, setInviting] = useState(false);
+  const emailInputRef = useRef(null);
   const [loading, setLoading] = useState(true);
   // A failed fetch is never rendered as "no guardians yet" — that hides a
   // server problem behind a claim about the member's own data.
@@ -94,15 +95,21 @@ export default function Guardian() {
 
       {tab === 'guardians' && (
         <>
-          <form onSubmit={invite} className="flex gap-2 mb-6">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={t('guardian.inviteByEmail')}
-              aria-label={t('guardian.inviteByEmail')}
-              className="flex-1 px-4 py-3 text-base rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-[border-color,box-shadow] duration-[160ms]"
-            />
+          <form onSubmit={invite} className="flex gap-2 items-end mb-6">
+            <div className="flex-1">
+              <label htmlFor="guardian-invite-email" className="block text-sm font-medium text-neutral-600 dark:text-neutral-300 mb-1">
+                {t('guardian.inviteByEmail')}
+              </label>
+              <input
+                id="guardian-invite-email"
+                ref={emailInputRef}
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={t('guardian.inviteByEmail')}
+                className="w-full px-4 py-3 text-base rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-[border-color,box-shadow] duration-[160ms]"
+              />
+            </div>
             <button
               type="submit"
               disabled={inviting}
@@ -121,7 +128,12 @@ export default function Guardian() {
               onRetry={load}
             />
           ) : guardians.length === 0 ? (
-            <EmptyState icon={FiUsers} title={t('guardian.noGuardians')} />
+            <EmptyState
+              icon={FiUsers}
+              title={t('guardian.noGuardians')}
+              actionLabel={t('guardian.inviteByEmail')}
+              onAction={() => emailInputRef.current?.focus()}
+            />
           ) : (
             <ul className="space-y-3">
               {guardians.map((g) => (
@@ -133,8 +145,8 @@ export default function Guardian() {
                   {confirmRevoke === g.linkId ? (
                     <div className="flex items-center gap-2 text-sm">
                       <span className="text-neutral-500 dark:text-neutral-400">Revoke access?</span>
-                      <button onClick={() => revoke(g.linkId)} className="px-2.5 py-1 rounded-md bg-destructive text-white font-medium hover:bg-destructive/90 transition-colors duration-[160ms]">Yes</button>
-                      <button onClick={() => setConfirmRevoke(null)} className="px-2.5 py-1 rounded-md bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 font-medium hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors duration-[160ms]">No</button>
+                      <button onClick={() => revoke(g.linkId)} className="inline-flex items-center justify-center min-h-[44px] px-2.5 py-1 rounded-md bg-destructive text-white font-medium hover:bg-destructive/90 transition-colors duration-[160ms]">Yes</button>
+                      <button onClick={() => setConfirmRevoke(null)} className="inline-flex items-center justify-center min-h-[44px] px-2.5 py-1 rounded-md bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 font-medium hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors duration-[160ms]">No</button>
                     </div>
                   ) : (
                     <button onClick={() => setConfirmRevoke(g.linkId)} className="inline-flex items-center gap-1.5 text-destructive hover:opacity-80 text-sm">
@@ -173,7 +185,7 @@ function TabBtn({ active, onClick, children }) {
   return (
     <button
       onClick={onClick}
-      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-[160ms] ${active ? 'bg-primary-600 text-white' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700'}`}
+      className={`inline-flex items-center justify-center min-h-[44px] px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-[160ms] ${active ? 'bg-primary-600 text-white' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700'}`}
     >
       {children}
     </button>

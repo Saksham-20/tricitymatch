@@ -13,7 +13,7 @@ import Seo from '../components/common/Seo';
 // inverts to a near-white under html.dark (see Login.jsx's identical note),
 // which would strand the white headline text with nothing behind it.
 const EditorialPanel = ({ headline, sub }) => (
-  <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-[#171717] dark:bg-surface-dark-2">
+  <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-[var(--editorial-rail)] dark:bg-surface-dark-2">
     <div className="absolute inset-0 bg-gradient-to-br from-primary-900/90 via-neutral-900 to-neutral-900" />
     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[38rem] h-[38rem] rounded-full border border-white/5 pointer-events-none" />
     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24rem] h-[24rem] rounded-full border border-white/8 pointer-events-none" />
@@ -26,7 +26,6 @@ const EditorialPanel = ({ headline, sub }) => (
       </div>
 
       <motion.div initial="initial" animate="animate" variants={fadeInUp} className="max-w-sm">
-        <p className="text-xs font-semibold text-primary-400 uppercase tracking-widest mb-5">Account Recovery</p>
         <h2 className="font-display text-5xl font-bold leading-tight mb-5 text-white">{headline}</h2>
         <p className="text-white/60 text-base leading-relaxed">{sub}</p>
       </motion.div>

@@ -8,21 +8,31 @@ import { CITY_VALUES } from '../../../constants/profileOptions';
 import { staggerContainer, fadeRise } from '../../../utils/animations';
 
 const PreferencesStep = () => {
-  const { formData, updateFormData, errors, setStepErrors } = useOnboarding();
+  const { formData, updateFormData, errors, setStepErrors, registerStepValidator } = useOnboarding();
   const CITIES = CITY_VALUES;
   const EDUCATION_OPTIONS = ['12th Pass', 'Diploma', 'Bachelor', 'Master', 'PhD', 'Professional Degree'];
 
+  // Registered once below — read the latest values through a ref so the
+  // registered closure never validates against the stale mount-time formData.
+  const formDataRef = React.useRef(formData);
+  formDataRef.current = formData;
+
   const validateStep = () => {
+    const d = formDataRef.current;
     const newErrors = {};
-    if (formData.preferredAgeMin && formData.preferredAgeMax && formData.preferredAgeMin > formData.preferredAgeMax) {
+    if (d.preferredAgeMin && d.preferredAgeMax && d.preferredAgeMin > d.preferredAgeMax) {
       newErrors.preferredAge = 'Minimum age cannot be greater than maximum age';
     }
     setStepErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  // Wired into the step-advance gate (was only running as an unmount side
+  // effect, so clicking Next invoked whichever validator a PRIOR step left
+  // registered, never this one — the age-range check never actually blocked).
   React.useEffect(() => {
-    return () => validateStep();
+    return registerStepValidator(validateStep);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleCityToggle = (city) => {
@@ -86,10 +96,10 @@ const PreferencesStep = () => {
                 key={city}
                 onClick={() => handleCityToggle(city)}
                 aria-pressed={selected}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[44px] rounded-full text-sm font-medium border transition-colors duration-[160ms] active:scale-[0.97] ${
+                className={`inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[2.75rem] rounded-full text-sm font-medium border transition-colors duration-[160ms] active:scale-[0.97] ${
                   selected
                     ? 'bg-primary-500 border-primary-500 text-white shadow-burgundy'
-                    : 'bg-white border-neutral-300 text-neutral-700 hover:border-primary-400 hover:text-primary-600'
+                    : 'bg-white border-neutral-300 text-neutral-700 hover:border-primary-400 hover:text-primary-600 dark:hover:text-primary-300'
                 }`}
               >
                 {selected && <FiCheck className="w-3.5 h-3.5" />}

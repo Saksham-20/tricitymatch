@@ -47,7 +47,7 @@ export default function CommunityMatrimony() {
       />
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="max-w-5xl mx-auto px-5 sm:px-8 pt-14 pb-12">
+      <section className="max-w-5xl mx-auto px-5 sm:px-8 py-16 md:py-24">
         <nav aria-label="Breadcrumb" className="text-xs text-neutral-500 dark:text-neutral-400">
           <Link to={`/matrimony/${city.slug}`} className="hover:text-primary-700 dark:hover:text-primary-300">
             Matrimony in {city.name}
@@ -69,9 +69,9 @@ export default function CommunityMatrimony() {
         <div className="mt-8 flex flex-wrap items-center gap-3">
           <Link
             to="/onboarding"
-            className="inline-flex items-center gap-2 min-h-[48px] px-7 rounded-full bg-primary-700 hover:bg-primary-800 text-white text-sm font-medium transition-colors"
+            className="btn-primary inline-flex items-center gap-2 min-h-[48px] text-sm"
           >
-            Create your profile <FiArrowRight />
+            Create your profile <FiArrowRight aria-hidden="true" />
           </Link>
           <span className="text-sm text-neutral-500 dark:text-neutral-400">
             Free to join · Verified with a live selfie
@@ -81,7 +81,7 @@ export default function CommunityMatrimony() {
 
       {/* ── What matching looks like in this community ───────────────────── */}
       <section className="bg-white dark:bg-surface-dark-3 border-y border-neutral-200 dark:border-neutral-800">
-        <div className="max-w-5xl mx-auto px-5 sm:px-8 py-14 grid gap-10 lg:grid-cols-2">
+        <div className="max-w-5xl mx-auto px-5 sm:px-8 py-16 md:py-24 grid gap-10 lg:grid-cols-2">
           <div>
             <h2 className="font-display text-2xl sm:text-3xl tracking-tight">
               How {community.name} families here tend to match
@@ -102,7 +102,7 @@ export default function CommunityMatrimony() {
       </section>
 
       {/* ── The city half of the intersection ────────────────────────────── */}
-      <section className="max-w-5xl mx-auto px-5 sm:px-8 py-14">
+      <section className="max-w-5xl mx-auto px-5 sm:px-8 py-16 md:py-24">
         <h2 className="font-display text-2xl sm:text-3xl tracking-tight">{city.locality.heading}</h2>
         <p className="mt-4 max-w-3xl text-sm sm:text-base leading-relaxed text-neutral-600 dark:text-neutral-400">
           {city.locality.body}
@@ -111,36 +111,41 @@ export default function CommunityMatrimony() {
           to={`/matrimony/${city.slug}`}
           className="inline-flex items-center gap-2 mt-6 text-sm font-medium text-primary-700 dark:text-primary-300 hover:underline"
         >
-          Everything about matrimony in {city.name} <FiArrowRight className="w-4 h-4" />
+          Everything about matrimony in {city.name} <FiArrowRight className="w-4 h-4" aria-hidden="true" />
         </Link>
       </section>
 
       {/* ── Verification + founding ──────────────────────────────────────── */}
       <section className="bg-[#2D1A22] dark:bg-surface-dark-2 text-[#FDF8F2]">
-        <div className="max-w-5xl mx-auto px-5 sm:px-8 py-12">
+        <div className="max-w-5xl mx-auto px-5 sm:px-8 py-16 md:py-24">
           <h2 className="font-display text-2xl sm:text-3xl leading-snug max-w-3xl text-[#FDF8F2]">
-            Every badge here was earned with a live selfie —{' '}
-            <em className="italic text-gold-400">
-              {founding.open ? 'and founding members join free.' : 'checked by a person, not a score.'}
-            </em>
+            Every badge here was earned with a live selfie
+            {!founding.loading && (
+              <>
+                :{' '}
+                <em className="italic text-gold-400">
+                  {founding.open ? 'and founding members join free.' : 'checked by a person, not a score.'}
+                </em>
+              </>
+            )}
           </h2>
           <p className="mt-4 max-w-2xl text-sm sm:text-base leading-relaxed text-[#FDF8F2]/75">
-            The camera opens in the browser and the photo is taken there and then — there is no upload
+            The camera opens in the browser and the photo is taken there and then: there is no upload
             option anywhere in the flow, because an uploaded file can be borrowed or edited. A reviewer
             on our team compares it against the profile photos by hand.
-            {founding.open && ' Join while the founding period is open and your membership is free until it ends.'}
+            {!founding.loading && founding.open && ' Join while the founding period is open and your membership is free until it ends.'}
           </p>
           <Link
             to="/onboarding"
-            className="inline-flex items-center gap-2 min-h-[48px] px-7 rounded-full bg-[#FDF8F2] text-[#2D1A22] text-sm font-medium mt-7 hover:bg-white transition-colors"
+            className="inline-flex items-center gap-2 min-h-[48px] px-7 rounded-xl bg-[#FDF8F2] text-[#2D1A22] text-sm font-medium mt-7 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-white active:scale-[0.97] transition-[background-color,transform] duration-[160ms]"
           >
-            <FiShield className="w-4 h-4" aria-hidden="true" /> Create a verified profile
+            <FiShield className="w-4 h-4" aria-hidden="true" /> Create your profile
           </Link>
         </div>
       </section>
 
       {/* ── FAQ ──────────────────────────────────────────────────────────── */}
-      <section className="max-w-3xl mx-auto px-5 sm:px-8 py-14">
+      <section className="max-w-3xl mx-auto px-5 sm:px-8 py-16 md:py-24">
         <h2 className="font-display text-2xl sm:text-3xl tracking-tight">Questions families ask</h2>
         <div className="mt-8 divide-y divide-neutral-200 dark:divide-neutral-800 border-y border-neutral-200 dark:border-neutral-800">
           {faqs.map((faq, i) => (
@@ -169,9 +174,9 @@ export default function CommunityMatrimony() {
         <div className="mt-12 text-center">
           <Link
             to="/onboarding"
-            className="inline-flex items-center gap-2 min-h-[48px] px-7 rounded-full bg-primary-700 hover:bg-primary-800 text-white text-sm font-medium transition-colors"
+            className="btn-primary inline-flex items-center gap-2 min-h-[48px] text-sm"
           >
-            Create your profile <FiArrowRight />
+            Create your profile <FiArrowRight aria-hidden="true" />
           </Link>
         </div>
       </section>

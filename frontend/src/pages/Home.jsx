@@ -44,38 +44,65 @@ const AiTag = ({ entry, style }) => {
 };
 
 /* ── FONT LOADER ─────────────────────────────────────────────── */
-/* The @font-face families this file uses (Instrument Serif, Cormorant Garamond,
-   Inter Tight, JetBrains Mono) are requested from `index.html`, NOT from here.
-   An @import inside this style tag is invisible to the preload scanner — it was
-   not fetched until ~1970ms on throttled 4G, which is most of the landing
-   page's LCP. See scripts/lcp-probe.mjs. */
+/* This block used to fork its own color and type scale — different burgundy/
+   gold hex than index.css's real tokens, plus a third and fourth font family
+   (neither Playfair Display nor Inter). Doctrine §3 bans that outright ("Do
+   not fork them"; "No third family"). Every color below now either IS the
+   real token's hex (burgundy/gold — locked, accent-only, same in both themes
+   per index.css, which never overrides --primary/--gold under html.dark) or
+   reads live off it via var() (the canvas/ink/border set), so this page
+   inherits html.dark automatically instead of "being assumed fine because
+   the page is a fixed palette." Fonts resolve to the real @font-face stack
+   `index.html` requests (Playfair Display / Inter) — no separate family is
+   loaded from here, so the preload-scanner note below still holds.
+
+   --panel-cream / --panel-ink are the one deliberate exception: this page's
+   established rhythm alternates a light canvas with full-bleed burgundy/ink
+   bands (ribbon, founding, cities, trust, CTA, footer). Those bands' own
+   background is the FIXED accent (burgundy) or a fixed dark panel tone, not
+   the reactive canvas, so their cream-colored text/fills must stay fixed
+   too — reusing the reactive --cream/--ink there would eventually put dark
+   text on a dark band (or light text on a lightened one) under html.dark.
+   --panel-cream/--panel-ink hold the exact pre-existing values so those
+   bands render pixel-identical in both themes; every other token below is
+   live. */
 const FontLoader = () => (
   <style>{`
     :root {
-      --burgundy: #7C1D3A;
-      --burgundy-dk: #5C1229;
-      --burgundy-lt: #9B2248;
-      --cream: #FDF8F2;
-      --cream-2: #F5EDE0;
-      --cream-3: #FFFAF6;
-      --ink: #2D1A22;
-      --ink-soft: #4A3B30;
-      --gold: #B8952A;
-      --gold-lt: #F0D080;
-      --gold-text: #D4B048; /* AA-compliant gold for TEXT on burgundy/ink (4.8:1) */
-      /* Rule: --gold is for decoration (glyphs, dots, icons); every gold TEXT
-         node uses --gold-text. --gold on --burgundy is only 3.52:1, and these
-         display headings clamp down to 22px on a 375px screen — under WCAG's
-         24px large-text threshold, so they need the full 4.5:1. Caught by
-         scripts/a11y-probe.mjs, not by eye. */
-      --mute: rgba(45,26,34,0.65);
-      --line: rgba(45,26,34,0.14);
-      --line-on-dk: rgba(253,248,242,0.22);
-      --display: 'Instrument Serif', 'Cormorant Garamond', Georgia, serif;
-      --serif: 'Cormorant Garamond', Georgia, serif;
-      --sans: 'Inter Tight', -apple-system, system-ui, sans-serif;
-      --mono: 'JetBrains Mono', ui-monospace, monospace;
+      --burgundy: #8B2346;
+      --burgundy-dk: #6B1D3A;
+      --burgundy-lt: #D66E8E;
+      --gold: #C9A227;
+      --gold-lt: #F2D88A;
+      --gold-text: #E8C34A; /* gold-400 — the same "bright gold, ~9:1 on dark" value index.css already uses for html.dark .text-gold-600 */
+      /* Rule unchanged: --gold is for decoration (glyphs, dots, icons); every
+         gold TEXT node uses --gold-text. --gold on --burgundy is only
+         3.52:1, and these display headings clamp down to 22px on a 375px
+         screen — under WCAG's 24px large-text threshold, so they need the
+         full 4.5:1. */
+      --cream: hsl(var(--background));       /* reactive canvas — #FAFAFA light, index.css's dark bg under html.dark */
+      --cream-2: hsl(var(--muted));           /* reactive muted surface */
+      --cream-3: hsl(var(--card));            /* reactive elevated surface — #FFFFFF light, per doctrine §3.1 */
+      --ink: hsl(var(--foreground));          /* reactive default text */
+      --ink-soft: hsl(var(--muted-foreground)); /* reactive secondary text */
+      --mute: hsl(var(--muted-foreground));   /* reactive tertiary text — same token as ink-soft, not an invented gray */
+      --line: hsl(var(--border));             /* reactive hairline */
+      --line-on-dk: rgba(253,248,242,0.22);   /* fixed hairline for the always-dark bands below */
+      --panel-cream: #FDF8F2;
+      --panel-ink: #2D1A22;
+      --display: 'Playfair Display', Georgia, serif;
+      --serif: 'Playfair Display', Georgia, serif;
+      --sans: 'Inter', -apple-system, system-ui, sans-serif;
+      --mono: 'Inter', -apple-system, system-ui, sans-serif; /* was a real monospace family — doctrine bans both the third font family and monospace-as-costume on marketing labels; the uppercase+tracking treatment carries the "label" read on its own */
     }
+
+    /* Doctrine §3.5: elder mode's hit targets are >=48px. These four sat at
+       or under the 44px floor — the rest of the page's controls (CTA
+       buttons, chips, the FAQ row itself) already clear 48px. */
+    html.elder .faq-toggle { width: 48px; height: 48px; }
+    html.elder .announce-dismiss { padding: 17px; }
+    html.elder .story-nav-btn { width: 48px; height: 48px; }
+    html.elder .social-icon { width: 48px; height: 48px; }
 
     .ht-display { font-family: var(--display) !important; }
     .ht-serif   { font-family: var(--serif) !important; }
@@ -100,19 +127,20 @@ const FontLoader = () => (
       transform-origin: left;
     }
 
-    /* ── Ribbon marquee ── */
-    @keyframes scrollx { from { transform: translateX(0); } to { transform: translateX(-33.333%); } }
-    .ribbon-track { animation: scrollx 60s linear infinite; }
+    /* ── Ribbon ── static now: an infinite marquee is an idle loop with no
+       semantic exemption (doctrine §2 ruling 7), and this band sits on the
+       single highest-traffic view of the site, so §4.1's frequency gate
+       ("100+/day: no animation, ever") bans it a second way. Renders once,
+       centered, wrapped — same words, no scroll. */
 
     /* ── Hero stack animations ── */
     @keyframes rise { from { opacity:0; transform: translateY(60px); } to { opacity:1; transform: translateY(0); } }
-    @keyframes drawline { to { transform: scaleX(1); } }
-    @keyframes pulse { 0%,100%{ transform:scale(1); opacity:1; } 50%{ transform:scale(1.4); opacity:.4; } }
-    @keyframes drift-back { 0%,100%{ transform: rotate(-8deg) translateY(40px) translateX(-30px); } 50%{ transform: rotate(-10deg) translateY(50px) translateX(-40px); } }
-    @keyframes drift-mid  { 0%,100%{ transform: rotate(4deg) translateY(20px) translateX(20px); }  50%{ transform: rotate(6deg) translateY(10px) translateX(30px); } }
-    @keyframes drift-front{ 0%,100%{ transform: rotate(-2deg) translateY(0); } 50%{ transform: rotate(-3deg) translateY(-10px); } }
-    @keyframes drift { 0%,100% { transform: translate(0,0); } 50% { transform: translate(80px, 60px); } }
-    @keyframes count-up-in { from { opacity:0; transform: translateY(20px); } to { opacity:1; transform: translateY(0); } }
+    /* drift-back/mid/front/pulse/drift removed with the idle-loop pass below
+       (doctrine §2 ruling 7): none of the six elements that used them —
+       ribbon, the "live" dot, the three hero photos, the CTA orbs, the
+       footer status dot — is a semantically exempt loop (skeleton shimmer,
+       chat typing indicator, spinner). Elements keep their settled resting
+       transform; they just no longer breathe forever. */
 
     /* ── WHY horizontal scroll ── */
     .why-scroller { scrollbar-width: none; scroll-snap-type: x mandatory; }
@@ -125,15 +153,12 @@ const FontLoader = () => (
     .why-bar-css { transform-origin: left; animation: why-bar-fill linear; animation-timeline: scroll(nearest inline); }
 
     /* ── Cities accordion ── */
-    .city-strip { transition: flex .8s cubic-bezier(.2,.8,.2,1); }
-    .city-bg { transition: transform .8s; }
+    .city-strip { transition: flex 280ms var(--ease-out); }
+    .city-bg { transition: transform 280ms var(--ease-out); }
     .city-strip.active .city-bg { transform: scale(1) !important; }
 
     /* ── Polaroid ── */
-    .polaroid { transition: transform .8s cubic-bezier(.2,.8,.2,1), opacity .5s; }
-
-    /* ── Global scale-down ── */
-    html { font-size: 14px; }
+    .polaroid { transition: transform 250ms var(--ease-in-out), opacity 250ms var(--ease-in-out); }
 
     /* ── Responsive overrides ── */
     @media (max-width: 1000px) {
@@ -149,9 +174,6 @@ const FontLoader = () => (
       .hero-baseline { padding: 10px 20px !important; flex-wrap: wrap !important; gap: 8px 14px !important; }
       /* CTA row: stack description above buttons */
       .hero-cta-row { grid-template-columns: 1fr !important; gap: 20px !important; align-items: flex-start !important; }
-      /* Live pill: truncate overflow text */
-      .live-pill { max-width: calc(100vw - 40px) !important; left: 50% !important; transform: translateX(-50%) !important; }
-      .live-pill .live-text { max-width: 140px !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; display: inline-block !important; vertical-align: middle !important; }
       /* Why section */
       #why { grid-template-columns: 1fr !important; padding: 48px 0 32px !important; }
       #why > div:first-child { position: static !important; padding: 0 20px 32px !important; }
@@ -241,24 +263,24 @@ const FontLoader = () => (
     /* ── FAQ toggle ── */
     .faq-toggle::before, .faq-toggle::after {
       content:""; position:absolute; top:50%; left:50%;
-      background: var(--ink); transition: transform .4s, background .3s;
+      background: var(--ink); transition: transform 200ms var(--ease-out), background-color 160ms ease;
     }
     .faq-toggle::before { width:12px; height:1px; transform: translate(-50%,-50%); }
     .faq-toggle::after  { width:1px; height:12px; transform: translate(-50%,-50%); }
-    .faq-item-open .faq-toggle { background: var(--burgundy); border-color: var(--burgundy); transform: rotate(180deg); }
+    .faq-item-open .faq-toggle { background: var(--burgundy); border-color: var(--burgundy); transform: rotate(180deg); transition: background-color 160ms ease, border-color 160ms ease, transform 200ms var(--ease-out); }
     .faq-item-open .faq-toggle::before,
-    .faq-item-open .faq-toggle::after { background: var(--cream); }
+    .faq-item-open .faq-toggle::after { background: var(--panel-cream); }
     .faq-item-open .faq-toggle::after { transform: translate(-50%,-50%) rotate(90deg); }
-    .faq-a { max-height: 0; overflow: hidden; opacity: 0; transition: max-height .5s, opacity .4s, margin-top .3s; }
+    .faq-a { max-height: 0; overflow: hidden; opacity: 0; transition: max-height 200ms var(--ease-out), opacity 200ms var(--ease-out), margin-top 200ms var(--ease-out); }
     .faq-item-open .faq-a { max-height: 240px; opacity: 1; margin-top: 12px; }
 
     /* ── Sticky mobile CTA ── */
     .sticky-cta {
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 120;
-      background: rgba(253,248,242,.95); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      background: hsl(var(--card) / 0.95); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
       border-top: 1px solid var(--line); padding: 12px 20px;
       display: none; align-items: center; justify-content: space-between; gap: 16px;
-      transform: translateY(100%); transition: transform .4s cubic-bezier(.2,.8,.2,1);
+      transform: translateY(100%); transition: transform 280ms var(--ease-drawer);
     }
     .sticky-cta.show { transform: translateY(0); }
     .sticky-cta .sc-text { display: flex; flex-direction: column; }
@@ -286,7 +308,6 @@ const FontLoader = () => (
         transition-delay: 0s !important;
         scroll-behavior: auto !important;
       }
-      .ribbon-track { animation: none !important; }
     }
 
     /* Fixed global navbar is taller on mobile (~89px) than the desktop bar the
@@ -324,7 +345,7 @@ const StickyCTA = ({ heroRef }) => {
       <Link to="/onboarding" style={{
         display: 'inline-flex', alignItems: 'center', gap: 8, flexShrink: 0,
         padding: '12px 20px', borderRadius: 999,
-        background: 'var(--burgundy)', color: 'var(--cream)',
+        background: 'var(--burgundy)', color: 'var(--panel-cream)',
         fontSize: 13, fontWeight: 500, fontFamily: 'var(--sans)', textDecoration: 'none',
       }}>Create profile <FiArrowRight /></Link>
     </div>
@@ -334,6 +355,18 @@ const StickyCTA = ({ heroRef }) => {
 /* ── HOME ─────────────────────────────────────────────────────── */
 const supportsScrollTimeline =
   typeof CSS !== 'undefined' && CSS.supports?.('animation-timeline: scroll()');
+
+/* Every onMouseEnter/onMouseLeave pair below mutates inline style directly
+   (background/color/transform/shadow/border) instead of a CSS :hover rule,
+   so none of it had a `(hover: hover)` escape hatch — a tap fires the same
+   synthetic mouseenter a real hover would, and nothing fires a matching
+   leave until some later, unrelated touch, so the element is left stuck in
+   its "hovered" look after the finger lifts (doctrine §4.7). Every handler
+   below checks this first. */
+const canHover = () =>
+  typeof window !== 'undefined' &&
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
 const Home = () => {
   // Top of the funnel. Everything downstream is measured against this number,
@@ -363,16 +396,12 @@ const Home = () => {
 
   const heroRef = useRef(null);
 
-  /* process scroll tracking — was a raw `scroll` listener recomputing a
-     getBoundingClientRect on every frame (doctrine §8 bans this pattern).
-     framer-motion's `useScroll` tracks the same "section scrolling through
-     the viewport" progress off the main thread; `offset: ['start start',
-     'end end']` reproduces the old (scrolled / total) math exactly. */
-  const processRef = useRef(null);
-  const { scrollYProgress: processProgress } = useScroll({ target: processRef, offset: ['start start', 'end end'] });
-  useEffect(() => processProgress.on('change', (p) => {
-    setProcessActive(Math.min(3, Math.floor(Math.max(0, Math.min(1, p)) * 4)));
-  }), [processProgress]);
+  /* process step selection — used to be scroll-scrubbed (a `useScroll`
+     progress value mapped straight onto `processActive` while the section
+     sat pinned under `position: sticky` for 150vh of scroll). Ruling 1 bans
+     that outright regardless of implementation technology: "No pinning, no
+     scroll hijack, no scrubbed scroll." `processActive` is now driven only
+     by clicking a step, same as any tabbed content. */
 
   /* story auto-advance */
   useEffect(() => {
@@ -500,15 +529,17 @@ const Home = () => {
           <motion.div
             className="home-announce"
             initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-            style={{ background: 'var(--burgundy)', color: 'var(--cream)', fontSize: 13, overflow: 'hidden', position: 'relative', zIndex: 40 }}
+            style={{ background: 'var(--burgundy)', color: 'var(--panel-cream)', fontSize: 13, overflow: 'hidden', position: 'relative', zIndex: 40 }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '10px 40px', fontFamily: 'var(--sans)' }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--gold-lt)', animation: 'pulse 1.6s ease-in-out infinite', flexShrink: 0 }} />
+              {/* Static dot, not a perpetual pulse — doctrine §2 ruling 7 has
+                  no exemption for a decorative "live" indicator. */}
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--gold-lt)', flexShrink: 0 }} />
               <p><span style={{ fontWeight: 600, color: 'var(--gold-text)' }}>Founding offer:</span> {founding.grantDays ? `${founding.grantDays} days` : 'A period'} of Premium free, open to all Tricity members.{founding.contactUnlocks != null ? ` Includes ${founding.contactUnlocks} contact unlock${founding.contactUnlocks === 1 ? '' : 's'}.` : ''}{' '}
                 <Link to="/onboarding" style={{ textDecoration: 'underline', fontWeight: 600 }}>Claim now</Link>
               </p>
-              {/* padding + compensating offset: 32px hit box, icon stays at right:16 */}
-              <button onClick={() => setAnnouncementOn(false)} style={{ position: 'absolute', right: 7, top: '50%', transform: 'translateY(-50%)', opacity: 0.7, padding: 9, lineHeight: 0 }} aria-label="Dismiss">
+              {/* padding + compensating offset: 32px hit box, icon stays at right:16; html.elder bumps it to 48 */}
+              <button className="announce-dismiss" onClick={() => setAnnouncementOn(false)} style={{ position: 'absolute', right: 7, top: '50%', transform: 'translateY(-50%)', opacity: 0.7, padding: 9, lineHeight: 0 }} aria-label="Dismiss">
                 <FiX style={{ width: 14, height: 14 }} />
               </button>
             </div>
@@ -549,19 +580,22 @@ const Home = () => {
             ].map((line, i) => (
               <span key={i} style={{
                 display: 'inline-block',
-                animation: `rise 1.2s cubic-bezier(.2,.8,.2,1) ${line.style.animationDelay || '0s'} both`,
+                animation: `rise 1.2s var(--ease-out) ${line.style.animationDelay || '0s'} both`,
                 ...line.style,
               }}>{line.text}</span>
             ))}
           </h1>
 
-          {/* Trust chips */}
+          {/* Trust chips — FiCheckCircle, not a raw "✓" glyph, so this reads
+              as the same icon the rest of the page uses for "true/included"
+              (e.g. the checklist on the DISCOVER panel below). */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, animation: 'rise 1.2s .7s both' }}>
-            {['✓ Live selfie verification', '✓ Chandigarh · Mohali · Panchkula', '✓ Family-first matchmaking'].map((t, i) => (
+            {['Live selfie verification', 'Chandigarh · Mohali · Panchkula', 'Family-first matchmaking'].map((t, i) => (
               <span key={i} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
                 fontSize: 13, fontWeight: 500, fontFamily: 'var(--sans)', color: 'var(--burgundy-dk)',
                 background: 'var(--cream-3)', border: '1px solid var(--line)', borderRadius: 999, padding: '7px 14px',
-              }}>{t}</span>
+              }}><FiCheckCircle style={{ width: 14, height: 14, flexShrink: 0 }} />{t}</span>
             ))}
           </div>
 
@@ -578,13 +612,13 @@ const Home = () => {
               <Link to="/onboarding" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 10,
                 padding: '14px 28px', borderRadius: 999,
-                background: 'var(--burgundy)', color: 'var(--cream)',
+                background: 'var(--burgundy)', color: 'var(--panel-cream)',
                 fontSize: 14, fontWeight: 500, fontFamily: 'var(--sans)',
-                transition: 'all .3s cubic-bezier(.2,.8,.2,1)',
+                transition: 'transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease',
                 textDecoration: 'none',
               }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'var(--burgundy-dk)'; e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 16px 40px -12px rgba(124,29,58,.5)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'var(--burgundy)'; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+                onMouseEnter={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--burgundy-dk)'; e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 16px 40px -12px rgba(124,29,58,.5)'; }}
+                onMouseLeave={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--burgundy)'; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
               >Create free profile <FiArrowRight /></Link>
               <span style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--mute)' }}>
                 Free to start · No credit card · Verified in hours
@@ -594,10 +628,10 @@ const Home = () => {
                 fontFamily: 'var(--mono)', fontSize: 13, letterSpacing: '.12em', textTransform: 'uppercase',
                 padding: '14px 0', borderBottom: '1px solid var(--ink)',
                 color: 'var(--ink)', textDecoration: 'none',
-                transition: 'gap .3s',
+                transition: 'gap 160ms ease',
               }}
-                onMouseEnter={e => e.currentTarget.style.gap = '14px'}
-                onMouseLeave={e => e.currentTarget.style.gap = '8px'}
+                onMouseEnter={e => { if (!canHover()) return; e.currentTarget.style.gap = '14px'; }}
+                onMouseLeave={e => { if (!canHover()) return; e.currentTarget.style.gap = '8px'; }}
               >How it works <span>↓</span></a>
             </div>
           </div>
@@ -616,34 +650,37 @@ const Home = () => {
             imagery is still allowed, just honest about being imagery. */}
         <div style={{ position: 'relative', padding: '0 36px 80px 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ position: 'relative', width: '100%', maxWidth: 240, aspectRatio: '3/4' }}>
-            {/* Back card */}
+            {/* Back card — settled at its resting transform; the perpetual
+                sway (`drift-back`, 8s infinite) is gone (doctrine §2 ruling
+                7: no idle loops, and this is the single highest-traffic view
+                on the site, so §4.1's frequency gate bans it a second way). */}
             <div style={{
               position: 'absolute', inset: 0, borderRadius: 6, overflow: 'hidden',
               boxShadow: '0 30px 80px -20px rgba(45,26,34,.35)',
               background: 'linear-gradient(140deg,#C9B5A6,#6E574B)',
               transform: 'rotate(-8deg) translateY(40px) translateX(-30px)',
-              animation: 'drift-back 8s ease-in-out infinite',
             }}>
               <img src={EDITORIAL_IMAGES.heroStack.back.src} alt={EDITORIAL_IMAGES.heroStack.back.alt} decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 50%,rgba(0,0,0,.45))' }} />
+              <AiTag entry={EDITORIAL_IMAGES.heroStack.back} style={{ bottom: 10, left: 10 }} />
             </div>
-            {/* Mid card */}
+            {/* Mid card — settled, `drift-mid` removed for the same reason. */}
             <div style={{
               position: 'absolute', inset: 0, borderRadius: 6, overflow: 'hidden',
               boxShadow: '0 30px 80px -20px rgba(45,26,34,.35)',
               background: 'linear-gradient(160deg,#B59C82,#5C4B40)',
               transform: 'rotate(4deg) translateY(20px) translateX(20px)',
-              animation: 'drift-mid 10s ease-in-out infinite',
             }}>
               <img src={EDITORIAL_IMAGES.heroStack.mid.src} alt={EDITORIAL_IMAGES.heroStack.mid.alt} decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 50%,rgba(0,0,0,.45))' }} />
+              <AiTag entry={EDITORIAL_IMAGES.heroStack.mid} style={{ bottom: 12, left: 12 }} />
             </div>
-            {/* Front card — with real image */}
+            {/* Front card — with real image; `drift-front` removed for the
+                same reason. */}
             <div style={{
               position: 'absolute', inset: 0, borderRadius: 6, overflow: 'hidden',
               boxShadow: '0 30px 80px -20px rgba(45,26,34,.35)',
               transform: 'rotate(-2deg)',
-              animation: 'drift-front 12s ease-in-out infinite',
               zIndex: 2,
             }}>
               {/* eslint-disable-next-line react/no-unknown-property -- React 18.2 drops the
@@ -684,7 +721,7 @@ const Home = () => {
           fail-closed, so a failed/slow lookup shows the weaker, always-true copy
           rather than promising an entitlement the grant would not issue.
       ════════════════════════════════════════════════════════ */}
-      <section className="trust-strip-section section-dark" style={{ background: 'var(--ink)', color: 'var(--cream)', padding: '56px 40px 0', position: 'relative', overflow: 'hidden' }}>
+      <section className="trust-strip-section section-dark" style={{ background: 'var(--panel-ink)', color: 'var(--panel-cream)', padding: '56px 40px 0', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 120%, rgba(124,29,58,.55), transparent 60%)' }} />
 
         <div className="founding-band" style={{
@@ -714,12 +751,12 @@ const Home = () => {
             <Link to="/onboarding" style={{
               display: 'inline-flex', alignItems: 'center', gap: 10,
               padding: '14px 28px', borderRadius: 999,
-              background: 'var(--cream)', color: 'var(--ink)',
+              background: 'var(--panel-cream)', color: 'var(--panel-ink)',
               fontSize: 14, fontWeight: 500, fontFamily: 'var(--sans)',
-              textDecoration: 'none', transition: 'all .3s cubic-bezier(.2,.8,.2,1)',
+              textDecoration: 'none', transition: 'transform 160ms ease, box-shadow 160ms ease',
             }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 16px 40px -12px rgba(0,0,0,.5)'; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+              onMouseEnter={e => { if (!canHover()) return; e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 16px 40px -12px rgba(0,0,0,.5)'; }}
+              onMouseLeave={e => { if (!canHover()) return; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
             >Become a founding member <FiArrowRight /></Link>
             <p style={{ fontFamily: 'var(--sans)', fontSize: 13, color: 'rgba(253,248,242,.55)', marginTop: 14 }}>
               {founding.open ? 'Free during the founding period' : 'Free to join'} · Photo-verified profiles · Local, family-first
@@ -765,21 +802,23 @@ const Home = () => {
       </section>
 
       {/* ════════════════════════════════════════════════════════
-          RIBBON — scrolling marquee
+          RIBBON — static trust band. Used to be an infinite marquee
+          (60s scroll loop): an idle loop with no semantic exemption on the
+          single highest-traffic view of the site (doctrine §2 ruling 7,
+          §4.1). Same words, one pass, centered and wrapped instead of
+          scrolling — no `[...Array(3)]` repeat needed once nothing scrolls.
       ════════════════════════════════════════════════════════ */}
       <div className="ribbon-band section-dark" style={{
-        background: 'var(--burgundy)', color: 'var(--cream)',
+        background: 'var(--burgundy)', color: 'var(--panel-cream)',
         padding: '14px 0', overflow: 'hidden',
         borderTop: '1px solid var(--line-on-dk)', borderBottom: '1px solid var(--line-on-dk)',
       }}>
-        <div className="ribbon-track" style={{ display: 'flex', gap: 40, whiteSpace: 'nowrap', fontFamily: 'var(--display)', fontSize: 22, fontStyle: 'italic', letterSpacing: '-.01em' }}>
-          {[...Array(3)].map((_, rep) => (
-            ['Verified profiles', 'Expertly matched', 'Family-first', 'Hyperlocal', 'Encrypted in transit', 'Founding community', 'Tricity built', 'Privacy first'].map((t, i) => (
-              <React.Fragment key={`${rep}-${i}`}>
-                <span>{t}</span>
-                <span style={{ color: 'var(--gold)', fontStyle: 'normal', fontSize: 20 }}>✦</span>
-              </React.Fragment>
-            ))
+        <div className="ribbon-track" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '10px 40px', fontFamily: 'var(--display)', fontSize: 22, fontStyle: 'italic', letterSpacing: '-.01em', padding: '0 20px' }}>
+          {['Verified profiles', 'Expertly matched', 'Family-first', 'Hyperlocal', 'Encrypted in transit', 'Founding community', 'Tricity built', 'Privacy first'].map((t, i) => (
+            <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 40 }}>
+              {t}
+              <span style={{ color: 'var(--gold)', fontStyle: 'normal', fontSize: 20 }}>✦</span>
+            </span>
           ))}
         </div>
       </div>
@@ -820,21 +859,29 @@ const Home = () => {
                 padding: '24px 20px', background: 'var(--cream-3)',
                 border: '1px solid var(--line)', borderRadius: 4, minHeight: 280,
                 display: 'flex', flexDirection: 'column',
-                transition: 'all .4s cubic-bezier(.2,.8,.2,1)',
+                transition: 'transform 200ms var(--ease-out), box-shadow 200ms var(--ease-out), background-color 200ms ease, color 200ms ease',
                 position: 'relative', overflow: 'hidden', cursor: 'default',
               }}
               onMouseEnter={e => {
+                if (!canHover()) return;
                 const el = e.currentTarget;
                 el.style.background = 'var(--burgundy)';
-                el.style.color = 'var(--cream)';
+                el.style.color = 'var(--panel-cream)';
                 el.style.transform = 'translateY(-8px)';
                 el.style.boxShadow = '0 30px 60px -20px rgba(124,29,58,.4)';
                 el.querySelector('.wt-glyph').style.color = 'var(--gold)';
-                el.querySelector('.wt-tag').style.color = 'var(--gold)';
+                /* --gold-text, not --gold: this hover puts these two nodes on
+                   the fixed burgundy fill above as TEXT, and --gold only
+                   clears ~3.5:1 there — below the 4.5:1 floor these small
+                   uppercase labels need (doctrine §3.1). --gold-text is the
+                   token the rest of the page already uses correctly for
+                   gold text on burgundy/ink. */
+                el.querySelector('.wt-tag').style.color = 'var(--gold-text)';
                 el.querySelector('.wt-body').style.color = 'rgba(253,248,242,.8)';
-                el.querySelector('.wt-foot').style.color = 'var(--gold)';
+                el.querySelector('.wt-foot').style.color = 'var(--gold-text)';
               }}
               onMouseLeave={e => {
+                if (!canHover()) return;
                 const el = e.currentTarget;
                 el.style.background = 'var(--cream-3)';
                 el.style.color = '';
@@ -846,11 +893,11 @@ const Home = () => {
                 el.querySelector('.wt-foot').style.color = 'var(--burgundy)';
               }}
             >
-              <div className="wt-glyph" style={{ fontSize: 36, color: 'var(--burgundy)', marginBottom: 20, lineHeight: 1, transition: 'color .4s' }}>{c.glyph}</div>
-              <div className="wt-tag" style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '.16em', textTransform: 'uppercase', color: 'var(--mute)', marginBottom: 10, transition: 'color .4s' }}>{c.tag}</div>
+              <div className="wt-glyph" style={{ fontSize: 36, color: 'var(--burgundy)', marginBottom: 20, lineHeight: 1, transition: 'color 200ms ease' }}>{c.glyph}</div>
+              <div className="wt-tag" style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '.16em', textTransform: 'uppercase', color: 'var(--mute)', marginBottom: 10, transition: 'color 200ms ease' }}>{c.tag}</div>
               <div style={{ fontFamily: 'var(--display)', fontSize: 22, lineHeight: 1.05, letterSpacing: '-.01em', marginBottom: 10 }}>{c.title}</div>
-              <div className="wt-body" style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--ink-soft)', marginBottom: 'auto', transition: 'color .4s' }}>{c.body}</div>
-              <div className="wt-foot" style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--burgundy)', paddingTop: 24, transition: 'color .4s' }}>Learn more</div>
+              <div className="wt-body" style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--ink-soft)', marginBottom: 'auto', transition: 'color 200ms ease' }}>{c.body}</div>
+              <div className="wt-foot" style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--burgundy)', paddingTop: 24, transition: 'color 200ms ease' }}>Learn more</div>
             </motion.div>
           ))}
         </div>
@@ -874,10 +921,10 @@ const Home = () => {
           direction (disclosed, see AiTag), the copy describes what a real
           profile card shows once you join, and every route goes to a real
           place (/search, /onboarding), never a fabricated `/profile/:id`. */}
-      <section id="matches" className="matches-section section-dark" style={{ background: 'var(--burgundy)', color: 'var(--cream)', padding: '36px 40px' }}>
+      <section id="matches" className="matches-section section-dark" style={{ background: 'var(--burgundy)', color: 'var(--panel-cream)', padding: '36px 40px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 20, marginBottom: 24, flexWrap: 'wrap' }}>
           <div>
-            <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', color: 'var(--cream)' }}>
+            <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', color: 'var(--panel-cream)' }}>
               See how you'll<br /><em style={{ fontStyle: 'italic', color: 'var(--gold-text)' }}>discover</em> matches.
             </h2>
             <p style={{ fontSize: 14, lineHeight: 1.5, color: 'rgba(253,248,242,.75)', maxWidth: 420, fontFamily: 'var(--sans)', marginTop: 12 }}>
@@ -916,7 +963,7 @@ const Home = () => {
                 this does not read as a real member listing with a disclaimer
                 pasted underneath. */}
             <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
-              <span style={{ fontFamily: 'var(--display)', fontSize: 'clamp(18px,2vw,24px)', lineHeight: 1.15, letterSpacing: '-.01em', color: 'var(--cream)' }}>
+              <span style={{ fontFamily: 'var(--display)', fontSize: 'clamp(18px,2vw,24px)', lineHeight: 1.15, letterSpacing: '-.01em', color: 'var(--panel-cream)' }}>
                 What a real profile shows
               </span>
               <ul style={{ display: 'flex', flexDirection: 'column', gap: 8, margin: 0, padding: 0, listStyle: 'none' }}>
@@ -934,12 +981,12 @@ const Home = () => {
               <Link to="/onboarding" style={{
                 marginTop: 'auto',
                 fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.14em', textTransform: 'uppercase',
-                padding: '11px 20px', background: 'var(--cream)', color: 'var(--burgundy)',
+                padding: '11px 20px', background: 'var(--panel-cream)', color: 'var(--burgundy)',
                 borderRadius: 999, alignSelf: 'flex-start',
-                transition: 'all .3s', textDecoration: 'none',
+                transition: 'background-color 160ms ease, color 160ms ease, transform 160ms ease', textDecoration: 'none',
               }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'var(--gold)'; e.currentTarget.style.color = 'var(--ink)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'var(--cream)'; e.currentTarget.style.color = 'var(--burgundy)'; e.currentTarget.style.transform = ''; }}
+                onMouseEnter={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--gold)'; e.currentTarget.style.color = 'var(--panel-ink)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                onMouseLeave={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--panel-cream)'; e.currentTarget.style.color = 'var(--burgundy)'; e.currentTarget.style.transform = ''; }}
               >Create your free profile →</Link>
             </div>
           </motion.div>
@@ -959,10 +1006,10 @@ const Home = () => {
                   padding: '10px 12px', border: `1px solid ${matchIdx === i ? 'var(--gold)' : 'var(--line-on-dk)'}`,
                   borderRadius: 4, cursor: 'pointer',
                   background: matchIdx === i ? 'rgba(253,248,242,.06)' : 'transparent',
-                  transition: 'all .3s',
+                  transition: 'border-color 160ms ease',
                 }}
-                onMouseEnter={e => { if (matchIdx !== i) e.currentTarget.style.borderColor = 'var(--gold)'; }}
-                onMouseLeave={e => { if (matchIdx !== i) e.currentTarget.style.borderColor = 'var(--line-on-dk)'; }}
+                onMouseEnter={e => { if (!canHover() || matchIdx === i) return; e.currentTarget.style.borderColor = 'var(--gold)'; }}
+                onMouseLeave={e => { if (!canHover() || matchIdx === i) return; e.currentTarget.style.borderColor = 'var(--line-on-dk)'; }}
               >
                 <div style={{ width: 56, height: 64, borderRadius: 4, position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
                   <img src={photo.src} alt="" loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -974,10 +1021,10 @@ const Home = () => {
             <Link to="/search" style={{
               marginTop: 'auto', fontFamily: 'var(--mono)', fontSize: 12, letterSpacing: '.14em', textTransform: 'uppercase',
               padding: 14, border: '1px solid var(--gold)', borderRadius: 999, textAlign: 'center',
-              color: 'var(--cream)', textDecoration: 'none', transition: 'all .3s',
+              color: 'var(--panel-cream)', textDecoration: 'none', transition: 'background-color 160ms ease, color 160ms ease',
             }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--gold)'; e.currentTarget.style.color = 'var(--ink)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--cream)'; }}
+              onMouseEnter={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--gold)'; e.currentTarget.style.color = 'var(--panel-ink)'; }}
+              onMouseLeave={e => { if (!canHover()) return; e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--panel-cream)'; }}
             >Browse real profiles →</Link>
           </div>
         </div>
@@ -1005,16 +1052,20 @@ const Home = () => {
         ))}
       </div>
 
-      {/* Pin track shortened 180vh→150vh (UX audit H1-1): less dead scroll per
-          step + less chance of overshooting; step mapping self-adjusts off offsetHeight. */}
-      <div ref={processRef} className="process-outer" style={{ height: '150vh', position: 'relative' }}>
+      {/* Desktop process — was a `position: sticky` panel pinned for 150vh of
+          scroll while `processActive` scrubbed with scroll progress. Ruling
+          1 bans pinning/scroll-hijack/scrubbed-scroll outright, regardless
+          of implementation technology, with no desktop exemption. Now an
+          ordinary (non-sticky, non-oversized) section: the same dial + stage
+          layout, but `processActive` only changes when a step is clicked —
+          the four rows at the bottom of the stage panel are now the control,
+          not just a read-out. */}
+      <div className="process-outer" style={{ position: 'relative' }}>
         <div className="process-sticky" style={{
-          position: 'sticky', top: 64, height: 'calc(100vh - 64px)',
           display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 32,
-          padding: '32px 40px 24px', alignItems: 'center',
+          padding: '64px 40px', alignItems: 'center',
           background: 'var(--cream-3)',
           borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)',
-          overflow: 'hidden',
         }}>
           {/* Left */}
           <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -1032,7 +1083,7 @@ const Home = () => {
                   strokeDasharray={`${(processActive + 1) / processSteps.length * 502} 502`}
                   strokeLinecap="round"
                   transform="rotate(-90 100 100)"
-                  style={{ transition: 'stroke-dasharray 0.6s cubic-bezier(0.2,0.8,0.2,1)' }}
+                  style={{ transition: 'stroke-dasharray 250ms var(--ease-in-out)' }}
                 />
                 {processSteps.map((_, i) => {
                   const a = (i / processSteps.length) * Math.PI * 2 - Math.PI / 2;
@@ -1042,7 +1093,7 @@ const Home = () => {
                       r={i <= processActive ? 6 : 4}
                       fill={i <= processActive ? 'var(--burgundy)' : 'var(--cream-2)'}
                       stroke="var(--burgundy)" strokeWidth="1"
-                      style={{ transition: 'r .3s, fill .3s' }}
+                      style={{ transition: 'r 200ms ease, fill 200ms ease' }}
                     />
                   );
                 })}
@@ -1076,18 +1127,23 @@ const Home = () => {
             </AnimatePresence>
             <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
               {processSteps.map((s, i) => (
-                <div key={i} style={{
-                  display: 'grid', gridTemplateColumns: '32px 1fr 60px', gap: 12,
-                  alignItems: 'center', padding: '8px 0',
-                  opacity: i === processActive ? 1 : i < processActive ? 0.85 : 0.7,
-                  transition: 'opacity .3s',
-                }}>
+                <div key={i}
+                  role="button" tabIndex={0} aria-current={i === processActive}
+                  aria-label={`Show step ${i + 1}: ${s.t}`}
+                  onClick={() => setProcessActive(i)}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setProcessActive(i); } }}
+                  style={{
+                    display: 'grid', gridTemplateColumns: '32px 1fr 60px', gap: 12,
+                    alignItems: 'center', padding: '8px 0', cursor: 'pointer',
+                    opacity: i === processActive ? 1 : i < processActive ? 0.85 : 0.7,
+                    transition: 'opacity 200ms ease',
+                  }}>
                   <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.14em' }}>0{i + 1}</span>
                   <span style={{ fontSize: 13, fontFamily: 'var(--sans)' }}>{s.t}</span>
                   <span style={{
                     height: 1, background: 'var(--burgundy)',
                     transformOrigin: 'left', transform: i <= processActive ? 'scaleX(1)' : 'scaleX(0)',
-                    transition: 'transform .5s',
+                    transition: 'transform 250ms var(--ease-in-out)',
                   }} />
                 </div>
               ))}
@@ -1099,10 +1155,10 @@ const Home = () => {
       {/* ════════════════════════════════════════════════════════
           CITIES — horizontal accordion strips with real images
       ════════════════════════════════════════════════════════ */}
-      <section id="cities" className="cities-section section-dark" style={{ background: 'var(--ink)', color: 'var(--cream)' }}>
+      <section id="cities" className="cities-section section-dark" style={{ background: 'var(--panel-ink)', color: 'var(--panel-cream)' }}>
         <div style={{ padding: '48px 40px 32px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, alignItems: 'end' }}>
           <motion.div {...revealOnce}>
-            <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', color: 'var(--cream)' }}>
+            <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', color: 'var(--panel-cream)' }}>
               Three cities.<br />One <em style={{ fontStyle: 'italic', color: 'var(--gold-text)' }}>community.</em>
             </h2>
           </motion.div>
@@ -1115,8 +1171,10 @@ const Home = () => {
           {cities.map((c, i) => (
             <div key={i}
               className={`city-strip${activeCity === i ? ' active' : ''}`}
-              onMouseEnter={() => setActiveCity(i)}
+              role="button" tabIndex={0} aria-pressed={activeCity === i} aria-label={`Expand ${c.name}`}
+              onMouseEnter={() => { if (canHover()) setActiveCity(i); }}
               onClick={() => setActiveCity(i)}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveCity(i); } }}
               style={{
                 flex: activeCity === i ? 3 : 1,
                 position: 'relative', overflow: 'hidden', cursor: 'pointer',
@@ -1132,7 +1190,7 @@ const Home = () => {
                 background: activeCity === i
                   ? 'linear-gradient(180deg,rgba(124,29,58,.4) 0%,rgba(45,26,34,.95) 100%)'
                   : 'linear-gradient(180deg,transparent 30%,rgba(45,26,34,.85))',
-                transition: 'background .5s',
+                transition: 'background 250ms ease',
               }} />
               <AiTag entry={c.image} style={{ bottom: 10, right: 10, zIndex: 2 }} />
 
@@ -1140,7 +1198,7 @@ const Home = () => {
               <div style={{
                 position: 'absolute', left: 24, bottom: 24,
                 transformOrigin: 'left bottom', transform: 'rotate(-90deg) translateY(0)',
-                whiteSpace: 'nowrap', opacity: activeCity === i ? 0 : 1, transition: 'opacity .4s', zIndex: 2,
+                whiteSpace: 'nowrap', opacity: activeCity === i ? 0 : 1, transition: 'opacity 200ms ease', zIndex: 2,
               }}>
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--gold-text)' }}>{c.tag}</span>
               </div>
@@ -1149,22 +1207,22 @@ const Home = () => {
               <div style={{
                 position: 'absolute', inset: 0, padding: 28,
                 display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-                opacity: activeCity === i ? 1 : 0, transition: 'opacity .5s .2s', zIndex: 1,
+                opacity: activeCity === i ? 1 : 0, transition: 'opacity 250ms ease .12s', zIndex: 1,
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--gold-text)' }}>{c.tag}</span>
                   <span style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '.18em', textTransform: 'uppercase', color: 'rgba(253,248,242,.7)', textAlign: 'right' }}>Covered<br />from day one</span>
                 </div>
-                <div style={{ fontFamily: 'var(--display)', fontSize: 'clamp(32px,4vw,64px)', lineHeight: .9, letterSpacing: '-.025em', color: 'var(--cream)' }}>{c.name}</div>
+                <div style={{ fontFamily: 'var(--display)', fontSize: 'clamp(32px,4vw,64px)', lineHeight: .9, letterSpacing: '-.025em', color: 'var(--panel-cream)' }}>{c.name}</div>
                 <div className="city-content-bottom" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 24 }}>
                   <p style={{ fontSize: 14, lineHeight: 1.55, color: 'rgba(253,248,242,.75)', maxWidth: 320, fontFamily: 'var(--sans)' }}>{c.desc}</p>
                   <Link to="/search" aria-label={`Browse ${c.name} profiles`} onFocus={() => setActiveCity(i)} style={{
                     fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.16em', textTransform: 'uppercase',
-                    padding: '10px 18px', border: '1px solid rgba(253,248,242,.4)', borderRadius: 999, color: 'var(--cream)',
-                    textDecoration: 'none', transition: 'all .3s', whiteSpace: 'nowrap',
+                    padding: '10px 18px', border: '1px solid rgba(253,248,242,.4)', borderRadius: 999, color: 'var(--panel-cream)',
+                    textDecoration: 'none', transition: 'background-color 160ms ease, color 160ms ease, border-color 160ms ease', whiteSpace: 'nowrap',
                   }}
-                    onMouseEnter={e => { e.currentTarget.style.background = 'var(--cream)'; e.currentTarget.style.color = 'var(--burgundy)'; e.currentTarget.style.borderColor = 'var(--cream)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--cream)'; e.currentTarget.style.borderColor = 'rgba(253,248,242,.4)'; }}
+                    onMouseEnter={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--panel-cream)'; e.currentTarget.style.color = 'var(--burgundy)'; e.currentTarget.style.borderColor = 'var(--panel-cream)'; }}
+                    onMouseLeave={e => { if (!canHover()) return; e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--panel-cream)'; e.currentTarget.style.borderColor = 'rgba(253,248,242,.4)'; }}
                   >Browse {c.name} →</Link>
                 </div>
               </div>
@@ -1202,10 +1260,10 @@ const Home = () => {
       {/* ════════════════════════════════════════════════════════
           TRUST — burgundy tile grid
       ════════════════════════════════════════════════════════ */}
-      <section id="trust" className="trust-section section-dark" style={{ background: 'var(--burgundy)', color: 'var(--cream)', padding: '52px 40px' }}>
+      <section id="trust" className="trust-section section-dark" style={{ background: 'var(--burgundy)', color: 'var(--panel-cream)', padding: '52px 40px' }}>
         <div className="trust-header" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'end', marginBottom: 24 }}>
           <div>
-            <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', color: 'var(--cream)' }}>
+            <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', color: 'var(--panel-cream)' }}>
               Built on trust. Backed by <em style={{ fontStyle: 'italic', color: 'var(--gold-text)' }}>action.</em>
             </h2>
           </div>
@@ -1224,13 +1282,13 @@ const Home = () => {
               initial={revealOnce.initial}
               whileInView={{ ...revealOnce.whileInView, transition: { ...revealOnce.whileInView.transition, delay: staggerIndex(i) } }}
               viewport={revealOnce.viewport}
-              style={{ padding: '20px 18px', border: '1px solid var(--line-on-dk)', borderRadius: 4, display: 'flex', flexDirection: 'column', gap: 12, minHeight: 200, transition: 'all .4s', cursor: 'default' }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--gold)'; e.currentTarget.style.transform = 'translateY(-4px)'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--line-on-dk)'; e.currentTarget.style.transform = ''; }}
+              style={{ padding: '20px 18px', border: '1px solid var(--line-on-dk)', borderRadius: 4, display: 'flex', flexDirection: 'column', gap: 12, minHeight: 200, transition: 'border-color 160ms ease, transform 160ms ease', cursor: 'default' }}
+              onMouseEnter={e => { if (!canHover()) return; e.currentTarget.style.borderColor = 'var(--gold)'; e.currentTarget.style.transform = 'translateY(-4px)'; }}
+              onMouseLeave={e => { if (!canHover()) return; e.currentTarget.style.borderColor = 'var(--line-on-dk)'; e.currentTarget.style.transform = ''; }}
             >
               <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.18em', color: 'rgba(253,248,242,.75)' }}>{it.n}</span>
               <it.Icon style={{ width: 36, height: 36, color: 'var(--gold)' }} />
-              <h3 style={{ fontFamily: 'var(--display)', fontSize: 20, lineHeight: 1.1, letterSpacing: '-.01em', fontWeight: 400, marginTop: 'auto', color: 'var(--cream)' }}>{it.t}</h3>
+              <h3 style={{ fontFamily: 'var(--display)', fontSize: 20, lineHeight: 1.1, letterSpacing: '-.01em', fontWeight: 400, marginTop: 'auto', color: 'var(--panel-cream)' }}>{it.t}</h3>
               <p style={{ fontSize: 13, color: 'rgba(253,248,242,.75)', lineHeight: 1.5, fontFamily: 'var(--sans)' }}>{it.b}</p>
             </motion.div>
           ))}
@@ -1260,10 +1318,10 @@ const Home = () => {
               display: 'inline-flex', alignItems: 'center', gap: 8,
               fontFamily: 'var(--mono)', fontSize: 12, letterSpacing: '.14em', textTransform: 'uppercase',
               padding: '12px 20px', border: '1px solid var(--line)', borderRadius: 999,
-              color: 'var(--ink)', textDecoration: 'none', transition: 'all .3s',
+              color: 'var(--ink)', textDecoration: 'none', transition: 'background-color 160ms ease, color 160ms ease, border-color 160ms ease',
             }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--burgundy)'; e.currentTarget.style.color = 'var(--cream)'; e.currentTarget.style.borderColor = 'var(--burgundy)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--ink)'; e.currentTarget.style.borderColor = 'var(--line)'; }}
+              onMouseEnter={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--burgundy)'; e.currentTarget.style.color = 'var(--panel-cream)'; e.currentTarget.style.borderColor = 'var(--burgundy)'; }}
+              onMouseLeave={e => { if (!canHover()) return; e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--ink)'; e.currentTarget.style.borderColor = 'var(--line)'; }}
             >
               Read the refund policy <FiArrowRight />
             </Link>
@@ -1351,16 +1409,18 @@ const Home = () => {
               </motion.p>
             </AnimatePresence>
             <div style={{ display: 'flex', alignItems: 'center', gap: 20, paddingTop: 24, borderTop: '1px solid var(--line)', marginTop: 'auto' }}>
-              <button onClick={() => setStoryIdx((storyIdx - 1 + stories.length) % stories.length)}
-                style={{ width: 44, height: 44, border: '1px solid var(--line)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .3s', cursor: 'pointer', background: 'transparent', color: 'var(--ink)', fontSize: 14 }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'var(--burgundy)'; e.currentTarget.style.color = 'var(--cream)'; e.currentTarget.style.borderColor = 'var(--burgundy)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--ink)'; e.currentTarget.style.borderColor = 'var(--line)'; }}
+              <button className="story-nav-btn" onClick={() => setStoryIdx((storyIdx - 1 + stories.length) % stories.length)}
+                style={{ width: 44, height: 44, border: '1px solid var(--line)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background-color 160ms ease, color 160ms ease, border-color 160ms ease', cursor: 'pointer', background: 'transparent', color: 'var(--ink)', fontSize: 14 }}
+                aria-label="Previous story"
+                onMouseEnter={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--burgundy)'; e.currentTarget.style.color = 'var(--panel-cream)'; e.currentTarget.style.borderColor = 'var(--burgundy)'; }}
+                onMouseLeave={e => { if (!canHover()) return; e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--ink)'; e.currentTarget.style.borderColor = 'var(--line)'; }}
               >←</button>
               <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.14em' }}>0{storyIdx + 1} / 0{stories.length}</span>
-              <button onClick={() => setStoryIdx((storyIdx + 1) % stories.length)}
-                style={{ width: 44, height: 44, border: '1px solid var(--line)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .3s', cursor: 'pointer', background: 'transparent', color: 'var(--ink)', fontSize: 14 }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'var(--burgundy)'; e.currentTarget.style.color = 'var(--cream)'; e.currentTarget.style.borderColor = 'var(--burgundy)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--ink)'; e.currentTarget.style.borderColor = 'var(--line)'; }}
+              <button className="story-nav-btn" onClick={() => setStoryIdx((storyIdx + 1) % stories.length)}
+                style={{ width: 44, height: 44, border: '1px solid var(--line)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background-color 160ms ease, color 160ms ease, border-color 160ms ease', cursor: 'pointer', background: 'transparent', color: 'var(--ink)', fontSize: 14 }}
+                aria-label="Next story"
+                onMouseEnter={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--burgundy)'; e.currentTarget.style.color = 'var(--panel-cream)'; e.currentTarget.style.borderColor = 'var(--burgundy)'; }}
+                onMouseLeave={e => { if (!canHover()) return; e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--ink)'; e.currentTarget.style.borderColor = 'var(--line)'; }}
               >→</button>
             </div>
           </div>
@@ -1387,10 +1447,10 @@ const Home = () => {
               display: 'inline-flex', alignItems: 'center', gap: 8,
               fontFamily: 'var(--mono)', fontSize: 12, letterSpacing: '.14em', textTransform: 'uppercase',
               padding: '12px 20px', border: '1px solid var(--line)', borderRadius: 999,
-              color: 'var(--ink)', textDecoration: 'none', transition: 'all .3s',
+              color: 'var(--ink)', textDecoration: 'none', transition: 'background-color 160ms ease, color 160ms ease, border-color 160ms ease',
             }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--burgundy)'; e.currentTarget.style.color = 'var(--cream)'; e.currentTarget.style.borderColor = 'var(--burgundy)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--ink)'; e.currentTarget.style.borderColor = 'var(--line)'; }}
+              onMouseEnter={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--burgundy)'; e.currentTarget.style.color = 'var(--panel-cream)'; e.currentTarget.style.borderColor = 'var(--burgundy)'; }}
+              onMouseLeave={e => { if (!canHover()) return; e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--ink)'; e.currentTarget.style.borderColor = 'var(--line)'; }}
             >
               <FiMessageCircle /> Contact support
             </a>
@@ -1407,10 +1467,10 @@ const Home = () => {
                 display: 'grid', gridTemplateColumns: '60px 1fr 36px', gap: 16,
                 padding: `24px ${faqOpen === i ? '24px' : '0'} 24px ${faqOpen === i ? '8px' : '0'}`,
                 borderBottom: '1px solid var(--line)', cursor: 'pointer',
-                transition: 'padding .3s',
+                transition: 'padding 160ms ease',
               }}
-              onMouseEnter={e => { if (faqOpen !== i) e.currentTarget.style.paddingLeft = '8px'; }}
-              onMouseLeave={e => { if (faqOpen !== i) e.currentTarget.style.paddingLeft = '0'; }}
+              onMouseEnter={e => { if (!canHover() || faqOpen === i) return; e.currentTarget.style.paddingLeft = '8px'; }}
+              onMouseLeave={e => { if (!canHover() || faqOpen === i) return; e.currentTarget.style.paddingLeft = '0'; }}
             >
               <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.16em', color: 'var(--burgundy)', paddingTop: 6 }}>0{i + 1}</span>
               <div>
@@ -1419,7 +1479,7 @@ const Home = () => {
               </div>
               <div className="faq-toggle" style={{
                 width: 36, height: 36, border: '1px solid var(--line)', borderRadius: '50%',
-                position: 'relative', transition: 'all .4s cubic-bezier(.2,.8,.2,1)',
+                position: 'relative', transition: 'background-color 160ms ease, border-color 160ms ease, transform 200ms var(--ease-out)',
                 background: faqOpen === i ? 'var(--burgundy)' : 'transparent',
                 borderColor: faqOpen === i ? 'var(--burgundy)' : 'var(--line)',
               }} />
@@ -1431,19 +1491,21 @@ const Home = () => {
       {/* ════════════════════════════════════════════════════════
           CTA — burgundy with drifting orbs
       ════════════════════════════════════════════════════════ */}
-      <section className="cta-section section-dark" style={{ background: 'var(--burgundy)', color: 'var(--cream)', padding: '56px 40px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
-        {/* Orbs */}
+      <section className="cta-section section-dark" style={{ background: 'var(--burgundy)', color: 'var(--panel-cream)', padding: '56px 40px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+        {/* Orbs — settled at their resting position; the perpetual drift is
+            gone (doctrine §2 ruling 7: no idle loop with no semantic
+            exemption). Still ambient blurred-color depth, just not breathing
+            forever. */}
         {[
-          { w: 600, h: 600, color: 'rgba(184,149,42,.5)',   top: '-200px', left: '0',  dur: 18 },
-          { w: 700, h: 700, color: 'rgba(124,29,58,.7)',    bottom: '-300px', right: '0', dur: 22 },
-          { w: 400, h: 400, color: 'rgba(253,248,242,.15)', top: '40%', left: '40%', dur: 16 },
+          { w: 600, h: 600, color: 'rgba(184,149,42,.5)',   top: '-200px', left: '0' },
+          { w: 700, h: 700, color: 'rgba(124,29,58,.7)',    bottom: '-300px', right: '0' },
+          { w: 400, h: 400, color: 'rgba(253,248,242,.15)', top: '40%', left: '40%' },
         ].map((o, i) => (
           <div key={i} style={{
             position: 'absolute', borderRadius: '50%', filter: 'blur(60px)',
             width: o.w, height: o.h,
             background: `radial-gradient(circle, ${o.color}, transparent 70%)`,
             top: o.top, left: o.left, bottom: o.bottom, right: o.right,
-            animation: `drift ${o.dur}s ease-in-out infinite${i === 1 ? ' reverse' : ''}`,
             pointerEvents: 'none',
           }} />
         ))}
@@ -1460,22 +1522,22 @@ const Home = () => {
               <Link to="/onboarding" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 10,
                 padding: '14px 28px', borderRadius: 999,
-                background: 'var(--cream)', color: 'var(--burgundy)',
+                background: 'var(--panel-cream)', color: 'var(--burgundy)',
                 fontSize: 14, fontWeight: 500, fontFamily: 'var(--sans)', textDecoration: 'none',
-                transition: 'all .3s',
+                transition: 'background-color 160ms ease, color 160ms ease, transform 160ms ease',
               }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'var(--gold)'; e.currentTarget.style.color = 'var(--ink)'; e.currentTarget.style.transform = 'translateY(-3px)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'var(--cream)'; e.currentTarget.style.color = 'var(--burgundy)'; e.currentTarget.style.transform = ''; }}
+                onMouseEnter={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--gold)'; e.currentTarget.style.color = 'var(--panel-ink)'; e.currentTarget.style.transform = 'translateY(-3px)'; }}
+                onMouseLeave={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--panel-cream)'; e.currentTarget.style.color = 'var(--burgundy)'; e.currentTarget.style.transform = ''; }}
               >Create profile · Free <FiArrowRight /></Link>
               <Link to="/search" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 10,
                 padding: '14px 28px', borderRadius: 999,
-                border: '1px solid rgba(253,248,242,.35)', color: 'var(--cream)',
+                border: '1px solid rgba(253,248,242,.35)', color: 'var(--panel-cream)',
                 fontSize: 14, fontWeight: 500, fontFamily: 'var(--sans)', textDecoration: 'none',
-                transition: 'all .3s',
+                transition: 'background-color 160ms ease, color 160ms ease, border-color 160ms ease',
               }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'var(--cream)'; e.currentTarget.style.color = 'var(--burgundy)'; e.currentTarget.style.borderColor = 'var(--cream)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--cream)'; e.currentTarget.style.borderColor = 'rgba(253,248,242,.35)'; }}
+                onMouseEnter={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--panel-cream)'; e.currentTarget.style.color = 'var(--burgundy)'; e.currentTarget.style.borderColor = 'var(--panel-cream)'; }}
+                onMouseLeave={e => { if (!canHover()) return; e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--panel-cream)'; e.currentTarget.style.borderColor = 'rgba(253,248,242,.35)'; }}
               >Browse profiles</Link>
             </div>
             <p style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.18em', textTransform: 'uppercase', color: 'rgba(253,248,242,.55)' }}>
@@ -1488,10 +1550,10 @@ const Home = () => {
       {/* ════════════════════════════════════════════════════════
           FOOTER — mega wordmark + grid
       ════════════════════════════════════════════════════════ */}
-      <footer style={{ background: 'var(--ink)', color: 'var(--cream)', paddingBottom: 40, overflow: 'hidden' }}>
+      <footer style={{ background: 'var(--panel-ink)', color: 'var(--panel-cream)', paddingBottom: 40, overflow: 'hidden' }}>
         {/* Mega wordmark */}
         <div className="footer-mega-inner" style={{ padding: '36px 48px 24px', borderBottom: '1px solid var(--line-on-dk)' }}>
-          <div style={{ fontFamily: 'var(--display)', fontSize: 'clamp(36px,7vw,100px)', lineHeight: .85, letterSpacing: '-.04em', color: 'var(--cream)' }}>
+          <div style={{ fontFamily: 'var(--display)', fontSize: 'clamp(36px,7vw,100px)', lineHeight: .85, letterSpacing: '-.04em', color: 'var(--panel-cream)' }}>
             TricityMatch
           </div>
         </div>
@@ -1512,28 +1574,30 @@ const Home = () => {
                 ...(support.whatsapp ? [{ icon: <FaWhatsapp />, label: 'WhatsApp', href: `https://wa.me/${support.whatsapp}` }] : []),
                 { icon: <FaTwitter />, label: 'Twitter', href: 'https://twitter.com/tricitymatch' },
               ].map(s => (
-                <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" aria-label={s.label}
-                  style={{ width: 44, height: 44, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--line-on-dk)', color: 'rgba(253,248,242,.5)', transition: 'all .3s', textDecoration: 'none' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--burgundy)'; e.currentTarget.style.color = 'var(--cream)'; e.currentTarget.style.borderColor = 'var(--burgundy)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(253,248,242,.5)'; e.currentTarget.style.borderColor = 'var(--line-on-dk)'; }}
+                <a key={s.label} className="social-icon" href={s.href} target="_blank" rel="noopener noreferrer" aria-label={s.label}
+                  style={{ width: 44, height: 44, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--line-on-dk)', color: 'rgba(253,248,242,.5)', transition: 'background-color 160ms ease, color 160ms ease, border-color 160ms ease', textDecoration: 'none' }}
+                  onMouseEnter={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--burgundy)'; e.currentTarget.style.color = 'var(--panel-cream)'; e.currentTarget.style.borderColor = 'var(--burgundy)'; }}
+                  onMouseLeave={e => { if (!canHover()) return; e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(253,248,242,.5)'; e.currentTarget.style.borderColor = 'var(--line-on-dk)'; }}
                 >{s.icon}</a>
               ))}
             </div>
           </div>
           {[
-            { title: 'Platform', links: [['Browse Profiles', '/search'], ['How It Works', '/#why'], ['Pricing Plans', '/subscription'], ['Success Stories', '/#stories'], ['Create Profile', '/onboarding']] },
+            /* Doctrine §7: sentence case for headings/buttons, not Title Case.
+               These five were the file's one drift from that rule. */
+            { title: 'Platform', links: [['Browse profiles', '/search'], ['How it works', '/#why'], ['Pricing plans', '/subscription'], ['Success stories', '/#stories'], ['Create profile', '/onboarding']] },
             // Cities: the crawl path into the city landing pages. Without a real
             // internal link, /matrimony/* is sitemap-only — discoverable in
             // theory, orphaned in practice.
             { title: 'Cities',   links: [['Matrimony in Chandigarh', '/matrimony/chandigarh'], ['Matrimony in Mohali', '/matrimony/mohali'], ['Matrimony in Panchkula', '/matrimony/panchkula']] },
-            { title: 'Company',  links: [['About Us', '/about'], ['Contact', '/contact'], ['Safety Centre', '/safety'], ['Privacy Policy', '/privacy'], ['Terms of Service', '/terms'], ['Refunds', '/refund-policy']] },
+            { title: 'Company',  links: [['About Us', '/about'], ['Contact', '/contact'], ['Safety centre', '/safety'], ['Privacy policy', '/privacy'], ['Terms of service', '/terms'], ['Refunds', '/refund-policy']] },
             // Phone and address are config-gated for the same reason as WhatsApp:
             // a placeholder number in the footer is worse than no number.
             { title: 'Contact',  links: [
               [support.email, null],
               ...(support.phone ? [[support.phone, null]] : []),
               ...(support.address ? [[support.address, null]] : []),
-              ['Help Centre', '/help'],
+              ['Help centre', '/help'],
             ] },
           ].map(col => (
             <div key={col.title}>
@@ -1542,9 +1606,9 @@ const Home = () => {
                 {col.links.map(([label, to]) => (
                   <li key={label}>
                     {to ? (
-                      <Link to={to} style={{ fontSize: 14, color: 'rgba(253,248,242,.85)', textDecoration: 'none', transition: 'color .3s, padding-left .3s', display: 'flex', alignItems: 'center', minHeight: 44, padding: '7px 0', fontFamily: 'var(--sans)' }}
-                        onMouseEnter={e => { e.target.style.color = 'var(--gold)'; e.target.style.paddingLeft = '6px'; }}
-                        onMouseLeave={e => { e.target.style.color = 'rgba(253,248,242,.85)'; e.target.style.paddingLeft = '0'; }}
+                      <Link to={to} style={{ fontSize: 14, color: 'rgba(253,248,242,.85)', textDecoration: 'none', transition: 'color 160ms ease, padding-left 160ms ease', display: 'flex', alignItems: 'center', minHeight: 44, padding: '7px 0', fontFamily: 'var(--sans)' }}
+                        onMouseEnter={e => { if (!canHover()) return; e.target.style.color = 'var(--gold)'; e.target.style.paddingLeft = '6px'; }}
+                        onMouseLeave={e => { if (!canHover()) return; e.target.style.color = 'rgba(253,248,242,.85)'; e.target.style.paddingLeft = '0'; }}
                       >{label}</Link>
                     ) : (
                       <span style={{ fontSize: 14, color: 'rgba(253,248,242,.85)', fontFamily: 'var(--sans)', display: 'block', padding: '7px 0' }}>{label}</span>
@@ -1571,8 +1635,10 @@ const Home = () => {
             </a>
           </span>
           <span>Made with care in Chandigarh</span>
+          {/* Static dot — the perpetual pulse is gone (doctrine §2 ruling 7:
+              no idle loop with no semantic exemption). */}
           <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80', animation: 'pulse 2s ease-in-out infinite' }} />
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80' }} />
             All systems operational
           </span>
         </div>

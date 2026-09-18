@@ -53,6 +53,15 @@
     --ease-out: cubic-bezier(0.23, 1, 0.32, 1);       /* entrances, exits, the default */
     --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);   /* on-screen movement, layout, tab indicator */
     --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);    /* sheets and drawers */
+
+    /* Editorial rail background (Login/ForgotPassword/ResetPassword left
+       panel, light mode only — dark mode already uses the proper
+       --surface-dark-2 token). Deliberately outside the theme-reactive
+       neutral-900 scale, which inverts to near-white under html.dark and
+       would strand the white headline text with nothing behind it. This was
+       copy-pasted as a raw #171717 literal in 4 places before being promoted
+       here — one token, referenced everywhere (doctrine §3: do not fork it). */
+    --editorial-rail: #171717;
   }
 
   html.dark {
@@ -249,9 +258,11 @@
   /* CARDS - Matrimony Profile Cards                 */
   /* =============================================== */
   
+  /* Elevation declared once (doctrine §3.4): shadow only, no border. A 1px
+     border under this same soft shadow is the ghost card the doctrine names
+     as its own banned-pattern example — each element picks a side. */
   .card {
     @apply bg-white rounded-2xl p-6;
-    border: 1px solid #E8E8E8;
     box-shadow: 0 4px 20px rgba(139, 35, 70, 0.08);
     transition: transform 160ms ease, box-shadow 160ms ease;
   }
@@ -262,17 +273,23 @@
       box-shadow: 0 8px 30px rgba(139, 35, 70, 0.15);
     }
   }
-  
+
+  /* card-premium/card-family are tint variants, not the doctrine's plain
+     .card: unlike .card, their whole job is a colored accent ring, so they
+     declare their own self-contained border (`.card` no longer provides one
+     for `border-color:` to land on) rather than inheriting elevation from
+     the base class. Unflagged by the audit — left exactly as they rendered
+     before this pass. */
   .card-premium {
     @apply card;
     background: linear-gradient(135deg, #FFFFFF 0%, #FDF6E3 100%);
-    border-color: #C9A227;
+    border: 1px solid #C9A227;
   }
-  
+
   .card-family {
     @apply card;
     background: linear-gradient(135deg, #FFFFFF 0%, #FDF6E3 50%, #FFFFFF 100%);
-    border-color: #E8E8E8;
+    border: 1px solid #E8E8E8;
   }
 
   /* =============================================== */
@@ -280,9 +297,10 @@
   /* =============================================== */
   
   .input-field {
-    @apply w-full px-4 py-3 rounded-xl bg-white transition-all duration-300;
+    @apply w-full px-4 py-3 rounded-xl bg-white;
     border: 2px solid #E8E8E8;
     font-size: 16px;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
   }
   
   .input-field:focus {
@@ -512,9 +530,13 @@
      §5 / §8 — idle loops and reflex bounce; confirmed zero usages across
      frontend/src, so nothing needed replacing). */
 
-  /* Shake Animation for Errors */
+  /* Shake Animation for Errors — was 500ms, over the doctrine §4.3 300ms UI
+     motion ceiling with no documented reason for the overrun; capped to
+     300ms. (Mirrored in tailwind.config.js's `animation.shake`, which
+     generates the same-named utility in a higher-priority CSS layer and
+     would otherwise silently win over this rule.) */
   .animate-shake {
-    animation: shake 0.5s ease-in-out;
+    animation: shake 0.3s ease-in-out;
   }
   
   /* Scale Pop */

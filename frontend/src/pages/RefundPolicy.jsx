@@ -113,9 +113,9 @@ export default function RefundPolicy() {
         <div className="mt-10 flex flex-wrap gap-4 items-center">
           <Link
             to="/help"
-            className="inline-flex items-center gap-2 min-h-[48px] px-6 rounded-full bg-primary-700 hover:bg-primary-800 text-white text-sm font-medium transition-colors"
+            className="btn-primary inline-flex items-center gap-2 min-h-[48px] px-6 text-sm"
           >
-            Help Centre <FiArrowRight />
+            Help Centre <FiArrowRight aria-hidden="true" />
           </Link>
           <Link to="/terms" className="text-sm text-neutral-600 dark:text-neutral-400 hover:underline">
             Terms of Service

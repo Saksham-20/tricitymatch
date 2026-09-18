@@ -1,9 +1,9 @@
 import React, { useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import Select from '../../ui/Select';
 import FormField from '../../ui/FormField';
-import { staggerContainer, fadeRise } from '../../../utils/animations';
+import { staggerContainer, fadeRise, DUR, EASE_OUT } from '../../../utils/animations';
 
 const MARITAL_STATUSES = [
   { value: 'never_married', label: 'Never Married' },
@@ -43,21 +43,28 @@ const MaritalStatusStep = () => {
         />
       </motion.div>
 
-      {formData.maritalStatus && !['never_married'].includes(formData.maritalStatus) && (
-        <motion.div initial="initial" animate="animate" variants={fadeRise}>
-          <FormField
-            label="Number of Children"
-            type="number"
-            inputMode="numeric"
-            placeholder="0"
-            value={formData.numberOfChildren}
-            onChange={(value) => updateFormData('numberOfChildren', value)}
-            min="0"
-            max="10"
-            optional
-          />
-        </motion.div>
-      )}
+      <AnimatePresence>
+        {formData.maritalStatus && !['never_married'].includes(formData.maritalStatus) && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto', transition: { duration: DUR.accordion, ease: EASE_OUT } }}
+            exit={{ opacity: 0, height: 0, transition: { duration: DUR.accordion, ease: EASE_OUT } }}
+            className="overflow-hidden"
+          >
+            <FormField
+              label="Number of Children"
+              type="number"
+              inputMode="numeric"
+              placeholder="0"
+              value={formData.numberOfChildren}
+              onChange={(value) => updateFormData('numberOfChildren', value)}
+              min="0"
+              max="10"
+              optional
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <motion.div variants={fadeRise} className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600">
         <p className="font-medium text-neutral-800 mb-1">All statuses welcome</p>

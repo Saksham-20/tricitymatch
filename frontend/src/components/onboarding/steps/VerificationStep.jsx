@@ -128,10 +128,10 @@ const VerificationStep = () => {
   };
 
   const renderCard = ({ method, icon: Icon, title, target, verified, optional, codeLen, code, setCode, sent, sending, cooldown }) => (
-    <div className={`border-2 rounded-2xl p-5 transition-colors ${verified ? 'border-green-200 bg-green-50/40 dark:bg-green-900/10' : 'border-neutral-200 dark:border-neutral-700'}`}>
+    <div className={`border-2 rounded-2xl p-5 transition-colors ${verified ? 'border-green-200 dark:border-green-800/40 bg-green-50/40 dark:bg-green-900/10' : 'border-neutral-200 dark:border-neutral-700'}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 min-w-0">
-          <div className={`p-2.5 rounded-xl flex-shrink-0 ${verified ? 'bg-green-100 text-green-600' : 'bg-primary-50 text-primary-600 dark:bg-primary-900/30'}`}>
+          <div className={`p-2.5 rounded-xl flex-shrink-0 ${verified ? 'bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-300' : 'bg-primary-50 text-primary-600 dark:bg-primary-900/30'}`}>
             <Icon className="w-5 h-5" />
           </div>
           <div className="min-w-0">

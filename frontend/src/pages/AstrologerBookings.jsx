@@ -12,6 +12,16 @@ const STATUS_CLS = {
   cancelled: 'bg-destructive-light dark:bg-destructive/15 text-destructive',
 };
 
+// The API serializes the raw enum (e.g. `pending_payment`); render the
+// human label instead of leaking the underscore to a member.
+const STATUS_LABEL = {
+  confirmed: 'Confirmed',
+  pending_payment: 'Pending payment',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
+};
+const statusLabel = (s) => STATUS_LABEL[s] || (s || '').replace(/_/g, ' ');
+
 export default function AstrologerBookings() {
   const { t } = useTranslation();
   const [bookings, setBookings] = useState([]);
@@ -59,7 +69,7 @@ export default function AstrologerBookings() {
         <EmptyState
           icon={FiCalendar}
           title={t('common.empty')}
-          actionLabel={t('astrologers.title', 'Talk to an Astrologer')}
+          actionLabel={t('astrologers.title', 'Talk to an astrologer')}
           onAction={() => { window.location.href = '/astrologers'; }}
         />
       ) : (
@@ -68,7 +78,7 @@ export default function AstrologerBookings() {
             <li key={b.id} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl px-4 py-3">
               <div className="flex items-center justify-between">
                 <p className="font-medium text-neutral-800 dark:text-neutral-100">{b.Astrologer?.name || 'Astrologer'}</p>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_CLS[b.status] || 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'}`}>{b.status}</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_CLS[b.status] || 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'}`}>{statusLabel(b.status)}</span>
               </div>
               <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
                 {b.scheduledAt ? new Date(b.scheduledAt).toLocaleString() : '—'} · {b.durationMin} min

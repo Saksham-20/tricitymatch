@@ -122,13 +122,26 @@ const LocationStep = () => {
       {/* NRI / living-abroad declaration — inline, not a separate section */}
       <motion.div variants={fadeRise} className="rounded-lg border border-neutral-200 p-4">
         <div className="flex items-start gap-2.5">
-          <FiGlobe className="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" />
+          <FiGlobe aria-hidden="true" className="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
-            <CheckBox
-              checked={!!formData.isNri}
-              onChange={() => { updateFormData('isNri', !formData.isNri); setTimeout(validateStep, 0); }}
-              label="I'm an NRI / currently living outside India"
-            />
+            {/* CheckBox's own visual mark + label sit well under the 44px hit-target
+                floor. Pad the row instead of growing the mark (doctrine 3.5) — the
+                negative margin cancels the padding so layout doesn't shift, and the
+                inner label's own click still fires once (guarded below). */}
+            <div
+              className="-my-3 py-3 cursor-pointer"
+              onClick={(e) => {
+                if (e.target.closest('label')) return;
+                updateFormData('isNri', !formData.isNri);
+                setTimeout(validateStep, 0);
+              }}
+            >
+              <CheckBox
+                checked={!!formData.isNri}
+                onChange={() => { updateFormData('isNri', !formData.isNri); setTimeout(validateStep, 0); }}
+                label="I'm an NRI / currently living outside India"
+              />
+            </div>
             <p className="text-xs text-neutral-500 mt-1">
               Helps us match you with families open to an NRI alliance and show prices in your currency.
             </p>

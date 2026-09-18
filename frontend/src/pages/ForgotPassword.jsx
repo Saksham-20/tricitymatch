@@ -51,7 +51,7 @@ const ForgotPassword = () => {
         {/* Pinned to a literal hex, not the neutral-900 scale class — see
             Login.jsx's identical note (bg-neutral-900 inverts to near-white
             under html.dark, which would strand the white headline). */}
-        <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-[#171717] dark:bg-surface-dark-2">
+        <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-[var(--editorial-rail)] dark:bg-surface-dark-2">
           <div className="absolute inset-0 bg-gradient-to-br from-primary-900/90 via-neutral-900 to-neutral-900" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[38rem] h-[38rem] rounded-full border border-white/5 pointer-events-none" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24rem] h-[24rem] rounded-full border border-white/8 pointer-events-none" />
@@ -62,7 +62,6 @@ const ForgotPassword = () => {
               <p className="text-xs text-white/40 mt-1 uppercase tracking-widest">Chandigarh · Mohali · Panchkula</p>
             </div>
             <motion.div initial="initial" animate="animate" variants={fadeInUp} className="max-w-sm">
-              <p className="text-xs font-semibold text-primary-400 uppercase tracking-widest mb-5">Account Recovery</p>
               <h2 className="font-display text-5xl font-bold leading-tight mb-5 text-white">Back in<br />minutes.</h2>
               <p className="text-white/60 text-base leading-relaxed">Check your inbox. We've sent a secure link to reset your password.</p>
             </motion.div>
@@ -112,7 +111,7 @@ const ForgotPassword = () => {
       />
       {/* Left editorial panel — pinned to a literal hex, see the submitted-state
           note above (bg-neutral-900 inverts to near-white under html.dark). */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-[#171717] dark:bg-surface-dark-2">
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-[var(--editorial-rail)] dark:bg-surface-dark-2">
         <div className="absolute inset-0 bg-gradient-to-br from-primary-900/90 via-neutral-900 to-neutral-900" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[38rem] h-[38rem] rounded-full border border-white/5 pointer-events-none" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24rem] h-[24rem] rounded-full border border-white/8 pointer-events-none" />
@@ -125,7 +124,6 @@ const ForgotPassword = () => {
           </div>
 
           <motion.div initial="initial" animate="animate" variants={fadeInUp} className="max-w-sm">
-            <p className="text-xs font-semibold text-primary-400 uppercase tracking-widest mb-5">Account Recovery</p>
             <h2 className="font-display text-5xl font-bold leading-tight mb-5 text-white">Reset your<br />access.</h2>
             <p className="text-white/60 text-base leading-relaxed">
               Enter your email and we'll send a secure link. You'll be back in under two minutes.

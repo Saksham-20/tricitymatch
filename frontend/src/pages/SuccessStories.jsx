@@ -109,7 +109,7 @@ export default function SuccessStories() {
 
       {/* CTA */}
       <section className="px-4 pb-24">
-        <div className="max-w-5xl mx-auto rounded-3xl bg-gradient-to-br from-[#7C1D3A] to-[#5C1229] text-[#FDF8F2] px-8 py-14 text-center">
+        <div className="max-w-5xl mx-auto rounded-3xl bg-primary-600 text-[#FDF8F2] px-8 py-14 text-center">
           <h2 className="font-display text-3xl md:text-4xl font-bold mb-3 text-[#FDF8F2]">Write your own story.</h2>
           {/* Was "Thousands of Tricity families found their forever here" — an
               unsupported headcount, the same species of claim as the "Join

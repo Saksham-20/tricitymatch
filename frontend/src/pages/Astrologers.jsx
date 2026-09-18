@@ -5,6 +5,11 @@ import api from '../api/axios';
 import { FiStar, FiClock, FiCalendar } from 'react-icons/fi';
 import { EmptyState, ErrorState, Skeleton } from '../components/ui';
 
+// Pointer-gated hover (doctrine §4.7/ruling 16): a plain `hover:` utility
+// fires on tap and leaves a touch device's card stuck in its raised state
+// after the finger lifts.
+const HOVER = '[@media(hover:hover)_and_(pointer:fine)]:hover';
+
 export default function Astrologers() {
   const { t } = useTranslation();
   const [astrologers, setAstrologers] = useState([]);
@@ -67,7 +72,7 @@ export default function Astrologers() {
             <Link
               key={a.id}
               to={`/astrologers/${a.id}`}
-              className="flex gap-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-card rounded-2xl p-4 hover:border-primary-300 dark:hover:border-primary-700 hover:-translate-y-0.5 transition-[border-color,transform] duration-[160ms]"
+              className={`flex gap-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-card rounded-2xl p-4 ${HOVER}:border-primary-300 dark:${HOVER}:border-primary-700 ${HOVER}:-translate-y-0.5 transition-[border-color,transform] duration-[160ms]`}
             >
               <img
                 src={a.avatarUrl || '/images/avatar-placeholder.svg'}

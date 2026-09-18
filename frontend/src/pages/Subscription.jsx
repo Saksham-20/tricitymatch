@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { track, STAGES } from '../utils/analytics';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useMotionValueEvent } from 'framer-motion';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
-import { FiCheck, FiX, FiArrowRight, FiZap, FiShield, FiClock, FiGlobe, FiPlusCircle, FiStar } from 'react-icons/fi';
+import { FiCheck, FiX, FiArrowRight, FiZap, FiShield, FiClock, FiGlobe, FiPlusCircle, FiStar, FiInfo } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 import { razorpay } from '../config';
 import { loadRazorpayScript, ensurePaymentsAvailable } from '../utils/razorpayCheckout';
@@ -12,7 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { detectCurrency, formatLocalPrice } from '../utils/currency';
 import { planFeatures } from '../utils/planFeatures';
 import { EmptyState, ErrorState, Skeleton } from '../components/ui';
-import { fadeRise } from '../utils/animations';
+import { fadeRise, fade, staggerIndex } from '../utils/animations';
 
 // Gate `whileHover` behind a real pointer (doctrine §8): a touch tap on a
 // hover-capable-looking card should not fire a hover animation that then
@@ -24,7 +24,7 @@ const HOVER_CAPABLE = typeof window !== 'undefined'
 // ─── Plan card config ─────────────────────────
 // accent: 'primary' (burgundy) | 'gold' (premium/VIP only) | 'neutral'
 const PLAN_CONFIG = {
-  free:           { label: 'Free',    accent: 'neutral', icon: null,     cta: 'Free Forever' },
+  free:           { label: 'Free',    accent: 'neutral', icon: null,     cta: 'Free forever' },
   basic_premium:  { label: 'Basic',   accent: 'primary', icon: FiZap,    cta: 'Get Basic',   duration: '30 days',  price: 1299 },
   premium_plus:   { label: 'Premium', accent: 'primary', icon: FaCrown,  cta: 'Get Premium', duration: '90 days',  price: 2499 },
   elite:          { label: 'Elite',   accent: 'gold',    icon: FiShield, cta: 'Get Elite',   duration: '6 months', price: 3999 },
@@ -133,8 +133,10 @@ const ComparisonSection = ({ plans = {}, planKeys = [] }) => {
   return (
     <section className="mt-14" aria-labelledby="compare-heading">
       <h2 id="compare-heading" className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 text-center mb-6">Compare plans</h2>
-      {/* Table ≥ sm */}
-      <div className="hidden sm:block overflow-x-auto rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card bg-white dark:bg-surface-dark-3">
+      {/* Table ≥ sm. Border only (doctrine §3.4: elevation declared once) —
+          matches the accordion variant below it, which already carried just
+          a border. */}
+      <div className="hidden sm:block overflow-x-auto rounded-2xl border border-neutral-100 dark:border-neutral-800 bg-white dark:bg-surface-dark-3">
         <table className="w-full text-center">
           <thead>
             <tr className="border-b border-neutral-100 dark:border-neutral-800">
@@ -196,7 +198,7 @@ const SuccessStrip = () => {
       <h2 id="stories-heading" className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 text-center mb-6">Matches that became marriages</h2>
       <div className="grid sm:grid-cols-3 gap-4">
         {stories.map((st) => (
-          <figure key={st.id} className="rounded-2xl border border-neutral-100 dark:border-neutral-800 bg-white dark:bg-surface-dark-3 shadow-card p-5">
+          <figure key={st.id} className="rounded-2xl bg-white dark:bg-surface-dark-3 shadow-card p-5">
             <blockquote className="text-sm text-neutral-600 dark:text-neutral-300 leading-relaxed line-clamp-4">“{st.story || st.content || ''}”</blockquote>
             <figcaption className="mt-3 text-sm font-semibold text-primary-700 dark:text-primary-400">{st.coupleNames || st.title || 'A TricityMatch couple'}</figcaption>
           </figure>
@@ -210,11 +212,11 @@ const SuccessStrip = () => {
 // hardcoded) — the anti-harvest ceiling is a config value and a frozen
 // number here would silently drift from what the server actually enforces.
 const FAQS = (unlockDailyCap) => [
-  { q: 'Can I upgrade later?', a: 'Yes — you can move up to a higher plan any time while your current plan is active. The new plan starts fresh from the day you upgrade.' },
+  { q: 'Can I upgrade later?', a: 'Yes. You can move up to a higher plan any time while your current plan is active. The new plan starts fresh from the day you upgrade.' },
   { q: 'Is my payment secure?', a: 'All payments run through Razorpay over SSL. We never see or store your card details.' },
   { q: 'What are contact unlocks?', a: unlockDailyCap ? `Each unlock reveals a member\u2019s phone number so your families can talk directly. Unlimited-tier plans are capped at ${unlockDailyCap} unlocks a day, to keep the directory safe from bulk scraping.` : 'Each unlock reveals a member\u2019s phone number so your families can talk directly.' },
   { q: 'Do unused days carry over?', a: 'Upgrading starts a full fresh term on the new plan; remaining days on the old plan are not added on top.' },
-  { q: 'Can my parents manage this account?', a: 'Yes — the Guardian feature lets a family member view matches and shortlists for you.' },
+  { q: 'Can my parents manage this account?', a: 'Yes. The Guardian feature lets a family member view matches and shortlists for you.' },
 ];
 
 const FaqSection = ({ unlockDailyCap }) => {
@@ -245,11 +247,11 @@ const FaqSection = ({ unlockDailyCap }) => {
 // DS11: sticky compact CTA bar on mobile after the first fold (free members).
 const StickyCtaBar = ({ show }) => {
   const [pastFold, setPastFold] = useState(false);
-  useEffect(() => {
-    const onScroll = () => setPastFold(window.scrollY > 640);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+  // Doctrine §8: no raw `addEventListener('scroll')`. framer-motion's
+  // `useScroll` (already the pattern in Navbar.jsx) tracks scrollY without a
+  // manual listener.
+  const { scrollY } = useScroll();
+  useMotionValueEvent(scrollY, 'change', (latest) => setPastFold(latest > 640));
   if (!show || !pastFold) return null;
   return (
     <div className="sm:hidden fixed bottom-20 inset-x-4 z-40">
@@ -279,7 +281,7 @@ const getPlanCtaState = (planKey, currentPlanType, isCurrent, isProcessing) => {
 };
 
 // ─── Single plan card ─────────────────────────
-const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanType, isProcessing, freeChatForMutuals, onSubscribe }) => {
+const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanType, isProcessing, freeChatForMutuals, onSubscribe, entranceDelay = 0 }) => {
   const cfg = PLAN_CONFIG[planKey] || PLAN_CONFIG.free;
   const Icon = cfg.icon;
   const features = planFeatures(planKey, freeChatForMutuals, plan, prevName);
@@ -296,16 +298,18 @@ const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanTy
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={fadeRise.initial}
+      animate={{ ...fadeRise.animate, transition: { ...fadeRise.animate.transition, delay: entranceDelay } }}
       whileHover={HOVER_CAPABLE && !free && !isCurrent ? { y: -6 } : {}}
-      transition={{ duration: 0.35 }}
-      className={`relative flex flex-col bg-white dark:bg-surface-dark-3 rounded-2xl border transition-[border-color,box-shadow,transform] duration-200 overflow-hidden ${
+      // Doctrine §3.4: elevation declared once — shadow carries it, no border
+      // or ring stacked on top (the accent bar + badge above already signal
+      // the popular/gold tiers without a second and third elevation layer).
+      className={`relative flex flex-col bg-white dark:bg-surface-dark-3 rounded-2xl transition-[box-shadow,transform] duration-200 overflow-hidden ${
         isPopular
-          ? 'border-primary-300 dark:border-primary-700/50 shadow-burgundy-lg ring-1 ring-primary-200 dark:ring-primary-800/40 scale-[1.03]'
+          ? 'shadow-burgundy-lg scale-[1.03]'
           : gold
-          ? 'border-gold-300 dark:border-gold-700/50 shadow-gold ring-1 ring-gold-200 dark:ring-gold-800/40'
-          : 'border-neutral-200 dark:border-neutral-800 shadow-card'
+          ? 'shadow-gold'
+          : 'shadow-card'
       }`}
     >
       {/* Accent bar + badge ribbon */}
@@ -432,7 +436,7 @@ const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanTy
             : isCurrent
             ? <><FiCheck className="w-4 h-4" /> Current Plan</>
             : free
-            ? 'Free Forever'
+            ? 'Free forever'
             : isIncluded
             ? <><FiCheck className="w-4 h-4" /> Included</>
             : isUpgrade
@@ -615,20 +619,17 @@ const NriBlock = ({ plan, topLadderName, currency, isCurrent, currentPlanType, i
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="mt-8 rounded-2xl border border-gold-300 dark:border-gold-700/50 bg-gradient-to-br from-white to-gold-50/40 dark:from-[#1c2130] dark:to-[#221f16] shadow-gold ring-1 ring-gold-200 dark:ring-gold-800/40 overflow-hidden"
+      {...fadeRise}
+      // Doctrine §3.4: elevation declared once (shadow, not border+ring).
+      // Doctrine §3.1/Phase 2: dark-gradient stops come from the committed
+      // surface-dark-* ramp, not a one-off hex pair.
+      className="mt-8 rounded-2xl bg-gradient-to-br from-white to-gold-50/40 dark:from-surface-dark-2 dark:to-surface-dark-3 shadow-gold overflow-hidden"
     >
       <div className="flex flex-col lg:flex-row lg:items-center gap-6 p-6 lg:p-8">
         <div className="flex-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-gold-100 dark:bg-gold-900/30 border border-gold-200 dark:border-gold-700/50 rounded-full mb-3">
-            <FiGlobe className="w-3.5 h-3.5 text-gold-700 dark:text-gold-400" />
-            <span className="text-[11px] font-bold text-gold-700 dark:text-gold-400 uppercase tracking-wide">For NRIs abroad</span>
-          </div>
           <h3 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-1.5">NRI Connect</h3>
           <p className="text-sm text-neutral-600 dark:text-neutral-300 max-w-md mb-3">
-            Full VIP access built for members abroad — timezone-aware matching, priority support,
+            Full VIP access built for members abroad: timezone-aware matching, priority support,
             and prices shown in your own currency.
           </p>
           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
@@ -688,8 +689,7 @@ const NriBlock = ({ plan, topLadderName, currency, isCurrent, currentPlanType, i
 // ─── Contact-unlock top-up block (active finite-plan members only) ──────
 const BundleBlock = ({ bundles, processingBundle, onBuy }) => (
   <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
+    {...fadeRise}
     className="mt-8 rounded-2xl border border-primary-200 dark:border-primary-800/40 bg-primary-50/50 dark:bg-primary-900/10 p-6 lg:p-8"
   >
     <div className="flex items-center gap-2.5 mb-1.5">
@@ -704,7 +704,7 @@ const BundleBlock = ({ bundles, processingBundle, onBuy }) => (
         const perUnlock = Math.round(b.price / b.unlocks);
         const busy = processingBundle === b.bundleId;
         return (
-          <div key={b.bundleId} className="flex flex-col bg-white dark:bg-surface-dark-3 rounded-xl border border-neutral-200 dark:border-neutral-800 p-5 shadow-card">
+          <div key={b.bundleId} className="flex flex-col bg-white dark:bg-surface-dark-3 rounded-xl p-5 shadow-card">
             <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">{b.unlocks} <span className="text-sm font-medium text-neutral-500 dark:text-neutral-400">unlocks</span></p>
             <div className="flex items-baseline gap-2 mt-1">
               <p className="text-lg font-semibold text-primary-600 dark:text-primary-400">₹{b.price.toLocaleString('en-IN')}</p>
@@ -717,7 +717,11 @@ const BundleBlock = ({ bundles, processingBundle, onBuy }) => (
               onClick={() => !busy && onBuy(b.bundleId)}
               disabled={busy}
               aria-busy={busy || undefined}
-              className="mt-auto w-full min-h-[44px] py-2.5 text-sm font-semibold rounded-lg bg-primary-500 text-white hover:bg-primary-600 shadow-burgundy transition-[background-color,box-shadow,transform] duration-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+              // No arbitrary `min-h` px floor: it doesn't grow with elder mode's
+              // rem-based font scaling and undershoots the 48px elder target.
+              // `py-3` (like the other plan CTAs) clears 44px at base and ~51px
+              // under html.elder on its own.
+              className="mt-auto w-full py-3 text-sm font-semibold rounded-lg bg-primary-500 text-white hover:bg-primary-600 shadow-burgundy transition-[background-color,box-shadow,transform] duration-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {busy
                 ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Processing…</>
@@ -743,8 +747,7 @@ const LaunchBanner = ({ offer }) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
+      {...fadeRise}
       className="mb-8 rounded-2xl border border-gold-200 dark:border-gold-800/40 bg-gold-50 dark:bg-gold-900/10 px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3"
     >
       <div className="w-9 h-9 rounded-full bg-gold flex items-center justify-center flex-shrink-0">
@@ -788,8 +791,7 @@ const FoundingBand = ({ user, founding, currentSub, onClaim, claiming }) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
+      {...fadeRise}
       className="mb-8 rounded-2xl border border-gold-200 dark:border-gold-800/40 bg-gold-50 dark:bg-gold-900/10 px-5 py-5 flex flex-col sm:flex-row sm:items-center gap-4"
     >
       <div className="w-10 h-10 rounded-full bg-gold flex items-center justify-center flex-shrink-0">
@@ -809,7 +811,7 @@ const FoundingBand = ({ user, founding, currentSub, onClaim, claiming }) => {
         <>
           <div className="flex-1">
             <p className="text-sm font-bold text-gold-800 dark:text-gold-300">
-              Founding offer{days ? ` — ${days} days of premium, free` : ' — premium, free'}
+              Founding offer{days ? `: ${days} days of premium, free` : ': premium, free'}
             </p>
             <p className="text-sm text-gold-700/80 dark:text-gold-400/80 mt-0.5">
               You joined early enough to claim a place.
@@ -821,11 +823,14 @@ const FoundingBand = ({ user, founding, currentSub, onClaim, claiming }) => {
             onClick={onClaim}
             disabled={claiming}
             aria-busy={claiming || undefined}
-            className="min-h-[44px] px-6 py-2.5 text-sm font-semibold rounded-xl bg-gold text-primary-900 hover:bg-gold-600 shadow-sm transition-colors duration-[160ms] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed flex-shrink-0"
+            // No arbitrary `min-h` px floor (same elder-mode fix as
+            // BundleBlock's Buy button): `py-3` clears 48px under html.elder
+            // on its own.
+            className="px-6 py-3 text-sm font-semibold rounded-xl bg-gold text-primary-900 hover:bg-gold-600 shadow-sm transition-colors duration-[160ms] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed flex-shrink-0"
           >
             {claiming
               ? <><span className="w-4 h-4 border-2 border-primary-900/30 border-t-primary-900 rounded-full animate-spin" /> Claiming…</>
-              : <>Claim my free month <FiArrowRight className="w-4 h-4" /></>}
+              : <>{days ? `Claim ${days} days free` : 'Claim my free premium'} <FiArrowRight className="w-4 h-4" /></>}
           </button>
         </>
       )}
@@ -909,7 +914,7 @@ const Subscription = () => {
         handler: async (response) => {
           try {
             await onVerify(response);
-            toast.success('Payment successful!');
+            toast.success('Payment successful');
             await loadData();
           } catch {
             toast.error('Payment verification failed');
@@ -1032,23 +1037,30 @@ const Subscription = () => {
   };
 
   if (loading) {
+    // Matches the OverlapPricingPair shape (Free behind, Premium raised and
+    // overlapping) — the common single-plan case today (see the comment on
+    // `gridPlans.length === 2` below) — rather than a flat N-up grid that
+    // would resolve into a visibly different layout on load.
     return (
       <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center mb-12 flex flex-col items-center gap-3">
-            <Skeleton className="h-7 w-40 rounded-full" />
             <Skeleton className="h-10 w-72 rounded-xl" />
             <Skeleton className="h-4 w-96 max-w-full rounded" />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 items-start">
-            {[0, 1, 2, 3].map((i) => (
-              <div key={i} className="bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-card p-6 space-y-4">
-                <Skeleton className="h-6 w-28 rounded-lg" />
-                <Skeleton className="h-10 w-32 rounded-lg" />
-                <Skeleton.Text lines={5} className="pt-2" />
-                <Skeleton className="h-11 w-full rounded-xl mt-4" />
-              </div>
-            ))}
+          <div className="relative mx-auto max-w-sm sm:max-w-none sm:flex sm:justify-center sm:items-start pt-4 pb-6">
+            <div className="relative z-0 flex flex-col rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-surface-dark-1 p-6 sm:w-72 sm:flex-shrink-0 sm:p-7 sm:pt-8 sm:mr-[-1.75rem] space-y-3">
+              <Skeleton className="h-5 w-20 rounded-lg" />
+              <Skeleton className="h-8 w-24 rounded-lg" />
+              <Skeleton.Text lines={4} className="pt-2" />
+              <Skeleton className="h-11 w-full rounded-xl mt-4" />
+            </div>
+            <div className="relative z-10 flex flex-col rounded-2xl bg-white dark:bg-surface-dark-3 shadow-card-hover p-6 sm:w-80 sm:flex-shrink-0 sm:p-7 sm:pt-8 -mt-6 mx-3 sm:mx-0 sm:-mt-4 sm:mb-[-1rem] space-y-3">
+              <Skeleton className="h-6 w-28 rounded-lg" />
+              <Skeleton className="h-10 w-32 rounded-lg" />
+              <Skeleton.Text lines={5} className="pt-2" />
+              <Skeleton className="h-11 w-full rounded-xl mt-4" />
+            </div>
           </div>
         </div>
       </div>
@@ -1059,6 +1071,27 @@ const Subscription = () => {
     return (
       <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 flex items-center justify-center px-4">
         <ErrorState onRetry={loadData} />
+      </div>
+    );
+  }
+
+  // Distinct from loadError: the request came back 200 but with an empty or
+  // malformed `plans` object. Left unhandled, `gridPlans` below silently
+  // collapses to a Free-only card (`key === 'free' || Boolean(plans[key])`
+  // always keeps 'free') with no messaging — the page would just look like
+  // the product only offers a free tier instead of saying pricing failed to
+  // load.
+  const plansMissing = plansLoaded && Object.keys(plans).length === 0;
+  if (plansMissing) {
+    return (
+      <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 flex items-center justify-center px-4">
+        <EmptyState
+          icon={FiInfo}
+          title="Pricing isn't available right now"
+          description="We couldn't load our membership plans. Please try again in a moment."
+          actionLabel="Refresh"
+          onAction={loadData}
+        />
       </div>
     );
   }
@@ -1102,16 +1135,9 @@ const Subscription = () => {
     <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
-        >
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-gold-50 dark:bg-gold-900/20 border border-gold-200 dark:border-gold-800/40 rounded-full mb-5">
-            <FaCrown className="w-3.5 h-3.5 text-gold" />
-            <span className="text-xs font-semibold text-gold-700 dark:text-gold-400 uppercase tracking-wide">Membership Plans</span>
-          </div>
+        {/* Header. No eyebrow label (doctrine §2 ruling 2) — the heading
+            carries the meaning on its own. */}
+        <motion.div {...fadeRise} className="text-center mb-12">
           <h1 className="font-display text-4xl md:text-5xl font-bold text-neutral-900 dark:text-neutral-100 mb-3">
             {singlePlan ? 'Go Premium' : 'Choose Your Plan'}
           </h1>
@@ -1133,8 +1159,7 @@ const Subscription = () => {
         {/* Payments-unavailable notice */}
         {!razorpay.isConfigured && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
+            {...fadeRise}
             className="mb-8 flex items-center gap-3 px-5 py-3.5 bg-neutral-100 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-2xl"
           >
             <div className="w-8 h-8 rounded-full bg-white dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-700 flex items-center justify-center flex-shrink-0">
@@ -1150,8 +1175,7 @@ const Subscription = () => {
         {/* Active subscription banner (paid plans only — free has no "sub") */}
         {currentSub?.status === 'active' && currentSub?.planType !== 'free' && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
+            {...fadeRise}
             className="mb-8 flex items-center gap-3 px-5 py-3.5 bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800/40 rounded-2xl"
           >
             <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center flex-shrink-0">
@@ -1198,27 +1222,26 @@ const Subscription = () => {
           />
         ) : (
           <div className={`grid grid-cols-1 sm:grid-cols-2 ${GRID_COLS[gridPlans.length] || 'lg:grid-cols-4'} gap-5 items-start`}>
+            {/* PlanCard owns its own single fadeRise entrance (doctrine
+                §4.3/§5) — no second motion wrapper stacking an unsynced
+                entrance on top of it. The per-item stagger is threaded in as
+                a delay on that same animation via `staggerIndex`. */}
             {gridPlans.map(([key, plan], idx) => (
-              <motion.div
+              <PlanCard
                 key={key}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.08 }}
-              >
-                <PlanCard
-                  planKey={key}
-                  plan={plan}
-                  // The tier actually rendered below this one — not the one below
-                  // it in the enum, which may have been withdrawn.
-                  prevName={idx > 0 ? (gridPlans[idx - 1][1].name || PLAN_CONFIG[gridPlans[idx - 1][0]]?.label) : null}
-                  isPopular={Boolean(plan.popular)}
-                  isCurrent={currentSub?.planType === key && currentSub?.status === 'active'}
-                  currentPlanType={currentPlanType}
-                  isProcessing={processingPlan === key}
-                  freeChatForMutuals={freeChatForMutuals}
-                  onSubscribe={handleSubscribe}
-                />
-              </motion.div>
+                planKey={key}
+                plan={plan}
+                // The tier actually rendered below this one — not the one below
+                // it in the enum, which may have been withdrawn.
+                prevName={idx > 0 ? (gridPlans[idx - 1][1].name || PLAN_CONFIG[gridPlans[idx - 1][0]]?.label) : null}
+                isPopular={Boolean(plan.popular)}
+                isCurrent={currentSub?.planType === key && currentSub?.status === 'active'}
+                currentPlanType={currentPlanType}
+                isProcessing={processingPlan === key}
+                freeChatForMutuals={freeChatForMutuals}
+                onSubscribe={handleSubscribe}
+                entranceDelay={staggerIndex(idx)}
+              />
             ))}
           </div>
         )}
@@ -1262,13 +1285,8 @@ const Subscription = () => {
         <StickyCtaBar show={(currentPlanType || 'free') === 'free'} />
 
         {/* Footer note */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="text-center text-xs text-neutral-400 mt-10"
-        >
-          Secure payments via Razorpay · One-time payment, no auto-renewal · Full refund within 7 days — see our{' '}
+        <motion.p {...fade} className="text-center text-xs text-neutral-400 mt-10">
+          Secure payments via Razorpay · One-time payment, no auto-renewal · Full refund within 7 days, see our{' '}
           <Link to="/refund-policy" className="underline underline-offset-2 hover:text-neutral-600 dark:hover:text-neutral-300">Refund Policy</Link>
         </motion.p>
       </div>

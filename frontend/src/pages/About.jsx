@@ -34,12 +34,12 @@ export default function About() {
       {/* Hero */}
       <section className="px-4 pt-24 pb-16 md:pt-32 md:pb-20">
         <div className="max-w-5xl mx-auto">
-          <Link to="/" className="font-mono text-[11px] uppercase tracking-[0.16em] text-neutral-500 hover:text-primary-600 transition-colors block w-fit py-2 px-2 -mx-2 -mt-2 mb-8">← Back to home</Link>
-          <h1 className="font-display text-4xl md:text-6xl font-bold leading-[1.05] text-neutral-900 max-w-3xl">
+          <Link to="/" className="text-sm text-primary-600 dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-200 inline-block py-2 px-2 -mx-2 -mt-2 mb-8">← Back to home</Link>
+          <h1 className="font-display text-4xl md:text-6xl font-bold leading-[1.05] text-neutral-900 dark:text-neutral-100 max-w-3xl">
             Matrimony built for families,
             <span className="text-primary-700 italic"> not algorithms.</span>
           </h1>
-          <p className="mt-6 text-lg text-neutral-600 max-w-2xl leading-relaxed">
+          <p className="mt-6 text-lg text-neutral-600 dark:text-neutral-400 max-w-2xl leading-relaxed">
             TricityMatch is a hyperlocal matrimonial platform built specifically for families in
             Chandigarh, Mohali and Panchkula — where finding a life partner is meaningful, safe and community-first.
           </p>
@@ -47,7 +47,7 @@ export default function About() {
       </section>
 
       {/* Stats band */}
-      <section className="bg-[#3A0E1E] text-[#FDF8F2]">
+      <section className="bg-primary-800 text-[#FDF8F2]">
         <div className="max-w-5xl mx-auto px-4 py-12 grid grid-cols-2 md:grid-cols-4 gap-8">
           {STATS.map((s) => (
             <div key={s.label} className="text-center md:text-left">
@@ -66,7 +66,7 @@ export default function About() {
               A serious local community, <span className="italic text-primary-700">not 50 million strangers.</span>
             </h2>
           </div>
-          <div className="space-y-5 text-neutral-700 text-base leading-relaxed pt-1">
+          <div className="space-y-5 text-neutral-700 dark:text-neutral-300 text-base leading-relaxed pt-1">
             <p>
               Unlike generic matrimonial platforms, TricityMatch focuses on the Tricity region — bringing together
               people who share local roots, cultural values and community ties.
@@ -84,17 +84,17 @@ export default function About() {
       <section className="px-4 pb-16 md:pb-24">
         <div className="max-w-5xl mx-auto">
           <h2 className="font-display text-3xl md:text-4xl font-bold leading-tight mb-10">Six principles that shape every decision.</h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-neutral-200 border border-neutral-200 rounded-2xl overflow-hidden">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-neutral-200 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden">
             {VALUES.map(({ icon: Icon, n, t, d }) => (
               <div key={n} className="bg-[#FFFAF6] dark:bg-surface-dark-3 p-7 flex flex-col">
                 <div className="flex items-center justify-between mb-5">
-                  <span className="w-10 h-10 rounded-full bg-primary-50 text-primary-700 flex items-center justify-center">
+                  <span className="w-10 h-10 rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 flex items-center justify-center">
                     <Icon className="w-[18px] h-[18px]" />
                   </span>
-                  <span className="font-mono text-[11px] tracking-[0.16em] text-neutral-400">{n}</span>
+                  <span className="font-mono text-[11px] tracking-[0.16em] text-neutral-400 dark:text-neutral-500">{n}</span>
                 </div>
-                <h3 className="font-display text-xl font-bold text-neutral-900 mb-2">{t}</h3>
-                <p className="text-sm text-neutral-600 leading-relaxed">{d}</p>
+                <h3 className="font-display text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">{t}</h3>
+                <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">{d}</p>
               </div>
             ))}
           </div>
@@ -103,7 +103,7 @@ export default function About() {
 
       {/* CTA */}
       <section className="px-4 pb-24">
-        <div className="max-w-5xl mx-auto rounded-3xl bg-gradient-to-br from-[#7C1D3A] to-[#5C1229] text-[#FDF8F2] px-8 py-14 md:py-16 text-center">
+        <div className="max-w-5xl mx-auto rounded-3xl bg-primary-600 text-[#FDF8F2] px-8 py-14 md:py-16 text-center">
           <h2 className="font-display text-3xl md:text-4xl font-bold mb-3 text-[#FDF8F2]">Your forever starts with one step.</h2>
           <p className="text-[#FDF8F2]/70 max-w-xl mx-auto mb-8">
             Have questions or feedback? Reach us at{' '}

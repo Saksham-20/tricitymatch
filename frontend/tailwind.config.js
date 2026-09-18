@@ -276,7 +276,7 @@ export default {
         "scale-in": "scale-in 0.3s ease-out",
         "slide-in-right": "slide-in-right 0.3s ease-out",
         "slide-in-left": "slide-in-left 0.3s ease-out",
-        "shake": "shake 0.5s ease-in-out",
+        "shake": "shake 0.3s ease-in-out",
         "typing-bounce": "typing-bounce 1.4s infinite ease-in-out",
         "confetti": "confetti 3s ease-out forwards",
       },

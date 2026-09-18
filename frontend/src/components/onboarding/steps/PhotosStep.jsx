@@ -73,7 +73,7 @@ const PhotosStep = () => {
       {/* Profile Photo Upload */}
       <motion.div variants={fadeRise}>
         <label className="block text-sm font-medium text-neutral-900 mb-3">
-          Profile Photo {<span className="text-red-500">*</span>}
+          Profile Photo {<span className="text-destructive ml-1">*</span>}
         </label>
 
         {!imagePreview ? (
@@ -83,6 +83,8 @@ const PhotosStep = () => {
             onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
             onDragLeave={() => setDragActive(false)}
             onDrop={handleDrop}
+            aria-invalid={errors.profilePhoto ? true : undefined}
+            aria-describedby={errors.profilePhoto ? 'profilePhoto-error' : undefined}
             className={`w-full border-2 border-dashed rounded-lg p-8 text-center transition-colors duration-[160ms] active:scale-[0.99] ${
               dragActive
                 ? 'border-primary-500 bg-primary-50'
@@ -90,8 +92,8 @@ const PhotosStep = () => {
             }`}
           >
             <div className="flex flex-col items-center gap-2">
-              <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center">
-                <FiUpload className="w-6 h-6 text-primary-600" />
+              <div className="w-12 h-12 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                <FiUpload className="w-6 h-6 text-primary-600 dark:text-primary-400" />
               </div>
               <p className="font-medium text-neutral-900">Drag a photo here, or click to browse</p>
               <p className="text-sm text-neutral-600">PNG, JPG up to 5MB</p>
@@ -109,7 +111,7 @@ const PhotosStep = () => {
                 type="button"
                 onClick={removePhoto}
                 aria-label="Remove photo"
-                className="absolute top-2 right-2 min-w-[44px] min-h-[44px] flex items-center justify-center bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                className="absolute top-2 right-2 min-w-[2.75rem] min-h-[2.75rem] flex items-center justify-center bg-destructive text-white rounded-full hover:bg-destructive/90 transition-colors"
               >
                 <FiX size={20} />
               </button>
@@ -117,7 +119,7 @@ const PhotosStep = () => {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="mt-4 w-full min-h-[44px] py-2 text-primary-600 font-medium hover:text-primary-700"
+              className="mt-4 w-full min-h-[2.75rem] py-2 text-primary-600 font-medium hover:text-primary-700"
             >
               Change photo
             </button>
@@ -134,7 +136,7 @@ const PhotosStep = () => {
 
         {/* Reserved row so the error never shifts the tip cards below it. */}
         <div className="min-h-[20px] mt-2">
-          {errors.profilePhoto && <p role="alert" className="text-sm text-red-600">{errors.profilePhoto}</p>}
+          {errors.profilePhoto && <p id="profilePhoto-error" role="alert" className="text-sm text-red-600">{errors.profilePhoto}</p>}
         </div>
       </motion.div>
 

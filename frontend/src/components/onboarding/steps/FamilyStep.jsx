@@ -52,7 +52,7 @@ const FamilyStep = () => {
         />
       </motion.div>
 
-      <motion.div variants={fadeRise} className="grid grid-cols-2 gap-4">
+      <motion.div variants={fadeRise} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <FormField
           label="Father's Occupation"
           placeholder="Optional"
@@ -80,8 +80,8 @@ const FamilyStep = () => {
         />
       </motion.div>
 
-      <motion.div variants={fadeRise} className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600">
-        <p className="font-medium text-neutral-800 mb-1">Family background</p>
+      <motion.div variants={fadeRise} className="bg-neutral-100 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-lg p-4 text-sm text-neutral-600 dark:text-neutral-300">
+        <p className="font-medium text-neutral-800 dark:text-neutral-100 mb-1">Family background</p>
         <p>Your family values help us find someone with similar family expectations and beliefs.</p>
       </motion.div>
     </motion.div>

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import toast from 'react-hot-toast';
-import { FiCheck, FiMail, FiClock, FiShield } from 'react-icons/fi';
+import { FiCheck, FiMail, FiClock, FiShield, FiAlertCircle } from 'react-icons/fi';
 import Seo from '../components/common/Seo';
 import FormField from '../components/ui/FormField';
 import CheckBox from '../components/ui/CheckBox';
@@ -9,23 +8,41 @@ import api from '../api/axios';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Per-field rules, shared by blur validation and full-form submit validation
+// so a field is checked the same way whichever path triggers it.
+const FIELD_RULES = {
+  name: (v) => (!v.trim() || v.trim().length < 2) ? 'Please enter your name' : null,
+  email: (v) => (!EMAIL_RE.test(v)) ? 'Please enter a valid email' : null,
+  message: (v) => (!v.trim() || v.trim().length < 10) ? 'Message must be at least 10 characters' : null,
+};
+
 export default function Contact() {
   const [form, setForm] = useState({ name: '', email: '', phone: '', subject: '', message: '' });
   const [agreed, setAgreed] = useState(false);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
 
   const set = (field) => (value) => {
     setForm((f) => ({ ...f, [field]: value }));
     if (errors[field]) setErrors((e) => ({ ...e, [field]: undefined }));
   };
 
+  // Validates a single field on blur, so a malformed email or a too-short
+  // message is caught as the user moves on, not only at submit.
+  const handleBlur = (field) => () => {
+    const rule = FIELD_RULES[field];
+    if (!rule) return;
+    const message = rule(form[field]);
+    setErrors((e) => ({ ...e, [field]: message || undefined }));
+  };
+
   const validate = () => {
     const e = {};
-    if (!form.name.trim() || form.name.trim().length < 2) e.name = 'Please enter your name';
-    if (!EMAIL_RE.test(form.email)) e.email = 'Please enter a valid email';
-    if (!form.message.trim() || form.message.trim().length < 10) e.message = 'Message must be at least 10 characters';
+    const nameMsg = FIELD_RULES.name(form.name); if (nameMsg) e.name = nameMsg;
+    const emailMsg = FIELD_RULES.email(form.email); if (emailMsg) e.email = emailMsg;
+    const messageMsg = FIELD_RULES.message(form.message); if (messageMsg) e.message = messageMsg;
     if (!agreed) e.agreed = 'Please agree to the Privacy Policy so we can respond to you';
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -33,6 +50,7 @@ export default function Contact() {
 
   const handleSubmit = async (ev) => {
     ev.preventDefault();
+    setSubmitError(null);
     if (!validate()) return;
     setLoading(true);
     try {
@@ -45,7 +63,7 @@ export default function Contact() {
       });
       setSubmitted(true);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Could not send your message. Please try again.');
+      setSubmitError(err.response?.data?.message || 'Could not send your message. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -83,12 +101,12 @@ export default function Contact() {
                 <FormField
                   label="Your Name" name="name" autoComplete="name"
                   placeholder="Enter your name"
-                  value={form.name} onChange={set('name')} error={errors.name} required
+                  value={form.name} onChange={set('name')} onBlur={handleBlur('name')} error={errors.name} required
                 />
                 <FormField
                   label="Email" type="email" name="email" autoComplete="email" inputMode="email"
                   placeholder="you@example.com"
-                  value={form.email} onChange={set('email')} error={errors.email} required
+                  value={form.email} onChange={set('email')} onBlur={handleBlur('email')} error={errors.email} required
                 />
                 <FormField
                   label="Phone (optional)" type="tel" name="phone" autoComplete="tel" inputMode="numeric"
@@ -109,6 +127,7 @@ export default function Contact() {
                     placeholder="How can we help?"
                     value={form.message}
                     onChange={(e) => set('message')(e.target.value)}
+                    onBlur={handleBlur('message')}
                     aria-invalid={errors.message ? true : undefined}
                     aria-describedby={errors.message ? 'contact-message-error' : undefined}
                     className={`w-full px-4 py-3 border rounded-lg bg-white dark:bg-surface-dark-2 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:border-transparent transition-[border-color,box-shadow] duration-150 resize-y ${
@@ -135,6 +154,12 @@ export default function Contact() {
                   />
                   {errors.agreed && <p className="text-sm text-red-600 dark:text-red-400 font-medium mt-1.5">{errors.agreed}</p>}
                 </div>
+                {submitError && (
+                  <div role="alert" className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-destructive/10 dark:bg-red-950/30 border border-destructive/20 dark:border-red-900/50 text-destructive dark:text-red-300 text-sm">
+                    <FiAlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <span>{submitError}</span>
+                  </div>
+                )}
                 <button type="submit" disabled={loading} className="btn-primary w-full justify-center">
                   {loading ? 'Sending…' : 'Send message'}
                 </button>

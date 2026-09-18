@@ -104,14 +104,14 @@ const SECTIONS = [
 const Faq = ({ q, a }) => {
   const [open, setOpen] = useState(false);
   return (
-    <div className="border-b border-neutral-200 last:border-0">
+    <div className="border-b border-neutral-200 dark:border-neutral-800 last:border-0">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        className="w-full flex items-start justify-between gap-4 text-left py-4 min-h-[44px]"
+        className="w-full flex items-start justify-between gap-4 text-left py-4 min-h-[2.75rem]"
       >
-        <span className="font-medium text-neutral-900">{q}</span>
+        <span className="font-medium text-neutral-900 dark:text-neutral-100">{q}</span>
         <FiChevronDown className={`w-4 h-4 text-neutral-400 mt-1 flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && <p className="text-sm text-neutral-600 leading-relaxed pb-4 -mt-1 max-w-2xl">{a}</p>}
@@ -131,7 +131,7 @@ export default function Help() {
       {/* Hero */}
       <section className="px-4 pt-24 pb-12 md:pt-32 md:pb-14">
         <div className="max-w-5xl mx-auto">
-          <Link to="/" className="font-mono text-[11px] uppercase tracking-[0.16em] text-neutral-500 hover:text-primary-600 transition-colors block w-fit py-2 px-2 -mx-2 -mt-2 mb-8">← Back to home</Link>
+          <Link to="/" className="text-sm text-primary-600 dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-200 inline-block py-2 px-2 -mx-2 -mt-2 mb-8">← Back to home</Link>
           <h1 className="font-display text-4xl md:text-6xl font-bold leading-[1.05] max-w-3xl">
             Answers, and a <span className="text-primary-700 italic">real person</span> when you need one.
           </h1>
@@ -147,7 +147,7 @@ export default function Help() {
         <div className="max-w-5xl mx-auto grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <a
             href={`mailto:${support.email}`}
-            className="bg-white border border-neutral-200 rounded-2xl p-6 hover:border-primary-300 transition-colors"
+            className="bg-white dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 hover:border-primary-300 transition-colors"
           >
             <span className="w-11 h-11 rounded-full bg-primary-50 text-primary-700 flex items-center justify-center mb-4">
               <FiMail className="w-5 h-5" />
@@ -158,7 +158,7 @@ export default function Help() {
 
           <Link
             to="/contact"
-            className="bg-white border border-neutral-200 rounded-2xl p-6 hover:border-primary-300 transition-colors"
+            className="bg-white dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 hover:border-primary-300 transition-colors"
           >
             <span className="w-11 h-11 rounded-full bg-primary-50 text-primary-700 flex items-center justify-center mb-4">
               <FiHelpCircle className="w-5 h-5" />
@@ -174,7 +174,7 @@ export default function Help() {
               href={`https://wa.me/${support.whatsapp}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-white border border-neutral-200 rounded-2xl p-6 hover:border-primary-300 transition-colors"
+              className="bg-white dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 hover:border-primary-300 transition-colors"
             >
               <span className="w-11 h-11 rounded-full bg-success-50 text-success flex items-center justify-center mb-4">
                 <FaWhatsapp className="w-5 h-5" />
@@ -190,7 +190,7 @@ export default function Help() {
       <section className="px-4 pb-16">
         <div className="max-w-5xl mx-auto space-y-6">
           {SECTIONS.map(({ icon: Icon, title, faqs }) => (
-            <div key={title} className="bg-white border border-neutral-200 rounded-2xl p-6 md:p-8">
+            <div key={title} className="bg-white dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 md:p-8">
               <div className="flex items-center gap-3 mb-3">
                 <span className="w-10 h-10 rounded-full bg-primary-50 text-primary-700 flex items-center justify-center flex-shrink-0">
                   <Icon className="w-4 h-4" />
@@ -208,13 +208,13 @@ export default function Help() {
       {/* Footer links */}
       <section className="px-4 pb-24">
         <div className="max-w-5xl mx-auto flex flex-wrap gap-3">
-          <Link to="/safety" className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-neutral-300 text-sm font-medium hover:border-primary-400 transition-colors">
+          <Link to="/safety" className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-neutral-300 dark:border-neutral-700 text-sm font-medium hover:border-primary-400 transition-colors">
             <FiShield className="w-4 h-4" /> Safety centre
           </Link>
-          <Link to="/privacy" className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-neutral-300 text-sm font-medium hover:border-primary-400 transition-colors">
+          <Link to="/privacy" className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-neutral-300 dark:border-neutral-700 text-sm font-medium hover:border-primary-400 transition-colors">
             Privacy policy
           </Link>
-          <Link to="/delete-account" className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-neutral-300 text-sm font-medium hover:border-primary-400 transition-colors">
+          <Link to="/delete-account" className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-neutral-300 dark:border-neutral-700 text-sm font-medium hover:border-primary-400 transition-colors">
             <FiTrash2 className="w-4 h-4" /> Delete account
           </Link>
           <Link to="/contact" className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors">

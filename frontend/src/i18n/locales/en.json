@@ -26,8 +26,8 @@
     "settings": "Settings",
     "subscription": "Subscription",
     "paymentHistory": "Payment History",
-    "signIn": "Sign In",
-    "createProfile": "Create Profile",
+    "signIn": "Sign in",
+    "createProfile": "Create profile",
     "createFreeProfile": "Create Free Profile",
     "signOut": "Sign Out",
     "notifications": "Notifications",
@@ -55,7 +55,7 @@
     "emailPlaceholder": "you@example.com",
     "passwordPlaceholder": "Enter your password",
     "forgotPassword": "Forgot password?",
-    "signIn": "Sign In",
+    "signIn": "Sign in",
     "signingIn": "Signing in...",
     "noAccount": "Don't have an account?",
     "createOne": "Create one",
@@ -80,10 +80,10 @@
     "statusNotStarted": "Not started"
   },
   "guardian": {
-    "title": "Guardian & Family",
+    "title": "Guardian & family",
     "subtitle": "Invite a parent or guardian to help with your search.",
-    "myGuardians": "My Guardians",
-    "myCandidates": "I'm a Guardian For",
+    "myGuardians": "My guardians",
+    "myCandidates": "I'm a guardian for",
     "inviteByEmail": "Invite by email",
     "invite": "Send invite",
     "revoke": "Revoke",
@@ -94,7 +94,7 @@
     "readOnly": "Read-only view"
   },
   "astrologers": {
-    "title": "Talk to an Astrologer",
+    "title": "Talk to an astrologer",
     "subtitle": "Book a consultation for kundli and compatibility guidance.",
     "experience": "{{years}} yrs exp",
     "perMin": "₹{{price}}/min",
