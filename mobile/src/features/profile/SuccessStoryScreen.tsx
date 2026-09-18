@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -14,6 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import Text from '../../components/ui/Text';
 import { showToast } from '../../utils/toast';
 import { useNavigation } from '@react-navigation/native';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
@@ -73,8 +73,8 @@ export default function SuccessStoryScreen() {
           <View style={s.successIcon}>
             <Ionicons name="heart" size={48} color={c.primary} />
           </View>
-          <Text style={s.successTitle}>Story Submitted!</Text>
-          <Text style={s.successBody}>
+          <Text variant="title2" color="textPrimary">Story Submitted!</Text>
+          <Text variant="callout" color="textSecondary" style={s.successBody}>
             Thank you for sharing your journey. Our team will review and publish your story shortly.
           </Text>
           <TouchableOpacity
@@ -82,7 +82,7 @@ export default function SuccessStoryScreen() {
             onPress={() => nav.goBack()}
             testID="done-btn"
           >
-            <Text style={s.doneBtnText}>Done</Text>
+            <Text variant="headline" style={s.doneBtnText}>Done</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -95,16 +95,16 @@ export default function SuccessStoryScreen() {
         <TouchableOpacity onPress={() => nav.goBack()} style={s.backBtn} accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
         </TouchableOpacity>
-        <Text style={s.title}>Share Your Story</Text>
+        <Text variant="headline" color="textPrimary" style={s.title}>Share Your Story</Text>
       </View>
 
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
-        <Text style={s.subtitle}>
+        <Text variant="footnote" color="textSecondary" style={s.subtitle}>
           Inspire others by sharing your TricityMatch success story!
         </Text>
 
         {/* Names */}
-        <Text style={s.label}>Groom's Name *</Text>
+        <Text variant="caption" color="textPrimary" style={s.label}>Groom's Name *</Text>
         <TextInput
           style={s.input}
           value={groomName}
@@ -116,7 +116,7 @@ export default function SuccessStoryScreen() {
           accessibilityLabel="Groom's name"
         />
 
-        <Text style={s.label}>Bride's Name *</Text>
+        <Text variant="caption" color="textPrimary" style={s.label}>Bride's Name *</Text>
         <TextInput
           style={s.input}
           value={brideName}
@@ -128,7 +128,7 @@ export default function SuccessStoryScreen() {
           accessibilityLabel="Bride's name"
         />
 
-        <Text style={s.label}>Wedding Date</Text>
+        <Text variant="caption" color="textPrimary" style={s.label}>Wedding Date</Text>
         <TextInput
           style={s.input}
           value={weddingDate}
@@ -152,7 +152,7 @@ export default function SuccessStoryScreen() {
           accessibilityLabel="Wedding date"
         />
 
-        <Text style={s.label}>Your Story *</Text>
+        <Text variant="caption" color="textPrimary" style={s.label}>Your Story *</Text>
         <TextInput
           style={s.storyInput}
           value={story}
@@ -165,17 +165,17 @@ export default function SuccessStoryScreen() {
           testID="story-text"
           accessibilityLabel="Your story"
         />
-        <Text style={s.charCount}>{story.length}/1000</Text>
+        <Text variant="footnote" color="textMuted" style={s.charCount}>{story.length}/1000</Text>
 
         {/* Photo (stub — needs native build) */}
-        <Text style={s.label}>Wedding Photo (optional)</Text>
+        <Text variant="caption" color="textPrimary" style={s.label}>Wedding Photo (optional)</Text>
         <TouchableOpacity style={s.photoBtn} onPress={handlePickPhoto} testID="photo-btn">
           {photoUri ? (
-            <Text style={s.photoText}>Photo selected</Text>
+            <Text variant="subhead" color="textSecondary">Photo selected</Text>
           ) : (
             <>
               <Ionicons name="image-outline" size={24} color={c.textMuted} />
-              <Text style={s.photoText}>Add a photo</Text>
+              <Text variant="subhead" color="textSecondary">Add a photo</Text>
             </>
           )}
         </TouchableOpacity>
@@ -192,11 +192,11 @@ export default function SuccessStoryScreen() {
             size={22}
             color={consent ? c.primary : c.textMuted}
           />
-          <Text style={s.consentText}>
+          <Text variant="footnote" color="textSecondary" style={s.consentText}>
             I agree to the{' '}
-            <Text style={s.link} onPress={() => (nav as any).navigate('Terms')} accessibilityRole="link">Terms &amp; Conditions</Text>
+            <Text variant="footnote" color="primary" onPress={() => (nav as any).navigate('Terms')} accessibilityRole="link">Terms &amp; Conditions</Text>
             {' '}and{' '}
-            <Text style={s.link} onPress={() => (nav as any).navigate('Privacy')} accessibilityRole="link">Privacy Policy</Text>
+            <Text variant="footnote" color="primary" onPress={() => (nav as any).navigate('Privacy')} accessibilityRole="link">Privacy Policy</Text>
             , and consent to TricityMatch publishing our names, story and photo. I can withdraw this any time by contacting support.
           </Text>
         </TouchableOpacity>
@@ -212,7 +212,7 @@ export default function SuccessStoryScreen() {
           ) : (
             <>
               <Ionicons name="heart-outline" size={18} color="#fff" />
-              <Text style={s.submitBtnText}>Submit Story</Text>
+              <Text variant="headline" style={s.submitBtnText}>Submit Story</Text>
             </>
           )}
         </TouchableOpacity>
@@ -235,22 +235,12 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   backBtn: { padding: spacing.xs },
   title: {
     flex: 1,
-    fontSize: typography.fontSize.lg,
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
   },
   scroll: { padding: spacing.lg, gap: spacing.sm, paddingBottom: spacing.xl * 2 },
   subtitle: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textSecondary,
     marginBottom: spacing.sm,
-    lineHeight: 20,
   },
   label: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.textPrimary,
     marginTop: spacing.sm,
     marginBottom: spacing.xs,
   },
@@ -276,9 +266,6 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     minHeight: 120,
   },
   charCount: {
-    fontSize: typography.fontSize.xs,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textMuted,
     textAlign: 'right',
     marginTop: 2,
   },
@@ -294,11 +281,6 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     paddingVertical: spacing.lg,
     backgroundColor: c.surfaceCard,
   },
-  photoText: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textSecondary,
-  },
   consentRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -307,11 +289,7 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   },
   consentText: {
     flex: 1,
-    fontSize: typography.fontSize.sm,
-    color: c.textSecondary,
-    lineHeight: 20,
   },
-  link: { color: c.primary, fontFamily: typography.fontFamily.semiBold },
   submitBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -323,8 +301,6 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     marginTop: spacing.lg,
   },
   submitBtnText: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.semiBold,
     color: '#fff',
   },
   disabled: { opacity: 0.6 },
@@ -344,17 +320,8 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  successTitle: {
-    fontSize: typography.fontSize['2xl'],
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
-  },
   successBody: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textSecondary,
     textAlign: 'center',
-    lineHeight: 24,
   },
   doneBtn: {
     backgroundColor: c.primary,
@@ -363,8 +330,6 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     borderRadius: borderRadius.md,
   },
   doneBtnText: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.semiBold,
     color: '#fff',
   },
 });

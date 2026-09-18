@@ -1,9 +1,10 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text as RNText, View } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { colours, type, type ThemeColours } from '@shared/constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import { useFillAnimation } from '../motion';
+import Text from './Text';
 
 interface TickRingProps {
   /** 0–100 */
@@ -119,10 +120,12 @@ export function CompletionRing({ value, caption = 'COMPLETE', size = 88 }: RingL
   const showCaption = !!caption && size >= 72;
   return (
     <TickRing value={value} size={size} ticks={10} tickLength={tickLen}>
-      <Text style={[styles.bigPct, { fontSize: pctFont, lineHeight: Math.round(pctFont * 1.1) }]}>
+      {/* per-instance fontSize scales with `size` to fit the rim — decorative
+          glyph, not body copy; left on raw RN Text per migration exception */}
+      <RNText style={[styles.bigPct, { fontSize: pctFont, lineHeight: Math.round(pctFont * 1.1) }]}>
         {Math.round(value)}%
-      </Text>
-      {showCaption ? <Text style={styles.caption}>{caption}</Text> : null}
+      </RNText>
+      {showCaption ? <Text variant="micro" color="textMuted" style={styles.caption}>{caption}</Text> : null}
     </TickRing>
   );
 }
@@ -140,8 +143,8 @@ export function CompatRing({ value, size = 64 }: { value: number; size?: number 
   const colour = compatColour(value, c);
   return (
     <TickRing value={value} size={size} ticks={24} tickLength={size * 0.12} tickWidth={2.5} color={colour}>
-      <Text style={[styles.midPct, { color: colour }]}>{Math.round(value)}</Text>
-      <Text style={styles.pctMark}>%</Text>
+      <Text variant="headline" style={{ color: colour }}>{Math.round(value)}</Text>
+      <Text variant="micro" color="textMuted" style={styles.pctMark}>%</Text>
     </TickRing>
   );
 }
@@ -150,7 +153,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
   tick: { position: 'absolute' },
   center: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
   bigPct: { ...type.title2, color: c.fgStrong, lineHeight: 26 },
-  caption: { ...type.micro, color: c.textMuted, letterSpacing: 1, marginTop: 1 },
-  midPct: { ...type.headline, fontFamily: 'Inter-Bold', lineHeight: 18 },
-  pctMark: { ...type.micro, color: c.textMuted, marginTop: -2 },
+  caption: { letterSpacing: 1, marginTop: 1 },
+  pctMark: { marginTop: -2 },
 });

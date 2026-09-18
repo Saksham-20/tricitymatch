@@ -2,13 +2,13 @@ import React, { useCallback, useState } from 'react';
 import { useTabBarClearance } from '../../hooks/useTabBarClearance';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import Text from '../../components/ui/Text';
 import SmartImage from '../../components/common/SmartImage';
 import { PressableScale } from '../../components/motion';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,7 +17,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { colours, type, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import {
   getMutualMatches,
   getShortlisted,
@@ -85,8 +85,8 @@ function MatchRow({ match, mode, onPress, onChat, onAccept, onDecline, onRemove 
       <Avatar uri={photoUri} name={name} size={58} square verified={profile?.isVerified} />
 
       <View style={mr.body}>
-        <Text style={[mr.name, { color: c.fgStrong }]} numberOfLines={1}>{name}{age ? `, ${age}` : ''}</Text>
-        <Text style={[mr.sub, { color: c.textMuted }]} numberOfLines={1}>
+        <Text variant="headline" color="fgStrong" numberOfLines={1}>{name}{age ? `, ${age}` : ''}</Text>
+        <Text variant="footnote" color="textMuted" numberOfLines={1}>
           {[profile?.profession, profile?.city].filter(Boolean).join(' · ')}
         </Text>
         {compat > 0 && (
@@ -94,12 +94,12 @@ function MatchRow({ match, mode, onPress, onChat, onAccept, onDecline, onRemove 
             <View style={[mr.compatBar, { backgroundColor: c.surface2 }]}>
               <View style={[mr.compatFill, { width: `${compat}%`, backgroundColor: scoreColour(compat, c) }]} />
             </View>
-            <Text style={[mr.compatPct, { color: c.textMuted }]}>{compat}%</Text>
+            <Text variant="caption" color="textMuted" style={mr.compatPct}>{compat}%</Text>
           </View>
         )}
         {/* D3: a like-with-note leads with the quoted note (liked_me + sent). */}
         {(mode === 'liked_me' || mode === 'sent') && match.note ? (
-          <Text style={[mr.noteLine, { color: c.textSecondary }]} numberOfLines={2}>
+          <Text variant="footnote" color="textSecondary" style={mr.noteLine} numberOfLines={2}>
             “{match.note}”
           </Text>
         ) : null}
@@ -136,19 +136,17 @@ function MatchRow({ match, mode, onPress, onChat, onAccept, onDecline, onRemove 
   );
 }
 const makeMr = (c: ThemeColours) => StyleSheet.create({
-  noteLine: { fontSize: 12, fontStyle: 'italic', marginTop: 3 },
+  noteLine: { fontStyle: 'italic', marginTop: 3 },
   row: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: spacing.gutter, paddingVertical: 11,
     borderBottomWidth: 0.5, gap: 13,
   },
   body: { flex: 1, gap: 3 },
-  name: { ...type.headline, color: c.fgStrong },
-  sub: { ...type.footnote, color: c.textMuted },
   compatRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: 4 },
   compatBar: { flex: 1, height: 5, backgroundColor: c.surface2, borderRadius: borderRadius.pill, overflow: 'hidden' },
   compatFill: { height: 5, borderRadius: borderRadius.pill },
-  compatPct: { ...type.caption, color: c.textMuted, minWidth: 30, textAlign: 'right' },
+  compatPct: { minWidth: 30, textAlign: 'right' },
   actions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   chatBtn: {
     width: 42, height: 42, borderRadius: 21,
@@ -345,7 +343,7 @@ export default function MatchesScreen() {
   return (
     <View style={[s.container, { backgroundColor: c.background, paddingTop: insets.top }]} testID="MatchesScreen">
       <View style={s.header}>
-        <Text style={[s.headerTitle, { color: c.fgStrong }]}>Matches</Text>
+        <Text variant="title1" color="fgStrong">Matches</Text>
       </View>
       {/* Tab bar */}
       <View style={[s.tabBar, { borderBottomColor: c.hairline }]}>
@@ -360,7 +358,7 @@ export default function MatchesScreen() {
               accessibilityState={{ selected: on }}
               testID={`tab-${tab.key}`}
             >
-              <Text style={[s.tabText, { color: on ? c.accent : c.textMuted }]}>{tab.label}</Text>
+              <Text variant="subhead" color={on ? 'primary' : 'textMuted'}>{tab.label}</Text>
               {on && <View style={[s.tabUnderline, { backgroundColor: c.accent }]} />}
             </TouchableOpacity>
           );
@@ -376,9 +374,7 @@ export default function MatchesScreen() {
 const s = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: spacing.gutter, paddingTop: 6, paddingBottom: 8 },
-  headerTitle: { ...type.title1, fontFamily: 'PlayfairDisplay-Bold' },
   tabBar: { flexDirection: 'row', gap: 4, paddingHorizontal: 14, borderBottomWidth: 0.5 },
   tab: { flex: 1, paddingVertical: 11, alignItems: 'center', position: 'relative' },
-  tabText: { ...type.subhead, fontFamily: 'Inter-SemiBold' },
   tabUnderline: { position: 'absolute', left: 8, right: 8, bottom: -0.5, height: 2.5, borderRadius: 3 },
 });

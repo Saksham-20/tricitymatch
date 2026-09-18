@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TextInput,
@@ -11,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import Text from '../../components/ui/Text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { showToast } from '../../utils/toast';
@@ -58,14 +58,14 @@ export default function ContactScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.back} accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>Contact Us</Text>
+        <Text variant="headline" color="textPrimary" style={s.headerTitle}>Contact Us</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
-          <Text style={s.title}>Get in touch</Text>
-          <Text style={s.subtitle}>Questions, feedback, or need help? Send us a message.</Text>
+          <Text variant="title2" color="textPrimary">Get in touch</Text>
+          <Text variant="subhead" color="textSecondary" style={s.subtitle}>Questions, feedback, or need help? Send us a message.</Text>
 
           <Field label="Name" value={form.name} onChange={set('name')} placeholder="Your name" />
           <Field label="Email" value={form.email} onChange={set('email')} placeholder="you@example.com" keyboardType="email-address" autoCapitalize="none" />
@@ -74,10 +74,10 @@ export default function ContactScreen() {
           <Field label="Message" value={form.message} onChange={set('message')} placeholder="How can we help?" multiline />
 
           <TouchableOpacity style={[s.cta, sending && s.ctaDisabled]} onPress={submit} disabled={sending} testID="contact-submit">
-            {sending ? <ActivityIndicator color="#fff" /> : <Text style={s.ctaText}>Send message</Text>}
+            {sending ? <ActivityIndicator color="#fff" /> : <Text variant="headline" style={s.ctaText}>Send message</Text>}
           </TouchableOpacity>
 
-          <Text style={s.altContact}>Or email us at support@tricitymatch.com</Text>
+          <Text variant="subhead" color="textMuted" style={s.altContact}>Or email us at support@tricitymatch.com</Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -99,7 +99,7 @@ function Field({
   const s = React.useMemo(() => makeS(c), [c]);
   return (
     <View style={s.field}>
-      <Text style={s.label}>{label}</Text>
+      <Text variant="subhead" color="textPrimary" style={s.label}>{label}</Text>
       <TextInput
         style={[s.input, multiline && s.inputMultiline]}
         value={value}
@@ -119,16 +119,15 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   wrapper:     { flex: 1, backgroundColor: c.background },
   header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: c.border },
   back:        { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
+  headerTitle: { flex: 1, textAlign: 'center' },
   content:     { padding: spacing.lg, paddingBottom: spacing['4xl'] },
-  title:       { fontSize: typography.fontSize['2xl'], fontFamily: typography.fontFamily.bold, color: c.textPrimary },
-  subtitle:    { fontSize: typography.fontSize.sm, color: c.textSecondary, marginTop: 2, marginBottom: spacing.lg },
+  subtitle:    { marginTop: 2, marginBottom: spacing.lg },
   field:       { marginBottom: spacing.md },
-  label:       { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary, marginBottom: spacing.xs },
+  label:       { marginBottom: spacing.xs },
   input:       { borderWidth: 1, borderColor: c.border, borderRadius: borderRadius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, fontSize: typography.fontSize.base, color: c.textPrimary, backgroundColor: c.surfaceCard },
   inputMultiline: { minHeight: 110, textAlignVertical: 'top' },
   cta:         { backgroundColor: c.primary, borderRadius: borderRadius.md, paddingVertical: spacing.md, alignItems: 'center', marginTop: spacing.sm },
   ctaDisabled: { opacity: 0.6 },
-  ctaText:     { color: '#fff', fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.bold },
-  altContact:  { fontSize: typography.fontSize.sm, color: c.textMuted, textAlign: 'center', marginTop: spacing.lg },
+  ctaText:     { color: '#fff' },
+  altContact:  { textAlign: 'center', marginTop: spacing.lg },
 });

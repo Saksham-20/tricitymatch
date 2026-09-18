@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -14,8 +13,9 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import Text from '../../components/ui/Text';
 import { ListSkeleton } from '../../components/ui/skeletons';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { getMyProfile, updatePrivacy, type PrivacySettings } from '../../api/profile';
 import { queryKeys } from '../../constants/queryKeys';
 import type { MainStackParamList } from '../../navigation/types';
@@ -75,13 +75,13 @@ export default function PrivacySettingsScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} testID="back-btn" accessibilityLabel="Back">
           <Ionicons name="chevron-back" size={26} color={c.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Privacy</Text>
+        <Text variant="headline" color="textPrimary">Privacy</Text>
         <View style={{ width: 26 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.body}>
         {/* Profile visibility */}
-        <Text style={styles.sectionTitle}>Who can see your profile</Text>
+        <Text variant="caption" color="textMuted" style={styles.sectionTitle}>Who can see your profile</Text>
         <View style={styles.segment}>
           {(['everyone', 'matches_only'] as Visibility[]).map((opt) => {
             const active = visibility === opt;
@@ -93,14 +93,14 @@ export default function PrivacySettingsScreen() {
                 testID={`visibility-${opt}`}
                 accessibilityLabel={opt === 'everyone' ? 'Everyone' : 'Matches only'}
               >
-                <Text style={[styles.segmentText, active && styles.segmentTextActive]}>
+                <Text variant="subhead" color="textSecondary" style={active && styles.segmentTextActive}>
                   {opt === 'everyone' ? 'Everyone' : 'Matches only'}
                 </Text>
               </TouchableOpacity>
             );
           })}
         </View>
-        <Text style={styles.hint}>
+        <Text variant="footnote" color="textMuted" style={styles.hint}>
           {visibility === 'everyone'
             ? 'Anyone on TricityMatch can view your full profile.'
             : 'Only people you have matched with can view your full profile.'}
@@ -110,8 +110,8 @@ export default function PrivacySettingsScreen() {
         <View style={styles.toggleCard}>
           <View style={styles.toggleRow}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.toggleLabel}>Show online status</Text>
-              <Text style={styles.toggleSub}>Let others see when you are active</Text>
+              <Text variant="subhead" color="textPrimary">Show online status</Text>
+              <Text variant="footnote" color="textSecondary" style={styles.toggleSub}>Let others see when you are active</Text>
             </View>
             <Switch
               value={showOnlineStatus}
@@ -124,8 +124,8 @@ export default function PrivacySettingsScreen() {
           <View style={styles.divider} />
           <View style={styles.toggleRow}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.toggleLabel}>Show last seen</Text>
-              <Text style={styles.toggleSub}>Display when you were last online</Text>
+              <Text variant="subhead" color="textPrimary">Show last seen</Text>
+              <Text variant="footnote" color="textSecondary" style={styles.toggleSub}>Display when you were last online</Text>
             </View>
             <Switch
               value={showLastSeen}
@@ -147,15 +147,15 @@ export default function PrivacySettingsScreen() {
           {mutation.isPending ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.saveText}>Save Privacy Settings</Text>
+            <Text variant="headline" style={styles.saveText}>Save Privacy Settings</Text>
           )}
         </TouchableOpacity>
 
         {mutation.isSuccess && !mutation.isPending && (
-          <Text style={styles.savedNote}>Saved ✓</Text>
+          <Text variant="subhead" color="success" style={styles.savedNote}>Saved ✓</Text>
         )}
         {mutation.isError && (
-          <Text style={styles.errorNote}>Could not save. Please try again.</Text>
+          <Text variant="subhead" color="error" style={styles.errorNote}>Could not save. Please try again.</Text>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -174,16 +174,8 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: c.border,
   },
-  headerTitle: {
-    fontSize: typography.fontSize.lg,
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
-  },
   body: { padding: spacing.lg },
   sectionTitle: {
-    fontSize: typography.fontSize.xs,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: spacing.sm,
@@ -203,18 +195,10 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     borderRadius: borderRadius.sm,
   },
   segmentBtnActive: { backgroundColor: c.primary },
-  segmentText: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textSecondary,
-  },
-  segmentTextActive: { color: '#fff', fontFamily: typography.fontFamily.semiBold },
+  segmentTextActive: { color: '#fff' },
   hint: {
-    fontSize: typography.fontSize.xs,
-    color: c.textMuted,
     marginTop: spacing.sm,
     marginBottom: spacing.xl,
-    lineHeight: 18,
   },
   toggleCard: {
     backgroundColor: c.surfaceCard,
@@ -224,12 +208,7 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   toggleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md },
-  toggleLabel: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
-  },
-  toggleSub: { fontSize: typography.fontSize.xs, color: c.textSecondary, marginTop: 2 },
+  toggleSub: { marginTop: 2 },
   divider: { height: 1, backgroundColor: c.border },
   saveBtn: {
     backgroundColor: c.primary,
@@ -239,20 +218,14 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     marginTop: spacing.xl,
   },
   saveText: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.semiBold,
     color: '#fff',
   },
   savedNote: {
     textAlign: 'center',
     marginTop: spacing.md,
-    color: c.success || c.primary,
-    fontFamily: typography.fontFamily.medium,
   },
   errorNote: {
     textAlign: 'center',
     marginTop: spacing.md,
-    color: c.error,
-    fontFamily: typography.fontFamily.medium,
   },
 });

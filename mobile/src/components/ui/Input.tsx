@@ -3,7 +3,6 @@ import { useTheme } from '../../hooks/useTheme';
 import {
   StyleProp,
   StyleSheet,
-  Text,
   TextInput,
   TextInputProps,
   TouchableOpacity,
@@ -12,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { borderRadius, colours, type, type ThemeColours } from '@shared/constants/theme';
+import Text from './Text';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -36,7 +36,7 @@ const Input = forwardRef<TextInput, InputProps>(function Input(
 
   return (
     <View style={[styles.group, containerStyle]}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
+      {label ? <Text variant="footnote" color="textPrimary" style={styles.label}>{label}</Text> : null}
       <View style={styles.fieldRow}>
         <TextInput
           ref={ref}
@@ -66,9 +66,9 @@ const Input = forwardRef<TextInput, InputProps>(function Input(
         ) : null}
       </View>
       {error ? (
-        <Text style={styles.errorText}>{error}</Text>
+        <Text variant="caption" color="error" style={styles.errorText}>{error}</Text>
       ) : helper ? (
-        <Text style={styles.helperText}>{helper}</Text>
+        <Text variant="caption" color="textMuted" style={styles.helperText}>{helper}</Text>
       ) : null}
     </View>
   );
@@ -79,9 +79,7 @@ export default Input;
 const makeStyles = (c: ThemeColours) => StyleSheet.create({
   group: { marginBottom: 15 },
   label: {
-    ...type.footnote,
     fontFamily: 'Inter-SemiBold',
-    color: c.textPrimary,
     marginBottom: 6,
   },
   fieldRow: { position: 'relative' },
@@ -116,14 +114,10 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     minWidth: 40,
   },
   errorText: {
-    ...type.caption,
     fontFamily: 'Inter-Medium',
-    color: c.error,
     marginTop: 5,
   },
   helperText: {
-    ...type.caption,
-    color: c.textMuted,
     marginTop: 5,
   },
 });

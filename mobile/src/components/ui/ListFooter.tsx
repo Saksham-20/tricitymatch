@@ -1,7 +1,8 @@
 import React from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { spacing, type } from '@shared/constants/theme';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { spacing } from '@shared/constants/theme';
 import { useTheme } from '../../hooks/useTheme';
+import Text from './Text';
 
 interface ListFooterProps {
   /** loading = fetching next page · end = no more items · idle = nothing */
@@ -18,7 +19,7 @@ export default function ListFooter({ state, endText = "You're all caught up" }: 
       {state === 'loading' ? (
         <ActivityIndicator size="small" color={c.primary} />
       ) : (
-        <Text style={[type.footnote, { color: c.textMuted }]}>{endText}</Text>
+        <Text variant="footnote" color="textMuted">{endText}</Text>
       )}
     </View>
   );

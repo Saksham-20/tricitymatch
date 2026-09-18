@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, Text, TextInput, StyleSheet, ScrollView } from 'react-native';
+import { View, TextInput, StyleSheet, ScrollView } from 'react-native';
+import Text from '../../components/ui/Text';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { PressableScale } from '../../components/motion';
 import { haptics } from '../../utils/haptics';
 import OnboardingLayout from './OnboardingLayout';
@@ -79,8 +80,8 @@ export default function Step10Screen() {
       {/* Bio */}
       <View>
         <View style={styles.labelRow}>
-          <Text style={styles.label}>{t('onboarding.step10.bio')}</Text>
-          <Text style={styles.charCount}>{bio.length}/{BIO_MAX}</Text>
+          <Text variant="subhead" color="textPrimary">{t('onboarding.step10.bio')}</Text>
+          <Text variant="footnote" color="textMuted">{bio.length}/{BIO_MAX}</Text>
         </View>
         <TextInput
           style={styles.textarea}
@@ -100,14 +101,14 @@ export default function Step10Screen() {
 
       {/* Prompts — pick a question, answer in a line or two */}
       <View>
-        <Text style={styles.label}>{t('onboarding.step10.prompts', 'Answer a prompt')}<Text style={styles.optional}> ({t('common.optional')})</Text></Text>
-        <Text style={styles.hint}>{t('onboarding.step10.promptsHint', 'Easier than a blank page — these appear on your profile.')}</Text>
+        <Text variant="subhead" color="textPrimary">{t('onboarding.step10.prompts', 'Answer a prompt')}<Text variant="footnote" color="textMuted"> ({t('common.optional')})</Text></Text>
+        <Text variant="footnote" color="textMuted" style={styles.hint}>{t('onboarding.step10.promptsHint', 'Easier than a blank page — these appear on your profile.')}</Text>
         {prompts.map((p, idx) => (
           <View key={p.prompt} style={styles.promptCard}>
             <View style={styles.labelRow}>
-              <Text style={styles.promptQ}>{p.prompt}</Text>
+              <Text variant="subhead" color="textPrimary" style={styles.promptQ}>{p.prompt}</Text>
               <PressableScale scaleTo={0.9} onPress={() => removePrompt(idx)} accessibilityLabel="Remove prompt" testID={`prompt-remove-${idx}`}>
-                <Text style={styles.promptRemove}>✕</Text>
+                <Text variant="footnote" color="textMuted" style={styles.promptRemove}>✕</Text>
               </PressableScale>
             </View>
             <TextInput
@@ -126,7 +127,7 @@ export default function Step10Screen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.promptChipRow}>
             {PROFILE_PROMPTS.filter((q) => !prompts.some((p) => p.prompt === q)).slice(0, 6).map((q) => (
               <PressableScale key={q} scaleTo={0.95} style={styles.promptChip} onPress={() => pickPrompt(q)} testID={`prompt-pick-${q}`} accessibilityLabel={q}>
-                <Text style={styles.promptChipText}>{q}</Text>
+                <Text variant="footnote" color="textSecondary">{q}</Text>
               </PressableScale>
             ))}
           </ScrollView>
@@ -136,10 +137,10 @@ export default function Step10Screen() {
       {/* Interest tags */}
       <View>
         <View style={styles.labelRow}>
-          <Text style={styles.label}>{t('onboarding.step10.interests')}</Text>
-          <Text style={styles.charCount}>{selectedTags.length}/{TAGS_MAX}</Text>
+          <Text variant="subhead" color="textPrimary">{t('onboarding.step10.interests')}</Text>
+          <Text variant="footnote" color="textMuted">{selectedTags.length}/{TAGS_MAX}</Text>
         </View>
-        <Text style={styles.hint}>{t('onboarding.step10.interestsHint')}</Text>
+        <Text variant="footnote" color="textMuted" style={styles.hint}>{t('onboarding.step10.interestsHint')}</Text>
         <View style={styles.tagGrid}>
           {INTEREST_TAGS.map((tag) => {
             const active = selectedTags.includes(tag);
@@ -156,7 +157,7 @@ export default function Step10Screen() {
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: active }}
               >
-                <Text style={[styles.tagText, active && styles.tagTextActive, disabled && styles.tagTextDisabled]}>
+                <Text variant="footnote" color={active ? 'primary' : disabled ? 'textMuted' : 'textPrimary'}>
                   {tag}
                 </Text>
               </PressableScale>
@@ -169,35 +170,23 @@ export default function Step10Screen() {
 }
 
 const makeStyles = (c: ThemeColours) => StyleSheet.create({
-  optional: { fontSize: typography.fontSize.xs, color: c.textMuted, fontFamily: typography.fontFamily.regular },
   promptCard: {
     borderWidth: 1, borderColor: c.border, borderRadius: borderRadius.md,
     backgroundColor: c.surfaceCard, padding: spacing.md, marginTop: spacing.sm,
   },
-  promptQ: { flex: 1, fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
-  promptRemove: { fontSize: typography.fontSize.sm, color: c.textMuted, paddingHorizontal: 6 },
+  promptQ: { flex: 1 },
+  promptRemove: { paddingHorizontal: 6 },
   promptInput: { minHeight: 44, fontSize: typography.fontSize.sm, color: c.textPrimary, marginTop: 4 },
   promptChipRow: { gap: spacing.sm, paddingVertical: spacing.sm },
   promptChip: {
     borderWidth: 1, borderColor: c.border, borderRadius: borderRadius.pill,
     backgroundColor: c.surfaceCard, paddingHorizontal: spacing.md, paddingVertical: 8,
   },
-  promptChipText: { fontSize: typography.fontSize.xs, color: c.textSecondary },
   labelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: spacing.sm,
-  },
-  label: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
-  },
-  charCount: {
-    fontSize: typography.fontSize.xs,
-    color: c.textMuted,
-    fontFamily: typography.fontFamily.regular,
   },
   textarea: {
     borderWidth: 1,
@@ -211,8 +200,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     lineHeight: typography.fontSize.base * 1.5,
   },
   hint: {
-    fontSize: typography.fontSize.xs,
-    color: c.textMuted,
     marginBottom: spacing.md,
   },
   tagGrid: {
@@ -236,17 +223,5 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
   },
   tagDisabled: {
     opacity: 0.4,
-  },
-  tagText: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textPrimary,
-  },
-  tagTextActive: {
-    color: c.primary,
-    fontFamily: typography.fontFamily.medium,
-  },
-  tagTextDisabled: {
-    color: c.textMuted,
   },
 });

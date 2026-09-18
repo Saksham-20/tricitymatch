@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
@@ -15,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ListSkeleton } from '../../components/ui/skeletons';
 import { useQuery } from '@tanstack/react-query';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import Text from '../../components/ui/Text';
 import { getAstrologers } from '../../api/profile';
 import type { Astrologer } from '../../api/profile';
 import type { MainStackParamList } from '../../navigation/types';
@@ -42,7 +42,7 @@ function AstrologerCard({ item, onPress }: { item: Astrologer; onPress: () => vo
           <Image source={{ uri: item.avatarUrl }} style={cs.avatar} />
         ) : (
           <View style={cs.avatarPlaceholder}>
-            <Text style={cs.avatarInitial}>{item.name.charAt(0)}</Text>
+            <Text variant="title3" color="primary">{item.name.charAt(0)}</Text>
           </View>
         )}
         {item.isOnline && <View style={cs.onlineDot} />}
@@ -50,15 +50,15 @@ function AstrologerCard({ item, onPress }: { item: Astrologer; onPress: () => vo
 
       {/* Info */}
       <View style={cs.info}>
-        <Text style={cs.name}>{item.name}</Text>
-        <Text style={cs.experience}>{item.experience} yrs exp · {item.languages.join(', ')}</Text>
+        <Text variant="headline" color="textPrimary">{item.name}</Text>
+        <Text variant="caption" color="textSecondary" style={cs.experience}>{item.experience} yrs exp · {item.languages.join(', ')}</Text>
 
         {/* Specialities */}
         <View style={cs.chips}>
           {item.speciality.slice(0, 2).map(s => (
             <View key={s} style={cs.chip}>
               <Ionicons name={SPECIALITY_ICONS[s] ?? 'star-outline'} size={11} color={c.primary} />
-              <Text style={cs.chipText}>{s}</Text>
+              <Text variant="micro" color="primary">{s}</Text>
             </View>
           ))}
         </View>
@@ -67,13 +67,13 @@ function AstrologerCard({ item, onPress }: { item: Astrologer; onPress: () => vo
         <View style={cs.footer}>
           <View style={cs.ratingRow}>
             <Ionicons name="star" size={12} color={c.secondary} />
-            <Text style={cs.rating}>{item.rating} ({item.reviewCount})</Text>
+            <Text variant="caption" color="textSecondary">{item.rating} ({item.reviewCount})</Text>
           </View>
-          <Text style={cs.price}>₹{item.pricePerMin}/min</Text>
+          <Text variant="caption" style={cs.price}>₹{item.pricePerMin}/min</Text>
         </View>
 
         {!item.isOnline && item.nextAvailable && (
-          <Text style={cs.nextAvail}>Next: {item.nextAvailable}</Text>
+          <Text variant="caption" color="textMuted" style={cs.nextAvail}>Next: {item.nextAvailable}</Text>
         )}
       </View>
 
@@ -87,7 +87,7 @@ function AstrologerCard({ item, onPress }: { item: Astrologer; onPress: () => vo
             : { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: c.primary },
         ]}
       >
-        <Text style={[cs.ctaText, { color: item.isOnline ? '#fff' : c.primary }]}>
+        <Text variant="caption" color={item.isOnline ? 'onPrimary' : 'primary'}>
           {item.isOnline ? 'Chat' : 'Book'}
         </Text>
       </View>
@@ -123,8 +123,8 @@ export default function AstrologerMarketplaceScreen() {
           <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
         </TouchableOpacity>
         <View style={s.headerText}>
-          <Text style={s.title}>Astrologer Consult</Text>
-          <Text style={s.subtitle}>Expert Vedic guidance for your match</Text>
+          <Text variant="headline" color="textPrimary">Astrologer Consult</Text>
+          <Text variant="caption" color="textSecondary">Expert Vedic guidance for your match</Text>
         </View>
         <View style={{ width: 24 }} />
       </View>
@@ -133,8 +133,8 @@ export default function AstrologerMarketplaceScreen() {
       <View style={s.banner}>
         <Ionicons name="planet-outline" size={28} color={c.primary} style={s.bannerEmoji} />
         <View style={s.bannerText}>
-          <Text style={s.bannerTitle}>Get a Kundli reading</Text>
-          <Text style={s.bannerBody}>Consult certified Vedic astrologers for marriage timing and compatibility.</Text>
+          <Text variant="headline" color="textPrimary">Get a Kundli reading</Text>
+          <Text variant="caption" color="textSecondary" style={s.bannerBody}>Consult certified Vedic astrologers for marriage timing and compatibility.</Text>
         </View>
       </View>
 
@@ -147,7 +147,7 @@ export default function AstrologerMarketplaceScreen() {
             onPress={() => setFilter(f)}
           >
             {f === 'online' && <View style={s.pillDot} />}
-            <Text style={[s.pillText, filter === f && s.pillTextActive]}>
+            <Text variant="subhead" color={filter === f ? 'onPrimary' : 'textSecondary'}>
               {f === 'all' ? 'All Astrologers' : 'Online Now'}
             </Text>
           </TouchableOpacity>
@@ -170,13 +170,13 @@ export default function AstrologerMarketplaceScreen() {
           ListEmptyComponent={
             <View style={s.empty}>
               <Ionicons name="moon-outline" size={48} color={c.textMuted} />
-              <Text style={s.emptyText}>
+              <Text variant="callout" color="textMuted">
                 {filter === 'online'
                   ? 'No astrologers online right now'
                   : 'Astrologer consultations are coming soon'}
               </Text>
               {filter === 'all' && (
-                <Text style={s.emptySub}>
+                <Text variant="subhead" color="textMuted" style={s.emptySub}>
                   We are onboarding certified Vedic astrologers. Check back shortly.
                 </Text>
               )}
@@ -192,25 +192,19 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   container:   { flex: 1, backgroundColor: c.background },
   header:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingTop: spacing.xl, paddingBottom: spacing.sm, borderBottomWidth: 1, borderBottomColor: c.border },
   headerText:  { flex: 1, alignItems: 'center' },
-  title:       { fontSize: typography.fontSize.lg, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
-  subtitle:    { fontSize: typography.fontSize.xs, color: c.textSecondary },
 
   banner:      { flexDirection: 'row', alignItems: 'center', backgroundColor: c.secondaryLight, margin: spacing.md, borderRadius: borderRadius.lg, padding: spacing.md, gap: spacing.sm },
   bannerEmoji: { fontSize: 32 },
   bannerText:  { flex: 1 },
-  bannerTitle: { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
-  bannerBody:  { fontSize: typography.fontSize.xs, color: c.textSecondary, marginTop: 2 },
+  bannerBody:  { marginTop: 2 },
 
   pills:       { flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.md, marginBottom: spacing.xs },
   pill:        { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: borderRadius.full, borderWidth: 1, borderColor: c.border },
   pillActive:  { backgroundColor: c.primary, borderColor: c.primary },
   pillDot:     { width: 7, height: 7, borderRadius: 4, backgroundColor: c.success },
-  pillText:    { fontSize: typography.fontSize.sm, color: c.textSecondary },
-  pillTextActive: { color: '#fff', fontFamily: typography.fontFamily.medium },
 
   empty:       { alignItems: 'center', paddingVertical: 60, gap: spacing.sm },
-  emptyText:   { fontSize: typography.fontSize.base, color: c.textMuted },
-  emptySub:    { fontSize: typography.fontSize.sm, color: c.textMuted, textAlign: 'center', paddingHorizontal: spacing.xl },
+  emptySub:    { textAlign: 'center', paddingHorizontal: spacing.xl },
 });
 
 const makeCs = (c: ThemeColours) => StyleSheet.create({
@@ -218,23 +212,20 @@ const makeCs = (c: ThemeColours) => StyleSheet.create({
   avatarWrap:      { position: 'relative' },
   avatar:          { width: 60, height: 60, borderRadius: 30 },
   avatarPlaceholder: { width: 60, height: 60, borderRadius: 30, backgroundColor: c.primaryLight, alignItems: 'center', justifyContent: 'center' },
-  avatarInitial:   { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: c.primary },
   onlineDot:       { position: 'absolute', bottom: 2, right: 2, width: 12, height: 12, borderRadius: 6, backgroundColor: c.success, borderWidth: 2, borderColor: c.surfaceCard },
 
   info:       { flex: 1 },
-  name:       { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
-  experience: { fontSize: typography.fontSize.xs, color: c.textSecondary, marginTop: 1 },
+  experience: { marginTop: 1 },
 
   chips:      { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
   chip:       { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: c.primaryLight, borderRadius: borderRadius.sm, paddingHorizontal: 6, paddingVertical: 2 },
-  chipText:   { fontSize: 10, color: c.primary },
 
   footer:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
   ratingRow:  { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  rating:     { fontSize: typography.fontSize.xs, color: c.textSecondary },
-  price:      { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold, color: c.secondary },
-  nextAvail:  { fontSize: typography.fontSize.xs, color: c.textMuted, marginTop: 2 },
+  // c.secondary is the gold token — never curated as a text colour (premium/VIP signal
+  // only, per doctrine). Kept as an explicit style override.
+  price:      { color: c.secondary },
+  nextAvail:  { marginTop: 2 },
 
   cta:        { borderRadius: borderRadius.md, paddingHorizontal: spacing.sm, paddingVertical: 6, alignItems: 'center', minWidth: 48 },
-  ctaText:    { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold },
 });

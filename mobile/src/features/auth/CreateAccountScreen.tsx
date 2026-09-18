@@ -9,9 +9,10 @@ import React, { useState } from 'react';
 import { PressableScale } from '../../components/motion';
 import { useTheme } from '../../hooks/useTheme';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
+  View, TextInput, TouchableOpacity, StyleSheet, ScrollView,
   ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
+import Text from '../../components/ui/Text';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -101,11 +102,11 @@ export default function CreateAccountScreen() {
           <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
         </TouchableOpacity>
 
-        <Text style={st.title}>{t('auth.signup.title', 'Create your account')}</Text>
-        <Text style={st.sub}>{t('auth.signup.doorSub', 'Two steps. About two minutes.')}</Text>
+        <Text variant="title2" color="textPrimary">{t('auth.signup.title', 'Create your account')}</Text>
+        <Text variant="footnote" color="textMuted" style={st.sub}>{t('auth.signup.doorSub', 'Two steps. About two minutes.')}</Text>
 
         <View style={st.field}>
-          <Text style={st.label}>{t('auth.emailOrPhone', 'Email or mobile number')}</Text>
+          <Text variant="subhead" color="textSecondary" style={st.label}>{t('auth.emailOrPhone', 'Email or mobile number')}</Text>
           <SmartContactInput
             value={contact}
             onChange={(raw) => { setContact(raw); if (otpPhase !== 'idle') setOtpPhase('idle'); }}
@@ -114,7 +115,7 @@ export default function CreateAccountScreen() {
         </View>
 
         <View style={st.field}>
-          <Text style={st.label}>{t('auth.password', 'Password')}</Text>
+          <Text variant="subhead" color="textSecondary" style={st.label}>{t('auth.password', 'Password')}</Text>
           <View style={st.pwWrap}>
             <TextInput
               style={st.pwInput}
@@ -148,15 +149,15 @@ export default function CreateAccountScreen() {
             size={22}
             color={termsAccepted ? c.primary : c.textMuted}
           />
-          <Text style={st.termsText}>
+          <Text variant="footnote" color="textSecondary" style={st.termsText}>
             {t('auth.signup.agree', 'I agree to the')}{' '}
-            <Text style={st.link} onPress={() => navigation.navigate('Terms')} accessibilityRole="link">{t('auth.signup.termsLink', 'Terms & Conditions')}</Text>
+            <Text variant="caption" color="primary" onPress={() => navigation.navigate('Terms')} accessibilityRole="link">{t('auth.signup.termsLink', 'Terms & Conditions')}</Text>
             {' '}&amp;{' '}
-            <Text style={st.link} onPress={() => navigation.navigate('Privacy')} accessibilityRole="link">{t('auth.signup.privacyLink', 'Privacy Policy')}</Text>
+            <Text variant="caption" color="primary" onPress={() => navigation.navigate('Privacy')} accessibilityRole="link">{t('auth.signup.privacyLink', 'Privacy Policy')}</Text>
           </Text>
         </TouchableOpacity>
 
-        {error ? <Text style={st.error} accessibilityLiveRegion="polite">{error}</Text> : null}
+        {error ? <Text variant="footnote" color="error" style={st.error} accessibilityLiveRegion="polite">{error}</Text> : null}
 
         {otpPhase === 'idle' || otpPhase === 'sending' ? (
           <PressableScale haptic
@@ -169,25 +170,25 @@ export default function CreateAccountScreen() {
           >
             {otpPhase === 'sending'
               ? <ActivityIndicator size="small" color="#fff" />
-              : <Text style={st.ctaText}>{t('auth.signup.sendCode', 'Send verification code')}</Text>}
+              : <Text variant="headline" style={{ color: '#fff' }}>{t('auth.signup.sendCode', 'Send verification code')}</Text>}
           </PressableScale>
         ) : (
           <View style={st.otpBlock}>
-            <Text style={st.otpTitle}>
+            <Text variant="footnote" color="textSecondary" style={st.otpTitle}>
               {t('auth.signup.enterCode', 'Enter the 4-digit code sent to')} {parsed.kind === 'phone' ? `+91 ${parsed.value}` : parsed.value}
             </Text>
             <OtpInput onComplete={handleVerify} disabled={otpPhase === 'verifying'} resetKey={otpResetKey} />
             {otpPhase === 'verifying' && <ActivityIndicator size="small" color={c.primary} style={{ marginTop: spacing.sm }} />}
             <TouchableOpacity onPress={handleSendOtp} style={{ marginTop: spacing.md }} accessibilityLabel="Resend code">
-              <Text style={st.link}>{t('auth.signup.resend', 'Resend code')}</Text>
+              <Text variant="caption" color="primary">{t('auth.signup.resend', 'Resend code')}</Text>
             </TouchableOpacity>
           </View>
         )}
 
         <View style={st.footerRow}>
-          <Text style={st.footerText}>{t('auth.signup.haveAccount', 'Already have an account?')}</Text>
+          <Text variant="footnote" color="textMuted">{t('auth.signup.haveAccount', 'Already have an account?')}</Text>
           <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-            <Text style={st.link}> {t('auth.login.signIn', 'Sign in')}</Text>
+            <Text variant="caption" color="primary"> {t('auth.login.signIn', 'Sign in')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -199,10 +200,9 @@ const makeSt = (c: ThemeColours) => StyleSheet.create({
   flex: { flex: 1, backgroundColor: c.background },
   content: { paddingHorizontal: spacing.gutter, paddingBottom: spacing['3xl'] },
   back: { marginBottom: spacing.md, alignSelf: 'flex-start' },
-  title: { fontSize: typography.fontSize['2xl'], fontFamily: typography.fontFamily.bold, color: c.textPrimary },
-  sub: { fontSize: typography.fontSize.sm, color: c.textMuted, marginTop: 4, marginBottom: spacing.xl },
+  sub: { marginTop: 4, marginBottom: spacing.xl },
   field: { marginBottom: spacing.lg },
-  label: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.medium, color: c.textSecondary, marginBottom: spacing.xs },
+  label: { marginBottom: spacing.xs },
   pwWrap: {
     flexDirection: 'row', alignItems: 'center',
     borderWidth: 1, borderColor: c.border, borderRadius: borderRadius.md,
@@ -210,17 +210,14 @@ const makeSt = (c: ThemeColours) => StyleSheet.create({
   },
   pwInput: { flex: 1, minHeight: 50, fontSize: typography.fontSize.base, color: c.textPrimary },
   termsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.lg },
-  termsText: { flex: 1, fontSize: typography.fontSize.sm, color: c.textSecondary },
-  link: { color: c.primary, fontFamily: typography.fontFamily.semiBold },
-  error: { color: c.error, fontSize: typography.fontSize.sm, marginBottom: spacing.md },
+  termsText: { flex: 1 },
+  error: { marginBottom: spacing.md },
   cta: {
     backgroundColor: c.primary, borderRadius: borderRadius.pill,
     minHeight: 52, alignItems: 'center', justifyContent: 'center',
   },
   ctaDisabled: { opacity: 0.5 },
-  ctaText: { color: '#fff', fontFamily: typography.fontFamily.bold, fontSize: typography.fontSize.base },
   otpBlock: { alignItems: 'center', paddingVertical: spacing.md },
-  otpTitle: { fontSize: typography.fontSize.sm, color: c.textSecondary, marginBottom: spacing.md, textAlign: 'center' },
+  otpTitle: { marginBottom: spacing.md, textAlign: 'center' },
   footerRow: { flexDirection: 'row', justifyContent: 'center', marginTop: spacing.xl },
-  footerText: { color: c.textMuted, fontSize: typography.fontSize.sm },
 });

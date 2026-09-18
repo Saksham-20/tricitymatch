@@ -1,8 +1,9 @@
 import React from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import Text from '../../components/ui/Text';
 import { LegalLayout, Section, Para } from './LegalLayout';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 
 // Mirrors frontend/src/pages/About.jsx
 const STATS = [
@@ -37,8 +38,8 @@ export default function AboutScreen() {
       <View style={s.statsGrid}>
         {STATS.map((st) => (
           <View key={st.label} style={s.statCard}>
-            <Text style={s.statValue}>{st.value}</Text>
-            <Text style={s.statLabel}>{st.label}</Text>
+            <Text variant="title2" color="primary">{st.value}</Text>
+            <Text variant="subhead" color="textSecondary" style={s.statLabel}>{st.label}</Text>
           </View>
         ))}
       </View>
@@ -47,10 +48,10 @@ export default function AboutScreen() {
         <Para>Six principles that shape every decision.</Para>
         {VALUES.map((v) => (
           <View key={v.n} style={s.valueRow}>
-            <Text style={s.valueNum}>{v.n}</Text>
+            <Text variant="headline" color="primary" style={s.valueNum}>{v.n}</Text>
             <View style={{ flex: 1 }}>
-              <Text style={s.valueTitle}>{v.t}</Text>
-              <Text style={s.valueDesc}>{v.d}</Text>
+              <Text variant="headline" color="textPrimary">{v.t}</Text>
+              <Text variant="subhead" color="textSecondary" style={s.valueDesc}>{v.d}</Text>
             </View>
           </View>
         ))}
@@ -62,10 +63,8 @@ export default function AboutScreen() {
 const makeS = (c: ThemeColours) => StyleSheet.create({
   statsGrid:  { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.lg },
   statCard:   { flexBasis: '47%', flexGrow: 1, backgroundColor: c.surfaceCard, borderRadius: borderRadius.md, borderWidth: 1, borderColor: c.border, padding: spacing.md },
-  statValue:  { fontSize: typography.fontSize['2xl'], fontFamily: typography.fontFamily.bold, color: c.primary },
-  statLabel:  { fontSize: typography.fontSize.sm, color: c.textSecondary, marginTop: 2 },
+  statLabel:  { marginTop: 2 },
   valueRow:   { flexDirection: 'row', gap: spacing.md, marginTop: spacing.md },
-  valueNum:   { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.bold, color: c.primary, width: 28 },
-  valueTitle: { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
-  valueDesc:  { fontSize: typography.fontSize.sm, color: c.textSecondary, lineHeight: 20, marginTop: 2 },
+  valueNum:   { width: 28 },
+  valueDesc:  { marginTop: 2 },
 });

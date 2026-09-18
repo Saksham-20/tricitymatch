@@ -1,8 +1,9 @@
 import React from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import Text from '../ui/Text';
 
 interface Props {
   mobile?: boolean;
@@ -39,7 +40,8 @@ export default function VerificationBadges({ mobile, id, education, income }: Pr
         return (
           <View key={key} style={[s.badge, { backgroundColor: cfg.color + '18' }]}>
             <Ionicons name={cfg.icon} size={11} color={cfg.color} />
-            <Text style={[s.label, { color: cfg.color }]}>{cfg.label}</Text>
+            {/* cfg.color is a per-tier badge colour (mobile/id/education/income) — not in the curated text-colour union, left as an override */}
+            <Text variant="caption" style={[s.label, { color: cfg.color }]}>{cfg.label}</Text>
           </View>
         );
       })}
@@ -61,8 +63,5 @@ const s = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: borderRadius.full,
   },
-  label: {
-    fontSize: typography.fontSize.xs,
-    fontFamily: typography.fontFamily.medium,
-  },
+  label: {},
 });

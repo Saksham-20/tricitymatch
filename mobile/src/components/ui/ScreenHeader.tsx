@@ -1,10 +1,11 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { spacing, type } from '@shared/constants/theme';
+import { spacing } from '@shared/constants/theme';
 import { PressableScale } from '../motion';
 import { useTheme } from '../../hooks/useTheme';
+import Text from './Text';
 
 interface ScreenHeaderProps {
   title: string;
@@ -37,11 +38,11 @@ export default function ScreenHeader({ title, subtitle, onBack, showBack = true,
           </PressableScale>
         ) : null}
         <View style={styles.titleGroup}>
-          <Text style={[type.title2, { color: c.textPrimary }]} numberOfLines={1}>
+          <Text variant="title2" color="textPrimary" numberOfLines={1}>
             {title}
           </Text>
           {subtitle ? (
-            <Text style={[type.footnote, styles.subtitle, { color: c.textSecondary }]} numberOfLines={1}>
+            <Text variant="footnote" color="textSecondary" style={styles.subtitle} numberOfLines={1}>
               {subtitle}
             </Text>
           ) : null}

@@ -2,7 +2,6 @@ import React, { useRef, useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
   View,
-  Text,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
@@ -10,6 +9,7 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
 } from 'react-native';
+import Text from '../../components/ui/Text';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
@@ -92,7 +92,7 @@ export default function WelcomeScreen() {
             accessibilityLabel={`Switch to ${lang.code} language`}
             testID={`WelcomeScreen-lang-${lang.code}`}
           >
-            <Text style={[styles.langText, language === lang.code && styles.langTextActive]}>
+            <Text variant="subhead" color="textSecondary" style={language === lang.code ? { color: '#FFFFFF' } : undefined}>
               {lang.label}
             </Text>
           </TouchableOpacity>
@@ -102,7 +102,7 @@ export default function WelcomeScreen() {
       {/* Hero */}
       <View style={styles.hero}>
         <Logo variant="stacked" size="lg" />
-        <Text style={styles.heroSubtitle}>Chandigarh · Mohali · Panchkula</Text>
+        <Text variant="footnote" color="textSecondary" style={styles.heroSubtitle}>Chandigarh · Mohali · Panchkula</Text>
       </View>
 
       {/* Value prop cards — horizontal scroll */}
@@ -129,8 +129,8 @@ export default function WelcomeScreen() {
             <View style={styles.cardIconWrap}>
               <Ionicons name={card.icon} size={26} color={c.primary} />
             </View>
-            <Text style={styles.cardTitle}>{t(card.titleKey, card.titleFallback)}</Text>
-            <Text style={styles.cardSubtitle}>{t(card.subtitleKey, card.subtitleFallback)}</Text>
+            <Text variant="title3" color="textPrimary" style={styles.cardTitle}>{t(card.titleKey, card.titleFallback)}</Text>
+            <Text variant="callout" color="textSecondary" style={styles.cardSubtitle}>{t(card.subtitleKey, card.subtitleFallback)}</Text>
           </View>
         ))}
       </ScrollView>
@@ -150,7 +150,7 @@ export default function WelcomeScreen() {
           accessibilityLabel={t('welcome.getStarted', 'Get Started')}
           testID="WelcomeScreen-getStarted"
         >
-          <Text style={styles.primaryBtnText}>{t('welcome.getStarted', 'Get Started')}</Text>
+          <Text variant="headline" style={{ color: '#FFFFFF' }}>{t('welcome.getStarted', 'Get Started')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.secondaryBtn}
@@ -158,7 +158,7 @@ export default function WelcomeScreen() {
           accessibilityLabel={t('welcome.signIn', 'Already a member? Sign In')}
           testID="WelcomeScreen-signIn"
         >
-          <Text style={styles.secondaryBtnText}>{t('welcome.signIn', 'Already a member? Sign In')}</Text>
+          <Text variant="subhead" color="primary">{t('welcome.signIn', 'Already a member? Sign In')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -187,14 +187,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     backgroundColor: c.primary,
     borderColor: c.primary,
   },
-  langText: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textSecondary,
-  },
-  langTextActive: {
-    color: '#FFFFFF',
-  },
   hero: {
     alignItems: 'center',
     paddingTop: spacing['2xl'],
@@ -202,9 +194,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     gap: 8,
   },
   heroSubtitle: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textSecondary,
     marginTop: 4,
   },
   cardsScroll: {
@@ -236,18 +225,11 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     marginBottom: spacing.md,
   },
   cardTitle: {
-    fontSize: typography.fontSize.xl,
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
     textAlign: 'center',
     marginBottom: spacing.sm,
   },
   cardSubtitle: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textSecondary,
     textAlign: 'center',
-    lineHeight: typography.fontSize.base * 1.5,
   },
   dots: {
     flexDirection: 'row',
@@ -279,20 +261,10 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     minHeight: 52,
     justifyContent: 'center',
   },
-  primaryBtnText: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.semiBold,
-    color: '#FFFFFF',
-  },
   secondaryBtn: {
     alignItems: 'center',
     paddingVertical: 12,
     minHeight: 48,
     justifyContent: 'center',
-  },
-  secondaryBtnText: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.medium,
-    color: c.primary,
   },
 });

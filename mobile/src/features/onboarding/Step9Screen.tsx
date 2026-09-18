@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import PickerSheet from '../../components/ui/PickerSheet';
+import Text from '../../components/ui/Text';
 import OnboardingLayout from './OnboardingLayout';
 import { useOnboarding } from './OnboardingContext';
 import type { FamilyType } from '../../types';
@@ -36,7 +37,7 @@ function CounterInput({
   const styles = React.useMemo(() => makeStyles(c), [c]);
   return (
     <View>
-      <Text style={styles.label}>{label}</Text>
+      <Text variant="subhead" color="textPrimary" style={styles.label}>{label}</Text>
       <View style={styles.counterRow}>
         <TouchableOpacity
           style={styles.counterBtn}
@@ -44,16 +45,16 @@ function CounterInput({
           testID={`${testID}-dec`}
           accessibilityLabel={`Decrease ${label}`}
         >
-          <Text style={styles.counterBtnText}>−</Text>
+          <Text variant="title3" color="textPrimary">−</Text>
         </TouchableOpacity>
-        <Text style={styles.counterValue} testID={testID}>{value}</Text>
+        <Text variant="title3" color="textPrimary" style={styles.counterValue} testID={testID}>{value}</Text>
         <TouchableOpacity
           style={styles.counterBtn}
           onPress={() => onChange(Math.min(10, value + 1))}
           testID={`${testID}-inc`}
           accessibilityLabel={`Increase ${label}`}
         >
-          <Text style={styles.counterBtnText}>+</Text>
+          <Text variant="title3" color="textPrimary">+</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -97,9 +98,9 @@ export default function Step9Screen() {
     >
       {/* Father's occupation */}
       <View>
-        <Text style={styles.label}>
+        <Text variant="subhead" color="textPrimary" style={styles.label}>
           {t('onboarding.step9.fatherOccupation')}
-          <Text style={styles.optional}> ({t('common.optional')})</Text>
+          <Text variant="footnote" color="textMuted"> ({t('common.optional')})</Text>
         </Text>
         <TouchableOpacity
           style={styles.selectBtn}
@@ -107,7 +108,7 @@ export default function Step9Screen() {
           testID="select-fatherOccupation"
           accessibilityLabel={t('onboarding.step9.fatherOccupation')}
         >
-          <Text style={fatherOccupation ? styles.selectText : styles.placeholderText}>
+          <Text variant="callout" color={fatherOccupation ? 'textPrimary' : 'textMuted'}>
             {fatherOccupation || 'Select occupation'}
           </Text>
         </TouchableOpacity>
@@ -115,9 +116,9 @@ export default function Step9Screen() {
 
       {/* Mother's occupation */}
       <View>
-        <Text style={styles.label}>
+        <Text variant="subhead" color="textPrimary" style={styles.label}>
           {t('onboarding.step9.motherOccupation')}
-          <Text style={styles.optional}> ({t('common.optional')})</Text>
+          <Text variant="footnote" color="textMuted"> ({t('common.optional')})</Text>
         </Text>
         <TouchableOpacity
           style={styles.selectBtn}
@@ -125,7 +126,7 @@ export default function Step9Screen() {
           testID="select-motherOccupation"
           accessibilityLabel={t('onboarding.step9.motherOccupation')}
         >
-          <Text style={motherOccupation ? styles.selectText : styles.placeholderText}>
+          <Text variant="callout" color={motherOccupation ? 'textPrimary' : 'textMuted'}>
             {motherOccupation || 'Select occupation'}
           </Text>
         </TouchableOpacity>
@@ -153,7 +154,7 @@ export default function Step9Screen() {
 
       {/* Family type */}
       <View>
-        <Text style={styles.label}>{t('onboarding.step9.familyType')}</Text>
+        <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step9.familyType')}</Text>
         <View style={styles.pillRow}>
           {FAMILY_TYPES.map((opt) => {
             const active = familyType === opt.key;
@@ -167,7 +168,7 @@ export default function Step9Screen() {
                 accessibilityRole="radio"
                 accessibilityState={{ selected: active }}
               >
-                <Text style={[styles.pillText, active && styles.pillTextActive]}>{opt.label}</Text>
+                <Text variant="subhead" color={active ? 'primary' : 'textPrimary'}>{opt.label}</Text>
               </TouchableOpacity>
             );
           })}
@@ -176,7 +177,7 @@ export default function Step9Screen() {
 
       {/* Family values */}
       <View>
-        <Text style={styles.label}>{t('onboarding.step9.familyValues')}</Text>
+        <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step9.familyValues')}</Text>
         <View style={styles.pillRow}>
           {FAMILY_VALUES_OPTIONS.map((opt) => {
             const active = familyValues === opt.key;
@@ -190,7 +191,7 @@ export default function Step9Screen() {
                 accessibilityRole="radio"
                 accessibilityState={{ selected: active }}
               >
-                <Text style={[styles.pillText, active && styles.pillTextActive]}>{opt.label}</Text>
+                <Text variant="subhead" color={active ? 'primary' : 'textPrimary'}>{opt.label}</Text>
               </TouchableOpacity>
             );
           })}
@@ -219,22 +220,16 @@ export default function Step9Screen() {
 
 const makeStyles = (c: ThemeColours) => StyleSheet.create({
   label: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
     marginBottom: spacing.sm,
   },
-  optional: { color: c.textMuted, fontFamily: typography.fontFamily.regular },
   selectBtn: {
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: borderRadius.sm,
     paddingHorizontal: spacing.md,
-    height: 48,
+    minHeight: 48,
     justifyContent: 'center',
   },
-  selectText: { fontSize: typography.fontSize.base, color: c.textPrimary },
-  placeholderText: { fontSize: typography.fontSize.base, color: c.textMuted },
   siblingRow: { flexDirection: 'row', gap: spacing.lg },
   siblingItem: { flex: 1 },
   counterRow: {
@@ -251,16 +246,7 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  counterBtnText: {
-    fontSize: typography.fontSize.xl,
-    color: c.textPrimary,
-    fontFamily: typography.fontFamily.medium,
-    lineHeight: typography.fontSize.xl * 1.2,
-  },
   counterValue: {
-    fontSize: typography.fontSize.xl,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.textPrimary,
     minWidth: 32,
     textAlign: 'center',
   },
@@ -283,10 +269,4 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     borderColor: c.primary,
     backgroundColor: c.primaryLight,
   },
-  pillText: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
-  },
-  pillTextActive: { color: c.primary },
 });

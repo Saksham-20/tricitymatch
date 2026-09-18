@@ -5,8 +5,9 @@
  */
 import React, { useEffect, useRef, useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, TextInput, StyleSheet, Pressable, Text } from 'react-native';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { View, TextInput, StyleSheet, Pressable } from 'react-native';
+import Text from '../ui/Text';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 
 const LENGTH = 4;
 
@@ -54,7 +55,7 @@ export default function OtpInput({ onComplete, disabled = false, resetKey = 0, t
           const active = i === code.length && !disabled;
           return (
             <View key={i} style={[st.box, active && st.boxActive, filled && st.boxFilled]}>
-              <Text style={st.digit}>{code[i] ?? ''}</Text>
+              <Text variant="title3" color="textPrimary">{code[i] ?? ''}</Text>
             </View>
           );
         })}
@@ -74,5 +75,4 @@ const makeSt = (c: ThemeColours) => StyleSheet.create({
   },
   boxActive: { borderColor: c.primary },
   boxFilled: { borderColor: c.primary, backgroundColor: '#FDF2F5' },
-  digit: { fontSize: typography.fontSize.xl, fontWeight: '700', color: c.textPrimary },
 });

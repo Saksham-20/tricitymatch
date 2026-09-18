@@ -1,13 +1,14 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
-  View, Text, TouchableOpacity, StyleSheet, Modal, FlatList,
+  View, TouchableOpacity, StyleSheet, Modal, FlatList,
   PanResponder, PanResponderGestureState, LayoutChangeEvent,
 } from 'react-native';
+import Text from '../../components/ui/Text';
 import { PressableScale } from '../../components/motion';
 import { haptics } from '../../utils/haptics';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import OnboardingLayout from './OnboardingLayout';
 import { useOnboarding } from './OnboardingContext';
 
@@ -80,8 +81,8 @@ function RangeSlider({ min, max, low, high, onLowChange, onHighChange, formatLab
     >
       {/* Labels */}
       <View style={styles.sliderLabelRow}>
-        <Text style={styles.sliderLabel}>{formatLabel(low)}</Text>
-        <Text style={styles.sliderLabel}>{formatLabel(high)}</Text>
+        <Text variant="subhead" color="primary">{formatLabel(low)}</Text>
+        <Text variant="subhead" color="primary">{formatLabel(high)}</Text>
       </View>
 
       {/* Track */}
@@ -129,7 +130,7 @@ function MultiSelectPills<T extends string>({
   const isAny = selected.length === 0;
   return (
     <View>
-      <Text style={styles.label}>{label}</Text>
+      <Text variant="subhead" color="textPrimary" style={styles.label}>{label}</Text>
       <View style={styles.pillRow}>
         {anyAllowed && (
           <PressableScale
@@ -145,7 +146,7 @@ function MultiSelectPills<T extends string>({
             testID="multiselect-any"
             accessibilityLabel="Any"
           >
-            <Text style={[styles.pillText, isAny && styles.pillTextActive]}>Any</Text>
+            <Text variant="subhead" color={isAny ? 'primary' : 'textPrimary'}>Any</Text>
           </PressableScale>
         )}
         {options.map((opt) => {
@@ -161,7 +162,7 @@ function MultiSelectPills<T extends string>({
               accessibilityRole="checkbox"
               accessibilityState={{ checked: active }}
             >
-              <Text style={[styles.pillText, active && styles.pillTextActive]}>{opt.label}</Text>
+              <Text variant="subhead" color={active ? 'primary' : 'textPrimary'}>{opt.label}</Text>
             </PressableScale>
           );
         })}
@@ -187,7 +188,7 @@ function PickerSheet({ visible, title, options, selected, onSelect, onClose }: P
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
       <View style={styles.sheet}>
-        <Text style={styles.sheetTitle}>{title}</Text>
+        <Text variant="headline" color="textPrimary" style={styles.sheetTitle}>{title}</Text>
         <FlatList
           data={options}
           keyExtractor={(item) => item}
@@ -197,7 +198,7 @@ function PickerSheet({ visible, title, options, selected, onSelect, onClose }: P
               onPress={() => { onSelect(item); onClose(); }}
               testID={`option-${item}`}
             >
-              <Text style={[styles.sheetRowText, item === selected && styles.sheetRowTextActive]}>
+              <Text variant="callout" color={item === selected ? 'primary' : 'textPrimary'}>
                 {item}
               </Text>
             </TouchableOpacity>
@@ -291,7 +292,7 @@ export default function Step11Screen() {
     >
       {/* Age range */}
       <View>
-        <Text style={styles.label}>{t('onboarding.step11.ageRange')}</Text>
+        <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step11.ageRange')}</Text>
         <RangeSlider
           min={AGE_MIN} max={AGE_MAX}
           low={ageMin} high={ageMax}
@@ -303,7 +304,7 @@ export default function Step11Screen() {
 
       {/* Height range */}
       <View>
-        <Text style={styles.label}>{t('onboarding.step11.heightRange')}</Text>
+        <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step11.heightRange')}</Text>
         <RangeSlider
           min={HEIGHT_MIN} max={HEIGHT_MAX}
           low={heightMin} high={heightMax}
@@ -324,14 +325,14 @@ export default function Step11Screen() {
 
       {/* Religion */}
       <View>
-        <Text style={styles.label}>{t('onboarding.step11.religion')}</Text>
+        <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step11.religion')}</Text>
         <View style={styles.pillRow}>
           <TouchableOpacity
             style={[styles.pill, religions.length === 0 && styles.pillActive]}
             onPress={() => setReligions([])}
             testID="religion-any"
           >
-            <Text style={[styles.pillText, religions.length === 0 && styles.pillTextActive]}>Any</Text>
+            <Text variant="subhead" color={religions.length === 0 ? 'primary' : 'textPrimary'}>Any</Text>
           </TouchableOpacity>
           {RELIGIONS.map((r) => {
             const active = religions.includes(r);
@@ -344,7 +345,7 @@ export default function Step11Screen() {
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: active }}
               >
-                <Text style={[styles.pillText, active && styles.pillTextActive]}>{r}</Text>
+                <Text variant="subhead" color={active ? 'primary' : 'textPrimary'}>{r}</Text>
               </TouchableOpacity>
             );
           })}
@@ -353,14 +354,14 @@ export default function Step11Screen() {
 
       {/* Min education */}
       <View>
-        <Text style={styles.label}>{t('onboarding.step11.education')}</Text>
+        <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step11.education')}</Text>
         <TouchableOpacity
           style={styles.selectBtn}
           onPress={() => setEducationSheet(true)}
           testID="select-prefEducation"
           accessibilityLabel={t('onboarding.step11.education')}
         >
-          <Text style={education ? styles.selectText : styles.placeholderText}>
+          <Text variant="callout" color={education ? 'textPrimary' : 'textMuted'}>
             {education || 'Minimum education level'}
           </Text>
         </TouchableOpacity>
@@ -377,14 +378,14 @@ export default function Step11Screen() {
 
       {/* Manglik preference */}
       <View>
-        <Text style={styles.label}>{t('onboarding.step11.manglik')}</Text>
+        <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step11.manglik')}</Text>
         <TouchableOpacity
           style={styles.selectBtn}
           onPress={() => setManglikSheet(true)}
           testID="select-prefManglik"
           accessibilityLabel={t('onboarding.step11.manglik')}
         >
-          <Text style={manglik ? styles.selectText : styles.placeholderText}>
+          <Text variant="callout" color={manglik ? 'textPrimary' : 'textMuted'}>
             {manglik || 'Any'}
           </Text>
         </TouchableOpacity>
@@ -412,18 +413,10 @@ export default function Step11Screen() {
 
 const makeStyles = (c: ThemeColours) => StyleSheet.create({
   label: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
     marginBottom: spacing.sm,
   },
   sliderContainer: { paddingHorizontal: THUMB_SIZE / 2 },
   sliderLabelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.sm },
-  sliderLabel: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.primary,
-  },
   track: {
     height: 6,
     backgroundColor: c.border,
@@ -462,22 +455,14 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     alignItems: 'center',
   },
   pillActive: { borderColor: c.primary, backgroundColor: c.primaryLight },
-  pillText: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
-  },
-  pillTextActive: { color: c.primary },
   selectBtn: {
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: borderRadius.sm,
     paddingHorizontal: spacing.md,
-    height: 48,
+    minHeight: 48,
     justifyContent: 'center',
   },
-  selectText: { fontSize: typography.fontSize.base, color: c.textPrimary },
-  placeholderText: { fontSize: typography.fontSize.base, color: c.textMuted },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
   sheet: {
     backgroundColor: c.background,
@@ -487,14 +472,9 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     paddingTop: spacing.lg,
   },
   sheetTitle: {
-    fontSize: typography.fontSize.lg,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.textPrimary,
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.md,
   },
   sheetRow: { height: 52, paddingHorizontal: spacing.lg, justifyContent: 'center' },
   sheetRowActive: { backgroundColor: c.primaryLight },
-  sheetRowText: { fontSize: typography.fontSize.base, color: c.textPrimary },
-  sheetRowTextActive: { color: c.primary, fontFamily: typography.fontFamily.semiBold },
 });

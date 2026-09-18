@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import PickerSheet from '../../components/ui/PickerSheet';
+import Text from '../../components/ui/Text';
 import OnboardingLayout from './OnboardingLayout';
 import { useOnboarding } from './OnboardingContext';
 
@@ -51,14 +52,14 @@ export default function Step4Screen() {
     >
       {/* Highest qualification */}
       <View>
-        <Text style={styles.label}>{t('onboarding.step4.qualification')}</Text>
+        <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step4.qualification')}</Text>
         <TouchableOpacity
           style={styles.selectBtn}
           onPress={() => setQualSheet(true)}
           testID="select-qualification"
           accessibilityLabel={t('onboarding.step4.qualification')}
         >
-          <Text style={education ? styles.selectText : styles.placeholderText}>
+          <Text variant="callout" color={education ? 'textPrimary' : 'textMuted'}>
             {education || 'Select qualification'}
           </Text>
         </TouchableOpacity>
@@ -67,14 +68,14 @@ export default function Step4Screen() {
       {/* Field of study + institution reveal after qualification is chosen */}
       {!!education && (
       <View>
-        <Text style={styles.label}>{t('onboarding.step4.fieldOfStudy')}</Text>
+        <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step4.fieldOfStudy')}</Text>
         <TouchableOpacity
           style={styles.selectBtn}
           onPress={() => setFieldSheet(true)}
           testID="select-fieldOfStudy"
           accessibilityLabel={t('onboarding.step4.fieldOfStudy')}
         >
-          <Text style={degree ? styles.selectText : styles.placeholderText}>
+          <Text variant="callout" color={degree ? 'textPrimary' : 'textMuted'}>
             {degree || 'Select field of study'}
           </Text>
         </TouchableOpacity>
@@ -84,9 +85,9 @@ export default function Step4Screen() {
       {/* Institution (optional) */}
       {!!education && (
       <View>
-        <Text style={styles.label}>
+        <Text variant="subhead" color="textPrimary" style={styles.label}>
           {t('onboarding.step4.institution')}
-          <Text style={styles.optional}> ({t('common.optional')})</Text>
+          <Text variant="footnote" color="textMuted"> ({t('common.optional')})</Text>
         </Text>
         <TextInput
           style={styles.input}
@@ -123,12 +124,8 @@ export default function Step4Screen() {
 
 const makeStyles = (c: ThemeColours) => StyleSheet.create({
   label: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
     marginBottom: spacing.sm,
   },
-  optional: { color: c.textMuted, fontFamily: typography.fontFamily.regular },
   input: {
     borderWidth: 1,
     borderColor: c.border,
@@ -144,9 +141,7 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     borderColor: c.border,
     borderRadius: borderRadius.sm,
     paddingHorizontal: spacing.md,
-    height: 48,
+    minHeight: 48,
     justifyContent: 'center',
   },
-  selectText: { fontSize: typography.fontSize.base, color: c.textPrimary },
-  placeholderText: { fontSize: typography.fontSize.base, color: c.textMuted },
 });

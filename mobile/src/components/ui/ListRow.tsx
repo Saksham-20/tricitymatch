@@ -1,9 +1,10 @@
 import React from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colours, spacing, typography, type ThemeColours } from '@shared/constants/theme';
-import { fontSize as scaledFontSize, tapSize } from '../../utils/elderTheme';
+import { spacing, type ThemeColours } from '@shared/constants/theme';
+import { tapSize } from '../../utils/elderTheme';
+import Text from './Text';
 
 interface ListRowProps {
   icon?: keyof typeof Ionicons.glyphMap;
@@ -14,8 +15,6 @@ interface ListRowProps {
   switchValue?: boolean;
   onSwitchChange?: (value: boolean) => void;
   destructive?: boolean;
-  /** Bumps tap target + font size for elder mode (mirrors elderTheme conventions) */
-  elder?: boolean;
   testID?: string;
 }
 
@@ -29,10 +28,9 @@ export default function ListRow({
   switchValue,
   onSwitchChange,
   destructive = false,
-  elder = false,
   testID,
 }: ListRowProps) {
-  const { c } = useTheme();
+  const { c, elder } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
   const Container: React.ElementType = onPress ? TouchableOpacity : View;
   const minHeight = tapSize(elder);
@@ -51,14 +49,11 @@ export default function ListRow({
           <Ionicons name={icon} size={20} color={destructive ? c.error : c.primary} />
         </View>
       ) : null}
-      <Text
-        style={[styles.label, { fontSize: scaledFontSize(elder, 'base') }, destructive && styles.destructiveText]}
-        numberOfLines={1}
-      >
+      <Text variant="body" color={destructive ? 'error' : 'textPrimary'} style={styles.label} numberOfLines={1}>
         {label}
       </Text>
       {value ? (
-        <Text style={styles.value} numberOfLines={1}>
+        <Text variant="footnote" color="textMuted" numberOfLines={1}>
           {value}
         </Text>
       ) : null}
@@ -93,15 +88,5 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
   },
   label: {
     flex: 1,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textPrimary,
-  },
-  value: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textMuted,
-  },
-  destructiveText: {
-    color: c.error,
   },
 });

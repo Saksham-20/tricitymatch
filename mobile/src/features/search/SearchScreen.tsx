@@ -3,7 +3,6 @@ import { requestNotifPrime } from '../../utils/notifPrime';
 import { useTabBarClearance } from '../../hooks/useTabBarClearance';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
   TextInput,
@@ -13,13 +12,14 @@ import {
   Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Text from '../../components/ui/Text';
 import ListFooter from '../../components/ui/ListFooter';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, type, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { getProfileByCode, search, createSavedSearch } from '../../api/search';
 import { showToast } from '../../utils/toast';
 import { performMatchAction } from '../../api/matches';
@@ -96,14 +96,14 @@ function SortPicker({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableOpacity style={sp.backdrop} onPress={onClose} activeOpacity={1}>
         <View style={sp.sheet}>
-          <Text style={sp.title}>Sort By</Text>
+          <Text variant="headline" color="textPrimary" style={sp.title}>Sort By</Text>
           {SORT_OPTIONS.map((o) => (
             <TouchableOpacity
               key={o.value}
               style={sp.option}
               onPress={() => { onSelect(o.value); onClose(); }}
             >
-              <Text style={[sp.optLabel, current === o.value && sp.optActive]}>{o.label}</Text>
+              <Text variant="callout" color={current === o.value ? 'primary' : 'textSecondary'}>{o.label}</Text>
               {current === o.value && <Ionicons name="checkmark" size={18} color={c.primary} />}
             </TouchableOpacity>
           ))}
@@ -115,10 +115,8 @@ function SortPicker({
 const makeSp = (c: ThemeColours) => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: c.background, borderTopLeftRadius: borderRadius.xl, borderTopRightRadius: borderRadius.xl, padding: spacing.lg, paddingBottom: spacing['3xl'] },
-  title: { fontSize: typography.fontSize.lg, fontFamily: typography.fontFamily.bold, color: c.textPrimary, marginBottom: spacing.md },
+  title: { marginBottom: spacing.md },
   option: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.md },
-  optLabel: { fontSize: typography.fontSize.base, color: c.textSecondary, fontFamily: typography.fontFamily.regular },
-  optActive: { color: c.primary, fontFamily: typography.fontFamily.semiBold },
 });
 
 // ─── Save Search Modal ────────────────────────────────────────────────────────
@@ -139,7 +137,7 @@ function SaveSearchModal({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <TouchableOpacity style={ss.backdrop} onPress={onClose} activeOpacity={1}>
         <View style={ss.sheet} onStartShouldSetResponder={() => true}>
-          <Text style={ss.title}>Save Search</Text>
+          <Text variant="headline" color="textPrimary" style={ss.title}>Save Search</Text>
           <TextInput
             style={ss.input}
             value={name}
@@ -151,14 +149,14 @@ function SaveSearchModal({
           />
           <View style={ss.row}>
             <TouchableOpacity style={ss.cancelBtn} onPress={onClose}>
-              <Text style={ss.cancelText}>Cancel</Text>
+              <Text variant="subhead" color="textSecondary">Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[ss.saveBtn, !name.trim() && { opacity: 0.5 }]}
               onPress={() => { if (name.trim()) { onSave(name.trim()); setName(''); } }}
               disabled={!name.trim()}
             >
-              <Text style={ss.saveText}>Save</Text>
+              <Text variant="headline" style={ss.saveText}>Save</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -169,7 +167,7 @@ function SaveSearchModal({
 const makeSs = (c: ThemeColours) => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: c.background, borderTopLeftRadius: borderRadius.xl, borderTopRightRadius: borderRadius.xl, padding: spacing.lg, paddingBottom: spacing['3xl'] },
-  title: { fontSize: typography.fontSize.lg, fontFamily: typography.fontFamily.bold, color: c.textPrimary, marginBottom: spacing.md },
+  title: { marginBottom: spacing.md },
   input: {
     borderWidth: 1,
     borderColor: c.border,
@@ -183,9 +181,8 @@ const makeSs = (c: ThemeColours) => StyleSheet.create({
   },
   row: { flexDirection: 'row', gap: spacing.md },
   cancelBtn: { flex: 1, borderWidth: 1, borderColor: c.border, borderRadius: borderRadius.md, paddingVertical: spacing.md, alignItems: 'center' },
-  cancelText: { color: c.textSecondary, fontFamily: typography.fontFamily.medium, fontSize: typography.fontSize.base },
   saveBtn: { flex: 1, backgroundColor: c.primary, borderRadius: borderRadius.md, paddingVertical: spacing.md, alignItems: 'center' },
-  saveText: { color: '#fff', fontFamily: typography.fontFamily.bold, fontSize: typography.fontSize.base },
+  saveText: { color: '#fff' },
 });
 
 // ─── SearchScreen ─────────────────────────────────────────────────────────────
@@ -356,7 +353,7 @@ export default function SearchScreen() {
             testID="open-profile-code"
           >
             <Ionicons name="id-card-outline" size={16} color={c.accent} />
-            <Text style={[s.codeText, { color: c.fgStrong }]} numberOfLines={1}>
+            <Text variant="subhead" color="fgStrong" style={s.codeText} numberOfLines={1}>
               Open profile {formatProfileCode(typedCode)}
             </Text>
             {codeLookup.isPending ? (
@@ -366,7 +363,7 @@ export default function SearchScreen() {
             )}
           </TouchableOpacity>
           {codeLookupError ? (
-            <Text style={s.codeError} testID="code-lookup-error">{codeLookupError}</Text>
+            <Text variant="footnote" color="error" testID="code-lookup-error">{codeLookupError}</Text>
           ) : null}
         </View>
       ) : null}
@@ -385,7 +382,7 @@ export default function SearchScreen() {
             testID="filter-btn"
           >
             <Ionicons name="options" size={16} color={hasFilters ? c.accent : c.textSecondary} />
-            <Text style={[s.toolBtnText, { color: hasFilters ? c.accent : c.textSecondary }]}>
+            <Text variant="subhead" color={hasFilters ? 'primary' : 'textSecondary'}>
               Filters{hasFilters ? ' •' : ''}
             </Text>
           </TouchableOpacity>
@@ -397,7 +394,7 @@ export default function SearchScreen() {
           accessibilityLabel="Sort options"
           testID="sort-btn"
         >
-          <Text style={[s.sortText, { color: c.textSecondary }]}>Sort: {sortLabel}</Text>
+          <Text variant="subhead" color="textSecondary">Sort: {sortLabel}</Text>
           <Ionicons name="chevron-down" size={14} color={c.textSecondary} />
         </TouchableOpacity>
       </View>
@@ -405,7 +402,7 @@ export default function SearchScreen() {
       {/* Result count */}
       {!isLoading && !isError && (
         <View style={s.countRow}>
-          <Text style={[s.countText, { color: c.textMuted }]}>
+          <Text variant="footnote" color="textMuted">
             {total > 0 ? `${total} profiles found` : 'No profiles found'}
           </Text>
         </View>
@@ -515,8 +512,7 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     paddingHorizontal: spacing.md,
     minHeight: 44,
   },
-  codeText: { flex: 1, ...type.subhead },
-  codeError: { ...type.footnote, color: c.error },
+  codeText: { flex: 1 },
   searchInput: {
     flex: 1,
     fontSize: typography.fontSize.base,
@@ -543,29 +539,14 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     backgroundColor: c.background,
   },
   toolBtnActive: { borderColor: c.primary, backgroundColor: c.primaryLight },
-  toolBtnText: {
-    fontSize: typography.fontSize.sm,
-    color: c.textSecondary,
-    fontFamily: typography.fontFamily.medium,
-  },
   sortBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
   },
-  sortText: {
-    fontSize: typography.fontSize.sm,
-    color: c.textSecondary,
-    fontFamily: typography.fontFamily.medium,
-  },
   countRow: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.sm,
-  },
-  countText: {
-    fontSize: typography.fontSize.sm,
-    color: c.textMuted,
-    fontFamily: typography.fontFamily.regular,
   },
   list: {
     paddingTop: spacing.sm,

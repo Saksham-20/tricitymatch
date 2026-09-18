@@ -2,20 +2,20 @@ import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
   Image,
   RefreshControl,
 } from 'react-native';
+import Text from '../../components/ui/Text';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { ListSkeleton } from '../../components/ui/skeletons';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { getGuardianMatches, getGuardianShortlist } from '../../api/guardian';
 import { queryKeys } from '../../constants/queryKeys';
 import type { MainStackParamList } from '../../navigation/types';
@@ -57,21 +57,21 @@ function ReadOnlyProfileCard({ profile, onPress }: ROCardProps) {
         </View>
       )}
       <View style={rc.info}>
-        <Text style={rc.name}>{name}</Text>
-        <Text style={rc.sub}>
+        <Text variant="headline" color="textPrimary">{name}</Text>
+        <Text variant="footnote" color="textSecondary">
           {[ageFromDob(profile.dateOfBirth), profile.city, profile.profession].filter(Boolean).join(' · ')}
         </Text>
-        {profile.education && <Text style={rc.detail}>{profile.education}</Text>}
+        {profile.education && <Text variant="footnote" color="textMuted">{profile.education}</Text>}
         {profile.compatibilityScore != null && (
           <View style={rc.compatRow}>
             <Ionicons name="heart" size={12} color={c.primary} />
-            <Text style={rc.compatText}>{profile.compatibilityScore}% match</Text>
+            <Text variant="caption" color="primary">{profile.compatibilityScore}% match</Text>
           </View>
         )}
       </View>
       {/* Read-only badge — no action buttons */}
       <View style={rc.viewOnlyBadge}>
-        <Text style={rc.viewOnlyText}>View Only</Text>
+        <Text variant="micro" color="textMuted">View Only</Text>
       </View>
       <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
     </TouchableOpacity>
@@ -83,13 +83,8 @@ const makeRc = (c: ThemeColours) => StyleSheet.create({
   photo:           { width: 64, height: 64, borderRadius: borderRadius.md },
   photoPlaceholder:{ backgroundColor: c.surfaceCard, alignItems: 'center', justifyContent: 'center' },
   info:            { flex: 1, gap: 3 },
-  name:            { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
-  sub:             { fontSize: typography.fontSize.sm, color: c.textSecondary },
-  detail:          { fontSize: typography.fontSize.xs, color: c.textMuted },
   compatRow:       { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
-  compatText:      { fontSize: typography.fontSize.xs, color: c.primary, fontFamily: typography.fontFamily.medium },
   viewOnlyBadge:   { paddingHorizontal: 6, paddingVertical: 2, backgroundColor: c.border, borderRadius: borderRadius.full },
-  viewOnlyText:    { fontSize: 10, color: c.textMuted },
 });
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -138,8 +133,8 @@ export default function GuardianViewScreen() {
           <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
         </TouchableOpacity>
         <View style={s.headerTitle}>
-          <Text style={s.title}>{candidateName}</Text>
-          <Text style={s.titleSub}>Guardian View</Text>
+          <Text variant="headline" color="textPrimary">{candidateName}</Text>
+          <Text variant="footnote" color="textSecondary">Guardian View</Text>
         </View>
         <View style={{ width: 40 }} />
       </View>
@@ -147,7 +142,7 @@ export default function GuardianViewScreen() {
       {/* Read-only banner */}
       <View style={s.readOnlyBanner}>
         <Ionicons name="eye-outline" size={14} color={c.primary} style={{ marginRight: 4 }} />
-        <Text style={s.readOnlyText}>Read-only · You can browse but not take any actions</Text>
+        <Text variant="footnote" color="primary">Read-only · You can browse but not take any actions</Text>
       </View>
 
       {/* Tabs */}
@@ -160,7 +155,7 @@ export default function GuardianViewScreen() {
             testID={`tab-${tab.key}`}
             accessibilityLabel={tab.label}
           >
-            <Text style={[s.tabLabel, activeTab === tab.key && s.tabLabelActive]}>{tab.label}</Text>
+            <Text variant="subhead" color={activeTab === tab.key ? 'primary' : 'textMuted'}>{tab.label}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -185,10 +180,10 @@ export default function GuardianViewScreen() {
           ListEmptyComponent={
             <View style={s.emptyState}>
               <Ionicons name={activeTab === 'matches' ? 'heart-outline' : 'bookmark-outline'} size={48} color={c.textMuted} />
-              <Text style={s.emptyTitle}>
+              <Text variant="title3" color="textSecondary">
                 {activeTab === 'matches' ? 'No Mutual Matches Yet' : 'No Shortlisted Profiles'}
               </Text>
-              <Text style={s.emptyHint}>
+              <Text variant="footnote" color="textMuted" style={s.emptyHint}>
                 {activeTab === 'matches'
                   ? `${candidateName} has no mutual matches yet.`
                   : `${candidateName} hasn't shortlisted anyone yet.`}
@@ -206,16 +201,10 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   header:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, backgroundColor: c.background, borderBottomWidth: 1, borderBottomColor: c.border },
   backBtn:       { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   headerTitle:   { alignItems: 'center' },
-  title:         { fontSize: typography.fontSize.lg, fontFamily: typography.fontFamily.bold, color: c.textPrimary },
-  titleSub:      { fontSize: typography.fontSize.xs, color: c.textSecondary },
   readOnlyBanner:{ flexDirection: 'row', alignItems: 'center', backgroundColor: c.primaryLight, paddingHorizontal: spacing.lg, paddingVertical: spacing.xs },
-  readOnlyText:  { fontSize: typography.fontSize.xs, color: c.primary },
   tabBar:        { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: c.border, backgroundColor: c.background },
   tab:           { flex: 1, paddingVertical: spacing.md, alignItems: 'center' },
   tabActive:     { borderBottomWidth: 2, borderBottomColor: c.primary },
-  tabLabel:      { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.medium, color: c.textMuted },
-  tabLabelActive:{ color: c.primary, fontFamily: typography.fontFamily.semiBold },
   emptyState:    { alignItems: 'center', gap: spacing.md, paddingTop: 80, paddingHorizontal: spacing.xl },
-  emptyTitle:    { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.semiBold, color: c.textSecondary },
-  emptyHint:     { fontSize: typography.fontSize.sm, color: c.textMuted, textAlign: 'center' },
+  emptyHint:     { textAlign: 'center' },
 });

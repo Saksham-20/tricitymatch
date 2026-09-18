@@ -6,9 +6,10 @@
  */
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, Text, TouchableOpacity, ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import Text from '../../components/ui/Text';
 import { Ionicons } from '@expo/vector-icons';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 
 const MAX_SEC = 60;
 
@@ -134,7 +135,7 @@ export function VoiceRecorderStrip({ onSend, onClose }: RecorderProps) {
       {phase === 'recording' && (
         <>
           <View style={vs.redDot} />
-          <Text style={[vs.timer, warn && { color: c.error }]}>
+          <Text variant="subhead" color={warn ? 'error' : 'textPrimary'} style={vs.timer}>
             {fmt(elapsed)}{warn ? ' · stopping soon' : ''}
           </Text>
           <View style={{ flex: 1 }} />
@@ -151,7 +152,7 @@ export function VoiceRecorderStrip({ onSend, onClose }: RecorderProps) {
           <TouchableOpacity onPress={togglePlay} style={vs.playBtn} accessibilityLabel={playing ? 'Pause preview' : 'Play preview'}>
             <Ionicons name={playing ? 'pause' : 'play'} size={18} color={c.primary} />
           </TouchableOpacity>
-          <Text style={vs.timer}>{fmt(Math.round(durationRef.current / 1000))}</Text>
+          <Text variant="subhead" color="textPrimary" style={vs.timer}>{fmt(Math.round(durationRef.current / 1000))}</Text>
           <View style={{ flex: 1 }} />
           <TouchableOpacity onPress={onClose} style={vs.iconBtn} accessibilityLabel="Discard voice message">
             <Ionicons name="trash-outline" size={22} color={c.textMuted} />
@@ -164,12 +165,12 @@ export function VoiceRecorderStrip({ onSend, onClose }: RecorderProps) {
       {phase === 'uploading' && (
         <>
           <ActivityIndicator size="small" color={c.primary} />
-          <Text style={[vs.timer, { marginLeft: spacing.sm }]}>Sending…</Text>
+          <Text variant="subhead" color="textPrimary" style={[vs.timer, { marginLeft: spacing.sm }]}>Sending…</Text>
         </>
       )}
       {phase === 'failed' && (
         <>
-          <Text style={[vs.timer, { color: c.error }]}>Upload failed</Text>
+          <Text variant="subhead" color="error" style={vs.timer}>Upload failed</Text>
           <View style={{ flex: 1 }} />
           <TouchableOpacity onPress={send} style={vs.iconBtn} accessibilityLabel="Retry send">
             <Ionicons name="refresh" size={22} color={c.primary} />
@@ -225,7 +226,7 @@ export function VoiceMessageBubble({ uri, durationMs, own }: { uri: string | nul
     return (
       <TouchableOpacity onPress={() => { soundRef.current = null; setState('idle'); toggle(); }} style={vs.bubbleRowInner}>
         <Ionicons name="alert-circle-outline" size={16} color={fg} />
-        <Text style={[vs.bubbleFail, { color: fg }]}>Couldn&apos;t play — tap to retry</Text>
+        <Text variant="subhead" style={[vs.bubbleFail, { color: fg }]}>Couldn&apos;t play — tap to retry</Text>
       </TouchableOpacity>
     );
   }
@@ -241,7 +242,7 @@ export function VoiceMessageBubble({ uri, durationMs, own }: { uri: string | nul
       <View style={[vs.track, own && { backgroundColor: 'rgba(255,255,255,0.3)' }]}>
         <View style={[vs.fill, own ? { backgroundColor: '#fff' } : { backgroundColor: c.primary }, { width: `${Math.round(progress * 100)}%` }]} />
       </View>
-      <Text style={[vs.duration, { color: own ? 'rgba(255,255,255,0.8)' : c.textMuted }]}>
+      <Text variant="caption" style={[vs.duration, { color: own ? 'rgba(255,255,255,0.8)' : c.textMuted }]}>
         {fmt(Math.round((durationMs || 0) / 1000))}
       </Text>
     </View>
@@ -257,7 +258,7 @@ const makeVs = (c: ThemeColours) => StyleSheet.create({
     minHeight: 56,
   },
   redDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: c.error, marginRight: spacing.sm },
-  timer: { fontSize: typography.fontSize.sm, color: c.textPrimary, fontVariant: ['tabular-nums'] },
+  timer: { fontVariant: ['tabular-nums'] },
   iconBtn: { padding: spacing.sm },
   stopBtn: {
     width: 44, height: 44, borderRadius: 22, backgroundColor: c.error,
@@ -278,6 +279,6 @@ const makeVs = (c: ThemeColours) => StyleSheet.create({
   bubbleRowInner: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minWidth: 170 },
   track: { flex: 1, height: 4, borderRadius: 2, backgroundColor: '#E8E8E8', overflow: 'hidden' },
   fill: { height: '100%' },
-  duration: { fontSize: typography.fontSize.xs, fontVariant: ['tabular-nums'] },
-  bubbleFail: { fontSize: typography.fontSize.sm, textDecorationLine: 'underline' },
+  duration: { fontVariant: ['tabular-nums'] },
+  bubbleFail: { textDecorationLine: 'underline' },
 });

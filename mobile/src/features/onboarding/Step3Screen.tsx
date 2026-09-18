@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { View, TextInput, StyleSheet } from 'react-native';
+import Text from '../../components/ui/Text';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { PressableScale } from '../../components/motion';
 import { haptics } from '../../utils/haptics';
 import OnboardingLayout from './OnboardingLayout';
@@ -45,7 +46,7 @@ export default function Step3Screen() {
     >
       {/* Manglik status */}
       <View>
-        <Text style={styles.label}>{t('onboarding.step3.manglikStatus')}</Text>
+        <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step3.manglikStatus')}</Text>
         <View style={styles.grid}>
           {MANGLIK_OPTIONS.map((opt) => {
             const isActive = manglikStatus === opt.key;
@@ -60,7 +61,7 @@ export default function Step3Screen() {
                 accessibilityRole="radio"
                 accessibilityState={{ selected: isActive }}
               >
-                <Text style={[styles.optionBtnText, isActive && styles.optionBtnTextActive]}>
+                <Text variant="subhead" color={isActive ? 'primary' : 'textPrimary'}>
                   {t(opt.tKey)}
                 </Text>
               </PressableScale>
@@ -73,15 +74,15 @@ export default function Step3Screen() {
           questions stay hidden until the member engages with the topic */}
       {manglikStatus && (
       <View>
-        <Text style={styles.sectionHeader}>{t('onboarding.step3.birthDetails')}</Text>
+        <Text variant="headline" color="textSecondary" style={styles.sectionHeader}>{t('onboarding.step3.birthDetails')}</Text>
       </View>
       )}
 
       {manglikStatus && (
       <View>
-        <Text style={styles.label}>
+        <Text variant="subhead" color="textPrimary" style={styles.label}>
           {t('onboarding.step3.birthTime')}
-          <Text style={styles.optional}> ({t('common.optional')})</Text>
+          <Text variant="footnote" color="textMuted"> ({t('common.optional')})</Text>
         </Text>
         <TextInput
           style={styles.input}
@@ -98,9 +99,9 @@ export default function Step3Screen() {
 
       {manglikStatus && (
       <View>
-        <Text style={styles.label}>
+        <Text variant="subhead" color="textPrimary" style={styles.label}>
           {t('onboarding.step3.birthPlace')}
-          <Text style={styles.optional}> ({t('common.optional')})</Text>
+          <Text variant="footnote" color="textMuted"> ({t('common.optional')})</Text>
         </Text>
         <TextInput
           style={styles.input}
@@ -123,22 +124,15 @@ export default function Step3Screen() {
 
 const makeStyles = (c: ThemeColours) => StyleSheet.create({
   label: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
     marginBottom: spacing.sm,
   },
-  optional: { color: c.textMuted, fontFamily: typography.fontFamily.regular },
   sectionHeader: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.textSecondary,
     marginTop: spacing.sm,
   },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   optionBtn: {
     paddingHorizontal: spacing.md,
-    height: 44,
+    minHeight: 44,
     borderWidth: 1.5,
     borderColor: c.border,
     borderRadius: borderRadius.full,
@@ -146,12 +140,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     justifyContent: 'center',
   },
   optionBtnActive: { borderColor: c.primary, backgroundColor: c.primaryLight },
-  optionBtnText: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
-  },
-  optionBtnTextActive: { color: c.primary },
   input: {
     borderWidth: 1,
     borderColor: c.border,

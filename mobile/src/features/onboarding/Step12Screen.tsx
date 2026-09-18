@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
-  View, Text, TouchableOpacity, StyleSheet, Image,
+  View, TouchableOpacity, StyleSheet, Image,
   Alert, ActivityIndicator,
 } from 'react-native';
+import Text from '../../components/ui/Text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { useOnboarding } from './OnboardingContext';
 import { uploadPhoto } from '../../api/profile';
 
@@ -109,9 +110,9 @@ export default function Step12Screen() {
         <TouchableOpacity onPress={goBack} style={styles.backBtn} testID="btn-back" accessibilityLabel={t('common.back')}>
           <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.stepLabel}>{t('onboarding.progress', { current: 12, total: 14 })}</Text>
+        <Text variant="subhead" color="textSecondary">{t('onboarding.progress', { current: 12, total: 14 })}</Text>
         <TouchableOpacity onPress={handleSkip} testID="btn-skip" accessibilityLabel={t('common.skip')}>
-          <Text style={styles.skipText}>{t('common.skip')}</Text>
+          <Text variant="subhead" color="primary">{t('common.skip')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -121,8 +122,8 @@ export default function Step12Screen() {
       </View>
 
       <View style={styles.body}>
-        <Text style={styles.title}>{t('onboarding.step12.title')}</Text>
-        <Text style={styles.subtitle}>{t('onboarding.step12.subtitle')}</Text>
+        <Text variant="title2" color="textPrimary" style={styles.title}>{t('onboarding.step12.title')}</Text>
+        <Text variant="callout" color="textSecondary" style={styles.subtitle}>{t('onboarding.step12.subtitle')}</Text>
 
         {/* Guidelines */}
         <View style={styles.guidelines}>
@@ -133,7 +134,7 @@ export default function Step12Screen() {
           ].map((g, i) => (
             <View key={i} style={styles.guideRow}>
               <Ionicons name="checkmark-circle" size={16} color={c.success} />
-              <Text style={styles.guideText}>{g}</Text>
+              <Text variant="footnote" color="textSecondary">{g}</Text>
             </View>
           ))}
         </View>
@@ -160,7 +161,7 @@ export default function Step12Screen() {
                   ) : (
                     <>
                       <Ionicons name="add" size={32} color={c.primary} />
-                      <Text style={styles.addSlotText}>
+                      <Text variant="caption" color="primary" style={styles.addSlotText}>
                         {i === 0 ? t('onboarding.step12.addFirst') : t('onboarding.step12.addMore')}
                       </Text>
                     </>
@@ -176,7 +177,7 @@ export default function Step12Screen() {
                 {/* Primary badge */}
                 {i === 0 && (
                   <View style={styles.primaryBadge}>
-                    <Text style={styles.primaryBadgeText}>{t('onboarding.step12.primary')}</Text>
+                    <Text variant="caption" color="onPrimary">{t('onboarding.step12.primary')}</Text>
                   </View>
                 )}
 
@@ -218,7 +219,7 @@ export default function Step12Screen() {
           })}
         </View>
 
-        <Text style={styles.countHint}>
+        <Text variant="footnote" color="textMuted" style={styles.countHint}>
           {t('onboarding.step12.count', { count: photos.length, max: MAX_PHOTOS })}
         </Text>
       </View>
@@ -232,7 +233,7 @@ export default function Step12Screen() {
           testID="btn-continue"
           accessibilityLabel={t('onboarding.saveAndContinue')}
         >
-          <Text style={styles.continueBtnText}>{t('onboarding.saveAndContinue')}</Text>
+          <Text variant="headline" color="onPrimary">{t('onboarding.saveAndContinue')}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -249,16 +250,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   backBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  stepLabel: {
-    fontSize: typography.fontSize.sm,
-    color: c.textSecondary,
-    fontFamily: typography.fontFamily.medium,
-  },
-  skipText: {
-    fontSize: typography.fontSize.sm,
-    color: c.primary,
-    fontFamily: typography.fontFamily.medium,
-  },
   progressTrack: {
     height: 4,
     backgroundColor: c.border,
@@ -273,25 +264,14 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
   },
   body: { flex: 1, padding: spacing.lg },
   title: {
-    fontSize: typography.fontSize['2xl'],
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
   },
   subtitle: {
-    fontSize: typography.fontSize.base,
-    color: c.textSecondary,
     marginBottom: spacing.lg,
-    lineHeight: typography.fontSize.base * 1.5,
   },
   guidelines: { gap: spacing.xs, marginBottom: spacing['2xl'] },
   guideRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  guideText: {
-    fontSize: typography.fontSize.sm,
-    color: c.textSecondary,
-    fontFamily: typography.fontFamily.regular,
-  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -323,9 +303,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     backgroundColor: c.primaryLight,
   },
   addSlotText: {
-    fontSize: typography.fontSize.xs,
-    color: c.primary,
-    fontFamily: typography.fontFamily.medium,
     textAlign: 'center',
   },
   primaryBadge: {
@@ -336,11 +313,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     borderRadius: borderRadius.sm,
     paddingHorizontal: 6,
     paddingVertical: 2,
-  },
-  primaryBadgeText: {
-    fontSize: typography.fontSize.xs,
-    color: '#fff',
-    fontFamily: typography.fontFamily.semiBold,
   },
   removeBtn: {
     position: 'absolute',
@@ -369,8 +341,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     justifyContent: 'center',
   },
   countHint: {
-    fontSize: typography.fontSize.xs,
-    color: c.textMuted,
     textAlign: 'center',
   },
   footer: {
@@ -382,14 +352,9 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
   continueBtn: {
     backgroundColor: c.primary,
     borderRadius: borderRadius.md,
-    height: 52,
+    minHeight: 52,
     alignItems: 'center',
     justifyContent: 'center',
   },
   continueBtnDisabled: { opacity: 0.5 },
-  continueBtnText: {
-    color: '#fff',
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.semiBold,
-  },
 });

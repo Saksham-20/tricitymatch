@@ -1,8 +1,9 @@
 import React from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { StyleProp, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { StyleProp, StyleSheet, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { borderRadius, colours, spacing, type, type ThemeColours } from '@shared/constants/theme';
+import { borderRadius, colours, spacing, type ThemeColours } from '@shared/constants/theme';
+import Text from './Text';
 
 export type BadgeTone =
   | 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info' | 'neutral'
@@ -46,7 +47,8 @@ export function Badge({ label, tone = 'neutral', icon, style, testID }: BadgePro
         testID={testID}
       >
         {icon}
-        <Text style={[styles.badgeText, { color: c.goldText }]} numberOfLines={1}>{label}</Text>
+        {/* c.goldText is a gold token, excluded from the curated text-colour union — kept as a style override */}
+        <Text variant="caption" style={[styles.badgeText, { color: c.goldText }]} numberOfLines={1}>{label}</Text>
       </LinearGradient>
     );
   }
@@ -57,7 +59,8 @@ export function Badge({ label, tone = 'neutral', icon, style, testID }: BadgePro
       testID={testID}
     >
       {icon}
-      <Text style={[styles.badgeText, { color: t.fg }]} numberOfLines={1}>{label}</Text>
+      {/* t.fg spans curated AND non-curated colours (e.g. premium's gold g600) depending on `tone` at runtime — left as a style override */}
+      <Text variant="caption" style={[styles.badgeText, { color: t.fg }]} numberOfLines={1}>{label}</Text>
     </View>
   );
 }
@@ -86,7 +89,8 @@ export function Chip({ label, selected = false, icon, onPress, testID }: ChipPro
       accessibilityState={onPress ? { selected } : undefined}
     >
       {icon}
-      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{label}</Text>
+      {/* c.accent is the 'primary' alias (identical hex) */}
+      <Text variant="subhead" color={selected ? 'primary' : 'textPrimary'} style={[styles.chipText, selected && styles.chipTextSelected]}>{label}</Text>
     </Container>
   );
 }
@@ -103,7 +107,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     alignSelf: 'flex-start',
   },
   badgeText: {
-    ...type.caption,
     fontFamily: 'Inter-Bold',
   },
   chip: {
@@ -121,12 +124,8 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     backgroundColor: c.accentSoft,
     borderColor: 'rgba(139,35,70,0.4)',
   },
-  chipText: {
-    ...type.subhead,
-    color: c.textPrimary,
-  },
+  chipText: {},
   chipTextSelected: {
-    color: c.accent,
     fontFamily: 'Inter-SemiBold',
   },
 });

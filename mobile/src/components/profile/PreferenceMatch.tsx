@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { type, spacing, borderRadius } from '@shared/constants/theme';
+import { spacing, borderRadius } from '@shared/constants/theme';
 import type { Profile } from '../../types';
 import { useTheme } from '../../hooks/useTheme';
+import Text from '../ui/Text';
 
 /**
  * Reverse partner-preference checklist — "Do you fit what X is looking for?".
@@ -113,12 +114,13 @@ export default function PreferenceMatch({ target, viewer, targetName = 'them' }:
         <View style={[styles.iconTile, { backgroundColor: c.accentSoft }]}>
           <Ionicons name="heart" size={15} color={c.primary} />
         </View>
-        <Text style={[styles.title, { color: c.fgStrong }]} numberOfLines={2}>
+        <Text variant="caption" color="fgStrong" style={styles.title} numberOfLines={2}>
           Do you fit what {targetName} is looking for?
         </Text>
         {scored.length > 0 && (
           <View style={[styles.chip, { backgroundColor: chipBg }]}>
-            <Text style={[styles.chipText, { color: chipFg }]}>{matched}/{scored.length}</Text>
+            {/* chipFg picks between c.success/c.primary/c.textMuted at runtime — left as a style override per the dynamic-colour rule */}
+            <Text variant="caption" style={[styles.chipText, { color: chipFg }]}>{matched}/{scored.length}</Text>
           </View>
         )}
       </View>
@@ -141,11 +143,11 @@ export default function PreferenceMatch({ target, viewer, targetName = 'them' }:
                 color={ok === true ? c.success : ok === false ? c.textMuted : c.textMuted}
               />
             </View>
-            <Text style={[styles.label, { color: c.textMuted }]} numberOfLines={1}>{label}</Text>
-            <Text style={[styles.want, { color: c.textPrimary }]} numberOfLines={1}>
+            <Text variant="caption" color="textMuted" style={styles.label} numberOfLines={1}>{label}</Text>
+            <Text variant="subhead" color="textPrimary" style={styles.want} numberOfLines={1}>
               {want}
             </Text>
-            {ok === null && <Text style={[styles.hint, { color: c.textMuted }]}>add yours</Text>}
+            {ok === null && <Text variant="footnote" color="textMuted">add yours</Text>}
           </View>
         ))}
       </View>
@@ -176,13 +178,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { ...type.caption, flex: 1, letterSpacing: 0.3 },
+  title: { flex: 1, letterSpacing: 0.3 },
   chip: {
     paddingHorizontal: spacing.sm,
     paddingVertical: 3,
     borderRadius: borderRadius.pill,
   },
-  chipText: { ...type.caption },
+  chipText: {},
   body: { paddingHorizontal: spacing.lg },
   row: {
     flexDirection: 'row',
@@ -197,7 +199,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  label: { ...type.caption, width: 84, textTransform: 'uppercase', letterSpacing: 0.3 },
-  want: { ...type.subhead, flex: 1, textTransform: 'capitalize' },
-  hint: { ...type.footnote },
+  label: { width: 84, textTransform: 'uppercase', letterSpacing: 0.3 },
+  want: { flex: 1, textTransform: 'capitalize' },
 });

@@ -2,7 +2,6 @@ import React from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -14,9 +13,10 @@ import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { getAdminStats, getVerificationQueue, getReportsQueue } from '../../api/admin';
 import type { AdminStackParamList } from '../../navigation/types';
+import Text from '../../components/ui/Text';
 
 type Nav = NativeStackNavigationProp<AdminStackParamList, 'AdminHome'>;
 
@@ -56,8 +56,8 @@ function StatCard({ icon, label, value, color }: StatCardProps) {
   return (
     <View style={[s.statCard, { borderLeftColor: tint }]}>
       <Ionicons name={icon} size={22} tint={tint} />
-      <Text style={s.statValue}>{value}</Text>
-      <Text style={s.statLabel}>{label}</Text>
+      <Text variant="title3" color="textPrimary">{value}</Text>
+      <Text variant="footnote" color="textSecondary">{label}</Text>
     </View>
   );
 }
@@ -79,9 +79,9 @@ function QueueRow({ icon, label, count, color, onPress, testID }: QueueRowProps)
       <View style={[s.queueIcon, { backgroundColor: color + '20' }]}>
         <Ionicons name={icon} size={20} color={color} />
       </View>
-      <Text style={s.queueLabel}>{label}</Text>
+      <Text variant="subhead" color="textPrimary" style={s.queueLabel}>{label}</Text>
       <View style={[s.badge, { backgroundColor: count > 0 ? color : c.textMuted }]}>
-        <Text style={s.badgeText}>{count > 99 ? '99+' : count}</Text>
+        <Text variant="caption" style={s.badgeText}>{count > 99 ? '99+' : count}</Text>
       </View>
       <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
     </TouchableOpacity>
@@ -145,7 +145,7 @@ export default function AdminHomeScreen() {
         >
           <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
         </TouchableOpacity>
-        <Text style={s.title}>Admin Console</Text>
+        <Text variant="title2" color="textPrimary" style={s.title}>Admin Console</Text>
         {isLoading ? (
           <ActivityIndicator size="small" color={c.primary} />
         ) : (
@@ -157,7 +157,7 @@ export default function AdminHomeScreen() {
         contentContainerStyle={s.scroll}
         refreshControl={<RefreshControl refreshing={statsQ.isFetching} onRefresh={refetch} />}
       >
-        <Text style={s.sectionTitle}>Overview</Text>
+        <Text variant="caption" color="textSecondary" style={s.sectionTitle}>Overview</Text>
         <View style={s.statsGrid}>
           <StatCard icon="people" label="Total Users" value={(stats.totalUsers ?? 0).toLocaleString()} />
           <StatCard icon="card" label="Active Subs" value={(stats.activeSubscribers ?? 0).toLocaleString()} color={c.info} />
@@ -175,7 +175,7 @@ export default function AdminHomeScreen() {
           />
         </View>
 
-        <Text style={s.sectionTitle}>Action Queues</Text>
+        <Text variant="caption" color="textSecondary" style={s.sectionTitle}>Action Queues</Text>
         <View style={s.queuesCard}>
           <QueueRow
             icon="shield-checkmark-outline"
@@ -213,16 +213,10 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   },
   title: {
     flex: 1,
-    fontSize: typography.fontSize['2xl'],
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
   },
   headerSpacer: { width: 24 },
   scroll: { padding: spacing.lg, gap: spacing.sm },
   sectionTitle: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: spacing.xs,
@@ -240,16 +234,6 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     padding: spacing.md,
     borderLeftWidth: 3,
     gap: spacing.xs,
-  },
-  statValue: {
-    fontSize: typography.fontSize.xl,
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
-  },
-  statLabel: {
-    fontSize: typography.fontSize.xs,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textSecondary,
   },
   queuesCard: {
     backgroundColor: c.surfaceCard,
@@ -271,9 +255,6 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   },
   queueLabel: {
     flex: 1,
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
   },
   badge: {
     minWidth: 24,
@@ -284,8 +265,6 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     paddingHorizontal: spacing.xs,
   },
   badgeText: {
-    fontSize: typography.fontSize.xs,
-    fontFamily: typography.fontFamily.bold,
     color: '#fff',
   },
   divider: {

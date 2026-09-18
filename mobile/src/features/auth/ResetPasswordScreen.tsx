@@ -2,7 +2,6 @@ import React, { useState, useRef } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -11,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import Text from '../../components/ui/Text';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RouteProp } from '@react-navigation/native';
@@ -81,15 +81,15 @@ export default function ResetPasswordScreen() {
     return (
       <View style={styles.successContainer} testID="ResetPasswordScreen-success">
         <Ionicons name="checkmark-circle" size={56} color={c.success} style={{ marginBottom: spacing.md }} />
-        <Text style={styles.successTitle}>{t('auth.resetPassword.success')}</Text>
-        <Text style={styles.successSubtitle}>You can now sign in with your new password.</Text>
+        <Text variant="title3" color="textPrimary" style={styles.successTitle}>{t('auth.resetPassword.success')}</Text>
+        <Text variant="callout" color="textSecondary" style={styles.successSubtitle}>You can now sign in with your new password.</Text>
         <TouchableOpacity
           style={styles.primaryBtn}
           onPress={() => navigation.navigate('Login')}
           testID="ResetPasswordScreen-backToLogin"
           accessibilityLabel="Back to Sign In"
         >
-          <Text style={styles.primaryBtnText}>Back to Sign In</Text>
+          <Text variant="headline" style={{ color: '#FFFFFF' }}>Back to Sign In</Text>
         </TouchableOpacity>
       </View>
     );
@@ -123,20 +123,20 @@ export default function ResetPasswordScreen() {
           <View style={styles.iconWrap}>
             <Ionicons name="lock-closed-outline" size={28} color={c.primary} />
           </View>
-          <Text style={styles.title}>{t('auth.resetPassword.title')}</Text>
-          <Text style={styles.subtitle}>Choose a new password for your account.</Text>
+          <Text variant="title1" color="textPrimary" style={styles.title}>{t('auth.resetPassword.title')}</Text>
+          <Text variant="callout" color="textSecondary">Choose a new password for your account.</Text>
         </View>
 
         {/* Error */}
         {error ? (
           <View style={styles.errorBanner} testID="ResetPasswordScreen-error" accessibilityLiveRegion="polite">
-            <Text style={styles.errorText}>{error}</Text>
+            <Text variant="subhead" color="error">{error}</Text>
           </View>
         ) : null}
 
         {/* New password */}
         <View style={styles.fieldGroup}>
-          <Text style={styles.label}>{t('auth.resetPassword.newPassword')}</Text>
+          <Text variant="subhead" color="textPrimary" style={styles.label}>{t('auth.resetPassword.newPassword')}</Text>
           <View style={styles.passwordContainer}>
             <TextInput
               style={[styles.input, styles.passwordInput, fieldErrors.password ? styles.inputError : undefined]}
@@ -163,13 +163,13 @@ export default function ResetPasswordScreen() {
             </TouchableOpacity>
           </View>
           {fieldErrors.password ? (
-            <Text style={styles.fieldError} accessibilityLiveRegion="polite">{fieldErrors.password}</Text>
+            <Text variant="footnote" color="error" style={styles.fieldError} accessibilityLiveRegion="polite">{fieldErrors.password}</Text>
           ) : null}
         </View>
 
         {/* Confirm password */}
         <View style={styles.fieldGroup}>
-          <Text style={styles.label}>{t('auth.resetPassword.confirmPassword')}</Text>
+          <Text variant="subhead" color="textPrimary" style={styles.label}>{t('auth.resetPassword.confirmPassword')}</Text>
           <View style={styles.passwordContainer}>
             <TextInput
               ref={confirmRef}
@@ -196,7 +196,7 @@ export default function ResetPasswordScreen() {
             </TouchableOpacity>
           </View>
           {fieldErrors.confirmPassword ? (
-            <Text style={styles.fieldError} accessibilityLiveRegion="polite">{fieldErrors.confirmPassword}</Text>
+            <Text variant="footnote" color="error" style={styles.fieldError} accessibilityLiveRegion="polite">{fieldErrors.confirmPassword}</Text>
           ) : null}
         </View>
 
@@ -211,7 +211,7 @@ export default function ResetPasswordScreen() {
           {loading ? (
             <ActivityIndicator color="#FFFFFF" testID="ResetPasswordScreen-loader" />
           ) : (
-            <Text style={styles.primaryBtnText}>{t('auth.resetPassword.reset')}</Text>
+            <Text variant="headline" style={{ color: '#FFFFFF' }}>{t('auth.resetPassword.reset')}</Text>
           )}
         </TouchableOpacity>
       </ScrollView>
@@ -235,15 +235,7 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     marginBottom: spacing.md,
   },
   title: {
-    fontSize: typography.fontSize['3xl'],
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
     marginBottom: spacing.sm,
-  },
-  subtitle: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textSecondary,
   },
   errorBanner: {
     backgroundColor: c.errorBg,
@@ -253,12 +245,8 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: c.error,
   },
-  errorText: { fontSize: typography.fontSize.sm, color: c.error, fontFamily: typography.fontFamily.medium },
   fieldGroup: { marginBottom: spacing.lg },
   label: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
     marginBottom: spacing.sm,
   },
   input: {
@@ -287,10 +275,7 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
   },
   eyeText: { fontSize: 18 },
   fieldError: {
-    fontSize: typography.fontSize.xs,
-    color: c.error,
     marginTop: spacing.xs,
-    fontFamily: typography.fontFamily.regular,
   },
   primaryBtn: {
     backgroundColor: c.primary,
@@ -301,11 +286,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     justifyContent: 'center',
   },
   btnDisabled: { opacity: 0.6 },
-  primaryBtnText: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.semiBold,
-    color: '#FFFFFF',
-  },
   // Success state
   successContainer: {
     flex: 1,
@@ -316,16 +296,10 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
   },
   successEmoji: { fontSize: 56, marginBottom: spacing['2xl'] },
   successTitle: {
-    fontSize: typography.fontSize.xl,
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
     textAlign: 'center',
     marginBottom: spacing.md,
   },
   successSubtitle: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textSecondary,
     textAlign: 'center',
     marginBottom: spacing['3xl'],
   },

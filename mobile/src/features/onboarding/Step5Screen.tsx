@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import PickerSheet from '../../components/ui/PickerSheet';
+import Text from '../../components/ui/Text';
 import OnboardingLayout from './OnboardingLayout';
 import { useOnboarding } from './OnboardingContext';
 
@@ -62,14 +63,14 @@ export default function Step5Screen() {
     >
       {/* Profession */}
       <View>
-        <Text style={styles.label}>{t('onboarding.step5.profession')}</Text>
+        <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step5.profession')}</Text>
         <TouchableOpacity
           style={styles.selectBtn}
           onPress={() => setProfSheet(true)}
           testID="select-profession"
           accessibilityLabel={t('onboarding.step5.profession')}
         >
-          <Text style={profession ? styles.selectText : styles.placeholderText}>
+          <Text variant="callout" color={profession ? 'textPrimary' : 'textMuted'}>
             {profession || 'Select profession'}
           </Text>
         </TouchableOpacity>
@@ -78,9 +79,9 @@ export default function Step5Screen() {
       {/* Employer + income reveal after profession is chosen */}
       {!!profession && (
       <View>
-        <Text style={styles.label}>
+        <Text variant="subhead" color="textPrimary" style={styles.label}>
           {t('onboarding.step5.employer')}
-          <Text style={styles.optional}> ({t('common.optional')})</Text>
+          <Text variant="footnote" color="textMuted"> ({t('common.optional')})</Text>
         </Text>
         <TextInput
           style={styles.input}
@@ -98,9 +99,9 @@ export default function Step5Screen() {
       {/* Income */}
       {!!profession && (
       <View>
-        <Text style={styles.label}>
+        <Text variant="subhead" color="textPrimary" style={styles.label}>
           {t('onboarding.step5.income')}
-          <Text style={styles.optional}> ({t('common.optional')})</Text>
+          <Text variant="footnote" color="textMuted"> ({t('common.optional')})</Text>
         </Text>
         <TouchableOpacity
           style={styles.selectBtn}
@@ -108,7 +109,7 @@ export default function Step5Screen() {
           testID="select-income"
           accessibilityLabel={t('onboarding.step5.income')}
         >
-          <Text style={income !== null ? styles.selectText : styles.placeholderText}>
+          <Text variant="callout" color={income !== null ? 'textPrimary' : 'textMuted'}>
             {incomeLabel || 'Select annual income'}
           </Text>
         </TouchableOpacity>
@@ -137,12 +138,8 @@ export default function Step5Screen() {
 
 const makeStyles = (c: ThemeColours) => StyleSheet.create({
   label: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
     marginBottom: spacing.sm,
   },
-  optional: { color: c.textMuted, fontFamily: typography.fontFamily.regular },
   input: {
     borderWidth: 1,
     borderColor: c.border,
@@ -158,9 +155,7 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     borderColor: c.border,
     borderRadius: borderRadius.sm,
     paddingHorizontal: spacing.md,
-    height: 48,
+    minHeight: 48,
     justifyContent: 'center',
   },
-  selectText: { fontSize: typography.fontSize.base, color: c.textPrimary },
-  placeholderText: { fontSize: typography.fontSize.base, color: c.textMuted },
 });

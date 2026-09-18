@@ -2,7 +2,6 @@ import React, { useState, useCallback } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -11,6 +10,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import Text from '../../components/ui/Text';
 import type { TextInputProps } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -53,7 +53,7 @@ function FieldEditor({
   const fe = React.useMemo(() => makeFe(c), [c]);
   return (
     <View style={fe.container}>
-      <Text style={fe.label}>{label}</Text>
+      <Text variant="subhead" color="textSecondary" style={fe.label}>{label}</Text>
       <TextInput
         style={[fe.input, multiline && fe.inputMulti]}
         value={value}
@@ -73,7 +73,7 @@ function FieldEditor({
         placeholder={`Enter ${label.toLowerCase()}`}
       />
       {maxLength && (
-        <Text style={fe.counter}>{value.length}/{maxLength}</Text>
+        <Text variant="footnote" color="textMuted" style={fe.counter}>{value.length}/{maxLength}</Text>
       )}
     </View>
   );
@@ -82,9 +82,6 @@ function FieldEditor({
 const makeFe = (c: ThemeColours) => StyleSheet.create({
   container: { marginBottom: spacing.md },
   label: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textSecondary,
     marginBottom: 6,
   },
   input: {
@@ -105,8 +102,6 @@ const makeFe = (c: ThemeColours) => StyleSheet.create({
     paddingTop: spacing.sm,
   },
   counter: {
-    fontSize: typography.fontSize.xs,
-    color: c.textMuted,
     textAlign: 'right',
     marginTop: 4,
   },
@@ -127,7 +122,7 @@ function SelectPill<T extends string>({ label, options, selected, onSelect, test
   const sp = React.useMemo(() => makeSp(c), [c]);
   return (
     <View style={sp.container}>
-      <Text style={sp.label}>{label}</Text>
+      <Text variant="subhead" color="textSecondary" style={sp.label}>{label}</Text>
       <View style={sp.row}>
         {options.map((opt) => {
           const active = selected === opt.key;
@@ -141,7 +136,7 @@ function SelectPill<T extends string>({ label, options, selected, onSelect, test
               accessibilityRole="radio"
               accessibilityState={{ selected: active }}
             >
-              <Text style={[sp.pillText, active && sp.pillTextActive]}>{opt.label}</Text>
+              <Text variant="footnote" color={active ? 'primary' : 'textSecondary'}>{opt.label}</Text>
             </TouchableOpacity>
           );
         })}
@@ -153,9 +148,6 @@ function SelectPill<T extends string>({ label, options, selected, onSelect, test
 const makeSp = (c: ThemeColours) => StyleSheet.create({
   container: { marginBottom: spacing.md },
   label: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textSecondary,
     marginBottom: 6,
   },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
@@ -171,8 +163,6 @@ const makeSp = (c: ThemeColours) => StyleSheet.create({
     justifyContent: 'center',
   },
   pillActive: { borderColor: c.primary, backgroundColor: c.primaryLight },
-  pillText: { fontSize: typography.fontSize.sm, color: c.textSecondary },
-  pillTextActive: { color: c.primary, fontFamily: typography.fontFamily.medium },
 });
 
 // ─── Section Card ─────────────────────────────────────────────────────────────
@@ -197,7 +187,7 @@ function SectionCard({ title, children, expanded, onToggle }: SectionCardProps) 
         accessibilityRole="button"
         accessibilityState={{ expanded }}
       >
-        <Text style={sc.title}>{title}</Text>
+        <Text variant="headline" color="textPrimary">{title}</Text>
         <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={c.textMuted} />
       </TouchableOpacity>
       {expanded && <View style={sc.body}>{children}</View>}
@@ -220,11 +210,6 @@ const makeSc = (c: ThemeColours) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: spacing.lg,
-  },
-  title: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.textPrimary,
   },
   body: { padding: spacing.lg, paddingTop: 0 },
 });
@@ -263,7 +248,7 @@ function PhotoGrid({ photos, onAdd, onRemove, loading }: PhotoGridProps) {
                 )}
                 {i === 0 && (
                   <View style={pg.primaryBadge}>
-                    <Text style={pg.primaryText}>Main</Text>
+                    <Text variant="micro" style={pg.primaryText}>Main</Text>
                   </View>
                 )}
               </>
@@ -330,7 +315,7 @@ const makePg = (c: ThemeColours) => StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
-  primaryText: { fontSize: 10, color: '#fff', fontFamily: typography.fontFamily.semiBold },
+  primaryText: { color: '#fff' },
 });
 
 // ─── Screen ──────────────────────────────────────────────────────────────────
@@ -476,7 +461,7 @@ export default function EditProfileScreen() {
         >
           <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Edit Profile</Text>
+        <Text variant="headline" color="textPrimary">Edit Profile</Text>
         <TouchableOpacity
           onPress={handleSave}
           disabled={saveMutation.isPending}
@@ -487,7 +472,7 @@ export default function EditProfileScreen() {
           {saveMutation.isPending ? (
             <ActivityIndicator size="small" color={c.primary} />
           ) : (
-            <Text style={styles.saveText}>Save</Text>
+            <Text variant="headline" color="primary">Save</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -509,7 +494,7 @@ export default function EditProfileScreen() {
             onAdd={handleAddPhoto}
             onRemove={handleRemovePhoto}
           />
-          <Text style={styles.photoHint}>
+          <Text variant="footnote" color="textMuted" style={styles.photoHint}>
             First photo is your main profile photo. Min 1 required.
           </Text>
         </SectionCard>
@@ -598,7 +583,7 @@ export default function EditProfileScreen() {
           expanded={expandedSection === 'prompts'}
           onToggle={() => toggleSection('prompts')}
         >
-          <Text style={ps.hint}>
+          <Text variant="footnote" color="textMuted" style={ps.hint}>
             Answer up to three prompts — they appear on your profile between your photos and give
             matches something real to start from.
           </Text>
@@ -613,7 +598,12 @@ export default function EditProfileScreen() {
                   accessibilityRole="button"
                   accessibilityLabel={pair?.prompt ?? 'Choose a prompt'}
                 >
-                  <Text style={pair?.prompt ? ps.promptText : ps.promptPlaceholder} numberOfLines={1}>
+                  <Text
+                    variant={pair?.prompt ? 'subhead' : 'footnote'}
+                    color={pair?.prompt ? 'textPrimary' : 'textMuted'}
+                    style={ps.promptText}
+                    numberOfLines={1}
+                  >
                     {pair?.prompt ?? 'Choose a prompt…'}
                   </Text>
                   <Ionicons name="chevron-down" size={16} color={c.textMuted} />
@@ -702,31 +692,15 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     backgroundColor: c.background,
   },
   headerBtn: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: {
-    fontSize: typography.fontSize.lg,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.textPrimary,
-  },
-  saveText: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.primary,
-  },
 
   photoHint: {
-    fontSize: typography.fontSize.xs,
-    color: c.textMuted,
     marginTop: spacing.sm,
-    fontFamily: typography.fontFamily.regular,
   },
 });
 
 const makePs = (c: ThemeColours) => StyleSheet.create({
   hint: {
-    fontSize: typography.fontSize.xs,
-    color: c.textMuted,
     marginBottom: spacing.md,
-    lineHeight: 17,
   },
   slot: { marginBottom: spacing.md },
   promptBtn: {
@@ -740,11 +714,5 @@ const makePs = (c: ThemeColours) => StyleSheet.create({
     minHeight: 48,
     marginBottom: spacing.sm,
   },
-  promptText: {
-    flex: 1,
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
-  },
-  promptPlaceholder: { flex: 1, fontSize: typography.fontSize.sm, color: c.textMuted },
+  promptText: { flex: 1 },
 });

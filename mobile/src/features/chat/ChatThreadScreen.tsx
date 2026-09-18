@@ -1,9 +1,10 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
-  View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet,
+  View, FlatList, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Modal, Pressable,
 } from 'react-native';
+import Text from '../../components/ui/Text';
 import SmartImage from '../../components/common/SmartImage';
 import { PressableScale, useReduceMotion } from '../../components/motion';
 import Animated, {
@@ -153,7 +154,7 @@ function MessageBubble({ msg, isOwn, onLongPress }: BubbleProps) {
         <View style={[s.bubble, isOwn ? s.bubbleOwn : s.bubbleTheirs]}>
           {msg.ReplyTo && (
             <View style={[s.quoteBlock, isOwn ? s.quoteBlockOwn : s.quoteBlockTheirs]}>
-              <Text style={[s.quoteText, isOwn && { color: 'rgba(255,255,255,0.85)' }]} numberOfLines={2}>
+              <Text variant="footnote" color="textMuted" style={isOwn ? { color: 'rgba(255,255,255,0.85)' } : undefined} numberOfLines={2}>
                 {msg.ReplyTo.messageType === 'voice' ? 'Voice message' : msg.ReplyTo.content}
               </Text>
             </View>
@@ -161,15 +162,15 @@ function MessageBubble({ msg, isOwn, onLongPress }: BubbleProps) {
           {msg.messageType === 'voice' ? (
             <VoiceMessageBubble uri={msg.mediaUrl} durationMs={msg.mediaDurationMs} own={isOwn} />
           ) : (
-            <Text style={[s.bubbleText, isOwn ? s.bubbleTextOwn : s.bubbleTextTheirs]}>
+            <Text variant="footnote" color="textPrimary" style={isOwn ? { color: '#fff' } : undefined}>
               {msg.content}
             </Text>
           )}
           {msg.isEdited && (
-            <Text style={[s.editedTag, isOwn ? s.editedTagOwn : s.editedTagTheirs]}>edited</Text>
+            <Text variant="micro" color="textMuted" style={[s.editedTag, isOwn && { color: 'rgba(255,255,255,0.6)' }]}>edited</Text>
           )}
           <View style={s.bubbleMeta}>
-            <Text style={[s.msgTime, isOwn ? s.msgTimeOwn : s.msgTimeTheirs]}>
+            <Text variant="micro" color="textMuted" style={isOwn ? { color: 'rgba(255,255,255,0.65)' } : undefined}>
               {formatMsgTime(msg.createdAt)}
             </Text>
             {isOwn && <ReadReceipt msg={msg} />}
@@ -179,8 +180,8 @@ function MessageBubble({ msg, isOwn, onLongPress }: BubbleProps) {
           <View style={[s.reactionRow, isOwn && { alignSelf: 'flex-end' }]}>
             {Object.entries(msg.reactions).filter(([, u]) => u?.length).map(([emoji, users]) => (
               <View key={emoji} style={s.reactionPill}>
-                <Text style={s.reactionEmoji}>{emoji}</Text>
-                {users.length > 1 && <Text style={s.reactionCount}>{users.length}</Text>}
+                <Text variant="footnote">{emoji}</Text>
+                {users.length > 1 && <Text variant="caption" color="textMuted" style={s.reactionCount}>{users.length}</Text>}
               </View>
             ))}
           </View>
@@ -198,7 +199,7 @@ function DateSeparator({ label }: { label: string }) {
   return (
     <View style={s.dateSep}>
       <View style={s.dateLine} />
-      <Text style={s.dateLabel}>{label}</Text>
+      <Text variant="caption" color="textMuted">{label}</Text>
       <View style={s.dateLine} />
     </View>
   );
@@ -242,7 +243,7 @@ function ContactUnlockBanner({ userId, onUnlocked }: ContactBannerProps) {
     return (
       <View style={s.contactBanner} testID="ContactBannerUnlocked">
         <Ionicons name="call" size={16} color={c.success} />
-        <Text style={s.contactPhone}>{phone}</Text>
+        <Text variant="subhead" color="success">{phone}</Text>
       </View>
     );
   }
@@ -256,7 +257,7 @@ function ContactUnlockBanner({ userId, onUnlocked }: ContactBannerProps) {
       testID="ContactUnlockBanner"
     >
       <Ionicons name="person-add-outline" size={16} color={c.primary} />
-      <Text style={s.contactBannerText}>{t('chat.requestContact', 'Request Contact')}</Text>
+      <Text variant="subhead" color="primary">{t('chat.requestContact', 'Request Contact')}</Text>
       {isPending && <ActivityIndicator size="small" color={c.primary} style={{ marginLeft: 8 }} />}
     </TouchableOpacity>
   );
@@ -297,7 +298,7 @@ function MessageActionMenu({ msg, isOwn, visible, canRich, onClose, onEdit, onDe
                   accessibilityLabel={`React ${e}`}
                   testID={`React-${e}`}
                 >
-                  <Text style={s.emojiText}>{e}</Text>
+                  <Text variant="title2">{e}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -309,7 +310,7 @@ function MessageActionMenu({ msg, isOwn, visible, canRich, onClose, onEdit, onDe
               testID="MenuReply"
             >
               <Ionicons name="return-up-back" size={18} color={c.textPrimary} />
-              <Text style={s.menuItemText}>{t('chat.reply', 'Reply')}</Text>
+              <Text variant="subhead" color="textPrimary">{t('chat.reply', 'Reply')}</Text>
             </TouchableOpacity>
           )}
           {isOwn && canEdit(msg.createdAt) && (
@@ -319,7 +320,7 @@ function MessageActionMenu({ msg, isOwn, visible, canRich, onClose, onEdit, onDe
               testID="MenuEdit"
             >
               <Ionicons name="pencil" size={18} color={c.textPrimary} />
-              <Text style={s.menuItemText}>{t('chat.edit', 'Edit')}</Text>
+              <Text variant="subhead" color="textPrimary">{t('chat.edit', 'Edit')}</Text>
             </TouchableOpacity>
           )}
           {isOwn && (
@@ -329,7 +330,7 @@ function MessageActionMenu({ msg, isOwn, visible, canRich, onClose, onEdit, onDe
               testID="MenuDelete"
             >
               <Ionicons name="trash" size={18} color={c.error} />
-              <Text style={[s.menuItemText, { color: c.error }]}>{t('chat.delete', 'Delete')}</Text>
+              <Text variant="subhead" color="error">{t('chat.delete', 'Delete')}</Text>
             </TouchableOpacity>
           )}
           {!isOwn && (
@@ -339,7 +340,7 @@ function MessageActionMenu({ msg, isOwn, visible, canRich, onClose, onEdit, onDe
               testID="MenuReport"
             >
               <Ionicons name="flag" size={18} color={c.warning} />
-              <Text style={[s.menuItemText, { color: c.warning }]}>{t('chat.report', 'Report')}</Text>
+              <Text variant="subhead" color="warning">{t('chat.report', 'Report')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -684,8 +685,8 @@ export default function ChatThreadScreen() {
           <View style={s.gateIcon}>
             <Ionicons name="lock-closed" size={32} color={c.secondary} />
           </View>
-          <Text style={s.gateTitle}>{t('chat.gateTitle', 'Chat is a premium feature')}</Text>
-          <Text style={s.gateLine}>
+          <Text variant="title3" color="textPrimary" style={s.gateTitle}>{t('chat.gateTitle', 'Chat is a premium feature')}</Text>
+          <Text variant="footnote" color="textMuted" style={s.gateLine}>
             {t('chat.gateLine', 'Upgrade to start the conversation with {{name}}.', { name: name || 'your match' })}
           </Text>
           <TouchableOpacity
@@ -693,7 +694,7 @@ export default function ChatThreadScreen() {
             onPress={() => navigation.navigate('Subscription')}
             testID="ChatGateUpgrade"
           >
-            <Text style={s.gateCtaText}>{t('chat.gateCta', 'See plans')}</Text>
+            <Text variant="headline" style={{ color: '#fff' }}>{t('chat.gateCta', 'See plans')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -730,7 +731,7 @@ export default function ChatThreadScreen() {
         >
           <SmartImage uri={photo} name={name} style={s.headerAvatar} initialSize={16} />
 
-          <Text style={s.headerName} numberOfLines={1}>{name}</Text>
+          <Text variant="subhead" color="textPrimary" style={s.headerName} numberOfLines={1}>{name}</Text>
         </TouchableOpacity>
 
         {/* Calls are config-gated on the Agora credentials, matching the web app
@@ -793,7 +794,7 @@ export default function ChatThreadScreen() {
       {editingMsg && (
         <View style={s.editBanner} testID="EditBanner">
           <Ionicons name="pencil" size={14} color={c.primary} />
-          <Text style={s.editBannerText} numberOfLines={1}>{editingMsg.content}</Text>
+          <Text variant="caption" color="primary" style={s.editBannerText} numberOfLines={1}>{editingMsg.content}</Text>
           <TouchableOpacity onPress={() => { setEditingMsg(null); setInput(''); }}>
             <Ionicons name="close" size={18} color={c.textMuted} />
           </TouchableOpacity>
@@ -804,7 +805,7 @@ export default function ChatThreadScreen() {
       {replyingTo && !editingMsg && (
         <View style={s.editBanner} testID="ReplyBanner">
           <Ionicons name="return-up-back" size={14} color={c.primary} />
-          <Text style={s.editBannerText} numberOfLines={1}>
+          <Text variant="caption" color="primary" style={s.editBannerText} numberOfLines={1}>
             {replyingTo.messageType === 'voice' ? 'Voice message' : replyingTo.content}
           </Text>
           <TouchableOpacity onPress={() => setReplyingTo(null)} accessibilityLabel="Cancel reply">
@@ -817,8 +818,8 @@ export default function ChatThreadScreen() {
         /* DS1: scripted paywalled composer — thread stays readable above. */
         <View style={[s.paywallBar, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]} testID="PaywalledComposer">
           <View style={{ flex: 1 }}>
-            <Text style={s.paywallTitle}>{endHeadline}</Text>
-            <Text style={s.paywallLine}>
+            <Text variant="subhead" color="textPrimary">{endHeadline}</Text>
+            <Text variant="caption" color="textMuted" style={s.paywallLine}>
               {t('chat.windowKeepTalking', '{{name}} can still write to you — upgrade to keep talking.', { name: (name || 'They').split(' ')[0] })}
             </Text>
           </View>
@@ -827,7 +828,7 @@ export default function ChatThreadScreen() {
             onPress={() => navigation.navigate('Subscription')}
             testID="PaywallUpgrade"
           >
-            <Text style={s.paywallCtaText}>{t('chat.upgrade', 'Upgrade')}</Text>
+            <Text variant="subhead" style={{ color: '#fff' }}>{t('chat.upgrade', 'Upgrade')}</Text>
           </TouchableOpacity>
         </View>
       ) : showRecorder ? (
@@ -880,7 +881,9 @@ export default function ChatThreadScreen() {
         {/* DS3: the meter is last in the hierarchy — muted, warns at ≤2 */}
         {isGrantThread && replyWindow?.active && (
           <Text
-            style={[s.meterText, replyWindow.messagesRemaining <= 2 && s.meterWarn]}
+            variant="caption"
+            color="textMuted"
+            style={[s.meterText, replyWindow.messagesRemaining <= 2 && { color: c.secondary }]}
             accessibilityLiveRegion="polite"
             testID="ReplyMeter"
           >
@@ -918,43 +921,36 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   },
   quoteBlockOwn: { borderLeftColor: 'rgba(255,255,255,0.5)', backgroundColor: 'rgba(255,255,255,0.12)' },
   quoteBlockTheirs: { borderLeftColor: c.primary, backgroundColor: 'rgba(0,0,0,0.04)' },
-  quoteText: { fontSize: typography.fontSize.xs, color: c.textMuted },
   reactionRow: { flexDirection: 'row', gap: 4, marginTop: 2, marginHorizontal: spacing.md },
   reactionPill: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
     backgroundColor: c.surfaceCard, borderWidth: 1, borderColor: c.border,
     borderRadius: 12, paddingHorizontal: 6, paddingVertical: 2,
   },
-  reactionEmoji: { fontSize: 13 },
-  reactionCount: { fontSize: typography.fontSize.xs, color: c.textMuted, fontVariant: ['tabular-nums'] },
+  reactionCount: { fontVariant: ['tabular-nums'] },
   emojiRow: {
     flexDirection: 'row', justifyContent: 'space-between',
     paddingHorizontal: spacing.sm, paddingBottom: spacing.sm,
     borderBottomWidth: 1, borderBottomColor: c.border, marginBottom: spacing.xs,
   },
   emojiBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  emojiText: { fontSize: 22 },
   micBtn: {
     width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center',
     marginRight: spacing.xs,
   },
   meterText: {
-    fontSize: typography.fontSize.xs, color: c.textMuted,
     paddingHorizontal: spacing.md, paddingTop: 4, fontVariant: ['tabular-nums'],
   },
-  meterWarn: { color: c.secondary, fontWeight: '600' },
   paywallBar: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
     paddingHorizontal: spacing.md, paddingTop: spacing.sm,
     borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.surfaceCard,
   },
-  paywallTitle: { fontSize: typography.fontSize.sm, fontWeight: '600', color: c.textPrimary },
-  paywallLine: { fontSize: typography.fontSize.xs, color: c.textMuted, marginTop: 2 },
+  paywallLine: { marginTop: 2 },
   paywallCta: {
     backgroundColor: c.secondary, borderRadius: 22, paddingHorizontal: spacing.lg,
     minHeight: 44, alignItems: 'center', justifyContent: 'center',
   },
-  paywallCtaText: { color: '#fff', fontWeight: '700', fontSize: typography.fontSize.sm },
   gateWrap: { flex: 1, backgroundColor: c.background },
   gateBack: { padding: spacing.md, alignSelf: 'flex-start' },
   gateBody: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl },
@@ -963,15 +959,13 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
   },
   gateTitle: {
-    fontSize: typography.fontSize.xl, fontWeight: '700', color: c.textPrimary,
     textAlign: 'center', marginBottom: spacing.xs,
   },
-  gateLine: { fontSize: typography.fontSize.sm, color: c.textMuted, textAlign: 'center', marginBottom: spacing.lg },
+  gateLine: { textAlign: 'center', marginBottom: spacing.lg },
   gateCta: {
     backgroundColor: c.primary, borderRadius: 24, paddingHorizontal: spacing.xl,
     minHeight: 48, alignItems: 'center', justifyContent: 'center',
   },
-  gateCtaText: { color: '#fff', fontWeight: '700' },
 
   container: {
     flex: 1,
@@ -1019,9 +1013,6 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     color: c.primary,
   },
   headerName: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.textPrimary,
     flex: 1,
   },
   headerActions: {
@@ -1041,16 +1032,6 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     backgroundColor: c.primaryLight + '30',
     borderBottomWidth: 1,
     borderBottomColor: c.border,
-  },
-  contactBannerText: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.primary,
-  },
-  contactPhone: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.success,
   },
   // List
   listContent: {
@@ -1083,27 +1064,8 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     borderColor: c.border,
     borderBottomLeftRadius: 4,
   },
-  bubbleText: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.regular,
-    lineHeight: 20,
-  },
-  bubbleTextOwn: {
-    color: '#fff',
-  },
-  bubbleTextTheirs: {
-    color: c.textPrimary,
-  },
   editedTag: {
-    fontSize: typography.fontSize.xs - 1,
-    fontFamily: typography.fontFamily.regular,
     marginTop: 2,
-  },
-  editedTagOwn: {
-    color: 'rgba(255,255,255,0.6)',
-  },
-  editedTagTheirs: {
-    color: c.textMuted,
   },
   bubbleMeta: {
     flexDirection: 'row',
@@ -1111,16 +1073,6 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     justifyContent: 'flex-end',
     gap: 3,
     marginTop: 3,
-  },
-  msgTime: {
-    fontSize: typography.fontSize.xs - 1,
-    fontFamily: typography.fontFamily.regular,
-  },
-  msgTimeOwn: {
-    color: 'rgba(255,255,255,0.65)',
-  },
-  msgTimeTheirs: {
-    color: c.textMuted,
   },
   receipt: {
     fontSize: typography.fontSize.xs,
@@ -1140,11 +1092,6 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     flex: 1,
     height: 1,
     backgroundColor: c.border,
-  },
-  dateLabel: {
-    fontSize: typography.fontSize.xs,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textMuted,
   },
   // Typing indicator
   typingRow: {
@@ -1179,9 +1126,6 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   },
   editBannerText: {
     flex: 1,
-    fontSize: typography.fontSize.xs,
-    color: c.primary,
-    fontFamily: typography.fontFamily.medium,
   },
   // Input bar
   inputBar: {
@@ -1243,10 +1187,5 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-  },
-  menuItemText: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
   },
 });

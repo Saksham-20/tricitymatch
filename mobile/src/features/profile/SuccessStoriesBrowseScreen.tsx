@@ -2,7 +2,6 @@ import React from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
@@ -12,8 +11,9 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import Text from '../../components/ui/Text';
 import { ListSkeleton } from '../../components/ui/skeletons';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import SmartImage from '../../components/common/SmartImage';
 import { getSuccessStories, type SuccessStory } from '../../api/profile';
 import type { MainStackParamList } from '../../navigation/types';
@@ -29,13 +29,13 @@ function StoryCard({ story }: { story: SuccessStory }) {
       <View style={styles.cardBody}>
         {story.tag ? (
           <View style={styles.tagPill}>
-            <Text style={styles.tagText}>{story.tag}</Text>
+            <Text variant="caption" color="primary">{story.tag}</Text>
           </View>
         ) : null}
-        <Text style={styles.quote}>“{story.quote}”</Text>
-        <Text style={styles.names}>{story.coupleNames}</Text>
+        <Text variant="callout" color="textPrimary" style={styles.quote}>“{story.quote}”</Text>
+        <Text variant="headline" color="textPrimary">{story.coupleNames}</Text>
         {(story.location || story.marriedOn) && (
-          <Text style={styles.meta}>
+          <Text variant="footnote" color="textMuted" style={styles.meta}>
             {[story.location, story.marriedOn ? new Date(story.marriedOn).getFullYear() : null]
               .filter(Boolean)
               .join(' · ')}
@@ -63,7 +63,7 @@ export default function SuccessStoriesBrowseScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} testID="back-btn" accessibilityLabel="Back">
           <Ionicons name="chevron-back" size={26} color={c.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Success Stories</Text>
+        <Text variant="headline" color="textPrimary">Success Stories</Text>
         <TouchableOpacity
           onPress={() => navigation.navigate('SuccessStory')}
           testID="share-story-btn"
@@ -84,14 +84,14 @@ export default function SuccessStoriesBrowseScreen() {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="heart-outline" size={48} color={c.textMuted} />
-              <Text style={styles.emptyTitle}>No stories yet</Text>
-              <Text style={styles.emptySub}>Be the first to share your TricityMatch journey.</Text>
+              <Text variant="headline" color="textPrimary" style={styles.emptyTitle}>No stories yet</Text>
+              <Text variant="footnote" color="textSecondary" style={styles.emptySub}>Be the first to share your TricityMatch journey.</Text>
               <TouchableOpacity
                 style={styles.emptyBtn}
                 onPress={() => navigation.navigate('SuccessStory')}
                 testID="empty-share-btn"
               >
-                <Text style={styles.emptyBtnText}>Share your story</Text>
+                <Text variant="caption" style={styles.emptyBtnText}>Share your story</Text>
               </TouchableOpacity>
             </View>
           }
@@ -113,11 +113,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: c.border,
   },
-  headerTitle: {
-    fontSize: typography.fontSize.lg,
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
-  },
   list: { padding: spacing.lg, gap: spacing.lg },
   card: {
     backgroundColor: c.surfaceCard,
@@ -137,34 +132,16 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     paddingVertical: 2,
     marginBottom: spacing.sm,
   },
-  tagText: {
-    fontSize: typography.fontSize.xs,
-    color: c.primary,
-    fontFamily: typography.fontFamily.semiBold,
-  },
   quote: {
-    fontSize: typography.fontSize.base,
-    color: c.textPrimary,
     fontStyle: 'italic',
-    lineHeight: 24,
     marginBottom: spacing.sm,
   },
-  names: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.textPrimary,
-  },
-  meta: { fontSize: typography.fontSize.xs, color: c.textMuted, marginTop: 2 },
+  meta: { marginTop: 2 },
   empty: { alignItems: 'center', paddingTop: 80, gap: spacing.sm },
   emptyTitle: {
-    fontSize: typography.fontSize.lg,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.textPrimary,
     marginTop: spacing.sm,
   },
   emptySub: {
-    fontSize: typography.fontSize.sm,
-    color: c.textSecondary,
     textAlign: 'center',
     paddingHorizontal: spacing.xl,
   },
@@ -177,7 +154,5 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
   },
   emptyBtnText: {
     color: '#fff',
-    fontFamily: typography.fontFamily.semiBold,
-    fontSize: typography.fontSize.sm,
   },
 });

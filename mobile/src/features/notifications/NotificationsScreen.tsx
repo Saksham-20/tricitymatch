@@ -2,12 +2,12 @@ import React, { useCallback, useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
   View,
-  Text,
   FlatList,
   TouchableOpacity,
   StyleSheet,
   RefreshControl,
 } from 'react-native';
+import Text from '../../components/ui/Text';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,7 +15,7 @@ import { NotificationsSkeleton } from '../../components/ui/skeletons';
 import ListFooter from '../../components/ui/ListFooter';
 import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import type { Notification, NotificationType } from '../../types';
 import type { MainStackParamList } from '../../navigation/types';
 import {
@@ -90,11 +90,11 @@ function NotificationItem({
       </View>
       <View style={styles.textWrap}>
         <View style={styles.titleRow}>
-          <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
+          <Text variant="subhead" color="textPrimary" style={styles.title} numberOfLines={1}>{item.title}</Text>
           {!item.isRead && <View style={styles.unreadDot} />}
         </View>
-        <Text style={styles.body} numberOfLines={2}>{item.body}</Text>
-        <Text style={styles.time}>{relTime}</Text>
+        <Text variant="footnote" color="textSecondary" style={styles.body} numberOfLines={2}>{item.body}</Text>
+        <Text variant="caption" color="textMuted">{relTime}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -210,7 +210,7 @@ export default function NotificationsScreen() {
               <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
             </TouchableOpacity>
           )}
-          <Text style={styles.headerTitle}>Notifications</Text>
+          <Text variant="title2" color="textPrimary">Notifications</Text>
         </View>
         {hasUnread && (
           <TouchableOpacity
@@ -219,7 +219,7 @@ export default function NotificationsScreen() {
             accessibilityLabel="Mark all notifications as read"
             testID="mark-all-read-button"
           >
-            <Text style={styles.markAllText}>Mark all read</Text>
+            <Text variant="subhead" color="primary">Mark all read</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -249,8 +249,8 @@ export default function NotificationsScreen() {
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Ionicons name="notifications-off-outline" size={56} color={c.textMuted} />
-            <Text style={styles.emptyTitle}>No notifications yet</Text>
-            <Text style={styles.emptyBody}>
+            <Text variant="headline" color="textPrimary" style={styles.emptyTitle}>No notifications yet</Text>
+            <Text variant="footnote" color="textMuted" style={styles.emptyBody}>
               We'll let you know when you get a new match, message, or interest.
             </Text>
           </View>
@@ -290,16 +290,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     marginLeft: -spacing.sm,
     padding: spacing.xs,
   },
-  headerTitle: {
-    fontSize: typography.fontSize['2xl'],
-    fontWeight: '700',
-    color: c.textPrimary,
-  },
-  markAllText: {
-    fontSize: typography.fontSize.sm,
-    color: c.primary,
-    fontWeight: '600',
-  },
   listContent: {
     paddingVertical: spacing.sm,
   },
@@ -332,9 +322,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
   },
   title: {
     flex: 1,
-    fontSize: typography.fontSize.sm,
-    fontWeight: '600',
-    color: c.textPrimary,
   },
   unreadDot: {
     width: 8,
@@ -344,14 +331,7 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     marginLeft: spacing.sm,
   },
   body: {
-    fontSize: typography.fontSize.xs,
-    color: c.textSecondary,
-    lineHeight: 18,
     marginBottom: 4,
-  },
-  time: {
-    fontSize: typography.fontSize.xs,
-    color: c.textMuted,
   },
   emptyContent: {
     flex: 1,
@@ -364,17 +344,11 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     paddingTop: spacing['5xl'],
   },
   emptyTitle: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: '700',
-    color: c.textPrimary,
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
   },
   emptyBody: {
-    fontSize: typography.fontSize.sm,
-    color: c.textMuted,
     textAlign: 'center',
-    lineHeight: 22,
   },
   footerLoader: {
     paddingVertical: spacing.lg,

@@ -5,7 +5,8 @@
  */
 import React from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { View, TextInput, StyleSheet } from 'react-native';
+import Text from '../ui/Text';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 
 export type ContactKind = 'email' | 'phone' | null;
@@ -44,7 +45,7 @@ export default function SmartContactInput({ value, onChange, editable = true, te
     <View style={st.wrap}>
       {parsed.kind === 'phone' && (
         <View style={st.pill} accessibilityElementsHidden>
-          <Text style={st.pillText}>+91</Text>
+          <Text variant="subhead" color="primary">+91</Text>
         </View>
       )}
       <TextInput
@@ -82,7 +83,6 @@ const makeSt = (c: ThemeColours) => StyleSheet.create({
     paddingVertical: 3,
     marginRight: spacing.sm,
   },
-  pillText: { fontSize: typography.fontSize.sm, color: c.primary, fontWeight: '600' },
   input: {
     flex: 1,
     minHeight: 50,

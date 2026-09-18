@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { ListSkeleton } from '../../components/ui/skeletons';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import Text from '../../components/ui/Text';
 import { getAstrologer, bookAstrologer } from '../../api/profile';
 import type { MainStackParamList } from '../../navigation/types';
 
@@ -78,7 +79,7 @@ export default function AstrologerDetailScreen() {
         <TouchableOpacity onPress={() => nav.goBack()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
           <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
         </TouchableOpacity>
-        <Text style={s.headerTitle} numberOfLines={1}>{astrologer?.name ?? astrologerName}</Text>
+        <Text variant="headline" color="textPrimary" style={s.headerTitle} numberOfLines={1}>{astrologer?.name ?? astrologerName}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -87,9 +88,9 @@ export default function AstrologerDetailScreen() {
       ) : isError || !astrologer ? (
         <View style={s.state}>
           <Ionicons name="cloud-offline-outline" size={44} color={c.textMuted} />
-          <Text style={s.stateText}>Could not load this astrologer.</Text>
+          <Text variant="callout" color="textMuted">Could not load this astrologer.</Text>
           <TouchableOpacity onPress={() => refetch()} style={s.retryBtn}>
-            <Text style={s.retryText}>Try again</Text>
+            <Text variant="caption" color="primary">Try again</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -97,16 +98,16 @@ export default function AstrologerDetailScreen() {
           <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
             <View style={s.profileCard}>
               <View style={s.avatarWrap}>
-                <Text style={s.avatarText}>{astrologer.name.charAt(0)}</Text>
+                <Text variant="title1" color="onPrimary">{astrologer.name.charAt(0)}</Text>
               </View>
-              <Text style={s.name}>{astrologer.name}</Text>
-              <Text style={s.meta}>
+              <Text variant="title3" color="textPrimary">{astrologer.name}</Text>
+              <Text variant="footnote" color="textSecondary">
                 Vedic Astrologer{astrologer.experience ? ` · ${astrologer.experience} yrs experience` : ''}
               </Text>
               {astrologer.reviewCount > 0 && (
                 <View style={s.ratingRow}>
                   <Ionicons name="star" size={14} color={c.secondary} />
-                  <Text style={s.ratingText}>
+                  <Text variant="footnote" color="textSecondary">
                     {astrologer.rating} ({astrologer.reviewCount} reviews)
                   </Text>
                 </View>
@@ -115,7 +116,7 @@ export default function AstrologerDetailScreen() {
                 <View style={s.chips}>
                   {astrologer.languages.map((lang) => (
                     <View key={lang} style={s.chip}>
-                      <Text style={s.chipText}>{lang}</Text>
+                      <Text variant="caption" color="textSecondary">{lang}</Text>
                     </View>
                   ))}
                 </View>
@@ -124,11 +125,11 @@ export default function AstrologerDetailScreen() {
 
             {astrologer.speciality?.length > 0 && (
               <View style={s.section}>
-                <Text style={s.sectionTitle}>Specialities</Text>
+                <Text variant="headline" color="textPrimary">Specialities</Text>
                 <View style={s.chips}>
                   {astrologer.speciality.map((sp) => (
                     <View key={sp} style={s.chip}>
-                      <Text style={s.chipText}>{sp}</Text>
+                      <Text variant="caption" color="textSecondary">{sp}</Text>
                     </View>
                   ))}
                 </View>
@@ -136,7 +137,7 @@ export default function AstrologerDetailScreen() {
             )}
 
             <View style={s.section}>
-              <Text style={s.sectionTitle}>Consultation Duration</Text>
+              <Text variant="headline" color="textPrimary">Consultation Duration</Text>
               <View style={s.durationRow}>
                 {DURATIONS.map((d) => (
                   <TouchableOpacity
@@ -144,16 +145,16 @@ export default function AstrologerDetailScreen() {
                     style={[s.durationBtn, selectedDuration === d && s.durationBtnActive]}
                     onPress={() => setSelectedDuration(d)}
                   >
-                    <Text style={[s.durationLabel, selectedDuration === d && s.durationLabelActive]}>
+                    <Text variant="caption" color={selectedDuration === d ? 'primary' : 'textPrimary'}>
                       {d} min
                     </Text>
-                    <Text style={[s.durationPrice, selectedDuration === d && s.durationLabelActive]}>
+                    <Text variant="caption" color={selectedDuration === d ? 'primary' : 'textMuted'}>
                       ₹{pricePerMin * d}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </View>
-              <Text style={s.slotNote}>
+              <Text variant="caption" color="textMuted">
                 We’ll confirm an exact time with you by email after booking.
               </Text>
             </View>
@@ -161,15 +162,15 @@ export default function AstrologerDetailScreen() {
 
           <View style={[s.bookBar, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
             <View>
-              <Text style={s.bookPrice}>₹{totalAmount}</Text>
-              <Text style={s.bookDuration}>for {selectedDuration} min</Text>
+              <Text variant="title3" color="textPrimary">₹{totalAmount}</Text>
+              <Text variant="caption" color="textMuted">for {selectedDuration} min</Text>
             </View>
             <TouchableOpacity
               style={[s.bookBtn, booking && s.bookBtnDisabled]}
               onPress={handleBook}
               disabled={booking}
             >
-              <Text style={s.bookBtnText}>{booking ? 'Booking…' : 'Book Consultation'}</Text>
+              <Text variant="headline" color="onPrimary">{booking ? 'Booking…' : 'Book Consultation'}</Text>
             </TouchableOpacity>
           </View>
         </>
@@ -192,41 +193,26 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   headerTitle: {
     flex: 1,
     textAlign: 'center',
-    fontSize: typography.fontSize.lg,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.textPrimary,
   },
   scroll: { padding: spacing.md, paddingBottom: 120 },
 
   state: { alignItems: 'center', paddingTop: 64, gap: spacing.sm },
-  stateText: { fontSize: typography.fontSize.base, color: c.textMuted },
   retryBtn: { marginTop: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: borderRadius.full, borderWidth: 1, borderColor: c.primary },
-  retryText: { color: c.primary, fontFamily: typography.fontFamily.semiBold },
 
   profileCard: { alignItems: 'center', paddingVertical: spacing.xl, gap: spacing.xs },
   avatarWrap: {
     width: 76, height: 76, borderRadius: 38, backgroundColor: c.primary,
     alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm,
   },
-  avatarText: { fontSize: typography.fontSize['3xl'], fontFamily: typography.fontFamily.bold, color: '#fff' },
-  name: { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: c.textPrimary },
-  meta: { fontSize: typography.fontSize.sm, color: c.textSecondary },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
-  ratingText: { fontSize: typography.fontSize.sm, color: c.textSecondary },
 
   section: { marginTop: spacing.lg, gap: spacing.sm },
-  sectionTitle: { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, justifyContent: 'center' },
   chip: { backgroundColor: c.surfaceCard, borderRadius: borderRadius.full, paddingHorizontal: spacing.sm, paddingVertical: 4, borderWidth: 1, borderColor: c.border },
-  chipText: { fontSize: typography.fontSize.xs, color: c.textSecondary },
 
   durationRow: { flexDirection: 'row', gap: spacing.xs },
   durationBtn: { flex: 1, alignItems: 'center', paddingVertical: spacing.sm, borderRadius: borderRadius.md, borderWidth: 1, borderColor: c.border },
   durationBtnActive: { borderColor: c.primary, backgroundColor: c.primaryLight },
-  durationLabel: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
-  durationPrice: { fontSize: typography.fontSize.xs, color: c.textMuted },
-  durationLabelActive: { color: c.primary },
-  slotNote: { fontSize: typography.fontSize.xs, color: c.textMuted },
 
   bookBar: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
@@ -234,9 +220,6 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     padding: spacing.md, backgroundColor: c.background,
     borderTopWidth: 1, borderTopColor: c.border,
   },
-  bookPrice: { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: c.textPrimary },
-  bookDuration: { fontSize: typography.fontSize.xs, color: c.textMuted },
   bookBtn: { backgroundColor: c.primary, borderRadius: borderRadius.lg, paddingHorizontal: spacing.lg, paddingVertical: 14 },
   bookBtnDisabled: { backgroundColor: c.textMuted },
-  bookBtnText: { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: '#fff' },
 });

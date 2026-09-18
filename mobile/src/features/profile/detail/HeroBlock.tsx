@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../../hooks/useTheme';
-import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, Text as RNText, View, useWindowDimensions } from 'react-native';
+import Text from '../../../components/ui/Text';
 import FastImage from 'react-native-fast-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { SharedValue, interpolate, useAnimatedStyle, Extrapolation } from 'react-native-reanimated';
-import { colours, spacing, type, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { resolveImageUri } from '../../../components/common/SmartImage';
 import { PressableScale, useReduceMotion } from '../../../components/motion';
 
@@ -88,7 +89,9 @@ export default function HeroBlock({
         <Animated.View style={[StyleSheet.absoluteFill, imgStyle]}>
           <LinearGradient colors={[c.p100, c.p50]} style={StyleSheet.absoluteFill} />
           <View style={s.monogramWrap}>
-            <Text style={s.monogram}>{monogram}</Text>
+            {/* Decorative fallback glyph filling the hero canvas — not body copy,
+                left on raw RN Text (140px is far outside the canonical scale). */}
+            <RNText style={s.monogram}>{monogram}</RNText>
           </View>
         </Animated.View>
       )}
@@ -119,21 +122,21 @@ export default function HeroBlock({
           testID="gallery-chip"
         >
           <Ionicons name="images-outline" size={15} color="#fff" />
-          <Text style={s.galleryChipText}>{photoCount}</Text>
+          <Text variant="caption" style={s.galleryChipText}>{photoCount}</Text>
         </PressableScale>
       )}
 
       {/* Identity overlay */}
       <View style={s.overlay} pointerEvents="none">
         <View style={s.nameRow}>
-          <Text style={s.name} numberOfLines={2}>
+          <Text variant="display" style={s.name} numberOfLines={2}>
             {name}
             {age ? `, ${age}` : ''}
           </Text>
           {verified && (
             <View style={s.verified}>
               <Ionicons name="checkmark-circle" size={14} color="#fff" />
-              <Text style={s.verifiedText}>Verified</Text>
+              <Text variant="micro" style={s.verifiedText}>Verified</Text>
             </View>
           )}
         </View>
@@ -141,13 +144,13 @@ export default function HeroBlock({
           {!!city && (
             <View style={s.chip}>
               <Ionicons name="location-outline" size={12} color="#fff" />
-              <Text style={s.chipText}>{city}</Text>
+              <Text variant="caption" style={s.chipText}>{city}</Text>
             </View>
           )}
           {!!profession && (
             <View style={s.chip}>
               <Ionicons name="briefcase-outline" size={12} color="#fff" />
-              <Text style={s.chipText} numberOfLines={1}>
+              <Text variant="caption" style={s.chipText} numberOfLines={1}>
                 {profession}
               </Text>
             </View>
@@ -155,7 +158,7 @@ export default function HeroBlock({
           {typeof compatScore === 'number' && (
             <View style={[s.chip, s.compatChip]}>
               <Ionicons name="sparkles" size={12} color="#fff" />
-              <Text style={s.chipText}>{compatScore}% match</Text>
+              <Text variant="caption" style={s.chipText}>{compatScore}% match</Text>
             </View>
           )}
         </View>
@@ -183,9 +186,6 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   },
   nameRow: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm, flexWrap: 'wrap' },
   name: {
-    fontFamily: 'PlayfairDisplay-Bold',
-    fontSize: 32,
-    lineHeight: 38,
     color: '#fff',
     flexShrink: 1,
     textShadowColor: 'rgba(0,0,0,0.35)',
@@ -202,7 +202,7 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     paddingVertical: 3,
     marginBottom: 6,
   },
-  verifiedText: { ...type.micro, color: '#fff' },
+  verifiedText: { color: '#fff' },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   chip: {
     flexDirection: 'row',
@@ -215,7 +215,7 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     maxWidth: 220,
   },
   compatChip: { backgroundColor: 'rgba(139,35,70,0.75)' },
-  chipText: { ...type.caption, color: '#fff' },
+  chipText: { color: '#fff' },
   galleryChip: {
     position: 'absolute',
     right: spacing.gutter,
@@ -227,5 +227,5 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     paddingHorizontal: 12,
     height: 34,
   },
-  galleryChipText: { ...type.caption, color: '#fff' },
+  galleryChipText: { color: '#fff' },
 });

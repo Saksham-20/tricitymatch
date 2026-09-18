@@ -2,7 +2,6 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
   TextInput,
@@ -14,6 +13,7 @@ import {
   Modal,
   ScrollView,
 } from 'react-native';
+import Text from '../../components/ui/Text';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -71,12 +71,12 @@ function GroupMessageBubble({ msg, isOwn, showSender }: BubbleProps) {
     <View style={[bub.row, isOwn && bub.rowOwn]}>
       <View style={[bub.bubble, isOwn ? bub.ownBubble : bub.theirBubble]}>
         {!isOwn && showSender && (
-          <Text style={bub.senderName}>{msg.senderName}</Text>
+          <Text variant="caption" color="primary" style={bub.senderName}>{msg.senderName}</Text>
         )}
-        <Text style={[bub.content, isOwn && bub.ownContent]}>{msg.content}</Text>
+        <Text variant="callout" color="textPrimary" style={isOwn && bub.ownContent}>{msg.content}</Text>
         <View style={bub.meta}>
-          {msg.editedAt && <Text style={[bub.metaText, isOwn && bub.ownMeta]}>edited · </Text>}
-          <Text style={[bub.metaText, isOwn && bub.ownMeta]}>{formatTime(msg.createdAt)}</Text>
+          {msg.editedAt && <Text variant="micro" color="textMuted" style={isOwn && bub.ownMeta}>edited · </Text>}
+          <Text variant="micro" color="textMuted" style={isOwn && bub.ownMeta}>{formatTime(msg.createdAt)}</Text>
         </View>
       </View>
     </View>
@@ -89,11 +89,9 @@ const makeBub = (c: ThemeColours) => StyleSheet.create({
   bubble:     { maxWidth: '75%', borderRadius: borderRadius.lg, padding: spacing.sm, paddingHorizontal: spacing.md },
   ownBubble:  { backgroundColor: c.primary, borderBottomRightRadius: 4 },
   theirBubble:{ backgroundColor: c.surfaceCard, borderBottomLeftRadius: 4, borderWidth: 1, borderColor: c.border },
-  senderName: { fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.semiBold, color: c.primary, marginBottom: 2 },
-  content:    { fontSize: typography.fontSize.base, color: c.textPrimary, lineHeight: 22 },
+  senderName: { marginBottom: 2 },
   ownContent: { color: '#fff' },
   meta:       { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 2 },
-  metaText:   { fontSize: 10, color: c.textMuted },
   ownMeta:    { color: 'rgba(255,255,255,0.7)' },
 });
 
@@ -137,9 +135,9 @@ function InviteModal({ visible, groupId, onClose }: InviteModalProps) {
       <View style={im.overlay}>
         <View style={im.sheet}>
           <View style={im.handle} />
-          <Text style={im.title}>Invite Family Member</Text>
+          <Text variant="title3" color="textPrimary" style={im.title}>Invite Family Member</Text>
 
-          <Text style={im.label}>Phone Number</Text>
+          <Text variant="subhead" color="textSecondary" style={im.label}>Phone Number</Text>
           <TextInput
             style={im.input}
             value={phone}
@@ -151,7 +149,7 @@ function InviteModal({ visible, groupId, onClose }: InviteModalProps) {
             accessibilityLabel="Phone number for invite"
           />
 
-          <Text style={im.label}>Relation</Text>
+          <Text variant="subhead" color="textSecondary" style={im.label}>Relation</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing.lg }}>
             <View style={{ flexDirection: 'row', gap: spacing.sm }}>
               {RELATION_OPTIONS.map((r) => (
@@ -162,7 +160,7 @@ function InviteModal({ visible, groupId, onClose }: InviteModalProps) {
                   testID={`relation-chip-${r}`}
                   accessibilityLabel={`Select relation ${r}`}
                 >
-                  <Text style={[im.chipText, relation === r && im.chipTextActive]}>{r}</Text>
+                  <Text variant="subhead" color={relation === r ? 'primary' : 'textSecondary'}>{r}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -178,12 +176,12 @@ function InviteModal({ visible, groupId, onClose }: InviteModalProps) {
             {loading ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
-              <Text style={im.sendText}>Send Invite via SMS</Text>
+              <Text variant="headline" style={im.sendText}>Send Invite via SMS</Text>
             )}
           </TouchableOpacity>
 
           <TouchableOpacity style={im.cancelBtn} onPress={onClose} testID="cancel-invite-btn" accessibilityLabel="Cancel">
-            <Text style={im.cancelText}>Cancel</Text>
+            <Text variant="callout" color="textSecondary">Cancel</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -195,17 +193,14 @@ const makeIm = (c: ThemeColours) => StyleSheet.create({
   overlay:       { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' },
   sheet:         { backgroundColor: c.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: spacing.xl, paddingBottom: spacing['3xl'] },
   handle:        { width: 40, height: 4, borderRadius: 2, backgroundColor: c.border, alignSelf: 'center', marginBottom: spacing.lg },
-  title:         { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: c.textPrimary, marginBottom: spacing.lg },
-  label:         { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold, color: c.textSecondary, marginBottom: spacing.xs },
+  title:         { marginBottom: spacing.lg },
+  label:         { marginBottom: spacing.xs },
   input:         { borderWidth: 1, borderColor: c.border, borderRadius: borderRadius.md, padding: spacing.md, fontSize: typography.fontSize.base, color: c.textPrimary, marginBottom: spacing.lg },
   chip:          { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.full, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceCard },
   chipActive:    { borderColor: c.primary, backgroundColor: c.primaryLight },
-  chipText:      { fontSize: typography.fontSize.sm, color: c.textSecondary },
-  chipTextActive:{ color: c.primary, fontFamily: typography.fontFamily.semiBold },
   sendBtn:       { backgroundColor: c.primary, borderRadius: borderRadius.md, paddingVertical: spacing.md, alignItems: 'center', marginBottom: spacing.sm },
-  sendText:      { color: '#fff', fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold },
+  sendText:      { color: '#fff' },
   cancelBtn:     { alignItems: 'center', paddingVertical: spacing.sm },
-  cancelText:    { fontSize: typography.fontSize.base, color: c.textSecondary },
 });
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -324,7 +319,7 @@ export default function FamilyGroupChatScreen() {
       <>
         {showDate && (
           <View style={sep.container}>
-            <Text style={sep.label}>{formatDateLabel(item.createdAt)}</Text>
+            <Text variant="caption" color="textMuted" style={sep.label}>{formatDateLabel(item.createdAt)}</Text>
           </View>
         )}
         <GroupMessageBubble msg={item} isOwn={isOwn} showSender={showSender} />
@@ -349,8 +344,8 @@ export default function FamilyGroupChatScreen() {
             <Ionicons name="people" size={18} color="#fff" />
           </View>
           <View>
-            <Text style={s.groupName}>{groupName}</Text>
-            <Text style={s.memberCount}>{memberCount} member{memberCount !== 1 ? 's' : ''}</Text>
+            <Text variant="headline" color="textPrimary">{groupName}</Text>
+            <Text variant="caption" color="textSecondary">{memberCount} member{memberCount !== 1 ? 's' : ''}</Text>
           </View>
         </View>
         <View style={s.headerActions}>
@@ -376,7 +371,7 @@ export default function FamilyGroupChatScreen() {
       {/* Family group notice banner */}
       <View style={s.noticeBanner}>
         <Ionicons name="information-circle-outline" size={14} color={c.primary} style={{ marginRight: 4 }} />
-        <Text style={s.noticeText}>Family group · Only members you invite can see this chat</Text>
+        <Text variant="caption" color="primary">Family group · Only members you invite can see this chat</Text>
       </View>
 
       {/* Messages */}
@@ -396,8 +391,8 @@ export default function FamilyGroupChatScreen() {
           ListEmptyComponent={
             <View style={s.emptyState}>
               <Ionicons name="chatbubbles-outline" size={48} color={c.textMuted} />
-              <Text style={s.emptyTitle}>Start the Conversation</Text>
-              <Text style={s.emptyHint}>Share updates with your family about this match</Text>
+              <Text variant="headline" color="textSecondary">Start the Conversation</Text>
+              <Text variant="subhead" color="textMuted" style={s.emptyHint}>Share updates with your family about this match</Text>
             </View>
           }
         />
@@ -434,7 +429,7 @@ export default function FamilyGroupChatScreen() {
 
 const makeSep = (c: ThemeColours) => StyleSheet.create({
   container: { alignItems: 'center', marginVertical: spacing.md },
-  label:     { fontSize: typography.fontSize.xs, color: c.textMuted, backgroundColor: c.surfaceCard, paddingHorizontal: spacing.md, paddingVertical: 3, borderRadius: borderRadius.full },
+  label:     { backgroundColor: c.surfaceCard, paddingHorizontal: spacing.md, paddingVertical: 3, borderRadius: borderRadius.full },
 });
 
 const makeS = (c: ThemeColours) => StyleSheet.create({
@@ -443,17 +438,13 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   backBtn:          { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   headerInfo:       { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   groupAvatarCircle:{ width: 36, height: 36, borderRadius: 18, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center' },
-  groupName:        { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
-  memberCount:      { fontSize: typography.fontSize.xs, color: c.textSecondary },
   headerActions:    { flexDirection: 'row', gap: 4 },
   headerBtn:        { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
   noticeBanner:     { flexDirection: 'row', alignItems: 'center', backgroundColor: c.primaryLight, paddingHorizontal: spacing.lg, paddingVertical: spacing.xs },
-  noticeText:       { fontSize: typography.fontSize.xs, color: c.primary },
   loadingState:     { flex: 1, alignItems: 'center', justifyContent: 'center' },
   listContent:      { paddingVertical: spacing.md },
   emptyState:       { alignItems: 'center', justifyContent: 'center', gap: spacing.md, paddingTop: 80, transform: [{ scaleY: -1 }] },
-  emptyTitle:       { fontSize: typography.fontSize.lg, fontFamily: typography.fontFamily.semiBold, color: c.textSecondary },
-  emptyHint:        { fontSize: typography.fontSize.sm, color: c.textMuted, textAlign: 'center' },
+  emptyHint:        { textAlign: 'center' },
   inputBar:         { flexDirection: 'row', alignItems: 'flex-end', padding: spacing.sm, borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.background, gap: spacing.sm },
   input:            { flex: 1, borderWidth: 1, borderColor: c.border, borderRadius: 20, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, maxHeight: 120, fontSize: typography.fontSize.base, color: c.textPrimary, backgroundColor: c.surfaceCard },
   sendBtn:          { width: 42, height: 42, borderRadius: 21, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center' },

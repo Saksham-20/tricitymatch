@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Switch } from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet, Switch } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import PickerSheet from '../../components/ui/PickerSheet';
+import Text from '../../components/ui/Text';
 import OnboardingLayout from './OnboardingLayout';
 import { useOnboarding } from './OnboardingContext';
 
@@ -71,14 +72,14 @@ export default function Step6Screen() {
     >
       {/* Current city */}
       <View>
-        <Text style={styles.label}>{t('onboarding.step6.city')}</Text>
+        <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step6.city')}</Text>
         <TouchableOpacity
           style={styles.selectBtn}
           onPress={() => setCitySheet(true)}
           testID="select-city"
           accessibilityLabel={t('onboarding.step6.city')}
         >
-          <Text style={city ? styles.selectText : styles.placeholderText}>
+          <Text variant="callout" color={city ? 'textPrimary' : 'textMuted'}>
             {city || 'Select city'}
           </Text>
         </TouchableOpacity>
@@ -86,7 +87,7 @@ export default function Step6Screen() {
 
       {/* State (auto-filled) */}
       <View>
-        <Text style={styles.label}>{t('onboarding.step6.state')}</Text>
+        <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step6.state')}</Text>
         <TextInput
           style={styles.input}
           value={state}
@@ -101,7 +102,7 @@ export default function Step6Screen() {
 
       {/* NRI toggle */}
       <View style={styles.toggleRow}>
-        <Text style={styles.toggleLabel}>{t('onboarding.step6.nriToggle')}</Text>
+        <Text variant="subhead" color="textPrimary" style={styles.toggleLabel}>{t('onboarding.step6.nriToggle')}</Text>
         <Switch
           value={isNRI}
           onValueChange={setIsNRI}
@@ -116,23 +117,23 @@ export default function Step6Screen() {
       {isNRI && (
         <>
           <View>
-            <Text style={styles.label}>{t('onboarding.step6.country')}</Text>
+            <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step6.country')}</Text>
             <TouchableOpacity
               style={styles.selectBtn}
               onPress={() => setCountrySheet(true)}
               testID="select-country"
               accessibilityLabel={t('onboarding.step6.country')}
             >
-              <Text style={country ? styles.selectText : styles.placeholderText}>
+              <Text variant="callout" color={country ? 'textPrimary' : 'textMuted'}>
                 {country || 'Select country'}
               </Text>
             </TouchableOpacity>
           </View>
 
           <View>
-            <Text style={styles.label}>
+            <Text variant="subhead" color="textPrimary" style={styles.label}>
               {t('onboarding.step6.visaStatus')}
-              <Text style={styles.optional}> ({t('common.optional')})</Text>
+              <Text variant="footnote" color="textMuted"> ({t('common.optional')})</Text>
             </Text>
             <TouchableOpacity
               style={styles.selectBtn}
@@ -140,7 +141,7 @@ export default function Step6Screen() {
               testID="select-visa"
               accessibilityLabel={t('onboarding.step6.visaStatus')}
             >
-              <Text style={visaStatus ? styles.selectText : styles.placeholderText}>
+              <Text variant="callout" color={visaStatus ? 'textPrimary' : 'textMuted'}>
                 {visaStatus || 'Select visa / PR status'}
               </Text>
             </TouchableOpacity>
@@ -178,12 +179,8 @@ export default function Step6Screen() {
 
 const makeStyles = (c: ThemeColours) => StyleSheet.create({
   label: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
     marginBottom: spacing.sm,
   },
-  optional: { color: c.textMuted, fontFamily: typography.fontFamily.regular },
   input: {
     borderWidth: 1,
     borderColor: c.border,
@@ -199,20 +196,14 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     borderColor: c.border,
     borderRadius: borderRadius.sm,
     paddingHorizontal: spacing.md,
-    height: 48,
+    minHeight: 48,
     justifyContent: 'center',
   },
-  selectText: { fontSize: typography.fontSize.base, color: c.textPrimary },
-  placeholderText: { fontSize: typography.fontSize.base, color: c.textMuted },
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: spacing.sm,
   },
-  toggleLabel: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
-  },
+  toggleLabel: {},
 });

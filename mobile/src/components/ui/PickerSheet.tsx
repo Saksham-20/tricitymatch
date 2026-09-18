@@ -1,10 +1,11 @@
 import React from 'react';
-import { FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, Modal, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { borderRadius, spacing, type } from '@shared/constants/theme';
+import { borderRadius, spacing } from '@shared/constants/theme';
 import { haptics } from '../../utils/haptics';
 import { useTheme } from '../../hooks/useTheme';
+import Text from './Text';
 
 export interface PickerOption<T> {
   label: string;
@@ -47,7 +48,7 @@ export default function PickerSheet<T = string>({
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
       <View style={[styles.sheet, { backgroundColor: c.background, paddingBottom: insets.bottom }]}>
         <View style={[styles.grabber, { backgroundColor: c.border }]} />
-        <Text style={[type.title3, styles.title, { color: c.textPrimary }]}>{title}</Text>
+        <Text variant="title3" color="textPrimary" style={styles.title}>{title}</Text>
         <FlatList
           data={normalized}
           keyExtractor={(item) => String(item.value)}
@@ -65,13 +66,7 @@ export default function PickerSheet<T = string>({
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
               >
-                <Text
-                  style={[
-                    type.body,
-                    { color: active ? c.primary : c.textPrimary },
-                    active && styles.rowTextActive,
-                  ]}
-                >
+                <Text variant={active ? 'headline' : 'body'} color={active ? 'primary' : 'textPrimary'}>
                   {item.label}
                 </Text>
                 {active && <Ionicons name="checkmark" size={20} color={c.primary} />}
@@ -101,5 +96,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  rowTextActive: { fontFamily: 'Inter-SemiBold' },
 });

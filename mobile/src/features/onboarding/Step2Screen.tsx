@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import Text from '../../components/ui/Text';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import PickerSheet from '../../components/ui/PickerSheet';
 import OnboardingLayout from './OnboardingLayout';
 import { useOnboarding } from './OnboardingContext';
@@ -49,14 +50,14 @@ export default function Step2Screen() {
     >
       {/* Religion */}
       <View>
-        <Text style={styles.label}>{t('onboarding.step2.religion')}</Text>
+        <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step2.religion')}</Text>
         <TouchableOpacity
           style={styles.selectBtn}
           onPress={() => setReligionSheet(true)}
           testID="select-religion"
           accessibilityLabel={t('onboarding.step2.religion')}
         >
-          <Text style={religion ? styles.selectText : styles.placeholderText}>
+          <Text variant="callout" color={religion ? 'textPrimary' : 'textMuted'}>
             {religion || 'Select religion'}
           </Text>
         </TouchableOpacity>
@@ -64,7 +65,7 @@ export default function Step2Screen() {
 
       {/* Caste */}
       <View>
-        <Text style={styles.label}>{t('onboarding.step2.caste')}</Text>
+        <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step2.caste')}</Text>
         <TextInput
           style={styles.input}
           value={caste}
@@ -81,9 +82,9 @@ export default function Step2Screen() {
           questions stay out of sight (NN/g: shortest path for each user) */}
       {!!caste.trim() && (
       <View>
-        <Text style={styles.label}>
+        <Text variant="subhead" color="textPrimary" style={styles.label}>
           {t('onboarding.step2.subCaste')}
-          <Text style={styles.optional}> ({t('common.optional')})</Text>
+          <Text variant="footnote" color="textMuted"> ({t('common.optional')})</Text>
         </Text>
         <TextInput
           style={styles.input}
@@ -101,9 +102,9 @@ export default function Step2Screen() {
       {/* Gotra (optional) */}
       {!!caste.trim() && (
       <View>
-        <Text style={styles.label}>
+        <Text variant="subhead" color="textPrimary" style={styles.label}>
           {t('onboarding.step2.gotra')}
-          <Text style={styles.optional}> ({t('common.optional')})</Text>
+          <Text variant="footnote" color="textMuted"> ({t('common.optional')})</Text>
         </Text>
         <TextInput
           style={styles.input}
@@ -120,14 +121,14 @@ export default function Step2Screen() {
 
       {/* Mother tongue */}
       <View>
-        <Text style={styles.label}>{t('onboarding.step2.motherTongue')}</Text>
+        <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step2.motherTongue')}</Text>
         <TouchableOpacity
           style={styles.selectBtn}
           onPress={() => setTongueSheet(true)}
           testID="select-motherTongue"
           accessibilityLabel={t('onboarding.step2.motherTongue')}
         >
-          <Text style={motherTongue ? styles.selectText : styles.placeholderText}>
+          <Text variant="callout" color={motherTongue ? 'textPrimary' : 'textMuted'}>
             {motherTongue || 'Select language'}
           </Text>
         </TouchableOpacity>
@@ -155,12 +156,8 @@ export default function Step2Screen() {
 
 const makeStyles = (c: ThemeColours) => StyleSheet.create({
   label: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
     marginBottom: spacing.sm,
   },
-  optional: { color: c.textMuted, fontFamily: typography.fontFamily.regular },
   input: {
     borderWidth: 1,
     borderColor: c.border,
@@ -176,9 +173,7 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     borderColor: c.border,
     borderRadius: borderRadius.sm,
     paddingHorizontal: spacing.md,
-    height: 48,
+    minHeight: 48,
     justifyContent: 'center',
   },
-  selectText: { fontSize: typography.fontSize.base, color: c.textPrimary },
-  placeholderText: { fontSize: typography.fontSize.base, color: c.textMuted },
 });

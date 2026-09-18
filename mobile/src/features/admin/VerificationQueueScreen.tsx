@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
@@ -20,6 +19,7 @@ import { colours, typography, spacing, borderRadius, type ThemeColours } from '@
 import { getVerificationQueue, approveVerification, rejectVerification } from '../../api/admin';
 import SmartImage from '../../components/common/SmartImage';
 import type { Verification } from '../../types';
+import Text from '../../components/ui/Text';
 
 /**
  * Matches what `GET /admin/verifications` returns: the reviewed user arrives
@@ -63,19 +63,19 @@ function VerifCard({
   return (
     <View style={s.card} testID={`verif-card-${item.id}`}>
       <View style={s.cardHeader}>
-        <Text style={s.cardName}>{name}</Text>
-        <Text style={s.cardDate}>{new Date(item.createdAt).toLocaleDateString('en-IN')}</Text>
+        <Text variant="headline" color="textPrimary">{name}</Text>
+        <Text variant="footnote" color="textSecondary">{new Date(item.createdAt).toLocaleDateString('en-IN')}</Text>
       </View>
-      {item.User?.email ? <Text style={s.cardEmail}>{item.User.email}</Text> : null}
+      {item.User?.email ? <Text variant="footnote" color="textSecondary">{item.User.email}</Text> : null}
 
       {/* The actual review: submitted selfie against the profile photo. */}
       <View style={s.compareRow}>
         <View style={s.compareCell}>
-          <Text style={s.compareLabel}>Selfie</Text>
+          <Text variant="caption" color="textSecondary" style={s.compareLabel}>Selfie</Text>
           <SmartImage uri={item.selfiePhoto ?? undefined} name={name} style={s.compareImg} />
         </View>
         <View style={s.compareCell}>
-          <Text style={s.compareLabel}>Profile photo</Text>
+          <Text variant="caption" color="textSecondary" style={s.compareLabel}>Profile photo</Text>
           <SmartImage uri={profilePhoto ?? undefined} name={name} style={s.compareImg} />
         </View>
       </View>
@@ -88,7 +88,7 @@ function VerifCard({
           accessibilityLabel="Reject verification"
         >
           <Ionicons name="close" size={16} color={c.error} />
-          <Text style={[s.btnText, { color: c.error }]}>Reject</Text>
+          <Text variant="caption" color="error">Reject</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[s.btn, s.approveBtn]}
@@ -97,7 +97,7 @@ function VerifCard({
           accessibilityLabel="Approve verification"
         >
           <Ionicons name="checkmark" size={16} color="#fff" />
-          <Text style={[s.btnText, { color: '#fff' }]}>Approve</Text>
+          <Text variant="caption" style={{ color: '#fff' }}>Approve</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -163,7 +163,7 @@ export default function VerificationQueueScreen() {
         <TouchableOpacity onPress={() => nav.goBack()} style={s.backBtn} accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
         </TouchableOpacity>
-        <Text style={s.title}>Verification Queue</Text>
+        <Text variant="title3" color="textPrimary" style={s.title}>Verification Queue</Text>
         {isLoading && <ActivityIndicator size="small" color={c.primary} />}
       </View>
 
@@ -181,7 +181,7 @@ export default function VerificationQueueScreen() {
           ListEmptyComponent={
             <View style={s.empty}>
               <Ionicons name="checkmark-circle-outline" size={48} color={c.textMuted} />
-              <Text style={s.emptyText}>Queue is clear</Text>
+              <Text variant="subhead" color="textMuted">Queue is clear</Text>
             </View>
           }
         />
@@ -195,9 +195,9 @@ export default function VerificationQueueScreen() {
       >
         <View style={s.modalBackdrop}>
           <View style={s.modalCard}>
-            <Text style={s.modalTitle}>Reject Verification</Text>
-            <Text style={s.modalSub}>
-              Rejecting <Text style={s.modalBold}>{rejectTarget?.name}</Text>. Provide a reason:
+            <Text variant="title3" color="textPrimary">Reject Verification</Text>
+            <Text variant="footnote" color="textSecondary">
+              Rejecting <Text variant="caption" color="textPrimary">{rejectTarget?.name}</Text>. Provide a reason:
             </Text>
             <TextInput
               style={s.reasonInput}
@@ -211,7 +211,7 @@ export default function VerificationQueueScreen() {
             />
             <View style={s.modalActions}>
               <TouchableOpacity style={s.modalCancel} onPress={() => setRejectTarget(null)}>
-                <Text style={s.modalCancelText}>Cancel</Text>
+                <Text variant="subhead" color="textSecondary">Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[s.modalConfirm, mutPending && s.disabled]}
@@ -222,7 +222,7 @@ export default function VerificationQueueScreen() {
                 {mutPending ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text style={s.modalConfirmText}>Reject</Text>
+                  <Text variant="caption" style={{ color: '#fff' }}>Reject</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -247,9 +247,6 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   backBtn: { padding: spacing.xs },
   title: {
     flex: 1,
-    fontSize: typography.fontSize.lg,
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
   },
   loader: { marginTop: spacing.xl },
   list: { padding: spacing.md, gap: spacing.md },
@@ -260,27 +257,9 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     gap: spacing.sm,
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  cardDate: {
-    fontSize: typography.fontSize.xs,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textSecondary,
-  },
-  cardName: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.textPrimary,
-  },
-  cardEmail: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textSecondary,
-  },
   compareRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
   compareCell: { flex: 1, gap: 4 },
   compareLabel: {
-    fontSize: typography.fontSize.xs,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
@@ -302,13 +281,7 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   },
   rejectBtn: { borderWidth: 1, borderColor: c.error },
   approveBtn: { backgroundColor: c.success },
-  btnText: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold },
   empty: { alignItems: 'center', justifyContent: 'center', paddingTop: 80, gap: spacing.md },
-  emptyText: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textMuted,
-  },
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -323,17 +296,6 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     padding: spacing.lg,
     gap: spacing.md,
   },
-  modalTitle: {
-    fontSize: typography.fontSize.lg,
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
-  },
-  modalSub: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textSecondary,
-  },
-  modalBold: { fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
   reasonInput: {
     borderWidth: 1,
     borderColor: c.border,
@@ -354,22 +316,12 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     borderColor: c.border,
     borderRadius: borderRadius.sm,
   },
-  modalCancelText: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textSecondary,
-  },
   modalConfirm: {
     flex: 1,
     paddingVertical: spacing.sm,
     alignItems: 'center',
     backgroundColor: c.error,
     borderRadius: borderRadius.sm,
-  },
-  modalConfirmText: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.semiBold,
-    color: '#fff',
   },
   disabled: { opacity: 0.6 },
 });

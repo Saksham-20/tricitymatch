@@ -1,7 +1,8 @@
 import React from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
-import { colours, type, type ThemeColours } from '@shared/constants/theme';
+import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+import { colours, type ThemeColours } from '@shared/constants/theme';
+import Text from './Text';
 
 interface SectionHeaderProps {
   title: string;
@@ -25,12 +26,12 @@ export default function SectionHeader({ title, eyebrow, gold, count, action, sty
       <View style={styles.left}>
         <View style={[styles.tick, gold && styles.tickGold]} />
         <View style={styles.textGroup}>
-          {eyebrow ? <Text style={styles.eyebrow}>{eyebrow.toUpperCase()}</Text> : null}
+          {eyebrow ? <Text variant="micro" style={styles.eyebrow}>{eyebrow.toUpperCase()}</Text> : null}
           <View style={styles.titleRow}>
-            <Text style={styles.title}>{title}</Text>
+            <Text variant="title3" color="fgStrong">{title}</Text>
             {count != null ? (
               <View style={styles.countChip}>
-                <Text style={styles.countText}>{count}</Text>
+                <Text variant="caption" color="primary">{count}</Text>
               </View>
             ) : null}
           </View>
@@ -55,14 +56,9 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
   textGroup: { flex: 1 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   eyebrow: {
-    ...type.micro,
     color: c.g600,
     letterSpacing: 1.2,
     marginBottom: 2,
-  },
-  title: {
-    ...type.title3,
-    color: c.fgStrong,
   },
   countChip: {
     minWidth: 22,
@@ -73,5 +69,4 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  countText: { ...type.caption, color: c.accent },
 });

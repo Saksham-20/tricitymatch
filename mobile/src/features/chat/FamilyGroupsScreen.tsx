@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
@@ -10,6 +9,7 @@ import {
   TextInput,
   Modal,
 } from 'react-native';
+import Text from '../../components/ui/Text';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -47,9 +47,9 @@ function CreateGroupModal({ visible, onClose, onCreate }: {
       <View style={cm.overlay}>
         <View style={cm.sheet}>
           <View style={cm.handle} />
-          <Text style={cm.title}>Create Family Group</Text>
-          <Text style={cm.hint}>Create a private group to discuss this match with your family. Invite members after creating.</Text>
-          <Text style={cm.label}>Group Name</Text>
+          <Text variant="title3" color="textPrimary" style={cm.title}>Create Family Group</Text>
+          <Text variant="subhead" color="textSecondary" style={cm.hint}>Create a private group to discuss this match with your family. Invite members after creating.</Text>
+          <Text variant="subhead" color="textSecondary" style={cm.label}>Group Name</Text>
           <TextInput
             style={cm.input}
             value={name}
@@ -61,10 +61,10 @@ function CreateGroupModal({ visible, onClose, onCreate }: {
             accessibilityLabel="Group name"
           />
           <TouchableOpacity style={cm.createBtn} onPress={handleCreate} testID="create-group-btn" accessibilityLabel="Create group">
-            <Text style={cm.createText}>Create Group</Text>
+            <Text variant="headline" style={cm.createText}>Create Group</Text>
           </TouchableOpacity>
           <TouchableOpacity style={cm.cancelBtn} onPress={onClose} testID="cancel-create-btn">
-            <Text style={cm.cancelText}>Cancel</Text>
+            <Text variant="callout" color="textSecondary">Cancel</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -76,14 +76,13 @@ const makeCm = (c: ThemeColours) => StyleSheet.create({
   overlay:   { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' },
   sheet:     { backgroundColor: c.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: spacing.xl, paddingBottom: spacing['3xl'] },
   handle:    { width: 40, height: 4, borderRadius: 2, backgroundColor: c.border, alignSelf: 'center', marginBottom: spacing.lg },
-  title:     { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: c.textPrimary, marginBottom: spacing.sm },
-  hint:      { fontSize: typography.fontSize.sm, color: c.textSecondary, marginBottom: spacing.lg, lineHeight: 20 },
-  label:     { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold, color: c.textSecondary, marginBottom: spacing.xs },
+  title:     { marginBottom: spacing.sm },
+  hint:      { marginBottom: spacing.lg },
+  label:     { marginBottom: spacing.xs },
   input:     { borderWidth: 1, borderColor: c.border, borderRadius: borderRadius.md, padding: spacing.md, fontSize: typography.fontSize.base, color: c.textPrimary, marginBottom: spacing.lg },
   createBtn: { backgroundColor: c.primary, borderRadius: borderRadius.md, paddingVertical: spacing.md, alignItems: 'center', marginBottom: spacing.sm },
-  createText:{ color: '#fff', fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold },
+  createText:{ color: '#fff' },
   cancelBtn: { alignItems: 'center', paddingVertical: spacing.sm },
-  cancelText:{ fontSize: typography.fontSize.base, color: c.textSecondary },
 });
 
 // ─── Group row ─────────────────────────────────────────────────────────────────
@@ -97,8 +96,8 @@ function GroupRow({ group, onPress }: { group: FamilyGroup; onPress: () => void 
         <Ionicons name="people" size={20} color="#fff" />
       </View>
       <View style={gr.info}>
-        <Text style={gr.name}>{group.name}</Text>
-        <Text style={gr.sub}>{group.members.length} member{group.members.length !== 1 ? 's' : ''}</Text>
+        <Text variant="headline" color="textPrimary">{group.name}</Text>
+        <Text variant="caption" color="textSecondary" style={gr.sub}>{group.members.length} member{group.members.length !== 1 ? 's' : ''}</Text>
       </View>
       <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
     </TouchableOpacity>
@@ -109,8 +108,7 @@ const makeGr = (c: ThemeColours) => StyleSheet.create({
   row:    { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg, backgroundColor: c.background, borderBottomWidth: 1, borderBottomColor: c.border },
   avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center' },
   info:   { flex: 1 },
-  name:   { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
-  sub:    { fontSize: typography.fontSize.xs, color: c.textSecondary, marginTop: 2 },
+  sub:    { marginTop: 2 },
 });
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -152,7 +150,7 @@ export default function FamilyGroupsScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} testID="back-btn" accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
         </TouchableOpacity>
-        <Text style={s.title}>Family Chat</Text>
+        <Text variant="title3" color="textPrimary">Family Chat</Text>
         <TouchableOpacity
           style={s.addBtn}
           onPress={() => setShowCreate(true)}
@@ -166,7 +164,7 @@ export default function FamilyGroupsScreen() {
       {/* Intro */}
       <View style={s.banner}>
         <Ionicons name="people-circle-outline" size={28} color={c.primary} />
-        <Text style={s.bannerText}>
+        <Text variant="subhead" color="textSecondary" style={s.bannerText}>
           Invite family members to a private group chat. Discuss matches together before making decisions.
         </Text>
       </View>
@@ -181,8 +179,8 @@ export default function FamilyGroupsScreen() {
           ListEmptyComponent={
             <View style={s.emptyState}>
               <Ionicons name="chatbubbles-outline" size={52} color={c.textMuted} />
-              <Text style={s.emptyTitle}>No Family Groups Yet</Text>
-              <Text style={s.emptyHint}>Create a group and invite your parents or siblings to discuss matches together.</Text>
+              <Text variant="title3" color="textSecondary">No Family Groups Yet</Text>
+              <Text variant="subhead" color="textMuted" style={s.emptyHint}>Create a group and invite your parents or siblings to discuss matches together.</Text>
               <TouchableOpacity
                 style={s.createCta}
                 onPress={() => setShowCreate(true)}
@@ -190,7 +188,7 @@ export default function FamilyGroupsScreen() {
                 accessibilityLabel="Create first group"
               >
                 <Ionicons name="add-circle-outline" size={18} color="#fff" style={{ marginRight: spacing.sm }} />
-                <Text style={s.ctaText}>Create Family Group</Text>
+                <Text variant="callout" style={s.ctaText}>Create Family Group</Text>
               </TouchableOpacity>
             </View>
           }
@@ -210,13 +208,11 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   wrapper:    { flex: 1, backgroundColor: c.background },
   header:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, backgroundColor: c.background, borderBottomWidth: 1, borderBottomColor: c.border },
   backBtn:    { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  title:      { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: c.textPrimary },
   addBtn:     { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   banner:     { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, backgroundColor: c.primaryLight, padding: spacing.lg },
-  bannerText: { flex: 1, fontSize: typography.fontSize.sm, color: c.textSecondary, lineHeight: 20 },
+  bannerText: { flex: 1 },
   emptyState: { alignItems: 'center', gap: spacing.md, paddingTop: 80, paddingHorizontal: spacing.xl },
-  emptyTitle: { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.semiBold, color: c.textSecondary },
-  emptyHint:  { fontSize: typography.fontSize.sm, color: c.textMuted, textAlign: 'center', lineHeight: 20 },
+  emptyHint:  { textAlign: 'center' },
   createCta:  { flexDirection: 'row', alignItems: 'center', backgroundColor: c.primary, borderRadius: borderRadius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.lg, marginTop: spacing.sm },
-  ctaText:    { color: '#fff', fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold },
+  ctaText:    { color: '#fff' },
 });

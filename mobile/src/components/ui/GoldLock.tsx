@@ -1,14 +1,15 @@
 import React from 'react';
-import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { borderRadius, colours, shadows, type } from '@shared/constants/theme';
+import { borderRadius, colours, shadows } from '@shared/constants/theme';
 import { duration } from '@shared/constants/motion';
 import { useTheme } from '../../hooks/useTheme';
 import { useReduceTransparency } from '../motion';
 import Button from './Button';
+import Text from './Text';
 
 interface GoldLockProps {
   title: string;
@@ -81,8 +82,8 @@ export default function GoldLock({
         >
           <Ionicons name="lock-closed" size={22} color={colours.goldText} />
         </LinearGradient>
-        <Text style={[styles.title, { color: c.fgStrong }]}>{title}</Text>
-        {subtitle ? <Text style={[styles.subtitle, { color: c.textMuted }]}>{subtitle}</Text> : null}
+        <Text variant="headline" color="fgStrong" style={styles.title}>{title}</Text>
+        {subtitle ? <Text variant="footnote" color="textMuted" style={styles.subtitle}>{subtitle}</Text> : null}
         {onUnlock ? (
           <Button title={ctaLabel} variant="gold" size="sm" icon="sparkles" onPress={onUnlock} style={styles.cta} />
         ) : null}
@@ -116,7 +117,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...shadows.gold,
   },
-  title: { ...type.headline, textAlign: 'center' },
-  subtitle: { ...type.footnote, textAlign: 'center', maxWidth: 240 },
+  title: { textAlign: 'center' },
+  subtitle: { textAlign: 'center', maxWidth: 240 },
   cta: { marginTop: 6, minWidth: 200 },
 });

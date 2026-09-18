@@ -3,14 +3,14 @@ import {
   FlatList,
   Modal,
   StyleSheet,
-  Text,
   View,
   useWindowDimensions,
 } from 'react-native';
+import Text from '../../../components/ui/Text';
 import FastImage from 'react-native-fast-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { spacing, type, borderRadius } from '@shared/constants/theme';
+import { spacing, borderRadius } from '@shared/constants/theme';
 import { resolveImageUri } from '../../../components/common/SmartImage';
 import { PressableScale } from '../../../components/motion';
 import { haptics } from '../../../utils/haptics';
@@ -76,7 +76,7 @@ export default function PhotoGalleryViewer({ photos, initialIndex, visible, onCl
         {/* Top bar: counter + close */}
         <View style={[s.topBar, { paddingTop: insets.top + spacing.sm }]} pointerEvents="box-none">
           <View style={s.counter}>
-            <Text style={s.counterText}>
+            <Text variant="caption" style={s.counterText}>
               {index + 1} / {resolved.length}
             </Text>
           </View>
@@ -140,7 +140,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 5,
   },
-  counterText: { ...type.caption, color: '#fff' },
+  counterText: { color: '#fff' },
   circleBtn: {
     width: 44,
     height: 44,

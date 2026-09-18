@@ -178,7 +178,59 @@ and then **off**, both platforms.
 
 ---
 
-## Phase 2 — Scale: the `Text` primitive and elder mode made real
+## Phase 2 — Scale: the `Text` primitive and elder mode made real — DONE 2026-09-18
+
+Built `components/ui/Text.tsx` (variant = the 11 `type` roles, curated 10-key `TextColor` union excluding
+gold, `maxScale`, elder bump = ×1.15625 on every role — the same ratio as the web's `html.elder` 16→18.5px,
+resolved internally via `useTheme()`). `utils/elderTheme.ts` slimmed to just `tapSize(elder)` (correctly
+sourced off `tapTarget`); its dead `fontSize()`/`elderFontSize` (which operated on the wrong, unused
+`typography.fontSize` scale) deleted. `ListRow.tsx` — the util's one importer — migrated onto the new
+primitive as the pilot.
+
+**2.3 adoption** ran as 9 parallel builder agents (91 files, every raw `<Text>` in `src/` except 3 documented
+exceptions — `SmartImage`'s avatar-initial glyph, `TickRing`'s `CompletionRing` percentage glyph, and
+`ProfileDetailScreen`'s `Animated.Text` floating header, none of which can safely route through a
+non-forwardRef primitive or a fixed 11-role scale). Verified myself afterward, not just trusted the builders'
+self-reports: grepped every file for leftover `fontSize:`/`fontFamily:`/`color:` that could silently override
+the primitive (the #1 failure mode flagged in the builder brief) — every hit traced to a TextInput field, an
+Ionicons glyph, dead/orphaned styling, or the 3 documented exceptions, zero real leaks. tsc 0, mobile jest
+57/57, lint 0 errors (187 warnings, back to baseline after cleaning up import stragglers the migration
+orphaned), slop-lint clean.
+
+**Flagged, not "fixed" — genuine judgment calls for a design pass, not bugs:** `Logo.tsx`'s wordmark now
+renders serif at lg/xl and sans at sm/md (no serif role exists below 22px); the admin console header and
+several legal/contact page titles moved from sans-bold to serif Playfair (no large sans-bold role exists in
+the canonical scale); `PhotoBlock.tsx`'s photo caption lost its deliberate `PlayfairDisplay-Italic` styling
+(no italic role exists); `HomeScreen`'s rail-card name moved from 17px to 22px over a 166×226 photo tile
+(mitigated by `numberOfLines={1}` + the card's own `overflow:'hidden'`, but worth a look at very large OS
+text sizes). None of these are doctrine violations — every one followed the "map to the nearest canonical
+role" rule — they're visible consequences of collapsing forked ad-hoc styling onto one real scale, which is
+what this phase was for.
+
+**2.4** — checked the plan's 4 named offenders directly: `Button.tsx`'s `sm` size and `FloatingTabBar`'s tab
+item already used `minHeight` (safe, no clip risk); `HomeScreen`'s rail card is a fixed-aspect photo tile with
+an absolutely-positioned, `numberOfLines`-guarded overlay (graceful degradation at extreme scale, not a hard
+clip); "every list row" was already covered by the `ListRow.tsx` fix above. Then swept the whole app for
+`height:` (not `minHeight`) literals wrapping actual text content: found and fixed 9 real risks — the
+`selectBtn`/`optionBtn`/`yesNoBtn` pattern repeated across 8 onboarding steps (Step2–7, 9, 11) plus Step12's
+`continueBtn`, all converted `height`→`minHeight`. Every other `height:` hit checked was a circular icon/avatar
+container (`width === height`, correctly fixed) or a TextInput field (out of scope).
+
+**2.5** — verified rather than rebuilt: the docked elder-mode tab bar already sources tap targets from
+`tapTarget.elder` (`MainNavigator.tsx:126`), stack + tab navigation animation is already off for elder mode,
+and the 2026-08-16 "Chat tab hides → CTA becomes a silent no-op" regression is still correctly guarded —
+`MatchesScreen` hides the chat CTAs entirely under elder mode (with an inline comment explaining why) rather
+than pointing them at a tab the navigator no longer mounts. No new code needed here.
+
+**Not verified — genuinely needs a device/simulator, noted rather than skipped:** a live walk at maximum OS
+text size in both themes/both platforms with elder mode on/off. Everything above was checked from source; the
+visual judgment calls flagged two paragraphs up, and any real clipping the `height:`→`minHeight` sweep might
+have missed, need actual rendering to confirm. Owed, same as other device-verification items in this
+campaign.
+
+---
+
+## Phase 2 (original plan text)
 
 **Blocked on owner decision 1.** The riskiest phase and the one with the largest diff; it goes second so
 everything after it is built on the right foundation.

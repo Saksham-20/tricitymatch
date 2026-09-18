@@ -1,11 +1,11 @@
 import React from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
+import Text from '../../components/ui/Text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -43,14 +43,16 @@ function GunaBar({ name, score, max, detail, index = 0 }: { name: string; score:
   return (
     <View style={g.row}>
       <View style={g.labelCol}>
-        <Text style={[g.name, { color: c.fgStrong }]}>{name}</Text>
-        <Text style={[g.detail, { color: c.textMuted }]} numberOfLines={1}>{detail}</Text>
+        <Text variant="subhead" color="fgStrong">{name}</Text>
+        <Text variant="caption" color="textMuted" numberOfLines={1}>{detail}</Text>
       </View>
       <View style={g.barCol}>
         <View style={[g.track, { backgroundColor: c.surface2 }]}>
           <Animated.View style={[g.fill, { backgroundColor: barColour }, fillStyle]} />
         </View>
-        <Text style={[g.scoreLabel, { color: barColour }]}>{scoreLabel}</Text>
+        {/* barColour is a score-threshold gradient (gunaColour), not a single
+            curated token — kept as a style override. */}
+        <Text variant="caption" style={[g.scoreLabel, { color: barColour }]}>{scoreLabel}</Text>
       </View>
     </View>
   );
@@ -63,7 +65,7 @@ function DoshaTag({ label, present }: { label: string; present: boolean }) {
   return (
     <View style={d.tag}>
       <Ionicons name="warning" size={12} color={c.warning} />
-      <Text style={d.tagText}>{label}</Text>
+      <Text variant="caption" color="warning">{label}</Text>
     </View>
   );
 }
@@ -97,15 +99,15 @@ export default function HoroscopeMatchScreen() {
             <CompatRing value={pct} size={84} />
           ) : (
             <View style={[s.ringEmpty, { borderColor: c.border }]}>
-              <Text style={[s.scoreOf, { color: c.textMuted }]}>N/A</Text>
+              <Text variant="caption" color="textMuted" style={s.scoreOf}>N/A</Text>
             </View>
           )}
           <View style={s.scoreInfo}>
-            <Text style={[s.interp, { color: c.fgStrong }]}>
+            <Text variant="title3" color="fgStrong" style={s.interp}>
               {interpretation || (rashiScore !== null ? 'Rashi Based' : 'Incomplete Data')}
             </Text>
-            <Text style={[s.summary, { color: c.textMuted }]}>{summary}</Text>
-            {score36 !== null && <Text style={[s.scoreOf, { color: c.textMuted }]}>{score36}/36 gunas</Text>}
+            <Text variant="footnote" color="textMuted">{summary}</Text>
+            {score36 !== null && <Text variant="caption" color="textMuted" style={s.scoreOf}>{score36}/36 gunas</Text>}
           </View>
         </View>
 
@@ -121,7 +123,7 @@ export default function HoroscopeMatchScreen() {
 
         {/* Manglik */}
         <View style={s.section}>
-          <Text style={[s.sectionTitle, { color: c.fgStrong }]}>Manglik Compatibility</Text>
+          <Text variant="headline" color="fgStrong" style={s.sectionTitle}>Manglik Compatibility</Text>
           {(() => {
             const manglikUnknown = /unknown/i.test(manglikDetail);
             const bg = manglikUnknown ? c.surface2 : manglikCompatible ? c.successBg : c.warningBg;
@@ -130,7 +132,9 @@ export default function HoroscopeMatchScreen() {
             return (
               <View style={[s.manglikBadge, { backgroundColor: bg }]}>
                 <Ionicons name={icon} size={20} color={fg} />
-                <Text style={[s.manglikText, { color: fg }]}>{manglikDetail}</Text>
+                {/* fg is a state-conditional pick across 3 curated tokens, not a
+                    single one — kept as a style override. */}
+                <Text variant="subhead" style={[s.manglikText, { color: fg }]}>{manglikDetail}</Text>
               </View>
             );
           })()}
@@ -139,8 +143,8 @@ export default function HoroscopeMatchScreen() {
         {/* Ashtakoot breakdown */}
         {ashtakoot ? (
           <View style={s.section}>
-            <Text style={[s.sectionTitle, { color: c.fgStrong }]}>Ashtakoot Guna Milan</Text>
-            <Text style={[s.sectionSub, { color: c.textMuted }]}>8 gunas · max 36 points</Text>
+            <Text variant="headline" color="fgStrong" style={s.sectionTitle}>Ashtakoot Guna Milan</Text>
+            <Text variant="caption" color="textMuted" style={s.sectionSub}>8 gunas · max 36 points</Text>
             {(Object.entries(ashtakoot.gunas) as [string, GunaDetail][])
               .sort(([, a], [, b]) => b.max - a.max)
               .map(([key, guna], i) => (
@@ -149,24 +153,24 @@ export default function HoroscopeMatchScreen() {
           </View>
         ) : rashiScore !== null ? (
           <View style={s.section}>
-            <Text style={[s.sectionTitle, { color: c.fgStrong }]}>Rashi Compatibility</Text>
-            <Text style={[s.sectionSub, { color: c.textMuted }]}>Nakshatra not provided — using Rashi as fallback</Text>
+            <Text variant="headline" color="fgStrong" style={s.sectionTitle}>Rashi Compatibility</Text>
+            <Text variant="caption" color="textMuted" style={s.sectionSub}>Nakshatra not provided — using Rashi as fallback</Text>
             <View style={[s.rashiRow, { backgroundColor: c.surface2 }]}>
               <View style={[s.rashiBar, { width: `${rashiScore}%`, backgroundColor: c.p500 }]} />
-              <Text style={[s.rashiPct, { color: c.fgStrong }]}>{rashiScore}%</Text>
+              <Text variant="headline" color="fgStrong" style={s.rashiPct}>{rashiScore}%</Text>
             </View>
           </View>
         ) : (
           <View style={s.emptySection}>
             <Ionicons name="moon-outline" size={40} color={c.textMuted} />
-            <Text style={[s.emptyTitle, { color: c.textSecondary }]}>Nakshatra details missing</Text>
-            <Text style={[s.emptyBody, { color: c.textMuted }]}>
+            <Text variant="headline" color="textSecondary">Nakshatra details missing</Text>
+            <Text variant="subhead" color="textMuted" style={s.emptyBody}>
               Ask {name} to complete their horoscope details (nakshatra, rashi, manglik status) for a full Guna Milan analysis.
             </Text>
           </View>
         )}
 
-        <Text style={[s.disclaimer, { color: c.textMuted }]}>
+        <Text variant="caption" color="textMuted" style={s.disclaimer}>
           * Ashtakoot is a traditional Vedic system. Consider consulting a qualified jyotishi for life decisions.
         </Text>
       </>
@@ -180,8 +184,8 @@ export default function HoroscopeMatchScreen() {
           <Ionicons name="arrow-back" size={24} color={c.fgStrong} />
         </TouchableOpacity>
         <View style={s.headerCenter}>
-          <Text style={[s.headerTitle, { color: c.fgStrong }]}>Kundli Match</Text>
-          <Text style={[s.headerSub, { color: c.textMuted }]}>{name}</Text>
+          <Text variant="headline" color="fgStrong">Kundli Match</Text>
+          <Text variant="footnote" color="textMuted">{name}</Text>
         </View>
         <View style={{ width: 24 }} />
       </View>
@@ -192,7 +196,7 @@ export default function HoroscopeMatchScreen() {
         ) : isError ? (
           <View style={s.center}>
             <Ionicons name="alert-circle-outline" size={48} color={c.error} />
-            <Text style={s.errorText}>Could not load horoscope data</Text>
+            <Text variant="body" color="error" style={s.errorText}>Could not load horoscope data</Text>
           </View>
         ) : renderScore()}
       </ScrollView>
@@ -204,52 +208,45 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   container:    { flex: 1 },
   header:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.sm, borderBottomWidth: 0.5 },
   headerCenter: { flex: 1, alignItems: 'center' },
-  headerTitle:  { ...type.headline },
-  headerSub:    { ...type.footnote },
   scroll:       { padding: spacing.gutter, paddingBottom: spacing['4xl'] },
   center:       { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: spacing['5xl'] },
   loadingText:  { marginTop: spacing.md, ...type.body },
-  errorText:    { marginTop: spacing.sm, ...type.body, color: c.error, textAlign: 'center' },
+  errorText:    { marginTop: spacing.sm, textAlign: 'center' },
 
   scoreCard:    { flexDirection: 'row', alignItems: 'center', borderRadius: borderRadius.lg, borderWidth: 1, padding: spacing.lg, marginBottom: spacing.lg, gap: spacing.lg },
   ringEmpty:    { width: 84, height: 84, borderRadius: 42, borderWidth: 4, alignItems: 'center', justifyContent: 'center' },
-  scoreOf:      { ...type.caption, marginTop: 4 },
+  scoreOf:      { marginTop: 4 },
   scoreInfo:    { flex: 1 },
-  interp:       { ...type.title3, marginBottom: 4 },
-  summary:      { ...type.footnote },
+  interp:       { marginBottom: 4 },
 
   doshaRow:     { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginBottom: spacing.lg },
 
   section:      { marginBottom: spacing.xl },
-  sectionTitle: { ...type.headline, marginBottom: 2 },
-  sectionSub:   { ...type.caption, marginBottom: spacing.sm },
+  sectionTitle: { marginBottom: 2 },
+  sectionSub:   { marginBottom: spacing.sm },
 
   manglikBadge: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderRadius: borderRadius.md, padding: spacing.md },
-  manglikText:  { flex: 1, ...type.subhead, fontFamily: 'Inter-Medium' },
+  manglikText:  { flex: 1 },
 
   rashiRow:     { height: 26, borderRadius: 13, overflow: 'hidden', marginTop: spacing.sm, position: 'relative', justifyContent: 'center' },
   rashiBar:     { ...StyleSheet.absoluteFillObject, borderRadius: 13 },
-  rashiPct:     { position: 'absolute', right: spacing.md, ...type.subhead, fontFamily: 'Inter-SemiBold' },
+  rashiPct:     { position: 'absolute', right: spacing.md },
 
   emptySection: { alignItems: 'center', paddingVertical: spacing.xl, gap: spacing.sm },
-  emptyTitle:   { ...type.headline },
-  emptyBody:    { ...type.subhead, textAlign: 'center', paddingHorizontal: spacing.lg },
+  emptyBody:    { textAlign: 'center', paddingHorizontal: spacing.lg },
 
-  disclaimer:   { ...type.caption, textAlign: 'center', marginTop: spacing.lg, fontStyle: 'italic' },
+  disclaimer:   { textAlign: 'center', marginTop: spacing.lg, fontStyle: 'italic' },
 });
 
 const g = StyleSheet.create({
   row:        { flexDirection: 'row', alignItems: 'center', marginBottom: 9, gap: spacing.sm },
   labelCol:   { width: 100 },
-  name:       { ...type.subhead, fontFamily: 'Inter-Medium' },
-  detail:     { ...type.caption },
   barCol:     { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   track:      { flex: 1, height: 7, borderRadius: 4, overflow: 'hidden' },
   fill:       { height: '100%', borderRadius: 4 },
-  scoreLabel: { ...type.caption, fontFamily: 'Inter-SemiBold', width: 34, textAlign: 'right' },
+  scoreLabel: { width: 34, textAlign: 'right' },
 });
 
 const makeD = (c: ThemeColours) => StyleSheet.create({
   tag:     { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: c.warningBg, borderRadius: borderRadius.sm, paddingHorizontal: spacing.sm, paddingVertical: 4 },
-  tagText: { ...type.caption, color: c.warning, fontFamily: 'Inter-Medium' },
 });

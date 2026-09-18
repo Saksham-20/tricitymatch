@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
-  View, Text, TouchableOpacity, Image, StyleSheet,
+  View, TouchableOpacity, Image, StyleSheet,
   ActivityIndicator, StatusBar,
 } from 'react-native';
+import Text from '../../components/ui/Text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -260,8 +261,8 @@ export default function VoiceCallScreen() {
       </View>
 
       {/* Name + status */}
-      <Text style={styles.name} testID="CalleeName">{calleeName || 'Calling…'}</Text>
-      <Text style={styles.status} testID="CallStatus">{phaseLabel[phase]}</Text>
+      <Text variant="title2" style={styles.name} testID="CalleeName">{calleeName || 'Calling…'}</Text>
+      <Text variant="callout" style={styles.status} testID="CallStatus">{phaseLabel[phase]}</Text>
 
       {phase === 'connecting' && (
         <ActivityIndicator color={c.primary} style={{ marginTop: spacing.md }} />
@@ -328,7 +329,7 @@ function CallButton({ icon, label, onPress, variant = 'default', active, testID 
           color={variant === 'end' || active ? c.background : c.textPrimary}
         />
       </TouchableOpacity>
-      <Text style={styles.btnLabel}>{label}</Text>
+      <Text variant="caption" style={styles.btnLabel}>{label}</Text>
     </View>
   );
 }
@@ -358,13 +359,9 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     justifyContent: 'center',
   },
   name: {
-    fontSize: typography.fontSize['2xl'],
-    fontFamily: typography.fontFamily.bold,
     color: '#ffffff',
   },
   status: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.regular,
     color: callColours.textMuted,
     letterSpacing: 0.3,
   },
@@ -396,8 +393,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     backgroundColor: c.primary,
   },
   btnLabel: {
-    fontSize: typography.fontSize.xs,
-    fontFamily: typography.fontFamily.medium,
     color: callColours.textMuted,
   },
 });

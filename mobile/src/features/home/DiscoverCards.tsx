@@ -6,13 +6,14 @@
  * Everything here reads data that already exists — no new backend.
  */
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Share } from 'react-native';
+import { View, StyleSheet, Share } from 'react-native';
+import Text from '../../components/ui/Text';
 import { useNavigation } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { type ThemeColours, spacing, borderRadius, type as t9 } from '@shared/constants/theme';
+import { type ThemeColours, spacing, borderRadius } from '@shared/constants/theme';
 import { PressableScale } from '../../components/motion';
 import SmartImage from '../../components/common/SmartImage';
 import { useTheme } from '../../hooks/useTheme';
@@ -107,8 +108,8 @@ export default function DiscoverCards() {
                   <Ionicons name="shield-checkmark-outline" size={20} color={c.success} />
                 </View>
                 <View style={styles.body}>
-                  <Text style={styles.title}>{t('discover.verifyTitle', 'Get the verified badge')}</Text>
-                  <Text style={styles.sub}>{t('discover.verifySub', 'A 30-second selfie — verified profiles earn far more trust.')}</Text>
+                  <Text variant="headline" color="textPrimary" style={styles.title}>{t('discover.verifyTitle', 'Get the verified badge')}</Text>
+                  <Text variant="footnote" color="textMuted" style={styles.sub}>{t('discover.verifySub', 'A 30-second selfie — verified profiles earn far more trust.')}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
               </PressableScale>
@@ -120,8 +121,8 @@ export default function DiscoverCards() {
                   <Ionicons name="people-outline" size={20} color={c.accent} />
                 </View>
                 <View style={styles.body}>
-                  <Text style={styles.title}>{t('discover.inviteTitle', 'Know someone searching?')}</Text>
-                  <Text style={styles.sub}>
+                  <Text variant="headline" color="textPrimary" style={styles.title}>{t('discover.inviteTitle', 'Know someone searching?')}</Text>
+                  <Text variant="footnote" color="textMuted" style={styles.sub}>
                     {inviteReward > 0
                       ? t('discover.inviteSubReward', `You both get ${inviteReward} contact unlocks when they join.`)
                       : t('discover.inviteSub', 'Every good match starts with someone you trust. Share your invite.')}
@@ -137,8 +138,8 @@ export default function DiscoverCards() {
                   <Ionicons name="mic-outline" size={20} color={c.info} />
                 </View>
                 <View style={styles.body}>
-                  <Text style={styles.title}>{t('discover.voiceTitle', 'Add a voice intro')}</Text>
-                  <Text style={styles.sub}>{t('discover.voiceSub', 'Families remember a voice — say hello in 30 seconds.')}</Text>
+                  <Text variant="headline" color="textPrimary" style={styles.title}>{t('discover.voiceTitle', 'Add a voice intro')}</Text>
+                  <Text variant="footnote" color="textMuted" style={styles.sub}>{t('discover.voiceSub', 'Families remember a voice — say hello in 30 seconds.')}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
               </PressableScale>
@@ -148,10 +149,10 @@ export default function DiscoverCards() {
               <PressableScale key={key} haptic onPress={() => navigation.navigate('Subscription')} testID="card-membership">
                 <LinearGradient colors={[c.g400, c.g600]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.goldCard}>
                   <View style={styles.body}>
-                    <Text style={[styles.title, { color: c.goldText }]}>
+                    <Text variant="headline" style={[styles.title, { color: c.goldText }]}>
                       {foundingOpen ? t('discover.foundingTitle', 'Founding member offer') : t('discover.premiumTitle', 'See who liked you')}
                     </Text>
-                    <Text style={[styles.sub, { color: c.goldText, opacity: 0.85 }]}>
+                    <Text variant="footnote" style={[styles.sub, { color: c.goldText, opacity: 0.85 }]}>
                       {foundingOpen
                         ? t('discover.foundingSub', 'Early members get premium at the founding price — limited window.')
                         : t('discover.premiumSub', 'Premium opens chat, likes and contact details.')}
@@ -172,8 +173,8 @@ export default function DiscoverCards() {
                   </View>
                 )}
                 <View style={styles.body}>
-                  <Text style={styles.title} numberOfLines={1}>{story.coupleNames}</Text>
-                  <Text style={styles.sub} numberOfLines={2}>“{story.quote}”</Text>
+                  <Text variant="headline" color="textPrimary" style={styles.title} numberOfLines={1}>{story.coupleNames}</Text>
+                  <Text variant="footnote" color="textMuted" style={styles.sub} numberOfLines={2}>“{story.quote}”</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
               </PressableScale>
@@ -211,6 +212,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
   },
   storyPhoto: { width: 44, height: 44, borderRadius: 12 },
   body: { flex: 1 },
-  title: { ...t9.headline, color: c.textPrimary },
-  sub: { ...t9.footnote, color: c.textMuted, marginTop: 2 },
+  title: {},
+  sub: { marginTop: 2 },
 });

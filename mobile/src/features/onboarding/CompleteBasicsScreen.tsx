@@ -10,16 +10,17 @@ import React, { useEffect, useState } from 'react';
 import { PressableScale } from '../../components/motion';
 import { useTheme } from '../../hooks/useTheme';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
+  View, TextInput, TouchableOpacity, StyleSheet, ScrollView,
   ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
+import Text from '../../components/ui/Text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { getMyProfile, updateMyProfile } from '../../api/profile';
 import { getMe } from '../../api/auth';
 import { useAuthStore } from '../../stores/authStore';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 
 export default function CompleteBasicsScreen() {
   const { c } = useTheme();
@@ -112,10 +113,10 @@ export default function CompleteBasicsScreen() {
         contentContainerStyle={[st.content, { paddingTop: insets.top + spacing['2xl'] }]}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={st.title}>{t('auth.signup.basicsTitle', 'A few basics')}</Text>
-        <Text style={st.sub}>{t('auth.signup.legacySub', 'Finish setting up your profile — this takes under a minute.')}</Text>
+        <Text variant="title2" color="textPrimary">{t('auth.signup.basicsTitle', 'A few basics')}</Text>
+        <Text variant="footnote" color="textMuted" style={st.sub}>{t('auth.signup.legacySub', 'Finish setting up your profile — this takes under a minute.')}</Text>
 
-        <Text style={st.label}>{t('auth.signup.fullName', 'Full name')}</Text>
+        <Text variant="subhead" color="textSecondary" style={st.label}>{t('auth.signup.fullName', 'Full name')}</Text>
         <View style={st.nameRow}>
           <TextInput
             style={[st.input, { flex: 1 }]}
@@ -137,7 +138,7 @@ export default function CompleteBasicsScreen() {
           />
         </View>
 
-        <Text style={st.label}>{t('auth.signup.gender', 'Gender')}</Text>
+        <Text variant="subhead" color="textSecondary" style={st.label}>{t('auth.signup.gender', 'Gender')}</Text>
         <View style={st.nameRow}>
           {(['male', 'female'] as const).map((g) => {
             const active = gender === g;
@@ -151,13 +152,13 @@ export default function CompleteBasicsScreen() {
                 testID={`gender-${g}`}
               >
                 <Ionicons name={g === 'male' ? 'male' : 'female'} size={18} color={active ? '#fff' : c.textSecondary} />
-                <Text style={[st.genderText, active && st.genderTextActive]}>{g === 'male' ? 'Male' : 'Female'}</Text>
+                <Text variant="callout" color={active ? 'onPrimary' : 'textSecondary'}>{g === 'male' ? 'Male' : 'Female'}</Text>
               </TouchableOpacity>
             );
           })}
         </View>
 
-        <Text style={st.label}>{t('auth.signup.dob', 'Date of birth')}</Text>
+        <Text variant="subhead" color="textSecondary" style={st.label}>{t('auth.signup.dob', 'Date of birth')}</Text>
         <TextInput
           style={[st.input, dobError ? st.inputError : null]}
           value={dobDisplay}
@@ -168,8 +169,8 @@ export default function CompleteBasicsScreen() {
           maxLength={10}
           testID="dob-input"
         />
-        {dobError ? <Text style={st.error}>{dobError}</Text> : null}
-        {error ? <Text style={st.error} accessibilityLiveRegion="polite">{error}</Text> : null}
+        {dobError ? <Text variant="footnote" color="error" style={st.error}>{dobError}</Text> : null}
+        {error ? <Text variant="footnote" color="error" style={st.error} accessibilityLiveRegion="polite">{error}</Text> : null}
 
         <PressableScale haptic
           style={[st.cta, (!isValid || loading) && st.ctaDisabled]}
@@ -181,7 +182,7 @@ export default function CompleteBasicsScreen() {
         >
           {loading
             ? <ActivityIndicator size="small" color="#fff" />
-            : <Text style={st.ctaText}>{t('common.continue', 'Continue')}</Text>}
+            : <Text variant="headline" color="onPrimary">{t('common.continue', 'Continue')}</Text>}
         </PressableScale>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -191,9 +192,8 @@ export default function CompleteBasicsScreen() {
 const makeSt = (c: ThemeColours) => StyleSheet.create({
   flex: { flex: 1, backgroundColor: c.background },
   content: { paddingHorizontal: spacing.gutter, paddingBottom: spacing['3xl'] },
-  title: { fontSize: typography.fontSize['2xl'], fontFamily: typography.fontFamily.bold, color: c.textPrimary },
-  sub: { fontSize: typography.fontSize.sm, color: c.textMuted, marginTop: 4, marginBottom: spacing.xl },
-  label: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.medium, color: c.textSecondary, marginBottom: spacing.xs, marginTop: spacing.md },
+  sub: { marginTop: 4, marginBottom: spacing.xl },
+  label: { marginBottom: spacing.xs, marginTop: spacing.md },
   nameRow: { flexDirection: 'row', gap: spacing.sm },
   input: {
     borderWidth: 1, borderColor: c.border, borderRadius: borderRadius.md,
@@ -207,13 +207,10 @@ const makeSt = (c: ThemeColours) => StyleSheet.create({
     backgroundColor: c.surfaceCard,
   },
   genderBtnActive: { backgroundColor: c.primary, borderColor: c.primary },
-  genderText: { fontSize: typography.fontSize.base, color: c.textSecondary },
-  genderTextActive: { color: '#fff', fontFamily: typography.fontFamily.semiBold },
-  error: { color: c.error, fontSize: typography.fontSize.sm, marginTop: spacing.sm },
+  error: { marginTop: spacing.sm },
   cta: {
     backgroundColor: c.primary, borderRadius: borderRadius.pill,
     minHeight: 52, alignItems: 'center', justifyContent: 'center', marginTop: spacing.xl,
   },
   ctaDisabled: { opacity: 0.5 },
-  ctaText: { color: '#fff', fontFamily: typography.fontFamily.bold, fontSize: typography.fontSize.base },
 });

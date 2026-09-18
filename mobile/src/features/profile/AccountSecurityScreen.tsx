@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import { borderRadius, colours, spacing, type, type ThemeColours } from '@shared/constants/theme';
+import { borderRadius, colours, spacing, type ThemeColours } from '@shared/constants/theme';
 import {
   Button,
   Card,
@@ -14,6 +14,7 @@ import {
   ScreenHeader,
   SkeletonRow,
 } from '../../components/ui';
+import Text from '../../components/ui/Text';
 import { changePassword, getSessions, logoutAll, revokeSession, type AuthSession } from '../../api/auth';
 import { useAuthStore } from '../../stores/authStore';
 import { PASSWORD_RULES_ATTR, passwordProblem } from '../../utils/passwordRule';
@@ -80,14 +81,14 @@ function SessionRow({
       <Ionicons name={icon} size={20} color={c.textSecondary} />
       <View style={s.sessionInfo}>
         <View style={s.sessionTitleRow}>
-          <Text style={s.sessionLabel}>{label}</Text>
+          <Text variant="callout" color="textPrimary">{label}</Text>
           {session.isCurrent ? (
             <View style={s.currentChip}>
-              <Text style={s.currentChipText}>This device</Text>
+              <Text variant="micro" style={s.currentChipText}>This device</Text>
             </View>
           ) : null}
         </View>
-        <Text style={s.sessionMeta}>
+        <Text variant="footnote" color="textMuted">
           {relativeTime(session.lastUsedAt ?? session.createdAt)}
           {session.ipAddress ? ` · ${session.ipAddress}` : ''}
         </Text>
@@ -199,8 +200,8 @@ export default function AccountSecurityScreen() {
       <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
         {/* Change password */}
         <Card style={s.card}>
-          <Text style={s.cardTitle}>Change password</Text>
-          <Text style={s.cardBody}>
+          <Text variant="headline" color="textPrimary">Change password</Text>
+          <Text variant="footnote" color="textSecondary">
             Your other devices are signed out when the password changes. This one stays signed in.
           </Text>
 
@@ -241,7 +242,7 @@ export default function AccountSecurityScreen() {
           {formError ? (
             <View style={s.errorBanner} testID="password-error">
               <Ionicons name="alert-circle" size={15} color={c.error} />
-              <Text style={s.errorText}>{formError}</Text>
+              <Text variant="footnote" color="error" style={s.errorText}>{formError}</Text>
             </View>
           ) : null}
 
@@ -256,8 +257,8 @@ export default function AccountSecurityScreen() {
 
         {/* Sessions */}
         <Card style={s.card}>
-          <Text style={s.cardTitle}>Where you're signed in</Text>
-          <Text style={s.cardBody}>
+          <Text variant="headline" color="textPrimary">Where you're signed in</Text>
+          <Text variant="footnote" color="textSecondary">
             Sign out any device you don't recognise. Doing so does not change your password.
           </Text>
 
@@ -279,7 +280,7 @@ export default function AccountSecurityScreen() {
             // The request itself proves one live session exists, so an empty
             // list means the server answered with something we can't show —
             // say that rather than "no devices", which reads as a security claim.
-            <Text style={s.emptyNote}>No other sessions to show.</Text>
+            <Text variant="footnote" color="textMuted">No other sessions to show.</Text>
           ) : (
             sessions.map((session) => (
               <SessionRow
@@ -310,20 +311,17 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   content:  { padding: spacing.lg, paddingBottom: spacing['3xl'], gap: spacing.md },
 
   card:      { padding: spacing.lg, gap: spacing.md },
-  cardTitle: { ...type.headline, color: c.textPrimary },
-  cardBody:  { ...type.footnote, color: c.textSecondary },
 
   errorBanner: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, backgroundColor: c.errorBg, borderRadius: borderRadius.md, padding: spacing.md },
-  errorText:   { flex: 1, ...type.footnote, color: c.error },
+  errorText:   { flex: 1 },
 
   skeletons:  { gap: spacing.sm },
-  emptyNote:  { ...type.footnote, color: c.textMuted },
 
   sessionRow:     { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: c.border },
   sessionInfo:    { flex: 1, gap: 2 },
   sessionTitleRow:{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  sessionLabel:   { ...type.callout, color: c.textPrimary },
-  sessionMeta:    { ...type.footnote, color: c.textMuted },
   currentChip:    { backgroundColor: c.p100, borderRadius: borderRadius.full, paddingHorizontal: spacing.sm, paddingVertical: 2 },
-  currentChipText:{ ...type.micro, color: c.p500 },
+  // c.p500 is not in the curated TextColor union (hex-identical to c.primary but a
+  // separate, non-aliased theme key) — kept as an explicit style override per scope rules.
+  currentChipText:{ color: c.p500 },
 });

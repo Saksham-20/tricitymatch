@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import Text from '../../../components/ui/Text';
 import FastImage from 'react-native-fast-image';
 import { Ionicons } from '@expo/vector-icons';
-import { colours, spacing, type, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { resolveImageUri } from '../../../components/common/SmartImage';
 import { useTheme } from '../../../hooks/useTheme';
 
@@ -57,22 +58,22 @@ export default function PhotoBlock({ uri, caption, eyebrow, locked = false, onPr
           <View style={s.lockOverlay}>
             <View style={s.lockBadge}>
               <Ionicons name="lock-closed" size={22} color="#fff" />
-              <Text style={s.lockText}>Upgrade to view</Text>
+              <Text variant="subhead" style={s.lockText}>Upgrade to view</Text>
             </View>
           </View>
         )}
       </Pressable>
       {!!caption && !locked && (
         <View style={s.captionBand}>
-          {!!eyebrow && <Text style={[s.eyebrow, { color: c.primary }]}>{eyebrow}</Text>}
-          <Text style={[s.caption, { color: c.textSecondary }]}>{caption}</Text>
+          {!!eyebrow && <Text variant="micro" color="primary" style={s.eyebrow}>{eyebrow}</Text>}
+          <Text variant="callout" color="textSecondary">{caption}</Text>
         </View>
       )}
     </View>
   );
 }
 
-const makeS = (c: ThemeColours) => StyleSheet.create({
+const makeS = (_c: ThemeColours) => StyleSheet.create({
   wrap: { paddingHorizontal: spacing.gutter, marginTop: spacing.xl },
   photoHolder: {
     borderRadius: borderRadius.lg,
@@ -85,22 +86,14 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     justifyContent: 'center',
   },
   lockBadge: { alignItems: 'center', gap: 6 },
-  lockText: { ...type.subhead, color: '#fff' },
+  lockText: { color: '#fff' },
   captionBand: {
     paddingTop: spacing.sm,
     paddingHorizontal: 2,
   },
   eyebrow: {
-    ...type.micro,
-    color: c.primary,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 2,
-  },
-  caption: {
-    fontFamily: 'PlayfairDisplay-Italic',
-    fontSize: 16,
-    lineHeight: 22,
-    color: c.textSecondary,
   },
 });

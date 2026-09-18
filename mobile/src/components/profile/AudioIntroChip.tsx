@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import Text from '../ui/Text';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   Easing,
@@ -11,7 +12,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { colours, spacing, type, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { EASE_IN_OUT } from '@shared/constants/motion';
 import { resolveImageUri } from '../common/SmartImage';
 import { PressableScale, useReduceMotion } from '../motion';
@@ -153,7 +154,7 @@ export default function AudioIntroChip({ url, isPremiumViewer = true }: AudioInt
           <WaveBar key={i} playing={playing} delay={i * 90} color={c.primary} />
         ))}
       </View>
-      <Text style={[type.caption, { color: c.primary }]}>{timeLabel || 'Listen'}</Text>
+      <Text variant="caption" color="primary">{timeLabel || 'Listen'}</Text>
     </PressableScale>
   );
 }

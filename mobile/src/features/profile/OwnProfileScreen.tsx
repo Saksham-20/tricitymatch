@@ -3,14 +3,13 @@ import { useTabBarClearance } from '../../hooks/useTabBarClearance';
 import { useBiodataShare } from '../../hooks/useBiodataShare';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   FlatList,
   TouchableOpacity,
   Image,
   Switch,
-  ActivityIndicator, 
+  ActivityIndicator,
   useWindowDimensions,
   Share,
   Platform,
@@ -20,9 +19,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import Text from '../../components/ui/Text';
 import SmartImage, { resolveImageUri } from '../../components/common/SmartImage';
 import { OwnProfileSkeleton } from '../../components/ui/skeletons';
-import { colours, typography, type, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { CompletionRing as SharedCompletionRing } from '../../components/ui';
 import { PressableScale, StaggeredEntrance } from '../../components/motion';
 import { haptics } from '../../utils/haptics';
@@ -60,7 +60,7 @@ function ActivityRail({
   if (profiles.length === 0) return null;
   return (
     <View style={ar.section}>
-      <Text style={[ar.heading, { color: c.textSecondary }]}>{title}</Text>
+      <Text variant="caption" color="textSecondary" style={ar.heading}>{title}</Text>
       <FlatList
         horizontal
         data={profiles}
@@ -78,8 +78,8 @@ function ActivityRail({
               accessibilityLabel={`View ${name}`}
             >
               <SmartImage uri={item.profilePhoto} name={item.firstName} style={[ar.avatar, { backgroundColor: c.surface2 }]} initialSize={28} />
-              <Text style={[ar.name, { color: c.textPrimary }]} numberOfLines={1}>{item.firstName}</Text>
-              <Text style={[ar.meta, { color: c.textMuted }]} numberOfLines={1}>
+              <Text variant="caption" color="textPrimary" style={ar.name} numberOfLines={1}>{item.firstName}</Text>
+              <Text variant="footnote" color="textMuted" style={ar.meta} numberOfLines={1}>
                 {[age ? `${age}` : null, item.city].filter(Boolean).join(' · ')}
               </Text>
             </TouchableOpacity>
@@ -95,7 +95,7 @@ function ViewersUpsell({ onUpgrade }: { onUpgrade: () => void }) {
   const ar = React.useMemo(() => makeAr(c), [c]);
   return (
     <View style={ar.section}>
-      <Text style={[ar.heading, { color: c.textSecondary }]}>Profile Visitors</Text>
+      <Text variant="caption" color="textSecondary" style={ar.heading}>Profile Visitors</Text>
       <TouchableOpacity
         style={[ar.upsell, { backgroundColor: c.accentSoft, borderColor: c.primary + '40' }]}
         onPress={onUpgrade}
@@ -104,8 +104,8 @@ function ViewersUpsell({ onUpgrade }: { onUpgrade: () => void }) {
       >
         <Ionicons name="eye-outline" size={20} color={c.primary} />
         <View style={{ flex: 1 }}>
-          <Text style={[ar.upsellTitle, { color: c.textPrimary }]}>See who viewed your profile</Text>
-          <Text style={[ar.upsellSub, { color: c.textMuted }]}>Upgrade to Premium to unlock visitors</Text>
+          <Text variant="caption" color="textPrimary" style={ar.upsellTitle}>See who viewed your profile</Text>
+          <Text variant="footnote" color="textMuted" style={ar.upsellSub}>Upgrade to Premium to unlock visitors</Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
       </TouchableOpacity>
@@ -116,9 +116,6 @@ function ViewersUpsell({ onUpgrade }: { onUpgrade: () => void }) {
 const makeAr = (c: ThemeColours) => StyleSheet.create({
   section: { marginBottom: spacing.lg },
   heading: {
-    fontSize: typography.fontSize.xs,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.textSecondary,
     marginBottom: spacing.sm,
     marginHorizontal: spacing.lg,
     textTransform: 'uppercase',
@@ -133,12 +130,8 @@ const makeAr = (c: ThemeColours) => StyleSheet.create({
     backgroundColor: c.surfaceCard,
     marginBottom: 6,
   },
-  name: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.textPrimary,
-  },
-  meta: { fontSize: typography.fontSize.xs, color: c.textMuted },
+  name: {},
+  meta: {},
   upsell: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -150,12 +143,8 @@ const makeAr = (c: ThemeColours) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.primary + '40',
   },
-  upsellTitle: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.textPrimary,
-  },
-  upsellSub: { fontSize: typography.fontSize.xs, color: c.textMuted },
+  upsellTitle: {},
+  upsellSub: {},
 });
 
 // ─── Completion Card ──────────────────────────────────────────────────────────
@@ -215,10 +204,10 @@ function CompletionCard({
       >
         <SharedCompletionRing value={pct} size={84} />
         <View style={cc.topText}>
-          <Text style={[cc.title, { color: c.fgStrong }]}>
+          <Text variant="headline" color="fgStrong">
             {complete ? 'Your profile is complete' : 'Complete your profile'}
           </Text>
-          <Text style={[cc.sub, { color: c.textMuted }]}>
+          <Text variant="footnote" color="textMuted" style={cc.sub}>
             {complete
               ? "You're all set — you'll show up in more searches."
               : 'A complete profile gets up to 5× more interest.'}
@@ -241,7 +230,7 @@ function CompletionCard({
               <View style={[cc.rowIcon, { backgroundColor: c.accentSoft }]}>
                 <Ionicons name={item.icon} size={16} color={c.primary} />
               </View>
-              <Text style={[cc.rowLabel, { color: c.textPrimary }]}>{item.label}</Text>
+              <Text variant="subhead" color="textPrimary" style={cc.rowLabel}>{item.label}</Text>
               <Ionicons name="add-circle" size={20} color={c.primary} />
             </PressableScale>
           ))}
@@ -261,12 +250,11 @@ const cc = StyleSheet.create({
   },
   top: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, padding: spacing.lg },
   topText: { flex: 1 },
-  title: { ...type.headline },
-  sub: { ...type.footnote, marginTop: 3 },
+  sub: { marginTop: 3 },
   list: { borderTopWidth: StyleSheet.hairlineWidth, paddingHorizontal: spacing.lg },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.md },
   rowIcon: { width: 30, height: 30, borderRadius: borderRadius.sm, alignItems: 'center', justifyContent: 'center' },
-  rowLabel: { ...type.subhead, flex: 1 },
+  rowLabel: { flex: 1 },
 });
 
 // ─── Verification Badges ─────────────────────────────────────────────────────
@@ -309,7 +297,7 @@ function VerificationBadges({ phoneVerified, photoVerified, onGetVerified }: Ver
               size={14}
               color={earned[i] ? tier.color : c.textMuted}
             />
-            <Text style={[vb.badgeText, { color: c.textMuted }, earned[i] && { color: tier.color }]}>{tier.label}</Text>
+            <Text variant="footnote" style={[vb.badgeText, { color: c.textMuted }, earned[i] && { color: tier.color }]}>{tier.label}</Text>
           </View>
         ))}
       </View>
@@ -321,7 +309,7 @@ function VerificationBadges({ phoneVerified, photoVerified, onGetVerified }: Ver
           accessibilityLabel="Get Verified"
         >
           <Ionicons name="shield-checkmark-outline" size={16} color={c.primary} />
-          <Text style={[vb.ctaText, { color: c.primary }]}>Get Verified → Add trust badge</Text>
+          <Text variant="subhead" color="primary">Get Verified → Add trust badge</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -342,9 +330,7 @@ const makeVb = (c: ThemeColours) => StyleSheet.create({
     paddingVertical: 3,
   },
   badgeText: {
-    fontSize: typography.fontSize.xs,
     color: c.textMuted,
-    fontFamily: typography.fontFamily.medium,
   },
   ctaBtn: {
     flexDirection: 'row',
@@ -353,11 +339,6 @@ const makeVb = (c: ThemeColours) => StyleSheet.create({
     backgroundColor: c.primaryLight,
     borderRadius: borderRadius.md,
     padding: spacing.md,
-  },
-  ctaText: {
-    fontSize: typography.fontSize.sm,
-    color: c.primary,
-    fontFamily: typography.fontFamily.medium,
   },
 });
 
@@ -381,8 +362,14 @@ function SectionRow({ label, value, onEdit, testID }: SectionRowProps) {
       accessibilityLabel={`Edit ${label}`}
     >
       <View style={{ flex: 1 }}>
-        <Text style={[sr.label, { color: c.textSecondary }]}>{label}</Text>
-        <Text style={[sr.value, { color: c.textPrimary }, !value && [sr.empty, { color: c.textMuted }]]}>{value || 'Not added'}</Text>
+        <Text variant="footnote" color="textSecondary" style={sr.label}>{label}</Text>
+        <Text
+          variant="footnote"
+          color={value ? 'textPrimary' : 'textMuted'}
+          style={!value ? sr.empty : undefined}
+        >
+          {value || 'Not added'}
+        </Text>
       </View>
       <Ionicons name="pencil-outline" size={16} color={c.textMuted} />
     </TouchableOpacity>
@@ -398,17 +385,9 @@ const makeSr = (c: ThemeColours) => StyleSheet.create({
     borderBottomColor: c.border,
   },
   label: {
-    fontSize: typography.fontSize.xs,
-    color: c.textSecondary,
-    fontFamily: typography.fontFamily.medium,
     marginBottom: 2,
   },
-  value: {
-    fontSize: typography.fontSize.sm,
-    color: c.textPrimary,
-    fontFamily: typography.fontFamily.regular,
-  },
-  empty: { color: c.textMuted, fontStyle: 'italic' },
+  empty: { fontStyle: 'italic' },
 });
 
 // ─── Section Card ─────────────────────────────────────────────────────────────
@@ -425,7 +404,7 @@ function SectionCard({ title, children, onEdit }: SectionCardProps) {
   return (
     <View style={[sc.card, { backgroundColor: c.surfaceCard, borderColor: c.border }]}>
       <View style={sc.header}>
-        <Text style={[sc.title, { color: c.fgStrong }]}>{title}</Text>
+        <Text variant="headline" color="fgStrong">{title}</Text>
         {onEdit && (
           <TouchableOpacity onPress={onEdit} testID={`edit-section-${title}`} accessibilityLabel={`Edit ${title}`}>
             <Ionicons name="pencil-outline" size={18} color={c.primary} />
@@ -453,11 +432,6 @@ const makeSc = (c: ThemeColours) => StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: spacing.md,
   },
-  title: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.textPrimary,
-  },
 });
 
 // Own gallery photo: resolves relative/seed paths and, when a photo fails to
@@ -475,7 +449,7 @@ function OwnGalleryPhoto({ uri, previewMode }: { uri: string; previewMode: boole
     return (
       <View style={[styles.photo, styles.photoEmpty, { width: slideWidth, backgroundColor: c.surface2 }]}>
         <Ionicons name="camera-outline" size={48} color={c.textMuted} />
-        <Text style={[styles.photoEmptyText, { color: c.textMuted }]}>Add photos</Text>
+        <Text variant="subhead" color="textMuted">Add photos</Text>
       </View>
     );
   }
@@ -592,7 +566,7 @@ export default function OwnProfileScreen() {
     >
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-        <Text style={[styles.headerTitle, { color: c.fgStrong }]}>My Profile</Text>
+        <Text variant="title2" color="fgStrong">My Profile</Text>
         <TouchableOpacity
           onPress={goToSettings}
           testID="settings-btn"
@@ -628,7 +602,7 @@ export default function OwnProfileScreen() {
             <Ionicons name="camera-outline" size={44} color={c.textMuted} />
             <View style={[styles.addPhotosBtn, { backgroundColor: c.primary }]}>
               <Ionicons name="add" size={16} color="#fff" />
-              <Text style={styles.addPhotosBtnText}>Add photos</Text>
+              <Text variant="caption" style={styles.addPhotosBtnText}>Add photos</Text>
             </View>
           </TouchableOpacity>
         )}
@@ -649,15 +623,15 @@ export default function OwnProfileScreen() {
       {/* Name, age, location */}
       <View style={styles.nameRow}>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.name, { color: c.fgStrong }]}>{name}</Text>
+          <Text variant="title2" color="fgStrong" style={styles.name}>{name}</Text>
           {profile?.dateOfBirth && (
-            <Text style={[styles.subText, { color: c.textSecondary }]}>
+            <Text variant="footnote" color="textSecondary" style={styles.subText}>
               {Math.floor((Date.now() - new Date(profile.dateOfBirth).getTime()) / (365.25 * 24 * 3600 * 1000))} yrs
               {profile.city ? ` · ${profile.city}` : ''}
             </Text>
           )}
           {profile?.profession && (
-            <Text style={[styles.subText, { color: c.textSecondary }]}>{profile.profession}</Text>
+            <Text variant="footnote" color="textSecondary" style={styles.subText}>{profile.profession}</Text>
           )}
         </View>
         {/* Plan badge — gold for paid tiers (premium/VIP), burgundy for free */}
@@ -667,9 +641,9 @@ export default function OwnProfileScreen() {
           testID="plan-badge"
           accessibilityLabel="Subscription plan"
         >
-          <Text style={[styles.planText, { color: isPremium ? c.secondary : c.primary }]}>{planLabel}</Text>
+          <Text variant="caption" style={[styles.planText, { color: isPremium ? c.secondary : c.primary }]}>{planLabel}</Text>
           {user?.subscriptionPlan === 'free' && (
-            <Text style={[styles.upgradeText, { color: c.primary }]}>Upgrade ↑</Text>
+            <Text variant="footnote" color="primary" style={styles.upgradeText}>Upgrade ↑</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -684,8 +658,8 @@ export default function OwnProfileScreen() {
           accessibilityLabel={`Share my profile ID ${profileCode}`}
         >
           <Ionicons name="id-card-outline" size={16} color={c.textSecondary} />
-          <Text style={[styles.codeLabel, { color: c.textMuted }]}>My profile ID</Text>
-          <Text style={[styles.codeValue, { color: c.fgStrong }]}>{profileCode}</Text>
+          <Text variant="footnote" color="textMuted" style={styles.codeLabel}>My profile ID</Text>
+          <Text variant="caption" color="fgStrong" style={styles.codeValue}>{profileCode}</Text>
           <Ionicons name="share-outline" size={16} color={c.primary} />
         </TouchableOpacity>
       ) : null}
@@ -699,15 +673,15 @@ export default function OwnProfileScreen() {
         accessibilityLabel="Share my marriage biodata PDF"
       >
         <Ionicons name="document-text-outline" size={16} color={c.textSecondary} />
-        <Text style={[styles.codeLabel, { color: c.textMuted }]}>Marriage biodata</Text>
-        <Text style={[styles.codeValue, { color: c.fgStrong }]}>{biodataBusy ? 'Preparing…' : 'Share PDF'}</Text>
+        <Text variant="footnote" color="textMuted" style={styles.codeLabel}>Marriage biodata</Text>
+        <Text variant="caption" color="fgStrong" style={styles.codeValue}>{biodataBusy ? 'Preparing…' : 'Share PDF'}</Text>
         <Ionicons name="share-outline" size={16} color={c.primary} />
       </TouchableOpacity>
 
       {/* Preview toggle */}
       <View style={styles.previewRow}>
         <Ionicons name="eye-outline" size={16} color={c.textSecondary} />
-        <Text style={[styles.previewLabel, { color: c.textSecondary }]}>Preview as others see me</Text>
+        <Text variant="subhead" color="textSecondary" style={styles.previewLabel}>Preview as others see me</Text>
         <Switch
           value={previewMode}
           onValueChange={setPreviewMode}
@@ -728,7 +702,7 @@ export default function OwnProfileScreen() {
           accessibilityLabel="Open full profile preview"
         >
           <Ionicons name="albums-outline" size={16} color={c.textSecondary} />
-          <Text style={[styles.previewLabel, { color: c.textSecondary }]}>Open my full profile preview</Text>
+          <Text variant="subhead" color="textSecondary" style={styles.previewLabel}>Open my full profile preview</Text>
           <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
         </TouchableOpacity>
       ) : null}
@@ -840,8 +814,8 @@ export default function OwnProfileScreen() {
       >
         <Ionicons name="help-circle-outline" size={22} color={c.primary} />
         <View style={{ flex: 1 }}>
-          <Text style={[styles.quizBannerTitle, { color: c.textPrimary }]}>Compatibility Quiz</Text>
-          <Text style={[styles.quizBannerSub, { color: c.textMuted }]}>10 questions · Better match suggestions</Text>
+          <Text variant="caption" color="textPrimary">Compatibility Quiz</Text>
+          <Text variant="footnote" color="textMuted">10 questions · Better match suggestions</Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
       </TouchableOpacity>
@@ -849,17 +823,17 @@ export default function OwnProfileScreen() {
       {/* About */}
       <SectionCard title="About Me" onEdit={() => goToEdit('about')}>
         {profile?.bio ? (
-          <Text style={[styles.bioText, { color: c.textPrimary }]}>{profile.bio}</Text>
+          <Text variant="footnote" color="textPrimary">{profile.bio}</Text>
         ) : (
           <TouchableOpacity onPress={() => goToEdit('about')} testID="add-bio">
-            <Text style={[styles.addText, { color: c.primary }]}>+ Add bio</Text>
+            <Text variant="subhead" color="primary">+ Add bio</Text>
           </TouchableOpacity>
         )}
         {(profile?.interestTags?.length ?? 0) > 0 && (
           <View style={styles.tagsRow}>
             {profile!.interestTags.map((tag) => (
               <View key={tag} style={[styles.tag, { backgroundColor: c.accentSoft }]}>
-                <Text style={[styles.tagText, { color: c.primary }]}>{tag}</Text>
+                <Text variant="footnote" color="primary">{tag}</Text>
               </View>
             ))}
           </View>
@@ -925,12 +899,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
   },
-  headerTitle: {
-    fontSize: typography.fontSize['2xl'],
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
-  },
-
   photoScroll: { height: 320 },
   // Width comes from useWindowDimensions at the call site — a fixed 375 letterboxed
   // the hero and desynced the paging dots on every device that is not a 375pt iPhone.
@@ -940,11 +908,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-  },
-  photoEmptyText: {
-    fontSize: typography.fontSize.sm,
-    color: c.textMuted,
-    fontFamily: typography.fontFamily.medium,
   },
   addPhotosBtn: {
     flexDirection: 'row',
@@ -957,8 +920,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
   },
   addPhotosBtnText: {
     color: '#fff',
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.semiBold,
   },
 
   dotsRow: {
@@ -984,15 +945,9 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     marginBottom: spacing.md,
   },
   name: {
-    fontSize: typography.fontSize['2xl'],
-    fontFamily: typography.fontFamily.display, // Playfair — the member's name is the identity
-    color: c.textPrimary,
     marginBottom: 4,
   },
   subText: {
-    fontSize: typography.fontSize.sm,
-    color: c.textSecondary,
-    fontFamily: typography.fontFamily.regular,
     marginBottom: 2,
   },
 
@@ -1003,15 +958,8 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     alignItems: 'center',
     minWidth: 80,
   },
-  planText: {
-    fontSize: typography.fontSize.xs,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.primary,
-  },
+  planText: {},
   upgradeText: {
-    fontSize: typography.fontSize.xs,
-    color: c.primary,
-    fontFamily: typography.fontFamily.medium,
     marginTop: 2,
   },
 
@@ -1026,8 +974,8 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     borderRadius: borderRadius.md,
     minHeight: 44,
   },
-  codeLabel: { fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.medium },
-  codeValue: { flex: 1, fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold, letterSpacing: 0.5 },
+  codeLabel: {},
+  codeValue: { flex: 1, letterSpacing: 0.5 },
   previewRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1037,9 +985,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
   },
   previewLabel: {
     flex: 1,
-    fontSize: typography.fontSize.sm,
-    color: c.textSecondary,
-    fontFamily: typography.fontFamily.medium,
   },
 
   completeBtn: {
@@ -1056,27 +1001,12 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     fontFamily: typography.fontFamily.medium,
   },
 
-  bioText: {
-    fontSize: typography.fontSize.sm,
-    color: c.textPrimary,
-    lineHeight: 22,
-  },
-  addText: {
-    fontSize: typography.fontSize.sm,
-    color: c.primary,
-    fontFamily: typography.fontFamily.medium,
-  },
   tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
   tag: {
     backgroundColor: c.primaryLight,
     borderRadius: borderRadius.full,
     paddingHorizontal: spacing.sm,
     paddingVertical: 3,
-  },
-  tagText: {
-    fontSize: typography.fontSize.xs,
-    color: c.primary,
-    fontFamily: typography.fontFamily.medium,
   },
   quizBanner: {
     flexDirection: 'row',
@@ -1089,14 +1019,5 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     borderRadius: borderRadius.md,
     borderWidth: 1,
     borderColor: c.primary + '40',
-  },
-  quizBannerTitle: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.textPrimary,
-  },
-  quizBannerSub: {
-    fontSize: typography.fontSize.xs,
-    color: c.textMuted,
   },
 });

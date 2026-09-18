@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, StyleProp, ViewStyle, TextStyle } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Dimensions, StyleProp, ViewStyle, TextStyle } from 'react-native';
+import Text from '../ui/Text';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated from 'react-native-reanimated';
-import { colours, type, spacing, borderRadius, shadows, darkShadows, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, shadows, darkShadows, type ThemeColours } from '@shared/constants/theme';
 import type { ProfileSummary } from '../../types';
 import SmartImage from '../common/SmartImage';
 import Avatar from '../ui/Avatar';
@@ -40,7 +41,7 @@ function LikeButton({
       <Animated.View style={popStyle}>
         <Ionicons name="heart" size={iconSize} color={iconColor} />
       </Animated.View>
-      {label ? <Text style={labelStyle}>{label}</Text> : null}
+      {label ? <Text variant="subhead" style={labelStyle}>{label}</Text> : null}
     </TouchableOpacity>
   );
 }
@@ -100,10 +101,10 @@ export default function ProfileCard({
       >
         <Avatar uri={photoUri} name={name} size={64} square verified={profile.isVerified} />
         <View style={s.compactInfo}>
-          <Text style={[s.compactName, { color: c.fgStrong }]} numberOfLines={1}>
+          <Text variant="headline" color="fgStrong" numberOfLines={1}>
             {name}{age ? `, ${age}` : ''}
           </Text>
-          <Text style={[s.compactSub, { color: c.textMuted }]} numberOfLines={1}>
+          <Text variant="footnote" color="textMuted" style={s.compactSub} numberOfLines={1}>
             {[profile.profession, profile.city].filter(Boolean).join(' · ')}
           </Text>
           {showCompatibility && compat > 0 && (
@@ -111,7 +112,7 @@ export default function ProfileCard({
               <View style={[s.compatBar, { backgroundColor: c.surface2 }]}>
                 <View style={[s.compatFill, { width: `${compat}%`, backgroundColor: scoreColour(compat, c) }]} />
               </View>
-              <Text style={[s.compatPct, { color: c.textMuted }]}>{compat}%</Text>
+              <Text variant="caption" color="textMuted" style={s.compatPct}>{compat}%</Text>
             </View>
           )}
         </View>
@@ -153,7 +154,7 @@ export default function ProfileCard({
           {profile.isBoosted && (
             <View style={s.boostedTag}>
               <Ionicons name="flash" size={11} color="#fff" />
-              <Text style={s.boostedText}>Boosted</Text>
+              <Text variant="micro" color="onPrimary">Boosted</Text>
             </View>
           )}
         </View>
@@ -161,16 +162,16 @@ export default function ProfileCard({
         {/* bottom overlay */}
         <View style={s.overlay} pointerEvents="none">
           <View style={s.nameRow}>
-            <Text style={s.name} numberOfLines={1}>{name}{age ? `, ${age}` : ''}</Text>
+            <Text variant="title2" color="onPrimary" numberOfLines={1}>{name}{age ? `, ${age}` : ''}</Text>
             {profile.isVerified && <Ionicons name="checkmark-circle" size={16} color={c.success} />}
           </View>
-          <Text style={s.meta} numberOfLines={1}>
+          <Text variant="footnote" style={s.meta} numberOfLines={1}>
             {[profile.profession, profile.city].filter(Boolean).join(' · ')}
           </Text>
           {showCompatibility && compat > 0 && (
             <View style={s.compatChip}>
               <View style={[s.compatDot, { backgroundColor: scoreColour(compat, c) }]} />
-              <Text style={s.compatChipText}>{compat}% match</Text>
+              <Text variant="caption" color="onPrimary">{compat}% match</Text>
             </View>
           )}
         </View>
@@ -180,18 +181,18 @@ export default function ProfileCard({
       <View style={[s.actions, { borderTopColor: c.border }]}>
         <TouchableOpacity style={s.actionBtn} onPress={onPass} accessibilityLabel="Pass" testID={`pass-${profile.id}`}>
           <Ionicons name="close" size={20} color={c.textSecondary} />
-          <Text style={[s.actionLabel, { color: c.textSecondary }]}>Pass</Text>
+          <Text variant="subhead" color="textSecondary">Pass</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[s.actionBtn, s.actionMid, { borderColor: c.border }]} onPress={shortlist} accessibilityLabel="Shortlist" testID={`shortlist-${profile.id}`}>
           <Ionicons name="bookmark-outline" size={20} color={c.accent} />
-          <Text style={[s.actionLabel, { color: c.accent }]}>Shortlist</Text>
+          <Text variant="subhead" color="primary">Shortlist</Text>
         </TouchableOpacity>
         <LikeButton
           style={[s.actionBtn, s.likeBtn]}
           iconColor="#fff"
           onLike={onLike}
           label="Interested"
-          labelStyle={[s.actionLabel, { color: '#fff' }]}
+          labelStyle={{ color: '#fff' }}
           testID={`like-${profile.id}`}
         />
       </View>
@@ -219,25 +220,21 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     backgroundColor: c.accent, borderRadius: borderRadius.pill,
     paddingHorizontal: spacing.sm, paddingVertical: 3,
   },
-  boostedText: { ...type.micro, color: '#fff' },
   overlay: { position: 'absolute', left: 13, right: 13, bottom: 12 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  name: { ...type.title3, fontFamily: 'PlayfairDisplay-Bold', color: '#fff' },
-  meta: { ...type.footnote, color: 'rgba(255,255,255,0.92)', marginTop: 2 },
+  meta: { color: 'rgba(255,255,255,0.92)', marginTop: 2 },
   compatChip: {
     flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', marginTop: 8,
     backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)',
     borderRadius: borderRadius.pill, paddingHorizontal: 10, paddingVertical: 4,
   },
   compatDot: { width: 7, height: 7, borderRadius: 4 },
-  compatChipText: { ...type.caption, color: '#fff' },
   actions: { flexDirection: 'row', borderTopWidth: 1 },
   actionBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: spacing.xs, paddingVertical: 13,
   },
   actionMid: { borderLeftWidth: 0.5, borderRightWidth: 0.5 },
-  actionLabel: { ...type.subhead, fontFamily: 'Inter-SemiBold' },
   likeBtn: { backgroundColor: c.accent },
 
   // ── Compact row ──────────────────────────────────────────────────────────
@@ -247,12 +244,11 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     borderBottomWidth: 0.5,
   },
   compactInfo: { flex: 1 },
-  compactName: { ...type.headline, color: c.fgStrong },
-  compactSub: { ...type.footnote, color: c.textMuted, marginTop: 1 },
+  compactSub: { marginTop: 1 },
   compatRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: 6 },
   compatBar: { flex: 1, height: 5, backgroundColor: c.surface2, borderRadius: borderRadius.pill, overflow: 'hidden' },
   compatFill: { height: 5, borderRadius: borderRadius.pill },
-  compatPct: { ...type.caption, color: c.textMuted, minWidth: 32, textAlign: 'right' },
+  compatPct: { minWidth: 32, textAlign: 'right' },
   compactActions: { flexDirection: 'row', gap: 8 },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: borderRadius.pill },
 });

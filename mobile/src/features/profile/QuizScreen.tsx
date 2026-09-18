@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -13,11 +12,12 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import Text from '../../components/ui/Text';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { duration, EASE_OUT } from '@shared/constants/motion';
 import { showToast } from '../../utils/toast';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { PressableScale, useReduceMotion } from '../../components/motion';
 import { haptics } from '../../utils/haptics';
 import { updateMyProfile } from '../../api/profile';
@@ -155,7 +155,7 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
       <View style={pb.track}>
         <Animated.View style={[pb.fill, fill]} />
       </View>
-      <Text style={pb.label}>{current} / {total}</Text>
+      <Text variant="footnote" color="textMuted" style={pb.label}>{current} / {total}</Text>
     </View>
   );
 }
@@ -164,7 +164,7 @@ const makePb = (c: ThemeColours) => StyleSheet.create({
   container: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg, marginBottom: spacing.lg },
   track: { flex: 1, height: 6, backgroundColor: c.border, borderRadius: 3, overflow: 'hidden' },
   fill: { height: '100%', backgroundColor: c.primary, borderRadius: 3 },
-  label: { fontSize: typography.fontSize.xs, color: c.textMuted, fontFamily: typography.fontFamily.medium, minWidth: 36 },
+  label: { minWidth: 36 },
 });
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -227,7 +227,7 @@ export default function QuizScreen() {
         <TouchableOpacity onPress={handleBack} testID="quiz-back" accessibilityLabel="Back">
           <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Compatibility Quiz</Text>
+        <Text variant="headline" color="textPrimary">Compatibility Quiz</Text>
         <View style={{ width: 22 }} />
       </View>
 
@@ -236,8 +236,8 @@ export default function QuizScreen() {
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Question */}
         <View style={styles.questionCard}>
-          <Text style={styles.questionNumber}>Question {currentIdx + 1}</Text>
-          <Text style={styles.questionText}>{question.text}</Text>
+          <Text variant="caption" color="primary" style={styles.questionNumber}>Question {currentIdx + 1}</Text>
+          <Text variant="headline" color="textPrimary">{question.text}</Text>
         </View>
 
         {/* Options */}
@@ -258,7 +258,11 @@ export default function QuizScreen() {
                 <View style={[styles.radio, selected && styles.radioSelected]}>
                   {selected && <View style={styles.radioDot} />}
                 </View>
-                <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
+                <Text
+                  variant="footnote"
+                  color={selected ? 'primary' : 'textSecondary'}
+                  style={styles.optionText}
+                >
                   {opt.label}
                 </Text>
               </PressableScale>
@@ -279,7 +283,7 @@ export default function QuizScreen() {
             testID="quiz-next"
             accessibilityLabel="Next question"
           >
-            <Text style={styles.nextBtnText}>Next →</Text>
+            <Text variant="headline" style={styles.nextBtnText}>Next →</Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
@@ -292,7 +296,7 @@ export default function QuizScreen() {
             {saveMutation.isPending ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
-              <Text style={styles.nextBtnText}>Submit Quiz</Text>
+              <Text variant="headline" style={styles.nextBtnText}>Submit Quiz</Text>
             )}
           </TouchableOpacity>
         )}
@@ -315,11 +319,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: c.border,
   },
-  headerTitle: {
-    fontSize: typography.fontSize.lg,
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
-  },
   scroll: { flex: 1 },
   questionCard: {
     marginHorizontal: spacing.lg,
@@ -330,18 +329,9 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     borderRadius: borderRadius.lg,
   },
   questionNumber: {
-    fontSize: typography.fontSize.xs,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.primary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: spacing.sm,
-  },
-  questionText: {
-    fontSize: typography.fontSize.lg,
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
-    lineHeight: 26,
   },
   options: { paddingHorizontal: spacing.lg, gap: spacing.sm },
   option: {
@@ -376,14 +366,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
   },
   optionText: {
     flex: 1,
-    fontSize: typography.fontSize.sm,
-    color: c.textSecondary,
-    fontFamily: typography.fontFamily.regular,
-    lineHeight: 20,
-  },
-  optionTextSelected: {
-    color: c.primary,
-    fontFamily: typography.fontFamily.medium,
   },
   footer: {
     paddingHorizontal: spacing.lg,
@@ -400,7 +382,5 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
   nextBtnDisabled: { opacity: 0.4 },
   nextBtnText: {
     color: '#fff',
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.semiBold,
   },
 });

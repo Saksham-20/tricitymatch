@@ -4,12 +4,12 @@ import {
   ActivityIndicator,
   Alert,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { colours, spacing, typography, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { deleteVoiceIntro, uploadVoiceIntro } from '../../api/profile';
+import Text from '../ui/Text';
 
 const MAX_DURATION_MS = 30_000;
 
@@ -203,7 +203,7 @@ export default function VoiceIntroRecorder({
           onPress={state === 'playing' ? stopPlayback : playExisting}
           accessibilityLabel={state === 'playing' ? 'Stop voice intro' : 'Play voice intro'}
         >
-          <Text style={s.btnIcon}>{state === 'playing' ? '⏹' : '▶'}</Text>
+          <Text variant="footnote" style={s.btnIcon}>{state === 'playing' ? '⏹' : '▶'}</Text>
         </TouchableOpacity>
         <View style={s.progressBarWrap}>
           <View
@@ -214,7 +214,7 @@ export default function VoiceIntroRecorder({
           />
         </View>
         {!isPremiumViewer && (
-          <Text style={s.gateHint}>Premium+ to listen</Text>
+          <Text variant="caption" color="textMuted" style={s.gateHint}>Premium+ to listen</Text>
         )}
       </View>
     );
@@ -223,8 +223,8 @@ export default function VoiceIntroRecorder({
   // Owner / edit mode
   return (
     <View style={s.container} testID="VoiceIntroRecorder">
-      <Text style={s.title}>Voice Intro</Text>
-      <Text style={s.subtitle}>Record up to 30 seconds — plays on your profile for Premium+ viewers</Text>
+      <Text variant="headline" color="textPrimary" style={s.title}>Voice Intro</Text>
+      <Text variant="subhead" color="textSecondary" style={s.subtitle}>Record up to 30 seconds — plays on your profile for Premium+ viewers</Text>
 
       {/* Existing uploaded intro */}
       {existingUrl && state === 'idle' && !localUri && (
@@ -234,11 +234,11 @@ export default function VoiceIntroRecorder({
             onPress={() => playLocal(existingUrl)}
             accessibilityLabel="Play existing voice intro"
           >
-            <Text style={s.btnIcon}>▶</Text>
+            <Text variant="footnote" style={s.btnIcon}>▶</Text>
           </TouchableOpacity>
-          <Text style={s.existingLabel}>Voice intro saved</Text>
+          <Text variant="subhead" color="textSecondary" style={s.existingLabel}>Voice intro saved</Text>
           <TouchableOpacity style={s.deleteBtn} onPress={remove} accessibilityLabel="Delete voice intro">
-            <Text style={s.deleteTxt}>Remove</Text>
+            <Text variant="subhead" color="error" style={s.deleteTxt}>Remove</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -248,17 +248,17 @@ export default function VoiceIntroRecorder({
         <View style={s.controls}>
           {state === 'idle' && (
             <TouchableOpacity style={s.recordBtn} onPress={startRecording} accessibilityLabel="Start recording">
-              <Text style={s.recordDot}>⏺</Text>
-              <Text style={s.recordTxt}>{existingUrl ? 'Re-record' : 'Record'}</Text>
+              <Text variant="footnote" style={s.recordDot}>⏺</Text>
+              <Text variant="subhead" style={s.recordTxt}>{existingUrl ? 'Re-record' : 'Record'}</Text>
             </TouchableOpacity>
           )}
 
           {state === 'recording' && (
             <View style={s.recordingRow}>
               <View style={s.recIndicator} />
-              <Text style={s.elapsedTxt}>{formatTime(elapsed)} / 0:30</Text>
+              <Text variant="subhead" color="textPrimary" style={s.elapsedTxt}>{formatTime(elapsed)} / 0:30</Text>
               <TouchableOpacity style={s.stopBtn} onPress={stopRecording} accessibilityLabel="Stop recording">
-                <Text style={s.stopTxt}>Stop</Text>
+                <Text variant="subhead" style={s.stopTxt}>Stop</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -270,18 +270,18 @@ export default function VoiceIntroRecorder({
                 onPress={state === 'playing' ? stopPlayback : () => playLocal(localUri)}
                 accessibilityLabel={state === 'playing' ? 'Stop preview' : 'Preview recording'}
               >
-                <Text style={s.btnIcon}>{state === 'playing' ? '⏹' : '▶'}</Text>
+                <Text variant="footnote" style={s.btnIcon}>{state === 'playing' ? '⏹' : '▶'}</Text>
               </TouchableOpacity>
-              <Text style={s.previewLabel}>Preview ({formatTime(elapsed)}s)</Text>
+              <Text variant="subhead" color="textSecondary" style={s.previewLabel}>Preview ({formatTime(elapsed)}s)</Text>
               <TouchableOpacity
                 style={s.discardBtn}
                 onPress={() => { setLocalUri(null); setState('idle'); }}
                 accessibilityLabel="Discard recording"
               >
-                <Text style={s.discardTxt}>Discard</Text>
+                <Text variant="subhead" color="error" style={s.discardTxt}>Discard</Text>
               </TouchableOpacity>
               <TouchableOpacity style={s.saveBtn} onPress={upload} accessibilityLabel="Save voice intro">
-                <Text style={s.saveTxt}>Save</Text>
+                <Text variant="subhead" style={s.saveTxt}>Save</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -291,7 +291,7 @@ export default function VoiceIntroRecorder({
       {state === 'uploading' && (
         <View style={s.uploadingRow}>
           <ActivityIndicator color={c.primary} />
-          <Text style={s.uploadingTxt}>Uploading…</Text>
+          <Text variant="subhead" color="textSecondary" style={s.uploadingTxt}>Uploading…</Text>
         </View>
       )}
     </View>
@@ -306,14 +306,9 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     marginVertical: spacing.sm,
   },
   title: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.textPrimary,
     marginBottom: 2,
   },
   subtitle: {
-    fontSize: typography.fontSize.sm,
-    color: c.textSecondary,
     marginBottom: spacing.sm,
   },
   existingRow: {
@@ -323,8 +318,6 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   },
   existingLabel: {
     flex: 1,
-    fontSize: typography.fontSize.sm,
-    color: c.textSecondary,
     marginLeft: spacing.xs,
   },
   controls: {
@@ -340,10 +333,8 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     paddingVertical: spacing.sm,
     gap: 6,
   },
-  recordDot: { fontSize: 14, color: '#fff' },
+  recordDot: { color: '#fff' },
   recordTxt: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.semiBold,
     color: '#fff',
   },
   recordingRow: {
@@ -359,9 +350,6 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   },
   elapsedTxt: {
     flex: 1,
-    fontSize: typography.fontSize.sm,
-    color: c.textPrimary,
-    fontFamily: typography.fontFamily.semiBold,
   },
   stopBtn: {
     backgroundColor: c.error,
@@ -370,9 +358,7 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     paddingVertical: spacing.xs,
   },
   stopTxt: {
-    fontSize: typography.fontSize.sm,
     color: '#fff',
-    fontFamily: typography.fontFamily.semiBold,
   },
   previewRow: {
     flexDirection: 'row',
@@ -382,17 +368,12 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   },
   previewLabel: {
     flex: 1,
-    fontSize: typography.fontSize.sm,
-    color: c.textSecondary,
   },
   discardBtn: {
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
   },
-  discardTxt: {
-    fontSize: typography.fontSize.sm,
-    color: c.error,
-  },
+  discardTxt: {},
   saveBtn: {
     backgroundColor: c.primary,
     borderRadius: borderRadius.sm,
@@ -400,9 +381,7 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     paddingVertical: spacing.xs,
   },
   saveTxt: {
-    fontSize: typography.fontSize.sm,
     color: '#fff',
-    fontFamily: typography.fontFamily.semiBold,
   },
   uploadingRow: {
     flexDirection: 'row',
@@ -410,17 +389,11 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     gap: spacing.sm,
     marginTop: spacing.sm,
   },
-  uploadingTxt: {
-    fontSize: typography.fontSize.sm,
-    color: c.textSecondary,
-  },
+  uploadingTxt: {},
   deleteBtn: {
     paddingHorizontal: spacing.sm,
   },
-  deleteTxt: {
-    fontSize: typography.fontSize.sm,
-    color: c.error,
-  },
+  deleteTxt: {},
   iconBtn: {
     width: 36,
     height: 36,
@@ -429,7 +402,7 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  btnIcon: { fontSize: 14, color: '#fff' },
+  btnIcon: { color: '#fff' },
   // Read-only player
   readOnlyRow: {
     flexDirection: 'row',
@@ -449,8 +422,5 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     backgroundColor: c.primary,
     borderRadius: 2,
   },
-  gateHint: {
-    fontSize: typography.fontSize.xs,
-    color: c.textMuted,
-  },
+  gateHint: {},
 });

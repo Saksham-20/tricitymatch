@@ -2,17 +2,17 @@ import React from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
   View,
-  Text,
   StyleSheet,
   Modal,
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
+import Text from '../../components/ui/Text';
 import { useQuery } from '@tanstack/react-query';
 import Animated, { useAnimatedStyle, useSharedValue, withDelay, withTiming, Easing } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { duration, EASE_OUT, STAGGER_MS } from '@shared/constants/motion';
 import { getCompatibilityBreakdown } from '../../api/profile';
 import type { CompatibilityCategory } from '../../api/profile';
@@ -80,11 +80,11 @@ function CategoryRow({ catKey, data, index = 0 }: { catKey: string; data: Compat
       </View>
       <View style={cr.content}>
         <View style={cr.labelRow}>
-          <Text style={cr.label}>{meta.label}</Text>
-          <Text style={[cr.score, { color }]}>{data.score}%</Text>
+          <Text variant="caption" color="textPrimary">{meta.label}</Text>
+          <Text variant="caption" style={{ color }}>{data.score}%</Text>
         </View>
         <ScoreBar score={data.score} color={color} index={index} />
-        {!!data.detail && <Text style={cr.detail}>{data.detail}</Text>}
+        {!!data.detail && <Text variant="footnote" color="textMuted" style={cr.detail}>{data.detail}</Text>}
       </View>
     </View>
   );
@@ -110,18 +110,7 @@ const makeCr = (c: ThemeColours) => StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 6,
   },
-  label: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.textPrimary,
-  },
-  score: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.bold,
-  },
   detail: {
-    fontSize: typography.fontSize.xs,
-    color: c.textMuted,
     marginTop: 4,
   },
 });
@@ -153,7 +142,7 @@ export default function CompatibilityBreakdownSheet({ visible, userId, onClose }
 
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Why This Match?</Text>
+          <Text variant="headline" color="textPrimary">Why This Match?</Text>
           <TouchableOpacity onPress={onClose} testID="breakdown-close" accessibilityLabel="Close">
             <Ionicons name="close" size={24} color={c.textSecondary} />
           </TouchableOpacity>
@@ -166,18 +155,18 @@ export default function CompatibilityBreakdownSheet({ visible, userId, onClose }
         ) : isError ? (
           <View style={styles.center}>
             <Ionicons name="alert-circle-outline" size={40} color={c.textMuted} />
-            <Text style={styles.errorText}>Could not load breakdown.</Text>
+            <Text variant="footnote" color="textMuted" style={styles.errorText}>Could not load breakdown.</Text>
           </View>
         ) : (
           <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
             {/* Overall score */}
             <View style={styles.overallCard}>
-              <Text style={styles.overallLabel}>Overall Compatibility</Text>
-              <Text style={styles.overallScore}>{overallScore}%</Text>
+              <Text variant="subhead" color="textSecondary" style={styles.overallLabel}>Overall Compatibility</Text>
+              <Text variant="display" color="primary">{overallScore}%</Text>
               <View style={styles.overallBar}>
                 <View style={[styles.overallFill, { width: `${overallScore}%` }]} />
               </View>
-              <Text style={styles.overallHint}>
+              <Text variant="footnote" color="textSecondary" style={styles.overallHint}>
                 {overallScore >= 75
                   ? 'Excellent match across key dimensions'
                   : overallScore >= 50
@@ -188,9 +177,9 @@ export default function CompatibilityBreakdownSheet({ visible, userId, onClose }
 
             {/* Category breakdown */}
             <View style={styles.breakdown}>
-              <Text style={styles.breakdownTitle}>Score Breakdown</Text>
+              <Text variant="headline" color="textPrimary" style={styles.breakdownTitle}>Score Breakdown</Text>
               {Object.entries(categories).length === 0 ? (
-                <Text style={styles.errorText}>No breakdown data available.</Text>
+                <Text variant="footnote" color="textMuted" style={styles.errorText}>No breakdown data available.</Text>
               ) : (
                 Object.entries(categories).map(([key, val], i) =>
                   val ? <CategoryRow key={key} catKey={key} data={val} index={i} /> : null,
@@ -199,7 +188,7 @@ export default function CompatibilityBreakdownSheet({ visible, userId, onClose }
             </View>
 
             {/* Footer note */}
-            <Text style={styles.footerNote}>
+            <Text variant="footnote" color="textMuted" style={styles.footerNote}>
               Compatibility is calculated from community, lifestyle, location, and horoscope factors.
             </Text>
             <View style={{ height: 32 }} />
@@ -239,11 +228,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: c.border,
   },
-  title: {
-    fontSize: typography.fontSize.lg,
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
-  },
   center: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -251,8 +235,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     gap: spacing.md,
   },
   errorText: {
-    fontSize: typography.fontSize.sm,
-    color: c.textMuted,
     textAlign: 'center',
   },
   scroll: { paddingHorizontal: spacing.lg },
@@ -264,16 +246,7 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     alignItems: 'center',
   },
   overallLabel: {
-    fontSize: typography.fontSize.sm,
-    color: c.textSecondary,
-    fontFamily: typography.fontFamily.medium,
     marginBottom: 4,
-  },
-  overallScore: {
-    fontSize: typography.fontSize['4xl'] || 36,
-    fontFamily: typography.fontFamily.bold,
-    color: c.primary,
-    lineHeight: 44,
   },
   overallBar: {
     width: '100%',
@@ -289,20 +262,13 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     borderRadius: 4,
   },
   overallHint: {
-    fontSize: typography.fontSize.xs,
-    color: c.textSecondary,
     textAlign: 'center',
   },
   breakdown: { paddingTop: spacing.sm },
   breakdownTitle: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.textPrimary,
     marginBottom: spacing.lg,
   },
   footerNote: {
-    fontSize: typography.fontSize.xs,
-    color: c.textMuted,
     textAlign: 'center',
     paddingHorizontal: spacing.sm,
     paddingTop: spacing.sm,

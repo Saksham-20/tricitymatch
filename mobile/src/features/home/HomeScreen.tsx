@@ -3,13 +3,13 @@ import { useTabBarClearance } from '../../hooks/useTabBarClearance';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
   FlatList,
   RefreshControl,
 } from 'react-native';
+import Text from '../../components/ui/Text';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -17,7 +17,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colours, type, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import SmartImage from '../../components/common/SmartImage';
 import { PressableScale } from '../../components/motion';
 import { Avatar, SectionHeader, SkeletonBlock, EmptyState, CompletionRing } from '../../components/ui';
@@ -76,21 +76,21 @@ function RailCard({ profile, onPress }: { profile: ProfileSummary; onPress: () =
       />
       <View style={styles.railBody} pointerEvents="none">
         <View style={styles.railNameRow}>
-          <Text style={styles.railName} numberOfLines={1}>{name}</Text>
+          <Text variant="title2" style={styles.railName} numberOfLines={1}>{name}</Text>
           {profile.isVerified && <Ionicons name="checkmark-circle" size={14} color={c.success} />}
         </View>
-        <Text style={styles.railMeta} numberOfLines={1}>
+        <Text variant="caption" style={styles.railMeta} numberOfLines={1}>
           {[profile.city, profile.profession].filter(Boolean).join(' · ')}
         </Text>
         {compat > 0 && (
           <View style={styles.railChip}>
             <View style={[styles.railDot, { backgroundColor: scoreColour(compat, c) }]} />
-            <Text style={styles.railChipText}>{compat}%</Text>
+            <Text variant="micro" style={styles.railChipText}>{compat}%</Text>
           </View>
         )}
         {/* D4: the top "why this match" reason (server-derived, chips capped 3) */}
         {profile.reasons && profile.reasons.length > 0 && (
-          <Text style={styles.railReason} numberOfLines={1}>{profile.reasons[0]}</Text>
+          <Text variant="micro" style={styles.railReason} numberOfLines={1}>{profile.reasons[0]}</Text>
         )}
       </View>
     </PressableScale>
@@ -176,8 +176,8 @@ export default function HomeScreen() {
         <TouchableOpacity style={styles.greetRow} onPress={goToOwnProfile} activeOpacity={0.8}>
           <Avatar uri={photo} name={firstName} size={42} />
           <View>
-            <Text style={[styles.greetSmall, { color: c.textMuted }]}>{greeting()},</Text>
-            <Text style={[styles.greetName, { color: c.fgStrong }]} numberOfLines={1}>{firstName}</Text>
+            <Text variant="footnote" color="textMuted">{greeting()},</Text>
+            <Text variant="title2" color="fgStrong" numberOfLines={1}>{firstName}</Text>
           </View>
         </TouchableOpacity>
         <PressableScale scaleTo={0.9} haptic onPress={goToNotifications} testID="notif-bell" accessibilityRole="button" accessibilityLabel="Notifications" style={styles.bellBtn}>
@@ -197,8 +197,8 @@ export default function HomeScreen() {
         >
           <CompletionRing value={completionPct} size={58} caption="" />
           <View style={{ flex: 1 }}>
-            <Text style={[styles.completeTitle, { color: c.fgStrong }]}>Complete your profile</Text>
-            <Text style={[styles.completeSub, { color: c.textMuted }]}>
+            <Text variant="headline" color="fgStrong">Complete your profile</Text>
+            <Text variant="footnote" color="textMuted" style={styles.completeSub}>
               A complete profile gets up to 5× more interest.
             </Text>
           </View>
@@ -220,7 +220,7 @@ export default function HomeScreen() {
         style={styles.sectionPad}
         action={
           <TouchableOpacity onPress={goToMatches}>
-            <Text style={[styles.seeAll, { color: c.accent }]}>See all</Text>
+            <Text variant="subhead" color="primary">See all</Text>
           </TouchableOpacity>
         }
       />
@@ -279,8 +279,8 @@ export default function HomeScreen() {
               >
                 <Avatar uri={p.profilePhoto} name={name} size={54} verified={p.isVerified} />
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.newName, { color: c.fgStrong }]} numberOfLines={1}>{name}</Text>
-                  <Text style={[styles.newDetail, { color: c.textMuted }]} numberOfLines={1}>
+                  <Text variant="headline" color="fgStrong" numberOfLines={1}>{name}</Text>
+                  <Text variant="footnote" color="textMuted" style={styles.newDetail} numberOfLines={1}>
                     {[age ? `${age} yrs` : null, p.profession, p.city].filter(Boolean).join(' · ')}
                   </Text>
                 </View>
@@ -293,12 +293,12 @@ export default function HomeScreen() {
       {!!communityStats?.newThisWeek && (
         <View style={[styles.communityStrip, { backgroundColor: c.accentSoft }]} testID="community-strip">
           <Ionicons name="sparkles-outline" size={15} color={c.accent} />
-          <Text style={[styles.communityText, { color: c.accent }]}>
+          <Text variant="footnote" color="primary">
             {t('home.newThisWeek', '{{count}} new Tricity profiles joined this week', { count: communityStats.newThisWeek })}
           </Text>
         </View>
       )}
-      <Text style={[styles.midnightLine, { color: c.textMuted }]}>{t('home.midnight', 'Fresh matches drop every midnight')}</Text>
+      <Text variant="caption" color="textMuted" style={styles.midnightLine}>{t('home.midnight', 'Fresh matches drop every midnight')}</Text>
 
       {/* Stage-aware discovery cards fill the fold for thin dashboards */}
       <DiscoverCards />
@@ -323,7 +323,7 @@ function QuickChip({ icon, label, tint, onPress, testID }: {
       accessibilityLabel={label}
     >
       <Ionicons name={icon} size={22} color={tint} />
-      <Text style={[styles.quickLabel, { color: c.textPrimary }]}>{label}</Text>
+      <Text variant="caption" color="textPrimary">{label}</Text>
     </PressableScale>
   );
 }
@@ -335,9 +335,8 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     paddingHorizontal: spacing.md, paddingVertical: 10,
     borderRadius: borderRadius.md,
   },
-  communityText: { fontSize: 13, fontWeight: '600' },
-  midnightLine: { fontSize: 12, textAlign: 'center', marginTop: spacing.md },
-  railReason: { fontSize: 11, color: 'rgba(255,255,255,0.85)', marginTop: 3 },
+  midnightLine: { textAlign: 'center', marginTop: spacing.md },
+  railReason: { color: 'rgba(255,255,255,0.85)', marginTop: 3 },
   container: { flex: 1 },
   content: { paddingBottom: 24 },
 
@@ -346,8 +345,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     paddingHorizontal: spacing.gutter, marginBottom: spacing.lg,
   },
   greetRow: { flexDirection: 'row', alignItems: 'center', gap: 11, flex: 1 },
-  greetSmall: { ...type.footnote },
-  greetName: { ...type.title2, fontFamily: 'PlayfairDisplay-Bold' },
   bellBtn: { padding: 4, position: 'relative' },
   bellDot: {
     position: 'absolute', top: 3, right: 3, width: 10, height: 10, borderRadius: 5,
@@ -359,38 +356,34 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     marginHorizontal: spacing.gutter, marginBottom: spacing.xl,
     borderRadius: borderRadius.lg, borderWidth: 1, padding: 13,
   },
-  completeTitle: { ...type.headline },
-  completeSub: { ...type.footnote, marginTop: 2 },
+  completeSub: { marginTop: 2 },
 
   quickRow: { flexDirection: 'row', gap: 10, paddingHorizontal: spacing.gutter, marginBottom: spacing.sm },
   quickCard: {
     flex: 1, borderRadius: borderRadius.md, borderWidth: 1, paddingVertical: 14,
     alignItems: 'center', gap: 6,
   },
-  quickLabel: { ...type.caption },
 
   sectionPad: { paddingHorizontal: spacing.gutter, marginTop: 18 },
-  seeAll: { ...type.subhead, fontFamily: 'Inter-SemiBold' },
 
   railScroll: { paddingHorizontal: spacing.gutter, paddingTop: 4, paddingBottom: 4 },
   rail: { width: 166, height: 226, borderRadius: borderRadius.lg, overflow: 'hidden', marginRight: 12 },
   railPhoto: { ...StyleSheet.absoluteFillObject, width: 166, height: 226 },
   railBody: { position: 'absolute', left: 11, right: 11, bottom: 11 },
   railNameRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  railName: { ...type.headline, fontFamily: 'PlayfairDisplay-Bold', color: '#fff', flexShrink: 1 },
-  railMeta: { ...type.caption, color: 'rgba(255,255,255,0.9)', marginTop: 1 },
+  railName: { color: '#fff', flexShrink: 1 },
+  railMeta: { color: 'rgba(255,255,255,0.9)', marginTop: 1 },
   railChip: {
     flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', marginTop: 6,
     backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: borderRadius.pill,
     paddingHorizontal: 8, paddingVertical: 3,
   },
   railDot: { width: 6, height: 6, borderRadius: 3 },
-  railChipText: { ...type.micro, color: '#fff' },
+  railChipText: { color: '#fff' },
 
   newRow: {
     flexDirection: 'row', alignItems: 'center', gap: 13,
     paddingHorizontal: spacing.gutter, paddingVertical: 11, borderBottomWidth: 0.5,
   },
-  newName: { ...type.headline },
-  newDetail: { ...type.footnote, marginTop: 1 },
+  newDetail: { marginTop: 1 },
 });

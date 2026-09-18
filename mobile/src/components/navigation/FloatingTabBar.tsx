@@ -14,7 +14,8 @@
  * rather than a guessed constant.
  */
 import React from 'react';
-import { View, Text, StyleSheet, Platform, Keyboard } from 'react-native';
+import { View, StyleSheet, Platform, Keyboard } from 'react-native';
+import Text from '../ui/Text';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { type ThemeColours, borderRadius } from '@shared/constants/theme';
@@ -100,7 +101,11 @@ export default function FloatingTabBar({ state, descriptors, navigation, icons }
                 color={focused ? c.primary : c.textMuted}
                 focused={focused}
               />
-              <Text style={[styles.label, { color: focused ? c.primary : c.textMuted }]} numberOfLines={1}>
+              <Text
+                variant="micro"
+                color={focused ? 'primary' : 'textMuted'}
+                numberOfLines={1}
+              >
                 {label}
               </Text>
             </PressableScale>
@@ -145,5 +150,4 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     minHeight: 52,
     gap: 2,
   },
-  label: { fontSize: 10, fontWeight: '600' },
 });

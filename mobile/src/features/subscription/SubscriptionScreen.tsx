@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -15,13 +14,14 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import Text from '../../components/ui/Text';
 import { PressableScale, StaggeredEntrance } from '../../components/motion';
 import { SubscriptionSkeleton, ListSkeleton } from '../../components/ui/skeletons';
 import EmptyState from '../../components/ui/EmptyState';
 import { showToast } from '../../utils/toast';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
-import { colours, type, typography, spacing, borderRadius, shadows, type ThemeColours } from '@shared/constants/theme';
+import { spacing, borderRadius, shadows, type ThemeColours } from '@shared/constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import { PLANS, UNLOCK_BUNDLES } from '@shared/constants/plans';
 import {
@@ -160,18 +160,17 @@ function FeatureRow({ label, value }: { label: string; value: boolean | string |
         color={tick ? c.success : c.n400}
         style={fr.icon}
       />
-      <Text style={[fr.label, { color: tick ? c.textPrimary : c.textMuted }]}>{label}</Text>
-      {typeof value === 'number' && value > 0 && <Text style={[fr.val, { color: c.fgStrong }]}>{value}</Text>}
-      {typeof value === 'string' && <Text style={[fr.val, { color: c.fgStrong }]}>{value}</Text>}
+      <Text variant="subhead" color={tick ? 'textPrimary' : 'textMuted'} style={fr.label}>{label}</Text>
+      {typeof value === 'number' && value > 0 && <Text variant="subhead" color="fgStrong">{value}</Text>}
+      {typeof value === 'string' && <Text variant="subhead" color="fgStrong">{value}</Text>}
     </View>
   );
 }
 
-const makeFr = (c: ThemeColours) => StyleSheet.create({
+const makeFr = (_c: ThemeColours) => StyleSheet.create({
   row:   { flexDirection: 'row', alignItems: 'center', paddingVertical: 5 },
   icon:  { marginRight: 8 },
-  label: { ...type.subhead, flex: 1, color: c.textSecondary, fontFamily: 'Inter-Regular' },
-  val:   { ...type.subhead, color: c.fgStrong, fontFamily: 'Inter-SemiBold' },
+  label: { flex: 1 },
 });
 
 // ─── Plan Card ────────────────────────────────────────────────────────────────
@@ -223,36 +222,37 @@ function PlanCard({ plan, isCurrent, isSelected, onSelect, currency }: PlanCardP
           end={{ x: 1, y: 1 }}
           style={pc.highlightBadge}
         >
-          <Text style={pc.highlightText}>{highlight}</Text>
+          <Text variant="caption" style={pc.highlightText}>{highlight}</Text>
         </LinearGradient>
       )}
       {isCurrent && (
         <View style={[pc.badge, { backgroundColor: colour }]}>
-          <Text style={pc.badgeText}>Current</Text>
+          <Text variant="caption" style={pc.badgeText}>Current</Text>
         </View>
       )}
       <View style={pc.header}>
         <Ionicons name={icon} size={26} color={colour} style={pc.icon} />
         <View style={pc.titleCol}>
-          <Text style={[pc.label, { color: colour }]}>{plan.label}</Text>
+          {/* colour resolves through makePlanColour (plan-tier colours) — non-curated, left as a style override. */}
+          <Text variant="title3" style={{ color: colour }}>{plan.label}</Text>
           {plan.price > 0 ? (
             <>
               <View style={pc.priceRow}>
-                <Text style={[pc.price, { color: c.fgStrong }]}>₹{plan.price.toLocaleString('en-IN')}</Text>
+                <Text variant="headline" color="fgStrong">₹{plan.price.toLocaleString('en-IN')}</Text>
                 {plan.mrp && plan.mrp > plan.price ? (
-                  <Text style={[pc.mrp, { color: c.textMuted }]}>₹{plan.mrp.toLocaleString('en-IN')}</Text>
+                  <Text variant="subhead" color="textMuted" style={pc.mrp}>₹{plan.mrp.toLocaleString('en-IN')}</Text>
                 ) : null}
-                <Text style={[pc.dur, { color: c.textMuted }]}>{plan.durationDays ? ` / ${plan.durationDays}d` : ''}</Text>
+                <Text variant="subhead" color="textMuted">{plan.durationDays ? ` / ${plan.durationDays}d` : ''}</Text>
               </View>
               {plan.perMonth ? (
-                <Text style={[pc.perMonth, { color: c.textMuted }]}>≈ ₹{plan.perMonth.toLocaleString('en-IN')}/month</Text>
+                <Text variant="caption" color="textMuted" style={pc.perMonth}>≈ ₹{plan.perMonth.toLocaleString('en-IN')}/month</Text>
               ) : null}
               {localPrice ? (
-                <Text style={[pc.perMonth, { color: c.textMuted }]}>≈ {localPrice} (charged in ₹)</Text>
+                <Text variant="caption" color="textMuted" style={pc.perMonth}>≈ {localPrice} (charged in ₹)</Text>
               ) : null}
             </>
           ) : (
-            <Text style={[pc.price, { color: c.fgStrong }]}>Free</Text>
+            <Text variant="headline" color="fgStrong">Free</Text>
           )}
         </View>
         {isSelected && <Ionicons name="checkmark-circle" size={22} color={isGold ? c.g500 : c.accent} />}
@@ -298,7 +298,7 @@ const makePc = (c: ThemeColours) => StyleSheet.create({
     borderBottomLeftRadius: borderRadius.sm,
     borderBottomRightRadius: borderRadius.sm,
   },
-  badgeText: { ...type.caption, color: '#fff' },
+  badgeText: { color: '#fff' },
   highlightBadge: {
     position: 'absolute',
     top: -11,
@@ -309,16 +309,13 @@ const makePc = (c: ThemeColours) => StyleSheet.create({
     borderRadius: borderRadius.pill,
     alignItems: 'center',
   },
-  highlightText: { ...type.caption, color: c.goldText, fontFamily: 'Inter-Bold', letterSpacing: 0.3 },
+  highlightText: { color: c.goldText, letterSpacing: 0.3 },
   header:    { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.sm },
   icon:      { fontSize: 28 },
   titleCol:  { flex: 1 },
-  label:     { ...type.title3, fontFamily: 'PlayfairDisplay-Bold' },
   priceRow:  { flexDirection: 'row', alignItems: 'baseline', marginTop: 2, flexWrap: 'wrap' },
-  price:     { ...type.headline, color: c.fgStrong },
-  mrp:       { ...type.subhead, fontFamily: 'Inter-Regular', color: c.textSecondary, textDecorationLine: 'line-through', marginLeft: 6 },
-  perMonth:  { ...type.caption, fontFamily: 'Inter-Regular', color: c.textSecondary, marginTop: 1 },
-  dur:       { ...type.subhead, fontFamily: 'Inter-Regular', color: c.textSecondary },
+  mrp:       { textDecorationLine: 'line-through', marginLeft: 6 },
+  perMonth:  { marginTop: 1 },
   divider:   { height: 1, backgroundColor: c.hairline, marginVertical: spacing.sm },
 });
 
@@ -335,11 +332,11 @@ function HistoryItem({ sub }: { sub: import('../../types').Subscription }) {
     <View style={hi.row} testID={`history-item-${sub.id}`}>
       <View style={[hi.dot, { backgroundColor: colour }]} />
       <View style={hi.info}>
-        <Text style={hi.plan}>{label}</Text>
-        <Text style={hi.date}>{date} · {amount}</Text>
+        <Text variant="headline" color="textPrimary">{label}</Text>
+        <Text variant="footnote" color="textSecondary" style={hi.date}>{date} · {amount}</Text>
       </View>
       <View style={[hi.statusBadge, sub.status === 'active' ? hi.statusActive : hi.statusInactive]}>
-        <Text style={hi.statusText}>{sub.status}</Text>
+        <Text variant="footnote" color="textSecondary" style={hi.statusText}>{sub.status}</Text>
       </View>
     </View>
   );
@@ -349,12 +346,11 @@ const makeHi = (c: ThemeColours) => StyleSheet.create({
   row:            { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: c.border },
   dot:            { width: 10, height: 10, borderRadius: 5, marginRight: spacing.md },
   info:           { flex: 1 },
-  plan:           { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
-  date:           { fontSize: typography.fontSize.sm, color: c.textSecondary, marginTop: 2 },
+  date:           { marginTop: 2 },
   statusBadge:    { paddingHorizontal: 10, paddingVertical: 3, borderRadius: borderRadius.full },
   statusActive:   { backgroundColor: c.success + '20' },
   statusInactive: { backgroundColor: c.border },
-  statusText:     { fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.medium, color: c.textSecondary, textTransform: 'capitalize' },
+  statusText:     { textTransform: 'capitalize' },
 });
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -567,7 +563,7 @@ export default function SubscriptionScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} testID="back-btn" accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
         </TouchableOpacity>
-        <Text style={s.title}>Subscription</Text>
+        <Text variant="title3" color="textPrimary">Subscription</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -583,7 +579,7 @@ export default function SubscriptionScreen() {
             accessibilityLabel={t2 === 'plans' ? 'Plans tab' : 'History tab'}
             accessibilityRole="tab"
           >
-            <Text style={[s.tabText, tab === t2 && s.tabTextActive]}>
+            <Text variant="subhead" color={tab === t2 ? 'primary' : 'textMuted'}>
               {t2 === 'plans' ? 'Plans' : 'History'}
             </Text>
           </PressableScale>
@@ -597,8 +593,8 @@ export default function SubscriptionScreen() {
             contentContainerStyle={s.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            <Text style={s.sectionTitle}>Choose your plan</Text>
-            <Text style={s.sectionSub}>Upgrade to find your perfect match faster</Text>
+            <Text variant="title2" color="textPrimary" style={s.sectionTitle}>Choose your plan</Text>
+            <Text variant="footnote" color="textSecondary" style={s.sectionSub}>Upgrade to find your perfect match faster</Text>
 
             {plansLoading ? (
               <SubscriptionSkeleton />
@@ -645,8 +641,8 @@ export default function SubscriptionScreen() {
             {/* À-la-carte contact-unlock top-ups (finite paid plans only) */}
             {bundlesEligible && (
               <View style={s.bundles}>
-                <Text style={s.bundlesTitle}>Need more contact unlocks?</Text>
-                <Text style={s.bundlesSub}>Top up without changing your plan.</Text>
+                <Text variant="headline" color="textPrimary" style={s.bundlesTitle}>Need more contact unlocks?</Text>
+                <Text variant="footnote" color="textSecondary" style={s.bundlesSub}>Top up without changing your plan.</Text>
                 {(liveBundles ?? Object.values(UNLOCK_BUNDLES)).map((b) => {
                   const local = formatLocalPrice(b.price, currency);
                   return (
@@ -659,10 +655,10 @@ export default function SubscriptionScreen() {
                     >
                       <Ionicons name="lock-open-outline" size={20} color={c.primary} />
                       <View style={{ flex: 1 }}>
-                        <Text style={s.bundleLabel}>{b.label}</Text>
-                        {local ? <Text style={s.bundleLocal}>≈ {local} (charged in ₹)</Text> : null}
+                        <Text variant="headline" color="textPrimary">{b.label}</Text>
+                        {local ? <Text variant="footnote" color="textMuted" style={s.bundleLocal}>≈ {local} (charged in ₹)</Text> : null}
                       </View>
-                      <Text style={s.bundlePrice}>₹{b.price.toLocaleString('en-IN')}</Text>
+                      <Text variant="headline" color="primary">₹{b.price.toLocaleString('en-IN')}</Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -670,7 +666,7 @@ export default function SubscriptionScreen() {
             )}
 
             {isIOS && (
-              <Text style={s.iosNote}>
+              <Text variant="footnote" color="textSecondary" style={s.iosNote}>
                 Subscriptions are managed on tricitymatch.com. Tap below to continue in your browser.
               </Text>
             )}
@@ -689,7 +685,7 @@ export default function SubscriptionScreen() {
               {(paying || verifyMutation.isPending) ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={s.ctaText}>
+                <Text variant="headline" style={s.ctaText}>
                   {selectedPlan === currentPlan
                     ? 'Current Plan'
                     : selectedPlan === 'free'
@@ -700,7 +696,7 @@ export default function SubscriptionScreen() {
                 </Text>
               )}
             </PressableScale>
-            <Text style={s.disclaimer}>
+            <Text variant="footnote" color="textMuted" style={s.disclaimer}>
               {isIOS
                 ? 'You’ll finish checkout securely on tricitymatch.com'
                 : CONFIG.IS_RAZORPAY_CONFIGURED
@@ -711,13 +707,13 @@ export default function SubscriptionScreen() {
         </>
       ) : (
         <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
-          <Text style={s.sectionTitle}>Payment History</Text>
+          <Text variant="title2" color="textPrimary" style={s.sectionTitle}>Payment History</Text>
           {histLoading ? (
             <ListSkeleton rows={5} />
           ) : !history?.length ? (
             <View style={s.emptyState}>
               <Ionicons name="receipt-outline" size={48} color={c.textMuted} />
-              <Text style={s.emptyText}>No payments yet</Text>
+              <Text variant="callout" color="textMuted">No payments yet</Text>
             </View>
           ) : (
             history.map((sub) => <HistoryItem key={sub.id} sub={sub} />)
@@ -732,29 +728,23 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   wrapper:      { flex: 1, backgroundColor: c.background },
   header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.md, borderBottomWidth: 1, borderBottomColor: c.border },
   backBtn:      { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  title:        { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: c.textPrimary },
   tabs:         { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: c.border },
   tab:          { flex: 1, paddingVertical: spacing.md, alignItems: 'center' },
   tabActive:    { borderBottomWidth: 2, borderBottomColor: c.primary },
-  tabText:      { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.medium, color: c.textMuted },
-  tabTextActive:{ color: c.primary },
   scroll:       { flex: 1 },
   scrollContent:{ padding: spacing.lg, paddingBottom: 120 },
-  sectionTitle: { fontSize: typography.fontSize['2xl'], fontFamily: typography.fontFamily.bold, color: c.textPrimary, marginBottom: spacing.xs },
-  sectionSub:   { fontSize: typography.fontSize.sm, color: c.textSecondary, marginBottom: spacing.xl },
+  sectionTitle: { marginBottom: spacing.xs },
+  sectionSub:   { marginBottom: spacing.xl },
   footer:       { padding: spacing.lg, borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.background },
   cta:          { backgroundColor: c.primary, borderRadius: borderRadius.md, paddingVertical: spacing.lg, alignItems: 'center' },
   ctaDisabled:  { backgroundColor: c.textMuted },
-  ctaText:      { color: '#fff', fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.bold },
-  disclaimer:   { fontSize: typography.fontSize.xs, color: c.textMuted, textAlign: 'center', marginTop: spacing.sm },
+  ctaText:      { color: '#fff' },
+  disclaimer:   { textAlign: 'center', marginTop: spacing.sm },
   emptyState:   { alignItems: 'center', paddingTop: spacing['5xl'], gap: spacing.md },
-  emptyText:    { fontSize: typography.fontSize.base, color: c.textMuted },
   bundles:      { marginTop: spacing.lg, paddingTop: spacing.lg, borderTopWidth: 1, borderTopColor: c.border },
-  bundlesTitle: { fontSize: typography.fontSize.lg, fontFamily: typography.fontFamily.bold, color: c.textPrimary },
-  bundlesSub:   { fontSize: typography.fontSize.sm, color: c.textSecondary, marginBottom: spacing.md },
+  bundlesTitle: {},
+  bundlesSub:   { marginBottom: spacing.md },
   bundleRow:    { flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderWidth: 1, borderRadius: borderRadius.md, padding: spacing.md, marginBottom: spacing.sm },
-  bundleLabel:  { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
-  bundleLocal:  { fontSize: typography.fontSize.xs, color: c.textMuted, marginTop: 1 },
-  bundlePrice:  { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.bold, color: c.primary },
-  iosNote:      { fontSize: typography.fontSize.sm, color: c.textSecondary, textAlign: 'center', marginTop: spacing.lg, lineHeight: 20 },
+  bundleLocal:  { marginTop: 1 },
+  iosNote:      { textAlign: 'center', marginTop: spacing.lg },
 });

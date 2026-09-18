@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import Text from '../../components/ui/Text';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   Easing,
@@ -80,7 +81,7 @@ export default function SplashScreen() {
       />
       <View style={styles.logoContainer}>
         <Logo variant="white" size="xl" />
-        <Text style={styles.tagline}>Find Your Perfect Match</Text>
+        <Text variant="callout" style={styles.tagline}>Find Your Perfect Match</Text>
       </View>
       {isLoading && (
         <View style={styles.dotsRow} testID="SplashScreen-loader">
@@ -104,8 +105,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     alignItems: 'center',
   },
   tagline: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.regular,
     color: 'rgba(255,255,255,0.8)',
     marginTop: 12,
     letterSpacing: 0.3,

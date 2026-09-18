@@ -1,8 +1,9 @@
 import React from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, Text, StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import Text from '../../components/ui/Text';
 import { LegalLayout, Section, Para, Bullet } from './LegalLayout';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 
 // Mirrors frontend/src/pages/Safety.jsx
 export default function SafetyScreen() {
@@ -11,7 +12,7 @@ export default function SafetyScreen() {
   return (
     <LegalLayout title="Safety & Trust" subtitle="Your trust comes first">
       <View style={s.emergency}>
-        <Text style={s.emergencyText}>In immediate danger? Call 112.</Text>
+        <Text variant="headline" color="error" style={s.emergencyText}>In immediate danger? Call 112.</Text>
       </View>
 
       <Section>
@@ -47,5 +48,5 @@ export default function SafetyScreen() {
 
 const makeS = (c: ThemeColours) => StyleSheet.create({
   emergency:     { backgroundColor: c.error + '15', borderRadius: borderRadius.md, borderWidth: 1, borderColor: c.error + '40', padding: spacing.md, marginBottom: spacing.lg },
-  emergencyText: { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: c.error, textAlign: 'center' },
+  emergencyText: { textAlign: 'center' },
 });

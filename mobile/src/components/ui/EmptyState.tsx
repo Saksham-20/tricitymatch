@@ -1,9 +1,10 @@
 import React, { ComponentProps } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { borderRadius, colours, spacing, type, type ThemeColours } from '@shared/constants/theme';
+import { borderRadius, colours, spacing, type ThemeColours } from '@shared/constants/theme';
 import Button from './Button';
+import Text from './Text';
 
 interface EmptyStateProps {
   icon?: keyof typeof Ionicons.glyphMap;
@@ -35,8 +36,8 @@ export default function EmptyState({
       <View style={[styles.iconCircle, isError && styles.iconCircleError]}>
         <Ionicons name={glyph} size={28} color={isError ? c.error : c.accent} />
       </View>
-      <Text style={styles.title}>{title}</Text>
-      {description ? <Text style={styles.description}>{description}</Text> : null}
+      <Text variant="title3" color="fgStrong" style={styles.title}>{title}</Text>
+      {description ? <Text variant="subhead" color="textMuted" style={styles.description}>{description}</Text> : null}
       {actionLabel && onAction ? (
         <Button
           title={actionLabel}
@@ -70,14 +71,10 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
   },
   iconCircleError: { backgroundColor: c.errorBg },
   title: {
-    ...type.title3,
-    color: c.fgStrong,
     textAlign: 'center',
     marginBottom: 6,
   },
   description: {
-    ...type.subhead,
-    color: c.textMuted,
     textAlign: 'center',
     marginBottom: 18,
     maxWidth: 280,

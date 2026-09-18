@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { requestNotifPrime } from '../../utils/notifPrime';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
@@ -17,6 +16,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import Text from '../../components/ui/Text';
 import Animated, {
   interpolate,
   useAnimatedScrollHandler,
@@ -26,7 +26,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { showToast } from '../../utils/toast';
 import { haptics } from '../../utils/haptics';
-import { colours, typography, type, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { CompatRing, MatchCelebration } from '../../components/ui';
 import { ProfileDetailSkeleton } from '../../components/ui/skeletons';
 import { PressableScale } from '../../components/motion';
@@ -64,7 +64,7 @@ function StatChip({ icon, label }: { icon: keyof typeof Ionicons.glyphMap; label
   return (
     <View style={[s.statChip, { backgroundColor: c.surface2 }]}>
       <Ionicons name={icon} size={13} color={c.primary} />
-      <Text style={[s.statChipText, { color: c.textPrimary }]} numberOfLines={1}>
+      <Text variant="caption" color="textPrimary" numberOfLines={1}>
         {label}
       </Text>
     </View>
@@ -76,8 +76,8 @@ function DetailRow({ label, value }: { label: string; value?: string | null }) {
   if (!value) return null;
   return (
     <View style={[s.detailRow, { borderBottomColor: c.hairline }]}>
-      <Text style={[s.detailLabel, { color: c.textSecondary }]}>{label}</Text>
-      <Text style={[s.detailValue, { color: c.textPrimary }]}>{value}</Text>
+      <Text variant="footnote" color="textSecondary" style={s.detailLabel}>{label}</Text>
+      <Text variant="footnote" color="textPrimary" style={s.detailValue}>{value}</Text>
     </View>
   );
 }
@@ -183,7 +183,7 @@ export default function ProfileDetailScreen() {
   if (!profile) {
     return (
       <View style={[s.loader, { backgroundColor: c.background }]}>
-        <Text style={{ color: c.textSecondary }}>Profile not found.</Text>
+        <Text color="textSecondary">Profile not found.</Text>
       </View>
     );
   }
@@ -290,13 +290,16 @@ export default function ProfileDetailScreen() {
                 <View style={s.compatRow}>
                   <CompatRing value={compat.overallScore} size={64} />
                   <View style={s.compatInfo}>
-                    <Text style={[type.headline, { color: c.fgStrong }]}>Compatibility</Text>
-                    <Text style={[type.footnote, { color: c.textMuted, marginTop: 2 }]}>
+                    <Text variant="headline" color="fgStrong">Compatibility</Text>
+                    <Text variant="footnote" color="textMuted" style={{ marginTop: 2 }}>
                       Tap to see the full breakdown
                     </Text>
                   </View>
                   <View style={s.compatWhy}>
-                    <Text style={[type.subhead, { color: compatScoreColour(compat.overallScore, c), fontFamily: 'Inter-SemiBold' }]}>
+                    {/* Non-curated: compatScoreColour resolves through the static
+                        `colours` import (colours.g500/p500), not theme-reactive `c.*` —
+                        left as an explicit style override per the migration's dynamic-colour rule. */}
+                    <Text variant="subhead" style={{ color: compatScoreColour(compat.overallScore, c), fontFamily: 'Inter-SemiBold' }}>
                       Why
                     </Text>
                     <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
@@ -320,12 +323,12 @@ export default function ProfileDetailScreen() {
         {profile.bio && (
           <RevealOnScroll scrollY={scrollY}>
             <SectionCard title={`About ${profile.firstName}`} icon="book-outline">
-              <Text style={[s.bioText, { color: c.textPrimary }]}>{profile.bio}</Text>
+              <Text variant="callout" color="textPrimary">{profile.bio}</Text>
               {(profile.interestTags?.length ?? 0) > 0 && (
                 <View style={s.tagsRow}>
                   {profile.interestTags.map((tag) => (
                     <View key={tag} style={[s.tag, { backgroundColor: c.accentSoft }]}>
-                      <Text style={[s.tagText, { color: c.primary }]}>{tag}</Text>
+                      <Text variant="caption" color="primary">{tag}</Text>
                     </View>
                   ))}
                 </View>
@@ -359,8 +362,8 @@ export default function ProfileDetailScreen() {
             <SectionCard title={`Get to know ${profile.firstName}`} icon="chatbubble-ellipses-outline">
               {promptPairs.map(({ prompt, answer }) => (
                 <View key={prompt} style={s.promptItem}>
-                  <Text style={[s.promptQ, { color: c.primary }]}>{prompt}</Text>
-                  <Text style={[s.promptA, { color: c.textPrimary }]}>{answer}</Text>
+                  <Text variant="callout" color="primary" style={s.promptQ}>{prompt}</Text>
+                  <Text variant="callout" color="textPrimary">{answer}</Text>
                 </View>
               ))}
             </SectionCard>
@@ -415,7 +418,7 @@ export default function ProfileDetailScreen() {
                 }
               >
                 <Ionicons name="moon-outline" size={16} color={c.primary} />
-                <Text style={[s.kundliBtnText, { color: c.primary }]}>View Ashtakoot Guna Milan →</Text>
+                <Text variant="subhead" color="primary">View Ashtakoot Guna Milan →</Text>
               </TouchableOpacity>
             </SectionCard>
           </RevealOnScroll>
@@ -445,7 +448,7 @@ export default function ProfileDetailScreen() {
           accessibilityLabel={`Report or block ${profile.firstName}`}
         >
           <Ionicons name="shield-outline" size={14} color={c.textMuted} />
-          <Text style={[type.footnote, { color: c.textMuted }]}>Report or block {profile.firstName}</Text>
+          <Text variant="footnote" color="textMuted">Report or block {profile.firstName}</Text>
         </TouchableOpacity>
         )}
 
@@ -498,7 +501,7 @@ export default function ProfileDetailScreen() {
         {actionDone === 'like' ? (
           <View style={s.mutualHint}>
             <Ionicons name="heart" size={20} color={c.primary} />
-            <Text style={[s.mutualHintText, { color: c.primary }]}>
+            <Text variant="headline" color="primary">
               {mutualMatch ? "It's a match! Start chatting." : 'Interest sent!'}
             </Text>
           </View>
@@ -513,7 +516,7 @@ export default function ProfileDetailScreen() {
               accessibilityLabel="Pass"
             >
               <Ionicons name="close" size={24} color={c.textSecondary} />
-              <Text style={[s.actionText, { color: c.textSecondary }]}>Pass</Text>
+              <Text variant="subhead" color="textSecondary">Pass</Text>
             </PressableScale>
 
             <PressableScale
@@ -526,7 +529,8 @@ export default function ProfileDetailScreen() {
               accessibilityLabel="Shortlist"
             >
               <Ionicons name="bookmark" size={24} color={c.g600} />
-              <Text style={[s.actionText, { color: c.g600 }]}>Shortlist</Text>
+              {/* c.g600 is a gold-ramp colour, not in the curated TextColor set — left as a style override. */}
+              <Text variant="subhead" style={{ color: c.g600 }}>Shortlist</Text>
             </PressableScale>
 
             <PressableScale
@@ -546,7 +550,7 @@ export default function ProfileDetailScreen() {
               ) : (
                 <>
                   <Ionicons name="heart" size={24} color="#fff" />
-                  <Text style={[s.actionText, s.likeText]}>Interested</Text>
+                  <Text variant="subhead" style={s.likeText}>Interested</Text>
                 </>
               )}
             </PressableScale>
@@ -581,7 +585,7 @@ export default function ProfileDetailScreen() {
       <Modal visible={noteSheetOpen} transparent animationType="slide" onRequestClose={() => setNoteSheetOpen(false)}>
         <Pressable style={ns.backdrop} onPress={() => setNoteSheetOpen(false)}>
           <View style={[ns.sheet, { backgroundColor: c.background }]} onStartShouldSetResponder={() => true}>
-            <Text style={[ns.title, { color: c.fgStrong }]}>Like with a note</Text>
+            <Text variant="headline" color="fgStrong" style={ns.title}>Like with a note</Text>
             <TextInput
               style={[ns.input, { borderColor: c.border, color: c.fgStrong }]}
               value={noteText}
@@ -591,7 +595,7 @@ export default function ProfileDetailScreen() {
               multiline
               accessibilityLabel="Note to send with your like"
             />
-            <Text style={[ns.counter, { color: c.textMuted }]}>{noteText.length}/280</Text>
+            <Text variant="footnote" color="textMuted" style={ns.counter}>{noteText.length}/280</Text>
             <PressableScale
               style={[ns.sendBtn, { backgroundColor: c.primary }]}
               haptic
@@ -605,7 +609,7 @@ export default function ProfileDetailScreen() {
               testID="send-like-note"
             >
               <Ionicons name="heart" size={18} color="#fff" />
-              <Text style={ns.sendText}>Send like</Text>
+              <Text variant="headline" style={ns.sendText}>Send like</Text>
             </PressableScale>
           </View>
         </Pressable>
@@ -636,8 +640,8 @@ export default function ProfileDetailScreen() {
         <View style={[s.appSheet, { backgroundColor: c.background, paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
           <View style={[s.appGrabber, { backgroundColor: c.border }]} />
           <Ionicons name="heart-circle" size={40} color={c.primary} style={{ alignSelf: 'center' }} />
-          <Text style={[s.appTitle, { color: c.fgStrong }]}>A lovely detail</Text>
-          <Text style={[type.callout, { color: c.textSecondary, textAlign: 'center' }]}>
+          <Text variant="title2" color="fgStrong" style={s.appTitle}>A lovely detail</Text>
+          <Text variant="callout" color="textSecondary" style={{ textAlign: 'center' }}>
             Mention what caught your eye when you connect with {profile.firstName} — thoughtful first
             messages get warmer replies.
           </Text>
@@ -662,7 +666,7 @@ export default function ProfileDetailScreen() {
             testID="appreciate-cta"
           >
             <Ionicons name="chatbubble-ellipses-outline" size={18} color="#fff" />
-            <Text style={s.appCtaText}>
+            <Text variant="headline" style={s.appCtaText}>
               {user?.subscriptionPlan !== 'free' ? 'Mention in a message' : 'Upgrade to message'}
             </Text>
           </TouchableOpacity>
@@ -725,33 +729,25 @@ const s = StyleSheet.create({
     paddingVertical: 7,
     maxWidth: 240,
   },
-  statChipText: { ...type.caption, fontFamily: 'Inter-Medium' },
-
   compatCard: { marginTop: spacing.lg },
   compatRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   compatInfo: { flex: 1 },
   compatWhy: { flexDirection: 'row', alignItems: 'center', gap: 2 },
 
-  bioText: { ...type.body, fontSize: 16, lineHeight: 24 },
   promptItem: { marginBottom: spacing.md },
   promptQ: {
-    fontFamily: 'PlayfairDisplay-Italic',
-    fontSize: 16,
-    lineHeight: 22,
     marginBottom: 4,
   },
-  promptA: { ...type.callout, lineHeight: 22 },
   tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
   tag: { borderRadius: borderRadius.pill, paddingHorizontal: spacing.sm, paddingVertical: 3 },
-  tagText: { ...type.caption },
 
   detailRow: {
     flexDirection: 'row',
     paddingVertical: 7,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  detailLabel: { width: 130, ...type.footnote, fontFamily: 'Inter-Medium' },
-  detailValue: { flex: 1, ...type.footnote },
+  detailLabel: { width: 130 },
+  detailValue: { flex: 1 },
 
   kundliBtn: {
     flexDirection: 'row',
@@ -760,7 +756,6 @@ const s = StyleSheet.create({
     marginTop: spacing.sm,
     paddingVertical: spacing.xs,
   },
-  kundliBtnText: { ...type.subhead },
 
   safetyFooter: {
     flexDirection: 'row',
@@ -780,7 +775,7 @@ const s = StyleSheet.create({
     gap: spacing.md,
   },
   appGrabber: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2 },
-  appTitle: { fontFamily: 'PlayfairDisplay-Bold', fontSize: 22, textAlign: 'center' },
+  appTitle: { textAlign: 'center' },
   appCta: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -790,7 +785,7 @@ const s = StyleSheet.create({
     paddingVertical: spacing.md,
     marginTop: spacing.sm,
   },
-  appCtaText: { ...type.headline, color: '#fff' },
+  appCtaText: { color: '#fff' },
 
   actionBar: {
     position: 'absolute',
@@ -814,8 +809,7 @@ const s = StyleSheet.create({
     borderRadius: borderRadius.md,
     minHeight: 48,
   },
-  actionText: { ...type.subhead },
-  likeText: { color: '#fff', fontFamily: 'Inter-SemiBold' },
+  likeText: { color: '#fff' },
 
   mutualHint: {
     flex: 1,
@@ -825,7 +819,6 @@ const s = StyleSheet.create({
     gap: spacing.sm,
     paddingVertical: spacing.md,
   },
-  mutualHintText: { ...type.headline },
 
 });
 
@@ -834,15 +827,15 @@ const s = StyleSheet.create({
 const ns = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: spacing.lg, paddingBottom: spacing['3xl'] },
-  title: { fontSize: typography.fontSize.lg, fontFamily: typography.fontFamily.bold, marginBottom: spacing.md },
+  title: { marginBottom: spacing.md },
   input: {
     borderWidth: 1, borderRadius: borderRadius.md, padding: spacing.md, minHeight: 88,
     fontSize: typography.fontSize.base, textAlignVertical: 'top',
   },
-  counter: { fontSize: typography.fontSize.xs, alignSelf: 'flex-end', marginTop: 4, fontVariant: ['tabular-nums'] },
+  counter: { alignSelf: 'flex-end', marginTop: 4, fontVariant: ['tabular-nums'] },
   sendBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     borderRadius: 24, minHeight: 48, marginTop: spacing.md,
   },
-  sendText: { color: '#fff', fontFamily: typography.fontFamily.bold, fontSize: typography.fontSize.base },
+  sendText: { color: '#fff' },
 });

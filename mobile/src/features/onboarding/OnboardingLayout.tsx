@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
@@ -9,11 +8,12 @@ import {
   Platform,
   LayoutChangeEvent,
 } from 'react-native';
+import Text from '../../components/ui/Text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming, Easing } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { colours, type, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { duration, EASE_OUT } from '@shared/constants/motion';
 import { Button } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
@@ -90,12 +90,12 @@ export default function OnboardingLayout({
             <Ionicons name="close" size={24} color={c.fgStrong} />
           </TouchableOpacity>
         )}
-        <Text style={[styles.stepLabel, { color: c.textMuted }]}>
+        <Text variant="subhead" color="textMuted">
           {t(`journey.chapters.${chapter.i18nKey}`, chapter.fallback)}
         </Text>
         {skippable ? (
           <TouchableOpacity onPress={onSkip} testID="btn-skip" accessibilityLabel={t('common.skip')}>
-            <Text style={styles.skipText}>{t('common.skip')}</Text>
+            <Text variant="subhead" color="primary">{t('common.skip')}</Text>
           </TouchableOpacity>
         ) : (
           <View style={styles.headerRight} />
@@ -129,11 +129,11 @@ export default function OnboardingLayout({
           {chapterDoneLine ? (
             <View style={[styles.chapterDone, { backgroundColor: c.accentSoft }]}>
               <Ionicons name="checkmark-circle" size={15} color={c.accent} />
-              <Text style={[styles.chapterDoneText, { color: c.accent }]}>{chapterDoneLine}</Text>
+              <Text variant="footnote" color="primary">{chapterDoneLine}</Text>
             </View>
           ) : null}
-          <Text style={[styles.title, { color: c.fgStrong }]}>{title}</Text>
-          {subtitle ? <Text style={[styles.subtitle, { color: c.textMuted }]}>{subtitle}</Text> : null}
+          <Text variant="title1" color="fgStrong" style={styles.title}>{title}</Text>
+          {subtitle ? <Text variant="body" color="textMuted" style={styles.subtitle}>{subtitle}</Text> : null}
           <View style={styles.content}>{children}</View>
         </ScrollView>
 
@@ -172,9 +172,7 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stepLabel: { ...type.subhead, color: c.textMuted },
   headerRight: { width: 40 },
-  skipText: { ...type.subhead, color: c.accent },
   progressTrack: {
     height: 6,
     backgroundColor: c.surface2,
@@ -211,16 +209,12 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     borderRadius: borderRadius.pill,
     marginTop: spacing.lg,
   },
-  chapterDoneText: { ...type.footnote },
   scrollContent: { padding: spacing.gutter, paddingBottom: spacing['3xl'] },
   title: {
-    ...type.title1,
-    fontFamily: 'PlayfairDisplay-Bold',
-    color: c.fgStrong,
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
   },
-  subtitle: { ...type.body, color: c.textMuted, marginBottom: spacing['2xl'] },
+  subtitle: { marginBottom: spacing['2xl'] },
   content: { gap: spacing.lg },
   footer: {
     padding: spacing.gutter,

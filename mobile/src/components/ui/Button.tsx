@@ -4,7 +4,6 @@ import {
   GestureResponderEvent,
   StyleProp,
   StyleSheet,
-  Text,
   TextStyle,
   View,
   ViewStyle,
@@ -15,6 +14,7 @@ import { borderRadius, colours, shadows, spacing, type, type ThemeColours } from
 import { useTheme } from '../../hooks/useTheme';
 import { haptics } from '../../utils/haptics';
 import { PressableScale } from '../motion';
+import Text, { type TypeRole } from './Text';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'text' | 'gold';
 export type ButtonSize = 'sm' | 'md' | 'lg';
@@ -48,6 +48,13 @@ const SIZES: Record<ButtonSize, { minHeight: number; radius: number; font: TextS
   lg: { minHeight: 54, radius: borderRadius.md, font: type.body },
 };
 
+// Mirrors SIZES' `font` role by name, for the Text primitive's `variant` prop.
+const SIZE_VARIANT: Record<ButtonSize, TypeRole> = {
+  sm: 'subhead',
+  md: 'headline',
+  lg: 'body',
+};
+
 export default function Button({
   title,
   onPress,
@@ -78,7 +85,8 @@ export default function Button({
   ) : (
     <View style={styles.contentRow}>
       {icon ? <Ionicons name={icon} size={(sz.font.fontSize ?? 16) + 2} color={v.text.color} /> : null}
-      <Text style={[sz.font, v.text]} numberOfLines={1}>
+      {/* v.text.color is dynamic per button variant and sometimes non-curated (gold's goldText) — left as a style override */}
+      <Text variant={SIZE_VARIANT[size]} style={v.text} numberOfLines={1}>
         {title}
       </Text>
     </View>

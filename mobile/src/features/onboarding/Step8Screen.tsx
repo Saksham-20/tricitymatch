@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { PressableScale } from '../../components/motion';
 import { haptics } from '../../utils/haptics';
+import Text from '../../components/ui/Text';
 import OnboardingLayout from './OnboardingLayout';
 import { useOnboarding } from './OnboardingContext';
 import type { Diet, SmokingDrinking } from '../../types';
@@ -26,7 +27,7 @@ function RadioGroup<T extends string>({
   const styles = React.useMemo(() => makeStyles(c), [c]);
   return (
     <View>
-      <Text style={styles.label}>{label}</Text>
+      <Text variant="subhead" color="textPrimary" style={styles.label}>{label}</Text>
       <View style={styles.pillRow}>
         {options.map((opt) => {
           const active = selected === opt.key;
@@ -41,7 +42,7 @@ function RadioGroup<T extends string>({
               accessibilityRole="radio"
               accessibilityState={{ selected: active }}
             >
-              <Text style={[styles.pillText, active && styles.pillTextActive]}>
+              <Text variant="subhead" color={active ? 'primary' : 'textPrimary'}>
                 {opt.label}
               </Text>
             </PressableScale>
@@ -141,9 +142,6 @@ export default function Step8Screen() {
 
 const makeStyles = (c: ThemeColours) => StyleSheet.create({
   label: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
     marginBottom: spacing.sm,
   },
   pillRow: {
@@ -164,13 +162,5 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
   pillActive: {
     borderColor: c.primary,
     backgroundColor: c.primaryLight,
-  },
-  pillText: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
-  },
-  pillTextActive: {
-    color: c.primary,
   },
 });

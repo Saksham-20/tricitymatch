@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -17,11 +16,12 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import Text from '../../components/ui/Text';
 import { StaggeredEntrance } from '../../components/motion';
 import { showToast } from '../../utils/toast';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { cache, CACHE_KEYS } from '../../utils/cache';
 import { updateMyProfile } from '../../api/profile';
 import { deleteAccount } from '../../api/auth';
@@ -75,8 +75,8 @@ function SettingRow({
         <Ionicons name={icon as any} size={18} color={iconColor ?? c.primary} />
       </View>
       <View style={sr.info}>
-        <Text style={[sr.label, destructive && { color: c.error }]}>{label}</Text>
-        {sublabel ? <Text style={sr.sub}>{sublabel}</Text> : null}
+        <Text variant="subhead" color={destructive ? 'error' : 'textPrimary'}>{label}</Text>
+        {sublabel ? <Text variant="footnote" color="textSecondary" style={sr.sub}>{sublabel}</Text> : null}
       </View>
       {toggle ? (
         <Switch
@@ -87,7 +87,7 @@ function SettingRow({
           testID={`${testID ?? label}-switch`}
         />
       ) : value ? (
-        <Text style={sr.value}>{value}</Text>
+        <Text variant="footnote" color="textSecondary">{value}</Text>
       ) : onPress ? (
         <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
       ) : null}
@@ -99,9 +99,7 @@ const makeSr = (c: ThemeColours) => StyleSheet.create({
   row:     { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, paddingHorizontal: spacing.lg, backgroundColor: c.background, minHeight: 56 },
   iconWrap:{ width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: spacing.md },
   info:    { flex: 1 },
-  label:   { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.medium, color: c.textPrimary },
-  sub:     { fontSize: typography.fontSize.xs, color: c.textSecondary, marginTop: 2 },
-  value:   { fontSize: typography.fontSize.sm, color: c.textSecondary, fontFamily: typography.fontFamily.regular },
+  sub:     { marginTop: 2 },
 });
 
 // ─── Section ──────────────────────────────────────────────────────────────────
@@ -111,7 +109,7 @@ function Section({ title, index = 0, children }: { title: string; index?: number
   const sec = React.useMemo(() => makeSec(c), [c]);
   return (
     <StaggeredEntrance index={index} style={sec.container}>
-      <Text style={sec.title}>{title}</Text>
+      <Text variant="caption" color="textMuted" style={sec.title}>{title}</Text>
       <View style={sec.card}>{children}</View>
     </StaggeredEntrance>
   );
@@ -119,7 +117,7 @@ function Section({ title, index = 0, children }: { title: string; index?: number
 
 const makeSec = (c: ThemeColours) => StyleSheet.create({
   container: { marginBottom: spacing.xl },
-  title:     { fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.semiBold, color: c.textMuted, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: spacing.sm, paddingHorizontal: spacing.lg },
+  title:     { textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: spacing.sm, paddingHorizontal: spacing.lg },
   card:      { backgroundColor: c.background, borderTopWidth: 1, borderBottomWidth: 1, borderColor: c.border },
 });
 
@@ -143,7 +141,7 @@ function LanguagePicker({ visible, current, onSelect, onClose }: {
       <TouchableOpacity style={lp.backdrop} activeOpacity={1} onPress={onClose}>
         <View style={lp.sheet} testID="language-picker">
           <View style={lp.handle} />
-          <Text style={lp.heading}>Select Language</Text>
+          <Text variant="title3" color="textPrimary" style={lp.heading}>Select Language</Text>
           {LANG_OPTIONS.map((opt) => (
             <TouchableOpacity
               key={opt.code}
@@ -152,8 +150,8 @@ function LanguagePicker({ visible, current, onSelect, onClose }: {
               testID={`lang-option-${opt.code}`}
               accessibilityLabel={opt.label}
             >
-              <Text style={lp.optionMain}>{opt.native}</Text>
-              <Text style={lp.optionSub}>{opt.label}</Text>
+              <Text variant="headline" color="textPrimary">{opt.native}</Text>
+              <Text variant="footnote" color="textSecondary" style={lp.optionSub}>{opt.label}</Text>
               {opt.code === current && (
                 <Ionicons name="checkmark" size={20} color={c.primary} style={{ marginLeft: 'auto' }} />
               )}
@@ -169,10 +167,9 @@ const makeLp = (c: ThemeColours) => StyleSheet.create({
   backdrop:   { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   sheet:      { backgroundColor: c.background, borderTopLeftRadius: borderRadius.xl, borderTopRightRadius: borderRadius.xl, padding: spacing.xl, paddingBottom: spacing['3xl'] },
   handle:     { width: 40, height: 4, borderRadius: 2, backgroundColor: c.border, alignSelf: 'center', marginBottom: spacing.lg },
-  heading:    { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: c.textPrimary, marginBottom: spacing.lg },
+  heading:    { marginBottom: spacing.lg },
   option:     { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: c.border, gap: spacing.md },
-  optionMain: { fontSize: typography.fontSize.lg, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
-  optionSub:  { fontSize: typography.fontSize.sm, color: c.textSecondary, marginLeft: spacing.sm },
+  optionSub:  { marginLeft: spacing.sm },
 });
 
 // ─── Delete Account Modal ─────────────────────────────────────────────────────
@@ -190,8 +187,8 @@ function DeleteModal({ visible, onClose, onConfirm, loading }: {
       <View style={dm.backdrop}>
         <View style={dm.card} testID="delete-account-modal">
           <Ionicons name="warning" size={40} color={c.error} />
-          <Text style={dm.title}>Delete Account</Text>
-          <Text style={dm.body}>
+          <Text variant="title3" color="textPrimary">Delete Account</Text>
+          <Text variant="footnote" color="textSecondary" style={dm.body}>
             This will permanently delete your profile, matches, and all data. This cannot be undone.
           </Text>
           <TouchableOpacity
@@ -204,11 +201,11 @@ function DeleteModal({ visible, onClose, onConfirm, loading }: {
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={dm.confirmText}>Delete My Account</Text>
+              <Text variant="headline" style={dm.confirmText}>Delete My Account</Text>
             )}
           </TouchableOpacity>
           <TouchableOpacity style={dm.cancelBtn} onPress={onClose} testID="delete-cancel-btn">
-            <Text style={dm.cancelText}>Cancel</Text>
+            <Text variant="callout" color="textSecondary">Cancel</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -219,12 +216,10 @@ function DeleteModal({ visible, onClose, onConfirm, loading }: {
 const makeDm = (c: ThemeColours) => StyleSheet.create({
   backdrop:    { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
   card:        { backgroundColor: c.background, borderRadius: borderRadius.xl, padding: spacing['2xl'], alignItems: 'center', gap: spacing.md, width: '100%' },
-  title:       { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: c.textPrimary },
-  body:        { fontSize: typography.fontSize.sm, color: c.textSecondary, textAlign: 'center', lineHeight: 22 },
+  body:        { textAlign: 'center' },
   confirmBtn:  { backgroundColor: c.error, borderRadius: borderRadius.md, paddingVertical: spacing.md, width: '100%', alignItems: 'center', marginTop: spacing.sm },
-  confirmText: { color: '#fff', fontFamily: typography.fontFamily.bold, fontSize: typography.fontSize.base },
+  confirmText: { color: '#fff' },
   cancelBtn:   { paddingVertical: spacing.sm, width: '100%', alignItems: 'center' },
-  cancelText:  { color: c.textSecondary, fontSize: typography.fontSize.base },
 });
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -295,7 +290,7 @@ export default function SettingsScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} testID="back-btn" accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
         </TouchableOpacity>
-        <Text style={s.title}>Settings</Text>
+        <Text variant="title3" color="textPrimary">Settings</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -590,5 +585,4 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   wrapper:  { flex: 1, backgroundColor: c.surfaceCard },
   header:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, backgroundColor: c.background, borderBottomWidth: 1, borderBottomColor: c.border },
   backBtn:  { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  title:    { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: c.textPrimary },
 });

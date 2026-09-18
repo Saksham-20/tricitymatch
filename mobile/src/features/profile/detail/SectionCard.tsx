@@ -1,7 +1,8 @@
 import React from 'react';
-import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+import Text from '../../../components/ui/Text';
 import { Ionicons } from '@expo/vector-icons';
-import { spacing, type, borderRadius, shadows } from '@shared/constants/theme';
+import { spacing, borderRadius, shadows } from '@shared/constants/theme';
 import { useTheme } from '../../../hooks/useTheme';
 
 interface SectionCardProps {
@@ -31,7 +32,7 @@ export default function SectionCard({ title, icon, tinted = false, children, sty
       {!!title && (
         <View style={s.titleRow}>
           {!!icon && <Ionicons name={icon} size={16} color={c.primary} />}
-          <Text style={[s.title, { color: c.fgStrong }]}>{title}</Text>
+          <Text variant="title2" color="fgStrong">{title}</Text>
         </View>
       )}
       {children}
@@ -48,5 +49,4 @@ const s = StyleSheet.create({
     borderWidth: 1,
   },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: spacing.md },
-  title: { ...type.title3, fontFamily: 'PlayfairDisplay-Bold', fontSize: 19 },
 });

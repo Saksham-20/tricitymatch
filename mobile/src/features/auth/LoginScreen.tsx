@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -13,6 +12,7 @@ import {
   Platform,
   Modal,
 } from 'react-native';
+import Text from '../../components/ui/Text';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -236,20 +236,20 @@ export default function LoginScreen() {
 
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>{t('auth.login.title')}</Text>
-          <Text style={styles.subtitle}>{t('auth.login.subtitle')}</Text>
+          <Text variant="title1" color="textPrimary">{t('auth.login.title')}</Text>
+          <Text variant="callout" color="textSecondary" style={styles.subtitle}>{t('auth.login.subtitle')}</Text>
         </View>
 
         {/* Error banner — handoff lockout state shows a warning panel, no countdown */}
         {error ? (
           <Animated.View style={[styles.errorBanner, shakeStyle]} testID="LoginScreen-error" accessibilityLiveRegion="polite">
-            <Text style={styles.errorText}>{error}</Text>
+            <Text variant="subhead" color="error">{error}</Text>
           </Animated.View>
         ) : null}
 
         {/* Email input */}
         <View style={styles.fieldGroup}>
-          <Text style={styles.label}>{t('auth.login.email')}</Text>
+          <Text variant="subhead" color="textPrimary" style={styles.label}>{t('auth.login.email')}</Text>
           <TextInput
             style={styles.input}
             value={email}
@@ -272,13 +272,13 @@ export default function LoginScreen() {
         {/* Password input */}
         <View style={styles.fieldGroup}>
           <View style={styles.labelRow}>
-            <Text style={styles.label}>{t('auth.login.password')}</Text>
+            <Text variant="subhead" color="textPrimary" style={styles.label}>{t('auth.login.password')}</Text>
             <TouchableOpacity
               onPress={() => navigation.navigate('ForgotPassword')}
               testID="LoginScreen-forgotPassword"
               accessibilityLabel={t('auth.login.forgotPassword')}
             >
-              <Text style={styles.forgotLink}>{t('auth.login.forgotPassword')}</Text>
+              <Text variant="subhead" color="primary">{t('auth.login.forgotPassword')}</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.passwordContainer}>
@@ -319,7 +319,7 @@ export default function LoginScreen() {
           {loading ? (
             <ActivityIndicator color="#FFFFFF" testID="LoginScreen-loader" />
           ) : (
-            <Text style={styles.primaryBtnText}>{t('auth.login.signIn')}</Text>
+            <Text variant="headline" style={{ color: '#FFFFFF' }}>{t('auth.login.signIn')}</Text>
           )}
         </TouchableOpacity>
 
@@ -331,7 +331,7 @@ export default function LoginScreen() {
             {/* Divider */}
             <View style={styles.divider}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>{t('common.or')}</Text>
+              <Text variant="footnote" color="textMuted">{t('common.or')}</Text>
               <View style={styles.dividerLine} />
             </View>
 
@@ -343,7 +343,7 @@ export default function LoginScreen() {
             >
               <View style={styles.btnRow}>
                 <Ionicons name="logo-google" size={18} color={c.textPrimary} />
-                <Text style={styles.googleBtnText}>{t('auth.login.googleSignIn')}</Text>
+                <Text variant="subhead" color="textPrimary">{t('auth.login.googleSignIn')}</Text>
               </View>
             </TouchableOpacity>
           </>
@@ -360,7 +360,7 @@ export default function LoginScreen() {
           >
             <View style={styles.btnRow}>
               <Ionicons name="finger-print" size={18} color={bioAttempts >= BIO_MAX_ATTEMPTS ? c.textMuted : c.primary} />
-              <Text style={[styles.biometricBtnText, bioAttempts >= BIO_MAX_ATTEMPTS && { color: c.textMuted }]}>
+              <Text variant="subhead" color={bioAttempts >= BIO_MAX_ATTEMPTS ? 'textMuted' : 'primary'}>
                 {biometricEnabled ? 'Sign in with Face ID / Touch ID' : 'Use biometric login'}
               </Text>
             </View>
@@ -374,7 +374,7 @@ export default function LoginScreen() {
           testID="LoginScreen-signup"
           accessibilityLabel={t('auth.login.noAccount')}
         >
-          <Text style={styles.footerLinkText}>{t('auth.login.noAccount')}</Text>
+          <Text variant="subhead" color="textSecondary">{t('auth.login.noAccount')}</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -391,8 +391,8 @@ export default function LoginScreen() {
             <View style={styles.bioModalIconWrap}>
               <Ionicons name="finger-print" size={32} color={c.primary} />
             </View>
-            <Text style={styles.bioModalTitle}>Enable Face ID / Touch ID?</Text>
-            <Text style={styles.bioModalBody}>
+            <Text variant="title3" color="textPrimary" style={styles.bioModalTitle}>Enable Face ID / Touch ID?</Text>
+            <Text variant="subhead" color="textSecondary" style={styles.bioModalBody}>
               Sign in faster next time using biometrics instead of your password.
             </Text>
             <TouchableOpacity
@@ -401,7 +401,7 @@ export default function LoginScreen() {
               testID="biometric-setup-enable"
               accessibilityLabel="Enable biometric login"
             >
-              <Text style={styles.bioModalPrimaryText}>Enable Biometrics</Text>
+              <Text variant="headline" style={{ color: '#fff' }}>Enable Biometrics</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.bioModalSecondary}
@@ -409,7 +409,7 @@ export default function LoginScreen() {
               testID="biometric-setup-skip"
               accessibilityLabel="Skip biometric setup"
             >
-              <Text style={styles.bioModalSecondaryText}>Not now</Text>
+              <Text variant="subhead" color="textSecondary">Not now</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -426,15 +426,7 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
   },
   backBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', marginLeft: -spacing.sm, marginBottom: spacing.md },
   header: { marginBottom: spacing['3xl'] },
-  title: {
-    fontSize: typography.fontSize['3xl'],
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
-  },
   subtitle: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textSecondary,
     marginTop: spacing.xs,
   },
   errorBanner: {
@@ -445,11 +437,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: c.error,
   },
-  errorText: {
-    fontSize: typography.fontSize.sm,
-    color: c.error,
-    fontFamily: typography.fontFamily.medium,
-  },
   fieldGroup: { marginBottom: spacing.lg },
   labelRow: {
     flexDirection: 'row',
@@ -458,15 +445,7 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     marginBottom: spacing.sm,
   },
   label: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
     marginBottom: spacing.sm,
-  },
-  forgotLink: {
-    fontSize: typography.fontSize.sm,
-    color: c.primary,
-    fontFamily: typography.fontFamily.medium,
   },
   input: {
     borderWidth: 1,
@@ -502,11 +481,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     marginTop: spacing.sm,
   },
   btnDisabled: { opacity: 0.6 },
-  primaryBtnText: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.semiBold,
-    color: '#FFFFFF',
-  },
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -514,11 +488,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     gap: spacing.md,
   },
   dividerLine: { flex: 1, height: 1, backgroundColor: c.border },
-  dividerText: {
-    fontSize: typography.fontSize.sm,
-    color: c.textMuted,
-    fontFamily: typography.fontFamily.regular,
-  },
   googleBtn: {
     borderWidth: 1,
     borderColor: c.border,
@@ -529,11 +498,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: c.background,
   },
-  googleBtnText: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
-  },
   biometricBtn: {
     alignItems: 'center',
     paddingVertical: 12,
@@ -541,22 +505,12 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     minHeight: 48,
     justifyContent: 'center',
   },
-  biometricBtnText: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.medium,
-    color: c.primary,
-  },
   footerLink: {
     alignItems: 'center',
     paddingVertical: 16,
     marginTop: spacing.lg,
     minHeight: 48,
     justifyContent: 'center',
-  },
-  footerLinkText: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textSecondary,
   },
   bioModalBackdrop: {
     flex: 1,
@@ -588,17 +542,10 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     marginBottom: spacing.sm,
   },
   bioModalTitle: {
-    fontSize: typography.fontSize.xl,
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
     textAlign: 'center',
   },
   bioModalBody: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textSecondary,
     textAlign: 'center',
-    lineHeight: 22,
     marginBottom: spacing.sm,
   },
   bioModalPrimary: {
@@ -610,21 +557,11 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     minHeight: 52,
     justifyContent: 'center',
   },
-  bioModalPrimaryText: {
-    color: '#fff',
-    fontFamily: typography.fontFamily.bold,
-    fontSize: typography.fontSize.base,
-  },
   bioModalSecondary: {
     paddingVertical: spacing.sm,
     width: '100%',
     alignItems: 'center',
     minHeight: 44,
     justifyContent: 'center',
-  },
-  bioModalSecondaryText: {
-    color: c.textSecondary,
-    fontFamily: typography.fontFamily.medium,
-    fontSize: typography.fontSize.base,
   },
 });

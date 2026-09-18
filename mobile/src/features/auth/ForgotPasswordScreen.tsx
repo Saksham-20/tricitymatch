@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -11,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import Text from '../../components/ui/Text';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -68,8 +68,8 @@ export default function ForgotPasswordScreen() {
         <View style={styles.successIcon}>
           <Ionicons name="mail-outline" size={30} color={c.primary} />
         </View>
-        <Text style={styles.successTitle}>{t('auth.forgotPassword.success')}</Text>
-        <Text style={styles.successSubtitle}>
+        <Text variant="title3" color="textPrimary" style={styles.successTitle}>{t('auth.forgotPassword.success')}</Text>
+        <Text variant="callout" color="textSecondary" style={styles.successSubtitle}>
           If an account exists for {email}, a reset link has been sent. Check your inbox.
         </Text>
         <TouchableOpacity
@@ -78,7 +78,7 @@ export default function ForgotPasswordScreen() {
           testID="ForgotPasswordScreen-backToLogin"
           accessibilityLabel={t('auth.forgotPassword.backToLogin')}
         >
-          <Text style={styles.primaryBtnText}>{t('auth.forgotPassword.backToLogin')}</Text>
+          <Text variant="headline" style={{ color: '#FFFFFF' }}>{t('auth.forgotPassword.backToLogin')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -104,7 +104,7 @@ export default function ForgotPasswordScreen() {
           testID="ForgotPasswordScreen-back"
         >
           <Ionicons name="chevron-back" size={18} color={c.textSecondary} />
-          <Text style={styles.backText}>{t('common.back')}</Text>
+          <Text variant="subhead" color="textSecondary">{t('common.back')}</Text>
         </TouchableOpacity>
 
         {/* Header */}
@@ -112,20 +112,20 @@ export default function ForgotPasswordScreen() {
           <View style={styles.iconWrap}>
             <Ionicons name="key-outline" size={28} color={c.primary} />
           </View>
-          <Text style={styles.title}>{t('auth.forgotPassword.title')}</Text>
-          <Text style={styles.subtitle}>{t('auth.forgotPassword.subtitle')}</Text>
+          <Text variant="title1" color="textPrimary" style={styles.title}>{t('auth.forgotPassword.title')}</Text>
+          <Text variant="callout" color="textSecondary">{t('auth.forgotPassword.subtitle')}</Text>
         </View>
 
         {/* Error */}
         {error ? (
           <View style={styles.errorBanner} testID="ForgotPasswordScreen-error" accessibilityLiveRegion="polite">
-            <Text style={styles.errorText}>{error}</Text>
+            <Text variant="subhead" color="error">{error}</Text>
           </View>
         ) : null}
 
         {/* Email input */}
         <View style={styles.fieldGroup}>
-          <Text style={styles.label}>{t('auth.forgotPassword.email')}</Text>
+          <Text variant="subhead" color="textPrimary" style={styles.label}>{t('auth.forgotPassword.email')}</Text>
           <TextInput
             style={styles.input}
             value={email}
@@ -156,7 +156,7 @@ export default function ForgotPasswordScreen() {
           {loading ? (
             <ActivityIndicator color="#FFFFFF" testID="ForgotPasswordScreen-loader" />
           ) : (
-            <Text style={styles.primaryBtnText}>{t('auth.forgotPassword.sendLink')}</Text>
+            <Text variant="headline" style={{ color: '#FFFFFF' }}>{t('auth.forgotPassword.sendLink')}</Text>
           )}
         </TouchableOpacity>
       </ScrollView>
@@ -169,7 +169,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
   scroll: { flex: 1 },
   content: { padding: spacing['2xl'] },
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, marginBottom: spacing.lg, minHeight: 40, alignSelf: 'flex-start' },
-  backText: { fontSize: typography.fontSize.base, color: c.textSecondary, fontFamily: typography.fontFamily.medium },
   header: { marginBottom: spacing['2xl'], alignItems: 'flex-start' },
   iconWrap: {
     width: 60,
@@ -181,16 +180,7 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     marginBottom: spacing.md,
   },
   title: {
-    fontSize: typography.fontSize['3xl'],
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
     marginBottom: spacing.sm,
-  },
-  subtitle: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textSecondary,
-    lineHeight: typography.fontSize.base * 1.5,
   },
   errorBanner: {
     backgroundColor: c.errorBg,
@@ -200,12 +190,8 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: c.error,
   },
-  errorText: { fontSize: typography.fontSize.sm, color: c.error, fontFamily: typography.fontFamily.medium },
   fieldGroup: { marginBottom: spacing.lg },
   label: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
     marginBottom: spacing.sm,
   },
   input: {
@@ -229,11 +215,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     justifyContent: 'center',
   },
   btnDisabled: { opacity: 0.6 },
-  primaryBtnText: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.semiBold,
-    color: '#FFFFFF',
-  },
   // Success state
   successContainer: {
     flex: 1,
@@ -253,18 +234,11 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
   },
   successEmoji: { fontSize: 36 },
   successTitle: {
-    fontSize: typography.fontSize.xl,
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
     textAlign: 'center',
     marginBottom: spacing.md,
   },
   successSubtitle: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textSecondary,
     textAlign: 'center',
-    lineHeight: typography.fontSize.base * 1.5,
     marginBottom: spacing['3xl'],
   },
 });

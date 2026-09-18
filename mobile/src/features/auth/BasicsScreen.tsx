@@ -12,9 +12,10 @@ import React, { useState } from 'react';
 import { PressableScale } from '../../components/motion';
 import { useTheme } from '../../hooks/useTheme';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
+  View, TextInput, TouchableOpacity, StyleSheet, ScrollView,
   ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
+import Text from '../../components/ui/Text';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -131,11 +132,11 @@ export default function BasicsScreen() {
           <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
         </TouchableOpacity>
 
-        <Text style={st.stepTag}>{t('auth.signup.stepTwo', 'Step 2 of 2')}</Text>
-        <Text style={st.title}>{t('auth.signup.basicsTitle', 'A few basics')}</Text>
-        <Text style={st.sub}>{t('auth.signup.basicsSub', 'This creates the profile — everything else can wait.')}</Text>
+        <Text variant="caption" color="primary" style={st.stepTag}>{t('auth.signup.stepTwo', 'Step 2 of 2')}</Text>
+        <Text variant="title2" color="textPrimary" style={st.title}>{t('auth.signup.basicsTitle', 'A few basics')}</Text>
+        <Text variant="footnote" color="textMuted" style={st.sub}>{t('auth.signup.basicsSub', 'This creates the profile — everything else can wait.')}</Text>
 
-        <Text style={st.label}>{t('auth.signup.profileFor', 'This profile is for')}</Text>
+        <Text variant="subhead" color="textSecondary" style={st.label}>{t('auth.signup.profileFor', 'This profile is for')}</Text>
         <View style={st.chipRow}>
           {REGISTERING_FOR.map((opt) => {
             const active = registeringFor === opt.key;
@@ -149,13 +150,13 @@ export default function BasicsScreen() {
                 testID={`profile-for-${opt.key}`}
               >
                 <Ionicons name={opt.icon} size={16} color={active ? '#fff' : c.textSecondary} />
-                <Text style={[st.chipText, active && st.chipTextActive]}>{opt.label}</Text>
+                <Text variant={active ? 'caption' : 'footnote'} color="textSecondary" style={active ? { color: '#fff' } : undefined}>{opt.label}</Text>
               </TouchableOpacity>
             );
           })}
         </View>
 
-        <Text style={st.label}>{t('auth.signup.fullName', 'Full name')}</Text>
+        <Text variant="subhead" color="textSecondary" style={st.label}>{t('auth.signup.fullName', 'Full name')}</Text>
         <View style={st.nameRow}>
           <TextInput
             style={[st.input, { flex: 1 }]}
@@ -179,7 +180,7 @@ export default function BasicsScreen() {
           />
         </View>
 
-        <Text style={st.label}>{t('auth.signup.gender', 'Gender')}</Text>
+        <Text variant="subhead" color="textSecondary" style={st.label}>{t('auth.signup.gender', 'Gender')}</Text>
         <View style={st.nameRow}>
           {(['male', 'female'] as const).map((g) => {
             const active = gender === g;
@@ -193,13 +194,13 @@ export default function BasicsScreen() {
                 testID={`gender-${g}`}
               >
                 <Ionicons name={g === 'male' ? 'male' : 'female'} size={18} color={active ? '#fff' : c.textSecondary} />
-                <Text style={[st.genderText, active && st.chipTextActive]}>{g === 'male' ? 'Male' : 'Female'}</Text>
+                <Text variant={active ? 'headline' : 'callout'} color="textSecondary" style={active ? { color: '#fff' } : undefined}>{g === 'male' ? 'Male' : 'Female'}</Text>
               </TouchableOpacity>
             );
           })}
         </View>
 
-        <Text style={st.label}>{t('auth.signup.dob', 'Date of birth')}</Text>
+        <Text variant="subhead" color="textSecondary" style={st.label}>{t('auth.signup.dob', 'Date of birth')}</Text>
         <TextInput
           style={[st.input, dobError ? st.inputError : null]}
           value={dobDisplay}
@@ -210,10 +211,10 @@ export default function BasicsScreen() {
           maxLength={10}
           testID="dob-input"
         />
-        <Text style={st.hint}>{t('auth.signup.dobHint', 'Members must be 18–65. Shown as age only.')}</Text>
-        {dobError ? <Text style={st.error}>{dobError}</Text> : null}
+        <Text variant="caption" color="textMuted" style={st.hint}>{t('auth.signup.dobHint', 'Members must be 18–65. Shown as age only.')}</Text>
+        {dobError ? <Text variant="footnote" color="error" style={st.error}>{dobError}</Text> : null}
 
-        {error ? <Text style={st.error} accessibilityLiveRegion="polite">{error}</Text> : null}
+        {error ? <Text variant="footnote" color="error" style={st.error} accessibilityLiveRegion="polite">{error}</Text> : null}
 
         <PressableScale haptic
           style={[st.cta, (!isValid || loading) && st.ctaDisabled]}
@@ -225,7 +226,7 @@ export default function BasicsScreen() {
         >
           {loading
             ? <ActivityIndicator size="small" color="#fff" />
-            : <Text style={st.ctaText}>{t('auth.signup.createProfile', 'Create my profile')}</Text>}
+            : <Text variant="headline" style={{ color: '#fff' }}>{t('auth.signup.createProfile', 'Create my profile')}</Text>}
         </PressableScale>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -236,10 +237,10 @@ const makeSt = (c: ThemeColours) => StyleSheet.create({
   flex: { flex: 1, backgroundColor: c.background },
   content: { paddingHorizontal: spacing.gutter, paddingBottom: spacing['3xl'] },
   back: { marginBottom: spacing.md, alignSelf: 'flex-start' },
-  stepTag: { fontSize: typography.fontSize.xs, color: c.primary, fontFamily: typography.fontFamily.semiBold, letterSpacing: 1, textTransform: 'uppercase' },
-  title: { fontSize: typography.fontSize['2xl'], fontFamily: typography.fontFamily.bold, color: c.textPrimary, marginTop: 4 },
-  sub: { fontSize: typography.fontSize.sm, color: c.textMuted, marginTop: 4, marginBottom: spacing.xl },
-  label: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.medium, color: c.textSecondary, marginBottom: spacing.xs, marginTop: spacing.md },
+  stepTag: { letterSpacing: 1, textTransform: 'uppercase' },
+  title: { marginTop: 4 },
+  sub: { marginTop: 4, marginBottom: spacing.xl },
+  label: { marginBottom: spacing.xs, marginTop: spacing.md },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -248,8 +249,6 @@ const makeSt = (c: ThemeColours) => StyleSheet.create({
     backgroundColor: c.surfaceCard,
   },
   chipActive: { backgroundColor: c.primary, borderColor: c.primary },
-  chipText: { fontSize: typography.fontSize.sm, color: c.textSecondary },
-  chipTextActive: { color: '#fff', fontFamily: typography.fontFamily.semiBold },
   nameRow: { flexDirection: 'row', gap: spacing.sm },
   input: {
     borderWidth: 1, borderColor: c.border, borderRadius: borderRadius.md,
@@ -263,13 +262,11 @@ const makeSt = (c: ThemeColours) => StyleSheet.create({
     backgroundColor: c.surfaceCard,
   },
   genderBtnActive: { backgroundColor: c.primary, borderColor: c.primary },
-  genderText: { fontSize: typography.fontSize.base, color: c.textSecondary },
-  hint: { fontSize: typography.fontSize.xs, color: c.textMuted, marginTop: 4 },
-  error: { color: c.error, fontSize: typography.fontSize.sm, marginTop: spacing.sm },
+  hint: { marginTop: 4 },
+  error: { marginTop: spacing.sm },
   cta: {
     backgroundColor: c.primary, borderRadius: borderRadius.pill,
     minHeight: 52, alignItems: 'center', justifyContent: 'center', marginTop: spacing.xl,
   },
   ctaDisabled: { opacity: 0.5 },
-  ctaText: { color: '#fff', fontFamily: typography.fontFamily.bold, fontSize: typography.fontSize.base },
 });

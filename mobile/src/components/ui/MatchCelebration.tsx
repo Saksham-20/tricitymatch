@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { Modal, StyleSheet, Text, View } from 'react-native';
+import { Modal, StyleSheet, View } from 'react-native';
+import Text from './Text';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
@@ -12,7 +13,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import { colours, type, type ThemeColours } from '@shared/constants/theme';
+import { colours, type ThemeColours } from '@shared/constants/theme';
 import { EASE_OUT, spring } from '@shared/constants/motion';
 import { haptics } from '../../utils/haptics';
 import { useReduceMotion } from '../motion';
@@ -81,8 +82,8 @@ export default function MatchCelebration({ visible, name, onClose, onMessage }: 
             <Ionicons name="heart" size={48} color={c.goldText} />
           </LinearGradient>
         </Animated.View>
-        <Text style={styles.title}>It's a match!</Text>
-        {name ? <Text style={styles.sub}>You and {name} have shown interest in each other.</Text> : null}
+        <Text variant="title1" style={styles.title}>It's a match!</Text>
+        {name ? <Text variant="callout" style={styles.sub}>You and {name} have shown interest in each other.</Text> : null}
         <View style={styles.ctaRow}>
           {onMessage ? (
             <Button title="Send a message" variant="gold" icon="chatbubble" onPress={onMessage} style={styles.cta} />
@@ -118,8 +119,8 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 22,
   },
-  title: { ...type.title1, fontFamily: 'PlayfairDisplay-Bold', color: '#fff', textAlign: 'center' },
-  sub: { ...type.callout, color: 'rgba(255,255,255,0.86)', textAlign: 'center', marginTop: 8, maxWidth: 300 },
+  title: { color: '#fff', textAlign: 'center' },
+  sub: { color: 'rgba(255,255,255,0.86)', textAlign: 'center', marginTop: 8, maxWidth: 300 },
   ctaRow: { marginTop: 28, width: '100%', gap: 4, alignItems: 'center' },
   cta: { width: '100%' },
 });

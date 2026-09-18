@@ -1,8 +1,9 @@
 import React, { useCallback } from 'react';
 import { useTabBarClearance } from '../../hooks/useTabBarClearance';
 import {
-  View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl,
+  View, FlatList, TouchableOpacity, StyleSheet, RefreshControl,
 } from 'react-native';
+import Text from '../../components/ui/Text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -63,15 +64,17 @@ function ConversationCard({ item, locked = false, onPress }: ConversationCardPro
 
       <View style={[s.cardBody, locked && { opacity: 0.65 }]}>
         <View style={s.cardRow}>
-          <Text style={[s.cardName, { color: c.fgStrong }, unread && s.bold]} numberOfLines={1}>
+          <Text variant="headline" color="fgStrong" style={s.cardName} numberOfLines={1}>
             {name}{locked ? '  ' : ''}
             {locked && <Ionicons name="lock-closed" size={12} color={c.textMuted} />}
           </Text>
-          {lastMessage && <Text style={[s.cardTime, { color: unread ? c.accent : c.textMuted }]}>{formatTime(lastMessage.createdAt)}</Text>}
+          {lastMessage && <Text variant="caption" color={unread ? 'primary' : 'textMuted'}>{formatTime(lastMessage.createdAt)}</Text>}
         </View>
         <View style={s.cardRow}>
           <Text
-            style={[s.cardLast, { color: unread ? c.textPrimary : c.textMuted }, unread && s.semibold]}
+            variant="footnote"
+            color={unread ? 'textPrimary' : 'textMuted'}
+            style={s.cardLast}
             numberOfLines={1}
             ellipsizeMode="tail"
           >
@@ -79,7 +82,7 @@ function ConversationCard({ item, locked = false, onPress }: ConversationCardPro
           </Text>
           {unread && (
             <View style={s.badge}>
-              <Text style={s.badgeText}>{unreadCount > 99 ? '99+' : String(unreadCount)}</Text>
+              <Text variant="micro" style={s.badgeText}>{unreadCount > 99 ? '99+' : String(unreadCount)}</Text>
             </View>
           )}
         </View>
@@ -161,7 +164,7 @@ export default function ConversationsScreen() {
     return (
       <View style={[s.container, { backgroundColor: c.background, paddingTop: insets.top }]} testID="ConversationsUpgradeGate">
         <View style={s.header}>
-          <Text style={[s.headerTitle, { color: c.fgStrong }]}>{t('chat.title', 'Messages')}</Text>
+          <Text variant="title1" color="fgStrong">{t('chat.title', 'Messages')}</Text>
         </View>
         <View style={{ flex: 1, padding: spacing.gutter, justifyContent: 'center' }}>
           <GoldLock
@@ -178,7 +181,7 @@ export default function ConversationsScreen() {
   return (
     <View style={[s.container, { backgroundColor: c.background, paddingTop: insets.top }]} testID="ConversationsScreen">
       <View style={s.header}>
-        <Text style={[s.headerTitle, { color: c.fgStrong }]}>Messages</Text>
+        <Text variant="title1" color="fgStrong">Messages</Text>
         <TouchableOpacity
           onPress={() => navigation.navigate('FamilyGroups')}
           accessibilityLabel="Family groups"
@@ -218,7 +221,6 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: spacing.gutter, paddingVertical: 8,
   },
-  headerTitle: { ...type.title1, fontFamily: 'PlayfairDisplay-Bold' },
   emptyContainer: { flex: 1 },
   card: {
     flexDirection: 'row', alignItems: 'center', gap: 13,
@@ -226,15 +228,12 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   },
   cardBody: { flex: 1, gap: 3 },
   cardRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  cardName: { ...type.headline, flex: 1, marginRight: spacing.sm },
-  cardTime: { ...type.caption },
-  cardLast: { ...type.footnote, flex: 1, marginRight: spacing.sm },
-  bold: { fontFamily: 'Inter-Bold' },
-  semibold: { fontFamily: 'Inter-SemiBold' },
+  cardName: { flex: 1, marginRight: spacing.sm },
+  cardLast: { flex: 1, marginRight: spacing.sm },
   badge: {
     backgroundColor: c.accent, borderRadius: borderRadius.pill,
     minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5,
   },
-  badgeText: { ...type.micro, color: '#fff' },
+  badgeText: { color: '#fff' },
   separator: { height: 0.5, backgroundColor: c.hairline, marginLeft: 54 + 13 + spacing.gutter },
 });
