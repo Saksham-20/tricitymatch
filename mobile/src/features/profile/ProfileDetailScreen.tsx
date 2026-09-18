@@ -25,7 +25,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { showToast } from '../../utils/toast';
 import { haptics } from '../../utils/haptics';
-import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { CompatRing, MatchCelebration } from '../../components/ui';
 import { ProfileDetailSkeleton } from '../../components/ui/skeletons';
 import { PressableScale } from '../../components/motion';
@@ -55,7 +55,7 @@ type Route = RouteProp<MainStackParamList, 'ProfileDetail'>;
 // `success` reads correctly as status text but is documented as unreadable as
 // an accent on a dark surfaceCard — `successAccent` is the theme-reactive
 // pair that stays legible as a score dot/fill in both themes.
-const compatScoreColour = (p: number, c: ThemeColours) => (p >= 90 ? c.successAccent : p >= 75 ? colours.g500 : colours.p500);
+const compatScoreColour = (p: number, c: ThemeColours) => (p >= 90 ? c.successAccent : p >= 75 ? c.accent : c.textMuted);
 
 /** Compact stat chip for the essence band (height · education · community…). */
 function StatChip({ icon, label }: { icon: keyof typeof Ionicons.glyphMap; label: string }) {
@@ -295,9 +295,8 @@ export default function ProfileDetailScreen() {
                     </Text>
                   </View>
                   <View style={s.compatWhy}>
-                    {/* Non-curated: compatScoreColour resolves through the static
-                        `colours` import (colours.g500/p500), not theme-reactive `c.*` —
-                        left as an explicit style override per the migration's dynamic-colour rule. */}
+                    {/* Non-curated: compatScoreColour picks between c.successAccent/c.accent/c.textMuted
+                        at runtime — left as an explicit style override per the dynamic-colour rule. */}
                     <Text variant="subhead" style={{ color: compatScoreColour(compat.overallScore, c), fontFamily: 'Inter-SemiBold' }}>
                       Why
                     </Text>

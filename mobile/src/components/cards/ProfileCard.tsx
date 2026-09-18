@@ -4,7 +4,7 @@ import Text from '../ui/Text';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated from 'react-native-reanimated';
-import { colours, spacing, borderRadius, shadows, darkShadows, type ThemeColours } from '@shared/constants/theme';
+import { spacing, borderRadius, shadows, darkShadows, type ThemeColours } from '@shared/constants/theme';
 import type { ProfileSummary } from '../../types';
 import SmartImage from '../common/SmartImage';
 import Avatar from '../ui/Avatar';
@@ -55,12 +55,13 @@ function LikeButton({
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
-// Score colouring (handoff): green / gold / burgundy. `success` reads
-// correctly as status text but is documented as unreadable as an accent on
-// a dark surfaceCard — `successAccent` is the theme-reactive pair that
-// stays legible as a score dot/fill in both themes.
+// Score colouring: green / accent / neutral. `success` reads correctly as
+// status text but is documented as unreadable as an accent on a dark
+// surfaceCard — `successAccent` is the theme-reactive pair that stays
+// legible as a score dot/fill in both themes. Gold is reserved for premium
+// signalling and never marks a compatibility score.
 const scoreColour = (pct: number, c: ThemeColours): string =>
-  pct >= 90 ? c.successAccent : pct >= 75 ? colours.g500 : colours.p500;
+  pct >= 90 ? c.successAccent : pct >= 75 ? c.accent : c.textMuted;
 
 export interface ProfileCardProps {
   profile: ProfileSummary;

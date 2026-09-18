@@ -16,7 +16,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import SmartImage from '../../components/common/SmartImage';
 import { PressableScale } from '../../components/motion';
 import { Avatar, SectionHeader, SkeletonBlock, EmptyState, CompletionRing } from '../../components/ui';
@@ -49,7 +49,7 @@ function greeting(): string {
 // `success` reads correctly as status text but is documented as unreadable as
 // an accent on a dark surfaceCard — `successAccent` is the theme-reactive
 // pair that stays legible as a score dot/fill in both themes.
-const scoreColour = (p: number, c: ThemeColours) => (p >= 90 ? c.successAccent : p >= 75 ? colours.g500 : colours.p500);
+const scoreColour = (p: number, c: ThemeColours) => (p >= 90 ? c.successAccent : p >= 75 ? c.accent : c.textMuted);
 
 // ─── Rail card (166×226 scrim photo) ─────────────────────────────────────────
 function RailCard({ profile, onPress }: { profile: ProfileSummary; onPress: () => void }) {

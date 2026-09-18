@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text as RNText, View } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
-import { colours, type, type ThemeColours } from '@shared/constants/theme';
+import { type, type ThemeColours } from '@shared/constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import { useFillAnimation } from '../motion';
 import Text from './Text';
@@ -134,7 +134,7 @@ export function CompletionRing({ value, caption = 'COMPLETE', size = 88 }: RingL
 // an accent on a dark surfaceCard — `successAccent` is the theme-reactive
 // pair that stays legible as a ring/text tint in both themes.
 const compatColour = (pct: number, c: ThemeColours) =>
-  pct >= 90 ? c.successAccent : pct >= 75 ? colours.g500 : colours.p500;
+  pct >= 90 ? c.successAccent : pct >= 75 ? c.accent : c.textMuted;
 
 /** Compatibility ring — 24-tick gauge tinted by score + center %. */
 export function CompatRing({ value, size = 64 }: { value: number; size?: number }) {

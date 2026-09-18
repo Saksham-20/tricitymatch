@@ -16,7 +16,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import {
   getMutualMatches,
   getShortlisted,
@@ -48,7 +48,7 @@ const TABS: { key: TabKey; label: string }[] = [
 // `success` reads correctly as status text but is documented as unreadable as
 // an accent on a dark surfaceCard — `successAccent` is the theme-reactive
 // pair that stays legible as a score dot/fill in both themes.
-const scoreColour = (p: number, c: ThemeColours) => (p >= 90 ? c.successAccent : p >= 75 ? colours.g500 : colours.p500);
+const scoreColour = (p: number, c: ThemeColours) => (p >= 90 ? c.successAccent : p >= 75 ? c.accent : c.textMuted);
 
 // ─── Match Row (shared list item) ─────────────────────────────────────────────
 
