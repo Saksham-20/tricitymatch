@@ -509,16 +509,16 @@ const OverlapPricingPair = ({ freeEntry, paidEntry, currentPlanType, isCurrentPa
         </div>
         <p className="mt-2 text-3xl font-bold text-neutral-500 dark:text-neutral-500">Free</p>
         <p className="text-sm text-neutral-600 dark:text-neutral-500 mb-5">Forever, no card needed</p>
-        <ul className="space-y-2.5 mb-6 flex-1">
+        <ul className="space-y-3.5 mb-6 flex-1">
           {rows.map((row) => (
-            <li key={row.label} className="flex items-start gap-2.5">
+            <li key={row.label} className="flex items-start gap-3">
               {/* Muted is the card's own weight (grey icons, no accent, no
                   shadow); which rows Free has is carried by the icon shape
                   alone, never by contrast, so both states stay readable. */}
               {row.free
                 ? <FiCheck className="w-4 h-4 mt-0.5 text-neutral-500 dark:text-neutral-400 flex-shrink-0" aria-hidden="true" />
                 : <FiX className="w-4 h-4 mt-0.5 text-neutral-500 dark:text-neutral-500 flex-shrink-0" aria-hidden="true" />}
-              <span className="text-sm leading-snug text-neutral-600 dark:text-neutral-400">{row.label}</span>
+              <span className="text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">{row.label}</span>
             </li>
           ))}
         </ul>
@@ -568,13 +568,13 @@ const OverlapPricingPair = ({ freeEntry, paidEntry, currentPlanType, isCurrentPa
         )}
         <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-5">Everything in Free, plus</p>
 
-        <ul className="space-y-2.5 mb-6 flex-1">
+        <ul className="space-y-3.5 mb-6 flex-1">
           {rows.map((row) => (
-            <li key={row.label} className="flex items-start gap-2.5">
+            <li key={row.label} className="flex items-start gap-3">
               <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${accentCheckBg}`}>
                 <FiCheck className="w-2.5 h-2.5" />
               </div>
-              <span className="text-sm text-neutral-700 dark:text-neutral-300 leading-snug">{row.label}</span>
+              <span className="text-sm text-neutral-700 dark:text-neutral-300 leading-relaxed">{row.label}</span>
             </li>
           ))}
         </ul>
