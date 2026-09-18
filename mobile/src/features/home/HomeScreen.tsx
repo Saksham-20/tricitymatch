@@ -186,7 +186,16 @@ export default function HomeScreen() {
             <Text variant="title2" color="fgStrong" numberOfLines={1}>{firstName}</Text>
           </View>
         </PressableScale>
-        <PressableScale scaleTo={0.9} haptic onPress={goToNotifications} testID="notif-bell" accessibilityRole="button" accessibilityLabel="Notifications" style={styles.bellBtn}>
+        <PressableScale
+          scaleTo={0.9}
+          haptic
+          onPress={goToNotifications}
+          testID="notif-bell-tap44-hitslop"
+          accessibilityRole="button"
+          accessibilityLabel="Notifications"
+          style={styles.bellBtn}
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+        >
           <Ionicons name="notifications-outline" size={24} color={c.fgStrong} />
           {unreadCount > 0 && <View style={[styles.bellDot, { borderColor: c.background }]} />}
         </PressableScale>
@@ -228,7 +237,9 @@ export default function HomeScreen() {
           <PressableScale
             onPress={goToMatches}
             accessibilityRole="link"
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityLabel="See all today's matches"
+            testID="home-see-all-tap44-hitslop"
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Text variant="subhead" color="primary">See all</Text>

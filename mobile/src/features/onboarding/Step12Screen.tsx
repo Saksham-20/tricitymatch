@@ -112,7 +112,7 @@ export default function Step12Screen() {
           scaleTo={0.92}
           onPress={goBack}
           style={styles.backBtn}
-          testID="btn-back"
+          testID="btn-back-tap44-hitslop"
           accessibilityRole="button"
           accessibilityLabel={t('common.back')}
           hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
@@ -123,10 +123,10 @@ export default function Step12Screen() {
         <Text variant="subhead" color="textSecondary">{t('onboarding.progress', { current: 12, total: 14 })}</Text>
         <PressableScale
           onPress={handleSkip}
-          testID="btn-skip"
+          testID="btn-skip-tap44-hitslop"
           accessibilityRole="button"
           accessibilityLabel={t('common.skip')}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text variant="subhead" color="primary">{t('common.skip')}</Text>

@@ -43,7 +43,7 @@ const makeGradients = (c: ThemeColours): Partial<Record<ButtonVariant, [string, 
 });
 
 const SIZES: Record<ButtonSize, { minHeight: number; radius: number; font: TextStyle }> = {
-  sm: { minHeight: 38, radius: borderRadius.sm, font: type.subhead },
+  sm: { minHeight: 44, radius: borderRadius.sm, font: type.subhead },
   md: { minHeight: 50, radius: borderRadius.md, font: type.headline },
   lg: { minHeight: 54, radius: borderRadius.md, font: type.body },
 };
