@@ -116,9 +116,6 @@ export const typography = {
     normal:  1.5,
     relaxed: 1.75,
   },
-  letterSpacing: {
-    eyebrow: 1.2,
-  },
 } as const;
 
 export const spacing = {

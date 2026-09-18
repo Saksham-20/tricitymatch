@@ -92,8 +92,6 @@ const makeS = (_c: ThemeColours) => StyleSheet.create({
     paddingHorizontal: 2,
   },
   eyebrow: {
-    textTransform: 'uppercase',
-    letterSpacing: 1,
     marginBottom: 2,
   },
 });

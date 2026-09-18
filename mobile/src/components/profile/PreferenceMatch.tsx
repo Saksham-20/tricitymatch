@@ -199,6 +199,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  label: { width: 84, textTransform: 'uppercase', letterSpacing: 0.3 },
+  label: { width: 84 },
   want: { flex: 1, textTransform: 'capitalize' },
 });

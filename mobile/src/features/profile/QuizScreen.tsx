@@ -341,8 +341,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     borderRadius: borderRadius.lg,
   },
   questionNumber: {
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
     marginBottom: spacing.sm,
   },
   options: { paddingHorizontal: spacing.lg, gap: spacing.sm },

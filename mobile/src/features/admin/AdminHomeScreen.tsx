@@ -224,8 +224,6 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   headerSpacer: { width: 24 },
   scroll: { padding: spacing.lg, gap: spacing.sm },
   sectionTitle: {
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
     marginBottom: spacing.xs,
     marginTop: spacing.sm,
   },

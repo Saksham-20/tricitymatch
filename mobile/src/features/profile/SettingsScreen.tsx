@@ -118,7 +118,7 @@ function Section({ title, index = 0, children }: { title: string; index?: number
 
 const makeSec = (c: ThemeColours) => StyleSheet.create({
   container: { marginBottom: spacing.xl },
-  title:     { textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: spacing.sm, paddingHorizontal: spacing.lg },
+  title:     { marginBottom: spacing.sm, paddingHorizontal: spacing.lg },
   card:      { backgroundColor: c.background, borderTopWidth: 1, borderBottomWidth: 1, borderColor: c.border },
 });
 

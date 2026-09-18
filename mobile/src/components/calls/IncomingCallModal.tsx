@@ -105,7 +105,7 @@ export default function IncomingCallModal({ invitation }: Props) {
       <View style={styles.backdrop}>
         <View style={styles.card}>
           {/* Call type label */}
-          <Text variant="subhead" color="textMuted" style={styles.callTypeLabel}>
+          <Text variant="subhead" color="textMuted">
             {invitation.callType === 'video' ? 'Incoming Video Call' : 'Incoming Voice Call'}
           </Text>
 
@@ -199,10 +199,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     paddingHorizontal: spacing['3xl'],
     alignItems: 'center',
     gap: spacing.lg,
-  },
-  callTypeLabel: {
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
   },
   avatarWrap: {
     marginVertical: spacing.md,

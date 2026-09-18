@@ -121,8 +121,6 @@ const makeAr = (c: ThemeColours) => StyleSheet.create({
   heading: {
     marginBottom: spacing.sm,
     marginHorizontal: spacing.lg,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   list: { paddingHorizontal: spacing.lg, gap: spacing.md },
   card: { width: 88, alignItems: 'center' },

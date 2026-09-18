@@ -272,7 +272,7 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   divider:             { height: 1, backgroundColor: c.border, marginVertical: spacing.sm },
   cancelBtn:           { alignItems: 'center', paddingVertical: spacing.md, marginTop: spacing.sm },
   reportHeader:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg },
-  sectionLabel:        { textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: spacing.sm, marginTop: spacing.md },
+  sectionLabel:        { marginBottom: spacing.sm, marginTop: spacing.md },
   categoriesScroll:    { maxHeight: 320 },
   categoryRow:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: c.border },
   categoryRowSelected: { backgroundColor: c.primaryLight, marginHorizontal: -spacing.xl, paddingHorizontal: spacing.xl },

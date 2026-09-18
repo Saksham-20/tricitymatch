@@ -6,8 +6,6 @@ import Text from './Text';
 
 interface SectionHeaderProps {
   title: string;
-  /** Optional uppercase kicker above the title */
-  eyebrow?: string;
   /** gold tick = premium section, burgundy (default) = standard */
   gold?: boolean;
   /** small count chip after the title, e.g. "12" */
@@ -18,7 +16,7 @@ interface SectionHeaderProps {
 }
 
 /** Editorial section divider — accent tick bar + serif title (+ optional count / action). */
-export default function SectionHeader({ title, eyebrow, gold, count, action, style }: SectionHeaderProps) {
+export default function SectionHeader({ title, gold, count, action, style }: SectionHeaderProps) {
   const { c } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
   return (
@@ -26,7 +24,6 @@ export default function SectionHeader({ title, eyebrow, gold, count, action, sty
       <View style={styles.left}>
         <View style={[styles.tick, gold && styles.tickGold]} />
         <View style={styles.textGroup}>
-          {eyebrow ? <Text variant="micro" style={styles.eyebrow}>{eyebrow.toUpperCase()}</Text> : null}
           <View style={styles.titleRow}>
             <Text variant="title3" color="fgStrong">{title}</Text>
             {count != null ? (
@@ -55,11 +52,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
   tickGold: { backgroundColor: c.g500 },
   textGroup: { flex: 1 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  eyebrow: {
-    color: c.g600,
-    letterSpacing: 1.2,
-    marginBottom: 2,
-  },
   countChip: {
     minWidth: 22,
     paddingHorizontal: 6,

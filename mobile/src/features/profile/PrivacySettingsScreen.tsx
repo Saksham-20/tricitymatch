@@ -189,8 +189,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
   },
   body: { padding: spacing.lg },
   sectionTitle: {
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
     marginBottom: spacing.sm,
   },
   segment: {

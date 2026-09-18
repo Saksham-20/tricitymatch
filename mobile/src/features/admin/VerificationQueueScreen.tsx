@@ -71,11 +71,11 @@ function VerifCard({
       {/* The actual review: submitted selfie against the profile photo. */}
       <View style={s.compareRow}>
         <View style={s.compareCell}>
-          <Text variant="caption" color="textSecondary" style={s.compareLabel}>Selfie</Text>
+          <Text variant="caption" color="textSecondary">Selfie</Text>
           <SmartImage uri={item.selfiePhoto ?? undefined} name={name} style={s.compareImg} />
         </View>
         <View style={s.compareCell}>
-          <Text variant="caption" color="textSecondary" style={s.compareLabel}>Profile photo</Text>
+          <Text variant="caption" color="textSecondary">Profile photo</Text>
           <SmartImage uri={profilePhoto ?? undefined} name={name} style={s.compareImg} />
         </View>
       </View>
@@ -282,10 +282,6 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   compareRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
   compareCell: { flex: 1, gap: 4 },
-  compareLabel: {
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-  },
   compareImg: {
     width: '100%',
     aspectRatio: 1,

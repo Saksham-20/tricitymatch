@@ -140,7 +140,7 @@ export default function BasicsScreen() {
           <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
         </PressableScale>
 
-        <Text variant="caption" color="primary" style={st.stepTag}>{t('auth.signup.stepTwo', 'Step 2 of 2')}</Text>
+        <Text variant="caption" color="primary">{t('auth.signup.stepTwo', 'Step 2 of 2')}</Text>
         <Text variant="title2" color="textPrimary" style={st.title}>{t('auth.signup.basicsTitle', 'A few basics')}</Text>
         <Text variant="footnote" color="textMuted" style={st.sub}>{t('auth.signup.basicsSub', 'This creates the profile — everything else can wait.')}</Text>
 
@@ -244,7 +244,6 @@ const makeSt = (c: ThemeColours) => StyleSheet.create({
   flex: { flex: 1, backgroundColor: c.background },
   content: { paddingHorizontal: spacing.gutter, paddingBottom: spacing['3xl'] },
   back: { marginBottom: spacing.md, alignSelf: 'flex-start' },
-  stepTag: { letterSpacing: 1, textTransform: 'uppercase' },
   title: { marginTop: 4 },
   sub: { marginTop: 4, marginBottom: spacing.xl },
   label: { marginBottom: spacing.xs, marginTop: spacing.md },
