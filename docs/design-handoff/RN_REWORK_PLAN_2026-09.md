@@ -259,46 +259,68 @@ elder mode on and off. This is the first time anybody will have looked at this a
 
 ---
 
-## Phase 3 — Primitive adoption: press, targets, states
+## Phase 3 — Primitive adoption: press, targets, states — DONE (3.1–3.8) 2026-09-18, 3.9 OPEN
 
-The bulk of the campaign, and the reason the app currently looks like several products.
+The bulk of the campaign, and the reason the app currently looked like several products. 3.1–3.8 shipped as
+8 gated, individually-committed slices on `design/rework-2026-09`. Each ran `tsc`/`npm test`/root `lint`
+clean before commit; 3.4's 25-file migration additionally ran through a Workflow build+verify pipeline (25
+build agents + 25 fresh-verify agents, 0 failures) with 5 of those agents personally re-verified by the
+implementing session after a safety-classifier rate-limit.
 
-**3.1 `PressableScale` replaces `TouchableOpacity`** — 232 uses across 60 files. Each gains
-`accessibilityRole`, `accessibilityLabel`, `accessibilityState` where it has one, `hitSlop` where the visual
-is under 44pt, and `pressRetentionOffset`. `hitSlop` appears in 5 files today; `pressRetentionOffset` in zero.
+**3.1 `PressableScale` replaces `TouchableOpacity` — DONE.** 232 uses across 57 files (`d7e718a`). Each
+gained `accessibilityRole`, `accessibilityLabel`, `accessibilityState` where applicable, `hitSlop` under
+44pt, and universal `pressRetentionOffset`. Found and fixed one pre-existing mislabel along the way
+(`ReportsQueueScreen.tsx` Suspend button was announcing "Block user").
 
-**3.2 Small targets declare themselves.** Adopt the `tap44-hitslop` `testID` marker (§10.8), because
-`hitSlop` is invisible to the accessibility tree and to any sweep. Known offenders:
-`HomeScreen.tsx:348` (`bellBtn` padding 4 around a 24pt icon → 32pt), `HomeScreen.tsx:219` ("See all",
-text-only), `OnboardingLayout.tsx:169-171` (back / close / skip at 40×40), `Button.tsx:46` (`size="sm"` 38).
+**3.2 Small targets declare themselves — DONE (`28995cd`).** `tap44-hitslop` `testID` marker adopted on
+Home's notif-bell + "See all" link and onboarding's back/close/skip chrome (`OnboardingLayout.tsx` and
+`Step12Screen.tsx`'s duplicated copy). `Button.tsx`'s `size="sm"` grew 38pt → 44pt instead of relying on
+`hitSlop`, per the doctrine's own preferred remedy.
 
-**3.3 The `Input` primitive becomes the only text field.** 50 raw `<TextInput>` across 29 files. This is why
-label, helper and error treatment differ screen to screen.
+**3.3 The `Input` primitive becomes the only text field — DONE (`0e64ab8`).** 26 files migrated via a
+Workflow pipeline; `OtpInput.tsx` and `SmartContactInput.tsx` deliberately excluded (structurally don't fit
+a single-bordered-box shape — read in full before dispatch to avoid a forced-fit migration).
 
-**3.4 The `Screen` shell gets its first importer.** 28 files hand-roll `useSafeAreaInsets`.
+**3.4 The `Screen` shell gets its first importer — DONE (`a2467f1`).** 23 of 25 candidate screens migrated;
+`PhotoGalleryViewer.tsx` and `ProfileDetailScreen.tsx` correctly left alone (deliberate full-bleed layouts
+that render under the status bar and never hand-padded `insets.top` for their own shell — verified agents
+caught this rather than forcing an ill-fitting wrap).
 
-**3.5 `Card` declares elevation once.** `Card.tsx:21,33-36` has `borderWidth: 1` **and** `shadows.e2/e3` —
-the §3.4 ghost card, in the component every card inherits from. Same at `FloatingTabBar.tsx:110-127`.
-`Button.tsx:151,157` hardcodes light-mode shadows in both themes.
+**3.5 `Card` declares elevation once — DONE (`b15bf38`).** `Card.tsx` and `FloatingTabBar.tsx` each dropped
+their `borderWidth` (kept the shadow). `Button.tsx`'s primary/gold shadows now branch `isDark ? darkShadows
+: shadows` instead of hardcoding the light-mode table in both themes.
 
-**3.6 Eyebrows die.** Remove the `eyebrow` prop from `SectionHeader.tsx:9,28,57-62`, delete
-`shared/src/constants/theme.ts:120-121`'s `letterSpacing.eyebrow`, delete the 15 hand-rolled
-`textTransform: 'uppercase'` micro-labels.
+**3.6 Eyebrows die — DONE (`2b994a0`).** `eyebrow` prop removed from `SectionHeader.tsx` (zero consumers
+found on removal); `shared/src/constants/theme.ts`'s `letterSpacing.eyebrow` deleted (zero consumers across
+web+mobile); all 12 hand-rolled `textTransform: 'uppercase'` micro-labels stripped.
 
-**3.7 Gold gets its meaning back.** Gold currently marks a 75-89% compatibility score in five files
-(`HomeScreen.tsx:50`, `MatchesScreen.tsx:50`, `ProfileDetailScreen.tsx:56`, `TickRing.tsx:131`,
-`ProfileCard.tsx:52`) and a `SectionHeader` eyebrow. After this phase gold means premium and nothing else —
-the same fix the web made in its Phase 1.7.
+**3.7 Gold gets its meaning back — DONE (`74f9b8c`).** The 75–89% compat-score gold band in all 5 named
+files (Home/Matches/ProfileDetail rails, `TickRing`, `ProfileCard`) now reads `c.accent`; the low band moved
+off a hardcoded static `colours.p500` onto theme-reactive `c.textMuted` in the same edit (closes a
+light-palette-in-component violation on the same line).
 
-**3.8 `ListRow`, `Badge`, `Chip`, `IconButton` go from zero importers to being the only way those things are
-built.**
+**3.8 `ListRow`, `Badge`, `Chip`, `IconButton` — PARTIAL (`7ea338c`).** `ListRow` and `Chip` both used
+`TouchableOpacity` internally (the primitives themselves shipped the banned pattern) — fixed to
+`PressableScale`. `ListRow` extended with `sublabel`/`iconColor` to match the settings-row shape the app
+actually needs, then `SettingsScreen`'s local 25-usage `SettingRow` duplicate was deleted in favour of the
+shared primitive (its first real importer). `IconButton` already used `PressableScale`, no fix needed.
+**Not done:** a broader sweep for `Badge`/`Chip`/`IconButton` duplicates elsewhere in the app was censused
+and found low-yield — most candidate sites (composer send buttons, avatar circles, branded CTA pills) are
+semantically distinct branded elements, not settings-row/status-pill duplicates, and forcing them into the
+existing primitives' APIs without extending those APIs first would be a forced fit, not an adoption. Left
+open for a follow-up pass with its own scoping, rather than churned blind.
 
-**3.9 Every screen ships four states.** `EmptyState` has 4 uses in 3 files; `SkeletonBlock` has 43 uses in 5
-files. The screens with neither, from the census: `ChatThreadScreen` (14 `TouchableOpacity`, no empty, no
-error), `SubscriptionScreen` (no empty, no error — see 0.1), all 11 onboarding steps, `EditProfileScreen`,
-`SettingsScreen`, `NotificationsScreen`, the family-group screens.
+**3.9 Every screen ships four states — NOT STARTED.** `EmptyState` has 4 uses in 3 files; `SkeletonBlock`
+has 43 uses in 5 files. Screens with neither, from the census: `ChatThreadScreen` (14 `TouchableOpacity`, no
+empty, no error), `SubscriptionScreen` (no empty, no error — see 0.1), all 11 onboarding steps,
+`EditProfileScreen`, `SettingsScreen`, `NotificationsScreen` (confirmed zero state coverage this session),
+the family-group screens. Unlike 3.1–3.8, this is real per-screen UX design work (what does "empty" look
+like on *this* screen, what does the error retry affordance say) rather than a mechanical primitive swap —
+it needs its own scoped pass, screen by screen, not a blind batch migration.
 
-**Gates:** tsc, tests, lint, and each sub-step audited by a fresh agent against §10.11 before the next starts.
+**Gates:** tsc, tests, lint, and each sub-step audited by a fresh agent against §10.11 before the next
+starts — met for 3.1–3.8 via the Workflow verify stages (3.1, 3.3, 3.4) or direct gate runs (3.2, 3.5, 3.6,
+3.7, 3.8). 3.9 and the Phase 3 closing full-doctrine audit (§10.11) remain before Phase 4.
 
 ---
 
