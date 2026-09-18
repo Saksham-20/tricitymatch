@@ -1,14 +1,19 @@
 import React from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Switch, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { spacing, type ThemeColours } from '@shared/constants/theme';
 import { tapSize } from '../../utils/elderTheme';
+import { PressableScale } from '../motion';
 import Text from './Text';
 
 interface ListRowProps {
   icon?: keyof typeof Ionicons.glyphMap;
+  /** Tint for the icon and its soft circular tile background. Defaults to c.primary. */
+  iconColor?: string;
   label: string;
+  /** Secondary line under the label. */
+  sublabel?: string;
   value?: string;
   onPress?: () => void;
   rightElement?: React.ReactNode;
@@ -18,10 +23,12 @@ interface ListRowProps {
   testID?: string;
 }
 
-/** Settings/list row — icon + label + value/switch/chevron, 48px+ tap target, elder-mode aware. */
+/** Settings/list row — icon + label(+sublabel) + value/switch/chevron, 48px+ tap target, elder-mode aware. */
 export default function ListRow({
   icon,
+  iconColor,
   label,
+  sublabel,
   value,
   onPress,
   rightElement,
@@ -32,28 +39,35 @@ export default function ListRow({
 }: ListRowProps) {
   const { c, elder } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
-  const Container: React.ElementType = onPress ? TouchableOpacity : View;
+  const Container: React.ElementType = onPress ? PressableScale : View;
   const minHeight = tapSize(elder);
+  const tint = destructive ? c.error : (iconColor ?? c.primary);
 
   return (
     <Container
       style={[styles.row, { minHeight }]}
       onPress={onPress}
-      disabled={!onPress}
       testID={testID}
       accessibilityRole={onPress ? 'button' : undefined}
       accessibilityLabel={label}
     >
       {icon ? (
-        <View style={styles.iconWrap}>
-          <Ionicons name={icon} size={20} color={destructive ? c.error : c.primary} />
+        <View style={[styles.iconWrap, { backgroundColor: tint + '15' }]}>
+          <Ionicons name={icon} size={18} color={tint} />
         </View>
       ) : null}
-      <Text variant="body" color={destructive ? 'error' : 'textPrimary'} style={styles.label} numberOfLines={1}>
-        {label}
-      </Text>
+      <View style={styles.info}>
+        <Text variant="subhead" color={destructive ? 'error' : 'textPrimary'} numberOfLines={1}>
+          {label}
+        </Text>
+        {sublabel ? (
+          <Text variant="footnote" color="textSecondary" style={styles.sublabel} numberOfLines={1}>
+            {sublabel}
+          </Text>
+        ) : null}
+      </View>
       {value ? (
-        <Text variant="footnote" color="textMuted" numberOfLines={1}>
+        <Text variant="footnote" color="textSecondary" numberOfLines={1}>
           {value}
         </Text>
       ) : null}
@@ -80,13 +94,18 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     gap: spacing.md,
-    backgroundColor: c.surfaceCard,
   },
   iconWrap: {
-    width: 32,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  label: {
+  info: {
     flex: 1,
+  },
+  sublabel: {
+    marginTop: 2,
   },
 });

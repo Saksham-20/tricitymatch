@@ -4,7 +4,6 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  Switch,
   Alert,
   Modal,
   ActivityIndicator,
@@ -16,11 +15,12 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import Text from '../../components/ui/Text';
+import ListRow from '../../components/ui/ListRow';
 import { StaggeredEntrance, PressableScale } from '../../components/motion';
 import { showToast } from '../../utils/toast';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
-import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { cache, CACHE_KEYS } from '../../utils/cache';
 import { updateMyProfile } from '../../api/profile';
 import { deleteAccount } from '../../api/auth';
@@ -38,70 +38,6 @@ const LANG_OPTIONS: { code: Language; label: string; native: string }[] = [
   { code: 'hi', label: 'Hindi', native: 'हिन्दी' },
   { code: 'pa', label: 'Punjabi', native: 'ਪੰਜਾਬੀ' },
 ];
-
-// ─── Setting Row ──────────────────────────────────────────────────────────────
-
-interface SettingRowProps {
-  icon: string;
-  iconColor?: string;
-  label: string;
-  sublabel?: string;
-  value?: string;
-  toggle?: boolean;
-  toggleValue?: boolean;
-  onToggle?: (v: boolean) => void;
-  onPress?: () => void;
-  destructive?: boolean;
-  testID?: string;
-}
-
-function SettingRow({
-  icon, iconColor, label, sublabel, value,
-  toggle, toggleValue, onToggle, onPress, destructive, testID,
-}: SettingRowProps) {
-  const { c } = useTheme();
-  const sr = React.useMemo(() => makeSr(c), [c]);
-  return (
-    <PressableScale
-      style={sr.row}
-      onPress={onPress}
-      disabled={!onPress && !toggle}
-      testID={testID ?? `setting-row-${label}`}
-      accessibilityLabel={label}
-      accessibilityRole={toggle ? 'switch' : onPress ? 'button' : 'none'}
-      accessibilityState={{ disabled: !onPress && !toggle }}
-      pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-    >
-      <View style={[sr.iconWrap, { backgroundColor: (iconColor ?? c.primary) + '15' }]}>
-        <Ionicons name={icon as any} size={18} color={iconColor ?? c.primary} />
-      </View>
-      <View style={sr.info}>
-        <Text variant="subhead" color={destructive ? 'error' : 'textPrimary'}>{label}</Text>
-        {sublabel ? <Text variant="footnote" color="textSecondary" style={sr.sub}>{sublabel}</Text> : null}
-      </View>
-      {toggle ? (
-        <Switch
-          value={toggleValue}
-          onValueChange={onToggle}
-          trackColor={{ false: c.border, true: c.primary + '80' }}
-          thumbColor={toggleValue ? c.primary : c.textMuted}
-          testID={`${testID ?? label}-switch`}
-        />
-      ) : value ? (
-        <Text variant="footnote" color="textSecondary">{value}</Text>
-      ) : onPress ? (
-        <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
-      ) : null}
-    </PressableScale>
-  );
-}
-
-const makeSr = (c: ThemeColours) => StyleSheet.create({
-  row:     { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, paddingHorizontal: spacing.lg, backgroundColor: c.background, minHeight: 56 },
-  iconWrap:{ width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: spacing.md },
-  info:    { flex: 1 },
-  sub:     { marginTop: 2 },
-});
 
 // ─── Section ──────────────────────────────────────────────────────────────────
 
@@ -326,14 +262,14 @@ export default function SettingsScreen() {
 
         {/* Account */}
         <Section title="Account" index={0}>
-          <SettingRow
+          <ListRow
             icon="person-outline"
             label="Edit Profile"
             onPress={() => navigation.navigate('EditProfile')}
             testID="setting-edit-profile"
           />
           <Divider />
-          <SettingRow
+          <ListRow
             icon="shield-checkmark-outline"
             label="Verification"
             sublabel="Get your photo-verified badge"
@@ -341,7 +277,7 @@ export default function SettingsScreen() {
             testID="setting-verification"
           />
           <Divider />
-          <SettingRow
+          <ListRow
             icon="card-outline"
             iconColor={c.secondary}
             label="Subscription"
@@ -352,13 +288,12 @@ export default function SettingsScreen() {
           {biometricAvailable && (
             <>
               <Divider />
-              <SettingRow
+              <ListRow
                 icon="finger-print-outline"
                 label="Face ID / Touch ID"
                 sublabel="Sign in without typing your password"
-                toggle
-                toggleValue={biometricEnabled}
-                onToggle={handleBiometricToggle}
+                switchValue={biometricEnabled}
+                onSwitchChange={handleBiometricToggle}
                 testID="setting-biometric"
               />
             </>
@@ -367,18 +302,17 @@ export default function SettingsScreen() {
 
         {/* Privacy */}
         <Section title="Privacy" index={1}>
-          <SettingRow
+          <ListRow
             icon="eye-off-outline"
             iconColor={c.primary}
             label="Incognito Mode"
             sublabel="Browse profiles without being seen"
-            toggle
-            toggleValue={incognito}
-            onToggle={(v) => incognitoMutation.mutate(v)}
+            switchValue={incognito}
+            onSwitchChange={(v) => incognitoMutation.mutate(v)}
             testID="setting-incognito"
           />
           <Divider />
-          <SettingRow
+          <ListRow
             icon="lock-closed-outline"
             iconColor={c.primary}
             label="Privacy Controls"
@@ -387,7 +321,7 @@ export default function SettingsScreen() {
             testID="setting-privacy-controls"
           />
           <Divider />
-          <SettingRow
+          <ListRow
             icon="key-outline"
             iconColor={c.primary}
             label="Account Security"
@@ -401,18 +335,17 @@ export default function SettingsScreen() {
             (every screen uses the static light palette). Re-add when useTheme()
             is wired across screens. */}
         <Section title="Appearance" index={2}>
-          <SettingRow
+          <ListRow
             icon="text-outline"
             iconColor={c.primary}
             label="Elder Mode"
             sublabel="Larger text and simplified navigation"
-            toggle
-            toggleValue={elderMode}
-            onToggle={setElderMode}
+            switchValue={elderMode}
+            onSwitchChange={setElderMode}
             testID="setting-elder-mode"
           />
           <Divider />
-          <SettingRow
+          <ListRow
             icon="language-outline"
             iconColor={c.primary}
             label="Language"
@@ -424,7 +357,7 @@ export default function SettingsScreen() {
 
         {/* Family & Guardian */}
         <Section title="Family" index={3}>
-          <SettingRow
+          <ListRow
             icon="people-outline"
             iconColor={c.primary}
             label="Family Chat"
@@ -433,7 +366,7 @@ export default function SettingsScreen() {
             testID="setting-family-chat"
           />
           <Divider />
-          <SettingRow
+          <ListRow
             icon="shield-half-outline"
             iconColor={c.primary}
             label="Guardian Co-Pilot"
@@ -443,7 +376,7 @@ export default function SettingsScreen() {
           />
           {/* Show guardian dashboard if this user is acting as a guardian */}
           <Divider />
-          <SettingRow
+          <ListRow
             icon="eye-outline"
             iconColor={c.primary}
             label="Guardian Dashboard"
@@ -455,7 +388,7 @@ export default function SettingsScreen() {
 
         {/* Notifications */}
         <Section title="Notifications" index={4}>
-          <SettingRow
+          <ListRow
             icon="notifications-outline"
             label="Notifications"
             sublabel="View your matches, messages and alerts"
@@ -467,7 +400,7 @@ export default function SettingsScreen() {
         {/* Role-specific sections */}
         {(user?.role === 'admin' || user?.role === 'super_admin') && (
           <Section title="Administration" index={5}>
-            <SettingRow
+            <ListRow
               icon="shield-outline"
               iconColor={c.error}
               label="Admin Panel"
@@ -480,7 +413,7 @@ export default function SettingsScreen() {
 
         {/* Support */}
         <Section title="Support" index={7}>
-          <SettingRow
+          <ListRow
             icon="help-circle-outline"
             iconColor={c.textSecondary}
             label="Help & Support"
@@ -488,7 +421,7 @@ export default function SettingsScreen() {
             testID="setting-support"
           />
           <Divider />
-          <SettingRow
+          <ListRow
             icon="heart-outline"
             iconColor={c.primary}
             label="Success Stories"
@@ -497,7 +430,7 @@ export default function SettingsScreen() {
             testID="setting-success-stories-browse"
           />
           <Divider />
-          <SettingRow
+          <ListRow
             icon="star-outline"
             iconColor={c.primary}
             label="Share Your Story"
@@ -508,7 +441,7 @@ export default function SettingsScreen() {
           {user?.features?.astrologerMarketplace && (
             <>
               <Divider />
-              <SettingRow
+              <ListRow
                 icon="moon-outline"
                 iconColor={c.primary}
                 label="Astrologer Consult"
@@ -522,7 +455,7 @@ export default function SettingsScreen() {
 
         {/* About & Legal */}
         <Section title="About & Legal" index={8}>
-          <SettingRow
+          <ListRow
             icon="information-circle-outline"
             iconColor={c.textSecondary}
             label="About TricityMatch"
@@ -530,7 +463,7 @@ export default function SettingsScreen() {
             testID="setting-about"
           />
           <Divider />
-          <SettingRow
+          <ListRow
             icon="shield-checkmark-outline"
             iconColor={c.textSecondary}
             label="Safety & Trust"
@@ -538,7 +471,7 @@ export default function SettingsScreen() {
             testID="setting-safety"
           />
           <Divider />
-          <SettingRow
+          <ListRow
             icon="mail-outline"
             iconColor={c.textSecondary}
             label="Contact Us"
@@ -546,7 +479,7 @@ export default function SettingsScreen() {
             testID="setting-contact"
           />
           <Divider />
-          <SettingRow
+          <ListRow
             icon="document-text-outline"
             iconColor={c.textSecondary}
             label="Terms of Service"
@@ -554,7 +487,7 @@ export default function SettingsScreen() {
             testID="setting-terms"
           />
           <Divider />
-          <SettingRow
+          <ListRow
             icon="lock-closed-outline"
             iconColor={c.textSecondary}
             label="Privacy Policy"
@@ -565,7 +498,7 @@ export default function SettingsScreen() {
 
         {/* Danger zone */}
         <Section title="Account Actions" index={9}>
-          <SettingRow
+          <ListRow
             icon="log-out-outline"
             iconColor={c.warning}
             label="Log Out"
@@ -578,7 +511,7 @@ export default function SettingsScreen() {
             testID="setting-logout"
           />
           <Divider />
-          <SettingRow
+          <ListRow
             icon="trash-outline"
             iconColor={c.error}
             label="Delete Account"

@@ -1,8 +1,9 @@
 import React from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { StyleProp, StyleSheet, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { borderRadius, colours, spacing, type ThemeColours } from '@shared/constants/theme';
+import { borderRadius, spacing, type ThemeColours } from '@shared/constants/theme';
+import { PressableScale } from '../motion';
 import Text from './Text';
 
 export type BadgeTone =
@@ -78,13 +79,12 @@ export function Chip({ label, selected = false, icon, onPress, testID }: ChipPro
   const { c } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
   const toneStylesByTheme = React.useMemo(() => makeToneStyles(c), [c]);
-  const Container: React.ElementType = onPress ? TouchableOpacity : View;
+  const Container: React.ElementType = onPress ? PressableScale : View;
   return (
     <Container
       style={[styles.chip, selected && styles.chipSelected]}
       onPress={onPress}
       testID={testID}
-      activeOpacity={0.8}
       accessibilityRole={onPress ? 'button' : undefined}
       accessibilityState={onPress ? { selected } : undefined}
     >
