@@ -98,6 +98,7 @@
     "POST /api/v1/admin/marketing-users/:userId/payouts",
     "POST /api/v1/admin/push-smoke-test",
     "POST /api/v1/admin/referral-codes",
+    "POST /api/v1/admin/subscriptions/:subscriptionId/refund",
     "POST /api/v1/admin/success-stories",
     "POST /api/v1/admin/users",
     "POST /api/v1/astrologers/book",

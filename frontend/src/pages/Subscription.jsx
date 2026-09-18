@@ -1,20 +1,30 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { track, STAGES } from '../utils/analytics';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useMotionValueEvent } from 'framer-motion';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
-import { FiCheck, FiArrowRight, FiZap, FiShield, FiClock, FiGlobe, FiPlusCircle, FiStar } from 'react-icons/fi';
+import { FiCheck, FiX, FiArrowRight, FiZap, FiShield, FiClock, FiGlobe, FiPlusCircle, FiStar, FiInfo } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 import { razorpay } from '../config';
 import { loadRazorpayScript, ensurePaymentsAvailable } from '../utils/razorpayCheckout';
 import { useAuth } from '../context/AuthContext';
 import { detectCurrency, formatLocalPrice } from '../utils/currency';
 import { planFeatures } from '../utils/planFeatures';
+import { EmptyState, ErrorState, Skeleton } from '../components/ui';
+import { fadeRise, fade, staggerIndex } from '../utils/animations';
+
+// Gate `whileHover` behind a real pointer (doctrine §8): a touch tap on a
+// hover-capable-looking card should not fire a hover animation that then
+// never un-fires cleanly on mobile.
+const HOVER_CAPABLE = typeof window !== 'undefined'
+  && typeof window.matchMedia === 'function'
+  && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
 // ─── Plan card config ─────────────────────────
 // accent: 'primary' (burgundy) | 'gold' (premium/VIP only) | 'neutral'
 const PLAN_CONFIG = {
-  free:           { label: 'Free',    accent: 'neutral', icon: null,     cta: 'Free Forever' },
+  free:           { label: 'Free',    accent: 'neutral', icon: null,     cta: 'Free forever' },
   basic_premium:  { label: 'Basic',   accent: 'primary', icon: FiZap,    cta: 'Get Basic',   duration: '30 days',  price: 1299 },
   premium_plus:   { label: 'Premium', accent: 'primary', icon: FaCrown,  cta: 'Get Premium', duration: '90 days',  price: 2499 },
   elite:          { label: 'Elite',   accent: 'gold',    icon: FiShield, cta: 'Get Elite',   duration: '6 months', price: 3999 },
@@ -91,8 +101,8 @@ const COMPARE_LABELS = {
 
 const CompareCell = ({ v }) => (
   typeof v === 'boolean'
-    ? (v ? <FiCheck className="w-4 h-4 text-success mx-auto" aria-label="Included" /> : <span className="text-neutral-300" aria-label="Not included">—</span>)
-    : <span className="text-sm font-medium text-neutral-700">{v}</span>
+    ? (v ? <FiCheck className="w-4 h-4 text-success mx-auto" aria-label="Included" /> : <span className="text-neutral-300 dark:text-neutral-600" aria-label="Not included">—</span>)
+    : <span className="text-sm font-medium text-neutral-700 dark:text-neutral-200">{v}</span>
 );
 
 const ComparisonSection = ({ plans = {}, planKeys = [] }) => {
@@ -122,22 +132,24 @@ const ComparisonSection = ({ plans = {}, planKeys = [] }) => {
 
   return (
     <section className="mt-14" aria-labelledby="compare-heading">
-      <h2 id="compare-heading" className="font-display text-2xl font-bold text-neutral-900 text-center mb-6">Compare plans</h2>
-      {/* Table ≥ sm */}
-      <div className="hidden sm:block overflow-x-auto rounded-2xl border border-neutral-100 shadow-card bg-white">
+      <h2 id="compare-heading" className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 text-center mb-6">Compare plans</h2>
+      {/* Table ≥ sm. Border only (doctrine §3.4: elevation declared once) —
+          matches the accordion variant below it, which already carried just
+          a border. */}
+      <div className="hidden sm:block overflow-x-auto rounded-2xl border border-neutral-100 dark:border-neutral-800 bg-white dark:bg-surface-dark-3">
         <table className="w-full text-center">
           <thead>
-            <tr className="border-b border-neutral-100">
-              <th className="py-3 px-4 text-left text-xs font-semibold text-neutral-400 uppercase tracking-wide">Feature</th>
+            <tr className="border-b border-neutral-100 dark:border-neutral-800">
+              <th className="py-3 px-4 text-left text-xs font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide">Feature</th>
               {cols.map((key) => (
-                <th key={key} className="py-3 px-3 text-xs font-bold text-neutral-700">{COMPARE_LABELS[key]}</th>
+                <th key={key} className="py-3 px-3 text-xs font-bold text-neutral-700 dark:text-neutral-200">{COMPARE_LABELS[key]}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.label} className="border-b border-neutral-50 last:border-0">
-                <td className="py-3 px-4 text-left text-sm text-neutral-600">{row.label}</td>
+              <tr key={row.label} className="border-b border-neutral-50 dark:border-neutral-800/60 last:border-0">
+                <td className="py-3 px-4 text-left text-sm text-neutral-600 dark:text-neutral-300">{row.label}</td>
                 {row.values.map((v, i) => <td key={i} className="py-3 px-3"><CompareCell v={v} /></td>)}
               </tr>
             ))}
@@ -147,20 +159,20 @@ const ComparisonSection = ({ plans = {}, planKeys = [] }) => {
       {/* Accordion < sm */}
       <div className="sm:hidden space-y-2">
         {cols.map((key, ci) => (
-          <div key={key} className="rounded-2xl border border-neutral-100 bg-white overflow-hidden">
+          <div key={key} className="rounded-2xl border border-neutral-100 dark:border-neutral-800 bg-white dark:bg-surface-dark-3 overflow-hidden">
             <button
               onClick={() => setOpenCol(openCol === ci ? -1 : ci)}
-              className="w-full flex items-center justify-between px-4 py-3 text-sm font-bold text-neutral-800"
+              className="w-full flex items-center justify-between px-4 py-3 text-sm font-bold text-neutral-800 dark:text-neutral-100"
               aria-expanded={openCol === ci}
             >
               {COMPARE_LABELS[key]}
-              <span className="text-neutral-400">{openCol === ci ? '−' : '+'}</span>
+              <span className="text-neutral-400 dark:text-neutral-500">{openCol === ci ? '−' : '+'}</span>
             </button>
             {openCol === ci && (
               <ul className="px-4 pb-3 space-y-1.5">
                 {rows.map((row) => (
                   <li key={row.label} className="flex items-center justify-between text-sm">
-                    <span className="text-neutral-600">{row.label}</span>
+                    <span className="text-neutral-600 dark:text-neutral-300">{row.label}</span>
                     <CompareCell v={row.values[ci]} />
                   </li>
                 ))}
@@ -183,12 +195,12 @@ const SuccessStrip = () => {
   if (!stories || stories.length === 0) return null;
   return (
     <section className="mt-14" aria-labelledby="stories-heading">
-      <h2 id="stories-heading" className="font-display text-2xl font-bold text-neutral-900 text-center mb-6">Matches that became marriages</h2>
+      <h2 id="stories-heading" className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 text-center mb-6">Matches that became marriages</h2>
       <div className="grid sm:grid-cols-3 gap-4">
         {stories.map((st) => (
-          <figure key={st.id} className="rounded-2xl border border-neutral-100 bg-white shadow-card p-5">
-            <blockquote className="text-sm text-neutral-600 leading-relaxed line-clamp-4">“{st.story || st.content || ''}”</blockquote>
-            <figcaption className="mt-3 text-sm font-semibold text-primary-700">{st.coupleNames || st.title || 'A TricityMatch couple'}</figcaption>
+          <figure key={st.id} className="rounded-2xl bg-white dark:bg-surface-dark-3 shadow-card p-5">
+            <blockquote className="text-sm text-neutral-600 dark:text-neutral-300 leading-relaxed line-clamp-4">“{st.story || st.content || ''}”</blockquote>
+            <figcaption className="mt-3 text-sm font-semibold text-primary-700 dark:text-primary-400">{st.coupleNames || st.title || 'A TricityMatch couple'}</figcaption>
           </figure>
         ))}
       </div>
@@ -196,31 +208,35 @@ const SuccessStrip = () => {
   );
 };
 
-const FAQS = [
-  { q: 'Can I upgrade later?', a: 'Yes — you can move up to a higher plan any time while your current plan is active. The new plan starts fresh from the day you upgrade.' },
+// `unlockDailyCap` is threaded in from the live plans response (never
+// hardcoded) — the anti-harvest ceiling is a config value and a frozen
+// number here would silently drift from what the server actually enforces.
+const FAQS = (unlockDailyCap) => [
+  { q: 'Can I upgrade later?', a: 'Yes. You can move up to a higher plan any time while your current plan is active. The new plan starts fresh from the day you upgrade.' },
   { q: 'Is my payment secure?', a: 'All payments run through Razorpay over SSL. We never see or store your card details.' },
-  { q: 'What are contact unlocks?', a: 'Each unlock reveals a member\u2019s phone number so your families can talk directly. VIP has no limit.' },
+  { q: 'What are contact unlocks?', a: unlockDailyCap ? `Each unlock reveals a member\u2019s phone number so your families can talk directly. Unlimited-tier plans are capped at ${unlockDailyCap} unlocks a day, to keep the directory safe from bulk scraping.` : 'Each unlock reveals a member\u2019s phone number so your families can talk directly.' },
   { q: 'Do unused days carry over?', a: 'Upgrading starts a full fresh term on the new plan; remaining days on the old plan are not added on top.' },
-  { q: 'Can my parents manage this account?', a: 'Yes — the Guardian feature lets a family member view matches and shortlists for you.' },
+  { q: 'Can my parents manage this account?', a: 'Yes. The Guardian feature lets a family member view matches and shortlists for you.' },
 ];
 
-const FaqSection = () => {
+const FaqSection = ({ unlockDailyCap }) => {
   const [open, setOpen] = useState(0);
+  const faqs = FAQS(unlockDailyCap);
   return (
     <section className="mt-14 max-w-2xl mx-auto" aria-labelledby="faq-heading">
-      <h2 id="faq-heading" className="font-display text-2xl font-bold text-neutral-900 text-center mb-6">Common questions</h2>
+      <h2 id="faq-heading" className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 text-center mb-6">Common questions</h2>
       <div className="space-y-2">
-        {FAQS.map((f, i) => (
-          <div key={f.q} className="rounded-2xl border border-neutral-100 bg-white overflow-hidden">
+        {faqs.map((f, i) => (
+          <div key={f.q} className="rounded-2xl border border-neutral-100 dark:border-neutral-800 bg-white dark:bg-surface-dark-3 overflow-hidden">
             <button
               onClick={() => setOpen(open === i ? -1 : i)}
-              className="w-full flex items-center justify-between px-5 py-4 text-left text-sm font-semibold text-neutral-800"
+              className="w-full flex items-center justify-between px-5 py-4 text-left text-sm font-semibold text-neutral-800 dark:text-neutral-100"
               aria-expanded={open === i}
             >
               {f.q}
-              <span className="text-neutral-400 ml-3 flex-shrink-0">{open === i ? '−' : '+'}</span>
+              <span className="text-neutral-400 dark:text-neutral-500 ml-3 flex-shrink-0">{open === i ? '−' : '+'}</span>
             </button>
-            {open === i && <p className="px-5 pb-4 text-sm text-neutral-500 leading-relaxed">{f.a}</p>}
+            {open === i && <p className="px-5 pb-4 text-sm text-neutral-500 dark:text-neutral-400 leading-relaxed">{f.a}</p>}
           </div>
         ))}
       </div>
@@ -231,11 +247,11 @@ const FaqSection = () => {
 // DS11: sticky compact CTA bar on mobile after the first fold (free members).
 const StickyCtaBar = ({ show }) => {
   const [pastFold, setPastFold] = useState(false);
-  useEffect(() => {
-    const onScroll = () => setPastFold(window.scrollY > 640);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+  // Doctrine §8: no raw `addEventListener('scroll')`. framer-motion's
+  // `useScroll` (already the pattern in Navbar.jsx) tracks scrollY without a
+  // manual listener.
+  const { scrollY } = useScroll();
+  useMotionValueEvent(scrollY, 'change', (latest) => setPastFold(latest > 640));
   if (!show || !pastFold) return null;
   return (
     <div className="sm:hidden fixed bottom-20 inset-x-4 z-40">
@@ -249,8 +265,23 @@ const StickyCtaBar = ({ show }) => {
   );
 };
 
+// Which button state a plan CTA is in — used by PlanCard AND the 2-card
+// overlap pair below, so "can this tier be bought right now" is computed in
+// exactly one place. On a paid plan, only strictly higher tiers are
+// purchasable (as upgrades); lower/equal paid tiers already included.
+const getPlanCtaState = (planKey, currentPlanType, isCurrent, isProcessing) => {
+  const free = planKey === 'free';
+  const currentRank = TIER_RANK[currentPlanType] ?? 0;
+  const thisRank = TIER_RANK[planKey] ?? 0;
+  const onPaidPlan = currentRank > 0;
+  const isUpgrade = onPaidPlan && thisRank > currentRank;
+  const isIncluded = onPaidPlan && !isCurrent && !free && thisRank < currentRank;
+  const disabled = isCurrent || free || isIncluded || isProcessing;
+  return { isUpgrade, isIncluded, disabled };
+};
+
 // ─── Single plan card ─────────────────────────
-const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanType, isProcessing, freeChatForMutuals, onSubscribe }) => {
+const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanType, isProcessing, freeChatForMutuals, onSubscribe, entranceDelay = 0 }) => {
   const cfg = PLAN_CONFIG[planKey] || PLAN_CONFIG.free;
   const Icon = cfg.icon;
   const features = planFeatures(planKey, freeChatForMutuals, plan, prevName);
@@ -261,28 +292,24 @@ const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanTy
   const perMonth = plan.perMonth || null;
   const discountPct = mrp && mrp > displayPrice ? Math.round(((mrp - displayPrice) / mrp) * 100) : 0;
 
-  // On a paid plan, only higher tiers are purchasable (as upgrades).
-  const currentRank = TIER_RANK[currentPlanType] ?? 0;
-  const thisRank = TIER_RANK[planKey] ?? 0;
-  const onPaidPlan = currentRank > 0;
-  const isUpgrade = onPaidPlan && thisRank > currentRank;
-  const isIncluded = onPaidPlan && !isCurrent && !free && thisRank < currentRank;
-  const disabled = isCurrent || free || isIncluded || isProcessing;
+  const { isUpgrade, isIncluded, disabled } = getPlanCtaState(planKey, currentPlanType, isCurrent, isProcessing);
 
   const badge = plan.badge || (isPopular ? 'Most Popular' : null);
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={!free && !isCurrent ? { y: -6 } : {}}
-      transition={{ duration: 0.35 }}
-      className={`relative flex flex-col bg-white dark:bg-[#1a1f2e] rounded-2xl border transition-all duration-200 overflow-hidden ${
+      initial={fadeRise.initial}
+      animate={{ ...fadeRise.animate, transition: { ...fadeRise.animate.transition, delay: entranceDelay } }}
+      whileHover={HOVER_CAPABLE && !free && !isCurrent ? { y: -6 } : {}}
+      // Doctrine §3.4: elevation declared once — shadow carries it, no border
+      // or ring stacked on top (the accent bar + badge above already signal
+      // the popular/gold tiers without a second and third elevation layer).
+      className={`relative flex flex-col bg-white dark:bg-surface-dark-3 rounded-2xl transition-[box-shadow,transform] duration-200 overflow-hidden ${
         isPopular
-          ? 'border-primary-300 dark:border-primary-700/50 shadow-burgundy-lg ring-1 ring-primary-200 dark:ring-primary-800/40 scale-[1.03]'
+          ? 'shadow-burgundy-lg scale-[1.03]'
           : gold
-          ? 'border-gold-300 dark:border-gold-700/50 shadow-gold ring-1 ring-gold-200 dark:ring-gold-800/40'
-          : 'border-neutral-200 dark:border-neutral-800 shadow-card'
+          ? 'shadow-gold'
+          : 'shadow-card'
       }`}
     >
       {/* Accent bar + badge ribbon */}
@@ -312,16 +339,16 @@ const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanTy
         <div className="flex items-center gap-2.5 mb-4">
           {Icon && (
             <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
-              gold ? 'bg-gold-50 text-gold'
-              : planKey === 'premium_plus' ? 'bg-primary-100 text-primary-600'
-              : 'bg-primary-50 text-primary-500'
+              gold ? 'bg-gold-50 dark:bg-gold-900/20 text-gold'
+              : planKey === 'premium_plus' ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400'
+              : 'bg-primary-50 dark:bg-primary-900/20 text-primary-500 dark:text-primary-400'
             }`}>
               <Icon className="w-4 h-4" />
             </div>
           )}
           <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">{plan.name || cfg.label}</h3>
           {isCurrent && (
-            <span className="ml-auto px-2 py-0.5 bg-success-50 border border-success-100 text-success text-[10px] font-bold rounded-full uppercase tracking-wide">
+            <span className="ml-auto px-2 py-0.5 bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 text-success text-[10px] font-bold rounded-full uppercase tracking-wide">
               Active
             </span>
           )}
@@ -330,37 +357,43 @@ const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanTy
         {/* Price + MRP anchor */}
         <div className="flex items-baseline gap-1.5 mb-1 flex-wrap">
           <span className={`text-4xl font-bold ${
-            gold ? 'text-gold-600'
-            : planKey === 'premium_plus' || planKey === 'basic_premium' ? 'text-primary-500'
-            : 'text-neutral-700'
+            gold ? 'text-gold-600 dark:text-gold-400'
+            : planKey === 'premium_plus' || planKey === 'basic_premium' ? 'text-primary-500 dark:text-primary-400'
+            : 'text-neutral-700 dark:text-neutral-200'
           }`}>
             {displayPrice > 0 ? `₹${displayPrice.toLocaleString('en-IN')}` : 'Free'}
           </span>
           {displayPrice > 0 && (
-            <span className="text-sm text-neutral-500">/{plan.duration || cfg.duration}</span>
+            <span className="text-sm text-neutral-500 dark:text-neutral-400">/{plan.duration || cfg.duration}</span>
           )}
         </div>
         {displayPrice > 0 && (mrp || perMonth) && (
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             {mrp && mrp > displayPrice && (
-              <span className="text-sm text-neutral-400 line-through">₹{mrp.toLocaleString('en-IN')}</span>
+              <span className="text-sm text-neutral-400 dark:text-neutral-500 line-through">₹{mrp.toLocaleString('en-IN')}</span>
             )}
             {discountPct > 0 && (
-              <span className="text-[11px] font-bold text-success bg-success-50 border border-success-100 px-1.5 py-0.5 rounded">
+              <span className="text-[11px] font-bold text-success bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 px-1.5 py-0.5 rounded">
                 {plan.isLaunchPrice ? `Launch price · ${discountPct}% off` : `Flat ${discountPct}% off`}
               </span>
             )}
             {perMonth && (
-              <span className="text-xs text-neutral-400">≈ ₹{perMonth.toLocaleString('en-IN')}/month</span>
+              <span className="text-xs text-neutral-400 dark:text-neutral-500">≈ ₹{perMonth.toLocaleString('en-IN')}/month</span>
             )}
             {plan.durationDays > 0 && displayPrice > 0 && (
-              <span className="text-xs text-neutral-400">· ₹{Math.max(1, Math.round(displayPrice / plan.durationDays))}/day</span>
+              <span className="text-xs text-neutral-400 dark:text-neutral-500">· ₹{Math.max(1, Math.round(displayPrice / plan.durationDays))}/day</span>
             )}
           </div>
         )}
         {displayPrice > 0 && plan.contactUnlocks != null && (
-          <p className="text-xs text-primary-500 font-medium mt-1">
+          <p className="text-xs text-primary-500 dark:text-primary-400 font-medium mt-1">
             {plan.contactUnlocks === -1 ? '∞ Unlimited' : plan.contactUnlocks} contact unlocks
+            {/* Fact, not a restriction: "unlimited" is capped in practice at a
+                rolling-24h ceiling (anti-harvest). Stated plainly beside the
+                benefit it qualifies, not buried in a FAQ. */}
+            {plan.contactUnlocks === -1 && plan.unlockDailyCap != null && (
+              <span className="text-neutral-400 dark:text-neutral-500 font-normal"> · up to {plan.unlockDailyCap}/day</span>
+            )}
           </p>
         )}
       </div>
@@ -371,10 +404,10 @@ const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanTy
           {features.map((f, i) => (
             <li key={i} className="flex items-start gap-2.5">
               <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                gold ? 'bg-gold-100 text-gold-700' :
-                planKey === 'premium_plus' ? 'bg-primary-100 text-primary-600' :
-                planKey === 'basic_premium' ? 'bg-primary-50 text-primary-500' :
-                'bg-neutral-100 text-neutral-500'
+                gold ? 'bg-gold-100 dark:bg-gold-900/30 text-gold-700 dark:text-gold-400' :
+                planKey === 'premium_plus' ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400' :
+                planKey === 'basic_premium' ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-500 dark:text-primary-400' :
+                'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'
               }`}>
                 <FiCheck className="w-2.5 h-2.5" />
               </div>
@@ -390,9 +423,9 @@ const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanTy
           onClick={() => !disabled && onSubscribe(planKey)}
           disabled={disabled}
           aria-busy={isProcessing || undefined}
-          className={`w-full py-3 text-sm font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 disabled:cursor-not-allowed ${
+          className={`w-full py-3 text-sm font-semibold rounded-xl transition-[background-color,box-shadow,transform] duration-200 flex items-center justify-center gap-2 disabled:cursor-not-allowed ${
             isCurrent || free || isIncluded
-              ? 'bg-neutral-100 text-neutral-500 cursor-default'
+              ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 cursor-default'
               : gold
               ? 'bg-gold text-neutral-900 hover:bg-gold-400 shadow-gold hover:-translate-y-0.5'
               : 'bg-primary-500 text-white hover:bg-primary-600 shadow-burgundy hover:-translate-y-0.5'
@@ -403,12 +436,168 @@ const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanTy
             : isCurrent
             ? <><FiCheck className="w-4 h-4" /> Current Plan</>
             : free
-            ? 'Free Forever'
+            ? 'Free forever'
             : isIncluded
             ? <><FiCheck className="w-4 h-4" /> Included</>
             : isUpgrade
             ? <>Upgrade <FiArrowRight className="w-4 h-4" /></>
             : <>{cfg.cta} <FiArrowRight className="w-4 h-4" /></>}
+        </button>
+      </div>
+    </motion.div>
+  );
+};
+
+// ─── Free/Paid overlap pair ─────────────────────────────────────────────
+// Doctrine's fix for "two peer cards": a single-plan catalogue rendered as
+// Free and Premium side by side as equal-weight cards undersells the paid
+// tier. Both cards list the SAME rows — Free is muted with a cross against
+// whatever it lacks, Paid is raised and physically overlaps it. Only makes
+// sense for exactly two cards; the caller falls back to the grid otherwise.
+const OverlapPricingPair = ({ freeEntry, paidEntry, currentPlanType, isCurrentPaid, isProcessing, freeChatForMutuals, onSubscribe }) => {
+  const [, freePlan] = freeEntry;
+  const [paidKey, paidPlan] = paidEntry;
+  const paidCfg = PLAN_CONFIG[paidKey] || PLAN_CONFIG.free;
+  const PaidIcon = paidCfg.icon;
+  const gold = paidCfg.accent === 'gold';
+
+  // Same row source PlanCard uses (`planFeatures`) — never a second,
+  // hand-typed list. "Everything in Free" is expanded into Free's own rows
+  // rather than shown as a placeholder, since there is no tier between them.
+  const freeFeatures = planFeatures('free', freeChatForMutuals, freePlan, null);
+  const paidFeaturesRaw = planFeatures(paidKey, freeChatForMutuals, paidPlan, 'Free');
+  const rows = [
+    ...freeFeatures.map((label) => ({ label, free: true })),
+    ...paidFeaturesRaw
+      .filter((label) => !/^Everything in/i.test(label))
+      .filter((label) => !freeFeatures.includes(label))
+      .map((label) => ({ label, free: false })),
+  ];
+
+  const { isUpgrade, isIncluded, disabled } = getPlanCtaState(paidKey, currentPlanType, isCurrentPaid, isProcessing);
+  // The server ALWAYS resolves a free member's subscription to the synthetic
+  // `{planType:'free', status:'active'}` row (see getMySubscription) — so a
+  // visitor with no paid plan is the common case here, not an edge case, and
+  // the Free card has to say "Current plan", not "Free forever", for them.
+  // `currentPlanType` already carries this (falls back to 'free' the same
+  // way `PlanCard`'s own `isCurrent` check does for the free key).
+  const isCurrentFree = currentPlanType === 'free';
+  const displayPrice = paidPlan.price || paidCfg.price || 0;
+  const mrp = paidPlan.mrp || null;
+  const perMonth = paidPlan.perMonth || null;
+  const discountPct = mrp && mrp > displayPrice ? Math.round(((mrp - displayPrice) / mrp) * 100) : 0;
+  const accentText = gold ? 'text-gold-600 dark:text-gold-400' : 'text-primary-500 dark:text-primary-400';
+  const accentIconBg = gold ? 'bg-gold-50 dark:bg-gold-900/20 text-gold' : 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400';
+  const accentCheckBg = gold ? 'bg-gold-100 dark:bg-gold-900/30 text-gold-700 dark:text-gold-400' : 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400';
+  const accentButton = gold ? 'bg-gold text-neutral-900 hover:bg-gold-400 shadow-gold hover:-translate-y-0.5' : 'bg-primary-500 text-white hover:bg-primary-600 shadow-burgundy hover:-translate-y-0.5';
+
+  return (
+    <motion.div {...fadeRise} className="relative mx-auto max-w-sm sm:max-w-none sm:flex sm:justify-center sm:items-start pt-4 pb-6">
+      {/* Free — full row list, muted, sits behind. Background is `bg-neutral-50`
+          ONLY — index.css already forces `html.dark .bg-neutral-50` to the
+          page-canvas tier (`surface-dark-1`, the darkest of the three), which
+          is the right muted/recede effect in dark mode too; a `dark:bg-*`
+          class here would just be dead weight under that `!important` rule. */}
+      <div className="relative z-0 flex flex-col rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 p-6 sm:w-72 sm:flex-shrink-0 sm:p-7 sm:pt-8 sm:mr-[-1.75rem]">
+        <div className="flex items-center gap-2.5">
+          <h3 className="text-base font-bold text-neutral-600 dark:text-neutral-400">{freePlan.name || PLAN_CONFIG.free.label}</h3>
+          {isCurrentFree && (
+            <span className="ml-auto px-2 py-0.5 bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 text-success text-[10px] font-bold rounded-full uppercase tracking-wide">
+              Active
+            </span>
+          )}
+        </div>
+        <p className="mt-2 text-3xl font-bold text-neutral-500 dark:text-neutral-500">Free</p>
+        <p className="text-sm text-neutral-600 dark:text-neutral-500 mb-5">Forever, no card needed</p>
+        <ul className="space-y-2.5 mb-6 flex-1">
+          {rows.map((row) => (
+            <li key={row.label} className="flex items-start gap-2.5">
+              {/* Muted is the card's own weight (grey icons, no accent, no
+                  shadow); which rows Free has is carried by the icon shape
+                  alone, never by contrast, so both states stay readable. */}
+              {row.free
+                ? <FiCheck className="w-4 h-4 mt-0.5 text-neutral-500 dark:text-neutral-400 flex-shrink-0" aria-hidden="true" />
+                : <FiX className="w-4 h-4 mt-0.5 text-neutral-500 dark:text-neutral-500 flex-shrink-0" aria-hidden="true" />}
+              <span className="text-sm leading-snug text-neutral-600 dark:text-neutral-400">{row.label}</span>
+            </li>
+          ))}
+        </ul>
+        <button
+          disabled
+          className="w-full py-3 text-sm font-semibold rounded-xl bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 cursor-default flex items-center justify-center gap-2"
+        >
+          {isCurrentFree ? <><FiCheck className="w-4 h-4" /> Current plan</> : 'Free forever'}
+        </button>
+      </div>
+
+      {/* Paid — same rows, raised and overlapping Free */}
+      <div className={`relative z-10 flex flex-col overflow-hidden rounded-2xl bg-white dark:bg-surface-dark-3 p-6 sm:w-80 sm:flex-shrink-0 sm:p-7 sm:pt-8 -mt-6 mx-3 sm:mx-0 sm:-mt-4 sm:mb-[-1rem] ${
+        gold ? 'shadow-gold-lg' : 'shadow-burgundy-lg'
+      }`}>
+        <div className={`absolute top-0 inset-x-0 h-1 bg-gradient-to-r ${gold ? 'from-gold-400 to-gold-600' : 'from-primary-500 to-primary-700'}`} />
+        <div className="flex items-center gap-2.5 mb-1">
+          {PaidIcon && (
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${accentIconBg}`}>
+              <PaidIcon className="w-4 h-4" />
+            </div>
+          )}
+          <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">{paidPlan.name || paidCfg.label}</h3>
+          {isCurrentPaid && (
+            <span className="ml-auto px-2 py-0.5 bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 text-success text-[10px] font-bold rounded-full uppercase tracking-wide">
+              Active
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-baseline gap-1.5 mb-1 flex-wrap">
+          <span className={`text-4xl font-bold ${accentText}`}>₹{displayPrice.toLocaleString('en-IN')}</span>
+          <span className="text-sm text-neutral-500 dark:text-neutral-400">/{paidPlan.duration || paidCfg.duration}</span>
+        </div>
+        {(mrp || perMonth) && (
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            {mrp && mrp > displayPrice && (
+              <span className="text-sm text-neutral-400 dark:text-neutral-500 line-through">₹{mrp.toLocaleString('en-IN')}</span>
+            )}
+            {discountPct > 0 && (
+              <span className="text-[11px] font-bold text-success bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 px-1.5 py-0.5 rounded">
+                {paidPlan.isLaunchPrice ? `Launch price · ${discountPct}% off` : `Flat ${discountPct}% off`}
+              </span>
+            )}
+            {perMonth && <span className="text-xs text-neutral-400 dark:text-neutral-500">≈ ₹{perMonth.toLocaleString('en-IN')}/month</span>}
+          </div>
+        )}
+        <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-5">Everything in Free, plus</p>
+
+        <ul className="space-y-2.5 mb-6 flex-1">
+          {rows.map((row) => (
+            <li key={row.label} className="flex items-start gap-2.5">
+              <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${accentCheckBg}`}>
+                <FiCheck className="w-2.5 h-2.5" />
+              </div>
+              <span className="text-sm text-neutral-700 dark:text-neutral-300 leading-snug">{row.label}</span>
+            </li>
+          ))}
+        </ul>
+
+        <button
+          onClick={() => !disabled && onSubscribe(paidKey)}
+          disabled={disabled}
+          aria-busy={isProcessing || undefined}
+          className={`w-full py-3 text-sm font-semibold rounded-xl transition-[background-color,box-shadow,transform] duration-200 flex items-center justify-center gap-2 disabled:cursor-not-allowed ${
+            isCurrentPaid || isIncluded
+              ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 cursor-default'
+              : accentButton
+          } ${isProcessing ? 'opacity-70' : ''}`}
+        >
+          {isProcessing
+            ? <><span className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" /> Processing…</>
+            : isCurrentPaid
+            ? <><FiCheck className="w-4 h-4" /> Current plan</>
+            : isIncluded
+            ? <><FiCheck className="w-4 h-4" /> Included</>
+            : isUpgrade
+            ? <>Upgrade <FiArrowRight className="w-4 h-4" /></>
+            : <>{paidCfg.cta} <FiArrowRight className="w-4 h-4" /></>}
         </button>
       </div>
     </motion.div>
@@ -430,20 +619,17 @@ const NriBlock = ({ plan, topLadderName, currency, isCurrent, currentPlanType, i
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="mt-8 rounded-2xl border border-gold-300 dark:border-gold-700/50 bg-gradient-to-br from-white to-gold-50/40 dark:from-[#1c2130] dark:to-[#221f16] shadow-gold ring-1 ring-gold-200 dark:ring-gold-800/40 overflow-hidden"
+      {...fadeRise}
+      // Doctrine §3.4: elevation declared once (shadow, not border+ring).
+      // Doctrine §3.1/Phase 2: dark-gradient stops come from the committed
+      // surface-dark-* ramp, not a one-off hex pair.
+      className="mt-8 rounded-2xl bg-gradient-to-br from-white to-gold-50/40 dark:from-surface-dark-2 dark:to-surface-dark-3 shadow-gold overflow-hidden"
     >
       <div className="flex flex-col lg:flex-row lg:items-center gap-6 p-6 lg:p-8">
         <div className="flex-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-gold-100 dark:bg-gold-900/30 border border-gold-200 dark:border-gold-700/50 rounded-full mb-3">
-            <FiGlobe className="w-3.5 h-3.5 text-gold-700 dark:text-gold-400" />
-            <span className="text-[11px] font-bold text-gold-700 dark:text-gold-400 uppercase tracking-wide">For NRIs abroad</span>
-          </div>
           <h3 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-1.5">NRI Connect</h3>
           <p className="text-sm text-neutral-600 dark:text-neutral-300 max-w-md mb-3">
-            Full VIP access built for members abroad — timezone-aware matching, priority support,
+            Full VIP access built for members abroad: timezone-aware matching, priority support,
             and prices shown in your own currency.
           </p>
           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
@@ -478,7 +664,7 @@ const NriBlock = ({ plan, topLadderName, currency, isCurrent, currentPlanType, i
             onClick={() => !disabled && onSubscribe('nri')}
             disabled={disabled}
             aria-busy={isProcessing || undefined}
-            className={`mt-4 w-full py-3 text-sm font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 disabled:cursor-not-allowed ${
+            className={`mt-4 w-full py-3 text-sm font-semibold rounded-xl transition-[background-color,box-shadow,transform] duration-200 flex items-center justify-center gap-2 disabled:cursor-not-allowed ${
               isCurrent
                 ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 cursor-default'
                 : isUnlimited
@@ -503,15 +689,14 @@ const NriBlock = ({ plan, topLadderName, currency, isCurrent, currentPlanType, i
 // ─── Contact-unlock top-up block (active finite-plan members only) ──────
 const BundleBlock = ({ bundles, processingBundle, onBuy }) => (
   <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    className="mt-8 rounded-2xl border border-primary-200 bg-primary-50/50 p-6 lg:p-8"
+    {...fadeRise}
+    className="mt-8 rounded-2xl border border-primary-200 dark:border-primary-800/40 bg-primary-50/50 dark:bg-primary-900/10 p-6 lg:p-8"
   >
     <div className="flex items-center gap-2.5 mb-1.5">
-      <FiPlusCircle className="w-5 h-5 text-primary-600" />
-      <h3 className="text-lg font-bold text-neutral-900">Need more contact unlocks?</h3>
+      <FiPlusCircle className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+      <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">Need more contact unlocks?</h3>
     </div>
-    <p className="text-sm text-neutral-600 mb-5 max-w-xl">
+    <p className="text-sm text-neutral-600 dark:text-neutral-300 mb-5 max-w-xl">
       Top up your current plan anytime. Unlocks add to your active plan and stay valid until it expires.
     </p>
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -519,20 +704,24 @@ const BundleBlock = ({ bundles, processingBundle, onBuy }) => (
         const perUnlock = Math.round(b.price / b.unlocks);
         const busy = processingBundle === b.bundleId;
         return (
-          <div key={b.bundleId} className="flex flex-col bg-white rounded-xl border border-neutral-200 p-5 shadow-card">
-            <p className="text-2xl font-bold text-neutral-900">{b.unlocks} <span className="text-sm font-medium text-neutral-500">unlocks</span></p>
+          <div key={b.bundleId} className="flex flex-col bg-white dark:bg-surface-dark-3 rounded-xl p-5 shadow-card">
+            <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">{b.unlocks} <span className="text-sm font-medium text-neutral-500 dark:text-neutral-400">unlocks</span></p>
             <div className="flex items-baseline gap-2 mt-1">
-              <p className="text-lg font-semibold text-primary-600">₹{b.price.toLocaleString('en-IN')}</p>
+              <p className="text-lg font-semibold text-primary-600 dark:text-primary-400">₹{b.price.toLocaleString('en-IN')}</p>
               {b.mrp > b.price && (
-                <span className="text-xs text-neutral-400 line-through">₹{b.mrp.toLocaleString('en-IN')}</span>
+                <span className="text-xs text-neutral-400 dark:text-neutral-500 line-through">₹{b.mrp.toLocaleString('en-IN')}</span>
               )}
             </div>
-            <p className="text-xs text-neutral-400 mb-4">₹{perUnlock} per unlock</p>
+            <p className="text-xs text-neutral-400 dark:text-neutral-500 mb-4">₹{perUnlock} per unlock</p>
             <button
               onClick={() => !busy && onBuy(b.bundleId)}
               disabled={busy}
               aria-busy={busy || undefined}
-              className="mt-auto w-full min-h-[44px] py-2.5 text-sm font-semibold rounded-lg bg-primary-500 text-white hover:bg-primary-600 shadow-burgundy transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+              // No arbitrary `min-h` px floor: it doesn't grow with elder mode's
+              // rem-based font scaling and undershoots the 48px elder target.
+              // `py-3` (like the other plan CTAs) clears 44px at base and ~51px
+              // under html.elder on its own.
+              className="mt-auto w-full py-3 text-sm font-semibold rounded-lg bg-primary-500 text-white hover:bg-primary-600 shadow-burgundy transition-[background-color,box-shadow,transform] duration-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {busy
                 ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Processing…</>
@@ -558,26 +747,25 @@ const LaunchBanner = ({ offer }) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="mb-8 rounded-2xl border border-gold-200 bg-gold-50 px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3"
+      {...fadeRise}
+      className="mb-8 rounded-2xl border border-gold-200 dark:border-gold-800/40 bg-gold-50 dark:bg-gold-900/10 px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3"
     >
       <div className="w-9 h-9 rounded-full bg-gold flex items-center justify-center flex-shrink-0">
         <FaCrown className="w-4 h-4 text-white" />
       </div>
       <div className="flex-1">
-        <p className="text-sm font-bold text-gold-800">
+        <p className="text-sm font-bold text-gold-800 dark:text-gold-300">
           {offer.headline || 'Launch offer'}
           {daysLeft !== null && (
-            <span className="ml-2 font-semibold text-gold-700">
+            <span className="ml-2 font-semibold text-gold-700 dark:text-gold-400">
               · {daysLeft === 0 ? 'ends today' : `${daysLeft} day${daysLeft === 1 ? '' : 's'} left`}
             </span>
           )}
         </p>
-        {offer.subline && <p className="text-sm text-gold-700/80 mt-0.5">{offer.subline}</p>}
+        {offer.subline && <p className="text-sm text-gold-700/80 dark:text-gold-400/80 mt-0.5">{offer.subline}</p>}
       </div>
       {offer.endsAt && (
-        <p className="text-xs text-gold-700/70 sm:text-right">
+        <p className="text-xs text-gold-700/70 dark:text-gold-400/70 sm:text-right">
           Prices return to normal on {new Date(offer.endsAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
         </p>
       )}
@@ -603,9 +791,8 @@ const FoundingBand = ({ user, founding, currentSub, onClaim, claiming }) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="mb-8 rounded-2xl border border-gold-200 bg-gold-50 px-5 py-5 flex flex-col sm:flex-row sm:items-center gap-4"
+      {...fadeRise}
+      className="mb-8 rounded-2xl border border-gold-200 dark:border-gold-800/40 bg-gold-50 dark:bg-gold-900/10 px-5 py-5 flex flex-col sm:flex-row sm:items-center gap-4"
     >
       <div className="w-10 h-10 rounded-full bg-gold flex items-center justify-center flex-shrink-0">
         <FiStar className="w-5 h-5 text-white" />
@@ -613,8 +800,8 @@ const FoundingBand = ({ user, founding, currentSub, onClaim, claiming }) => {
 
       {holdsGrant ? (
         <div className="flex-1">
-          <p className="text-sm font-bold text-gold-800">You are a founding member</p>
-          <p className="text-sm text-gold-700/80 mt-0.5">
+          <p className="text-sm font-bold text-gold-800 dark:text-gold-300">You are a founding member</p>
+          <p className="text-sm text-gold-700/80 dark:text-gold-400/80 mt-0.5">
             Premium is on us
             {currentSub?.endDate && ` until ${new Date(currentSub.endDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`}
             . Pick a plan below whenever you want to carry on past that.
@@ -623,10 +810,10 @@ const FoundingBand = ({ user, founding, currentSub, onClaim, claiming }) => {
       ) : (
         <>
           <div className="flex-1">
-            <p className="text-sm font-bold text-gold-800">
-              Founding offer{days ? ` — ${days} days of premium, free` : ' — premium, free'}
+            <p className="text-sm font-bold text-gold-800 dark:text-gold-300">
+              Founding offer{days ? `: ${days} days of premium, free` : ': premium, free'}
             </p>
-            <p className="text-sm text-gold-700/80 mt-0.5">
+            <p className="text-sm text-gold-700/80 dark:text-gold-400/80 mt-0.5">
               You joined early enough to claim a place.
               {unlocks !== null && ` Includes ${unlocks} contact unlock${unlocks === 1 ? '' : 's'}.`}
               {' '}No card, no auto-renewal.
@@ -636,11 +823,14 @@ const FoundingBand = ({ user, founding, currentSub, onClaim, claiming }) => {
             onClick={onClaim}
             disabled={claiming}
             aria-busy={claiming || undefined}
-            className="min-h-[44px] px-6 py-2.5 text-sm font-semibold rounded-xl bg-gold text-white hover:bg-gold-600 shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed flex-shrink-0"
+            // No arbitrary `min-h` px floor (same elder-mode fix as
+            // BundleBlock's Buy button): `py-3` clears 48px under html.elder
+            // on its own.
+            className="px-6 py-3 text-sm font-semibold rounded-xl bg-gold text-primary-900 hover:bg-gold-600 shadow-sm transition-colors duration-[160ms] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed flex-shrink-0"
           >
             {claiming
-              ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Claiming…</>
-              : <>Claim my free month <FiArrowRight className="w-4 h-4" /></>}
+              ? <><span className="w-4 h-4 border-2 border-primary-900/30 border-t-primary-900 rounded-full animate-spin" /> Claiming…</>
+              : <>{days ? `Claim ${days} days free` : 'Claim my free premium'} <FiArrowRight className="w-4 h-4" /></>}
           </button>
         </>
       )}
@@ -675,6 +865,10 @@ const Subscription = () => {
   const [claimingFounding, setClaimingFounding] = useState(false);
   const [currentSub, setCurrentSub] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Distinct from "no plans" — a failed fetch must not silently render as an
+  // empty pricing page (doctrine's error-vs-empty rule). `plansLoaded` alone
+  // does not carry this: it only says whether the request came back.
+  const [loadError, setLoadError] = useState(false);
   const [processingPlan, setProcessingPlan] = useState(null);
   const [processingBundle, setProcessingBundle] = useState(null);
   const [currency] = useState(() => detectCurrency());
@@ -685,6 +879,7 @@ const Subscription = () => {
   useEffect(() => { track(STAGES.PLANS_VIEWED); }, []);
 
   const loadData = async () => {
+    setLoadError(false);
     try {
       const [plansRes, subRes] = await Promise.all([
         api.get('/subscription/plans'),
@@ -700,6 +895,7 @@ const Subscription = () => {
       setFounding(plansRes.data.founding || { open: false });
       setCurrentSub(subRes.data.subscription);
     } catch {
+      setLoadError(true);
       toast.error('Failed to load subscription data');
     } finally {
       setLoading(false);
@@ -718,7 +914,7 @@ const Subscription = () => {
         handler: async (response) => {
           try {
             await onVerify(response);
-            toast.success('Payment successful!');
+            toast.success('Payment successful');
             await loadData();
           } catch {
             toast.error('Payment verification failed');
@@ -841,29 +1037,61 @@ const Subscription = () => {
   };
 
   if (loading) {
+    // Matches the OverlapPricingPair shape (Free behind, Premium raised and
+    // overlapping) — the common single-plan case today (see the comment on
+    // `gridPlans.length === 2` below) — rather than a flat N-up grid that
+    // would resolve into a visibly different layout on load.
     return (
-      <div className="min-h-screen bg-neutral-50 dark:bg-[#0f1117]">
+      <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center mb-12 flex flex-col items-center gap-3">
-            <div className="h-7 w-40 bg-neutral-200 dark:bg-neutral-800 rounded-full animate-pulse" />
-            <div className="h-10 w-72 bg-neutral-200 dark:bg-neutral-800 rounded-xl animate-pulse" />
-            <div className="h-4 w-96 max-w-full bg-neutral-100 dark:bg-neutral-800/60 rounded animate-pulse" />
+            <Skeleton className="h-10 w-72 rounded-xl" />
+            <Skeleton className="h-4 w-96 max-w-full rounded" />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 items-start">
-            {[0, 1, 2, 3].map((i) => (
-              <div key={i} className="bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-card p-6 space-y-4 animate-pulse">
-                <div className="h-6 w-28 bg-neutral-200 dark:bg-neutral-800 rounded-lg" />
-                <div className="h-10 w-32 bg-neutral-200 dark:bg-neutral-800 rounded-lg" />
-                <div className="space-y-2.5 pt-2">
-                  {[0, 1, 2, 3, 4].map((j) => (
-                    <div key={j} className="h-3.5 w-full bg-neutral-100 dark:bg-neutral-800/60 rounded" />
-                  ))}
-                </div>
-                <div className="h-11 w-full bg-neutral-200 dark:bg-neutral-800 rounded-xl mt-4" />
-              </div>
-            ))}
+          <div className="relative mx-auto max-w-sm sm:max-w-none sm:flex sm:justify-center sm:items-start pt-4 pb-6">
+            <div className="relative z-0 flex flex-col rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-surface-dark-1 p-6 sm:w-72 sm:flex-shrink-0 sm:p-7 sm:pt-8 sm:mr-[-1.75rem] space-y-3">
+              <Skeleton className="h-5 w-20 rounded-lg" />
+              <Skeleton className="h-8 w-24 rounded-lg" />
+              <Skeleton.Text lines={4} className="pt-2" />
+              <Skeleton className="h-11 w-full rounded-xl mt-4" />
+            </div>
+            <div className="relative z-10 flex flex-col rounded-2xl bg-white dark:bg-surface-dark-3 shadow-card-hover p-6 sm:w-80 sm:flex-shrink-0 sm:p-7 sm:pt-8 -mt-6 mx-3 sm:mx-0 sm:-mt-4 sm:mb-[-1rem] space-y-3">
+              <Skeleton className="h-6 w-28 rounded-lg" />
+              <Skeleton className="h-10 w-32 rounded-lg" />
+              <Skeleton.Text lines={5} className="pt-2" />
+              <Skeleton className="h-11 w-full rounded-xl mt-4" />
+            </div>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 flex items-center justify-center px-4">
+        <ErrorState onRetry={loadData} />
+      </div>
+    );
+  }
+
+  // Distinct from loadError: the request came back 200 but with an empty or
+  // malformed `plans` object. Left unhandled, `gridPlans` below silently
+  // collapses to a Free-only card (`key === 'free' || Boolean(plans[key])`
+  // always keeps 'free') with no messaging — the page would just look like
+  // the product only offers a free tier instead of saying pricing failed to
+  // load.
+  const plansMissing = plansLoaded && Object.keys(plans).length === 0;
+  if (plansMissing) {
+    return (
+      <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 flex items-center justify-center px-4">
+        <EmptyState
+          icon={FiInfo}
+          title="Pricing isn't available right now"
+          description="We couldn't load our membership plans. Please try again in a moment."
+          actionLabel="Refresh"
+          onAction={loadData}
+        />
       </div>
     );
   }
@@ -904,19 +1132,12 @@ const Subscription = () => {
   const singlePlan = paidCardCount === 1;
 
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-[#0f1117]">
+    <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
-        >
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-gold-50 border border-gold-200 rounded-full mb-5">
-            <FaCrown className="w-3.5 h-3.5 text-gold" />
-            <span className="text-xs font-semibold text-gold-700 uppercase tracking-wide">Membership Plans</span>
-          </div>
+        {/* Header. No eyebrow label (doctrine §2 ruling 2) — the heading
+            carries the meaning on its own. */}
+        <motion.div {...fadeRise} className="text-center mb-12">
           <h1 className="font-display text-4xl md:text-5xl font-bold text-neutral-900 dark:text-neutral-100 mb-3">
             {singlePlan ? 'Go Premium' : 'Choose Your Plan'}
           </h1>
@@ -938,16 +1159,15 @@ const Subscription = () => {
         {/* Payments-unavailable notice */}
         {!razorpay.isConfigured && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8 flex items-center gap-3 px-5 py-3.5 bg-neutral-100 border border-neutral-200 rounded-2xl"
+            {...fadeRise}
+            className="mb-8 flex items-center gap-3 px-5 py-3.5 bg-neutral-100 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-2xl"
           >
-            <div className="w-8 h-8 rounded-full bg-white border border-neutral-200 flex items-center justify-center flex-shrink-0">
-              <FiClock className="w-4 h-4 text-neutral-500" />
+            <div className="w-8 h-8 rounded-full bg-white dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-700 flex items-center justify-center flex-shrink-0">
+              <FiClock className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
             </div>
-            <p className="text-sm text-neutral-600">
+            <p className="text-sm text-neutral-600 dark:text-neutral-300">
               Online payments are opening soon. To upgrade today, write to{' '}
-              <a href="mailto:support@tricitymatch.com" className="font-semibold text-primary-600 underline underline-offset-2">support@tricitymatch.com</a>.
+              <a href="mailto:support@tricitymatch.com" className="font-semibold text-primary-600 dark:text-primary-400 underline underline-offset-2">support@tricitymatch.com</a>.
             </p>
           </motion.div>
         )}
@@ -955,17 +1175,16 @@ const Subscription = () => {
         {/* Active subscription banner (paid plans only — free has no "sub") */}
         {currentSub?.status === 'active' && currentSub?.planType !== 'free' && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8 flex items-center gap-3 px-5 py-3.5 bg-primary-50 border border-primary-100 rounded-2xl"
+            {...fadeRise}
+            className="mb-8 flex items-center gap-3 px-5 py-3.5 bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800/40 rounded-2xl"
           >
             <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center flex-shrink-0">
               <FiCheck className="w-4 h-4 text-white" />
             </div>
-            <p className="text-sm text-primary-700 font-medium">
+            <p className="text-sm text-primary-700 dark:text-primary-300 font-medium">
               You have an active <strong>{planDisplayName(currentSub.planType)}</strong> subscription
               {currentSub.endDate && (
-                <span className="font-normal text-primary-700/70">
+                <span className="font-normal text-primary-700/70 dark:text-primary-300/70">
                   {' '}· valid until {new Date(currentSub.endDate).toLocaleDateString()}
                 </span>
               )}
@@ -974,20 +1193,42 @@ const Subscription = () => {
                   {' '}· {`${Math.max(0, (currentSub.contactUnlocksAllowed || 0) - (currentSub.contactUnlocksUsed || 0))} of ${currentSub.contactUnlocksAllowed}`} unlocks remaining
                 </span>
               )}
+              {/* Unlimited plans have no `contactUnlocksAllowed` count to show —
+                  but "unlimited" is capped in practice (anti-harvest rolling
+                  24h ceiling), and that fact belongs right here, not omitted. */}
+              {currentSub.contactUnlocksAllowed == null && plans[currentSub.planType]?.unlockDailyCap != null && (
+                <span className="font-normal text-primary-700/70 dark:text-primary-300/70">
+                  {' '}· unlimited unlocks, up to {plans[currentSub.planType].unlockDailyCap}/day
+                </span>
+              )}
             </p>
           </motion.div>
         )}
 
-        {/* Plan grid — column count follows the number of live tiers */}
-        <div className={`grid grid-cols-1 sm:grid-cols-2 ${GRID_COLS[gridPlans.length] || 'lg:grid-cols-4'} gap-5 items-start`}>
-          {gridPlans.map(([key, plan], idx) => (
-            <motion.div
-              key={key}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.08 }}
-            >
+        {/* Plan grid — column count follows the number of live tiers. Exactly
+            two cards (Free + the one plan on sale, the common case today) get
+            the overlap-pair treatment; three or more fall back to the equal
+            weight grid, because the overlap composition only reads correctly
+            as a two-way choice. */}
+        {gridPlans.length === 2 ? (
+          <OverlapPricingPair
+            freeEntry={gridPlans.find(([key]) => key === 'free') || gridPlans[0]}
+            paidEntry={gridPlans.find(([key]) => key !== 'free') || gridPlans[1]}
+            currentPlanType={currentPlanType}
+            isCurrentPaid={currentSub?.status === 'active' && currentSub?.planType === (gridPlans.find(([key]) => key !== 'free') || gridPlans[1])[0]}
+            isProcessing={processingPlan === (gridPlans.find(([key]) => key !== 'free') || gridPlans[1])[0]}
+            freeChatForMutuals={freeChatForMutuals}
+            onSubscribe={handleSubscribe}
+          />
+        ) : (
+          <div className={`grid grid-cols-1 sm:grid-cols-2 ${GRID_COLS[gridPlans.length] || 'lg:grid-cols-4'} gap-5 items-start`}>
+            {/* PlanCard owns its own single fadeRise entrance (doctrine
+                §4.3/§5) — no second motion wrapper stacking an unsynced
+                entrance on top of it. The per-item stagger is threaded in as
+                a delay on that same animation via `staggerIndex`. */}
+            {gridPlans.map(([key, plan], idx) => (
               <PlanCard
+                key={key}
                 planKey={key}
                 plan={plan}
                 // The tier actually rendered below this one — not the one below
@@ -999,10 +1240,11 @@ const Subscription = () => {
                 isProcessing={processingPlan === key}
                 freeChatForMutuals={freeChatForMutuals}
                 onSubscribe={handleSubscribe}
+                entranceDelay={staggerIndex(idx)}
               />
-            </motion.div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* Contact-unlock top-ups (active finite plan only) */}
         {showBundles && (
@@ -1027,14 +1269,14 @@ const Subscription = () => {
         {/* Long-scroll paywall: comparison → proof → FAQ → closing CTA */}
         <ComparisonSection plans={plans} planKeys={gridPlans.map(([key]) => key)} />
         <SuccessStrip />
-        <FaqSection />
+        <FaqSection unlockDailyCap={Object.values(plans).find((p) => p.contactUnlocks === -1)?.unlockDailyCap ?? null} />
 
         <section className="mt-14 text-center">
-          <h2 className="font-display text-2xl font-bold text-neutral-900 mb-2">Your family is waiting to hear good news</h2>
-          <p className="text-sm text-neutral-500 mb-5">Join the Tricity members already talking to their matches.</p>
+          <h2 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">Your family is waiting to hear good news</h2>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-5">Join the Tricity members already talking to their matches.</p>
           <button
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-hero text-white rounded-full font-semibold hover:shadow-burgundy hover:scale-105 transition-all"
+            className="inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-hero text-white rounded-full font-semibold hover:shadow-burgundy hover:scale-105 transition-[box-shadow,transform] duration-200"
           >
             <FaCrown className="w-4 h-4 text-gold-300" /> {singlePlan ? 'Go Premium' : 'Choose a plan'}
           </button>
@@ -1043,13 +1285,9 @@ const Subscription = () => {
         <StickyCtaBar show={(currentPlanType || 'free') === 'free'} />
 
         {/* Footer note */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="text-center text-xs text-neutral-400 mt-10"
-        >
-          All plans include SSL-secured payments via Razorpay · 100% privacy guaranteed · Cancel anytime
+        <motion.p {...fade} className="text-center text-xs text-neutral-400 mt-10">
+          Secure payments via Razorpay · One-time payment, no auto-renewal · Full refund within 7 days, see our{' '}
+          <Link to="/refund-policy" className="underline underline-offset-2 hover:text-neutral-600 dark:hover:text-neutral-300">Refund Policy</Link>
         </motion.p>
       </div>
     </div>

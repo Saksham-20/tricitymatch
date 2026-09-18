@@ -16,7 +16,7 @@ const BottomNav = ({ unreadCount = 0 }) => {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-50 pointer-events-none safe-area-bottom pb-2 px-4"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-60 pointer-events-none safe-area-bottom pb-2 px-4"
       role="navigation"
       aria-label="Mobile navigation"
     >
@@ -48,7 +48,10 @@ const BottomNav = ({ unreadCount = 0 }) => {
                   <motion.div
                     layoutId="bottomNavPill"
                     className="absolute inset-x-2 top-1.5 bottom-1.5 bg-primary-50 dark:bg-primary-500/15 rounded-full"
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    // Duration, not a spring (doctrine §4.4 ruling 8): a tab
+                    // switch is route-driven, not gesture-driven, so this
+                    // matches the "layout shift" row of the duration table.
+                    transition={{ duration: 0.25, ease: [0.77, 0, 0.175, 1] }}
                   />
                 )}
 
@@ -62,8 +65,9 @@ const BottomNav = ({ unreadCount = 0 }) => {
 
                   {showBadge && (
                     <motion.span
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
+                      initial={{ scale: 0.95, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
                       className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 bg-primary-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center"
                     >
                       {unreadCount > 9 ? '9+' : unreadCount}

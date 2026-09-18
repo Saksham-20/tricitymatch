@@ -28,7 +28,7 @@ const PhotoGuide = ({ className = '' }) => (
         >
           <span
             className={`absolute top-2 right-2 w-[18px] h-[18px] rounded-full flex items-center justify-center ${
-              good ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-500'
+              good ? 'bg-success-50 text-success' : 'bg-destructive-light text-destructive'
             }`}
             aria-label={good ? 'Do' : "Don't"}
           >

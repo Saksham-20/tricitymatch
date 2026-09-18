@@ -47,7 +47,10 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'sent',        label: 'Sent' },
 ];
 
-const scoreColour = (p: number) => (p >= 90 ? colours.success : p >= 75 ? colours.g500 : colours.p500);
+// `success` reads correctly as status text but is documented as unreadable as
+// an accent on a dark surfaceCard — `successAccent` is the theme-reactive
+// pair that stays legible as a score dot/fill in both themes.
+const scoreColour = (p: number, c: ThemeColours) => (p >= 90 ? c.successAccent : p >= 75 ? colours.g500 : colours.p500);
 
 // ─── Match Row (shared list item) ─────────────────────────────────────────────
 
@@ -89,7 +92,7 @@ function MatchRow({ match, mode, onPress, onChat, onAccept, onDecline, onRemove 
         {compat > 0 && (
           <View style={mr.compatRow}>
             <View style={[mr.compatBar, { backgroundColor: c.surface2 }]}>
-              <View style={[mr.compatFill, { width: `${compat}%`, backgroundColor: scoreColour(compat) }]} />
+              <View style={[mr.compatFill, { width: `${compat}%`, backgroundColor: scoreColour(compat, c) }]} />
             </View>
             <Text style={[mr.compatPct, { color: c.textMuted }]}>{compat}%</Text>
           </View>

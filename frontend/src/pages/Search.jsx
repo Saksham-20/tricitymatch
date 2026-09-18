@@ -5,7 +5,7 @@ import api from '../api/axios';
 import toast from 'react-hot-toast';
 import {
   FiSearch, FiUsers, FiArrowRight,
-  FiSliders, FiRefreshCw, FiHash, FiX, FiAlertCircle,
+  FiRefreshCw, FiHash, FiX,
 } from 'react-icons/fi';
 
 // Readable labels for active-filter chips
@@ -35,13 +35,29 @@ import { getImageUrl } from '../utils/cloudinary';
 import { ProfileCard } from '../components/cards';
 import { FilterPanel } from '../components/search';
 import InviteLink from '../components/common/InviteLink';
-import { Skeleton } from '../components/ui';
+import { Skeleton, EmptyState, ErrorState } from '../components/ui';
 import StagedLoader, { useStagedReveal } from '../components/ui/StagedLoader';
 
 // ─── Card skeleton for loading state ──────────────────────────────────────
-const CardSkeleton = () => (
+// Two shapes, alternated in the grid below — ProfileCard now renders either a
+// ~224px photo hero or a ~76px photoless identity header (audit Part 5 #3),
+// and a loading grid of uniformly tall placeholders followed by a real grid
+// that's mostly the shorter shape is a visible layout shift on load (doctrine
+// §9 Craft, §6 Loading: "skeletons that match the final layout's shape").
+const CardSkeleton = ({ compact = false }) => (
   <div className="bg-white rounded-2xl border border-neutral-100 shadow-card overflow-hidden">
-    <Skeleton className="h-52 w-full rounded-none" />
+    {compact ? (
+      <div className="flex items-center gap-2.5 px-4 pt-4 pb-3.5">
+        <Skeleton className="w-12 h-12 rounded-full flex-shrink-0" />
+        <div className="flex-1 min-w-0 space-y-2">
+          <Skeleton className="h-4 w-2/3" />
+          <Skeleton className="h-3 w-1/3" />
+        </div>
+        <Skeleton className="w-11 h-11 rounded-full flex-shrink-0" />
+      </div>
+    ) : (
+      <Skeleton className="h-52 w-full rounded-none" />
+    )}
     <div className="p-4 space-y-3">
       <Skeleton className="h-4 w-3/4" />
       <Skeleton className="h-3 w-1/2" />
@@ -231,7 +247,7 @@ const Search = () => {
       initial="initial"
       animate="animate"
       variants={staggerContainer}
-      className="min-h-screen bg-neutral-50 dark:bg-[#0f1117] pb-16"
+      className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 pb-16"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
@@ -312,7 +328,7 @@ const Search = () => {
           <motion.div variants={fadeInUp} className="lg:col-span-3">
 
             {/* Results meta bar */}
-            <div className="flex items-center justify-between mb-5 py-3 px-4 bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card">
+            <div className="flex items-center justify-between mb-5 py-3 px-4 bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card">
               <p className="text-sm text-neutral-600">
                 {loading && profiles.length === 0 ? (
                   <span className="text-neutral-400">Loading profiles…</span>
@@ -361,7 +377,7 @@ const Search = () => {
                 <StagedLoader onSkip={skipTheater} />
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-                  {Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={i} />)}
+                  {Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={i} compact={i % 2 === 1} />)}
                 </div>
               )
             )}
@@ -372,71 +388,49 @@ const Search = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 role="alert"
-                className="text-center py-16 bg-white dark:bg-[#1a1f2e] rounded-3xl border border-red-100 dark:border-red-900/40 shadow-card"
+                className="bg-white dark:bg-surface-dark-3 rounded-3xl border border-destructive/20 dark:border-destructive/30 shadow-card"
               >
-                <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-2xl flex items-center justify-center mx-auto mb-5">
-                  <FiAlertCircle className="w-8 h-8 text-red-400" />
-                </div>
-                <h3 className="font-display text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">
-                  Something went wrong
-                </h3>
-                <p className="text-neutral-500 text-sm mb-6 max-w-xs mx-auto">
-                  We couldn't load profiles right now. Your filters are fine — please try again.
-                </p>
-                <motion.button
-                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                  onClick={() => { setPage(1); searchProfiles({ overridePage: 1 }); }}
-                  className="btn-primary inline-flex items-center gap-2 text-sm"
-                >
-                  <FiRefreshCw className="w-4 h-4" />
-                  Try Again
-                </motion.button>
+                <ErrorState
+                  title="Something went wrong"
+                  description="We couldn't load profiles right now. Your filters are fine. Please try again."
+                  onRetry={() => { setPage(1); searchProfiles({ overridePage: 1 }); }}
+                  retryLabel="Try again"
+                  className="py-16"
+                />
               </motion.div>
             )}
 
             {/* ── Empty state ────────────────────────────────────────────── */}
+            {/* Supply-aware (Phase S, E3). Two genuinely different dead ends:
+                filters that excluded everyone, and a community still being
+                built. Saying "new members join every day" in either case was
+                a fabricated activity claim — the honest landing page can't be
+                followed by a dishonest interior. */}
             {!loading && !searchError && profiles.length === 0 && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.97 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="text-center py-16 bg-white dark:bg-[#1a1f2e] rounded-3xl border border-neutral-100 dark:border-neutral-800 shadow-card"
+                className="bg-white dark:bg-surface-dark-3 rounded-3xl border border-neutral-100 dark:border-neutral-800 shadow-card"
               >
-                <div className="w-16 h-16 bg-primary-50 dark:bg-primary-900/30 rounded-2xl flex items-center justify-center mx-auto mb-5">
-                  <FiUsers className="w-8 h-8 text-primary-400" />
-                </div>
-                {/* Supply-aware (Phase S, E3). Two genuinely different dead ends:
-                    filters that excluded everyone, and a community still being
-                    built. Saying "new members join every day" in either case was
-                    a fabricated activity claim — the honest landing page can't be
-                    followed by a dishonest interior. */}
-                <h3 className="font-display text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">
-                  {activeFilterCount > 0 ? 'No profiles match these filters' : 'The circle is still small'}
-                </h3>
-                <p className="text-neutral-500 text-sm mb-6 max-w-sm mx-auto">
-                  {activeFilterCount > 0
-                    ? 'Widen a filter or two — with a community this focused, a narrow search can rule out everyone.'
+                <EmptyState
+                  icon={FiUsers}
+                  title={activeFilterCount > 0 ? 'No profiles match these filters' : 'The circle is still small'}
+                  description={activeFilterCount > 0
+                    ? 'Widen a filter or two: with a community this focused, a narrow search can rule out everyone.'
                     : 'We verify every member by hand, one Tricity family at a time. The fastest way to find someone worth meeting is to bring someone you already trust.'}
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  {activeFilterCount > 0 && (
-                    <motion.button
-                      whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                      onClick={handleClearFilters}
-                      className="btn-primary inline-flex items-center gap-2 text-sm"
-                    >
-                      <FiSliders className="w-4 h-4" />
-                      Clear Filters
-                    </motion.button>
-                  )}
+                  actionLabel={activeFilterCount > 0 ? 'Clear filters' : undefined}
+                  onAction={activeFilterCount > 0 ? handleClearFilters : undefined}
+                  className="py-16"
+                />
+                <div className="flex flex-col sm:flex-row gap-3 justify-center -mt-4 pb-6">
                   <InviteLink variant="inline" />
-                  <motion.button
-                    whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  <button
                     onClick={() => { setPage(1); searchProfiles(); }}
                     className="btn-secondary inline-flex items-center gap-2 text-sm"
                   >
                     <FiRefreshCw className="w-4 h-4" />
                     Refresh
-                  </motion.button>
+                  </button>
                 </div>
               </motion.div>
             )}
@@ -466,7 +460,7 @@ const Search = () => {
                 {/* Loading more */}
                 {loading && profiles.length > 0 && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 mt-5">
-                    {[0, 1, 2].map(i => <CardSkeleton key={i} />)}
+                    {[0, 1, 2].map(i => <CardSkeleton key={i} compact={i % 2 === 1} />)}
                   </div>
                 )}
 
@@ -477,7 +471,6 @@ const Search = () => {
                     className="text-center mt-10"
                   >
                     <motion.button
-                      whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setPage(p => p + 1)}
                       className="btn-secondary inline-flex items-center gap-2"

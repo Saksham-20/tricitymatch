@@ -70,16 +70,16 @@ class ErrorBoundary extends Component {
       }
 
       return (
-        <div className="min-h-screen flex items-center justify-center bg-neutral-50 p-4">
+        <div className="min-h-[100dvh] flex items-center justify-center bg-neutral-50 dark:bg-surface-dark-1 p-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center"
+            className="max-w-md w-full bg-white dark:bg-neutral-900 rounded-2xl shadow-xl p-8 text-center"
           >
             {/* Error Icon */}
-            <div className="w-20 h-20 mx-auto mb-6 bg-red-100 rounded-full flex items-center justify-center">
+            <div className="w-20 h-20 mx-auto mb-6 bg-destructive-light dark:bg-destructive/15 rounded-full flex items-center justify-center">
               <svg
-                className="w-10 h-10 text-red-500"
+                className="w-10 h-10 text-destructive"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -93,20 +93,23 @@ class ErrorBoundary extends Component {
               </svg>
             </div>
 
-            <h1 className="text-2xl font-bold text-neutral-900 mb-2">
-              Oops! Something went wrong
+            {/* Doctrine §7: errors name the problem and the recovery — not
+                "Oops". This is a full page crash, not a failed fetch, so the
+                honest line is "the page hit a problem" plus a working retry. */}
+            <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">
+              This page hit a problem
             </h1>
-            <p className="text-neutral-600 mb-6">
-              We're sorry, but something unexpected happened. Please try again.
+            <p className="text-neutral-600 dark:text-neutral-400 mb-6">
+              Nothing you did caused this. Try again, or go back to the dashboard.
             </p>
 
             {/* Error details in development */}
             {import.meta.env.DEV && this.state.error && (
               <details className="mb-6 text-left">
-                <summary className="cursor-pointer text-sm text-neutral-500 hover:text-neutral-700">
+                <summary className="cursor-pointer text-sm text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300">
                   Technical Details
                 </summary>
-                <pre className="mt-2 p-3 bg-neutral-100 rounded-lg text-xs text-destructive overflow-auto max-h-40">
+                <pre className="mt-2 p-3 bg-neutral-100 dark:bg-neutral-800 rounded-lg text-xs text-destructive overflow-auto max-h-40">
                   {this.state.error.toString()}
                   {this.state.errorInfo?.componentStack}
                 </pre>
@@ -116,13 +119,13 @@ class ErrorBoundary extends Component {
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button
                 onClick={this.handleRetry}
-                className="px-6 py-3 bg-primary-500 text-white rounded-xl font-medium hover:bg-primary-600 hover:shadow-lg transition-all"
+                className="px-6 py-3 bg-primary-500 text-white rounded-xl font-medium hover:bg-primary-600 hover:shadow-lg transition-[background-color,box-shadow] duration-[160ms]"
               >
                 Try Again
               </button>
               <button
                 onClick={this.handleGoHome}
-                className="px-6 py-3 bg-neutral-100 text-neutral-700 rounded-xl font-medium hover:bg-neutral-200 transition-all"
+                className="px-6 py-3 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-xl font-medium hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors duration-[160ms]"
               >
                 Go to Home
               </button>

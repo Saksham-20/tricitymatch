@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiBookmark, FiHeart, FiUsers, FiAlertCircle, FiLock, FiSearch, FiSend } from 'react-icons/fi';
+import { FiBookmark, FiHeart, FiUsers, FiLock, FiSend } from 'react-icons/fi';
 import { sanitizeText } from '../utils/sanitize';
 import { getImageUrl } from '../utils/cloudinary';
 import { API_BASE_URL } from '../utils/api';
@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
 import { ProfileCard } from '../components/cards';
 import InviteLink from '../components/common/InviteLink';
 import SectionHeader from '../components/common/SectionHeader';
-import { Skeleton } from '../components/ui';
+import { Skeleton, EmptyState, ErrorState } from '../components/ui';
 import RetryImage from '../components/ui/RetryImage';
 
 // Each tab maps to a match endpoint + the response key it returns.
@@ -48,7 +48,7 @@ const TABS = [
     respKey: 'sent',
     empty: {
       title: 'You haven’t reached out yet',
-      line: 'Profiles you like show up here — today’s matches are waiting.',
+      line: 'Profiles you like show up here. Today’s matches are waiting.',
       supply: 'Expressing interest is free, and a thoughtful like is how every mutual match starts.',
     },
   },
@@ -62,14 +62,30 @@ const TABS = [
     empty: {
       title: 'No interests received yet',
       line: 'Members who like you will appear here.',
-      supply: 'A complete, photo-verified profile gets seen first — and the more Tricity families here, the more eyes on yours.',
+      supply: 'A complete, photo-verified profile gets seen first, and the more Tricity families here, the more eyes on yours.',
     },
   },
 ];
 
-const CardSkeleton = () => (
-  <div className="bg-white dark:bg-[#1a1f2e] rounded-3xl overflow-hidden shadow-card">
-    <Skeleton className="h-56 w-full rounded-none" />
+// Two shapes, alternated in the grid below — ProfileCard now renders either a
+// ~224px photo hero or a ~76px photoless identity header (audit Part 5 #3),
+// and a loading grid of uniformly tall placeholders followed by a real grid
+// that's mostly the shorter shape is a visible layout shift on load (doctrine
+// §9 Craft, §6 Loading: "skeletons that match the final layout's shape").
+const CardSkeleton = ({ compact = false }) => (
+  <div className="bg-white dark:bg-surface-dark-3 rounded-3xl overflow-hidden shadow-card">
+    {compact ? (
+      <div className="flex items-center gap-2.5 px-4 pt-4 pb-3.5">
+        <Skeleton className="w-12 h-12 rounded-full flex-shrink-0" />
+        <div className="flex-1 min-w-0 space-y-2">
+          <Skeleton className="h-4 w-2/3" />
+          <Skeleton className="h-3 w-1/3" />
+        </div>
+        <Skeleton className="w-11 h-11 rounded-full flex-shrink-0" />
+      </div>
+    ) : (
+      <Skeleton className="h-56 w-full rounded-none" />
+    )}
     <div className="p-5 space-y-3">
       <Skeleton className="h-5 w-2/3" />
       <Skeleton className="h-1.5 w-full rounded-full" />
@@ -85,6 +101,7 @@ export default function Matches() {
   // ?tab= lets other surfaces deep-link a specific list — notification taps in
   // particular. An unknown value falls back to Saved rather than rendering an
   // empty shell for a tab that doesn't exist.
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const requested = searchParams.get('tab');
   const [active, setActive] = useState(
@@ -136,7 +153,7 @@ export default function Matches() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-[#0f1117] pb-24 md:pb-12">
+    <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 pb-24 md:pb-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <SectionHeader
           title="My Matches"
@@ -144,7 +161,12 @@ export default function Matches() {
         />
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-1.5 mb-6 mt-5 w-full sm:w-fit">
+        {/* overflow-x-auto + flex-none: 4 tabs (Saved/Mutual/Sent/Likes You)
+            do not fit 343px of usable width at 375px, and `flex-1` cannot
+            shrink a flex item below its own content's intrinsic width — the
+            row was pushing the whole page 51px wider than the viewport.
+            Scrolling inside this row contains it instead. */}
+        <div className="flex gap-1 bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-1.5 mb-6 mt-5 w-full sm:w-fit overflow-x-auto scrollbar-hide">
           {TABS.map((t) => {
             const Icon = t.icon;
             const isActive = active === t.id;
@@ -157,7 +179,7 @@ export default function Matches() {
                   // the tab the member is actually looking at.
                   setSearchParams(t.id === 'shortlist' ? {} : { tab: t.id }, { replace: true });
                 }}
-                className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                className={`flex-none whitespace-nowrap flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-colors duration-[160ms] ${
                   isActive
                     ? 'bg-primary-500 text-white shadow-sm'
                     : 'text-neutral-500 hover:text-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800'
@@ -174,25 +196,19 @@ export default function Matches() {
         {/* ── Loading ─────────────────────────────────────────────── */}
         {state === 'loading' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-            {[0, 1, 2, 3, 4, 5].map((i) => <CardSkeleton key={i} />)}
+            {[0, 1, 2, 3, 4, 5].map((i) => <CardSkeleton key={i} compact={i % 2 === 1} />)}
           </div>
         )}
 
         {/* ── Error ───────────────────────────────────────────────── */}
         {state === 'error' && (
-          <div className="flex flex-col items-center justify-center text-center py-20">
-            <div className="w-14 h-14 rounded-2xl bg-destructive-light flex items-center justify-center mb-4">
-              <FiAlertCircle className="w-7 h-7 text-destructive" />
-            </div>
-            <h3 className="text-lg font-bold text-neutral-800 dark:text-neutral-100 mb-1">Couldn’t load this list</h3>
-            <p className="text-sm text-neutral-500 mb-5">Something went wrong. Give it another try.</p>
-            <button
-              onClick={() => load(active)}
-              className="px-5 py-2.5 bg-primary-500 text-white rounded-xl text-sm font-semibold hover:bg-primary-600"
-            >
-              Retry
-            </button>
-          </div>
+          <ErrorState
+            title="Couldn’t load this list"
+            description="Something went wrong. Give it another try."
+            onRetry={() => load(active)}
+            retryLabel="Retry"
+            className="py-20"
+          />
         )}
 
         {/* ── Premium gate (Likes You) ────────────────────────────── */}
@@ -215,25 +231,22 @@ export default function Matches() {
         )}
 
         {/* ── Empty ───────────────────────────────────────────────── */}
+        {/* Supply-aware second line (Phase S, E3): every one of these tabs is
+            empty for the SAME underlying reason early on — not enough members
+            yet. Naming it (and offering the invite) beats a dead end that
+            implies the member did something wrong. */}
         {state === 'empty' && (
-          <div className="flex flex-col items-center justify-center text-center py-20">
-            <div className="w-14 h-14 rounded-2xl bg-primary-50 flex items-center justify-center mb-4">
-              {tab?.icon ? React.createElement(tab.icon, { className: 'w-7 h-7 text-primary-300' }) : null}
-            </div>
-            <h3 className="text-lg font-bold text-neutral-800 dark:text-neutral-100 mb-1">{tab?.empty.title}</h3>
-            <p className="text-sm text-neutral-500 max-w-sm mb-2">{tab?.empty.line}</p>
-            {/* Supply-aware second line (Phase S, E3): every one of these tabs is
-                empty for the SAME underlying reason early on — not enough members
-                yet. Naming it (and offering the invite) beats a dead end that
-                implies the member did something wrong. */}
-            <p className="text-sm text-neutral-500 max-w-sm mb-5">{tab?.empty.supply}</p>
-            <div className="flex flex-col sm:flex-row items-center gap-3">
-              <Link
-                to="/search"
-                className="inline-flex items-center gap-2 min-h-[44px] px-5 bg-primary-500 text-white rounded-xl text-sm font-semibold hover:bg-primary-600"
-              >
-                <FiSearch className="w-4 h-4" /> Discover profiles
-              </Link>
+          <div>
+            <EmptyState
+              icon={tab?.icon}
+              title={tab?.empty.title}
+              description={tab?.empty.line}
+              actionLabel="Discover profiles"
+              onAction={() => navigate('/search')}
+              className="py-20"
+            />
+            <p className="text-sm text-neutral-500 max-w-sm mx-auto text-center -mt-4">{tab?.empty.supply}</p>
+            <div className="flex justify-center mt-4 pb-2">
               <InviteLink variant="inline" />
             </div>
           </div>
@@ -247,9 +260,15 @@ export default function Matches() {
                 const pid = profile.userId || profile.id;
                 if (!pid) return null;
                 return (
-                  <div key={`match-${pid}`} className="flex flex-col">
+                  <div key={`match-${pid}`} className="flex flex-col h-full">
                     {/* D3/DS5: a like-with-note leads with the quoted note +
-                        the liked-item snapshot above the standard card. */}
+                        the liked-item snapshot above the standard card.
+                        This wrapper (not ProfileCard) is the actual grid
+                        item, so it needs `h-full` to pick up the CSS Grid
+                        row-stretch, and the card below needs `flex-1` so it,
+                        not the note, absorbs that extra height — otherwise a
+                        note on one card and not its neighbour throws the two
+                        button rows out of alignment (audit Part 5 #10). */}
                     {(profile.note || profile.likedItem) && (
                       <div className="mb-2 px-4 py-3 rounded-2xl bg-primary-50/70 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800 flex items-start gap-3">
                         {profile.likedItem?.type === 'photo' && profile.likedItem.photoUrl && (
@@ -275,14 +294,16 @@ export default function Matches() {
                         </div>
                       </div>
                     )}
-                    <ProfileCard
-                      profile={profile}
-                      userId={pid}
-                      index={i}
-                      primaryCta={active === 'mutual' ? 'message' : 'interest'}
-                      onLike={() => handleAction(pid, 'like')}
-                      onShortlist={() => handleAction(pid, 'shortlist')}
-                    />
+                    <div className="flex-1 min-h-0">
+                      <ProfileCard
+                        profile={profile}
+                        userId={pid}
+                        index={i}
+                        primaryCta={active === 'mutual' ? 'message' : 'interest'}
+                        onLike={() => handleAction(pid, 'like')}
+                        onShortlist={() => handleAction(pid, 'shortlist')}
+                      />
+                    </div>
                   </div>
                 );
               })}

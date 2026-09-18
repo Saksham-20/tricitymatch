@@ -1,16 +1,17 @@
-// Thin haptics wrapper. expo-haptics is an OPTIONAL native module that is NOT a
-// declared dependency of this app, and is not linked into the current dev client.
+// Thin haptics wrapper. expo-haptics IS a declared dependency (package.json)
+// but its native module is only present once a build actually links it — a
+// Metro/Expo Go session or a stale dev client predating the dependency won't
+// have it, so this still treats the module as optionally absent.
 //
 // A *static* `require('expo-haptics')` is resolved by Metro at BUILD time even when
 // wrapped in try/catch or a dead branch; for an unresolved module it emits a dev
 // "Requiring unknown module 'undefined'" LogBox overlay on the first haptic call.
 // Haptics fire on a hot path (every button press) so that overlay blocked the UI.
 //
-// Haptics never actually worked here (module absent), so we resolve the native
-// module via expo-modules-core's optional loader — which returns null instead of
-// throwing — and drive it through that native handle. No static expo-haptics
-// require, so no LogBox overlay; real feedback lights up automatically once
-// `npx expo install expo-haptics` is run and the dev client is rebuilt.
+// We resolve the native module via expo-modules-core's optional loader — which
+// returns null instead of throwing — and drive it through that native handle.
+// No static expo-haptics require, so no LogBox overlay on a build that lacks it;
+// real feedback works on any build that has actually linked the module.
 //
 // Usage:  import { haptics } from '../utils/haptics';  haptics.success();
 import type { HapticKind } from '@shared/constants/motion';

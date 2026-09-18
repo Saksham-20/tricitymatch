@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import { FiUpload, FiX, FiImage } from 'react-icons/fi';
 import PhotoGuide from '../../profile/PhotoGuide';
+import { staggerContainer, fadeRise, popIn } from '../../../utils/animations';
 
 const PhotosStep = () => {
   const { formData, updateFormData, errors, setStepErrors, registerStepValidator } = useOnboarding();
@@ -68,46 +69,38 @@ const PhotosStep = () => {
   };
 
   return (
-    <div className="space-y-5">
+    <motion.div className="space-y-5" initial="initial" animate="animate" variants={staggerContainer}>
       {/* Profile Photo Upload */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-      >
+      <motion.div variants={fadeRise}>
         <label className="block text-sm font-medium text-neutral-900 mb-3">
-          Profile Photo {<span className="text-red-500">*</span>}
+          Profile Photo {<span className="text-destructive ml-1">*</span>}
         </label>
 
         {!imagePreview ? (
-          <motion.button
+          <button
             type="button"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
             onClick={() => fileInputRef.current?.click()}
             onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
             onDragLeave={() => setDragActive(false)}
             onDrop={handleDrop}
-            className={`w-full border-2 border-dashed rounded-lg p-8 text-center transition-all ${
+            aria-invalid={errors.profilePhoto ? true : undefined}
+            aria-describedby={errors.profilePhoto ? 'profilePhoto-error' : undefined}
+            className={`w-full border-2 border-dashed rounded-lg p-8 text-center transition-colors duration-[160ms] active:scale-[0.99] ${
               dragActive
                 ? 'border-primary-500 bg-primary-50'
                 : 'border-neutral-300 hover:border-primary-500 hover:bg-primary-50'
             }`}
           >
             <div className="flex flex-col items-center gap-2">
-              <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center">
-                <FiUpload className="w-6 h-6 text-primary-600" />
+              <div className="w-12 h-12 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                <FiUpload className="w-6 h-6 text-primary-600 dark:text-primary-400" />
               </div>
               <p className="font-medium text-neutral-900">Drag a photo here, or click to browse</p>
               <p className="text-sm text-neutral-600">PNG, JPG up to 5MB</p>
             </div>
-          </motion.button>
+          </button>
         ) : (
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="relative inline-block w-full"
-          >
+          <motion.div initial="initial" animate="animate" variants={popIn} className="relative inline-block w-full">
             <div className="relative w-full aspect-square max-w-xs mx-auto rounded-lg overflow-hidden">
               <img
                 src={imagePreview}
@@ -118,7 +111,7 @@ const PhotosStep = () => {
                 type="button"
                 onClick={removePhoto}
                 aria-label="Remove photo"
-                className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
+                className="absolute top-2 right-2 min-w-[2.75rem] min-h-[2.75rem] flex items-center justify-center bg-destructive text-white rounded-full hover:bg-destructive/90 transition-colors"
               >
                 <FiX size={20} />
               </button>
@@ -126,9 +119,9 @@ const PhotosStep = () => {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="mt-4 w-full py-2 text-primary-600 font-medium hover:text-primary-700"
+              className="mt-4 w-full min-h-[2.75rem] py-2 text-primary-600 font-medium hover:text-primary-700"
             >
-              Change Photo
+              Change photo
             </button>
           </motion.div>
         )}
@@ -141,37 +134,28 @@ const PhotosStep = () => {
           className="hidden"
         />
 
-        {errors.profilePhoto && (
-          <p className="text-sm text-red-600 mt-2">{errors.profilePhoto}</p>
-        )}
+        {/* Reserved row so the error never shifts the tip cards below it. */}
+        <div className="min-h-[20px] mt-2">
+          {errors.profilePhoto && <p id="profilePhoto-error" role="alert" className="text-sm text-red-600">{errors.profilePhoto}</p>}
+        </div>
       </motion.div>
 
       {/* Gallery Photos Info */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="bg-neutral-50 border border-neutral-200 rounded-lg p-4"
-      >
+      <motion.div variants={fadeRise} className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
         <div className="flex gap-3">
           <FiImage className="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" />
           <div className="text-sm text-neutral-600">
             <p className="font-medium text-neutral-800 mb-1">Add more photos later</p>
-            <p>You can add more photos to your gallery after completing the profile. Multiple photos increase your chances of finding a great match!</p>
+            <p>You can add more photos to your gallery after completing the profile. Multiple photos increase your chances of finding a great match.</p>
           </div>
         </div>
       </motion.div>
 
       {/* Photo DO/DON'T visual guide */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="bg-neutral-50 border border-neutral-200 rounded-lg p-4"
-      >
+      <motion.div variants={fadeRise} className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
         <PhotoGuide />
       </motion.div>
-    </div>
+    </motion.div>
   );
 };
 

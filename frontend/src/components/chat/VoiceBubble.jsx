@@ -51,17 +51,24 @@ const VoiceBubble = ({ mediaUrl, durationMs, light = false }) => {
     return (
       <button onClick={() => { audioRef.current = null; setState('idle'); toggle(); }} className={`flex items-center gap-2 ${fg}`}>
         <FiAlertCircle className="w-4 h-4" />
-        <span className="text-sm underline">Couldn&apos;t play — tap to retry</span>
+        <span className="text-sm underline">Couldn&apos;t play. Tap to retry.</span>
       </button>
     );
   }
 
   return (
     <div className="flex items-center gap-3 min-w-[180px]" aria-label="Voice message">
+      {/* min-w/min-h in rem, not the p-2 padding this used to rely on alone
+          (doctrine §3.5: hit target >= 44px, elder >= 48px — p-2 around a
+          16px icon was ~32px). dark: pair is needed because bg-primary-100
+          has no global dark-mode flip, while the text-primary-700 icon it
+          sits behind DOES auto-flip to a light tint for dark surfaces —
+          without it, a light icon would land on its own unflipped light
+          pink circle. */}
       <button
         onClick={toggle}
         aria-label={state === 'playing' ? 'Pause voice message' : 'Play voice message'}
-        className={`p-2 rounded-full flex-shrink-0 ${light ? 'bg-white/20 hover:bg-white/30' : 'bg-primary-100 hover:bg-primary-200'} transition-colors`}
+        className={`flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-full flex-shrink-0 ${light ? 'bg-white/20 hover:bg-white/30' : 'bg-primary-100 hover:bg-primary-200 dark:bg-primary-900/30 dark:hover:bg-primary-900/40'} transition-colors`}
       >
         {state === 'loading' ? (
           <span className={`block w-4 h-4 rounded-full border-2 border-t-transparent animate-spin ${light ? 'border-white' : 'border-primary-600'}`} />

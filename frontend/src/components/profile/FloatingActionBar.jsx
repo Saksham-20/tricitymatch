@@ -74,7 +74,7 @@ const FloatingActionBar = ({
           whileTap={{ scale: 0.97 }}
           onClick={handleInterest}
           disabled={interestSent}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${
+          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-colors duration-[160ms] ${
             interestSent
               ? 'bg-success-50 text-success border border-success-100 cursor-default'
               : 'bg-primary-500 text-white shadow-burgundy hover:bg-primary-600 active:bg-primary-700'
@@ -96,10 +96,10 @@ const FloatingActionBar = ({
         <motion.button
           whileTap={{ scale: 0.93 }}
           onClick={handleShortlist}
-          className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
+          className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors duration-[160ms] flex-shrink-0 ${
             shortlisted
-              ? 'bg-gold text-white'
-              : 'bg-neutral-100 text-neutral-600 hover:bg-gold-50 hover:text-gold-600'
+              ? 'bg-neutral-800 text-white'
+              : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200 hover:text-neutral-800'
           }`}
           aria-label={shortlisted ? 'Remove from shortlist' : 'Add to shortlist'}
         >
@@ -110,7 +110,7 @@ const FloatingActionBar = ({
         <motion.button
           whileTap={{ scale: 0.93 }}
           onClick={onMessage}
-          className="w-12 h-12 rounded-xl bg-neutral-100 text-neutral-600 flex items-center justify-center hover:bg-primary-50 hover:text-primary-500 transition-all duration-200 flex-shrink-0"
+          className="w-12 h-12 rounded-xl bg-neutral-100 text-neutral-600 flex items-center justify-center hover:bg-primary-50 hover:text-primary-500 transition-colors duration-[160ms] flex-shrink-0"
           aria-label="Send message"
         >
           <FiMessageCircle className="w-5 h-5" />

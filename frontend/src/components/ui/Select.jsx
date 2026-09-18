@@ -135,9 +135,9 @@ const Select = ({
   return (
     <div ref={containerRef} className="space-y-2 relative">
       {label && (
-        <label id={labelId} htmlFor={fieldId} className="block text-sm font-medium text-neutral-900">
+        <label id={labelId} htmlFor={fieldId} className="block text-sm font-medium text-neutral-900 dark:text-neutral-100">
           {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
+          {required && <span className="text-destructive ml-1">*</span>}
           {optional && !required && <span className="ml-1.5 text-xs font-normal text-neutral-400">(optional)</span>}
         </label>
       )}
@@ -157,15 +157,15 @@ const Select = ({
         aria-disabled={disabled || undefined}
         onClick={() => (isOpen ? setIsOpen(false) : openMenu())}
         onKeyDown={handleTriggerKeyDown}
-        className={`relative w-full px-4 py-3 border rounded-lg cursor-pointer flex items-center justify-between transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 ${
+        className={`relative w-full px-4 py-3 text-base border rounded-lg cursor-pointer flex items-center justify-between transition-[border-color,box-shadow] duration-[160ms] focus:outline-none focus:ring-2 focus:ring-offset-1 dark:focus:ring-offset-neutral-900 ${
           error
-            ? 'border-red-500 focus:ring-red-500'
-            : 'border-neutral-300 hover:border-neutral-400 focus:ring-primary-500'
-        } ${disabled ? 'bg-neutral-100 cursor-not-allowed opacity-60' : 'bg-white'} ${
+            ? 'border-destructive focus:ring-destructive'
+            : 'border-neutral-300 dark:border-neutral-700 hover:border-neutral-400 dark:hover:border-neutral-600 focus:ring-primary-500'
+        } ${disabled ? 'bg-neutral-100 dark:bg-neutral-800 cursor-not-allowed opacity-60' : 'bg-white dark:bg-neutral-900'} ${
           isOpen ? 'ring-2 ring-primary-500 border-primary-500' : ''
         }`}
       >
-        <span className={(selectedOption || value) ? 'text-neutral-900 font-medium' : 'text-neutral-500'}>
+        <span className={(selectedOption || value) ? 'text-neutral-900 dark:text-neutral-100 font-medium' : 'text-neutral-500 dark:text-neutral-400'}>
           {selectedOption?.label || (value ? String(value) : placeholder)}
         </span>
 
@@ -175,7 +175,7 @@ const Select = ({
               type="button"
               onClick={handleClear}
               aria-label={`Clear ${label || 'selection'}`}
-              className="text-neutral-400 hover:text-neutral-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
+              className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
             >
               <FiX size={18} />
             </button>
@@ -183,17 +183,17 @@ const Select = ({
           <FiChevronDown
             size={20}
             aria-hidden="true"
-            className={`text-neutral-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+            className={`text-neutral-400 transition-transform duration-[180ms] ${isOpen ? 'rotate-180' : ''}`}
           />
         </div>
       </div>
 
-      {error && <p id={errorId} className="text-sm text-red-600 font-medium">{error}</p>}
+      {error && <p id={errorId} className="text-sm text-destructive font-medium">{error}</p>}
 
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-neutral-300 rounded-lg shadow-lg z-50 max-h-60 overflow-auto">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-lg shadow-lg z-50 max-h-60 overflow-auto origin-top animate-scale-in">
           {searchable && (
-            <div className="sticky top-0 bg-white border-b border-neutral-200 p-3">
+            <div className="sticky top-0 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 p-3">
               <div className="relative flex items-center">
                 <FiSearch className="absolute left-3 text-neutral-400" size={18} aria-hidden="true" />
                 <input
@@ -222,7 +222,7 @@ const Select = ({
                       closeMenu();
                     }
                   }}
-                  className="w-full pl-9 pr-4 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full pl-9 pr-4 py-2 text-base border border-neutral-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 rounded focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -239,19 +239,19 @@ const Select = ({
                   aria-selected={option.value === value}
                   onClick={() => handleSelect(option.value)}
                   onMouseEnter={() => setFocusedIndex(index)}
-                  className={`w-full text-left px-4 py-3 transition-colors ${
+                  className={`w-full text-left px-4 py-3 transition-colors duration-[160ms] ${
                     option.value === value
-                      ? 'bg-primary-100 text-primary-900 font-medium'
+                      ? 'bg-primary-100 dark:bg-primary-900/40 text-primary-900 dark:text-primary-200 font-medium'
                       : index === focusedIndex
-                      ? 'bg-neutral-100 text-neutral-900'
-                      : 'text-neutral-700 hover:bg-neutral-50'
+                      ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100'
+                      : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800/60'
                   }`}
                 >
                   {option.label}
                 </button>
               ))
             ) : (
-              <div className="px-4 py-8 text-center text-neutral-500">
+              <div className="px-4 py-8 text-center text-neutral-500 dark:text-neutral-400">
                 No options found
               </div>
             )}

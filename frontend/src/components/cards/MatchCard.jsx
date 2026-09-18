@@ -5,6 +5,7 @@ import { FiHeart, FiMessageCircle, FiMapPin } from 'react-icons/fi';
 import { API_BASE_URL } from '../../utils/api';
 import { getImageUrl } from '../../utils/cloudinary';
 import RetryImage from '../ui/RetryImage';
+import { staggerIndex, DUR, EASE_OUT } from '../../utils/animations';
 
 /**
  * MatchCard Component - Card for displaying mutual matches
@@ -35,11 +36,13 @@ const MatchCard = ({ match, userId, index = 0, onChat }) => {
   };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+    <motion.div
+      initial={{ opacity: 0, y: 8, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ delay: (index % 6) * 0.06 }}
-      whileHover={{ y: -6 }}
+      exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.16, ease: 'easeOut' } }}
+      transition={{ delay: staggerIndex(index), duration: DUR.content, ease: EASE_OUT }}
+      // Lift + shadow on hover already live on the `.card` class (index.css),
+      // pointer-gated there — no separate whileHover needed here.
       onClick={handleClick}
       className="card cursor-pointer group"
       role="article"
@@ -104,7 +107,6 @@ const MatchCard = ({ match, userId, index = 0, onChat }) => {
         
         {/* Chat Button */}
         <motion.button
-          whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={handleChatClick}
           aria-label={`Start chat with ${fullName}`}

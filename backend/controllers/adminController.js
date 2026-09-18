@@ -1160,6 +1160,105 @@ exports.adminGetInvoice = asyncHandler(async (req, res) => {
   });
 });
 
+// @route   POST /api/admin/subscriptions/:subscriptionId/refund
+// @desc    Issue a manual Razorpay refund against a subscription's payment.
+// @access  Private/Admin (scope: subscriptions)
+//
+// The self-service `DELETE /subscription/current` used to compute and fire a
+// pro-rata refund automatically on every cancellation, which was more
+// generous than the Refund & Conduct Policy we publish (seven-day full
+// refund on request, nothing automatic after that). That auto-refund is
+// gone; this is the replacement — a human reads the request against the
+// policy and types the figure in. `amount` is REQUIRED and in rupees
+// (deliberately not paise — a pricing surface that asks a human for paise is
+// a mis-charge waiting to happen) and is never derived from the plan or the
+// elapsed term.
+exports.refundSubscription = asyncHandler(async (req, res) => {
+  const { subscriptionId } = req.params;
+  const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim().slice(0, 500) : '';
+  const amountRupees = Number(req.body?.amount);
+
+  if (!config.razorpay.isConfigured()) {
+    throw createError.internal('Payment gateway is not configured');
+  }
+  if (!Number.isFinite(amountRupees) || amountRupees <= 0) {
+    throw createError.badRequest('amount must be a positive number of rupees');
+  }
+
+  const subscription = await Subscription.findByPk(subscriptionId, {
+    include: [{ model: User, attributes: ['id', 'email'] }],
+  });
+  if (!subscription) throw createError.notFound('Subscription not found');
+  if (!subscription.razorpayPaymentId) {
+    throw createError.badRequest('This subscription has no payment to refund (free or granted plan)');
+  }
+  if (subscription.razorpaySignature === 'GOOGLE_PLAY') {
+    // razorpayPaymentId doubles as the Google Play purchase token for that
+    // rail (see subscriptionController.verifyGooglePlay) — it is not a
+    // Razorpay payment id and rzp.payments.refund would fail confusingly.
+    throw createError.badRequest('This was a Google Play purchase — refund it from the Play Console, not here');
+  }
+
+  // Sanity cap, not the source of truth: an admin fat-fingering an extra
+  // digit must not refund more than the member actually paid. Razorpay would
+  // itself refuse an amount beyond what remains on the payment, but catching
+  // the obvious mistake here gives a clear message instead of a gateway error.
+  const paidRupees = parseFloat(subscription.amount) || 0;
+  if (paidRupees > 0 && amountRupees > paidRupees) {
+    throw createError.badRequest(`amount cannot exceed what was paid (₹${paidRupees})`);
+  }
+
+  const { getRazorpayInstance } = require('../utils/razorpay');
+  const rzp = getRazorpayInstance();
+  if (!rzp) {
+    throw createError.internal('Payment gateway is not configured');
+  }
+
+  const amountPaise = Math.round(amountRupees * 100);
+
+  let refund;
+  try {
+    refund = await rzp.payments.refund(subscription.razorpayPaymentId, {
+      amount: amountPaise,
+      notes: {
+        reason: reason || 'admin_manual_refund',
+        subscriptionId: subscription.id,
+        adminId: req.user.id,
+      },
+    });
+  } catch (err) {
+    const description = err?.error?.description || err.message;
+    log.error('Manual admin refund failed', { error: description, subscriptionId, adminId: req.user.id });
+    throw createError.badRequest(`Refund failed: ${description}`);
+  }
+
+  // The record of who refunded what — there is no ledger column on
+  // Subscription for this, and adding one is out of scope for a minimal
+  // admin action; AuditLogs (migration 000060) is the durable record.
+  logAudit('subscription_refunded_manual', req.user.id, {
+    subscriptionId: subscription.id,
+    userId: subscription.userId,
+    amountPaise,
+    reason,
+    razorpayRefundId: refund.id,
+  });
+
+  if (subscription.User?.id) {
+    await notify(
+      subscription.User.id,
+      'system',
+      'Refund issued',
+      `We've issued a refund of ₹${amountRupees.toFixed(2)} to your original payment method. It usually takes five to seven working days to appear, depending on your bank.`
+    );
+  }
+
+  res.json({
+    success: true,
+    message: 'Refund issued',
+    refund: { refundId: refund.id, amount: amountPaise / 100 },
+  });
+});
+
 // ==================== MARKETING USERS ====================
 
 // @route   GET /api/admin/marketing-users

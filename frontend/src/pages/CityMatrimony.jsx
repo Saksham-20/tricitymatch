@@ -24,17 +24,17 @@ const VERIFY_STEPS = [
   {
     icon: FiCamera,
     title: 'A live selfie, in the app',
-    body: 'The camera opens in the browser and the photo is captured there and then. There is no upload option anywhere in the flow — an uploaded file can be borrowed, edited or lifted from someone else’s profile.',
+    body: 'The camera opens in the browser and the photo is captured there and then. There is no upload option anywhere in the flow: an uploaded file can be borrowed, edited or lifted from someone else’s profile.',
   },
   {
     icon: FiUserCheck,
     title: 'Matched by a person',
-    body: 'A reviewer on our team compares that selfie against the profile photos side by side. No score, no automated pass — a human decides.',
+    body: 'A reviewer on our team compares that selfie against the profile photos side by side. No score, no automated pass. A human decides.',
   },
   {
     icon: FiShield,
     title: 'The badge, and what it means',
-    body: 'Approved profiles carry a verified badge and can be filtered for. It means one specific thing — this person’s photos match their face — and we do not stretch it to mean anything else.',
+    body: 'Approved profiles carry a verified badge and can be filtered for. It means one specific thing: this person’s photos match their face. We do not stretch it to mean anything else.',
   },
 ];
 
@@ -49,16 +49,14 @@ export default function CityMatrimony() {
   const path = `/matrimony/${city.slug}`;
 
   return (
-    <div className="min-h-screen bg-[#FDF8F2] dark:bg-[#0f1117] text-neutral-900 dark:text-neutral-100">
+    <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-surface-dark-1 text-neutral-900 dark:text-neutral-100">
       <Seo title={city.seoTitle} description={city.seoDescription} path={path} />
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="max-w-5xl mx-auto px-5 sm:px-8 pt-14 pb-12">
-        <span className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-primary-600 dark:text-primary-300">
-          <FiMapPin className="w-3.5 h-3.5" aria-hidden="true" />
-          Tricity only · {city.name}
-        </span>
-        <h1 className="font-display text-4xl sm:text-5xl leading-[1.08] tracking-tight mt-5">
+      <section className="max-w-5xl mx-auto px-5 sm:px-8 py-16 md:py-24">
+        {/* Doctrine ruling 2: zero eyebrows. The location tag that used to sit
+            above this heading is dropped — the heading already names the city. */}
+        <h1 className="font-display text-4xl sm:text-5xl leading-[1.08] tracking-tight">
           Matrimony in {city.name},<br />
           <em className="italic text-primary-700 dark:text-primary-300">built for {city.name}.</em>
         </h1>
@@ -68,9 +66,9 @@ export default function CityMatrimony() {
         <div className="mt-8 flex flex-wrap items-center gap-3">
           <Link
             to="/onboarding"
-            className="inline-flex items-center gap-2 min-h-[48px] px-7 rounded-full bg-primary-700 hover:bg-primary-800 text-white text-sm font-medium transition-colors"
+            className="btn-primary inline-flex items-center gap-2 min-h-[48px] text-sm"
           >
-            Create your profile <FiArrowRight />
+            Create your profile <FiArrowRight aria-hidden="true" />
           </Link>
           <span className="text-sm text-neutral-500 dark:text-neutral-400">
             Free to join · Verified with a live selfie
@@ -85,45 +83,48 @@ export default function CityMatrimony() {
           renders the whole band light-on-light. Same reason the heading names
           its own colour — index.css colours h2 with an element rule that beats
           an inherited one. */}
-      <section className="bg-[#2D1A22] dark:bg-[#14182a] text-[#FDF8F2]">
+      <section className="bg-[#2D1A22] dark:bg-surface-dark-2 text-[#FDF8F2]">
         <div className="max-w-5xl mx-auto px-5 sm:px-8 py-12">
-          <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-gold-400">— Founding members</span>
-          <h2 className="font-display text-2xl sm:text-3xl leading-snug mt-4 max-w-3xl text-[#FDF8F2]">
-            We&apos;re building this one verified {city.name} family at a time —{' '}
-            <em className="italic text-gold-400">
-              {founding.open ? 'founding members join free.' : 'and doing it in the open.'}
-            </em>
+          <h2 className="font-display text-2xl sm:text-3xl leading-snug max-w-3xl text-[#FDF8F2]">
+            We&apos;re building this one verified {city.name} family at a time
+            {!founding.loading && (
+              <>
+                :{' '}
+                <em className="italic text-gold-400">
+                  {founding.open ? 'founding members join free.' : 'and doing it in the open.'}
+                </em>
+              </>
+            )}
           </h2>
           <p className="mt-4 max-w-2xl text-sm sm:text-base leading-relaxed text-[#FDF8F2]/75">
             No inflated numbers and no borrowed profiles. Everyone here chose to be here, every verified
             badge was earned with a live selfie, and nobody is matched outside the Tricity.
-            {founding.open
+            {!founding.loading && (founding.open
               ? ' Join while the founding period is open and your membership is free until the period ends.'
-              : ' Founding members join free and shape what this becomes.'}
+              : ' Founding members join free and shape what this becomes.')}
           </p>
           <Link
             to="/onboarding"
-            className="inline-flex items-center gap-2 min-h-[48px] px-7 rounded-full bg-[#FDF8F2] text-[#2D1A22] text-sm font-medium mt-7 hover:bg-white transition-colors"
+            className="inline-flex items-center gap-2 min-h-[48px] px-7 rounded-xl bg-[#FDF8F2] text-[#2D1A22] text-sm font-medium mt-7 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-white active:scale-[0.97] transition-[background-color,transform] duration-[160ms]"
           >
-            Become a founding member <FiArrowRight />
+            Create your profile <FiArrowRight aria-hidden="true" />
           </Link>
         </div>
       </section>
 
       {/* ── How verification works ───────────────────────────────────────── */}
-      <section className="max-w-5xl mx-auto px-5 sm:px-8 py-14">
+      <section className="max-w-5xl mx-auto px-5 sm:px-8 py-16 md:py-24">
         <h2 className="font-display text-2xl sm:text-3xl tracking-tight">How verification works</h2>
         <p className="mt-3 max-w-2xl text-sm sm:text-base text-neutral-600 dark:text-neutral-400">
           The single thing most worth checking before a family invests time in a match.
         </p>
         <div className="grid gap-5 sm:grid-cols-3 mt-8">
-          {VERIFY_STEPS.map(({ icon: Icon, title, body }, i) => (
+          {VERIFY_STEPS.map(({ icon: Icon, title, body }) => (
             <div
               key={title}
-              className="rounded-2xl bg-white dark:bg-[#1a1f2e] border border-neutral-200 dark:border-neutral-800 p-6"
+              className="rounded-2xl bg-white dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-800 p-6"
             >
-              <span className="font-mono text-[11px] text-neutral-400">0{i + 1}</span>
-              <Icon className="w-5 h-5 text-primary-600 dark:text-primary-300 mt-3" aria-hidden="true" />
+              <Icon className="w-5 h-5 text-primary-600 dark:text-primary-300" aria-hidden="true" />
               <h3 className="font-semibold mt-3 text-base">{title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">{body}</p>
             </div>
@@ -132,8 +133,8 @@ export default function CityMatrimony() {
       </section>
 
       {/* ── Locality specifics ───────────────────────────────────────────── */}
-      <section className="bg-white dark:bg-[#1a1f2e] border-y border-neutral-200 dark:border-neutral-800">
-        <div className="max-w-5xl mx-auto px-5 sm:px-8 py-14 grid gap-10 lg:grid-cols-2">
+      <section className="bg-white dark:bg-surface-dark-3 border-y border-neutral-200 dark:border-neutral-800">
+        <div className="max-w-5xl mx-auto px-5 sm:px-8 py-16 md:py-24 grid gap-10 lg:grid-cols-2">
           <div>
             <h2 className="font-display text-2xl sm:text-3xl tracking-tight">{city.locality.heading}</h2>
             <p className="mt-4 text-sm sm:text-base leading-relaxed text-neutral-600 dark:text-neutral-400">
@@ -152,7 +153,7 @@ export default function CityMatrimony() {
       </section>
 
       {/* ── FAQ ──────────────────────────────────────────────────────────── */}
-      <section className="max-w-3xl mx-auto px-5 sm:px-8 py-14">
+      <section className="max-w-3xl mx-auto px-5 sm:px-8 py-16 md:py-24">
         <h2 className="font-display text-2xl sm:text-3xl tracking-tight">
           Questions {city.name} families ask
         </h2>
@@ -185,8 +186,8 @@ export default function CityMatrimony() {
       </section>
 
       {/* ── Closing CTA + sibling cities (internal linking) ──────────────── */}
-      <section className="max-w-5xl mx-auto px-5 sm:px-8 pb-20">
-        <div className="rounded-3xl bg-white dark:bg-[#1a1f2e] border border-neutral-200 dark:border-neutral-800 p-8 sm:p-10 text-center">
+      <section className="max-w-5xl mx-auto px-5 sm:px-8 py-16 md:py-24">
+        <div className="rounded-3xl bg-white dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-800 p-8 sm:p-10 text-center">
           <h2 className="font-display text-2xl sm:text-3xl tracking-tight">
             Start with a profile your family would stand behind
           </h2>
@@ -196,9 +197,9 @@ export default function CityMatrimony() {
           </p>
           <Link
             to="/onboarding"
-            className="inline-flex items-center gap-2 min-h-[48px] px-7 rounded-full bg-primary-700 hover:bg-primary-800 text-white text-sm font-medium mt-7 transition-colors"
+            className="btn-primary inline-flex items-center gap-2 min-h-[48px] mt-7 text-sm"
           >
-            Create your profile <FiArrowRight />
+            Create your profile <FiArrowRight aria-hidden="true" />
           </Link>
         </div>
 
@@ -207,7 +208,7 @@ export default function CityMatrimony() {
             <Link
               key={s}
               to={`/matrimony/${s}`}
-              className="inline-flex items-center gap-2 min-h-[44px] px-5 rounded-full border border-neutral-300 dark:border-neutral-700 text-sm hover:bg-white dark:hover:bg-[#1a1f2e] transition-colors"
+              className="inline-flex items-center gap-2 min-h-[48px] px-5 rounded-full border border-neutral-300 dark:border-neutral-700 text-sm hover:bg-white dark:hover:bg-surface-dark-3 transition-colors"
             >
               <FiMapPin className="w-3.5 h-3.5 text-primary-600 dark:text-primary-300" aria-hidden="true" />
               Matrimony in {CITIES[s].name}

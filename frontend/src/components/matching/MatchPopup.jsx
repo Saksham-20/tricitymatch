@@ -4,6 +4,7 @@ import { FiHeart, FiMessageCircle, FiX, FiArrowRight } from 'react-icons/fi';
 import { API_BASE_URL } from '../../utils/api';
 import { getImageUrl } from '../../utils/cloudinary';
 import RetryImage from '../ui/RetryImage';
+import { EASE_OUT } from '../../utils/animations';
 
 /**
  * MatchPopup Component - Celebration popup when two users match
@@ -130,23 +131,28 @@ const MatchPopup = ({
                 transition={{ delay: 0.2, type: 'spring' }}
               >
                 <div className="relative">
-                  {/* Animated rings */}
+                  {/* Rings — a single arrival pulse, not a perpetual breathing
+                      loop (doctrine §2 ruling 7: no idle motion, even on a
+                      rare "delight tier" celebration). */}
                   <motion.div
                     className="absolute inset-0 -m-4 rounded-full border-2 border-primary-200"
-                    animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
-                    transition={{ duration: 2, repeat: Infinity }}
+                    initial={{ scale: 0.9, opacity: 0.6 }}
+                    animate={{ scale: 1.3, opacity: 0 }}
+                    transition={{ duration: 1, ease: 'easeOut' }}
                   />
                   <motion.div
-                    className="absolute inset-0 -m-8 rounded-full border-2 border-gold-200"
-                    animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0, 0.3] }}
-                    transition={{ duration: 2, repeat: Infinity, delay: 0.3 }}
+                    className="absolute inset-0 -m-8 rounded-full border-2 border-primary-300"
+                    initial={{ scale: 0.9, opacity: 0.4 }}
+                    animate={{ scale: 1.3, opacity: 0 }}
+                    transition={{ duration: 1, ease: 'easeOut', delay: 0.2 }}
                   />
-                  
-                  {/* Heart icon */}
+
+                  {/* Heart icon — pops in once, settles, no infinite loop */}
                   <motion.div
                     className="w-20 h-20 bg-gradient-hero rounded-full flex items-center justify-center"
-                    animate={{ scale: [1, 1.1, 1] }}
-                    transition={{ duration: 1, repeat: Infinity }}
+                    initial={{ scale: 0.8 }}
+                    animate={{ scale: 1 }}
+                    transition={{ duration: 0.4, ease: EASE_OUT }}
                   >
                     <FiHeart className="w-10 h-10 text-white fill-white" />
                   </motion.div>
@@ -159,7 +165,7 @@ const MatchPopup = ({
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="text-3xl font-bold font-display text-center mb-2 text-gradient-primary"
+                className="text-3xl font-bold font-display text-center mb-2 text-primary-600"
               >
                 It's a Match!
               </motion.h2>
@@ -207,10 +213,11 @@ const MatchPopup = ({
                   )}
                 </motion.div>
 
-                {/* Heart between photos */}
+                {/* Heart between photos — settles once, doesn't breathe forever */}
                 <motion.div
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 0.8, repeat: Infinity }}
+                  initial={{ scale: 0.7 }}
+                  animate={{ scale: 1 }}
+                  transition={{ duration: 0.4, ease: EASE_OUT, delay: 0.15 }}
                   className="w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center"
                 >
                   <FiHeart className="w-6 h-6 text-primary-500 fill-primary-500" />
@@ -252,7 +259,6 @@ const MatchPopup = ({
                 className="space-y-3"
               >
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={onChat}
                   className="w-full btn-primary flex items-center justify-center gap-2"
@@ -260,9 +266,8 @@ const MatchPopup = ({
                   <FiMessageCircle className="w-5 h-5" />
                   Send a Message
                 </motion.button>
-                
+
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={onContinue}
                   className="w-full btn-secondary flex items-center justify-center gap-2"

@@ -12,6 +12,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { FiMic, FiX, FiTrash2, FiSend, FiPlay, FiPause, FiRefreshCw } from 'react-icons/fi';
 
+// Pointer-gated hover (doctrine §4.7) — a touch tap fires a false hover that
+// never un-fires, leaving the send button looking permanently "raised".
+const HOVER = '[@media(hover:hover)_and_(pointer:fine)]:hover';
+
 const MAX_MS = 60 * 1000;
 const WARN_MS = 55 * 1000;
 
@@ -131,9 +135,9 @@ const VoiceRecorder = ({ onSend, onClose }) => {
       {phase === 'denied' && (
         <>
           <p className="flex-1 text-sm text-neutral-600 dark:text-neutral-300">
-            Microphone is blocked — enable it in your browser settings, or just type your message instead.
+            Microphone is blocked. Enable it in your browser settings, or type your message instead.
           </p>
-          <button onClick={onClose} aria-label="Close recorder" className="p-2 rounded-full hover:bg-neutral-100 text-neutral-500">
+          <button onClick={onClose} aria-label="Close recorder" className="p-3 rounded-full hover:bg-neutral-100 text-neutral-500">
             <FiX className="w-5 h-5" />
           </button>
         </>
@@ -142,14 +146,14 @@ const VoiceRecorder = ({ onSend, onClose }) => {
       {phase === 'recording' && (
         <>
           <span className="relative flex h-3 w-3 flex-shrink-0" aria-hidden="true">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" />
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75" />
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-destructive" />
           </span>
-          <span className={`text-sm font-medium tabular-nums ${elapsed >= WARN_MS ? 'text-red-600' : 'text-neutral-700 dark:text-neutral-200'}`}>
+          <span className={`text-sm font-medium tabular-nums ${elapsed >= WARN_MS ? 'text-destructive' : 'text-neutral-700 dark:text-neutral-200'}`}>
             {fmt(elapsed)}{elapsed >= WARN_MS && ' · stopping soon'}
           </span>
           <div className="flex-1" />
-          <button onClick={cancel} aria-label="Cancel recording" className="p-2.5 rounded-full hover:bg-neutral-100 text-neutral-500">
+          <button onClick={cancel} aria-label="Cancel recording" className="p-3 rounded-full hover:bg-neutral-100 text-neutral-500">
             <FiTrash2 className="w-5 h-5" />
           </button>
           <button
@@ -164,15 +168,15 @@ const VoiceRecorder = ({ onSend, onClose }) => {
 
       {phase === 'review' && (
         <>
-          <button onClick={togglePlay} aria-label={playing ? 'Pause preview' : 'Play preview'} className="p-2.5 rounded-full bg-primary-100 text-primary-700">
+          <button onClick={togglePlay} aria-label={playing ? 'Pause preview' : 'Play preview'} className="p-3 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-700">
             {playing ? <FiPause className="w-5 h-5" /> : <FiPlay className="w-5 h-5" />}
           </button>
           <span className="text-sm text-neutral-600 dark:text-neutral-300 tabular-nums">{fmt(durationRef.current)}</span>
           <div className="flex-1" />
-          <button onClick={cancel} aria-label="Discard voice message" className="p-2.5 rounded-full hover:bg-neutral-100 text-neutral-500">
+          <button onClick={cancel} aria-label="Discard voice message" className="p-3 rounded-full hover:bg-neutral-100 text-neutral-500">
             <FiTrash2 className="w-5 h-5" />
           </button>
-          <button onClick={send} aria-label="Send voice message" className="p-3 rounded-full bg-gradient-hero text-white shadow-burgundy hover:scale-105 transition-transform">
+          <button onClick={send} aria-label="Send voice message" className={`p-3 rounded-full bg-gradient-hero text-white shadow-burgundy ${HOVER}:scale-105 transition-transform`}>
             <FiSend className="w-5 h-5" />
           </button>
         </>
@@ -184,11 +188,11 @@ const VoiceRecorder = ({ onSend, onClose }) => {
 
       {phase === 'failed' && (
         <>
-          <p className="flex-1 text-sm text-red-600">Upload failed.</p>
-          <button onClick={send} className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-700 hover:text-primary-800">
+          <p className="flex-1 text-sm text-destructive">Upload failed.</p>
+          <button onClick={send} className="inline-flex items-center gap-1.5 min-h-[2.75rem] text-sm font-medium text-primary-700 hover:text-primary-800">
             <FiRefreshCw className="w-4 h-4" /> Retry
           </button>
-          <button onClick={cancel} aria-label="Discard" className="p-2 rounded-full hover:bg-neutral-100 text-neutral-500">
+          <button onClick={cancel} aria-label="Discard" className="p-3 rounded-full hover:bg-neutral-100 text-neutral-500">
             <FiX className="w-5 h-5" />
           </button>
         </>

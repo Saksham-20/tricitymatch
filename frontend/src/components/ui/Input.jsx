@@ -40,33 +40,36 @@ const Input = forwardRef(
     return (
       <div className={cn('space-y-1.5', containerClassName)}>
         {label && (
-          <label className="block text-sm font-medium text-neutral-700">
+          <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-200">
             {label}
             {required && <span className="text-destructive ml-1">*</span>}
           </label>
         )}
-        
+
         <div className="relative">
           {leftIcon && (
             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
               {leftIcon}
             </div>
           )}
-          
+
           <input
             ref={ref}
             type={inputType}
             disabled={disabled}
             className={cn(
-              'w-full px-4 py-3 rounded-xl border bg-white transition-all duration-200',
+              // 16px base (doctrine §3.2) — never smaller, or iOS Safari
+              // force-zooms the focused field.
+              'w-full px-4 py-3 text-base rounded-xl border bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100',
+              'transition-[border-color,box-shadow] duration-[160ms]',
               'focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500',
               'placeholder:text-neutral-400',
               leftIcon && 'pl-10',
               (rightIcon || isPassword) && 'pr-10',
               error
                 ? 'border-destructive focus:ring-destructive/20 focus:border-destructive'
-                : 'border-neutral-200 hover:border-neutral-300',
-              disabled && 'bg-neutral-50 text-neutral-500 cursor-not-allowed',
+                : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600',
+              disabled && 'bg-neutral-50 dark:bg-neutral-800 text-neutral-500 cursor-not-allowed',
               className
             )}
             aria-invalid={!!error}
@@ -78,7 +81,7 @@ const Input = forwardRef(
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 focus:outline-none"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 focus:outline-none"
               tabIndex={-1}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
@@ -122,7 +125,7 @@ const Input = forwardRef(
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-sm text-neutral-500"
+              className="text-sm text-neutral-500 dark:text-neutral-400"
             >
               {hint}
             </motion.p>

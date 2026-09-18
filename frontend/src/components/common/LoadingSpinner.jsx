@@ -21,34 +21,26 @@ const LoadingSpinner = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className={`${fullScreen ? 'min-h-screen' : 'min-h-[200px]'} flex flex-col items-center justify-center`}
+      className={`${fullScreen ? 'min-h-[100dvh]' : 'min-h-[200px]'} flex flex-col items-center justify-center`}
     >
-      {/* Spinner ring */}
+      {/* Spinner ring — one of doctrine's 3 sanctioned idle loops (no skeleton
+          shape is possible here, the caller hasn't told us what's coming). The
+          decorative heart that used to pulse in the center is gone: it was the
+          same "heart-pulse" idle-loop pattern doctrine retired from
+          tailwind.config, just reimplemented inline via framer-motion instead
+          of the Tailwind class — motion performs, it doesn't breathe. */}
       <div className="relative">
         <motion.div
-          className={`${sizeMap[size]} rounded-full border-[3px] border-primary-100`}
+          className={`${sizeMap[size]} rounded-full border-[3px] border-primary-100 dark:border-primary-900/40`}
           style={{ borderTopColor: '#8B2346' }}
           animate={{ rotate: 360 }}
           transition={{ duration: 0.9, repeat: Infinity, ease: 'linear' }}
         />
-
-        {/* Heart pulse in center (skip for small) */}
-        {size !== 'small' && (
-          <motion.div
-            className="absolute inset-0 flex items-center justify-center"
-            animate={{ scale: [1, 1.2, 1] }}
-            transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
-          >
-            <svg className="w-4 h-4 text-primary-400" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-            </svg>
-          </motion.div>
-        )}
       </div>
 
       {showMessage && (
         <motion.p
-          className="mt-4 text-neutral-500 text-sm font-medium"
+          className="mt-4 text-neutral-500 dark:text-neutral-400 text-sm font-medium"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
@@ -64,20 +56,20 @@ const LoadingSpinner = ({
  * Full-page skeleton used while lazy chunks are loading
  */
 export const PageSkeleton = () => (
-  <div className="min-h-screen bg-neutral-50 p-4 md:p-8">
+  <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 p-4 md:p-8">
     <div className="max-w-6xl mx-auto">
       <div className="mb-8">
-        <div className="h-8 w-48 bg-neutral-200 rounded-xl animate-pulse mb-2" />
-        <div className="h-4 w-64 bg-neutral-200 rounded-lg animate-pulse" />
+        <div className="skeleton h-8 w-48 rounded-xl mb-2" />
+        <div className="skeleton h-4 w-64 rounded-lg" />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="bg-white rounded-2xl shadow-card overflow-hidden">
-            <div className="h-48 bg-neutral-200 animate-pulse" />
+          <div key={i} className="bg-white dark:bg-neutral-900 rounded-2xl shadow-card overflow-hidden">
+            <div className="skeleton h-48" />
             <div className="p-4 space-y-3">
-              <div className="h-5 w-3/4 bg-neutral-200 rounded-lg animate-pulse" />
-              <div className="h-4 w-1/2 bg-neutral-200 rounded animate-pulse" />
-              <div className="h-4 w-2/3 bg-neutral-200 rounded animate-pulse" />
+              <div className="skeleton h-5 w-3/4 rounded-lg" />
+              <div className="skeleton h-4 w-1/2 rounded" />
+              <div className="skeleton h-4 w-2/3 rounded" />
             </div>
           </div>
         ))}

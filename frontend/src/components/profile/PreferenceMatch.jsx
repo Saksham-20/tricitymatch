@@ -89,7 +89,7 @@ const PreferenceMatch = ({ target, viewer, targetName = 'them' }) => {
   const matched = scored.filter((c) => c.ok).length;
 
   return (
-    <div className="bg-white dark:bg-[#1a1f2e] rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card overflow-hidden">
+    <div className="bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card overflow-hidden">
       <div className="px-5 pt-4 pb-3 border-b border-neutral-50 dark:border-neutral-800 flex items-center gap-2.5">
         <div className="w-7 h-7 rounded-lg bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center flex-shrink-0">
           <FiHeart className="w-3.5 h-3.5 text-primary-500" />
@@ -102,7 +102,7 @@ const PreferenceMatch = ({ target, viewer, targetName = 'them' }) => {
         {scored.length > 0 && (
           <span className={`px-2.5 py-1 rounded-full text-xs font-bold flex-shrink-0 ${
             matched === scored.length
-              ? 'bg-green-100 text-green-700'
+              ? 'bg-success-50 text-success'
               : matched > 0
               ? 'bg-primary-50 text-primary-700 border border-primary-100'
               : 'bg-neutral-100 text-neutral-500'
@@ -115,7 +115,7 @@ const PreferenceMatch = ({ target, viewer, targetName = 'them' }) => {
         {checks.map(({ label, want, ok }) => (
           <div key={label} className="flex items-center gap-3 py-2.5 border-b border-neutral-50 dark:border-neutral-800 last:border-b-0">
             <span className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
-              ok === true ? 'bg-green-100 text-green-600'
+              ok === true ? 'bg-success-50 text-success'
               : ok === false ? 'bg-neutral-100 text-neutral-400'
               : 'bg-neutral-50 text-neutral-300'
             }`}>

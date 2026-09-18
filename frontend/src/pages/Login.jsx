@@ -8,7 +8,7 @@ import { validateEmail, IDENTIFIER_ERROR } from '../utils/validators';
 import Logo from '../components/common/Logo';
 import SmartContactField, { detectContactType, phoneDigits } from '../components/onboarding/SmartContactField';
 import { FiMail, FiPhone, FiLock, FiEye, FiEyeOff, FiHeart, FiShield, FiArrowRight, FiClock, FiEdit2 } from 'react-icons/fi';
-import { fadeInUp, staggerContainer } from '../utils/animations';
+import { fadeInUp, staggerContainer, fade, stepSlide, DUR, EASE_IN_OUT } from '../utils/animations';
 import { google as googleConfig } from '../config';
 import api from '../api/axios';
 
@@ -24,6 +24,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [shakeTrigger, setShakeTrigger] = useState(false);
   const [lockedUntil, setLockedUntil] = useState(0); // epoch ms; 0 = not locked
+  const [direction, setDirection] = useState(1); // 1 = identifier→password, -1 = back
   const passwordRef = useRef(null);
   const { login, setUser } = useAuth();
   const navigate = useNavigate();
@@ -124,10 +125,21 @@ const Login = () => {
   };
 
   const backToIdentifier = () => {
+    setDirection(-1);
     setPhase('identifier');
     setPassword('');
     setErrors({});
     setApiError('');
+  };
+
+  const validateIdentifierOnBlur = () => {
+    if (!identifier.trim()) return; // don't nag before they've typed anything
+    if (!idIsValid) setErrors({ identifier: IDENTIFIER_ERROR });
+  };
+
+  const validatePasswordOnBlur = () => {
+    if (phase !== 'password' || password) return;
+    setErrors({ password: 'Password is required' });
   };
 
   const handleSubmit = async (e) => {
@@ -146,6 +158,7 @@ const Login = () => {
         return;
       }
       setErrors({});
+      setDirection(1);
       setPhase('password');
       return;
     }
@@ -179,28 +192,24 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex bg-[#FDF8F2]">
+    <div className="min-h-[100dvh] flex bg-[#FDF8F2] dark:bg-surface-dark-1">
       <Seo
         title="Login"
         description="Log in to your TricityMatch account to continue your match journey."
         path="/login"
       />
-      {/* Left Side — Editorial panel */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-neutral-900">
+      {/* Left Side - Editorial panel. Pinned to a literal hex rather than the
+          neutral-900 scale class: this rail stays dark in BOTH themes, and
+          `bg-neutral-900` inverts to a near-white under html.dark (see
+          CityMatrimony.jsx's identical note), which would strand the white
+          headline text with nothing behind it. */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-[var(--editorial-rail)] dark:bg-surface-dark-2">
         {/* Warm gradient wash */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary-900/90 via-neutral-900 to-neutral-900" />
 
-        {/* Rotating orbit rings */}
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 80, repeat: Infinity, ease: 'linear' }}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[38rem] h-[38rem] rounded-full border border-white/5 pointer-events-none"
-        />
-        <motion.div
-          animate={{ rotate: -360 }}
-          transition={{ duration: 55, repeat: Infinity, ease: 'linear' }}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24rem] h-[24rem] rounded-full border border-white/8 pointer-events-none"
-        />
+        {/* Orbit rings — static ambient art direction, not an idle loop */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[38rem] h-[38rem] rounded-full border border-white/5 pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24rem] h-[24rem] rounded-full border border-white/8 pointer-events-none" />
 
         {/* Top line accent */}
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary-500/40 to-transparent" />
@@ -216,15 +225,7 @@ const Login = () => {
           </div>
 
           {/* Main copy */}
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.2 }}
-            className="max-w-sm"
-          >
-            <p className="text-xs font-semibold text-primary-400 uppercase tracking-widest mb-5">
-              Welcome back
-            </p>
+          <motion.div initial="initial" animate="animate" variants={fadeInUp} className="max-w-sm">
             <h2 className="font-display text-5xl font-bold leading-tight mb-5 text-white">
               Your journey<br />continues here.
             </h2>
@@ -249,12 +250,7 @@ const Login = () => {
           </motion.div>
 
           {/* Bottom trust strip */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="flex items-center gap-5 text-xs text-white/40"
-          >
+          <motion.div initial="initial" animate="animate" variants={fade} className="flex items-center gap-5 text-xs text-white/40">
             <div className="flex items-center gap-1.5">
               <FiShield className="w-3.5 h-3.5" />
               <span>SSL Secured</span>
@@ -281,24 +277,27 @@ const Login = () => {
             <Logo size="lg" linkTo="/" />
           </motion.div>
 
-          {/* Mobile tab switcher — Sign In / Create Profile */}
-          <motion.div variants={fadeInUp} className="lg:hidden flex rounded-2xl bg-neutral-100 p-1 mb-6">
-            <span className="flex-1 py-3 text-center text-sm font-semibold rounded-xl bg-white shadow-sm text-neutral-900">
+          {/* Mobile tab switcher — Sign In / Create Profile. Container pinned
+              off the neutral-100 scale (which the dark hack raises to the same
+              tone as the active `bg-white` pill) so the active state stays
+              visible against it in dark mode. */}
+          <motion.div variants={fadeInUp} className="lg:hidden flex rounded-2xl bg-[#F5F5F5] dark:bg-surface-dark-1 p-1 mb-6">
+            <span className="flex-1 py-3 text-center text-sm font-semibold rounded-xl bg-white dark:bg-surface-dark-3 shadow-sm text-neutral-900 dark:text-neutral-100">
               {t('navbar.signIn')}
             </span>
             <Link
               to="/signup"
-              className="flex-1 py-3 text-center text-sm font-semibold rounded-xl text-neutral-500 hover:text-neutral-700 transition-colors"
+              className="flex-1 py-3 text-center text-sm font-semibold rounded-xl text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors"
             >
               {t('navbar.createProfile')}
             </Link>
           </motion.div>
 
           <motion.div variants={fadeInUp} className="text-center mb-8 hidden lg:block">
-            <h1 className="text-3xl font-display font-bold text-neutral-800 mb-2">
+            <h1 className="text-3xl font-display font-bold text-neutral-800 dark:text-neutral-100 mb-2">
               {t('auth.welcomeBack')}
             </h1>
-            <p className="text-neutral-600">
+            <p className="text-neutral-600 dark:text-neutral-400">
               {t('auth.loginSubtitle')}
             </p>
           </motion.div>
@@ -306,19 +305,20 @@ const Login = () => {
           <motion.form
             variants={fadeInUp}
             layout
-            transition={{ layout: { duration: 0.25, ease: 'easeOut' } }}
+            transition={{ layout: { duration: DUR.layout, ease: EASE_IN_OUT } }}
             onSubmit={handleSubmit}
-            className={`card space-y-5 ${shakeTrigger ? 'animate-shake' : ''}`}
+            className={`card dark:bg-surface-dark-3 dark:border-neutral-800 space-y-5 ${shakeTrigger ? 'animate-shake' : ''}`}
           >
             {/* Lockout / API Error Alert */}
             <AnimatePresence>
               {isLocked ? (
                 <motion.div
                   role="alert"
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-gold-50 border border-gold-200 text-gold-800 text-sm"
+                  variants={fade}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-gold-50 dark:bg-gold-900/20 border border-gold-200 dark:border-gold-800/50 text-gold-800 dark:text-gold-300 text-sm"
                 >
                   <FiClock className="w-4 h-4 mt-0.5 flex-shrink-0" />
                   <span>Too many attempts. Please wait a few minutes, then try again.</span>
@@ -326,59 +326,51 @@ const Login = () => {
               ) : apiError ? (
                 <motion.div
                   role="alert"
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  className="flex items-center gap-2 px-4 py-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm"
+                  variants={fade}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  className="flex items-center gap-2 px-4 py-3 rounded-xl bg-destructive/10 dark:bg-red-950/30 border border-destructive/20 dark:border-red-900/50 text-destructive dark:text-red-300 text-sm"
                 >
                   {apiError}
                 </motion.div>
               ) : null}
             </AnimatePresence>
 
-            <AnimatePresence mode="wait" initial={false}>
+            <AnimatePresence mode="wait" initial={false} custom={direction}>
               {phase === 'identifier' ? (
-                <motion.div
-                  key="identifier"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2 }}
-                >
+                <motion.div key="identifier" custom={direction} variants={stepSlide} initial="initial" animate="animate" exit="exit">
                   <SmartContactField
                     id="login-identifier"
                     label={t('auth.emailOrPhone', 'Email or mobile number')}
                     hint=""
                     value={identifier}
                     onChange={(v) => { setIdentifier(v); if (errors.identifier) setErrors({}); if (apiError) setApiError(''); }}
+                    onBlur={validateIdentifierOnBlur}
                     error={errors.identifier}
                     autoFocus
                   />
                 </motion.div>
               ) : (
-                <motion.div
-                  key="password"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2 }}
-                  className="space-y-5"
-                >
+                <motion.div key="password" custom={direction} variants={stepSlide} initial="initial" animate="animate" exit="exit" className="space-y-5">
                   {/* Identifier recap chip */}
-                  <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-neutral-50 border border-neutral-200">
-                    <span className="text-neutral-400 flex-shrink-0">
+                  <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-neutral-50 dark:bg-surface-dark-2 border border-neutral-200 dark:border-neutral-700">
+                    <span className="text-neutral-400 dark:text-neutral-500 flex-shrink-0">
                       {idType === 'phone' ? <FiPhone className="w-4 h-4" /> : <FiMail className="w-4 h-4" />}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] text-neutral-400 uppercase tracking-wide leading-none mb-0.5">{t('auth.signingInAs', 'Signing in as')}</p>
-                      <p className="text-sm font-semibold text-neutral-800 truncate">
+                      <p className="text-[11px] text-neutral-400 dark:text-neutral-500 uppercase tracking-wide leading-none mb-0.5">{t('auth.signingInAs', 'Signing in as')}</p>
+                      <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100 truncate">
                         {idType === 'phone' ? `+91 ${phoneDigits(identifier)}` : identifier.trim()}
                       </p>
                     </div>
+                    {/* py-3.5/-my-3.5 pads the tap target to the doctrine's 44px floor
+                        without growing the visible mark (§3.5: "pad the target, do
+                        not grow the mark"). */}
                     <button
                       type="button"
                       onClick={backToIdentifier}
-                      className="flex items-center gap-1 text-xs font-medium text-primary-600 hover:text-primary-700 flex-shrink-0"
+                      className="flex items-center gap-1 py-3.5 -my-3.5 text-xs font-medium text-primary-600 dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-200 flex-shrink-0"
                     >
                       <FiEdit2 className="w-3.5 h-3.5" /> {t('auth.change', 'Change')}
                     </button>
@@ -397,12 +389,12 @@ const Login = () => {
 
                   {/* Password Field */}
                   <div>
-                    <label htmlFor="password" className="block text-sm font-medium text-neutral-700 mb-2">
+                    <label htmlFor="password" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
                       {t('auth.password')}
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <FiLock className={`w-5 h-5 ${errors.password ? 'text-destructive' : 'text-neutral-400'}`} />
+                        <FiLock className={`w-5 h-5 ${errors.password ? 'text-destructive dark:text-red-400' : 'text-neutral-400 dark:text-neutral-500'}`} />
                       </div>
                       <input
                         id="password"
@@ -410,16 +402,17 @@ const Login = () => {
                         ref={passwordRef}
                         type={showPassword ? 'text' : 'password'}
                         autoComplete="current-password"
-                        className={`input-field pl-12 pr-12 ${errors.password ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : ''}`}
+                        className={`input-field dark:bg-surface-dark-2 dark:border-neutral-700 dark:placeholder:text-neutral-500 dark:focus:border-primary-400 dark:focus:ring-primary-400/20 pl-12 pr-12 ${errors.password ? 'border-destructive focus:border-destructive focus:ring-destructive/20 dark:border-red-500 dark:focus:border-red-500 dark:focus:ring-red-500/20' : ''}`}
                         placeholder={t('auth.passwordPlaceholder')}
                         value={password}
                         onChange={(e) => { setPassword(e.target.value); if (errors.password) setErrors({}); if (apiError) setApiError(''); }}
+                        onBlur={validatePasswordOnBlur}
                       />
                       <button
                         type="button"
                         aria-label={showPassword ? 'Hide password' : 'Show password'}
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-neutral-400 hover:text-neutral-600 transition-colors"
+                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-neutral-400 dark:text-neutral-500 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
                       >
                         {showPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
                       </button>
@@ -427,10 +420,12 @@ const Login = () => {
                     <AnimatePresence>
                       {errors.password && (
                         <motion.p
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          className="mt-2 text-sm text-destructive"
+                          role="alert"
+                          variants={fade}
+                          initial="initial"
+                          animate="animate"
+                          exit="exit"
+                          className="mt-2 text-sm text-destructive dark:text-red-300"
                         >
                           {errors.password}
                         </motion.p>
@@ -442,7 +437,7 @@ const Login = () => {
                   <div className="flex items-center justify-end -mt-2">
                     <Link
                       to="/forgot-password"
-                      className="text-sm font-medium text-primary-500 hover:text-primary-600 transition-colors"
+                      className="text-sm font-medium text-primary-500 dark:text-primary-300 hover:text-primary-600 dark:hover:text-primary-200 transition-colors"
                     >
                       {t('auth.forgotPassword')}
                     </Link>
@@ -452,11 +447,12 @@ const Login = () => {
             </AnimatePresence>
 
             {/* Submit Button */}
-            <motion.button
+            {/* Press/hover feedback comes from .btn-primary itself (index.css) —
+                pointer-gated hover + 120ms active-scale — so no framer whileHover/
+                whileTap duplicates it here. */}
+            <button
               type="submit"
               disabled={loading || isLocked}
-              whileHover={{ scale: loading || isLocked ? 1 : 1.01 }}
-              whileTap={{ scale: loading || isLocked ? 1 : 0.99 }}
               className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? (
@@ -480,17 +476,17 @@ const Login = () => {
                   <FiArrowRight className="w-5 h-5" />
                 </>
               )}
-            </motion.button>
+            </button>
 
             {/* Google Sign-In */}
             {googleConfig.isConfigured && (
               <>
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-neutral-200" />
+                    <div className="w-full border-t border-neutral-200 dark:border-neutral-700" />
                   </div>
                   <div className="relative flex justify-center text-sm">
-                    <span className="px-4 bg-white text-neutral-600">{t('auth.orContinueWith')}</span>
+                    <span className="px-4 bg-white dark:bg-surface-dark-3 text-neutral-600 dark:text-neutral-400">{t('auth.orContinueWith')}</span>
                   </div>
                 </div>
                 <div className={`w-full overflow-hidden rounded-xl ${googleLoading ? 'opacity-60 pointer-events-none' : ''}`}>
@@ -499,20 +495,20 @@ const Login = () => {
               </>
             )}
 
-            <p className="text-xs text-neutral-500 text-center leading-relaxed">
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 text-center leading-relaxed">
               By continuing, you agree to our{' '}
-              <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline hover:text-primary-700">Terms &amp; Conditions</Link>{' '}
+              <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-300 underline hover:text-primary-700 dark:hover:text-primary-200">Terms &amp; Conditions</Link>{' '}
               and{' '}
-              <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline hover:text-primary-700">Privacy Policy</Link>.
+              <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-300 underline hover:text-primary-700 dark:hover:text-primary-200">Privacy Policy</Link>.
             </p>
 
             {/* Divider */}
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-neutral-200" />
+                <div className="w-full border-t border-neutral-200 dark:border-neutral-700" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white text-neutral-600">New to TricityMatch?</span>
+                <span className="px-4 bg-white dark:bg-surface-dark-3 text-neutral-600 dark:text-neutral-400">New to TricityMatch?</span>
               </div>
             </div>
 

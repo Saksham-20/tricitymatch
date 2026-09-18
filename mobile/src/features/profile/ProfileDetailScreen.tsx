@@ -26,7 +26,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { showToast } from '../../utils/toast';
 import { haptics } from '../../utils/haptics';
-import { colours, typography, type, spacing, borderRadius } from '@shared/constants/theme';
+import { colours, typography, type, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { CompatRing, MatchCelebration } from '../../components/ui';
 import { ProfileDetailSkeleton } from '../../components/ui/skeletons';
 import { PressableScale } from '../../components/motion';
@@ -53,7 +53,10 @@ type Route = RouteProp<MainStackParamList, 'ProfileDetail'>;
 
 // ─── Small pieces ────────────────────────────────────────────────────────────
 
-const compatScoreColour = (p: number) => (p >= 90 ? colours.success : p >= 75 ? colours.g500 : colours.p500);
+// `success` reads correctly as status text but is documented as unreadable as
+// an accent on a dark surfaceCard — `successAccent` is the theme-reactive
+// pair that stays legible as a score dot/fill in both themes.
+const compatScoreColour = (p: number, c: ThemeColours) => (p >= 90 ? c.successAccent : p >= 75 ? colours.g500 : colours.p500);
 
 /** Compact stat chip for the essence band (height · education · community…). */
 function StatChip({ icon, label }: { icon: keyof typeof Ionicons.glyphMap; label: string }) {
@@ -293,7 +296,7 @@ export default function ProfileDetailScreen() {
                     </Text>
                   </View>
                   <View style={s.compatWhy}>
-                    <Text style={[type.subhead, { color: compatScoreColour(compat.overallScore), fontFamily: 'Inter-SemiBold' }]}>
+                    <Text style={[type.subhead, { color: compatScoreColour(compat.overallScore, c), fontFamily: 'Inter-SemiBold' }]}>
                       Why
                     </Text>
                     <Ionicons name="chevron-forward" size={16} color={c.textMuted} />

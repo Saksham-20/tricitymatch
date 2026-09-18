@@ -7,11 +7,10 @@ const CompatibilityMeter = ({ score, breakdown = null }) => {
   const circumference = 2 * Math.PI * 45;
   const offset = circumference - (score / 100) * circumference;
 
-  // Map compatibility color class to a hex for breakdown bars
-  const barColor =
-    score >= 85 ? '#2E7D32' :
-    score >= 65 ? '#C9A227' :
-    '#8B2346';
+  // Map compatibility color class to a hex for breakdown bars. Shown to every
+  // member regardless of plan, so this stays a two-tier scale — gold is
+  // reserved for premium marks (doctrine §3.1), never a "good score" colour.
+  const barColor = score >= 85 ? '#2E7D32' : '#8B2346';
 
   return (
     <div className="flex flex-col items-center space-y-4">

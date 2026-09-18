@@ -47,9 +47,12 @@ function LikeButton({
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
-// Score colouring (handoff): green / gold / burgundy.
-const scoreColour = (pct: number): string =>
-  pct >= 90 ? colours.success : pct >= 75 ? colours.g500 : colours.p500;
+// Score colouring (handoff): green / gold / burgundy. `success` reads
+// correctly as status text but is documented as unreadable as an accent on
+// a dark surfaceCard — `successAccent` is the theme-reactive pair that
+// stays legible as a score dot/fill in both themes.
+const scoreColour = (pct: number, c: ThemeColours): string =>
+  pct >= 90 ? c.successAccent : pct >= 75 ? colours.g500 : colours.p500;
 
 export interface ProfileCardProps {
   profile: ProfileSummary;
@@ -106,7 +109,7 @@ export default function ProfileCard({
           {showCompatibility && compat > 0 && (
             <View style={s.compatRow}>
               <View style={[s.compatBar, { backgroundColor: c.surface2 }]}>
-                <View style={[s.compatFill, { width: `${compat}%`, backgroundColor: scoreColour(compat) }]} />
+                <View style={[s.compatFill, { width: `${compat}%`, backgroundColor: scoreColour(compat, c) }]} />
               </View>
               <Text style={[s.compatPct, { color: c.textMuted }]}>{compat}%</Text>
             </View>
@@ -166,7 +169,7 @@ export default function ProfileCard({
           </Text>
           {showCompatibility && compat > 0 && (
             <View style={s.compatChip}>
-              <View style={[s.compatDot, { backgroundColor: scoreColour(compat) }]} />
+              <View style={[s.compatDot, { backgroundColor: scoreColour(compat, c) }]} />
               <Text style={s.compatChipText}>{compat}% match</Text>
             </View>
           )}

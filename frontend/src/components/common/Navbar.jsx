@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion';
+import { popIn, backdrop, DUR, EASE_DRAWER } from '../../utils/animations';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import Logo from './Logo';
@@ -38,14 +39,15 @@ const NotificationBell = ({ count = 0 }) => {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="relative w-10 h-10 flex items-center justify-center rounded-xl text-neutral-600 hover:text-primary-500 hover:bg-primary-50 transition-all duration-200"
+        className="relative w-10 h-10 flex items-center justify-center rounded-xl text-neutral-600 hover:text-primary-500 hover:bg-primary-50 transition-[color,background-color] duration-[160ms]"
         aria-label={`Notifications${count > 0 ? `, ${count} unread` : ''}`}
       >
         <FiBell className="w-5 h-5" />
         {count > 0 && (
           <motion.span
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
             className="absolute top-1.5 right-1.5 w-4 h-4 bg-primary-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none"
           >
             {count > 9 ? '9+' : count}
@@ -56,11 +58,8 @@ const NotificationBell = ({ count = 0 }) => {
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: -6, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.97 }}
-            transition={{ duration: 0.18 }}
-            className="absolute right-0 top-12 w-80 bg-white dark:bg-[#1a1f2e] rounded-2xl shadow-2xl dark:shadow-[0_25px_50px_rgba(0,0,0,0.6)] border border-neutral-100 dark:border-[#252b3b] overflow-hidden z-50"
+            {...popIn}
+            className="absolute right-0 top-12 w-80 bg-white dark:bg-surface-dark-3 rounded-2xl shadow-2xl dark:shadow-[0_25px_50px_rgba(0,0,0,0.6)] border border-neutral-100 dark:border-[#252b3b] overflow-hidden z-60 origin-top-right"
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-100 dark:border-[#252b3b]">
               <span className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">{t('navbar.notifications')}</span>
@@ -135,7 +134,7 @@ const ProfileDropdown = ({ user, onLogout }) => {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-neutral-100 transition-all duration-200"
+        className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors duration-[160ms]"
         aria-label="Profile menu"
       >
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow-sm">
@@ -152,11 +151,8 @@ const ProfileDropdown = ({ user, onLogout }) => {
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: -6, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.97 }}
-            transition={{ duration: 0.18 }}
-            className="absolute right-0 top-12 w-56 bg-white dark:bg-[#1a1f2e] rounded-2xl shadow-2xl dark:shadow-[0_25px_50px_rgba(0,0,0,0.6)] border border-neutral-100 dark:border-[#252b3b] overflow-hidden z-50"
+            {...popIn}
+            className="absolute right-0 top-12 w-56 bg-white dark:bg-surface-dark-3 rounded-2xl shadow-2xl dark:shadow-[0_25px_50px_rgba(0,0,0,0.6)] border border-neutral-100 dark:border-[#252b3b] overflow-hidden z-60 origin-top-right"
           >
             {/* User info */}
             <div className="px-4 py-3 border-b border-neutral-100 dark:border-[#252b3b]">
@@ -167,7 +163,7 @@ const ProfileDropdown = ({ user, onLogout }) => {
               {user?.isPremium && (
                 <div className="flex items-center gap-1 mt-1.5">
                   <FaCrown className="w-3 h-3 text-gold" />
-                  <span className="text-xs font-semibold text-gold-700">{t('navbar.premiumMember')}</span>
+                  <span className="text-xs font-semibold text-gold-700 dark:text-gold-400">{t('navbar.premiumMember')}</span>
                 </div>
               )}
             </div>
@@ -195,7 +191,7 @@ const ProfileDropdown = ({ user, onLogout }) => {
                   key={to}
                   to={to}
                   onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-primary-500 transition-colors"
+                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 hover:text-primary-500 transition-colors"
                 >
                   <Icon className="w-4 h-4" />
                   {label}
@@ -203,10 +199,10 @@ const ProfileDropdown = ({ user, onLogout }) => {
               ))}
             </div>
 
-            <div className="border-t border-neutral-100 py-1">
+            <div className="border-t border-neutral-100 dark:border-[#252b3b] py-1">
               <button
                 onClick={() => { setOpen(false); onLogout(); }}
-                className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-destructive hover:bg-destructive-light dark:hover:bg-destructive/15 transition-colors"
               >
                 <FiLogOut className="w-4 h-4" />
                 {t('navbar.signOut')}
@@ -252,11 +248,10 @@ const Navbar = () => {
     return () => clearInterval(interval);
   }, [isAuthenticated]);
 
-  useEffect(() => {
-    const onScroll = () => setIsScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', onScroll);
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+  // framer-motion's scroll tracker (doctrine §8: no raw scroll listeners)
+  // instead of a hand-rolled window scroll handler.
+  const { scrollY } = useScroll();
+  useMotionValueEvent(scrollY, 'change', (y) => setIsScrolled(y > 20));
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
@@ -286,7 +281,7 @@ const Navbar = () => {
         transition={{ duration: 0.45, ease: 'easeOut' }}
         role="navigation"
         aria-label="Main navigation"
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-white dark:bg-[#14182a] dark:border-[#252b3b] ${
+        className={`fixed top-0 left-0 right-0 z-60 transition-[box-shadow,border-color] duration-300 bg-white dark:bg-surface-dark-2 dark:border-[#252b3b] ${
           isScrolled
             ? 'shadow-sm border-b border-neutral-100 dark:shadow-none dark:border-b'
             : 'border-b border-neutral-100/60'
@@ -307,7 +302,7 @@ const Navbar = () => {
                     to={path}
                     viewTransition
                     aria-current={isActive(path) ? 'page' : undefined}
-                    className={`relative flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                    className={`relative flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-[background-color,color,box-shadow] duration-[160ms] ${
                       isActive(path)
                         ? 'bg-primary-500 text-white shadow-burgundy'
                         : 'text-neutral-600 hover:text-primary-500 hover:bg-primary-50'
@@ -328,7 +323,7 @@ const Navbar = () => {
                 </Link>
                 <Link
                   to="/signup"
-                  className="text-sm font-semibold px-5 py-2.5 bg-primary-500 text-white rounded-xl hover:bg-primary-600 transition-all duration-200 shadow-burgundy hover:-translate-y-0.5"
+                  className="text-sm font-semibold px-5 py-2.5 bg-primary-500 text-white rounded-xl hover:bg-primary-600 transition-[background-color,transform,box-shadow] duration-[160ms] shadow-burgundy hover:-translate-y-0.5"
                 >
                   {t('navbar.createProfile')}
                 </Link>
@@ -341,7 +336,7 @@ const Navbar = () => {
                 <>
                   <button
                     onClick={toggleDark}
-                    className="hidden md:flex w-10 h-10 items-center justify-center rounded-xl text-neutral-600 hover:text-primary-500 hover:bg-primary-50 transition-all duration-200"
+                    className="hidden md:flex w-10 h-10 items-center justify-center rounded-xl text-neutral-600 hover:text-primary-500 hover:bg-primary-50 transition-[color,background-color] duration-[160ms]"
                     aria-label={t('navbar.toggleDark')}
                   >
                     {isDark ? <FiSun className="w-5 h-5" /> : <FiMoon className="w-5 h-5" />}
@@ -378,20 +373,19 @@ const Navbar = () => {
         {isMobileMenuOpen && (
           <>
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              {...backdrop}
               onClick={() => setIsMobileMenuOpen(false)}
-              className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 md:hidden"
+              className="fixed inset-0 bg-black/20 backdrop-blur-sm z-70 md:hidden"
             />
 
+            {/* Side drawer — duration-based on the drawer curve (doctrine
+                §4.4 ruling 8): this menu opens on tap, not a drag gesture, so
+                it takes the sheet's duration/ease pair, not a spring. */}
             <motion.div
               initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 220 }}
-              className="fixed top-0 right-0 h-full w-72 bg-white dark:bg-[#14182a] shadow-2xl dark:shadow-[0_0_60px_rgba(0,0,0,0.7)] z-50 md:hidden flex flex-col"
+              animate={{ x: 0, transition: { duration: DUR.sheet, ease: EASE_DRAWER } }}
+              exit={{ x: '100%', transition: { duration: DUR.sheetExit, ease: EASE_DRAWER } }}
+              className="fixed top-0 right-0 h-full w-72 bg-white dark:bg-surface-dark-2 shadow-2xl dark:shadow-[0_0_60px_rgba(0,0,0,0.7)] z-70 md:hidden flex flex-col"
               role="dialog"
               aria-modal="true"
               aria-label="Navigation menu"
@@ -409,18 +403,18 @@ const Navbar = () => {
 
               {/* User info (auth) */}
               {isAuthenticated && user && (
-                <div className="flex items-center gap-3 px-5 py-4 border-b border-neutral-100 dark:border-[#252b3b] bg-neutral-50 dark:bg-[#0f1117]">
+                <div className="flex items-center gap-3 px-5 py-4 border-b border-neutral-100 dark:border-[#252b3b] bg-neutral-50 dark:bg-surface-dark-1">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
                     {((user.firstName?.[0] || '') + (user.lastName?.[0] || '')).toUpperCase() || 'U'}
                   </div>
                   <div className="min-w-0">
-                    <p className="font-semibold text-neutral-800 text-sm truncate">
+                    <p className="font-semibold text-neutral-800 dark:text-neutral-100 text-sm truncate">
                       {user.firstName} {user.lastName}
                     </p>
                     {user.isPremium && (
                       <div className="flex items-center gap-1">
                         <FaCrown className="w-3 h-3 text-gold" />
-                        <span className="text-xs text-gold-700 font-medium">{t('navbar.premium')}</span>
+                        <span className="text-xs text-gold-700 dark:text-gold-400 font-medium">{t('navbar.premium')}</span>
                       </div>
                     )}
                   </div>
@@ -446,10 +440,10 @@ const Navbar = () => {
                       >
                         <Link
                           to={path}
-                          className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 ${
+                          className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-[background-color,color,box-shadow] duration-[160ms] ${
                             isActive(path)
                               ? 'bg-primary-500 text-white shadow-burgundy'
-                              : 'text-neutral-700 hover:bg-primary-50 hover:text-primary-600'
+                              : 'text-neutral-700 dark:text-neutral-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600'
                           }`}
                         >
                           <Icon className="w-5 h-5 flex-shrink-0" />
@@ -459,7 +453,7 @@ const Navbar = () => {
                     ))}
 
                     {/* Extra links */}
-                    <div className="pt-3 mt-3 border-t border-neutral-100 space-y-0.5">
+                    <div className="pt-3 mt-3 border-t border-neutral-100 dark:border-[#252b3b] space-y-0.5">
                       {[
                         { path: '/profile', label: t('navbar.myProfile'), icon: FiUser },
                         { path: '/settings', label: t('navbar.settings'), icon: FiSettings },
@@ -468,7 +462,7 @@ const Navbar = () => {
                         <Link
                           key={path}
                           to={path}
-                          className="flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm text-neutral-600 hover:bg-neutral-100 hover:text-neutral-800 transition-colors"
+                          className="flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
                         >
                           <Icon className="w-5 h-5 flex-shrink-0" />
                           {label}
@@ -476,10 +470,10 @@ const Navbar = () => {
                       ))}
                     </div>
 
-                    <div className="pt-3 mt-3 border-t border-neutral-100">
+                    <div className="pt-3 mt-3 border-t border-neutral-100 dark:border-[#252b3b]">
                       <button
                         onClick={handleLogout}
-                        className="flex items-center gap-3 w-full px-4 py-3 rounded-xl font-medium text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        className="flex items-center gap-3 w-full px-4 py-3 rounded-xl font-medium text-sm text-destructive hover:bg-destructive-light dark:hover:bg-destructive/15 transition-colors"
                       >
                         <FiLogOut className="w-5 h-5" />
                         {t('navbar.signOut')}
@@ -490,13 +484,13 @@ const Navbar = () => {
                   <div className="space-y-3 px-5 py-4">
                     <Link
                       to="/login"
-                      className="block w-full py-3 text-center rounded-xl font-semibold text-sm text-neutral-700 border-2 border-neutral-200 hover:border-primary-400 hover:text-primary-500 transition-all duration-200"
+                      className="block w-full py-3 text-center rounded-xl font-semibold text-sm text-neutral-700 dark:text-neutral-300 border-2 border-neutral-200 dark:border-neutral-700 hover:border-primary-400 hover:text-primary-500 transition-[border-color,color] duration-[160ms]"
                     >
                       {t('navbar.signIn')}
                     </Link>
                     <Link
                       to="/signup"
-                      className="block w-full py-3 text-center rounded-xl font-semibold text-sm bg-primary-500 text-white hover:bg-primary-600 transition-all duration-200 shadow-burgundy"
+                      className="block w-full py-3 text-center rounded-xl font-semibold text-sm bg-primary-500 text-white hover:bg-primary-600 transition-colors duration-[160ms] shadow-burgundy"
                     >
                       {t('navbar.createFreeProfile')}
                     </Link>
@@ -505,7 +499,7 @@ const Navbar = () => {
               </div>
 
               {/* Footer */}
-              <div className="px-5 py-4 border-t border-neutral-100 bg-neutral-50">
+              <div className="px-5 py-4 border-t border-neutral-100 dark:border-[#252b3b] bg-neutral-50 dark:bg-surface-dark-1">
                 <p className="text-xs text-neutral-400 text-center">
                   {t('navbar.region')}
                 </p>

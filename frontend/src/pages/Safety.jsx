@@ -3,11 +3,8 @@ import { Link } from 'react-router-dom';
 import { FiShield, FiMessageCircle, FiMapPin, FiFlag, FiCheck, FiPhone, FiArrowRight } from 'react-icons/fi';
 import Seo from '../components/common/Seo';
 
-const Eyebrow = ({ children, className = '' }) => (
-  <span className={`inline-block font-mono text-[11px] uppercase tracking-[0.2em] text-primary-600 ${className}`}>
-    {children}
-  </span>
-);
+/* The `Eyebrow` chip that used to sit above every heading on this page is
+   removed (doctrine ruling 2 — zero eyebrows, the heading carries itself). */
 
 const PILLARS = [
   {
@@ -51,7 +48,7 @@ const PILLARS = [
 
 export default function Safety() {
   return (
-    <div className="min-h-screen bg-[#FDF8F2] text-neutral-900">
+    <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-surface-dark-1 text-neutral-900 dark:text-neutral-100">
       <Seo
         title="Safety & Trust"
         description="How TricityMatch keeps members safe — verification, privacy controls, and dating-safety guidance."
@@ -61,12 +58,11 @@ export default function Safety() {
       {/* Hero */}
       <section className="px-4 pt-24 pb-14 md:pt-32 md:pb-16">
         <div className="max-w-5xl mx-auto">
-          <Link to="/" className="font-mono text-[11px] uppercase tracking-[0.16em] text-neutral-500 hover:text-primary-600 transition-colors block w-fit py-2 px-2 -mx-2 -mt-2 mb-8">← Back to home</Link>
-          <Eyebrow className="mb-5">● Safety centre · Your trust comes first</Eyebrow>
+          <Link to="/" className="text-sm text-primary-600 dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-200 inline-block py-2 px-2 -mx-2 -mt-2 mb-8">← Back to home</Link>
           <h1 className="font-display text-4xl md:text-6xl font-bold leading-[1.05] max-w-3xl">
             Meet with <span className="text-primary-700 italic">confidence.</span>
           </h1>
-          <p className="mt-6 text-lg text-neutral-600 max-w-2xl leading-relaxed">
+          <p className="mt-6 text-lg text-neutral-600 dark:text-neutral-400 max-w-2xl leading-relaxed">
             We do the groundwork on verification and privacy so you can focus on finding the right person.
             Here's how we keep the platform — and you — safe.
           </p>
@@ -75,21 +71,21 @@ export default function Safety() {
 
       {/* Trust pillars */}
       <section className="px-4 pb-16 md:pb-20">
-        <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-px bg-neutral-200 border border-neutral-200 rounded-2xl overflow-hidden">
+        <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-px bg-neutral-200 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden">
           {PILLARS.map(({ icon: Icon, n, t, body, points }) => (
-            <div key={n} className="bg-[#FFFAF6] p-7 md:p-9 flex flex-col">
+            <div key={n} className="bg-[#FFFAF6] dark:bg-surface-dark-3 p-7 md:p-9 flex flex-col">
               <div className="flex items-center justify-between mb-5">
-                <span className="w-11 h-11 rounded-full bg-primary-50 text-primary-700 flex items-center justify-center">
+                <span className="w-11 h-11 rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 flex items-center justify-center">
                   <Icon className="w-5 h-5" />
                 </span>
-                <span className="font-mono text-[11px] tracking-[0.16em] text-neutral-400">{n}</span>
+                <span className="font-mono text-[11px] tracking-[0.16em] text-neutral-400 dark:text-neutral-500">{n}</span>
               </div>
-              <h2 className="font-display text-xl md:text-2xl font-bold text-neutral-900 mb-3">{t}</h2>
-              {body && <p className="text-sm text-neutral-600 leading-relaxed">{body}</p>}
+              <h2 className="font-display text-xl md:text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-3">{t}</h2>
+              {body && <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">{body}</p>}
               {points.length > 0 && (
                 <ul className="space-y-2.5 mt-1">
                   {points.map((p) => (
-                    <li key={p} className="flex items-start gap-2.5 text-sm text-neutral-700">
+                    <li key={p} className="flex items-start gap-2.5 text-sm text-neutral-700 dark:text-neutral-300">
                       <FiCheck className="w-4 h-4 text-primary-600 mt-0.5 flex-shrink-0" />
                       <span>{p}</span>
                     </li>
@@ -103,13 +99,12 @@ export default function Safety() {
 
       {/* Emergency callout */}
       <section className="px-4 pb-24">
-        <div className="max-w-5xl mx-auto rounded-3xl bg-gradient-to-br from-[#7C1D3A] to-[#5C1229] text-[#FDF8F2] px-8 py-12 md:py-14">
+        <div className="max-w-5xl mx-auto rounded-3xl bg-primary-600 text-[#FDF8F2] px-8 py-12 md:py-14">
           <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-10">
             <span className="w-14 h-14 rounded-full bg-[#FDF8F2]/12 flex items-center justify-center flex-shrink-0">
               <FiPhone className="w-6 h-6 text-[#D4B048]" />
             </span>
             <div className="flex-1">
-              <Eyebrow className="mb-2 !text-[#D4B048]">— Emergency</Eyebrow>
               <h2 className="font-display text-2xl md:text-3xl font-bold mb-2 text-[#FDF8F2]">In immediate danger? Call 112.</h2>
               <p className="text-[#FDF8F2]/70 max-w-xl">
                 For platform safety concerns, email{' '}

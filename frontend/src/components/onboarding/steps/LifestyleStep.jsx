@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import Select from '../../ui/Select';
+import { staggerContainer, fadeRise } from '../../../utils/animations';
 
 const SKIN_TONES = [
   { value: 'fair', label: 'Fair' },
@@ -36,12 +37,8 @@ const LifestyleStep = () => {
   }, []);
 
   return (
-    <div className="space-y-5">
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-      >
+    <motion.div className="space-y-5" initial="initial" animate="animate" variants={staggerContainer}>
+      <motion.div variants={fadeRise}>
         <Select
           label="Skin Tone"
           options={SKIN_TONES}
@@ -51,11 +48,7 @@ const LifestyleStep = () => {
         />
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-      >
+      <motion.div variants={fadeRise}>
         <Select
           label="Diet"
           options={DIETS}
@@ -65,11 +58,7 @@ const LifestyleStep = () => {
         />
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
+      <motion.div variants={fadeRise}>
         <Select
           label="Smoking"
           options={HABITS}
@@ -79,11 +68,7 @@ const LifestyleStep = () => {
         />
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.25 }}
-      >
+      <motion.div variants={fadeRise}>
         <Select
           label="Drinking"
           options={HABITS}
@@ -93,16 +78,11 @@ const LifestyleStep = () => {
         />
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600"
-      >
+      <motion.div variants={fadeRise} className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600">
         <p className="font-medium text-neutral-800 mb-1">Lifestyle compatibility</p>
         <p>These details help us find someone with a compatible lifestyle and habits.</p>
       </motion.div>
-    </div>
+    </motion.div>
   );
 };
 

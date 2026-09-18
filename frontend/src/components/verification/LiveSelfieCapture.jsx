@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { FiCamera, FiRefreshCw, FiVideo, FiAlertCircle, FiCheckCircle } from 'react-icons/fi';
+import { fade } from '../../utils/animations';
 
 /**
  * LiveSelfieCapture — captures a selfie strictly from the live camera.
@@ -71,7 +73,7 @@ export default function LiveSelfieCapture({ file, onChange }) {
           : none
           ? 'No camera found on this device. Open TricityMatch on a phone to verify.'
           : timedOut
-          ? 'We never got access to your camera. Look for the camera permission prompt in your browser and choose Allow, then try again — or open TricityMatch on your phone.'
+          ? 'We never got access to your camera. Look for the camera permission prompt in your browser and choose Allow, then try again, or open TricityMatch on your phone.'
           : 'Could not start the camera. Make sure no other app is using it, then try again.'
       );
       setPhase('error');
@@ -119,10 +121,15 @@ export default function LiveSelfieCapture({ file, onChange }) {
     startCamera();
   }, [onChange, startCamera]);
 
+  // Phase swaps (idle → starting → live → captured/error) get a plain fade so
+  // the camera hand-off never reads as a jarring hard cut (doctrine §4.1:
+  // purpose = preventing a jarring change).
+  let content;
+
   // ── Captured still ──────────────────────────────────────────────────────
   if (file && phase === 'captured') {
-    return (
-      <div className="flex flex-col items-center gap-3">
+    content = (
+      <motion.div key="captured" initial="initial" animate="animate" exit="exit" variants={fade} className="flex flex-col items-center gap-3">
         <div className="relative">
           <img
             src={previewUrl}
@@ -136,35 +143,33 @@ export default function LiveSelfieCapture({ file, onChange }) {
         <button
           type="button"
           onClick={retake}
-          className="flex items-center gap-1.5 text-sm font-semibold text-primary-600 hover:text-primary-700"
+          className="flex items-center gap-1.5 min-h-[44px] px-2 text-sm font-semibold text-primary-600 hover:text-primary-700"
         >
           <FiRefreshCw className="w-4 h-4" /> Retake photo
         </button>
-      </div>
+      </motion.div>
     );
-  }
 
   // ── Error ───────────────────────────────────────────────────────────────
-  if (phase === 'error') {
-    return (
-      <div className="flex flex-col items-center gap-3 px-4 py-8 rounded-2xl border-2 border-dashed border-destructive/30 bg-destructive-light text-center">
+  } else if (phase === 'error') {
+    content = (
+      <motion.div key="error" initial="initial" animate="animate" exit="exit" variants={fade} className="flex flex-col items-center gap-3 px-4 py-8 rounded-2xl border-2 border-dashed border-destructive/30 bg-destructive-light text-center">
         <FiAlertCircle className="w-8 h-8 text-destructive" />
-        <p className="text-sm font-medium text-neutral-700 max-w-xs">{error}</p>
+        <p role="alert" className="text-sm font-medium text-neutral-700 max-w-xs">{error}</p>
         <button
           type="button"
           onClick={startCamera}
-          className="mt-1 px-5 py-2 rounded-lg bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700"
+          className="mt-1 min-h-[44px] px-5 py-2 rounded-lg bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors duration-[160ms] active:scale-[0.98]"
         >
           Try again
         </button>
-      </div>
+      </motion.div>
     );
-  }
 
   // ── Live / starting ───────────────────────────────────────────────────────
-  if (phase === 'live' || phase === 'starting') {
-    return (
-      <div className="flex flex-col items-center gap-4">
+  } else if (phase === 'live' || phase === 'starting') {
+    content = (
+      <motion.div key="live" initial="initial" animate="animate" exit="exit" variants={fade} className="flex flex-col items-center gap-4">
         <div className="relative w-56 h-56 rounded-3xl overflow-hidden bg-neutral-900 border border-neutral-200">
           <video
             ref={videoRef}
@@ -186,25 +191,33 @@ export default function LiveSelfieCapture({ file, onChange }) {
           type="button"
           onClick={capture}
           disabled={phase !== 'live'}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-primary-600 text-white text-sm font-bold hover:bg-primary-700 disabled:opacity-60 shadow-sm"
+          className="flex items-center gap-2 px-6 py-2.5 min-h-[44px] rounded-full bg-primary-600 text-white text-sm font-bold hover:bg-primary-700 disabled:opacity-60 shadow-sm transition-colors duration-[160ms] active:scale-[0.98]"
         >
           <FiCamera className="w-4 h-4" /> Capture selfie
         </button>
         <p className="text-xs text-neutral-400">Center your face in the circle, good light, look at the camera.</p>
-      </div>
+      </motion.div>
+    );
+
+  // ── Idle (start) ──────────────────────────────────────────────────────────
+  } else {
+    content = (
+      <motion.button
+        key="idle"
+        type="button"
+        initial="initial"
+        animate="animate"
+        exit="exit"
+        variants={fade}
+        onClick={startCamera}
+        className="w-full flex flex-col items-center gap-2 px-4 py-8 min-h-[44px] rounded-2xl border-2 border-dashed border-neutral-300 hover:border-primary-400 text-neutral-500 transition-colors duration-[160ms] active:scale-[0.99]"
+      >
+        <FiVideo className="w-8 h-8 text-primary-400" />
+        <span className="text-sm font-semibold text-neutral-700">Start live camera</span>
+        <span className="text-xs text-neutral-400">We capture your selfie live. No uploads, so nobody can fake it.</span>
+      </motion.button>
     );
   }
 
-  // ── Idle (start) ──────────────────────────────────────────────────────────
-  return (
-    <button
-      type="button"
-      onClick={startCamera}
-      className="w-full flex flex-col items-center gap-2 px-4 py-8 rounded-2xl border-2 border-dashed border-neutral-300 hover:border-primary-400 text-neutral-500 transition-colors"
-    >
-      <FiVideo className="w-8 h-8 text-primary-400" />
-      <span className="text-sm font-semibold text-neutral-700">Start live camera</span>
-      <span className="text-xs text-neutral-400">We capture your selfie live — no uploads, so nobody can fake it.</span>
-    </button>
-  );
+  return <AnimatePresence mode="wait">{content}</AnimatePresence>;
 }

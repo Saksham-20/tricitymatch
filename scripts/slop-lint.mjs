@@ -40,6 +40,11 @@ const ALLOWED_HEX = new Set([
   '#d97706', '#f59e0b', '#fef9c3',
   '#dc2626', '#ef4444', '#fee2e2',
   '#2563eb', '#3b82f6', '#dbeafe',
+  // canonical `--warning` token (index.css) + its WCAG-required darker text
+  // derivative — the brand warning-orange fails 3:1/4.5:1 as TEXT on
+  // white/bg-warning-light regardless of hex, so text specifically uses the
+  // darker amber while fills stay on the brand tone (2026-09 doctrine pass).
+  '#f57c00', '#92400e',
   // mobile call theme (dark navy, deliberate 2026-06-09)
   '#0f172a', '#1e293b', '#334155',
   // dark-mode surface ramp (html.dark theme)

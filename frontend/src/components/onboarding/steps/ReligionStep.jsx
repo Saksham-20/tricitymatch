@@ -4,6 +4,7 @@ import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
 import Select from '../../ui/Select';
 import { CASTE_OPTIONS, CASTE_OTHER } from '../../../constants/profileOptions';
+import { staggerContainer, fadeRise, DUR, EASE_OUT } from '../../../utils/animations';
 
 const RELIGIONS = ['Hindu', 'Muslim', 'Sikh', 'Christian', 'Buddhist', 'Jain', 'Other'];
 const MOTHER_TONGUES = ['Punjabi', 'Hindi', 'English', 'Marathi', 'Tamil', 'Telugu', 'Malayalam', 'Kannada', 'Other'];
@@ -48,12 +49,8 @@ const ReligionStep = () => {
   }, []);
 
   return (
-    <div className="space-y-5">
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-      >
+    <motion.div className="space-y-5" initial="initial" animate="animate" variants={staggerContainer}>
+      <motion.div variants={fadeRise}>
         <Select
           label="Religion"
           options={RELIGIONS.map(r => ({ value: r, label: r }))}
@@ -66,11 +63,7 @@ const ReligionStep = () => {
 
       {/* Caste / community + horoscope details are available to EVERY religion —
           no gating. Search the list or type your own via "Other". */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-      >
+      <motion.div variants={fadeRise}>
         <Select
           label="Caste / Community"
           options={CASTE_SELECT_OPTIONS}
@@ -80,56 +73,52 @@ const ReligionStep = () => {
           optional
           placeholder="Search or type your community"
         />
-            <AnimatePresence>
-              {casteOther && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="mt-3 overflow-hidden"
-                >
-                  <FormField
-                    label="Your community"
-                    placeholder="Type your community"
-                    value={formData.caste}
-                    onChange={(value) => updateFormData('caste', value)}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
+        <AnimatePresence>
+          {casteOther && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto', transition: { duration: DUR.accordion, ease: EASE_OUT } }}
+              exit={{ opacity: 0, height: 0, transition: { duration: DUR.accordion, ease: EASE_OUT } }}
+              className="mt-3 overflow-hidden"
+            >
+              <FormField
+                label="Your community"
+                placeholder="Type your community"
+                value={formData.caste}
+                onChange={(value) => updateFormData('caste', value)}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+
+      {/* Progressive reveal: sub-caste/gotra only make sense once a community
+          is chosen — hidden until then to keep the form short (shortest path). */}
+      <AnimatePresence>
+        {!!(formData.caste || '').trim() && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto', transition: { duration: DUR.accordion, ease: EASE_OUT } }}
+            exit={{ opacity: 0, height: 0, transition: { duration: DUR.accordion, ease: EASE_OUT } }}
+            className="grid grid-cols-1 sm:grid-cols-2 gap-4 overflow-hidden"
+          >
+            <FormField
+              label="Sub-caste"
+              placeholder="Optional"
+              value={formData.subCaste}
+              onChange={(value) => updateFormData('subCaste', value)}
+            />
+            <FormField
+              label="Gotra"
+              placeholder="Optional"
+              value={formData.gotra}
+              onChange={(value) => updateFormData('gotra', value)}
+            />
           </motion.div>
+        )}
+      </AnimatePresence>
 
-          {/* Progressive reveal: sub-caste/gotra only make sense once a community
-              is chosen — hidden until then to keep the form short (shortest path). */}
-          <AnimatePresence>
-            {!!(formData.caste || '').trim() && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="grid grid-cols-1 sm:grid-cols-2 gap-4 overflow-hidden"
-              >
-                <FormField
-                  label="Sub-caste"
-                  placeholder="Optional"
-                  value={formData.subCaste}
-                  onChange={(value) => updateFormData('subCaste', value)}
-                />
-                <FormField
-                  label="Gotra"
-                  placeholder="Optional"
-                  value={formData.gotra}
-                  onChange={(value) => updateFormData('gotra', value)}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
+      <motion.div variants={fadeRise}>
         <Select
           label="Mother Tongue"
           options={MOTHER_TONGUES.map(m => ({ value: m, label: m }))}
@@ -140,16 +129,11 @@ const ReligionStep = () => {
         />
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.25 }}
-        className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600"
-      >
+      <motion.div variants={fadeRise} className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600">
         <p className="font-medium text-neutral-800 mb-1">Cultural compatibility</p>
         <p>Your religious and cultural background helps us find compatible matches who share your values. Caste is optional.</p>
       </motion.div>
-    </div>
+    </motion.div>
   );
 };
 

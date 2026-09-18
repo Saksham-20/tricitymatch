@@ -102,7 +102,12 @@ export default {
         },
         
         destructive: {
-          DEFAULT: "#C62828",
+          // Was a literal hex, so `--destructive`'s html.dark override in
+          // index.css (added for contrast) had nothing to attach to and
+          // text-destructive stayed #C62828 in both themes. Wired to the
+          // variable like every other themed token in this file so the
+          // dark override actually takes effect.
+          DEFAULT: "hsl(var(--destructive))",
           light: "#FFEBEE",
           foreground: "hsl(var(--destructive-foreground))",
         },
@@ -124,6 +129,16 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+
+        // Dark-mode surface elevation ramp (Phase 2 tokenization, doctrine
+        // §3.1/§3.4) — single source in index.css `html.dark`. RGB channels
+        // (not HSL, unlike the tokens above) so `<alpha-value>` reproduces the
+        // source hex exactly and slash-opacity modifiers keep working, e.g.
+        // `dark:bg-surface-dark-3/95`. 1 = page canvas (darkest), 2 = chrome
+        // & inset surfaces, 3 = raised card/composer (lightest).
+        'surface-dark-1': 'rgb(var(--surface-dark-1) / <alpha-value>)',
+        'surface-dark-2': 'rgb(var(--surface-dark-2) / <alpha-value>)',
+        'surface-dark-3': 'rgb(var(--surface-dark-3) / <alpha-value>)',
       },
       
       // Font families
@@ -226,68 +241,31 @@ export default {
           "0%": { opacity: "0", transform: "translateX(-20px)" },
           "100%": { opacity: "1", transform: "translateX(0)" },
         },
-        // Pulse soft
-        "pulse-soft": {
-          "0%, 100%": { opacity: "1" },
-          "50%": { opacity: "0.7" },
-        },
-        // Float
-        "float": {
-          "0%, 100%": { transform: "translateY(0)" },
-          "50%": { transform: "translateY(-10px)" },
-        },
-        // Glow
-        "glow": {
-          "0%, 100%": { boxShadow: "0 0 5px rgba(139, 35, 70, 0.3)" },
-          "50%": { boxShadow: "0 0 20px rgba(139, 35, 70, 0.6)" },
-        },
-        // Heart pulse
-        "heart-pulse": {
-          "0%, 100%": { transform: "scale(1)" },
-          "50%": { transform: "scale(1.2)" },
-        },
         // Shake
         "shake": {
           "0%, 100%": { transform: "translateX(0)" },
           "10%, 30%, 50%, 70%, 90%": { transform: "translateX(-5px)" },
           "20%, 40%, 60%, 80%": { transform: "translateX(5px)" },
         },
-        // Bounce in
-        "bounce-in": {
-          "0%": { opacity: "0", transform: "scale(0.3)" },
-          "50%": { transform: "scale(1.05)" },
-          "70%": { transform: "scale(0.9)" },
-          "100%": { opacity: "1", transform: "scale(1)" },
-        },
-        // Gradient shift
-        "gradient-shift": {
-          "0%": { backgroundPosition: "0% 50%" },
-          "50%": { backgroundPosition: "100% 50%" },
-          "100%": { backgroundPosition: "0% 50%" },
-        },
         // Typing dots
         "typing-bounce": {
           "0%, 60%, 100%": { transform: "translateY(0)" },
           "30%": { transform: "translateY(-4px)" },
         },
-        // Spin slow
-        "spin-slow": {
-          "0%": { transform: "rotate(0deg)" },
-          "100%": { transform: "rotate(360deg)" },
-        },
-        // Confetti
+        // Confetti — the one earned celebration (MatchPopup), already tuned
+        // to 18 particles over 1.8s. Doctrine §2 ruling 7 exception.
         "confetti": {
           "0%": { transform: "translateY(0) rotate(0deg)", opacity: "1" },
           "100%": { transform: "translateY(-500px) rotate(720deg)", opacity: "0" },
         },
-        // Star sparkle
-        "sparkle": {
-          "0%, 100%": { opacity: "0", transform: "scale(0)" },
-          "50%": { opacity: "1", transform: "scale(1)" },
-        },
       },
-      
+
       // Animations
+      // 2026-09 doctrine pass: retired glow, float, pulse-soft, bounce-in,
+      // gradient-shift, sparkle, heart-pulse and spin-slow — each was an
+      // idle loop or a bounce-by-reflex banned by doctrine §2 ruling 7 / §5,
+      // and each was confirmed to have zero live consumers in frontend/src
+      // (grepped before removal; see the Phase 1.1-1.3 handoff report).
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
@@ -298,17 +276,9 @@ export default {
         "scale-in": "scale-in 0.3s ease-out",
         "slide-in-right": "slide-in-right 0.3s ease-out",
         "slide-in-left": "slide-in-left 0.3s ease-out",
-        "pulse-soft": "pulse-soft 2s infinite",
-        "float": "float 3s ease-in-out infinite",
-        "glow": "glow 2s ease-in-out infinite",
-        "heart-pulse": "heart-pulse 0.3s ease-in-out",
-        "shake": "shake 0.5s ease-in-out",
-        "bounce-in": "bounce-in 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55)",
-        "gradient-shift": "gradient-shift 5s ease infinite",
+        "shake": "shake 0.3s ease-in-out",
         "typing-bounce": "typing-bounce 1.4s infinite ease-in-out",
-        "spin-slow": "spin-slow 3s linear infinite",
         "confetti": "confetti 3s ease-out forwards",
-        "sparkle": "sparkle 0.6s ease-in-out",
       },
       
       // Backdrop blur

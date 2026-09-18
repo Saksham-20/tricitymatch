@@ -5,16 +5,29 @@
  * like elsewhere is unchanged.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiX, FiHeart } from 'react-icons/fi';
 import { sanitizeText } from '../../utils/sanitize';
+import { sheet, backdrop } from '../../utils/animations';
 
 const MAX_NOTE = 280;
 
 const LikeNoteModal = ({ open, target, name, photoSrc, onClose, onSend }) => {
   const [note, setNote] = useState('');
   const [sending, setSending] = useState(false);
+
+  // Doctrine §6: "sheets and modals ... close on Escape" — this dialog only
+  // had backdrop-click and the X button, unlike this page's other two
+  // overlays (ImageLightbox, UpgradeModal), which both already close on Escape.
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [open, onClose]);
 
   const handleSend = async () => {
     setSending(true);
@@ -31,21 +44,16 @@ const LikeNoteModal = ({ open, target, name, photoSrc, onClose, onSend }) => {
     <AnimatePresence>
       {open && target && (
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4"
+          {...backdrop}
+          className="fixed inset-0 z-70 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4"
           onClick={onClose}
           role="dialog"
           aria-modal="true"
           aria-label={`Like ${name} with a note`}
         >
           <motion.div
-            initial={{ y: 40, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 40, opacity: 0 }}
-            transition={{ duration: 0.22, ease: 'easeOut' }}
-            className="w-full sm:max-w-md bg-white dark:bg-[#1a1f2e] rounded-t-3xl sm:rounded-3xl shadow-xl p-5"
+            {...sheet}
+            className="w-full sm:max-w-md bg-white dark:bg-surface-dark-3 rounded-t-3xl sm:rounded-3xl shadow-xl p-5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
@@ -72,16 +80,16 @@ const LikeNoteModal = ({ open, target, name, photoSrc, onClose, onSend }) => {
               value={note}
               onChange={(e) => setNote(e.target.value.slice(0, MAX_NOTE))}
               rows={3}
-              placeholder="Add a note (optional) — say what caught your eye…"
+              placeholder="Add a note (optional): say what caught your eye…"
               aria-label="Note to send with your like"
-              className="w-full px-4 py-3 rounded-2xl bg-neutral-100 dark:bg-[#14182a] text-neutral-800 dark:text-neutral-100 placeholder-neutral-400 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none"
+              className="w-full px-4 py-3 rounded-2xl bg-neutral-100 dark:bg-surface-dark-2 text-neutral-800 dark:text-neutral-100 placeholder-neutral-400 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none"
             />
             <div className="flex items-center justify-between mt-3">
               <span className="text-xs text-neutral-400 tabular-nums">{note.length}/{MAX_NOTE}</span>
               <button
                 onClick={handleSend}
                 disabled={sending}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-hero text-white rounded-full font-semibold text-sm hover:shadow-burgundy transition-all disabled:opacity-60"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-hero text-white rounded-full font-semibold text-sm hover:shadow-burgundy transition-shadow duration-[160ms] disabled:opacity-60"
               >
                 <FiHeart className="w-4 h-4" />
                 {sending ? 'Sending…' : 'Send like'}

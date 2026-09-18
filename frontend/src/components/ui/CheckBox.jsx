@@ -38,22 +38,22 @@ const CheckBox = ({
           onChange={(e) => onChange(e.target.checked)}
         />
         <div
-          className={`${sizeClasses[size]} rounded border-2 flex items-center justify-center transition-all flex-shrink-0 peer-focus-visible:ring-2 peer-focus-visible:ring-primary-500 peer-focus-visible:ring-offset-2 ${
+          className={`${sizeClasses[size]} rounded border-2 flex items-center justify-center transition-[background-color,border-color] duration-[160ms] flex-shrink-0 peer-focus-visible:ring-2 peer-focus-visible:ring-primary-500 peer-focus-visible:ring-offset-2 ${
             checked
               ? 'bg-primary-600 border-primary-600'
-              : 'border-neutral-300 bg-white hover:border-neutral-400'
+              : 'border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 hover:border-neutral-400 dark:hover:border-neutral-500'
           }`}
         >
           {checked && <FiCheck className="text-white" strokeWidth={3} size={16} />}
         </div>
         {label && (
-          <span className={`${labelSizeClasses[size]} text-neutral-900 font-medium`}>
+          <span className={`${labelSizeClasses[size]} text-neutral-900 dark:text-neutral-100 font-medium`}>
             {label}
           </span>
         )}
       </label>
-      {error && <p className="text-sm text-red-600 ml-8 font-medium">{error}</p>}
-      {hint && !error && <p className="text-xs text-neutral-500 ml-8">{hint}</p>}
+      {error && <p className="text-sm text-destructive ml-8 font-medium">{error}</p>}
+      {hint && !error && <p className="text-xs text-neutral-500 dark:text-neutral-400 ml-8">{hint}</p>}
     </div>
   );
 };

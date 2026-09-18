@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { FiArrowLeft } from 'react-icons/fi';
 import Seo from '../components/common/Seo';
 import { legal, support } from '../config';
 
@@ -40,16 +41,18 @@ const L = ({ to, children }) => (
 
 export default function Terms() {
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-[#0f1117] pt-20 pb-16 px-4">
+    <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 pt-20 pb-16 px-4">
       <Seo
         title="Terms of Service"
         description="The terms governing your use of TricityMatch."
         path="/terms"
       />
       <div className="max-w-3xl mx-auto">
-        <Link to="/" className="text-sm text-primary-700 dark:text-primary-300 inline-block py-2 px-2 -mx-2 -mt-2 mb-4">← Back to Home</Link>
+        <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-primary-700 dark:text-primary-300 py-2 px-2 -mx-2 -mt-2 mb-4">
+          <FiArrowLeft className="w-4 h-4" /> Back to home
+        </Link>
 
-        <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-sm border border-neutral-100 dark:border-neutral-800 p-8 md:p-12">
+        <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-100 dark:border-neutral-800 p-8 md:p-12">
           <h1 className="text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">Terms of Service</h1>
           <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-8">Last updated: {legal.termsUpdated}</p>
 
@@ -245,7 +248,7 @@ export default function Terms() {
             <section>
               <H>20. Suspension, termination &amp; what happens to your data</H>
               <p>You may delete your account at any time from <L to="/settings">Settings</L> — see <L to="/delete-account">how to delete your account</L> for the exact steps on the website and both apps. We may suspend or terminate an account that breaches these Terms or the law, or that endangers other members.</p>
-              <p className="mt-2">When your account is deleted, your profile, photographs, verification selfie, messages, matches and guardian links are erased. We retain your registration information for <strong>180 days</strong> after deletion, as rule 3(1)(h) of the IT Rules, 2021 requires, and we keep payment records for as long as tax and accounting law requires, and moderation records where another member has reported you. This is set out in detail in section 13 of the <L to="/privacy">Privacy Policy</L>.</p>
+              <p className="mt-2">When your account is deleted, your profile, photographs, verification selfie, messages, matches, guardian links and registration information (email, phone) are erased <strong>immediately</strong>. We keep payment records for as long as tax and accounting law requires, and moderation records where another member has reported you. This is set out in detail in section 13 of the <L to="/privacy">Privacy Policy</L>.</p>
             </section>
 
             <section>

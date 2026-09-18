@@ -12,6 +12,7 @@ import Logo from '../components/common/Logo';
 import Progress from '../components/ui/Progress';
 import { Button } from '../components/ui/Button';
 import Avatar from '../components/ui/Avatar';
+import { stepSlide, staggerContainer, fadeRise, fade, pageFade, backdrop, modal, DUR, EASE_IN_OUT } from '../utils/animations';
 import {
   FiChevronRight,
   FiChevronLeft,
@@ -109,6 +110,13 @@ const ModernOnboardingContent = () => {
   // autoFocused field we must not steal.
   const headingRef = useRef(null);
   const focusHeadingRef = useRef(false);
+  // Quit-confirm dialog: remember what opened it so Escape/close can return
+  // focus there, per doctrine's keyboard-path requirement.
+  const quitTriggerRef = useRef(null);
+  const quitDialogRef = useRef(null);
+  // Post-signup preview dialog: focus target on open (no trigger to restore
+  // focus to — the element that held it lives in the now-hidden background).
+  const previewDialogRef = useRef(null);
 
   // Build stepComponents array based on visible steps
   const stepComponents = visibleSteps.map(step => allStepComponents[step.id]);
@@ -157,7 +165,8 @@ const ModernOnboardingContent = () => {
     return () => { alive = false; };
   }, [inviteParam]);
 
-  const handleQuit = () => {
+  const handleQuit = (e) => {
+    quitTriggerRef.current = e?.currentTarget || null;
     setShowQuitDialog(true);
   };
 
@@ -165,6 +174,52 @@ const ModernOnboardingContent = () => {
     // Keep draft for resume later
     navigate('/');
   };
+
+  // Escape closes the quit-confirm dialog (equivalent to "Continue"); focus
+  // moves into the dialog on open and back to whatever opened it on close.
+  // Tab is trapped inside the dialog while it's open — the backdrop leaves
+  // the form/rail mounted and focusable behind it, so without this a
+  // keyboard user could Tab straight past the dialog into the hidden page.
+  useEffect(() => {
+    if (!showQuitDialog) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape') { setShowQuitDialog(false); return; }
+      if (e.key !== 'Tab' || !quitDialogRef.current) return;
+      const focusable = Array.from(
+        quitDialogRef.current.querySelectorAll('button, [href], [tabindex]:not([tabindex="-1"])')
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    quitDialogRef.current?.focus();
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      quitTriggerRef.current?.focus();
+    };
+  }, [showQuitDialog]);
+
+  // The success card has no data at risk (the account already exists), so
+  // Escape and a backdrop click dismiss it the same way the low-commitment
+  // "Explore my dashboard first" button does. Focus moves in on open — the
+  // element that held it (the submit button) is inside the now-hidden
+  // background wrapper, so it would otherwise silently fall back to <body>.
+  useEffect(() => {
+    if (!previewData) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') navigate('/dashboard'); };
+    document.addEventListener('keydown', onKey);
+    previewDialogRef.current?.focus();
+    return () => document.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewData]);
 
   // Surface the first validation error when a step fails — otherwise on long
   // steps the error renders off-screen and Next looks broken.
@@ -258,7 +313,7 @@ const ModernOnboardingContent = () => {
         console.error('guardian profile save failed', e.response?.data || e);
         setSubmitError(
           e.response?.data?.error?.message ||
-          'Your account was created, but we could not save all the profile details. Tap Retry — nothing you entered is lost.'
+          'Your account was created, but we could not save all the profile details. Tap Retry: nothing you entered is lost.'
         );
         return; // keep draft + accountCreated flag; Retry re-runs this PUT only
       }
@@ -297,7 +352,7 @@ const ModernOnboardingContent = () => {
   const ringC = 2 * Math.PI * ringR;
 
   return (
-    <div className="min-h-screen flex bg-neutral-50 dark:bg-[#0f1117]">
+    <div className="min-h-[100dvh] flex bg-neutral-50 dark:bg-surface-dark-1">
       {/* Once the account exists, clearDraft() has reset the wizard to a blank
           step 1 — leaving a dead "Create Account" form (and its tab stops)
           sitting behind the success card. Hide it from sight and from
@@ -307,9 +362,9 @@ const ModernOnboardingContent = () => {
         aria-hidden={previewData ? 'true' : undefined}
       >
       {/* Desktop: LIGHT brand / progress rail (burgundy as accent, never a slab) */}
-      <div className="hidden lg:flex lg:w-[22rem] xl:w-96 relative overflow-hidden bg-white dark:bg-[#1a1f2e] border-r border-neutral-100 dark:border-neutral-800">
+      <div className="hidden lg:flex lg:w-[22rem] xl:w-96 relative overflow-hidden bg-white dark:bg-surface-dark-3 border-r border-neutral-100 dark:border-neutral-800">
         {/* Subtle primary wash + faint rings (neutral, not white-on-burgundy) */}
-        <div className="absolute inset-0 bg-gradient-to-b from-primary-50/70 dark:from-primary-900/20 via-white dark:via-[#1a1f2e] to-white dark:to-[#1a1f2e] pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-primary-50/70 dark:from-primary-900/20 via-white dark:via-surface-dark-3 to-white dark:to-surface-dark-3 pointer-events-none" />
         <div className="absolute -top-24 -left-24 w-72 h-72 border border-neutral-200/60 dark:border-neutral-700/40 rounded-full pointer-events-none" />
         <div className="absolute top-1/3 -right-16 w-48 h-48 border border-gold-200/50 rounded-full pointer-events-none" />
 
@@ -326,7 +381,6 @@ const ModernOnboardingContent = () => {
             /* Signup is only 2 steps — a ring + stepper rail is overkill. Light
                cue: headline, slim segmented bar, two quiet step rows. */
             <div className="flex-1">
-              <p className="text-[11px] font-semibold text-primary-600 dark:text-primary-300 uppercase tracking-widest mb-2">Create your profile</p>
               <h2 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 leading-snug mb-1.5">
                 Two steps.<br />About two minutes.
               </h2>
@@ -342,6 +396,7 @@ const ModernOnboardingContent = () => {
                     className={`h-1 flex-1 rounded-full ${idx <= currentStep ? 'bg-primary-500' : 'bg-neutral-200 dark:bg-neutral-700'}`}
                     initial={false}
                     animate={{ opacity: idx <= currentStep ? 1 : 0.7 }}
+                    transition={{ duration: DUR.hover, ease: 'easeOut' }}
                   />
                 ))}
               </div>
@@ -353,11 +408,11 @@ const ModernOnboardingContent = () => {
                   return (
                     <li key={step.id} className="flex items-start gap-3">
                       <span
-                        className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-semibold flex-shrink-0 mt-0.5 transition-all ${
+                        className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-semibold flex-shrink-0 mt-0.5 transition-colors duration-[160ms] ${
                           done
                             ? 'bg-primary-500 text-white'
                             : active
-                            ? 'bg-primary-500 text-white ring-2 ring-primary-200 ring-offset-2 ring-offset-white dark:ring-offset-[#1a1f2e]'
+                            ? 'bg-primary-500 text-white ring-2 ring-primary-200 ring-offset-2 ring-offset-white dark:ring-offset-surface-dark-3'
                             : 'bg-neutral-200 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400'
                         }`}
                       >
@@ -386,7 +441,7 @@ const ModernOnboardingContent = () => {
                       strokeDasharray={ringC}
                       initial={false}
                       animate={{ strokeDashoffset: ringC - (progressPercentage / 100) * ringC }}
-                      transition={{ duration: 0.5, ease: 'easeOut' }}
+                      transition={{ duration: DUR.layout, ease: EASE_IN_OUT }}
                     />
                   </svg>
                   <span className="absolute inset-0 flex items-center justify-center font-display text-sm font-bold text-primary-600 dark:text-primary-300">
@@ -394,7 +449,6 @@ const ModernOnboardingContent = () => {
                   </span>
                 </div>
                 <div>
-                  <p className="text-[11px] font-semibold text-primary-600 dark:text-primary-300 uppercase tracking-widest">Begin your journey</p>
                   <h2 className="font-display text-xl font-bold text-neutral-900 dark:text-neutral-100 leading-tight">Your forever starts here</h2>
                 </div>
               </div>
@@ -416,11 +470,11 @@ const ModernOnboardingContent = () => {
                           }`}
                         >
                           <span
-                            className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 transition-all ${
+                            className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 transition-colors duration-[160ms] ${
                               done
                                 ? 'bg-primary-500 text-white'
                                 : active
-                                ? 'bg-primary-500 text-white ring-2 ring-primary-300 ring-offset-2 ring-offset-white dark:ring-offset-[#1a1f2e]'
+                                ? 'bg-primary-500 text-white ring-2 ring-primary-300 ring-offset-2 ring-offset-white dark:ring-offset-surface-dark-3'
                                 : 'bg-neutral-200 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400'
                             }`}
                           >
@@ -455,13 +509,7 @@ const ModernOnboardingContent = () => {
 
       {/* Right Side - Form */}
       <div className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-12 relative">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ duration: 0.3 }}
-          className="w-full max-w-2xl"
-        >
+        <motion.div initial="initial" animate="animate" variants={pageFade} className="w-full max-w-2xl">
           {/* No mobile logo / Sign-In tab block — the global Navbar already
               brands the page and links to login; the duplicated chrome cost
               ~150px before the form appeared on a phone. The exit ✕ lives
@@ -474,8 +522,9 @@ const ModernOnboardingContent = () => {
               block silently does not exist. A forged link never blocks signup. */}
           {mode === 'signup' && currentStep === 0 && inviteParam && inviterName && (
             <motion.div
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial="initial"
+              animate="animate"
+              variants={fadeRise}
               className="mb-5 flex items-center gap-3 rounded-2xl border border-primary-100 bg-primary-50/60 dark:bg-primary-900/20 dark:border-primary-900/40 px-4 py-3"
             >
               <span className="w-9 h-9 rounded-full bg-primary-100 text-primary-700 font-display font-semibold flex items-center justify-center flex-shrink-0">
@@ -503,7 +552,7 @@ const ModernOnboardingContent = () => {
                 <button
                   type="button"
                   onClick={handleQuit}
-                  className="p-1.5 -mr-1.5 hover:bg-neutral-100 rounded-full transition-colors"
+                  className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] -mr-2 hover:bg-neutral-100 rounded-full transition-colors"
                   title="Exit onboarding"
                   aria-label="Exit onboarding"
                 >
@@ -516,7 +565,7 @@ const ModernOnboardingContent = () => {
                 className="h-full bg-gradient-to-r from-primary-500 to-primary-600"
                 initial={{ width: 0 }}
                 animate={{ width: `${progressPercentage}%` }}
-                transition={{ duration: 0.5 }}
+                transition={{ duration: DUR.layout, ease: EASE_IN_OUT }}
               />
             </div>
           </motion.div>
@@ -524,70 +573,50 @@ const ModernOnboardingContent = () => {
           {/* A real <form> so Enter advances the step (and submits on the last
               one) — matches the Login form's keyboard behavior. */}
           <form onSubmit={handleFormSubmit} noValidate>
-            {/* Form content with fade/slide animation */}
+            {/* Form content: the whole step card slides directionally
+                (Back/Next) on `stepSlide`; its header + body stagger in with
+                the sanctioned `fadeRise` wave rather than hand-typed delays. */}
             <AnimatePresence mode="wait" custom={stepDirection}>
               <motion.div
                 key={currentStep}
                 custom={stepDirection}
-                initial={{ opacity: 0, x: 20 * stepDirection }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -16 * stepDirection }}
-                transition={{ duration: 0.24, ease: [0.25, 0.46, 0.45, 0.94] }}
+                variants={stepSlide}
+                initial="initial"
+                animate="animate"
+                exit="exit"
                 onAnimationComplete={() => {
                   if (focusHeadingRef.current) {
                     headingRef.current?.focus();
                     focusHeadingRef.current = false;
                   }
                 }}
-                className="bg-white dark:bg-[#1a1f2e] border border-neutral-100 dark:border-neutral-800 rounded-2xl shadow-card p-8 sm:p-10"
+                className="bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card dark:shadow-none dark:border dark:border-neutral-800 p-8 sm:p-10"
               >
-                <div className="mb-8">
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.1 }}
-                    className="text-xs font-semibold text-primary-600 uppercase tracking-widest mb-2"
-                  >
-                    {visibleSteps[currentStep].icon && `Step ${currentStep + 1}`}
-                  </motion.p>
-                  <motion.h2
-                    ref={headingRef}
-                    tabIndex={-1}
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.15 }}
-                    className="font-display text-2xl sm:text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-3 focus:outline-none"
-                  >
-                    {visibleSteps[currentStep].title}
-                  </motion.h2>
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.2 }}
-                    className="text-neutral-600"
-                  >
-                    {visibleSteps[currentStep].description}
-                  </motion.p>
-                </div>
+                <motion.div initial="initial" animate="animate" variants={staggerContainer}>
+                  <div className="mb-8">
+                    <motion.h2
+                      ref={headingRef}
+                      tabIndex={-1}
+                      variants={fadeRise}
+                      className="font-display text-2xl sm:text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-3 focus:outline-none"
+                    >
+                      {visibleSteps[currentStep].title}
+                    </motion.h2>
+                    <motion.p variants={fadeRise} className="text-neutral-600">
+                      {visibleSteps[currentStep].description}
+                    </motion.p>
+                  </div>
 
-                {/* Step component */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  <Step />
+                  {/* Step component */}
+                  <motion.div variants={fadeRise}>
+                    <Step />
+                  </motion.div>
                 </motion.div>
               </motion.div>
             </AnimatePresence>
 
             {/* Navigation buttons */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="mt-6 flex gap-4"
-            >
+            <motion.div initial="initial" animate="animate" variants={fadeRise} className="mt-6 flex gap-4">
               {currentStep > 0 && (
                 <Button
                   type="button"
@@ -632,12 +661,7 @@ const ModernOnboardingContent = () => {
           )}
 
           {/* Footer */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="mt-6 text-center text-sm text-neutral-600"
-          >
+          <motion.div initial="initial" animate="animate" variants={fade} className="mt-6 text-center text-sm text-neutral-600">
             {currentStep === 0 ? (
               <div className="space-y-2">
                 <p>
@@ -685,22 +709,26 @@ const ModernOnboardingContent = () => {
           const age = calculateAge(previewData.dateOfBirth);
           return (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              variants={backdrop}
+              className="fixed inset-0 bg-black/50 flex items-center justify-center z-80 p-4"
+              onClick={() => navigate('/dashboard')}
             >
               <motion.div
+                ref={previewDialogRef}
+                tabIndex={-1}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="signup-preview-title"
-                initial={{ scale: 0.94, y: 12, opacity: 0 }}
-                animate={{ scale: 1, y: 0, opacity: 1 }}
-                transition={{ duration: 0.35, ease: 'easeOut' }}
-                className="bg-white dark:bg-[#1a1f2e] rounded-2xl p-8 w-full max-w-sm shadow-2xl text-center"
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                variants={modal}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white dark:bg-surface-dark-3 rounded-2xl p-8 w-full max-w-sm shadow-2xl text-center focus:outline-none"
               >
-                <p className="text-[11px] font-semibold text-primary-600 dark:text-primary-300 uppercase tracking-widest mb-5">
-                  Your profile is live
-                </p>
                 <div className="flex justify-center mb-4">
                   <Avatar name={fullName} size="2xl" />
                 </div>
@@ -730,7 +758,7 @@ const ModernOnboardingContent = () => {
                     onClick={() => navigate('/profile')}
                     className="w-full py-1.5 text-xs font-medium text-success hover:underline underline-offset-2 transition-colors"
                   >
-                    Create your biodata — share it on WhatsApp
+                    Create your biodata: share it on WhatsApp
                   </button>
                 </div>
               </motion.div>
@@ -743,21 +771,28 @@ const ModernOnboardingContent = () => {
       <AnimatePresence>
         {showQuitDialog && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            variants={backdrop}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-80 p-4"
             onClick={() => setShowQuitDialog(false)}
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
+              ref={quitDialogRef}
+              tabIndex={-1}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="quit-dialog-title"
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              variants={modal}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl p-6 max-w-sm shadow-2xl"
+              className="bg-white dark:bg-surface-dark-3 rounded-2xl p-6 max-w-sm shadow-2xl focus:outline-none"
             >
-              <h3 className="text-lg font-bold text-neutral-900 mb-2">Save your progress?</h3>
-              <p className="text-neutral-600 mb-6">
+              <h3 id="quit-dialog-title" className="text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-2">Save your progress?</h3>
+              <p className="text-neutral-600 dark:text-neutral-400 mb-6">
                 Your draft is saved. You can continue anytime you're ready.
               </p>
               <div className="flex gap-3">
@@ -769,7 +804,7 @@ const ModernOnboardingContent = () => {
                   Continue
                 </Button>
                 <Button onClick={confirmQuit} className="flex-1">
-                  Exit & Save
+                  Exit and save
                 </Button>
               </div>
             </motion.div>
