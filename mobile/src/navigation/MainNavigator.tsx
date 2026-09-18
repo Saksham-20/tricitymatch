@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useTheme } from '../hooks/useTheme';
-import { AccessibilityInfo, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -102,15 +102,6 @@ const TAB_ICONS: Record<string, { active: IoniconName; inactive: IoniconName }> 
 function BottomTabs() {
   const { elderMode } = useUIStore();
   const { c } = useTheme();
-  const [reduceMotion, setReduceMotion] = useState(false);
-
-  useEffect(() => {
-    AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion).catch(() => {});
-    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
-    return () => sub.remove();
-  }, []);
-
-  const noAnimation = elderMode || reduceMotion;
   const tabBarHeight = elderMode ? 80 : 64;
   const tabBarLabelStyle = elderMode ? { fontSize: 14 } : {};
 
@@ -133,8 +124,13 @@ function BottomTabs() {
           return <TabIcon name={name} size={iconSize} color={color} focused={focused} />;
         },
         tabBarItemStyle: elderMode ? { minHeight: tapTarget.elder } : {},
-        animation: noAnimation ? 'none' : 'shift',
+        // Tabs never slide (doctrine §10.4/§10.11): they are peers, and the
+        // user pays for that motion dozens of times a session.
+        animation: 'none',
       })}
+      // Single haptic emitter for every tab press, on both the floating pill
+      // and elder mode's docked bar — FloatingTabBar's own onPress used to
+      // also fire one, doubling up (doctrine §10.4 "one per committed action").
       screenListeners={{ tabPress: () => haptics.light() }}
     >
       <Tab.Screen name="Home" component={HomeScreen} />

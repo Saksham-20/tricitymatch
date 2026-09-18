@@ -127,14 +127,17 @@ export function CompletionRing({ value, caption = 'COMPLETE', size = 88 }: RingL
   );
 }
 
-const compatColour = (pct: number) =>
-  pct >= 90 ? colours.success : pct >= 75 ? colours.g500 : colours.p500;
+// `success` reads correctly as status text but is documented as unreadable as
+// an accent on a dark surfaceCard — `successAccent` is the theme-reactive
+// pair that stays legible as a ring/text tint in both themes.
+const compatColour = (pct: number, c: ThemeColours) =>
+  pct >= 90 ? c.successAccent : pct >= 75 ? colours.g500 : colours.p500;
 
 /** Compatibility ring — 24-tick gauge tinted by score + center %. */
 export function CompatRing({ value, size = 64 }: { value: number; size?: number }) {
   const { c } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
-  const colour = compatColour(value);
+  const colour = compatColour(value, c);
   return (
     <TickRing value={value} size={size} ticks={24} tickLength={size * 0.12} tickWidth={2.5} color={colour}>
       <Text style={[styles.midPct, { color: colour }]}>{Math.round(value)}</Text>

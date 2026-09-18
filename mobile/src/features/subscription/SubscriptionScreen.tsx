@@ -17,6 +17,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { PressableScale, StaggeredEntrance } from '../../components/motion';
 import { SubscriptionSkeleton, ListSkeleton } from '../../components/ui/skeletons';
+import EmptyState from '../../components/ui/EmptyState';
 import { showToast } from '../../utils/toast';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
@@ -386,7 +387,7 @@ export default function SubscriptionScreen() {
     queryFn: getUnlockBundles,
   });
 
-  const { data: plans, isLoading: plansLoading } = useQuery({
+  const { data: plans, isLoading: plansLoading, isError: plansError, refetch: refetchPlans } = useQuery({
     queryKey: queryKeys.plans,
     queryFn: getPlans,
     staleTime: 10 * 60 * 1000,
@@ -547,7 +548,11 @@ export default function SubscriptionScreen() {
   };
 
   const canUpgrade = selectedPlan !== 'free' && selectedPlan !== currentPlan;
-  const planList = (plans ?? Object.values(PLANS)) as PlanFeatures[];
+  // Never fall back to the static catalogue (doctrine §10.9): a failed or
+  // empty fetch shows loading/error, not five withdrawn tiers at regular
+  // prices that checkout refuses. `plans` defaults to [] so downstream
+  // filters/maps are safe while the error state renders.
+  const planList = (plans ?? []) as PlanFeatures[];
 
   // NRI Connect is a segment tier. Members who declared NRI status see it, and
   // so does anyone already on it (otherwise the page would hide their own
@@ -597,6 +602,25 @@ export default function SubscriptionScreen() {
 
             {plansLoading ? (
               <SubscriptionSkeleton />
+            ) : plansError ? (
+              <EmptyState
+                icon="cloud-offline-outline"
+                title="Couldn't load plans"
+                description="Check your connection and try again."
+                actionLabel="Retry"
+                onAction={() => refetchPlans()}
+                variant="error"
+                testID="plans-error"
+              />
+            ) : visiblePlans.length === 0 ? (
+              <EmptyState
+                icon="pricetag-outline"
+                title="No plans available right now"
+                description="Check back shortly, or try refreshing."
+                actionLabel="Retry"
+                onAction={() => refetchPlans()}
+                testID="plans-empty"
+              />
             ) : (
               // Iterate the SERVER's list, not PLAN_ORDER: a tier the offer
               // withdrew is absent from it, and the old `?? PLANS[planType]`

@@ -17,7 +17,7 @@ npm run qa | qa:auth | qa:visual | qa:headed | qa:full | qa:ui          # e2e
 Ports: backend 5001 · web 3000 · Metro 8081.
 
 ## Layout
-`backend/` Express (CommonJS) · `frontend/` React+Vite · `mobile/` RN Expo SDK51 · `shared/` TS types (@shared) · `docs/` (PRD/arch/security/spec/tickets/API) · `e2e/` Playwright (9) · `nginx/` · `monitoring/` Prom+Grafana · `docker-compose.yml`
+`backend/` Express (CommonJS) · `frontend/` React+Vite · `mobile/` RN Expo SDK52 · `shared/` TS types (@shared) · `docs/` (PRD/arch/security/spec/tickets/API) · `e2e/` Playwright (9) · `nginx/` · `monitoring/` Prom+Grafana · `docker-compose.yml`
 
 ## Backend
 Entry `server.js`. Key files:
@@ -81,7 +81,7 @@ Hifi web redesign handoff (Claude Design) lives at **`docs/design-handoff/`** �
 - **Redesign progress tracker:** `docs/design-handoff/PROGRESS.md`.
 
 ## Mobile (`mobile/`) — RN
-**Stack:** Expo SDK51 · React 18.2 · RN 0.74.5 · react-navigation **v6** · react-native-screens 3.31.1 · MMKV **v2** · old arch · Zustand+React Query · i18n en/hi/pa. Docs: `docs/01–06`.
+**Stack:** Expo SDK52 · React 18.3.1 · RN 0.76.9 · react-navigation **v6** · @gorhom/bottom-sheet v5 (needs reanimated ≥3.16) · MMKV **v2** · old arch, bare workflow · Zustand+React Query · i18n en/hi/pa. **Read `mobile/AGENTS.md` for the authoritative stack** — this line drifted stale before; don't let it again. Docs: `docs/01–06`.
 **Nav:** RootNavigator→(Auth|Onboarding|Main). MainNavigator role-gates AdminStack (admin/super_admin), BureauStack (bureau). IncomingCallModal inside NavigationContainer, outside Stack.
 
 Feature areas (`mobile/src/features/`):

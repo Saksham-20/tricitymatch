@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Pressable, StyleSheet } from 'react-native';
-import { colours, shadows } from '@shared/constants/theme';
+import { shadows } from '@shared/constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import { haptics } from '../../utils/haptics';
 
@@ -31,7 +31,9 @@ export default function Switch({ value, onValueChange, disabled, testID }: Switc
       }}
       style={[
         styles.track,
-        { backgroundColor: value ? colours.success : c.border },
+        // `success` is documented as unreadable as an accent on a dark
+        // surfaceCard — `successAccent` is the theme-reactive pair.
+        { backgroundColor: value ? c.successAccent : c.border },
         disabled && { opacity: 0.5 },
       ]}
       accessibilityRole="switch"

@@ -47,7 +47,10 @@ function greeting(): string {
   return 'Good evening';
 }
 
-const scoreColour = (p: number) => (p >= 90 ? colours.success : p >= 75 ? colours.g500 : colours.p500);
+// `success` reads correctly as status text but is documented as unreadable as
+// an accent on a dark surfaceCard — `successAccent` is the theme-reactive
+// pair that stays legible as a score dot/fill in both themes.
+const scoreColour = (p: number, c: ThemeColours) => (p >= 90 ? c.successAccent : p >= 75 ? colours.g500 : colours.p500);
 
 // ─── Rail card (166×226 scrim photo) ─────────────────────────────────────────
 function RailCard({ profile, onPress }: { profile: ProfileSummary; onPress: () => void }) {
@@ -81,7 +84,7 @@ function RailCard({ profile, onPress }: { profile: ProfileSummary; onPress: () =
         </Text>
         {compat > 0 && (
           <View style={styles.railChip}>
-            <View style={[styles.railDot, { backgroundColor: scoreColour(compat) }]} />
+            <View style={[styles.railDot, { backgroundColor: scoreColour(compat, c) }]} />
             <Text style={styles.railChipText}>{compat}%</Text>
           </View>
         )}

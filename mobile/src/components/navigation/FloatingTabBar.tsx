@@ -1,14 +1,17 @@
 /**
  * Floating pill tab bar — the current platform-native direction (Apple HIG,
  * 2026: "a tab bar floats above content at the bottom of the screen" on a
- * translucent background). iOS gets real blur; Android gets a near-opaque
- * themed surface (expo-blur is costly/inconsistent there).
+ * translucent background). Both platforms currently get the same near-opaque
+ * themed surface (`c.surfaceCard + 'F2'`, ~95% opacity) — this does NOT ship
+ * a real BlurView on either platform today (doctrine §10 open question 9:
+ * whether to add one, with a Reduce Transparency fallback, is a Phase 4 call).
  *
  * Elder mode deliberately does NOT use this component — MainNavigator falls
  * back to the docked full-width bar with larger targets.
  *
  * Screens must keep their last content clear of the pill: pad scroll content
- * with TAB_BAR_CLEARANCE.
+ * with useTabBarClearance(), which computes the real footprint from insets
+ * rather than a guessed constant.
  */
 import React from 'react';
 import { View, Text, StyleSheet, Platform, Keyboard } from 'react-native';
@@ -19,10 +22,16 @@ import { TabIcon } from '../motion';
 import { PressableScale } from '../motion';
 import { useTheme } from '../../hooks/useTheme';
 import { useUIStore } from '../../stores/uiStore';
-import { haptics } from '../../utils/haptics';
 
-/** Bottom padding tab screens need so content scrolls clear of the pill. */
-export const TAB_BAR_CLEARANCE = 92;
+/**
+ * The pill's own height: `pill.paddingVertical` (8) × 2 + `item.minHeight`
+ * (52) = 68. Combine with the wrap's own `paddingBottom`
+ * (`max(insets.bottom, 12)`, below) via `useTabBarClearance()` — a screen
+ * must never hardcode its clearance, which is how this drifted before (a
+ * flat 92 undershot every Face-ID iPhone, where insets.bottom=34 gives a
+ * real footprint of 34 + 68 = 102).
+ */
+export const TAB_BAR_PILL_HEIGHT = 68;
 
 type IconPair = { active: string; inactive: string };
 
@@ -64,7 +73,9 @@ export default function FloatingTabBar({ state, descriptors, navigation, icons }
           const pair = icons[route.name] ?? { active: 'ellipse', inactive: 'ellipse-outline' };
 
           const onPress = () => {
-            haptics.light();
+            // No haptic here — emitting 'tabPress' below is what fires
+            // MainNavigator's screenListeners, the single haptic emitter
+            // shared with elder mode's docked bar (doctrine §10.4).
             const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
             if (!focused && !event.defaultPrevented) {
               navigation.navigate(route.name as never);

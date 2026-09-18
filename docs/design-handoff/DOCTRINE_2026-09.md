@@ -428,13 +428,124 @@ No screen is done until every line is honestly ticked. This runs per screen, not
 
 ---
 
-## 10. React Native: what carries
+## 10. React Native: the mobile translation
 
-The mobile rework follows this doctrine, translated through `animate-expo`. Our stack is **Expo SDK 52,
-React Native 0.76.9, Reanimated 3.16, gesture-handler 2.20, react-navigation v6, @gorhom/bottom-sheet v5,
-expo-haptics**. The skill is written for Reanimated 4 and Expo Router, so three substitutions are mandatory:
-use `runOnJS`, not `scheduleOnRN`; use `.value`, not `.get()` / `.set()`; screen transitions come from
-react-navigation v6 native-stack options, and sheets from gorhom v5, not `presentation: 'formSheet'`.
+The mobile rework follows this doctrine. Sections 1, 2, 3.1, 3.2 (values), 7 and 8's *principles* carry
+unchanged — the product read, every conflict ruling, the burgundy/gold system, the copy law. What changes is
+**mechanism**: RN has no cascade, no hover, no media queries, no `:focus-visible`, and a layout engine that
+charges for things CSS gives away. This section says what each web mechanism becomes.
+
+**Precedence is unchanged.** Product truth and legal copy > accessibility > this doctrine > the committed
+visual world (`shared/src/constants/theme.ts`) > any individual skill.
+
+**Our stack, verified against `mobile/package.json` 2026-09-18:** Expo SDK 52, React Native 0.76.9,
+React 18.3.1, old architecture, bare workflow. Reanimated 3.16.1, gesture-handler 2.20.2,
+react-navigation v6 (`native-stack` + `bottom-tabs`), `@gorhom/bottom-sheet` 5.1.6, expo-haptics 14.0.1,
+expo-blur 14.0.3, expo-linear-gradient 14.0.2, `@expo/vector-icons` 14, react-native-fast-image,
+react-native-toast-message, Zustand, React Query, i18next. **Read `mobile/AGENTS.md`, not the root
+`CLAUDE.md`, for the stack** — the root file's Mobile section is stale (it says SDK 51 / RN 0.74.5).
+
+### 10.1 Skill sources and their substitutions
+
+The RN law is merged from `animate-expo` (primary), plus `apple-design`, `impeccable`, `emil-design-eng`,
+`find-animation-opportunities`, `review-animations` and `improve-animations` as the audit instruments. The
+web merge's other skills keep their §2 rulings and add nothing new here.
+
+`animate-expo` is written for **Reanimated 4 + Expo Router**, which we do not run. Three substitutions are
+mandatory and non-negotiable:
+
+- Use `runOnJS`, **not** `scheduleOnRN` (which does not exist in Reanimated 3).
+- Use `.value`, **not** `.get()` / `.set()`.
+- Screen transitions come from **react-navigation v6 native-stack options**; sheets from **gorhom v5**.
+  `presentation: 'formSheet'`, `NativeTabs`, `Link.Menu`, `Link.Preview` and `headerLargeTitleEnabled` are
+  Expo Router APIs and are **out of scope**. `react-native-keyboard-controller`, `lottie-react-native` and
+  `@shopify/react-native-skia` are new dependencies and are **not added** in this campaign.
+
+Everything else in `animate-expo` — the frequency gate, the thread rules, the property table, the Apple
+spring parameters, the press rules, the haptic rules, the "Never Ship" table — binds as written.
+
+### 10.2 New conflict rulings (RN only)
+
+These extend Section 2. Numbering continues from it.
+
+| # | Conflict | Ruling | Why the loser lost |
+| --- | --- | --- | --- |
+| 17 | `animate-expo` §3 routes half the app to Expo Router APIs and three new native packages. | **Principles bind, packages do not.** Incumbents stay: react-navigation v6, gorhom v5, `KeyboardAvoidingView`. | A navigation-library migration is a rewrite wearing a design campaign's clothes. Nothing a user can see improves. |
+| 18 | HomeKrafted's RN `motion.ts:45-47` makes reduced motion **zero** ("a 40ms version of a slide is still a slide"). Our §4.6 and `animate-expo` §9 say **gentler, not zero**. | **Gentler, not zero.** Keep opacity and colour; drop translation, scale, parallax and overshoot. Screen transitions become `animation: 'fade'`, never `'none'` outside elder mode. | The user still needs to see that the interface heard them. But adopt HomeKrafted's nuance verbatim: **reduced motion keeps the press opacity and drops the press scale** — on a phone there is no hover, so the press is the whole feedback and removing it entirely reads as a dead control. |
+| 19 | HomeKrafted mobile ships an `Eyebrow.tsx` primitive and an eyebrow letter-spacing token; `shared/src/constants/theme.ts:120` ships `letterSpacing.eyebrow: 1.2`; `SectionHeader.tsx:9,28,57-62` ships an `eyebrow` prop in gold. | **Ruling 2 is unchanged: zero eyebrows.** The `eyebrow` prop is removed from `SectionHeader`, the token is deleted, and the 15 hand-rolled `textTransform: 'uppercase'` micro-labels are deleted with it. | A decorative micro-label above a heading is the AI signature on any platform. Gold on a free surface is separately a §3.1 bug. |
+| 20 | `apple-design`: springs for anything touchable. §2 ruling 8: durations by default. | **Ruling 8 stands, narrowed on RN: springs also win for press feedback.** A finger is literally on the element. Everything non-gestural stays on a duration. | The ruling-8 reasoning was "most of our motion is non-gestural state change". Press is the one case where that premise is false. `PressableScale` already does this correctly. |
+| 21 | Web §3.4 radius system (12/16/8-12) vs the native handoff scale in `shared/src/constants/theme.ts:138-145` (sm 10 / md 14 / lg 20 / xl 28 / pill). | **RN keeps its own scale.** One system *per platform*; larger radii are the native idiom and the scale is already consistent internally. | Forcing web radii onto RN buys cross-platform pixel parity nobody asked for and costs a 68-screen diff. What §3.4 actually forbids is *multiple* systems inside one platform. |
+| 22 | Web §8 bans `alert(` / `confirm(`. RN uses `Alert.alert` in 60 places across 19 files. | **`Alert.alert` is sanctioned for destructive confirmation only.** Never as an error channel (that is a toast or an inline error state), never as a success channel, never for anything the user can recover from by reading the screen. | `window.alert` is a browser artefact that blocks the page; `Alert.alert` is a real, OS-localised, VoiceOver-correct native dialog. Banning it would push destructive confirmations into hand-rolled modals, which is strictly worse. |
+| 23 | `imagegen-frontend-mobile` proposes generated app-screen imagery. | **Out of scope in-app.** Ruling 15's imagery override governs web marketing surfaces. The RN app has no editorial-imagery surface. Store-listing screenshots are a separate, owner-level decision. | An interim that exists to warm up a marketing page has no equivalent inside a logged-in product. |
+
+### 10.3 What replaces `utils/animations.js`
+
+**`shared/src/constants/motion.ts` is the single sanctioned motion source on RN.** No component hand-rolls a
+curve, a duration, a spring or a stagger. It is imported by 13 files today while 23 use Reanimated; that gap
+is the Phase 1 job.
+
+The file's current values are **wrong against this doctrine and are replaced**, not extended:
+
+| Key | Today | Becomes | Why |
+| --- | --- | --- | --- |
+| `easing.std` | `[0.2, 0, 0, 1]` | — (retire; ambiguous) | Material's curve, not ours. |
+| `easing.out` | `[0, 0, 0.2, 1]` | `[0.23, 1, 0.32, 1]` | §4.2's `--ease-out`. The current value is the weak built-in shape §4.2 rejects. |
+| `easing.inOut` | — | `[0.77, 0, 0.175, 1]` | §4.2's `--ease-in-out`, absent today. |
+| `easing.drawer` | — | `[0.32, 0.72, 0, 1]` | §4.2's `--ease-drawer`, absent today. |
+| `easing.in` | `[0.4, 0, 1, 1]` | **deleted** | §4.2: ease-in is banned on UI. Its existence is an invitation. |
+| `easing.spring` | `[0.34, 1.56, 0.64, 1]` | **deleted** | A back-out overshoot curve. §5 bans bounce on content; springs are springs, not béziers. |
+| `duration` | `{fast:120, base:240, slow:360}` | the full table below | Three buckets cannot express thirteen interaction classes, and 360 breaks the sub-300ms ceiling. |
+| `spring` | `{pop:{stiffness,damping,mass}, sheet:{…}}` | Apple two-parameter form below | `animate-expo` §5 and §10.4. |
+
+The replacement tables:
+
+```ts
+export const EASE_OUT    = [0.23, 1, 0.32, 1] as const;
+export const EASE_IN_OUT = [0.77, 0, 0.175, 1] as const;
+export const EASE_DRAWER = [0.32, 0.72, 0, 1] as const;
+
+export const duration = {
+  press: 120, hover: 0,          // there is no hover on RN; the key is absent, not zero-valued
+  menu: 180, modal: 250, modalExit: 180,
+  sheet: 320, sheetExit: 240,
+  toast: 400, toastExit: 300,
+  accordion: 200, content: 280, layout: 250,
+  reveal: 280,                   // Operate surfaces only; the web's 550ms is a marketing figure
+} as const;
+
+export const spring = {
+  ui:       { duration: 400, dampingRatio: 1   },            // default settle, no overshoot
+  momentum: { duration: 400, dampingRatio: 0.8 },            // after a drag; pass `velocity`
+  sheet:    { duration: 300, dampingRatio: 0.8 },            // pass `velocity`
+  press:    { duration: 150, dampingRatio: 1   },            // press-in / press-out
+} as const;
+
+export const STAGGER_MS = 50;   // §4.3; capped at 6 siblings
+```
+
+`overshootClamping: true` wherever a hard edge must not be crossed.
+
+**The variant layer.** `mobile/src/components/motion/` is the RN equivalent of the web's variant exports and
+is the **only** place a screen gets motion from. It grows; it is not replaced:
+
+- `PressableScale` — keep. Correct today (`spring.pop` → `spring.press`, reduce-motion-aware).
+- `useReduceMotion` — keep. Subscribes live; correct.
+- `useFillAnimation`, `useShake`, `usePop`, `TabIcon`, `StaggeredEntrance` — keep, retuned to the tables
+  above (`StaggeredEntrance`'s 40ms stagger → 50ms; `usePop`'s 1.3 peak is an open ruling).
+- **Add** `useSheet`, `useToast` and `useListRow` so no screen hand-rolls a sheet, a toast or a row
+  enter/exit again.
+- `RevealOnScroll` stays in `features/profile/detail/` as the **only** scroll-driven idiom in the app, and
+  its translate clamps to 16px (§4.5's ceiling; it is 20 today).
+
+**Banned inside that folder and everywhere else on RN:** core `Animated` for anything a finger touches
+(`Switch.tsx` is the last holdout), `PanResponder`, bounce or elastic on content, scale-pop entrances,
+parallax, scroll-scrubbed values, any variant that moves more than 16px, and infinite loops. The **only**
+sanctioned loops are the four that exist: `Skeleton.tsx:36` shimmer, `ChatThreadScreen.tsx:82` typing dots,
+`SplashScreen.tsx:38` loading pulse (spinner-equivalent, no skeleton is possible there),
+`AudioIntroChip.tsx:41` waveform while `playing` is true. Each is opacity-only, reduce-motion-gated and
+cancelled on unmount. A fifth needs a written reason.
+
+### 10.4 Motion mechanics (carries from the original §10)
 
 **Carries unchanged from the web doctrine:** the frequency gate, the purpose word, the sub-300ms ceiling,
 `transform` and `opacity` only, never `scale(0)`, exit along the entry path, 50-60ms stagger, reduced motion
@@ -451,20 +562,254 @@ meaning gentler rather than zero, the token set, the copy law, the 4-state rule 
   `useAnimatedReaction` threshold. Never read or write a shared value during render. Worklet functions carry
   the `'worklet'` directive.
 - **Layout properties are more expensive than on web.** `width`, `height`, `margin`, `padding`, `flex`, `gap`
-  re-run Yoga for the node and its siblings every frame. The one exception is an absolutely positioned,
-  childless element such as a tab pill or a progress fill.
+  re-run Yoga for the node and its siblings every frame. The one exception is an **absolutely positioned,
+  childless** element such as a tab pill or a progress fill — and "absolutely positioned" is load-bearing:
+  `OnboardingLayout.tsx:185` animates `width` on an in-flow child and does not qualify.
 - **Android shadow is `elevation` and re-renders every frame when animated;** crossfade a pre-shadowed layer
-  instead. Never animate `BlurView` intensity; crossfade a static blur.
+  instead. Never animate `BlurView` intensity; crossfade a static blur (`GoldLock.tsx:51` does this correctly).
 - **Tabs never slide.** They are peers, and the user pays for that motion dozens of times a session.
-  Elder mode keeps the docked tab bar, not the floating pill.
-- **Springs use Reanimated's Apple-style parameters:** `{ duration: 400, dampingRatio: 1 }` for a default
-  settle, `{ duration: 400, dampingRatio: 0.8, velocity }` after a drag, `{ duration: 300, dampingRatio: 0.8, velocity }`
-  for a sheet, `overshootClamping: true` where a hard edge must not be crossed. Easings are
-  `Easing.bezier(0.23, 1, 0.32, 1)`, `Easing.bezier(0.77, 0, 0.175, 1)`, `Easing.bezier(0.32, 0.72, 0, 1)`.
+  `MainNavigator.tsx:136` currently sets `animation: 'shift'`; it becomes `'none'`. Elder mode keeps the
+  docked tab bar, not the floating pill.
+- **Springs use Reanimated's Apple-style parameters** (§10.3), never stiffness/damping/mass. Easings are
+  `Easing.bezier(...EASE_OUT)`, `Easing.bezier(...EASE_IN_OUT)`, `Easing.bezier(...EASE_DRAWER)`.
 - **Haptics** fire once per committed user action, on the same frame as the visual, and never as the only
   feedback: they are off system-wide for many users and silent on most Android hardware. Our
   `utils/haptics.ts` probes the native module before requiring it; keep that shape, since a static require of
-  an absent native module redboxes in dev.
+  an absent native module redboxes in dev. **One emitter per action** — a custom `tabBar` that fires a haptic
+  and a navigator `screenListeners` that fires another is two, and both are live today
+  (`FloatingTabBar.tsx:67`, `MainNavigator.tsx:138`).
 - **Verification means a release build on the slowest device we support.** Expo Go and the simulator hide
   exactly the problems this section exists to catch, and a Metro reload resets a debug build to its initial
   route, which reads as a navigation bug that is not there.
+
+### 10.5 What replaces `dark:` classes and the `html.dark` toggle
+
+**`useTheme()` → `makeStyles(c)` is the sanctioned mechanism and it already works.** Every screen builds its
+stylesheet through `const styles = React.useMemo(() => makeStyles(c), [c])` with
+`makeStyles = (c: ThemeColours) => StyleSheet.create({…})`. `useTheme()` reads the explicit override from
+`uiStore` and falls back to `useColorScheme()`; `DEFAULT_DARK_MODE_OVERRIDE` is `null`, so dark follows the
+system. This is settled; do not redesign it.
+
+Three rules keep it honest:
+
+1. **A module-scope `StyleSheet.create` may contain no colour.** Layout, spacing, radius and flex only.
+   Colour arrives through `makeStyles(c)` or as an inline `{ color: c.x }`. Two leaks remain
+   (`PickerSheet.tsx:88`, `Switch.tsx:48`).
+2. **Never import `colours` (the light palette) into a component.** It is the light half of a pair; in dark
+   mode it is simply wrong. Twelve sites do (`HomeScreen.tsx:50`, `MatchesScreen.tsx:50`,
+   `ProfileDetailScreen.tsx:56`, `TickRing.tsx:131`, `ProfileCard.tsx:52`, `Switch.tsx:34`,
+   `GoldLock.tsx:65,70`, `JourneyFinaleScreen.tsx:155-156`, `RootNavigator.tsx:63,67`). Six of them use
+   `colours.success` — which `shared/src/constants/theme.ts:221` documents as *"unreadable as an accent on
+   surfaceCard"*, which is precisely why `darkColours.successAccent` exists.
+3. **Shadows are paired too.** `shadows` is burgundy-tinted for light; `darkShadows` is black-based because
+   a burgundy tint disappears on navy. `Card.tsx:15` picks correctly; `Button.tsx:151,157` hardcodes the
+   light `shadows.e3` / `shadows.gold` in both themes.
+
+**Reduced transparency.** §4.6's `prefers-reduced-transparency` clause becomes
+`AccessibilityInfo.isReduceTransparencyEnabled()` with a `reduceTransparencyChanged` subscription, in a
+`useReduceTransparency()` hook beside `useReduceMotion()`. Any translucent or blurred surface — `GoldLock`'s
+`BlurView`, the tab pill's `F2` alpha, every scrim — ships its opaque fallback in the same commit. Today the
+app subscribes to `reduceMotionChanged` only.
+
+### 10.6 What replaces `html.elder` and the type scale
+
+This is the largest structural gap between the two platforms, and it has two halves.
+
+**Half one: the OS already scales our type and nobody has looked.** RN's `allowFontScaling` defaults to
+**on**, so every `<Text>` in the app already grows with iOS Dynamic Type and Android font size. That is
+correct and must not be turned off — refusing it is an accessibility failure, and unlike the web there is no
+16px-zoom problem to solve because RN does not zoom the page. What it breaks is any **fixed height**. The
+app has `maxFontSizeMultiplier` in zero places.
+
+**Half one's rule:** `maxFontSizeMultiplier` is used **only** on text inside a height-constrained row, and
+its presence is a declaration that the row is height-constrained. Body copy, headings and descriptions scale
+freely. Where a container must survive 200% type, `onLayout` measures it — a hardcoded height is a bug.
+
+**Half two: elder mode is currently a tab-bar toggle, not a scale.** `elderMode` appears in 11 files and
+changes tab-bar height, icon size, navigation animation and the Chat tab's presence. `utils/elderTheme.ts`
+(`fontSize(elder, key)`, `tapSize(elder)`) has **one** importer, `ListRow`, which itself has **zero** users.
+`useTheme()` returns `{ isDark, c }` with no scale, so `makeStyles(c)` cannot express elder type at all.
+
+**The mechanism, when the owner approves it (see the plan's open question 1):**
+
+- `useTheme()` returns `{ isDark, c, elder }`.
+- A `<Text>` primitive at `mobile/src/components/ui/Text.tsx` is the **only** way words reach the screen. It
+  takes a `variant` (the `type` roles in `shared/src/constants/theme.ts:81-93`), a `color` from a curated
+  union, and an optional `maxScale`. It resolves the elder bump internally.
+- The `color` union deliberately **omits gold**. Gold is a fill, a border and a rule; it is 2.9-3.2:1 as text
+  and §3.1 already says gold means premium, not decoration. Making it unavailable is cheaper than
+  remembering.
+- Tap targets come from `tapSize(elder)` (48 / 60), not from a literal.
+- Elder mode continues to drop navigation animation and keep the docked tab bar. It does **not** continue to
+  hide the Chat tab silently: any tab it removes must remain reachable and every CTA pointing at it must
+  still work (this was a live no-op bug, fixed 2026-08-16; the rule exists so it does not come back).
+
+### 10.7 Safe areas, docks and chrome
+
+- **`useSafeAreaInsets`, never `SafeAreaView` from `react-native`** (a no-op on Android). This was unified
+  2026-08-16 and must not regress. `react-native-safe-area-context`'s `SafeAreaView` is acceptable where a
+  whole screen is padded.
+- **`components/layout/Screen.tsx` is the screen shell and currently has zero importers.** Every
+  custom-header screen adopts it rather than hand-rolling insets; 28 files hand-roll them today.
+- **Bottom-dock clearance is computed, never a constant.** A floating bar is inset from the bottom edge, so
+  "clear of the tab bar" is not "sit at the bottom". The padding a tab screen's scroll content owes is
+  `insets.bottom + TAB_BAR_GAP + TAB_BAR_HEIGHT + trailing gap`, resolved at render because the inset is only
+  known then. `useTabBarClearance.ts:11` returns a flat `92`; the pill's real height is
+  `max(insets.bottom, 12) + 68`, which is **102 on every Face-ID iPhone**. Every one of the five tab screens
+  hides its last ~10pt today.
+- **One sheet mechanism per job, and they are named.** Three coexist:
+  `@gorhom/bottom-sheet` (1 file), RN `<Modal animationType="slide">` (21 `<Modal>` across 18 files), and
+  hand-rolled `TouchableOpacity` backdrops (`SearchScreen.tsx:97,140`). The law:
+  **a draggable, detented sheet is gorhom**; **a full-screen takeover is native-stack `presentation: 'modal'`**;
+  **a simple single-select list is `PickerSheet`** — and nothing hand-rolls a backdrop again.
+  A gorhom sheet sets `uiStore.bottomSheetOpen` so the absolutely-positioned pill does not draw over its
+  footer CTAs (`FilterPanel.tsx:272-277` is the reference implementation). An RN `<Modal>` renders in its own
+  native window above the pill and does **not** need the flag — verified, not assumed.
+- **Icons: `@expo/vector-icons` Ionicons only, one family, one weight.** The web's `react-icons/fi` does not
+  cross over. No emoji as an icon, ever.
+
+### 10.8 Component law (RN)
+
+Everything in Section 6 carries. These are the RN-specific additions and amendments.
+
+**Pressables.** `PressableScale` is the default; `TouchableOpacity` is legacy and is retired
+(232 uses / 60 files today). An opacity fade is not press feedback on a custom-designed app — `scale: 0.97`
+takes the label and the icon with it, which is what reads as physical. Android ripple only in a
+Material-styled app; we are not one. Every pressable carries `accessibilityRole`, an `accessibilityLabel`,
+`accessibilityState` where it has one, `hitSlop` where the visual is under 44x44pt, and
+`pressRetentionOffset`.
+
+**Hit targets.** 44x44pt minimum (48dp Android), 60pt in elder mode. If the visual is smaller, **pad the
+target with `hitSlop`, do not grow the mark.** Because `hitSlop` is invisible to the accessibility tree and
+to any measuring sweep, a control that pays for its target in `hitSlop` **declares it** with the
+`tap44-hitslop` marker in its `testID`, so the audit can count it as a claim rather than report it as a
+violation. Only tag a control whose `hitSlop` genuinely reaches 44pt in both directions.
+
+**Buttons.** One `Button` primitive. `size="sm"` is 38pt tall today and either grows to 44 or carries
+`hitSlop`. Haptics do not default to on for every press — a light haptic on a navigation tap is noise; it
+belongs on commits.
+
+**Cards.** `Card` declares elevation **once**: border **or** shadow. `Card.tsx` declares both, which makes
+every card in the app a ghost card. Same at `FloatingTabBar.tsx:110-127`.
+
+**Inputs.** The `Input` primitive is the only way a text field is built. 50 raw `<TextInput>` across 29 files
+are the reason error, helper and label treatment differ screen to screen. Label above the input, always;
+helper text present in markup even when empty; error below the input naming the problem and the recovery;
+validate on blur and on submit.
+
+**Section headers.** `SectionHeader` loses its `eyebrow` prop (ruling 19).
+
+**Loading.** Skeletons that match the final layout's shape. `SkeletonBlock` has 43 uses in 5 files; every
+other list and detail screen needs one. Shimmer freezes to a flat tint under reduced motion.
+
+**Lists.** Every `FlatList` over ~20 rows declares `initialNumToRender`, `maxToRenderPerBatch`, `windowSize`
+and `removeClippedSubviews`, and `getItemLayout` wherever row height is fixed. The app has 20 `FlatList`s and
+**one** `getItemLayout`. A browse product that janks on a mid-range Android has failed, whatever it looks
+like in a screenshot. `entering` animations never go on a virtualized row — animate the container, or use
+`itemLayoutAnimation`.
+
+**Dialogs.** `Alert.alert` for destructive confirmation only (ruling 22). Errors are toasts or inline error
+states; successes are toasts. A flow that ends in an error alert is non-functional UI and store reviewers
+treat it as such.
+
+**Gestures.** Any gesture-dependent action ships a visible tap fallback. A swipe-to-reply with no tap
+equivalent excludes users with motor impairments and is invisible to VoiceOver.
+
+### 10.9 Copy and data law on RN
+
+Section 7 carries unchanged. Two RN-specific additions:
+
+- **Never fall back to a static catalogue.** A price, a plan, a count or an offer comes from the server or
+  the screen shows its loading and error states. `SubscriptionScreen.tsx:550`'s
+  `plans ?? Object.values(PLANS)` renders five withdrawn tiers at their regular prices against a live
+  single-plan catalogue — buyable in the UI, refused at checkout. This is the same defect the web fixed in
+  its Phase 0, and it is the reason the rule is written as an absolute.
+- **A screen with no error branch has an invisible error state.** `isError` is destructured and rendered, or
+  the screen is not done.
+
+### 10.10 Pre-flight checklist (the RN §9)
+
+No screen is done until every line is honestly ticked, **on a device or simulator**, not from source. Source
+reading produces hypotheses; a rendered screen produces findings.
+
+**States**
+- [ ] Default, loading (skeleton matching the layout), empty (icon + line + action), error (icon + cause +
+      working retry) all exist and were **seen**.
+- [ ] Premium-gated views additionally have the locked state, and the gate never fakes a count or a photo.
+- [ ] Offline was tested: airplane mode on, then off. `OfflineBanner` shows, retry recovers.
+- [ ] Long content, missing content, and a 30% longer hi/pa string all render without clipping or wrapping a
+      control onto a second line.
+
+**Motion**
+- [ ] Every animation's frequency tier and purpose word can be stated in one line.
+- [ ] Curve, duration, spring and stagger come from `shared/src/constants/motion.ts`. Nothing hand-rolled.
+- [ ] Motion runs on the UI thread: no `setState` in a gesture or scroll handler, no `runOnJS` in `onUpdate`,
+      no shared-value read or write during render, `'worklet'` on every worklet-called function.
+- [ ] No layout property is animated on an in-flow node.
+- [ ] Exits are faster than entrances and follow the entry path.
+- [ ] **Reduce Motion toggled on in OS settings** and the screen still explains itself. Press feedback
+      survives as opacity.
+- [ ] Press feedback exists on every pressable; nothing relies on hover.
+- [ ] One haptic per committed action, on the same frame as the visual, never the only feedback.
+
+**Themes and scales**
+- [ ] Dark mode checked by flipping the **system** setting, not the in-app override. Headings, muted text,
+      borders, shadows and every semantic colour still read.
+- [ ] Elder mode checked: nothing overlaps, every target ≥60pt, no tab or CTA became a no-op.
+- [ ] **OS text size at maximum** checked. Nothing clips, no fixed-height row swallows its label.
+- [ ] **Reduce Transparency toggled on**: every blur and translucent surface is solid.
+- [ ] Checked on the smallest supported screen and on a tablet-width window; both platforms.
+- [ ] Bottom content clears the floating pill; top content clears the status bar and the notch.
+
+**Access**
+- [ ] **VoiceOver on iOS and TalkBack on Android**: every control is reachable and announces a meaningful
+      label, a correct `accessibilityRole`, and its `accessibilityState` where it has one. Focus-visible does
+      not exist on a touch OS — this replaces it, and it is not optional.
+- [ ] Decorative groups are hidden (`accessibilityElementsHidden` +
+      `importantForAccessibility="no-hide-descendants"`), so the screen reader does not read the wallpaper.
+- [ ] Anything that updates without a tap announces (`accessibilityLiveRegion`, or
+      `AccessibilityInfo.announceForAccessibility`).
+- [ ] Every target ≥44x44pt, or it carries `hitSlop` **and** the `tap44-hitslop` marker.
+- [ ] Every gesture has a visible tap fallback.
+- [ ] Contrast measured on the real surfaces, including text over photo scrims and inside gold and burgundy
+      fills.
+- [ ] Squint test: primary, secondary and groups still identifiable in order.
+
+**Craft**
+- [ ] No pattern from §10.11 was introduced.
+- [ ] Copy re-read against §7 and §10.9. No fabricated number, price, person or offer.
+- [ ] Elevation declared once per element; radius from the RN system; one accent; one icon family.
+- [ ] Built with the shared primitives. A new component needs a reason an existing one cannot serve.
+- [ ] Console clean, no redbox, no yellowbox, no `key` warning, and the screen was seen in a **release**
+      build before it is called done.
+
+### 10.11 Banned patterns on RN
+
+Counts are the census taken 2026-09-18 against `mobile/src`. They are the size of the cleanup, not a licence.
+
+| Pattern | Grep | Today | Replace with |
+| --- | --- | --- | --- |
+| Opacity-fade press | `<TouchableOpacity` | 232 in 60 files | `PressableScale` |
+| Raw text field | `<TextInput` outside `ui/Input.tsx` | 50 in 29 files | the `Input` primitive |
+| Hand-rolled screen shell | `useSafeAreaInsets` outside `layout/Screen.tsx` | 28 files | the `Screen` primitive |
+| Hand-rolled motion | `withTiming(` / `withSpring(` with a literal duration or `Easing.*` not from the token file | 10 files | `shared/src/constants/motion.ts` |
+| Light palette in a component | `colours.` (not `darkColours`, not `ThemeColours`) | 12 sites | `const { c } = useTheme()` |
+| Light shadow in dark mode | `shadows.` without an `isDark` branch | `Button.tsx:151,157` | `isDark ? darkShadows : shadows` |
+| Ghost card | `borderWidth` and a shadow or `elevation` on one element | `Card.tsx`, `FloatingTabBar.tsx` | pick one |
+| Eyebrow label | `textTransform: 'uppercase'` on a micro-label; `SectionHeader` `eyebrow` prop | 15 + 1 prop | delete |
+| Gold outside premium | `g300`–`g700` on a score, a meter, a free-tier badge or any text | 5 files | `c.accent` or a neutral |
+| Tab slide | `animation: 'shift'` / `'slide'` on a tab navigator | `MainNavigator.tsx:136` | `'none'` |
+| Duplicate haptic | two emitters for one action | tab press | one emitter |
+| Core `Animated` | `Animated` imported from `'react-native'` | `Switch.tsx` | Reanimated |
+| Animated layout property | `width`/`height`/`margin`/`padding`/`flex` in a `useAnimatedStyle` on an in-flow node | `OnboardingLayout.tsx:185` | absolute + childless, or `transform` |
+| Flat dock constant | a literal bottom padding for the tab bar | `useTabBarClearance.ts:11` | computed from `insets.bottom` |
+| Hand-rolled sheet | a `TouchableOpacity` backdrop | `SearchScreen.tsx:97,140` | gorhom, `presentation:'modal'`, or `PickerSheet` |
+| Unconfigured long list | `<FlatList` with no `windowSize` / `maxToRenderPerBatch` / `removeClippedSubviews` | ~20 | configure it |
+| Uncapped scaling in a fixed row | a `height`/`minHeight` with no `maxFontSizeMultiplier` on its text | app-wide | measure, or cap |
+| Static catalogue fallback | `?? PLANS`, `?? DEFAULT_*` for anything priced | `SubscriptionScreen.tsx:550` | loading + error states |
+| Missing error branch | a `useQuery` whose `isError` is never rendered | many | render it |
+| `Alert.alert` as an error or success channel | `Alert.alert` outside destructive confirmation | 60 in 19 files | toast or inline state |
+| Emoji as icon | any emoji in JSX | — | Ionicons |
+| `scale(0)` entrance | `scale: 0` in an initial value | — | `0.95` + `opacity: 0` |
+| Untagged small target | a pressable under 44pt with `hitSlop` and no `tap44-hitslop` marker | — | tag it |
+| Comment that describes an intention | e.g. `FloatingTabBar.tsx:4-5` claims a blur the file does not implement | 3 known | make it true or delete it |
