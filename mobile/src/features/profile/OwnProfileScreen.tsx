@@ -14,11 +14,11 @@ import {
   Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import Text from '../../components/ui/Text';
+import Screen from '../../components/layout/Screen';
 import SmartImage, { resolveImageUri } from '../../components/common/SmartImage';
 import { OwnProfileSkeleton } from '../../components/ui/skeletons';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
@@ -485,7 +485,6 @@ export default function OwnProfileScreen() {
   const user = useAuthStore((s) => s.user);
   const { c } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
-  const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
   const [previewMode, setPreviewMode] = useState(false);
   const queryClient = useQueryClient();
@@ -546,9 +545,9 @@ export default function OwnProfileScreen() {
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, backgroundColor: c.background, paddingTop: insets.top }} testID="OwnProfileLoading">
+      <Screen edges={['top']} testID="OwnProfileLoading">
         <OwnProfileSkeleton />
-      </View>
+      </Screen>
     );
   }
 
@@ -570,14 +569,14 @@ export default function OwnProfileScreen() {
   };
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: c.background }]}
+    <Screen
+      edges={['top']}
+      scroll
       contentContainerStyle={{ paddingBottom: tabClearance }}
-      showsVerticalScrollIndicator={false}
       testID="OwnProfileScreen"
     >
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
+      <View style={[styles.header, { paddingTop: spacing.sm }]}>
         <Text variant="title2" color="fgStrong">My Profile</Text>
         <PressableScale
           onPress={goToSettings}
@@ -915,7 +914,7 @@ export default function OwnProfileScreen() {
       </SectionCard>
 
       <View style={{ height: 40 }} />
-    </ScrollView>
+    </Screen>
   );
 }
 

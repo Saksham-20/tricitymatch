@@ -10,7 +10,7 @@ import {
   Alert,
   Modal,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Screen from '../../components/layout/Screen';
 import Text from '../../components/ui/Text';
 import Input from '../../components/ui/Input';
 import ListFooter from '../../components/ui/ListFooter';
@@ -204,7 +204,6 @@ const makeSs = (c: ThemeColours) => StyleSheet.create({
 export default function SearchScreen() {
   const tabClearance = useTabBarClearance();
   const navigation = useNavigation<Nav>();
-  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { c } = useTheme();
   const s = React.useMemo(() => makeS(c), [c]);
@@ -339,7 +338,7 @@ export default function SearchScreen() {
   }, [isFetchingNextPage, c.accent]);
 
   return (
-    <View style={[s.container, { backgroundColor: c.background, paddingTop: insets.top }]} testID="SearchScreen">
+    <Screen edges={['top']} testID="SearchScreen">
       {/* Search Bar */}
       <View style={[s.searchBar, { backgroundColor: c.surfaceCard, borderColor: c.border }]}>
         <Ionicons name="search" size={18} color={c.textMuted} style={s.searchIcon} />
@@ -505,7 +504,7 @@ export default function SearchScreen() {
         onClose={() => setShowSort(false)}
       />
 
-    </View>
+    </Screen>
   );
 }
 

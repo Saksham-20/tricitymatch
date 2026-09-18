@@ -4,17 +4,15 @@ import {
   View,
   TextInput,
   StyleSheet,
-  ScrollView,
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
   Platform,
   Modal,
 } from 'react-native';
 import Text from '../../components/ui/Text';
 import Input from '../../components/ui/Input';
+import Screen from '../../components/layout/Screen';
 import { useNavigation } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
@@ -36,7 +34,6 @@ export default function LoginScreen() {
   const { c } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
   const navigation = useNavigation<Nav>();
-  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { setUser, setAccessToken } = useAuthStore();
 
@@ -211,171 +208,166 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    <Screen
+      edges={['top']}
+      keyboard
+      scroll
+      contentContainerStyle={[styles.content, { paddingTop: spacing['2xl'] }]}
       testID="LoginScreen"
     >
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing['2xl'] }]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        {navigation.canGoBack() && (
-          <PressableScale
-            onPress={() => navigation.goBack()}
-            style={styles.backBtn}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-            testID="login-back"
-            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
-          </PressableScale>
-        )}
-
-        {/* Header */}
-        <View style={styles.header}>
-          <Text variant="title1" color="textPrimary">{t('auth.login.title')}</Text>
-          <Text variant="callout" color="textSecondary" style={styles.subtitle}>{t('auth.login.subtitle')}</Text>
-        </View>
-
-        {/* Error banner — handoff lockout state shows a warning panel, no countdown */}
-        {error ? (
-          <Animated.View style={[styles.errorBanner, shakeStyle]} testID="LoginScreen-error" accessibilityLiveRegion="polite">
-            <Text variant="subhead" color="error">{error}</Text>
-          </Animated.View>
-        ) : null}
-
-        {/* Email input */}
-        <Input
-          label={t('auth.login.email')}
-          value={email}
-          onChangeText={(v) => { setEmail(v); setError(''); }}
-          placeholder="you@example.com"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-          textContentType="emailAddress"
-          autoComplete="email"
-          autoFocus
-          returnKeyType="next"
-          onSubmitEditing={() => passwordRef.current?.focus()}
-          accessibilityLabel={t('auth.login.email')}
-          testID="LoginScreen-email"
-        />
-
-        {/* Password input */}
-        <View style={styles.labelRow}>
-          <Text variant="subhead" color="textPrimary" style={styles.label}>{t('auth.login.password')}</Text>
-          <PressableScale
-            onPress={() => navigation.navigate('ForgotPassword')}
-            testID="LoginScreen-forgotPassword"
-            accessibilityRole="link"
-            accessibilityLabel={t('auth.login.forgotPassword')}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Text variant="subhead" color="primary">{t('auth.login.forgotPassword')}</Text>
-          </PressableScale>
-        </View>
-        <Input
-          ref={passwordRef}
-          value={password}
-          onChangeText={(v) => { setPassword(v); setError(''); }}
-          placeholder="••••••••"
-          secureToggle
-          secureTextEntry
-          textContentType="password"
-          autoComplete="current-password"
-          returnKeyType="done"
-          onSubmitEditing={handleLogin}
-          accessibilityLabel={t('auth.login.password')}
-          testID="LoginScreen-password"
-          toggleTestID="LoginScreen-togglePassword"
-        />
-
-        {/* Sign In button */}
+      {navigation.canGoBack() && (
         <PressableScale
-          style={[styles.primaryBtn, (loading || lockoutMinutes !== null) && styles.btnDisabled]}
-          onPress={handleLogin}
-          disabled={loading || lockoutMinutes !== null}
+          onPress={() => navigation.goBack()}
+          style={styles.backBtn}
           accessibilityRole="button"
-          accessibilityLabel={t('auth.login.signIn')}
-          accessibilityState={{ disabled: loading || lockoutMinutes !== null }}
-          testID="LoginScreen-submit"
+          accessibilityLabel="Go back"
+          testID="login-back"
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
           pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          {loading ? (
-            <ActivityIndicator color="#FFFFFF" testID="LoginScreen-loader" />
-          ) : (
-            <Text variant="headline" style={{ color: '#FFFFFF' }}>{t('auth.login.signIn')}</Text>
-          )}
+          <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
         </PressableScale>
+      )}
 
-        {/* Google Sign-In — HIDDEN on iOS. Apple Guideline 4.8 requires "Sign in
-            with Apple" alongside any third-party social login. Until that's added,
-            iOS uses email/password only (avoids guaranteed App Review rejection). */}
-        {Platform.OS !== 'ios' && CONFIG.IS_GOOGLE_CONFIGURED && (
-          <>
-            {/* Divider */}
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text variant="footnote" color="textMuted">{t('common.or')}</Text>
-              <View style={styles.dividerLine} />
-            </View>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text variant="title1" color="textPrimary">{t('auth.login.title')}</Text>
+        <Text variant="callout" color="textSecondary" style={styles.subtitle}>{t('auth.login.subtitle')}</Text>
+      </View>
 
-            <PressableScale
-              style={styles.googleBtn}
-              onPress={handleGoogleSignIn}
-              accessibilityRole="button"
-              accessibilityLabel={t('auth.login.googleSignIn')}
-              testID="LoginScreen-google"
-              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <View style={styles.btnRow}>
-                <Ionicons name="logo-google" size={18} color={c.textPrimary} />
-                <Text variant="subhead" color="textPrimary">{t('auth.login.googleSignIn')}</Text>
-              </View>
-            </PressableScale>
-          </>
+      {/* Error banner — handoff lockout state shows a warning panel, no countdown */}
+      {error ? (
+        <Animated.View style={[styles.errorBanner, shakeStyle]} testID="LoginScreen-error" accessibilityLiveRegion="polite">
+          <Text variant="subhead" color="error">{error}</Text>
+        </Animated.View>
+      ) : null}
+
+      {/* Email input */}
+      <Input
+        label={t('auth.login.email')}
+        value={email}
+        onChangeText={(v) => { setEmail(v); setError(''); }}
+        placeholder="you@example.com"
+        keyboardType="email-address"
+        autoCapitalize="none"
+        autoCorrect={false}
+        textContentType="emailAddress"
+        autoComplete="email"
+        autoFocus
+        returnKeyType="next"
+        onSubmitEditing={() => passwordRef.current?.focus()}
+        accessibilityLabel={t('auth.login.email')}
+        testID="LoginScreen-email"
+      />
+
+      {/* Password input */}
+      <View style={styles.labelRow}>
+        <Text variant="subhead" color="textPrimary" style={styles.label}>{t('auth.login.password')}</Text>
+        <PressableScale
+          onPress={() => navigation.navigate('ForgotPassword')}
+          testID="LoginScreen-forgotPassword"
+          accessibilityRole="link"
+          accessibilityLabel={t('auth.login.forgotPassword')}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Text variant="subhead" color="primary">{t('auth.login.forgotPassword')}</Text>
+        </PressableScale>
+      </View>
+      <Input
+        ref={passwordRef}
+        value={password}
+        onChangeText={(v) => { setPassword(v); setError(''); }}
+        placeholder="••••••••"
+        secureToggle
+        secureTextEntry
+        textContentType="password"
+        autoComplete="current-password"
+        returnKeyType="done"
+        onSubmitEditing={handleLogin}
+        accessibilityLabel={t('auth.login.password')}
+        testID="LoginScreen-password"
+        toggleTestID="LoginScreen-togglePassword"
+      />
+
+      {/* Sign In button */}
+      <PressableScale
+        style={[styles.primaryBtn, (loading || lockoutMinutes !== null) && styles.btnDisabled]}
+        onPress={handleLogin}
+        disabled={loading || lockoutMinutes !== null}
+        accessibilityRole="button"
+        accessibilityLabel={t('auth.login.signIn')}
+        accessibilityState={{ disabled: loading || lockoutMinutes !== null }}
+        testID="LoginScreen-submit"
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        {loading ? (
+          <ActivityIndicator color="#FFFFFF" testID="LoginScreen-loader" />
+        ) : (
+          <Text variant="headline" style={{ color: '#FFFFFF' }}>{t('auth.login.signIn')}</Text>
         )}
+      </PressableScale>
 
-        {/* Biometric — only shown when hardware available */}
-        {biometricAvailable && (
+      {/* Google Sign-In — HIDDEN on iOS. Apple Guideline 4.8 requires "Sign in
+          with Apple" alongside any third-party social login. Until that's added,
+          iOS uses email/password only (avoids guaranteed App Review rejection). */}
+      {Platform.OS !== 'ios' && CONFIG.IS_GOOGLE_CONFIGURED && (
+        <>
+          {/* Divider */}
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text variant="footnote" color="textMuted">{t('common.or')}</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
           <PressableScale
-            style={styles.biometricBtn}
-            onPress={handleBiometric}
-            disabled={bioAttempts >= BIO_MAX_ATTEMPTS}
+            style={styles.googleBtn}
+            onPress={handleGoogleSignIn}
             accessibilityRole="button"
-            accessibilityLabel="Sign in with biometrics"
-            accessibilityState={{ disabled: bioAttempts >= BIO_MAX_ATTEMPTS }}
-            testID="LoginScreen-biometric"
+            accessibilityLabel={t('auth.login.googleSignIn')}
+            testID="LoginScreen-google"
             pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <View style={styles.btnRow}>
-              <Ionicons name="finger-print" size={18} color={bioAttempts >= BIO_MAX_ATTEMPTS ? c.textMuted : c.primary} />
-              <Text variant="subhead" color={bioAttempts >= BIO_MAX_ATTEMPTS ? 'textMuted' : 'primary'}>
-                {biometricEnabled ? 'Sign in with Face ID / Touch ID' : 'Use biometric login'}
-              </Text>
+              <Ionicons name="logo-google" size={18} color={c.textPrimary} />
+              <Text variant="subhead" color="textPrimary">{t('auth.login.googleSignIn')}</Text>
             </View>
           </PressableScale>
-        )}
+        </>
+      )}
 
-        {/* Footer */}
+      {/* Biometric — only shown when hardware available */}
+      {biometricAvailable && (
         <PressableScale
-          style={styles.footerLink}
-          onPress={() => navigation.navigate('Signup')}
-          testID="LoginScreen-signup"
-          accessibilityRole="link"
-          accessibilityLabel={t('auth.login.noAccount')}
+          style={styles.biometricBtn}
+          onPress={handleBiometric}
+          disabled={bioAttempts >= BIO_MAX_ATTEMPTS}
+          accessibilityRole="button"
+          accessibilityLabel="Sign in with biometrics"
+          accessibilityState={{ disabled: bioAttempts >= BIO_MAX_ATTEMPTS }}
+          testID="LoginScreen-biometric"
           pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Text variant="subhead" color="textSecondary">{t('auth.login.noAccount')}</Text>
+          <View style={styles.btnRow}>
+            <Ionicons name="finger-print" size={18} color={bioAttempts >= BIO_MAX_ATTEMPTS ? c.textMuted : c.primary} />
+            <Text variant="subhead" color={bioAttempts >= BIO_MAX_ATTEMPTS ? 'textMuted' : 'primary'}>
+              {biometricEnabled ? 'Sign in with Face ID / Touch ID' : 'Use biometric login'}
+            </Text>
+          </View>
         </PressableScale>
-      </ScrollView>
+      )}
+
+      {/* Footer */}
+      <PressableScale
+        style={styles.footerLink}
+        onPress={() => navigation.navigate('Signup')}
+        testID="LoginScreen-signup"
+        accessibilityRole="link"
+        accessibilityLabel={t('auth.login.noAccount')}
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <Text variant="subhead" color="textSecondary">{t('auth.login.noAccount')}</Text>
+      </PressableScale>
 
       {/* Biometric Setup Prompt — shown after first successful login */}
       <Modal
@@ -417,7 +409,7 @@ export default function LoginScreen() {
           </View>
         </View>
       </Modal>
-    </KeyboardAvoidingView>
+    </Screen>
   );
 }
 

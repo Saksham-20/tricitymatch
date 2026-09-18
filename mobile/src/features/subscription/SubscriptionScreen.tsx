@@ -14,6 +14,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import Text from '../../components/ui/Text';
+import Screen from '../../components/layout/Screen';
 import { PressableScale, StaggeredEntrance } from '../../components/motion';
 import { SubscriptionSkeleton, ListSkeleton } from '../../components/ui/skeletons';
 import EmptyState from '../../components/ui/EmptyState';
@@ -556,7 +557,7 @@ export default function SubscriptionScreen() {
   const visiblePlans = planList.filter((p) => p.segment !== 'nri' || showsNri);
 
   return (
-    <View style={[s.wrapper, { paddingTop: insets.top }]} testID="SubscriptionScreen">
+    <Screen edges={['top']} style={s.wrapper} testID="SubscriptionScreen">
       {/* Header */}
       <View style={s.header}>
         <PressableScale
@@ -730,7 +731,7 @@ export default function SubscriptionScreen() {
           )}
         </ScrollView>
       )}
-    </View>
+    </Screen>
   );
 }
 

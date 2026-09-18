@@ -5,7 +5,7 @@ import {
   ScrollView,
 } from 'react-native';
 import Text from '../../components/ui/Text';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Screen from '../../components/layout/Screen';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { HoroscopeSkeleton } from '../../components/ui/skeletons';
@@ -70,7 +70,6 @@ function DoshaTag({ label, present }: { label: string; present: boolean }) {
 }
 
 export default function HoroscopeMatchScreen() {
-  const insets = useSafeAreaInsets();
   const nav = useNavigation();
   const route = useRoute<Route>();
   const { c } = useTheme();
@@ -177,7 +176,7 @@ export default function HoroscopeMatchScreen() {
   };
 
   return (
-    <View style={[s.container, { backgroundColor: c.background, paddingTop: insets.top }]}>
+    <Screen edges={['top']} style={s.container}>
       <View style={[s.header, { borderBottomColor: c.hairline }]}>
         <PressableScale
           onPress={() => nav.goBack()}
@@ -205,7 +204,7 @@ export default function HoroscopeMatchScreen() {
           </View>
         ) : renderScore()}
       </ScrollView>
-    </View>
+    </Screen>
   );
 }
 

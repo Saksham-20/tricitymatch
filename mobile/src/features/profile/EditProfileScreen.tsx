@@ -10,8 +10,8 @@ import {
 } from 'react-native';
 import Text from '../../components/ui/Text';
 import Input from '../../components/ui/Input';
+import Screen from '../../components/layout/Screen';
 import type { TextInputProps } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -307,7 +307,6 @@ export default function EditProfileScreen() {
   const { c } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
   const ps = React.useMemo(() => makePs(c), [c]);
-  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const queryClient = useQueryClient();
@@ -431,7 +430,7 @@ export default function EditProfileScreen() {
   }
 
   return (
-    <View style={[styles.wrapper, { paddingTop: insets.top }]}>
+    <Screen edges={['top']} style={styles.wrapper}>
       {/* Header */}
       <View style={styles.header}>
         <PressableScale
@@ -656,7 +655,7 @@ export default function EditProfileScreen() {
         }}
         onClose={() => setPromptPickerIdx(null)}
       />
-    </View>
+    </Screen>
   );
 }
 

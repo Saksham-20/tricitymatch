@@ -9,6 +9,7 @@ import { ListSkeleton } from '../../components/ui/skeletons';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { PressableScale } from '../../components/motion';
 import Text from '../../components/ui/Text';
+import Screen from '../../components/layout/Screen';
 import { getAstrologer, bookAstrologer } from '../../api/profile';
 import type { MainStackParamList } from '../../navigation/types';
 
@@ -75,7 +76,7 @@ export default function AstrologerDetailScreen() {
   };
 
   return (
-    <View style={[s.container, { paddingTop: insets.top }]}>
+    <Screen edges={['top']} style={s.container}>
       <View style={s.header}>
         <PressableScale
           onPress={() => nav.goBack()}
@@ -196,12 +197,12 @@ export default function AstrologerDetailScreen() {
           </View>
         </>
       )}
-    </View>
+    </Screen>
   );
 }
 
 const makeS = (c: ThemeColours) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: c.background },
+  container: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

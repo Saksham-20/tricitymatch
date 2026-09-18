@@ -6,7 +6,6 @@ import {
   FlatList,
   Image,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +13,7 @@ import { ListSkeleton } from '../../components/ui/skeletons';
 import { useQuery } from '@tanstack/react-query';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { PressableScale } from '../../components/motion';
+import Screen from '../../components/layout/Screen';
 import Text from '../../components/ui/Text';
 import { getAstrologers } from '../../api/profile';
 import type { Astrologer } from '../../api/profile';
@@ -104,7 +104,6 @@ function AstrologerCard({ item, onPress }: { item: Astrologer; onPress: () => vo
 export default function AstrologerMarketplaceScreen() {
   const { c } = useTheme();
   const s = React.useMemo(() => makeS(c), [c]);
-  const insets = useSafeAreaInsets();
   const nav = useNavigation<Nav>();
   const [filter, setFilter] = useState<'all' | 'online'>('all');
 
@@ -122,7 +121,7 @@ export default function AstrologerMarketplaceScreen() {
   const filtered = filter === 'online' ? (data ?? []).filter(a => a.isOnline) : (data ?? []);
 
   return (
-    <View style={[s.container, { paddingTop: insets.top }]}>
+    <Screen edges={['top']} style={s.container}>
       {/* Header */}
       <View style={s.header}>
         <PressableScale
@@ -200,7 +199,7 @@ export default function AstrologerMarketplaceScreen() {
           }
         />
       )}
-    </View>
+    </Screen>
   );
 }
 

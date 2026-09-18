@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import Text from '../../components/ui/Text';
 import Input from '../../components/ui/Input';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Screen from '../../components/layout/Screen';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -134,7 +134,6 @@ const sp = StyleSheet.create({
 export default function GuardianSetupScreen() {
   const { c } = useTheme();
   const s = React.useMemo(() => makeS(c), [c]);
-  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const queryClient = useQueryClient();
@@ -180,7 +179,7 @@ export default function GuardianSetupScreen() {
   const activeLinks = links?.filter((l) => l.status !== 'revoked') ?? [];
 
   return (
-    <View style={[s.wrapper, { paddingTop: insets.top }]} testID="GuardianSetupScreen">
+    <Screen edges={['top']} style={s.wrapper} testID="GuardianSetupScreen">
       {/* Header */}
       <View style={s.header}>
         <PressableScale
@@ -291,7 +290,7 @@ export default function GuardianSetupScreen() {
         onClose={() => setShowInvite(false)}
         onCreate={(email) => inviteMutation.mutate(email)}
       />
-    </View>
+    </Screen>
   );
 }
 

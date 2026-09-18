@@ -12,14 +12,14 @@ import React, { useState } from 'react';
 import { PressableScale } from '../../components/motion';
 import { useTheme } from '../../hooks/useTheme';
 import {
-  View, StyleSheet, ScrollView,
-  ActivityIndicator, KeyboardAvoidingView, Platform,
+  View, StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
 import Text from '../../components/ui/Text';
 import Input from '../../components/ui/Input';
+import Screen from '../../components/layout/Screen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
@@ -47,7 +47,6 @@ export default function BasicsScreen() {
   const st = React.useMemo(() => makeSt(c), [c]);
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
-  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const setUser = useAuthStore((s) => s.setUser);
   const setAccessToken = useAuthStore((s) => s.setAccessToken);
@@ -123,120 +122,120 @@ export default function BasicsScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={st.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined} testID="BasicsScreen">
-      <ScrollView
-        style={st.flex}
-        contentContainerStyle={[st.content, { paddingTop: insets.top + spacing['2xl'] }]}
-        keyboardShouldPersistTaps="handled"
+    <Screen
+      edges={['top']}
+      keyboard
+      scroll
+      contentContainerStyle={[st.content, { paddingTop: spacing['2xl'] }]}
+      testID="BasicsScreen"
+    >
+      <PressableScale
+        onPress={() => navigation.goBack()}
+        style={st.back}
+        accessibilityRole="button"
+        accessibilityLabel="Back"
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
-        <PressableScale
-          onPress={() => navigation.goBack()}
-          style={st.back}
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
-        </PressableScale>
+        <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
+      </PressableScale>
 
-        <Text variant="caption" color="primary">{t('auth.signup.stepTwo', 'Step 2 of 2')}</Text>
-        <Text variant="title2" color="textPrimary" style={st.title}>{t('auth.signup.basicsTitle', 'A few basics')}</Text>
-        <Text variant="footnote" color="textMuted" style={st.sub}>{t('auth.signup.basicsSub', 'This creates the profile — everything else can wait.')}</Text>
+      <Text variant="caption" color="primary">{t('auth.signup.stepTwo', 'Step 2 of 2')}</Text>
+      <Text variant="title2" color="textPrimary" style={st.title}>{t('auth.signup.basicsTitle', 'A few basics')}</Text>
+      <Text variant="footnote" color="textMuted" style={st.sub}>{t('auth.signup.basicsSub', 'This creates the profile — everything else can wait.')}</Text>
 
-        <Text variant="subhead" color="textSecondary" style={st.label}>{t('auth.signup.profileFor', 'This profile is for')}</Text>
-        <View style={st.chipRow}>
-          {REGISTERING_FOR.map((opt) => {
-            const active = registeringFor === opt.key;
-            return (
-              <PressableScale
-                key={opt.key}
-                style={[st.chip, active && st.chipActive]}
-                onPress={() => setRegisteringFor(opt.key)}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-                testID={`profile-for-${opt.key}`}
-                hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
-                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Ionicons name={opt.icon} size={16} color={active ? '#fff' : c.textSecondary} />
-                <Text variant={active ? 'caption' : 'footnote'} color="textSecondary" style={active ? { color: '#fff' } : undefined}>{opt.label}</Text>
-              </PressableScale>
-            );
-          })}
-        </View>
+      <Text variant="subhead" color="textSecondary" style={st.label}>{t('auth.signup.profileFor', 'This profile is for')}</Text>
+      <View style={st.chipRow}>
+        {REGISTERING_FOR.map((opt) => {
+          const active = registeringFor === opt.key;
+          return (
+            <PressableScale
+              key={opt.key}
+              style={[st.chip, active && st.chipActive]}
+              onPress={() => setRegisteringFor(opt.key)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              testID={`profile-for-${opt.key}`}
+              hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name={opt.icon} size={16} color={active ? '#fff' : c.textSecondary} />
+              <Text variant={active ? 'caption' : 'footnote'} color="textSecondary" style={active ? { color: '#fff' } : undefined}>{opt.label}</Text>
+            </PressableScale>
+          );
+        })}
+      </View>
 
-        <Text variant="subhead" color="textSecondary" style={st.label}>{t('auth.signup.fullName', 'Full name')}</Text>
-        <View style={st.nameRow}>
-          <Input
-            containerStyle={st.nameField}
-            value={firstName}
-            onChangeText={setFirstName}
-            placeholder="First name"
-            autoCapitalize="words"
-            autoComplete="given-name"
-            testID="first-name-input"
-          />
-          <Input
-            containerStyle={st.nameField}
-            value={lastName}
-            onChangeText={setLastName}
-            placeholder="Last name"
-            autoCapitalize="words"
-            autoComplete="family-name"
-            testID="last-name-input"
-          />
-        </View>
-
-        <Text variant="subhead" color="textSecondary" style={st.label}>{t('auth.signup.gender', 'Gender')}</Text>
-        <View style={st.nameRow}>
-          {(['male', 'female'] as const).map((g) => {
-            const active = gender === g;
-            return (
-              <PressableScale
-                key={g}
-                style={[st.genderBtn, active && st.genderBtnActive]}
-                onPress={() => setGender(g)}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-                testID={`gender-${g}`}
-                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Ionicons name={g === 'male' ? 'male' : 'female'} size={18} color={active ? '#fff' : c.textSecondary} />
-                <Text variant={active ? 'headline' : 'callout'} color="textSecondary" style={active ? { color: '#fff' } : undefined}>{g === 'male' ? 'Male' : 'Female'}</Text>
-              </PressableScale>
-            );
-          })}
-        </View>
-
+      <Text variant="subhead" color="textSecondary" style={st.label}>{t('auth.signup.fullName', 'Full name')}</Text>
+      <View style={st.nameRow}>
         <Input
-          label={t('auth.signup.dob', 'Date of birth')}
-          value={dobDisplay}
-          onChangeText={handleDobChange}
-          placeholder="DD/MM/YYYY"
-          keyboardType="numeric"
-          maxLength={10}
-          testID="dob-input"
-          error={dobError || undefined}
-          helper={t('auth.signup.dobHint', 'Members must be 18–65. Shown as age only.')}
+          containerStyle={st.nameField}
+          value={firstName}
+          onChangeText={setFirstName}
+          placeholder="First name"
+          autoCapitalize="words"
+          autoComplete="given-name"
+          testID="first-name-input"
         />
+        <Input
+          containerStyle={st.nameField}
+          value={lastName}
+          onChangeText={setLastName}
+          placeholder="Last name"
+          autoCapitalize="words"
+          autoComplete="family-name"
+          testID="last-name-input"
+        />
+      </View>
 
-        {error ? <Text variant="footnote" color="error" style={st.error} accessibilityLiveRegion="polite">{error}</Text> : null}
+      <Text variant="subhead" color="textSecondary" style={st.label}>{t('auth.signup.gender', 'Gender')}</Text>
+      <View style={st.nameRow}>
+        {(['male', 'female'] as const).map((g) => {
+          const active = gender === g;
+          return (
+            <PressableScale
+              key={g}
+              style={[st.genderBtn, active && st.genderBtnActive]}
+              onPress={() => setGender(g)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              testID={`gender-${g}`}
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name={g === 'male' ? 'male' : 'female'} size={18} color={active ? '#fff' : c.textSecondary} />
+              <Text variant={active ? 'headline' : 'callout'} color="textSecondary" style={active ? { color: '#fff' } : undefined}>{g === 'male' ? 'Male' : 'Female'}</Text>
+            </PressableScale>
+          );
+        })}
+      </View>
 
-        <PressableScale haptic
-          style={[st.cta, (!isValid || loading) && st.ctaDisabled]}
-          onPress={handleCreate}
-          disabled={loading}
-          testID="create-profile-btn"
-          accessibilityRole="button"
-          accessibilityLabel="Create my profile"
-        >
-          {loading
-            ? <ActivityIndicator size="small" color="#fff" />
-            : <Text variant="headline" style={{ color: '#fff' }}>{t('auth.signup.createProfile', 'Create my profile')}</Text>}
-        </PressableScale>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      <Input
+        label={t('auth.signup.dob', 'Date of birth')}
+        value={dobDisplay}
+        onChangeText={handleDobChange}
+        placeholder="DD/MM/YYYY"
+        keyboardType="numeric"
+        maxLength={10}
+        testID="dob-input"
+        error={dobError || undefined}
+        helper={t('auth.signup.dobHint', 'Members must be 18–65. Shown as age only.')}
+      />
+
+      {error ? <Text variant="footnote" color="error" style={st.error} accessibilityLiveRegion="polite">{error}</Text> : null}
+
+      <PressableScale haptic
+        style={[st.cta, (!isValid || loading) && st.ctaDisabled]}
+        onPress={handleCreate}
+        disabled={loading}
+        testID="create-profile-btn"
+        accessibilityRole="button"
+        accessibilityLabel="Create my profile"
+      >
+        {loading
+          ? <ActivityIndicator size="small" color="#fff" />
+          : <Text variant="headline" style={{ color: '#fff' }}>{t('auth.signup.createProfile', 'Create my profile')}</Text>}
+      </PressableScale>
+    </Screen>
   );
 }
 

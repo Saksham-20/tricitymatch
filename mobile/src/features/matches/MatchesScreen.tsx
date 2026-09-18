@@ -10,7 +10,7 @@ import {
 import Text from '../../components/ui/Text';
 import SmartImage from '../../components/common/SmartImage';
 import { PressableScale } from '../../components/motion';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Screen from '../../components/layout/Screen';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -336,11 +336,10 @@ function TabContent({ activeTab }: { activeTab: TabKey }) {
 
 export default function MatchesScreen() {
   const { c } = useTheme();
-  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabKey>('mutual');
 
   return (
-    <View style={[s.container, { backgroundColor: c.background, paddingTop: insets.top }]} testID="MatchesScreen">
+    <Screen edges={['top']} style={s.container} testID="MatchesScreen">
       <View style={s.header}>
         <Text variant="title1" color="fgStrong">Matches</Text>
       </View>
@@ -368,7 +367,7 @@ export default function MatchesScreen() {
 
       {/* Content */}
       <TabContent activeTab={activeTab} />
-    </View>
+    </Screen>
   );
 }
 

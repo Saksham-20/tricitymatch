@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import Text from '../../components/ui/Text';
+import Screen from '../../components/layout/Screen';
 import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { Button, Card, EmptyState, ScreenHeader, SkeletonBlock, TickRing } from '../../components/ui';
 import { getPhotoVerification, submitVerification } from '../../api/verification';
@@ -98,7 +98,6 @@ const PERKS = [
 export default function VerificationScreen() {
   const { c } = useTheme();
   const s = React.useMemo(() => makeS(c), [c]);
-  const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const phoneVerified = useAuthStore((st) => st.user?.phoneVerified ?? false);
   const [submitting, setSubmitting] = useState(false);
@@ -141,7 +140,7 @@ export default function VerificationScreen() {
   const canSubmit = status === 'not_submitted' || status === 'rejected' || status === 'flagged';
 
   return (
-    <View style={[s.wrapper, { paddingTop: insets.top }]} testID="VerificationScreen">
+    <Screen edges={['top']} style={s.wrapper} testID="VerificationScreen">
       <ScreenHeader title="Verification" />
 
       {isError ? (
@@ -264,7 +263,7 @@ export default function VerificationScreen() {
           </View>
         </ScrollView>
       )}
-    </View>
+    </Screen>
   );
 }
 

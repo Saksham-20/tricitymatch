@@ -3,15 +3,12 @@ import { useTheme } from '../../hooks/useTheme';
 import {
   View,
   StyleSheet,
-  ScrollView,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import Text from '../../components/ui/Text';
 import Input from '../../components/ui/Input';
+import Screen from '../../components/layout/Screen';
 import { useNavigation } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,7 +23,6 @@ export default function ForgotPasswordScreen() {
   const { c } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
   const navigation = useNavigation<Nav>();
-  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
 
   const [email, setEmail] = useState('');
@@ -87,84 +83,79 @@ export default function ForgotPasswordScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    <Screen
+      edges={['top']}
+      keyboard
+      scroll
+      contentContainerStyle={[styles.content, { paddingTop: spacing['2xl'] }]}
       testID="ForgotPasswordScreen"
     >
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing['2xl'] }]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+      {/* Back */}
+      <PressableScale
+        style={styles.backBtn}
+        onPress={() => navigation.goBack()}
+        accessibilityRole="button"
+        accessibilityLabel={t('common.back')}
+        testID="ForgotPasswordScreen-back"
+        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
-        {/* Back */}
-        <PressableScale
-          style={styles.backBtn}
-          onPress={() => navigation.goBack()}
-          accessibilityRole="button"
-          accessibilityLabel={t('common.back')}
-          testID="ForgotPasswordScreen-back"
-          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="chevron-back" size={18} color={c.textSecondary} />
-          <Text variant="subhead" color="textSecondary">{t('common.back')}</Text>
-        </PressableScale>
+        <Ionicons name="chevron-back" size={18} color={c.textSecondary} />
+        <Text variant="subhead" color="textSecondary">{t('common.back')}</Text>
+      </PressableScale>
 
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.iconWrap}>
-            <Ionicons name="key-outline" size={28} color={c.primary} />
-          </View>
-          <Text variant="title1" color="textPrimary" style={styles.title}>{t('auth.forgotPassword.title')}</Text>
-          <Text variant="callout" color="textSecondary">{t('auth.forgotPassword.subtitle')}</Text>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.iconWrap}>
+          <Ionicons name="key-outline" size={28} color={c.primary} />
         </View>
+        <Text variant="title1" color="textPrimary" style={styles.title}>{t('auth.forgotPassword.title')}</Text>
+        <Text variant="callout" color="textSecondary">{t('auth.forgotPassword.subtitle')}</Text>
+      </View>
 
-        {/* Error */}
-        {error ? (
-          <View style={styles.errorBanner} testID="ForgotPasswordScreen-error" accessibilityLiveRegion="polite">
-            <Text variant="subhead" color="error">{error}</Text>
-          </View>
-        ) : null}
+      {/* Error */}
+      {error ? (
+        <View style={styles.errorBanner} testID="ForgotPasswordScreen-error" accessibilityLiveRegion="polite">
+          <Text variant="subhead" color="error">{error}</Text>
+        </View>
+      ) : null}
 
-        {/* Email input */}
-        <Input
-          label={t('auth.forgotPassword.email')}
-          value={email}
-          onChangeText={(v) => { setEmail(v); setError(''); }}
-          placeholder="you@example.com"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-          textContentType="emailAddress"
-          autoComplete="email"
-          autoFocus
-          returnKeyType="send"
-          onSubmitEditing={handleSubmit}
-          accessibilityLabel={t('auth.forgotPassword.email')}
-          testID="ForgotPasswordScreen-email"
-        />
+      {/* Email input */}
+      <Input
+        label={t('auth.forgotPassword.email')}
+        value={email}
+        onChangeText={(v) => { setEmail(v); setError(''); }}
+        placeholder="you@example.com"
+        keyboardType="email-address"
+        autoCapitalize="none"
+        autoCorrect={false}
+        textContentType="emailAddress"
+        autoComplete="email"
+        autoFocus
+        returnKeyType="send"
+        onSubmitEditing={handleSubmit}
+        accessibilityLabel={t('auth.forgotPassword.email')}
+        testID="ForgotPasswordScreen-email"
+      />
 
-        {/* Submit */}
-        <PressableScale
-          style={[styles.primaryBtn, loading && styles.btnDisabled]}
-          onPress={handleSubmit}
-          disabled={loading}
-          accessibilityRole="button"
-          accessibilityLabel={t('auth.forgotPassword.sendLink')}
-          accessibilityState={{ disabled: loading }}
-          testID="ForgotPasswordScreen-submit"
-          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          {loading ? (
-            <ActivityIndicator color="#FFFFFF" testID="ForgotPasswordScreen-loader" />
-          ) : (
-            <Text variant="headline" style={{ color: '#FFFFFF' }}>{t('auth.forgotPassword.sendLink')}</Text>
-          )}
-        </PressableScale>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      {/* Submit */}
+      <PressableScale
+        style={[styles.primaryBtn, loading && styles.btnDisabled]}
+        onPress={handleSubmit}
+        disabled={loading}
+        accessibilityRole="button"
+        accessibilityLabel={t('auth.forgotPassword.sendLink')}
+        accessibilityState={{ disabled: loading }}
+        testID="ForgotPasswordScreen-submit"
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        {loading ? (
+          <ActivityIndicator color="#FFFFFF" testID="ForgotPasswordScreen-loader" />
+        ) : (
+          <Text variant="headline" style={{ color: '#FFFFFF' }}>{t('auth.forgotPassword.sendLink')}</Text>
+        )}
+      </PressableScale>
+    </Screen>
   );
 }
 

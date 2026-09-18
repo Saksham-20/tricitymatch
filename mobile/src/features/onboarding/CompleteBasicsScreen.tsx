@@ -8,14 +8,14 @@
  */
 import React, { useEffect, useState } from 'react';
 import { PressableScale } from '../../components/motion';
+import Screen from '../../components/layout/Screen';
 import { useTheme } from '../../hooks/useTheme';
 import {
-  View, StyleSheet, ScrollView,
-  ActivityIndicator, KeyboardAvoidingView, Platform,
+  View, StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
 import Text from '../../components/ui/Text';
 import Input from '../../components/ui/Input';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { getMyProfile, updateMyProfile } from '../../api/profile';
@@ -26,7 +26,6 @@ import { spacing, borderRadius, type ThemeColours } from '@shared/constants/them
 export default function CompleteBasicsScreen() {
   const { c } = useTheme();
   const st = React.useMemo(() => makeSt(c), [c]);
-  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const setUser = useAuthStore((s) => s.setUser);
 
@@ -108,83 +107,83 @@ export default function CompleteBasicsScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={st.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined} testID="CompleteBasicsScreen">
-      <ScrollView
-        style={st.flex}
-        contentContainerStyle={[st.content, { paddingTop: insets.top + spacing['2xl'] }]}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text variant="title2" color="textPrimary">{t('auth.signup.basicsTitle', 'A few basics')}</Text>
-        <Text variant="footnote" color="textMuted" style={st.sub}>{t('auth.signup.legacySub', 'Finish setting up your profile — this takes under a minute.')}</Text>
+    <Screen
+      edges={['top']}
+      keyboard
+      scroll
+      contentContainerStyle={[st.content, { paddingTop: spacing['2xl'] }]}
+      testID="CompleteBasicsScreen"
+    >
+      <Text variant="title2" color="textPrimary">{t('auth.signup.basicsTitle', 'A few basics')}</Text>
+      <Text variant="footnote" color="textMuted" style={st.sub}>{t('auth.signup.legacySub', 'Finish setting up your profile — this takes under a minute.')}</Text>
 
-        <Text variant="subhead" color="textSecondary" style={st.label}>{t('auth.signup.fullName', 'Full name')}</Text>
-        <View style={st.nameRow}>
-          <Input
-            containerStyle={st.nameField}
-            value={firstName}
-            onChangeText={setFirstName}
-            placeholder="First name"
-            autoCapitalize="words"
-            testID="first-name-input"
-          />
-          <Input
-            containerStyle={st.nameField}
-            value={lastName}
-            onChangeText={setLastName}
-            placeholder="Last name"
-            autoCapitalize="words"
-            testID="last-name-input"
-          />
-        </View>
-
-        <Text variant="subhead" color="textSecondary" style={st.label}>{t('auth.signup.gender', 'Gender')}</Text>
-        <View style={st.nameRow}>
-          {(['male', 'female'] as const).map((g) => {
-            const active = gender === g;
-            return (
-              <PressableScale
-                key={g}
-                style={[st.genderBtn, active && st.genderBtnActive]}
-                onPress={() => setGender(g)}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                testID={`gender-${g}`}
-              >
-                <Ionicons name={g === 'male' ? 'male' : 'female'} size={18} color={active ? '#fff' : c.textSecondary} />
-                <Text variant="callout" color={active ? 'onPrimary' : 'textSecondary'}>{g === 'male' ? 'Male' : 'Female'}</Text>
-              </PressableScale>
-            );
-          })}
-        </View>
-
+      <Text variant="subhead" color="textSecondary" style={st.label}>{t('auth.signup.fullName', 'Full name')}</Text>
+      <View style={st.nameRow}>
         <Input
-          label={t('auth.signup.dob', 'Date of birth')}
-          containerStyle={st.dobField}
-          value={dobDisplay}
-          onChangeText={handleDobChange}
-          placeholder="DD/MM/YYYY"
-          keyboardType="numeric"
-          maxLength={10}
-          error={dobError}
-          testID="dob-input"
+          containerStyle={st.nameField}
+          value={firstName}
+          onChangeText={setFirstName}
+          placeholder="First name"
+          autoCapitalize="words"
+          testID="first-name-input"
         />
-        {error ? <Text variant="footnote" color="error" style={st.error} accessibilityLiveRegion="polite">{error}</Text> : null}
+        <Input
+          containerStyle={st.nameField}
+          value={lastName}
+          onChangeText={setLastName}
+          placeholder="Last name"
+          autoCapitalize="words"
+          testID="last-name-input"
+        />
+      </View>
 
-        <PressableScale haptic
-          style={[st.cta, (!isValid || loading) && st.ctaDisabled]}
-          onPress={handleContinue}
-          disabled={loading}
-          testID="continue-btn"
-          accessibilityRole="button"
-          accessibilityLabel="Continue"
-        >
-          {loading
-            ? <ActivityIndicator size="small" color="#fff" />
-            : <Text variant="headline" color="onPrimary">{t('common.continue', 'Continue')}</Text>}
-        </PressableScale>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      <Text variant="subhead" color="textSecondary" style={st.label}>{t('auth.signup.gender', 'Gender')}</Text>
+      <View style={st.nameRow}>
+        {(['male', 'female'] as const).map((g) => {
+          const active = gender === g;
+          return (
+            <PressableScale
+              key={g}
+              style={[st.genderBtn, active && st.genderBtnActive]}
+              onPress={() => setGender(g)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              testID={`gender-${g}`}
+            >
+              <Ionicons name={g === 'male' ? 'male' : 'female'} size={18} color={active ? '#fff' : c.textSecondary} />
+              <Text variant="callout" color={active ? 'onPrimary' : 'textSecondary'}>{g === 'male' ? 'Male' : 'Female'}</Text>
+            </PressableScale>
+          );
+        })}
+      </View>
+
+      <Input
+        label={t('auth.signup.dob', 'Date of birth')}
+        containerStyle={st.dobField}
+        value={dobDisplay}
+        onChangeText={handleDobChange}
+        placeholder="DD/MM/YYYY"
+        keyboardType="numeric"
+        maxLength={10}
+        error={dobError}
+        testID="dob-input"
+      />
+      {error ? <Text variant="footnote" color="error" style={st.error} accessibilityLiveRegion="polite">{error}</Text> : null}
+
+      <PressableScale haptic
+        style={[st.cta, (!isValid || loading) && st.ctaDisabled]}
+        onPress={handleContinue}
+        disabled={loading}
+        testID="continue-btn"
+        accessibilityRole="button"
+        accessibilityLabel="Continue"
+      >
+        {loading
+          ? <ActivityIndicator size="small" color="#fff" />
+          : <Text variant="headline" color="onPrimary">{t('common.continue', 'Continue')}</Text>}
+      </PressableScale>
+    </Screen>
   );
 }
 

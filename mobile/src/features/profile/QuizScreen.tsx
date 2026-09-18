@@ -12,6 +12,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import Text from '../../components/ui/Text';
+import Screen from '../../components/layout/Screen';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { duration, EASE_OUT } from '@shared/constants/motion';
 import { showToast } from '../../utils/toast';
@@ -220,7 +221,7 @@ export default function QuizScreen() {
   };
 
   return (
-    <View style={[styles.wrapper, { paddingTop: insets.top }]}>
+    <Screen edges={['top']} style={styles.wrapper}>
       {/* Header */}
       <View style={styles.header}>
         <PressableScale
@@ -313,7 +314,7 @@ export default function QuizScreen() {
           </PressableScale>
         )}
       </View>
-    </View>
+    </Screen>
   );
 }
 

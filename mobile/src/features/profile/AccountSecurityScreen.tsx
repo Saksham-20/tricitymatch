@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { borderRadius, colours, spacing, type ThemeColours } from '@shared/constants/theme';
@@ -15,6 +14,7 @@ import {
   SkeletonRow,
 } from '../../components/ui';
 import Text from '../../components/ui/Text';
+import Screen from '../../components/layout/Screen';
 import { changePassword, getSessions, logoutAll, revokeSession, type AuthSession } from '../../api/auth';
 import { useAuthStore } from '../../stores/authStore';
 import { PASSWORD_RULES_ATTR, passwordProblem } from '../../utils/passwordRule';
@@ -111,7 +111,6 @@ function SessionRow({
 export default function AccountSecurityScreen() {
   const { c } = useTheme();
   const s = React.useMemo(() => makeS(c), [c]);
-  const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const storeLogout = useAuthStore((state) => state.logout);
 
@@ -194,7 +193,7 @@ export default function AccountSecurityScreen() {
   const sessions = sessionsQuery.data ?? [];
 
   return (
-    <View style={[s.wrapper, { paddingTop: insets.top }]} testID="AccountSecurityScreen">
+    <Screen edges={['top']} style={s.wrapper} testID="AccountSecurityScreen">
       <ScreenHeader title="Account security" />
 
       <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
@@ -302,7 +301,7 @@ export default function AccountSecurityScreen() {
           />
         </Card>
       </ScrollView>
-    </View>
+    </Screen>
   );
 }
 

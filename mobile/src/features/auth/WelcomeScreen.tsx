@@ -9,13 +9,13 @@ import {
   NativeSyntheticEvent,
 } from 'react-native';
 import Text from '../../components/ui/Text';
+import Screen from '../../components/layout/Screen';
 import { PressableScale } from '../../components/motion';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import type { AuthStackParamList } from '../../navigation/types';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUIStore } from '../../stores/uiStore';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import Logo from '../../components/common/Logo';
@@ -66,7 +66,6 @@ export default function WelcomeScreen() {
   const navigation = useNavigation<Nav>();
   const { t, i18n } = useTranslation();
   const { language, setLanguage } = useUIStore();
-  const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -81,9 +80,9 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + spacing.lg }]} testID="WelcomeScreen">
+    <Screen edges={['top']} style={styles.container} testID="WelcomeScreen">
       {/* Language selector */}
-      <View style={styles.langRow} testID="WelcomeScreen-langSelector">
+      <View style={[styles.langRow, { paddingTop: spacing.lg }]} testID="WelcomeScreen-langSelector">
         {LANGUAGES.map((lang) => (
           <PressableScale
             key={lang.code}
@@ -169,7 +168,7 @@ export default function WelcomeScreen() {
           <Text variant="subhead" color="primary">{t('welcome.signIn', 'Already a member? Sign In')}</Text>
         </PressableScale>
       </View>
-    </View>
+    </Screen>
   );
 }
 

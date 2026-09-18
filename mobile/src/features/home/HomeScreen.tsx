@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import Text from '../../components/ui/Text';
 import { useNavigation } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,6 +19,7 @@ import { spacing, borderRadius, type ThemeColours } from '@shared/constants/them
 import SmartImage from '../../components/common/SmartImage';
 import { PressableScale } from '../../components/motion';
 import { Avatar, SectionHeader, SkeletonBlock, EmptyState, CompletionRing } from '../../components/ui';
+import Screen from '../../components/layout/Screen';
 import { getDailyFeed } from '../../api/matches';
 import { getUnreadCount } from '../../api/notifications';
 import { getCommunityStats } from '../../api/stats';
@@ -101,7 +101,6 @@ export default function HomeScreen() {
   const { t } = useTranslation();
   const { c } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
-  const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const user = useAuthStore((s) => s.user);
   const { start: startJourney } = useOnboarding();
@@ -163,9 +162,10 @@ export default function HomeScreen() {
   const newProfiles = feed?.slice(10) ?? [];
 
   return (
+    <Screen edges={['top']}>
     <ScrollView
-      style={[styles.container, { backgroundColor: c.background }]}
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.md, paddingBottom: tabClearance }]}
+      style={styles.container}
+      contentContainerStyle={[styles.content, { paddingTop: spacing.md, paddingBottom: tabClearance }]}
       showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} tintColor={c.accent} />}
       testID="HomeScreen"
@@ -330,6 +330,7 @@ export default function HomeScreen() {
 
       <View style={{ height: 32 }} />
     </ScrollView>
+    </Screen>
   );
 }
 

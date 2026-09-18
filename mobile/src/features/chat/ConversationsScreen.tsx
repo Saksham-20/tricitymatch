@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import Text from '../../components/ui/Text';
 import { PressableScale } from '../../components/motion';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Screen from '../../components/layout/Screen';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -100,7 +100,6 @@ export default function ConversationsScreen() {
   const { c } = useTheme();
   const s = React.useMemo(() => makeS(c), [c]);
   const navigation = useNavigation<Nav>();
-  const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
 
   // Chat access is decided by the SERVER (requireChatAccess). This mirrors that
@@ -165,7 +164,7 @@ export default function ConversationsScreen() {
 
   if (!hasPlus || deniedByServer) {
     return (
-      <View style={[s.container, { backgroundColor: c.background, paddingTop: insets.top }]} testID="ConversationsUpgradeGate">
+      <Screen edges={['top']} style={s.container} testID="ConversationsUpgradeGate">
         <View style={s.header}>
           <Text variant="title1" color="fgStrong">{t('chat.title', 'Messages')}</Text>
         </View>
@@ -177,12 +176,12 @@ export default function ConversationsScreen() {
             onUnlock={() => navigation.navigate('Subscription')}
           />
         </View>
-      </View>
+      </Screen>
     );
   }
 
   return (
-    <View style={[s.container, { backgroundColor: c.background, paddingTop: insets.top }]} testID="ConversationsScreen">
+    <Screen edges={['top']} style={s.container} testID="ConversationsScreen">
       <View style={s.header}>
         <Text variant="title1" color="fgStrong">Messages</Text>
         <PressableScale
@@ -216,7 +215,7 @@ export default function ConversationsScreen() {
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} colors={[c.accent]} tintColor={c.accent} />}
         />
       )}
-    </View>
+    </Screen>
   );
 }
 

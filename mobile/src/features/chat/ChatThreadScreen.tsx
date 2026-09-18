@@ -7,6 +7,7 @@ import {
 import Text from '../../components/ui/Text';
 import Input from '../../components/ui/Input';
 import SmartImage from '../../components/common/SmartImage';
+import Screen from '../../components/layout/Screen';
 import { PressableScale, useReduceMotion } from '../../components/motion';
 import Animated, {
   Easing,
@@ -695,7 +696,7 @@ export default function ChatThreadScreen() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if ((threadError as any)?.response?.status === 403) {
     return (
-      <View style={[s.gateWrap, { paddingTop: insets.top }]} testID="ChatThreadGate">
+      <Screen edges={['top']} style={s.gateWrap} testID="ChatThreadGate">
         <PressableScale
           onPress={() => navigation.goBack()}
           style={s.gateBack}
@@ -723,7 +724,7 @@ export default function ChatThreadScreen() {
             <Text variant="headline" style={{ color: '#fff' }}>{t('chat.gateCta', 'See plans')}</Text>
           </PressableScale>
         </View>
-      </View>
+      </Screen>
     );
   }
 
@@ -738,8 +739,9 @@ export default function ChatThreadScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
+      <Screen edges={['top']}>
       {/* Header */}
-      <View style={[s.header, { paddingTop: insets.top + spacing.sm }]}>
+      <View style={[s.header, { paddingTop: spacing.sm }]}>
         <PressableScale
           onPress={() => navigation.goBack()}
           style={s.backBtn}
@@ -951,6 +953,7 @@ export default function ChatThreadScreen() {
         onReact={(msg, emoji) => doReact({ id: msg.id, emoji })}
         onReply={setReplyingTo}
       />
+      </Screen>
     </KeyboardAvoidingView>
   );
 }

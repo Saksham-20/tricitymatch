@@ -7,9 +7,9 @@ import {
   RefreshControl,
 } from 'react-native';
 import Text from '../../components/ui/Text';
+import Screen from '../../components/layout/Screen';
 import { PressableScale } from '../../components/motion';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NotificationsSkeleton } from '../../components/ui/skeletons';
 import ListFooter from '../../components/ui/ListFooter';
@@ -117,7 +117,6 @@ export default function NotificationsScreen() {
   const { c } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
   const navigation = useNavigation<NavProp>();
-  const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -190,14 +189,14 @@ export default function NotificationsScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]} testID="NotificationsScreen">
+      <Screen edges={['top']} style={styles.container} testID="NotificationsScreen">
         <NotificationsSkeleton />
-      </View>
+      </Screen>
     );
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]} testID="NotificationsScreen">
+    <Screen edges={['top']} style={styles.container} testID="NotificationsScreen">
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
@@ -264,7 +263,7 @@ export default function NotificationsScreen() {
           </View>
         }
       />
-    </View>
+    </Screen>
   );
 }
 

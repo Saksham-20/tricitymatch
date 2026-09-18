@@ -4,16 +4,13 @@ import {
   View,
   TextInput,
   StyleSheet,
-  ScrollView,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import Text from '../../components/ui/Text';
 import Input from '../../components/ui/Input';
 import { PressableScale } from '../../components/motion';
+import Screen from '../../components/layout/Screen';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
@@ -30,7 +27,6 @@ export default function ResetPasswordScreen() {
   const { c } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
   const navigation = useNavigation<Nav>();
-  const insets = useSafeAreaInsets();
   const route = useRoute<RouteProps>();
   const { t } = useTranslation();
 
@@ -97,104 +93,99 @@ export default function ResetPasswordScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    <Screen
+      edges={['top']}
+      keyboard
+      scroll
+      contentContainerStyle={[styles.content, { paddingTop: spacing['2xl'] }]}
       testID="ResetPasswordScreen"
     >
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing['2xl'] }]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        {navigation.canGoBack() && (
-          <PressableScale
-            onPress={() => navigation.goBack()}
-            style={styles.backBtn}
-            accessibilityLabel="Go back"
-            accessibilityRole="button"
-            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            testID="reset-back"
-          >
-            <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
-          </PressableScale>
-        )}
-
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.iconWrap}>
-            <Ionicons name="lock-closed-outline" size={28} color={c.primary} />
-          </View>
-          <Text variant="title1" color="textPrimary" style={styles.title}>{t('auth.resetPassword.title')}</Text>
-          <Text variant="callout" color="textSecondary">Choose a new password for your account.</Text>
-        </View>
-
-        {/* Error */}
-        {error ? (
-          <View style={styles.errorBanner} testID="ResetPasswordScreen-error" accessibilityLiveRegion="polite">
-            <Text variant="subhead" color="error">{error}</Text>
-          </View>
-        ) : null}
-
-        {/* New password */}
-        <Input
-          label={t('auth.resetPassword.newPassword')}
-          value={password}
-          onChangeText={(v) => { setPassword(v); setFieldErrors((p) => ({ ...p, password: '' })); }}
-          placeholder="Min. 8 chars, with a number & symbol"
-          secureToggle
-          secureTextEntry
-          textContentType="newPassword"
-          autoComplete="new-password"
-          passwordRules={PASSWORD_RULES_ATTR}
-          returnKeyType="next"
-          onSubmitEditing={() => confirmRef.current?.focus()}
-          accessibilityLabel={t('auth.resetPassword.newPassword')}
-          error={fieldErrors.password}
-          testID="ResetPasswordScreen-password"
-          toggleTestID="ResetPasswordScreen-togglePassword"
-        />
-
-        {/* Confirm password */}
-        <Input
-          ref={confirmRef}
-          label={t('auth.resetPassword.confirmPassword')}
-          value={confirmPassword}
-          onChangeText={(v) => { setConfirmPassword(v); setFieldErrors((p) => ({ ...p, confirmPassword: '' })); }}
-          placeholder="Re-enter new password"
-          secureToggle
-          secureTextEntry
-          textContentType="newPassword"
-          autoComplete="new-password"
-          returnKeyType="done"
-          onSubmitEditing={handleReset}
-          accessibilityLabel={t('auth.resetPassword.confirmPassword')}
-          error={fieldErrors.confirmPassword}
-          testID="ResetPasswordScreen-confirmPassword"
-          toggleTestID="ResetPasswordScreen-toggleConfirm"
-        />
-
-        {/* Submit */}
+      {navigation.canGoBack() && (
         <PressableScale
-          style={[styles.primaryBtn, loading && styles.btnDisabled]}
-          onPress={handleReset}
-          disabled={loading}
-          accessibilityLabel={t('auth.resetPassword.reset')}
+          onPress={() => navigation.goBack()}
+          style={styles.backBtn}
+          accessibilityLabel="Go back"
           accessibilityRole="button"
-          accessibilityState={{ disabled: loading }}
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
           pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          testID="ResetPasswordScreen-submit"
+          testID="reset-back"
         >
-          {loading ? (
-            <ActivityIndicator color="#FFFFFF" testID="ResetPasswordScreen-loader" />
-          ) : (
-            <Text variant="headline" style={{ color: '#FFFFFF' }}>{t('auth.resetPassword.reset')}</Text>
-          )}
+          <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
         </PressableScale>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      )}
+
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.iconWrap}>
+          <Ionicons name="lock-closed-outline" size={28} color={c.primary} />
+        </View>
+        <Text variant="title1" color="textPrimary" style={styles.title}>{t('auth.resetPassword.title')}</Text>
+        <Text variant="callout" color="textSecondary">Choose a new password for your account.</Text>
+      </View>
+
+      {/* Error */}
+      {error ? (
+        <View style={styles.errorBanner} testID="ResetPasswordScreen-error" accessibilityLiveRegion="polite">
+          <Text variant="subhead" color="error">{error}</Text>
+        </View>
+      ) : null}
+
+      {/* New password */}
+      <Input
+        label={t('auth.resetPassword.newPassword')}
+        value={password}
+        onChangeText={(v) => { setPassword(v); setFieldErrors((p) => ({ ...p, password: '' })); }}
+        placeholder="Min. 8 chars, with a number & symbol"
+        secureToggle
+        secureTextEntry
+        textContentType="newPassword"
+        autoComplete="new-password"
+        passwordRules={PASSWORD_RULES_ATTR}
+        returnKeyType="next"
+        onSubmitEditing={() => confirmRef.current?.focus()}
+        accessibilityLabel={t('auth.resetPassword.newPassword')}
+        error={fieldErrors.password}
+        testID="ResetPasswordScreen-password"
+        toggleTestID="ResetPasswordScreen-togglePassword"
+      />
+
+      {/* Confirm password */}
+      <Input
+        ref={confirmRef}
+        label={t('auth.resetPassword.confirmPassword')}
+        value={confirmPassword}
+        onChangeText={(v) => { setConfirmPassword(v); setFieldErrors((p) => ({ ...p, confirmPassword: '' })); }}
+        placeholder="Re-enter new password"
+        secureToggle
+        secureTextEntry
+        textContentType="newPassword"
+        autoComplete="new-password"
+        returnKeyType="done"
+        onSubmitEditing={handleReset}
+        accessibilityLabel={t('auth.resetPassword.confirmPassword')}
+        error={fieldErrors.confirmPassword}
+        testID="ResetPasswordScreen-confirmPassword"
+        toggleTestID="ResetPasswordScreen-toggleConfirm"
+      />
+
+      {/* Submit */}
+      <PressableScale
+        style={[styles.primaryBtn, loading && styles.btnDisabled]}
+        onPress={handleReset}
+        disabled={loading}
+        accessibilityLabel={t('auth.resetPassword.reset')}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: loading }}
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        testID="ResetPasswordScreen-submit"
+      >
+        {loading ? (
+          <ActivityIndicator color="#FFFFFF" testID="ResetPasswordScreen-loader" />
+        ) : (
+          <Text variant="headline" style={{ color: '#FFFFFF' }}>{t('auth.resetPassword.reset')}</Text>
+        )}
+      </PressableScale>
+    </Screen>
   );
 }
 

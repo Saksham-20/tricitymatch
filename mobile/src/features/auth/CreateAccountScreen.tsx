@@ -9,12 +9,12 @@ import React, { useState } from 'react';
 import { PressableScale } from '../../components/motion';
 import { useTheme } from '../../hooks/useTheme';
 import {
-  View, StyleSheet, ScrollView,
-  ActivityIndicator, KeyboardAvoidingView, Platform,
+  View, StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
 import Text from '../../components/ui/Text';
+import Screen from '../../components/layout/Screen';
 import { useNavigation } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
@@ -33,7 +33,6 @@ export default function CreateAccountScreen() {
   const { c } = useTheme();
   const st = React.useMemo(() => makeSt(c), [c]);
   const navigation = useNavigation<Nav>();
-  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
 
   const [contact, setContact] = useState('');
@@ -92,121 +91,121 @@ export default function CreateAccountScreen() {
   const otpActive = otpPhase === 'sent' || otpPhase === 'verifying';
 
   return (
-    <KeyboardAvoidingView style={st.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined} testID="CreateAccountScreen">
-      <ScrollView
-        style={st.flex}
-        contentContainerStyle={[st.content, { paddingTop: insets.top + spacing['2xl'] }]}
-        keyboardShouldPersistTaps="handled"
+    <Screen
+      edges={['top']}
+      keyboard
+      scroll
+      contentContainerStyle={[st.content, { paddingTop: spacing['2xl'] }]}
+      testID="CreateAccountScreen"
+    >
+      <PressableScale
+        onPress={() => navigation.goBack()}
+        style={st.back}
+        accessibilityRole="button"
+        accessibilityLabel={t('common.back', 'Back')}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
-        <PressableScale
-          onPress={() => navigation.goBack()}
-          style={st.back}
+        <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
+      </PressableScale>
+
+      <Text variant="title2" color="textPrimary">{t('auth.signup.title', 'Create your account')}</Text>
+      <Text variant="footnote" color="textMuted" style={st.sub}>{t('auth.signup.doorSub', 'Two steps. About two minutes.')}</Text>
+
+      <View style={st.field}>
+        <Text variant="subhead" color="textSecondary" style={st.label}>{t('auth.emailOrPhone', 'Email or mobile number')}</Text>
+        <SmartContactInput
+          value={contact}
+          onChange={(raw) => { setContact(raw); if (otpPhase !== 'idle') setOtpPhase('idle'); }}
+          editable={!otpActive}
+        />
+      </View>
+
+      <View style={st.field}>
+        <Input
+          label={t('auth.password', 'Password')}
+          value={password}
+          onChangeText={setPassword}
+          placeholder={t('auth.passwordPlaceholder', 'At least 8 characters')}
+          secureTextEntry
+          secureToggle
+          autoCapitalize="none"
+          editable={!otpActive}
+          accessibilityLabel={t('auth.password', 'Password')}
+          testID="password-input"
+        />
+        {password.length > 0 && <PasswordStrength password={password} />}
+      </View>
+
+      <PressableScale
+        style={st.termsRow}
+        onPress={() => setTermsAccepted((v) => !v)}
+        disabled={otpActive}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: termsAccepted, disabled: otpActive }}
+        testID="terms-checkbox"
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <Ionicons
+          name={termsAccepted ? 'checkbox' : 'square-outline'}
+          size={22}
+          color={termsAccepted ? c.primary : c.textMuted}
+        />
+        <Text variant="footnote" color="textSecondary" style={st.termsText}>
+          {t('auth.signup.agree', 'I agree to the')}{' '}
+          <Text variant="caption" color="primary" onPress={() => navigation.navigate('Terms')} accessibilityRole="link">{t('auth.signup.termsLink', 'Terms & Conditions')}</Text>
+          {' '}&amp;{' '}
+          <Text variant="caption" color="primary" onPress={() => navigation.navigate('Privacy')} accessibilityRole="link">{t('auth.signup.privacyLink', 'Privacy Policy')}</Text>
+        </Text>
+      </PressableScale>
+
+      {error ? <Text variant="footnote" color="error" style={st.error} accessibilityLiveRegion="polite">{error}</Text> : null}
+
+      {otpPhase === 'idle' || otpPhase === 'sending' ? (
+        <PressableScale haptic
+          style={[st.cta, (!formValid || otpPhase === 'sending') && st.ctaDisabled]}
+          onPress={handleSendOtp}
+          disabled={otpPhase === 'sending'}
+          testID="send-otp-btn"
           accessibilityRole="button"
-          accessibilityLabel={t('common.back', 'Back')}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityLabel="Send verification code"
         >
-          <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
+          {otpPhase === 'sending'
+            ? <ActivityIndicator size="small" color="#fff" />
+            : <Text variant="headline" style={{ color: '#fff' }}>{t('auth.signup.sendCode', 'Send verification code')}</Text>}
         </PressableScale>
-
-        <Text variant="title2" color="textPrimary">{t('auth.signup.title', 'Create your account')}</Text>
-        <Text variant="footnote" color="textMuted" style={st.sub}>{t('auth.signup.doorSub', 'Two steps. About two minutes.')}</Text>
-
-        <View style={st.field}>
-          <Text variant="subhead" color="textSecondary" style={st.label}>{t('auth.emailOrPhone', 'Email or mobile number')}</Text>
-          <SmartContactInput
-            value={contact}
-            onChange={(raw) => { setContact(raw); if (otpPhase !== 'idle') setOtpPhase('idle'); }}
-            editable={!otpActive}
-          />
-        </View>
-
-        <View style={st.field}>
-          <Input
-            label={t('auth.password', 'Password')}
-            value={password}
-            onChangeText={setPassword}
-            placeholder={t('auth.passwordPlaceholder', 'At least 8 characters')}
-            secureTextEntry
-            secureToggle
-            autoCapitalize="none"
-            editable={!otpActive}
-            accessibilityLabel={t('auth.password', 'Password')}
-            testID="password-input"
-          />
-          {password.length > 0 && <PasswordStrength password={password} />}
-        </View>
-
-        <PressableScale
-          style={st.termsRow}
-          onPress={() => setTermsAccepted((v) => !v)}
-          disabled={otpActive}
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: termsAccepted, disabled: otpActive }}
-          testID="terms-checkbox"
-          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons
-            name={termsAccepted ? 'checkbox' : 'square-outline'}
-            size={22}
-            color={termsAccepted ? c.primary : c.textMuted}
-          />
-          <Text variant="footnote" color="textSecondary" style={st.termsText}>
-            {t('auth.signup.agree', 'I agree to the')}{' '}
-            <Text variant="caption" color="primary" onPress={() => navigation.navigate('Terms')} accessibilityRole="link">{t('auth.signup.termsLink', 'Terms & Conditions')}</Text>
-            {' '}&amp;{' '}
-            <Text variant="caption" color="primary" onPress={() => navigation.navigate('Privacy')} accessibilityRole="link">{t('auth.signup.privacyLink', 'Privacy Policy')}</Text>
+      ) : (
+        <View style={st.otpBlock}>
+          <Text variant="footnote" color="textSecondary" style={st.otpTitle}>
+            {t('auth.signup.enterCode', 'Enter the 4-digit code sent to')} {parsed.kind === 'phone' ? `+91 ${parsed.value}` : parsed.value}
           </Text>
-        </PressableScale>
-
-        {error ? <Text variant="footnote" color="error" style={st.error} accessibilityLiveRegion="polite">{error}</Text> : null}
-
-        {otpPhase === 'idle' || otpPhase === 'sending' ? (
-          <PressableScale haptic
-            style={[st.cta, (!formValid || otpPhase === 'sending') && st.ctaDisabled]}
-            onPress={handleSendOtp}
-            disabled={otpPhase === 'sending'}
-            testID="send-otp-btn"
-            accessibilityRole="button"
-            accessibilityLabel="Send verification code"
-          >
-            {otpPhase === 'sending'
-              ? <ActivityIndicator size="small" color="#fff" />
-              : <Text variant="headline" style={{ color: '#fff' }}>{t('auth.signup.sendCode', 'Send verification code')}</Text>}
-          </PressableScale>
-        ) : (
-          <View style={st.otpBlock}>
-            <Text variant="footnote" color="textSecondary" style={st.otpTitle}>
-              {t('auth.signup.enterCode', 'Enter the 4-digit code sent to')} {parsed.kind === 'phone' ? `+91 ${parsed.value}` : parsed.value}
-            </Text>
-            <OtpInput onComplete={handleVerify} disabled={otpPhase === 'verifying'} resetKey={otpResetKey} />
-            {otpPhase === 'verifying' && <ActivityIndicator size="small" color={c.primary} style={{ marginTop: spacing.sm }} />}
-            <PressableScale
-              onPress={handleSendOtp}
-              style={{ marginTop: spacing.md }}
-              accessibilityRole="link"
-              accessibilityLabel="Resend code"
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Text variant="caption" color="primary">{t('auth.signup.resend', 'Resend code')}</Text>
-            </PressableScale>
-          </View>
-        )}
-
-        <View style={st.footerRow}>
-          <Text variant="footnote" color="textMuted">{t('auth.signup.haveAccount', 'Already have an account?')}</Text>
+          <OtpInput onComplete={handleVerify} disabled={otpPhase === 'verifying'} resetKey={otpResetKey} />
+          {otpPhase === 'verifying' && <ActivityIndicator size="small" color={c.primary} style={{ marginTop: spacing.sm }} />}
           <PressableScale
-            onPress={() => navigation.navigate('Login')}
+            onPress={handleSendOtp}
+            style={{ marginTop: spacing.md }}
             accessibilityRole="link"
+            accessibilityLabel="Resend code"
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text variant="caption" color="primary"> {t('auth.login.signIn', 'Sign in')}</Text>
+            <Text variant="caption" color="primary">{t('auth.signup.resend', 'Resend code')}</Text>
           </PressableScale>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      )}
+
+      <View style={st.footerRow}>
+        <Text variant="footnote" color="textMuted">{t('auth.signup.haveAccount', 'Already have an account?')}</Text>
+        <PressableScale
+          onPress={() => navigation.navigate('Login')}
+          accessibilityRole="link"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Text variant="caption" color="primary"> {t('auth.login.signIn', 'Sign in')}</Text>
+        </PressableScale>
+      </View>
+    </Screen>
   );
 }
 
