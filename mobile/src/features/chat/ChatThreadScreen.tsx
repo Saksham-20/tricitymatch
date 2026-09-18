@@ -17,7 +17,12 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { duration } from '@shared/constants/motion';
+import { duration, EASE_IN_OUT } from '@shared/constants/motion';
+
+// The typing-dot loop's own cadence — one of doctrine §10.3's four sanctioned
+// infinite loops, not a single named interaction from the duration table.
+const TYPING_DOT_BOUNCE_MS = 300;
+const TYPING_DOT_REST_MS = 600;
 import { ChatThreadSkeleton } from '../../components/ui/skeletons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -81,9 +86,9 @@ function TypingDot({ delay }: { delay: number }) {
       delay,
       withRepeat(
         withSequence(
-          withTiming(-4, { duration: 300, easing: Easing.inOut(Easing.quad) }),
-          withTiming(0, { duration: 300, easing: Easing.inOut(Easing.quad) }),
-          withTiming(0, { duration: 600 }),
+          withTiming(-4, { duration: TYPING_DOT_BOUNCE_MS, easing: Easing.bezier(...EASE_IN_OUT) }),
+          withTiming(0, { duration: TYPING_DOT_BOUNCE_MS, easing: Easing.bezier(...EASE_IN_OUT) }),
+          withTiming(0, { duration: TYPING_DOT_REST_MS }),
         ),
         -1,
       ),
@@ -134,7 +139,7 @@ function MessageBubble({ msg, isOwn, onLongPress }: BubbleProps) {
   // Entrance only for messages created in the last few seconds — history
   // must never re-animate when pages load or the list re-renders.
   const isFresh = Date.now() - new Date(msg.createdAt).getTime() < 3000;
-  const entering = !reduced && isFresh ? FadeInDown.duration(duration.fast * 1.5) : undefined;
+  const entering = !reduced && isFresh ? FadeInDown.duration(duration.content) : undefined;
   return (
     <Animated.View entering={entering}>
     <TouchableOpacity

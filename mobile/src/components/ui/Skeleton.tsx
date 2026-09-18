@@ -15,6 +15,10 @@ import { duration } from '@shared/constants/motion';
 import { useTheme } from '../../hooks/useTheme';
 import { useReduceMotion } from '../motion';
 
+// The shimmer sweep's own cadence — one of doctrine §10.3's four sanctioned
+// infinite loops, not a single named interaction from the duration table.
+const SHIMMER_SWEEP_MS = 1500;
+
 interface SkeletonBlockProps {
   width?: DimensionValue;
   height?: number;
@@ -33,7 +37,7 @@ export function SkeletonBlock({ width = '100%', height = 16, radius = borderRadi
   useEffect(() => {
     if (!w || reduceMotion) return;
     x.value = 0;
-    x.value = withRepeat(withTiming(1, { duration: 1500, easing: Easing.linear }), -1);
+    x.value = withRepeat(withTiming(1, { duration: SHIMMER_SWEEP_MS, easing: Easing.linear }), -1);
     return () => cancelAnimation(x);
   }, [w, reduceMotion, x]);
 
@@ -89,12 +93,13 @@ export function SkeletonCard() {
 }
 
 /** Wrap real content so it cross-fades in when it replaces a skeleton
- *  (handoff: skeleton → data over dur.slow). Reduce-motion renders instantly. */
+ *  (handoff: skeleton → data over duration.content). Reduce-motion renders
+ *  instantly. */
 export function SkeletonFade({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
   const reduceMotion = useReduceMotion();
   if (reduceMotion) return <View style={style}>{children}</View>;
   return (
-    <Animated.View entering={FadeIn.duration(duration.slow)} style={style}>
+    <Animated.View entering={FadeIn.duration(duration.content)} style={style}>
       {children}
     </Animated.View>
   );

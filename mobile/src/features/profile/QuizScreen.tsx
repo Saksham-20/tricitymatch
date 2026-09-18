@@ -14,7 +14,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import { duration, easing } from '@shared/constants/motion';
+import { duration, EASE_OUT } from '@shared/constants/motion';
 import { showToast } from '../../utils/toast';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
@@ -147,7 +147,7 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
   const reduced = useReduceMotion();
   const w = useSharedValue(pct);
   useEffect(() => {
-    w.value = reduced ? pct : withTiming(pct, { duration: duration.base, easing: Easing.bezier(...easing.std) });
+    w.value = reduced ? pct : withTiming(pct, { duration: duration.content, easing: Easing.bezier(...EASE_OUT) });
   }, [pct, reduced, w]);
   const fill = useAnimatedStyle(() => ({ width: `${w.value}%` }));
   return (

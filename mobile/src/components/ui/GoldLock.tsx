@@ -7,6 +7,7 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 import { borderRadius, colours, shadows, type } from '@shared/constants/theme';
 import { duration } from '@shared/constants/motion';
 import { useTheme } from '../../hooks/useTheme';
+import { useReduceTransparency } from '../motion';
 import Button from './Button';
 
 interface GoldLockProps {
@@ -35,6 +36,7 @@ export default function GoldLock({
   testID,
 }: GoldLockProps) {
   const { c, isDark } = useTheme();
+  const reduceTransparency = useReduceTransparency();
   // With no gated content behind it the wrap has nothing to size it, so an
   // absolutely-positioned overlay is measured against `minHeight` alone and the
   // CTA is clipped by `overflow: hidden`. Let the overlay sit in flow instead
@@ -47,15 +49,25 @@ export default function GoldLock({
           {children}
         </View>
       ) : null}
-      {/* real frosted blur over the gated content (handoff blur(9) equivalent) */}
-      <BlurView
-        intensity={28}
-        tint={isDark ? 'dark' : 'light'}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
-      />
+      {/* real frosted blur over the gated content (handoff blur(9) equivalent);
+          Reduce Transparency swaps it for an opaque tint (doctrine §10.5). */}
+      {reduceTransparency ? (
+        <View
+          style={[StyleSheet.absoluteFill, { backgroundColor: c.surfaceCard }]}
+          pointerEvents="none"
+        />
+      ) : (
+        <BlurView
+          intensity={28}
+          tint={isDark ? 'dark' : 'light'}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
+      )}
       <Animated.View
-        entering={FadeIn.duration(duration.base)}
+        // duration.reveal is reserved for Operate-surface scroll reveals
+        // (doctrine §10.3) — this is a one-time content entrance instead.
+        entering={FadeIn.duration(duration.content)}
         style={[
           bare ? styles.overlayFlow : styles.overlay,
           { backgroundColor: c.surfaceCard + '80' },

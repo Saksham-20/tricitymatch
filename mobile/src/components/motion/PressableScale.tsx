@@ -1,11 +1,14 @@
 import React from 'react';
 import { GestureResponderEvent, Pressable, PressableProps, StyleProp, ViewStyle } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
-import { spring } from '@shared/constants/motion';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import { duration, EASE_OUT, spring } from '@shared/constants/motion';
 import { haptics } from '../../utils/haptics';
 import { useReduceMotion } from './useReduceMotion';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+/** Opacity press feedback under reduce-motion (doctrine §10.2 ruling 18). */
+const REDUCED_PRESS_OPACITY = 0.6;
 
 interface PressableScaleProps extends PressableProps {
   /** press-in target scale (handoff spec: 0.97 for cards/rows) */
@@ -17,8 +20,10 @@ interface PressableScaleProps extends PressableProps {
 }
 
 /**
- * Press-in scale-down + spring-back (handoff `spring.pop`) — the standard
- * native press idiom for cards, rows and CTAs. Honours reduce-motion (no scale).
+ * Press-in scale-down + spring-back (`spring.press`) — the standard native
+ * press idiom for cards, rows and CTAs. Under reduce-motion the scale drops
+ * but the press still reads: opacity dims instead (doctrine §10.2 ruling 18
+ * — "the press is the whole feedback" on a touch OS with no hover).
  */
 export default function PressableScale({
   scaleTo = 0.97,
@@ -31,16 +36,28 @@ export default function PressableScale({
 }: PressableScaleProps) {
   const reduced = useReduceMotion();
   const scale = useSharedValue(1);
+  const opacity = useSharedValue(1);
 
-  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+  }));
 
   const handleIn = (e: GestureResponderEvent) => {
-    if (!reduced) scale.value = withSpring(scaleTo, spring.pop);
+    if (reduced) {
+      opacity.value = withTiming(REDUCED_PRESS_OPACITY, { duration: duration.press, easing: Easing.bezier(...EASE_OUT) });
+    } else {
+      scale.value = withSpring(scaleTo, spring.press);
+    }
     if (haptic) haptics.light();
     onPressIn?.(e);
   };
   const handleOut = (e: GestureResponderEvent) => {
-    if (!reduced) scale.value = withSpring(1, spring.pop);
+    if (reduced) {
+      opacity.value = withTiming(1, { duration: duration.press, easing: Easing.bezier(...EASE_OUT) });
+    } else {
+      scale.value = withSpring(1, spring.press);
+    }
     onPressOut?.(e);
   };
 

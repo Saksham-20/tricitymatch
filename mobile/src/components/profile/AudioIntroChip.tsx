@@ -12,10 +12,17 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { colours, spacing, type, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { EASE_IN_OUT } from '@shared/constants/motion';
 import { resolveImageUri } from '../common/SmartImage';
 import { PressableScale, useReduceMotion } from '../motion';
 import { useTheme } from '../../hooks/useTheme';
 import { showToast } from '../../utils/toast';
+
+// The waveform loop's own cadence — one of doctrine §10.3's four sanctioned
+// infinite loops (gated on `playing`), not a single named interaction from
+// the duration table.
+const WAVE_PULSE_MS = 300;
+const WAVE_REST_MS = 150;
 
 // Lazy expo-av — no-op in Expo Go without a native build.
 function getAV(): any | null {
@@ -40,15 +47,15 @@ function WaveBar({ playing, delay, color }: { playing: boolean; delay: number; c
         delay,
         withRepeat(
           withSequence(
-            withTiming(1, { duration: 300, easing: Easing.inOut(Easing.quad) }),
-            withTiming(0.3, { duration: 300, easing: Easing.inOut(Easing.quad) }),
+            withTiming(1, { duration: WAVE_PULSE_MS, easing: Easing.bezier(...EASE_IN_OUT) }),
+            withTiming(0.3, { duration: WAVE_PULSE_MS, easing: Easing.bezier(...EASE_IN_OUT) }),
           ),
           -1,
         ),
       );
     } else {
       cancelAnimation(h);
-      h.value = withTiming(0.4, { duration: 150 });
+      h.value = withTiming(0.4, { duration: WAVE_REST_MS });
     }
     return () => cancelAnimation(h);
   }, [playing, reduced, delay, h]);

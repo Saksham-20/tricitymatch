@@ -13,10 +13,14 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { colours, type, type ThemeColours } from '@shared/constants/theme';
-import { spring } from '@shared/constants/motion';
+import { EASE_OUT, spring } from '@shared/constants/motion';
 import { haptics } from '../../utils/haptics';
 import { useReduceMotion } from '../motion';
 import Button from './Button';
+
+// A decorative one-off pulse ring, not a single named interaction from the
+// shared duration table — kept as its own named constant.
+const PULSE_RING_MS = 900;
 
 interface Props {
   visible: boolean;
@@ -27,8 +31,11 @@ interface Props {
 
 /**
  * Mutual-match reveal — a tasteful full-screen gold seal that scales in with
- * `spring.pop` + a success haptic (handoff: "no confetti spam"). Burgundy scrim,
- * gold seal, name line, message / keep-browsing CTAs.
+ * `spring.momentum` + a success haptic (handoff: "no confetti spam"). This is
+ * RN's earned-celebration exception (doctrine §10.2 ruling 18 / web ruling 7's
+ * confetti carve-over) — the one place a spring with genuine overshoot is used
+ * for something other than press feedback. Burgundy scrim, gold seal, name
+ * line, message / keep-browsing CTAs.
  */
 export default function MatchCelebration({ visible, name, onClose, onMessage }: Props) {
   const { c } = useTheme();
@@ -40,11 +47,11 @@ export default function MatchCelebration({ visible, name, onClose, onMessage }: 
   useEffect(() => {
     if (visible) {
       haptics.success();
-      scale.value = reduced ? 1 : withSpring(1, spring.pop);
+      scale.value = reduced ? 1 : withSpring(1, spring.momentum);
       // One subtle ring pulse behind the seal — celebration, not confetti.
       if (!reduced) {
         pulse.value = 0;
-        pulse.value = withTiming(1, { duration: 900, easing: Easing.out(Easing.cubic) });
+        pulse.value = withTiming(1, { duration: PULSE_RING_MS, easing: Easing.bezier(...EASE_OUT) });
       }
     } else {
       scale.value = reduced ? 1 : 0;

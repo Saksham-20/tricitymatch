@@ -17,10 +17,15 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../navigation/types';
 import { useAuthStore } from '../../stores/authStore';
 import { colours, typography, type ThemeColours } from '@shared/constants/theme';
+import { EASE_IN_OUT } from '@shared/constants/motion';
 import Logo from '../../components/common/Logo';
 import { useReduceMotion } from '../../components/motion';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Splash'>;
+
+// The loading pulse's own cadence — one of doctrine §10.3's four sanctioned
+// infinite loops, not a single named interaction from the duration table.
+const LOADER_PULSE_MS = 350;
 
 /** One dot of the boot loader — gentle opacity pulse (handoff: 3-dot loader). */
 function LoaderDot({ delay }: { delay: number }) {
@@ -37,8 +42,8 @@ function LoaderDot({ delay }: { delay: number }) {
       delay,
       withRepeat(
         withSequence(
-          withTiming(1, { duration: 350, easing: Easing.inOut(Easing.quad) }),
-          withTiming(0.35, { duration: 350, easing: Easing.inOut(Easing.quad) }),
+          withTiming(1, { duration: LOADER_PULSE_MS, easing: Easing.bezier(...EASE_IN_OUT) }),
+          withTiming(0.35, { duration: LOADER_PULSE_MS, easing: Easing.bezier(...EASE_IN_OUT) }),
         ),
         -1,
       ),

@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import { View, Text, StyleSheet, ImageStyle, StyleProp } from 'react-native';
 import FastImage from 'react-native-fast-image';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { colours, typography, type ThemeColours } from '@shared/constants/theme';
+import { duration, EASE_OUT } from '@shared/constants/motion';
 import { CONFIG } from '../../constants/config';
 
 // Resolve a stored photo path into something React Native can load:
@@ -32,8 +33,8 @@ interface Props {
 
 // Image with a graceful initials fallback when the photo is missing or fails to
 // load (covers photo-less profiles + unresolved seed paths). Backed by
-// FastImage for disk/memory caching, with a 200ms fade-in on load so photos
-// never pop in harshly.
+// FastImage for disk/memory caching, with a duration.content fade-in on load
+// so photos never pop in harshly.
 export default function SmartImage({ uri, name, style, initialSize = 28 }: Props) {
   const { c } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
@@ -58,7 +59,7 @@ export default function SmartImage({ uri, name, style, initialSize = 28 }: Props
         style={[StyleSheet.absoluteFill, fade]}
         resizeMode={FastImage.resizeMode.cover}
         onLoad={() => {
-          opacity.value = withTiming(1, { duration: 200 });
+          opacity.value = withTiming(1, { duration: duration.content, easing: Easing.bezier(...EASE_OUT) });
         }}
         onError={() => setFailed(true)}
       />

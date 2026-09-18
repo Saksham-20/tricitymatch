@@ -124,9 +124,21 @@ the plans endpoint forced to fail. Not verified in source.
 
 ---
 
-## Phase 1 — Motion foundation: one source, correct tokens
+## Phase 1 — Motion foundation: one source, correct tokens — DONE 2026-09-18
 
 The highest-leverage phase. Nothing new is invented; §10.3 is enforced.
+
+All 8 sub-steps done. Notable judgment calls made during the sweep (each documented inline where applied):
+`PressableScale` under reduce-motion previously gave literally zero press feedback (scale locked, no opacity
+substitute) — fixed to match ruling 18's own rationale, since the ruling existed for exactly this gap.
+Several choreographed micro-sequences (typing-dot bounce, shimmer sweep, waveform pulse, splash loader pulse,
+error shake, match-celebration pulse ring) don't map to any named interaction duration — kept as local named
+constants with a comment rather than force-fit onto an unrelated bucket. Doctrine's own §10.3 claim that all
+4 sanctioned loops are "opacity-only" was independently re-verified and found wrong for 3 of 4 (typing dots =
+translateY, shimmer = translateX, waveform = scaleY) — corrected in the doctrine text itself rather than left
+standing; not redesigned here (scope discipline — Phase 5 territory). `MatchCelebration`'s spring mapped to
+`spring.momentum` (closest genuine-overshoot bucket) as RN's earned-celebration exception. Gates: mobile tsc
+0 errors · mobile jest 57/57 · root lint 0 errors, 187 baseline unchanged.
 
 **1.1 Rewrite `shared/src/constants/motion.ts`** to §10.3: `EASE_OUT`/`EASE_IN_OUT`/`EASE_DRAWER`, the full
 `duration` table, Apple two-parameter `spring` configs, `STAGGER_MS`. **Delete** `easing.in` (ease-in is

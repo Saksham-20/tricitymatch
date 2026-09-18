@@ -542,8 +542,14 @@ is the **only** place a screen gets motion from. It grows; it is not replaced:
 parallax, scroll-scrubbed values, any variant that moves more than 16px, and infinite loops. The **only**
 sanctioned loops are the four that exist: `Skeleton.tsx:36` shimmer, `ChatThreadScreen.tsx:82` typing dots,
 `SplashScreen.tsx:38` loading pulse (spinner-equivalent, no skeleton is possible there),
-`AudioIntroChip.tsx:41` waveform while `playing` is true. Each is opacity-only, reduce-motion-gated and
-cancelled on unmount. A fifth needs a written reason.
+`AudioIntroChip.tsx:41` waveform while `playing` is true. Each is reduce-motion-gated and cancelled on
+unmount. **Correction (Phase 1 re-verification):** only the loading pulse is genuinely opacity-only — the
+shimmer sweep drives `translateX` on the highlight gradient, the typing dots drive `translateY`, and the
+waveform drives `scaleY`; all three are transform-based, which is fine (transform is always sanctioned, see
+§10.4) but the earlier "each is opacity-only" claim in this doctrine was wrong and shipped unverified. Left
+as-is rather than redesigned in Phase 1 (scope discipline — token-sourcing only); whether a translateY/scaleY
+loop is the right choice for each of these three is a Phase 5 question, not resolved here. A fifth loop needs
+a written reason.
 
 ### 10.4 Motion mechanics (carries from the original §10)
 

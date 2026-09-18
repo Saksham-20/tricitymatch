@@ -26,7 +26,7 @@ export default function TabIcon({ name, size, color, focused }: TabIconProps) {
     }
     if (focused && !reduced) {
       scale.value = 0.82;
-      scale.value = withSpring(1, spring.pop);
+      scale.value = withSpring(1, spring.press);
     }
   }, [focused, reduced, scale]);
 

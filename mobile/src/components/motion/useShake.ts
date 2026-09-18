@@ -2,6 +2,11 @@ import { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'reac
 import { haptics } from '../../utils/haptics';
 import { useReduceMotion } from './useReduceMotion';
 
+// A choreographed micro-sequence, not a single named interaction from the
+// shared duration table (doctrine §10.3) — kept as its own named constant
+// rather than mis-mapped onto an unrelated bucket.
+const SHAKE_STEP_MS = 50;
+
 /**
  * Horizontal error-shake (translateX ±6, 3×) + warning haptic — handoff
  * form-field error idiom. Returns an animated style to spread on the field and
@@ -17,11 +22,11 @@ export function useShake() {
     haptics.warning();
     if (reduced) return;
     x.value = withSequence(
-      withTiming(-6, { duration: 50 }),
-      withTiming(6, { duration: 50 }),
-      withTiming(-6, { duration: 50 }),
-      withTiming(6, { duration: 50 }),
-      withTiming(0, { duration: 50 }),
+      withTiming(-6, { duration: SHAKE_STEP_MS }),
+      withTiming(6, { duration: SHAKE_STEP_MS }),
+      withTiming(-6, { duration: SHAKE_STEP_MS }),
+      withTiming(6, { duration: SHAKE_STEP_MS }),
+      withTiming(0, { duration: SHAKE_STEP_MS }),
     );
   };
 

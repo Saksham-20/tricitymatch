@@ -19,7 +19,7 @@ import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { type ThemeColours, borderRadius } from '@shared/constants/theme';
 import { TabIcon } from '../motion';
-import { PressableScale } from '../motion';
+import { PressableScale, useReduceTransparency } from '../motion';
 import { useTheme } from '../../hooks/useTheme';
 import { useUIStore } from '../../stores/uiStore';
 
@@ -42,6 +42,7 @@ interface Props extends BottomTabBarProps {
 export default function FloatingTabBar({ state, descriptors, navigation, icons }: Props) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
+  const reduceTransparency = useReduceTransparency();
   const styles = React.useMemo(() => makeStyles(c), [c]);
 
   // Hide under the keyboard — a floating pill above the keyboard reads broken.
@@ -62,7 +63,7 @@ export default function FloatingTabBar({ state, descriptors, navigation, icons }
 
   return (
     <View pointerEvents="box-none" style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-      <View style={styles.pill}>
+      <View style={[styles.pill, reduceTransparency && { backgroundColor: c.surfaceCard }]}>
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
           const label =

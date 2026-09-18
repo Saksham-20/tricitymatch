@@ -8,7 +8,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { duration, easing } from '@shared/constants/motion';
+import { duration, EASE_OUT } from '@shared/constants/motion';
 import { useReduceMotion } from '../../../components/motion';
 
 interface RevealOnScrollProps {
@@ -41,9 +41,11 @@ export default function RevealOnScroll({ scrollY, children, style }: RevealOnScr
     (visible) => {
       if (visible && shown.value === 0) {
         shown.value = 1;
+        // duration.reveal is reserved for exactly this: the story scroll's
+        // only reveal idiom (doctrine §10.3).
         progress.value = withTiming(1, {
-          duration: duration.base,
-          easing: Easing.bezier(...easing.std),
+          duration: duration.reveal,
+          easing: Easing.bezier(...EASE_OUT),
         });
       }
     },

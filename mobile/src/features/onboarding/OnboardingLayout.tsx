@@ -14,7 +14,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming, Easing } from '
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { colours, type, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
-import { duration, easing } from '@shared/constants/motion';
+import { duration, EASE_OUT } from '@shared/constants/motion';
 import { Button } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
 import { useReduceMotion } from '../../components/motion';
@@ -65,7 +65,7 @@ export default function OnboardingLayout({
     const target = trackW * progress;
     fillW.value = reduced
       ? target
-      : withTiming(target, { duration: duration.slow, easing: Easing.bezier(...easing.std) });
+      : withTiming(target, { duration: duration.layout, easing: Easing.bezier(...EASE_OUT) });
   }, [trackW, progress, reduced, fillW]);
 
   // Warm one-liner at the top of each new chapter (skip the very first).
@@ -183,7 +183,13 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     overflow: 'hidden',
   },
   progressFill: {
-    height: '100%',
+    // Absolutely positioned + childless (doctrine §10.4's exception to
+    // "never animate a layout property on an in-flow node") — animating its
+    // width no longer re-runs Yoga for progressTrack + siblings every frame.
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
     backgroundColor: c.accent,
     borderRadius: borderRadius.pill,
   },

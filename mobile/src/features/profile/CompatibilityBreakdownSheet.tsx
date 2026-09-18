@@ -13,6 +13,7 @@ import { useQuery } from '@tanstack/react-query';
 import Animated, { useAnimatedStyle, useSharedValue, withDelay, withTiming, Easing } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { duration, EASE_OUT, STAGGER_MS } from '@shared/constants/motion';
 import { getCompatibilityBreakdown } from '../../api/profile';
 import type { CompatibilityCategory } from '../../api/profile';
 
@@ -33,13 +34,13 @@ const CATEGORY_META: Record<string, { label: string; icon: keyof typeof Ionicons
 function ScoreBar({ score, color, index = 0 }: { score: number; color: string; index?: number }) {
   const { c } = useTheme();
   const sb = React.useMemo(() => makeSb(c), [c]);
-  // Koota-bar fill: 0 → value on mount, 40ms stagger per row (handoff spec).
+  // Koota-bar fill: 0 → value on mount, STAGGER_MS per row (handoff spec).
   const clamped = Math.max(0, Math.min(100, score));
   const progress = useSharedValue(0);
   React.useEffect(() => {
     progress.value = withDelay(
-      index * 40,
-      withTiming(1, { duration: 360, easing: Easing.out(Easing.cubic) }),
+      index * STAGGER_MS,
+      withTiming(1, { duration: duration.content, easing: Easing.bezier(...EASE_OUT) }),
     );
   }, [index, progress]);
   const fill = useAnimatedStyle(() => ({ width: `${clamped * progress.value}%` }));
