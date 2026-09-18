@@ -821,10 +821,10 @@ const FoundingBand = ({ user, founding, currentSub, onClaim, claiming }) => {
             onClick={onClaim}
             disabled={claiming}
             aria-busy={claiming || undefined}
-            className="min-h-[44px] px-6 py-2.5 text-sm font-semibold rounded-xl bg-gold text-white hover:bg-gold-600 shadow-sm transition-colors duration-[160ms] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed flex-shrink-0"
+            className="min-h-[44px] px-6 py-2.5 text-sm font-semibold rounded-xl bg-gold text-primary-900 hover:bg-gold-600 shadow-sm transition-colors duration-[160ms] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed flex-shrink-0"
           >
             {claiming
-              ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Claiming…</>
+              ? <><span className="w-4 h-4 border-2 border-primary-900/30 border-t-primary-900 rounded-full animate-spin" /> Claiming…</>
               : <>Claim my free month <FiArrowRight className="w-4 h-4" /></>}
           </button>
         </>

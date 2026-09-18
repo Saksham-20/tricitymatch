@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
@@ -16,11 +17,23 @@ import PaywalledComposer from '../components/chat/PaywalledComposer';
 import FirstReplyUpsell, { upsellSeenKey } from '../components/chat/FirstReplyUpsell';
 import RetryImage from '../components/ui/RetryImage';
 import { EmptyState, ErrorState, Skeleton } from '../components/ui';
+import { listRow } from '../utils/animations';
+
+// Mouse-only hover lift (doctrine §4.7) — computed once so a touch tap never
+// leaves a button visually "raised" with no un-hover event to release it.
+const HOVER = '[@media(hover:hover)_and_(pointer:fine)]:hover';
 
 // Environment check for logging
 const isDev = import.meta.env.DEV;
 
-// Custom scrollbar styles (injected once)
+// Custom scrollbar styles (injected once). The typing-indicator keyframes
+// used to be redeclared here too — that was a verbatim duplicate of
+// `.typing-indicator span` + `@keyframes typingBounce` already defined
+// globally in index.css (which is also where the reduced-motion override
+// that turns the dots into the word "typing" lives). A second copy appended
+// to <head> on mount would win the cascade over the original and could
+// silently drift out of sync with it, so only the scrollbar rules — which
+// have no global equivalent — are injected here.
 const scrollbarStyles = `
   .chat-scrollbar::-webkit-scrollbar { width: 6px; }
   .chat-scrollbar::-webkit-scrollbar-track { background: transparent; }
@@ -29,29 +42,30 @@ const scrollbarStyles = `
   .sidebar-scrollbar::-webkit-scrollbar { width: 4px; }
   .sidebar-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .sidebar-scrollbar::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.3); border-radius: 2px; }
-  .message-enter { animation: messageSlideIn 0.3s ease-out; }
-  @keyframes messageSlideIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .typing-indicator span { animation: typingBounce 1.4s infinite ease-in-out; }
-  .typing-indicator span:nth-child(1) { animation-delay: 0s; }
-  .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
-  .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
-  @keyframes typingBounce {
-    0%, 60%, 100% { transform: translateY(0); }
-    30% { transform: translateY(-4px); }
-  }
 `;
 
-// Typing indicator component
+// Typing indicator component. Elevation declared once — shadow only, no
+// border (doctrine §3.4: never both on the same element).
 const TypingIndicator = () => (
-  <div className="flex items-center gap-2 px-4 py-3 bg-white rounded-2xl rounded-bl-sm shadow-sm border border-neutral-100 w-fit">
+  <div className="flex items-center gap-2 px-4 py-3 bg-white rounded-2xl rounded-bl-sm shadow-sm w-fit">
     <div className="typing-indicator flex gap-1">
       <span className="w-2 h-2 bg-primary-300 rounded-full"></span>
       <span className="w-2 h-2 bg-primary-300 rounded-full"></span>
       <span className="w-2 h-2 bg-primary-300 rounded-full"></span>
     </div>
+  </div>
+);
+
+// Skeleton mirrors an in-progress thread — a few alternating bubbles, not a
+// spinner — so switching conversations never renders as a blank pane while
+// loadMessages() is in flight (doctrine §9: loading states match the layout).
+const MessagePaneSkeleton = () => (
+  <div className="space-y-4" aria-hidden="true">
+    {[0, 1, 2, 3, 4].map((i) => (
+      <div key={i} className={`flex ${i % 2 === 0 ? 'justify-start' : 'justify-end'}`}>
+        <Skeleton className={`h-10 rounded-2xl ${i % 2 === 0 ? 'w-2/5' : 'w-1/3'}`} />
+      </div>
+    ))}
   </div>
 );
 
@@ -99,6 +113,11 @@ const Chat = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  // Per-thread fetch state — switching conversations shows a skeleton, and a
+  // dropped fetch that isn't a premium-access code renders an inline retry
+  // instead of an indistinguishable empty conversation.
+  const [messagesLoading, setMessagesLoading] = useState(true);
+  const [messagesError, setMessagesError] = useState(false);
   const [sending, setSending] = useState(false);
   const [editingMessage, setEditingMessage] = useState(null);
   const [editContent, setEditContent] = useState('');
@@ -151,6 +170,17 @@ const Chat = () => {
     loadConversations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // The mobile conversation-list drawer closes on backdrop click already;
+  // Escape closes it the same way (doctrine §6: sheets close on Escape).
+  useEffect(() => {
+    if (!showMobileSidebar || !selected) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape') setShowMobileSidebar(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showMobileSidebar, selected]);
 
   // DS local-timer: flip the window inactive the moment expiresAt passes —
   // the 403 from the server is the backstop, not the primary UX.
@@ -287,6 +317,8 @@ const Chat = () => {
 
   const loadMessages = async () => {
     if (!selected) return;
+    setMessagesLoading(true);
+    setMessagesError(false);
     try {
       const response = await api.get(`/chat/messages/${selected.userId}`);
       setMessages(response.data.messages || []);
@@ -309,11 +341,15 @@ const Chat = () => {
             setAccessDenied(true);
           }
         } else {
-          toast.error(error.response?.data?.message || 'Premium subscription required');
+          // Not a premium-access code — a dropped fetch never renders as an
+          // empty conversation; the pane shows an explicit retry instead.
+          setMessagesError(true);
         }
       } else {
-        toast.error('Failed to load messages');
+        setMessagesError(true);
       }
+    } finally {
+      setMessagesLoading(false);
     }
   };
 
@@ -506,6 +542,8 @@ const Chat = () => {
     }
     setSelected(row);
     setMessages([]);
+    setMessagesLoading(true);
+    setMessagesError(false);
     setChatAccess(null);
     setReplyWindow(null);
     setShowFirstReplyUpsell(false);
@@ -562,15 +600,15 @@ const Chat = () => {
             <div className="w-24 h-24 mx-auto mb-6 bg-gold-50 dark:bg-gold-900/20 border border-gold-100 dark:border-gold-800/40 rounded-full flex items-center justify-center">
               <FiLock className="w-12 h-12 text-gold-600 dark:text-gold-400" />
             </div>
-            <h2 className="text-2xl font-bold font-display text-neutral-800 dark:text-neutral-100 mb-3">Chat is a Premium Feature</h2>
+            <h2 className="text-2xl font-bold font-display text-neutral-800 dark:text-neutral-100 mb-3">Chat is a premium feature</h2>
             <p className="text-neutral-500 dark:text-neutral-400 mb-6 leading-relaxed">
               Unlock messaging to connect with your matches. Upgrade to a premium plan today.
             </p>
             <button
               onClick={() => setShowUpgradeModal(true)}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-hero text-white rounded-full font-semibold hover:shadow-burgundy hover:scale-105 transition-[transform,box-shadow] duration-[160ms]"
+              className={`inline-flex items-center gap-2 px-6 py-3 bg-gradient-hero text-white rounded-xl font-semibold ${HOVER}:shadow-burgundy ${HOVER}:scale-105 transition-[transform,box-shadow] duration-[160ms]`}
             >
-              Upgrade Now
+              Upgrade now
             </button>
           </div>
         </div>
@@ -584,7 +622,7 @@ const Chat = () => {
       <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-surface-dark-2 flex items-center justify-center p-4">
         <ErrorState
           title="Couldn't load your conversations"
-          description="The connection dropped before this finished loading. Your messages are safe — try again."
+          description="The connection dropped before this finished loading. Your messages are safe. Try again."
           onRetry={loadConversations}
           className="max-w-md"
         />
@@ -620,7 +658,7 @@ const Chat = () => {
         ${showMobileSidebar ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         absolute md:relative z-20 w-full md:w-80 lg:w-96 h-full
         bg-white dark:bg-surface-dark-3 border-r border-neutral-200 dark:border-neutral-800 flex flex-col
-        transition-transform duration-300 ease-in-out
+        transition-transform duration-300 ease-[var(--ease-drawer)]
       `}>
         <div className="relative p-4 border-b border-neutral-100 dark:border-neutral-800 bg-primary-50 dark:bg-primary-900/20 overflow-hidden">
           <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-primary-500 to-primary-700" />
@@ -638,11 +676,18 @@ const Chat = () => {
               ? (row.lastMessage.messageType === 'voice' ? 'Voice message' : sanitizeText(row.lastMessage.content))
               : 'Say hello';
             return (
-              <div
+              // A real <button>, not a clickable <div> — conversation switching is
+              // the primary navigation in this screen, and a <div onClick> is
+              // invisible to Tab (doctrine §9 Access: full keyboard path). The
+              // global :focus-visible rule (index.css) applies to any `button`
+              // automatically once it's a real button.
+              <button
                 key={row.userId}
+                type="button"
                 onClick={() => handleSelect(row)}
+                aria-current={isSelected ? 'true' : undefined}
                 className={`
-                  relative p-4 cursor-pointer transition-[background-color,border-color] duration-[160ms]
+                  relative w-full text-left p-4 transition-[background-color,border-color] duration-[160ms]
                   hover:bg-primary-50 dark:hover:bg-primary-900/20 border-l-4
                   ${isSelected ? 'bg-primary-50 dark:bg-primary-900/20 border-l-primary-500' : 'border-l-transparent hover:border-l-primary-300'}
                   ${row.locked ? 'opacity-70' : ''}
@@ -675,7 +720,7 @@ const Chat = () => {
                     </p>
                   </div>
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -692,7 +737,7 @@ const Chat = () => {
                   <button
                     onClick={() => setShowMobileSidebar(true)}
                     aria-label="Back to conversations"
-                    className="md:hidden p-2 -ml-2 hover:bg-neutral-100 rounded-full transition-colors"
+                    className="md:hidden p-3 -ml-3 hover:bg-neutral-100 rounded-full transition-colors"
                   >
                     <FiChevronLeft className="w-5 h-5 text-neutral-600" />
                   </button>
@@ -719,7 +764,7 @@ const Chat = () => {
                   onClick={() => navigate(`/profile/${selected.userId}`)}
                   aria-label="View profile"
                   title="View profile"
-                  className="p-2 hover:bg-neutral-100 rounded-full transition-colors"
+                  className="p-3 -mr-3 hover:bg-neutral-100 rounded-full transition-colors"
                 >
                   <FiMoreVertical className="w-5 h-5 text-neutral-500" />
                 </button>
@@ -733,60 +778,78 @@ const Chat = () => {
               role="log"
               aria-label="Chat messages"
             >
-              <div className="flex justify-center mb-6">
-                <div className="px-4 py-2 bg-white/90 backdrop-blur rounded-full shadow-sm border border-gold-200">
-                  <p className="text-xs text-neutral-600">
-                    You matched with {selected.firstName}! Make a meaningful connection...
-                  </p>
-                </div>
-              </div>
-
-              {groupedMessages.map((item) => {
-                if (item.type === 'date') return <DateSeparator key={item.key} date={item.date} />;
-                const message = item.message;
-                return (
-                  <MessageBubble
-                    key={item.key}
-                    message={message}
-                    myUserId={user.id}
-                    canRich={canRich}
-                    canEdit={canEditMessage(message)}
-                    isEditing={editingMessage === message.id}
-                    editContent={editContent}
-                    setEditContent={setEditContent}
-                    editInputRef={editInputRef}
-                    onStartEdit={startEditing}
-                    onCancelEdit={cancelEditing}
-                    onSaveEdit={saveEdit}
-                    showDeleteConfirm={deleteConfirm === message.id}
-                    onAskDelete={setDeleteConfirm}
-                    onConfirmDelete={deleteMessage}
-                    onCancelDelete={() => setDeleteConfirm(null)}
-                    pickerOpen={pickerFor === message.id}
-                    onOpenPicker={setPickerFor}
-                    onClosePicker={() => setPickerFor(null)}
-                    onReact={toggleReaction}
-                    onReply={(m) => { setReplyingTo(m); composerInputRef.current?.focus(); }}
-                    onLockedAffordance={openLockedAffordance}
-                  />
-                );
-              })}
-
-              {showFirstReplyUpsell && replyWindow && (
-                <FirstReplyUpsell
-                  name={selected.name}
-                  remaining={replyWindow.messagesRemaining}
-                  onDismiss={() => {
-                    localStorage.setItem(upsellSeenKey(selected.userId), '1');
-                    setShowFirstReplyUpsell(false);
-                  }}
+              {messagesLoading ? (
+                <MessagePaneSkeleton />
+              ) : messagesError ? (
+                <ErrorState
+                  title="Couldn't load this conversation"
+                  description="The connection dropped before this finished loading. Nothing here was lost. Try again."
+                  onRetry={loadMessages}
+                  className="max-w-md mx-auto mt-10"
                 />
-              )}
+              ) : (
+                <>
+                  <div className="flex justify-center mb-6">
+                    <div className="px-4 py-2 bg-white/90 backdrop-blur rounded-full shadow-sm border border-gold-200">
+                      <p className="text-xs text-neutral-600">
+                        You matched with {selected.firstName}. Make a meaningful connection...
+                      </p>
+                    </div>
+                  </div>
 
-              {isTyping && (
-                <div className="mb-3 flex justify-start message-enter">
-                  <TypingIndicator />
-                </div>
+                  {groupedMessages.map((item) => {
+                    if (item.type === 'date') return <DateSeparator key={item.key} date={item.date} />;
+                    const message = item.message;
+                    return (
+                      <MessageBubble
+                        key={item.key}
+                        message={message}
+                        myUserId={user.id}
+                        canRich={canRich}
+                        canEdit={canEditMessage(message)}
+                        isEditing={editingMessage === message.id}
+                        editContent={editContent}
+                        setEditContent={setEditContent}
+                        editInputRef={editInputRef}
+                        onStartEdit={startEditing}
+                        onCancelEdit={cancelEditing}
+                        onSaveEdit={saveEdit}
+                        showDeleteConfirm={deleteConfirm === message.id}
+                        onAskDelete={setDeleteConfirm}
+                        onConfirmDelete={deleteMessage}
+                        onCancelDelete={() => setDeleteConfirm(null)}
+                        pickerOpen={pickerFor === message.id}
+                        onOpenPicker={setPickerFor}
+                        onClosePicker={() => setPickerFor(null)}
+                        onReact={toggleReaction}
+                        onReply={(m) => { setReplyingTo(m); composerInputRef.current?.focus(); }}
+                        onLockedAffordance={openLockedAffordance}
+                      />
+                    );
+                  })}
+
+                  {showFirstReplyUpsell && replyWindow && (
+                    <FirstReplyUpsell
+                      name={selected.name}
+                      remaining={replyWindow.messagesRemaining}
+                      onDismiss={() => {
+                        localStorage.setItem(upsellSeenKey(selected.userId), '1');
+                        setShowFirstReplyUpsell(false);
+                      }}
+                    />
+                  )}
+
+                  {/* Transition-based (doctrine §4.5): the indicator can mount
+                      and unmount repeatedly in one session, so it retargets
+                      instead of restarting from a hand-rolled @keyframes. */}
+                  <AnimatePresence>
+                    {isTyping && (
+                      <motion.div key="typing" {...listRow} className="mb-3 flex justify-start">
+                        <TypingIndicator />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </>
               )}
 
               <div ref={messagesEndRef} />
@@ -802,7 +865,7 @@ const Chat = () => {
                   </p>
                   <Link
                     to="/subscription"
-                    className="inline-flex items-center justify-center min-h-[44px] px-5 rounded-full bg-primary-700 hover:bg-primary-800 text-white text-sm font-medium transition-colors"
+                    className="inline-flex items-center justify-center min-h-[2.75rem] px-5 rounded-xl bg-primary-700 hover:bg-primary-800 text-white text-sm font-medium transition-colors"
                   >
                     See plans
                   </Link>
@@ -826,20 +889,23 @@ const Chat = () => {
                       <p className="flex-1 text-xs text-neutral-500 line-clamp-1">
                         {replyingTo.messageType === 'voice' ? 'Voice message' : sanitizeText(replyingTo.content)}
                       </p>
-                      <button onClick={() => setReplyingTo(null)} aria-label="Cancel reply" className="p-1 rounded-full hover:bg-neutral-200 text-neutral-400">
+                      <button onClick={() => setReplyingTo(null)} aria-label="Cancel reply" className="flex-shrink-0 flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] -mr-2 rounded-full hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-400">
                         <FiX className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   )}
                   <form onSubmit={sendMessage} className="flex items-end gap-2">
                     <div className="flex-1 relative">
+                      {/* Visually hidden but real — a placeholder alone is
+                          never the label (doctrine §6/§8). */}
+                      <label htmlFor="chat-composer-input" className="sr-only">Message</label>
                       <input
                         ref={composerInputRef}
+                        id="chat-composer-input"
                         type="text"
                         value={newMessage}
                         onChange={(e) => handleTyping(e.target.value)}
                         placeholder="Make a meaningful connection..."
-                        aria-label="Type your message"
                         className="w-full px-5 py-3 text-base bg-neutral-100 dark:bg-neutral-800 rounded-full text-neutral-800 dark:text-neutral-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white dark:focus:bg-neutral-900 transition-[background-color,box-shadow] duration-[160ms]"
                         disabled={sending}
                       />
@@ -866,7 +932,7 @@ const Chat = () => {
                       className={`
                         p-3 rounded-full transition-[background-color,box-shadow,transform] duration-[160ms]
                         ${newMessage.trim()
-                          ? 'bg-gradient-hero text-white shadow-burgundy hover:shadow-burgundy-lg hover:scale-105'
+                          ? `bg-gradient-hero text-white shadow-burgundy ${HOVER}:shadow-burgundy-lg ${HOVER}:scale-105`
                           : 'bg-neutral-200 dark:bg-neutral-700 text-neutral-400 dark:text-neutral-500'
                         }
                         disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
@@ -882,12 +948,12 @@ const Chat = () => {
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center bg-[#FDF8F2]">
+          <div className="flex-1 flex items-center justify-center bg-[#FDF8F2] dark:bg-surface-dark-2">
             <div className="text-center p-8">
-              <div className="w-32 h-32 mx-auto mb-6 bg-primary-100 rounded-full flex items-center justify-center">
+              <div className="w-32 h-32 mx-auto mb-6 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center">
                 <FiMessageCircle className="w-16 h-16 text-primary-400" />
               </div>
-              <h3 className="text-xl font-semibold font-display text-neutral-700 mb-2">Start a Conversation</h3>
+              <h3 className="text-xl font-semibold font-display text-neutral-700 mb-2">Start a conversation</h3>
               <p className="text-neutral-500 max-w-sm">
                 Select a match from the sidebar to begin your journey of meaningful connection.
               </p>

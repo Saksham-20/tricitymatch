@@ -7,7 +7,7 @@ import { FiShield, FiCheckCircle, FiClock, FiXCircle } from 'react-icons/fi';
 import LiveSelfieCapture from '../components/verification/LiveSelfieCapture';
 import ErrorState from '../components/ui/ErrorState';
 import Skeleton from '../components/ui/Skeleton';
-import { fadeRise, staggerContainer } from '../utils/animations';
+import { fadeRise, staggerContainer, DUR, EASE_OUT } from '../utils/animations';
 
 const STATUS_META = {
   approved:      { icon: FiCheckCircle, cls: 'text-success bg-success-50 border border-success-100',         key: 'statusApproved', ringCls: 'text-success' },
@@ -37,20 +37,29 @@ function VerificationSkeleton() {
         <Skeleton className="h-7 w-40" />
       </div>
       <Skeleton className="h-4 w-64 mb-6" />
-      <div className="bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-6 mb-6 flex items-center gap-5">
+      <div className="bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card dark:shadow-none dark:border dark:border-neutral-800 p-6 mb-6 flex items-center gap-5">
         <Skeleton variant="circle" className="w-20 h-20 flex-shrink-0" />
         <div className="flex-1 space-y-2">
           <Skeleton className="h-5 w-28" />
           <Skeleton className="h-4 w-full max-w-xs" />
         </div>
       </div>
-      <div className="bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-6 mb-6 space-y-4">
+      <div className="bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card dark:shadow-none dark:border dark:border-neutral-800 p-6 mb-6 space-y-4">
         <Skeleton className="h-4 w-24" />
         <Skeleton className="h-8 w-full" />
       </div>
-      <div className="bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-6">
-        <Skeleton className="h-5 w-48 mb-3" />
-        <Skeleton.Text lines={2} />
+      {/* Third block is shaped for the not_submitted state most first-time
+          members actually land on — title+description, info panel, 3-col
+          how-it-works grid, live-camera UI — not a generic 2-line card, so
+          the swap-in doesn't jump the layout (doctrine loading law). */}
+      <div className="bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card dark:shadow-none dark:border dark:border-neutral-800 p-6">
+        <Skeleton className="h-5 w-48 mb-2" />
+        <Skeleton.Text lines={2} className="mb-5" />
+        <Skeleton className="h-20 w-full rounded-xl mb-5" />
+        <div className="grid grid-cols-3 gap-2.5 mb-5">
+          {[0, 1, 2].map((i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
+        </div>
+        <Skeleton className="h-56 w-full rounded-xl" />
       </div>
     </div>
   );
@@ -108,7 +117,7 @@ export default function Verification() {
 
   if (loadState === 'loading') {
     return (
-      <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1">
+      <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 pb-16">
         <VerificationSkeleton />
       </div>
     );
@@ -116,7 +125,7 @@ export default function Verification() {
 
   if (loadState === 'error') {
     return (
-      <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1">
+      <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 pb-16">
         <div className="max-w-3xl mx-auto px-4 py-8">
           <div className="flex items-center gap-3 mb-6">
             <FiShield className="w-7 h-7 text-primary-600" />
@@ -133,7 +142,7 @@ export default function Verification() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1">
+    <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 pb-16">
       <motion.div initial="initial" animate="animate" variants={staggerContainer} className="max-w-3xl mx-auto px-4 py-8">
         <motion.div variants={fadeRise} className="flex items-center gap-3 mb-1">
           <FiShield className="w-7 h-7 text-primary-600" />
@@ -145,7 +154,7 @@ export default function Verification() {
             selfie verification is free for every member, so the ring reads the
             same status colour as the pill below it: neutral while unstarted,
             warning while pending, success once approved. Never gold. */}
-        <motion.div variants={fadeRise} className="bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-6 mb-6 flex items-center gap-5">
+        <motion.div variants={fadeRise} className="bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card dark:shadow-none dark:border dark:border-neutral-800 p-6 mb-6 flex items-center gap-5">
           <div className="relative w-20 h-20 flex-shrink-0">
             <svg width="80" height="80" viewBox="0 0 80 80" className="-rotate-90">
               <circle cx="40" cy="40" r="30" fill="none" stroke="currentColor" className="text-neutral-200 dark:text-neutral-700" strokeWidth="6" />
@@ -154,20 +163,28 @@ export default function Verification() {
                 strokeDasharray={ringC}
                 initial={false}
                 animate={{ strokeDashoffset: ringC - (trustScore / 100) * ringC }}
-                transition={{ duration: 0.35, ease: 'easeOut' }}
+                transition={{ duration: DUR.content, ease: EASE_OUT }}
               />
             </svg>
             <span className="absolute inset-0 flex items-center justify-center font-display text-lg font-bold text-neutral-800 dark:text-neutral-100">{trustScore}%</span>
           </div>
           <div>
-            <p className="font-display text-lg font-bold text-neutral-900 dark:text-neutral-100">Trust Score</p>
+            {/* A card label, not a section heading — kept one step below the
+                h4-h6 scale the two real <h2>s below use, so it never reads as
+                a heading of equal weight (doctrine §3.2, audit finding). */}
+            <p className="text-base font-semibold text-neutral-900 dark:text-neutral-100">Trust Score</p>
             <p className="text-sm text-neutral-500">Complete each tier to boost your trust and get more responses.</p>
           </div>
         </motion.div>
 
         {/* Status overview */}
-        <motion.div variants={fadeRise} className="bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-6 mb-6">
-          <h2 className="text-sm font-medium text-neutral-500 mb-4">{t('verification.status')}</h2>
+        <motion.div variants={fadeRise} className="bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card dark:shadow-none dark:border dark:border-neutral-800 p-6 mb-6">
+          {/* h4-h6 weight/size step (doctrine §3.2: 18-20px, weight 600) —
+              now matches the other real <h2> below it exactly. Family stays
+              Playfair either way (global `h1,h2,h3` rule in index.css); the
+              audit-flagged gap was size/weight/color (was 14px/500/neutral-500,
+              far below any documented step), not family. */}
+          <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">{t('verification.status')}</h2>
           <div className="flex items-center justify-between">
             <span className="text-neutral-700 dark:text-neutral-300">{t('verification.tierSelfie')}</span>
             <StatusPill status={selfieStatus === 'not_submitted' ? undefined : selfieStatus} />
@@ -178,8 +195,14 @@ export default function Verification() {
         </motion.div>
 
         {/* Photo Verification */}
-        <motion.div variants={fadeRise} className="bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-6 mb-6">
-          <h2 className="font-display text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-1">{t('verification.tierSelfie')}</h2>
+        <motion.div variants={fadeRise} className="bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card dark:shadow-none dark:border dark:border-neutral-800 p-6 mb-6">
+          {/* h4-h6 weight step (doctrine §3.2: weight 600, not 700) — this was
+              byte-identical to the "Trust Score" card LABEL above (both
+              font-display text-lg font-bold), collapsing a genuine section
+              heading and a stat label into one size (audit finding). Dropping
+              to font-semibold also brings it in line with the other real <h2>
+              above (family is still Playfair via the global h1,h2,h3 rule). */}
+          <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-1">{t('verification.tierSelfie')}</h2>
           <p className="text-sm text-neutral-500 mb-4">
             Take a live selfie with your camera. Our team matches it against your profile
             photos. No documents needed, and the selfie is never shown to other members.
@@ -246,7 +269,7 @@ export default function Verification() {
               <button
                 type="submit"
                 disabled={submitting || !selfie}
-                className="mt-2 w-full sm:w-auto min-h-[44px] px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-60 font-medium transition-colors duration-[160ms] active:scale-[0.98]"
+                className="mt-2 w-full sm:w-auto min-h-[44px] btn-primary"
               >
                 {submitting ? t('common.loading') : 'Submit for review'}
               </button>

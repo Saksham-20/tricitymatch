@@ -19,7 +19,7 @@ const PaywalledComposer = ({ name, avatarUrl, reason }) => {
         {avatarUrl ? (
           <img src={avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
         ) : (
-          <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold flex-shrink-0">
+          <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-700 font-semibold flex-shrink-0">
             {(name || '?')[0]}
           </div>
         )}
@@ -29,12 +29,18 @@ const PaywalledComposer = ({ name, avatarUrl, reason }) => {
             {headline}
           </p>
           <p className="text-xs text-neutral-500 mt-0.5">
-            {name} can still write to you — upgrade to keep the conversation going.
+            {name} can still write to you. Upgrade to keep the conversation going.
           </p>
         </div>
+        {/* Gold CTA fill needs dark text, not white (doctrine §3.1 contrast
+            floor) — white on gold-500 is ~2.4:1, primary-900 on gold-500 is
+            ~7.5:1. Matches the established .btn-gold pairing (dark text on
+            gold) without introducing a new hardcoded hex. rounded-xl, not
+            rounded-full: this is a primary CTA (doctrine Ruling 6), not a
+            chip/badge/filter token. */}
         <Link
           to="/subscription"
-          className="flex-shrink-0 inline-flex items-center justify-center min-h-[44px] px-5 rounded-full bg-gold-500 hover:bg-gold-600 text-white text-sm font-semibold transition-colors"
+          className="flex-shrink-0 inline-flex items-center justify-center min-h-[2.75rem] px-5 rounded-xl bg-gold-500 hover:bg-gold-600 text-primary-900 text-sm font-semibold transition-colors"
         >
           Keep talking with {name?.split(' ')[0] || 'them'}
         </Link>

@@ -39,9 +39,25 @@ import { Skeleton, EmptyState, ErrorState } from '../components/ui';
 import StagedLoader, { useStagedReveal } from '../components/ui/StagedLoader';
 
 // ─── Card skeleton for loading state ──────────────────────────────────────
-const CardSkeleton = () => (
+// Two shapes, alternated in the grid below — ProfileCard now renders either a
+// ~224px photo hero or a ~76px photoless identity header (audit Part 5 #3),
+// and a loading grid of uniformly tall placeholders followed by a real grid
+// that's mostly the shorter shape is a visible layout shift on load (doctrine
+// §9 Craft, §6 Loading: "skeletons that match the final layout's shape").
+const CardSkeleton = ({ compact = false }) => (
   <div className="bg-white rounded-2xl border border-neutral-100 shadow-card overflow-hidden">
-    <Skeleton className="h-52 w-full rounded-none" />
+    {compact ? (
+      <div className="flex items-center gap-2.5 px-4 pt-4 pb-3.5">
+        <Skeleton className="w-12 h-12 rounded-full flex-shrink-0" />
+        <div className="flex-1 min-w-0 space-y-2">
+          <Skeleton className="h-4 w-2/3" />
+          <Skeleton className="h-3 w-1/3" />
+        </div>
+        <Skeleton className="w-11 h-11 rounded-full flex-shrink-0" />
+      </div>
+    ) : (
+      <Skeleton className="h-52 w-full rounded-none" />
+    )}
     <div className="p-4 space-y-3">
       <Skeleton className="h-4 w-3/4" />
       <Skeleton className="h-3 w-1/2" />
@@ -361,7 +377,7 @@ const Search = () => {
                 <StagedLoader onSkip={skipTheater} />
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-                  {Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={i} />)}
+                  {Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={i} compact={i % 2 === 1} />)}
                 </div>
               )
             )}
@@ -444,7 +460,7 @@ const Search = () => {
                 {/* Loading more */}
                 {loading && profiles.length > 0 && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 mt-5">
-                    {[0, 1, 2].map(i => <CardSkeleton key={i} />)}
+                    {[0, 1, 2].map(i => <CardSkeleton key={i} compact={i % 2 === 1} />)}
                   </div>
                 )}
 

@@ -51,6 +51,16 @@ const UpgradeModal = ({ isOpen, onClose, feature = 'this feature', description }
     if (isOpen && status === 'idle') fetchPlans();
   }, [isOpen, status, fetchPlans]);
 
+  // Doctrine §6: sheets and modals close on Escape.
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const visiblePlans = GRID_KEYS

@@ -5,7 +5,7 @@
  * like elsewhere is unchanged.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiX, FiHeart } from 'react-icons/fi';
 import { sanitizeText } from '../../utils/sanitize';
@@ -16,6 +16,18 @@ const MAX_NOTE = 280;
 const LikeNoteModal = ({ open, target, name, photoSrc, onClose, onSend }) => {
   const [note, setNote] = useState('');
   const [sending, setSending] = useState(false);
+
+  // Doctrine §6: "sheets and modals ... close on Escape" — this dialog only
+  // had backdrop-click and the X button, unlike this page's other two
+  // overlays (ImageLightbox, UpgradeModal), which both already close on Escape.
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [open, onClose]);
 
   const handleSend = async () => {
     setSending(true);

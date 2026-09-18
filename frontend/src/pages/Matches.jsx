@@ -67,9 +67,25 @@ const TABS = [
   },
 ];
 
-const CardSkeleton = () => (
+// Two shapes, alternated in the grid below — ProfileCard now renders either a
+// ~224px photo hero or a ~76px photoless identity header (audit Part 5 #3),
+// and a loading grid of uniformly tall placeholders followed by a real grid
+// that's mostly the shorter shape is a visible layout shift on load (doctrine
+// §9 Craft, §6 Loading: "skeletons that match the final layout's shape").
+const CardSkeleton = ({ compact = false }) => (
   <div className="bg-white dark:bg-surface-dark-3 rounded-3xl overflow-hidden shadow-card">
-    <Skeleton className="h-56 w-full rounded-none" />
+    {compact ? (
+      <div className="flex items-center gap-2.5 px-4 pt-4 pb-3.5">
+        <Skeleton className="w-12 h-12 rounded-full flex-shrink-0" />
+        <div className="flex-1 min-w-0 space-y-2">
+          <Skeleton className="h-4 w-2/3" />
+          <Skeleton className="h-3 w-1/3" />
+        </div>
+        <Skeleton className="w-11 h-11 rounded-full flex-shrink-0" />
+      </div>
+    ) : (
+      <Skeleton className="h-56 w-full rounded-none" />
+    )}
     <div className="p-5 space-y-3">
       <Skeleton className="h-5 w-2/3" />
       <Skeleton className="h-1.5 w-full rounded-full" />
@@ -180,7 +196,7 @@ export default function Matches() {
         {/* ── Loading ─────────────────────────────────────────────── */}
         {state === 'loading' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-            {[0, 1, 2, 3, 4, 5].map((i) => <CardSkeleton key={i} />)}
+            {[0, 1, 2, 3, 4, 5].map((i) => <CardSkeleton key={i} compact={i % 2 === 1} />)}
           </div>
         )}
 
@@ -244,9 +260,15 @@ export default function Matches() {
                 const pid = profile.userId || profile.id;
                 if (!pid) return null;
                 return (
-                  <div key={`match-${pid}`} className="flex flex-col">
+                  <div key={`match-${pid}`} className="flex flex-col h-full">
                     {/* D3/DS5: a like-with-note leads with the quoted note +
-                        the liked-item snapshot above the standard card. */}
+                        the liked-item snapshot above the standard card.
+                        This wrapper (not ProfileCard) is the actual grid
+                        item, so it needs `h-full` to pick up the CSS Grid
+                        row-stretch, and the card below needs `flex-1` so it,
+                        not the note, absorbs that extra height — otherwise a
+                        note on one card and not its neighbour throws the two
+                        button rows out of alignment (audit Part 5 #10). */}
                     {(profile.note || profile.likedItem) && (
                       <div className="mb-2 px-4 py-3 rounded-2xl bg-primary-50/70 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800 flex items-start gap-3">
                         {profile.likedItem?.type === 'photo' && profile.likedItem.photoUrl && (
@@ -272,14 +294,16 @@ export default function Matches() {
                         </div>
                       </div>
                     )}
-                    <ProfileCard
-                      profile={profile}
-                      userId={pid}
-                      index={i}
-                      primaryCta={active === 'mutual' ? 'message' : 'interest'}
-                      onLike={() => handleAction(pid, 'like')}
-                      onShortlist={() => handleAction(pid, 'shortlist')}
-                    />
+                    <div className="flex-1 min-h-0">
+                      <ProfileCard
+                        profile={profile}
+                        userId={pid}
+                        index={i}
+                        primaryCta={active === 'mutual' ? 'message' : 'interest'}
+                        onLike={() => handleAction(pid, 'like')}
+                        onShortlist={() => handleAction(pid, 'shortlist')}
+                      />
+                    </div>
                   </div>
                 );
               })}

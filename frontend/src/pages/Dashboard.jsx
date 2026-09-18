@@ -6,11 +6,10 @@ import toast from 'react-hot-toast';
 import {
   FiEye, FiHeart, FiUsers, FiTrendingUp, FiMessageCircle,
   FiStar, FiArrowRight, FiCheckCircle, FiSun, FiMoon, FiCoffee,
-  FiSearch, FiChevronRight, FiLock, FiUnlock, FiCalendar, FiZap,
-  FiAlertCircle, FiRefreshCw, FiCamera, FiUser, FiSliders, FiShield, FiX,
+  FiSearch, FiLock, FiUnlock, FiCalendar, FiZap,
+  FiAlertCircle, FiRefreshCw, FiCamera, FiUser, FiSliders,
 } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
-import { formatCompatibilityScore } from '../utils/compatibility';
 import { staggerContainer, fadeInUp, staggerIndex, DUR, EASE_OUT } from '../utils/animations';
 import { API_BASE_URL } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
@@ -22,13 +21,20 @@ import SectionHeader from '../components/common/SectionHeader';
 import FoundingBadge from '../components/common/FoundingBadge';
 import InviteLink from '../components/common/InviteLink';
 import PhotoNudge from '../components/profile/PhotoNudge';
-import { Skeleton, EmptyState, ErrorState } from '../components/ui';
+import { Skeleton, EmptyState } from '../components/ui';
 import StagedLoader, { useStagedReveal } from '../components/ui/StagedLoader';
 import RetryImage from '../components/ui/RetryImage';
 
-// ─── Skeleton loaders ──────────────────────────────────────────────────────
+// ─── Card shell — declared once (doctrine §3.4: border OR shadow, never both).
+// Light mode reads elevation from the burgundy-tinted `shadow-card`; a shadow
+// barely registers on a dark surface, so dark mode reads it from a hairline
+// border instead. Never both at the same time. ──────────────────────────────
+const CARD = 'bg-white dark:bg-surface-dark-3 shadow-card dark:shadow-none dark:border dark:border-neutral-800';
+
+// ─── Skeleton loaders — shaped to match the rebuilt layout below, not the
+// old banner stack: a plain header row, then metric tiles, then a card rail.
 const StatSkeleton = () => (
-  <div className="bg-white rounded-2xl border border-neutral-100 shadow-card p-5">
+  <div className={`${CARD} rounded-2xl p-5`}>
     <div className="flex items-start justify-between">
       <div className="space-y-2 flex-1">
         <Skeleton className="h-3 w-24" />
@@ -41,7 +47,7 @@ const StatSkeleton = () => (
 );
 
 const CardSkeleton = () => (
-  <div className="bg-white rounded-2xl border border-neutral-100 shadow-card overflow-hidden flex-shrink-0 w-64 md:w-auto">
+  <div className={`${CARD} rounded-2xl overflow-hidden flex-shrink-0 w-64 md:w-auto`}>
     <Skeleton className="h-52 w-full rounded-none" />
     <div className="p-4 space-y-2">
       <Skeleton className="h-4 w-3/4" />
@@ -66,7 +72,7 @@ const SuggestionCard = ({ profile, index }) => {
     setLikeBusy(true);
     try {
       await api.post(`/match/${profile.userId}`, { action: next ? 'like' : 'pass' });
-      toast.success(next ? 'Interest expressed!' : 'Removed from your interests');
+      toast.success(next ? 'Interest expressed' : 'Removed from your interests');
     } catch (err) {
       setIsLiked(!next); // revert optimistic update
       toast.error(err.response?.data?.message || 'Could not update. Please try again');
@@ -84,22 +90,25 @@ const SuggestionCard = ({ profile, index }) => {
   // Shown to every member regardless of plan — gold marks premium only
   // (doctrine §3.1), so this stays a two-tier scale, never a gold "good
   // match" tier.
-  const scoreColor = score >= 85 ? 'text-success' : 'text-primary-500';
+  // `dark:` variants dropped here: `.text-success` is already recolored for
+  // dark mode by a global !important rule in index.css, so a per-component
+  // dark: override on it can never take effect.
+  const scoreColor = score >= 85 ? 'text-success' : 'text-primary-500 dark:text-primary-300';
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: staggerIndex(index), duration: DUR.content, ease: EASE_OUT }}
-      className="relative bg-white rounded-2xl border border-neutral-100 shadow-card [@media(hover:hover)_and_(pointer:fine)]:hover:shadow-card-hover [@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-1 transition-[transform,box-shadow] duration-[200ms] overflow-hidden group flex-shrink-0 w-56 sm:w-auto"
+      className={`relative ${CARD} rounded-2xl [@media(hover:hover)_and_(pointer:fine)]:hover:shadow-card-hover [@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-1 transition-[transform,box-shadow] duration-[200ms] overflow-hidden group flex-shrink-0 w-56 md:w-auto`}
     >
       {/* Photo */}
-      <div className="relative h-52 overflow-hidden bg-neutral-100">
+      <div className="relative h-52 overflow-hidden bg-neutral-100 dark:bg-neutral-800">
         {(profile.profilePhoto || profile.profile_photo) ? (
           <RetryImage
             src={getImageUrl(profile.profilePhoto || profile.profile_photo, API_BASE_URL, 'profile')}
             alt={fullName}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className="w-full h-full object-cover [@media(hover:hover)_and_(pointer:fine)]:group-hover:scale-105 transition-transform duration-200"
             loading="lazy"
             onError={(e) => { e.target.style.display = 'none'; if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'flex'; }}
           />
@@ -154,7 +163,7 @@ const SuggestionCard = ({ profile, index }) => {
       {/* Footer */}
       <div className="px-3 py-3 flex items-center justify-between">
         {profile.education && (
-          <span className="text-xs text-neutral-500 truncate max-w-[70%]">{profile.education}</span>
+          <span className="text-xs text-neutral-500 dark:text-neutral-400 truncate max-w-[70%]">{profile.education}</span>
         )}
         {score && (
           <span className={`text-xs font-bold ml-auto ${scoreColor}`}>{Math.round(score)}% match</span>
@@ -176,12 +185,14 @@ const SuggestionCard = ({ profile, index }) => {
   );
 };
 
-// ─── Subscription Status Card ─────────────────────────────────────────────
+// ─── Subscription status / upgrade card ────────────────────────────────────
 const PLAN_META = {
-  free:          { label: 'Free Plan',      color: 'text-neutral-500', bg: 'bg-neutral-100',      crown: null },
-  basic_premium: { label: 'Basic Premium',  color: 'text-primary-600', bg: 'bg-primary-50',        crown: 'text-primary-400' },
-  premium_plus:  { label: 'Premium Plus',   color: 'text-gold-700',    bg: 'bg-gold-50',           crown: 'text-gold-500' },
-  vip:           { label: 'VIP Member',     color: 'text-gold-700',    bg: 'bg-gold-50',           crown: 'text-gold-500' },
+  free:          { label: 'Free plan',      color: 'text-neutral-500 dark:text-neutral-400', bg: 'bg-neutral-100 dark:bg-neutral-800',   crown: null },
+  basic_premium: { label: 'Basic Premium',  color: 'text-primary-600 dark:text-primary-300', bg: 'bg-primary-50 dark:bg-primary-900/20', crown: 'text-primary-400 dark:text-primary-300' },
+  // `color` drops its `dark:` variant: `.text-gold-700` is already recolored
+  // for dark mode by a global !important rule in index.css.
+  premium_plus:  { label: 'Premium Plus',   color: 'text-gold-700',                           bg: 'bg-gold-50 dark:bg-gold-900/20',       crown: 'text-gold-500 dark:text-gold-400' },
+  vip:           { label: 'VIP Member',     color: 'text-gold-700',                           bg: 'bg-gold-50 dark:bg-gold-900/20',       crown: 'text-gold-500 dark:text-gold-400' },
 };
 
 const SubscriptionStatusCard = ({ subscription, navigate }) => {
@@ -199,34 +210,37 @@ const SubscriptionStatusCard = ({ subscription, navigate }) => {
     ? Math.max(0, Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24)))
     : null;
 
+  // Free tier: a quiet card with a gold CTA, never a flat burgundy band —
+  // doctrine §3.1 is explicit that burgundy is an accent, never a fill for a
+  // whole region, and that gold is reserved for exactly this: an upgrade CTA.
   if (isFree) {
     return (
-      <div className="bg-gradient-to-r from-primary-500 to-primary-700 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
-            <FaCrown className="w-5 h-5 text-white" />
+      <div className={`${CARD} rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4`}>
+        <div className="flex items-center gap-3.5 min-w-0">
+          <div className="w-11 h-11 rounded-xl bg-gold-50 dark:bg-gold-900/20 flex items-center justify-center flex-shrink-0">
+            <FaCrown className="w-5 h-5 text-gold-600 dark:text-gold-400" />
           </div>
-          <div>
-            <p className="text-white font-semibold text-sm">Unlock Premium Features</p>
-            <p className="text-white/70 text-xs">View contacts, see who viewed you &amp; more</p>
+          <div className="min-w-0">
+            <p className="font-semibold text-sm text-neutral-800 dark:text-neutral-100">Unlock premium features</p>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">See who viewed you, unlock contacts, and more</p>
           </div>
         </div>
         <button
           onClick={() => navigate('/subscription')}
-          className="flex-shrink-0 px-5 py-2.5 bg-white text-primary-600 rounded-xl text-sm font-bold hover:bg-primary-50 transition-colors shadow-md"
+          className="flex-shrink-0 inline-flex items-center justify-center gap-2 px-5 py-3 bg-gold text-[#1A1A1A] rounded-xl text-sm font-semibold hover:bg-gold-400 transition-colors duration-[160ms] shadow-gold"
         >
-          Upgrade Now
+          Upgrade to premium
         </button>
       </div>
     );
   }
 
   return (
-    <div className={`${meta.bg} rounded-2xl p-5 border border-neutral-100`}>
+    <div className={`${meta.bg} rounded-2xl p-5 border border-neutral-100 dark:border-neutral-800`}>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         {/* Plan info */}
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 bg-white rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm`}>
+          <div className="w-10 h-10 bg-white dark:bg-surface-dark-3 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
             <FaCrown className={`w-5 h-5 ${meta.crown || 'text-neutral-400'}`} />
           </div>
           <div>
@@ -234,7 +248,7 @@ const SubscriptionStatusCard = ({ subscription, navigate }) => {
             {daysLeft !== null && (
               <div className="flex items-center gap-1.5 mt-0.5">
                 <FiCalendar className="w-3 h-3 text-neutral-400" />
-                <span className="text-xs text-neutral-500">
+                <span className="text-xs text-neutral-500 dark:text-neutral-400">
                   {daysLeft > 0 ? `${daysLeft} days remaining` : 'Expires today'}
                 </span>
               </div>
@@ -249,28 +263,28 @@ const SubscriptionStatusCard = ({ subscription, navigate }) => {
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-1.5">
                   <FiUnlock className="w-3.5 h-3.5 text-primary-500" />
-                  <span className="text-xs font-semibold text-neutral-700">Contact Unlocks</span>
+                  <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">Contact unlocks</span>
                 </div>
-                <span className="text-xs font-bold text-primary-600">{unlocksLeft} / {unlocksAllowed} left</span>
+                <span className="text-xs font-bold text-primary-600 dark:text-primary-300">{unlocksLeft} / {unlocksAllowed} left</span>
               </div>
-              <div className="h-2 bg-white rounded-full overflow-hidden">
+              <div className="h-2 bg-white/70 dark:bg-black/30 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-primary-400 to-primary-500 rounded-full transition-[width] duration-300"
+                  className="h-full bg-gradient-to-r from-primary-400 to-primary-500 rounded-full transition-[width] duration-[250ms]"
                   style={{ width: `${unlocksAllowed ? ((unlocksAllowed - unlocksLeft) / unlocksAllowed) * 100 : 0}%` }}
                 />
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-full shadow-sm">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/70 dark:bg-black/20 rounded-full shadow-sm">
               <FiZap className="w-3.5 h-3.5 text-gold-500" />
-              <span className="text-xs font-semibold text-neutral-700">Unlimited Unlocks</span>
+              <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">Unlimited unlocks</span>
             </div>
           )}
           <button
             onClick={() => navigate('/subscription')}
-            className="text-xs font-semibold text-neutral-500 hover:text-primary-500 transition-colors whitespace-nowrap py-2 px-2 -my-2 -mx-2"
+            className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 hover:text-primary-500 transition-colors duration-[160ms] whitespace-nowrap py-3.5 px-2 -my-3.5 -mx-2"
           >
-            Manage Plan
+            Manage plan
           </button>
         </div>
       </div>
@@ -297,9 +311,6 @@ const Dashboard = () => {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState(null);
   const [community, setCommunity] = useState(null);
-  const [verifyNudgeDismissed, setVerifyNudgeDismissed] = useState(
-    () => sessionStorage.getItem('verifyNudgeDismissed') === '1'
-  );
   // Once-per-day labor-illusion loader over the daily-matches reveal (DS6).
   const { showTheater, skip: skipTheater } = useStagedReveal({
     key: 'daily',
@@ -320,8 +331,8 @@ const Dashboard = () => {
 
   useEffect(() => { loadDashboardData(); }, []);
 
-  // Verification status drives the "Get verified" nudge (best-effort; page still
-  // renders if this fails).
+  // Verification status drives the "get verified" nudge inside PhotoNudge
+  // below (best-effort; page still renders if this fails).
   useEffect(() => {
     api.get('/verification/status')
       .then(r => setVerificationStatus(r.data?.verification?.status || 'not_submitted'))
@@ -334,16 +345,6 @@ const Dashboard = () => {
       .then(r => setCommunity(r.data?.stats || null))
       .catch(() => {});
   }, []);
-
-  const dismissVerifyNudge = () => {
-    sessionStorage.setItem('verifyNudgeDismissed', '1');
-    setVerifyNudgeDismissed(true);
-  };
-  // Show only to members who can still act on it (not already verified/pending).
-  const showVerifyNudge =
-    !verifyNudgeDismissed &&
-    verificationStatus &&
-    !['approved', 'pending'].includes(verificationStatus);
 
   const loadDashboardData = async () => {
     try {
@@ -476,9 +477,9 @@ const Dashboard = () => {
       label:     'Profile Views',
       sublabel:  'This week',
       icon:      FiEye,
-      iconBg:    'bg-primary-50',
+      iconBg:    'bg-primary-50 dark:bg-primary-900/30',
       iconColor: 'text-primary-500',
-      numColor:  'text-primary-600',
+      numColor:  'text-primary-600 dark:text-primary-300',
     },
     {
       // Plain stat, shown to every tier — not a premium marker, so it stays
@@ -487,24 +488,28 @@ const Dashboard = () => {
       label:     'Total Views',
       sublabel:  'All time',
       icon:      FiTrendingUp,
-      iconBg:    'bg-neutral-100',
-      iconColor: 'text-neutral-500',
-      numColor:  'text-neutral-900',
+      iconBg:    'bg-neutral-100 dark:bg-neutral-800',
+      iconColor: 'text-neutral-500 dark:text-neutral-400',
+      numColor:  'text-neutral-900 dark:text-neutral-100',
     },
     {
       key:       'likesReceived',
       label:     'Interests Received',
       sublabel:  'Total',
       icon:      FiHeart,
-      iconBg:    'bg-primary-50',
+      iconBg:    'bg-primary-50 dark:bg-primary-900/30',
       iconColor: 'text-primary-400',
-      numColor:  'text-primary-500',
+      numColor:  'text-primary-500 dark:text-primary-300',
     },
     {
       key:        'mutualMatches',
       label:      'Mutual Matches',
       sublabel:   'Ready to chat',
       icon:       FiUsers,
+      // `dark:` variants dropped on iconBg/iconColor/numColor: `.bg-success-50`
+      // and `.text-success` are already recolored for dark mode by global
+      // !important rules in index.css, so a per-component override here can
+      // never take effect.
       iconBg:     'bg-success-50',
       iconColor:  'text-success',
       numColor:   'text-success',
@@ -513,10 +518,11 @@ const Dashboard = () => {
     },
   ];
 
-  // ── Loading: once/day staged reveal (DS6, ≤1.5s hold), else plain skeleton ─
+  // ── Loading: once/day staged reveal (DS6, ≤1.5s hold), else plain skeleton,
+  // shaped like the rebuilt layout — a slim header row, not a big hero card.
   if (showTheater) {
     return (
-      <div className="min-h-[100dvh] bg-neutral-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 py-6 md:py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <StagedLoader onSkip={skipTheater} className="min-h-[60vh]" />
         </div>
@@ -525,13 +531,28 @@ const Dashboard = () => {
   }
   if (loading) {
     return (
-      <div className="min-h-[100dvh] bg-neutral-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 py-6 md:py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto space-y-8">
-          {/* Greeting skeleton */}
-          <div className="bg-white rounded-3xl border border-neutral-100 shadow-card p-8">
-            <Skeleton className="h-5 w-36 mb-3" />
-            <Skeleton className="h-9 w-72 mb-2" />
-            <Skeleton className="h-4 w-56" />
+          {/* Header skeleton */}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-3 flex-1">
+              <Skeleton className="h-7 w-56" />
+              <Skeleton className="h-4 w-72" />
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2.5 w-full sm:w-auto">
+              <Skeleton className="h-11 w-full sm:w-36 rounded-xl" />
+              <Skeleton className="h-11 w-full sm:w-32 rounded-xl" />
+            </div>
+          </div>
+          {/* "Needs you" skeleton */}
+          <div className={`${CARD} rounded-2xl p-5`}>
+            <div className="flex items-center gap-3.5">
+              <Skeleton className="w-11 h-11 rounded-xl flex-shrink-0" />
+              <div className="space-y-2 flex-1">
+                <Skeleton className="h-3.5 w-40" />
+                <Skeleton className="h-3 w-56" />
+              </div>
+            </div>
           </div>
           {/* Stats skeleton */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -557,7 +578,7 @@ const Dashboard = () => {
   // zero-stats ("quantified rejection") — profile under 60% complete or an
   // account younger than 48h counts as first-run.
   const profileForMeter = userProfile || user?.profile || {};
-  const { percent: completionPercent } = getCompletionData(profileForMeter);
+  const { percent: completionPercent, allImportantDone } = getCompletionData(profileForMeter);
   const accountIsNew = !!(userProfile?.createdAt) &&
     (Date.now() - new Date(userProfile.createdAt).getTime()) < 48 * 3600 * 1000;
   const isFirstRun = !loadError && (completionPercent < 60 || accountIsNew);
@@ -567,252 +588,156 @@ const Dashboard = () => {
     { id: 'prefs', label: 'Set partner preferences', desc: 'Sharpen who we match you with', done: !!(profileForMeter.preferredAgeMin || profileForMeter.preferredCity || profileForMeter.preferredEducation), icon: FiSliders },
   ];
 
+  // Verified or pending review both mean "nothing to prompt right now" — and
+  // while the status hasn't loaded yet, default to true so the verify prompt
+  // never flashes on before we know it doesn't apply.
+  const verifiedOrPending = !verificationStatus || ['approved', 'pending'].includes(verificationStatus);
+  const hasPhoto = !!profileForMeter.profilePhoto ||
+    (Array.isArray(profileForMeter.photos) && profileForMeter.photos.length > 0);
+
   // ── Main render ────────────────────────────────────────────────────────────
+  // One hierarchy, top to bottom: what's new (matches, viewers) → what needs
+  // the member (photo/verify, profile completion, upgrade) → what they were
+  // doing (recently viewed, curated browsing) — not a stack of independently
+  // coloured banners (doctrine §3.1, audit finding #4).
   return (
     <motion.div
       initial="initial"
       animate="animate"
       variants={staggerContainer}
-      className="min-h-[100dvh] bg-neutral-50 pb-16"
+      className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 pb-16"
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 space-y-8">
 
-        {/* No photograph is the single biggest thing holding a profile back, and
-            the setup checklist below only shows under 60% complete — so this
-            sits above everything, for anyone missing one. */}
-        {!loadError && (
-          <PhotoNudge
-            hasPhoto={
-              !!profileForMeter.profilePhoto ||
-              (Array.isArray(profileForMeter.photos) && profileForMeter.photos.length > 0)
-            }
-            // Photo only here: the dashboard already has a dedicated "Get
-            // verified" card below, and two cards asking for the same thing
-            // read as nagging and get ignored as a set.
-            allow={['photo']}
-          />
-        )}
-
-        {/* ── 1. Greeting Card — LIGHT hero (burgundy as accent, not flat fill) ── */}
-        <motion.div variants={fadeInUp}>
-          <div className="relative rounded-3xl overflow-hidden bg-white dark:bg-surface-dark-3 border border-neutral-100 dark:border-neutral-800 shadow-card">
-            {/* Thin burgundy left rail + subtle primary wash */}
-            <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-primary-500 to-primary-700 pointer-events-none" />
-            <div className="absolute inset-0 bg-gradient-to-r from-primary-50/70 dark:from-primary-900/20 via-transparent to-transparent pointer-events-none" />
-            {/* Faint neutral decorative rings */}
-            <div className="absolute -top-16 -right-16 w-64 h-64 border border-neutral-200/60 dark:border-neutral-700/40 rounded-full pointer-events-none" />
-            <div className="absolute -bottom-10 -right-10 w-44 h-44 border border-neutral-200/50 dark:border-neutral-700/30 rounded-full pointer-events-none" />
-
-            <div className="relative z-10 px-6 py-8 md:px-10 md:py-10">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-                {/* Left: Greeting */}
-                <div>
-                  <div className="flex items-center gap-2 mb-3 flex-wrap">
-                    <span className="inline-flex items-center gap-2 px-3 py-1 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full">
-                      <greeting.icon className="w-3.5 h-3.5 text-primary-600 dark:text-primary-300" />
-                      <span className="text-neutral-600 dark:text-neutral-300 text-xs font-semibold uppercase tracking-wide">Your Dashboard</span>
-                    </span>
-                    <FoundingBadge user={user} />
-                  </div>
-                  <h1 className="font-display text-3xl md:text-4xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">
-                    {greeting.text}
-                  </h1>
-                  <p className="text-neutral-500 text-base">{greeting.subtext}</p>
-
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {stats.viewsThisWeek > 5 && (
-                      <motion.div
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.5 }}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary-50 dark:bg-primary-900/30 border border-primary-100 dark:border-primary-800 rounded-full"
-                      >
-                        <FiStar className="w-3.5 h-3.5 text-primary-500" />
-                        <span className="text-primary-700 dark:text-primary-300 text-xs font-medium">
-                          {stats.viewsThisWeek} profile views this week
-                        </span>
-                      </motion.div>
-                    )}
-                    {community?.newThisWeek > 0 && (
-                      <motion.div
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.6 }}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-success-50 dark:bg-success-500/15 border border-success-100 dark:border-success-500/30 rounded-full"
-                      >
-                        <FiUsers className="w-3.5 h-3.5 text-success" />
-                        <span className="text-success text-xs font-medium">
-                          {community.newThisWeek} new {community.newThisWeek === 1 ? 'member' : 'members'} joined this week
-                        </span>
-                      </motion.div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Right: Quick actions — 1 primary + 1 ghost */}
-                <div className="flex flex-row md:flex-col gap-3 flex-shrink-0">
-                  <Link
-                    to="/search"
-                    className="flex items-center gap-2.5 px-5 py-2.5 bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-xl text-sm font-semibold hover:-translate-y-0.5 transition-transform shadow-burgundy"
-                  >
-                    <FiSearch className="w-4 h-4" />
-                    Find Matches
-                  </Link>
-                  <Link
-                    to="/chat"
-                    className="flex items-center gap-2.5 px-5 py-2.5 bg-white dark:bg-transparent text-primary-600 dark:text-primary-300 border border-primary-200 dark:border-primary-700 rounded-xl text-sm font-semibold hover:bg-primary-50 dark:hover:bg-primary-900/30 transition-colors"
-                  >
-                    <FiMessageCircle className="w-4 h-4" />
-                    Messages
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* ── 1a. Get-verified nudge — perks-led, dismissible, no hard gate.
-               Verification is free for every tier, so this stays primary, not
-               gold (doctrine §3.1 — gold marks premium only). ── */}
-        {showVerifyNudge && (
-          <motion.div variants={fadeInUp}>
-            <div className="relative rounded-2xl border border-primary-100 bg-primary-50 dark:bg-primary-900/10 dark:border-primary-800 p-5 flex items-start gap-4">
-              <div className="w-11 h-11 rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center flex-shrink-0">
-                <FiShield className="w-5 h-5 text-primary-700 dark:text-primary-300" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-display text-base font-bold text-neutral-900 dark:text-neutral-100">
-                  {verificationStatus === 'rejected' ? 'Re-submit your verification' : 'Get verified. Stand out.'}
-                </p>
-                <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-0.5">
-                  Verified profiles rank higher, show a trust badge, and appear in “verified only” searches. Takes under a minute with a selfie.
-                </p>
-                <Link
-                  to="/verification"
-                  className="inline-flex items-center gap-1.5 mt-3 px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors"
-                >
-                  <FiShield className="w-4 h-4" />
-                  {verificationStatus === 'rejected' ? 'Try again' : 'Verify my profile'}
-                </Link>
-              </div>
-              <button
-                onClick={dismissVerifyNudge}
-                className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-600 hover:bg-white/60 transition-colors flex-shrink-0"
-                aria-label="Dismiss"
-              >
-                <FiX className="w-4 h-4" />
-              </button>
-            </div>
-          </motion.div>
-        )}
-
-        {/* ── 1b. Load error — a server failure is never dressed up as an empty
-               profile. Distinct banner + retry. ─────────────────────────────── */}
+        {/* ── Load error — a server failure is never dressed up as an empty
+               profile. Sits first: it explains why everything below may be
+               thin or missing. Distinct banner + working retry. ─────────── */}
         {loadError && (
           <motion.div
             variants={fadeInUp}
             role="alert"
-            className="bg-white dark:bg-surface-dark-3 border border-destructive/20 dark:border-destructive/30 rounded-2xl shadow-card p-5 flex items-center gap-4"
+            className={`${CARD} border-destructive/20 dark:border-destructive/30 rounded-2xl p-5 flex items-center gap-4`}
           >
             <div className="w-10 h-10 rounded-xl bg-destructive-light dark:bg-destructive/20 flex items-center justify-center flex-shrink-0">
               <FiAlertCircle className="w-5 h-5 text-destructive" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">Couldn't load your dashboard</p>
-              <p className="text-xs text-neutral-500 mt-0.5">Something went wrong on our side or your connection dropped. Your profile is safe.</p>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">Something went wrong on our side or your connection dropped. Your profile is safe.</p>
             </div>
             <button
               onClick={loadDashboardData}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-semibold transition-colors flex-shrink-0"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-semibold transition-colors duration-[160ms] flex-shrink-0"
             >
               <FiRefreshCw className="w-4 h-4" /> Retry
             </button>
           </motion.div>
         )}
 
-        {/* ── 2. Stats row — or, for first-run members, a setup checklist ──── */}
-        {isFirstRun ? (
-          <motion.div variants={fadeInUp} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {setupChecklist.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.id}
-                  to="/profile/edit"
-                  className={`bg-white dark:bg-surface-dark-3 rounded-2xl border shadow-card p-5 flex items-start gap-3.5 transition-transform duration-[160ms] hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
-                    item.done ? 'border-success/30' : 'border-neutral-100 dark:border-neutral-800 hover:border-primary-200'
-                  }`}
-                >
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${item.done ? 'bg-success-50' : 'bg-primary-50 dark:bg-primary-900/30'}`}>
-                    {item.done ? <FiCheckCircle className="w-5 h-5 text-success" /> : <Icon className="w-5 h-5 text-primary-500" />}
-                  </div>
-                  <div className="min-w-0">
-                    <p className={`text-sm font-semibold ${item.done ? 'text-neutral-400 line-through' : 'text-neutral-800 dark:text-neutral-100'}`}>{item.label}</p>
-                    <p className="text-xs text-neutral-400 mt-0.5">{item.desc}</p>
-                  </div>
-                </Link>
-              );
-            })}
-          </motion.div>
-        ) : (
-        <motion.div variants={fadeInUp} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {statsConfig.map((stat, i) => {
-            const Icon  = stat.icon;
-            const value = stat.customValue ? mutualMatches.length : (stats?.[stat.key] ?? 0);
-            // Only cards with a real destination get the hover-lift + link wrapper —
-            // otherwise the lift implies a click that goes nowhere.
-            const Wrapper = stat.to ? Link : 'div';
-            const wrapperProps = stat.to
-              ? { to: stat.to, className: 'block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-2xl' }
-              : {};
-            return (
-              <motion.div
-                key={stat.key}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: staggerIndex(i), duration: DUR.content, ease: EASE_OUT }}
-                className={`bg-white rounded-2xl border border-neutral-100 shadow-card p-5 transition-transform duration-[160ms] ${stat.to ? '[@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-1' : ''}`}
-              >
-                <Wrapper {...wrapperProps}>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-neutral-500 text-xs font-medium mb-2">{stat.label}</p>
-                    <motion.p
-                      className="font-display text-3xl font-bold text-neutral-900 dark:text-neutral-100"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.15 + staggerIndex(i) }}
-                    >
-                      {value}
-                    </motion.p>
-                    <p className="text-[11px] text-neutral-400 mt-1">{stat.sublabel}</p>
-                  </div>
-                  <div className="w-11 h-11 bg-primary-50 dark:bg-primary-900/30 rounded-xl flex items-center justify-center">
-                    <Icon className="w-5 h-5 text-primary-500" />
-                  </div>
-                </div>
-                </Wrapper>
-              </motion.div>
-            );
-          })}
-        </motion.div>
-        )}
+        {/* ── Header — a plain greeting row, not a decorated hero band. No
+               eyebrow label above the heading (doctrine §8 — it carries its
+               own weight). Actions stack full-width on mobile so a label
+               never wraps inside its own button (the 375px defect from the
+               audit): row on sm+, column below it. ─────────────────────── */}
+        <motion.header variants={fadeInUp} className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1 className="font-display text-2xl md:text-3xl font-bold text-neutral-900 dark:text-neutral-100 flex items-center gap-2.5">
+                <greeting.icon className="w-6 h-6 text-primary-500 flex-shrink-0" aria-hidden="true" />
+                {greeting.text}
+              </h1>
+              <FoundingBadge user={user} />
+            </div>
+            <p className="text-neutral-500 dark:text-neutral-400 text-sm mt-1.5">{greeting.subtext}</p>
 
-        {/* ── 3. Subscription Status Card ──────────────────────────────── */}
-        {subscription && (
-          <motion.div variants={fadeInUp}>
+            {(stats.viewsThisWeek > 5 || community?.newThisWeek > 0) && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {stats.viewsThisWeek > 5 && (
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary-50 dark:bg-primary-900/30 border border-primary-100 dark:border-primary-800 rounded-full">
+                    <FiStar className="w-3.5 h-3.5 text-primary-500" />
+                    <span className="text-primary-700 dark:text-primary-300 text-xs font-medium">
+                      {stats.viewsThisWeek} profile views this week
+                    </span>
+                  </div>
+                )}
+                {/* `dark:bg-success-500/15` dropped below: `.bg-success-50` is
+                    already recolored for dark mode by a global !important
+                    rule in index.css. */}
+                {community?.newThisWeek > 0 && (
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-success-50 border border-success-100 dark:border-success-500/30 rounded-full">
+                    <FiUsers className="w-3.5 h-3.5 text-success dark:text-green-400" />
+                    <span className="text-success dark:text-green-400 text-xs font-medium">
+                      {community.newThisWeek} new {community.newThisWeek === 1 ? 'member' : 'members'} joined this week
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Quick actions — stacked full-width on mobile, side by side from
+              sm up. Each is `flex-1` on mobile so both share the row evenly
+              once there is room, and neither ever has to wrap its label. */}
+          <div className="flex flex-col sm:flex-row gap-2.5 w-full sm:w-auto flex-shrink-0">
+            <Link
+              to="/search"
+              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-xl text-sm font-semibold [@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-0.5 transition-transform duration-[160ms] shadow-burgundy"
+            >
+              <FiSearch className="w-4 h-4 flex-shrink-0" />
+              <span className="whitespace-nowrap">Find matches</span>
+            </Link>
+            <Link
+              to="/chat"
+              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-3 bg-white dark:bg-transparent text-primary-600 dark:text-primary-300 border border-primary-200 dark:border-primary-700 rounded-xl text-sm font-semibold hover:bg-primary-50 dark:hover:bg-primary-900/30 transition-colors duration-[160ms]"
+            >
+              <FiMessageCircle className="w-4 h-4 flex-shrink-0" />
+              <span className="whitespace-nowrap">Messages</span>
+            </Link>
+          </div>
+        </motion.header>
+
+        {/* ── "Needs you" — every profile/upgrade nudge grouped into one
+               tight cluster instead of five independently-coloured bands.
+               Exactly one photo/verify prompt (PhotoNudge's own priority
+               order), then first-run checklist OR the fuller completion
+               meter (never both), then the subscription/upgrade card. Any
+               of the three can be absent; the group simply gets shorter. ── */}
+        <motion.div variants={fadeInUp} className="space-y-3">
+          <PhotoNudge hasPhoto={hasPhoto} isVerified={verifiedOrPending} allow={['photo', 'verify']} />
+
+          {isFirstRun && !allImportantDone && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {setupChecklist.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.id}
+                    to="/profile/edit"
+                    className={`${CARD} rounded-2xl p-4 flex items-start gap-3.5 transition-transform duration-[160ms] [@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500`}
+                  >
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${item.done ? 'bg-success-50 dark:bg-success-500/15' : 'bg-primary-50 dark:bg-primary-900/30'}`}>
+                      {item.done ? <FiCheckCircle className="w-5 h-5 text-success dark:text-green-400" /> : <Icon className="w-5 h-5 text-primary-500" />}
+                    </div>
+                    <div className="min-w-0">
+                      <p className={`text-sm font-semibold ${item.done ? 'text-neutral-500 dark:text-neutral-400' : 'text-neutral-800 dark:text-neutral-100'}`}>{item.label}</p>
+                      <p className="text-xs text-neutral-400 dark:text-neutral-500 mt-0.5">{item.desc}</p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+
+          {!isFirstRun && !allImportantDone && (
+            <ProfileCompletionMeter profile={profileForMeter} />
+          )}
+
+          {subscription && (
             <SubscriptionStatusCard subscription={subscription} navigate={navigate} />
-          </motion.div>
-        )}
+          )}
+        </motion.div>
 
-        {/* ── 4. Profile Completion — hidden when all important fields done ── */}
-        {!getCompletionData(userProfile || user?.profile || {}).allImportantDone && (
-          <motion.div variants={fadeInUp}>
-            <ProfileCompletionMeter profile={userProfile || user?.profile || {}} />
-          </motion.div>
-        )}
-
-        {/* ── 4. Mutual Matches ─────────────────────────────────────────────── */}
+        {/* ── What's new: mutual matches, today's picks, who viewed you ──── */}
         <AnimatePresence>
           {mutualMatches.length > 0 && (
             <motion.section
@@ -828,10 +753,10 @@ const Dashboard = () => {
                 action={
                   <Link
                     to="/chat"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-xl text-sm font-semibold hover:bg-primary-600 transition-colors shadow-burgundy"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-xl text-sm font-semibold hover:bg-primary-600 transition-colors duration-[160ms] shadow-burgundy"
                   >
                     <FiMessageCircle className="w-4 h-4" />
-                    Open Chat
+                    Open chat
                   </Link>
                 }
               />
@@ -851,7 +776,41 @@ const Dashboard = () => {
           )}
         </AnimatePresence>
 
-        {/* ── 4b. Who Viewed Your Profile — hidden for free members until at
+        {dailyMatches.length > 0 && (
+          <motion.section variants={fadeInUp}>
+            <SectionHeader
+              title="Today's Matches"
+              subtitle="Hand-picked for you, refreshed every day"
+              count="Daily"
+            />
+
+            <div className="flex gap-4 overflow-x-auto pb-3 md:pb-0 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:gap-5 scrollbar-hide snap-x snap-mandatory">
+              {dailyMatches.map((profile, i) => (
+                <div key={`daily-${profile.userId}`} className="snap-start">
+                  <SuggestionCard profile={profile} index={i} />
+                </div>
+              ))}
+            </div>
+
+            {!dailyMeta.isPremium && (
+              <div className="mt-4 text-center">
+                <button
+                  onClick={() => navigate('/subscription')}
+                  className="inline-flex items-center gap-2 px-5 py-3 bg-gold text-[#1A1A1A] text-sm font-semibold rounded-xl hover:bg-gold-400 transition-colors duration-[160ms] shadow-gold"
+                >
+                  <FaCrown className="w-3.5 h-3.5" /> Upgrade to see more matches today
+                </button>
+              </div>
+            )}
+
+            {/* Anticipation line — the daily set refreshes at midnight IST. */}
+            <p className="mt-3 text-center text-xs text-neutral-400 dark:text-neutral-500">
+              Fresh matches arrive at midnight. Check back tomorrow.
+            </p>
+          </motion.section>
+        )}
+
+        {/* ── Who Viewed Your Profile — hidden for free members until at
                least one real view exists (an upsell to see zero viewers reads
                as mockery on a fresh account). ────────────────────────────── */}
         {(hasPremium || (stats?.totalViews ?? 0) > 0) && (
@@ -880,9 +839,9 @@ const Dashboard = () => {
                     aria-label={`View ${viewerName}'s profile`}
                     onClick={() => viewer.userId && navigate(`/profile/${viewer.userId}`)}
                     onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && viewer.userId) { e.preventDefault(); navigate(`/profile/${viewer.userId}`); } }}
-                    className="cursor-pointer bg-white rounded-xl border border-neutral-100 shadow-card overflow-hidden group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 transition-transform duration-[160ms] [@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-1"
+                    className={`cursor-pointer ${CARD} rounded-xl overflow-hidden group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 transition-transform duration-[160ms] [@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-1`}
                   >
-                    <div className="relative h-28 bg-neutral-100 overflow-hidden">
+                    <div className="relative h-28 bg-neutral-100 dark:bg-neutral-800 overflow-hidden">
                       <div className="absolute inset-0 flex items-center justify-center bg-primary-100 dark:bg-primary-900/40">
                         <span className="font-display text-2xl font-semibold text-primary-700 dark:text-primary-300">{initials}</span>
                       </div>
@@ -890,47 +849,47 @@ const Dashboard = () => {
                         <RetryImage
                           src={getImageUrl(viewer.profilePhoto, API_BASE_URL, 'profile')}
                           alt={viewerName}
-                          className="relative w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          className="relative w-full h-full object-cover [@media(hover:hover)_and_(pointer:fine)]:group-hover:scale-105 transition-transform"
                           loading="lazy"
                           onError={(e) => { e.currentTarget.style.display = 'none'; }}
                         />
                       )}
                     </div>
                     <div className="p-2.5 text-center">
-                      <p className="text-xs font-semibold text-neutral-800 truncate">{viewerName}</p>
-                      {viewer.city && <p className="text-[10px] text-neutral-400 truncate">{viewer.city}</p>}
+                      <p className="text-xs font-semibold text-neutral-800 dark:text-neutral-100 truncate">{viewerName}</p>
+                      {viewer.city && <p className="text-[10px] text-neutral-400 dark:text-neutral-500 truncate">{viewer.city}</p>}
                     </div>
                   </motion.div>
                 );
               })}
             </div>
           ) : hasPremium && profileViewers.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-neutral-100 shadow-card p-8 text-center">
-              <FiEye className="w-8 h-8 text-neutral-300 mx-auto mb-3" />
-              <p className="text-sm text-neutral-500">No one has viewed your profile yet. Complete your profile to attract visitors!</p>
+            <div className={`${CARD} rounded-2xl p-8 text-center`}>
+              <FiEye className="w-8 h-8 text-neutral-300 dark:text-neutral-600 mx-auto mb-3" />
+              <p className="text-sm text-neutral-500 dark:text-neutral-400">No one has viewed your profile yet. Complete your profile to attract visitors.</p>
             </div>
           ) : (
             /* Locked state for free users */
-            <div className="relative bg-white rounded-2xl border border-neutral-100 shadow-card overflow-hidden">
+            <div className={`relative ${CARD} rounded-2xl overflow-hidden`}>
               {/* Blurred placeholder */}
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 p-5 blur-sm pointer-events-none select-none" aria-hidden="true">
                 {[1, 2, 3, 4, 5, 6].map(i => (
-                  <div key={i} className="bg-neutral-100 rounded-xl h-28 animate-pulse" />
+                  <div key={i} className="bg-neutral-100 dark:bg-neutral-800 rounded-xl h-28" />
                 ))}
               </div>
               {/* Overlay CTA */}
               <div className="absolute inset-0 bg-white/80 dark:bg-surface-dark-1/85 backdrop-blur-[2px] flex flex-col items-center justify-center">
-                <div className="w-12 h-12 rounded-2xl bg-gold-50 dark:bg-[#2a2010] flex items-center justify-center mb-3">
-                  <FiLock className="w-5 h-5 text-gold-600" />
+                <div className="w-12 h-12 rounded-2xl bg-gold-50 dark:bg-gold-900/30 flex items-center justify-center mb-3">
+                  <FiLock className="w-5 h-5 text-gold-600 dark:text-gold-400" />
                 </div>
-                <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-1">Premium Feature</p>
+                <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-1">Premium feature</p>
                 <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-4 max-w-xs text-center">See who's interested in your profile</p>
                 <motion.button
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setShowUpgradeModal(true)}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-gold text-neutral-900 text-sm font-semibold rounded-xl hover:bg-gold-400 transition-colors shadow-gold"
+                  className="inline-flex items-center gap-2 px-5 py-3 bg-gold text-[#1A1A1A] text-sm font-semibold rounded-xl hover:bg-gold-400 transition-colors duration-[160ms] shadow-gold"
                 >
-                  <FaCrown className="w-3.5 h-3.5" /> Upgrade to Premium
+                  <FaCrown className="w-3.5 h-3.5" /> Upgrade to premium
                 </motion.button>
               </div>
             </div>
@@ -938,42 +897,50 @@ const Dashboard = () => {
         </motion.section>
         )}
 
-        {/* ── 4c. Today's Matches (daily cached set) ───────────────────────── */}
-        {dailyMatches.length > 0 && (
-          <motion.section variants={fadeInUp}>
-            <SectionHeader
-              title="Today's Matches"
-              subtitle="Hand-picked for you, refreshed every day"
-              count="Daily"
-            />
-
-            <div className="flex gap-4 overflow-x-auto pb-3 md:pb-0 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:gap-5 scrollbar-hide snap-x snap-mandatory">
-              {dailyMatches.map((profile, i) => (
-                <div key={`daily-${profile.userId}`} className="snap-start">
-                  <SuggestionCard profile={profile} index={i} />
+        {/* ── Your week at a glance — quick-glance metrics for returning
+               members. First-run members see the setup checklist above
+               instead; showing both at once is the double-nag the rebuild
+               removes. ─────────────────────────────────────────────────── */}
+        {!isFirstRun && (
+        <motion.div variants={fadeInUp} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {statsConfig.map((stat, i) => {
+            const Icon  = stat.icon;
+            const value = stat.customValue ? mutualMatches.length : (stats?.[stat.key] ?? 0);
+            // Only cards with a real destination get the hover-lift + link wrapper —
+            // otherwise the lift implies a click that goes nowhere.
+            const Wrapper = stat.to ? Link : 'div';
+            const wrapperProps = stat.to
+              ? { to: stat.to, className: 'block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-2xl' }
+              : {};
+            return (
+              <motion.div
+                key={stat.key}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: staggerIndex(i), duration: DUR.content, ease: EASE_OUT }}
+                className={`${CARD} rounded-2xl p-5 transition-transform duration-[160ms] ${stat.to ? '[@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-1' : ''}`}
+              >
+                <Wrapper {...wrapperProps}>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-neutral-500 dark:text-neutral-400 text-xs font-medium mb-2">{stat.label}</p>
+                    <p className={`font-display text-3xl font-bold ${stat.numColor}`}>
+                      {value}
+                    </p>
+                    <p className="text-[11px] text-neutral-400 dark:text-neutral-500 mt-1">{stat.sublabel}</p>
+                  </div>
+                  <div className={`w-11 h-11 ${stat.iconBg} rounded-xl flex items-center justify-center`}>
+                    <Icon className={`w-5 h-5 ${stat.iconColor}`} />
+                  </div>
                 </div>
-              ))}
-            </div>
-
-            {!dailyMeta.isPremium && (
-              <div className="mt-4 text-center">
-                <button
-                  onClick={() => navigate('/subscription')}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-gold text-neutral-900 text-sm font-semibold rounded-xl hover:bg-gold-400 transition-colors shadow-gold"
-                >
-                  <FaCrown className="w-3.5 h-3.5" /> Upgrade to see more matches today
-                </button>
-              </div>
-            )}
-
-            {/* Anticipation line — the daily set refreshes at midnight IST. */}
-            <p className="mt-3 text-center text-xs text-neutral-400">
-              Fresh matches arrive at midnight. Check back tomorrow.
-            </p>
-          </motion.section>
+                </Wrapper>
+              </motion.div>
+            );
+          })}
+        </motion.div>
         )}
 
-        {/* ── 4d. Recently Viewed ──────────────────────────────────────────── */}
+        {/* ── What you were doing: recently viewed, curated browsing ─────── */}
         {recentlyViewed.length > 0 && (
           <motion.section variants={fadeInUp}>
             <SectionHeader title="Recently Viewed" />
@@ -989,9 +956,9 @@ const Dashboard = () => {
                     aria-label={`View ${name}'s profile`}
                     onClick={() => navigate(`/profile/${p.userId}`)}
                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/profile/${p.userId}`); } }}
-                    className="cursor-pointer bg-white rounded-xl border border-neutral-100 shadow-card overflow-hidden group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1"
+                    className={`cursor-pointer ${CARD} rounded-xl overflow-hidden group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1`}
                   >
-                    <div className="relative h-28 bg-neutral-100 overflow-hidden">
+                    <div className="relative h-28 bg-neutral-100 dark:bg-neutral-800 overflow-hidden">
                       <div className="absolute inset-0 flex items-center justify-center bg-primary-100 dark:bg-primary-900/40">
                         <span className="font-display text-2xl font-semibold text-primary-700 dark:text-primary-300">{initials}</span>
                       </div>
@@ -999,15 +966,15 @@ const Dashboard = () => {
                         <RetryImage
                           src={getImageUrl(p.profilePhoto, API_BASE_URL, 'profile')}
                           alt={name}
-                          className="relative w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          className="relative w-full h-full object-cover [@media(hover:hover)_and_(pointer:fine)]:group-hover:scale-105 transition-transform"
                           loading="lazy"
                           onError={(e) => { e.currentTarget.style.display = 'none'; }}
                         />
                       )}
                     </div>
                     <div className="p-2.5 text-center">
-                      <p className="text-xs font-semibold text-neutral-800 truncate">{name}</p>
-                      {p.city && <p className="text-[10px] text-neutral-400 truncate">{p.city}</p>}
+                      <p className="text-xs font-semibold text-neutral-800 dark:text-neutral-100 truncate">{name}</p>
+                      {p.city && <p className="text-[10px] text-neutral-400 dark:text-neutral-500 truncate">{p.city}</p>}
                     </div>
                   </div>
                 );
@@ -1016,7 +983,6 @@ const Dashboard = () => {
           </motion.section>
         )}
 
-        {/* ── 5. Suggested Profiles ─────────────────────────────────────────── */}
         {curatedSuggestions.length > 0 && (
           <motion.section variants={fadeInUp}>
             <SectionHeader
@@ -1026,7 +992,7 @@ const Dashboard = () => {
               action={
                 <Link
                   to="/search"
-                  className="inline-flex items-center gap-1.5 text-primary-500 font-semibold text-sm hover:text-primary-600 transition-colors"
+                  className="inline-flex items-center gap-1.5 text-primary-500 font-semibold text-sm hover:text-primary-600 transition-colors duration-[160ms] py-3 -my-3 px-1 -mx-1"
                 >
                   View all
                   <FiArrowRight className="w-4 h-4" />
@@ -1047,7 +1013,7 @@ const Dashboard = () => {
             <div className="mt-4 sm:hidden text-center">
               <Link
                 to="/search"
-                className="inline-flex items-center gap-1.5 text-primary-500 font-semibold text-sm py-2.5 px-3 -my-2.5 -mx-3"
+                className="inline-flex items-center gap-1.5 text-primary-500 font-semibold text-sm py-3 px-3 -my-3 -mx-3"
               >
                 View all profiles <FiArrowRight className="w-4 h-4" />
               </Link>
@@ -1055,16 +1021,15 @@ const Dashboard = () => {
           </motion.section>
         )}
 
-        {/* ── 6. Empty state — genuinely no content in ANY section (the fixed
-               condition; previously a populated Today's Matches rail could sit
-               above this card). Discovery-focused: the completion nudge already
-               lives in the meter above, so this card doesn't repeat it. ──── */}
+        {/* ── Empty state — genuinely no content in ANY section. Discovery-
+               focused: the completion nudge already lives in the cluster
+               above, so this card doesn't repeat it. ─────────────────────── */}
         {!loadError &&
           suggestions.length === 0 && mutualMatches.length === 0 &&
           dailyMatches.length === 0 && recentlyViewed.length === 0 && (
           <motion.div
             variants={fadeInUp}
-            className="bg-white border border-neutral-100 rounded-3xl shadow-card"
+            className={`${CARD} rounded-3xl`}
           >
             <EmptyState
               icon={FiUsers}
@@ -1081,7 +1046,7 @@ const Dashboard = () => {
                 className="btn-secondary inline-flex items-center gap-2"
               >
                 <FiSliders className="w-4 h-4" />
-                Set Preferences
+                Set preferences
               </motion.button>
             </div>
             <div className="mt-4 flex justify-center pb-6">
@@ -1090,9 +1055,9 @@ const Dashboard = () => {
           </motion.div>
         )}
 
-        {/* ── 7. Invite (Phase S, F6) — a standing action, not an empty-state
-               consolation: the fastest route to a better match here is a member
-               bringing someone they already vouch for. ─────────────────────── */}
+        {/* ── Invite — a standing action, not an empty-state consolation: the
+               fastest route to a better match here is a member bringing
+               someone they already vouch for. ─────────────────────────── */}
         <motion.div variants={fadeInUp}>
           <InviteLink variant="card" />
         </motion.div>

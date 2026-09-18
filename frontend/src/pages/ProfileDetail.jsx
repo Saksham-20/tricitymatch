@@ -24,7 +24,12 @@ import UpgradeModal from '../components/common/UpgradeModal';
 import LikeNoteModal from '../components/profile/LikeNoteModal';
 import { friendlyLabel, formatEnum } from '../constants/profileOptions';
 import RetryImage from '../components/ui/RetryImage';
-import { ErrorState } from '../components/ui';
+import { ErrorState, Skeleton } from '../components/ui';
+import { pageFade, EASE_OUT } from '../utils/animations';
+
+// Pointer-gated hover — touch fires a false hover on tap that would otherwise
+// leave a control stuck lifted after the finger lifts (doctrine §4.7).
+const HOVER = '[@media(hover:hover)_and_(pointer:fine)]:hover';
 
 // ─── Compatibility Ring ──────────────────────────────────────────────────────
 const CompatRing = ({ score }) => {
@@ -35,30 +40,40 @@ const CompatRing = ({ score }) => {
   const offset = circ - (score / 100) * circ;
   // Compatibility is shown to every viewer, free or paid — gold is reserved
   // for premium marks (doctrine §3.1), so this is a two-tier scale.
-  const color = score >= 90 ? '#2E7D32' : '#8B2346';
-  const bg = score >= 90 ? '#E8F5E9' : '#FDF2F5';
+  // Tailwind tokens via currentColor, not inline hex — the tokens carry the
+  // dark-mode overrides (index.css) an inline stroke/style color would
+  // silently bypass (same fix family as ProfileCard's CompatArc/ShimmerBar,
+  // audit finding #6).
+  const strong = score >= 90;
+  const colorClass = strong ? 'text-success dark:text-green-400' : 'text-primary-500';
+  const bgClass = strong ? 'bg-success-50' : 'bg-primary-50';
 
   return (
     <div className="flex flex-col items-center gap-1.5">
       <div className="relative" style={{ width: size, height: size }}>
         <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#E8E8E8" strokeWidth={sw} />
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="currentColor" strokeWidth={sw} className="text-neutral-100 dark:text-neutral-800" />
           <motion.circle
             cx={size / 2} cy={size / 2} r={r}
-            fill="none" stroke={color} strokeWidth={sw}
+            fill="none" stroke="currentColor" strokeWidth={sw}
             strokeLinecap="round"
+            className={colorClass}
             strokeDasharray={circ}
             initial={{ strokeDashoffset: circ }}
             animate={{ strokeDashoffset: offset }}
-            transition={{ duration: 1.4, ease: 'easeOut', delay: 0.3 }}
+            // Fires on every profile view (tens/day+ frequency) — doctrine
+            // §4.1 caps that tier at ≤150ms, not the 1.4s this replaced.
+            // Matches ProfileCard's CompatArc reveal exactly (same signal,
+            // same component family).
+            transition={{ duration: 0.15, ease: EASE_OUT, delay: 0.1 }}
           />
         </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ background: bg, borderRadius: '50%', margin: 4 }}>
-          <span className="text-lg font-bold leading-none" style={{ color }}>{score}%</span>
-          <span className="text-[9px] text-neutral-400 mt-0.5 font-medium uppercase tracking-wide">match</span>
+        <div className={`absolute inset-0 flex flex-col items-center justify-center ${bgClass} rounded-full m-1`}>
+          <span className={`text-lg font-bold leading-none ${colorClass}`}>{score}%</span>
+          <span className="text-[0.5625rem] text-neutral-400 dark:text-neutral-500 mt-0.5 font-medium uppercase tracking-wide">match</span>
         </div>
       </div>
-      <p className="text-[11px] font-semibold text-neutral-500 uppercase tracking-wide">Compatibility</p>
+      <p className="text-[0.6875rem] font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Compatibility</p>
     </div>
   );
 };
@@ -67,11 +82,11 @@ const CompatRing = ({ score }) => {
 const Pill = ({ icon: Icon, label, value }) => {
   if (!value) return null;
   return (
-    <div className="flex items-center gap-2 px-3 py-2 bg-neutral-50 rounded-xl border border-neutral-100">
+    <div className="flex items-center gap-2 px-3 py-2 bg-neutral-50 dark:bg-surface-dark-2 rounded-xl border border-neutral-100 dark:border-neutral-800">
       {Icon && <Icon className="w-3.5 h-3.5 text-primary-400 flex-shrink-0" />}
       <div className="min-w-0">
-        <p className="text-[10px] text-neutral-400 uppercase tracking-wide font-semibold leading-none mb-0.5">{label}</p>
-        <p className="text-xs font-semibold text-neutral-700 capitalize truncate">{value}</p>
+        <p className="text-[0.625rem] text-neutral-400 dark:text-neutral-500 uppercase tracking-wide font-semibold leading-none mb-0.5">{label}</p>
+        <p className="text-xs font-semibold text-neutral-700 dark:text-neutral-200 capitalize truncate">{value}</p>
       </div>
     </div>
   );
@@ -96,12 +111,67 @@ const Card = ({ title, icon: Icon, children, className = '' }) => (
 const DetailRow = ({ label, value }) => {
   if (!value && value !== 0) return null;
   return (
-    <div className="flex items-center justify-between py-2.5 border-b border-neutral-50 last:border-b-0">
-      <span className="text-xs font-medium text-neutral-400 uppercase tracking-wide">{label}</span>
-      <span className="text-sm font-semibold text-neutral-700 capitalize text-right max-w-[55%]">{String(value).replace(/_/g, ' ')}</span>
+    <div className="flex items-center justify-between py-2.5 border-b border-neutral-50 dark:border-neutral-800 last:border-b-0">
+      <span className="text-xs font-medium text-neutral-400 dark:text-neutral-500 uppercase tracking-wide">{label}</span>
+      <span className="text-sm font-semibold text-neutral-700 dark:text-neutral-200 capitalize text-right max-w-[55%]">{String(value).replace(/_/g, ' ')}</span>
     </div>
   );
 };
+
+// ─── Loading skeleton — matches the final layout's shape (doctrine §6) ───────
+const ProfileDetailSkeleton = () => (
+  <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 pb-28 md:pb-12" aria-busy="true" aria-label="Loading profile">
+    <div className="sticky top-0 z-30 bg-white/95 dark:bg-surface-dark-3/95 backdrop-blur-sm border-b border-neutral-100 dark:border-neutral-800 px-4 py-3">
+      <div className="max-w-6xl mx-auto flex items-center justify-between">
+        <Skeleton className="h-4 w-16" />
+        <div className="hidden md:flex items-center gap-2">
+          <Skeleton className="h-11 w-20 rounded-xl" />
+          <Skeleton className="h-11 w-36 rounded-xl" />
+        </div>
+      </div>
+    </div>
+
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {/* Hero skeleton */}
+      <div className="bg-white dark:bg-surface-dark-3 rounded-3xl border border-neutral-100 dark:border-neutral-800 shadow-card overflow-hidden mb-5">
+        <div className="grid grid-cols-3 gap-0.5" style={{ height: '340px' }}>
+          <Skeleton className="rounded-none row-span-2 col-span-1" />
+          <Skeleton className="rounded-none" />
+          <Skeleton className="rounded-none" />
+          <Skeleton className="rounded-none" />
+          <Skeleton className="rounded-none" />
+        </div>
+        <div className="p-5 md:p-6 space-y-3">
+          <Skeleton className="h-7 w-48" />
+          <Skeleton className="h-4 w-64" />
+          <div className="flex flex-wrap gap-2 pt-1">
+            <Skeleton className="h-8 w-24 rounded-xl" />
+            <Skeleton className="h-8 w-24 rounded-xl" />
+            <Skeleton className="h-8 w-20 rounded-xl" />
+          </div>
+        </div>
+      </div>
+
+      {/* Body skeleton */}
+      <div className="lg:grid lg:grid-cols-[1fr_300px] lg:gap-6 lg:items-start">
+        <div className="space-y-4">
+          <div className="bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-5">
+            <Skeleton.Text lines={5} />
+          </div>
+          <Skeleton className="h-11 w-full rounded-2xl" />
+          <div className="bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-5">
+            <Skeleton.Text lines={4} />
+          </div>
+        </div>
+        <div className="space-y-4 mt-4 lg:mt-0">
+          <div className="bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-5">
+            <Skeleton className="h-16 w-full rounded-xl" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 const ProfileDetail = () => {
@@ -221,7 +291,7 @@ const ProfileDetail = () => {
       if (res.data.contactUnlocksRemaining !== undefined) {
         setContactUnlocksRemaining(res.data.contactUnlocksRemaining);
       }
-      toast.success(res.data.alreadyUnlocked ? 'Contact already unlocked' : 'Contact unlocked!');
+      toast.success(res.data.alreadyUnlocked ? 'Contact already unlocked' : 'Contact unlocked');
     } catch (err) {
       const code = err.response?.data?.error?.code;
       if (code === 'CONTACT_UNLOCK_LIMIT_REACHED') {
@@ -279,7 +349,7 @@ const ProfileDetail = () => {
         likedItem: likeNoteTarget,
       });
       setIsLiked(true);
-      toast.success('Like sent!');
+      toast.success('Like sent');
     } catch {
       toast.error('Failed to send like');
       throw new Error('like failed');
@@ -291,10 +361,10 @@ const ProfileDetail = () => {
       await api.post(`/match/${userId}`, { action });
       if (action === 'like') {
         setIsLiked(true);
-        toast.success('Interest expressed!');
+        toast.success('Interest expressed');
       } else if (action === 'shortlist') {
         setIsShortlisted(!isShortlisted);
-        toast.success(isShortlisted ? 'Removed from shortlist' : 'Saved to shortlist!');
+        toast.success(isShortlisted ? 'Removed from shortlist' : 'Saved to shortlist');
       }
     } catch {
       toast.error('Failed to perform action');
@@ -302,19 +372,14 @@ const ProfileDetail = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-neutral-50">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-9 h-9 rounded-full border-2 border-primary-200 border-t-primary-500 animate-spin" />
-          <p className="text-sm text-neutral-400 font-medium">Loading profile…</p>
-        </div>
-      </div>
-    );
+    // Shaped to the layout below, not a spinner (doctrine §6) — this page's
+    // shape is fully known ahead of the fetch.
+    return <ProfileDetailSkeleton />;
   }
 
   if (loadError) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-neutral-50 px-4">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-neutral-50 dark:bg-surface-dark-1 px-4">
         <ErrorState
           title="Couldn't load this profile"
           description="Something went wrong on our side or your connection dropped."
@@ -327,12 +392,12 @@ const ProfileDetail = () => {
 
   if (!profile) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-neutral-50">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-neutral-50 dark:bg-surface-dark-1">
         <div className="text-center">
-          <div className="w-16 h-16 rounded-2xl bg-primary-50 flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 rounded-2xl bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center mx-auto mb-4">
             <FiUser className="w-8 h-8 text-primary-300" />
           </div>
-          <h2 className="text-xl font-bold text-neutral-800 mb-2">Profile not found</h2>
+          <h2 className="text-xl font-bold text-neutral-800 dark:text-neutral-100 mb-2">Profile not found</h2>
           <Link to="/search" className="text-primary-500 hover:text-primary-700 font-semibold text-sm transition-colors">
             ← Back to search
           </Link>
@@ -401,7 +466,7 @@ const ProfileDetail = () => {
 
         {/* ── Top bar ─────────────────────────────────────────────────── */}
         <div className="sticky top-0 z-30 bg-white/95 dark:bg-surface-dark-3/95 backdrop-blur-sm border-b border-neutral-100 dark:border-neutral-800 px-4 py-3">
-          <div className="max-w-3xl mx-auto flex items-center justify-between">
+          <div className="max-w-6xl mx-auto flex items-center justify-between">
             <button
               onClick={() => navigate(-1)}
               className="flex items-center gap-1.5 text-sm font-semibold text-neutral-500 hover:text-primary-500 transition-colors cursor-pointer"
@@ -412,7 +477,7 @@ const ProfileDetail = () => {
             <div className="hidden md:flex items-center gap-2">
               <button
                 onClick={() => handleAction('shortlist')}
-                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors duration-[160ms] cursor-pointer ${isShortlisted ? 'bg-neutral-800 text-white border border-neutral-800' : 'border border-neutral-200 text-neutral-600 hover:border-neutral-400 hover:text-neutral-800'}`}
+                className={`flex items-center gap-1.5 h-11 px-3.5 rounded-xl text-sm font-semibold transition-colors duration-[160ms] cursor-pointer ${isShortlisted ? 'bg-neutral-800 text-white border border-neutral-800' : 'border border-neutral-200 text-neutral-600 hover:border-neutral-400 hover:text-neutral-800'}`}
               >
                 <FiStar className="w-3.5 h-3.5" />
                 {isShortlisted ? 'Saved' : 'Save'}
@@ -420,7 +485,7 @@ const ProfileDetail = () => {
               <button
                 onClick={() => handleAction('like')}
                 disabled={isLiked}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-[transform,background-color] duration-[160ms] cursor-pointer ${isLiked ? 'bg-success-50 text-success border border-success-100' : 'bg-primary-500 text-white hover:bg-primary-600 shadow-sm hover:-translate-y-0.5'}`}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-[transform,background-color] duration-[160ms] cursor-pointer ${isLiked ? 'bg-success-50 text-success dark:text-green-400 border border-success-100 dark:border-success-500/30' : `bg-primary-500 text-white hover:bg-primary-600 shadow-sm ${HOVER}:-translate-y-0.5`}`}
               >
                 {isLiked ? <><FiCheck className="w-3.5 h-3.5" /> Interested</> : <><FiHeart className="w-3.5 h-3.5" /> Express Interest</>}
               </button>
@@ -428,7 +493,7 @@ const ProfileDetail = () => {
           </div>
         </div>
 
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
           {/* ── Hero section ─────────────────────────────────────────── */}
           <div className="bg-white dark:bg-surface-dark-3 rounded-3xl border border-neutral-100 dark:border-neutral-800 shadow-card overflow-hidden mb-5">
@@ -455,7 +520,10 @@ const ProfileDetail = () => {
                           <span className="text-white text-xl font-bold">+{allPhotos.length - 5}</span>
                         </div>
                       )}
-                      {/* D3: explicit like-with-note affordance on the photo */}
+                      {/* D3: explicit like-with-note affordance on the photo — always
+                          visible (doctrine ruling #16 bans hover-only affordances;
+                          half our traffic is touch and a tap doesn't reliably
+                          trigger :hover). */}
                       {!isOverlay && (
                         <span
                           role="button"
@@ -463,7 +531,7 @@ const ProfileDetail = () => {
                           aria-label="Like this photo with a note"
                           onClick={(e) => { e.stopPropagation(); setLikeNoteTarget({ type: 'photo', photoUrl: photo }); }}
                           onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); setLikeNoteTarget({ type: 'photo', photoUrl: photo }); } }}
-                          className="absolute top-2 right-2 p-2 rounded-full bg-black/35 hover:bg-black/55 text-white opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                          className="absolute top-2 right-2 p-2 rounded-full bg-black/35 hover:bg-black/55 text-white transition-colors duration-[160ms]"
                         >
                           <FiHeart className="w-4 h-4" />
                         </span>
@@ -473,8 +541,16 @@ const ProfileDetail = () => {
                 })}
               </div>
             ) : (
-              <div className="h-64 bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center">
-                <span className="text-8xl font-display font-semibold text-primary-700/40 dark:text-primary-300/40 select-none">{firstName[0]}</span>
+              /* Photoless fallback (audit Part 5 #3) — a compact, content-driven
+                 avatar strip instead of a fixed h-64 slab with one giant letter.
+                 The full identity row (name, badges, meta, pills) already follows
+                 immediately below, so this only needs to be a modest anchor, the
+                 same principle as ProfileCard's photoless header. */
+              <div className="flex items-center gap-3 px-5 md:px-6 pt-5">
+                <div className="w-16 h-16 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center flex-shrink-0 ring-1 ring-primary-500/15">
+                  <span className="text-2xl font-display font-semibold text-primary-700 dark:text-primary-300 select-none">{firstName[0]}</span>
+                </div>
+                <p className="text-xs text-neutral-400 dark:text-neutral-500">No photos added yet</p>
               </div>
             )}
 
@@ -486,23 +562,23 @@ const ProfileDetail = () => {
                     <h1 className="font-display text-2xl md:text-3xl font-bold text-neutral-900 dark:text-neutral-100 leading-tight">
                       {firstName}
                       {profile.lastName ? ` ${profile.lastName[0]}.` : ''}
-                      {age && <span className="font-normal text-neutral-400">, {age}</span>}
+                      {age && <span className="font-normal text-neutral-400 dark:text-neutral-500">, {age}</span>}
                     </h1>
                     {isVerified && (
-                      <div className="flex items-center gap-1 px-2.5 py-1 bg-success-50 border border-success-100 rounded-full">
-                        <FiShield className="w-3 h-3 text-success" />
-                        <span className="text-[11px] font-bold text-success">Verified</span>
+                      <div className="flex items-center gap-1 px-2.5 py-1 bg-success-50 border border-success-100 dark:border-success-500/30 rounded-full">
+                        <FiShield className="w-3 h-3 text-success dark:text-green-400" />
+                        <span className="text-[0.6875rem] font-bold text-success dark:text-green-400">Verified</span>
                       </div>
                     )}
                     {profile.isPremium && (
-                      <div className="flex items-center gap-1 px-2.5 py-1 bg-gold-50 border border-gold-200 rounded-full">
-                        <FaCrown className="w-3 h-3 text-gold-500" />
-                        <span className="text-[11px] font-bold text-gold-700">Premium</span>
+                      <div className="flex items-center gap-1 px-2.5 py-1 bg-gold-50 border border-gold-200 dark:border-gold-700 rounded-full">
+                        <FaCrown className="w-3 h-3 text-gold-500 dark:text-gold-400" />
+                        <span className="text-[0.6875rem] font-bold text-gold-700">Premium</span>
                       </div>
                     )}
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-neutral-500 mb-4">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-neutral-500 dark:text-neutral-400 mb-4">
                     {(profile.city || profile.state) && (
                       <span className="flex items-center gap-1.5 font-medium">
                         <FiMapPin className="w-3.5 h-3.5 text-primary-400" />
@@ -548,13 +624,13 @@ const ProfileDetail = () => {
                       <button
                         onClick={() => handleAction('like')}
                         disabled={isLiked}
-                        className={`flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-bold rounded-xl transition-[transform,background-color] duration-[160ms] cursor-pointer ${isLiked ? 'bg-success-50 text-success border border-success-100' : 'bg-primary-500 text-white hover:bg-primary-600 shadow-sm hover:-translate-y-0.5'}`}
+                        className={`flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-bold rounded-xl transition-[transform,background-color] duration-[160ms] cursor-pointer ${isLiked ? 'bg-success-50 text-success dark:text-green-400 border border-success-100 dark:border-success-500/30' : `bg-primary-500 text-white hover:bg-primary-600 shadow-sm ${HOVER}:-translate-y-0.5`}`}
                       >
                         {isLiked ? <><FiCheck className="w-4 h-4" /> Interested</> : <><FiHeart className="w-4 h-4" /> Express Interest</>}
                       </button>
                       <button
                         onClick={handleMessage}
-                        className={`flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors duration-[160ms] cursor-pointer ${premiumAccess ? 'border border-neutral-200 text-neutral-600 hover:bg-neutral-50' : 'border border-gold-200 bg-gold-50 text-gold-700 hover:bg-gold-100'}`}
+                        className={`flex items-center justify-center gap-1.5 h-11 text-sm font-semibold rounded-xl transition-colors duration-[160ms] cursor-pointer ${premiumAccess ? 'border border-neutral-200 text-neutral-600 hover:bg-neutral-50' : 'border border-gold-200 dark:border-gold-700 bg-gold-50 text-gold-700 hover:bg-gold-100 dark:hover:bg-gold-900/20'}`}
                       >
                         {premiumAccess ? <FiMessageCircle className="w-4 h-4" /> : <FiLock className="w-4 h-4" />} {premiumAccess ? 'Message' : 'Message (Premium)'}
                       </button>
@@ -563,13 +639,13 @@ const ProfileDetail = () => {
                       <div className="grid grid-cols-2 gap-2 mt-2">
                         <button
                           onClick={() => handleCall('voice')}
-                          className="flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-xl border border-neutral-200 text-neutral-600 hover:bg-neutral-50 transition-colors duration-[160ms] cursor-pointer"
+                          className="flex items-center justify-center gap-1.5 h-11 text-sm font-semibold rounded-xl border border-neutral-200 text-neutral-600 hover:bg-neutral-50 transition-colors duration-[160ms] cursor-pointer"
                         >
                           {premiumAccess ? <FiPhone className="w-4 h-4" /> : <FiLock className="w-4 h-4" />} Voice Call
                         </button>
                         <button
                           onClick={() => handleCall('video')}
-                          className="flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-xl border border-neutral-200 text-neutral-600 hover:bg-neutral-50 transition-colors duration-[160ms] cursor-pointer"
+                          className="flex items-center justify-center gap-1.5 h-11 text-sm font-semibold rounded-xl border border-neutral-200 text-neutral-600 hover:bg-neutral-50 transition-colors duration-[160ms] cursor-pointer"
                         >
                           {premiumAccess ? <FiVideo className="w-4 h-4" /> : <FiLock className="w-4 h-4" />} Video Call
                         </button>
@@ -581,15 +657,15 @@ const ProfileDetail = () => {
 
               {/* Bio */}
               {profile.bio && (
-                <p className="mt-4 text-neutral-600 leading-relaxed text-sm border-t border-neutral-50 pt-4">
+                <p className="mt-4 text-neutral-600 dark:text-neutral-300 leading-relaxed text-sm border-t border-neutral-50 dark:border-neutral-800 pt-4">
                   {sanitizeText(profile.bio)}
                 </p>
               )}
 
               {/* Video intro */}
               {profile.videoIntroUrl && (
-                <div className="mt-4 border-t border-neutral-50 pt-4">
-                  <p className="text-[11px] font-bold text-primary-400 uppercase tracking-wide mb-2">Video intro</p>
+                <div className="mt-4 border-t border-neutral-50 dark:border-neutral-800 pt-4">
+                  <p className="text-[0.6875rem] font-bold text-primary-400 uppercase tracking-wide mb-2">Video intro</p>
                   <video
                     src={getImageUrl(profile.videoIntroUrl, API_BASE_URL, 'full')}
                     controls
@@ -602,8 +678,17 @@ const ProfileDetail = () => {
             </div>
           </div>
 
-          {/* ── Single-column layout — everything stacked in one cohesive column ── */}
-          <div className="space-y-4">
+          {/* ── Two-column body on desktop: main content + a real sidebar ──
+              (audit Part 5 #10 — the page was a single max-w-3xl column
+              centered on a bare canvas, ~50% empty background at 1440. The
+              main column keeps its original ~768px reading width; the freed
+              space now holds the contact-unlock and social cards that used
+              to sit in the void below the fold, instead of enlarging the
+              void itself.) Below `lg` this collapses to one column in the
+              same source order as before — no change to the mobile/tablet
+              experience. */}
+          <div className="lg:grid lg:grid-cols-[1fr_300px] lg:gap-6 lg:items-start">
+            <div className="space-y-4 min-w-0">
 
               {/* Compat ring — mobile only (desktop ring lives in the hero) */}
               {compatScore && (
@@ -643,12 +728,16 @@ const ProfileDetail = () => {
               </Card>
 
               {/* Tab nav */}
-              <div className="flex gap-1 bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-1.5">
+              <div role="tablist" aria-label="Profile sections" className="flex gap-1 bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-1.5">
                 {tabs.map(tab => (
                   <button
                     key={tab.id}
+                    id={`tab-${tab.id}`}
+                    role="tab"
+                    aria-selected={activeTab === tab.id}
+                    aria-controls={`tabpanel-${tab.id}`}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-colors duration-[160ms] cursor-pointer ${activeTab === tab.id ? 'bg-primary-500 text-white shadow-sm' : 'text-neutral-500 hover:text-neutral-700 hover:bg-neutral-50'}`}
+                    className={`flex-1 flex items-center justify-center h-11 px-3 rounded-xl text-xs font-bold transition-colors duration-[160ms] cursor-pointer ${activeTab === tab.id ? 'bg-primary-500 text-white shadow-sm' : 'text-neutral-500 hover:text-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800'}`}
                   >
                     {tab.label}
                   </button>
@@ -658,10 +747,10 @@ const ProfileDetail = () => {
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeTab}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.18 }}
+                  id={`tabpanel-${activeTab}`}
+                  role="tabpanel"
+                  aria-labelledby={`tab-${activeTab}`}
+                  {...pageFade}
                   className="space-y-4"
                 >
 
@@ -673,15 +762,15 @@ const ProfileDetail = () => {
                         <Card title="Get to Know Me" icon={FiUser}>
                           <div className="space-y-3">
                             {profilePrompts.map(({ q, a }, i) => (
-                              <div key={i} className="relative p-4 bg-primary-50/60 rounded-xl border border-primary-100">
-                                <p className="text-[11px] font-bold text-primary-400 uppercase tracking-wide mb-1.5 pr-8">{sanitizeText(q)}</p>
-                                <p className="text-sm text-neutral-700 leading-relaxed pr-8">{sanitizeText(a)}</p>
+                              <div key={i} className="relative p-4 bg-primary-50/60 dark:bg-primary-900/10 rounded-xl border border-primary-100 dark:border-primary-800">
+                                <p className="text-[0.6875rem] font-bold text-primary-400 uppercase tracking-wide mb-1.5 pr-8">{sanitizeText(q)}</p>
+                                <p className="text-sm text-neutral-700 dark:text-neutral-200 leading-relaxed pr-8">{sanitizeText(a)}</p>
                                 {/* D3: like this specific answer, with a note */}
                                 <button
                                   type="button"
                                   aria-label="Like this answer with a note"
                                   onClick={() => setLikeNoteTarget({ type: 'prompt', promptText: a })}
-                                  className="absolute top-3 right-3 p-2 rounded-full text-primary-300 hover:text-primary-600 hover:bg-primary-100 transition-colors"
+                                  className="absolute top-3 right-3 p-2 rounded-full text-primary-300 hover:text-primary-600 hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors"
                                 >
                                   <FiHeart className="w-4 h-4" />
                                 </button>
@@ -696,7 +785,7 @@ const ProfileDetail = () => {
                         <Card title="Interests & Hobbies" icon={FiGrid}>
                           <div className="flex flex-wrap gap-2">
                             {profile.interestTags.map((tag, i) => (
-                              <span key={i} className="px-3 py-1.5 bg-primary-50 text-primary-700 border border-primary-100 rounded-full text-xs font-semibold cursor-default">
+                              <span key={i} className="px-3 py-1.5 bg-primary-50 text-primary-700 border border-primary-100 dark:border-primary-800 rounded-full text-xs font-semibold cursor-default">
                                 {tag}
                               </span>
                             ))}
@@ -711,16 +800,16 @@ const ProfileDetail = () => {
                             href={sanitizeUrl(profile.spotifyPlaylist)}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-3 p-3.5 bg-neutral-50 rounded-xl border border-neutral-100 hover:border-[#1DB954]/40 hover:bg-[#1DB954]/5 transition-colors duration-[160ms] group cursor-pointer"
+                            className="flex items-center gap-3 p-3.5 bg-neutral-50 dark:bg-surface-dark-2 rounded-xl border border-neutral-100 dark:border-neutral-800 hover:border-[#1DB954]/40 hover:bg-[#1DB954]/5 transition-colors duration-[160ms] group cursor-pointer"
                           >
                             <div className="w-10 h-10 rounded-xl bg-[#1DB954]/15 flex items-center justify-center flex-shrink-0">
                               <FiMusic className="w-4.5 h-4.5 text-[#1DB954]" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-neutral-700 group-hover:text-[#1DB954] transition-colors truncate">
+                              <p className="text-sm font-semibold text-neutral-700 dark:text-neutral-200 group-hover:text-[#1DB954] transition-colors truncate">
                                 {sanitizeText(firstName)}'s Spotify Playlist
                               </p>
-                              <p className="text-xs text-neutral-400">Open in Spotify</p>
+                              <p className="text-xs text-neutral-400 dark:text-neutral-500">Open in Spotify</p>
                             </div>
                             <FiGlobe className="w-4 h-4 text-neutral-300 flex-shrink-0" />
                           </a>
@@ -732,7 +821,7 @@ const ProfileDetail = () => {
                         <Card title="Languages" icon={FiGlobe}>
                           <div className="flex flex-wrap gap-2">
                             {profile.languages.map((l, i) => (
-                              <span key={i} className="px-3 py-1.5 bg-neutral-100 rounded-xl text-xs font-semibold text-neutral-700">{l}</span>
+                              <span key={i} className="px-3 py-1.5 bg-neutral-100 dark:bg-neutral-800 rounded-xl text-xs font-semibold text-neutral-700 dark:text-neutral-200">{l}</span>
                             ))}
                           </div>
                         </Card>
@@ -753,7 +842,7 @@ const ProfileDetail = () => {
                             type="button"
                             onClick={handleDownloadKundli}
                             disabled={kundliLoading}
-                            className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary-50 hover:bg-primary-100 border border-primary-100 text-primary-700 text-sm font-semibold transition disabled:opacity-60"
+                            className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary-50 hover:bg-primary-100 dark:hover:bg-primary-900/30 border border-primary-100 dark:border-primary-800 text-primary-700 text-sm font-semibold transition disabled:opacity-60"
                           >
                             {kundliLoading ? (
                               <span className="w-4 h-4 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin" />
@@ -770,23 +859,23 @@ const ProfileDetail = () => {
                         <Card title="Numerology" icon={FiSun}>
                           <div className="flex items-center justify-between gap-4 mb-3">
                             <div className="text-center flex-1">
-                              <div className="w-11 h-11 mx-auto rounded-full bg-primary-50 border border-primary-100 flex items-center justify-center text-lg font-black text-primary-600">
+                              <div className="w-11 h-11 mx-auto rounded-full bg-primary-50 border border-primary-100 dark:border-primary-800 flex items-center justify-center text-lg font-black text-primary-600">
                                 {numerology.person1?.number}
                               </div>
-                              <p className="text-[11px] text-neutral-500 mt-1">You · {numerology.person1?.title}</p>
+                              <p className="text-[0.6875rem] text-neutral-500 dark:text-neutral-400 mt-1">You · {numerology.person1?.title}</p>
                             </div>
                             <div className="text-center">
                               <p className="text-2xl font-black text-primary-500">{numerology.compatibility.score}%</p>
-                              <p className="text-[11px] font-semibold text-neutral-600">{numerology.compatibility.label}</p>
+                              <p className="text-[0.6875rem] font-semibold text-neutral-600 dark:text-neutral-300">{numerology.compatibility.label}</p>
                             </div>
                             <div className="text-center flex-1">
-                              <div className="w-11 h-11 mx-auto rounded-full bg-primary-50 border border-primary-100 flex items-center justify-center text-lg font-black text-primary-600">
+                              <div className="w-11 h-11 mx-auto rounded-full bg-primary-50 border border-primary-100 dark:border-primary-800 flex items-center justify-center text-lg font-black text-primary-600">
                                 {numerology.person2?.number}
                               </div>
-                              <p className="text-[11px] text-neutral-500 mt-1">{profile.firstName} · {numerology.person2?.title}</p>
+                              <p className="text-[0.6875rem] text-neutral-500 dark:text-neutral-400 mt-1">{profile.firstName} · {numerology.person2?.title}</p>
                             </div>
                           </div>
-                          <p className="text-xs text-neutral-500 leading-relaxed border-t border-neutral-50 pt-3">
+                          <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed border-t border-neutral-50 dark:border-neutral-800 pt-3">
                             {numerology.compatibility.note}
                           </p>
                         </Card>
@@ -807,21 +896,21 @@ const ProfileDetail = () => {
                         {profile.weight && <Pill label="Weight" value={`${profile.weight} kg`} />}
                       </div>
                       {profile.lifestylePreferences && Object.keys(profile.lifestylePreferences).length > 0 && (
-                        <div className="mt-4 pt-4 border-t border-neutral-50">
-                          <p className="text-xs font-bold text-neutral-400 uppercase tracking-wide mb-3">Lifestyle Preferences</p>
+                        <div className="mt-4 pt-4 border-t border-neutral-50 dark:border-neutral-800">
+                          <p className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide mb-3">Lifestyle Preferences</p>
                           <div className="flex flex-wrap gap-2">
                             {Object.entries(profile.lifestylePreferences).map(([k, v]) => {
                               if (!v && v !== 0) return null;
                               if (typeof v === 'boolean') return v ? (
-                                <span key={k} className="px-3 py-1.5 bg-primary-50 text-primary-700 border border-primary-100 rounded-full text-xs font-semibold capitalize">
+                                <span key={k} className="px-3 py-1.5 bg-primary-50 text-primary-700 border border-primary-100 dark:border-primary-800 rounded-full text-xs font-semibold capitalize">
                                   {k.replace(/([A-Z])/g, ' $1').trim()}
                                 </span>
                               ) : null;
                               if (Array.isArray(v) && v.length > 0) return v.map(item => (
-                                <span key={`${k}-${item}`} className="px-3 py-1.5 bg-neutral-100 rounded-full text-xs font-semibold text-neutral-700 capitalize">{item}</span>
+                                <span key={`${k}-${item}`} className="px-3 py-1.5 bg-neutral-100 dark:bg-neutral-800 rounded-full text-xs font-semibold text-neutral-700 dark:text-neutral-200 capitalize">{item}</span>
                               ));
                               return (
-                                <span key={k} className="px-3 py-1.5 bg-neutral-100 rounded-full text-xs font-semibold text-neutral-700 capitalize">
+                                <span key={k} className="px-3 py-1.5 bg-neutral-100 dark:bg-neutral-800 rounded-full text-xs font-semibold text-neutral-700 dark:text-neutral-200 capitalize">
                                   {k.replace(/([A-Z])/g, ' $1').trim()}: {v}
                                 </span>
                               );
@@ -841,7 +930,7 @@ const ProfileDetail = () => {
                         {profile.numberOfSiblings > 0 && <Pill label="Siblings" value={profile.numberOfSiblings} />}
                         {profile.numberOfChildren > 0 && <Pill label="Children" value={profile.numberOfChildren} />}
                       </div>
-                      <div className="space-y-0 border border-neutral-100 rounded-xl overflow-hidden">
+                      <div className="space-y-0 border border-neutral-100 dark:border-neutral-800 rounded-xl overflow-hidden">
                         {profile.fatherOccupation && <DetailRow label="Father's Occupation" value={profile.fatherOccupation} />}
                         {profile.motherOccupation && <DetailRow label="Mother's Occupation" value={profile.motherOccupation} />}
                         {profile.caste && <DetailRow label="Caste" value={profile.caste} />}
@@ -849,14 +938,14 @@ const ProfileDetail = () => {
                         {profile.gotra && <DetailRow label="Gotra" value={profile.gotra} />}
                       </div>
                       {profile.familyPreferences && Object.keys(profile.familyPreferences).length > 0 && (
-                        <div className="mt-4 pt-4 border-t border-neutral-50">
-                          <p className="text-xs font-bold text-neutral-400 uppercase tracking-wide mb-3">Family Preferences</p>
+                        <div className="mt-4 pt-4 border-t border-neutral-50 dark:border-neutral-800">
+                          <p className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide mb-3">Family Preferences</p>
                           <div className="flex flex-wrap gap-2">
                             {Object.entries(profile.familyPreferences).map(([k, v]) => {
                               if (!v && v !== 0) return null;
                               const label = k.replace(/([A-Z])/g, ' $1').trim();
-                              if (typeof v === 'boolean') return v ? <span key={k} className="px-3 py-1.5 bg-primary-50 text-primary-700 border border-primary-100 rounded-full text-xs font-semibold capitalize">{label}</span> : null;
-                              return <span key={k} className="px-3 py-1.5 bg-neutral-100 rounded-full text-xs font-semibold text-neutral-700 capitalize">{label}: {v}</span>;
+                              if (typeof v === 'boolean') return v ? <span key={k} className="px-3 py-1.5 bg-primary-50 text-primary-700 border border-primary-100 dark:border-primary-800 rounded-full text-xs font-semibold capitalize">{label}</span> : null;
+                              return <span key={k} className="px-3 py-1.5 bg-neutral-100 dark:bg-neutral-800 rounded-full text-xs font-semibold text-neutral-700 dark:text-neutral-200 capitalize">{label}: {v}</span>;
                             })}
                           </div>
                         </div>
@@ -876,52 +965,52 @@ const ProfileDetail = () => {
                     <Card title="Looking For" icon={FiHeartOutline}>
                       <div className="space-y-3">
                         {(profile.preferredAgeMin || profile.preferredAgeMax) && (
-                          <div className="flex items-center justify-between py-2.5 border-b border-neutral-50">
-                            <span className="text-xs font-bold text-neutral-400 uppercase tracking-wide">Age Range</span>
-                            <span className="text-sm font-bold text-neutral-700">
-                              {profile.preferredAgeMin || '—'} – {profile.preferredAgeMax || '—'} years
+                          <div className="flex items-center justify-between py-2.5 border-b border-neutral-50 dark:border-neutral-800">
+                            <span className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide">Age Range</span>
+                            <span className="text-sm font-bold text-neutral-700 dark:text-neutral-200">
+                              {profile.preferredAgeMin || 'Any'} – {profile.preferredAgeMax || 'Any'} years
                             </span>
                           </div>
                         )}
                         {(profile.preferredHeightMin || profile.preferredHeightMax) && (
-                          <div className="flex items-center justify-between py-2.5 border-b border-neutral-50">
-                            <span className="text-xs font-bold text-neutral-400 uppercase tracking-wide">Height Range</span>
-                            <span className="text-sm font-bold text-neutral-700">
-                              {profile.preferredHeightMin ? `${profile.preferredHeightMin} cm` : '—'} – {profile.preferredHeightMax ? `${profile.preferredHeightMax} cm` : '—'}
+                          <div className="flex items-center justify-between py-2.5 border-b border-neutral-50 dark:border-neutral-800">
+                            <span className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide">Height Range</span>
+                            <span className="text-sm font-bold text-neutral-700 dark:text-neutral-200">
+                              {profile.preferredHeightMin ? `${profile.preferredHeightMin} cm` : 'Any'} – {profile.preferredHeightMax ? `${profile.preferredHeightMax} cm` : 'Any'}
                             </span>
                           </div>
                         )}
                         {profile.preferredEducation && (
-                          <div className="flex items-center justify-between py-2.5 border-b border-neutral-50">
-                            <span className="text-xs font-bold text-neutral-400 uppercase tracking-wide">Education</span>
-                            <span className="text-sm font-bold text-neutral-700">{profile.preferredEducation}</span>
+                          <div className="flex items-center justify-between py-2.5 border-b border-neutral-50 dark:border-neutral-800">
+                            <span className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide">Education</span>
+                            <span className="text-sm font-bold text-neutral-700 dark:text-neutral-200">{profile.preferredEducation}</span>
                           </div>
                         )}
                         {profile.preferredProfession && (
-                          <div className="flex items-center justify-between py-2.5 border-b border-neutral-50">
-                            <span className="text-xs font-bold text-neutral-400 uppercase tracking-wide">Profession</span>
-                            <span className="text-sm font-bold text-neutral-700">{profile.preferredProfession}</span>
+                          <div className="flex items-center justify-between py-2.5 border-b border-neutral-50 dark:border-neutral-800">
+                            <span className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide">Profession</span>
+                            <span className="text-sm font-bold text-neutral-700 dark:text-neutral-200">{profile.preferredProfession}</span>
                           </div>
                         )}
                         {profile.preferredCity?.length > 0 && (
                           <div className="py-2.5">
-                            <p className="text-xs font-bold text-neutral-400 uppercase tracking-wide mb-2">Preferred Cities</p>
+                            <p className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide mb-2">Preferred Cities</p>
                             <div className="flex flex-wrap gap-1.5">
                               {profile.preferredCity.map((c, i) => (
-                                <span key={i} className="px-3 py-1.5 bg-primary-50 text-primary-700 border border-primary-100 rounded-full text-xs font-semibold">{c}</span>
+                                <span key={i} className="px-3 py-1.5 bg-primary-50 text-primary-700 border border-primary-100 dark:border-primary-800 rounded-full text-xs font-semibold">{c}</span>
                               ))}
                             </div>
                           </div>
                         )}
                         {profile.personalityValues && Object.keys(profile.personalityValues).length > 0 && (
-                          <div className="pt-3 border-t border-neutral-50">
-                            <p className="text-xs font-bold text-neutral-400 uppercase tracking-wide mb-3">Values</p>
+                          <div className="pt-3 border-t border-neutral-50 dark:border-neutral-800">
+                            <p className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide mb-3">Values</p>
                             <div className="flex flex-wrap gap-2">
                               {Object.entries(profile.personalityValues).map(([k, v]) => {
                                 if (!v) return null;
                                 const label = k.replace(/([A-Z])/g, ' $1').trim();
-                                if (typeof v === 'boolean') return <span key={k} className="px-3 py-1.5 bg-primary-50 text-primary-700 border border-primary-100 rounded-full text-xs font-semibold capitalize">{label}</span>;
-                                return <span key={k} className="px-3 py-1.5 bg-neutral-100 rounded-full text-xs font-semibold text-neutral-700 capitalize">{label}: {v}</span>;
+                                if (typeof v === 'boolean') return <span key={k} className="px-3 py-1.5 bg-primary-50 text-primary-700 border border-primary-100 dark:border-primary-800 rounded-full text-xs font-semibold capitalize">{label}</span>;
+                                return <span key={k} className="px-3 py-1.5 bg-neutral-100 dark:bg-neutral-800 rounded-full text-xs font-semibold text-neutral-700 dark:text-neutral-200 capitalize">{label}: {v}</span>;
                               })}
                             </div>
                           </div>
@@ -931,43 +1020,48 @@ const ProfileDetail = () => {
                   )}
                 </motion.div>
               </AnimatePresence>
+            </div>
+
+            {/* ── Sidebar: contact + social — real content in the space that
+                was previously empty background at desktop widths ──────── */}
+            <div className="space-y-4 mt-4 lg:mt-0 lg:sticky lg:top-24">
               {/* Contact unlock */}
               <Card title="Contact Details" icon={FiPhone}>
                 {isContactUnlocked && unlockedContact ? (
                   <div className="space-y-2.5">
                     {unlockedContact.phone && (
-                      <a href={`tel:${unlockedContact.phone}`} className="flex items-center gap-3 p-3.5 bg-success-50 border border-success-100 rounded-xl hover:bg-success-100 transition-colors cursor-pointer">
+                      <a href={`tel:${unlockedContact.phone}`} className="flex items-center gap-3 p-3.5 bg-success-50 border border-success-100 dark:border-success-500/30 rounded-xl hover:bg-success-100 dark:hover:bg-success-500/20 transition-colors cursor-pointer">
                         <div className="w-9 h-9 rounded-lg bg-success/15 flex items-center justify-center flex-shrink-0">
-                          <FiPhone className="w-4 h-4 text-success" />
+                          <FiPhone className="w-4 h-4 text-success dark:text-green-400" />
                         </div>
                         <div>
-                          <p className="text-[10px] font-bold text-success uppercase tracking-wide">Phone</p>
-                          <p className="text-sm font-bold text-neutral-800">{unlockedContact.phone}</p>
+                          <p className="text-[0.625rem] font-bold text-success dark:text-green-400 uppercase tracking-wide">Phone</p>
+                          <p className="text-sm font-bold text-neutral-800 dark:text-neutral-100">{unlockedContact.phone}</p>
                         </div>
                       </a>
                     )}
                     {unlockedContact.email && (
-                      <a href={`mailto:${unlockedContact.email}`} className="flex items-center gap-3 p-3.5 bg-success-50 border border-success-100 rounded-xl hover:bg-success-100 transition-colors cursor-pointer">
+                      <a href={`mailto:${unlockedContact.email}`} className="flex items-center gap-3 p-3.5 bg-success-50 border border-success-100 dark:border-success-500/30 rounded-xl hover:bg-success-100 dark:hover:bg-success-500/20 transition-colors cursor-pointer">
                         <div className="w-9 h-9 rounded-lg bg-success/15 flex items-center justify-center flex-shrink-0">
-                          <FiMail className="w-4 h-4 text-success" />
+                          <FiMail className="w-4 h-4 text-success dark:text-green-400" />
                         </div>
                         <div>
-                          <p className="text-[10px] font-bold text-success uppercase tracking-wide">Email</p>
-                          <p className="text-sm font-bold text-neutral-800">{unlockedContact.email}</p>
+                          <p className="text-[0.625rem] font-bold text-success dark:text-green-400 uppercase tracking-wide">Email</p>
+                          <p className="text-sm font-bold text-neutral-800 dark:text-neutral-100">{unlockedContact.email}</p>
                         </div>
                       </a>
                     )}
                     {!unlockedContact.phone && !unlockedContact.email && (
-                      <p className="text-sm text-neutral-400 text-center py-2">No contact details available</p>
+                      <p className="text-sm text-neutral-400 dark:text-neutral-500 text-center py-2">No contact details available</p>
                     )}
                   </div>
                 ) : (
                   <div className="text-center py-3">
-                    <div className="w-12 h-12 rounded-2xl bg-neutral-100 flex items-center justify-center mx-auto mb-3">
+                    <div className="w-12 h-12 rounded-2xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center mx-auto mb-3">
                       <FiLock className="w-5 h-5 text-neutral-400" />
                     </div>
-                    <p className="text-sm font-bold text-neutral-700 mb-1">Contact is private</p>
-                    <p className="text-xs text-neutral-400 mb-4 leading-relaxed">
+                    <p className="text-sm font-bold text-neutral-700 dark:text-neutral-200 mb-1">Contact is private</p>
+                    <p className="text-xs text-neutral-400 dark:text-neutral-500 mb-4 leading-relaxed">
                       {!premiumAccess
                         ? 'Upgrade to Premium to view phone & email'
                         : contactUnlocksRemaining === 0
@@ -980,7 +1074,7 @@ const ProfileDetail = () => {
                       <p className="text-xs font-bold text-primary-400 mb-3">{contactUnlocksRemaining} unlock{contactUnlocksRemaining !== 1 ? 's' : ''} remaining</p>
                     )}
                     {premiumAccess && contactUnlocksRemaining === 0 && (
-                      <p className="text-xs font-bold text-neutral-400 mb-3">0 unlocks remaining</p>
+                      <p className="text-xs font-bold text-neutral-400 dark:text-neutral-500 mb-3">0 unlocks remaining</p>
                     )}
                     <motion.button
                       whileTap={{ scale: 0.98 }}
@@ -1019,7 +1113,7 @@ const ProfileDetail = () => {
                           href={url}
                           target="_blank"
                           rel="noopener nofollow noreferrer"
-                          className="flex items-center gap-2 px-2.5 py-2 rounded-xl border border-neutral-100 hover:bg-neutral-50 transition-colors cursor-pointer"
+                          className="flex items-center gap-2 px-2.5 py-2 rounded-xl border border-neutral-100 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
                         >
                           <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color }} />
                           <span className="text-xs font-semibold text-neutral-600 truncate">{label}</span>
@@ -1029,6 +1123,7 @@ const ProfileDetail = () => {
                   </div>
                 </Card>
               )}
+            </div>
           </div>
         </div>
       </div>

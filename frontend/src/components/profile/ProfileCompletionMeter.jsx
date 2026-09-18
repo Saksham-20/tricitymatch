@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiCheck, FiCamera, FiUser, FiBook, FiBriefcase,
   FiHeart, FiMapPin, FiChevronDown, FiChevronUp,
-  FiAlertCircle, FiArrowRight,
+  FiArrowRight,
 } from 'react-icons/fi';
+import { DUR, EASE_OUT } from '../../utils/animations';
 
 // ─── Field definitions — mirrors backend calculateCompletion exactly ─────────
 // "important" = required (35%) + important (50%) fields only. "optional" = the 15%.
@@ -165,8 +166,6 @@ const getFields = (p) => [
 
 // Total important points = 35 (required) + 50 (important) = 85
 const IMPORTANT_TOTAL = 85;
-// Hide dashboard banner when all important fields done
-const HIDE_THRESHOLD = IMPORTANT_TOTAL;
 
 export const getCompletionData = (profile = {}) => {
   const fields = getFields(profile);
@@ -207,9 +206,20 @@ export const DashboardCompletionBanner = ({ profile = {} }) => {
   // Gold is premium-only (doctrine §3.1) — a free member's own completion
   // progress is never a premium signal, so the mid tier uses the semantic
   // `warning` token (this genuinely is a "not done yet" state) instead.
-  const barColor = percent >= 85 ? '#2E7D32' : percent >= 60 ? '#F59E0B' : '#8B2346';
+  const barColor = percent >= 85 ? '#2E7D32' : percent >= 60 ? '#F57C00' : '#8B2346';
   const bgColor  = percent >= 85 ? 'bg-success-50 border-success-100' : percent >= 60 ? 'bg-warning-light border-warning/20' : 'bg-primary-50 border-primary-100';
-  const textColor = percent >= 85 ? 'text-success' : percent >= 60 ? 'text-warning' : 'text-primary-700';
+  // The brand warning hex — canonical or not — measures 2.15–2.70:1 as TEXT
+  // on white/bg-warning-light (needs 3:1 for 14–18px bold, 4.5:1 for the
+  // small ring figure); success/primary are dark enough to double as text,
+  // this one isn't. Text specifically uses a darker amber; the fills above
+  // (bar/ring/badge tint) stay on the brand tone since they aren't text.
+  // `text-success`/`text-primary-700` already have a dark-mode remap in the
+  // global html.dark blanket (index.css) — only the mid tier needs its own
+  // dark companion here: `#92400E` is dark-text-on-light and measures
+  // 1.8–2.3:1 on a dark surface, so dark mode swaps to the bright `#F59E0B`
+  // amber instead (already the app's warning-chart tone, ~6–7.6:1 on the
+  // actual dark card surfaces here — verified live, not assumed).
+  const textColor = percent >= 85 ? 'text-success' : percent >= 60 ? 'text-[#92400E] dark:text-[#f59e0b]' : 'text-primary-700';
 
   return (
     <div className={`rounded-2xl border overflow-hidden ${bgColor}`}>
@@ -223,6 +233,11 @@ export const DashboardCompletionBanner = ({ profile = {} }) => {
         <div className="relative w-10 h-10 flex-shrink-0">
           <svg width={40} height={40} style={{ transform: 'rotate(-90deg)' }}>
             <circle cx={20} cy={20} r={15} fill="none" stroke="rgba(0,0,0,0.08)" strokeWidth={3} />
+            {/* stroke-dashoffset is paint-only (no layout reflow) — the
+                transform/opacity-only rule (doctrine §4.5) exists to stop
+                layout thrash, which a fixed-size ring never causes, so this
+                stays the one pragmatic exception rather than a two-arc
+                transform reconstruction of a circular reveal. */}
             <motion.circle
               cx={20} cy={20} r={15}
               fill="none" stroke={barColor} strokeWidth={3}
@@ -230,11 +245,11 @@ export const DashboardCompletionBanner = ({ profile = {} }) => {
               strokeDasharray={2 * Math.PI * 15}
               initial={{ strokeDashoffset: 2 * Math.PI * 15 }}
               animate={{ strokeDashoffset: 2 * Math.PI * 15 * (1 - percent / 100) }}
-              transition={{ duration: 1.0, ease: 'easeOut', delay: 0.2 }}
+              transition={{ duration: DUR.content, ease: EASE_OUT }}
             />
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-[10px] font-black" style={{ color: barColor }}>{percent}%</span>
+            <span className={`text-[10px] font-black ${textColor}`}>{percent}%</span>
           </div>
         </div>
 
@@ -252,14 +267,17 @@ export const DashboardCompletionBanner = ({ profile = {} }) => {
         </div>
       </button>
 
-      {/* Progress bar */}
+      {/* Progress bar. Transform, not width (doctrine §4.5) — the fill has
+          no rounded corners of its own; the track's own `overflow-hidden
+          rounded-full` already clips it into a pill, so scaleX distorts
+          nothing. */}
       <div className="px-4 pb-3">
         <div className="h-1.5 bg-black/10 rounded-full overflow-hidden">
           <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${percent}%` }}
-            transition={{ duration: 1.0, ease: 'easeOut', delay: 0.1 }}
-            className="h-full rounded-full"
+            initial={{ transform: 'scaleX(0)' }}
+            animate={{ transform: `scaleX(${percent / 100})` }}
+            transition={{ duration: DUR.content, ease: EASE_OUT }}
+            className="h-full origin-left"
             style={{ backgroundColor: barColor }}
           />
         </div>
@@ -324,10 +342,19 @@ export const ProfileStrengthPanel = ({ profile = {} }) => {
   // Gold is premium-only (doctrine §3.1) — same fix as the dashboard variant
   // above: the mid tier is the semantic `warning` token, not a gold "almost
   // there" badge on a free member's own completion percentage.
-  const barColor = percent >= 85 ? '#2E7D32' : percent >= 60 ? '#F59E0B' : '#8B2346';
+  const barColor = percent >= 85 ? '#2E7D32' : percent >= 60 ? '#F57C00' : '#8B2346';
+  // See DashboardCompletionBanner above — the brand warning-orange fails as
+  // TEXT on white/bg-warning-light regardless of which hex is used, so the
+  // percentage figure and the label chip use a darker amber instead. That
+  // darker amber (#92400E) is itself dark-text-on-light and measures
+  // 1.8–2.3:1 on this card's dark-mode surface (`bg-white` remaps dark via
+  // the global html.dark blanket), so dark mode swaps to the bright
+  // `#F59E0B` amber instead — verified live on the actual composited
+  // surfaces here, not assumed.
+  const percentClass = percent >= 85 ? 'text-success' : percent >= 60 ? 'text-[#92400E] dark:text-[#f59e0b]' : 'text-primary-700';
   const label = percent >= 85 ? 'Strong profile' : percent >= 60 ? 'Almost complete' : 'Needs attention';
   const labelClass = percent >= 85 ? 'bg-success-50 text-success'
-    : percent >= 60 ? 'bg-warning-light text-warning'
+    : percent >= 60 ? 'bg-warning-light text-[#92400E] dark:text-[#f59e0b]'
     : 'bg-primary-50 text-primary-700';
 
   if (allImportantDone) {
@@ -345,58 +372,59 @@ export const ProfileStrengthPanel = ({ profile = {} }) => {
     );
   }
 
+  // One prioritized next action, not one identical nag row per pending
+  // field — highest point value is the single biggest completion gain, so
+  // that's the action surfaced; everything else is named in one quiet line.
+  const [next, ...rest] = [...pending].sort((a, b) => b.points - a.points);
+  const NextIcon = next.icon;
+
   return (
-    <div className="space-y-3">
-      {/* Progress bar card */}
-      <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm px-5 py-4">
-        <div className="flex items-center justify-between mb-2.5">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-neutral-800">Profile strength</span>
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${labelClass}`}>{label}</span>
-          </div>
-          <span className="text-lg font-black" style={{ color: barColor }}>{percent}%</span>
+    <div className="bg-white rounded-2xl shadow-sm px-5 py-4">
+      <div className="flex items-center justify-between mb-2.5">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-bold text-neutral-800">Profile strength</span>
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${labelClass}`}>{label}</span>
         </div>
-        <div className="h-2.5 bg-neutral-100 rounded-full overflow-hidden mb-2">
-          <motion.div
-            className="h-full rounded-full"
-            style={{ backgroundColor: barColor }}
-            initial={{ width: 0 }}
-            animate={{ width: `${percent}%` }}
-            transition={{ duration: 0.7, ease: 'easeOut' }}
-          />
-        </div>
-        <p className="text-xs text-neutral-400">
-          {pending.length} important field{pending.length !== 1 ? 's' : ''} missing · complete them to appear in more searches
-        </p>
+        <span className={`text-lg font-black ${percentClass}`}>{percent}%</span>
+      </div>
+      <div className="h-2.5 bg-neutral-100 rounded-full overflow-hidden mb-3">
+        <motion.div
+          className="h-full origin-left"
+          style={{ backgroundColor: barColor }}
+          initial={{ transform: 'scaleX(0)' }}
+          animate={{ transform: `scaleX(${percent / 100})` }}
+          transition={{ duration: DUR.content, ease: EASE_OUT }}
+        />
       </div>
 
-      {/* Per-field nudge cards */}
-      {pending.map(field => {
-        const Icon = field.icon;
-        return (
-          <Link
-            key={field.id}
-            to={editLink(field.id)}
-            className="flex items-center gap-3 bg-white border border-neutral-100 rounded-2xl shadow-sm px-4 py-3.5 hover:border-primary-200 hover:bg-primary-50/40 transition-colors duration-[160ms] group cursor-pointer"
-          >
-            <div className="w-9 h-9 rounded-xl bg-primary-50 border border-primary-100 flex items-center justify-center flex-shrink-0">
-              <FiAlertCircle className="w-4 h-4 text-primary-500" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-neutral-700 group-hover:text-primary-600 transition-colors">
-                {field.cta || `Add ${field.label.toLowerCase()}`}
-              </p>
-              {field.tip && (
-                <p className="text-xs text-neutral-400 mt-0.5">{field.tip}</p>
-              )}
-            </div>
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              <span className="text-xs font-bold text-primary-500">+{field.points}%</span>
-              <FiArrowRight className="w-3.5 h-3.5 text-neutral-300 group-hover:text-primary-500 transition-colors" />
-            </div>
-          </Link>
-        );
-      })}
+      {/* The one prioritized action, with the field's own icon. */}
+      <Link
+        to={editLink(next.id)}
+        className="flex items-center gap-3 rounded-xl px-3 py-3.5 -mx-3 hover:bg-primary-50/40 dark:hover:bg-primary-900/20 active:scale-[0.98] transition-[background-color,transform] duration-[160ms] group cursor-pointer"
+      >
+        <div className="w-9 h-9 rounded-xl bg-primary-50 flex items-center justify-center flex-shrink-0">
+          <NextIcon className="w-4 h-4 text-primary-500" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-neutral-700 group-hover:text-primary-600 transition-colors">
+            {next.cta || `Add ${next.label.toLowerCase()}`}
+          </p>
+          {next.tip && (
+            <p className="text-xs text-neutral-400 mt-0.5">{next.tip}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <span className="text-xs font-bold text-primary-500">+{next.points}%</span>
+          <FiArrowRight className="w-3.5 h-3.5 text-neutral-300 group-hover:text-primary-500 transition-colors" />
+        </div>
+      </Link>
+
+      {/* Quiet summary of everything else pending — no more repeated rows. */}
+      {rest.length > 0 && (
+        <p className="text-xs text-neutral-400 mt-3 pt-3 border-t border-neutral-50">
+          Also missing: {rest.slice(0, 3).map(f => f.label).join(', ')}{rest.length > 3 ? ` +${rest.length - 3} more` : ''}
+        </p>
+      )}
     </div>
   );
 };

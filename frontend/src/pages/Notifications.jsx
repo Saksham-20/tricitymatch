@@ -7,7 +7,7 @@ import {
   FiBell, FiHeart, FiMessageCircle, FiEye, FiStar,
   FiCheckCircle, FiShield, FiInfo, FiCheck, FiClock, FiX,
 } from 'react-icons/fi';
-import { EmptyState, Skeleton } from '../components/ui';
+import { EmptyState, ErrorState, Skeleton } from '../components/ui';
 import { listRow } from '../utils/animations';
 
 const TYPE_ICONS = {
@@ -30,8 +30,12 @@ const TYPE_ICONS = {
 const TYPE_COLORS = {
   new_match:             'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400',
   match:                 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400',
-  message:               'bg-info-light dark:bg-info/15 text-info',
-  new_message:           'bg-info-light dark:bg-info/15 text-info',
+  // Message is a type-category tag, not a real info/warning/success/error
+  // state of the notification — semantic `info` (blue) is reserved for an
+  // actual state and is also a banned accent (doctrine §3.1), so this uses
+  // the same neutral tone as the other purely-decorative categories below.
+  message:               'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300',
+  new_message:           'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300',
   profile_view:          'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300',
   // Interest ("someone liked you") is a match signal, not a premium mark —
   // gold is reserved for paid-tier state (doctrine §3.1).
@@ -99,11 +103,18 @@ export default function Notifications() {
   const navigate = useNavigate();
   const [notifications, setNotifs] = useState([]);
   const [loading, setLoading]      = useState(true);
+  const [error, setError]          = useState(false);
   const [page, setPage]            = useState(1);
   const [hasMore, setHasMore]      = useState(false);
   const limit = 20;
 
+  // A failed page-1 fetch must never fall through to the empty state — an
+  // outage and a genuinely empty inbox are different facts and need
+  // different UI (doctrine §6/§9). Pagination failures (`append`) keep the
+  // already-loaded list on screen and surface as a toast instead, since a
+  // full-page error card would erase notifications the member can already see.
   const fetchNotifs = useCallback(async (p = 1, append = false) => {
+    if (!append) { setLoading(true); setError(false); }
     try {
       const res = await api.get('/notifications', { params: { page: p, limit } });
       const data = res.data;
@@ -111,7 +122,8 @@ export default function Notifications() {
       setNotifs((prev) => append ? [...prev, ...list] : list);
       setHasMore(list.length === limit && (data.totalPages ? p < data.totalPages : false));
     } catch {
-      toast.error('Failed to load notifications');
+      if (append) toast.error('Failed to load notifications');
+      else setError(true);
     } finally {
       setLoading(false);
     }
@@ -178,7 +190,9 @@ export default function Notifications() {
           {unreadCount > 0 && (
             <button
               onClick={markAllRead}
-              className="flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"
+              // py-3 -my-3 pads the tap target to the 44px floor (doctrine
+              // §3.5) without growing the visible text+icon mark.
+              className="flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 active:scale-[0.97] transition-colors duration-[160ms] px-2 py-3 -mx-2 -my-3"
             >
               <FiCheck className="w-4 h-4" /> Mark all read
             </button>
@@ -188,7 +202,7 @@ export default function Notifications() {
         {loading ? (
           <div className="space-y-2">
             {[0, 1, 2, 3].map((i) => (
-              <div key={i} className="flex items-start gap-3 p-4 rounded-2xl shadow-card border border-neutral-100 dark:border-neutral-800 bg-white dark:bg-surface-dark-3">
+              <div key={i} className="flex items-start gap-3 p-4 rounded-2xl shadow-card bg-white dark:bg-surface-dark-3">
                 <Skeleton variant="circle" className="w-9 h-9 flex-shrink-0" />
                 <div className="flex-1 space-y-2">
                   <Skeleton className="h-3.5 w-2/3" />
@@ -197,12 +211,21 @@ export default function Notifications() {
               </div>
             ))}
           </div>
+        ) : error ? (
+          <ErrorState
+            title="Couldn't load notifications"
+            description="The connection dropped before this finished loading. Try again."
+            onRetry={() => fetchNotifs(1)}
+            className="bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card"
+          />
         ) : notifications.length === 0 ? (
           <EmptyState
             icon={FiBell}
             title="No notifications yet"
             description="We'll notify you when something happens"
-            className="bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card border border-neutral-100 dark:border-neutral-800"
+            actionLabel="Browse profiles"
+            onAction={() => navigate('/search')}
+            className="bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card"
           />
         ) : (
           <>
@@ -215,10 +238,22 @@ export default function Notifications() {
                     <motion.div
                       key={n.id}
                       {...listRow}
-                      className={`flex items-start gap-3 p-4 rounded-2xl shadow-card border transition-[background-color,border-color] duration-[160ms] cursor-pointer ${
-                        !n.isRead ? 'border-primary-100 dark:border-primary-800 bg-primary-50/40 dark:bg-primary-900/20' : 'border-neutral-100 dark:border-neutral-800 bg-white dark:bg-surface-dark-3'
+                      role="button"
+                      tabIndex={0}
+                      className={`flex items-start gap-3 p-4 rounded-2xl shadow-card active:scale-[0.97] transition-colors duration-[160ms] cursor-pointer ${
+                        !n.isRead ? 'bg-primary-50/40 dark:bg-primary-900/20' : 'bg-white dark:bg-surface-dark-3'
                       }`}
                       onClick={() => handleOpen(n)}
+                      onKeyDown={(e) => {
+                        // Ignore keydowns that bubbled up from the nested
+                        // delete button — only a key on the row itself opens
+                        // the notification.
+                        if (e.target !== e.currentTarget) return;
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleOpen(n);
+                        }
+                      }}
                     >
                       <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${color}`}>
                         <Icon className="w-4 h-4" />
@@ -236,7 +271,9 @@ export default function Notifications() {
                         )}
                         <button
                           onClick={(e) => { e.stopPropagation(); deleteNotif(n.id); }}
-                          className="w-6 h-6 rounded-lg flex items-center justify-center text-neutral-300 dark:text-neutral-600 hover:text-neutral-500 dark:hover:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                          // w-11 h-11 pads the tap target to the 44px floor
+                          // (doctrine §3.5); the icon glyph itself is unchanged.
+                          className="w-11 h-11 rounded-lg flex items-center justify-center text-neutral-300 dark:text-neutral-600 hover:text-neutral-500 dark:hover:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 active:scale-[0.97] transition-colors duration-[160ms]"
                           aria-label="Delete notification"
                           title="Delete"
                         >
@@ -252,7 +289,7 @@ export default function Notifications() {
             {hasMore && (
               <button
                 onClick={loadMore}
-                className="w-full py-3 rounded-2xl bg-white dark:bg-neutral-900 shadow-sm border border-neutral-100 dark:border-neutral-800 text-sm font-medium text-neutral-600 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+                className="w-full py-3 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 text-sm font-medium text-neutral-600 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 active:scale-[0.97] transition-colors duration-[160ms]"
               >
                 Load more
               </button>
