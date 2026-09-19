@@ -346,86 +346,106 @@ const templates = {
     text: `Hi ${name}, You have ${matchCount} new profiles matching your preferences this week on TricityMatch. Log in to view them: ${config.server.frontendUrl}/search`,
   }),
 
-  // ── Lifecycle (2026-08-25 audit) ───────────────────────────────────────
-  // Four mails that did not exist: a plan could be started and abandoned, or
-  // run to expiry, in complete silence. Each is sent at most once per
-  // subscription — see `lifecycleMail` on the row.
+  // ── Lifecycle mail ─────────────────────────────────────────────────────
+  // Calm by design (rewritten 2026-09-19 after one order was mailed 24 times in
+  // a day): sentence case, real dates, no countdowns, no "last chance", no
+  // guilt, no exclamation marks, no discount escalation. Each one says what
+  // happened, what it means, and offers one button and a person to reply to.
+  // Cadence and the once-per-row guarantee live in utils/lifecycleMail.js.
 
-  // Someone picked a plan and did not finish paying. Warmest lead there is:
-  // they had already decided, so this reminds rather than sells.
-  checkoutAbandoned: (name, planName, price) => ({
-    subject: 'Your TricityMatch membership is one step away',
+  // A payment attempt failed and the order is still open. This is about the
+  // member's money, so it says exactly what happened to it and never sells.
+  paymentFailed: (name, planName, price) => ({
+    subject: 'We could not complete your payment',
     html: brandLayout({
-      eyebrow: 'Almost There',
-      preheader: `Your ${planName} membership was not completed.`,
+      eyebrow: 'Payment',
+      preheader: `Your ${planName} payment did not go through.`,
       bodyHtml: `
         <p style="margin-top:0;">Hi ${escapeHtml(name)},</p>
-        <p>You started taking out the <strong>${escapeHtml(planName)}</strong> membership${price ? ` (₹${escapeHtml(String(price))})` : ''} but the payment was not completed — so nothing was charged.</p>
-        <p>If something went wrong at the payment step, tell us and we will sort it out. If you simply want to think about it, that is fine too.</p>`,
-      cta: { href: `${config.server.frontendUrl}/subscription`, label: 'Finish signing up' },
+        <p>Your payment for the <strong>${escapeHtml(planName)}</strong> membership${price ? ` (₹${escapeHtml(String(price))})` : ''} did not go through, so the membership has not started.</p>
+        <p>If any money was taken from your account, your bank returns it automatically, usually within 5&ndash;7 working days. You do not need to do anything for that.</p>
+        <p>You can try again whenever you like. If it keeps failing, or the money left your account and Premium is not active, just reply to this email with your payment ID and a person will look into it.</p>`,
+      cta: { href: `${config.server.frontendUrl}/subscription`, label: 'Try again' },
     }),
-    text: `Hi ${name}, your ${planName} membership was not completed and nothing was charged. Finish here: ${config.server.frontendUrl}/subscription`,
+    text: `Hi ${name}, your payment for the ${planName} membership did not go through, so it has not started. If any money was taken, your bank returns it automatically, usually within 5-7 working days. Try again: ${config.server.frontendUrl}/subscription. If it keeps failing, reply to this email with your payment ID and we will look into it.`,
   }),
 
-  // Seven days out. Says the date plainly rather than manufacturing urgency.
-  renewalReminder: (name, planName, expiryDate, daysLeft) => ({
-    subject: `Your TricityMatch membership ends in ${daysLeft} days`,
+  // Closed the payment window without paying. Sent once, a day or more later,
+  // and at most once a month — never a chase. It answers the questions people
+  // actually stop on, and states only what the published policies say.
+  checkoutFollowUp: (name, planName) => ({
+    subject: 'Questions about Premium?',
     html: brandLayout({
-      eyebrow: 'Membership Ending',
+      eyebrow: 'A quick note',
+      preheader: 'Nothing was charged. Here is what to know before you decide.',
+      bodyHtml: `
+        <p style="margin-top:0;">Hi ${escapeHtml(name)},</p>
+        <p>You recently looked at the <strong>${escapeHtml(planName)}</strong> membership and did not go ahead. Nothing was charged, and there is no rush.</p>
+        <p>In case it helps you decide: it is a single payment with no auto-renewal, and you can ask for a refund within seven days of paying without giving a reason. The details are on our <a href="${config.server.frontendUrl}/refund-policy" style="color:${BRAND.burgundy};">refund policy</a> page.</p>
+        <p>If something else is holding you back, reply to this email and a person will answer.</p>`,
+      cta: { href: `${config.server.frontendUrl}/subscription`, label: 'See Premium' },
+    }),
+    text: `Hi ${name}, you looked at the ${planName} membership and did not go ahead. Nothing was charged and there is no rush. It is a single payment with no auto-renewal, and you can ask for a refund within seven days of paying without giving a reason (${config.server.frontendUrl}/refund-policy). Questions? Reply to this email. ${config.server.frontendUrl}/subscription`,
+  }),
+
+  // Ends on a real date, said plainly.
+  renewalReminder: (name, planName, expiryDate, daysLeft) => ({
+    subject: `Your ${planName} membership ends on ${expiryDate}`,
+    html: brandLayout({
+      eyebrow: 'Membership',
       preheader: `Your ${planName} membership ends on ${expiryDate}.`,
       bodyHtml: `
         <p style="margin-top:0;">Hi ${escapeHtml(name)},</p>
-        <p>Your <strong>${escapeHtml(planName)}</strong> membership ends on <strong>${escapeHtml(expiryDate)}</strong>, in ${daysLeft} days.</p>
-        <p>After that you keep your profile and your matches, but contact details and messaging go back to the free limits. Renewing before it ends means no gap in the conversations you are already having.</p>`,
-      cta: { href: `${config.server.frontendUrl}/subscription`, label: 'Renew membership' },
+        <p>Your <strong>${escapeHtml(planName)}</strong> membership ends on <strong>${escapeHtml(expiryDate)}</strong>, ${daysLeft === 1 ? 'tomorrow' : `in ${daysLeft} days`}.</p>
+        <p>After that you keep your profile and your matches; contact details and messaging go back to the free limits. If you are in the middle of conversations, renewing before that date means no gap.</p>`,
+      cta: { href: `${config.server.frontendUrl}/subscription`, label: 'View membership' },
     }),
-    text: `Hi ${name}, your ${planName} membership ends on ${expiryDate} (${daysLeft} days). Renew: ${config.server.frontendUrl}/subscription`,
+    text: `Hi ${name}, your ${planName} membership ends on ${expiryDate}. You keep your profile and matches afterwards; contact details and messaging return to the free limits. ${config.server.frontendUrl}/subscription`,
   }),
 
-  // The day it lapsed.
+  // The day it lapsed. Informational.
   membershipExpired: (name, planName) => ({
-    subject: 'Your TricityMatch membership has ended',
+    subject: `Your ${planName} membership has ended`,
     html: brandLayout({
-      eyebrow: 'Membership Ended',
+      eyebrow: 'Membership',
       preheader: `Your ${planName} membership has ended.`,
       bodyHtml: `
         <p style="margin-top:0;">Hi ${escapeHtml(name)},</p>
-        <p>Your <strong>${escapeHtml(planName)}</strong> membership ended today. Your profile, photos, matches and conversations are all still there — only contact unlocks and messaging are back to free limits.</p>
-        <p>You can pick up exactly where you left off whenever you are ready.</p>`,
-      cta: { href: `${config.server.frontendUrl}/subscription`, label: 'Renew membership' },
+        <p>Your <strong>${escapeHtml(planName)}</strong> membership has ended. Your profile, photos, matches and conversations are all still there; only contact unlocks and messaging are back to the free limits.</p>
+        <p>You can pick up where you left off whenever you are ready.</p>`,
+      cta: { href: `${config.server.frontendUrl}/subscription`, label: 'View membership' },
     }),
-    text: `Hi ${name}, your ${planName} membership has ended. Your profile and matches are unchanged. Renew: ${config.server.frontendUrl}/subscription`,
+    text: `Hi ${name}, your ${planName} membership has ended. Your profile and matches are unchanged; contact unlocks and messaging are back to the free limits. ${config.server.frontendUrl}/subscription`,
   }),
 
   // A fortnight after expiry, and only if there is something real to come back
   // for — the caller passes the count and skips the send when it is zero.
   winBack: (name, newProfiles) => ({
-    subject: `${newProfiles} new profiles since you left TricityMatch`,
+    subject: `${newProfiles} new ${newProfiles === 1 ? 'profile' : 'profiles'} in the Tricity since your membership ended`,
     html: brandLayout({
-      eyebrow: 'Since You Were Away',
-      preheader: `${newProfiles} new members have joined.`,
+      eyebrow: 'New members',
+      preheader: `${newProfiles} new ${newProfiles === 1 ? 'member has' : 'members have'} joined.`,
       bodyHtml: `
         <p style="margin-top:0;">Hi ${escapeHtml(name)},</p>
-        <p><strong>${escapeHtml(String(newProfiles))} new members</strong> from the Tricity have joined since your membership ended. Your profile is exactly as you left it.</p>`,
+        <p><strong>${escapeHtml(String(newProfiles))} new ${newProfiles === 1 ? 'member' : 'members'}</strong> from the Tricity ${newProfiles === 1 ? 'has' : 'have'} joined since your membership ended. Your profile is exactly as you left it.</p>`,
       cta: { href: `${config.server.frontendUrl}/search`, label: 'See who has joined' },
     }),
-    text: `Hi ${name}, ${newProfiles} new members have joined TricityMatch since your membership ended. ${config.server.frontendUrl}/search`,
+    text: `Hi ${name}, ${newProfiles} new ${newProfiles === 1 ? 'member has' : 'members have'} joined TricityMatch since your membership ended. ${config.server.frontendUrl}/search`,
   }),
 
-  // No photo on the profile. The single strongest predictor of a profile that
-  // goes nowhere, so it is worth one direct, unembarrassed ask.
+  // No photo on the profile. One plain ask, made at most twice.
   addPhotoNudge: (name) => ({
-    subject: 'Your TricityMatch profile has no photo yet',
+    subject: 'Add a photo to your TricityMatch profile',
     html: brandLayout({
-      eyebrow: 'One Thing Missing',
-      preheader: 'Profiles with a photo get far more interest.',
+      eyebrow: 'Your profile',
+      preheader: 'A photo helps people trust a profile.',
       bodyHtml: `
         <p style="margin-top:0;">Hi ${escapeHtml(name)},</p>
-        <p>Your profile is live, but it has no photograph — and that is the first thing families look for. Profiles with photos get several times the interest of those without.</p>
-        <p>Your photos stay private from anyone you have not matched with, and you can blur them for non-matches in Settings → Privacy.</p>`,
+        <p>Your profile is live but has no photo yet. Most people open the profiles that have one first, so it is the simplest way to be seen.</p>
+        <p>Your photos stay private from anyone you have not matched with, and you can blur them for non-matches in Settings &rarr; Privacy.</p>`,
       cta: { href: `${config.server.frontendUrl}/profile/edit?section=photos`, label: 'Add a photo' },
     }),
-    text: `Hi ${name}, your TricityMatch profile has no photo yet. Add one: ${config.server.frontendUrl}/profile/edit?section=photos`,
+    text: `Hi ${name}, your TricityMatch profile is live but has no photo yet. Add one: ${config.server.frontendUrl}/profile/edit?section=photos`,
   }),
 
   // One-time verification code (email OTP: signup / email-change).
@@ -558,8 +578,11 @@ const sendSupportReply = (to, name, replyBody, originalMessage) =>
 // ── Lifecycle senders ───────────────────────────────────────────────────
 // `sendEmail(to, name, data)` spreads data by key ORDER, so each object below
 // must list its keys in the template's parameter order.
-const sendCheckoutAbandoned = (to, name, planName, price) =>
-  sendEmail(to, 'checkoutAbandoned', { name, planName, price });
+const sendPaymentFailed = (to, name, planName, price) =>
+  sendEmail(to, 'paymentFailed', { name, planName, price });
+
+const sendCheckoutFollowUp = (to, name, planName) =>
+  sendEmail(to, 'checkoutFollowUp', { name, planName });
 
 const sendRenewalReminder = (to, name, planName, expiryDate, daysLeft) =>
   sendEmail(to, 'renewalReminder', { name, planName, expiryDate, daysLeft });
@@ -574,7 +597,8 @@ const sendAddPhotoNudge = (to, name) => sendEmail(to, 'addPhotoNudge', { name })
 
 module.exports = {
   sendEmail,
-  sendCheckoutAbandoned,
+  sendPaymentFailed,
+  sendCheckoutFollowUp,
   sendRenewalReminder,
   sendMembershipExpired,
   sendWinBack,

@@ -66,6 +66,18 @@ const Subscription = sequelize.define('Subscription', {
     defaultValue: 0,
     comment: 'Number of contact unlocks used so far.',
     validate: { min: 0 }
+  },
+  // Lifecycle ledger: timestamps of payment events (`paymentFailedAt`,
+  // `cancelledAt`) and of mails already sent for this row. Migration 000060
+  // created the column, but this model never declared it — and Sequelize
+  // silently DROPS a key it has no attribute for, so `update({lifecycleMail})`
+  // was a no-op, `row.lifecycleMail` always read undefined, and the "already
+  // sent" check was permanently false. That is how one abandoned order was
+  // mailed every hour for days. tests/unit/lifecycleLedger.test.js pins it.
+  lifecycleMail: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    defaultValue: null
   }
 }, {
   validate: {
@@ -92,6 +104,13 @@ const Subscription = sequelize.define('Subscription', {
     { fields: ['razorpayPaymentId'], unique: true, where: { razorpayPaymentId: { [require('sequelize').Op.ne]: null } } }
   ]
 });
+
+// Internal bookkeeping — not part of any API shape.
+Subscription.prototype.toJSON = function() {
+  const values = { ...this.get() };
+  delete values.lifecycleMail;
+  return values;
+};
 
 module.exports = Subscription;
 

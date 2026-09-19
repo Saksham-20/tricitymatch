@@ -75,6 +75,13 @@ export const createOrder = async (planType: string): Promise<{ orderId: string; 
   return { orderId: id, amount, currency };
 };
 
+// The buyer closed the payment sheet without paying. Closes the order so it does
+// not sit in `pending` on the server. Fire-and-forget: the server also sweeps
+// orders nobody finished, so a failure here changes nothing the member can see.
+export const cancelOrder = async (orderId: string): Promise<void> => {
+  await apiClient.post('/subscription/cancel-order', { razorpayOrderId: orderId });
+};
+
 export const verifyPayment = async (data: {
   razorpay_order_id: string;
   razorpay_payment_id: string;

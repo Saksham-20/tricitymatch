@@ -137,6 +137,52 @@ exports.createOrder = asyncHandler(async (req, res) => {
   });
 });
 
+// @route   POST /api/subscription/cancel-order
+// @desc    The member closed the payment popup without paying. Closes the order
+//          completely — it does not linger as `pending`.
+// @access  Private
+//
+// `pending` is reserved for a payment that may still resolve (money possibly
+// moved, or an attempt failed and can be retried). A member simply changing
+// their mind is neither, so the order is closed here rather than left for a
+// job to chase. If an attempt HAS failed the row stays pending — that is a
+// payment problem, and it is what earns the one help mail.
+//
+// Idempotent and never an error for the caller: the client fires this from a
+// dismiss handler and has nothing useful to do with a failure.
+exports.cancelOrder = asyncHandler(async (req, res) => {
+  const { razorpayOrderId } = req.body;
+
+  const order = await Subscription.findOne({
+    where: { userId: req.user.id, razorpayOrderId, status: 'pending', razorpayPaymentId: null },
+  });
+  if (!order) {
+    return res.json({ success: true, cancelled: false });
+  }
+
+  const ledger = order.lifecycleMail || {};
+  if (ledger.paymentFailedAt) {
+    return res.json({ success: true, cancelled: false, reason: 'payment_issue' });
+  }
+
+  // Conditional update, not `save()`: if the payment landed between the read
+  // and now the row is no longer pending, and writing 'cancelled' over a
+  // freshly activated plan would take away something the member just paid for.
+  const [changed] = await Subscription.update(
+    { status: 'cancelled', lifecycleMail: { ...ledger, cancelledAt: new Date().toISOString() } },
+    { where: { id: order.id, status: 'pending', razorpayPaymentId: null } }
+  );
+
+  if (changed) {
+    logAudit('subscription_order_cancelled', req.user.id, {
+      subscriptionId: order.id,
+      planType: order.planType,
+      orderId: razorpayOrderId,
+    });
+  }
+  res.json({ success: true, cancelled: changed > 0 });
+});
+
 // @route   POST /api/subscription/verify-payment
 // @desc    Verify Razorpay payment and activate subscription
 // @access  Private
@@ -179,12 +225,18 @@ exports.verifyPayment = asyncHandler(async (req, res) => {
       return existingPayment;
     }
 
-    // Find and lock the subscription
+    // Find and lock the subscription. `cancelled` with no payment attached is
+    // accepted too: the member closing the popup (or the stale-order sweeper)
+    // closes an order that can still be paid — Razorpay keeps it payable — and
+    // a signature-verified payment on it means money moved, so the entitlement
+    // has to follow. A cancelled row that DOES carry a payment id is a real
+    // cancelled plan and is never revived.
     const sub = await Subscription.findOne({
       where: {
         userId,
         razorpayOrderId,
-        status: 'pending'
+        status: { [Op.in]: ['pending', 'cancelled'] },
+        razorpayPaymentId: null
       },
       transaction: t,
       lock: true // Lock for update to prevent race conditions
@@ -702,7 +754,13 @@ exports.webhook = asyncHandler(async (req, res) => {
         lock: true
       });
 
-      if (subscription && subscription.status === 'pending') {
+      // A closed-without-payment order is revivable for the same reason as in
+      // verifyPayment: a captured payment is money taken, whatever the popup
+      // or the sweeper did to the row beforehand.
+      const activatable = subscription
+        && (subscription.status === 'pending'
+          || (subscription.status === 'cancelled' && !subscription.razorpayPaymentId));
+      if (activatable) {
         const planDetails = getPlanDetails(subscription.planType);
         if (!planDetails) {
           log.warn('Webhook: unknown planType, skipping activation', { planType: subscription.planType, orderId: order_id });
@@ -772,11 +830,22 @@ exports.webhook = asyncHandler(async (req, res) => {
       where: { razorpayOrderId: order_id }
     });
 
+    // The order stays PENDING. A Razorpay order takes several payment attempts
+    // and the checkout lets the member retry in place, so a failed attempt is
+    // not the end of it: this handler used to cancel the row on the first
+    // failure, and a retry that then succeeded was rejected by verify-payment
+    // ("Subscription not found") or ignored by the captured webhook — paid,
+    // and no plan. Pending is now reserved for exactly this: a payment problem
+    // that may still resolve. The failure is recorded so the lifecycle job can
+    // send the one help mail, and the sweeper closes it after a week.
     if (subscription && subscription.status === 'pending') {
-      subscription.status = 'cancelled';
-      await subscription.save();
-      
-      log.warn('Payment failed', { 
+      const ledger = subscription.lifecycleMail || {};
+      if (!ledger.paymentFailedAt) {
+        subscription.lifecycleMail = { ...ledger, paymentFailedAt: new Date().toISOString() };
+        await subscription.save();
+      }
+
+      log.warn('Payment failed', {
         subscriptionId: subscription.id,
         orderId: order_id,
         reason: error_description
@@ -795,7 +864,13 @@ exports.getPaymentHistory = asyncHandler(async (req, res) => {
   const subscriptions = await Subscription.findAll({
     where: {
       userId: req.user.id,
-      status: { [Op.in]: ['active', 'expired', 'cancelled'] },
+      // A cancelled row with no payment id is a checkout that was closed
+      // before anyone paid — not a transaction, and listing it makes every
+      // abandoned attempt look like a payment on the member's own history.
+      [Op.or]: [
+        { status: { [Op.in]: ['active', 'expired'] } },
+        { status: 'cancelled', razorpayPaymentId: { [Op.ne]: null } },
+      ],
     },
     order: [['createdAt', 'DESC']],
     attributes: [

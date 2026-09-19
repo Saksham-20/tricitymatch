@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const router = express.Router();
 const {
   createOrder,
+  cancelOrder,
   verifyPayment,
   getMySubscription,
   getPlans,
@@ -97,6 +98,17 @@ router.post('/create-order',
   createOrderValidation,
   handleValidationErrors,
   createOrder
+);
+
+// The member closed the payment popup without paying — closes the order so it
+// does not sit in `pending`. Idempotent; see controller for the rules.
+router.post('/cancel-order',
+  auth,
+  paymentLimiter,
+  evBody('razorpayOrderId').isString().trim().notEmpty().isLength({ max: 64 })
+    .withMessage('Invalid order'),
+  handleValidationErrors,
+  cancelOrder
 );
 
 // Verify payment

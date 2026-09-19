@@ -148,17 +148,73 @@ describe('payment.captured', () => {
   });
 });
 
+describe('payment.captured on a closed-without-payment order', () => {
+  // Razorpay keeps an order payable after the member closes the popup or the
+  // stale-order sweeper closes the row. A captured payment is money taken, so
+  // the entitlement must follow whatever happened to the row beforehand.
+  it('revives a cancelled order that never had a payment attached', async () => {
+    const row = { ...pendingRow(), status: 'cancelled', razorpayPaymentId: null };
+    Subscription.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce(row);
+
+    await fire(captured());
+
+    expect(row.status).toBe('active');
+    expect(row.razorpayPaymentId).toBe(PAYMENT);
+  });
+
+  it('never revives a cancelled plan that carries a real payment', async () => {
+    const row = { ...pendingRow(), status: 'cancelled', razorpayPaymentId: 'pay_OLD' };
+    Subscription.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce(row);
+
+    await fire(captured());
+
+    expect(row.status).toBe('cancelled');
+    expect(row.save).not.toHaveBeenCalled();
+  });
+});
+
 describe('payment.failed', () => {
-  it('cancels the pending row and grants nothing', async () => {
+  const failed = () => ({
+    event: 'payment.failed',
+    payload: { payment: { entity: { order_id: ORDER, error_description: 'declined' } } },
+  });
+
+  // Was: "cancels the pending row". That was the bug — a Razorpay order takes
+  // several attempts, so cancelling on the first failure meant a retry that
+  // then SUCCEEDED was rejected by verify-payment ("Subscription not found") or
+  // ignored by the captured webhook: paid, and no plan.
+  it('keeps the order pending so a retry on the same order can still succeed', async () => {
     const row = pendingRow();
     Subscription.findOne.mockResolvedValueOnce(row);
 
-    await fire({
-      event: 'payment.failed',
-      payload: { payment: { entity: { order_id: ORDER, error_description: 'declined' } } },
-    });
+    await fire(failed());
 
-    expect(row.status).toBe('cancelled');
+    expect(row.status).toBe('pending');
     expect(row.contactUnlocksAllowed).toBeUndefined();
+  });
+
+  it('records the failure once, for the help mail', async () => {
+    const row = pendingRow();
+    Subscription.findOne.mockResolvedValueOnce(row);
+
+    await fire(failed());
+
+    expect(row.lifecycleMail.paymentFailedAt).toEqual(expect.any(String));
+    const first = row.lifecycleMail.paymentFailedAt;
+
+    // A second failed attempt on the same order must not restart the clock.
+    Subscription.findOne.mockResolvedValueOnce(row);
+    await fire(failed());
+    expect(row.lifecycleMail.paymentFailedAt).toBe(first);
+    expect(row.save).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores a failure on an order that is no longer pending', async () => {
+    const row = { ...pendingRow(), status: 'active' };
+    Subscription.findOne.mockResolvedValueOnce(row);
+
+    await fire(failed());
+
+    expect(row.save).not.toHaveBeenCalled();
   });
 });

@@ -107,6 +107,16 @@ const User = sequelize.define('User', {
     type: DataTypes.DATE,
     allowNull: true
   },
+  // Member-level lifecycle ledger (photo nudges, the last time any lifecycle
+  // mail was sent, the last checkout follow-up). Declared here because
+  // Sequelize drops writes to a column its model does not know about — see
+  // the note on Subscription.lifecycleMail.
+  lifecycleMail: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    defaultValue: null
+  },
+
   fcmTokens: {
     type: DataTypes.ARRAY(DataTypes.TEXT),
     allowNull: false,
@@ -204,6 +214,9 @@ User.prototype.toJSON = function() {
   // Third-party account identifier. Not a credential, but it links this member
   // to an external identity and nothing in the API needs it.
   delete values.googleId;
+
+  // Internal mail bookkeeping.
+  delete values.lifecycleMail;
 
   return values;
 };

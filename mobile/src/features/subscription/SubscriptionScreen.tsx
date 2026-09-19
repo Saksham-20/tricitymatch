@@ -28,6 +28,7 @@ import {
   getPlans,
   getUnlockBundles,
   createOrder,
+  cancelOrder,
   verifyPayment,
   verifyGooglePlay,
   getSubscriptionHistory,
@@ -72,6 +73,14 @@ type RazorpayOptions = {
  * (Expo Go) or no publishable key is configured. Distinct from a payment that
  * opened and then failed or was cancelled, which must surface as itself.
  */
+// react-native-razorpay rejects with { code, description }; code 0 is "payment
+// cancelled" on both platforms. The description check covers SDK versions that
+// word it differently.
+const isUserCancel = (e: unknown): boolean => {
+  const err = e as { code?: number; description?: string; message?: string } | null;
+  return err?.code === 0 || /cancel/i.test(String(err?.description ?? err?.message ?? ''));
+};
+
 export class PaymentsUnavailableError extends Error {
   constructor() {
     super('Payments are unavailable in this build');
@@ -421,8 +430,10 @@ export default function SubscriptionScreen() {
 
   const payViaRazorpay = async () => {
     setPaying(true);
+    let orderId: string | undefined;
     try {
       const orderData = await createOrder(selectedPlan);
+      orderId = orderData.orderId;
       const paymentResult = await openRazorpay({
         key: CONFIG.RAZORPAY_KEY_ID,
         amount: orderData.amount,
@@ -446,6 +457,10 @@ export default function SubscriptionScreen() {
         );
       } else {
         showToast.info('Payment cancelled', 'No charge was made.');
+        // Only a deliberate close is a cancel. A declined or failed payment
+        // keeps the order open on the server — that is a payment problem, and
+        // the member may retry it.
+        if (orderId && isUserCancel(e)) cancelOrder(orderId).catch(() => null);
       }
     } finally {
       setPaying(false);

@@ -524,6 +524,15 @@ Also emitted via Socket.io to both parties.
 
 ---
 
+### `POST /subscription/cancel-order`
+🔒 Auth required. The member closed the payment popup without paying — closes the order (`pending` → `cancelled`) so it does not linger. Idempotent; never an error for an unknown/closed order. An order with a recorded failed payment attempt is left `pending` (a payment problem, not a change of mind). Rate: paymentLimiter (10/hr).
+
+**Body:** `{ "razorpayOrderId": "order_xxx" }`
+
+**Response 200:** `{ "success": true, "cancelled": true }` — or `{ "success": true, "cancelled": false }` (already closed / not found) / `{ ..., "cancelled": false, "reason": "payment_issue" }`
+
+---
+
 ### `POST /subscription/verify-payment`
 🔒 Auth required. Verify Razorpay payment signature, activate plan.
 

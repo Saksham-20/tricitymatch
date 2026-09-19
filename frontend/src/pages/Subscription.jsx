@@ -902,8 +902,12 @@ const Subscription = () => {
     }
   };
 
-  const openCheckout = ({ order, description, onVerify, onSettle }) =>
+  const openCheckout = ({ order, description, onVerify, onSettle, onCancel }) =>
     new Promise((resolve) => {
+      // A failed attempt is a payment problem, not a change of mind: the order
+      // stays open on the server (the member can retry it in this same popup)
+      // and closing the popup afterwards must not cancel it.
+      let paymentFailed = false;
       const rzp = new window.Razorpay({
         key: razorpay.keyId,
         amount: order.amount,
@@ -929,9 +933,16 @@ const Subscription = () => {
           contact: user?.phone || user?.phoneNumber || undefined,
         },
         theme: { color: '#8B2346' },
-        modal: { ondismiss: () => { onSettle(); resolve(); } },
+        modal: {
+          ondismiss: () => {
+            if (!paymentFailed) onCancel?.();
+            onSettle();
+            resolve();
+          },
+        },
       });
       rzp.on('payment.failed', () => {
+        paymentFailed = true;
         toast.error('Payment failed. Please try again.');
         onSettle();
         resolve();
@@ -960,6 +971,11 @@ const Subscription = () => {
           razorpaySignature: response.razorpay_signature,
         }),
         onSettle: () => setProcessingPlan(null),
+        // Closed the popup without paying: close the order so it does not sit
+        // in `pending`. Fire-and-forget — the server also sweeps stale orders.
+        onCancel: () => {
+          api.post('/subscription/cancel-order', { razorpayOrderId: res.data.order.id }).catch(() => {});
+        },
       });
     } catch (error) {
       toast.error(
