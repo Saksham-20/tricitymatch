@@ -23,6 +23,7 @@ jest.mock('../../utils/email', () => ({
   sendWinBack: jest.fn(),
   sendAddPhotoNudge: jest.fn(),
 }));
+jest.mock('../../utils/userLedger', () => ({ patchUserLedger: jest.fn() }));
 jest.mock('../../utils/razorpay', () => ({ getPlanDetails: () => ({ name: 'Premium' }) }));
 jest.mock('../../middlewares/logger', () => ({
   log: { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() },
@@ -31,6 +32,7 @@ jest.mock('../../middlewares/logger', () => ({
 
 const { Subscription, User, Profile } = require('../../models');
 const email = require('../../utils/email');
+const { patchUserLedger } = require('../../utils/userLedger');
 const { runSubscriptionLifecycle, runPhotoNudge, sweepPendingOrders } = require('../../utils/lifecycleMail');
 
 const HOUR = 3600 * 1000;
@@ -64,6 +66,7 @@ const stages = ({ sweep = [], failed = [], cancelled = [], ending = [], expired 
 
 beforeEach(() => {
   jest.resetAllMocks();
+  patchUserLedger.mockResolvedValue([[], 1]);
   Subscription.update.mockResolvedValue([1]);
   Subscription.count.mockResolvedValue(0);
   Profile.count.mockResolvedValue(3);
@@ -111,9 +114,12 @@ describe('closing the payment popup', () => {
     const counts = await runSubscriptionLifecycle(NOW);
 
     expect(email.sendCheckoutFollowUp).toHaveBeenCalledTimes(1);
-    expect(email.sendCheckoutFollowUp).toHaveBeenCalledWith('aman@example.com', 'Aman', 'Premium');
+    expect(email.sendCheckoutFollowUp).toHaveBeenCalledWith(
+      'aman@example.com', 'Aman', 'Premium',
+      { pageUrl: expect.stringMatching(/\/unsubscribe\?u=u1&t=[0-9a-f]{32}$/), oneClickUrl: expect.stringContaining('/api/v1/email/unsubscribe?u=u1&t=') }
+    );
     expect(cancelled.lifecycleMail.checkoutFollowUp).toEqual(expect.any(String));
-    expect(cancelled.User.lifecycleMail).toMatchObject({ lastSentAt: expect.any(String), checkoutFollowUpAt: expect.any(String) });
+    expect(patchUserLedger).toHaveBeenCalledWith('u1', { lastSentAt: expect.any(String), checkoutFollowUpAt: expect.any(String) });
     expect(counts.followUp).toBe(1);
   });
 
@@ -124,6 +130,7 @@ describe('closing the payment popup', () => {
     ['a superseded order the member never cancelled (no cancelledAt)', {}, {}],
     ['followed up within the last 30 days', { cancelledAt: ago(50 * HOUR) }, { lifecycleMail: { checkoutFollowUpAt: ago(10 * DAY) } }],
     ['any lifecycle mail in the last 7 days', { cancelledAt: ago(50 * HOUR) }, { lifecycleMail: { lastSentAt: ago(2 * DAY) } }],
+    ['the member unsubscribed from reminder mail', { cancelledAt: ago(50 * HOUR) }, { lifecycleMail: { emailOptOut: ago(5 * DAY) } }],
   ])('sends nothing when %s', async (_label, ledger, userOver) => {
     stages({ cancelled: [makeSub({ status: 'cancelled', lifecycleMail: ledger, User: userOver })] });
     await runSubscriptionLifecycle(NOW);
@@ -281,6 +288,26 @@ describe('notices vs nudges', () => {
     expect(email.sendWinBack).not.toHaveBeenCalled();
   });
 
+  it('a renewal notice is NOT stopped by an unsubscribe — it is about their own plan', async () => {
+    stages({ ending: [renewalRow({ lifecycleMail: { emailOptOut: ago(5 * DAY) } })] });
+    await runSubscriptionLifecycle(NOW);
+    expect(email.sendRenewalReminder).toHaveBeenCalledTimes(1);
+  });
+
+  it('a payment-failed help mail is NOT stopped by an unsubscribe', async () => {
+    const row = makeSub({ lifecycleMail: { paymentFailedAt: ago(40 * 60 * 1000) }, User: { lifecycleMail: { emailOptOut: ago(5 * DAY) } } });
+    stages({ failed: [row] });
+    await runSubscriptionLifecycle(NOW);
+    expect(email.sendPaymentFailed).toHaveBeenCalledTimes(1);
+  });
+
+  it('a win-back nudge is stopped by an unsubscribe', async () => {
+    const lapsed = makeSub({ status: 'expired', endDate: new Date(NOW.getTime() - 15 * DAY), User: { lifecycleMail: { emailOptOut: ago(20 * DAY) } } });
+    stages({ lapsed: [lapsed] });
+    await runSubscriptionLifecycle(NOW);
+    expect(email.sendWinBack).not.toHaveBeenCalled();
+  });
+
   it('a renewal notice is not repeated on the next tick', async () => {
     stages({ ending: [renewalRow({ })].map((r) => { r.lifecycleMail = { renewal: ago(HOUR) }; return r; }) });
     await runSubscriptionLifecycle(NOW);
@@ -293,17 +320,20 @@ describe('photo nudge', () => {
     createdAt: new Date(NOW.getTime() - 5 * DAY), Profile: { firstName: 'Riya', photos: [] }, ...over,
   });
 
-  it('sends the first nudge to a no-photo member a few days in, and claims it before sending', async () => {
+  it('sends the first nudge to a no-photo member a few days in, with an unsubscribe link, claiming it first', async () => {
     const u = candidate();
-    let seen;
-    email.sendAddPhotoNudge.mockImplementation(async () => { seen = { ...u.lifecycleMail }; return { success: true }; });
+    let claimsAtSend;
+    email.sendAddPhotoNudge.mockImplementation(async () => { claimsAtSend = patchUserLedger.mock.calls.slice(); return { success: true }; });
     User.findAll.mockResolvedValueOnce([u]);
 
     const r = await runPhotoNudge(NOW);
 
     expect(r.sent).toBe(1);
-    expect(seen.photoNudge1).toEqual(expect.any(String));
-    expect(u.lifecycleMail).toMatchObject({ photoNudge1: expect.any(String), lastSentAt: expect.any(String) });
+    expect(claimsAtSend).toHaveLength(1);
+    expect(claimsAtSend[0]).toEqual(['u1', { photoNudge1: expect.any(String), lastSentAt: expect.any(String) }]);
+    expect(email.sendAddPhotoNudge).toHaveBeenCalledWith(
+      'aman@example.com', 'Riya', expect.objectContaining({ pageUrl: expect.stringContaining('/unsubscribe?u=u1&t=') })
+    );
   });
 
   it('does not nudge a member who signed up hours ago', async () => {
@@ -322,22 +352,38 @@ describe('photo nudge', () => {
     const u = candidate({ lifecycleMail: { photoNudge1: ago(11 * DAY), lastSentAt: ago(11 * DAY) } });
     User.findAll.mockResolvedValueOnce([u]);
     expect((await runPhotoNudge(NOW)).sent).toBe(1);
-    expect(u.lifecycleMail.photoNudge2).toEqual(expect.any(String));
+    expect(patchUserLedger).toHaveBeenCalledWith('u1', { photoNudge2: expect.any(String), lastSentAt: expect.any(String) });
   });
 
-  it('leaves the ledger unclaimed when delivery fails, so it is retried', async () => {
-    const u = candidate();
+  it('releases the claim when delivery fails, restoring the earlier lastSentAt', async () => {
+    const earlier = ago(11 * DAY);
+    const u = candidate({ lifecycleMail: { photoNudge1: earlier, lastSentAt: earlier } });
     email.sendAddPhotoNudge.mockResolvedValueOnce({ success: false });
     User.findAll.mockResolvedValueOnce([u]);
+
     expect((await runPhotoNudge(NOW)).sent).toBe(0);
-    expect(u.lifecycleMail?.photoNudge1).toBeUndefined();
+    expect(patchUserLedger).toHaveBeenLastCalledWith('u1', { lastSentAt: earlier }, ['photoNudge2']);
+  });
+
+  it('releases a first-time claim completely when delivery fails, so it is retried', async () => {
+    email.sendAddPhotoNudge.mockResolvedValueOnce({ success: false });
+    User.findAll.mockResolvedValueOnce([candidate()]);
+
+    await runPhotoNudge(NOW);
+
+    expect(patchUserLedger).toHaveBeenLastCalledWith('u1', {}, ['photoNudge1', 'lastSentAt']);
   });
 
   it('sends nothing when the ledger write fails', async () => {
-    const u = candidate();
-    u.update.mockRejectedValueOnce(new Error('db down'));
-    User.findAll.mockResolvedValueOnce([u]);
+    patchUserLedger.mockRejectedValueOnce(new Error('db down'));
+    User.findAll.mockResolvedValueOnce([candidate()]);
     await runPhotoNudge(NOW);
+    expect(email.sendAddPhotoNudge).not.toHaveBeenCalled();
+  });
+
+  it('sends nothing to a member who unsubscribed', async () => {
+    User.findAll.mockResolvedValueOnce([candidate({ lifecycleMail: { emailOptOut: ago(3 * DAY) } })]);
+    expect((await runPhotoNudge(NOW)).sent).toBe(0);
     expect(email.sendAddPhotoNudge).not.toHaveBeenCalled();
   });
 

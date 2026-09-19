@@ -17,6 +17,7 @@ const astrologerRoutes = require('./astrologerRoutes');
 const groupRoutes = require('./groupRoutes');
 const inviteRoutes = require('./inviteRoutes');
 const statsRoutes = require('./statsRoutes');
+const emailRoutes = require('./emailRoutes');
 const { getPublicSuccessStories } = require('../controllers/adminController');
 const { submitContact, submitSuccessStory } = require('../controllers/contactController');
 const { recordClientEvent } = require('../controllers/analyticsController');
@@ -43,6 +44,8 @@ router.use('/search', searchRoutes);
 router.use('/match', matchRoutes);
 router.use('/chat', chatRoutes);
 router.use('/subscription', subscriptionRoutes);
+// Reminder-mail opt-out: public, authenticated by a signed link in the email.
+router.use('/email', emailRoutes);
 router.use('/admin', adminRoutes);
 router.use('/verification', verificationRoutes);
 router.use('/block', blockRouter);

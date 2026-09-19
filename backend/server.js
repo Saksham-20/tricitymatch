@@ -99,7 +99,11 @@ const webhookCors = cors({ origin: false, credentials: false });
 // Provider webhooks are server-to-server (no Origin header) and authenticated by
 // HMAC signature, not CORS. Strict CORS would 403 them, dropping payment/BG-check
 // callbacks — so exempt webhook paths (they still verify signatures downstream).
-const isWebhookPath = (p) => /\/subscription\/webhook$/.test(p);
+// The one-click unsubscribe (RFC 8058) is the same shape: Gmail/Yahoo POST it
+// from their own servers with no Origin, and the signed link in the URL is the
+// credential. It touches no cookie or session, so there is nothing for CSRF to
+// ride on.
+const isWebhookPath = (p) => /\/subscription\/webhook$/.test(p) || /\/email\/unsubscribe$/.test(p);
 app.use((req, res, next) => {
   if (req.path.startsWith('/monitoring') || req.path.startsWith('/api/monitoring')) {
     return monitoringCors(req, res, next);

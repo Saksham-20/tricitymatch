@@ -57,7 +57,7 @@ const getTransporter = () => {
 const fromHeader = () => `${config.email.fromName} <${config.email.from || config.email.user}>`;
 
 // Single-provider send primitives. Throw on failure so the router can fall back.
-const sendViaResend = async ({ from, to, subject, html, text, reply }) => {
+const sendViaResend = async ({ from, to, subject, html, text, reply, headers }) => {
   const { data, error } = await getResend().emails.send({
     from,
     to: Array.isArray(to) ? to : [to],
@@ -65,16 +65,18 @@ const sendViaResend = async ({ from, to, subject, html, text, reply }) => {
     html,
     ...(text ? { text } : {}),
     ...(reply ? { replyTo: reply } : {}),
+    ...(headers ? { headers } : {}),
   });
   if (error) throw new Error(error.message || String(error));
   log.info('Email sent (resend)', { to, subject, messageId: data && data.id });
   return { success: true, messageId: data && data.id, provider: 'resend' };
 };
 
-const sendViaSmtp = async ({ from, to, subject, html, text, reply }) => {
+const sendViaSmtp = async ({ from, to, subject, html, text, reply, headers }) => {
   const info = await getTransporter().sendMail({
     from, to, subject, html, text,
     ...(reply ? { replyTo: reply } : {}),
+    ...(headers ? { headers } : {}),
   });
   log.info('Email sent (smtp)', { to, subject, messageId: info.messageId });
   return { success: true, messageId: info.messageId, provider: 'smtp' };
@@ -93,7 +95,7 @@ const CHANNEL_ORDER = {
 
 // Low-level send. Routes by channel with fallback; never throws — always resolves
 // { success, ... } so a mail failure can't break a request flow.
-const deliver = async ({ to, subject, html, text, replyTo, channel = 'transactional' }) => {
+const deliver = async ({ to, subject, html, text, replyTo, channel = 'transactional', headers }) => {
   const from = fromHeader();
   const reply = replyTo || config.email.replyTo;
   const order = CHANNEL_ORDER[channel] || CHANNEL_ORDER.transactional;
@@ -117,7 +119,7 @@ const deliver = async ({ to, subject, html, text, replyTo, channel = 'transactio
   let lastError;
   for (const name of configured) {
     try {
-      return await PROVIDERS[name].send({ from, to, subject, html, text, reply });
+      return await PROVIDERS[name].send({ from, to, subject, html, text, reply, headers });
     } catch (error) {
       lastError = error;
       log.error(`Email send failed via ${name}`, { to, subject, channel, error: error.message });
@@ -155,8 +157,9 @@ const LOGO_URL = `${config.server.frontendUrl}/icons/email-logo.png?v=1`;
  * @param {string} o.bodyHtml inner content (already-escaped/trusted)
  * @param {string} [o.preheader] hidden inbox-preview line
  * @param {{href:string,label:string,gold?:boolean}} [o.cta] primary button
+ * @param {string} [o.unsubscribeUrl] adds the reminder-mail opt-out line to the footer
  */
-const brandLayout = ({ eyebrow, bodyHtml, preheader = '', cta }) => `
+const brandLayout = ({ eyebrow, bodyHtml, preheader = '', cta, unsubscribeUrl }) => `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -183,6 +186,7 @@ const brandLayout = ({ eyebrow, bodyHtml, preheader = '', cta }) => `
             TricityMatch &middot; Chandigarh &middot; Mohali &middot; Panchkula<br/>
             Questions? <a href="mailto:${config.email.support}" style="color:${BRAND.burgundy};text-decoration:none;font-weight:600;">${config.email.support}</a>
           </div>
+          ${unsubscribeUrl ? `<div style="color:${BRAND.soft};font-size:12px;line-height:1.6;margin-top:12px;">You are getting this reminder because you have a TricityMatch account. <a href="${escapeHtml(unsubscribeUrl)}" style="color:${BRAND.soft};text-decoration:underline;">Unsubscribe from reminder emails</a></div>` : ''}
           <div style="color:#B8AEA4;font-size:11px;margin-top:10px;">© ${new Date().getFullYear()} TricityMatch. All rights reserved.</div>
         </td></tr>
       </table>
@@ -208,6 +212,16 @@ const escapeHtml = (str) => String(str ?? '')
   .replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;')
   .replace(/'/g, '&#39;');
+
+// Reminder / promotional mail carries an opt-out: a footer link for people and
+// the RFC 8058 headers for Gmail/Yahoo's own "Unsubscribe" button. Mail about a
+// member's own money or account (payment problems, dates, OTP, security) never
+// does — it is not optional.
+const unsubscribeHeaders = (unsub) => (unsub && unsub.oneClickUrl ? {
+  'List-Unsubscribe': `<${unsub.oneClickUrl}>`,
+  'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+} : undefined);
+const unsubscribeText = (unsub) => (unsub && unsub.pageUrl ? `\n\nUnsubscribe from reminder emails: ${unsub.pageUrl}` : '');
 
 // Small reusable panel (used for plan box, reason box, etc.)
 const panel = (inner, { accent = BRAND.burgundy } = {}) =>
@@ -331,7 +345,7 @@ const templates = {
     text: `Hi ${name}, your TricityMatch profile is now verified. View it: ${config.server.frontendUrl}/profile`,
   }),
 
-  weeklyDigest: (name, matchCount, profilesHtml) => ({
+  weeklyDigest: (name, matchCount, profilesHtml, unsub) => ({
     subject: `${matchCount} new matches this week on TricityMatch`,
     html: brandLayout({
       eyebrow: 'Your Weekly Matches',
@@ -342,8 +356,10 @@ const templates = {
         ${profilesHtml || ''}
         <p style="color:${BRAND.soft};font-size:13px;text-align:center;margin-top:18px;">Log in to see full profiles and send interest.</p>`,
       cta: { href: `${config.server.frontendUrl}/search`, label: 'View All Matches' },
+      unsubscribeUrl: unsub && unsub.pageUrl,
     }),
-    text: `Hi ${name}, You have ${matchCount} new profiles matching your preferences this week on TricityMatch. Log in to view them: ${config.server.frontendUrl}/search`,
+    text: `Hi ${name}, You have ${matchCount} new profiles matching your preferences this week on TricityMatch. Log in to view them: ${config.server.frontendUrl}/search${unsubscribeText(unsub)}`,
+    headers: unsubscribeHeaders(unsub),
   }),
 
   // ── Lifecycle mail ─────────────────────────────────────────────────────
@@ -373,7 +389,7 @@ const templates = {
   // Closed the payment window without paying. Sent once, a day or more later,
   // and at most once a month — never a chase. It answers the questions people
   // actually stop on, and states only what the published policies say.
-  checkoutFollowUp: (name, planName) => ({
+  checkoutFollowUp: (name, planName, unsub) => ({
     subject: 'Questions about Premium?',
     html: brandLayout({
       eyebrow: 'A quick note',
@@ -384,8 +400,10 @@ const templates = {
         <p>In case it helps you decide: it is a single payment with no auto-renewal, and you can ask for a refund within seven days of paying without giving a reason. The details are on our <a href="${config.server.frontendUrl}/refund-policy" style="color:${BRAND.burgundy};">refund policy</a> page.</p>
         <p>If something else is holding you back, reply to this email and a person will answer.</p>`,
       cta: { href: `${config.server.frontendUrl}/subscription`, label: 'See Premium' },
+      unsubscribeUrl: unsub && unsub.pageUrl,
     }),
-    text: `Hi ${name}, you looked at the ${planName} membership and did not go ahead. Nothing was charged and there is no rush. It is a single payment with no auto-renewal, and you can ask for a refund within seven days of paying without giving a reason (${config.server.frontendUrl}/refund-policy). Questions? Reply to this email. ${config.server.frontendUrl}/subscription`,
+    text: `Hi ${name}, you looked at the ${planName} membership and did not go ahead. Nothing was charged and there is no rush. It is a single payment with no auto-renewal, and you can ask for a refund within seven days of paying without giving a reason (${config.server.frontendUrl}/refund-policy). Questions? Reply to this email. ${config.server.frontendUrl}/subscription${unsubscribeText(unsub)}`,
+    headers: unsubscribeHeaders(unsub),
   }),
 
   // Ends on a real date, said plainly.
@@ -420,7 +438,7 @@ const templates = {
 
   // A fortnight after expiry, and only if there is something real to come back
   // for — the caller passes the count and skips the send when it is zero.
-  winBack: (name, newProfiles) => ({
+  winBack: (name, newProfiles, unsub) => ({
     subject: `${newProfiles} new ${newProfiles === 1 ? 'profile' : 'profiles'} in the Tricity since your membership ended`,
     html: brandLayout({
       eyebrow: 'New members',
@@ -429,12 +447,14 @@ const templates = {
         <p style="margin-top:0;">Hi ${escapeHtml(name)},</p>
         <p><strong>${escapeHtml(String(newProfiles))} new ${newProfiles === 1 ? 'member' : 'members'}</strong> from the Tricity ${newProfiles === 1 ? 'has' : 'have'} joined since your membership ended. Your profile is exactly as you left it.</p>`,
       cta: { href: `${config.server.frontendUrl}/search`, label: 'See who has joined' },
+      unsubscribeUrl: unsub && unsub.pageUrl,
     }),
-    text: `Hi ${name}, ${newProfiles} new ${newProfiles === 1 ? 'member has' : 'members have'} joined TricityMatch since your membership ended. ${config.server.frontendUrl}/search`,
+    text: `Hi ${name}, ${newProfiles} new ${newProfiles === 1 ? 'member has' : 'members have'} joined TricityMatch since your membership ended. ${config.server.frontendUrl}/search${unsubscribeText(unsub)}`,
+    headers: unsubscribeHeaders(unsub),
   }),
 
   // No photo on the profile. One plain ask, made at most twice.
-  addPhotoNudge: (name) => ({
+  addPhotoNudge: (name, unsub) => ({
     subject: 'Add a photo to your TricityMatch profile',
     html: brandLayout({
       eyebrow: 'Your profile',
@@ -444,8 +464,10 @@ const templates = {
         <p>Your profile is live but has no photo yet. Most people open the profiles that have one first, so it is the simplest way to be seen.</p>
         <p>Your photos stay private from anyone you have not matched with, and you can blur them for non-matches in Settings &rarr; Privacy.</p>`,
       cta: { href: `${config.server.frontendUrl}/profile/edit?section=photos`, label: 'Add a photo' },
+      unsubscribeUrl: unsub && unsub.pageUrl,
     }),
-    text: `Hi ${name}, your TricityMatch profile is live but has no photo yet. Add one: ${config.server.frontendUrl}/profile/edit?section=photos`,
+    text: `Hi ${name}, your TricityMatch profile is live but has no photo yet. Add one: ${config.server.frontendUrl}/profile/edit?section=photos${unsubscribeText(unsub)}`,
+    headers: unsubscribeHeaders(unsub),
   }),
 
   // One-time verification code (email OTP: signup / email-change).
@@ -516,8 +538,8 @@ const templates = {
 const sendEmail = async (arg1, template, data = {}) => {
   // Shape 3: single object with a `to` field.
   if (arg1 && typeof arg1 === 'object' && arg1.to) {
-    const { to, subject, html, text, replyTo, channel } = arg1;
-    return deliver({ to, subject, html, text, replyTo, channel });
+    const { to, subject, html, text, replyTo, channel, headers } = arg1;
+    return deliver({ to, subject, html, text, replyTo, channel, headers });
   }
 
   const to = arg1;
@@ -538,6 +560,7 @@ const sendEmail = async (arg1, template, data = {}) => {
     text: emailContent.text,
     replyTo: emailContent.replyTo,
     channel: emailContent.channel,
+    headers: emailContent.headers,
   });
 };
 
@@ -561,8 +584,8 @@ const sendVerificationApproved = (to, name) => sendEmail(to, 'verificationApprov
 const sendVerificationRejected = (to, name, reason) => sendEmail(to, 'verificationRejected', { name, reason });
 
 // Send weekly digest email
-const sendWeeklyDigest = (to, name, matchCount, profilesHtml) =>
-  sendEmail(to, 'weeklyDigest', { name, matchCount, profilesHtml });
+const sendWeeklyDigest = (to, name, matchCount, profilesHtml, unsub) =>
+  sendEmail(to, 'weeklyDigest', { name, matchCount, profilesHtml, unsub });
 
 // Send email OTP (branded template)
 const sendOtpEmail = (to, code, purpose) => sendEmail(to, 'otpCode', { code, purpose });
@@ -581,8 +604,8 @@ const sendSupportReply = (to, name, replyBody, originalMessage) =>
 const sendPaymentFailed = (to, name, planName, price) =>
   sendEmail(to, 'paymentFailed', { name, planName, price });
 
-const sendCheckoutFollowUp = (to, name, planName) =>
-  sendEmail(to, 'checkoutFollowUp', { name, planName });
+const sendCheckoutFollowUp = (to, name, planName, unsub) =>
+  sendEmail(to, 'checkoutFollowUp', { name, planName, unsub });
 
 const sendRenewalReminder = (to, name, planName, expiryDate, daysLeft) =>
   sendEmail(to, 'renewalReminder', { name, planName, expiryDate, daysLeft });
@@ -590,10 +613,10 @@ const sendRenewalReminder = (to, name, planName, expiryDate, daysLeft) =>
 const sendMembershipExpired = (to, name, planName) =>
   sendEmail(to, 'membershipExpired', { name, planName });
 
-const sendWinBack = (to, name, newProfiles) =>
-  sendEmail(to, 'winBack', { name, newProfiles });
+const sendWinBack = (to, name, newProfiles, unsub) =>
+  sendEmail(to, 'winBack', { name, newProfiles, unsub });
 
-const sendAddPhotoNudge = (to, name) => sendEmail(to, 'addPhotoNudge', { name });
+const sendAddPhotoNudge = (to, name, unsub) => sendEmail(to, 'addPhotoNudge', { name, unsub });
 
 module.exports = {
   sendEmail,

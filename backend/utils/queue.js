@@ -256,9 +256,10 @@ const setupCleanupProcessor = (queue) => {
         where: { isActive: true, gender: { [Op.in]: ['male', 'female'] } },
         attributes: ['gender', 'city', 'preferredAgeMin', 'preferredAgeMax', 'firstName']
       }],
-      attributes: ['id', 'email'],
+      attributes: ['id', 'email', 'lifecycleMail'],
       limit: 500 // batch size — prevents memory overload on large user base
     });
+    const { linksFor } = require('./emailUnsubscribe');
 
     let sent = 0;
     for (const user of users) {
@@ -315,8 +316,11 @@ const setupCleanupProcessor = (queue) => {
           : await Profile.count({ where: baseWhere });
 
         if (matchCount > 0) {
-          // Email digest
-          await sendWeeklyDigest(user.email, profile.firstName || 'there', matchCount, '');
+          // Email digest — skipped for a member who unsubscribed from reminder
+          // mail (the push below is a separate channel and is unaffected).
+          if (!user.lifecycleMail?.emailOptOut) {
+            await sendWeeklyDigest(user.email, profile.firstName || 'there', matchCount, '', linksFor(user.id));
+          }
 
           // Push notification (APP-047) — best-effort, non-blocking
           if (user.fcmTokens?.length) {
@@ -680,6 +684,7 @@ module.exports = {
   runSubscriptionLifecycle: (...args) => lifecycle().runSubscriptionLifecycle(...args),
   runPhotoNudge: (...args) => lifecycle().runPhotoNudge(...args),
   initQueues,
+  setupCleanupProcessor, // exported for tests: the digest processor is otherwise unreachable without Redis
   addJob,
   getQueue,
   scheduleCleanupJobs,

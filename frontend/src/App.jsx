@@ -55,6 +55,7 @@ const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const Terms = lazy(() => import('./pages/Terms'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const DeleteAccount = lazy(() => import('./pages/DeleteAccount'));
+const Unsubscribe = lazy(() => import('./pages/Unsubscribe'));
 const RefundPolicy = lazy(() => import('./pages/RefundPolicy'));
 const About = lazy(() => import('./pages/About'));
 const Contact = lazy(() => import('./pages/Contact'));
@@ -193,6 +194,11 @@ const AnimatedRoutes = () => {
           <Route path="/delete-account" element={
             <PageTransition>
               <DeleteAccount />
+            </PageTransition>
+          } />
+          <Route path="/unsubscribe" element={
+            <PageTransition>
+              <Unsubscribe />
             </PageTransition>
           } />
           <Route path="/about" element={

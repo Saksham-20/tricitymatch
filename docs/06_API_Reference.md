@@ -569,6 +569,23 @@ Also emitted via Socket.io to both parties.
 
 ---
 
+## 6b. Reminder-mail preferences — `/email`
+
+**Public, signed-link authenticated** (no login). Reminder and promotional mail (checkout follow-up, photo reminder, win-back, weekly digest) carries an unsubscribe link and RFC 8058 `List-Unsubscribe` headers. Mail about the member's own money or account (payment problems, renewal/expiry dates, OTPs, security alerts, receipts) is not optional and carries neither. The link is `u=<userId>&t=<HMAC>` (see `utils/emailUnsubscribe.js`); it never expires and rotating `JWT_SECRET` invalidates links already sent. Rate: 60 per 15 min per address.
+
+### `POST /email/unsubscribe`
+Records the opt-out (`emailOptOut` on the member's `lifecycleMail` ledger). Accepts `u`/`t` in the query string (the `List-Unsubscribe` header URL — mailbox providers POST here with no `Origin`, so this path is exempt from the strict no-Origin CORS rule) or in a JSON body (the `/unsubscribe` confirmation page).
+
+**Response 200:** `{ "success": true, "unsubscribed": true }` · **400** on a missing/forged link.
+
+### `POST /email/resubscribe`
+Undo. Same `u`/`t`, JSON body. **Response 200:** `{ "success": true, "unsubscribed": false }`
+
+### `GET /email/unsubscribe`
+Never unsubscribes (mail-security scanners prefetch links). 302 to the frontend `/unsubscribe` confirmation page.
+
+---
+
 ## 7. Verification — `/verification`
 
 ### `GET /verification/status`

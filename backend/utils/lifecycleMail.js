@@ -24,6 +24,8 @@
  *    member's own money or plan, once per subscription, and are not asking for
  *    anything. They still count toward the gap, so a nudge never lands hard on
  *    the heels of one.
+ *  • A member who used the unsubscribe link (`emailOptOut` on their ledger) gets
+ *    no nudges at all. Notices are not optional and still go.
  *  • Cancelling a checkout leaves NOTHING pending. A pending order means one
  *    thing only: money may have moved, or a payment attempt failed.
  *  • There is no "you left something in your cart" mail. Closing the payment
@@ -34,6 +36,8 @@
 const { Op, literal } = require('sequelize');
 const { log } = require('../middlewares/logger');
 const { HOUR_MS, DAY_MS, inSendWindow, isDue, jitterHours } = require('./lifecycleWindow');
+const { patchUserLedger } = require('./userLedger');
+const { linksFor } = require('./emailUnsubscribe');
 
 const CADENCE = {
   // Minimum spacing between any two NUDGES to one member.
@@ -80,6 +84,8 @@ const ms = (value) => new Date(value).getTime();
 // configured, so marking on a bare call would silently burn the one send this
 // member ever gets. Only a real delivery counts.
 const delivered = (result) => !result || result.success !== false;
+
+const optedOut = (user) => Boolean(user?.lifecycleMail?.emailOptOut);
 
 const memberQuiet = (user, nowMs) => {
   const last = user?.lifecycleMail?.lastSentAt;
@@ -156,8 +162,11 @@ const runSubscriptionLifecycle = async (now = new Date()) => {
   // with a stale ledger, so the per-member gap alone cannot stop a double send.
   const mailedThisRun = new Set();
 
+  // Atomic merge in Postgres, not a whole-object write from this instance: the
+  // ledger also carries `emailOptOut`, and a stale write-back would erase an
+  // unsubscribe that landed while this run was sending.
   const stampMember = (user, extra = {}) =>
-    user.update({ lifecycleMail: { ...(user.lifecycleMail || {}), lastSentAt: now.toISOString(), ...extra } });
+    patchUserLedger(user.id, { lastSentAt: now.toISOString(), ...extra });
 
   const holdsPaidPlan = async (userId) =>
     (await Subscription.count({
@@ -169,7 +178,8 @@ const runSubscriptionLifecycle = async (now = new Date()) => {
   const mayMail = (sub, { notice = false } = {}) => {
     const user = sub.User;
     if (!user?.email || mailedThisRun.has(user.id)) return false;
-    return notice || memberQuiet(user, nowMs);
+    if (notice) return true;
+    return !optedOut(user) && memberQuiet(user, nowMs);
   };
 
   // Claim first, send second. If the claim cannot be written nothing is sent —
@@ -257,7 +267,7 @@ const runSubscriptionLifecycle = async (now = new Date()) => {
     });
     if (retrying > 0) continue;
     if (await dispatch(sub, 'checkoutFollowUp',
-      () => email.sendCheckoutFollowUp(sub.User.email, nameOf(sub), labelOf(sub.planType)),
+      () => email.sendCheckoutFollowUp(sub.User.email, nameOf(sub), labelOf(sub.planType), linksFor(sub.User.id)),
       { checkoutFollowUpAt: now.toISOString() })) {
       counts.followUp += 1;
     }
@@ -325,7 +335,7 @@ const runSubscriptionLifecycle = async (now = new Date()) => {
     if (!isDue(`${sub.id}:winback`, now) || !mayMail(sub)) continue;
     const newProfiles = await Profile.count({ where: { isActive: true, createdAt: { [Op.gt]: sub.endDate } } });
     if (newProfiles < 1) continue;
-    if (await dispatch(sub, 'winback', () => email.sendWinBack(sub.User.email, nameOf(sub), newProfiles))) {
+    if (await dispatch(sub, 'winback', () => email.sendWinBack(sub.User.email, nameOf(sub), newProfiles, linksFor(sub.User.id)))) {
       counts.winback += 1;
     }
   }
@@ -354,7 +364,10 @@ const runPhotoNudge = async (now = new Date()) => {
       // The ledger is filtered in SQL, not in JS: once a member has had both
       // nudges they stay a "no photo" candidate forever, and a JS-side skip
       // would let those rows fill every batch and starve everyone behind them.
-      [Op.and]: [literal('"User"."lifecycleMail"->>\'photoNudge2\' IS NULL')],
+      [Op.and]: [
+        literal('"User"."lifecycleMail"->>\'photoNudge2\' IS NULL'),
+        literal('"User"."lifecycleMail"->>\'emailOptOut\' IS NULL'),
+      ],
     },
     include: [{
       model: Profile,
@@ -372,7 +385,7 @@ const runPhotoNudge = async (now = new Date()) => {
 
   let sent = 0;
   for (const user of candidates) {
-    if (!user.email) continue;
+    if (!user.email || optedOut(user)) continue;
     const ledger = user.lifecycleMail || {};
 
     let key = null;
@@ -388,24 +401,30 @@ const runPhotoNudge = async (now = new Date()) => {
     if (!key) continue;
     if (!isDue(`${user.id}:${key}`, now) || !memberQuiet(user, nowMs)) continue;
 
-    const claimed = { ...ledger, [key]: now.toISOString(), lastSentAt: now.toISOString() };
+    // Claim first (atomic merge), send second, release on failure. The release
+    // puts back whatever `lastSentAt` was before the claim overwrote it.
+    const release = () => patchUserLedger(
+      user.id,
+      ledger.lastSentAt ? { lastSentAt: ledger.lastSentAt } : {},
+      ledger.lastSentAt ? [key] : [key, 'lastSentAt']
+    ).catch(() => null);
     try {
-      await user.update({ lifecycleMail: claimed });
+      await patchUserLedger(user.id, { [key]: now.toISOString(), lastSentAt: now.toISOString() });
     } catch (err) {
       log.error('Photo nudge ledger write failed — not sending', { userId: user.id, error: err.message });
       continue;
     }
     try {
-      const result = await email.sendAddPhotoNudge(user.email, user.Profile?.firstName || 'there');
+      const result = await email.sendAddPhotoNudge(user.email, user.Profile?.firstName || 'there', linksFor(user.id));
       // An undelivered nudge must not consume the member's one-and-only ask.
       if (!delivered(result)) {
-        await user.update({ lifecycleMail: ledger }).catch(() => null);
+        await release();
         continue;
       }
       sent += 1;
     } catch (err) {
       log.warn('Photo nudge failed', { userId: user.id, error: err.message });
-      await user.update({ lifecycleMail: ledger }).catch(() => null);
+      await release();
     }
   }
 
