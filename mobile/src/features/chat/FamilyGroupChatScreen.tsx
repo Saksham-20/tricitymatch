@@ -34,6 +34,7 @@ import { queryKeys } from '../../constants/queryKeys';
 import { useAuthStore } from '../../stores/authStore';
 import { useSocket } from '../../hooks/useSocket';
 import type { MainStackParamList } from '../../navigation/types';
+import { CHAT_LIST_PERF } from '../../constants/listPerf';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 type Route = RouteProp<MainStackParamList, 'FamilyGroupChat'>;
@@ -418,6 +419,7 @@ export default function FamilyGroupChatScreen() {
         </View>
       ) : (
         <FlatList
+          {...CHAT_LIST_PERF}
           ref={listRef}
           data={messages}
           keyExtractor={(item) => item.id}

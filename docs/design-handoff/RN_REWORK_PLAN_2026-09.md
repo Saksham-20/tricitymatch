@@ -354,29 +354,42 @@ seal (celebration, not on the doctrine's score/meter/free-tier/text list, left a
 **Gates:** tsc, tests, lint, and each sub-step audited by a fresh agent against §10.11 before the next
 starts — met for 3.1–3.8 via the Workflow verify stages (3.1, 3.3, 3.4) or direct gate runs (3.2, 3.5, 3.6,
 3.7, 3.8, 3.9). The Phase 3 closing full-doctrine audit (§10.11) and 3.8's deferred Badge/Chip/IconButton
-sweep remain before Phase 4.
+sweep remain (Phase 4 has since shipped, 2026-09-21).
 
 ---
 
-## Phase 4 — Chrome: sheets, lists, navigation
+## Phase 4 — Chrome: sheets, lists, navigation — DONE 2026-09-21
 
-Small, mechanical, high user-visible payoff.
+Small, mechanical, high user-visible payoff. Gates: mobile tsc 0, jest 57/57, root lint 0 errors with the
+mobile warning count unchanged at 182, slop-lint clean.
 
-**4.1 One sheet mechanism per job** (§10.7). Three coexist: gorhom (1 file), RN `<Modal animationType="slide">`
-(21 `<Modal>` across 18 files), and hand-rolled `TouchableOpacity` backdrops (`SearchScreen.tsx:97,140`).
-Retire the hand-rolled ones. **Verified while looking:** RN `<Modal>` renders in its own native window above
-the absolutely-positioned pill, so it does **not** need `uiStore.bottomSheetOpen`; only gorhom does
-(`FilterPanel.tsx:272-277` is the reference).
+**4.1 One sheet mechanism per job** (§10.7). Rule applied: draggable/detented → gorhom (`FilterPanel`),
+full-screen takeover → native-stack `presentation:'modal'`, single-select → the `PickerSheet` primitive.
+`SearchScreen`'s sort sheet and `SettingsScreen`'s language picker were the hand-rolled `TouchableOpacity`
+backdrops; both are now `PickerSheet`. **Deliberately kept:** the form/confirm RN `<Modal>` sheets (delete-account
+confirm, report/block, note entry etc.). They own text inputs; converting them to gorhom reintroduces the
+keyboard-avoidance and closed-backdrop-swallows-touches failure already hit once (2026-08-19, Search touch-dead),
+for no gain. RN `<Modal>` renders in its own native window above the pill so it needs no `bottomSheetOpen`.
 
-**4.2 Configure every long list.** 20 `FlatList`s, **one** `getItemLayout`, zero `windowSize` /
-`maxToRenderPerBatch` / `removeClippedSubviews` / `initialNumToRender`. On a mid-range Android this is the
-main jank source in a browse product, and no screenshot will ever show it.
+**4.2 Every long list configured.** New `mobile/src/constants/listPerf.ts`: `LIST_PERF` (initialNumToRender 8,
+maxToRenderPerBatch 6, windowSize 7, `removeClippedSubviews` Android-only) and `CHAT_LIST_PERF` (bigger window;
+no clipping on inverted lists, where it misplaces rows). Spread into 15 FlatLists: Conversations, ChatThread,
+FamilyGroupChat, FamilyGroups, VerificationQueue, ReportsQueue, Matches, Search, AstrologerMarketplace,
+GuardianView, GuardianCandidates, SuccessStoriesBrowse, Notifications, Step11, `PickerSheet`. **Not done, on
+purpose:** `getItemLayout` (rows are not truly fixed-height: wrapped names, optional badges, elder-mode type
+scale; a wrong layout is worse than none). Horizontal rails (few items) are exempt. Note for Phase 5 group C:
+`ChatThreadScreen` still has an `entering` animation on a virtualized row.
 
-**4.3 Navigation options** reviewed against §10.4: `animation: 'none'` on tabs, `'fade'` (not `'none'`) under
-reduce motion outside elder mode, `presentation: 'modal'` only where a screen is genuinely a takeover.
+**4.3 Navigation options.** Tabs stay `animation:'none'` (tabs never slide). `MainNavigator` now computes
+`elderMode ? 'none' : reduceMotion ? 'fade' : <platform default>` through one `anim()` helper for the stack,
+both `presentation:'modal'` screens (Subscription, SuccessStory) and the journey `Stack.Group`. Reduce Motion
+previously still slid; elder mode keeps `'none'` per ruling 18. `AuthNavigator` sets no `animation` so it
+inherits the OS default; left alone. Both modals are genuine takeovers (checkout, story submit).
 
-**4.4 The pill's blur question** (open question 9) resolved one way or the other, with its
-reduce-transparency fallback.
+**4.4 The pill's blur — decided: no blur** (open question 9). At ~95% opacity a blur is invisible, and a live
+blur costs a compositing pass per scroll frame on mid-range Android. Reduce Transparency already forces an
+opaque `c.surfaceCard`. The false "iOS gets real blur" claim is gone from the file header, replaced by the
+decision.
 
 ---
 

@@ -21,6 +21,7 @@ import { colours, spacing, borderRadius, type ThemeColours } from '@shared/const
 import { getFamilyGroups, createFamilyGroup, type FamilyGroup } from '../../api/chat';
 import { queryKeys } from '../../constants/queryKeys';
 import type { MainStackParamList } from '../../navigation/types';
+import { LIST_PERF } from '../../constants/listPerf';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 
@@ -213,6 +214,7 @@ export default function FamilyGroupsScreen() {
         />
       ) : (
         <FlatList
+          {...LIST_PERF}
           data={groups ?? []}
           keyExtractor={(g) => g.id}
           renderItem={({ item }) => <GroupRow group={item} onPress={() => openGroup(item)} />}

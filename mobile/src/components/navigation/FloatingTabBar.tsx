@@ -2,9 +2,11 @@
  * Floating pill tab bar — the current platform-native direction (Apple HIG,
  * 2026: "a tab bar floats above content at the bottom of the screen" on a
  * translucent background). Both platforms currently get the same near-opaque
- * themed surface (`c.surfaceCard + 'F2'`, ~95% opacity) — this does NOT ship
- * a real BlurView on either platform today (doctrine §10 open question 9:
- * whether to add one, with a Reduce Transparency fallback, is a Phase 4 call).
+ * themed surface (`c.surfaceCard + 'F2'`, ~95% opacity). Deliberately NO
+ * BlurView (Phase 4 decision, plan open question 9): at 95% opacity a blur is
+ * not visible, and a live blur costs a compositing pass on every scroll frame on
+ * mid-range Android. The Reduce Transparency setting still flips the pill to a
+ * fully opaque `c.surfaceCard`.
  *
  * Elder mode deliberately does NOT use this component — MainNavigator falls
  * back to the docked full-width bar with larger targets.

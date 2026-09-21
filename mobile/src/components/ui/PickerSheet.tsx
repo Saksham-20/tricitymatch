@@ -6,6 +6,7 @@ import { borderRadius, spacing } from '@shared/constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import Text from './Text';
 import { PressableScale } from '../motion';
+import { LIST_PERF } from '../../constants/listPerf';
 
 export interface PickerOption<T> {
   label: string;
@@ -56,6 +57,7 @@ export default function PickerSheet<T = string>({
         <View style={[styles.grabber, { backgroundColor: c.border }]} />
         <Text variant="title3" color="textPrimary" style={styles.title}>{title}</Text>
         <FlatList
+          {...LIST_PERF}
           data={normalized}
           keyExtractor={(item) => String(item.value)}
           renderItem={({ item }) => {

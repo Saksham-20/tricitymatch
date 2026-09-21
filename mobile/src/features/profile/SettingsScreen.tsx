@@ -16,6 +16,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import Text from '../../components/ui/Text';
 import ListRow from '../../components/ui/ListRow';
+import PickerSheet from '../../components/ui/PickerSheet';
 import { StaggeredEntrance, PressableScale } from '../../components/motion';
 import { showToast } from '../../utils/toast';
 import { useTranslation } from 'react-i18next';
@@ -62,62 +63,6 @@ function Divider() {
   const { c } = useTheme();
   return <View style={{ height: 1, backgroundColor: c.border, marginLeft: 68 }} />;
 }
-
-// ─── Language Picker Modal ─────────────────────────────────────────────────────
-
-function LanguagePicker({ visible, current, onSelect, onClose }: {
-  visible: boolean;
-  current: Language;
-  onSelect: (lang: Language) => void;
-  onClose: () => void;
-}) {
-  const { c } = useTheme();
-  const lp = React.useMemo(() => makeLp(c), [c]);
-  return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <PressableScale
-        style={lp.backdrop}
-        scaleTo={1}
-        onPress={onClose}
-        accessibilityRole="button"
-        accessibilityLabel="Close language picker"
-        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-      >
-        <View style={lp.sheet} testID="language-picker">
-          <View style={lp.handle} />
-          <Text variant="title3" color="textPrimary" style={lp.heading}>Select Language</Text>
-          {LANG_OPTIONS.map((opt) => (
-            <PressableScale
-              key={opt.code}
-              style={lp.option}
-              onPress={() => { onSelect(opt.code); onClose(); }}
-              testID={`lang-option-${opt.code}`}
-              accessibilityLabel={opt.label}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: opt.code === current }}
-              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Text variant="headline" color="textPrimary">{opt.native}</Text>
-              <Text variant="footnote" color="textSecondary" style={lp.optionSub}>{opt.label}</Text>
-              {opt.code === current && (
-                <Ionicons name="checkmark" size={20} color={c.primary} style={{ marginLeft: 'auto' }} />
-              )}
-            </PressableScale>
-          ))}
-        </View>
-      </PressableScale>
-    </Modal>
-  );
-}
-
-const makeLp = (c: ThemeColours) => StyleSheet.create({
-  backdrop:   { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  sheet:      { backgroundColor: c.background, borderTopLeftRadius: borderRadius.xl, borderTopRightRadius: borderRadius.xl, padding: spacing.xl, paddingBottom: spacing['3xl'] },
-  handle:     { width: 40, height: 4, borderRadius: 2, backgroundColor: c.border, alignSelf: 'center', marginBottom: spacing.lg },
-  heading:    { marginBottom: spacing.lg },
-  option:     { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: c.border, gap: spacing.md },
-  optionSub:  { marginLeft: spacing.sm },
-});
 
 // ─── Delete Account Modal ─────────────────────────────────────────────────────
 
@@ -525,10 +470,15 @@ export default function SettingsScreen() {
         <View style={{ height: spacing['3xl'] }} />
       </ScrollView>
 
-      <LanguagePicker
+      <PickerSheet<Language>
         visible={showLangPicker}
-        current={language as Language}
-        onSelect={handleLanguage}
+        title="Select language"
+        options={LANG_OPTIONS.map((o) => ({
+          value: o.code,
+          label: o.native === o.label ? o.label : `${o.native} · ${o.label}`,
+        }))}
+        selected={language}
+        onSelect={(v) => handleLanguage(v as Language)}
         onClose={() => setShowLangPicker(false)}
       />
 

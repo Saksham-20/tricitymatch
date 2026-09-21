@@ -34,6 +34,7 @@ import type { Match, MatchAction } from '../../types';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
 import { hasPremiumAccess } from '../../utils/entitlements';
+import { LIST_PERF } from '../../constants/listPerf';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 
@@ -352,6 +353,7 @@ function TabContent({ activeTab }: { activeTab: TabKey }) {
         />
       )}
       <FlatList
+        {...LIST_PERF}
         data={matches}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (

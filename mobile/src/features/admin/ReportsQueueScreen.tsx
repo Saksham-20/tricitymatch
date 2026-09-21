@@ -20,6 +20,7 @@ import Input from '../../components/ui/Input';
 import EmptyState from '../../components/ui/EmptyState';
 import { SkeletonBlock } from '../../components/ui/Skeleton';
 import { PressableScale } from '../../components/motion';
+import { LIST_PERF } from '../../constants/listPerf';
 
 interface ReportItem {
   id: string;
@@ -240,6 +241,7 @@ export default function ReportsQueueScreen() {
         />
       ) : (
         <FlatList
+          {...LIST_PERF}
           data={data ?? []}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (

@@ -19,6 +19,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import { getAstrologers } from '../../api/profile';
 import type { Astrologer } from '../../api/profile';
 import type { MainStackParamList } from '../../navigation/types';
+import { LIST_PERF } from '../../constants/listPerf';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 
@@ -187,6 +188,7 @@ export default function AstrologerMarketplaceScreen() {
         />
       ) : (
         <FlatList
+          {...LIST_PERF}
           data={filtered}
           keyExtractor={a => a.id}
           contentContainerStyle={{ padding: spacing.md, paddingBottom: spacing.xl * 2 }}

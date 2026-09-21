@@ -26,12 +26,13 @@ import { showToast } from '../../utils/toast';
 import { performMatchAction } from '../../api/matches';
 import { queryKeys } from '../../constants/queryKeys';
 import ProfileCard from '../../components/cards/ProfileCard';
-import { EmptyState as SharedEmpty, SkeletonBlock } from '../../components/ui';
+import { EmptyState as SharedEmpty, PickerSheet, SkeletonBlock } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
 import FilterPanel, { type FilterPanelHandle } from '../../components/search/FilterPanel';
 import type { MainStackParamList } from '../../navigation/types';
 import type { SearchFilters, ProfileSummary, MatchAction } from '../../types';
 import { formatProfileCode, parseProfileCode } from '../../utils/profileCode';
+import { LIST_PERF } from '../../constants/listPerf';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 
@@ -75,58 +76,6 @@ const makeSk = (c: ThemeColours) => StyleSheet.create({
     borderColor: c.border,
   },
   body: { padding: spacing.md },
-});
-
-// ─── Sort Picker Modal ────────────────────────────────────────────────────────
-
-function SortPicker({
-  visible,
-  current,
-  onSelect,
-  onClose,
-}: {
-  visible: boolean;
-  current: SortOption;
-  onSelect: (v: SortOption) => void;
-  onClose: () => void;
-}) {
-  const { c } = useTheme();
-  const sp = React.useMemo(() => makeSp(c), [c]);
-  return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <PressableScale
-        style={sp.backdrop}
-        onPress={onClose}
-        scaleTo={1}
-        accessibilityRole="button"
-        accessibilityLabel="Close sort options"
-        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-      >
-        <View style={sp.sheet}>
-          <Text variant="headline" color="textPrimary" style={sp.title}>Sort By</Text>
-          {SORT_OPTIONS.map((o) => (
-            <PressableScale
-              key={o.value}
-              style={sp.option}
-              onPress={() => { onSelect(o.value); onClose(); }}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: current === o.value }}
-              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Text variant="callout" color={current === o.value ? 'primary' : 'textSecondary'}>{o.label}</Text>
-              {current === o.value && <Ionicons name="checkmark" size={18} color={c.primary} />}
-            </PressableScale>
-          ))}
-        </View>
-      </PressableScale>
-    </Modal>
-  );
-}
-const makeSp = (c: ThemeColours) => StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: c.background, borderTopLeftRadius: borderRadius.xl, borderTopRightRadius: borderRadius.xl, padding: spacing.lg, paddingBottom: spacing['3xl'] },
-  title: { marginBottom: spacing.md },
-  option: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.md },
 });
 
 // ─── Save Search Modal ────────────────────────────────────────────────────────
@@ -468,6 +417,7 @@ export default function SearchScreen() {
         />
       ) : (
         <FlatList
+          {...LIST_PERF}
           data={profiles}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
@@ -499,11 +449,13 @@ export default function SearchScreen() {
       />
 
       {/* Sort Picker */}
-      <SortPicker
+      <PickerSheet<SortOption>
         visible={showSort}
-        current={currentSort}
+        title="Sort by"
+        options={SORT_OPTIONS}
+        selected={currentSort}
         onSelect={(v) => {
-          setFilters((f) => ({ ...f, sort: v }));
+          setFilters((f) => ({ ...f, sort: v as SortOption }));
           refetch();
         }}
         onClose={() => setShowSort(false)}

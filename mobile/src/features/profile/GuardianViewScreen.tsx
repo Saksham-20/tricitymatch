@@ -21,6 +21,7 @@ import { getGuardianMatches, getGuardianShortlist } from '../../api/guardian';
 import { queryKeys } from '../../constants/queryKeys';
 import type { MainStackParamList } from '../../navigation/types';
 import type { ProfileSummary } from '../../types';
+import { LIST_PERF } from '../../constants/listPerf';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 type Route = RouteProp<MainStackParamList, 'GuardianView'>;
@@ -196,6 +197,7 @@ export default function GuardianViewScreen() {
         </View>
       ) : (
         <FlatList
+          {...LIST_PERF}
           data={profiles}
           keyExtractor={(p) => p.id}
           renderItem={({ item }) => (

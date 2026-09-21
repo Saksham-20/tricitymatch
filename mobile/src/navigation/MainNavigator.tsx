@@ -9,7 +9,7 @@ import type { MainStackParamList, MainTabParamList, AdminStackParamList } from '
 import { colours, tapTarget } from '@shared/constants/theme';
 import { useAuthStore } from '../stores/authStore';
 import { useUIStore } from '../stores/uiStore';
-import { TabIcon } from '../components/motion';
+import { TabIcon, useReduceMotion } from '../components/motion';
 import FloatingTabBar from '../components/navigation/FloatingTabBar';
 import NotificationPrimingSheet from '../components/NotificationPrimingSheet';
 import { useNotificationHandler } from '../hooks/useNotificationHandler';
@@ -155,6 +155,11 @@ function AdminNavigator() {
 
 export default function MainNavigator() {
   const { elderMode } = useUIStore();
+  const reduceMotion = useReduceMotion();
+  // Elder mode drops navigation animation outright; Reduce Motion keeps a gentle
+  // fade (doctrine ruling 18: gentler, not zero) so the app still visibly hears the tap.
+  const anim = <T extends 'default' | 'slide_from_right' | 'slide_from_bottom'>(normal: T) =>
+    elderMode ? ('none' as const) : reduceMotion ? ('fade' as const) : normal;
   const { user } = useAuthStore();
   // Push registration mounts only after the member accepted the priming sheet
   // (which we show after their first like — never on cold start).
@@ -181,7 +186,7 @@ export default function MainNavigator() {
         // iOS keeps the native slide (interactive edge-swipe pop comes free);
         // Android's stock "default" is an abrupt fade-zoom — a consistent
         // slide-from-right reads as hierarchy on both platforms.
-        animation: elderMode ? 'none' : Platform.OS === 'android' ? 'slide_from_right' : 'default',
+        animation: anim(Platform.OS === 'android' ? 'slide_from_right' : 'default'),
       }}
     >
       <Stack.Screen name="MainTabs" component={BottomTabs} />
@@ -202,7 +207,7 @@ export default function MainNavigator() {
       <Stack.Screen
         name="Subscription"
         component={SubscriptionScreen}
-        options={{ presentation: 'modal', animation: elderMode ? 'none' : 'slide_from_bottom' }}
+        options={{ presentation: 'modal', animation: anim('slide_from_bottom') }}
       />
       <Stack.Screen name="Verification" component={VerificationScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
@@ -212,7 +217,7 @@ export default function MainNavigator() {
       <Stack.Screen
         name="SuccessStory"
         component={SuccessStoryScreen}
-        options={{ presentation: 'modal', animation: elderMode ? 'none' : 'slide_from_bottom' }}
+        options={{ presentation: 'modal', animation: anim('slide_from_bottom') }}
       />
       <Stack.Screen name="SuccessStoriesBrowse" component={SuccessStoriesBrowseScreen} />
       <Stack.Screen name="Support" component={SupportScreen} />
@@ -247,7 +252,7 @@ export default function MainNavigator() {
 
       {/* Preferences journey (D6) — skippable, resumable; entered via
           HomeScreen auto-prompt or profile-completion CTAs */}
-      <Stack.Group screenOptions={{ gestureEnabled: false, animation: elderMode ? 'none' : 'slide_from_bottom' }}>
+      <Stack.Group screenOptions={{ gestureEnabled: false, animation: anim('slide_from_bottom') }}>
         <Stack.Screen name="Step2" component={Step2Screen} />
         <Stack.Screen name="Step3" component={Step3Screen} />
         <Stack.Screen name="Step4" component={Step4Screen} />

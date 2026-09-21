@@ -20,6 +20,7 @@ import { colours, spacing, borderRadius, type ThemeColours } from '@shared/const
 import { getGuardianCandidates, type GuardianLink } from '../../api/guardian';
 import { queryKeys } from '../../constants/queryKeys';
 import type { MainStackParamList } from '../../navigation/types';
+import { LIST_PERF } from '../../constants/listPerf';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 
@@ -116,6 +117,7 @@ export default function GuardianCandidatesScreen() {
         />
       ) : (
         <FlatList
+          {...LIST_PERF}
           data={activeLinks}
           keyExtractor={(l) => l.id}
           renderItem={({ item }) => <CandidateRow link={item} onPress={() => openCandidate(item)} />}

@@ -22,6 +22,7 @@ import { getConversations } from '../../api/chat';
 import { queryKeys } from '../../constants/queryKeys';
 import type { MainStackParamList } from '../../navigation/types';
 import type { Conversation, Message } from '../../types';
+import { LIST_PERF } from '../../constants/listPerf';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 
@@ -214,6 +215,7 @@ export default function ConversationsScreen() {
         </View>
       ) : (
         <FlatList
+          {...LIST_PERF}
           data={conversations}
           keyExtractor={(item) => item.userId}
           renderItem={({ item }) => <ConversationCard item={item} locked={rowLocked(item)} onPress={() => handlePress(item)} />}

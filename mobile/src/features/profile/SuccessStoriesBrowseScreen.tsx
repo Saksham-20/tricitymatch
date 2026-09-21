@@ -18,6 +18,7 @@ import { colours, spacing, borderRadius, type ThemeColours } from '@shared/const
 import SmartImage from '../../components/common/SmartImage';
 import { getSuccessStories, type SuccessStory } from '../../api/profile';
 import type { MainStackParamList } from '../../navigation/types';
+import { LIST_PERF } from '../../constants/listPerf';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 
@@ -98,6 +99,7 @@ export default function SuccessStoriesBrowseScreen() {
         />
       ) : (
         <FlatList
+          {...LIST_PERF}
           data={stories}
           keyExtractor={(s) => s.id}
           renderItem={({ item }) => <StoryCard story={item} />}

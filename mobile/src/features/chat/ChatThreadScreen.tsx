@@ -49,6 +49,7 @@ import { CONFIG } from '../../constants/config';
 import { queryKeys } from '../../constants/queryKeys';
 import type { MainStackParamList } from '../../navigation/types';
 import type { Message } from '../../types';
+import { CHAT_LIST_PERF } from '../../constants/listPerf';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 type Route = RouteProp<MainStackParamList, 'ChatThread'>;
@@ -828,6 +829,7 @@ export default function ChatThreadScreen() {
 
       {/* Message list (inverted — newest at bottom) */}
       <FlatList
+        {...CHAT_LIST_PERF}
         data={messages}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}

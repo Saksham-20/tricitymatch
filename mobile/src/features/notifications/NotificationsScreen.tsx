@@ -24,6 +24,7 @@ import {
   markRead,
   markAllRead,
 } from '../../api/notifications';
+import { LIST_PERF } from '../../constants/listPerf';
 
 type NavProp = NavigationProp<MainStackParamList>;
 
@@ -247,6 +248,7 @@ export default function NotificationsScreen() {
         </View>
       ) : (
         <FlatList
+          {...LIST_PERF}
           data={allNotifications}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (

@@ -21,6 +21,7 @@ import Text from '../../components/ui/Text';
 import Input from '../../components/ui/Input';
 import { EmptyState, SkeletonBlock } from '../../components/ui';
 import { PressableScale } from '../../components/motion';
+import { LIST_PERF } from '../../constants/listPerf';
 
 /**
  * Matches what `GET /admin/verifications` returns: the reviewed user arrives
@@ -232,6 +233,7 @@ export default function VerificationQueueScreen() {
         />
       ) : (
         <FlatList
+          {...LIST_PERF}
           data={data ?? []}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (

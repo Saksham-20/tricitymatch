@@ -196,6 +196,7 @@ function PickerSheet({ visible, title, options, selected, onSelect, onClose }: P
       <View style={styles.sheet}>
         <Text variant="headline" color="textPrimary" style={styles.sheetTitle}>{title}</Text>
         <FlatList
+          {...LIST_PERF}
           data={options}
           keyExtractor={(item) => item}
           renderItem={({ item }) => (
@@ -220,6 +221,7 @@ function PickerSheet({ visible, title, options, selected, onSelect, onClose }: P
 
 // --- Data ---
 import type { MaritalStatus, Diet } from '../../types';
+import { LIST_PERF } from '../../constants/listPerf';
 
 const MARITAL_OPTIONS: { key: MaritalStatus; label: string }[] = [
   { key: 'never_married', label: 'Never Married' },
