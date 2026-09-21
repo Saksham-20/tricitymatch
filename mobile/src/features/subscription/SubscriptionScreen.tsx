@@ -21,7 +21,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import { showToast } from '../../utils/toast';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
-import { spacing, borderRadius, shadows, type ThemeColours } from '@shared/constants/theme';
+import { spacing, borderRadius, shadows, darkShadows, type ThemeColours } from '@shared/constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import { PLANS, UNLOCK_BUNDLES } from '@shared/constants/plans';
 import {
@@ -191,7 +191,8 @@ interface PlanCardProps {
 }
 
 function PlanCard({ plan, isCurrent, isSelected, onSelect, currency }: PlanCardProps) {
-  const { c } = useTheme();
+  const { c, isDark } = useTheme();
+  const sh = isDark ? darkShadows : shadows;
   const pc = React.useMemo(() => makePc(c), [c]);
   const localPrice = plan.price > 0 ? formatLocalPrice(plan.price, currency) : null;
   const colour = makePlanColour(c)[plan.planType];
@@ -207,8 +208,8 @@ function PlanCard({ plan, isCurrent, isSelected, onSelect, currency }: PlanCardP
         pc.card,
         { backgroundColor: c.surfaceCard, borderColor: borderColour },
         highlight ? { marginTop: spacing.lg } : null,
-        isGold && shadows.gold,
-        isSelected && !isGold && shadows.e3,
+        isGold && sh.gold,
+        isSelected && !isGold && sh.e3,
       ]}
       onPress={onSelect}
       testID={`plan-card-${plan.planType}`}

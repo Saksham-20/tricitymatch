@@ -334,6 +334,23 @@ offline shows the skeleton until reconnect (and the shortlist tab shows the empt
 `ChatThreadScreen`'s loading branch has no header/back button (pre-existing). Doctrine §10.10 wants every
 state *seen on a device*: not done, folded into the Phase 6 sim sweep.
 
+**Phase 3 closing census (2026-09-21), DOCTRINE §10.11 greps over `mobile/src`:**
+`<TouchableOpacity` **0** (was 232) · `textTransform: 'uppercase'` **0** · raw `<TextInput` only in
+`OtpInput`, `SmartContactInput` and `SearchScreen`'s search bar (all three deliberate: none fits `Input`'s
+single-bordered-box shape). The census found things earlier phases had marked done or missed, fixed the same day:
+`Switch.tsx` **still imported core `Animated`** although Phase 1.5 was recorded as done (now Reanimated + token
+duration + reduce-motion; note `ui/Switch` has no consumers, `ListRow` and `PrivacySettingsScreen` use RN's
+native `Switch`); light `shadows.*` without an `isDark` branch in `SubscriptionScreen` plan cards, `toastConfig`,
+`GoldLock`; gold on non-premium things beyond the five named files (`VerificationScreen` trust ring/percent/
+"why verified" panel, both Shortlist buttons, the `PasswordStrength` meter's third segment) → `c.accent`/neutral;
+two literal ALL-CAPS eyebrow labels (`STATUS`, `WHY GET VERIFIED`) plus `TickRing`'s default `'COMPLETE'` that a
+`textTransform` grep cannot see, and leftover `letterSpacing` on them; `✓`/`✕` text glyphs used as icons
+(`PrivacySettingsScreen`, `Step10Screen`) → Ionicons. **Left open, not Phase 3:** `Alert.alert` is still **60
+uses in 19 files** (ruling 22: destructive confirmation only; errors/successes must be toast or inline) and no
+later phase currently owns triaging them, so it needs an explicit owner before Phase 5; `MatchCelebration`'s gold
+seal (celebration, not on the doctrine's score/meter/free-tier/text list, left as-is); plan-card border+shadow on
+`SubscriptionScreen` (selection border is a state indicator, left).
+
 **Gates:** tsc, tests, lint, and each sub-step audited by a fresh agent against §10.11 before the next
 starts — met for 3.1–3.8 via the Workflow verify stages (3.1, 3.3, 3.4) or direct gate runs (3.2, 3.5, 3.6,
 3.7, 3.8, 3.9). The Phase 3 closing full-doctrine audit (§10.11) and 3.8's deferred Badge/Chip/IconButton

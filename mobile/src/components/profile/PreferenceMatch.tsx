@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { flex: 1, letterSpacing: 0.3 },
+  title: { flex: 1 },
   chip: {
     paddingHorizontal: spacing.sm,
     paddingVertical: 3,

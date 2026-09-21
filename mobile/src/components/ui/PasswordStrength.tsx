@@ -30,10 +30,10 @@ interface Props {
   showLabel?: boolean;
 }
 
-/** 4-segment password-strength bar — fills red → amber → gold → green. */
+/** 4-segment password-strength bar — fills red → amber → blue → green. */
 export default function PasswordStrength({ password, score, showLabel = true }: Props) {
   const { c } = useTheme();
-  const segColour = [c.border, c.error, c.warning, c.g500, c.success];
+  const segColour = [c.border, c.error, c.warning, c.info, c.success];
   const s = score ?? scorePassword(password ?? '');
   return (
     <View style={styles.wrap}>

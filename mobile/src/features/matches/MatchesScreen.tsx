@@ -125,8 +125,8 @@ function MatchRow({ match, mode, onPress, onChat, onAccept, onDecline, onRemove 
           </View>
         )}
         {mode === 'shortlisted' && onRemove && (
-          <PressableScale scaleTo={0.9} haptic style={[mr.circleBtn, { backgroundColor: c.goldSoft }]} onPress={onRemove} accessibilityRole="button" accessibilityLabel="Remove from shortlist">
-            <Ionicons name="bookmark" size={18} color={c.g600} />
+          <PressableScale scaleTo={0.9} haptic style={[mr.circleBtn, { backgroundColor: c.accentSoft }]} onPress={onRemove} accessibilityRole="button" accessibilityLabel="Remove from shortlist">
+            <Ionicons name="bookmark" size={18} color={c.accent} />
           </PressableScale>
         )}
         <Ionicons name="chevron-forward" size={16} color={c.textMuted} />

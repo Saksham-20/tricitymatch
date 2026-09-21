@@ -111,7 +111,7 @@ interface RingLabelProps { value: number; caption?: string; }
 /** Completion ring — 10-tick rim + Playfair % + caption.
  *  Font and tick length scale with `size` so the number never collides with the
  *  rim (a fixed 22pt % overflowed the ticks at the small 58pt Home-card size). */
-export function CompletionRing({ value, caption = 'COMPLETE', size = 88 }: RingLabelProps & { size?: number }) {
+export function CompletionRing({ value, caption = 'Complete', size = 88 }: RingLabelProps & { size?: number }) {
   const { c } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
   const pctFont = Math.round(size * 0.26);
@@ -153,6 +153,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
   tick: { position: 'absolute' },
   center: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
   bigPct: { ...type.title2, color: c.fgStrong, lineHeight: 26 },
-  caption: { letterSpacing: 1, marginTop: 1 },
+  caption: { marginTop: 1 },
   pctMark: { marginTop: -2 },
 });

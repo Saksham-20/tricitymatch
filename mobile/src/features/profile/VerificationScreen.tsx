@@ -157,7 +157,7 @@ export default function VerificationScreen() {
         <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
           {/* Trust score */}
           <Card style={s.trustCard}>
-            <TickRing value={isLoading ? 0 : trust} size={78} ticks={10} color={c.g500}>
+            <TickRing value={isLoading ? 0 : trust} size={78} ticks={10} color={c.accent}>
               <Text variant="title3" style={s.trustPct}>{isLoading ? '—' : `${trust}%`}</Text>
             </TickRing>
             <View style={s.trustCopy}>
@@ -170,7 +170,7 @@ export default function VerificationScreen() {
 
           {/* Status overview */}
           <Card style={s.card}>
-            <Text variant="micro" color="textMuted" style={s.cardLabel}>STATUS</Text>
+            <Text variant="micro" color="textMuted" style={s.cardLabel}>Status</Text>
             <View style={s.statusRow}>
               <View style={s.statusLeft}>
                 <Ionicons name="phone-portrait-outline" size={18} color={c.badgeMobile} />
@@ -196,7 +196,7 @@ export default function VerificationScreen() {
             </Text>
 
             <View style={s.perks}>
-              <Text variant="micro" style={s.perksLabel}>WHY GET VERIFIED</Text>
+              <Text variant="micro" color="textMuted" style={s.perksLabel}>Why get verified</Text>
               {PERKS.map((perk) => (
                 <View key={perk} style={s.perkRow}>
                   <Ionicons name="checkmark-circle" size={15} color={c.success} />
@@ -273,11 +273,11 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   content:     { padding: spacing.lg, paddingBottom: spacing['3xl'], gap: spacing.md },
 
   trustCard:   { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, padding: spacing.lg },
-  trustPct:    { color: c.g600 },
+  trustPct:    { color: c.accent },
   trustCopy:   { flex: 1, gap: 4 },
 
   card:        { padding: spacing.lg, gap: spacing.md },
-  cardLabel:   { letterSpacing: 0.6 },
+  cardLabel:   {},
 
   statusRow:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: spacing.md, borderBottomWidth: 1, borderBottomColor: c.border },
   statusRowLast:  { paddingBottom: 0, borderBottomWidth: 0 },
@@ -285,8 +285,8 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
 
   pill:        { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: spacing.md, paddingVertical: 5, borderRadius: borderRadius.full },
 
-  perks:       { backgroundColor: c.goldSoft, borderRadius: borderRadius.md, padding: spacing.md, gap: spacing.sm },
-  perksLabel:  { color: c.g700, letterSpacing: 0.6 },
+  perks:       { backgroundColor: c.surface2, borderRadius: borderRadius.md, padding: spacing.md, gap: spacing.sm },
+  perksLabel:  {},
   perkRow:     { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
   perkText:    { flex: 1 },
 

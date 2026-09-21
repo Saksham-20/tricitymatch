@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import { View, StyleSheet, ScrollView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import Text from '../../components/ui/Text';
 import Input from '../../components/ui/Input';
 import { useTranslation } from 'react-i18next';
@@ -107,8 +108,15 @@ export default function Step10Screen() {
           <View key={p.prompt} style={styles.promptCard}>
             <View style={styles.labelRow}>
               <Text variant="subhead" color="textPrimary" style={styles.promptQ}>{p.prompt}</Text>
-              <PressableScale scaleTo={0.9} onPress={() => removePrompt(idx)} accessibilityLabel="Remove prompt" testID={`prompt-remove-${idx}`}>
-                <Text variant="footnote" color="textMuted" style={styles.promptRemove}>✕</Text>
+              <PressableScale
+                scaleTo={0.9}
+                onPress={() => removePrompt(idx)}
+                accessibilityRole="button"
+                accessibilityLabel="Remove prompt"
+                hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
+                testID={`prompt-remove-${idx}-tap44-hitslop`}
+              >
+                <Ionicons name="close" size={18} color={c.textMuted} style={styles.promptRemove} />
               </PressableScale>
             </View>
             <Input

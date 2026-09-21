@@ -559,7 +559,7 @@ export default function ProfileDetailScreen() {
             </PressableScale>
 
             <PressableScale
-              style={[s.actionBtn, { backgroundColor: c.goldSoft, borderWidth: 1, borderColor: c.g500 + '40' }]}
+              style={[s.actionBtn, { backgroundColor: c.accentSoft, borderWidth: 1, borderColor: c.accent + '40' }]}
               onPress={() => handleAction('shortlist')}
               disabled={actionMutation.isPending}
               haptic
@@ -567,9 +567,8 @@ export default function ProfileDetailScreen() {
               accessibilityRole="button"
               accessibilityLabel="Shortlist"
             >
-              <Ionicons name="bookmark" size={24} color={c.g600} />
-              {/* c.g600 is a gold-ramp colour, not in the curated TextColor set — left as a style override. */}
-              <Text variant="subhead" style={{ color: c.g600 }}>Shortlist</Text>
+              <Ionicons name="bookmark" size={24} color={c.accent} />
+              <Text variant="subhead" color="primary">Shortlist</Text>
             </PressableScale>
 
             <PressableScale

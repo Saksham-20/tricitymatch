@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { borderRadius, colours, shadows } from '@shared/constants/theme';
+import { borderRadius, colours, shadows, darkShadows } from '@shared/constants/theme';
 import { duration } from '@shared/constants/motion';
 import { useTheme } from '../../hooks/useTheme';
 import { useReduceTransparency } from '../motion';
@@ -78,7 +78,7 @@ export default function GoldLock({
           colors={[colours.g300, colours.g500]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.lock}
+          style={[styles.lock, isDark ? darkShadows.gold : shadows.gold]}
         >
           <Ionicons name="lock-closed" size={22} color={colours.goldText} />
         </LinearGradient>
@@ -115,7 +115,6 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadows.gold,
   },
   title: { textAlign: 'center' },
   subtitle: { textAlign: 'center', maxWidth: 240 },

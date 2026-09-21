@@ -177,7 +177,10 @@ export default function PrivacySettingsScreen() {
           </PressableScale>
 
           {mutation.isSuccess && !mutation.isPending && (
-            <Text variant="subhead" color="success" style={styles.savedNote}>Saved ✓</Text>
+            <View style={styles.savedNote}>
+              <Ionicons name="checkmark-circle" size={16} color={c.success} />
+              <Text variant="subhead" color="success">Saved</Text>
+            </View>
           )}
           {mutation.isError && (
             <Text variant="subhead" color="error" style={styles.errorNote}>Could not save. Please try again.</Text>
@@ -245,7 +248,10 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     color: '#fff',
   },
   savedNote: {
-    textAlign: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
     marginTop: spacing.md,
   },
   errorNote: {
