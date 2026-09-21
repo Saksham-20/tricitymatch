@@ -389,7 +389,7 @@ export default function SubscriptionScreen() {
     staleTime: 10 * 60 * 1000,
   });
 
-  const { data: history, isLoading: histLoading } = useQuery({
+  const { data: history, isLoading: histLoading, isError: histError, refetch: refetchHistory } = useQuery({
     queryKey: queryKeys.subscription,
     queryFn: getSubscriptionHistory,
     enabled: tab === 'history',
@@ -606,7 +606,7 @@ export default function SubscriptionScreen() {
 
             {plansLoading ? (
               <SubscriptionSkeleton />
-            ) : plansError ? (
+            ) : plansError && !plans ? (
               <EmptyState
                 icon="cloud-offline-outline"
                 title="Couldn't load plans"
@@ -721,11 +721,25 @@ export default function SubscriptionScreen() {
           <Text variant="title2" color="textPrimary" style={s.sectionTitle}>Payment History</Text>
           {histLoading ? (
             <ListSkeleton rows={5} />
+          ) : histError && !history ? (
+            <EmptyState
+              icon="cloud-offline-outline"
+              title="Couldn't load payment history"
+              description="Check your connection and try again."
+              actionLabel="Try again"
+              onAction={() => refetchHistory()}
+              variant="error"
+              testID="SubscriptionScreen-error"
+            />
           ) : !history?.length ? (
-            <View style={s.emptyState}>
-              <Ionicons name="receipt-outline" size={48} color={c.textMuted} />
-              <Text variant="callout" color="textMuted">No payments yet</Text>
-            </View>
+            <EmptyState
+              icon="receipt-outline"
+              title="No payments yet"
+              description="Your plan purchases will show up here."
+              actionLabel="See plans"
+              onAction={() => setTab('plans')}
+              testID="history-empty"
+            />
           ) : (
             history.map((sub) => <HistoryItem key={sub.id} sub={sub} />)
           )}
@@ -751,7 +765,6 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   ctaDisabled:  { backgroundColor: c.textMuted },
   ctaText:      { color: '#fff' },
   disclaimer:   { textAlign: 'center', marginTop: spacing.sm },
-  emptyState:   { alignItems: 'center', paddingTop: spacing['5xl'], gap: spacing.md },
   bundles:      { marginTop: spacing.lg, paddingTop: spacing.lg, borderTopWidth: 1, borderTopColor: c.border },
   bundlesTitle: {},
   bundlesSub:   { marginBottom: spacing.md },

@@ -270,6 +270,9 @@ export default function SearchScreen() {
 
   const profiles: ProfileSummary[] = data?.pages.flatMap((p) => p.profiles) ?? [];
   const total: number = data?.pages[0]?.total ?? 0;
+  // Only a failure with nothing to show blanks the list. A failed background
+  // refetch or next-page fetch keeps the profiles already on screen.
+  const searchFailed = isError && profiles.length === 0;
 
   // Saved searches (Phase A step 6) — backend is live now; map the active
   // filter state to the saved shape the daily alert job reads.
@@ -424,7 +427,7 @@ export default function SearchScreen() {
       </View>
 
       {/* Result count */}
-      {!isLoading && !isError && (
+      {!isLoading && !searchFailed && (
         <View style={s.countRow}>
           <Text variant="footnote" color="textMuted">
             {total > 0 ? `${total} profiles found` : 'No profiles found'}
@@ -441,17 +444,19 @@ export default function SearchScreen() {
           contentContainerStyle={[s.list, { paddingBottom: tabClearance }]}
           scrollEnabled={false}
         />
-      ) : isError ? (
+      ) : searchFailed ? (
         // A failed request is NOT an empty result. Reporting "No profiles found"
         // when the network died tells the member the marketplace is empty — the
         // single most damaging thing this app can say while supply is thin, and
         // it is not even true. Distinguish them, and offer a retry.
         <SharedEmpty
+          variant="error"
           icon="cloud-offline-outline"
           title="Couldn't load profiles"
           description="Check your connection and try again."
-          actionLabel="Retry"
+          actionLabel="Try again"
           onAction={() => refetch()}
+          testID="SearchScreen-error"
         />
       ) : profiles.length === 0 ? (
         <SharedEmpty

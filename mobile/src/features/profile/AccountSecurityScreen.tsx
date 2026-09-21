@@ -266,20 +266,30 @@ export default function AccountSecurityScreen() {
               <SkeletonRow />
               <SkeletonRow />
             </View>
-          ) : sessionsQuery.isError ? (
+          ) : sessionsQuery.isError && !sessionsQuery.data ? (
+            // Only when there is nothing cached to show: a failed background
+            // refetch (e.g. after signing a device out) keeps the last good list.
             <EmptyState
               variant="error"
+              icon="cloud-offline-outline"
               title="Couldn't load your sessions"
               description="Check your connection and try again."
-              actionLabel="Retry"
+              actionLabel="Try again"
               onAction={() => sessionsQuery.refetch()}
-              testID="sessions-error"
+              testID="AccountSecurityScreen-error"
             />
           ) : sessions.length === 0 ? (
             // The request itself proves one live session exists, so an empty
             // list means the server answered with something we can't show —
             // say that rather than "no devices", which reads as a security claim.
-            <Text variant="footnote" color="textMuted">No other sessions to show.</Text>
+            <EmptyState
+              icon="phone-portrait-outline"
+              title="No sessions to show"
+              description="The list came back empty. Refresh to check again."
+              actionLabel="Refresh"
+              onAction={() => sessionsQuery.refetch()}
+              testID="AccountSecurityScreen-empty"
+            />
           ) : (
             sessions.map((session) => (
               <SessionRow

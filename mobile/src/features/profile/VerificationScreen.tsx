@@ -143,14 +143,15 @@ export default function VerificationScreen() {
     <Screen edges={['top']} style={s.wrapper} testID="VerificationScreen">
       <ScreenHeader title="Verification" />
 
-      {isError ? (
+      {isError && !data ? (
         <EmptyState
           variant="error"
+          icon="shield-checkmark-outline"
           title="Couldn't load your verification"
           description="Check your connection and try again."
-          actionLabel="Retry"
+          actionLabel="Try again"
           onAction={() => refetch()}
-          testID="verification-error"
+          testID="VerificationScreen-error"
         />
       ) : (
         <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>

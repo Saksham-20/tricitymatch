@@ -252,8 +252,16 @@ export default function HomeScreen() {
             <SkeletonBlock key={i} width={166} height={226} radius={borderRadius.lg} style={{ marginRight: 12 }} />
           ))}
         </ScrollView>
-      ) : isError ? (
-        <EmptyState variant="error" title="Couldn't load matches" description="Check your connection and try again." actionLabel="Retry" onAction={onRefresh} />
+      ) : isError && !feed ? (
+        <EmptyState
+          variant="error"
+          icon="cloud-offline-outline"
+          title="Couldn't load matches"
+          description="Check your connection and try again."
+          actionLabel="Try again"
+          onAction={() => refetchFeed()}
+          testID="HomeScreen-error"
+        />
       ) : todaysMatches.length > 0 ? (
         <FlatList
           data={todaysMatches}

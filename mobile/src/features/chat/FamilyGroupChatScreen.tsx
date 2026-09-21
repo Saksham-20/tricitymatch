@@ -19,6 +19,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { ChatThreadSkeleton } from '../../components/ui/skeletons';
+import { EmptyState } from '../../components/ui';
 import { useTranslation } from 'react-i18next';
 import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import {
@@ -234,7 +235,7 @@ export default function FamilyGroupChatScreen() {
   const [showInvite, setShowInvite] = useState(false);
   const listRef = useRef<FlatList<GroupMessage>>(null);
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useInfiniteQuery({
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError, refetch } = useInfiniteQuery({
     queryKey: queryKeys.groupThread(groupId),
     queryFn: ({ pageParam }) => getGroupThread(groupId, pageParam as string | undefined),
     getNextPageParam: (last) => last.nextCursor ?? undefined,
@@ -403,6 +404,18 @@ export default function FamilyGroupChatScreen() {
       {/* Messages */}
       {isLoading ? (
         <ChatThreadSkeleton />
+      ) : isError && !data ? (
+        <View style={s.loadingState}>
+          <EmptyState
+            variant="error"
+            icon="chatbubbles-outline"
+            title="Couldn't load messages"
+            description="Check your connection and try again."
+            actionLabel="Try again"
+            onAction={() => refetch()}
+            testID="FamilyGroupChatScreen-error"
+          />
+        </View>
       ) : (
         <FlatList
           ref={listRef}

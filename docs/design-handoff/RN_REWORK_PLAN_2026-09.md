@@ -259,7 +259,7 @@ elder mode on and off. This is the first time anybody will have looked at this a
 
 ---
 
-## Phase 3 — Primitive adoption: press, targets, states — DONE (3.1–3.8) 2026-09-18, 3.9 OPEN
+## Phase 3 — Primitive adoption: press, targets, states — DONE (3.1–3.7, 3.9), 3.8 PARTIAL
 
 The bulk of the campaign, and the reason the app currently looked like several products. 3.1–3.8 shipped as
 8 gated, individually-committed slices on `design/rework-2026-09`. Each ran `tsc`/`npm test`/root `lint`
@@ -310,17 +310,34 @@ semantically distinct branded elements, not settings-row/status-pill duplicates,
 existing primitives' APIs without extending those APIs first would be a forced fit, not an adoption. Left
 open for a follow-up pass with its own scoping, rather than churned blind.
 
-**3.9 Every screen ships four states — NOT STARTED.** `EmptyState` has 4 uses in 3 files; `SkeletonBlock`
-has 43 uses in 5 files. Screens with neither, from the census: `ChatThreadScreen` (14 `TouchableOpacity`, no
-empty, no error), `SubscriptionScreen` (no empty, no error — see 0.1), all 11 onboarding steps,
-`EditProfileScreen`, `SettingsScreen`, `NotificationsScreen` (confirmed zero state coverage this session),
-the family-group screens. Unlike 3.1–3.8, this is real per-screen UX design work (what does "empty" look
-like on *this* screen, what does the error retry affordance say) rather than a mechanical primitive swap —
-it needs its own scoped pass, screen by screen, not a blind batch migration.
+**3.9 Every screen ships four states — DONE in code 2026-09-21 (commit below), device pass owed.**
+Census first: loading skeletons and empty states mostly existed already; the systematic gap was the
+**error branch** (`isError` never destructured or never rendered on ~17 query screens, so a failed fetch
+rendered as zeros, a blank form, or a fake "empty" list). Correction to the earlier note: `NotificationsScreen`
+was *not* at zero coverage (it had a skeleton and an empty component; only error was missing).
+Shipped via a Workflow build+verify pipeline over 26 screens (17 with known gaps + 9 believed compliant, all
+26 needed at least an error/guard/copy fix), 3 of 26 failed their first fresh verify and were fixed by hand:
+`AstrologerDetailScreen` (generic list skeleton over a centered-profile layout: replaced with an in-file
+`SkeletonBlock` skeleton that matches), `MatchesScreen` (empty states had no action; shortlist "Try again"
+was a silent no-op offline; em dash in copy), `ChatThreadScreen` (new thread empty-state i18n keys collided
+with `ConversationsScreen`'s `chat.emptyTitle/emptyAction`: renamed `chat.threadEmpty*`).
+The pattern, now uniform: `EmptyState variant="error"` + "Couldn't load <noun>" / "Check your connection and
+try again." / "Try again" → `refetch()`, shown only when `isError && no cached data` so a failed background
+refetch never blanks a list; testID `<Screen>-error`; error branches placed after every hook (rules of hooks).
+Also fixed: `OnboardingContext.saveAndNext` swallowed save failures and advanced anyway ("backend syncs on next
+open" was false, nothing re-sends), silently dropping a step's answers; it now toasts and stays on the step,
+Continue is the retry (covers all 11 onboarding steps in one place).
+**Deliberately left / known follow-ups:** `DiscoverCards` (3 decorative queries, silent-omit by design);
+`MatchesScreen` `liked_me` for a client-side-premium/server-403 mismatch shows a retryable error that will
+keep 403ing (not distinguished from transient); no `onlineManager`/NetInfo wiring, so a first fetch paused
+offline shows the skeleton until reconnect (and the shortlist tab shows the empty card for ~3s of retries);
+`ChatThreadScreen`'s loading branch has no header/back button (pre-existing). Doctrine §10.10 wants every
+state *seen on a device*: not done, folded into the Phase 6 sim sweep.
 
 **Gates:** tsc, tests, lint, and each sub-step audited by a fresh agent against §10.11 before the next
 starts — met for 3.1–3.8 via the Workflow verify stages (3.1, 3.3, 3.4) or direct gate runs (3.2, 3.5, 3.6,
-3.7, 3.8). 3.9 and the Phase 3 closing full-doctrine audit (§10.11) remain before Phase 4.
+3.7, 3.8, 3.9). The Phase 3 closing full-doctrine audit (§10.11) and 3.8's deferred Badge/Chip/IconButton
+sweep remain before Phase 4.
 
 ---
 

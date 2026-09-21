@@ -26,7 +26,7 @@ import Animated, {
 import { showToast } from '../../utils/toast';
 import { haptics } from '../../utils/haptics';
 import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
-import { CompatRing, MatchCelebration } from '../../components/ui';
+import { CompatRing, EmptyState, MatchCelebration } from '../../components/ui';
 import { ProfileDetailSkeleton } from '../../components/ui/skeletons';
 import { PressableScale } from '../../components/motion';
 import { useTheme } from '../../hooks/useTheme';
@@ -129,7 +129,7 @@ export default function ProfileDetailScreen() {
     opacity: interpolate(scrollY.value, [heroH - 120, heroH - 60], [0, 1], Extrapolation.CLAMP),
   }));
 
-  const { data: profile, isLoading } = useQuery({
+  const { data: profile, isLoading, isError, error, refetch } = useQuery({
     queryKey: queryKeys.profile(userId),
     queryFn: () => getProfile(userId),
     staleTime: 5 * 60 * 1000,
@@ -175,6 +175,41 @@ export default function ProfileDetailScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: c.background }} testID="ProfileDetailLoading">
         <ProfileDetailSkeleton />
+      </View>
+    );
+  }
+
+  // A failed fetch is not a missing profile. 404 (absent/inactive) and 403
+  // (blocked / matches_only) are real answers from the server and fall through
+  // to "Profile not found." below; anything else (network, timeout, 5xx) is
+  // retryable. With cached data a failed background refetch never lands here.
+  const failStatus = (error as { response?: { status?: number } } | null)?.response?.status;
+  if (!profile && isError && failStatus !== 404 && failStatus !== 403) {
+    return (
+      <View style={[s.wrapper, { backgroundColor: c.background }]} testID="ProfileDetailErrorScreen">
+        <View style={[s.errorHead, { paddingTop: insets.top + spacing.xs }]}>
+          <PressableScale
+            scaleTo={0.9}
+            onPress={() => navigation.goBack()}
+            style={s.iconBtn}
+            testID="back-btn"
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <Ionicons name="arrow-back" size={22} color="#fff" style={s.iconShadow} />
+          </PressableScale>
+        </View>
+        <View style={s.errorBody}>
+          <EmptyState
+            variant="error"
+            icon="person-circle-outline"
+            title="Couldn't load this profile"
+            description="Check your connection and try again."
+            actionLabel="Try again"
+            onAction={() => refetch()}
+            testID="ProfileDetail-error"
+          />
+        </View>
       </View>
     );
   }
@@ -691,6 +726,8 @@ export default function ProfileDetailScreen() {
 const s = StyleSheet.create({
   wrapper: { flex: 1 },
   loader: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  errorHead: { paddingHorizontal: spacing.md, paddingBottom: spacing.xs, alignItems: 'flex-start' },
+  errorBody: { flex: 1, justifyContent: 'center' },
 
   floatHeader: {
     position: 'absolute',

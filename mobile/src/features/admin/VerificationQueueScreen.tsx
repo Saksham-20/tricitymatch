@@ -19,6 +19,7 @@ import SmartImage from '../../components/common/SmartImage';
 import type { Verification } from '../../types';
 import Text from '../../components/ui/Text';
 import Input from '../../components/ui/Input';
+import { EmptyState, SkeletonBlock } from '../../components/ui';
 import { PressableScale } from '../../components/motion';
 
 /**
@@ -110,6 +111,43 @@ function VerifCard({
   );
 }
 
+/** Loading state shaped like VerifCard: name/date, email, two photos, two buttons. */
+function VerifQueueSkeleton() {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
+  return (
+    <View style={s.list} testID="VerificationQueueScreen-skeleton">
+      {[0, 1].map((i) => (
+        <View key={i} style={s.card}>
+          <View style={s.cardHeader}>
+            <SkeletonBlock width="45%" height={16} />
+            <SkeletonBlock width={64} height={12} />
+          </View>
+          <SkeletonBlock width="55%" height={12} />
+          <View style={s.compareRow}>
+            <View style={s.compareCell}>
+              <SkeletonBlock width="30%" height={12} />
+              <SkeletonBlock height={150} radius={borderRadius.md} />
+            </View>
+            <View style={s.compareCell}>
+              <SkeletonBlock width="40%" height={12} />
+              <SkeletonBlock height={150} radius={borderRadius.md} />
+            </View>
+          </View>
+          <View style={s.actions}>
+            <View style={s.compareCell}>
+              <SkeletonBlock height={36} />
+            </View>
+            <View style={s.compareCell}>
+              <SkeletonBlock height={36} />
+            </View>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 export default function VerificationQueueScreen() {
   const { c } = useTheme();
   const s = React.useMemo(() => makeS(c), [c]);
@@ -118,7 +156,7 @@ export default function VerificationQueueScreen() {
   const [rejectTarget, setRejectTarget] = useState<{ id: string; name: string } | null>(null);
   const [reason, setReason] = useState('');
 
-  const { data, isLoading, refetch, isFetching } = useQuery<VerifItem[]>({
+  const { data, isLoading, isError, refetch, isFetching } = useQuery<VerifItem[]>({
     queryKey: ['admin', 'verificationQueue'],
     queryFn: getVerificationQueue,
   });
@@ -181,7 +219,17 @@ export default function VerificationQueueScreen() {
       </View>
 
       {isLoading ? (
-        <ActivityIndicator style={s.loader} color={c.primary} />
+        <VerifQueueSkeleton />
+      ) : isError && !data ? (
+        <EmptyState
+          variant="error"
+          icon="cloud-offline-outline"
+          title="Couldn't load verifications"
+          description="Check your connection and try again."
+          actionLabel="Try again"
+          onAction={() => refetch()}
+          testID="VerificationQueueScreen-error"
+        />
       ) : (
         <FlatList
           data={data ?? []}
@@ -271,7 +319,6 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   title: {
     flex: 1,
   },
-  loader: { marginTop: spacing.xl },
   list: { padding: spacing.md, gap: spacing.md },
   card: {
     backgroundColor: c.surfaceCard,

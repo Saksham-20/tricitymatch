@@ -17,6 +17,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { EditProfileSkeleton } from '../../components/ui/skeletons';
+import { EmptyState } from '../../components/ui';
 import { showToast } from '../../utils/toast';
 import PickerSheet from '../../components/ui/PickerSheet';
 import { PressableScale } from '../../components/motion';
@@ -313,7 +314,7 @@ export default function EditProfileScreen() {
   const [expandedSection, setExpandedSection] = useState<Section>('basic');
   const [saving, setSaving] = useState(false);
 
-  const { data: profile, isLoading } = useQuery({
+  const { data: profile, isLoading, refetch } = useQuery({
     queryKey: queryKeys.me,
     queryFn: getMyProfile,
     staleTime: 5 * 60 * 1000,
@@ -426,6 +427,42 @@ export default function EditProfileScreen() {
       <View style={styles.loader} testID="EditProfileLoading">
         <EditProfileSkeleton />
       </View>
+    );
+  }
+
+  // Nothing to edit: the load failed (or is paused offline) and no cached profile
+  // exists. The form must never fall through to blank editable fields, and a Save
+  // from that state would overwrite the real profile with empty strings. A failed
+  // background refetch with a cached profile still renders the form below.
+  if (!profile) {
+    return (
+      <Screen edges={['top']} style={styles.wrapper}>
+        <View style={styles.header}>
+          <PressableScale
+            onPress={() => navigation.goBack()}
+            testID="back-btn"
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
+            style={styles.headerBtn}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
+          </PressableScale>
+          <Text variant="headline" color="textPrimary">Edit Profile</Text>
+          <View style={styles.headerBtn} />
+        </View>
+        <View style={styles.errorBody}>
+          <EmptyState
+            variant="error"
+            icon="person-circle-outline"
+            title="Couldn't load your profile"
+            description="Check your connection and try again."
+            actionLabel="Try again"
+            onAction={() => refetch()}
+            testID="EditProfileScreen-error"
+          />
+        </View>
+      </Screen>
     );
   }
 
@@ -664,6 +701,7 @@ export default function EditProfileScreen() {
 const makeStyles = (c: ThemeColours) => StyleSheet.create({
   wrapper: { flex: 1, backgroundColor: c.background },
   loader: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  errorBody: { flex: 1, justifyContent: 'center' },
   container: { flex: 1 },
 
   header: {

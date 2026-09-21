@@ -187,6 +187,12 @@ function TabContent({ activeTab }: { activeTab: TabKey }) {
     refetch: refetchShortlist,
   } = useOfflineShortlist();
 
+  // useOfflineShortlist owns the shortlist fetch but only returns the list, so
+  // "still loading" and "failed" both look like "empty". This passive observer
+  // (same key, enabled:false, so no second fetch) reads the status of that
+  // same cache entry.
+  const shortlistQuery = useQuery({ queryKey: queryKeys.shortlisted, queryFn: getShortlisted, enabled: false });
+
   const actionMutation = useMutation({
     mutationFn: ({ userId, action }: { userId: string; action: MatchAction }) =>
       performMatchAction(userId, action),
@@ -211,24 +217,71 @@ function TabContent({ activeTab }: { activeTab: TabKey }) {
   // For shortlisted tab, use offline hook data; for others use React Query
   let matches: Match[];
   let isLoading: boolean;
+  let isError: boolean;
   let refetch: () => void;
 
   if (activeTab === 'shortlisted') {
     matches = offlineShortlist;
-    isLoading = false;
+    // Offline reads come from the MMKV cache, so only claim "loading" while a
+    // fetch is genuinely expected and there is nothing cached to show.
+    isLoading =
+      !isOffline &&
+      matches.length === 0 &&
+      (shortlistQuery.isPending || (shortlistQuery.isError && shortlistQuery.isFetching));
+    isError = shortlistQuery.isError;
     refetch = refetchShortlist;
   } else {
     const q = queryMap[activeTab as keyof typeof queryMap];
     matches = (q.data as Match[]) ?? [];
-    isLoading = q.isLoading;
+    // A retry from the error state shows the skeleton again instead of
+    // leaving the error card sitting there while the request is in flight.
+    isLoading = q.isLoading || (q.isError && q.isFetching && matches.length === 0);
+    isError = q.isError;
     refetch = q.refetch;
   }
 
-  const emptyConfigs: Record<TabKey, { icon: 'heart-circle-outline' | 'bookmark-outline' | 'heart-outline' | 'paper-plane-outline'; title: string; sub: string }> = {
-    mutual:      { icon: 'heart-circle-outline', title: 'No mutual matches yet',    sub: "When you both like each other, you'll appear here." },
-    shortlisted: { icon: 'bookmark-outline',     title: 'Your shortlist is empty',  sub: 'Shortlist profiles to revisit them anytime.' },
-    liked_me:    { icon: 'heart-outline',        title: 'No one has liked you yet', sub: 'Improve your profile to attract more attention.' },
-    sent:        { icon: 'paper-plane-outline',  title: "You haven't reached out yet", sub: "Profiles you like show up here — today's matches are waiting." },
+  const errorNouns: Record<TabKey, string> = {
+    mutual:      'your matches',
+    shortlisted: 'your shortlist',
+    liked_me:    'people who liked you',
+    sent:        'your sent interests',
+  };
+
+  const emptyConfigs: Record<TabKey, {
+    icon: 'heart-circle-outline' | 'bookmark-outline' | 'heart-outline' | 'paper-plane-outline';
+    title: string;
+    sub: string;
+    actionLabel: string;
+    onAction: () => void;
+  }> = {
+    mutual: {
+      icon: 'heart-circle-outline',
+      title: 'No mutual matches yet',
+      sub: "When you both like each other, you'll appear here.",
+      actionLabel: "See today's matches",
+      onAction: () => navigation.navigate('MainTabs', { screen: 'Home' }),
+    },
+    shortlisted: {
+      icon: 'bookmark-outline',
+      title: 'Your shortlist is empty',
+      sub: 'Shortlist profiles to revisit them anytime.',
+      actionLabel: 'Browse profiles',
+      onAction: () => navigation.navigate('MainTabs', { screen: 'Search' }),
+    },
+    liked_me: {
+      icon: 'heart-outline',
+      title: 'No one has liked you yet',
+      sub: 'Improve your profile to attract more attention.',
+      actionLabel: 'Improve your profile',
+      onAction: () => navigation.navigate('EditProfile'),
+    },
+    sent: {
+      icon: 'paper-plane-outline',
+      title: "You haven't reached out yet",
+      sub: "Profiles you like show up here. Today's matches are waiting.",
+      actionLabel: "See today's matches",
+      onAction: () => navigation.navigate('MainTabs', { screen: 'Home' }),
+    },
   };
 
   if (activeTab === 'liked_me' && !hasPlus) {
@@ -255,9 +308,38 @@ function TabContent({ activeTab }: { activeTab: TabKey }) {
     );
   }
 
+  // Only when there is nothing to show: a failed background refetch must not
+  // blank a list we already have, and a failed load must never read as "empty".
+  if (isError && matches.length === 0) {
+    return (
+      <SharedEmpty
+        variant="error"
+        icon="cloud-offline-outline"
+        title={`Couldn't load ${errorNouns[activeTab]}`}
+        description={
+          activeTab === 'shortlisted' && isOffline
+            ? "You're offline. Your shortlist will load when you're back online."
+            : 'Check your connection and try again.'
+        }
+        actionLabel={activeTab === 'shortlisted' && isOffline ? undefined : 'Try again'}
+        onAction={activeTab === 'shortlisted' && isOffline ? undefined : () => refetch()}
+        testID="MatchesScreen-error"
+      />
+    );
+  }
+
   if (matches.length === 0) {
     const cfg = emptyConfigs[activeTab];
-    return <SharedEmpty icon={cfg.icon} title={cfg.title} description={cfg.sub} />;
+    return (
+      <SharedEmpty
+        icon={cfg.icon}
+        title={cfg.title}
+        description={cfg.sub}
+        actionLabel={cfg.actionLabel}
+        onAction={cfg.onAction}
+        testID={`MatchesScreen-empty-${activeTab}`}
+      />
+    );
   }
 
   return (

@@ -16,6 +16,7 @@ import { colours, spacing, borderRadius, type ThemeColours } from '@shared/const
 import { getAdminStats, getVerificationQueue, getReportsQueue } from '../../api/admin';
 import type { AdminStackParamList } from '../../navigation/types';
 import Text from '../../components/ui/Text';
+import { EmptyState, SkeletonBlock } from '../../components/ui';
 import { PressableScale } from '../../components/motion';
 
 type Nav = NativeStackNavigationProp<AdminStackParamList, 'AdminHome'>;
@@ -115,6 +116,10 @@ export default function AdminHomeScreen() {
   });
 
   const isLoading = statsQ.isLoading;
+  // The tiles have no honest value until /admin/analytics has answered. Without
+  // this the body rendered zeros as fact while loading and after a failure.
+  const showSkeleton = !statsQ.data && !statsQ.isError;
+  const showError = !statsQ.data && statsQ.isError;
   const stats: AdminStats = statsQ.data ?? {
     totalUsers: 0,
     verifiedUsers: 0,
@@ -164,44 +169,69 @@ export default function AdminHomeScreen() {
         contentContainerStyle={s.scroll}
         refreshControl={<RefreshControl refreshing={statsQ.isFetching} onRefresh={refetch} />}
       >
-        <Text variant="caption" color="textSecondary" style={s.sectionTitle}>Overview</Text>
-        <View style={s.statsGrid}>
-          <StatCard icon="people" label="Total Users" value={(stats.totalUsers ?? 0).toLocaleString()} />
-          <StatCard icon="card" label="Active Subs" value={(stats.activeSubscribers ?? 0).toLocaleString()} color={c.info} />
-          <StatCard
-            icon="cash"
-            label="Revenue This Month"
-            value={`₹${(stats.revenueThisMonth ?? 0).toLocaleString()}`}
-            color={c.success}
+        {showSkeleton ? (
+          <View style={s.skeleton} testID="AdminHomeScreen-skeleton">
+            <SkeletonBlock width={72} height={12} style={s.skelTitle} />
+            <View style={s.statsGrid}>
+              {[0, 1, 2, 3].map(i => (
+                <SkeletonBlock key={i} width="47%" height={99} radius={borderRadius.md} />
+              ))}
+            </View>
+            <SkeletonBlock width={104} height={12} style={s.skelTitle} />
+            <SkeletonBlock height={121} radius={borderRadius.md} />
+          </View>
+        ) : showError ? (
+          <EmptyState
+            variant="error"
+            icon="cloud-offline-outline"
+            title="Couldn't load the admin overview"
+            description="Check your connection and try again."
+            actionLabel="Try again"
+            onAction={() => refetch()}
+            testID="AdminHomeScreen-error"
           />
-          <StatCard
-            icon="shield-checkmark"
-            label="Verified Users"
-            value={(stats.verifiedUsers ?? 0).toLocaleString()}
-            color={c.badgeEducation}
-          />
-        </View>
+        ) : (
+          <>
+            <Text variant="caption" color="textSecondary" style={s.sectionTitle}>Overview</Text>
+            <View style={s.statsGrid}>
+              <StatCard icon="people" label="Total Users" value={(stats.totalUsers ?? 0).toLocaleString()} />
+              <StatCard icon="card" label="Active Subs" value={(stats.activeSubscribers ?? 0).toLocaleString()} color={c.info} />
+              <StatCard
+                icon="cash"
+                label="Revenue This Month"
+                value={`₹${(stats.revenueThisMonth ?? 0).toLocaleString()}`}
+                color={c.success}
+              />
+              <StatCard
+                icon="shield-checkmark"
+                label="Verified Users"
+                value={(stats.verifiedUsers ?? 0).toLocaleString()}
+                color={c.badgeEducation}
+              />
+            </View>
 
-        <Text variant="caption" color="textSecondary" style={s.sectionTitle}>Action Queues</Text>
-        <View style={s.queuesCard}>
-          <QueueRow
-            icon="shield-checkmark-outline"
-            label="Verification Requests"
-            count={pendingVerif}
-            color={c.warning}
-            onPress={() => nav.navigate('VerificationQueue')}
-            testID="queue-verif"
-          />
-          <View style={s.divider} />
-          <QueueRow
-            icon="flag-outline"
-            label="Reported Users"
-            count={openReports}
-            color={c.error}
-            onPress={() => nav.navigate('ReportsQueue')}
-            testID="queue-reports"
-          />
-        </View>
+            <Text variant="caption" color="textSecondary" style={s.sectionTitle}>Action Queues</Text>
+            <View style={s.queuesCard}>
+              <QueueRow
+                icon="shield-checkmark-outline"
+                label="Verification Requests"
+                count={pendingVerif}
+                color={c.warning}
+                onPress={() => nav.navigate('VerificationQueue')}
+                testID="queue-verif"
+              />
+              <View style={s.divider} />
+              <QueueRow
+                icon="flag-outline"
+                label="Reported Users"
+                count={openReports}
+                color={c.error}
+                onPress={() => nav.navigate('ReportsQueue')}
+                testID="queue-reports"
+              />
+            </View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -226,6 +256,11 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   sectionTitle: {
     marginBottom: spacing.xs,
     marginTop: spacing.sm,
+  },
+  skeleton: { gap: spacing.sm },
+  skelTitle: {
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
   },
   statsGrid: {
     flexDirection: 'row',

@@ -5,10 +5,10 @@ import {
   StyleSheet,
   Modal,
   ScrollView,
-  ActivityIndicator,
 } from 'react-native';
 import { PressableScale } from '../../components/motion';
 import Text from '../../components/ui/Text';
+import { EmptyState, SkeletonBlock } from '../../components/ui';
 import { useQuery } from '@tanstack/react-query';
 import Animated, { useAnimatedStyle, useSharedValue, withDelay, withTiming, Easing } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
@@ -115,10 +115,62 @@ const makeCr = (c: ThemeColours) => StyleSheet.create({
   },
 });
 
+// Loading placeholder shaped like the loaded sheet body: overall card, the
+// "Score Breakdown" title, then five category rows (icon, label + %, bar, detail).
+function BreakdownSkeleton() {
+  return (
+    <View style={sk.wrap}>
+      <View style={sk.overall}>
+        <SkeletonBlock width={140} height={14} />
+        <SkeletonBlock width={90} height={40} style={sk.gapSm} />
+        <SkeletonBlock width="100%" height={8} radius={4} style={sk.gapSm} />
+        <SkeletonBlock width="60%" height={12} style={sk.gapSm} />
+      </View>
+      <SkeletonBlock width={150} height={18} style={sk.title} />
+      {Array.from({ length: 5 }).map((_, i) => (
+        <View key={i} style={sk.row}>
+          <SkeletonBlock width={36} height={36} radius={18} />
+          <View style={sk.rowBody}>
+            <View style={sk.labelRow}>
+              <SkeletonBlock width="45%" height={13} />
+              <SkeletonBlock width={32} height={13} />
+            </View>
+            <SkeletonBlock width="100%" height={6} radius={3} />
+            <SkeletonBlock width="70%" height={11} style={sk.gapSm} />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+const sk = StyleSheet.create({
+  wrap: { paddingHorizontal: spacing.lg },
+  overall: {
+    padding: spacing.lg,
+    marginVertical: spacing.lg,
+    alignItems: 'center',
+  },
+  gapSm: { marginTop: spacing.sm },
+  title: { marginBottom: spacing.lg },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  rowBody: { flex: 1 },
+  labelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+});
+
 export default function CompatibilityBreakdownSheet({ visible, userId, onClose }: Props) {
   const { c } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['compatibility', userId],
     queryFn: () => getCompatibilityBreakdown(userId),
     enabled: visible,
@@ -162,14 +214,17 @@ export default function CompatibilityBreakdownSheet({ visible, userId, onClose }
         </View>
 
         {isLoading ? (
-          <View style={styles.center}>
-            <ActivityIndicator size="large" color={c.primary} />
-          </View>
-        ) : isError ? (
-          <View style={styles.center}>
-            <Ionicons name="alert-circle-outline" size={40} color={c.textMuted} />
-            <Text variant="footnote" color="textMuted" style={styles.errorText}>Could not load breakdown.</Text>
-          </View>
+          <BreakdownSkeleton />
+        ) : isError && !data ? (
+          <EmptyState
+            variant="error"
+            icon="alert-circle-outline"
+            title="Couldn't load breakdown"
+            description="Check your connection and try again."
+            actionLabel="Try again"
+            onAction={() => refetch()}
+            testID="CompatibilityBreakdownSheet-error"
+          />
         ) : (
           <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
             {/* Overall score */}
@@ -192,7 +247,12 @@ export default function CompatibilityBreakdownSheet({ visible, userId, onClose }
             <View style={styles.breakdown}>
               <Text variant="headline" color="textPrimary" style={styles.breakdownTitle}>Score Breakdown</Text>
               {Object.entries(categories).length === 0 ? (
-                <Text variant="footnote" color="textMuted" style={styles.errorText}>No breakdown data available.</Text>
+                <EmptyState
+                  icon="analytics-outline"
+                  title="No breakdown yet"
+                  description="There isn't enough profile detail to score this match by category."
+                  testID="CompatibilityBreakdownSheet-empty"
+                />
               ) : (
                 Object.entries(categories).map(([key, val], i) =>
                   val ? <CategoryRow key={key} catKey={key} data={val} index={i} /> : null,
@@ -240,15 +300,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     paddingBottom: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: c.border,
-  },
-  center: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing['3xl'] || 48,
-    gap: spacing.md,
-  },
-  errorText: {
-    textAlign: 'center',
   },
   scroll: { paddingHorizontal: spacing.lg },
   overallCard: {

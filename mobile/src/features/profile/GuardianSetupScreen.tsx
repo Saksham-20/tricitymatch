@@ -16,6 +16,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { ListSkeleton } from '../../components/ui/skeletons';
+import { EmptyState } from '../../components/ui';
 import { PressableScale } from '../../components/motion';
 import { useTranslation } from 'react-i18next';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
@@ -139,7 +140,7 @@ export default function GuardianSetupScreen() {
   const queryClient = useQueryClient();
   const [showInvite, setShowInvite] = useState(false);
 
-  const { data: links, isLoading } = useQuery({
+  const { data: links, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.guardianLinks,
     queryFn: getMyGuardianLinks,
     staleTime: 2 * 60 * 1000,
@@ -250,6 +251,16 @@ export default function GuardianSetupScreen() {
         {/* Guardian list */}
         {isLoading ? (
           <ListSkeleton rows={4} />
+        ) : isError && (!links || links.length === 0) ? (
+          <EmptyState
+            variant="error"
+            icon="cloud-offline-outline"
+            title="Couldn't load guardians"
+            description="Check your connection and try again."
+            actionLabel="Try again"
+            onAction={() => refetch()}
+            testID="GuardianSetupScreen-error"
+          />
         ) : links && links.length > 0 ? (
           <View style={s.linksList}>
             <Text variant="headline" color="textPrimary" style={s.linksHeading}>Your Guardians</Text>
@@ -279,9 +290,14 @@ export default function GuardianSetupScreen() {
             ))}
           </View>
         ) : (
-          <View style={s.emptyLinks}>
-            <Text variant="footnote" color="textMuted">No guardians invited yet.</Text>
-          </View>
+          <EmptyState
+            icon="people-outline"
+            title="No guardians yet"
+            description="Invite a parent or sibling to follow your matches with you."
+            actionLabel="Invite a guardian"
+            onAction={() => setShowInvite(true)}
+            testID="GuardianSetupScreen-empty"
+          />
         )}
       </ScrollView>
 
@@ -315,5 +331,4 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   linkInfo:     { flex: 1 },
   linkPhone:    { fontSize: typography.fontSize.xs, color: c.textSecondary },
   revokeBtn:    { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  emptyLinks:   { alignItems: 'center', paddingVertical: spacing.xl },
 });

@@ -13,6 +13,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { ListSkeleton } from '../../components/ui/skeletons';
+import { EmptyState } from '../../components/ui';
 import { PressableScale } from '../../components/motion';
 import { useTranslation } from 'react-i18next';
 import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
@@ -63,7 +64,7 @@ export default function GuardianCandidatesScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
 
-  const { data: candidates, isLoading, refetch, isFetching } = useQuery({
+  const { data: candidates, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: queryKeys.guardianCandidates,
     queryFn: getGuardianCandidates,
     staleTime: 2 * 60 * 1000,
@@ -103,6 +104,16 @@ export default function GuardianCandidatesScreen() {
 
       {isLoading ? (
         <ListSkeleton rows={4} />
+      ) : isError && !candidates ? (
+        <EmptyState
+          variant="error"
+          icon="cloud-offline-outline"
+          title="Couldn't load guardian links"
+          description="Check your connection and try again."
+          actionLabel="Try again"
+          onAction={() => refetch()}
+          testID="GuardianCandidatesScreen-error"
+        />
       ) : (
         <FlatList
           data={activeLinks}

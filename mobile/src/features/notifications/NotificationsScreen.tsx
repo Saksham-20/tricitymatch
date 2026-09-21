@@ -12,6 +12,7 @@ import { PressableScale } from '../../components/motion';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { NotificationsSkeleton } from '../../components/ui/skeletons';
+import EmptyState from '../../components/ui/EmptyState';
 import ListFooter from '../../components/ui/ListFooter';
 import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
@@ -126,6 +127,7 @@ export default function NotificationsScreen() {
     hasNextPage,
     isFetchingNextPage,
     isLoading,
+    isError,
     refetch,
   } = useInfiniteQuery({
     queryKey: ['notifications'],
@@ -231,38 +233,52 @@ export default function NotificationsScreen() {
         )}
       </View>
 
-      <FlatList
-        data={allNotifications}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <NotificationItem item={item} onPress={handlePress} />
-        )}
-        contentContainerStyle={
-          allNotifications.length === 0 ? styles.emptyContent : styles.listContent
-        }
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            colors={[c.primary]}
-            tintColor={c.primary}
+      {isError && allNotifications.length === 0 ? (
+        <View style={styles.emptyContent}>
+          <EmptyState
+            variant="error"
+            icon="cloud-offline-outline"
+            title="Couldn't load notifications"
+            description="Check your connection and try again."
+            actionLabel="Try again"
+            onAction={() => refetch()}
+            testID="NotificationsScreen-error"
           />
-        }
-        onEndReached={() => {
-          if (hasNextPage && !isFetchingNextPage) fetchNextPage();
-        }}
-        onEndReachedThreshold={0.4}
-        ListFooterComponent={<ListFooter state={isFetchingNextPage ? 'loading' : 'idle'} />}
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Ionicons name="notifications-off-outline" size={56} color={c.textMuted} />
-            <Text variant="headline" color="textPrimary" style={styles.emptyTitle}>No notifications yet</Text>
-            <Text variant="footnote" color="textMuted" style={styles.emptyBody}>
-              We'll let you know when you get a new match, message, or interest.
-            </Text>
-          </View>
-        }
-      />
+        </View>
+      ) : (
+        <FlatList
+          data={allNotifications}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <NotificationItem item={item} onPress={handlePress} />
+          )}
+          contentContainerStyle={
+            allNotifications.length === 0 ? styles.emptyContent : styles.listContent
+          }
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={[c.primary]}
+              tintColor={c.primary}
+            />
+          }
+          onEndReached={() => {
+            if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+          }}
+          onEndReachedThreshold={0.4}
+          ListFooterComponent={<ListFooter state={isFetchingNextPage ? 'loading' : 'idle'} />}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Ionicons name="notifications-off-outline" size={56} color={c.textMuted} />
+              <Text variant="headline" color="textPrimary" style={styles.emptyTitle}>No notifications yet</Text>
+              <Text variant="footnote" color="textMuted" style={styles.emptyBody}>
+                We'll let you know when you get a new match, message, or interest.
+              </Text>
+            </View>
+          }
+        />
+      )}
     </Screen>
   );
 }

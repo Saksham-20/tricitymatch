@@ -14,7 +14,7 @@ import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { colours, type, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { getHoroscopeCompatibility } from '../../api/profile';
 import type { GunaDetail } from '../../api/profile';
-import { CompatRing } from '../../components/ui';
+import { CompatRing, EmptyState } from '../../components/ui';
 import { useFillAnimation, PressableScale } from '../../components/motion';
 import { useTheme } from '../../hooks/useTheme';
 import type { MainStackParamList } from '../../navigation/types';
@@ -76,7 +76,7 @@ export default function HoroscopeMatchScreen() {
   const s = React.useMemo(() => makeS(c), [c]);
   const { userId, name } = route.params;
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['horoscope-match', userId],
     queryFn: () => getHoroscopeCompatibility(userId),
   });
@@ -197,11 +197,16 @@ export default function HoroscopeMatchScreen() {
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         {isLoading ? (
           <HoroscopeSkeleton />
-        ) : isError ? (
-          <View style={s.center}>
-            <Ionicons name="alert-circle-outline" size={48} color={c.error} />
-            <Text variant="body" color="error" style={s.errorText}>Could not load horoscope data</Text>
-          </View>
+        ) : isError && !data ? (
+          <EmptyState
+            variant="error"
+            icon="moon-outline"
+            title="Couldn't load Kundli match"
+            description="Check your connection and try again."
+            actionLabel="Try again"
+            onAction={() => refetch()}
+            testID="HoroscopeMatchScreen-error"
+          />
         ) : renderScore()}
       </ScrollView>
     </Screen>
@@ -213,9 +218,7 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   header:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.sm, borderBottomWidth: 0.5 },
   headerCenter: { flex: 1, alignItems: 'center' },
   scroll:       { padding: spacing.gutter, paddingBottom: spacing['4xl'] },
-  center:       { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: spacing['5xl'] },
   loadingText:  { marginTop: spacing.md, ...type.body },
-  errorText:    { marginTop: spacing.sm, textAlign: 'center' },
 
   scoreCard:    { flexDirection: 'row', alignItems: 'center', borderRadius: borderRadius.lg, borderWidth: 1, padding: spacing.lg, marginBottom: spacing.lg, gap: spacing.lg },
   ringEmpty:    { width: 84, height: 84, borderRadius: 42, borderWidth: 4, alignItems: 'center', justifyContent: 'center' },

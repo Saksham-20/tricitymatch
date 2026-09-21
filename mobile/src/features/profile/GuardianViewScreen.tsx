@@ -13,6 +13,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { ListSkeleton } from '../../components/ui/skeletons';
+import { EmptyState } from '../../components/ui';
 import { PressableScale } from '../../components/motion';
 import { useTranslation } from 'react-i18next';
 import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
@@ -181,6 +182,18 @@ export default function GuardianViewScreen() {
       {/* Content */}
       {activeQuery.isLoading ? (
         <ListSkeleton rows={6} />
+      ) : activeQuery.isError && !activeQuery.data ? (
+        <View style={s.errorState}>
+          <EmptyState
+            variant="error"
+            icon="cloud-offline-outline"
+            title={activeTab === 'matches' ? "Couldn't load matches" : "Couldn't load shortlist"}
+            description="Check your connection and try again."
+            actionLabel="Try again"
+            onAction={() => activeQuery.refetch()}
+            testID="GuardianViewScreen-error"
+          />
+        </View>
       ) : (
         <FlatList
           data={profiles}
@@ -223,6 +236,7 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   tabBar:        { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: c.border, backgroundColor: c.background },
   tab:           { flex: 1, paddingVertical: spacing.md, alignItems: 'center' },
   tabActive:     { borderBottomWidth: 2, borderBottomColor: c.primary },
+  errorState:    { flex: 1, justifyContent: 'center' },
   emptyState:    { alignItems: 'center', gap: spacing.md, paddingTop: 80, paddingHorizontal: spacing.xl },
   emptyHint:     { textAlign: 'center' },
 });

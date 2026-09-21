@@ -5,7 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import { ListSkeleton } from '../../components/ui/skeletons';
+import { SkeletonBlock } from '../../components/ui/Skeleton';
+import EmptyState from '../../components/ui/EmptyState';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { PressableScale } from '../../components/motion';
 import Text from '../../components/ui/Text';
@@ -16,6 +17,40 @@ import type { MainStackParamList } from '../../navigation/types';
 type Route = RouteProp<MainStackParamList, 'AstrologerDetail'>;
 
 const DURATIONS = [15, 30, 45, 60];
+
+/** Mirrors the loaded layout: centered profile card, specialities, duration row. */
+function AstrologerDetailSkeleton() {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
+  return (
+    <View style={s.scroll} testID="AstrologerDetailScreen-skeleton">
+      <View style={s.profileCard}>
+        <SkeletonBlock width={76} height={76} radius={38} style={{ marginBottom: spacing.sm }} />
+        <SkeletonBlock width={160} height={20} />
+        <SkeletonBlock width={200} height={14} />
+        <SkeletonBlock width={120} height={14} />
+        <View style={s.chips}>
+          {[64, 72, 56].map((w) => <SkeletonBlock key={w} width={w} height={24} radius={borderRadius.full} />)}
+        </View>
+      </View>
+      <View style={s.section}>
+        <SkeletonBlock width={110} height={18} />
+        <View style={s.chips}>
+          {[88, 76, 96].map((w) => <SkeletonBlock key={w} width={w} height={24} radius={borderRadius.full} />)}
+        </View>
+      </View>
+      <View style={s.section}>
+        <SkeletonBlock width={170} height={18} />
+        <View style={s.durationRow}>
+          {[0, 1, 2, 3].map((i) => (
+            <SkeletonBlock key={i} width="23%" height={52} radius={borderRadius.md} />
+          ))}
+        </View>
+        <SkeletonBlock width="80%" height={12} />
+      </View>
+    </View>
+  );
+}
 
 /**
  * Everything here comes from `GET /astrologers/:id`.
@@ -45,7 +80,7 @@ export default function AstrologerDetailScreen() {
   const [selectedDuration, setSelectedDuration] = useState(30);
   const [booking, setBooking] = useState(false);
 
-  const { data: astrologer, isLoading, isError, refetch } = useQuery({
+  const { data: astrologer, isLoading, refetch } = useQuery({
     queryKey: ['astrologer', astrologerId],
     queryFn: () => getAstrologer(astrologerId),
     staleTime: 5 * 60 * 1000,
@@ -92,20 +127,20 @@ export default function AstrologerDetailScreen() {
       </View>
 
       {isLoading ? (
-        <ListSkeleton rows={5} />
-      ) : isError || !astrologer ? (
-        <View style={s.state}>
-          <Ionicons name="cloud-offline-outline" size={44} color={c.textMuted} />
-          <Text variant="callout" color="textMuted">Could not load this astrologer.</Text>
-          <PressableScale
-            onPress={() => refetch()}
-            style={s.retryBtn}
-            accessibilityRole="button"
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Text variant="caption" color="primary">Try again</Text>
-          </PressableScale>
+        <AstrologerDetailSkeleton />
+      ) : !astrologer ? (
+        // Nothing to show (failed fetch, or a fetch paused offline): retryable error.
+        // A failed background refetch with cached data falls through to the content.
+        <View style={s.errorBody}>
+          <EmptyState
+            variant="error"
+            icon="cloud-offline-outline"
+            title="Couldn't load astrologer details"
+            description="Check your connection and try again."
+            actionLabel="Try again"
+            onAction={() => refetch()}
+            testID="AstrologerDetailScreen-error"
+          />
         </View>
       ) : (
         <>
@@ -218,8 +253,7 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   },
   scroll: { padding: spacing.md, paddingBottom: 120 },
 
-  state: { alignItems: 'center', paddingTop: 64, gap: spacing.sm },
-  retryBtn: { marginTop: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: borderRadius.full, borderWidth: 1, borderColor: c.primary },
+  errorBody: { flex: 1, justifyContent: 'center' },
 
   profileCard: { alignItems: 'center', paddingVertical: spacing.xl, gap: spacing.xs },
   avatarWrap: {

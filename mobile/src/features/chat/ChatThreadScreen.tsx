@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
   View, FlatList, StyleSheet,
-  KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Modal, Pressable,
+  KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Modal, Pressable, TextInput,
 } from 'react-native';
 import Text from '../../components/ui/Text';
 import Input from '../../components/ui/Input';
@@ -27,6 +27,7 @@ import { duration, EASE_IN_OUT } from '@shared/constants/motion';
 const TYPING_DOT_BOUNCE_MS = 300;
 const TYPING_DOT_REST_MS = 600;
 import { ChatThreadSkeleton } from '../../components/ui/skeletons';
+import { EmptyState } from '../../components/ui';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -408,6 +409,7 @@ export default function ChatThreadScreen() {
   // send, and flipped inactive by the local expiry timer (403 is the backstop).
   const [replyWindow, setReplyWindow] = useState<ReplyWindow | null>(null);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inputRef = useRef<TextInput>(null);
 
   const isPaid = (user?.subscriptionPlan ?? 'free') !== 'free';
 
@@ -436,6 +438,8 @@ export default function ChatThreadScreen() {
     hasNextPage,
     isFetchingNextPage,
     isLoading,
+    isError,
+    refetch,
     error: threadError,
   } = useInfiniteQuery({
     queryKey: queryKeys.thread(userId),
@@ -733,6 +737,12 @@ export default function ChatThreadScreen() {
     ? t('chat.windowExhausted', "You've used your 5 free replies")
     : t('chat.windowExpired', 'Your 48-hour reply window ended');
 
+  // A failed load with nothing cached must not fall through to an empty thread
+  // and a live composer (the 403 gate above is the one failure that has its own
+  // screen). A failed background refetch or next-page fetch keeps the thread.
+  const showError = isError && !data;
+  const firstName = name.split(' ')[0];
+
   return (
     <KeyboardAvoidingView
       style={s.container}
@@ -799,6 +809,20 @@ export default function ChatThreadScreen() {
         </View>
       </View>
 
+      {showError ? (
+        <View style={s.errorBody}>
+          <EmptyState
+            variant="error"
+            icon="chatbubbles-outline"
+            title={t('chat.loadFailedTitle', "Couldn't load messages")}
+            description={t('chat.loadFailedBody', 'Check your connection and try again.')}
+            actionLabel={t('chat.tryAgain', 'Try again')}
+            onAction={() => refetch()}
+            testID="ChatThreadScreen-error"
+          />
+        </View>
+      ) : (
+      <>
       {/* Contact unlock banner */}
       <ContactUnlockBanner userId={userId} onUnlocked={() => {}} />
 
@@ -808,9 +832,21 @@ export default function ChatThreadScreen() {
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         inverted
-        contentContainerStyle={s.listContent}
+        contentContainerStyle={[s.listContent, messages.length === 0 && s.listContentEmpty]}
         onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
         onEndReachedThreshold={0.2}
+        ListEmptyComponent={
+          <View style={s.emptyBody}>
+            <EmptyState
+              icon="chatbubble-ellipses-outline"
+              title={t('chat.threadEmptyTitle', 'No messages yet')}
+              description={t('chat.threadEmptyBody', 'Say hello to {{name}} and start the conversation.', { name: firstName || 'your match' })}
+              actionLabel={t('chat.threadEmptyAction', 'Write a message')}
+              onAction={() => inputRef.current?.focus()}
+              testID="ChatThreadScreen-empty"
+            />
+          </View>
+        }
         ListFooterComponent={
           isFetchingNextPage ? (
             <ActivityIndicator
@@ -886,6 +922,7 @@ export default function ChatThreadScreen() {
       <View style={{ paddingBottom: Math.max(insets.bottom, spacing.xs) }}>
         <View style={s.inputBar}>
           <Input
+            ref={inputRef}
             containerStyle={s.inputContainer}
             style={s.input}
             value={input}
@@ -938,6 +975,8 @@ export default function ChatThreadScreen() {
           </Text>
         )}
       </View>
+      )}
+      </>
       )}
 
       {/* Long-press action menu */}
@@ -1086,6 +1125,10 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },
+  // Empty thread: let the content container fill the list so the empty state centres.
+  listContentEmpty: { flexGrow: 1 },
+  emptyBody: { flex: 1, justifyContent: 'center' },
+  errorBody: { flex: 1, justifyContent: 'center' },
   // Bubbles
   bubbleRow: {
     marginVertical: 2,

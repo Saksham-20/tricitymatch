@@ -110,7 +110,7 @@ export default function ConversationsScreen() {
   const authUser = useAuthStore((st) => st.user);
   const hasPlus = canUseChat(authUser);
 
-  const { data: conversations = [], isLoading, isRefetching, refetch, error: convError } = useQuery({
+  const { data: conversations = [], isLoading, isError, isRefetching, refetch, error: convError } = useQuery({
     queryKey: queryKeys.conversations,
     queryFn: getConversations,
     enabled: hasPlus,
@@ -198,6 +198,20 @@ export default function ConversationsScreen() {
         <View testID="ConversationsLoading">
           {[0, 1, 2, 3, 4].map((i) => <SkeletonRow key={i} />)}
         </View>
+      ) : isError && conversations.length === 0 ? (
+        // Failed with nothing cached: a retryable error, never a fake empty
+        // list. A 403 never reaches here (it renders the upgrade gate above).
+        <View style={s.emptyContainer}>
+          <SharedEmpty
+            variant="error"
+            icon="chatbubbles-outline"
+            title={t('chat.loadErrorTitle', "Couldn't load conversations")}
+            description={t('chat.loadErrorSub', 'Check your connection and try again.')}
+            actionLabel={t('chat.retryBtn', 'Try again')}
+            onAction={() => refetch()}
+            testID="ConversationsScreen-error"
+          />
+        </View>
       ) : (
         <FlatList
           data={conversations}
@@ -208,6 +222,8 @@ export default function ConversationsScreen() {
               icon="chatbubbles-outline"
               title={t('chat.emptyTitle', 'No conversations yet')}
               description={t('chat.emptySub', 'Start chatting with your mutual matches.')}
+              actionLabel={t('chat.emptyAction', 'See your matches')}
+              onAction={() => navigation.navigate('MainTabs', { screen: 'Matches' })}
             />
           }
           ItemSeparatorComponent={() => <View style={[s.separator, { backgroundColor: c.hairline }]} />}

@@ -22,7 +22,7 @@ import Screen from '../../components/layout/Screen';
 import SmartImage, { resolveImageUri } from '../../components/common/SmartImage';
 import { OwnProfileSkeleton } from '../../components/ui/skeletons';
 import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
-import { CompletionRing as SharedCompletionRing } from '../../components/ui';
+import { CompletionRing as SharedCompletionRing, EmptyState } from '../../components/ui';
 import { PressableScale, StaggeredEntrance } from '../../components/motion';
 import { haptics } from '../../utils/haptics';
 import { useTheme } from '../../hooks/useTheme';
@@ -489,7 +489,7 @@ export default function OwnProfileScreen() {
   const [previewMode, setPreviewMode] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: profile, isLoading } = useQuery({
+  const { data: profile, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.me,
     queryFn: getMyProfile,
     staleTime: 5 * 60 * 1000,
@@ -551,6 +551,46 @@ export default function OwnProfileScreen() {
     );
   }
 
+  const header = (
+    <View style={[styles.header, { paddingTop: spacing.sm }]}>
+      <Text variant="title2" color="fgStrong">My Profile</Text>
+      <PressableScale
+        onPress={goToSettings}
+        testID="settings-btn"
+        accessibilityLabel="Settings"
+        accessibilityRole="button"
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <Ionicons name="settings-outline" size={24} color={c.textPrimary} />
+      </PressableScale>
+    </View>
+  );
+
+  // A failed load with nothing cached must not fall through to the body below:
+  // with `profile` undefined it would render the member's email as their name,
+  // a 0% completion ring and "Not added" on every row, which reads as an empty
+  // profile rather than a failed request. A failed background refetch that
+  // still has cached data keeps rendering that data.
+  if (isError && !profile) {
+    return (
+      <Screen edges={['top']} testID="OwnProfileErrorScreen">
+        {header}
+        <View style={styles.errorBody}>
+          <EmptyState
+            variant="error"
+            icon="cloud-offline-outline"
+            title="Couldn't load your profile"
+            description="Check your connection and try again."
+            actionLabel="Try again"
+            onAction={() => refetch()}
+            testID="OwnProfile-error"
+          />
+        </View>
+      </Screen>
+    );
+  }
+
   const name = profile
     ? `${profile.firstName} ${profile.lastName}`.trim()
     : user?.email ?? '';
@@ -576,19 +616,7 @@ export default function OwnProfileScreen() {
       testID="OwnProfileScreen"
     >
       {/* Header */}
-      <View style={[styles.header, { paddingTop: spacing.sm }]}>
-        <Text variant="title2" color="fgStrong">My Profile</Text>
-        <PressableScale
-          onPress={goToSettings}
-          testID="settings-btn"
-          accessibilityLabel="Settings"
-          accessibilityRole="button"
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="settings-outline" size={24} color={c.textPrimary} />
-        </PressableScale>
-      </View>
+      {header}
 
       {/* Photo gallery */}
       <ScrollView
@@ -923,6 +951,7 @@ export default function OwnProfileScreen() {
 const makeStyles = (c: ThemeColours) => StyleSheet.create({
   container: { flex: 1, backgroundColor: c.background },
   loader: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  errorBody: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
   header: {
     flexDirection: 'row',

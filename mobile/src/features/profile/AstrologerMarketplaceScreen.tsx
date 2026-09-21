@@ -15,6 +15,7 @@ import { colours, typography, spacing, borderRadius, type ThemeColours } from '@
 import { PressableScale } from '../../components/motion';
 import Screen from '../../components/layout/Screen';
 import Text from '../../components/ui/Text';
+import EmptyState from '../../components/ui/EmptyState';
 import { getAstrologers } from '../../api/profile';
 import type { Astrologer } from '../../api/profile';
 import type { MainStackParamList } from '../../navigation/types';
@@ -113,7 +114,7 @@ export default function AstrologerMarketplaceScreen() {
   // are not placeholder copy; they shipped as if real. The endpoint works and
   // returns real records where the table is seeded, so an empty list means
   // "none onboarded here yet", not "feature missing".
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['astrologers'],
     queryFn: getAstrologers,
   });
@@ -171,6 +172,19 @@ export default function AstrologerMarketplaceScreen() {
 
       {isLoading ? (
         <ListSkeleton rows={5} />
+      ) : isError && !data ? (
+        // A failed fetch must not fall through to the "coming soon" empty state
+        // below: that copy claims the feature has no practitioners yet, which is
+        // a different statement from "we could not reach the server".
+        <EmptyState
+          variant="error"
+          icon="cloud-offline-outline"
+          title="Couldn't load astrologers"
+          description="Check your connection and try again."
+          actionLabel="Try again"
+          onAction={() => refetch()}
+          testID="AstrologerMarketplace-error"
+        />
       ) : (
         <FlatList
           data={filtered}

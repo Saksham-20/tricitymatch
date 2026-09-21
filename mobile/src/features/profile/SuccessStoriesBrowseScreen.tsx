@@ -12,6 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import Text from '../../components/ui/Text';
 import { ListSkeleton } from '../../components/ui/skeletons';
+import { EmptyState } from '../../components/ui';
 import { PressableScale } from '../../components/motion';
 import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import SmartImage from '../../components/common/SmartImage';
@@ -51,7 +52,7 @@ export default function SuccessStoriesBrowseScreen() {
   const styles = React.useMemo(() => makeStyles(c), [c]);
   const navigation = useNavigation<Nav>();
 
-  const { data: stories = [], isLoading } = useQuery({
+  const { data: stories = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['success-stories'],
     queryFn: getSuccessStories,
     staleTime: 5 * 60 * 1000,
@@ -85,6 +86,16 @@ export default function SuccessStoriesBrowseScreen() {
 
       {isLoading ? (
         <ListSkeleton rows={6} />
+      ) : isError && stories.length === 0 ? (
+        <EmptyState
+          variant="error"
+          icon="cloud-offline-outline"
+          title="Couldn't load stories"
+          description="Check your connection and try again."
+          actionLabel="Try again"
+          onAction={() => refetch()}
+          testID="SuccessStoriesBrowseScreen-error"
+        />
       ) : (
         <FlatList
           data={stories}

@@ -14,6 +14,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { updateMyProfile, getMyProfile } from '../../api/profile';
+import { showToast } from '../../utils/toast';
 import type { Profile, Gender, MaritalStatus, ManglikStatus, Diet, SmokingDrinking, FamilyType } from '../../types';
 
 type Exercise = 'daily' | 'weekly' | 'rarely' | 'never';
@@ -303,7 +304,10 @@ export function OnboardingProvider({ children, navigateToStep }: ProviderProps) 
         try {
           await updateMyProfile(profilePatch);
         } catch {
-          // Non-blocking — user advances regardless; backend syncs on next open
+          // Nothing re-sends a failed patch, so advancing would silently drop
+          // this step's answers. Stay on the step; Continue is the retry.
+          showToast.error("Couldn't save your answers", 'Check your connection and tap Continue to try again.');
+          return;
         } finally {
           setIsSaving(false);
         }

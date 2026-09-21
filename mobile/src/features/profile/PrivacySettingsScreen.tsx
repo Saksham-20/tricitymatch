@@ -13,6 +13,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import Text from '../../components/ui/Text';
+import { EmptyState } from '../../components/ui';
 import { ListSkeleton } from '../../components/ui/skeletons';
 import { PressableScale } from '../../components/motion';
 import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
@@ -29,7 +30,7 @@ export default function PrivacySettingsScreen() {
   const navigation = useNavigation<Nav>();
   const queryClient = useQueryClient();
 
-  const { data: profile, isLoading } = useQuery({
+  const { data: profile, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.me,
     queryFn: getMyProfile,
     staleTime: 5 * 60 * 1000,
@@ -86,91 +87,103 @@ export default function PrivacySettingsScreen() {
         <View style={{ width: 26 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.body}>
-        {/* Profile visibility */}
-        <Text variant="caption" color="textMuted" style={styles.sectionTitle}>Who can see your profile</Text>
-        <View style={styles.segment}>
-          {(['everyone', 'matches_only'] as Visibility[]).map((opt) => {
-            const active = visibility === opt;
-            return (
-              <PressableScale
-                key={opt}
-                style={[styles.segmentBtn, active && styles.segmentBtnActive]}
-                onPress={() => setVisibility(opt)}
-                testID={`visibility-${opt}`}
-                accessibilityLabel={opt === 'everyone' ? 'Everyone' : 'Matches only'}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: active }}
-                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Text variant="subhead" color="textSecondary" style={active && styles.segmentTextActive}>
-                  {opt === 'everyone' ? 'Everyone' : 'Matches only'}
-                </Text>
-              </PressableScale>
-            );
-          })}
-        </View>
-        <Text variant="footnote" color="textMuted" style={styles.hint}>
-          {visibility === 'everyone'
-            ? 'Anyone on TricityMatch can view your full profile.'
-            : 'Only people you have matched with can view your full profile.'}
-        </Text>
-
-        {/* Toggles */}
-        <View style={styles.toggleCard}>
-          <View style={styles.toggleRow}>
-            <View style={{ flex: 1 }}>
-              <Text variant="subhead" color="textPrimary">Show online status</Text>
-              <Text variant="footnote" color="textSecondary" style={styles.toggleSub}>Let others see when you are active</Text>
-            </View>
-            <Switch
-              value={showOnlineStatus}
-              onValueChange={setShowOnlineStatus}
-              trackColor={{ false: c.border, true: c.primary + '80' }}
-              thumbColor={showOnlineStatus ? c.primary : c.textMuted}
-              testID="toggle-online-status"
-            />
+      {isError && !profile ? (
+        <EmptyState
+          variant="error"
+          icon="shield-outline"
+          title="Couldn't load privacy settings"
+          description="Check your connection and try again."
+          actionLabel="Try again"
+          onAction={() => refetch()}
+          testID="PrivacySettingsScreen-error"
+        />
+      ) : (
+        <ScrollView contentContainerStyle={styles.body}>
+          {/* Profile visibility */}
+          <Text variant="caption" color="textMuted" style={styles.sectionTitle}>Who can see your profile</Text>
+          <View style={styles.segment}>
+            {(['everyone', 'matches_only'] as Visibility[]).map((opt) => {
+              const active = visibility === opt;
+              return (
+                <PressableScale
+                  key={opt}
+                  style={[styles.segmentBtn, active && styles.segmentBtnActive]}
+                  onPress={() => setVisibility(opt)}
+                  testID={`visibility-${opt}`}
+                  accessibilityLabel={opt === 'everyone' ? 'Everyone' : 'Matches only'}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: active }}
+                  pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Text variant="subhead" color="textSecondary" style={active && styles.segmentTextActive}>
+                    {opt === 'everyone' ? 'Everyone' : 'Matches only'}
+                  </Text>
+                </PressableScale>
+              );
+            })}
           </View>
-          <View style={styles.divider} />
-          <View style={styles.toggleRow}>
-            <View style={{ flex: 1 }}>
-              <Text variant="subhead" color="textPrimary">Show last seen</Text>
-              <Text variant="footnote" color="textSecondary" style={styles.toggleSub}>Display when you were last online</Text>
-            </View>
-            <Switch
-              value={showLastSeen}
-              onValueChange={setShowLastSeen}
-              trackColor={{ false: c.border, true: c.primary + '80' }}
-              thumbColor={showLastSeen ? c.primary : c.textMuted}
-              testID="toggle-last-seen"
-            />
-          </View>
-        </View>
+          <Text variant="footnote" color="textMuted" style={styles.hint}>
+            {visibility === 'everyone'
+              ? 'Anyone on TricityMatch can view your full profile.'
+              : 'Only people you have matched with can view your full profile.'}
+          </Text>
 
-        <PressableScale
-          style={styles.saveBtn}
-          onPress={save}
-          disabled={mutation.isPending}
-          testID="save-privacy"
-          accessibilityLabel="Save privacy settings"
-          accessibilityRole="button"
-          accessibilityState={{ disabled: mutation.isPending }}
-          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          {mutation.isPending ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text variant="headline" style={styles.saveText}>Save Privacy Settings</Text>
+          {/* Toggles */}
+          <View style={styles.toggleCard}>
+            <View style={styles.toggleRow}>
+              <View style={{ flex: 1 }}>
+                <Text variant="subhead" color="textPrimary">Show online status</Text>
+                <Text variant="footnote" color="textSecondary" style={styles.toggleSub}>Let others see when you are active</Text>
+              </View>
+              <Switch
+                value={showOnlineStatus}
+                onValueChange={setShowOnlineStatus}
+                trackColor={{ false: c.border, true: c.primary + '80' }}
+                thumbColor={showOnlineStatus ? c.primary : c.textMuted}
+                testID="toggle-online-status"
+              />
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.toggleRow}>
+              <View style={{ flex: 1 }}>
+                <Text variant="subhead" color="textPrimary">Show last seen</Text>
+                <Text variant="footnote" color="textSecondary" style={styles.toggleSub}>Display when you were last online</Text>
+              </View>
+              <Switch
+                value={showLastSeen}
+                onValueChange={setShowLastSeen}
+                trackColor={{ false: c.border, true: c.primary + '80' }}
+                thumbColor={showLastSeen ? c.primary : c.textMuted}
+                testID="toggle-last-seen"
+              />
+            </View>
+          </View>
+
+          <PressableScale
+            style={styles.saveBtn}
+            onPress={save}
+            disabled={mutation.isPending}
+            testID="save-privacy"
+            accessibilityLabel="Save privacy settings"
+            accessibilityRole="button"
+            accessibilityState={{ disabled: mutation.isPending }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            {mutation.isPending ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text variant="headline" style={styles.saveText}>Save Privacy Settings</Text>
+            )}
+          </PressableScale>
+
+          {mutation.isSuccess && !mutation.isPending && (
+            <Text variant="subhead" color="success" style={styles.savedNote}>Saved ✓</Text>
           )}
-        </PressableScale>
-
-        {mutation.isSuccess && !mutation.isPending && (
-          <Text variant="subhead" color="success" style={styles.savedNote}>Saved ✓</Text>
-        )}
-        {mutation.isError && (
-          <Text variant="subhead" color="error" style={styles.errorNote}>Could not save. Please try again.</Text>
-        )}
-      </ScrollView>
+          {mutation.isError && (
+            <Text variant="subhead" color="error" style={styles.errorNote}>Could not save. Please try again.</Text>
+          )}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }

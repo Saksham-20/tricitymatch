@@ -15,6 +15,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { ListSkeleton } from '../../components/ui/skeletons';
+import { EmptyState } from '../../components/ui';
 import { useTranslation } from 'react-i18next';
 import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { getFamilyGroups, createFamilyGroup, type FamilyGroup } from '../../api/chat';
@@ -139,7 +140,7 @@ export default function FamilyGroupsScreen() {
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
 
-  const { data: groups, isLoading } = useQuery({
+  const { data: groups, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.familyGroups,
     queryFn: getFamilyGroups,
     staleTime: 60 * 1000,
@@ -200,6 +201,16 @@ export default function FamilyGroupsScreen() {
 
       {isLoading ? (
         <ListSkeleton rows={6} />
+      ) : isError && !groups ? (
+        <EmptyState
+          variant="error"
+          icon="people-outline"
+          title="Couldn't load family groups"
+          description="Check your connection and try again."
+          actionLabel="Try again"
+          onAction={() => refetch()}
+          testID="FamilyGroupsScreen-error"
+        />
       ) : (
         <FlatList
           data={groups ?? []}
