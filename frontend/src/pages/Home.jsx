@@ -32,7 +32,7 @@
  */
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
+import { motion, AnimatePresence, useScroll, useTransform, useInView, animate } from 'framer-motion';
 import {
   FiArrowRight, FiCheck, FiPlus, FiMinus, FiChevronLeft, FiChevronRight,
 } from 'react-icons/fi';
@@ -58,17 +58,20 @@ const GOLD_ON_INK = '#E8C34A';
    reads as a template. */
 const CITIES = [
   {
-    name: 'Chandigarh', slug: 'chandigarh', span: 'lg:col-span-5', ratio: 'aspect-[4/5]',
+    name: 'Chandigarh', slug: 'chandigarh', span: 'lg:col-span-5', ratio: 'aspect-[4/5]', offset: '',
     line: 'Sectors, roundabouts, and a coffee at 17 that turns into three hours.',
     image: EDITORIAL_IMAGES.cities.chandigarh,
   },
   {
-    name: 'Mohali', slug: 'mohali', span: 'lg:col-span-4', ratio: 'aspect-[3/4]',
-    line: 'IT parks, the stadium, and half your school two phases away.',
+    /* Dropped below the other two on desktop, on purpose: three photographs of
+       equal height in a row is the "three-card feature row" the craft floor
+       bans, and it was the one shape this composition hadn't broken yet. */
+    name: 'Mohali', slug: 'mohali', span: 'lg:col-span-4', ratio: 'aspect-square', offset: 'lg:mt-14',
+    line: 'IT parks, coworking towers, and half your school two phases away.',
     image: EDITORIAL_IMAGES.cities.mohali,
   },
   {
-    name: 'Panchkula', slug: 'panchkula', span: 'lg:col-span-3', ratio: 'aspect-[2/3]',
+    name: 'Panchkula', slug: 'panchkula', span: 'lg:col-span-3', ratio: 'aspect-[3/4]', offset: 'lg:mt-6',
     line: 'Hills at the end of the road. Families three generations deep.',
     image: EDITORIAL_IMAGES.cities.panchkula,
   },
@@ -79,12 +82,19 @@ const CITIES = [
    number we then change is the kind of small dishonesty this page exists to
    avoid. Horoscope matching sits in the list, not above it. */
 const SIGNALS = [
-  ['Who they are', 'Age, city and sector, height, marital status'],
-  ['What they do', 'Education, profession, income band, where they studied'],
-  ['Where they come from', 'Religion, community, gotra, mother tongue, NRI roots'],
-  ['How they live', 'Diet, smoking, drinking, interests you both listed'],
-  ['What the family weighs', 'Family type, values, what your parents said matters'],
-  ['Horoscope, if you want it', 'Ashtakoot guna matching, Manglik and rashi, computed in full and never forced on anybody'],
+  { t: 'Who they are', d: 'Age, city and sector, height, marital status' },
+  { t: 'What they do', d: 'Education, profession, income band, where they studied' },
+  { t: 'Where they come from', d: 'Religion, community, gotra, mother tongue, NRI roots' },
+  { t: 'How they live', d: 'Diet, smoking, drinking, interests you both listed' },
+  { t: 'What the family weighs', d: 'Family type, values, what your parents said matters' },
+  {
+    t: 'Horoscope, if you want it',
+    d: 'Ashtakoot guna matching, Manglik and rashi, computed in full',
+    /* Set apart, not centred: this is the one signal that is not asked of
+       everyone by default (owner, 2026-09-22 — "keep it general"), so it gets
+       a different shape on the page as well as a different sentence. */
+    aside: true,
+  },
 ];
 
 const STEPS = [
@@ -289,22 +299,71 @@ const RailNote = ({ children, className = '' }) => (
   <p className={`mt-2 text-[13px] leading-[1.6] text-neutral-500 ${className}`}>{children}</p>
 );
 
+/**
+ * Every landing photograph is real and licensed, not a member and not
+ * AI-generated (swapped 2026-09-22 — see `data/editorialImages.js` for the
+ * sourcing note). `variant="overlay"` sits on the photograph itself, in a
+ * dark scrim, matching how the city cards' own captions sit on their photos.
+ * `variant="plain"` sits on the page background below an image.
+ */
+const PhotoCredit = ({ photo, variant = 'plain', className = '' }) => {
+  const linkClass = variant === 'overlay'
+    ? 'underline decoration-white/50 underline-offset-2 hover:decoration-white'
+    : 'underline decoration-neutral-400 underline-offset-2 hover:decoration-neutral-700 dark:hover:decoration-neutral-300';
+  return (
+    <p
+      className={`text-[11px] leading-[1.5] ${variant === 'overlay' ? 'text-white/85' : 'text-neutral-500'} ${className}`}
+    >
+      Photo:{' '}
+      <a href={photo.creditUrl} target="_blank" rel="noopener noreferrer" className={linkClass}>
+        {photo.credit}
+      </a>
+      {' '}&middot; {photo.license}. Not a member.
+    </p>
+  );
+};
+
+/**
+ * The one animated number on the page. It counts up from zero to the real,
+ * live-read launch price exactly once, the first time it scrolls into view —
+ * a genuine value changing state, not an idle loop the doctrine would ban.
+ * Reduced motion sets the final figure immediately.
+ */
+const CountUpRupee = ({ amount }) => {
+  const nodeRef = useRef(null);
+  const inView = useInView(nodeRef, { once: true, amount: 0.6 });
+  const [display, setDisplay] = useState(prefersReducedMotion ? amount : 0);
+
+  useEffect(() => {
+    if (!inView || prefersReducedMotion) return undefined;
+    const controls = animate(0, amount, {
+      duration: 1.1,
+      ease: EASE_OUT,
+      onUpdate: (v) => setDisplay(Math.round(v)),
+    });
+    return () => controls.stop();
+  }, [inView, amount]);
+
+  return <span ref={nodeRef}>&#8377;{display.toLocaleString('en-IN')}</span>;
+};
+
 /* ═══════════════════════════════════════════════════════════════════
    Masthead.
    ═══════════════════════════════════════════════════════════════════ */
 const Masthead = ({ heroRef }) => {
-  const photo = EDITORIAL_IMAGES.heroStack.front;
+  const photo = EDITORIAL_IMAGES.heroCouple;
 
   return (
     <section ref={heroRef} className="relative overflow-hidden">
-      {/* Runs to the viewport edge. Square corners, full bleed. */}
+      {/* Runs to the viewport edge. Square corners, full bleed. The source is
+          landscape (a real couple at dusk, credited below) — object-position
+          keeps them centred rather than the sky-heavy top third a portrait
+          crop usually favours. */}
       <figure className="tm-photo absolute right-0 top-0 hidden h-full w-[30vw] max-w-[460px] lg:block">
-        <img src={photo.src} alt={photo.alt} width="900" height="1240" loading="eager" className="h-full w-full object-cover object-top" />
-        {photo.aiGenerated && (
-          <figcaption className="absolute bottom-0 left-0 right-0 px-4 py-2 text-[11px] leading-[1.4]" style={{ background: 'rgba(0,0,0,0.62)', color: '#FFFFFF' }}>
-            Illustrative photography, AI-generated. Not a member.
-          </figcaption>
-        )}
+        <img src={photo.src} alt={photo.alt} width="1200" height="1867" loading="eager" className="h-full w-full object-cover object-[50%_38%]" />
+        <figcaption className="absolute bottom-0 left-0 right-0 px-4 py-2" style={{ background: 'rgba(0,0,0,0.62)' }}>
+          <PhotoCredit photo={photo} variant="overlay" />
+        </figcaption>
       </figure>
 
       <Shell>
@@ -369,12 +428,10 @@ const Masthead = ({ heroRef }) => {
             transition={{ duration: 0.5, ease: EASE_OUT, delay: 0.7 }}
             className="-mx-4 mt-10 lg:hidden"
           >
-            <img src={photo.src} alt={photo.alt} width="800" height="450" loading="eager" className="aspect-[16/9] w-full object-cover object-top" />
-            {photo.aiGenerated && (
-              <figcaption className="px-4 pt-2 text-[12px] leading-[1.5] text-neutral-500">
-                Illustrative photography, AI-generated. Not a member.
-              </figcaption>
-            )}
+            <img src={photo.src} alt={photo.alt} width="800" height="450" loading="eager" className="aspect-[16/9] w-full object-cover object-[50%_38%]" />
+            <div className="px-4 pt-2">
+              <PhotoCredit photo={photo} />
+            </div>
           </motion.figure>
 
           <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-[13px] text-neutral-500">
@@ -432,12 +489,31 @@ const Matching = () => (
         </motion.p>
 
         <dl className="mt-10 border-t border-neutral-300/70 dark:border-neutral-700">
-          {SIGNALS.map(([title, body], i) => (
-            <motion.div key={title} {...reveal(i)} className="grid gap-x-8 gap-y-1 border-b border-neutral-300/70 py-5 dark:border-neutral-700 md:grid-cols-[minmax(0,15rem)_1fr]">
-              <dt className="text-[16px] font-semibold leading-[1.4] text-neutral-900">{title}</dt>
-              <dd className="text-[15px] leading-[1.6] text-neutral-600">{body}</dd>
+          {SIGNALS.map((row, i) => (row.aside ? (
+            /* The one row that isn't a row: horoscope matching breaks the
+               table into an inset card rather than sitting level with
+               "what they do" and "how they live", because it is the one
+               signal this product does not ask of every family by default. */
+            <motion.div
+              key={row.t}
+              initial={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.97 }}
+              whileInView={{ opacity: 1, scale: 1, transition: { duration: DUR.reveal, ease: EASE_OUT, delay: staggerIndex(i) } }}
+              viewport={{ once: true, amount: 0.4 }}
+              className="my-6 rounded-2xl border border-dashed border-primary-300/60 bg-primary-50/40 p-5 dark:border-primary-800/50 dark:bg-primary-950/20 md:ml-10"
+            >
+              <dt className="text-[16px] font-semibold leading-[1.4] text-neutral-900">{row.t}</dt>
+              <dd className="mt-1 text-[15px] leading-[1.6] text-neutral-600">{row.d}, and never forced on anybody.</dd>
             </motion.div>
-          ))}
+          ) : (
+            <motion.div
+              key={row.t}
+              {...reveal(i)}
+              className={`grid gap-x-8 gap-y-1 border-b border-neutral-300/70 py-5 dark:border-neutral-700 md:grid-cols-[minmax(0,15rem)_1fr] ${i % 2 === 1 ? 'md:pl-10' : ''}`}
+            >
+              <dt className="text-[16px] font-semibold leading-[1.4] text-neutral-900">{row.t}</dt>
+              <dd className="text-[15px] leading-[1.6] text-neutral-600">{row.d}</dd>
+            </motion.div>
+          )))}
         </dl>
       </Spine>
     </Shell>
@@ -463,14 +539,30 @@ const Process = () => (
         </motion.h2>
 
         <ol className="mt-10 border-t border-neutral-200">
-          {STEPS.map((s, i) => (
-            <motion.li key={s.n} {...reveal(i)} className="grid gap-x-8 gap-y-3 border-b border-neutral-200 py-7 md:grid-cols-[auto_1fr_1fr]">
-              <span className="self-start text-[13px] font-semibold tabular-nums tracking-[0.08em] text-primary-500">{s.n}</span>
-              <h3 className="text-[19px] font-semibold leading-[1.3] text-neutral-900">{s.t}</h3>
-              <div>
-                <p className="text-[15px] leading-[1.6] text-neutral-600">{s.b}</p>
-                {s.rules && (
-                  <ul className="mt-3 space-y-2">
+          {STEPS.map((s, i) => (s.rules ? (
+            /* The verification step is the one the rest of the product's
+               trust claims stand on, so it is the one step that doesn't sit
+               level with the other three: a highlighted card, not a row. */
+            <motion.li
+              key={s.n}
+              initial={prefersReducedMotion ? undefined : { opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0, transition: { duration: DUR.reveal, ease: EASE_OUT, delay: staggerIndex(i) } }}
+              viewport={{ once: true, amount: 0.35 }}
+              className="my-3 rounded-2xl border border-neutral-200 bg-neutral-50 p-6 dark:border-neutral-700 dark:bg-neutral-800/40 md:p-8"
+            >
+              <div className="flex items-start gap-5">
+                <motion.span
+                  initial={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.6, rotate: -14 }}
+                  whileInView={{ opacity: 1, scale: 1, rotate: 0, transition: { duration: 0.5, ease: EASE_OUT, delay: staggerIndex(i) + 0.1 } }}
+                  viewport={{ once: true, amount: 0.6 }}
+                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-500 text-[13px] font-semibold tabular-nums text-white"
+                >
+                  {s.n}
+                </motion.span>
+                <div>
+                  <h3 className="text-[19px] font-semibold leading-[1.3] text-neutral-900 md:text-[21px]">{s.t}</h3>
+                  <p className="mt-1 text-[15px] leading-[1.6] text-neutral-600">{s.b}</p>
+                  <ul className="mt-4 space-y-2">
                     {s.rules.map((r) => (
                       <li key={r} className="flex gap-2 text-[14px] leading-[1.55] text-neutral-500">
                         <FiCheck className="mt-1 h-3.5 w-3.5 shrink-0 text-primary-500" aria-hidden="true" />
@@ -478,10 +570,16 @@ const Process = () => (
                       </li>
                     ))}
                   </ul>
-                )}
+                </div>
               </div>
             </motion.li>
-          ))}
+          ) : (
+            <motion.li key={s.n} {...reveal(i)} className="grid gap-x-8 gap-y-3 border-b border-neutral-200 py-7 md:grid-cols-[auto_1fr_1fr]">
+              <span className="self-start text-[13px] font-semibold tabular-nums tracking-[0.08em] text-primary-500">{s.n}</span>
+              <h3 className="text-[19px] font-semibold leading-[1.3] text-neutral-900">{s.t}</h3>
+              <p className="text-[15px] leading-[1.6] text-neutral-600">{s.b}</p>
+            </motion.li>
+          )))}
         </ol>
       </Spine>
     </Shell>
@@ -508,7 +606,7 @@ const Cities = () => (
           <motion.div
             key={c.slug}
             {...(prefersReducedMotion ? {} : { ...wipeUp, whileInView: { ...wipeUp.whileInView, transition: { ...wipeUp.whileInView.transition, delay: staggerIndex(i) } } })}
-            className={c.span}
+            className={`${c.span} ${c.offset}`}
           >
             <Link to={`/matrimony/${c.slug}`} className="tm-city group relative block overflow-hidden">
               <img src={c.image.src} alt={c.image.alt} width="800" height="1000" loading="lazy" className={`tm-city-img w-full object-cover ${c.ratio}`} />
@@ -527,11 +625,21 @@ const Cities = () => (
         ))}
       </div>
 
-      {CITIES[0].image.aiGenerated && (
-        <p className="mt-6 text-[12px] leading-[1.5] text-neutral-500">
-          City photography is illustrative and AI-generated while the real Tricity shoot is in progress.
-        </p>
-      )}
+      <p className="mt-8 lg:mt-4 text-[12px] leading-[1.6] text-neutral-500">
+        Photography:{' '}
+        {CITIES.map((c, i) => (
+          <span key={c.slug}>
+            <a
+              href={c.image.creditUrl} target="_blank" rel="noopener noreferrer"
+              className="underline decoration-neutral-400 underline-offset-2 hover:decoration-neutral-700 dark:hover:decoration-neutral-300"
+            >
+              {c.image.credit}
+            </a>
+            {' '}({c.name}){i < CITIES.length - 1 ? ', ' : ''}
+          </span>
+        ))}
+        {' '}&middot; Wikimedia Commons, CC BY-SA. Not members.
+      </p>
     </Shell>
   </section>
 );
@@ -553,12 +661,12 @@ const Membership = ({ plan }) => (
           </motion.div>
         </div>
         <div className="lg:border-l lg:py-24 lg:pl-10" style={{ borderColor: INK_LINE }}>
-          <div className="grid gap-12 lg:grid-cols-2 lg:gap-10">
+          <div className="grid gap-12 lg:grid-cols-[3fr_2fr] lg:gap-16">
             <motion.div {...reveal()}>
-              {plan?.amountLabel ? (
+              {plan?.amount ? (
                 <>
                   <p className="font-display text-[clamp(3.5rem,8vw,5.5rem)] font-semibold leading-none tabular-nums">
-                    {plan.amountLabel}
+                    <CountUpRupee amount={plan.amount} />
                   </p>
                   <p className="mt-4 text-[17px]" style={{ color: INK_TEXT_SOFT }}>
                     {plan.durationLabel ? `for ${plan.durationLabel}.` : ''} Launch price.
@@ -917,7 +1025,7 @@ const Home = () => {
         const paid = Object.values(plans).find((p) => p && p.price > 0);
         if (!paid) return;
         setPlan({
-          amountLabel: `₹${Number(paid.price).toLocaleString('en-IN')}`,
+          amount: Number(paid.price),
           durationLabel: paid.duration || null,
         });
       })
