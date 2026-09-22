@@ -16,6 +16,7 @@ export default {
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
+        concrete: "hsl(var(--concrete))",
         foreground: "hsl(var(--foreground))",
         
         // Primary - Burgundy Rose

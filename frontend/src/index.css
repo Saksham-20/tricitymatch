@@ -47,6 +47,14 @@
     --ring: 341 71% 34%;
     --radius: 0.75rem;
 
+    /* Concrete — a third page ground, added 2026-09-22 for the landing rework.
+       The palette had two surfaces (canvas #FAFAFA, card #FFFFFF) plus the
+       fixed ink bands, which is why long marketing pages read as one flat
+       beige. This is the warm grey of the Capitol Complex, used for whole
+       bands only, never for a card. It is a surface, not an accent: burgundy
+       and gold are untouched. */
+    --concrete: 38 13% 87%;        /* #E3DDD3 */
+
     /* Motion curves (doctrine 2026-09 §4.2) — the one set CSS and
        animations.js both read from. `ease` (browser default) is still
        correct for hover/color; `ease-in` is never used on UI. */
@@ -82,6 +90,7 @@
     --ring: 341 55% 52%;
     --primary-light: 341 40% 18%;
     --gold-light: 45 30% 16%;
+    --concrete: 222 15% 17%;       /* the same role one step off the dark canvas */
     --success-light: 123 25% 15%;
     /* --destructive has no dark override in the base :root block, so error
        text (FormField, ErrorState, inline form errors) rendered the same
