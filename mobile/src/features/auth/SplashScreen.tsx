@@ -3,72 +3,36 @@ import { useTheme } from '../../hooks/useTheme';
 import { View, StyleSheet } from 'react-native';
 import Text from '../../components/ui/Text';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, {
-  Easing,
-  cancelAnimation,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import type { AuthStackParamList } from '../../navigation/types';
 import { useAuthStore } from '../../stores/authStore';
-import { colours, typography, type ThemeColours } from '@shared/constants/theme';
-import { EASE_IN_OUT } from '@shared/constants/motion';
+import type { ThemeColours } from '@shared/constants/theme';
 import Logo from '../../components/common/Logo';
-import { useReduceMotion } from '../../components/motion';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Splash'>;
 
-// The loading pulse's own cadence — one of doctrine §10.3's four sanctioned
-// infinite loops, not a single named interaction from the duration table.
-const LOADER_PULSE_MS = 350;
-
-/** One dot of the boot loader — gentle opacity pulse (handoff: 3-dot loader). */
-function LoaderDot({ delay }: { delay: number }) {
-  const { c } = useTheme();
-  const styles = React.useMemo(() => makeStyles(c), [c]);
-  const reduced = useReduceMotion();
-  const o = useSharedValue(0.35);
-  useEffect(() => {
-    if (reduced) {
-      o.value = 0.7;
-      return;
-    }
-    o.value = withDelay(
-      delay,
-      withRepeat(
-        withSequence(
-          withTiming(1, { duration: LOADER_PULSE_MS, easing: Easing.bezier(...EASE_IN_OUT) }),
-          withTiming(0.35, { duration: LOADER_PULSE_MS, easing: Easing.bezier(...EASE_IN_OUT) }),
-        ),
-        -1,
-      ),
-    );
-    return () => cancelAnimation(o);
-  }, [reduced, delay, o]);
-  const st = useAnimatedStyle(() => ({ opacity: o.value }));
-  return <Animated.View style={[styles.dot, st]} />;
-}
-
+/**
+ * There is no loading state here on purpose, and no hold either. This screen only
+ * mounts inside the Auth stack, and RootNavigator renders its own spinner (and no
+ * navigator at all) for as long as `isLoading` is true, so by the time Splash
+ * exists the session check is already over. The brand moment belongs to the
+ * native splash that covered the launch; holding a signed-out member here on
+ * every cold start (doctrine §10.4's frequency gate) would only make the door to
+ * Welcome slower, with no way to skip it.
+ */
 export default function SplashScreen() {
   const { c } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
   const navigation = useNavigation<Nav>();
-  const { isLoading, isAuthenticated } = useAuthStore();
+  const { t } = useTranslation();
+  const isLoading = useAuthStore((s) => s.isLoading);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   useEffect(() => {
-    if (isLoading) return;
-    const timer = setTimeout(() => {
-      if (!isAuthenticated) {
-        navigation.replace('Welcome');
-      }
-    }, 2000);
-    return () => clearTimeout(timer);
+    // An authenticated member never sees the Auth stack: RootNavigator swaps it out.
+    if (!isLoading && !isAuthenticated) navigation.replace('Welcome');
   }, [isLoading, isAuthenticated, navigation]);
 
   return (
@@ -81,15 +45,8 @@ export default function SplashScreen() {
       />
       <View style={styles.logoContainer}>
         <Logo variant="white" size="xl" />
-        <Text variant="callout" style={styles.tagline}>Find Your Perfect Match</Text>
+        <Text variant="callout" color="onPrimary" style={styles.tagline}>{t('welcome.tagline', 'Find your perfect match')}</Text>
       </View>
-      {isLoading && (
-        <View style={styles.dotsRow} testID="SplashScreen-loader">
-          <LoaderDot delay={0} />
-          <LoaderDot delay={160} />
-          <LoaderDot delay={320} />
-        </View>
-      )}
     </View>
   );
 }
@@ -105,20 +62,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     alignItems: 'center',
   },
   tagline: {
-    color: 'rgba(255,255,255,0.8)',
     marginTop: 12,
-    letterSpacing: 0.3,
-  },
-  dotsRow: {
-    position: 'absolute',
-    bottom: 80,
-    flexDirection: 'row',
-    gap: 8,
-  },
-  dot: {
-    width: 9,
-    height: 9,
-    borderRadius: 5,
-    backgroundColor: '#fff',
   },
 });

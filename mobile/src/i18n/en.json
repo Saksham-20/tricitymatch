@@ -37,7 +37,12 @@
       "googleSignIn": "Continue with Google",
       "biometricPrompt": "Sign in with biometrics",
       "lockoutMessage": "Account locked. Try again in {{minutes}} minutes.",
-      "invalidCredentials": "Invalid email or password."
+      "invalidCredentials": "Invalid email or password.",
+      "signInAction": "Sign in",
+      "wrongCredentials": "Wrong email, mobile number or password.",
+      "googleUnavailable": "Google sign-in is not available in this build. Continue with your email or mobile number.",
+      "lockedOut": "Too many sign-in attempts. Wait a little, then try again, or reset your password.",
+      "accountInactive": "This account is not active. Contact support for help."
     },
     "signup": {
       "title": "Create your account",
@@ -56,7 +61,7 @@
       },
       "doorSub": "Two steps. About two minutes.",
       "sendCode": "Send verification code",
-      "enterCode": "Enter the 4-digit code sent to",
+      "enterCode": "Enter the {{digits}}-digit code sent to",
       "resend": "Resend code",
       "agree": "I agree to the",
       "termsLink": "Terms & Conditions",
@@ -71,7 +76,57 @@
       "dob": "Date of birth",
       "dobHint": "Members must be 18–65. Shown as age only.",
       "createProfile": "Create my profile",
-      "legacySub": "Finish setting up your profile — this takes under a minute."
+      "legacyBasicsSub": "Finish setting up your profile. This takes under a minute.",
+      "saveFailed": "Couldn't save your details. Check your connection and try again.",
+      "detailsRejected": "Those details weren't accepted. Check your name and date of birth, then try again.",
+      "stillIncomplete": "Your details were saved, but your account isn't ready yet. Tap {{action}} to try again.",
+      "nameInvalid": "Enter at least 2 letters, using English letters only.",
+      "profileLoadFailed": "Couldn't load your saved details",
+      "profileLoadFailedBody": "You can still fill these in.",
+      "stepOne": "Step 1 of 2",
+      "basicsIntro": "This creates the profile. Everything else can wait.",
+      "contactHelper": "We will send a code to confirm it.",
+      "contactExists": "An account already exists with this contact. Log in instead.",
+      "sendFailed": "Could not send the code. Try again.",
+      "codeResent": "New code sent",
+      "codeMismatch": "That code did not match. Try again.",
+      "verifying": "Verifying code",
+      "otpLabel": "Enter the {{digits}}-digit code",
+      "verified": "Verified",
+      "change": "Change",
+      "changeContact": "Change email or number",
+      "termsRequired": "Accept the Terms and Privacy Policy to continue",
+      "readTerms": "Read the Terms",
+      "readPrivacy": "Read the Privacy Policy",
+      "phoneHint": "Read as an Indian mobile number, country code 91.",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "firstNameRequired": "Enter your first name",
+      "lastNameRequired": "Enter your last name",
+      "genderRequired": "Choose one",
+      "male": "Male",
+      "female": "Female",
+      "dobRequired": "Enter your date of birth as DD/MM/YYYY",
+      "dobInvalid": "Enter a valid date",
+      "dobUnder": "You must be at least 18 years old",
+      "dobOver": "Members must be 65 or younger",
+      "dobA11yHint": "Type day, month and year as eight digits. The slashes are added for you.",
+      "tooManySignups": "Too many signup attempts. Please try again later.",
+      "nameHint": "English letters only, 2 to 50 characters.",
+      "nameLength": "Names need 2 to 50 characters.",
+      "nameChars": "Use English letters only, with no digits or symbols.",
+      "checkDetails": "Check your name and date of birth, then try again.",
+      "dobHintMin": "You must be 18 or older. Shown as age only.",
+      "resendIn": "Resend in {{seconds}}s",
+      "codeExpired": "That code has expired or has no attempts left. Tap Resend code for a new one.",
+      "for": {
+        "self": "Myself",
+        "son": "Son",
+        "daughter": "Daughter",
+        "sibling": "Sibling",
+        "relative": "Relative",
+        "friend": "Friend"
+      }
     },
     "forgotPassword": {
       "title": "Forgot Password",
@@ -79,22 +134,73 @@
       "email": "Email address",
       "sendLink": "Send Reset Link",
       "success": "Reset link sent! Check your email.",
-      "backToLogin": "Back to Login"
+      "backToLogin": "Back to Login",
+      "heading": "Forgot password",
+      "sendLinkAction": "Send reset link",
+      "sentTitle": "Check your email",
+      "sentBody": "If an account exists for {{email}}, a reset link is on its way. Check your inbox.",
+      "differentEmail": "Use a different email"
     },
     "resetPassword": {
       "title": "Reset Password",
       "newPassword": "New Password",
       "confirmPassword": "Confirm Password",
       "reset": "Reset Password",
-      "success": "Password reset successfully."
+      "success": "Password reset successfully.",
+      "heading": "Reset password",
+      "subtitle": "Choose a new password for your account.",
+      "newPasswordLabel": "New password",
+      "confirmPasswordLabel": "Confirm password",
+      "resetAction": "Reset password",
+      "confirmRequired": "Confirm your new password",
+      "successBody": "You can now sign in with your new password.",
+      "rejected": "That password was not accepted. Check the rules under the field and try again.",
+      "linkDead": {
+        "title": "This reset link can't be used",
+        "description": "It is incomplete, has expired or was already used. Request a new link and try again.",
+        "action": "Request a new link"
+      }
     },
     "emailOrPhone": "Email or mobile number",
     "password": "Password",
-    "passwordPlaceholder": "At least 8 characters"
+    "passwordPlaceholder": "At least 8 characters",
+    "passwordHelper": "Use 8 or more characters with upper and lower case letters, a number and one of @ $ ! % * ? &",
+    "backToSignIn": "Back to sign in",
+    "errors": {
+      "contactRequired": "Enter your email or mobile number",
+      "contactInvalid": "Enter a valid email or 10-digit mobile number",
+      "passwordRequired": "Enter your password",
+      "emailRequired": "Enter your email address",
+      "emailInvalid": "Enter a valid email address",
+      "tooManyRequests": "Too many requests. Please try again later."
+    }
   },
   "onboarding": {
     "progress": "Step {{current}} of {{total}}",
     "saveAndContinue": "Save & Continue",
+    "saveFailedTitle": "Couldn't save your answers",
+    "saveFailedBody": "Check your connection, then tap {{action}} to try again.",
+    "saveFailedToast": "Check your connection and try again.",
+    "selectHint": "Opens a list of options",
+    "loadFailedTitle": "Couldn't load your saved answers",
+    "loadFailedBody": "Check your connection, then tap again.",
+    "placeholders": {
+      "religion": "Select religion",
+      "caste": "e.g. Jat, Khatri, Brahmin",
+      "subCaste": "Sub-caste",
+      "gotra": "e.g. Kashyap, Bharadwaj",
+      "motherTongue": "Select language",
+      "birthTime": "HH:MM (e.g. 06:30)",
+      "birthPlace": "City of birth",
+      "qualification": "Select qualification",
+      "fieldOfStudy": "Select field of study",
+      "profession": "Select profession",
+      "income": "Select annual income",
+      "city": "Select city",
+      "state": "State",
+      "country": "Select country",
+      "visaStatus": "Select visa / PR status"
+    },
     "step0": {
       "title": "Who are you registering for?",
       "subtitle": "This helps us personalise your experience",
@@ -187,7 +293,29 @@
       "diet": "Diet",
       "drinking": "Drinking",
       "smoking": "Smoking",
-      "exercise": "Exercise"
+      "exercise": "Exercise",
+      "dietOptions": {
+        "vegetarian": "Vegetarian",
+        "non-vegetarian": "Non-Veg",
+        "jain": "Jain",
+        "vegan": "Vegan"
+      },
+      "drinkingOptions": {
+        "never": "Never",
+        "occasionally": "Socially",
+        "regularly": "Regularly"
+      },
+      "smokingOptions": {
+        "never": "Never",
+        "occasionally": "Occasionally",
+        "regularly": "Regularly"
+      },
+      "exerciseOptions": {
+        "daily": "Daily",
+        "weekly": "Weekly",
+        "rarely": "Rarely",
+        "never": "Never"
+      }
     },
     "step9": {
       "title": "Family Details",
@@ -201,6 +329,15 @@
       "familyTypeOptions": {
         "nuclear": "Nuclear",
         "joint": "Joint"
+      },
+      "selectOccupation": "Select occupation",
+      "decrease": "Decrease {{label}}",
+      "increase": "Increase {{label}}",
+      "familyValuesOptions": {
+        "orthodox": "Orthodox",
+        "traditional": "Traditional",
+        "moderate": "Moderate",
+        "liberal": "Liberal"
       }
     },
     "step10": {
@@ -214,7 +351,11 @@
       "interestsHint": "Pick a few that describe you best",
       "prompts": "Answer a prompt",
       "promptsHint": "Easier than a blank page — these appear on your profile.",
-      "promptAnswer": "Your answer…"
+      "promptAnswer": "Your answer…",
+      "promptsHintShort": "Easier than a blank page. These appear on your profile.",
+      "removePrompt": "Remove prompt",
+      "tagsLimit": "You can pick up to {{count}}. Tap a selected one to remove it.",
+      "promptAdded": "Prompt added. Type your answer."
     },
     "step11": {
       "title": "Partner Preferences",
@@ -229,7 +370,13 @@
       "diet": "Diet",
       "manglik": "Manglik Preference",
       "location": "Location",
-      "any": "Any"
+      "any": "Any",
+      "from": "From",
+      "to": "To",
+      "ageValue": "{{count}} yrs",
+      "minEducation": "Minimum education level",
+      "manglikOnly": "Manglik only",
+      "nonManglikOnly": "Non-Manglik only"
     },
     "step12": {
       "title": "Add Photos",
@@ -246,7 +393,24 @@
       "uploadError": "Could not upload that photo. Please try again.",
       "removeTitle": "Remove photo",
       "removeMessage": "Remove this photo from your profile?",
-      "removePhoto": "Remove"
+      "removePhoto": "Remove",
+      "subtitleClear": "Your first photo is the one members see first.",
+      "guide3Plain": "Recent, taken within the last year",
+      "openSettings": "Open settings",
+      "removeError": "Could not remove that photo. Please try again.",
+      "uploading": "Uploading photo",
+      "uploadFailed": "Upload failed",
+      "tapToRetry": "Tap to retry",
+      "dismissFailed": "Discard failed upload",
+      "photoOf": "Photo {{index}} of {{count}}",
+      "photoOfMain": "Photo {{index}} of {{count}}, main photo",
+      "removePhotoN": "Remove photo {{index}}",
+      "movePhotoLeft": "Move photo {{index}} left",
+      "movePhotoRight": "Move photo {{index}} right",
+      "makeMain": "Make main",
+      "makeMainN": "Make photo {{index}} your main photo",
+      "nowMain": "This photo is now your main photo",
+      "pickError": "Could not open your photos. Please try again."
     },
     "step13": {
       "title": "Verify Mobile",
@@ -461,15 +625,33 @@
       "subtitle": "Hyperlocal matching for Chandigarh, Mohali & Panchkula families."
     },
     "getStarted": "Get Started",
-    "signIn": "Already a member? Sign In"
+    "signIn": "Already a member? Sign In",
+    "tagline": "Find your perfect match",
+    "region": "Chandigarh · Mohali · Panchkula",
+    "start": "Get started",
+    "haveAccount": "Already a member? Sign in",
+    "showHighlight": "Show highlight {{n}} of {{total}}",
+    "switchLanguage": "Switch to {{language}}",
+    "cards": {
+      "badges": {
+        "title": "Verified badges are earned",
+        "subtitle": "A person reviews every verification selfie before a profile gets the badge."
+      },
+      "privacy": {
+        "title": "Privacy you control",
+        "subtitle": "Show your profile to everyone or to matches only, and choose whether your online status is visible."
+      },
+      "match": {
+        "title": "Find your match",
+        "subtitle": "Hyperlocal matching for Chandigarh, Mohali & Panchkula families."
+      }
+    }
   },
   "journey": {
     "finding": "Finding matches…",
     "revealTitle": "Your matches are ready",
-    "revealSub": "Curated from verified Tricity profiles, using everything you just shared.",
-    "tease": "More members liked profiles like yours — see who, with Premium.",
+    "revealSubHonest": "Picked from Tricity members using everything you just shared.",
     "earlyTitle": "You're early",
-    "earlySub": "New Tricity profiles arrive weekly — we'll notify you as soon as strong matches appear.",
     "errorTitle": "Couldn't load matches",
     "errorSub": "Your answers are saved. Check your matches from the Home tab.",
     "quizCta": "Take the 2-minute personality quiz",
@@ -481,17 +663,25 @@
       "world": "Your World",
       "match": "Your Match"
     },
-    "chapterDone": {
-      "roots": "Your roots are in — families love this part.",
+    "progressLabel": "Setup progress",
+    "earlyBody": "We're still growing across the Tricity. Check back soon for new matches.",
+    "openProfile": "Open {{name}}'s profile",
+    "premiumTease": "See who likes you with Premium.",
+    "stageScan": "Scanning Tricity profiles…",
+    "stageGunas": "Matching 36 gunas…",
+    "stageFamily": "Checking family preferences…",
+    "endowedLine": "You're already a quarter done. Signup covered the basics.",
+    "chapterDoneLine": {
+      "roots": "Your roots are in. Families love this part.",
       "life": "Your life story is taking shape.",
-      "world": "Almost there — now for who you’re looking for."
+      "world": "Almost there. Now for who you're looking for."
     },
-    "endowed": "You're already a quarter done — signup covered the basics.",
-    "biodataCta": "Share your new biodata on WhatsApp"
+    "biodataShare": "Share biodata on WhatsApp"
   },
   "discover": {
     "verifyTitle": "Get the verified badge",
     "verifySub": "A 30-second selfie — verified profiles earn far more trust.",
+    "verifyBody": "A live selfie, reviewed by our team, adds a verified badge to your profile.",
     "inviteTitle": "Know someone searching?",
     "inviteSub": "Every good match starts with someone you trust. Share your invite.",
     "voiceTitle": "Add a voice intro",

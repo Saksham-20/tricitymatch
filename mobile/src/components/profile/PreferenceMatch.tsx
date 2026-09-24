@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { spacing, borderRadius } from '@shared/constants/theme';
 import type { Profile } from '../../types';
 import { useTheme } from '../../hooks/useTheme';
+import Card from '../ui/Card';
 import Text from '../ui/Text';
 
 /**
@@ -30,10 +31,20 @@ const looseMatch = (pref: string, own: string): boolean =>
   own.toLowerCase().includes(pref.toLowerCase()) ||
   pref.toLowerCase().includes(own.toLowerCase());
 
+/** "25 to 30 yrs" / "25+ yrs" / "up to 30 yrs" — no placeholder glyph for a missing bound. */
+const rangeText = (min: string | null, max: string | null, unit = ''): string => {
+  const tail = unit ? ` ${unit}` : '';
+  if (min && max) return `${min} to ${max}${tail}`;
+  if (min) return `${min}+${tail}`;
+  return `up to ${max}${tail}`;
+};
+
 interface Check {
   label: string;
   want: string;
   ok: boolean | null;
+  /** Free text the target typed (education, city…) is title-cased; numeric ranges are left alone. */
+  freeText?: boolean;
 }
 
 export const buildPreferenceChecks = (target: Profile, viewer: Profile | undefined): Check[] => {
@@ -46,7 +57,7 @@ export const buildPreferenceChecks = (target: Profile, viewer: Profile | undefin
     const max = target.preferredAgeMax;
     checks.push({
       label: 'Age',
-      want: `${min ?? '—'} – ${max ?? '—'} yrs`,
+      want: rangeText(min ? String(min) : null, max ? String(max) : null, 'yrs'),
       ok: age == null ? null : (!min || age >= min) && (!max || age <= max),
     });
   }
@@ -57,7 +68,7 @@ export const buildPreferenceChecks = (target: Profile, viewer: Profile | undefin
     const max = target.preferredHeightMax;
     checks.push({
       label: 'Height',
-      want: `${min ? cmToFeet(min) : '—'} – ${max ? cmToFeet(max) : '—'}`,
+      want: rangeText(min ? cmToFeet(min) : null, max ? cmToFeet(max) : null),
       ok: !h ? null : (!min || h >= min) && (!max || h <= max),
     });
   }
@@ -67,6 +78,7 @@ export const buildPreferenceChecks = (target: Profile, viewer: Profile | undefin
       label: 'Education',
       want: target.preferredEducation,
       ok: !viewer.education ? null : looseMatch(target.preferredEducation, viewer.education),
+      freeText: true,
     });
   }
 
@@ -75,6 +87,7 @@ export const buildPreferenceChecks = (target: Profile, viewer: Profile | undefin
       label: 'Profession',
       want: target.preferredProfession,
       ok: !viewer.profession ? null : looseMatch(target.preferredProfession, viewer.profession),
+      freeText: true,
     });
   }
 
@@ -84,6 +97,7 @@ export const buildPreferenceChecks = (target: Profile, viewer: Profile | undefin
       label: 'City',
       want: cities.join(', '),
       ok: !viewer.city ? null : cities.some((cty) => looseMatch(cty, viewer.city)),
+      freeText: true,
     });
   }
 
@@ -96,72 +110,107 @@ interface PreferenceMatchProps {
   targetName?: string;
 }
 
+const verdict = (ok: boolean | null) =>
+  ok === true ? 'You match' : ok === false ? 'Not a match' : 'Not on your profile yet';
+
+/**
+ * Renders nothing until both profiles are in: this is a secondary read, so a
+ * missing viewer profile (still loading or failed) omits the card rather than
+ * blocking the screen behind it.
+ */
 export default function PreferenceMatch({ target, viewer, targetName = 'them' }: PreferenceMatchProps) {
-  const { c } = useTheme();
+  const { c, elder } = useTheme();
+  const { fontScale } = useWindowDimensions();
   const checks = buildPreferenceChecks(target, viewer);
   if (checks.length === 0) return null;
+  // The label column is a fixed 84pt. Past this much text scaling (or in elder
+  // mode) "Profession" no longer fits it, so the label stacks above its value.
+  const stacked = fontScale > 1.15 || elder;
 
   const scored = checks.filter((ch) => ch.ok !== null);
   const matched = scored.filter((ch) => ch.ok).length;
   const allMatched = scored.length > 0 && matched === scored.length;
 
   const chipBg = allMatched ? c.successBg : matched > 0 ? c.accentSoft : c.surface2;
-  const chipFg = allMatched ? c.success : matched > 0 ? c.primary : c.textMuted;
+  // successAccent is the pair that stays legible on a dark surface; `success` is not.
+  const chipFg = allMatched ? c.successAccent : matched > 0 ? c.primary : c.textSecondary;
+  const summary = scored.length > 0 ? `${matched} of ${scored.length} match` : 'Add your details to compare';
 
   return (
-    <View style={[styles.card, { backgroundColor: c.surfaceCard, borderColor: c.border }]}>
-      <View style={[styles.header, { borderBottomColor: c.border }]}>
+    <Card padded={false} style={styles.card}>
+      <View
+        style={[styles.header, { borderBottomColor: c.border }]}
+        accessible
+        accessibilityRole="header"
+        accessibilityLabel={`Do you fit what ${targetName} is looking for? ${summary}`}
+      >
         <View style={[styles.iconTile, { backgroundColor: c.accentSoft }]}>
-          <Ionicons name="heart" size={15} color={c.primary} />
+          <Ionicons
+            name="heart"
+            size={15}
+            color={c.primary}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          />
         </View>
-        <Text variant="caption" color="fgStrong" style={styles.title} numberOfLines={2}>
+        <Text variant="subhead" color="fgStrong" style={styles.title} numberOfLines={2}>
           Do you fit what {targetName} is looking for?
         </Text>
         {scored.length > 0 && (
           <View style={[styles.chip, { backgroundColor: chipBg }]}>
-            {/* chipFg picks between c.success/c.primary/c.textMuted at runtime — left as a style override per the dynamic-colour rule */}
-            <Text variant="caption" style={[styles.chipText, { color: chipFg }]}>{matched}/{scored.length}</Text>
+            {/* chipFg picks between c.successAccent/c.primary/c.textSecondary at runtime — left as a style override per the dynamic-colour rule */}
+            <Text variant="caption" style={{ color: chipFg }}>{matched}/{scored.length}</Text>
           </View>
         )}
       </View>
 
       <View style={styles.body}>
-        {checks.map(({ label, want, ok }, i) => (
+        {checks.map(({ label, want, ok, freeText }, i) => (
           <View
             key={label}
             style={[styles.row, i < checks.length - 1 && { borderBottomColor: c.hairline, borderBottomWidth: StyleSheet.hairlineWidth }]}
+            accessible
+            accessibilityLabel={`${label}: ${want}. ${verdict(ok)}`}
           >
             <View
-              style={[
-                styles.statusDot,
-                { backgroundColor: ok === true ? c.successBg : ok === false ? c.surface2 : c.surface2 },
-              ]}
+              style={[styles.statusDot, { backgroundColor: ok === true ? c.successBg : c.surface2 }]}
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
             >
               <Ionicons
                 name={ok === true ? 'checkmark' : ok === false ? 'close' : 'remove'}
                 size={13}
-                color={ok === true ? c.success : ok === false ? c.textMuted : c.textMuted}
+                color={ok === true ? c.successAccent : c.textMuted}
               />
             </View>
-            <Text variant="caption" color="textMuted" style={styles.label} numberOfLines={1}>{label}</Text>
-            <Text variant="subhead" color="textPrimary" style={styles.want} numberOfLines={1}>
-              {want}
-            </Text>
-            {ok === null && <Text variant="footnote" color="textMuted">add yours</Text>}
+            <View style={[styles.textWrap, stacked ? styles.textStacked : styles.textInline]}>
+              <Text
+                variant="caption"
+                color="textSecondary"
+                style={stacked ? undefined : styles.label}
+                numberOfLines={1}
+                maxScale={1.3}
+              >
+                {label}
+              </Text>
+              <View style={stacked ? undefined : styles.wantCol}>
+                <Text variant="subhead" color="textPrimary" style={freeText ? styles.capitalize : undefined}>
+                  {want}
+                </Text>
+                {ok === null && <Text variant="footnote" color="textSecondary">Add yours to compare</Text>}
+              </View>
+            </View>
           </View>
         ))}
       </View>
-    </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
     marginHorizontal: spacing.gutter,
-    marginTop: spacing.lg,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    overflow: 'hidden',
+    marginTop: spacing.xl,
   },
   header: {
     flexDirection: 'row',
@@ -184,7 +233,6 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: borderRadius.pill,
   },
-  chipText: {},
   body: { paddingHorizontal: spacing.lg },
   row: {
     flexDirection: 'row',
@@ -199,6 +247,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  textWrap: { flex: 1 },
+  textInline: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  textStacked: { flexDirection: 'column', gap: 2 },
   label: { width: 84 },
-  want: { flex: 1, textTransform: 'capitalize' },
+  wantCol: { flex: 1 },
+  capitalize: { textTransform: 'capitalize' },
 });

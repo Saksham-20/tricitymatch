@@ -1,70 +1,201 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
-  View, StyleSheet, Image,
-  Alert, ActivityIndicator,
+  View, StyleSheet, Alert, ActivityIndicator, AccessibilityInfo, useWindowDimensions,
 } from 'react-native';
 import Text from '../../components/ui/Text';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { PressableScale } from '../../components/motion';
+import { Badge } from '../../components/ui';
+import SmartImage from '../../components/common/SmartImage';
+import { PressableScale, useReduceTransparency } from '../../components/motion';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { haptics } from '../../utils/haptics';
+import { tapSize } from '../../utils/elderTheme';
+import { showToast } from '../../utils/toast';
+import OnboardingLayout from './OnboardingLayout';
 import { useOnboarding } from './OnboardingContext';
-import { uploadPhoto } from '../../api/profile';
+import { uploadPhoto, deletePhoto } from '../../api/profile';
 
 const MAX_PHOTOS = 6;
-const SLOT_SIZE = 104;
+// Three tiles per row at any phone width; the cap keeps them sane on a tablet.
+// Elder mode goes to two: its 60pt controls stack two to a tile (remove on top,
+// make-main along the bottom) and a 3-across tile is too short to hold both.
+const GRID_COLUMNS = 3;
+const GRID_COLUMNS_ELDER = 2;
+const SLOT_MAX = 140;
+const SLOT_MAX_ELDER = 180;
+
+// A drifting finger must not cancel a press (doctrine §10.8).
+const RETAIN = { top: 10, bottom: 10, left: 10, right: 10 } as const;
+// The remove disc and the make-main pill are small so they do not bury the photo.
+// The PRESSABLE around each is a real tap-sized box run flush to the tile edge and
+// the mark sits inside it, so the whole target lies within the tile. (hitSlop would
+// not do here: a touch outside the parent's bounds is never delivered, and these
+// marks are inset from the tile edge.)
+const MARK_SIZE = 24;
+const MARK_SIZE_ELDER = 32;
+const MARK_INSET = 4;
+// Reduce Transparency: the tint over a photo becomes solid (doctrine §10.5),
+// same value the profile-detail scrims fall back to.
+const SOLID_SCRIM = '#1a1a1a';
+const TINT_SCRIM = 'rgba(0,0,0,0.55)';
+
+// Guidelines: two do's and one don't. The icon, not just the colour, says which.
+const GUIDES = [
+  { key: 'guide1', fallback: 'Clear, well-lit face photo', ok: true },
+  { key: 'guide2', fallback: 'No group photos or sunglasses', ok: false },
+  { key: 'guide3Plain', fallback: 'Recent, taken within the last year', ok: true },
+] as const;
+
+interface PendingUpload {
+  uri: string;
+  mimeType: string;
+  status: 'uploading' | 'failed';
+}
+
+const announce = (message: string) => AccessibilityInfo.announceForAccessibility(message);
 
 export default function Step12Screen() {
-  const { c } = useTheme();
-  const styles = React.useMemo(() => makeStyles(c), [c]);
+  const { c, elder } = useTheme();
+  const { width } = useWindowDimensions();
+  const reduceTransparency = useReduceTransparency();
+  const mark = elder ? MARK_SIZE_ELDER : MARK_SIZE;
+  const columns = elder ? GRID_COLUMNS_ELDER : GRID_COLUMNS;
+  // Content width is the screen minus the layout's gutters; the tiles + their gaps fill it.
+  const slot = Math.min(
+    elder ? SLOT_MAX_ELDER : SLOT_MAX,
+    Math.floor((width - 2 * spacing.gutter - (columns - 1) * spacing.sm) / columns),
+  );
+  // Remove sits top-right and make-main runs along the bottom, so the two boxes
+  // share the tile's height: each gets the full target where it fits and half the
+  // tile where it does not, never overlapping.
+  const hit = Math.min(tapSize(elder), Math.floor(slot / 2));
+  const styles = React.useMemo(
+    () => makeStyles(c, mark, slot, hit, reduceTransparency),
+    [c, mark, slot, hit, reduceTransparency],
+  );
   const { t } = useTranslation();
-  const { saveAndNext, goBack, currentStep } = useOnboarding();
+  const { data, update, saveAndNext } = useOnboarding();
 
-  const [photos, setPhotos] = useState<string[]>([]);
-  const [uploading, setUploading] = useState<number | null>(null); // index currently uploading
+  // Hydrated from the journey context so returning to this step shows the photos
+  // already on the profile (it used to start empty and demand another upload).
+  const [photos, setPhotos] = useState<string[]>(data.photos);
+  const [pending, setPending] = useState<PendingUpload | null>(null);
+  const [removingUrl, setRemovingUrl] = useState<string | null>(null);
 
+  // The async paths below read the gallery through a ref so they always see the
+  // current list, never the one captured when they started.
+  const photosRef = useRef(photos);
+  // True only once the member has chosen a different main photo here (make-main,
+  // or removing the one shown as main). Until then the server's own choice stands.
+  const mainTouched = useRef(false);
+
+  const busy = pending?.status === 'uploading' || removingUrl !== null;
   const isValid = photos.length > 0;
 
-  const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert(
-        t('common.permissionRequired'),
-        t('onboarding.step12.photoPermission'),
-      );
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.85,
-      allowsEditing: true,
-      aspect: [4, 5],
-    });
-    if (result.canceled || !result.assets?.[0]) return;
+  // Every change goes to this screen AND the journey context in one step, from
+  // the async continuation itself. Back and Skip stay live during an upload, so
+  // a write that waited for an effect on this screen would be lost once it
+  // unmounted, and re-entry would show a stale grid.
+  const commitPhotos = useCallback((next: string[]) => {
+    photosRef.current = next;
+    setPhotos(next);
+    update({ photos: next });
+  }, [update]);
 
-    const slotIndex = photos.length;
-    setUploading(slotIndex);
+  // The count changes when an upload lands or a removal finishes, neither of
+  // which is a tap on the count itself, so announce it.
+  const prevCount = useRef(photos.length);
+  useEffect(() => {
+    if (prevCount.current === photos.length) return;
+    prevCount.current = photos.length;
+    announce(t('onboarding.step12.count', { count: photos.length, max: MAX_PHOTOS }));
+  }, [photos.length, t]);
+
+  const upload = async (asset: { uri: string; mimeType: string }) => {
+    setPending({ ...asset, status: 'uploading' });
+    // The uploading tile appears with no focus move of its own, so say so.
+    announce(t('onboarding.step12.uploading', 'Uploading photo'));
     try {
-      const asset = result.assets[0];
       const formData = new FormData();
       formData.append('photos', {
         uri: asset.uri,
-        type: asset.mimeType ?? 'image/jpeg',
-        name: `photo_${slotIndex}.jpg`,
-      } as any);
+        type: asset.mimeType,
+        name: `photo_${photosRef.current.length}.jpg`,
+      } as unknown as Blob);
       const { url } = await uploadPhoto(formData, 'photos');
-      setPhotos((prev) => [...prev, url]);
+      // At its 6-photo cap the server drops the NEW file and hands back an
+      // existing url. A url already in the grid is a failed upload, not a copy.
+      if (!url || photosRef.current.includes(url)) throw new Error('photo was not stored');
+      haptics.light();
+      commitPhotos([...photosRef.current, url]);
+      setPending(null);
     } catch {
-      Alert.alert(t('common.error'), t('onboarding.step12.uploadError'));
-    } finally {
-      setUploading(null);
+      // Keep the picked photo so Retry does not send the user back to the library.
+      setPending({ ...asset, status: 'failed' });
+      const message = t('onboarding.step12.uploadError');
+      showToast.error(message);
+      announce(message);
     }
   };
 
-  const removePhoto = (index: number) => {
+  const pickImage = async () => {
+    if (busy) return;
+    try {
+      // No permission pre-request. The library picker is a system surface that
+      // needs none, and gating on requestMediaLibraryPermissionsAsync dead-ended
+      // Android 7-12 (it also asks for WRITE_EXTERNAL_STORAGE, which the manifest
+      // strips, so it can never report "granted"). EditProfile picks the same way.
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.85,
+        allowsEditing: true,
+        aspect: [4, 5],
+      });
+      if (result.canceled || !result.assets?.[0]) return;
+      const asset = result.assets[0];
+      await upload({ uri: asset.uri, mimeType: asset.mimeType ?? 'image/jpeg' });
+    } catch {
+      const message = t('onboarding.step12.pickError', 'Could not open your photos. Please try again.');
+      showToast.error(message);
+      announce(message);
+    }
+  };
+
+  const retryUpload = () => {
+    if (pending?.status === 'failed') upload(pending);
+  };
+
+  // Removing must delete the photo on the server. Dropping it from local state
+  // alone left it on the live profile while the confirm said it was removed.
+  const removePhoto = async (url: string) => {
+    setRemovingUrl(url);
+    try {
+      await deletePhoto(url);
+    } catch (e) {
+      const status = (e as { response?: { status?: number } })?.response?.status;
+      if (status !== 404) {
+        // 404 means the server no longer has it, so dropping it locally is right.
+        const message = t('onboarding.step12.removeError', 'Could not remove that photo. Please try again.');
+        showToast.error(message);
+        announce(message);
+        setRemovingUrl(null);
+        return;
+      }
+    }
+    haptics.light();
+    // Removing the photo shown as main promotes the next one, so that choice is ours to write.
+    if (photosRef.current[0] === url) mainTouched.current = true;
+    commitPhotos(photosRef.current.filter((p) => p !== url));
+    setRemovingUrl(null);
+  };
+
+  // Destructive and irreversible: the one place a native confirm belongs.
+  const confirmRemove = (index: number) => {
+    const url = photos[index];
+    if (!url) return;
     Alert.alert(
       t('onboarding.step12.removeTitle'),
       t('onboarding.step12.removeMessage'),
@@ -73,27 +204,32 @@ export default function Step12Screen() {
         {
           text: t('common.remove'),
           style: 'destructive',
-          onPress: () => setPhotos((prev) => prev.filter((_, i) => i !== index)),
+          onPress: () => { removePhoto(url); },
         },
       ],
     );
   };
 
-  const movePhoto = (from: number, to: number) => {
-    if (to < 0 || to >= photos.length) return;
-    setPhotos((prev) => {
-      const next = [...prev];
-      const tmp = next[from];
-      next[from] = next[to];
-      next[to] = tmp;
-      return next;
-    });
+  // The server keeps the gallery in upload order and honours exactly one thing
+  // about order: which photo is the main one. So that is the only reordering
+  // offered (a swap of tiles 2 to 6 would look saved and vanish next session).
+  const makeMain = (index: number) => {
+    const current = photosRef.current;
+    if (index <= 0 || index >= current.length || busy) return;
+    haptics.light();
+    mainTouched.current = true;
+    commitPhotos([current[index], ...current.filter((_, i) => i !== index)]);
+    announce(t('onboarding.step12.nowMain', 'This photo is now your main photo'));
   };
 
+  // Photos are saved as they are added, so the only thing left to write here is
+  // a main-photo choice made on this screen. Sending photos[0] every time would
+  // overwrite a main the member set elsewhere whenever the grid is in upload order.
   const handleContinue = async () => {
+    const first = photosRef.current[0];
     await saveAndNext(
-      { photos },
-      { photos, profilePhoto: photos[0] ?? null } as any,
+      { photos: photosRef.current },
+      mainTouched.current && first ? { profilePhoto: first } : {},
     );
   };
 
@@ -101,210 +237,215 @@ export default function Step12Screen() {
     await saveAndNext({}, {});
   };
 
-  // Render grid: filled slots + one empty slot (if < MAX)
-  const slots = Array.from({ length: Math.min(photos.length + 1, MAX_PHOTOS) });
+  const photoLabel = (i: number) =>
+    t(i === 0 ? 'onboarding.step12.photoOfMain' : 'onboarding.step12.photoOf', {
+      index: i + 1,
+      count: photos.length,
+      defaultValue: i === 0 ? 'Photo {{index}} of {{count}}, main photo' : 'Photo {{index}} of {{count}}',
+    });
+
+  const showAddSlot = !pending && photos.length < MAX_PHOTOS;
 
   return (
-    <SafeAreaView style={styles.safe} testID="OnboardingStep12">
-      {/* Header */}
-      <View style={styles.header}>
-        <PressableScale
-          scaleTo={0.92}
-          onPress={goBack}
-          style={styles.backBtn}
-          testID="btn-back-tap44-hitslop"
-          accessibilityRole="button"
-          accessibilityLabel={t('common.back')}
-          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
-        </PressableScale>
-        <Text variant="subhead" color="textSecondary">{t('onboarding.progress', { current: 12, total: 14 })}</Text>
-        <PressableScale
-          onPress={handleSkip}
-          testID="btn-skip-tap44-hitslop"
-          accessibilityRole="button"
-          accessibilityLabel={t('common.skip')}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Text variant="subhead" color="primary">{t('common.skip')}</Text>
-        </PressableScale>
+    <OnboardingLayout
+      step={12}
+      title={t('onboarding.step12.title')}
+      subtitle={t('onboarding.step12.subtitleClear', 'Your first photo is the one members see first.')}
+      onContinue={handleContinue}
+      continueDisabled={!isValid || busy}
+      skippable
+      onSkip={handleSkip}
+    >
+      {/* Guidelines */}
+      <View style={styles.guidelines}>
+        {GUIDES.map((g) => (
+          <View key={g.key} style={styles.guideRow}>
+            <Ionicons
+              name={g.ok ? 'checkmark-circle' : 'close-circle'}
+              size={16}
+              color={g.ok ? c.successAccent : c.error}
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+            />
+            <Text variant="footnote" color="textSecondary" style={styles.guideText}>
+              {t(`onboarding.step12.${g.key}`, g.fallback)}
+            </Text>
+          </View>
+        ))}
       </View>
 
-      {/* Progress bar */}
-      <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width: `${(12 / 14) * 100}%` as any }]} />
-      </View>
-
-      <View style={styles.body}>
-        <Text variant="title2" color="textPrimary" style={styles.title}>{t('onboarding.step12.title')}</Text>
-        <Text variant="callout" color="textSecondary" style={styles.subtitle}>{t('onboarding.step12.subtitle')}</Text>
-
-        {/* Guidelines */}
-        <View style={styles.guidelines}>
-          {[
-            t('onboarding.step12.guide1'),
-            t('onboarding.step12.guide2'),
-            t('onboarding.step12.guide3'),
-          ].map((g, i) => (
-            <View key={i} style={styles.guideRow}>
-              <Ionicons name="checkmark-circle" size={16} color={c.success} />
-              <Text variant="footnote" color="textSecondary">{g}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Photo grid */}
+      {/* Photo grid */}
+      <View>
         <View style={styles.grid}>
-          {slots.map((_, i) => {
-            const isUploadSlot = i === photos.length;
-            const photo = photos[i];
-            const isLoading = uploading === i;
-
-            if (isUploadSlot) {
-              return (
-                <PressableScale
-                  key={`slot-${i}`}
-                  style={styles.addSlot}
-                  onPress={pickImage}
-                  disabled={uploading !== null}
-                  testID="btn-addPhoto"
-                  accessibilityRole="button"
-                  accessibilityLabel={t('onboarding.step12.addPhoto')}
-                  pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  {isLoading ? (
-                    <ActivityIndicator color={c.primary} />
-                  ) : (
-                    <>
-                      <Ionicons name="add" size={32} color={c.primary} />
-                      <Text variant="caption" color="primary" style={styles.addSlotText}>
-                        {i === 0 ? t('onboarding.step12.addFirst') : t('onboarding.step12.addMore')}
-                      </Text>
-                    </>
-                  )}
-                </PressableScale>
-              );
-            }
-
+          {photos.map((photo, i) => {
+            const isRemoving = removingUrl === photo;
             return (
-              <View key={`photo-${i}`} style={styles.photoSlot}>
-                <Image source={{ uri: photo }} style={styles.photoImg} resizeMode="cover" />
+              <View key={`photo-${photo}`} style={styles.photoSlot} testID={`photo-${i}`}>
+                <View
+                  style={styles.photoClip}
+                  accessible
+                  accessibilityRole="image"
+                  accessibilityLabel={photoLabel(i)}
+                >
+                  <SmartImage uri={photo} name={data.firstName} style={styles.photoImg} initialSize={32} />
+                </View>
 
-                {/* Primary badge */}
+                {/* Main badge. The tile's label already says "main photo", so the
+                    badge is hidden from a screen reader rather than read twice. */}
                 {i === 0 && (
-                  <View style={styles.primaryBadge}>
-                    <Text variant="caption" color="onPrimary">{t('onboarding.step12.primary')}</Text>
+                  <View
+                    style={styles.primaryBadge}
+                    pointerEvents="none"
+                    accessibilityElementsHidden
+                    importantForAccessibility="no-hide-descendants"
+                  >
+                    <Badge label={t('onboarding.step12.primary')} tone="primary" />
                   </View>
                 )}
 
-                {/* Remove button */}
+                {/* Remove: a real tap-sized box in the tile's corner, the disc inside it */}
                 <PressableScale
-                  scaleTo={0.9}
-                  style={styles.removeBtn}
-                  onPress={() => removePhoto(i)}
+                  style={styles.removeHit}
+                  onPress={() => confirmRemove(i)}
+                  disabled={busy}
                   testID={`btn-remove-${i}`}
                   accessibilityRole="button"
-                  accessibilityLabel={t('onboarding.step12.removePhoto')}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  accessibilityLabel={t('onboarding.step12.removePhotoN', {
+                    index: i + 1,
+                    defaultValue: 'Remove photo {{index}}',
+                  })}
+                  accessibilityState={{ disabled: busy }}
+                  pressRetentionOffset={RETAIN}
                 >
-                  <Ionicons name="close-circle" size={22} color="#fff" />
+                  <View style={styles.removeDisc}>
+                    <Ionicons name="close" size={mark - 10} color={c.onPrimary} />
+                  </View>
                 </PressableScale>
 
-                {/* Reorder buttons */}
-                <View style={styles.reorderBtns}>
-                  {i > 0 && (
-                    <PressableScale
-                      scaleTo={0.9}
-                      style={styles.reorderBtn}
-                      onPress={() => movePhoto(i, i - 1)}
-                      testID={`btn-move-left-${i}`}
-                      accessibilityRole="button"
-                      accessibilityLabel="Move photo left"
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                      pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    >
-                      <Ionicons name="chevron-back" size={14} color="#fff" />
-                    </PressableScale>
-                  )}
-                  {i < photos.length - 1 && (
-                    <PressableScale
-                      scaleTo={0.9}
-                      style={styles.reorderBtn}
-                      onPress={() => movePhoto(i, i + 1)}
-                      testID={`btn-move-right-${i}`}
-                      accessibilityRole="button"
-                      accessibilityLabel="Move photo right"
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                      pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    >
-                      <Ionicons name="chevron-forward" size={14} color="#fff" />
-                    </PressableScale>
-                  )}
-                </View>
+                {/* Make main: the first photo is the one members see first */}
+                {i > 0 && (
+                  <PressableScale
+                    style={styles.makeMainHit}
+                    onPress={() => makeMain(i)}
+                    disabled={busy}
+                    testID={`btn-make-main-${i}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('onboarding.step12.makeMainN', {
+                      index: i + 1,
+                      defaultValue: 'Make photo {{index}} your main photo',
+                    })}
+                    accessibilityState={{ disabled: busy }}
+                    pressRetentionOffset={RETAIN}
+                  >
+                    <View style={styles.makeMainPill}>
+                      <Text variant="caption" color="onPrimary" numberOfLines={1} maxScale={1.15}>
+                        {t('onboarding.step12.makeMain', 'Make main')}
+                      </Text>
+                    </View>
+                  </PressableScale>
+                )}
+
+                {isRemoving ? (
+                  <View style={styles.removingVeil} pointerEvents="none">
+                    <ActivityIndicator color={c.onPrimary} />
+                  </View>
+                ) : null}
               </View>
             );
           })}
+
+          {/* Upload in flight, or failed with a way to retry */}
+          {pending?.status === 'uploading' ? (
+            <View
+              style={styles.addSlot}
+              testID="photo-uploading"
+              accessible
+              accessibilityLabel={t('onboarding.step12.uploading', 'Uploading photo')}
+              accessibilityState={{ busy: true }}
+            >
+              <ActivityIndicator color={c.accent} />
+            </View>
+          ) : null}
+
+          {pending?.status === 'failed' ? (
+            <View style={styles.photoSlot} testID="photo-failed">
+              <PressableScale
+                style={styles.failedSlot}
+                onPress={retryUpload}
+                testID="btn-retryPhoto"
+                accessibilityRole="button"
+                accessibilityLabel={`${t('onboarding.step12.uploadFailed', 'Upload failed')}. ${t('onboarding.step12.tapToRetry', 'Tap to retry')}`}
+                pressRetentionOffset={RETAIN}
+              >
+                <Ionicons
+                  name="refresh"
+                  size={24}
+                  color={c.error}
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
+                />
+                <Text variant="caption" color="error" style={styles.slotText} numberOfLines={2} maxScale={1.15}>
+                  {t('onboarding.step12.uploadFailed', 'Upload failed')}
+                </Text>
+                <Text variant="caption" color="textSecondary" style={styles.slotText} numberOfLines={2} maxScale={1.15}>
+                  {t('onboarding.step12.tapToRetry', 'Tap to retry')}
+                </Text>
+              </PressableScale>
+              <PressableScale
+                style={styles.removeHit}
+                onPress={() => setPending(null)}
+                testID="btn-dismissFailed"
+                accessibilityRole="button"
+                accessibilityLabel={t('onboarding.step12.dismissFailed', 'Discard failed upload')}
+                pressRetentionOffset={RETAIN}
+              >
+                <View style={styles.removeDisc}>
+                  <Ionicons name="close" size={mark - 10} color={c.onPrimary} />
+                </View>
+              </PressableScale>
+            </View>
+          ) : null}
+
+          {/* Add */}
+          {showAddSlot ? (
+            <PressableScale
+              style={styles.addSlot}
+              onPress={pickImage}
+              disabled={busy}
+              testID="btn-addPhoto"
+              accessibilityRole="button"
+              accessibilityLabel={t('onboarding.step12.addPhoto')}
+              accessibilityState={{ disabled: busy }}
+              pressRetentionOffset={RETAIN}
+            >
+              <Ionicons
+                name="add"
+                size={32}
+                color={c.primary}
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+              />
+              <Text variant="caption" color="primary" style={styles.slotText} numberOfLines={2} maxScale={1.15}>
+                {photos.length === 0 ? t('onboarding.step12.addFirst') : t('onboarding.step12.addMore')}
+              </Text>
+            </PressableScale>
+          ) : null}
         </View>
 
-        <Text variant="footnote" color="textMuted" style={styles.countHint}>
+        <Text variant="footnote" color="textSecondary" style={styles.countHint}>
           {t('onboarding.step12.count', { count: photos.length, max: MAX_PHOTOS })}
         </Text>
       </View>
-
-      {/* Footer */}
-      <View style={styles.footer}>
-        <PressableScale
-          style={[styles.continueBtn, !isValid && styles.continueBtnDisabled]}
-          onPress={handleContinue}
-          disabled={!isValid}
-          testID="btn-continue"
-          accessibilityRole="button"
-          accessibilityLabel={t('onboarding.saveAndContinue')}
-          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Text variant="headline" color="onPrimary">{t('onboarding.saveAndContinue')}</Text>
-        </PressableScale>
-      </View>
-    </SafeAreaView>
+    </OnboardingLayout>
   );
 }
 
-const makeStyles = (c: ThemeColours) => StyleSheet.create({
-  safe: { flex: 1, backgroundColor: c.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-  },
-  backBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  progressTrack: {
-    height: 4,
-    backgroundColor: c.border,
-    marginHorizontal: spacing.lg,
-    borderRadius: borderRadius.full,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: c.primary,
-    borderRadius: borderRadius.full,
-  },
-  body: { flex: 1, padding: spacing.lg },
-  title: {
-    marginTop: spacing.lg,
-    marginBottom: spacing.sm,
-  },
-  subtitle: {
-    marginBottom: spacing.lg,
-  },
-  guidelines: { gap: spacing.xs, marginBottom: spacing['2xl'] },
+const makeStyles = (
+  c: ThemeColours, mark: number, slot: number, hit: number, reduceTransparency: boolean,
+) => StyleSheet.create({
+  guidelines: { gap: spacing.xs },
   guideRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  guideText: { flex: 1 },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -312,20 +453,23 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     marginBottom: spacing.md,
   },
   photoSlot: {
-    width: SLOT_SIZE,
-    height: SLOT_SIZE,
+    width: slot,
+    height: slot,
+  },
+  photoClip: {
+    width: slot,
+    height: slot,
     borderRadius: borderRadius.md,
-    overflow: 'visible',
-    position: 'relative',
+    overflow: 'hidden',
   },
   photoImg: {
-    width: SLOT_SIZE,
-    height: SLOT_SIZE,
+    width: slot,
+    height: slot,
     borderRadius: borderRadius.md,
   },
   addSlot: {
-    width: SLOT_SIZE,
-    height: SLOT_SIZE,
+    width: slot,
+    height: slot,
     borderRadius: borderRadius.md,
     borderWidth: 2,
     borderColor: c.primary,
@@ -333,61 +477,75 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
+    paddingHorizontal: spacing.xs,
     backgroundColor: c.primaryLight,
   },
-  addSlotText: {
-    textAlign: 'center',
+  failedSlot: {
+    width: slot,
+    height: slot,
+    borderRadius: borderRadius.md,
+    borderWidth: 1.5,
+    borderColor: c.error,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    paddingHorizontal: spacing.xs,
+    backgroundColor: c.errorBg,
   },
+  slotText: { textAlign: 'center' },
   primaryBadge: {
     position: 'absolute',
     bottom: 4,
     left: 4,
-    backgroundColor: c.primary,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
   },
-  removeBtn: {
+  // The tap target: a `hit`-sized box flush to the tile's top-right corner. It has
+  // no fill; the disc inside it is the only thing drawn.
+  removeHit: {
     position: 'absolute',
-    top: -8,
-    right: -8,
+    top: 0,
+    right: 0,
+    width: hit,
+    height: hit,
+    alignItems: 'flex-end',
+    justifyContent: 'flex-start',
+    padding: MARK_INSET,
+  },
+  removeDisc: {
     backgroundColor: c.error,
     borderRadius: borderRadius.full,
-    width: 22,
-    height: 22,
+    width: mark,
+    height: mark,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  reorderBtns: {
+  // The tap target: a `hit`-tall box flush to the tile's bottom edge, full width.
+  makeMainHit: {
     position: 'absolute',
-    bottom: 4,
-    right: 4,
-    flexDirection: 'row',
-    gap: 2,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: hit,
+    justifyContent: 'flex-end',
+    padding: MARK_INSET,
   },
-  reorderBtn: {
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: borderRadius.sm,
-    width: 22,
-    height: 22,
+  // Scrim over a photo: the dark tint is theme-independent on purpose, the
+  // photo underneath does not change with the theme. Solid under Reduce Transparency.
+  makeMainPill: {
+    height: mark,
+    backgroundColor: reduceTransparency ? SOLID_SCRIM : TINT_SCRIM,
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removingVeil: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: borderRadius.md,
+    backgroundColor: reduceTransparency ? SOLID_SCRIM : c.scrim,
     alignItems: 'center',
     justifyContent: 'center',
   },
   countHint: {
     textAlign: 'center',
   },
-  footer: {
-    padding: spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: c.border,
-    backgroundColor: c.background,
-  },
-  continueBtn: {
-    backgroundColor: c.primary,
-    borderRadius: borderRadius.md,
-    minHeight: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  continueBtnDisabled: { opacity: 0.5 },
 });

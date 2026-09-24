@@ -1,13 +1,8 @@
 import React, { useState } from 'react';
-import { useTheme } from '../../hooks/useTheme';
-import { View, StyleSheet } from 'react-native';
-import Text from '../../components/ui/Text';
 import Input from '../../components/ui/Input';
 import { useTranslation } from 'react-i18next';
-import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
-import { PressableScale } from '../../components/motion';
 import PickerSheet from '../../components/ui/PickerSheet';
-import OnboardingLayout from './OnboardingLayout';
+import OnboardingLayout, { OnboardingSelectField, flushField, useOnboardingControls } from './OnboardingLayout';
 import { useOnboarding } from './OnboardingContext';
 
 const RELIGIONS = [
@@ -20,10 +15,9 @@ const MOTHER_TONGUES = [
 ];
 
 export default function Step2Screen() {
-  const { c } = useTheme();
-  const styles = React.useMemo(() => makeStyles(c), [c]);
   const { t } = useTranslation();
   const { data, saveAndNext } = useOnboarding();
+  const controls = useOnboardingControls();
 
   const [religion, setReligion] = useState(data.religion);
   const [caste, setCaste] = useState(data.caste);
@@ -35,11 +29,20 @@ export default function Step2Screen() {
 
   const isValid = !!(religion && caste.trim() && motherTongue);
 
+  // The visible label and the spoken/Voice Control label are the same string, so
+  // "(Optional)" reaches a screen-reader user too.
+  const subCasteLabel = `${t('onboarding.step2.subCaste')} (${t('common.optional')})`;
+  const gotraLabel = `${t('onboarding.step2.gotra')} (${t('common.optional')})`;
+
   const handleContinue = async () => {
-    await saveAndNext(
-      { religion, caste, subCaste, gotra, motherTongue },
-      { religion, caste, subCaste, gotra, motherTongue } as any,
-    );
+    const answers = {
+      religion,
+      caste: caste.trim(),
+      subCaste: subCaste.trim(),
+      gotra: gotra.trim(),
+      motherTongue,
+    };
+    await saveAndNext(answers, answers);
   };
 
   return (
@@ -51,29 +54,25 @@ export default function Step2Screen() {
       continueDisabled={!isValid}
     >
       {/* Religion */}
-      <View>
-        <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step2.religion')}</Text>
-        <PressableScale
-          style={styles.selectBtn}
-          onPress={() => setReligionSheet(true)}
-          testID="select-religion"
-          accessibilityRole="button"
-          accessibilityLabel={t('onboarding.step2.religion')}
-          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Text variant="callout" color={religion ? 'textPrimary' : 'textMuted'}>
-            {religion || 'Select religion'}
-          </Text>
-        </PressableScale>
-      </View>
+      <OnboardingSelectField
+        label={t('onboarding.step2.religion')}
+        value={religion}
+        placeholder={t('onboarding.placeholders.religion', 'Select religion')}
+        onPress={() => setReligionSheet(true)}
+        open={religionSheet}
+        testID="select-religion"
+      />
 
-      {/* Caste */}
+      {/* Caste (server caps every free-text community field at 100 characters) */}
       <Input
+        {...controls.inputProps}
         label={t('onboarding.step2.caste')}
         value={caste}
         onChangeText={setCaste}
-        placeholder="e.g. Jat, Khatri, Brahmin"
+        containerStyle={flushField}
+        placeholder={t('onboarding.placeholders.caste', 'e.g. Jat, Khatri, Brahmin')}
         autoCapitalize="words"
+        maxLength={100}
         testID="input-caste"
         accessibilityLabel={t('onboarding.step2.caste')}
       />
@@ -81,46 +80,43 @@ export default function Step2Screen() {
       {/* Sub-caste + gotra reveal only once caste is filled — irrelevant
           questions stay out of sight (NN/g: shortest path for each user) */}
       {!!caste.trim() && (
-      <Input
-        label={`${t('onboarding.step2.subCaste')} (${t('common.optional')})`}
-        value={subCaste}
-        onChangeText={setSubCaste}
-        placeholder="Sub-caste"
-        autoCapitalize="words"
-        testID="input-subCaste"
-        accessibilityLabel={t('onboarding.step2.subCaste')}
-      />
-      )}
-
-      {/* Gotra (optional) */}
-      {!!caste.trim() && (
-      <Input
-        label={`${t('onboarding.step2.gotra')} (${t('common.optional')})`}
-        value={gotra}
-        onChangeText={setGotra}
-        placeholder="e.g. Kashyap, Bharadwaj"
-        autoCapitalize="words"
-        testID="input-gotra"
-        accessibilityLabel={t('onboarding.step2.gotra')}
-      />
+        <>
+          <Input
+            {...controls.inputProps}
+            label={subCasteLabel}
+            value={subCaste}
+            onChangeText={setSubCaste}
+            containerStyle={flushField}
+            placeholder={t('onboarding.placeholders.subCaste', 'Sub-caste')}
+            autoCapitalize="words"
+            maxLength={100}
+            testID="input-subCaste"
+            accessibilityLabel={subCasteLabel}
+          />
+          <Input
+            {...controls.inputProps}
+            label={gotraLabel}
+            value={gotra}
+            onChangeText={setGotra}
+            containerStyle={flushField}
+            placeholder={t('onboarding.placeholders.gotra', 'e.g. Kashyap, Bharadwaj')}
+            autoCapitalize="words"
+            maxLength={100}
+            testID="input-gotra"
+            accessibilityLabel={gotraLabel}
+          />
+        </>
       )}
 
       {/* Mother tongue */}
-      <View>
-        <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step2.motherTongue')}</Text>
-        <PressableScale
-          style={styles.selectBtn}
-          onPress={() => setTongueSheet(true)}
-          testID="select-motherTongue"
-          accessibilityRole="button"
-          accessibilityLabel={t('onboarding.step2.motherTongue')}
-          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Text variant="callout" color={motherTongue ? 'textPrimary' : 'textMuted'}>
-            {motherTongue || 'Select language'}
-          </Text>
-        </PressableScale>
-      </View>
+      <OnboardingSelectField
+        label={t('onboarding.step2.motherTongue')}
+        value={motherTongue}
+        placeholder={t('onboarding.placeholders.motherTongue', 'Select language')}
+        onPress={() => setTongueSheet(true)}
+        open={tongueSheet}
+        testID="select-motherTongue"
+      />
 
       <PickerSheet
         visible={religionSheet}
@@ -141,17 +137,3 @@ export default function Step2Screen() {
     </OnboardingLayout>
   );
 }
-
-const makeStyles = (c: ThemeColours) => StyleSheet.create({
-  label: {
-    marginBottom: spacing.sm,
-  },
-  selectBtn: {
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing.md,
-    minHeight: 48,
-    justifyContent: 'center',
-  },
-});

@@ -1,78 +1,140 @@
 /**
- * OtpInput — 4-box OTP entry (MSG91 sends 4 digits). Auto-fires onComplete
- * when the last digit lands (web OtpBoxes pattern); clears itself via the
- * `resetKey` prop after a failed verify.
+ * OtpInput — segmented OTP entry. Phone codes are 4 digits (MSG91), email codes
+ * are 6 (the server generates them separately), so `length` is a prop. Auto-fires onComplete
+ * when the last digit lands (web OtpBoxes pattern); clears itself and takes the
+ * caret back via the `resetKey` prop after a failed verify.
+ *
+ * One real TextInput sits OVER the four display boxes with transparent text.
+ * It is the only accessibility element, so a screen reader lands on a
+ * labelled, row-sized text field (the old 1x1 opacity-0 input was swallowed
+ * by its accessible Pressable wrapper and announced nothing). The input is
+ * transparent rather than `opacity: 0` on purpose: iOS does not deliver touches
+ * to a view with alpha 0, and a live input gives native long-press paste and
+ * the iOS SMS one-time-code suggestion for free.
  */
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
-import { View, TextInput, StyleSheet, Pressable } from 'react-native';
+import { View, TextInput, StyleSheet } from 'react-native';
 import Text from '../ui/Text';
-import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { spacing, borderRadius, type, type ThemeColours } from '@shared/constants/theme';
 
-const LENGTH = 4;
+const DEFAULT_LENGTH = 4;
 
 interface Props {
+  /** Number of digits the server sent: 4 for a mobile number, 6 for an email. */
+  length?: number;
   onComplete: (code: string) => void;
+  /** Ignores input (a verify is in flight). The field keeps focus, so the keyboard stays up. */
   disabled?: boolean;
   /** Change to clear the boxes (e.g. bump a counter on verify failure). */
   resetKey?: number;
+  /** Screen-reader label for the field. Pass the localized "enter the code" line. */
+  label?: string;
+  /** Red boxes while empty after a failed verify; clears as soon as they type. */
+  error?: boolean;
   testID?: string;
 }
 
-export default function OtpInput({ onComplete, disabled = false, resetKey = 0, testID }: Props) {
+export default function OtpInput({
+  length = DEFAULT_LENGTH,
+  onComplete,
+  disabled = false,
+  resetKey = 0,
+  label,
+  error = false,
+  testID,
+}: Props) {
   const { c } = useTheme();
+  const { t } = useTranslation();
   const st = React.useMemo(() => makeSt(c), [c]);
   const [code, setCode] = useState('');
+  const [focused, setFocused] = useState(false);
   const inputRef = useRef<TextInput>(null);
+  const mounted = useRef(false);
 
-  useEffect(() => { setCode(''); }, [resetKey]);
+  const a11yLabel = label ?? t('auth.signup.otpLabel', { digits: length, defaultValue: `Enter the ${length}-digit code` });
+
+  // A failed verify bumps resetKey. Clear the boxes and hand the caret back so
+  // the retry needs no extra tap. Skipped on mount: autoFocus already did it.
+  useEffect(() => {
+    setCode('');
+    if (mounted.current) inputRef.current?.focus();
+    mounted.current = true;
+  }, [resetKey]);
 
   const handleChange = (txt: string) => {
-    const digits = txt.replace(/\D/g, '').slice(0, LENGTH);
+    // Guarded here instead of with editable={false}: turning editable off drops
+    // focus and the keyboard on both platforms, and autoFocus only runs at mount,
+    // so a wrong code would cost the member a tap on the boxes before retrying.
+    if (disabled) return;
+    const digits = txt.replace(/\D/g, '').slice(0, length);
     setCode(digits);
-    if (digits.length === LENGTH) onComplete(digits);
+    if (digits.length === length) onComplete(digits);
   };
 
   return (
-    <Pressable onPress={() => inputRef.current?.focus()} testID={testID ?? 'otp-input'}>
-      {/* One hidden input drives four display boxes — keeps paste + keyboard
-          management trivial and screen-reader friendly. */}
-      <TextInput
-        ref={inputRef}
-        style={st.hidden}
-        value={code}
-        onChangeText={handleChange}
-        keyboardType="number-pad"
-        maxLength={LENGTH}
-        editable={!disabled}
-        autoFocus
-        accessibilityLabel={`Enter the ${LENGTH}-digit code`}
-        testID="otp-hidden-input"
-      />
-      <View style={st.row} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        {Array.from({ length: LENGTH }).map((_, i) => {
+    <View style={st.wrap} testID={testID ?? 'otp-input'}>
+      <View
+        style={st.row}
+        pointerEvents="none"
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
+        {Array.from({ length }).map((_, i) => {
           const filled = i < code.length;
-          const active = i === code.length && !disabled;
+          const active = focused && i === code.length && !disabled;
+          const failed = error && code.length === 0;
           return (
-            <View key={i} style={[st.box, active && st.boxActive, filled && st.boxFilled]}>
-              <Text variant="title3" color="textPrimary">{code[i] ?? ''}</Text>
+            <View key={i} style={[st.box, active && st.boxActive, filled && st.boxFilled, failed && st.boxError]}>
+              {/* Height-constrained box: the digit is capped so OS text size
+                  cannot outgrow the fixed box geometry. */}
+              <Text variant="title3" color="textPrimary" maxScale={1.5}>{code[i] ?? ''}</Text>
             </View>
           );
         })}
       </View>
-    </Pressable>
+      <TextInput
+        ref={inputRef}
+        style={st.overlay}
+        value={code}
+        onChangeText={handleChange}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        keyboardType="number-pad"
+        maxLength={length}
+        autoFocus
+        caretHidden
+        selectionColor="transparent"
+        textContentType="oneTimeCode"
+        autoComplete="sms-otp"
+        accessibilityLabel={a11yLabel}
+        accessibilityState={{ disabled }}
+        testID="otp-hidden-input"
+      />
+    </View>
   );
 }
 
 const makeSt = (c: ThemeColours) => StyleSheet.create({
-  hidden: { position: 'absolute', opacity: 0, height: 1, width: 1 },
+  wrap: { justifyContent: 'center' },
   row: { flexDirection: 'row', gap: spacing.sm, justifyContent: 'center' },
   box: {
-    width: 52, height: 60,
+    // Six boxes at a fixed 52pt (plus gaps) overflow a 360dp phone inside the
+    // screen gutters, so the boxes share the row and cap at 52pt.
+    flex: 1, maxWidth: 52, minHeight: 60,
     borderWidth: 1.5, borderColor: c.border, borderRadius: borderRadius.md,
     backgroundColor: c.surfaceCard,
     alignItems: 'center', justifyContent: 'center',
   },
-  boxActive: { borderColor: c.primary },
-  boxFilled: { borderColor: c.primary, backgroundColor: '#FDF2F5' },
+  boxActive: { borderColor: c.accent },
+  boxFilled: { borderColor: c.accent, backgroundColor: c.accentSoft },
+  boxError: { borderColor: c.error },
+  // Covers the boxes; draws nothing but still owns the touch, focus and paste.
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    ...type.title3,
+    color: 'transparent',
+    backgroundColor: 'transparent',
+  },
 });

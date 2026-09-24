@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, Alert, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import { borderRadius, colours, spacing, type ThemeColours } from '@shared/constants/theme';
+import { borderRadius, spacing, type ThemeColours } from '@shared/constants/theme';
 import {
+  Badge,
   Button,
   Card,
   EmptyState,
@@ -17,7 +18,14 @@ import Text from '../../components/ui/Text';
 import Screen from '../../components/layout/Screen';
 import { changePassword, getSessions, logoutAll, revokeSession, type AuthSession } from '../../api/auth';
 import { useAuthStore } from '../../stores/authStore';
+import { showToast } from '../../utils/toast';
 import { PASSWORD_RULES_ATTR, passwordProblem } from '../../utils/passwordRule';
+
+// Decorative glyphs sit beside a text label; the screen reader reads the label.
+const HIDE_FROM_A11Y = {
+  accessibilityElementsHidden: true,
+  importantForAccessibility: 'no-hide-descendants',
+} as const;
 
 /**
  * Account security — change password and see where the account is signed in.
@@ -64,6 +72,23 @@ const relativeTime = (iso: string | null): string => {
   return days === 1 ? 'yesterday' : `${days} days ago`;
 };
 
+interface FieldErrors {
+  current?: string;
+  next?: string;
+  confirm?: string;
+}
+
+/** Says the whole rule up front, so it is not first learned from a failed submit. */
+const PASSWORD_HELPER = 'At least 8 characters, with upper and lower case, a number and one of @ $ ! % * ? &';
+
+const SAME_AS_CURRENT = 'Your new password must be different from your current one';
+
+const newPasswordProblem = (next: string, current: string): string | undefined =>
+  passwordProblem(next) ?? (next === current ? SAME_AS_CURRENT : undefined);
+
+const confirmProblem = (next: string, confirm: string): string | undefined =>
+  next !== confirm ? 'The two new passwords do not match' : undefined;
+
 function SessionRow({
   session,
   onRevoke,
@@ -76,20 +101,20 @@ function SessionRow({
   const { c } = useTheme();
   const s = React.useMemo(() => makeS(c), [c]);
   const { label, icon } = deviceLabel(session.userAgent);
+  const when = relativeTime(session.lastUsedAt ?? session.createdAt);
+  // Three Android sessions must not all read "Sign out of Android device".
+  const whenSpoken = when === 'active now' || when === 'never used' || !when ? when : `last used ${when}`;
   return (
     <View style={s.sessionRow} testID={`session-${session.id}`}>
-      <Ionicons name={icon} size={20} color={c.textSecondary} />
+      <Ionicons name={icon} size={20} color={c.textSecondary} {...HIDE_FROM_A11Y} />
       <View style={s.sessionInfo}>
         <View style={s.sessionTitleRow}>
           <Text variant="callout" color="textPrimary">{label}</Text>
-          {session.isCurrent ? (
-            <View style={s.currentChip}>
-              <Text variant="micro" style={s.currentChipText}>This device</Text>
-            </View>
-          ) : null}
+          {session.isCurrent ? <Badge label="This device" tone="primary" style={s.currentBadge} /> : null}
         </View>
-        <Text variant="footnote" color="textMuted">
-          {relativeTime(session.lastUsedAt ?? session.createdAt)}
+        {/* textSecondary, not textMuted: 13pt meta on a white card fails AA in muted grey. */}
+        <Text variant="footnote" color="textSecondary">
+          {when}
           {session.ipAddress ? ` · ${session.ipAddress}` : ''}
         </Text>
       </View>
@@ -99,9 +124,11 @@ function SessionRow({
           variant="text"
           size="sm"
           loading={revoking}
+          // Only opens the confirm dialog; the confirmed sign-out is the committed action.
+          haptic={false}
           onPress={() => onRevoke(session)}
           testID={`revoke-${session.id}`}
-          accessibilityLabel={`Sign out of ${label}`}
+          accessibilityLabel={whenSpoken ? `Sign out of ${label}, ${whenSpoken}` : `Sign out of ${label}`}
         />
       )}
     </View>
@@ -117,6 +144,9 @@ export default function AccountSecurityScreen() {
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [confirm, setConfirm] = useState('');
+  // Rule problems sit under the field that has them; only a server refusal
+  // (wrong current password, rate limit, offline) is a form-level banner.
+  const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [revokingId, setRevokingId] = useState<string | null>(null);
 
@@ -132,10 +162,11 @@ export default function AccountSecurityScreen() {
       setCurrent('');
       setNext('');
       setConfirm('');
+      setErrors({});
       setFormError(null);
       // Other devices were signed out server-side; this one survives.
       queryClient.invalidateQueries({ queryKey: ['auth', 'sessions'] });
-      Alert.alert('Password changed', 'Your other devices have been signed out.');
+      showToast.success('Password changed', 'Your other devices have been signed out.');
     },
     onError: (err) => setFormError(apiMessage(err, 'Could not change your password. Please try again.')),
   });
@@ -143,23 +174,60 @@ export default function AccountSecurityScreen() {
   const revokeMutation = useMutation({
     mutationFn: (sessionId: string) => revokeSession(sessionId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['auth', 'sessions'] }),
-    onError: (err) => Alert.alert('Could not sign out that device', apiMessage(err, 'Please try again.')),
+    onError: (err) => showToast.error('Could not sign out that device', apiMessage(err, 'Please try again.')),
     onSettled: () => setRevokingId(null),
   });
 
   const logoutAllMutation = useMutation({
     mutationFn: logoutAll,
-    // Every token is revoked, including this device's — drop the local session
-    // rather than leave the app holding one the server will refuse.
-    onSettled: () => storeLogout(),
+    // Every token is revoked, including this device's; drop the local session
+    // rather than leave the app holding one the server will refuse. Only on
+    // success: on a failed request the other devices are still signed in, and
+    // this screen must not pretend they are not.
+    onSuccess: () => storeLogout(),
+    onError: (err) => showToast.error('Could not sign out everywhere', apiMessage(err, 'Check your connection and try again.')),
   });
 
+  // Editing a field clears its own message, and any message that only made
+  // sense against the value that just changed (a stale "do not match" would
+  // otherwise sit under two passwords that now match).
+  const changeCurrent = (v: string) => {
+    setCurrent(v);
+    setFormError(null);
+    setErrors((e) => ({ ...e, current: undefined, next: e.next === SAME_AS_CURRENT ? undefined : e.next }));
+  };
+  const changeNext = (v: string) => {
+    setNext(v);
+    setFormError(null);
+    setErrors((e) => ({ ...e, next: undefined, confirm: e.confirm ? confirmProblem(v, confirm) : undefined }));
+  };
+  const changeConfirm = (v: string) => {
+    setConfirm(v);
+    setFormError(null);
+    setErrors((e) => ({ ...e, confirm: undefined }));
+  };
+
+  // Validate on blur as well as on submit, and only once the member has typed
+  // something: an empty field on blur is "not there yet", not "wrong".
+  const blurNext = () => {
+    if (next) setErrors((e) => ({ ...e, next: newPasswordProblem(next, current) }));
+  };
+  const blurConfirm = () => {
+    if (confirm) setErrors((e) => ({ ...e, confirm: confirmProblem(next, confirm) }));
+  };
+
   const submitPassword = () => {
-    const problem = passwordProblem(next);
-    if (!current) return setFormError('Enter your current password');
-    if (problem) return setFormError(problem);
-    if (next !== confirm) return setFormError('The two new passwords do not match');
-    if (next === current) return setFormError('Your new password must be different from your current one');
+    const found: FieldErrors = {
+      current: current ? undefined : 'Enter your current password',
+      next: newPasswordProblem(next, current),
+      confirm: next !== confirm ? 'The two new passwords do not match' : undefined,
+    };
+    setErrors(found);
+    const first = found.current ?? found.next ?? found.confirm;
+    if (first) {
+      AccessibilityInfo.announceForAccessibility(first);
+      return;
+    }
     setFormError(null);
     passwordMutation.mutate();
   };
@@ -190,10 +258,17 @@ export default function AccountSecurityScreen() {
     );
   };
 
+  // A server refusal appears without a tap. Android reads the banner's live
+  // region; iOS has none, so it is announced here (one channel per platform,
+  // otherwise TalkBack reads it twice).
+  useEffect(() => {
+    if (formError && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(formError);
+  }, [formError]);
+
   const sessions = sessionsQuery.data ?? [];
 
   return (
-    <Screen edges={['top']} style={s.wrapper} testID="AccountSecurityScreen">
+    <Screen edges={['top', 'bottom']} keyboard style={s.wrapper} testID="AccountSecurityScreen">
       <ScreenHeader title="Account security" />
 
       <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
@@ -207,40 +282,50 @@ export default function AccountSecurityScreen() {
           <Input
             label="Current password"
             value={current}
-            onChangeText={setCurrent}
+            onChangeText={changeCurrent}
             secureTextEntry
             secureToggle
             autoCapitalize="none"
             textContentType="password"
+            error={errors.current}
             testID="current-password"
+            accessibilityLabel="Current password"
           />
           <Input
             label="New password"
             value={next}
-            onChangeText={setNext}
+            onChangeText={changeNext}
+            onBlur={blurNext}
             secureTextEntry
             secureToggle
             autoCapitalize="none"
             textContentType="newPassword"
             passwordRules={PASSWORD_RULES_ATTR}
-            placeholder="Min. 8 chars, with a number & symbol"
+            helper={PASSWORD_HELPER}
+            error={errors.next}
             testID="new-password"
+            accessibilityLabel="New password"
           />
           {next ? <PasswordStrength password={next} /> : null}
           <Input
             label="Confirm new password"
             value={confirm}
-            onChangeText={setConfirm}
+            onChangeText={changeConfirm}
+            onBlur={blurConfirm}
             secureTextEntry
             secureToggle
             autoCapitalize="none"
             textContentType="newPassword"
+            returnKeyType="done"
+            onSubmitEditing={submitPassword}
+            error={errors.confirm}
             testID="confirm-password"
+            accessibilityLabel="Confirm new password"
           />
 
           {formError ? (
-            <View style={s.errorBanner} testID="password-error">
-              <Ionicons name="alert-circle" size={15} color={c.error} />
+            <View style={s.errorBanner} testID="password-error" accessibilityRole="alert" accessibilityLiveRegion="polite">
+              <Ionicons name="alert-circle" size={15} color={c.error} {...HIDE_FROM_A11Y} />
               <Text variant="footnote" color="error" style={s.errorText}>{formError}</Text>
             </View>
           ) : null}
@@ -250,6 +335,8 @@ export default function AccountSecurityScreen() {
             onPress={submitPassword}
             loading={passwordMutation.isPending}
             disabled={passwordMutation.isPending}
+            // The success toast fires its own haptic; one per committed action.
+            haptic={false}
             testID="submit-password"
           />
         </Card>
@@ -305,6 +392,8 @@ export default function AccountSecurityScreen() {
             title="Sign out everywhere"
             variant="danger"
             icon="log-out-outline"
+            // Only opens the confirm dialog; the confirmed sign-out is the committed action.
+            haptic={false}
             onPress={confirmLogoutAll}
             loading={logoutAllMutation.isPending}
             testID="logout-all"
@@ -328,9 +417,7 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
 
   sessionRow:     { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: c.border },
   sessionInfo:    { flex: 1, gap: 2 },
-  sessionTitleRow:{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  currentChip:    { backgroundColor: c.p100, borderRadius: borderRadius.full, paddingHorizontal: spacing.sm, paddingVertical: 2 },
-  // c.p500 is not in the curated TextColor union (hex-identical to c.primary but a
-  // separate, non-aliased theme key) — kept as an explicit style override per scope rules.
-  currentChipText:{ color: c.p500 },
+  // Wraps: a longer hi/pa label must push the badge down, not off the row.
+  sessionTitleRow:{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.sm },
+  currentBadge:   { alignSelf: 'center' },
 });
