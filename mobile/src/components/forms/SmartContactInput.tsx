@@ -134,7 +134,7 @@ const SmartContactInput = forwardRef<TextInput, Props>(function SmartContactInpu
           value={value}
           onChangeText={(txt) => onChange(txt, parseContact(txt))}
           placeholder={placeholder ?? fallbackLabel}
-          placeholderTextColor={c.n400}
+          placeholderTextColor={c.textMuted}
           keyboardType="email-address"
           autoCapitalize="none"
           autoCorrect={false}
@@ -155,8 +155,8 @@ const SmartContactInput = forwardRef<TextInput, Props>(function SmartContactInpu
       {error ? (
         <Text variant="caption" color="error" style={st.errorText} accessibilityLiveRegion="polite">{error}</Text>
       ) : helper ? (
-        // textSecondary, not textMuted: the helper is copy the member must read
-        // and textMuted measures 3.3:1 on the light canvas.
+        // textSecondary: the helper is copy the member must read and it sits directly
+        // under the field, so it takes the stronger of the two readable tones.
         <Text variant="caption" color="textSecondary" style={st.helperText}>{helper}</Text>
       ) : null}
     </View>

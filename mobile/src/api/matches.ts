@@ -21,6 +21,8 @@ interface RawMatchItem {
   likedAt?: string;
   note?: string | null;
   likedItem?: Match['likedItem'];
+  /** Liked-me rows: the viewer's own action toward this liker, when the server sends it. */
+  myAction?: MatchAction | null;
   isMutual?: boolean;
 }
 
@@ -37,6 +39,7 @@ const toMatch = (m: RawMatchItem, isMutual: boolean): Match => {
     mutualMatchDate: m.matchedAt ?? null,
     note: m.note ?? null,
     likedItem: m.likedItem ?? null,
+    myAction: m.myAction ?? null,
     createdAt: when,
     updatedAt: when,
     MatchedProfile: toProfileSummary({

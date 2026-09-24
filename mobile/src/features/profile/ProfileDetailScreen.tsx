@@ -310,6 +310,7 @@ export default function ProfileDetailScreen() {
       // or liked profile must be pushed in rather than waiting for a pull to refresh.
       if (action === 'shortlist') queryClient.invalidateQueries({ queryKey: queryKeys.shortlisted });
       if (action === 'like') queryClient.invalidateQueries({ queryKey: queryKeys.sentInterests });
+      if (action === 'like' || action === 'pass') queryClient.invalidateQueries({ queryKey: queryKeys.likedMe });
 
       // One haptic per commit, one announcement (the pressed button may have
       // just been replaced, so focus has nowhere to read the result from).

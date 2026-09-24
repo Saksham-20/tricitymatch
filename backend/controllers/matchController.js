@@ -413,6 +413,19 @@ exports.getLikes = asyncHandler(async (req, res) => {
     offset
   });
 
+  // What has the viewer already done about each of these likers? getLikes returns every
+  // 'like' aimed at them, so without this a person the viewer declined (or liked back)
+  // reappears with live Accept/Decline buttons after a restart. Additive: clients that
+  // do not read `myAction` are unaffected.
+  const likerIds = likes.map(like => like.userId);
+  const myRows = likerIds.length
+    ? await Match.findAll({
+      where: { userId, matchedUserId: likerIds },
+      attributes: ['matchedUserId', 'action']
+    })
+    : [];
+  const myActionByLiker = new Map(myRows.map(row => [row.matchedUserId, row.action]));
+
   // Filter out likes without valid profiles
   const validLikes = likes
     .filter(like => like.User?.Profile)
@@ -423,7 +436,9 @@ exports.getLikes = asyncHandler(async (req, res) => {
       compatibilityScore: like.compatibilityScore,
       // D3 (additive): the note + liked-item snapshot the liker attached
       note: like.note || null,
-      likedItem: like.likedItem || null
+      likedItem: like.likedItem || null,
+      // 'like' | 'pass' | 'shortlist' | null: the viewer's own action toward this liker
+      myAction: myActionByLiker.get(like.userId) || null
     }));
 
   res.json({

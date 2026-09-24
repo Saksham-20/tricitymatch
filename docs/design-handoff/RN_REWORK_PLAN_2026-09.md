@@ -393,21 +393,100 @@ decision.
 
 ---
 
-## Phase 5 — Screen-by-screen §10.10 pre-flight
+## Phase 5 — Screen-by-screen §10.10 pre-flight — DONE at source level 2026-09-24 (NOT seen on a device)
 
-Five independent groups, each built then audited cold by a different agent. Based on the web campaign, expect
-**every group to fail its first audit**.
+Nine file groups (A money, B browse, C1 detail, C2 chat, D1 identity, D2 settings/legal/guardian, E1 auth, E2a and
+E2b onboarding) each ran **build → cold audit by a fresh agent → fix → cold re-audit** (36 agents, one Workflow run).
+No simulator was booted, so per standing rule 6 everything below is a source-read finding; the device pass is Phase 6.
+**As the campaign predicted, every group failed its first audit** (10 to 19 findings each). After the fix pass five
+groups re-audited clean of critical/major findings (C1, C2, D2, E2a, E2b); four still held one or two majors
+(A, B, D1, E1), which were closed by hand afterwards and verified in source. Minor findings that remain are listed
+below, not hidden.
 
-| Group | Screens | Known going in |
-| --- | --- | --- |
-| **A — Money** | Subscription, payment history, unlock bundles, `GoldLock` gates | 0.1's aftermath; the premium gate must never fake a count or a photo; gold audit |
-| **B — Browse** | Home, Search + `FilterPanel`, Matches, `ProfileCard`, `DiscoverCards` | Photoless profiles (the web's Phase 5 finding — check whether RN has the same void); list perf; all four states |
-| **C — Detail and chat** | ProfileDetail + `detail/*`, ChatThread, Conversations, family groups, `BlockReportSheet` | `ChatThreadScreen` is 1,247 lines with 14 `TouchableOpacity`, no empty and no error state; `RevealOnScroll` ruling; composer + keyboard behaviour |
-| **D — Identity** | OwnProfile (1,102 lines), EditProfile, Verification, Settings, Privacy, Guardian, Support | `SettingsScreen` is one of only two files that know elder mode exists; `OwnProfileScreen` has 13 `TouchableOpacity` |
-| **E — Funnel** | Welcome, Login, CreateAccount, Basics, `OnboardingLayout`, Steps 2-12, JourneyFinale | Blocked on open question 2; 40×40 chrome buttons; zero states across all 11 steps; `LoginScreen` has 9 `TouchableOpacity` and 0 `PressableScale` |
+**Alert.alert triage (ruling 22): 60 uses in 19 files → 23 in 14 files**, of which 7 are the deferred admin screens
+and 1 is a comment. Every remaining member-surface use is a confirmation (discard, remove, leave, revoke, block,
+sign out, unlock a phone number, delete a message). Choices became `PickerSheet`, errors became toast or inline
+state with an announcement, informational notices became inline.
 
-Each group's audit uses §10.10 in full, on a device, with Reduce Motion, Reduce Transparency, maximum text
-size, dark mode, elder mode, VoiceOver and TalkBack all exercised. Findings carry `file:line`.
+**Real bugs found and fixed** (not polish):
+- **Email sign-up was uncompletable on mobile.** The server sends a 6-digit code to an email and 4 to a phone;
+  `OtpInput` was hard-coded to 4 boxes and auto-submitted at 4, so an email code could never verify. `OtpInput` now
+  takes `length` (6 for email, same split as the web); boxes flex and cap at 52pt so six fit a 320dp screen; copy
+  parametrised with `{{digits}}` in en/hi/pa and the helper under the field no longer says "4-digit" before the kind
+  is known.
+- **Liked Me Decline did nothing visible.** `getLikes` returned every like aimed at the member, answered or not, so
+  the refetch brought the same row back while the screen announced "Interest declined". The endpoint now also
+  returns `myAction` per liker (additive: `like` | `pass` | `shortlist` | null, one extra query over the page's
+  liker ids); the screen hides declined rows, swaps Accept/Decline for a chat button on accepted ones, shows
+  "You're all caught up" when everyone is answered, and a like or pass made from Search or a profile refreshes the
+  list. A local map still covers taps before the refetch lands and an older server. **Needs the backend deployed.**
+- **Search and ProfileDetail like/shortlist never refreshed Matches**, which caches the shortlist for 30 minutes.
+- **`DELETE /auth/account` was sent without the password and always 400ed** from the shared `deleteAccount()`;
+  Settings had worked around it inline. Moved into `api/auth.ts` as `deleteAccount(password)`.
+- **Login biometric sign-in could never succeed**: `logout()` and a failed `initialize()` both delete the stored
+  refresh token, so a signed-out device has nothing for a Face ID check to exchange. Removed from Login, and the
+  Settings switch that promised "Sign in without typing your password" (nothing read it) was removed with it.
+- **`getPlans()` returned the entire static catalogue at regular prices** whenever the server sent no plans, and
+  inherited the regular ladder's MRP strike-through for a live plan that carried none. Both fabrications are gone; an
+  empty list renders the screen's existing "No plans available" state.
+- **Fabricated or unsupported claims removed**: the astrologer duration price table (the app listed 15/30/45/60 min,
+  the website sells 10/15/30/45) is now one true per-minute rate; "Vedic astrologer" hardcoded on every practitioner;
+  quiz "Better match suggestions" and "Your answers help us find better matches" (nothing on the server reads
+  `quizAnswers`); onboarding "5x more matches" (key deleted in all three locales).
+- Photoless `ProfileCard` no longer leaves a void; onboarding progress bar no longer animates width; `RevealOnScroll`
+  rise clamped to the 16px ceiling.
+
+**Shared-primitive pass (Phase 5b)**, requested independently by several groups: light `textMuted` `#8B8B8B` →
+`#6E6E6E` (3.4:1 → about 5:1, the value the web already adopted); `Button` gets the elder 60pt floor and wraps to two
+lines instead of truncating; `Input` defaults its accessibility name to its label, announces errors, gets the elder
+floor and an AA placeholder; `ListRow` switch rows are one labelled `switch` that toggles from the whole row;
+`ScreenHeader` no longer buzzes on a navigation tap and sizes the back target for elder;
+`IconButton` haptic is opt-in (the two voice-intro toggles opt in) and elder-sized; `PickerSheet` fades under Reduce Motion, has a solid scrim under
+Reduce Transparency, drops its false grabber, opens on the selected row and honours the elder row floor; the two
+remaining slide Modals (save-search, guardian invite) fade under Reduce Motion.
+
+**Decisions taken here:** open question 2 (funnel vs the web's one-field-first gate) — the funnel already is
+identifier + inline OTP, then basics, so it conforms and needed no rebuild; open question 7 (`RevealOnScroll`) —
+kept and clamped to 16px; open question 8 (`usePop`) — retuned to 1.12, a plain tap earns no 1.3× overshoot.
+
+**Owner and backend items surfaced (none fixed here):**
+1. **`ensureSeeded()` in `backend/routes/astrologerRoutes.js` bulk-creates three invented practitioners** (342/198/571
+   reviews, a "Certified by Bharatiya Vidya Bhavan" bio) into an empty Astrologers table in ANY environment. Masked
+   only while `ASTROLOGER_MARKETPLACE` is off. Gate it to development before that flag is ever flipped.
+2. **Google-sign-in accounts cannot delete their account**: they have `password: null` and `deleteAccount` runs
+   bcrypt against it. In-app account deletion is a Play and App Store requirement.
+3. **Onboarding collects answers the server has no column for and silently drops them**: Step 11 partner preferences
+   (marital status, religion, diet, manglik), Step 8 exercise, Step 9 family values, Step 7 has-children. Add a
+   dedicated JSONB (not `lifestylePreferences`, which saved searches use) or remove the questions.
+4. **Deploy the `getLikes` `myAction` change** (`backend/controllers/matchController.js`); until then Liked Me
+   answers are session-local. Also decide whether answered likers should stay in the list at all.
+5. Astrologer booking cannot be paid in-app (no verify-payment client, `openRazorpay` lives inside
+   `SubscriptionScreen`); the app hands off to the website. Each web-only booking tap on the API still creates a
+   pending order. Wire payment before the flag is on, or keep it hidden.
+6. Copy needing an owner or counsel decision: "Our safety team reviews reports within 24 hours" (RN sheet, web Safety
+   and Help); the finale's staged-loader lines; income buckets stored as midpoints on RN and upper bounds on web.
+7. The Android biodata "Share PDF" still ships only a caption (`Share.share` drops the file on Android).
+8. `frontend/src/pages/Help.jsx:84` carries the false "horoscope never folded into the score" sentence the mobile
+   side already corrected.
+
+**Cold-audited after the fact** (a fresh agent audited the primitive batch): it caught `Input`'s new live region
+doubling TalkBack speech against eight per-screen announcements (reverted, callers keep announcing), a 44→48pt drift
+in `Button` text variant / `IconButton` / back button (restored to 44 outside elder mode), a picker scroll on a blind
+timer (now on list layout), the switch row's label dropping its value, and stale comments.
+
+**Known minors left open** (all source-level, low severity): `app.json` and `Info.plist` still carry the Face ID usage
+string and `expo-local-authentication` is still a dependency though no biometric sign-in exists (drop at the next
+native build); toasts are not announced to screen readers centrally
+(screens announce per site; a central announce would double them, so it needs one owner at once); `Chip` is about
+34pt tall with no hitSlop; `EmptyState`/`GoldLock` cannot carry a custom action testID; `useKeyboardUp` and
+`useLiveSocket` are duplicated across the two chat screens; a raw `TextInput` remains in Search (Input has no
+leading-icon slot); the toast host renders beneath iOS `<Modal>` windows; `FilterPanel` range fields do not
+re-sync after a programmatic reset; the family-group Add-member button shows to non-owners though the server allows
+only owners (the server's `myRole` is dropped by `mapGroup`); ~89 `t()` keys in the chat files have no locale entry
+(English default shows in hi/pa); light `textMuted` is fixed but `c.warning`/`c.info` used as small text on white are
+about 3:1.
+
+**Gates:** mobile tsc 0, jest 57/57, root lint 0 errors (mobile warnings 182 → 69), slop-lint clean.
 
 ---
 

@@ -272,7 +272,8 @@ export default function VoiceIntroRecorder({ existingUrl, onSaved }: Props) {
 
   const showExisting = !!existingUrl && !localUri && (state === 'idle' || state === 'playing');
   const previewing = (state === 'recorded' || state === 'playing') && !!localUri;
-  // The shared IconButton is a fixed 44pt; the row owns the elder-aware size.
+  // IconButton sizes itself (44pt, 60pt in elder mode); the row pins the same box so the
+  // two toggles below stay identical in every mode.
   const iconBtnSize = { width: tap, height: tap };
 
   return (
@@ -312,6 +313,7 @@ export default function VoiceIntroRecorder({ existingUrl, onSaved }: Props) {
             filled
             onPress={state === 'playing' ? stopPlayback : playExisting}
             accessibilityLabel={state === 'playing' ? 'Stop voice intro' : 'Play voice intro'}
+            haptic
             style={iconBtnSize}
             testID="voice-intro-existing-toggle"
           />
@@ -377,6 +379,7 @@ export default function VoiceIntroRecorder({ existingUrl, onSaved }: Props) {
               filled
               onPress={state === 'playing' ? stopPlayback : () => play(localUri)}
               accessibilityLabel={state === 'playing' ? 'Stop preview' : 'Preview recording'}
+              haptic
               style={iconBtnSize}
               testID="voice-intro-preview-toggle"
             />

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
+import { tapSize } from '../../utils/elderTheme';
 import {
   AccessibilityInfo,
   ActivityIndicator,
@@ -20,7 +21,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { ListSkeleton } from '../../components/ui/skeletons';
 import { Badge, EmptyState, IconButton, ScreenHeader } from '../../components/ui';
-import { useReduceTransparency } from '../../components/motion';
+import { useReduceMotion, useReduceTransparency } from '../../components/motion';
 import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import {
   getMyGuardianLinks,
@@ -57,6 +58,7 @@ function InviteGuardianModal({ visible, onClose, onCreate, sending, serverError 
 }) {
   const { c } = useTheme();
   const reduceTransparency = useReduceTransparency();
+  const reduceMotion = useReduceMotion();
   const im = React.useMemo(() => makeIm(c), [c]);
   const [email, setEmail] = useState('');
   const [fieldError, setFieldError] = useState<string | null>(null);
@@ -88,7 +90,7 @@ function InviteGuardianModal({ visible, onClose, onCreate, sending, serverError 
   const close = () => { if (!sending) onClose(); };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={close}>
+    <Modal visible={visible} transparent animationType={reduceMotion ? 'fade' : 'slide'} onRequestClose={close}>
       <KeyboardAvoidingView style={im.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={[im.overlay, reduceTransparency && im.overlayOpaque]}>
           {/* Tap outside to dismiss. A scrim has nothing to animate, so it is a plain
@@ -174,7 +176,7 @@ const STATUS_BADGE: Record<GuardianLink['status'], { label: string; tone: 'warni
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function GuardianSetupScreen() {
-  const { c } = useTheme();
+  const { c, elder } = useTheme();
   const s = React.useMemo(() => makeS(c), [c]);
   const queryClient = useQueryClient();
   const [showInvite, setShowInvite] = useState(false);
@@ -305,7 +307,7 @@ export default function GuardianSetupScreen() {
                   <Badge label={badge.label} tone={badge.tone} style={s.badge} />
                   {link.status !== 'revoked' && (
                     revoking ? (
-                      <View style={s.revokeSlot} accessible accessibilityLabel={`Revoking ${link.guardianName}`} accessibilityLiveRegion="polite">
+                      <View style={[s.revokeSlot, elder && { width: tapSize(true), height: tapSize(true) }]} accessible accessibilityLabel={`Revoking ${link.guardianName}`} accessibilityLiveRegion="polite">
                         <ActivityIndicator size="small" color={c.error} />
                       </View>
                     ) : (

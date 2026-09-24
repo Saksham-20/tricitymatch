@@ -19,7 +19,7 @@ import Text from '../../components/ui/Text';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import ListFooter from '../../components/ui/ListFooter';
-import { PressableScale } from '../../components/motion';
+import { PressableScale, useReduceMotion } from '../../components/motion';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -171,8 +171,9 @@ function SaveSearchModal({
     if (!visible) setName('');
   }, [visible]);
   const trimmed = name.trim();
+  const reduceMotion = useReduceMotion();
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType={reduceMotion ? 'fade' : 'slide'} onRequestClose={onClose}>
       <KeyboardAvoidingView style={ss.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         {/* The backdrop and the sheet are siblings. With the sheet nested inside
             the backdrop's pressable, VoiceOver saw one "Close" button and could
@@ -410,6 +411,8 @@ export default function SearchScreen() {
         queryClient.invalidateQueries({ queryKey: queryKeys.sentInterests });
         queryClient.invalidateQueries({ queryKey: queryKeys.mutualMatches });
       }
+      // A like or pass on someone who already liked the member answers that interest.
+      if (action === 'like' || action === 'pass') queryClient.invalidateQueries({ queryKey: queryKeys.likedMe });
       queryClient.invalidateQueries({ queryKey: queryKeys.dailyMatches });
     },
     onError: (_err, { userId }) => {

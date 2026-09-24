@@ -58,10 +58,9 @@ const progressAt = (index: number, count: number) =>
 export const flushField = StyleSheet.create({ flush: { marginBottom: 0 } }).flush;
 
 /**
- * What a journey step needs from the shared `Input` and `Button` that they do
- * not yet do themselves. Neither has any elder handling (their own floors are
- * 50pt and 54/44pt), and `Input` paints its placeholder in n400, which is 2.5:1
- * on the field surface. Steps spread/pass these instead of hard-coding heights.
+ * Journey-step control sizing, from before `Input` and `Button` handled elder mode
+ * and the AA placeholder themselves. They do now, so this only keeps the steps'
+ * existing call sites unchanged; fold it away when the steps are next touched.
  */
 export function useOnboardingControls() {
   const { c, elder } = useTheme();

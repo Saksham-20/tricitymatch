@@ -14,6 +14,7 @@ import { borderRadius, colours, shadows, darkShadows, spacing, type, type ThemeC
 import { useTheme } from '../../hooks/useTheme';
 import { haptics } from '../../utils/haptics';
 import { PressableScale } from '../motion';
+import { tapSize } from '../../utils/elderTheme';
 import Text, { type TypeRole } from './Text';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'text' | 'gold';
@@ -69,7 +70,7 @@ export default function Button({
   accessibilityLabel,
   style,
 }: ButtonProps) {
-  const { c, isDark } = useTheme();
+  const { c, isDark, elder } = useTheme();
   const isDisabled = disabled || loading;
   const sh = isDark ? darkShadows : shadows;
   const v = React.useMemo(() => makeVariantStyles(c, sh), [c, sh])[variant];
@@ -87,13 +88,18 @@ export default function Button({
     <View style={styles.contentRow}>
       {icon ? <Ionicons name={icon} size={(sz.font.fontSize ?? 16) + 2} color={v.text.color} /> : null}
       {/* v.text.color is dynamic per button variant and sometimes non-curated (gold's goldText) — left as a style override */}
-      <Text variant={SIZE_VARIANT[size]} style={v.text} numberOfLines={1}>
+      {/* Two lines, not one: a long hi/pa label or a large OS text size must wrap
+          inside the button rather than lose its tail to an ellipsis. */}
+      <Text variant={SIZE_VARIANT[size]} style={[v.text, styles.title]} numberOfLines={2}>
         {title}
       </Text>
     </View>
   );
 
-  const radiusStyle = { borderRadius: sz.radius, minHeight: sz.minHeight };
+  // Elder mode's floor is 60pt (doctrine 10.6). Outside elder mode the size's own minimum
+  // stands (the text variant keeps its 44pt), so nothing shifts for everyone else.
+  const minHeight = elder ? Math.max(sz.minHeight, tapSize(true)) : sz.minHeight;
+  const radiusStyle = { borderRadius: sz.radius, minHeight };
 
   return (
     <PressableScale
@@ -101,6 +107,8 @@ export default function Button({
       style={[
         gradient ? [styles.gradientWrap, radiusStyle] : [styles.base, radiusStyle],
         gradient ? v.shadow : v.container,
+        // After the variant, so the elder floor also reaches the text variant's own 44pt.
+        elder ? { minHeight } : undefined,
         // Solid brand fallback if the gradient native view is unavailable.
         gradient ? { backgroundColor: gradient[0] } : undefined,
         isDisabled && styles.disabled,
@@ -143,6 +151,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   contentRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  title: { flexShrink: 1, textAlign: 'center' },
   gradientWrap: { overflow: 'hidden' },
   disabled: { opacity: 0.45 },
 });

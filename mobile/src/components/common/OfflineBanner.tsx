@@ -19,7 +19,7 @@ export default function OfflineBanner({ lastSyncedLabel, isStale, onRefresh }: P
     <View style={s.banner} testID="offline-banner" accessibilityLiveRegion="polite">
       <Ionicons name="cloud-offline-outline" size={16} color="#fff" />
       <Text variant="caption" color="onPrimary" style={s.text}>
-        {isStale ? 'Offline — data may be outdated' : 'Offline — showing cached profiles'}
+        {isStale ? 'Offline. Data may be outdated' : 'Offline. Showing saved profiles'}
       </Text>
       {lastSyncedLabel ? (
         <Text variant="caption" style={s.sub}>{lastSyncedLabel}</Text>

@@ -248,6 +248,12 @@ function TabContent({ activeTab }: { activeTab: TabKey }) {
   // refetch returns them again. Remember the answer here so Decline visibly removes the
   // row and an accepted row stops offering Accept/Decline while this screen is open.
   const [answered, setAnswered] = useState<Record<string, 'accepted' | 'declined'>>({});
+  // The server now says what the member already did about each liker (`myAction`), which
+  // survives a restart and covers a like made from Search or a profile; the local map
+  // covers taps on this screen before the refetch lands and an older server without the field.
+  const answerOf = (m: Match): 'accepted' | 'declined' | undefined =>
+    answered[m.matchedUserId] ??
+    (m.myAction === 'pass' ? 'declined' : m.myAction === 'like' ? 'accepted' : undefined);
 
   const mutualQuery   = useQuery({ queryKey: queryKeys.mutualMatches,  queryFn: getMutualMatches,  enabled: activeTab === 'mutual' });
   // A free member is shown the lock instead; firing the request anyway would only 403.
@@ -447,7 +453,7 @@ function TabContent({ activeTab }: { activeTab: TabKey }) {
   // Declined likers leave the list; an empty result after answering everyone is not
   // "no one has liked you".
   const rows = activeTab === 'liked_me'
-    ? matches.filter((m) => answered[m.matchedUserId] !== 'declined')
+    ? matches.filter((m) => answerOf(m) !== 'declined')
     : matches;
   const caughtUp = activeTab === 'liked_me' && matches.length > 0 && rows.length === 0;
 
@@ -495,7 +501,7 @@ function TabContent({ activeTab }: { activeTab: TabKey }) {
               navigation.navigate('ProfileDetail', { userId: item.matchedUserId })
             }
             onChat={
-              (activeTab === 'mutual' || (activeTab === 'liked_me' && answered[item.matchedUserId] === 'accepted')) && !elderMode
+              (activeTab === 'mutual' || (activeTab === 'liked_me' && answerOf(item) === 'accepted')) && !elderMode
                 ? () => {
                     // Open THIS person's thread: the button says "Chat with <name>", and
                     // landing on the conversation list made the member find them again.
@@ -509,7 +515,7 @@ function TabContent({ activeTab }: { activeTab: TabKey }) {
                 : undefined
             }
             onAccept={
-              activeTab === 'liked_me' && !answered[item.matchedUserId]
+              activeTab === 'liked_me' && !answerOf(item)
                 ? () => {
                     const p = item.MatchedProfile;
                     const nm = p ? `${p.firstName} ${p.lastName}`.trim() : undefined;
@@ -530,7 +536,7 @@ function TabContent({ activeTab }: { activeTab: TabKey }) {
                 : undefined
             }
             onDecline={
-              activeTab === 'liked_me' && !answered[item.matchedUserId]
+              activeTab === 'liked_me' && !answerOf(item)
                 ? () => actionMutation.mutate({ userId: item.matchedUserId, action: 'pass' })
                 : undefined
             }

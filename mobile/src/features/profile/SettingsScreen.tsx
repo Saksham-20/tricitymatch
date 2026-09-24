@@ -10,7 +10,6 @@ import {
   Modal,
   Platform,
 } from 'react-native';
-import * as LocalAuthentication from 'expo-local-authentication';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -27,10 +26,9 @@ import { showToast } from '../../utils/toast';
 import i18n from '../../i18n';
 import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { PLANS } from '@shared/constants/plans';
-import { cache, CACHE_KEYS } from '../../utils/cache';
 import { getMyProfile, updateMyProfile } from '../../api/profile';
 import { getGuardianCandidates } from '../../api/guardian';
-import { apiClient } from '../../api/client';
+import { deleteAccount } from '../../api/auth';
 import { queryKeys } from '../../constants/queryKeys';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
@@ -232,8 +230,6 @@ export default function SettingsScreen() {
   const [incognito, setIncognito] = useState(false);
   const [showLangPicker, setShowLangPicker] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [biometricAvailable, setBiometricAvailable] = useState(false);
-  const [biometricEnabled, setBiometricEnabled] = useState(false);
 
   // The switch must show what the server actually holds, not a hard-coded "off"
   // (a member with incognito already on used to see it off and turn it "on" again).
@@ -251,19 +247,6 @@ export default function SettingsScreen() {
     if (typeof serverIncognito === 'boolean') setIncognito(serverIncognito);
   }, [serverIncognito]);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const available = await LocalAuthentication.hasHardwareAsync();
-        const enrolled = await LocalAuthentication.isEnrolledAsync();
-        setBiometricAvailable(available && enrolled);
-        setBiometricEnabled(cache.getBoolean(CACHE_KEYS.BIOMETRIC_ENABLED) ?? false);
-      } catch {
-        setBiometricAvailable(false);
-      }
-    })();
-  }, []);
-
   // Optimistic: the switch moves on the tap, not after the round trip, and
   // snaps back (with a message) if the server refuses.
   const incognitoMutation = useMutation({
@@ -279,11 +262,8 @@ export default function SettingsScreen() {
     },
   });
 
-  // The server requires the member's password to erase an account. api/auth.ts
-  // `deleteAccount()` sends no body (and so always 400s); this call carries it.
-  // Move it there as `deleteAccount(password)` when that module is next opened.
   const deleteMutation = useMutation({
-    mutationFn: (password: string) => apiClient.delete('/auth/account', { data: { password } }),
+    mutationFn: (password: string) => deleteAccount(password),
     onSuccess: async () => {
       setShowDeleteModal(false);
       await logout();
@@ -300,11 +280,6 @@ export default function SettingsScreen() {
     staleTime: 2 * 60 * 1000,
   });
   const isGuardian = guardianLinks?.some((l) => l.status === 'active') ?? false;
-
-  const handleBiometricToggle = (val: boolean) => {
-    cache.setBoolean(CACHE_KEYS.BIOMETRIC_ENABLED, val);
-    setBiometricEnabled(val);
-  };
 
   const handleLanguage = (lang: Language) => {
     setLanguage(lang);
@@ -348,19 +323,9 @@ export default function SettingsScreen() {
             onPress={() => navigation.navigate('Subscription')}
             testID="setting-subscription"
           />
-          {biometricAvailable && (
-            <>
-              <Divider />
-              <ListRow
-                icon="finger-print-outline"
-                label="Face ID / Touch ID"
-                sublabel="Sign in without typing your password"
-                switchValue={biometricEnabled}
-                onSwitchChange={handleBiometricToggle}
-                testID="setting-biometric"
-              />
-            </>
-          )}
+          {/* No Face ID / Touch ID row: sign-in by biometric never worked (a signed-out
+              device has no stored session to exchange), so a switch for it only promised
+              something the app could not do. */}
         </Section>
 
         {/* Privacy */}
