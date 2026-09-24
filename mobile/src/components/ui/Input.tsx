@@ -118,7 +118,7 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    minWidth: 40,
+    minWidth: 44,
   },
   errorText: {
     fontFamily: 'Inter-Medium',

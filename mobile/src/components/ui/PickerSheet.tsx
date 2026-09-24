@@ -58,7 +58,16 @@ export default function PickerSheet<T = string>({
   };
 
   return (
-    <Modal visible={visible} animationType={reduceMotion ? 'fade' : 'slide'} transparent onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType={reduceMotion ? 'fade' : 'slide'}
+      transparent
+      onRequestClose={onClose}
+      // Android: without this the scrim starts below the status bar and leaves a white band
+      // there. (`navigationBarTranslucent` would close the strip above the gesture bar too, but
+      // RN 0.76's Modal has no such prop.)
+      statusBarTranslucent
+    >
       <PressableScale
         style={[styles.backdrop, reduceTransparency && styles.backdropSolid]}
         onPress={onClose}

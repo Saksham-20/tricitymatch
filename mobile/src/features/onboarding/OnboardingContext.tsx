@@ -15,6 +15,7 @@ import React, { createContext, useContext, useState, useCallback, useRef } from 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import { updateMyProfile, getMyProfile } from '../../api/profile';
+import { refreshProfileCaches } from '../../utils/profileCache';
 import { showToast } from '../../utils/toast';
 import { haptics } from '../../utils/haptics';
 import type { Profile, Gender, MaritalStatus, ManglikStatus, Diet, SmokingDrinking, FamilyType } from '../../types';
@@ -367,6 +368,9 @@ export function OnboardingProvider({ children, navigateToStep }: ProviderProps) 
         setIsSaving(true);
         try {
           await updateMyProfile(profilePatch);
+          // Home's completion ring and Profile / Edit Profile read the profile
+          // from two caches; the server recomputes the percentage on every save.
+          refreshProfileCaches();
         } catch {
           // Nothing re-sends a failed patch, so advancing would silently drop
           // this step's answers. Stay on the step; Continue is the retry.

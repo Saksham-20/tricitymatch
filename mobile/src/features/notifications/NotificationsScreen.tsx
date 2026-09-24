@@ -141,7 +141,9 @@ function formatRelativeTime(iso: string): string {
   if (hrs < 24) return `${hrs}h ago`;
   const days = Math.floor(hrs / 24);
   if (days < 7) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString();
+  // Day-first with a month name: the bare locale default printed 8/9/2026, which reads as
+  // 9 August or 8 September depending on who is looking.
+  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 export default function NotificationsScreen() {

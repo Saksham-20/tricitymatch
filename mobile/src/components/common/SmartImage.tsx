@@ -36,7 +36,7 @@ interface Props {
 // FastImage for disk/memory caching, with a duration.content fade-in on load
 // so photos never pop in harshly.
 export default function SmartImage({ uri, name, style, initialSize = 28 }: Props) {
-  const { c } = useTheme();
+  const { c, isDark } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
   const [failed, setFailed] = useState(false);
   const opacity = useSharedValue(0);
@@ -48,7 +48,12 @@ export default function SmartImage({ uri, name, style, initialSize = 28 }: Props
   if (!resolved || failed) {
     return (
       <View style={[style, styles.fallback]}>
-        <Text style={[styles.initial, { fontSize: initialSize }]}>{initial}</Text>
+        {/* In dark, p100 is the tile and p700 sits about 1.2:1 against it; the light end of the
+            scale is the readable one there. maxFontSizeMultiplier: the glyph sits in a fixed circle. */}
+        <Text
+          style={[styles.initial, { fontSize: initialSize }, isDark && { color: c.p300 }]}
+          maxFontSizeMultiplier={1}
+        >{initial}</Text>
       </View>
     );
   }

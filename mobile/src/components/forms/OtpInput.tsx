@@ -117,7 +117,9 @@ export default function OtpInput({
 }
 
 const makeSt = (c: ThemeColours) => StyleSheet.create({
-  wrap: { justifyContent: 'center' },
+  // stretch: a parent with alignItems:'center' would otherwise shrink-wrap the wrapper and the
+  // flex boxes inside it collapse to their borders (seen on device as thin slivers).
+  wrap: { alignSelf: 'stretch', justifyContent: 'center' },
   row: { flexDirection: 'row', gap: spacing.sm, justifyContent: 'center' },
   box: {
     // Six boxes at a fixed 52pt (plus gaps) overflow a 360dp phone inside the

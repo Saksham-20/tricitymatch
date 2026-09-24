@@ -105,7 +105,9 @@ export default function WelcomeScreen() {
 
   return (
     <Screen
-      edges={['top']}
+      // Bottom too: at the largest text size the content outgrows the screen and the sign-in
+      // link slid under the gesture bar.
+      edges={['top', 'bottom']}
       scroll
       contentContainerStyle={styles.scrollContent}
       style={styles.container}

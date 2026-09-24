@@ -25,6 +25,7 @@ import Screen from '../../components/layout/Screen';
 import { getDailyFeed } from '../../api/matches';
 import { getUnreadCount } from '../../api/notifications';
 import { getCommunityStats } from '../../api/stats';
+import { getMyProfile } from '../../api/profile';
 import DiscoverCards from './DiscoverCards';
 import { queryKeys } from '../../constants/queryKeys';
 import { useAuthStore } from '../../stores/authStore';
@@ -197,7 +198,14 @@ export default function HomeScreen() {
   });
 
   const unreadCount = countData?.count ?? 0;
-  const completionPct = user?.Profile?.completionPercentage ?? 0;
+  // The auth user's percentage is frozen at sign-in (0 for a fresh signup, which
+  // the Profile tab then contradicted with 35%); the profile query is live.
+  const { data: myProfile } = useQuery({
+    queryKey: queryKeys.myProfile,
+    queryFn: getMyProfile,
+    staleTime: 5 * 60 * 1000,
+  });
+  const completionPct = myProfile?.completionPercentage ?? user?.Profile?.completionPercentage ?? 0;
   const firstName = user?.Profile?.firstName ?? user?.email?.split('@')[0] ?? 'there';
   const photo = user?.Profile?.profilePhoto;
 
@@ -300,7 +308,7 @@ export default function HomeScreen() {
 
       {/* Today's Matches */}
       <SectionHeader
-        title={t('home.todaysMatches', "Today's Matches")}
+        title={t('home.todayMatches', "Today's Matches")}
         count={todaysMatches.length || undefined}
         style={styles.sectionPad}
       />

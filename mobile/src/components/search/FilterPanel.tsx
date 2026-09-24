@@ -7,6 +7,7 @@ import React, {
   useImperativeHandle,
 } from 'react';
 import {
+  Keyboard,
   View,
   StyleSheet,
 } from 'react-native';
@@ -300,7 +301,7 @@ const FilterPanel = forwardRef<FilterPanelHandle, Props>(({
 
   useImperativeHandle(ref, () => ({
     open: () => sheetRef.current?.expand(),
-    close: () => sheetRef.current?.close(),
+    close: () => { Keyboard.dismiss(); sheetRef.current?.close(); },
   }));
 
   const toggle = (key: keyof typeof sections) => setSections((s) => ({ ...s, [key]: !s[key] }));
@@ -323,7 +324,9 @@ const FilterPanel = forwardRef<FilterPanelHandle, Props>(({
       animationConfigs={animationConfigs}
       enablePanDownToClose
       onAnimate={(_from, to) => { if (to >= 0) setSheetOpen(true); }}
-      onChange={(i) => setSheetOpen(i >= 0)}
+      // A range field still focused when the sheet closes keeps the IME 'shown' against a
+      // sheet nobody can see, and Search below it lost its tab bar (seen on device).
+      onChange={(i) => { setSheetOpen(i >= 0); if (i < 0) Keyboard.dismiss(); }}
       backdropComponent={renderBackdrop}
       backgroundStyle={{ backgroundColor: c.sheetBg }}
       // `n300` is 1.4:1 on the dark sheet, which hides the only cue that the sheet drags.
@@ -331,7 +334,7 @@ const FilterPanel = forwardRef<FilterPanelHandle, Props>(({
     >
       <View style={[styles.header, { borderBottomColor: c.hairline }]}>
         {/* deliberately serif (Playfair) for this sheet heading — mapped to title2, which natively carries that face at 22/28 instead of title3's Inter-SemiBold 20/25 */}
-        <Text variant="title2" color="fgStrong" accessibilityRole="header">Filters</Text>
+        <Text variant="title2" color="fgStrong" accessibilityRole="header" style={styles.headerTitle}>Filters</Text>
         <PressableScale
           style={elder ? { minHeight: tapSize(elder), justifyContent: 'center' } : undefined}
           onPress={() => { setResetCount((n) => n + 1); onReset(); }}
@@ -450,7 +453,7 @@ const FilterPanel = forwardRef<FilterPanelHandle, Props>(({
         <Button
           title={resultCount !== undefined ? `Show ${resultCount} ${resultCount === 1 ? 'profile' : 'profiles'}` : 'Apply'}
           loading={loadingCount}
-          onPress={() => { sheetRef.current?.close(); onApply(); }}
+          onPress={() => { Keyboard.dismiss(); sheetRef.current?.close(); onApply(); }}
         />
       </View>
     </BottomSheet>
@@ -462,7 +465,8 @@ export default FilterPanel;
 
 const makeStyles = (c: ThemeColours) => StyleSheet.create({
   handle: { width: 38 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.gutter, paddingVertical: spacing.md, borderBottomWidth: 0.5 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.gutter, paddingVertical: spacing.md, borderBottomWidth: 0.5 },
+  headerTitle: { flexShrink: 1 },
   resetText: { fontFamily: 'Inter-SemiBold' },
   content: { paddingHorizontal: spacing.gutter, paddingBottom: spacing['2xl'] },
   section: { paddingVertical: spacing.sm },

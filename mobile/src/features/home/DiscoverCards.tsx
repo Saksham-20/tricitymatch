@@ -48,7 +48,6 @@ export default function DiscoverCards() {
   // just to render.
   const inviteReward = useAuthStore((s) => s.user?.features?.inviteRewardUnlocks) ?? 0;
 
-  const completionPct = user?.Profile?.completionPercentage ?? 0;
   const isFree = (user?.subscriptionPlan ?? 'free') === 'free';
 
   const { data: verification } = useQuery({
@@ -61,6 +60,9 @@ export default function DiscoverCards() {
     queryFn: getMyProfile,
     staleTime: 5 * 60 * 1000,
   });
+  // The auth user carries the percentage from sign-in time (0 for a fresh signup);
+  // the profile query is recomputed by the server on every save.
+  const completionPct = myProfile?.completionPercentage ?? user?.Profile?.completionPercentage ?? 0;
   const established = completionPct >= 60;
   const { data: stories } = useQuery({
     queryKey: ['success-stories', 'public'],

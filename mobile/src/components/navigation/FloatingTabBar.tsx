@@ -107,6 +107,9 @@ export default function FloatingTabBar({ state, descriptors, navigation, icons }
                 variant="micro"
                 color={focused ? 'primary' : 'textMuted'}
                 numberOfLines={1}
+                // Fixed-height chrome: five labels share the pill, so past ~1.3x they become 'H…'.
+                // The icon and the selected tint carry the rest.
+                maxScale={1.3}
               >
                 {label}
               </Text>

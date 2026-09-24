@@ -18,6 +18,23 @@ const repoRoot = join(__dirname, '..');
 
 const patches = [
   {
+    name: '@gorhom/bottom-sheet: useAnimatedLayout worklet closes over a param named `window`',
+    file: join(repoRoot, 'node_modules', '@gorhom', 'bottom-sheet', 'src', 'hooks', 'useAnimatedLayout.ts'),
+    marker: 'nextWindow',
+    // JS, not native. Metro resolves this package through its "react-native": "src/index.ts" field.
+    // The Dimensions 'change' listener destructures `{ window }` and a worklet inside it then
+    // assigns `_state.window = window`. Reanimated's plugin treats `window` as a browser global
+    // and does not capture the local, so the first Dimensions change (Dynamic Type, split view,
+    // foldables, display size) throws "Property 'window' doesn't exist" on the UI runtime:
+    // a redbox in dev and, unhandled, a crash in release. Seen on both platforms in the Phase 6
+    // sweep once the Filters sheet had mounted. Renaming the local avoids the global.
+    // Delete when @gorhom/bottom-sheet ships the rename upstream.
+    apply: (src) =>
+      src
+        .replace("({ window }) => {", "({ window: nextWindow }) => {")
+        .replace('_state.window = window;', '_state.window = nextWindow;'),
+  },
+  {
     name: 'expo-localization: exhaustive Calendar.Identifier switch',
     file: join(repoRoot, 'mobile', 'node_modules', 'expo-localization', 'ios', 'LocalizationModule.swift'),
     marker: '@unknown default:',

@@ -64,7 +64,7 @@ export default function ListRow({
         </View>
       ) : null}
       <View style={styles.info}>
-        <Text variant="subhead" color={destructive ? 'error' : 'textPrimary'} numberOfLines={1}>
+        <Text variant="subhead" color={destructive ? 'error' : 'textPrimary'} numberOfLines={2}>
           {label}
         </Text>
         {sublabel ? (
@@ -83,7 +83,9 @@ export default function ListRow({
           <Switch
             value={!!switchValue}
             onValueChange={onSwitchChange}
-            trackColor={{ false: c.border, true: c.primary }}
+            // n500, not the hairline border colour: an OFF track drawn in #E8E8E8 on the #FAFAFA canvas
+            // is 1.15:1 and reads as no switch at all (WCAG 1.4.11 asks for 3:1).
+            trackColor={{ false: c.n500, true: c.primary }}
             thumbColor={c.surfaceCard}
             testID={testID ? `${testID}-switch` : undefined}
           />

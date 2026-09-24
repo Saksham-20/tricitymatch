@@ -31,7 +31,6 @@ import { useTheme } from '../../hooks/useTheme';
 import type { MainStackParamList } from '../../navigation/types';
 import type { Match, MatchAction } from '../../types';
 import { useAuthStore } from '../../stores/authStore';
-import { useUIStore } from '../../stores/uiStore';
 import { hasPremiumAccess } from '../../utils/entitlements';
 import { LIST_PERF } from '../../constants/listPerf';
 import { showToast } from '../../utils/toast';
@@ -108,7 +107,7 @@ function MatchRow({ match, mode, onPress, onChat, onAccept, onDecline, onRemove 
         <Avatar uri={photoUri} name={name} size={58} square verified={profile?.isVerified} />
 
         <View style={mr.body}>
-          <Text variant="headline" color="fgStrong" numberOfLines={1}>{name}{age ? `, ${age}` : ''}</Text>
+          <Text variant="headline" color="fgStrong" numberOfLines={2}>{name}{age ? `, ${age}` : ''}</Text>
           <Text variant="footnote" color="textMuted" numberOfLines={1}>
             {[profile?.profession, profile?.city].filter(Boolean).join(' · ')}
           </Text>
@@ -238,10 +237,9 @@ function TabContent({ activeTab }: { activeTab: TabKey }) {
   // flag on opens chat; it must not silently hand out every paid surface.
   const authUser = useAuthStore((st) => st.user);
   const hasPlus = hasPremiumAccess(authUser);
-  // Elder mode removes the Chat tab from the navigator entirely, so navigating
-  // to it is a silent no-op — the button looked live and did nothing. Hide the
-  // chat affordances instead of offering a dead one.
-  const elderMode = useUIStore((st) => st.elderMode);
+  // Chat buttons open a specific thread (a stack screen), which stays reachable in elder mode
+  // even though that mode removes the Chat TAB. Hiding them left elder members with no way
+  // to message anyone they had matched (seen on device).
   // mutual-match seal celebration (shown after accepting a "Liked Me" interest)
   const [celebrate, setCelebrate] = useState<{ name: string; userId: string; photo?: string } | null>(null);
   // The likes endpoint does not exclude people the member has already answered, so a
@@ -501,7 +499,7 @@ function TabContent({ activeTab }: { activeTab: TabKey }) {
               navigation.navigate('ProfileDetail', { userId: item.matchedUserId })
             }
             onChat={
-              (activeTab === 'mutual' || (activeTab === 'liked_me' && answerOf(item) === 'accepted')) && !elderMode
+              (activeTab === 'mutual' || (activeTab === 'liked_me' && answerOf(item) === 'accepted'))
                 ? () => {
                     // Open THIS person's thread: the button says "Chat with <name>", and
                     // landing on the conversation list made the member find them again.
@@ -557,16 +555,12 @@ function TabContent({ activeTab }: { activeTab: TabKey }) {
         visible={!!celebrate}
         name={celebrate?.name}
         onClose={() => setCelebrate(null)}
-        onMessage={
-          elderMode
-            ? undefined
-            : () => {
-                // Straight into the thread with the person just matched, not the chat list.
-                const who = celebrate;
-                setCelebrate(null);
-                if (who) navigation.navigate('ChatThread', { userId: who.userId, name: who.name, photo: who.photo });
-              }
-        }
+        onMessage={() => {
+          // Straight into the thread with the person just matched, not the chat list.
+          const who = celebrate;
+          setCelebrate(null);
+          if (who) navigation.navigate('ChatThread', { userId: who.userId, name: who.name, photo: who.photo });
+        }}
       />
     </View>
   );
@@ -595,7 +589,7 @@ export default function MatchesScreen() {
   return (
     <Screen edges={['top']} style={s.container} testID="MatchesScreen">
       <View style={s.header}>
-        <Text variant="title1" color="fgStrong" accessibilityRole="header">Matches</Text>
+        <Text variant="title1" color="fgStrong" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} accessibilityRole="header">Matches</Text>
       </View>
       {/* Tab bar */}
       <View style={[s.tabBar, { borderBottomColor: c.hairline }]} accessibilityRole="tablist">

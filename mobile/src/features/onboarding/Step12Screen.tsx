@@ -14,6 +14,7 @@ import { spacing, borderRadius, type ThemeColours } from '@shared/constants/them
 import { haptics } from '../../utils/haptics';
 import { tapSize } from '../../utils/elderTheme';
 import { showToast } from '../../utils/toast';
+import { refreshProfileCaches } from '../../utils/profileCache';
 import OnboardingLayout from './OnboardingLayout';
 import { useOnboarding } from './OnboardingContext';
 import { uploadPhoto, deletePhoto } from '../../api/profile';
@@ -103,6 +104,9 @@ export default function Step12Screen() {
     photosRef.current = next;
     setPhotos(next);
     update({ photos: next });
+    // Photos persist the moment they upload or are removed (no patch rides on
+    // Continue), and they are worth 13 completion points on Home's ring.
+    refreshProfileCaches();
   }, [update]);
 
   // The count changes when an upload lands or a removal finishes, neither of

@@ -1025,8 +1025,10 @@ export default function ChatThreadScreen() {
 
       return (
         <>
-          {showDate && <DateSeparator iso={item.createdAt} />}
+          {/* Bubble first, separator second: this list is inverted, so the cell's children are
+              drawn bottom-up and the separator lands above the first message of its day. */}
           <MessageBubble msg={item} isOwn={isOwn} senderName={name} onOpenActions={openActions} />
+          {showDate && <DateSeparator iso={item.createdAt} />}
         </>
       );
     },

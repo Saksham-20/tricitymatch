@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { AuthUser, SubscriptionPlanType } from '../types';
 import { cache, CACHE_KEYS, clearAccountScopedCache } from '../utils/cache';
+import { queryClient } from '../constants/queryClient';
 import { secureStorage } from '../utils/secureStorage';
 import { removeFcmToken } from '../api/notifications';
 import { setCrashReportingUser } from '../utils/crashReporting';
@@ -48,6 +49,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // members' profiles, including religion, caste and income -- on disk for
     // whoever signed in next on the same device.
     clearAccountScopedCache();
+    // React Query keys like ['profile','me'] carry no user id, and results live for 5 minutes
+    // (24 hours in cache). Without this the next member to sign in on the device is shown the
+    // previous member's profile, matches and preference results.
+    queryClient.clear();
     setCrashReportingUser(null);
     set({ user: null, accessToken: null, isAuthenticated: false });
   },

@@ -490,22 +490,98 @@ about 3:1.
 
 ---
 
-## Phase 6 — Verification and close
+## Phase 6 — Verification and close — DONE 2026-09-24 (device sweep, both platforms)
 
-**6.1 Build the sweep instrument.** Port HomeKrafted's `mobile/scripts/sim-sweep.mjs` shape: walk every route
-by deep link, read the accessibility tree, assert per screen that (1) it rendered rather than sitting on a
-loading line, (2) every control is reachable **by accessibility label** and measures ≥44pt or carries the
-`tap44-hitslop` marker, (3) the signed-out state offers a door rather than a wall. Our existing `idb`/`adb`
-harness (`docs/QA.md`, `rn-qa-progress.md`) is the driver. Method notes that cost time before and are written
-down for the next person: **a Metro reload resets a debug build to its initial route** — a "screen didn't
-open" can be that, not a bug; **React Query's cache survives Fast Refresh** — force-stop and relaunch before
-believing a redbox; **idb wants POINTS, screenshots are PIXELS, divide by 3**.
+**Method.** Built and drove the app on an API 35 Android emulator (`adb input` + `uiautomator` dumps, screenshots) and an
+iPhone 17 Pro simulator (`idb`, POINTS not pixels), against a local backend, as two accounts (VIP `aman.singh2`, free
+`priya.sharma1`). Two device agents ran in parallel per pass (one per platform) with the source frozen; findings were
+fixed in one batch afterwards and re-verified on the device that found them. Coverage: every member screen at default
+type size, dark mode, elder mode, max OS text size (Android font scale 2×, iOS AX5), Hindi and Punjabi, signed-out
+door, cold-start restore, cross-account logout, a fresh email sign-up end to end, Settings, Filters, chat send, the
+picker and confirmation sheets. **The phase caught what the Phase 5 source audit could not** — including a regression
+that audit had passed (the OTP boxes).
 
-**6.2 Full §10.10 pre-flight per screen**, both platforms, release build if the hardware exists (open
-question 11) and a written limitation if it does not.
+**Real bugs found on device and fixed (all verified live):**
+- **OTP boxes collapsed to slivers** (a Phase 5 regression: the row lost its width when the boxes went `flex`). The
+  cold source audit passed it; both device agents failed it within a minute. `OtpInput` wrap is `alignSelf: 'stretch'`.
+- **The next member to sign in saw the previous member's data.** `logout()` cleared the MMKV cache but not React Query,
+  whose keys (`['profile','me']`) carry no user id. Aman → log out → Priya showed Aman's Home and Profile.
+  `queryClient.clear()` in `authStore.logout()`.
+- **The keyboard sat on top of the submit button on Android 15.** targetSdk 35 makes the window edge-to-edge and
+  `adjustResize` stops resizing it, so `Screen keyboard` (KAV `behavior` undefined on Android) left Continue and Save
+  behind the keyboard with nothing to scroll: create-account, basics, login, every journey step. KAV now uses
+  `'height'` on Android in `Screen`, `OnboardingLayout` and `FamilyGroupChatScreen`; KAV measures overlap against its
+  own frame so it adds nothing where the OS still resizes. RN `Modal` windows resize on their own (verified with the
+  delete-account sheet) and were left alone.
+- **Home's completion ring read 0% for a fresh sign-up** while the Profile tab said 35% and the journey said "a quarter
+  done". Home read the auth user's `Profile.completionPercentage`, frozen at sign-in; it now reads the live
+  `myProfile` query, and journey saves invalidate it.
+- **Filters left the keyboard open** (and the tab bar hidden) after Apply; `Keyboard.dismiss()` on close and Apply.
+- **Hindi/Punjabi button labels clipped** ("साइन इन करें" lost its last glyphs; Account Security's Sign out button
+  swallowed the device name). Android measures Indic scripts narrower than it draws them, so a label that fits by
+  measurement is cut. `Button` now fills its row only when it is a block (`variant !== 'text' && size !== 'sm'`),
+  shrinks a single line to fit, and inline buttons size to their content again. Three earlier attempts (two-line
+  label, `width: 100%`, `flexGrow` on all buttons) each broke a different screen; the notes are in `Button.tsx`.
+- **`@gorhom/bottom-sheet` v5 crashed on a density or text-size change** ("Property 'window' doesn't exist" thrown
+  inside a Reanimated worklet from a destructured `{ window }`). `scripts/patch-native-modules.cjs` patches
+  `useAnimatedLayout` (idempotent, fails soft) alongside the existing patches.
+- **Chat date separators drew below their day's first message.** An inverted FlatList draws cell children
+  bottom-up; the separator now renders after the bubble in JSX.
+- **Chat buttons were silent no-ops in elder mode on Matches** (elder mode hides the Chat *tab*; the thread is a
+  stack screen and reachable). Gating removed.
+- **Dark-mode avatar initials were about 1.2:1** (`p700` on a dark `p100` tile); `SmartImage` uses `p300` in dark and
+  pins the glyph (`maxFontSizeMultiplier={1}`) because it sits in a fixed circle.
+- **Max-text-size breakage:** the floating tab bar labels, the display and title `Text` variants and conversation row
+  names overflowed or clipped at AX5/2×. Tab labels cap at 1.3 (height-constrained), row names and `ListRow` labels
+  take two lines, and the single-word tab titles ("Messages", "Matches") are one line that shrinks to fit rather
+  than breaking mid-word. A first attempt capped every display/title variant in `Text` by default; the cold audit
+  rejected it against §10.6 (headings scale freely, and at 200% a capped title rendered smaller than body text), so
+  it was removed.
+- Smaller: a `t('home.todayMatches')` key typo showed the raw key; the switch off-state track had too little contrast
+  (`c.n500`); the Welcome CTA sat too close to the gesture bar (`edges` now includes bottom); the picker scrim
+  did not cover the Android status bar (`statusBarTranslucent`); notification dates now pin the `en-IN` locale;
+  the password eye button is at least 44pt wide.
 
-**6.3 Update `PROGRESS.md`, the CLAUDE.md audit history, and `mobile/READINESS.md`.** Correct root
-`CLAUDE.md:84`'s stale stack line in the same commit.
+**Verified working on device, no change needed:** the 6-digit email OTP with auto-verify (dev master code), the
+DOB slash mask, sign-up → Main → journey auto-present, journey exit and resume-at-first-incomplete, cold-start
+session restore, system dark mode live-switch across every tab, elder mode round trip, hi/pa switching, the gorhom
+Filters sheet open/close cycle, the delete-account confirmation (wrong password shows an inline error and keeps the
+sheet open; the right one signs out to the Welcome door and the account can no longer sign in).
+
+**Cold audit of this batch** (a fresh agent, source only, 91 tool calls) confirmed four defects, all fixed: the
+journey save refreshed only one of the two profile caches (`me` and `myProfile`), so a Profile tab already open kept
+the old ring and an Edit Profile save could post the stale form over the journey's answers — both keys now refresh
+through `utils/profileCache.refreshProfileCaches()`, which Edit Profile shares; the photo step never refreshed either
+(photos persist on upload and are worth 13 completion points); the group chat had the same inverted-list separator
+bug the 1:1 chat was fixed for; and the default heading caps in `Text` (above). It also checked all 62 `<Button`
+call sites, every changed KeyboardAvoidingView, the Step 8-11 hydration effects, import cycles, `queryClient.clear()`
+and the gorhom patch's idempotency, and found them sound.
+
+**Not exercised (recorded, not hidden):** VoiceOver and TalkBack were not run — the accessibility tree was the
+proxy, so labels, roles, states and target sizes are checked but spoken order and rotor behaviour are not; release
+builds (no signing identity for the hardware, open question 11) — every behaviour above is a debug build; the iOS
+software keyboard (the simulator had a hardware keyboard attached, so the DOB mask was verified through the Android
+keyboard and the Share-Your-Story date field only); Reduce Motion fade versus slide on Android; Liked Me Decline
+(the seed data has no unanswered likers); an offline or backend-down pass.
+
+**Device-found items left open** (each low severity, none blocks a store build): elder-mode ProfileDetail has no
+persistent message CTA; the Search input measures about 38pt (iOS); the Subscription screen labels a hand-seeded
+VIP holder's card "Premium — Current plan" (VIP is withdrawn under the single-plan launch, so only legacy or seeded
+holders see it); bottom sheets are not edge-to-edge at the bottom on Android; the own-profile hero is blank for a
+moment while the photo loads; the gallery viewer's "Try again" is stretched full width; iOS shows its "Save
+Password?" system sheet after sign-up; several rows share identical accessibility labels; elder-mode docked tabs
+are 56dp and "Open full profile preview" is 40dp.
+
+**Owner and backend items surfaced by the sweep:** compatibility percentage differs between Liked Me (stored when the
+like was made) and Mutual (recomputed) in `matchController.js`; deploy the `getLikes` `myAction` change; hi/pa
+coverage (31 screens have no `t()`, about 97 chat keys are missing from the locales); the Face ID usage string and
+`expo-local-authentication` are still shipped; the dev backend should also log the email OTP when `EMAIL_DRY_RUN` is
+on (it would remove the need for the master bypass code to test sign-up). The earlier Phase 5 owner list stands.
+
+**6.3 Docs.** `PROGRESS.md`, the CLAUDE.md audit history, `mobile/READINESS.md` and `CLAUDE.md`'s Nav line (it still
+named the deleted Bureau stack) updated in the closing commit.
+
+**Gates:** mobile tsc 0, jest 57/57, root lint 0 errors (mobile warnings 69), slop-lint clean.
 
 ---
 

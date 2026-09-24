@@ -16,7 +16,7 @@ import type { TextInputProps } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { EmptyState, ScreenHeader, SkeletonBlock } from '../../components/ui';
@@ -28,6 +28,7 @@ import { PROFILE_PROMPTS, PromptPair, fromProfilePrompts, toProfilePrompts } fro
 import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { getMyProfile, updateMyProfile, uploadPhoto, deletePhoto } from '../../api/profile';
 import { queryKeys } from '../../constants/queryKeys';
+import { refreshProfileCaches } from '../../utils/profileCache';
 import type { MainStackParamList } from '../../navigation/types';
 import type { Profile } from '../../types';
 
@@ -456,7 +457,6 @@ export default function EditProfileScreen() {
   const tap = tapSize(elder);
   const navigation = useNavigation<Nav>();
   const route = useRoute<EditProfileRoute>();
-  const queryClient = useQueryClient();
   const requestedSection = route.params?.section;
   const [expandedSection, setExpandedSection] = useState<Section | null>(requestedSection ?? 'basic');
   const scrollRef = useRef<ScrollView>(null);
@@ -541,13 +541,8 @@ export default function EditProfileScreen() {
     }
   }, [profile, hydrated]);
 
-  // getMyProfile is cached under two keys (`me`, read here and by OwnProfile and
-  // Privacy; `myProfile`, read by Home, Settings and ProfileDetail). Refreshing
-  // only one leaves the other three screens on the pre-edit profile.
-  const refreshProfile = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: queryKeys.me });
-    queryClient.invalidateQueries({ queryKey: queryKeys.myProfile });
-  }, [queryClient]);
+  // getMyProfile is cached under two keys; utils/profileCache refreshes both.
+  const refreshProfile = refreshProfileCaches;
 
   // Unsaved-changes guard. Leaving with edited fields would silently discard,
   // say, a 500-character bio. Set just before the post-save goBack so a

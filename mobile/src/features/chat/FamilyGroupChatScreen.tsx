@@ -524,12 +524,14 @@ export default function FamilyGroupChatScreen() {
 
     return (
       <>
+        <GroupMessageBubble msg={item} isOwn={isOwn} showSender={showSender} />
+        {/* Inverted list: a cell draws its children bottom-up, so the day label goes
+            AFTER the bubble to sit above its day's first message. */}
         {showDate && (
           <View style={sep.container}>
             <Text variant="caption" color="textMuted" style={sep.label}>{formatDateLabel(item.createdAt, t)}</Text>
           </View>
         )}
-        <GroupMessageBubble msg={item} isOwn={isOwn} showSender={showSender} />
       </>
     );
   }, [messages, user?.id, sep, t]);
@@ -553,7 +555,7 @@ export default function FamilyGroupChatScreen() {
     // top inset: this header used to draw under the status bar and notch.
     <KeyboardAvoidingView
       style={s.wrapper}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={0}
       testID="FamilyGroupChatScreen"
     >

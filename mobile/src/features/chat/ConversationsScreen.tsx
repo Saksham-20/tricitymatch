@@ -100,12 +100,12 @@ function ConversationCard({ item, locked = false, onPress }: ConversationCardPro
       <View style={s.cardBody}>
         <View style={s.cardRow}>
           <View style={s.nameRow}>
-            <Text variant="headline" color={locked ? 'textSecondary' : 'fgStrong'} style={s.cardName} numberOfLines={1}>
+            <Text variant="headline" color={locked ? 'textSecondary' : 'fgStrong'} style={s.cardName} numberOfLines={2}>
               {name}
             </Text>
             {locked && <Ionicons name="lock-closed" size={12} color={c.textMuted} />}
           </View>
-          {lastMessage && <Text variant="caption" color={unread ? 'primary' : 'textMuted'}>{time}</Text>}
+          {lastMessage && <Text variant="caption" color={unread ? 'primary' : 'textMuted'} maxScale={1.2}>{time}</Text>}
         </View>
         <View style={s.cardRow}>
           <Text
@@ -249,7 +249,7 @@ export default function ConversationsScreen() {
     return (
       <Screen edges={['top']} style={s.container} testID="ConversationsUpgradeGate">
         <View style={s.header}>
-          <Text variant="title1" color="fgStrong" accessibilityRole="header">{t('chat.title', 'Messages')}</Text>
+          <Text variant="title1" color="fgStrong" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} accessibilityRole="header">{t('chat.title', 'Messages')}</Text>
         </View>
         <View style={{ flex: 1, padding: spacing.gutter, justifyContent: 'center' }}>
           <GoldLock
@@ -266,7 +266,7 @@ export default function ConversationsScreen() {
   return (
     <Screen edges={['top']} style={s.container} testID="ConversationsScreen">
       <View style={s.header}>
-        <Text variant="title1" color="fgStrong" accessibilityRole="header">{t('chat.title', 'Messages')}</Text>
+        <Text variant="title1" color="fgStrong" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={s.headerTitle} accessibilityRole="header">{t('chat.title', 'Messages')}</Text>
         {/* A real 48pt (60 elder) box rather than a 24pt icon with hitSlop. */}
         <PressableScale
           onPress={() => navigation.navigate('FamilyGroups')}
@@ -346,6 +346,8 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: spacing.gutter, paddingVertical: 8,
   },
+  // Shrinks (with adjustsFontSizeToFit) before it pushes the family-groups button off the row.
+  headerTitle: { flexShrink: 1 },
   // Size (48 / 60 elder) is applied inline; the negative margin keeps the icon
   // on the gutter line instead of inset by the box padding.
   headerBtn: { alignItems: 'center', justifyContent: 'center', marginRight: -12 },
