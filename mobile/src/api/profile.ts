@@ -39,8 +39,10 @@ export const getMyProfile = async (): Promise<Profile> => {
 };
 
 export const getProfile = async (userId: string): Promise<Profile> => {
-  const res = await apiClient.get<{ profile: Profile }>(`/profile/${userId}`);
-  return res.data.profile;
+  const res = await apiClient.get<{ profile: Profile; isMutual?: boolean }>(`/profile/${userId}`);
+  // `isMutual` sits beside the profile, not inside it. Carry it in so a profile opened AFTER the
+  // match can still offer the conversation instead of asking for a like that was already made.
+  return { ...res.data.profile, isMutual: res.data.isMutual === true };
 };
 
 export const updateMyProfile = async (data: Partial<Profile>): Promise<Profile> => {

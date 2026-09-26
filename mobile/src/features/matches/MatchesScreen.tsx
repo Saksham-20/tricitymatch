@@ -278,6 +278,7 @@ function TabContent({ activeTab }: { activeTab: TabKey }) {
       performMatchAction(userId, action),
     onSuccess: (_data, { userId, action }) => {
       setAnswered((a) => ({ ...a, [userId]: action === 'pass' ? 'declined' : 'accepted' }));
+      queryClient.invalidateQueries({ queryKey: queryKeys.profile(userId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.likedMe });
       queryClient.invalidateQueries({ queryKey: queryKeys.mutualMatches });
       // The row leaves the list with no tap on anything new; say so.

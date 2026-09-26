@@ -226,6 +226,9 @@ export default function ProfileDetailScreen() {
   const reducedMotion = useReduceMotion();
 
   const [mutualMatch, setMutualMatch] = useState(false);
+  // `mutualMatch` is the celebration's visibility and clears on close; the bar has to keep
+  // saying (and offering) the match after that, so it reads its own flag.
+  const [matched, setMatched] = useState(false);
   const [actionDone, setActionDone] = useState<MatchAction | null>(null);
   // D3 like-with-note (DS5): opened from the visible "Add a note" button or a long-press.
   const [noteSheetOpen, setNoteSheetOpen] = useState(false);
@@ -303,13 +306,18 @@ export default function ProfileDetailScreen() {
       performMatchAction(userId, action, note ? { note } : undefined),
     onSuccess: (data, { action }) => {
       setActionDone(data.match.action);
-      if (data.isMutualMatch) setMutualMatch(true);
+      if (data.isMutualMatch) {
+        setMutualMatch(true);
+        setMatched(true);
+      }
       queryClient.invalidateQueries({ queryKey: queryKeys.dailyMatches });
       queryClient.invalidateQueries({ queryKey: queryKeys.mutualMatches });
       // Same reasoning as Search: Matches caches these lists for minutes, so a saved
       // or liked profile must be pushed in rather than waiting for a pull to refresh.
       if (action === 'shortlist') queryClient.invalidateQueries({ queryKey: queryKeys.shortlisted });
       if (action === 'like') queryClient.invalidateQueries({ queryKey: queryKeys.sentInterests });
+      // A like can make this pair mutual, which unblurs media and offers the chat on a later visit.
+      queryClient.invalidateQueries({ queryKey: queryKeys.profile(userId) });
       if (action === 'like' || action === 'pass') queryClient.invalidateQueries({ queryKey: queryKeys.likedMe });
 
       // One haptic per commit, one announcement (the pressed button may have
@@ -414,7 +422,10 @@ export default function ProfileDetailScreen() {
 
   // Viewing your own profile ("see it as others do") — no actions, no compat.
   const isSelf = user?.id === profile.userId;
-  const isMutualOrPremium = isSelf || actionDone === 'like' || isPaid;
+  // The server already unblurs photos and intros for a mutual match; `profile.isMutual` is that
+  // fact, so a profile opened after the match no longer shows padlocks over media that arrived.
+  const isMutualMatch = matched || profile.isMutual === true;
+  const isMutualOrPremium = isSelf || actionDone === 'like' || isPaid || profile.isMutual === true;
   // Free viewers only get the primary photo in the gallery; the rest stay locked.
   const viewablePhotos = isMutualOrPremium ? photos : photos.slice(0, 1);
   const canAppreciate = isMutualOrPremium && !isSelf;
@@ -477,7 +488,10 @@ export default function ProfileDetailScreen() {
   const pendingAction = actionMutation.isPending ? actionMutation.variables?.action : undefined;
   const passed = actionDone === 'pass';
   const shortlisted = actionDone === 'shortlist';
-  const sentText = mutualMatch ? "It's a match. Start chatting." : 'Interest sent';
+  const sentText = matched ? "It's a match" : 'Interest sent';
+  // The thread itself carries the gate (paywall or the free-reply window), exactly as it does
+  // from Matches, so a match never detours through Subscription before the member sees it.
+  const openChat = () => navigation.navigate('ChatThread', { userId, name, photo: heroPhoto ?? undefined });
   const sheetAnim = reducedMotion ? 'fade' : 'slide';
   const sheetPad = { paddingBottom: Math.max(insets.bottom, spacing.lg) };
 
@@ -732,7 +746,18 @@ export default function ProfileDetailScreen() {
             },
           ]}
         >
-          {actionDone === 'like' ? (
+          {isMutualMatch ? (
+            // Once matched the bar's job is the next step. It used to say "Start chatting" with
+            // nothing to press, and in elder mode (no Chat tab) that was the only cue.
+            <Button
+              title={`Message ${profile.firstName}`}
+              icon="chatbubble-ellipses-outline"
+              haptic={false}
+              onPress={openChat}
+              style={{ flex: 1 }}
+              testID="action-message"
+            />
+          ) : actionDone === 'like' ? (
             // Spoken once, by the mutation's onSuccess: a live region is Android-only
             // and would make TalkBack repeat it.
             <View
@@ -842,11 +867,7 @@ export default function ProfileDetailScreen() {
         onClose={() => setMutualMatch(false)}
         onMessage={() => {
           setMutualMatch(false);
-          if (isPaid) {
-            navigation.navigate('ChatThread', { userId, name, photo: heroPhoto ?? undefined });
-          } else {
-            navigation.navigate('Subscription');
-          }
+          openChat();
         }}
       />
 

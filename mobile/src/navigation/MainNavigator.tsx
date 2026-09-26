@@ -6,7 +6,8 @@ import { useNavigation } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import type { MainStackParamList, MainTabParamList, AdminStackParamList } from './types';
-import { colours, tapTarget } from '@shared/constants/theme';
+import { colours, spacing, tapTarget } from '@shared/constants/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../stores/authStore';
 import { useUIStore } from '../stores/uiStore';
 import { TabIcon, useReduceMotion } from '../components/motion';
@@ -102,7 +103,11 @@ const TAB_ICONS: Record<string, { active: IoniconName; inactive: IoniconName }> 
 function BottomTabs() {
   const { elderMode } = useUIStore();
   const { c } = useTheme();
-  const tabBarHeight = elderMode ? 80 : 64;
+  const insets = useSafeAreaInsets();
+  // `height` is the WHOLE bar including the bottom inset, which the navigator then pads out of
+  // it: a flat 80 left the items 56dp tall on a gesture-nav phone (24dp inset), under the elder
+  // 60dp floor. Size the item area, then add the inset.
+  const tabBarHeight = elderMode ? tapTarget.elder + spacing.md + insets.bottom : 64;
   const tabBarLabelStyle = elderMode ? { fontSize: 14 } : {};
 
   return (

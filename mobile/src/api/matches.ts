@@ -1,5 +1,6 @@
 import { apiClient } from './client';
 import { toProfileSummary } from './profileSummary';
+import { normalizeMatchActionResponse } from './matchAction';
 import type { Match, MatchAction, MatchActionResponse, ProfileSummary } from '../types';
 
 // Backend wraps list responses as { success, <key>, pagination } — unwrap to the inner key.
@@ -64,8 +65,8 @@ export const performMatchAction = async (
   // D3 like-with-note: only honoured with action 'like'.
   extras?: { note?: string; likedItem?: Match['likedItem'] }
 ): Promise<MatchActionResponse> => {
-  const res = await apiClient.post<MatchActionResponse>(`/match/${userId}`, { action, ...(extras ?? {}) });
-  return res.data;
+  const res = await apiClient.post<MatchActionResponse & { isMutual?: boolean }>(`/match/${userId}`, { action, ...(extras ?? {}) });
+  return normalizeMatchActionResponse(res.data);
 };
 
 export const getDailyFeed = async (): Promise<ProfileSummary[]> => {

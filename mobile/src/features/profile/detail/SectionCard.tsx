@@ -39,7 +39,7 @@ export default function SectionCard({ title, icon, tinted = false, children, sty
               importantForAccessibility="no-hide-descendants"
             />
           )}
-          <Text variant="title2" color="fgStrong" accessibilityRole="header" style={s.title}>
+          <Text variant="title2" color="fgStrong" accessibilityRole="header" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={s.title}>
             {title}
           </Text>
         </View>
@@ -55,5 +55,8 @@ const s = StyleSheet.create({
     marginTop: spacing.xl,
   },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: spacing.md },
-  title: { flexShrink: 1 },
+  // flex: 1 plus a single fitted line. As a shrink-wrapped, wrapping Text the title measured two
+  // lines ("About Rohit" as "About" / "Rohit") while it drew one, so the row kept a blank second
+  // line and the icon sat off-centre. One line that shrinks to fit (§10.6) has one height.
+  title: { flex: 1 },
 });

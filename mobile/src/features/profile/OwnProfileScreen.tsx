@@ -544,7 +544,9 @@ function OwnGalleryPhoto({ uri, label, onManage }: { uri: string; label: string;
   return (
     <Image
       source={{ uri: resolved }}
-      style={[styles.photo, { width: slideWidth }]}
+      // A neutral tile behind the photo: a remote image draws nothing until it decodes, which left a
+      // blank 320pt hole at the top of the screen on a slow connection.
+      style={[styles.photo, { width: slideWidth, backgroundColor: c.surface2 }]}
       resizeMode="cover"
       onError={() => setFailed(true)}
       accessible

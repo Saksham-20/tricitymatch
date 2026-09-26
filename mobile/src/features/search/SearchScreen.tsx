@@ -405,7 +405,8 @@ export default function SearchScreen() {
     // Matches keeps its lists cached for minutes (shortlist for 30), so a person the
     // member just saved or liked must be pushed into those lists here, or Matches
     // says they are not there until a manual pull to refresh.
-    onSuccess: (_data, { action }) => {
+    onSuccess: (_data, { userId, action }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.profile(userId) });
       if (action === 'shortlist') queryClient.invalidateQueries({ queryKey: queryKeys.shortlisted });
       if (action === 'like') {
         queryClient.invalidateQueries({ queryKey: queryKeys.sentInterests });
@@ -738,8 +739,11 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   },
   codeText: { flex: 1 },
   // Type role is applied at render (`searchType`) so elder mode can scale it.
+  // alignSelf stretch: the bar is 48pt (60 elder) but the input alone was about 38pt, so a tap on
+  // the top or bottom of the visible field, or beside the icon, did not focus it.
   searchInput: {
     flex: 1,
+    alignSelf: 'stretch',
     paddingVertical: spacing.sm,
   },
   toolbar: {

@@ -564,13 +564,33 @@ software keyboard (the simulator had a hardware keyboard attached, so the DOB ma
 keyboard and the Share-Your-Story date field only); Reduce Motion fade versus slide on Android; Liked Me Decline
 (the seed data has no unanswered likers); an offline or backend-down pass.
 
-**Device-found items left open** (each low severity, none blocks a store build): elder-mode ProfileDetail has no
-persistent message CTA; the Search input measures about 38pt (iOS); the Subscription screen labels a hand-seeded
-VIP holder's card "Premium — Current plan" (VIP is withdrawn under the single-plan launch, so only legacy or seeded
-holders see it); bottom sheets are not edge-to-edge at the bottom on Android; the own-profile hero is blank for a
-moment while the photo loads; the gallery viewer's "Try again" is stretched full width; iOS shows its "Save
-Password?" system sheet after sign-up; several rows share identical accessibility labels; elder-mode docked tabs
-are 56dp and "Open full profile preview" is 40dp.
+**Device-found items left open at the first close** (all low severity) were worked through in a follow-up on
+2026-09-26, recorded next.
+
+**Phase 6b follow-up (2026-09-26, both platforms).** Closed the device-found items, plus one bug found while
+closing them:
+- 🔴 **The mutual-match celebration and "It's a match" state could never fire from a profile.** `POST /match/:id`
+  answers `{ success, match, isMutual }`; the shared type and `ProfileDetailScreen` read `isMutualMatch`, so the flag
+  was always undefined. Nothing had exercised it because the seed data has no unanswered likers; this time three
+  seeded members liked the test account by API first. `api/matchAction.ts` normalises both spellings (with a unit test),
+  `performMatchAction` uses it, and a like on a member who already liked you now plays the celebration.
+- **After a match the bar offers the conversation.** It said "It's a match. Start chatting." with nothing to press, and
+  elder mode has no Chat tab, so that line was the only cue. The bar is now a "Message {name}" button; it opens the
+  thread directly (the thread carries the paywall or the free-reply window, as it does from Matches) instead of
+  detouring free members through Subscription. `getProfile` now carries the server's `isMutual`, so a profile opened
+  *after* the match also offers the button and shows the media the server already unblurred; likes and Liked Me accepts
+  invalidate the profile query so it does not serve a pre-match copy.
+- **`SectionCard` titles measured two lines and drew one** ("About Rohit" as "About" / "Rohit"), leaving a blank second
+  line and an off-centre icon on the flagship profile screen. Reproduced on a fresh mount in light and dark; the title is
+  now one fitted line that fills the row (`numberOfLines={1}`, `adjustsFontSizeToFit`, `flex: 1`).
+- **Elder docked tab items were 56dp** (`tabBarStyle.height` is the whole bar including the bottom inset, so a flat 80
+  left 56 for the items): now `tapTarget.elder + spacing.md + inset`, items 72dp. (The "Open full profile preview" 40dp
+  in the sweep was the row clipped under the tab bar, not its target size.)
+- **Search field hit area** was the 38pt input inside a 48pt bar; `alignSelf: 'stretch'` makes the whole bar the target
+  (46pt measured on both platforms). **Own-profile hero** is a neutral tile while the photo decodes instead of a blank 320pt
+  hole. **Gallery viewer "Try again"** was stretched full width; it is 108×44 centred (fixed by the `Button` block-only fill).
+- Still open: bottom sheets are not edge-to-edge at the bottom on Android; iOS's "Save Password?" sheet after sign-up
+  (system behaviour); several rows share identical accessibility labels.
 
 **Owner and backend items surfaced by the sweep:** compatibility percentage differs between Liked Me (stored when the
 like was made) and Mutual (recomputed) in `matchController.js`; deploy the `getLikes` `myAction` change; hi/pa
