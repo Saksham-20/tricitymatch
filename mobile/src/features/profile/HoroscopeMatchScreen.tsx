@@ -8,15 +8,19 @@ import {
 import Text from '../../components/ui/Text';
 import Card from '../../components/ui/Card';
 import Screen from '../../components/layout/Screen';
-import { useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { HoroscopeSkeleton } from '../../components/ui/skeletons';
 import { useQuery } from '@tanstack/react-query';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { STAGGER_MS } from '@shared/constants/motion';
-import { getHoroscopeCompatibility } from '../../api/profile';
-import type { GunaDetail } from '../../api/profile';
+import { getHoroscopeCompatibility, getMyProfile, getProfile } from '../../api/profile';
+import type { GunaDetail, HoroscopeCompatibilityResponse } from '../../api/profile';
+import { queryKeys } from '../../constants/queryKeys';
+import { selectPlan, useAuthStore } from '../../stores/authStore';
 import { describeFailure } from './CompatibilityBreakdownSheet';
 import { CompatRing, EmptyState } from '../../components/ui';
 import ScreenHeader from '../../components/ui/ScreenHeader';
@@ -25,6 +29,8 @@ import { useTheme } from '../../hooks/useTheme';
 import type { MainStackParamList } from '../../navigation/types';
 
 type Route = RouteProp<MainStackParamList, 'HoroscopeMatch'>;
+type Nav = NativeStackNavigationProp<MainStackParamList>;
+
 
 /** Decorative glyphs sit beside text that already says the same thing. */
 const HIDE_FROM_A11Y = {
@@ -100,45 +106,136 @@ function DoshaTag({ label, present }: { label: string; present: boolean }) {
 
 export default function HoroscopeMatchScreen() {
   const route = useRoute<Route>();
+  const navigation = useNavigation<Nav>();
+  const { t } = useTranslation();
   const { c } = useTheme();
   const s = React.useMemo(() => makeS(c), [c]);
   const { userId, name } = route.params;
+  const firstName = name.trim().split(/\s+/)[0] || name.trim() || t('profileDetail.thisMember', 'This member');
+  const isPaid = useAuthStore(selectPlan) !== 'free';
 
   const { data, isError, error, refetch } = useQuery({
     queryKey: ['horoscope-match', userId],
-    queryFn: () => getHoroscopeCompatibility(userId),
+    queryFn: () => getHoroscopeCompatibility(userId) as Promise<HoroscopeCompatibilityResponse>,
   });
+
+  // A missing guna score has two very different causes: the member's own profile has no nakshatra,
+  // or the other person's does not. The server's `summary` blames neither, so read both profiles
+  // (both are already cached from the screens that lead here) and say which one it is. Only asked
+  // for when the score actually came back empty.
+  const needsWhy = !!data && !data.ashtakoot && data.rashiScore === null;
+  // Re-read on open and trust only a settled read: a member who has just added their nakshatra on
+  // the website must not be told it is missing from a cached copy.
+  const { data: myProfile, isFetching: myFetching } = useQuery({
+    queryKey: queryKeys.me,
+    queryFn: getMyProfile,
+    staleTime: 5 * 60 * 1000,
+    refetchOnMount: 'always',
+    enabled: needsWhy,
+  });
+  const { data: theirProfile, isFetching: theirFetching } = useQuery({
+    queryKey: queryKeys.profile(userId),
+    queryFn: () => getProfile(userId),
+    staleTime: 5 * 60 * 1000,
+    refetchOnMount: 'always',
+    enabled: needsWhy,
+  });
+
+  /**
+   * No guna score. Names the real cause instead of blaming the other person by default: the
+   * member's own nakshatra, the other person's, or (both present but one not recognised) neither.
+   * The member can add their own nakshatra on the website (its profile editor has a Horoscope &
+   * Kundli step); this screen has no field for it, so no button points at one.
+   */
+  const renderMissing = () => {
+    const viewerMissing = myProfile && !myFetching ? !myProfile.nakshatra : null;
+    const theirMissing = theirProfile && !theirFetching ? !theirProfile.nakshatra : null;
+
+    if (viewerMissing) {
+      return (
+        <EmptyState
+          icon="moon-outline"
+          title={t('horoscope.addYours', 'Add your nakshatra')}
+          description={
+            theirMissing
+              ? t('horoscope.viewerMissingBoth', "A guna match needs both nakshatras. Yours isn't on your profile yet, and {{name}} hasn't added one either. You can add yours from your profile on the website.", { name: firstName })
+              : t('horoscope.viewerMissing', "A guna match needs both nakshatras. Yours isn't on your profile yet. You can add it from your profile on the website.")
+          }
+          testID="HoroscopeMatchScreen-empty"
+        />
+      );
+    }
+
+    if (theirMissing) {
+      // Same draft-prefill route as ProfileDetail's "mention this photo": the member edits it before
+      // sending, and the thread carries its own gate. Offered only where a message can actually go
+      // (a mutual match, or a paid plan); to anyone else it would open a paywall.
+      const canMessage = isPaid || theirProfile?.isMutual === true;
+      return (
+        <EmptyState
+          icon="moon-outline"
+          title={t('horoscope.theirMissing', "{{name}} hasn't added a nakshatra", { name: firstName })}
+          description={t('horoscope.theirMissingBody', "A guna match needs both nakshatras, so there is no score until {{name}} adds one.", { name: firstName })}
+          actionLabel={canMessage ? t('horoscope.messageThem', 'Message {{name}}', { name: firstName }) : undefined}
+          onAction={
+            canMessage
+              ? () =>
+                  navigation.navigate('ChatThread', {
+                    userId,
+                    name,
+                    photo: theirProfile?.profilePhoto ?? undefined,
+                    draft: t('horoscope.draft', 'Hello {{name}}, would you be able to share your nakshatra? I would like to check our Kundli match.', { name: firstName }),
+                  })
+              : undefined
+          }
+          testID="HoroscopeMatchScreen-empty"
+        />
+      );
+    }
+
+    return (
+      <EmptyState
+        icon="moon-outline"
+        title={t('horoscope.noScore', 'No guna score for this pair')}
+        description={
+          myProfile && theirProfile && !myFetching && !theirFetching
+            ? t('horoscope.noScoreRecognised', "One of the two nakshatras isn't one we can match, so there is no guna score.")
+            : t('horoscope.noScoreGeneric', 'A guna match needs a nakshatra on both profiles.')
+        }
+        testID="HoroscopeMatchScreen-empty"
+      />
+    );
+  };
 
   const renderScore = () => {
     if (!data) return null;
     const { ashtakoot, rashiScore, manglikCompatible, manglikDetail, summary } = data;
+    const numerology = data.numerology ?? null;
 
     const score36 = ashtakoot?.rawOut36 ?? null;
     const interpretation = ashtakoot?.interpretation ?? '';
     const pct = score36 !== null ? Math.round((score36 / 36) * 100) : null;
-    const headline = interpretation || (rashiScore !== null ? 'Rashi based' : 'Incomplete data');
+    const headline = interpretation || (ashtakoot ? 'Guna Milan' : 'Rashi based');
 
     return (
       <>
-        {/* Overall score */}
-        <Card
-          style={s.scoreCard}
-          accessible
-          accessibilityLabel={`${headline}. ${score36 !== null ? `${score36} out of 36 gunas. ` : ''}${summary ?? ''}`}
-        >
-          {pct !== null ? (
-            <CompatRing value={pct} size={84} />
-          ) : (
-            <View style={[s.ringEmpty, { borderColor: c.border }]}>
-              <Text variant="caption" color="textMuted" style={s.scoreOf}>N/A</Text>
+        {/* Overall score. Only when there IS one: a ring reading "N/A" under a headline of
+            "Incomplete data" was the whole screen for most pairs. The reason it is missing gets
+            its own card below, and the numerology read still renders. */}
+        {(pct !== null || rashiScore !== null) && (
+          <Card
+            style={s.scoreCard}
+            accessible
+            accessibilityLabel={`${headline}. ${score36 !== null ? `${score36} out of 36 gunas. ` : ''}${summary ?? ''}`}
+          >
+            <CompatRing value={pct ?? (rashiScore as number)} size={84} />
+            <View style={s.scoreInfo}>
+              <Text variant="title3" color="fgStrong" style={s.interp}>{headline}</Text>
+              <Text variant="footnote" color="textSecondary">{summary}</Text>
+              {score36 !== null && <Text variant="caption" color="textSecondary" style={s.scoreOf}>{score36}/36 gunas</Text>}
             </View>
-          )}
-          <View style={s.scoreInfo}>
-            <Text variant="title3" color="fgStrong" style={s.interp}>{headline}</Text>
-            <Text variant="footnote" color="textSecondary">{summary}</Text>
-            {score36 !== null && <Text variant="caption" color="textSecondary" style={s.scoreOf}>{score36}/36 gunas</Text>}
-          </View>
-        </Card>
+          </Card>
+        )}
 
         {/* Doshas */}
         {ashtakoot && (
@@ -194,12 +291,50 @@ export default function HoroscopeMatchScreen() {
             </View>
           </View>
         ) : (
-          <EmptyState
-            icon="moon-outline"
-            title="Nakshatra details missing"
-            description={`Ask ${name} to complete their horoscope details (nakshatra, rashi, manglik status) for a full Guna Milan analysis.`}
-            testID="HoroscopeMatchScreen-empty"
-          />
+          renderMissing()
+        )}
+
+        {/* Numerology needs only dates of birth, so it is shown whenever the server has one. */}
+        {numerology && (
+          <View style={s.section}>
+            <Text variant="headline" color="fgStrong" style={s.sectionTitle} accessibilityRole="header">{t('horoscope.numerologyTitle', 'Numerology')}</Text>
+            <Text variant="caption" color="textSecondary" style={s.sectionSub}>{t('horoscope.numerologySub', 'Life-path numbers, worked out from date of birth.')}</Text>
+            <Card style={s.numCard}>
+              {[
+                { who: t('horoscope.you', 'You'), lp: numerology.person1 },
+                { who: firstName, lp: numerology.person2 },
+              ].map(({ who, lp }, i) => (
+                <View
+                  key={i}
+                  style={[s.numRow, i === 0 && { borderBottomColor: c.hairline, borderBottomWidth: StyleSheet.hairlineWidth }]}
+                  accessible
+                  accessibilityLabel={`${who}: ${t('horoscope.lifePath', 'Life path {{n}}', { n: lp.number })}, ${lp.title}`}
+                >
+                  <View style={[s.numBadge, { backgroundColor: c.accentSoft }]}>
+                    <Text variant="headline" color="primary" maxScale={1.3} {...HIDE_FROM_A11Y}>{lp.number}</Text>
+                  </View>
+                  <View style={s.numText}>
+                    <Text variant="subhead" color="fgStrong">{who}</Text>
+                    <Text variant="footnote" color="textSecondary">{lp.title}</Text>
+                  </View>
+                </View>
+              ))}
+              {numerology.compatibility && (
+                <View
+                  style={s.numCompat}
+                  accessible
+                  accessibilityLabel={`${numerology.compatibility.label}, ${numerology.compatibility.score} percent. ${numerology.compatibility.note}`}
+                >
+                  <View style={s.rashiRow}>
+                    <FillBar pct={numerology.compatibility.score} color={c.accent} />
+                    <Text variant="headline" color="fgStrong" style={s.rashiPct} numberOfLines={1} maxScale={1.3}>{numerology.compatibility.score}%</Text>
+                  </View>
+                  <Text variant="subhead" color="fgStrong" style={s.numLabel}>{numerology.compatibility.label}</Text>
+                  <Text variant="footnote" color="textSecondary">{numerology.compatibility.note}</Text>
+                </View>
+              )}
+            </Card>
+          </View>
         )}
 
         <Text variant="caption" color="textSecondary" style={s.disclaimer}>
@@ -255,6 +390,13 @@ const makeS = (_c: ThemeColours) => StyleSheet.create({
 
   rashiRow:     { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.sm },
   rashiPct:     { minWidth: 48, textAlign: 'right' },
+
+  numCard:      { padding: 0 },
+  numRow:       { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  numBadge:     { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  numText:      { flex: 1 },
+  numCompat:    { paddingHorizontal: spacing.lg, paddingBottom: spacing.lg, gap: 2 },
+  numLabel:     { marginTop: spacing.xs },
 
   disclaimer:   { textAlign: 'center', marginTop: spacing.lg },
 });

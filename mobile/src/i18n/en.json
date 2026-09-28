@@ -456,7 +456,22 @@
     "profileViews": "Profile views",
     "newProfiles": "New on TricityMatch",
     "newThisWeek": "{{count}} new Tricity profiles joined this week",
-    "midnight": "Fresh matches drop every midnight"
+    "midnight": "Fresh matches drop every midnight",
+    "interests": "Interests",
+    "visitors": "Visitors",
+    "matchPct": "{{pct}}% match",
+    "completeTitle": "Complete your profile",
+    "nextComplete": "Your profile is {{pct}}% complete.",
+    "nextPhotoTitle": "Add your first photo",
+    "nextPhotoSub": "Profiles without a photo are shown last in search.",
+    "missing": {
+      "bio": "Write a short bio",
+      "religion": "Add religion & community",
+      "marital": "Finish your profile questions",
+      "education": "Add education",
+      "profession": "Add profession",
+      "height": "Add height"
+    }
   },
   "search": {
     "placeholder": "Search profiles...",
@@ -472,7 +487,9 @@
     "empty": {
       "title": "No profiles found",
       "subtitle": "Try widening your search filters"
-    }
+    },
+    "saveScope": "Saves religion, caste, city and age.",
+    "saveNameHelper": "For example: Sikh in Chandigarh, 26 to 30"
   },
   "matches": {
     "mutual": "Mutual",
@@ -488,7 +505,25 @@
       "declined": "Declined"
     },
     "likedMeGate": "Upgrade to Plus to see who liked you",
-    "offlineSync": "Last synced: {{time}}"
+    "offlineSync": "Last synced: {{time}}",
+    "title": "Matches",
+    "tabReceived": "Received",
+    "tabSent": "Sent",
+    "message": "Message",
+    "unknown": "Unknown",
+    "a11yMessage": "Message {{name}}",
+    "a11yAccept": "Accept interest from {{name}}",
+    "a11yDecline": "Decline interest from {{name}}",
+    "a11yRemove": "Remove {{name}} from shortlist",
+    "a11yOpensProfile": "Opens profile",
+    "a11yVerified": "Verified",
+    "a11yCompat": "{{pct}}% compatible",
+    "a11yNote": "Note: {{note}}",
+    "a11yDeclined": "Interest declined",
+    "a11yRemoved": "Removed from your shortlist",
+    "errActionTitle": "That didn't go through",
+    "errRemoveTitle": "Couldn't remove from your shortlist",
+    "errBody": "Check your connection and try again."
   },
   "chat": {
     "title": "Messages",
@@ -504,7 +539,33 @@
     "editMessage": "Edit message",
     "deleteMessage": "Delete message",
     "deleteForBoth": "Delete for both",
-    "deleteForMe": "Delete for me"
+    "deleteForMe": "Delete for me",
+    "sayHelloRow": "Say hello to {{first}}",
+    "yourMatch": "your match",
+    "lockedPreviewFreeReply": "Write first with Premium",
+    "gateFreeReplyTitle": "Sending the first message needs Premium",
+    "gateFreeReplyBody": "You can always read messages you receive. When a Premium member writes first, you can reply {{count}} times over {{hours}} hours.",
+    "gateFreeReplyCta": "See Premium",
+    "gateFreeReplyLine": "Premium lets you write to {{name}} first.",
+    "repliesLeft": "{{count}} free reply left",
+    "repliesLeft_plural": "{{count}} free replies left",
+    "meterIdle": "{{count}} free replies. The {{hours}}-hour window starts when you send your first.",
+    "meterRunning": "{{count}} free reply left · {{time}} remaining",
+    "meterRunning_plural": "{{count}} free replies left · {{time}} remaining",
+    "durHoursMinutes": "{{h}}h {{m}}m",
+    "durMinutes": "{{m}}m",
+    "windowExhausted": "You've used your {{count}} free reply",
+    "windowExhausted_plural": "You've used your {{count}} free replies",
+    "windowExpired": "Your {{hours}}-hour reply window ended",
+    "unlockPhone": "Unlock phone number",
+    "unlockPhoneSub": "Uses one unlock",
+    "callNumber": "Call",
+    "callNumberA11y": "Call {{phone}}",
+    "copyNumber": "Copy",
+    "copyNumberA11y": "Copy phone number",
+    "numberCopied": "Number copied",
+    "callFailed": "Couldn't open the dialler",
+    "callFailedBody": "Copy the number and dial it yourself."
   },
   "calls": {
     "incoming": "Incoming {{type}} call",
@@ -593,7 +654,8 @@
       "manager": "Relationship Manager"
     },
     "paymentSuccess": "Plan activated! Welcome to {{plan}}.",
-    "paymentFailed": "Payment failed. Please try again."
+    "paymentFailed": "Payment failed. Please try again.",
+    "writeFirst": "Write first to any match"
   },
   "notifications": {
     "title": "Notifications",
@@ -675,7 +737,9 @@
       "life": "Your life story is taking shape.",
       "world": "Almost there. Now for who you're looking for."
     },
-    "biodataShare": "Share biodata on WhatsApp"
+    "biodataShare": "Share biodata on WhatsApp",
+    "addPhoto": "Add a photo",
+    "addPhotoNote": "Profiles without one are shown last in search."
   },
   "discover": {
     "verifyTitle": "Get the verified badge",
@@ -688,12 +752,64 @@
     "foundingTitle": "Founding member offer",
     "foundingSub": "Early members get premium at the founding price — limited window.",
     "premiumTitle": "See who liked you",
-    "premiumSub": "Premium opens chat, likes and contact details."
+    "premiumSub": "Premium opens chat, likes and contact details.",
+    "premiumBody": "Premium shows who liked you, lets you write first and unlocks phone numbers."
   },
   "notifPrime": {
     "title": "Know the moment they like you back",
     "sub": "We'll only notify you about the things that matter — mutual likes, new messages and interest in your profile. No noise.",
     "cta": "Turn on notifications",
     "later": "Not now"
+  },
+  "ownProfile": {
+    "photoNotVerified": "Photo not verified",
+    "getVerified": "Get verified",
+    "retakeSelfie": "Retake your selfie",
+    "photoInReview": "Photo in review",
+    "seeStatus": "See status",
+    "mobileVerified": "Mobile verified",
+    "mobileVerifiedA11y": "Mobile number verified",
+    "photoVerified": "Photo verified",
+    "addPhotoTitle": "Add a photo",
+    "addPhotoNote": "Profiles without a photo are shown last in search.",
+    "freeUpgrade": "Free · Upgrade",
+    "shareBiodata": "Share biodata",
+    "preparing": "Preparing…",
+    "profileId": "Profile ID",
+    "privateMember": "Private member"
+  },
+  "profileDetail": {
+    "prefTitle": "Do you fit what {{name}} is looking for?",
+    "prefYou": "You: {{value}}",
+    "noFamily": "{{first}} hasn't added family details yet",
+    "kundliTitle": "Kundli match",
+    "kundliSub": "Ashtakoot and Manglik",
+    "kundliSubPartial": "Manglik and numerology",
+    "kundliNone": "Horoscope not added yet",
+    "thisMember": "This member"
+  },
+  "verification": {
+    "summaryTitle": "Your verification",
+    "summaryDefault": "A verified badge tells families your photos are really you.",
+    "summaryApproved": "Your photo is verified. Families see the badge on your profile.",
+    "summaryPending": "Your selfie is with our team.",
+    "needPhotoBody": "Your selfie is matched against your profile photos, and you have not added one yet.",
+    "addPhotoFirst": "Add a profile photo first"
+  },
+  "horoscope": {
+    "numerologyTitle": "Numerology",
+    "numerologySub": "Life-path numbers, worked out from date of birth.",
+    "you": "You",
+    "lifePath": "Life path {{n}}",
+    "addYours": "Add your nakshatra",
+    "viewerMissing": "A guna match needs both nakshatras. Yours isn't on your profile yet. You can add it from your profile on the website.",
+    "viewerMissingBoth": "A guna match needs both nakshatras. Yours isn't on your profile yet, and {{name}} hasn't added one either. You can add yours from your profile on the website.",
+    "theirMissing": "{{name}} hasn't added a nakshatra",
+    "theirMissingBody": "A guna match needs both nakshatras, so there is no score until {{name}} adds one.",
+    "messageThem": "Message {{name}}",
+    "draft": "Hello {{name}}, would you be able to share your nakshatra? I would like to check our Kundli match.",
+    "noScore": "No guna score for this pair",
+    "noScoreRecognised": "One of the two nakshatras isn't one we can match, so there is no guna score.",
+    "noScoreGeneric": "A guna match needs a nakshatra on both profiles."
   }
 }

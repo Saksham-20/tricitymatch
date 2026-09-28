@@ -1,21 +1,38 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, StyleSheet, useWindowDimensions, StyleProp, ViewStyle, TextStyle } from 'react-native';
 import Text from '../ui/Text';
+import Avatar from '../ui/Avatar';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated from 'react-native-reanimated';
+import Animated, {
+  Easing,
+  interpolateColor,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { spacing, borderRadius, shadows, darkShadows, type ThemeColours } from '@shared/constants/theme';
+import { duration, EASE_OUT } from '@shared/constants/motion';
 import type { ProfileSummary } from '../../types';
 import SmartImage, { resolveImageUri } from '../common/SmartImage';
 import { useTheme } from '../../hooks/useTheme';
 import { haptics } from '../../utils/haptics';
 import { getAge } from '../../utils/dateUtils';
 import { tapSize } from '../../utils/elderTheme';
-import { PressableScale, usePop, useReduceTransparency } from '../motion';
+import { PressableScale, usePop, useReduceMotion, useReduceTransparency } from '../motion';
 
-/** Like button with the handoff icon scale-pop + success haptic on tap. */
+/**
+ * Like button: the icon scale-pops on tap, and the fill CROSS-FADES from the CTA
+ * burgundy to the soft confirmed tone when `sent` flips (a colour that changes in one
+ * frame while only the icon animates reads as a glitch, not as a result). Reduce
+ * Motion swaps instantly. The tap haptic is `light`: the server has not answered yet,
+ * and a mutual match plays its own success haptic in MatchCelebration.
+ */
 function LikeButton({
   onLike,
+  sent,
+  idleFill,
+  sentFill,
   style,
   iconColor,
   iconSize = 20,
@@ -27,6 +44,10 @@ function LikeButton({
   iconName = 'heart',
 }: {
   onLike: () => void;
+  /** Interest already sent: drives the fill cross-fade. */
+  sent: boolean;
+  idleFill: string;
+  sentFill: string;
   style?: StyleProp<ViewStyle>;
   iconColor: string;
   iconSize?: number;
@@ -39,14 +60,26 @@ function LikeButton({
   iconName?: keyof typeof Ionicons.glyphMap;
 }) {
   const { style: popStyle, pop } = usePop();
+  const reduced = useReduceMotion();
+  // Starts at the current state, so a row that mounts already-sent does not animate.
+  const progress = useSharedValue(sent ? 1 : 0);
+  useEffect(() => {
+    const target = sent ? 1 : 0;
+    progress.value = reduced
+      ? target
+      : withTiming(target, { duration: duration.menu, easing: Easing.bezier(...EASE_OUT) });
+  }, [sent, reduced, progress]);
+  const fillStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(progress.value, [0, 1], [idleFill, sentFill]),
+  }));
   const press = () => {
-    haptics.success();
+    haptics.light();
     pop();
     onLike();
   };
   return (
     <PressableScale
-      style={style}
+      style={[style, fillStyle]}
       onPress={press}
       disabled={disabled}
       accessibilityRole="button"
@@ -82,8 +115,10 @@ export const CARD_MAX_W = 400;
 export const PHOTO_ASPECT = 1.12;
 export const cardWidthFor = (windowWidth: number): number =>
   Math.min(windowWidth - spacing.gutter * 2, CARD_MAX_W);
-// A photoless tile only has to hold an initial, so it is a fraction of the photo's.
-const BARE_ASPECT = 0.36;
+// A photoless member is the common case, so it does not get a photo-shaped block: an
+// identity row (circle avatar + text) sized to its content instead of a tile that
+// holds one initial. Size of that avatar.
+const BARE_AVATAR = 72;
 
 // Tones drawn over a photo. One home for them so the browse cards (this file
 // and Home's rail) darken a photo identically instead of each hard-coding its own.
@@ -96,14 +131,18 @@ export const PHOTO_SCRIM = {
   glassBorder: 'rgba(255,255,255,0.28)',
 } as const;
 
-// Score colouring: green / accent / neutral. `success` reads correctly as
+// Score colouring: green / accent / soft accent / neutral. `success` reads correctly as
 // status text but is documented as unreadable as an accent on a dark
 // surfaceCard — `successAccent` is the theme-reactive pair that stays
 // legible as a score dot/fill in both themes. Gold is reserved for premium
-// signalling and never marks a compatibility score. Shared by Home's rail and
-// the Matches rows.
+// signalling and never marks a compatibility score. Real scores cluster at
+// 45-70, so the 50-74 tier gets its own tone (`p400`) instead of falling to grey:
+// on the card surface it is 3.24:1 light / 5.07:1 dark; on `surface2` 2.97:1 light
+// (a hair short of the 3:1 non-text floor) / 4.36:1 dark, so a caller that can
+// choose should draw the mark on `surfaceCard`, and every mark sits beside its
+// figure. Shared by Home's rail and the Matches rows.
 export const scoreColour = (pct: number, c: ThemeColours): string =>
-  pct >= 90 ? c.successAccent : pct >= 75 ? c.accent : c.textMuted;
+  pct >= 90 ? c.successAccent : pct >= 75 ? c.accent : pct >= 50 ? c.p400 : c.textMuted;
 
 export interface ProfileCardProps {
   profile: ProfileSummary;
@@ -147,14 +186,17 @@ export default function ProfileCard({
   const name = [profile.firstName, profile.lastName].filter(Boolean).join(' ');
   const first = profile.firstName || 'this profile';
   const photoUri = profile.profilePhoto ?? profile.photos?.[0];
-  // A photoless profile gets a short tile that holds only the initial, with its
-  // name, line and score in normal flow beneath it. A full-height block holding
-  // one initial is a void in a browse list, and white text drawn over the pale
-  // initials fill never reaches 4.5:1 (the scrim is nearly clear there).
+  // A photoless profile (about 60% of members, so the COMMON case) gets an identity row:
+  // a circle avatar beside its name, line and score, in normal flow on the card surface.
+  // A photo-shaped block holding one initial is a void in a browse list, and white text
+  // drawn over the pale initials fill never reaches 4.5:1 (the scrim is nearly clear there).
   const hasPhoto = !!resolveImageUri(photoUri);
   const compat = profile.compatibilityScore ?? 0;
   const liked = sentAction === 'like';
   const shortlisted = sentAction === 'shortlist';
+  const shortlistPop = usePop();
+  const showCompat = showCompatibility && compat > 0;
+  const metaLine = [profile.profession, profile.city].filter(Boolean).join(' · ');
 
   const openLabel = [
     `${name}${age ? `, ${age}` : ''}`,
@@ -186,68 +228,87 @@ export default function ProfileCard({
           accessibilityHint="Opens profile"
           pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <SmartImage
-            uri={photoUri}
-            name={name}
-            style={[s.photo, { height: Math.round(cardW * (hasPhoto ? PHOTO_ASPECT : BARE_ASPECT)) }]}
-            initialSize={hasPhoto ? 64 : 48}
-          />
-          {hasPhoto && (
-            <LinearGradient
-              colors={['transparent', PHOTO_SCRIM.mid, PHOTO_SCRIM.end]}
-              locations={[0.34, 0.58, 1]}
-              style={s.scrim}
-              pointerEvents="none"
-            />
-          )}
-
-          {/* top-right markers */}
-          <View style={s.topRow} pointerEvents="none">
-            <View style={{ flex: 1 }} />
-            {profile.isBoosted && (
-              <View style={[s.boostedTag, reduceTransparency && { backgroundColor: c.p900 }]}>
-                <Ionicons name="flash" size={11} color={c.onPrimary} />
-                <Text variant="micro" color="onPrimary" maxScale={1.3}>Boosted</Text>
-              </View>
-            )}
-          </View>
-
           {hasPhoto ? (
-            // bottom overlay: text over a photo, so it is capped rather than free to grow
-            <View style={s.overlay} pointerEvents="none">
-              <View style={s.nameRow}>
-                <Text variant="title2" color="onPrimary" numberOfLines={1} maxScale={1.3} style={s.nameText}>{name}{age ? `, ${age}` : ''}</Text>
-                {profile.isVerified && <Ionicons name="checkmark-circle" size={16} color={c.successAccent} />}
+            <>
+              {/* hideInitial: if the photo fails to load the tile falls back to plain
+                  p100, and the name is drawn over it below - a 64pt glyph would collide. */}
+              <SmartImage
+                uri={photoUri}
+                name={name}
+                style={[s.photo, { height: Math.round(cardW * PHOTO_ASPECT) }]}
+                initialSize={64}
+                hideInitial
+              />
+              <LinearGradient
+                colors={['transparent', PHOTO_SCRIM.mid, PHOTO_SCRIM.end]}
+                locations={[0.34, 0.58, 1]}
+                style={s.scrim}
+                pointerEvents="none"
+              />
+
+              {/* top-right markers */}
+              <View style={s.topRow} pointerEvents="none">
+                <View style={{ flex: 1 }} />
+                {profile.isBoosted && (
+                  <View style={[s.boostedTag, reduceTransparency && { backgroundColor: c.p900 }]}>
+                    <Ionicons name="flash" size={11} color={c.onPrimary} />
+                    <Text variant="micro" color="onPrimary" maxScale={1.3}>Boosted</Text>
+                  </View>
+                )}
               </View>
-              <Text variant="footnote" style={s.meta} numberOfLines={1} maxScale={1.3}>
-                {[profile.profession, profile.city].filter(Boolean).join(' · ')}
-              </Text>
-              {showCompatibility && compat > 0 && (
-                <View style={[s.compatChip, reduceTransparency && { backgroundColor: c.p800, borderColor: c.p600 }]}>
-                  <View style={[s.compatDot, { backgroundColor: scoreColour(compat, c) }]} />
-                  <Text variant="caption" color="onPrimary" maxScale={1.3}>{compat}% match</Text>
+
+              {/* bottom overlay: text over a photo, so it is capped rather than free to grow */}
+              <View style={s.overlay} pointerEvents="none">
+                <View style={s.nameRow}>
+                  <Text variant="title2" color="onPrimary" numberOfLines={1} maxScale={1.3} style={s.nameText}>{name}{age ? `, ${age}` : ''}</Text>
+                  {profile.isVerified && <Ionicons name="checkmark-circle" size={16} color={c.successAccent} />}
                 </View>
-              )}
-            </View>
-          ) : (
-            // No photo: the same facts on the card surface, in flow, so they pass AA in
-            // both themes and grow with the OS text size instead of being clipped.
-            <View style={s.bareBody} pointerEvents="none">
-              <View style={s.nameRow}>
-                <Text variant="title2" color="fgStrong" numberOfLines={2} style={s.nameText}>{name}{age ? `, ${age}` : ''}</Text>
-                {profile.isVerified && <Ionicons name="checkmark-circle" size={16} color={c.successAccent} />}
-              </View>
-              {[profile.profession, profile.city].filter(Boolean).length > 0 && (
-                <Text variant="footnote" color="textSecondary" numberOfLines={2} style={s.bareMeta}>
-                  {[profile.profession, profile.city].filter(Boolean).join(' · ')}
+                <Text variant="footnote" style={s.meta} numberOfLines={1} maxScale={1.3}>
+                  {metaLine}
                 </Text>
-              )}
-              {showCompatibility && compat > 0 && (
-                <View style={[s.bareChip, { backgroundColor: c.surface2, borderColor: c.border }]}>
-                  <View style={[s.compatDot, { backgroundColor: scoreColour(compat, c) }]} />
-                  <Text variant="caption" color="textSecondary">{compat}% match</Text>
+                {showCompat && (
+                  <View style={[s.compatChip, reduceTransparency && { backgroundColor: c.p800, borderColor: c.p600 }]}>
+                    <View style={[s.compatDot, { backgroundColor: scoreColour(compat, c) }]} />
+                    <Text variant="caption" color="onPrimary" maxScale={1.3} style={s.tabular}>{compat}% match</Text>
+                  </View>
+                )}
+              </View>
+            </>
+          ) : (
+            // No photo: name, then role, then facts, beside a circle avatar. In flow on the
+            // card surface, so it passes AA in both themes and grows with the OS text size
+            // (every row is capped by lines, none by height).
+            <View style={s.bareRow} pointerEvents="none">
+              <Avatar name={name} size={BARE_AVATAR} />
+              <View style={s.bareText}>
+                <View style={s.nameRow}>
+                  <Text variant="title2" color="fgStrong" numberOfLines={2} style={s.nameText}>{name}{age ? `, ${age}` : ''}</Text>
+                  {profile.isVerified && <Ionicons name="checkmark-circle" size={16} color={c.successAccent} />}
                 </View>
-              )}
+                {metaLine ? (
+                  <Text variant="subhead" color="textSecondary" numberOfLines={2} style={s.bareMeta}>
+                    {metaLine}
+                  </Text>
+                ) : null}
+                {(showCompat || profile.isBoosted) && (
+                  <View style={s.bareFacts}>
+                    {showCompat && (
+                      // No fill: the score dot is drawn on the card surface itself, where
+                      // the burgundy-tint tone clears 3:1 in both themes (on surface2 it is 2.97 light).
+                      <View style={[s.bareChip, { borderColor: c.border }]}>
+                        <View style={[s.compatDot, { backgroundColor: scoreColour(compat, c) }]} />
+                        <Text variant="caption" color="textSecondary" style={s.tabular}>{compat}% match</Text>
+                      </View>
+                    )}
+                    {profile.isBoosted && (
+                      <View style={[s.boostedTag, reduceTransparency && { backgroundColor: c.p900 }]}>
+                        <Ionicons name="flash" size={11} color={c.onPrimary} />
+                        <Text variant="micro" color="onPrimary" maxScale={1.3}>Boosted</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+              </View>
             </View>
           )}
         </PressableScale>
@@ -268,7 +329,7 @@ export default function ProfileCard({
           </PressableScale>
           <PressableScale
             style={[s.actionBtn, s.actionMid, { borderColor: c.border, minHeight: actionHeight }]}
-            onPress={onShortlist}
+            onPress={() => { shortlistPop.pop(); onShortlist(); }}
             disabled={shortlisted}
             haptic
             accessibilityRole="button"
@@ -277,13 +338,20 @@ export default function ProfileCard({
             testID={`shortlist-${profile.id}`}
             pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name={shortlisted ? 'bookmark' : 'bookmark-outline'} size={20} color={c.accent} />
+            <Animated.View style={shortlistPop.style}>
+              <Ionicons name={shortlisted ? 'bookmark' : 'bookmark-outline'} size={20} color={c.accent} />
+            </Animated.View>
             <Text variant="subhead" color="primary" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} maxScale={1.2} style={ls.shrink}>
               {shortlisted ? 'Shortlisted' : 'Shortlist'}
             </Text>
           </PressableScale>
           <LikeButton
-            style={[s.actionBtn, liked ? s.likedBtn : s.likeBtn, { minHeight: actionHeight }]}
+            style={[s.actionBtn, { minHeight: actionHeight }]}
+            sent={liked}
+            // Primary CTA fill is `p500`, not `accent`: in dark mode `accent` is the lighter
+            // #C75D7E, which only reaches 3.97:1 against the white label; `p500` holds in both themes.
+            idleFill={c.p500}
+            sentFill={c.accentSoft}
             iconColor={liked ? c.accent : c.onPrimary}
             iconName={liked ? 'checkmark' : 'heart'}
             onLike={onLike}
@@ -332,21 +400,27 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     borderRadius: borderRadius.pill, paddingHorizontal: 10, paddingVertical: 4,
   },
   compatDot: { width: 7, height: 7, borderRadius: 4 },
-  // Photoless profile: facts sit on the card surface beneath the initials tile.
-  bareBody: { paddingHorizontal: 13, paddingTop: 12, paddingBottom: 14 },
+  // Photoless profile: an identity row on the card surface. `minWidth: 0` on the text
+  // column lets its lines wrap inside the row instead of pushing past the card edge.
+  bareRow: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+    paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
+  },
+  bareText: { flex: 1, minWidth: 0 },
   bareMeta: { marginTop: 2 },
+  // The score chip and the Boosted tag share a wrapping row: at large text or in hi/pa
+  // the second one drops to a new line instead of squeezing the first.
+  bareFacts: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },
   bareChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', marginTop: 8,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
     borderWidth: 1, borderRadius: borderRadius.pill, paddingHorizontal: 10, paddingVertical: 4,
   },
+  // Figures that change (a score) keep a fixed digit width so the chip does not shimmy.
+  tabular: { fontVariant: ['tabular-nums'] },
   actions: { flexDirection: 'row', borderTopWidth: 1 },
   actionBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: spacing.xs, paddingVertical: 13, paddingHorizontal: spacing.xs,
   },
   actionMid: { borderLeftWidth: 0.5, borderRightWidth: 0.5 },
-  // Primary CTA fill: `p500`, not `accent`. In dark mode `accent` is the lighter
-  // #C75D7E, which only reaches 3.97:1 against the white label; `p500` holds in both themes.
-  likeBtn: { backgroundColor: c.p500 },
-  likedBtn: { backgroundColor: c.accentSoft },
 });

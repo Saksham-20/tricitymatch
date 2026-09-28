@@ -1,16 +1,16 @@
 import React from 'react';
 import { useTheme } from '../hooks/useTheme';
-import { Platform } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import type { MainStackParamList, MainTabParamList, AdminStackParamList } from './types';
-import { colours, spacing, tapTarget } from '@shared/constants/theme';
+import { spacing, tapTarget } from '@shared/constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../stores/authStore';
 import { useUIStore } from '../stores/uiStore';
-import { TabIcon, useReduceMotion } from '../components/motion';
+import { TabIcon } from '../components/motion';
+import { PUSH_ANIMATION, useNavAnimation } from './useNavAnimation';
 import FloatingTabBar from '../components/navigation/FloatingTabBar';
 import NotificationPrimingSheet from '../components/NotificationPrimingSheet';
 import { useNotificationHandler } from '../hooks/useNotificationHandler';
@@ -134,9 +134,15 @@ function BottomTabs() {
         animation: 'none',
       })}
       // Single haptic emitter for every tab press, on both the floating pill
-      // and elder mode's docked bar — FloatingTabBar's own onPress used to
-      // also fire one, doubling up (doctrine §10.4 "one per committed action").
-      screenListeners={{ tabPress: () => haptics.light() }}
+      // and elder mode's docked bar (doctrine §10.4 "one per committed action").
+      // Silent when the tab is already focused: pressing the current tab
+      // commits nothing (there is no navigation), so a tick would be noise on
+      // a 100+/day control.
+      screenListeners={({ navigation }) => ({
+        tabPress: () => {
+          if (!navigation.isFocused()) haptics.light();
+        },
+      })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Search" component={SearchScreen} />
@@ -149,8 +155,9 @@ function BottomTabs() {
 }
 
 function AdminNavigator() {
+  const anim = useNavAnimation();
   return (
-    <AdminStack.Navigator screenOptions={{ headerShown: false }}>
+    <AdminStack.Navigator screenOptions={{ headerShown: false, animation: anim(PUSH_ANIMATION) }}>
       <AdminStack.Screen name="AdminHome" component={AdminHomeScreen} />
       <AdminStack.Screen name="VerificationQueue" component={VerificationQueueScreen} />
       <AdminStack.Screen name="ReportsQueue" component={ReportsQueueScreen} />
@@ -159,12 +166,9 @@ function AdminNavigator() {
 }
 
 export default function MainNavigator() {
-  const { elderMode } = useUIStore();
-  const reduceMotion = useReduceMotion();
   // Elder mode drops navigation animation outright; Reduce Motion keeps a gentle
   // fade (doctrine ruling 18: gentler, not zero) so the app still visibly hears the tap.
-  const anim = <T extends 'default' | 'slide_from_right' | 'slide_from_bottom'>(normal: T) =>
-    elderMode ? ('none' as const) : reduceMotion ? ('fade' as const) : normal;
+  const anim = useNavAnimation();
   const { user } = useAuthStore();
   // Push registration mounts only after the member accepted the priming sheet
   // (which we show after their first like — never on cold start).
@@ -191,7 +195,7 @@ export default function MainNavigator() {
         // iOS keeps the native slide (interactive edge-swipe pop comes free);
         // Android's stock "default" is an abrupt fade-zoom — a consistent
         // slide-from-right reads as hierarchy on both platforms.
-        animation: anim(Platform.OS === 'android' ? 'slide_from_right' : 'default'),
+        animation: anim(PUSH_ANIMATION),
       }}
     >
       <Stack.Screen name="MainTabs" component={BottomTabs} />
@@ -256,9 +260,12 @@ export default function MainNavigator() {
       )}
 
       {/* Preferences journey (D6) — skippable, resumable; entered via
-          HomeScreen auto-prompt or profile-completion CTAs */}
-      <Stack.Group screenOptions={{ gestureEnabled: false, animation: anim('slide_from_bottom') }}>
-        <Stack.Screen name="Step2" component={Step2Screen} />
+          HomeScreen auto-prompt or profile-completion CTAs. The journey RISES
+          once, at Step2 (a modal-style entry); Step3..12 then advance like a
+          linear wizard (a push), so twelve steps do not rise twelve times and
+          pop down on back. The finale fades in. */}
+      <Stack.Group screenOptions={{ gestureEnabled: false, animation: anim(PUSH_ANIMATION) }}>
+        <Stack.Screen name="Step2" component={Step2Screen} options={{ animation: anim('slide_from_bottom') }} />
         <Stack.Screen name="Step3" component={Step3Screen} />
         <Stack.Screen name="Step4" component={Step4Screen} />
         <Stack.Screen name="Step5" component={Step5Screen} />
@@ -269,7 +276,7 @@ export default function MainNavigator() {
         <Stack.Screen name="Step10" component={Step10Screen} />
         <Stack.Screen name="Step11" component={Step11Screen} />
         <Stack.Screen name="Step12" component={Step12Screen} />
-        <Stack.Screen name="JourneyFinale" component={JourneyFinaleScreen} />
+        <Stack.Screen name="JourneyFinale" component={JourneyFinaleScreen} options={{ animation: anim('fade') }} />
       </Stack.Group>
 
       {/* Role-gated: admin only */}

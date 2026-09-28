@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
-import { colours, type ThemeColours } from '@shared/constants/theme';
+import { type ThemeColours } from '@shared/constants/theme';
 import Text from './Text';
 
 interface SectionHeaderProps {
@@ -15,7 +15,11 @@ interface SectionHeaderProps {
   style?: StyleProp<ViewStyle>;
 }
 
-/** Editorial section divider — accent tick bar + serif title (+ optional count / action). */
+/**
+ * List-section heading: accent tick bar + an Inter `title3` title (+ optional count / action).
+ * This is the list-section role. A card inside a profile carries its own Playfair `title2`
+ * heading instead (detail/SectionCard), so the two roles never share a size.
+ */
 export default function SectionHeader({ title, gold, count, action, style }: SectionHeaderProps) {
   const { c } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
@@ -25,7 +29,7 @@ export default function SectionHeader({ title, gold, count, action, style }: Sec
         <View style={[styles.tick, gold && styles.tickGold]} />
         <View style={styles.textGroup}>
           <View style={styles.titleRow}>
-            <Text variant="title3" color="fgStrong">{title}</Text>
+            <Text variant="title3" color="fgStrong" accessibilityRole="header">{title}</Text>
             {count != null ? (
               <View style={styles.countChip}>
                 <Text variant="caption" color="primary">{count}</Text>

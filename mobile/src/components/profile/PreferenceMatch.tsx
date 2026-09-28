@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { spacing, borderRadius } from '@shared/constants/theme';
 import type { Profile } from '../../types';
 import { useTheme } from '../../hooks/useTheme';
@@ -43,6 +44,8 @@ interface Check {
   label: string;
   want: string;
   ok: boolean | null;
+  /** The viewer's own value for this line, shown under a miss so "not a match" says why. */
+  own?: string;
   /** Free text the target typed (education, city…) is title-cased; numeric ranges are left alone. */
   freeText?: boolean;
 }
@@ -59,6 +62,7 @@ export const buildPreferenceChecks = (target: Profile, viewer: Profile | undefin
       label: 'Age',
       want: rangeText(min ? String(min) : null, max ? String(max) : null, 'yrs'),
       ok: age == null ? null : (!min || age >= min) && (!max || age <= max),
+      own: age == null ? undefined : `${age} yrs`,
     });
   }
 
@@ -70,6 +74,7 @@ export const buildPreferenceChecks = (target: Profile, viewer: Profile | undefin
       label: 'Height',
       want: rangeText(min ? cmToFeet(min) : null, max ? cmToFeet(max) : null),
       ok: !h ? null : (!min || h >= min) && (!max || h <= max),
+      own: h ? cmToFeet(h) : undefined,
     });
   }
 
@@ -78,6 +83,7 @@ export const buildPreferenceChecks = (target: Profile, viewer: Profile | undefin
       label: 'Education',
       want: target.preferredEducation,
       ok: !viewer.education ? null : looseMatch(target.preferredEducation, viewer.education),
+      own: viewer.education ?? undefined,
       freeText: true,
     });
   }
@@ -87,6 +93,7 @@ export const buildPreferenceChecks = (target: Profile, viewer: Profile | undefin
       label: 'Profession',
       want: target.preferredProfession,
       ok: !viewer.profession ? null : looseMatch(target.preferredProfession, viewer.profession),
+      own: viewer.profession ?? undefined,
       freeText: true,
     });
   }
@@ -97,6 +104,7 @@ export const buildPreferenceChecks = (target: Profile, viewer: Profile | undefin
       label: 'City',
       want: cities.join(', '),
       ok: !viewer.city ? null : cities.some((cty) => looseMatch(cty, viewer.city)),
+      own: viewer.city ?? undefined,
       freeText: true,
     });
   }
@@ -120,6 +128,7 @@ const verdict = (ok: boolean | null) =>
  */
 export default function PreferenceMatch({ target, viewer, targetName = 'them' }: PreferenceMatchProps) {
   const { c, elder } = useTheme();
+  const { t } = useTranslation();
   const { fontScale } = useWindowDimensions();
   const checks = buildPreferenceChecks(target, viewer);
   if (checks.length === 0) return null;
@@ -144,17 +153,17 @@ export default function PreferenceMatch({ target, viewer, targetName = 'them' }:
         accessibilityRole="header"
         accessibilityLabel={`Do you fit what ${targetName} is looking for? ${summary}`}
       >
-        <View style={[styles.iconTile, { backgroundColor: c.accentSoft }]}>
-          <Ionicons
-            name="heart"
-            size={15}
-            color={c.primary}
-            accessibilityElementsHidden
-            importantForAccessibility="no-hide-descendants"
-          />
-        </View>
-        <Text variant="subhead" color="fgStrong" style={styles.title} numberOfLines={2}>
-          Do you fit what {targetName} is looking for?
+        <Ionicons
+          name="heart"
+          size={16}
+          color={c.primary}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        />
+        {/* Same role as every other profile card title (title2, 16pt icon). It is a question, so it is
+            allowed two lines rather than shrinking past readability. */}
+        <Text variant="title2" color="fgStrong" style={styles.title} numberOfLines={2}>
+          {t('profileDetail.prefTitle', 'Do you fit what {{name}} is looking for?', { name: targetName })}
         </Text>
         {scored.length > 0 && (
           <View style={[styles.chip, { backgroundColor: chipBg }]}>
@@ -165,12 +174,12 @@ export default function PreferenceMatch({ target, viewer, targetName = 'them' }:
       </View>
 
       <View style={styles.body}>
-        {checks.map(({ label, want, ok, freeText }, i) => (
+        {checks.map(({ label, want, ok, own, freeText }, i) => (
           <View
             key={label}
             style={[styles.row, i < checks.length - 1 && { borderBottomColor: c.hairline, borderBottomWidth: StyleSheet.hairlineWidth }]}
             accessible
-            accessibilityLabel={`${label}: ${want}. ${verdict(ok)}`}
+            accessibilityLabel={`${label}: ${want}. ${verdict(ok)}${ok === false && own ? `. ${t('profileDetail.prefYou', 'You: {{value}}', { value: own })}` : ''}`}
           >
             <View
               style={[styles.statusDot, { backgroundColor: ok === true ? c.successBg : c.surface2 }]}
@@ -184,8 +193,10 @@ export default function PreferenceMatch({ target, viewer, targetName = 'them' }:
               />
             </View>
             <View style={[styles.textWrap, stacked ? styles.textStacked : styles.textInline]}>
+              {/* Label and value take the same two roles as the detail cards above and below (footnote
+                  label, subhead value), so one dataset reads in one style. */}
               <Text
-                variant="caption"
+                variant="footnote"
                 color="textSecondary"
                 style={stacked ? undefined : styles.label}
                 numberOfLines={1}
@@ -198,6 +209,11 @@ export default function PreferenceMatch({ target, viewer, targetName = 'them' }:
                   {want}
                 </Text>
                 {ok === null && <Text variant="footnote" color="textSecondary">Add yours to compare</Text>}
+                {ok === false && !!own && (
+                  <Text variant="footnote" color="textSecondary" style={freeText ? styles.capitalize : undefined}>
+                    {t('profileDetail.prefYou', 'You: {{value}}', { value: own })}
+                  </Text>
+                )}
               </View>
             </View>
           </View>
@@ -219,13 +235,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  iconTile: {
-    width: 28,
-    height: 28,
-    borderRadius: borderRadius.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   title: { flex: 1 },
   chip: {

@@ -171,12 +171,28 @@ export interface AshtakootResult {
   gunas: Record<string, GunaDetail>;
 }
 
+export interface LifePath { number: number; title: string; summary: string }
+
+/**
+ * The numerology block `getHoroscopeCompatibility` returns beside the guna
+ * result. It works from date of birth alone, so it exists even when neither
+ * member has a nakshatra.
+ */
+export interface NumerologyBlock {
+  /** The requesting member. */
+  person1: LifePath;
+  /** The member being viewed. */
+  person2: LifePath;
+  compatibility: { score: number; label: string; note: string } | null;
+}
+
 export interface HoroscopeCompatibilityResponse {
   ashtakoot: AshtakootResult | null;
   manglikCompatible: boolean;
   manglikDetail: string;
   rashiScore: number | null;
   summary: string;
+  numerology?: NumerologyBlock | null;
 }
 
 export const getHoroscopeCompatibility = async (

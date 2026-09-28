@@ -16,7 +16,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { View, TextInput, StyleSheet } from 'react-native';
+import Animated from 'react-native-reanimated';
 import Text from '../ui/Text';
+import { useShake } from '../motion';
 import { spacing, borderRadius, type, type ThemeColours } from '@shared/constants/theme';
 
 const DEFAULT_LENGTH = 4;
@@ -52,6 +54,7 @@ export default function OtpInput({
   const [focused, setFocused] = useState(false);
   const inputRef = useRef<TextInput>(null);
   const mounted = useRef(false);
+  const { style: shakeStyle, shake } = useShake();
 
   const a11yLabel = label ?? t('auth.signup.otpLabel', { digits: length, defaultValue: `Enter the ${length}-digit code` });
 
@@ -62,6 +65,15 @@ export default function OtpInput({
     if (mounted.current) inputRef.current?.focus();
     mounted.current = true;
   }, [resetKey]);
+
+  // Once per failed verify: `error` goes off when the next attempt starts and on
+  // again when it fails, so every wrong code re-arms this. Edge-triggered, so a
+  // live Reduce Motion flip (which re-creates `shake`) cannot replay it.
+  const wasError = useRef(false);
+  useEffect(() => {
+    if (error && !wasError.current) shake();
+    wasError.current = error;
+  }, [error, shake]);
 
   const handleChange = (txt: string) => {
     // Guarded here instead of with editable={false}: turning editable off drops
@@ -75,8 +87,8 @@ export default function OtpInput({
 
   return (
     <View style={st.wrap} testID={testID ?? 'otp-input'}>
-      <View
-        style={st.row}
+      <Animated.View
+        style={[st.row, shakeStyle]}
         pointerEvents="none"
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
@@ -93,7 +105,7 @@ export default function OtpInput({
             </View>
           );
         })}
-      </View>
+      </Animated.View>
       <TextInput
         ref={inputRef}
         style={st.overlay}

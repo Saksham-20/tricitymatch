@@ -13,7 +13,12 @@ const REDUCED_PRESS_OPACITY = 0.6;
 interface PressableScaleProps extends PressableProps {
   /** press-in target scale (handoff spec: 0.97 for cards/rows) */
   scaleTo?: number;
-  /** fire a light selection haptic on press-in */
+  /**
+   * Fire a light selection haptic when the press COMMITS (finger lifts inside
+   * the target, on the same frame as the caller's `onPress`). Never on
+   * touch-down: a finger landing to scroll a chip row must not buzz, and a
+   * press that drifts out and cancels must not buzz for nothing.
+   */
   haptic?: boolean;
   style?: StyleProp<ViewStyle>;
   children?: React.ReactNode;
@@ -30,6 +35,7 @@ export default function PressableScale({
   haptic = false,
   style,
   children,
+  onPress,
   onPressIn,
   onPressOut,
   ...rest
@@ -49,7 +55,6 @@ export default function PressableScale({
     } else {
       scale.value = withSpring(scaleTo, spring.press);
     }
-    if (haptic) haptics.light();
     onPressIn?.(e);
   };
   const handleOut = (e: GestureResponderEvent) => {
@@ -60,10 +65,19 @@ export default function PressableScale({
     }
     onPressOut?.(e);
   };
+  // Commit, not touch-down. A press with no handler is not a commitment, so it
+  // stays silent even with `haptic` set.
+  const handlePress = onPress
+    ? (e: GestureResponderEvent) => {
+        if (haptic) haptics.light();
+        onPress(e);
+      }
+    : undefined;
 
   return (
     <AnimatedPressable
       {...rest}
+      onPress={handlePress}
       onPressIn={handleIn}
       onPressOut={handleOut}
       style={[animatedStyle, style]}

@@ -10,6 +10,7 @@ import { colours, darkColours } from '@shared/constants/theme';
 import AuthNavigator from './AuthNavigator';
 import OnboardingNavigator from './OnboardingNavigator';
 import MainNavigator from './MainNavigator';
+import { useNavAnimation } from './useNavAnimation';
 import IncomingCallModal from '../components/calls/IncomingCallModal';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -51,6 +52,7 @@ export default function RootNavigator() {
   const { initFromCache, darkModeOverride } = useUIStore();
   const { incomingCall } = useCallStore();
   const systemScheme = useColorScheme();
+  const anim = useNavAnimation();
 
   useEffect(() => {
     initFromCache();
@@ -79,7 +81,7 @@ export default function RootNavigator() {
 
   return (
     <NavigationContainer linking={linking} theme={navTheme}>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator screenOptions={{ headerShown: false, animation: anim() }}>
         {!isAuthenticated ? (
           <Stack.Screen name="Auth" component={AuthNavigator} />
         ) : !onboardingComplete ? (

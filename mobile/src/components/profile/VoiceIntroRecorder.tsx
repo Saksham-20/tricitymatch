@@ -427,7 +427,7 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
     padding: spacing.lg,
-    marginHorizontal: spacing.lg,
+    marginHorizontal: spacing.gutter,
     marginBottom: spacing.md,
   },
   title: { marginBottom: 2 },

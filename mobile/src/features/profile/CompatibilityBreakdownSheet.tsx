@@ -232,6 +232,8 @@ export default function CompatibilityBreakdownSheet({ visible, userId, onClose }
       visible={visible}
       animationType={reducedMotion ? 'fade' : 'slide'}
       transparent
+      // Android: without this the scrim stops below the status bar and leaves a bright strip.
+      statusBarTranslucent
       onRequestClose={onClose}
     >
       <PressableScale

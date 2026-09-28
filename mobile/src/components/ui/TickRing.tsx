@@ -15,6 +15,8 @@ interface TickRingProps {
   tickWidth?: number;
   /** filled-tick colour (defaults to brand accent) */
   color?: string;
+  /** unlit-tick colour (defaults to the border tone; pass a stronger one on a tinted fill) */
+  offColor?: string;
   children?: React.ReactNode;
 }
 
@@ -76,6 +78,7 @@ export default function TickRing({
   tickLength = 10,
   tickWidth = 3,
   color,
+  offColor,
   children,
 }: TickRingProps) {
   const { c } = useTheme();
@@ -98,7 +101,7 @@ export default function TickRing({
           tickLength={tickLength}
           tickWidth={tickWidth}
           onColor={fillColor}
-          offColor={c.border}
+          offColor={offColor ?? c.border}
         />
       ))}
       <View style={styles.center}>{children}</View>
@@ -111,7 +114,7 @@ interface RingLabelProps { value: number; caption?: string; }
 /** Completion ring — 10-tick rim + Playfair % + caption.
  *  Font and tick length scale with `size` so the number never collides with the
  *  rim (a fixed 22pt % overflowed the ticks at the small 58pt Home-card size). */
-export function CompletionRing({ value, caption = 'Complete', size = 88 }: RingLabelProps & { size?: number }) {
+export function CompletionRing({ value, caption = 'Complete', size = 88, offColor }: RingLabelProps & { size?: number; offColor?: string }) {
   const { c } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
   const pctFont = Math.round(size * 0.26);
@@ -119,7 +122,7 @@ export function CompletionRing({ value, caption = 'Complete', size = 88 }: RingL
   // A caption inside a small ring crowds the number — only show it with room.
   const showCaption = !!caption && size >= 72;
   return (
-    <TickRing value={value} size={size} ticks={10} tickLength={tickLen}>
+    <TickRing value={value} size={size} ticks={10} tickLength={tickLen} offColor={offColor}>
       {/* per-instance fontSize scales with `size` to fit the rim — decorative
           glyph, not body copy; left on raw RN Text per migration exception */}
       <RNText style={[styles.bigPct, { fontSize: pctFont, lineHeight: Math.round(pctFont * 1.1) }]}>

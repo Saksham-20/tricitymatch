@@ -1,7 +1,8 @@
 /**
  * Dashboard fill for the empty stretch below the match rails — two rotating
  * cards chosen by profile stage, never a stacked wall of upsells:
- *   - early profile (<60% or unverified): verification + invite + voice intro
+ *   - early profile (<60% or unverified): verification (once there is a photo to
+ *     verify against) + invite + voice intro
  *   - established: membership (gold) + success story
  * Everything here reads data that already exists, no new backend.
  *
@@ -76,6 +77,10 @@ export default function DiscoverCards() {
   // pulled it away, so the card waits for an answer.
   const verified = verification?.status === 'approved' || verification?.status === 'pending';
   const hasVoice = !!myProfile?.voiceIntroUrl;
+  // A verification selfie is matched against the member's profile photos, so the verify card
+  // must not compete with (or precede) the photo nudge on Home. Until the profile answers this
+  // reads false, which also keeps the card from flashing in and out while it loads.
+  const hasPhoto = !!(myProfile?.profilePhoto || (myProfile?.photos?.length ?? 0) > 0);
   const story = stories?.find((s) => s.quote) ?? null;
 
   const shareInvite = async () => {
@@ -98,7 +103,7 @@ export default function DiscoverCards() {
     ? ['membership', 'story', 'verify', 'invite', 'voice']
     : ['verify', 'invite', 'voice'];
   const eligible = order.filter((k) => {
-    if (k === 'verify') return !!verification && !verified;
+    if (k === 'verify') return !!verification && !verified && hasPhoto;
     if (k === 'voice') return !!myProfile && !hasVoice;
     if (k === 'membership') return isFree;
     if (k === 'story') return !!story;
@@ -129,7 +134,11 @@ export default function DiscoverCards() {
     },
     membership: {
       title: t('discover.premiumTitle', 'See who liked you'),
-      sub: t('discover.premiumSub', 'Premium opens chat, likes and contact details.'),
+      // New key on purpose (same reason as verifyBody): the locale files still carry the old
+      // `discover.premiumSub` value, and a resource beats the code default. That line said
+      // "opens chat", which stopped being true once free members could reply after a premium
+      // member writes first; this states what Premium actually adds.
+      sub: t('discover.premiumBody', 'Premium shows who liked you, lets you write first and unlocks phone numbers.'),
     },
     story: { title: story?.coupleNames ?? '', sub: story?.quote ? `“${story.quote}”` : '' },
   };

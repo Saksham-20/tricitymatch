@@ -3,16 +3,16 @@ import { useTheme } from '../../hooks/useTheme';
 import {
   View, FlatList, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Modal, Pressable, TextInput,
-  AccessibilityInfo, Keyboard, AppState,
+  AccessibilityInfo, Keyboard, AppState, Linking, Clipboard,
 } from 'react-native';
 import Text from '../../components/ui/Text';
 import Input from '../../components/ui/Input';
-import SmartImage from '../../components/common/SmartImage';
 import Screen from '../../components/layout/Screen';
 import { PressableScale, useReduceMotion } from '../../components/motion';
 import Animated, {
   Easing,
   cancelAnimation,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -20,7 +20,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { EASE_IN_OUT, STAGGER_MS, duration } from '@shared/constants/motion';
+import { EASE_IN_OUT, EASE_OUT, STAGGER_MS, duration } from '@shared/constants/motion';
 
 // The typing-dot loop is one of doctrine §10.3's four sanctioned infinite loops.
 // Its cadence is built from the duration table rather than typed in: a bounce is
@@ -30,7 +30,7 @@ import { EASE_IN_OUT, STAGGER_MS, duration } from '@shared/constants/motion';
 const TYPING_DOT_BOUNCE_MS = duration.content;
 const TYPING_DOT_REST_MS = duration.content * 2;
 import { ChatThreadSkeleton } from '../../components/ui/skeletons';
-import { Button, EmptyState, SkeletonBlock } from '../../components/ui';
+import { Avatar, Button, EmptyState, SkeletonBlock } from '../../components/ui';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -87,13 +87,64 @@ function calendarDaysAgo(iso: string): number {
   return Math.round((startOfToday - startOfMsgDay) / 86400000);
 }
 
-/** "1 free reply left" / "2 free replies left" (the meter and its announcement). */
+/** The shared constant in whole hours (48), so retuning the window retunes every line that quotes it. */
+const FREE_REPLY_WINDOW_HOURS = Math.round(FREE_REPLY_WINDOW_MS / 3_600_000);
+
+/** "1 free reply left" / "2 free replies left" (the meter's warning announcement). */
 function repliesLeftText(t: TFunction, count: number): string {
   return t('chat.repliesLeft', {
     count,
     defaultValue: '{{count}} free reply left',
     defaultValue_plural: '{{count}} free replies left',
   });
+}
+
+/**
+ * Time left in the window, rounded UP to the minute ("47h 12m", "12m"): a window
+ * that is still open never reads "0m". The units are translated keys so hi/pa
+ * can use their own abbreviations.
+ */
+function formatWindowRemaining(t: TFunction, ms: number): string {
+  const mins = Math.max(1, Math.ceil(ms / 60_000));
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return h > 0
+    ? t('chat.durHoursMinutes', '{{h}}h {{m}}m', { h, m })
+    : t('chat.durMinutes', '{{m}}m', { m });
+}
+
+/**
+ * The meter's line. Before the first reply the clock has not started
+ * (`expiresAt` is null until then), so it says what will happen rather than
+ * counting down a window that is not running; after it, the count and the time.
+ */
+function replyMeterText(t: TFunction, w: ReplyWindow, now: number): string {
+  if (!w.expiresAt) {
+    return t(
+      'chat.meterIdle',
+      '{{count}} free replies. The {{hours}}-hour window starts when you send your first.',
+      { count: w.messagesRemaining, hours: FREE_REPLY_WINDOW_HOURS }
+    );
+  }
+  return t('chat.meterRunning', {
+    count: w.messagesRemaining,
+    time: formatWindowRemaining(t, new Date(w.expiresAt).getTime() - now),
+    defaultValue: '{{count}} free reply left · {{time}} remaining',
+    defaultValue_plural: '{{count}} free replies left · {{time}} remaining',
+  });
+}
+
+/** What the paywalled composer (and the spoken end-of-window line) says: used up, or timed out. */
+function windowEndText(t: TFunction, w: ReplyWindow | null): string {
+  // The 5 and the 48 come from the shared chat constants, so retuning the window
+  // cannot leave the paywall copy quoting the old figures.
+  return w?.messagesRemaining === 0
+    ? t('chat.windowExhausted', {
+        count: FREE_REPLY_MAX_MESSAGES,
+        defaultValue: "You've used your {{count}} free reply",
+        defaultValue_plural: "You've used your {{count}} free replies",
+      })
+    : t('chat.windowExpired', 'Your {{hours}}-hour reply window ended', { hours: FREE_REPLY_WINDOW_HOURS });
 }
 
 function canEdit(createdAt: string): boolean {
@@ -153,6 +204,14 @@ function useLiveSocket() {
 }
 
 // ─── Typing indicator — 3 dots bouncing on a 1.2s loop (handoff spec) ───────
+/**
+ * The typing row's height, fixed. The row is a permanent header of the inverted
+ * list (see TypingIndicator), so its height is part of the list's resting
+ * geometry: the bubble fading in and out never changes how tall the thread is,
+ * where it used to push every message up by ~40pt twice per typing burst.
+ */
+const TYPING_ROW_HEIGHT = 32;
+
 function TypingDot({ delay }: { delay: number }) {
   const { c } = useTheme();
   const s = getS(c);
@@ -185,30 +244,65 @@ function TypingDot({ delay }: { delay: number }) {
   return <Animated.View style={[s.typingDot, st]} />;
 }
 
-function TypingIndicator({ name }: { name: string }) {
+/**
+ * Sits in the inverted list's header slot PERMANENTLY, at a fixed height, and
+ * only its bubble fades (opacity, no layout): `duration.menu` in,
+ * `duration.press` out, both EASE_OUT. Mounting the row on demand grew the
+ * list's content by ~40pt each time the other person started typing and shrank
+ * it when they stopped, so the whole thread jumped under the reader's eyes.
+ *
+ * The dots (and their infinite loop, one of the four sanctioned ones) exist only
+ * while the bubble is visible: they mount with the fade-in and unmount once the
+ * fade-out has finished. The row is hidden from the screen reader whenever
+ * nobody is typing, so it never presents an unlabelled empty element.
+ */
+function TypingIndicator({ name, active }: { name: string; active: boolean }) {
   const { c } = useTheme();
   const { t } = useTranslation();
   const s = getS(c);
+  const opacity = useSharedValue(0);
+  // Keeps the dots mounted through the fade-out.
+  const [retained, setRetained] = useState(active);
+
+  useEffect(() => {
+    if (active) {
+      setRetained(true);
+      opacity.value = withTiming(1, { duration: duration.menu, easing: Easing.bezier(...EASE_OUT) });
+    } else {
+      opacity.value = withTiming(0, { duration: duration.press, easing: Easing.bezier(...EASE_OUT) }, (finished) => {
+        // An interrupted fade (they started typing again) must not unmount.
+        if (finished) runOnJS(setRetained)(false);
+      });
+    }
+  }, [active, opacity]);
+
+  const fade = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  const showDots = active || retained;
+
   return (
     <View
       style={s.typingRow}
       testID="TypingIndicator"
-      accessible
-      accessibilityLabel={t('chat.typingA11y', '{{name}} is typing', { name })}
-      accessibilityLiveRegion="polite"
+      accessible={active}
+      accessibilityLabel={active ? t('chat.typingA11y', '{{name}} is typing', { name }) : undefined}
+      accessibilityLiveRegion={active ? 'polite' : 'none'}
+      accessibilityElementsHidden={!active}
+      importantForAccessibility={active ? 'yes' : 'no-hide-descendants'}
     >
       {/* the dots are decoration; the label above carries the meaning */}
-      <View
-        style={s.typingBubble}
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-      >
-        <View style={s.typingDotsRow}>
-          <TypingDot delay={0} />
-          <TypingDot delay={STAGGER_MS * 3} />
-          <TypingDot delay={STAGGER_MS * 6} />
-        </View>
-      </View>
+      {showDots ? (
+        <Animated.View
+          style={[s.typingBubble, fade]}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          <View style={s.typingDotsRow}>
+            <TypingDot delay={0} />
+            <TypingDot delay={STAGGER_MS * 3} />
+            <TypingDot delay={STAGGER_MS * 6} />
+          </View>
+        </Animated.View>
+      ) : null}
     </View>
   );
 }
@@ -404,6 +498,7 @@ function ContactUnlockBanner({ userId, onUnlocked }: ContactBannerProps) {
   const { c, elder } = useTheme();
   const s = getS(c);
   const { t } = useTranslation();
+  const tap = tapSize(elder);
   const [phone, setPhone] = useState<string | null>(null);
 
   const { mutate: unlock, isPending } = useMutation({
@@ -455,31 +550,135 @@ function ContactUnlockBanner({ userId, onUnlocked }: ContactBannerProps) {
   if (phone) {
     // successAccent, not success: darkColours.success is 3.64:1 on this tint and
     // theme.ts documents it as unreadable as an accent. successAccent is 5.13:1
-    // light / 6.88:1 dark. `selectable` so the number can be copied; it is the
-    // whole point of paying an unlock.
+    // light / 6.88:1 dark. The number is the whole point of paying an unlock, so
+    // it gets the two things a member does with it (dial it, copy it) as real
+    // buttons rather than a long-press on selectable text.
+    const dialable = phone.replace(/[^\d+]/g, '');
+    const actionH = Math.max(tap - 12, 36);
     return (
-      <View style={[s.contactBanner, { minHeight: tapSize(elder) }]} testID="ContactBannerUnlocked">
-        <Ionicons name="call" size={16} color={c.successAccent} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
-        <Text variant="subhead" selectable style={{ color: c.successAccent }}>{phone}</Text>
+      <View style={[s.contactBanner, s.contactBannerRow, { minHeight: tap }]} testID="ContactBannerUnlocked">
+        <Text variant="subhead" style={[s.contactPhone, { color: c.successAccent }]} numberOfLines={1}>{phone}</Text>
+        <View style={s.contactActions}>
+          <PressableScale
+            onPress={() => {
+              Linking.openURL(`tel:${dialable}`).catch(() =>
+                showToast.error(t('chat.callFailed', "Couldn't open the dialler"), t('chat.callFailedBody', 'Copy the number and dial it yourself.'))
+              );
+            }}
+            // The visual is `actionH` tall; hitSlop tops it up to the 44/48 floor.
+            hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+            style={[s.contactAction, { height: actionH }]}
+            accessibilityRole="button"
+            accessibilityLabel={t('chat.callNumberA11y', 'Call {{phone}}', { phone })}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            testID="ContactCallBtn-tap44-hitslop"
+          >
+            <Ionicons name="call-outline" size={16} color={c.primary} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+            <Text variant="subhead" color="primary" numberOfLines={1}>{t('chat.callNumber', 'Call')}</Text>
+          </PressableScale>
+          <PressableScale
+            onPress={() => {
+              // RN core's Clipboard: deprecated in 0.76 (a one-time dev warning on
+              // first use) but present. Swap for expo-clipboard when the next
+              // dependency pass installs it; this is the only call site.
+              Clipboard.setString(phone);
+              showToast.success(t('chat.numberCopied', 'Number copied'));
+              AccessibilityInfo.announceForAccessibility(t('chat.numberCopied', 'Number copied'));
+            }}
+            hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+            style={[s.contactAction, { height: actionH }]}
+            accessibilityRole="button"
+            accessibilityLabel={t('chat.copyNumberA11y', 'Copy phone number')}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            testID="ContactCopyBtn-tap44-hitslop"
+          >
+            <Ionicons name="copy-outline" size={16} color={c.primary} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+            <Text variant="subhead" color="primary" numberOfLines={1}>{t('chat.copyNumber', 'Copy')}</Text>
+          </PressableScale>
+        </View>
       </View>
     );
   }
 
+  // The label names what the tap DOES. It used to read "Request phone number",
+  // which promises a message to the other person; the tap actually spends one of
+  // the member's own unlocks (after a confirm). "Uses one unlock" is stated where
+  // the member decides, not only in the dialog.
   return (
     <PressableScale
-      style={[s.contactBanner, { minHeight: tapSize(elder) }]}
+      style={[s.contactBanner, { minHeight: tap }]}
       onPress={handleUnlock}
       disabled={isPending}
-      accessibilityLabel={t('chat.requestContact', 'Request phone number')}
+      accessibilityLabel={`${t('chat.unlockPhone', 'Unlock phone number')}. ${t('chat.unlockPhoneSub', 'Uses one unlock')}`}
       accessibilityRole="button"
       accessibilityState={{ disabled: isPending, busy: isPending }}
       pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
       testID="ContactUnlockBanner"
     >
-      <Ionicons name="person-add-outline" size={16} color={c.primary} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
-      <Text variant="subhead" color="primary">{t('chat.requestContact', 'Request phone number')}</Text>
+      <Ionicons name="call-outline" size={16} color={c.primary} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+      <View style={s.contactText}>
+        <Text variant="subhead" color="primary">{t('chat.unlockPhone', 'Unlock phone number')}</Text>
+        <Text variant="caption" color="textSecondary">{t('chat.unlockPhoneSub', 'Uses one unlock')}</Text>
+      </View>
       {isPending && <ActivityIndicator size="small" color={c.primary} style={{ marginLeft: 8 }} />}
     </PressableScale>
+  );
+}
+
+// ─── Reply meter (D1 / DS3) ──────────────────────────────────────────────────
+/**
+ * The free-reply window's status line, last in the composer's hierarchy: muted,
+ * and warning (icon plus full-strength text) at 2 left or fewer. Its own
+ * component so the once-a-minute clock tick re-renders only this line, not the
+ * whole thread. The tick runs only while the window's clock is running, i.e.
+ * after the first reply (`expiresAt` is null before it).
+ *
+ * It is NOT a live region: the time changes every minute and a live region would
+ * read every change aloud. The moments worth speaking (2 left, the window ending)
+ * are announced explicitly by the screen.
+ */
+function ReplyMeter({ replyWindow }: { replyWindow: ReplyWindow }) {
+  const { c } = useTheme();
+  const { t } = useTranslation();
+  const s = getS(c);
+  const [now, setNow] = useState(() => Date.now());
+  const running = !!replyWindow.expiresAt;
+
+  useEffect(() => {
+    if (!running) return undefined;
+    setNow(Date.now());
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    // A backgrounded app throttles the interval: catch up the moment it returns.
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') setNow(Date.now());
+    });
+    return () => {
+      clearInterval(id);
+      sub.remove();
+    };
+  }, [running]);
+
+  const low = replyWindow.messagesRemaining <= 2;
+  return (
+    <View style={s.meterRow}>
+      {low && (
+        <Ionicons
+          name="alert-circle-outline"
+          size={14}
+          color={c.warning}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        />
+      )}
+      <Text
+        variant="caption"
+        color={low ? 'textPrimary' : 'textMuted'}
+        style={s.meterText}
+        testID="ReplyMeter"
+      >
+        {replyMeterText(t, replyWindow, now)}
+      </Text>
+    </View>
   );
 }
 
@@ -514,7 +713,7 @@ function MessageActionMenu({ msg, currentUserId, visible, canRich, onClose, onDi
   const isOwn = m.senderId === currentUserId;
 
   return (
-    <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose} onDismiss={onDismissed}>
+    <Modal transparent statusBarTranslucent visible={visible} animationType="fade" onRequestClose={onClose} onDismiss={onDismissed}>
       <View style={s.menuOverlay} accessibilityViewIsModal>
         {/* Backdrop: tap anywhere outside the card to dismiss. */}
         <Pressable
@@ -667,6 +866,9 @@ export default function ChatThreadScreen() {
   const inputRef = useRef<TextInput>(null);
 
   const isPaid = (user?.subscriptionPlan ?? 'free') !== 'free';
+  // Free-reply window on: a free member can read and reply, so the gate copy must
+  // say what Premium adds (writing first), not that chat itself is Premium.
+  const freeReplyOn = user?.features?.freeReplyWindow === true;
 
   const { socket, emitTyping, joinThread, leaveThread } = useLiveSocket();
 
@@ -1035,19 +1237,23 @@ export default function ChatThreadScreen() {
     [messages, user?.id, name, openActions]
   );
 
-  // iOS has no accessibilityLiveRegion, so the reply meter (D1) is announced
-  // explicitly whenever the count moves, but not on first load. Android already
-  // speaks it through the meter's own live region, so announcing there too made
-  // it say the same line twice.
-  const lastAnnouncedLeft = useRef<number | null>(null);
+  // The reply meter (D1) is deliberately not a live region: its time text moves
+  // every minute and would be read out every time. Two moments are worth speaking,
+  // and both are announced here on both platforms, never on first load (the first
+  // snapshot is the baseline): the count dropping to 2, and the window ending
+  // (used up or timed out).
+  const lastMeter = useRef<{ left: number; active: boolean } | null>(null);
   useEffect(() => {
-    if (!isGrantThread || !replyWindow?.active) return;
-    const left = replyWindow.messagesRemaining;
-    if (Platform.OS === 'ios' && lastAnnouncedLeft.current !== null && lastAnnouncedLeft.current !== left) {
-      AccessibilityInfo.announceForAccessibility(repliesLeftText(t, left));
+    if (!isGrantThread || !replyWindow) return;
+    const prev = lastMeter.current;
+    lastMeter.current = { left: replyWindow.messagesRemaining, active: replyWindow.active };
+    if (!prev) return;
+    if (replyWindow.active && replyWindow.messagesRemaining === 2 && prev.left > 2) {
+      AccessibilityInfo.announceForAccessibility(repliesLeftText(t, 2));
+    } else if (prev.active && !replyWindow.active) {
+      AccessibilityInfo.announceForAccessibility(windowEndText(t, replyWindow));
     }
-    lastAnnouncedLeft.current = left;
-  }, [isGrantThread, replyWindow?.active, replyWindow?.messagesRemaining, t]);
+  }, [isGrantThread, replyWindow, t]);
 
   // Announce the reply/edit banners when they appear: focus was on the menu
   // that just closed, so nothing else tells a screen-reader user they took hold.
@@ -1091,17 +1297,19 @@ export default function ChatThreadScreen() {
         pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         testID="HeaderProfile"
       >
-        <SmartImage uri={photo} name={name} style={s.headerAvatar} initialSize={16} />
+        {/* The same circle, and the same `headline` name, as this person's row in
+            the Messages list, so opening the thread does not restyle them. */}
+        <Avatar uri={photo} name={name} size={40} />
 
         {name ? (
-          <Text variant="subhead" color="textPrimary" style={s.headerName} numberOfLines={1}>{name}</Text>
+          <Text variant="headline" color="fgStrong" style={s.headerName} numberOfLines={1}>{name}</Text>
         ) : nameLoading ? (
           // The title is on its way: a placeholder bar, not a blank header.
           <View style={s.headerName}>
             <SkeletonBlock width={120} height={14} />
           </View>
         ) : (
-          <Text variant="subhead" color="textPrimary" style={s.headerName} numberOfLines={1}>
+          <Text variant="headline" color="fgStrong" style={s.headerName} numberOfLines={1}>
             {t('chat.conversationTitle', 'Conversation')}
           </Text>
         )}
@@ -1173,10 +1381,26 @@ export default function ChatThreadScreen() {
           <View style={s.gateIcon} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
             <Ionicons name="lock-closed" size={32} color={c.secondary} />
           </View>
-          <Text variant="title3" color="textPrimary" style={s.gateTitle} accessibilityRole="header">{t('chat.gateTitle', 'Chat is a Premium feature')}</Text>
-          <Text variant="footnote" color="textMuted" style={s.gateLine}>
-            {t('chat.gateLine', 'Upgrade to start the conversation with {{name}}.', { name: name || 'your match' })}
-          </Text>
+          {freeReplyOn ? (
+            // Free-reply window on: reading and replying are open to a free member
+            // once a Premium member writes first. What this thread lacks is that
+            // first message, and only Premium can send it.
+            <>
+              <Text variant="title3" color="textPrimary" style={s.gateTitle} accessibilityRole="header">
+                {t('chat.gateFreeReplyTitle', 'Sending the first message needs Premium')}
+              </Text>
+              <Text variant="footnote" color="textMuted" style={s.gateLine}>
+                {t('chat.gateFreeReplyLine', 'Premium lets you write to {{name}} first.', { name: firstName || t('chat.yourMatch', 'your match') })}
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text variant="title3" color="textPrimary" style={s.gateTitle} accessibilityRole="header">{t('chat.gateTitle', 'Chat is a Premium feature')}</Text>
+              <Text variant="footnote" color="textMuted" style={s.gateLine}>
+                {t('chat.gateLine', 'Upgrade to start the conversation with {{name}}.', { name: name || t('chat.yourMatch', 'your match') })}
+              </Text>
+            </>
+          )}
           <Button
             title={t('chat.gateCta', 'See plans')}
             variant="gold"
@@ -1190,15 +1414,7 @@ export default function ChatThreadScreen() {
   }
 
   const windowEnded = isGrantThread && replyWindow != null && !replyWindow.active;
-  // The 5 and the 48 come from the shared chat constants, so retuning the window
-  // cannot leave the paywall copy quoting the old figures.
-  const endHeadline = replyWindow?.messagesRemaining === 0
-    ? t('chat.windowExhausted', {
-        count: FREE_REPLY_MAX_MESSAGES,
-        defaultValue: "You've used your {{count}} free reply",
-        defaultValue_plural: "You've used your {{count}} free replies",
-      })
-    : t('chat.windowExpired', 'Your {{hours}}-hour reply window ended', { hours: Math.round(FREE_REPLY_WINDOW_MS / 3_600_000) });
+  const endHeadline = windowEndText(t, replyWindow);
 
   // A failed load with nothing cached must not fall through to an empty thread
   // and a live composer (the 403 gate above is the one failure that has its own
@@ -1236,8 +1452,10 @@ export default function ChatThreadScreen() {
         </View>
       ) : (
       <>
-      {/* Contact unlock banner */}
-      <ContactUnlockBanner userId={userId} onUnlocked={() => {}} />
+      {/* Contact unlock banner. Paid members only: the route behind it is
+          `requirePremium`, so a free member on a reply-window thread could only
+          tap it and receive a 403. Free members see nothing here. */}
+      {isPaid && <ContactUnlockBanner userId={userId} onUnlocked={() => {}} />}
 
       {/* Message list (inverted — newest at bottom) */}
       <FlatList
@@ -1275,7 +1493,9 @@ export default function ChatThreadScreen() {
             />
           ) : null
         }
-        ListHeaderComponent={isOtherTyping ? <TypingIndicator name={firstName || t('chat.theyShort', 'They')} /> : null}
+        // A permanent, fixed-height row (see TypingIndicator): the bubble fades in
+        // and out inside it, so nothing above it moves.
+        ListHeaderComponent={<TypingIndicator name={firstName || t('chat.theyShort', 'They')} active={isOtherTyping} />}
       />
 
       {/* Edit banner */}
@@ -1352,66 +1572,54 @@ export default function ChatThreadScreen() {
             accessibilityLabel={t('chat.typePlaceholder', 'Type a message')}
             testID="MessageInput"
           />
-          {/* D2 voice note — premium only; grant threads are text-only (D1). */}
-          {isPaid && !isGrantThread && !input.trim() && !editingMsg && (
-            <PressableScale
-              scaleTo={0.9}
-              haptic
-              style={[s.micBtn, { width: tap, height: tap, borderRadius: tap / 2 }]}
-              onPress={() => setShowRecorder(true)}
-              accessibilityLabel={t('chat.recordVoice', 'Record a voice message')}
-              accessibilityRole="button"
-              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              testID="MicBtn"
-            >
-              <Ionicons name="mic-outline" size={20} color={c.textSecondary} />
-            </PressableScale>
-          )}
-          <PressableScale
-            scaleTo={0.9}
-            haptic
-            style={[s.sendBtn, { width: tap, height: tap, borderRadius: tap / 2 }, !canSend && s.sendBtnDisabled]}
-            onPress={handleSend}
-            disabled={!canSend}
-            accessibilityLabel={editingMsg ? t('chat.saveEdit', 'Save edit') : t('chat.send', 'Send')}
-            accessibilityRole="button"
-            accessibilityState={{ disabled: !canSend, busy: isSending || isEditing }}
-            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            testID="SendBtn"
-          >
-            {isSending || isEditing ? (
-              <ActivityIndicator size="small" color={c.onPrimary} />
+          {/* ONE trailing slot with a fixed width, so the input never widens or
+              narrows under the member's thumb: a paid member with an empty box
+              sees the mic (D2 voice note; premium only, grant threads are
+              text-only per D1), anyone else, and everyone once a character is
+              typed, sees Send. The swap is instant and changes no width. The mic
+              used to unmount on the first keystroke, taking the input 44pt wider
+              mid-word. */}
+          <View style={[s.sendSlot, { width: tap, height: tap }]}>
+            {isPaid && !isGrantThread && !editingMsg && !input.trim() ? (
+              <PressableScale
+                scaleTo={0.9}
+                haptic
+                style={[s.micBtn, { width: tap, height: tap, borderRadius: tap / 2 }]}
+                onPress={() => setShowRecorder(true)}
+                accessibilityLabel={t('chat.recordVoice', 'Record a voice message')}
+                accessibilityRole="button"
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                testID="MicBtn"
+              >
+                <Ionicons name="mic-outline" size={20} color={c.textSecondary} />
+              </PressableScale>
             ) : (
-              <Ionicons name="send" size={18} color={!input.trim() ? c.textMuted : c.onPrimary} />
+              <PressableScale
+                scaleTo={0.9}
+                haptic
+                style={[s.sendBtn, { width: tap, height: tap, borderRadius: tap / 2 }, !canSend && s.sendBtnDisabled]}
+                onPress={handleSend}
+                disabled={!canSend}
+                accessibilityLabel={editingMsg ? t('chat.saveEdit', 'Save edit') : t('chat.send', 'Send')}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: !canSend, busy: isSending || isEditing }}
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                testID="SendBtn"
+              >
+                {isSending || isEditing ? (
+                  <ActivityIndicator size="small" color={c.onPrimary} />
+                ) : (
+                  <Ionicons name="send" size={18} color={!input.trim() ? c.textMuted : c.onPrimary} />
+                )}
+              </PressableScale>
             )}
-          </PressableScale>
+          </View>
         </View>
-        {/* DS3: the meter is last in the hierarchy — muted, warns at ≤2.
+        {/* DS3: the meter is last in the hierarchy: muted, warning at 2 or fewer.
             The warning is the icon (semantic hue) and the full-strength text:
             c.warning as 12pt text is 2.70:1 on this white dock, under AA.
             Gold is reserved for premium. */}
-        {isGrantThread && replyWindow?.active && (
-          <View style={s.meterRow}>
-            {replyWindow.messagesRemaining <= 2 && (
-              <Ionicons
-                name="alert-circle-outline"
-                size={14}
-                color={c.warning}
-                accessibilityElementsHidden
-                importantForAccessibility="no-hide-descendants"
-              />
-            )}
-            <Text
-              variant="caption"
-              color={replyWindow.messagesRemaining <= 2 ? 'textPrimary' : 'textMuted'}
-              style={s.meterText}
-              accessibilityLiveRegion="polite"
-              testID="ReplyMeter"
-            >
-              {repliesLeftText(t, replyWindow.messagesRemaining)}
-            </Text>
-          </View>
-        )}
+        {isGrantThread && replyWindow?.active && <ReplyMeter replyWindow={replyWindow} />}
       </View>
       )}
       </>
@@ -1496,15 +1704,18 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   emojiBtn: { alignItems: 'center', justifyContent: 'center' },
   // A reaction this member already left: the border sits inside the fixed box.
   emojiBtnMine: { backgroundColor: c.accentSoft, borderWidth: 1.5, borderColor: c.primary },
+  // The composer's single trailing slot; Mic and Send both fill it. Size
+  // (48 / 60 elder) is applied inline, so its width never depends on which is shown.
+  sendSlot: { alignItems: 'center', justifyContent: 'center' },
   micBtn: {
     alignItems: 'center', justifyContent: 'center',
-    marginRight: spacing.xs,
   },
   meterRow: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: spacing.md, paddingTop: 4,
   },
-  meterText: { fontVariant: ['tabular-nums'] },
+  // flexShrink so a long hi/pa line wraps inside the row instead of running past the icon.
+  meterText: { fontVariant: ['tabular-nums'], flexShrink: 1 },
   paywallBar: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
     paddingHorizontal: spacing.md, paddingTop: spacing.sm,
@@ -1547,11 +1758,6 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
-  headerAvatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-  },
   headerName: {
     flex: 1,
   },
@@ -1570,10 +1776,30 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: c.border,
   },
-  // List
+  contactText: { flex: 1 },
+  // Unlocked: number + Call + Copy. At a large text size the buttons wrap under
+  // the number rather than shrinking it or running off the row.
+  contactBannerRow: { flexWrap: 'wrap', justifyContent: 'space-between', rowGap: spacing.xs },
+  contactPhone: { flexGrow: 1, flexShrink: 1 },
+  contactActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  // Height (tapSize - 12) is applied inline; hitSlop makes up the rest of the target.
+  contactAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+    borderColor: c.border,
+    backgroundColor: c.surfaceCard,
+  },
+  // List. The list is inverted, so its content container is flipped with it:
+  // `paddingTop` is the gutter at the visual BOTTOM. That gutter is the typing
+  // row (TYPING_ROW_HEIGHT, the list header), so there is no extra padding there.
   listContent: {
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingTop: 0,
+    paddingBottom: spacing.sm,
   },
   // Empty thread: let the content container fill the list so the empty state centres.
   listContentEmpty: { flexGrow: 1 },
@@ -1634,10 +1860,12 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     height: 1,
     backgroundColor: c.border,
   },
-  // Typing indicator
+  // Typing indicator: a fixed-height row (TYPING_ROW_HEIGHT) so the bubble
+  // fading in and out never moves the thread. The bubble is 26pt inside it.
   typingRow: {
+    height: TYPING_ROW_HEIGHT,
     alignItems: 'flex-start',
-    marginVertical: spacing.xs,
+    justifyContent: 'center',
   },
   typingBubble: {
     backgroundColor: c.surfaceCard,
@@ -1645,9 +1873,9 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: 4,
   },
-  typingDotsRow: { flexDirection: 'row', gap: 4, alignItems: 'center', height: 18 },
+  typingDotsRow: { flexDirection: 'row', gap: 4, alignItems: 'center', height: 16 },
   typingDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: c.textMuted },
   // Edit banner
   editBanner: {

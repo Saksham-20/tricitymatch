@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { AccessibilityInfo, Linking, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import Text from '../../components/ui/Text';
@@ -12,9 +15,13 @@ import { useTheme } from '../../hooks/useTheme';
 import { tapSize } from '../../utils/elderTheme';
 import { showToast } from '../../utils/toast';
 import { getPhotoVerification, submitVerification } from '../../api/verification';
+import { getMyProfile } from '../../api/profile';
 import { useAuthStore } from '../../stores/authStore';
 import { queryKeys } from '../../constants/queryKeys';
+import type { MainStackParamList } from '../../navigation/types';
 import type { PhotoVerification } from '../../types';
+
+type Nav = NativeStackNavigationProp<MainStackParamList>;
 
 /**
  * Photo verification — the member-facing half of the same flow the website runs
@@ -48,15 +55,6 @@ async function captureSelfie(): Promise<PickedFile | 'denied' | null> {
   const a = result.assets[0];
   return { uri: a.uri, name: 'selfie.jpg', type: a.mimeType ?? 'image/jpeg' };
 }
-
-/**
- * The two verifications this screen shows: the mobile number and the photo. The
- * summary card counts how many of them are done, so the figure is derived from
- * the same state the rows below display. (It used to be a "Trust Score" that
- * mapped the photo status onto 0 / 50 / 100 — a member with a verified mobile
- * and no selfie read 0%, and "under review = 50%" measured nothing.)
- */
-const CHECKS_TOTAL = 2;
 
 /** A decorative glyph: the screen reader skips it and reads the text beside it. */
 const HIDE_FROM_A11Y = {
@@ -133,6 +131,8 @@ const PERKS = [
 
 export default function VerificationScreen() {
   const { c, elder } = useTheme();
+  const { t } = useTranslation();
+  const navigation = useNavigation<Nav>();
   const s = React.useMemo(() => makeS(c), [c]);
   const statusMeta = React.useMemo(() => makeStatusMeta(c), [c]);
   const queryClient = useQueryClient();
@@ -146,6 +146,20 @@ export default function VerificationScreen() {
     queryFn: getPhotoVerification,
     staleTime: 2 * 60 * 1000,
   });
+  // The selfie is matched against the profile photos, so a member with none has nothing for it to
+  // be matched to. Shares OwnProfile's cache. While it is unknown (loading or failed) the flow is
+  // NOT blocked: only a profile that loaded and holds no photo gets sent to add one first.
+  // Photos are added on other screens that do not always refresh this cache, so it is re-read on
+  // open, and the "no photo" claim is only made from a settled read, never from a stale one.
+  const { data: myProfile, isFetching: profileFetching } = useQuery({
+    queryKey: queryKeys.me,
+    queryFn: getMyProfile,
+    staleTime: 5 * 60 * 1000,
+    refetchOnMount: 'always',
+  });
+  const needsProfilePhoto =
+    !!myProfile && !profileFetching && !myProfile.profilePhoto && (myProfile.photos?.length ?? 0) === 0;
+
   // A first fetch that is paused offline never errors, it just waits, which would
   // leave the skeleton up forever. With nothing cached that reads as a failure the
   // member can retry.
@@ -197,7 +211,6 @@ export default function VerificationScreen() {
   };
 
   const status = memberFacingStatus(data?.status ?? 'not_submitted');
-  const checksDone = (phoneVerified ? 1 : 0) + (status === 'approved' ? 1 : 0);
   const canSubmit = status === 'not_submitted' || status === 'rejected';
   const captureTitle = status === 'not_submitted' ? 'Take selfie' : 'Retake selfie';
   const submitting = submitMutation.isPending;
@@ -229,21 +242,32 @@ export default function VerificationScreen() {
             accessibilityState={{ busy: isLoading }}
           >
             <Card style={s.trustCard}>
-              <TickRing value={isLoading ? 0 : (checksDone / CHECKS_TOTAL) * 100} size={78} ticks={10} color={c.accent}>
+              {/* One verification can be earned in the app (the mobile number is confirmed at signup
+                  and nowhere else), so the ring reports the photo check alone: full when approved,
+                  empty otherwise. It used to count "checks complete" out of 2, which left an email
+                  signup at 1 of 2 forever with nothing to do about the other half. */}
+              <TickRing value={isLoading ? 0 : status === 'approved' ? 100 : 0} size={78} ticks={10} color={c.accent}>
                 {isLoading ? (
-                  <SkeletonBlock width={36} height={20} />
+                  <SkeletonBlock width={28} height={28} radius={borderRadius.full} />
                 ) : (
-                  // The copy beside the ring says the same thing in words. The ring
-                  // is a fixed 78pt box, so OS text scaling is capped or "1/2"
-                  // runs over the tick rim.
-                  <Text variant="title3" color="primary" maxScale={1.3} {...HIDE_FROM_A11Y}>{`${checksDone}/${CHECKS_TOTAL}`}</Text>
+                  <Ionicons
+                    name={status === 'approved' ? 'checkmark' : status === 'pending' ? 'time-outline' : 'camera-outline'}
+                    size={30}
+                    color={status === 'approved' ? c.successAccent : c.accent}
+                    {...HIDE_FROM_A11Y}
+                  />
                 )}
               </TickRing>
               <View style={s.trustCopy}>
-                <Text variant="title3" color="textPrimary" accessibilityRole="header">Your verification</Text>
+                <Text variant="title3" color="textPrimary" accessibilityRole="header">{t('verification.summaryTitle', 'Your verification')}</Text>
                 <Text variant="footnote" color="textSecondary">
-                  {isLoading ? '' : `${checksDone} of ${CHECKS_TOTAL} checks complete. `}
-                  A verified badge tells families your photos are really you.
+                  {isLoading
+                    ? t('verification.summaryDefault', 'A verified badge tells families your photos are really you.')
+                    : status === 'approved'
+                      ? t('verification.summaryApproved', 'Your photo is verified. Families see the badge on your profile.')
+                      : status === 'pending'
+                        ? t('verification.summaryPending', 'Your selfie is with our team.')
+                        : t('verification.summaryDefault', 'A verified badge tells families your photos are really you.')}
                 </Text>
               </View>
             </Card>
@@ -252,23 +276,21 @@ export default function VerificationScreen() {
           {/* Status overview */}
           <Card style={s.card}>
             <Text variant="headline" color="fgStrong" accessibilityRole="header">Status</Text>
-            <View
-              style={s.statusRow}
-              accessible
-              accessibilityLabel={`Mobile number: ${phoneVerified ? 'Verified' : 'Not verified'}`}
-            >
-              <View style={s.statusLeft}>
-                {/* Green means verified, so an unverified number does not get it. */}
-                <Ionicons
-                  name="phone-portrait-outline"
-                  size={18}
-                  color={phoneVerified ? c.successAccent : c.textSecondary}
-                  {...HIDE_FROM_A11Y}
-                />
-                <Text variant="callout" color="textPrimary">Mobile number</Text>
+            {/* Shown only when true. The number is confirmed at signup and there is no way to do it
+                here, so a permanent "Not verified" row was a label with nothing to press. */}
+            {phoneVerified ? (
+              <View
+                style={s.statusRow}
+                accessible
+                accessibilityLabel="Mobile number: Verified"
+              >
+                <View style={s.statusLeft}>
+                  <Ionicons name="phone-portrait-outline" size={18} color={c.successAccent} {...HIDE_FROM_A11Y} />
+                  <Text variant="callout" color="textPrimary">Mobile number</Text>
+                </View>
+                <StatusPill status="approved" />
               </View>
-              <StatusPill status={phoneVerified ? 'approved' : 'not_submitted'} notStartedLabel="Not verified" />
-            </View>
+            ) : null}
             <View
               style={[s.statusRow, s.statusRowLast]}
               accessible={!isLoading}
@@ -369,16 +391,36 @@ export default function VerificationScreen() {
                   </View>
                 ) : null}
 
-                <Button
-                  title={captureTitle}
-                  icon="camera"
-                  onPress={handleCapture}
-                  haptic={false}
-                  loading={submitting}
-                  disabled={submitting || !canSubmit}
-                  testID="capture-selfie-btn"
-                  accessibilityLabel={`${captureTitle}. Uses your live camera.`}
-                />
+                {needsProfilePhoto ? (
+                  <>
+                    <View style={s.notice} testID="needs-profile-photo">
+                      <View style={s.noticeTop}>
+                        <Ionicons name="image-outline" size={18} color={c.textSecondary} {...HIDE_FROM_A11Y} />
+                        <Text variant="footnote" color="textSecondary" style={s.noticeText}>
+                          {t('verification.needPhotoBody', 'Your selfie is matched against your profile photos, and you have not added one yet.')}
+                        </Text>
+                      </View>
+                    </View>
+                    <Button
+                      title={t('verification.addPhotoFirst', 'Add a profile photo first')}
+                      icon="camera"
+                      onPress={() => navigation.navigate('EditProfile', { section: 'photos' } as never)}
+                      haptic={false}
+                      testID="add-profile-photo-btn"
+                    />
+                  </>
+                ) : (
+                  <Button
+                    title={captureTitle}
+                    icon="camera"
+                    onPress={handleCapture}
+                    haptic={false}
+                    loading={submitting}
+                    disabled={submitting || !canSubmit}
+                    testID="capture-selfie-btn"
+                    accessibilityLabel={`${captureTitle}. Uses your live camera.`}
+                  />
+                )}
               </>
             )}
           </Card>

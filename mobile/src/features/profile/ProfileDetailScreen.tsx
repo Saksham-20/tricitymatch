@@ -15,12 +15,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import Text from '../../components/ui/Text';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import Animated, {
   Easing,
+  type SharedValue,
   useAnimatedReaction,
   useAnimatedScrollHandler,
   useAnimatedStyle,
@@ -34,6 +36,7 @@ import { duration, EASE_OUT } from '@shared/constants/motion';
 import { CompatRing, EmptyState, MatchCelebration } from '../../components/ui';
 import { ProfileDetailSkeleton } from '../../components/ui/skeletons';
 import { PressableScale, useReduceMotion, useReduceTransparency } from '../../components/motion';
+import { resolveImageUri } from '../../components/common/SmartImage';
 import { useTheme } from '../../hooks/useTheme';
 import { tapSize } from '../../utils/elderTheme';
 import { getProfile, getCompatibilityBreakdown, getMyProfile } from '../../api/profile';
@@ -65,6 +68,9 @@ const HIDE_FROM_A11Y = {
 /** Solid stand-in for the translucent on-photo button fill (Reduce Transparency). */
 const SOLID_SCRIM = '#1a1a1a';
 
+/** The compact hero for a member with no photo (see `heroBare` in the screen). */
+const HERO_BARE_HEIGHT = 320;
+
 /** Touch may drift this far off a control before the press cancels (doctrine §10.8). */
 const RETENTION = { top: 10, bottom: 10, left: 10, right: 10 } as const;
 
@@ -77,42 +83,68 @@ const ACTION_ERROR: Record<MatchAction, string> = {
 
 // ─── Small pieces ────────────────────────────────────────────────────────────
 
-/** Round icon button that sits over the hero photo (and over the state screens). */
+/**
+ * The visible disc is 40dp; `hitSlop` tops the target up to 48dp (doctrine 10.8: pad the target, do
+ * not grow the mark). In elder mode the disc itself grows to the 60pt floor instead. The disc used to
+ * be a 48dp scrim that stayed on the header after it turned solid and light.
+ */
+const FLOAT_DISC = 40;
+const FLOAT_SLOP = 4;
+const floatSize = (elder: boolean) => (elder ? tapSize(true) : FLOAT_DISC);
+
+/**
+ * Round icon button that sits over the hero photo (and over the state screens). With `solid` (the
+ * header's solid-background progress, 0 over the hero, 1 once past it) the scrim disc fades out and
+ * the glyph crossfades white -> `textPrimary`, off the same value that fades the header background
+ * in. Opacity only, on the UI thread: no layout is animated and nothing re-renders per frame.
+ */
 function FloatBtn({
   icon,
   label,
   onPress,
   testID,
+  solid,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   onPress: () => void;
   testID: string;
+  solid?: SharedValue<number>;
 }) {
-  const { elder } = useTheme();
+  const { c, elder } = useTheme();
   const reduceTransparency = useReduceTransparency();
-  const size = tapSize(elder);
+  const size = floatSize(elder);
+  const slop = elder ? 0 : FLOAT_SLOP;
+  const discStyle = useAnimatedStyle(() => ({ opacity: solid ? 1 - solid.value : 1 }));
+  const darkGlyphStyle = useAnimatedStyle(() => ({ opacity: solid ? solid.value : 0 }));
   return (
     <PressableScale
       scaleTo={0.9}
       onPress={onPress}
-      style={[
-        s.iconBtn,
-        {
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          // Dark enough that the white glyph keeps 3:1 over a light page as
-          // well as over a photo.
-          backgroundColor: reduceTransparency ? SOLID_SCRIM : 'rgba(0,0,0,0.55)',
-        },
-      ]}
+      style={[s.iconBtn, { width: size, height: size, borderRadius: size / 2 }]}
+      hitSlop={slop ? { top: slop, bottom: slop, left: slop, right: slop } : undefined}
       pressRetentionOffset={RETENTION}
-      testID={testID}
+      testID={slop ? `${testID}-tap44-hitslop` : testID}
       accessibilityRole="button"
       accessibilityLabel={label}
     >
-      <Ionicons name={icon} size={22} color="#fff" {...HIDE_FROM_A11Y} />
+      {/* Dark enough that the white glyph keeps 3:1 over a light page as well as over a photo. */}
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFill,
+          { borderRadius: size / 2, backgroundColor: reduceTransparency ? SOLID_SCRIM : 'rgba(0,0,0,0.55)' },
+          discStyle,
+        ]}
+        pointerEvents="none"
+      />
+      <Animated.View style={discStyle} pointerEvents="none">
+        <Ionicons name={icon} size={22} color="#fff" {...HIDE_FROM_A11Y} />
+      </Animated.View>
+      {solid ? (
+        <Animated.View style={[s.glyphOver, darkGlyphStyle]} pointerEvents="none">
+          <Ionicons name={icon} size={22} color={c.textPrimary} {...HIDE_FROM_A11Y} />
+        </Animated.View>
+      ) : null}
     </PressableScale>
   );
 }
@@ -169,8 +201,9 @@ function DetailRow({ label, value }: { label: string; value?: string | null }) {
       accessible
       accessibilityLabel={`${label}: ${text}`}
     >
+      {/* The facts are the content of this screen, so the value is the larger of the two lines. */}
       <Text variant="footnote" color="textSecondary" style={stacked ? undefined : s.detailLabel}>{label}</Text>
-      <Text variant="footnote" color="textPrimary" style={s.detailValue}>{text}</Text>
+      <Text variant="subhead" color="textPrimary" style={s.detailValue}>{text}</Text>
     </View>
   );
 }
@@ -208,6 +241,7 @@ const BAR_LABEL = {
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 export default function ProfileDetailScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { userId } = route.params;
@@ -251,8 +285,22 @@ export default function ProfileDetailScreen() {
     [queryClient, userId],
   );
 
+  const { data: profile, isLoading, isError, error, refetch } = useQuery({
+    queryKey: queryKeys.profile(userId),
+    queryFn: () => getProfile(userId),
+    staleTime: 5 * 60 * 1000,
+  });
+
   const tap = tapSize(elder);
-  const heroH = Math.max(380, Math.round(winH * 0.56));
+  // A member with no resolvable photo has nothing to fill 56% of the screen with, so the hero is a
+  // short monogram canvas (HeroBlock treats `height` as a floor there). A photo that EXISTS but fails
+  // to load keeps the full slot and a retry, and while the profile is still loading the slot is full
+  // height too (nothing scrolls on the loading screen).
+  const heroFirstPhoto = profile ? profile.profilePhoto || profile.photos?.[0] || null : null;
+  const heroBare = !!profile && !resolveImageUri(heroFirstPhoto);
+  const heroH = heroBare ? HERO_BARE_HEIGHT : Math.max(380, Math.round(winH * 0.56));
+  // Height of the floating header's controls, for the gallery chip that has to clear them.
+  const floatBtnSize = floatSize(elder);
   const scrollY = useSharedValue(0);
   const onScroll = useAnimatedScrollHandler((e) => {
     scrollY.value = e.contentOffset.y;
@@ -276,12 +324,6 @@ export default function ProfileDetailScreen() {
   );
   const headerBgStyle = useAnimatedStyle(() => ({ opacity: headerSolid.value }));
   const headerTitleStyle = useAnimatedStyle(() => ({ opacity: headerSolid.value }));
-
-  const { data: profile, isLoading, isError, error, refetch } = useQuery({
-    queryKey: queryKeys.profile(userId),
-    queryFn: () => getProfile(userId),
-    staleTime: 5 * 60 * 1000,
-  });
 
   // Real compatibility — shares the breakdown sheet's query key so it's fetched
   // once and stays consistent with the score on Home/Search cards. Secondary
@@ -431,6 +473,16 @@ export default function ProfileDetailScreen() {
   const canAppreciate = isMutualOrPremium && !isSelf;
 
   const name = `${profile.firstName} ${profile.lastName}`.trim();
+  // Copy that names the person ("{{first}} hasn't added...") must not render a blank when a
+  // profile has no first name yet.
+  const nameForCopy = profile.firstName?.trim() || t('profileDetail.thisMember', 'This member');
+  // "Chandigarh, Punjab": the state is the one location fact the Education card used to carry, and
+  // for a Tricity family it is not implied by the city. Dropped when it just repeats the city.
+  const heroLocation =
+    [profile.city, profile.state]
+      .filter((v): v is string => !!v)
+      .filter((v, i, all) => all.findIndex((o) => o.toLowerCase() === v.toLowerCase()) === i)
+      .join(', ') || null;
   const promptPairs = fromProfilePrompts(profile.profilePrompts as Record<string, string> | null);
   const age = profile.dateOfBirth
     ? Math.floor((Date.now() - new Date(profile.dateOfBirth).getTime()) / (365.25 * 24 * 3600 * 1000))
@@ -467,10 +519,24 @@ export default function ProfileDetailScreen() {
   const hasFamily =
     profile.familyType || profile.fatherOccupation || profile.motherOccupation || profile.numberOfSiblings;
   const hasLifestyle = profile.diet || profile.smoking || profile.drinking;
-  const hasCareer = profile.education || profile.degree || profile.profession || profile.city || profile.state;
+  // City and profession live in the hero and its chips; the Education card holds only what they do not.
+  const hasEducation = profile.education || profile.degree;
   const hasCommunity = profile.religion || profile.caste || profile.subCaste || profile.motherTongue;
   const hasAstro =
     profile.manglikStatus || profile.rashi || profile.nakshatra || profile.placeOfBirth || profile.birthTime;
+  // What the Kundli row can honestly promise: a guna match needs a nakshatra; without one the screen
+  // still offers Manglik (when either status is known) and numerology (from dates of birth).
+  const kundliSub = profile.nakshatra
+    ? t('profileDetail.kundliSub', 'Ashtakoot and Manglik')
+    : hasAstro
+      ? t('profileDetail.kundliSubPartial', 'Manglik and numerology')
+      : t('profileDetail.kundliNone', 'Horoscope not added yet');
+  const hasCompat = !isSelf && typeof compat?.overallScore === 'number';
+  const openKundli = () =>
+    navigation.navigate('HoroscopeMatch', {
+      userId: profile.userId,
+      name: [profile.firstName, profile.lastName].filter(Boolean).join(' '),
+    });
 
   // The action bar is absolutely positioned, so the scroll owes it clearance:
   // computed from the real inset, never a constant.
@@ -508,12 +574,11 @@ export default function ProfileDetailScreen() {
           photoUri={heroPhoto}
           name={name}
           age={age}
-          city={profile.city}
+          city={heroLocation}
           profession={profile.profession}
           verified={profile.isVerified}
-          compatScore={!isSelf && typeof compat?.overallScore === 'number' ? compat.overallScore : null}
           height={heroH}
-          chipTop={insets.top + spacing.xs + tap + spacing.sm}
+          chipTop={insets.top + spacing.xs + floatBtnSize + spacing.sm}
           photoCount={viewablePhotos.length}
           onOpenGallery={() => setGalleryIndex(0)}
         />
@@ -527,32 +592,130 @@ export default function ProfileDetailScreen() {
           </View>
         )}
 
-        {/* Compatibility card */}
-        {!isSelf && typeof compat?.overallScore === 'number' && (
+        {/* Compatibility card: the score, and beside it the Kundli match. The Kundli entry used to
+            be a text button buried at the bottom of the Horoscope card, and only existed when the
+            other person had horoscope data, so it read as unavailable to everyone else. It is here
+            for every profile; the screen it opens says what is and is not possible. */}
+        {!isSelf && (
           <RevealOnScroll scrollY={scrollY}>
-            <PressableScale
-              onPress={() => setBreakdownVisible(true)}
-              testID="compatibility-bar"
-              accessibilityRole="button"
-              accessibilityLabel={`Compatibility ${compat.overallScore} percent. See the full breakdown`}
-              pressRetentionOffset={RETENTION}
-            >
-              <SectionCard style={s.compatCard}>
-                <View style={s.compatRow}>
-                  <CompatRing value={compat.overallScore} size={64} />
+            <SectionCard style={s.compatCard}>
+              {hasCompat && (
+                <PressableScale
+                  onPress={() => setBreakdownVisible(true)}
+                  style={s.compatRow}
+                  testID="compatibility-bar"
+                  accessibilityRole="button"
+                  accessibilityLabel={`Compatibility ${compat?.overallScore} percent. See the full breakdown`}
+                  pressRetentionOffset={RETENTION}
+                >
+                  <CompatRing value={compat?.overallScore ?? 0} size={64} />
                   <View style={s.compatInfo}>
-                    <Text variant="headline" color="fgStrong">Compatibility</Text>
+                    {/* Same role as every other profile card title (title2). One fitted line: the ring
+                        and the chevron leave it about 190pt. */}
+                    <Text variant="title2" color="fgStrong" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
+                      {t('profile.compatibility', 'Compatibility')}
+                    </Text>
                     <Text variant="footnote" color="textSecondary" style={s.compatHint}>
                       Tap to see the full breakdown
                     </Text>
                   </View>
-                  <View style={s.compatWhy}>
-                    <Text variant="subhead" color="primary">Why</Text>
-                    <Ionicons name="chevron-forward" size={16} color={c.primary} {...HIDE_FROM_A11Y} />
-                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={c.textMuted} {...HIDE_FROM_A11Y} />
+                </PressableScale>
+              )}
+              <PressableScale
+                onPress={openKundli}
+                style={[
+                  s.kundliRow,
+                  { minHeight: tap },
+                  hasCompat && { borderTopColor: c.hairline, borderTopWidth: StyleSheet.hairlineWidth, marginTop: spacing.md, paddingTop: spacing.md },
+                ]}
+                testID="view-kundli-match"
+                accessibilityRole="button"
+                accessibilityLabel={`${t('profileDetail.kundliTitle', 'Kundli match')}. ${kundliSub}`}
+                pressRetentionOffset={RETENTION}
+              >
+                <View style={[s.kundliIcon, { backgroundColor: c.accentSoft }]}>
+                  <Ionicons name="moon-outline" size={18} color={c.primary} {...HIDE_FROM_A11Y} />
                 </View>
-              </SectionCard>
-            </PressableScale>
+                <View style={s.compatInfo}>
+                  <Text variant="headline" color="fgStrong" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+                    {t('profileDetail.kundliTitle', 'Kundli match')}
+                  </Text>
+                  <Text variant="footnote" color="textSecondary" style={s.compatHint}>{kundliSub}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={c.textMuted} {...HIDE_FROM_A11Y} />
+              </PressableScale>
+            </SectionCard>
+          </RevealOnScroll>
+        )}
+
+        {/* The order a parent reads a profile in: About, Family, Community, Horoscope, then the rest. */}
+
+        {/* About — editorial pull-quote card */}
+        {profile.bio && (
+          <RevealOnScroll scrollY={scrollY}>
+            <SectionCard title={profile.firstName?.trim() ? `About ${profile.firstName}` : 'About'} icon="book-outline">
+              <Text variant="callout" color="textPrimary">{profile.bio}</Text>
+              {(profile.interestTags?.length ?? 0) > 0 && (
+                <View style={s.tagsRow}>
+                  {/* De-duplicated: a repeated tag is a repeated chip AND a duplicate React key. */}
+                  {Array.from(new Set<string>(profile.interestTags)).map((tag) => (
+                    <View key={tag} style={[s.tag, { backgroundColor: c.accentSoft }]}>
+                      <Text variant="caption" color="primary">{tag}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </SectionCard>
+          </RevealOnScroll>
+        )}
+
+        {photoAt(0)}
+
+        {/* Family — the parent-friendly heart of the story. Always shown: a family reading a profile
+            looks for this first, and "not added yet" is an answer where a missing card is a question.
+            (It used to hold only diet, smoking and drinking, and borrowed those rows when a member
+            had no family details.) */}
+        <RevealOnScroll scrollY={scrollY}>
+          <SectionCard title={t('profile.family', 'Family')} icon="home-outline" tinted>
+            {hasFamily ? (
+              <>
+                <DetailRow label="Family type" value={profile.familyType ?? undefined} />
+                <DetailRow label="Father's occupation" value={profile.fatherOccupation ?? undefined} />
+                <DetailRow label="Mother's occupation" value={profile.motherOccupation ?? undefined} />
+                <DetailRow label="Siblings" value={profile.numberOfSiblings ? `${profile.numberOfSiblings}` : undefined} />
+              </>
+            ) : (
+              <Text variant="subhead" color="textSecondary">
+                {t('profileDetail.noFamily', "{{first}} hasn't added family details yet", { first: nameForCopy })}
+              </Text>
+            )}
+          </SectionCard>
+        </RevealOnScroll>
+
+        {hasCommunity && (
+          <RevealOnScroll scrollY={scrollY}>
+            <SectionCard title={t('profile.community', 'Community')} icon="people-outline">
+              <DetailRow label="Religion" value={profile.religion ?? undefined} />
+              <DetailRow label="Caste" value={profile.caste ?? undefined} />
+              <DetailRow label="Sub-caste" value={profile.subCaste ?? undefined} />
+              <DetailRow label="Mother tongue" value={profile.motherTongue ?? undefined} />
+            </SectionCard>
+          </RevealOnScroll>
+        )}
+
+        {photoAt(1)}
+
+        {/* Horoscope details. The match itself opens from the compatibility card above. */}
+        {hasAstro && (
+          <RevealOnScroll scrollY={scrollY}>
+            <SectionCard title={t('profile.horoscope', 'Horoscope')} icon="moon-outline">
+              <DetailRow label="Manglik" value={profile.manglikStatus?.replace(/_/g, ' ')} />
+              <DetailRow label="Rashi" value={profile.rashi ?? undefined} />
+              <DetailRow label="Nakshatra" value={profile.nakshatra ?? undefined} />
+              <DetailRow label="Birth place" value={profile.placeOfBirth ?? undefined} />
+              <DetailRow label="Birth time" value={profile.birthTime ?? undefined} />
+            </SectionCard>
           </RevealOnScroll>
         )}
 
@@ -569,34 +732,10 @@ export default function ProfileDetailScreen() {
           </RevealOnScroll>
         )}
 
-        {/* About — editorial pull-quote card */}
-        {profile.bio && (
+        {/* Lifestyle — its own card, only when there is something to say */}
+        {hasLifestyle && (
           <RevealOnScroll scrollY={scrollY}>
-            <SectionCard title={`About ${profile.firstName}`} icon="book-outline">
-              <Text variant="callout" color="textPrimary">{profile.bio}</Text>
-              {(profile.interestTags?.length ?? 0) > 0 && (
-                <View style={s.tagsRow}>
-                  {profile.interestTags.map((tag) => (
-                    <View key={tag} style={[s.tag, { backgroundColor: c.accentSoft }]}>
-                      <Text variant="caption" color="primary">{tag}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </SectionCard>
-          </RevealOnScroll>
-        )}
-
-        {photoAt(0)}
-
-        {/* Family & values — the parent-friendly heart of the story */}
-        {(hasFamily || hasLifestyle) && (
-          <RevealOnScroll scrollY={scrollY}>
-            <SectionCard title="Family & values" icon="home-outline" tinted>
-              <DetailRow label="Family type" value={profile.familyType ?? undefined} />
-              <DetailRow label="Father's occupation" value={profile.fatherOccupation ?? undefined} />
-              <DetailRow label="Mother's occupation" value={profile.motherOccupation ?? undefined} />
-              <DetailRow label="Siblings" value={profile.numberOfSiblings ? `${profile.numberOfSiblings}` : undefined} />
+            <SectionCard title={t('profile.lifestyle', 'Lifestyle')} icon="leaf-outline">
               <DetailRow label="Diet" value={profile.diet ?? undefined} />
               <DetailRow label="Smoking" value={profile.smoking ?? undefined} />
               <DetailRow label="Drinking" value={profile.drinking ?? undefined} />
@@ -604,14 +743,12 @@ export default function ProfileDetailScreen() {
           </RevealOnScroll>
         )}
 
-        {photoAt(1)}
-
         {/* Prompts — "get to know them" Q&As */}
         {promptPairs.length > 0 && (
           <RevealOnScroll scrollY={scrollY}>
-            <SectionCard title={`Get to know ${profile.firstName}`} icon="chatbubble-ellipses-outline">
-              {promptPairs.map(({ prompt, answer }) => (
-                <View key={prompt} style={s.promptItem}>
+            <SectionCard title={profile.firstName?.trim() ? `Get to know ${profile.firstName}` : 'Get to know them'} icon="chatbubble-ellipses-outline">
+              {promptPairs.map(({ prompt, answer }, i) => (
+                <View key={`${i}:${prompt}`} style={s.promptItem}>
                   <Text variant="callout" color="primary" style={s.promptQ}>{prompt}</Text>
                   <Text variant="callout" color="textPrimary">{answer}</Text>
                 </View>
@@ -623,63 +760,21 @@ export default function ProfileDetailScreen() {
         {/* Reverse partner-preference checklist */}
         {!isSelf && (
           <RevealOnScroll scrollY={scrollY}>
-            <PreferenceMatch target={profile} viewer={myProfile} targetName={profile.firstName} />
+            <PreferenceMatch target={profile} viewer={myProfile} targetName={nameForCopy} />
           </RevealOnScroll>
         )}
 
-        {/* Education & career + community details. A card with no rows would be
-            a bare title, so each renders only when it has something to show. */}
-        {hasCareer && (
+        {/* Education. A card with no rows would be a bare title, so it renders only when it has one. */}
+        {hasEducation && (
           <RevealOnScroll scrollY={scrollY}>
-            <SectionCard title="Education & career" icon="school-outline">
+            <SectionCard title={t('profile.education', 'Education')} icon="school-outline">
               <DetailRow label="Education" value={profile.education ?? undefined} />
               <DetailRow label="Degree" value={profile.degree ?? undefined} />
-              <DetailRow label="Profession" value={profile.profession ?? undefined} />
-              <DetailRow label="City" value={profile.city} />
-              <DetailRow label="State" value={profile.state} />
-            </SectionCard>
-          </RevealOnScroll>
-        )}
-
-        {hasCommunity && (
-          <RevealOnScroll scrollY={scrollY}>
-            <SectionCard title="Community" icon="people-outline">
-              <DetailRow label="Religion" value={profile.religion ?? undefined} />
-              <DetailRow label="Caste" value={profile.caste ?? undefined} />
-              <DetailRow label="Sub-caste" value={profile.subCaste ?? undefined} />
-              <DetailRow label="Mother tongue" value={profile.motherTongue ?? undefined} />
             </SectionCard>
           </RevealOnScroll>
         )}
 
         {photoAt(2)}
-
-        {/* Horoscope */}
-        {hasAstro && (
-          <RevealOnScroll scrollY={scrollY}>
-            <SectionCard title="Horoscope" icon="moon-outline">
-              <DetailRow label="Manglik" value={profile.manglikStatus?.replace(/_/g, ' ')} />
-              <DetailRow label="Rashi" value={profile.rashi ?? undefined} />
-              <DetailRow label="Nakshatra" value={profile.nakshatra ?? undefined} />
-              <DetailRow label="Birth place" value={profile.placeOfBirth ?? undefined} />
-              <DetailRow label="Birth time" value={profile.birthTime ?? undefined} />
-              <Button
-                title="View Kundli match"
-                variant="text"
-                icon="moon-outline"
-                haptic={false}
-                style={s.kundliBtn}
-                onPress={() =>
-                  navigation.navigate('HoroscopeMatch', {
-                    userId: profile.userId,
-                    name: [profile.firstName, profile.lastName].filter(Boolean).join(' '),
-                  })
-                }
-                testID="view-kundli-match"
-              />
-            </SectionCard>
-          </RevealOnScroll>
-        )}
 
         {/* Remaining photos flow out the story */}
         {restPhotos.slice(3).map((uri, i) => (
@@ -709,7 +804,7 @@ export default function ProfileDetailScreen() {
           style={[StyleSheet.absoluteFill, { backgroundColor: c.background, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.border }, headerBgStyle]}
           pointerEvents="none"
         />
-        <FloatBtn icon="arrow-back" label="Go back" onPress={() => navigation.goBack()} testID="back-btn" />
+        <FloatBtn icon="arrow-back" label="Go back" onPress={() => navigation.goBack()} testID="back-btn" solid={headerSolid} />
         {/* The hero already carries the name as this screen's header; opacity alone
             leaves this copy in the accessibility tree, so hide it. */}
         <Animated.View
@@ -723,13 +818,14 @@ export default function ProfileDetailScreen() {
         </Animated.View>
         {/* Report/block is for other people's profiles; keep the title centred. */}
         {isSelf ? (
-          <View style={{ width: tap, height: tap }} />
+          <View style={{ width: floatBtnSize, height: floatBtnSize }} />
         ) : (
           <FloatBtn
             icon="ellipsis-vertical"
             label="More options"
             onPress={() => setBlockReportVisible(true)}
             testID="menu-btn"
+            solid={headerSolid}
           />
         )}
       </View>
@@ -1003,6 +1099,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  glyphOver: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
 
   essenceBand: {
     flexDirection: 'row',
@@ -1025,7 +1122,8 @@ const s = StyleSheet.create({
   compatRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   compatInfo: { flex: 1 },
   compatHint: { marginTop: 2 },
-  compatWhy: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  kundliRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  kundliIcon: { width: 40, height: 40, borderRadius: borderRadius.sm, alignItems: 'center', justifyContent: 'center' },
 
   promptItem: { marginBottom: spacing.md },
   promptQ: {
@@ -1036,14 +1134,12 @@ const s = StyleSheet.create({
 
   detailRow: {
     flexDirection: 'row',
-    paddingVertical: 7,
+    paddingVertical: 9,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   detailRowStacked: { flexDirection: 'column', gap: 2 },
   detailLabel: { width: 130 },
   detailValue: { flex: 1 },
-
-  kundliBtn: { alignSelf: 'flex-start', marginTop: spacing.xs },
 
   safetyFooter: {
     flexDirection: 'row',

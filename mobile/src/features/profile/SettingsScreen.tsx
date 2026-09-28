@@ -21,7 +21,7 @@ import ListRow from '../../components/ui/ListRow';
 import PickerSheet from '../../components/ui/PickerSheet';
 import ScreenHeader from '../../components/ui/ScreenHeader';
 import Screen from '../../components/layout/Screen';
-import { StaggeredEntrance, useReduceTransparency } from '../../components/motion';
+import { useReduceTransparency } from '../../components/motion';
 import { showToast } from '../../utils/toast';
 import i18n from '../../i18n';
 import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
@@ -57,15 +57,18 @@ const LANG_OPTIONS: { code: Language; label: string; native: string }[] = [
 
 // ─── Section ──────────────────────────────────────────────────────────────────
 
-function Section({ title, index = 0, children }: { title: string; index?: number; children: React.ReactNode }) {
+// No entrance choreography: Settings is a tens-per-day surface and the native push has already
+// animated the whole screen in; a per-section rise on top of it is motion the member pays for
+// every visit (doctrine frequency gate). StaggeredEntrance belongs on rare surfaces only.
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   const { c } = useTheme();
   const sec = React.useMemo(() => makeSec(c), [c]);
   return (
-    <StaggeredEntrance index={index} style={sec.container}>
+    <View style={sec.container}>
       {/* textSecondary, not textMuted: a 12pt group label on the grey page fails AA in muted grey. */}
       <Text variant="caption" color="textSecondary" style={sec.title} accessibilityRole="header">{title}</Text>
       <View style={sec.card}>{children}</View>
-    </StaggeredEntrance>
+    </View>
   );
 }
 
@@ -299,7 +302,7 @@ export default function SettingsScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
 
         {/* Account */}
-        <Section title="Account" index={0}>
+        <Section title="Account">
           <ListRow
             icon="person-outline"
             label="Edit profile"
@@ -329,7 +332,7 @@ export default function SettingsScreen() {
         </Section>
 
         {/* Privacy */}
-        <Section title="Privacy" index={1}>
+        <Section title="Privacy">
           {incognitoKnown ? (
             <ListRow
               icon="eye-off-outline"
@@ -381,7 +384,7 @@ export default function SettingsScreen() {
 
         {/* Appearance — there is no in-app dark-mode switch on purpose: the app
             follows the system light/dark setting (useTheme reads it live). */}
-        <Section title="Appearance" index={2}>
+        <Section title="Appearance">
           <ListRow
             icon="text-outline"
             iconColor={c.primary}
@@ -403,7 +406,7 @@ export default function SettingsScreen() {
         </Section>
 
         {/* Family & Guardian */}
-        <Section title="Family" index={3}>
+        <Section title="Family">
           <ListRow
             icon="people-outline"
             iconColor={c.primary}
@@ -438,7 +441,7 @@ export default function SettingsScreen() {
         </Section>
 
         {/* Notifications */}
-        <Section title="Notifications" index={4}>
+        <Section title="Notifications">
           <ListRow
             icon="notifications-outline"
             label="Notifications"
@@ -450,7 +453,7 @@ export default function SettingsScreen() {
 
         {/* Role-specific sections */}
         {(user?.role === 'admin' || user?.role === 'super_admin') && (
-          <Section title="Administration" index={5}>
+          <Section title="Administration">
             <ListRow
               icon="shield-outline"
               iconColor={c.error}
@@ -463,7 +466,7 @@ export default function SettingsScreen() {
         )}
 
         {/* Support */}
-        <Section title="Support" index={7}>
+        <Section title="Support">
           <ListRow
             icon="help-circle-outline"
             iconColor={c.textSecondary}
@@ -505,7 +508,7 @@ export default function SettingsScreen() {
         </Section>
 
         {/* About & Legal */}
-        <Section title="About and legal" index={8}>
+        <Section title="About and legal">
           <ListRow
             icon="information-circle-outline"
             iconColor={c.textSecondary}
@@ -548,7 +551,7 @@ export default function SettingsScreen() {
         </Section>
 
         {/* Danger zone */}
-        <Section title="Account actions" index={9}>
+        <Section title="Account actions">
           <ListRow
             icon="log-out-outline"
             iconColor={c.warning}

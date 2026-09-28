@@ -1,11 +1,12 @@
 import React, { useRef } from 'react';
-import { FlatList, Modal, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { borderRadius, spacing } from '@shared/constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import Text from './Text';
-import { PressableScale, useReduceMotion, useReduceTransparency } from '../motion';
+import { PressableScale, useReduceTransparency } from '../motion';
+import SheetModal, { SHEET_SCRIM } from './SheetModal';
 import { tapSize } from '../../utils/elderTheme';
 import { LIST_PERF } from '../../constants/listPerf';
 
@@ -26,9 +27,11 @@ interface PickerSheetProps<T> {
 }
 
 /**
- * Single-select bottom sheet used across onboarding + forms. Rows use opacity
- * press (iOS list convention — rows don't scale); selection gets burgundy text
- * + a right-aligned checkmark and a light haptic.
+ * Single-select bottom sheet used across onboarding + forms. Rows are
+ * PressableScale with a light haptic on commit (not on touch-down, so a finger
+ * landing to scroll the list stays silent); selection gets burgundy text + a
+ * right-aligned checkmark. The shell (scrim fade + sheet slide + exit) is
+ * SheetModal.
  */
 export default function PickerSheet<T = string>({
   visible,
@@ -40,7 +43,6 @@ export default function PickerSheet<T = string>({
 }: PickerSheetProps<T>) {
   const insets = useSafeAreaInsets();
   const { c, elder } = useTheme();
-  const reduceMotion = useReduceMotion();
   const reduceTransparency = useReduceTransparency();
   const listRef = useRef<FlatList<PickerOption<T | string>>>(null);
 
@@ -58,68 +60,56 @@ export default function PickerSheet<T = string>({
   };
 
   return (
-    <Modal
+    <SheetModal
       visible={visible}
-      animationType={reduceMotion ? 'fade' : 'slide'}
-      transparent
       onRequestClose={onClose}
-      // Android: without this the scrim starts below the status bar and leaves a white band
-      // there. (`navigationBarTranslucent` would close the strip above the gesture bar too, but
-      // RN 0.76's Modal has no such prop.)
-      statusBarTranslucent
+      scrimColor={reduceTransparency ? SCRIM_SOLID : SHEET_SCRIM}
+      sheetStyle={[styles.sheet, { backgroundColor: c.background, paddingBottom: insets.bottom }]}
     >
-      <PressableScale
-        style={[styles.backdrop, reduceTransparency && styles.backdropSolid]}
-        onPress={onClose}
-        accessibilityRole="button"
-        accessibilityLabel="Close"
-        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      <Text variant="title3" color="textPrimary" style={styles.title}>{title}</Text>
+      {/* No grabber: this sheet does not drag, so a handle would promise a gesture it lacks. */}
+      <FlatList
+        ref={listRef}
+        {...LIST_PERF}
+        onLayout={scrollToSelected}
+        onScrollToIndexFailed={({ index, averageItemLength }) => {
+          // Rows past the first window are unmeasured: jump by an estimate, then settle.
+          listRef.current?.scrollToOffset({ offset: index * (averageItemLength || rowHeight), animated: false });
+          setTimeout(scrollToSelected, 50);
+        }}
+        data={normalized}
+        keyExtractor={(item) => String(item.value)}
+        renderItem={({ item }) => {
+          const active = item.value === selected;
+          return (
+            <PressableScale
+              style={[styles.row, { minHeight: rowHeight }, active && { backgroundColor: c.accentSoft }]}
+              onPress={() => {
+                onSelect(item.value);
+                onClose();
+              }}
+              haptic
+              testID={`option-${item.value}`}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text variant={active ? 'headline' : 'body'} color={active ? 'primary' : 'textPrimary'}>
+                {item.label}
+              </Text>
+              {active && <Ionicons name="checkmark" size={20} color={c.primary} />}
+            </PressableScale>
+          );
+        }}
       />
-      <View style={[styles.sheet, { backgroundColor: c.background, paddingBottom: insets.bottom }]}>
-        <Text variant="title3" color="textPrimary" style={styles.title}>{title}</Text>
-        {/* No grabber: this sheet does not drag, so a handle would promise a gesture it lacks. */}
-        <FlatList
-          ref={listRef}
-          {...LIST_PERF}
-          onLayout={scrollToSelected}
-          onScrollToIndexFailed={({ index, averageItemLength }) => {
-            // Rows past the first window are unmeasured: jump by an estimate, then settle.
-            listRef.current?.scrollToOffset({ offset: index * (averageItemLength || rowHeight), animated: false });
-            setTimeout(scrollToSelected, 50);
-          }}
-          data={normalized}
-          keyExtractor={(item) => String(item.value)}
-          renderItem={({ item }) => {
-            const active = item.value === selected;
-            return (
-              <PressableScale
-                style={[styles.row, { minHeight: rowHeight }, active && { backgroundColor: c.accentSoft }]}
-                onPress={() => {
-                  onSelect(item.value);
-                  onClose();
-                }}
-                haptic
-                testID={`option-${item.value}`}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Text variant={active ? 'headline' : 'body'} color={active ? 'primary' : 'textPrimary'}>
-                  {item.label}
-                </Text>
-                {active && <Ionicons name="checkmark" size={20} color={c.primary} />}
-              </PressableScale>
-            );
-          }}
-        />
-      </View>
-    </Modal>
+    </SheetModal>
   );
 }
 
+// Reduce Transparency: a denser scrim so the sheet still separates from the page.
+const SCRIM_SOLID = 'rgba(0,0,0,0.65)';
+
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
-  backdropSolid: { backgroundColor: 'rgba(0,0,0,0.65)' },
   sheet: {
     borderTopLeftRadius: borderRadius.xl,
     borderTopRightRadius: borderRadius.xl,

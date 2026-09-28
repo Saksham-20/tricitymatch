@@ -100,7 +100,6 @@ function ChipGroup<T extends string>({ options, selected, onToggle, idPrefix }: 
   idPrefix: string;
 }) {
   const { c, elder } = useTheme();
-  const cg = React.useMemo(() => makeCg(c), [c]);
   return (
     <View style={cg.wrap}>
       {options.map((o) => {
@@ -126,19 +125,20 @@ function ChipGroup<T extends string>({ options, selected, onToggle, idPrefix }: 
             hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
             pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            {/* c.accent is the 'primary' alias (identical hex) — resolved via the dynamic colour prop; the active-state weight bump stays a style override */}
-            <Text variant="subhead" color={active ? 'primary' : 'textPrimary'} style={[cg.label, active && cg.labelActive]}>{o.label}</Text>
+            {/* c.accent is the 'primary' alias (identical hex) — resolved via the dynamic colour prop.
+                Active is signalled by fill, border and colour only: a heavier face (Inter-SemiBold)
+                changes the chip's width, which re-wraps the row on every toggle. */}
+            <Text variant="subhead" color={active ? 'primary' : 'textPrimary'}>{o.label}</Text>
           </PressableScale>
         );
       })}
     </View>
   );
 }
-const makeCg = (c: ThemeColours) => StyleSheet.create({
+// Layout only: chip colours are applied inline from `useTheme()`.
+const cg = StyleSheet.create({
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, paddingVertical: spacing.sm },
   chip: { paddingHorizontal: 13, paddingVertical: 7, borderRadius: borderRadius.pill, borderWidth: 1 },
-  label: {},
-  labelActive: { fontFamily: 'Inter-SemiBold' },
 });
 
 function RangeRow({ label, min, max, absMin, absMax, onChangeMin, onChangeMax, unit }: {
@@ -235,7 +235,7 @@ function RadioGroup<T>({ options, selected, onSelect }: {
             <View style={[radio.dot, { borderColor: active ? c.accent : c.border }]}>
               {active && <View style={radio.dotFill} />}
             </View>
-            <Text variant="body" color={active ? 'fgStrong' : 'textSecondary'} style={[radio.label, active && radio.labelActive]}>{o.label}</Text>
+            <Text variant="body" color={active ? 'fgStrong' : 'textSecondary'}>{o.label}</Text>
           </PressableScale>
         );
       })}
@@ -249,8 +249,6 @@ const makeRadio = (c: ThemeColours) => StyleSheet.create({
   option: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.md },
   dot: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   dotFill: { width: 10, height: 10, borderRadius: 5, backgroundColor: c.accent },
-  label: {},
-  labelActive: { fontFamily: 'Inter-Medium' },
 });
 
 // ─── Main FilterPanel ─────────────────────────────────────────────────────────

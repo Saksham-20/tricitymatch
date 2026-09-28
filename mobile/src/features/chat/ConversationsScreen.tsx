@@ -3,15 +3,18 @@ import { useTabBarClearance } from '../../hooks/useTabBarClearance';
 import {
   View, FlatList, StyleSheet, RefreshControl, AccessibilityInfo,
 } from 'react-native';
-import Text from '../../components/ui/Text';
+import Text, { type TextColor } from '../../components/ui/Text';
 import { PressableScale } from '../../components/motion';
 import Screen from '../../components/layout/Screen';
+import TabHeader from '../../components/layout/TabHeader';
+import RowSeparator from '../../components/ui/RowSeparator';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { FREE_REPLY_MAX_MESSAGES, FREE_REPLY_WINDOW_MS } from '@shared/constants/chat';
 import { Avatar, EmptyState as SharedEmpty, GoldLock, SkeletonRow } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../stores/authStore';
@@ -54,10 +57,17 @@ interface ConversationCardProps {
   item: Conversation;
   /** ES5: free member without a grant on this pair — muted row, lock glyph. */
   locked?: boolean;
+  /**
+   * The server's free-reply window is on (`features.freeReplyWindow`). It decides
+   * which lock copy is true: with it on, a free member can READ everything and
+   * REPLY inside a window, so "upgrade to open" would be a lie; what Premium buys
+   * them is writing first.
+   */
+  freeReply?: boolean;
   onPress: () => void;
 }
 
-function ConversationCard({ item, locked = false, onPress }: ConversationCardProps) {
+function ConversationCard({ item, locked = false, freeReply = false, onPress }: ConversationCardProps) {
   const { c } = useTheme();
   const { t } = useTranslation();
   const s = getS(c);
@@ -66,14 +76,21 @@ function ConversationCard({ item, locked = false, onPress }: ConversationCardPro
   const unread = unreadCount > 0 && !locked;
 
   // "—" used to stand in for "no message yet", and a voice note showed its
-  // empty content string. Say what it is.
-  const preview = locked
-    ? t('chat.lockedPreview', 'Upgrade to open this conversation')
-    : !lastMessage
-      ? t('chat.noMessagesYet', 'No messages yet')
-      : lastMessage.messageType === 'voice'
-        ? t('chat.voiceMessage', 'Voice message')
-        : lastMessage.content;
+  // empty content string. Say what it is. An empty thread is an invitation, not a
+  // status: "No messages yet" told the member nothing they could act on.
+  const sayHello = !locked && !lastMessage;
+  const first = profile.firstName?.trim() || name.split(' ')[0] || t('chat.yourMatch', 'your match');
+  let preview: string;
+  if (locked) {
+    preview = freeReply
+      ? t('chat.lockedPreviewFreeReply', 'Write first with Premium')
+      : t('chat.lockedPreview', 'Upgrade to open this conversation');
+  } else if (!lastMessage) {
+    preview = t('chat.sayHelloRow', 'Say hello to {{first}}', { first });
+  } else {
+    preview = lastMessage.messageType === 'voice' ? t('chat.voiceMessage', 'Voice message') : lastMessage.content;
+  }
+  const previewColour: TextColor = unread ? 'textPrimary' : sayHello ? 'primary' : 'textMuted';
   const time = lastMessage ? formatTime(lastMessage.createdAt, t('chat.yesterday', 'Yesterday')) : '';
 
   // One spoken summary per row: who, whether there is something new, what it
@@ -110,7 +127,7 @@ function ConversationCard({ item, locked = false, onPress }: ConversationCardPro
         <View style={s.cardRow}>
           <Text
             variant="footnote"
-            color={unread ? 'textPrimary' : 'textMuted'}
+            color={previewColour}
             style={s.cardLast}
             numberOfLines={1}
             ellipsizeMode="tail"
@@ -129,14 +146,6 @@ function ConversationCard({ item, locked = false, onPress }: ConversationCardPro
   );
 }
 
-// Stable identity: an inline `ItemSeparatorComponent={() => ...}` is a new
-// component type every render, so React unmounts and remounts every separator.
-function RowSeparator() {
-  const { c } = useTheme();
-  const s = getS(c);
-  return <View style={s.separator} />;
-}
-
 export default function ConversationsScreen() {
   const tabClearance = useTabBarClearance();
   const { t } = useTranslation();
@@ -153,6 +162,10 @@ export default function ConversationsScreen() {
   // here.
   const authUser = useAuthStore((st) => st.user);
   const hasPlus = canUseChat(authUser);
+  // The gate and the locked-row copy must not deny what the free-reply window
+  // grants. Absent `features` (an older server) reads as off, which keeps the
+  // classic wording.
+  const freeReply = authUser?.features?.freeReplyWindow === true;
 
   const { data, isLoading, isError, refetch, error: convError } = useQuery({
     queryKey: queryKeys.conversations,
@@ -248,16 +261,30 @@ export default function ConversationsScreen() {
   if (!hasPlus || deniedByServer) {
     return (
       <Screen edges={['top']} style={s.container} testID="ConversationsUpgradeGate">
-        <View style={s.header}>
-          <Text variant="title1" color="fgStrong" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} accessibilityRole="header">{t('chat.title', 'Messages')}</Text>
-        </View>
+        <TabHeader title={t('chat.title', 'Messages')} />
         <View style={{ flex: 1, padding: spacing.gutter, justifyContent: 'center' }}>
-          <GoldLock
-            title={t('chat.plusRequired', 'Chat is a Premium feature')}
-            subtitle={t('chat.plusRequiredSub', 'Upgrade to message your matches directly.')}
-            ctaLabel={t('chat.upgradeBtn', 'Upgrade to Premium')}
-            onUnlock={() => navigation.navigate('Subscription')}
-          />
+          {freeReply ? (
+            // The free-reply window is on: reading is free and a reply is allowed
+            // once a Premium member writes first, so "Chat is a Premium feature"
+            // would deny what the product promises. State what Premium adds.
+            <GoldLock
+              title={t('chat.gateFreeReplyTitle', 'Sending the first message needs Premium')}
+              subtitle={t(
+                'chat.gateFreeReplyBody',
+                'You can always read messages you receive. When a Premium member writes first, you can reply {{count}} times over {{hours}} hours.',
+                { count: FREE_REPLY_MAX_MESSAGES, hours: Math.round(FREE_REPLY_WINDOW_MS / 3_600_000) }
+              )}
+              ctaLabel={t('chat.gateFreeReplyCta', 'See Premium')}
+              onUnlock={() => navigation.navigate('Subscription')}
+            />
+          ) : (
+            <GoldLock
+              title={t('chat.plusRequired', 'Chat is a Premium feature')}
+              subtitle={t('chat.plusRequiredSub', 'Upgrade to message your matches directly.')}
+              ctaLabel={t('chat.upgradeBtn', 'Upgrade to Premium')}
+              onUnlock={() => navigation.navigate('Subscription')}
+            />
+          )}
         </View>
       </Screen>
     );
@@ -265,20 +292,23 @@ export default function ConversationsScreen() {
 
   return (
     <Screen edges={['top']} style={s.container} testID="ConversationsScreen">
-      <View style={s.header}>
-        <Text variant="title1" color="fgStrong" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={s.headerTitle} accessibilityRole="header">{t('chat.title', 'Messages')}</Text>
-        {/* A real 48pt (60 elder) box rather than a 24pt icon with hitSlop. */}
-        <PressableScale
-          onPress={() => navigation.navigate('FamilyGroups')}
-          style={[s.headerBtn, { width: tap, height: tap }]}
-          accessibilityLabel={t('chat.familyGroups', 'Family groups')}
-          accessibilityRole="button"
-          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          testID="FamilyGroupsBtn"
-        >
-          <Ionicons name="people-outline" size={24} color={c.accent} />
-        </PressableScale>
-      </View>
+      <TabHeader
+        title={t('chat.title', 'Messages')}
+        trailing={
+          // A real 48pt (60 elder) box rather than a 24pt icon with hitSlop;
+          // TabHeader pulls it into the gutter so the glyph sits on the gutter line.
+          <PressableScale
+            onPress={() => navigation.navigate('FamilyGroups')}
+            style={[s.headerBtn, { width: tap, height: tap }]}
+            accessibilityLabel={t('chat.familyGroups', 'Family groups')}
+            accessibilityRole="button"
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            testID="FamilyGroupsBtn"
+          >
+            <Ionicons name="people-outline" size={24} color={c.accent} />
+          </PressableScale>
+        }
+      />
       {isLoading ? (
         // Silent for a screen reader otherwise: say what is loading.
         <View
@@ -308,7 +338,9 @@ export default function ConversationsScreen() {
           {...LIST_PERF}
           data={conversations}
           keyExtractor={(item) => item.userId}
-          renderItem={({ item }) => <ConversationCard item={item} locked={rowLocked(item)} onPress={() => handlePress(item)} />}
+          renderItem={({ item }) => (
+            <ConversationCard item={item} locked={rowLocked(item)} freeReply={freeReply} onPress={() => handlePress(item)} />
+          )}
           ListEmptyComponent={
             <SharedEmpty
               icon="chatbubbles-outline"
@@ -327,8 +359,8 @@ export default function ConversationsScreen() {
   );
 }
 
-// Built once per palette, not once per row: every ConversationCard and every
-// RowSeparator asked for its own copy, and rows remount as they scroll. `c` is
+// Built once per palette, not once per row: every ConversationCard asked for its
+// own copy, and rows remount as they scroll. `c` is
 // always the `colours` / `darkColours` singleton from useTheme().
 const sheetsByPalette = new WeakMap<ThemeColours, ReturnType<typeof makeS>>();
 function getS(c: ThemeColours): ReturnType<typeof makeS> {
@@ -342,15 +374,8 @@ function getS(c: ThemeColours): ReturnType<typeof makeS> {
 
 const makeS = (c: ThemeColours) => StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: spacing.gutter, paddingVertical: 8,
-  },
-  // Shrinks (with adjustsFontSizeToFit) before it pushes the family-groups button off the row.
-  headerTitle: { flexShrink: 1 },
-  // Size (48 / 60 elder) is applied inline; the negative margin keeps the icon
-  // on the gutter line instead of inset by the box padding.
-  headerBtn: { alignItems: 'center', justifyContent: 'center', marginRight: -12 },
+  // Size (48 / 60 elder) is applied inline. TabHeader owns the gutter pull.
+  headerBtn: { alignItems: 'center', justifyContent: 'center' },
   emptyContainer: { flex: 1 },
   card: {
     flexDirection: 'row', alignItems: 'center', gap: 13,
@@ -367,5 +392,4 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     backgroundColor: c.p500, borderRadius: borderRadius.pill,
     minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5,
   },
-  separator: { height: 0.5, backgroundColor: c.hairline, marginLeft: 54 + 13 + spacing.gutter },
 });

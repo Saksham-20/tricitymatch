@@ -12,6 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import Text from '../../components/ui/Text';
 import Screen from '../../components/layout/Screen';
 import { PressableScale, StaggeredEntrance } from '../../components/motion';
@@ -178,6 +179,12 @@ const unlockDailyCap = (p: PlanFeatures): number | null => {
   return typeof v === 'number' && v > 0 ? v : null;
 };
 
+// There is no "Advanced filters" row: `canUseAdvancedFilters` has no consumer and the
+// filter panel has no gate, so listing it sold something the app does not deliver.
+//
+// The `chat` row's label is replaced at render when the free-reply window is on
+// (see `featureRows`): "Chat with matches" crossed out on the Free card denies
+// what that window grants, since a free member can read and reply.
 const FEATURES: FeatureDef[] = [
   { key: 'chat',    label: 'Chat with matches',      value: (p) => p.canChat },
   { key: 'likedMe', label: 'See who liked me',       value: (p) => p.canSeeWhoLikedMe },
@@ -186,7 +193,6 @@ const FEATURES: FeatureDef[] = [
   // card advertising calls would promise something the app cannot show. See
   // `featureRows` below, which drops this row when the gate is off.
   { key: 'calls',   label: 'Voice & video calls',    value: (p) => p.canMakeVoiceVideoCalls },
-  { key: 'filters', label: 'Advanced filters',       value: (p) => p.canUseAdvancedFilters },
   { key: 'boost',   label: 'Profile boost',          value: (p) => p.canBoostProfile },
   { key: 'rm',      label: 'Relationship manager',   value: (p) => p.hasRelationshipManager },
   {
@@ -280,10 +286,13 @@ function PlanCard({ plan, rows, isCurrent, isSelected, onSelect, currency }: Pla
   // so there is no shadow on top of it.
   const borderColour = isGold ? c.g500 : isSelected ? c.accent : c.border;
 
+  // The Free card's title already says "Free"; a second "Free" as its price line
+  // (and again in the spoken label) is the same word twice.
+  const titleSaysFree = plan.price <= 0 && plan.label.trim().toLowerCase() === 'free';
   const priceSpoken = plan.price > 0
     ? `₹${plan.price.toLocaleString('en-IN')}${plan.durationDays ? ` for ${plan.durationDays} days` : ''}` +
       (plan.mrp && plan.mrp > plan.price ? `, regular price ₹${plan.mrp.toLocaleString('en-IN')}` : '')
-    : 'free';
+    : titleSaysFree ? null : 'free';
   const included = rows
     .map((r) => ({ r, v: r.value(plan) }))
     .filter(({ v }) => isOn(v))
@@ -364,7 +373,7 @@ function PlanCard({ plan, rows, isCurrent, isSelected, onSelect, currency }: Pla
                 <Text variant="caption" color="textSecondary" style={pc.perMonth}>≈ {localPrice} (charged in ₹)</Text>
               ) : null}
             </>
-          ) : (
+          ) : titleSaysFree ? null : (
             <Text variant="headline" color="fgStrong">Free</Text>
           )}
         </View>
@@ -599,6 +608,7 @@ const tell = {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function SubscriptionScreen() {
+  const { t } = useTranslation();
   const { c, elder } = useTheme();
   const s = React.useMemo(() => makeS(c), [c]);
   const navigation = useNavigation<Nav>();
@@ -684,8 +694,15 @@ export default function SubscriptionScreen() {
   // advertising something nobody can buy here. The calls row also needs Agora:
   // the shared capability table says Premium can call, but this build hides the
   // call buttons without credentials, so the card must not promise them.
+  const freeReplyOn = user?.features?.freeReplyWindow === true;
   const featureRows = FEATURES.filter(
     (f) => (f.key !== 'calls' || CONFIG.IS_AGORA_CONFIGURED) && visiblePlans.some((p) => isOn(f.value(p))),
+  ).map((f) =>
+    // With the free-reply window on, a free member CAN chat (read everything, reply
+    // inside the window). What only a paid plan adds is writing first, so that is
+    // what the row must name; the value (Free crossed, Premium ticked) is unchanged
+    // and is now true. With it off the row keeps its original wording.
+    f.key === 'chat' && freeReplyOn ? { ...f, label: t('subscription.writeFirst', 'Write first to any match') } : f,
   );
 
   // Everything price-shaped on this screen reads the SERVER's plan. `PLANS`

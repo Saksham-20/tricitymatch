@@ -10,7 +10,7 @@ import React from 'react';
 import { View, ActivityIndicator, StatusBar, useColorScheme } from 'react-native';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import { toastConfig } from './src/components/ui/toastConfig';
 import { useFonts } from 'expo-font';
@@ -45,6 +45,15 @@ function AppStatusBar() {
   );
 }
 
+// The library's default `topOffset` is a flat 40 — not inset-aware, so on an edge-to-edge Android
+// (targetSdk 35) or a notched iPhone the toast lands under the status bar / cutout. Sit it one
+// gutter below the real top inset instead.
+const TOAST_GAP = 8;
+function AppToast() {
+  const insets = useSafeAreaInsets();
+  return <Toast config={toastConfig} topOffset={insets.top + TOAST_GAP} />;
+}
+
 export default function App() {
   const [fontsLoaded] = useFonts({
     'PlayfairDisplay-Regular': PlayfairDisplay_400Regular,
@@ -70,7 +79,7 @@ export default function App() {
         <AppStatusBar />
         <QueryClientProvider client={queryClient}>
           <RootNavigator />
-          <Toast config={toastConfig} />
+          <AppToast />
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

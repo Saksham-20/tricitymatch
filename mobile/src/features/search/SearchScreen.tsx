@@ -11,9 +11,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   AccessibilityInfo,
-  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, { Easing, FadeOut, LinearTransition } from 'react-native-reanimated';
 import Screen from '../../components/layout/Screen';
 import Text from '../../components/ui/Text';
 import Input from '../../components/ui/Input';
@@ -26,11 +26,12 @@ import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-q
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { type as typeScale, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { duration, EASE_IN_OUT, EASE_OUT } from '@shared/constants/motion';
 import { getProfileByCode, search, createSavedSearch } from '../../api/search';
 import { showToast } from '../../utils/toast';
 import { performMatchAction } from '../../api/matches';
-import ProfileCard, { CARD_MAX_W, PHOTO_ASPECT, cardWidthFor } from '../../components/cards/ProfileCard';
-import { EmptyState as SharedEmpty, PickerSheet, SkeletonBlock } from '../../components/ui';
+import ProfileCard, { CARD_MAX_W } from '../../components/cards/ProfileCard';
+import { EmptyState as SharedEmpty, MatchCelebration, PickerSheet, SkeletonBlock } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
 import FilterPanel, { type FilterPanelHandle } from '../../components/search/FilterPanel';
 import type { MainStackParamList } from '../../navigation/types';
@@ -39,6 +40,7 @@ import { formatProfileCode, parseProfileCode } from '../../utils/profileCode';
 import { LIST_PERF } from '../../constants/listPerf';
 import { queryKeys } from '../../constants/queryKeys';
 import { tapSize } from '../../utils/elderTheme';
+import { haptics } from '../../utils/haptics';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 
@@ -85,24 +87,41 @@ function toServerParams(f: SearchFilters): SearchFilters & Record<string, unknow
   } as unknown as SearchFilters & Record<string, unknown>;
 }
 
+// A card that leaves the list (Pass) fades out (opacity only, no travel) and the cards below
+// close the gap on a layout move, instead of the ~500pt card vanishing in one frame and
+// everything below jumping up. Built once here; both are dropped under Reduce Motion.
+// Layout builders take a plain easing function, so `bezierFn` (not the `bezier` factory).
+const CARD_EXIT = FadeOut.duration(duration.menu).easing(Easing.bezierFn(...EASE_OUT));
+const LIST_REFLOW = LinearTransition.duration(duration.layout).easing(Easing.bezierFn(...EASE_IN_OUT));
+
+/** The person a Like was sent to: carried through the mutation so a mutual match can name them. */
+type MatchedWho = { userId: string; name: string; photo?: string };
+
 // An empty array is the same as no filter: toggling a chip on and off leaves [].
 const isSet = (v: unknown) => v !== undefined && !(Array.isArray(v) && v.length === 0);
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
-// Same footprint as a ProfileCard: photo (the card's own width formula times its own
-// aspect, both imported from it so they cannot drift) plus the three-button action
-// row. A skeleton shorter than the card it stands in for makes the list jump when
-// the data lands.
+// Same footprint as a ProfileCard in its COMMON state. About 60% of members have no
+// photo, and that card is an identity row (avatar, three lines) over the action row, so
+// the skeleton is that shape. A tall photo block here made every photoless card land
+// ~230pt shorter than its placeholder and the list jumped when data arrived. A photo
+// card is taller than this; a skeleton cannot know which it will be, so it stands in
+// for the majority.
 function CardSkeleton() {
   const { c } = useTheme();
-  const { width } = useWindowDimensions();
   const sk = React.useMemo(() => makeSk(c), [c]);
-  const photoH = Math.round(cardWidthFor(width) * PHOTO_ASPECT);
   return (
     <View style={sk.outer}>
       <View style={sk.card}>
-        <SkeletonBlock width="100%" height={photoH} radius={0} />
+        <View style={sk.identity}>
+          <SkeletonBlock width={72} height={72} radius={36} />
+          <View style={sk.lines}>
+            <SkeletonBlock width="72%" height={20} />
+            <SkeletonBlock width="48%" height={14} />
+            <SkeletonBlock width="34%" height={22} radius={11} />
+          </View>
+        </View>
         <View style={sk.actions}>
           <SkeletonBlock width="18%" height={14} />
           <SkeletonBlock width="24%" height={14} />
@@ -122,6 +141,8 @@ const makeSk = (c: ThemeColours) => StyleSheet.create({
     borderRadius: borderRadius.lg,
     overflow: 'hidden',
   },
+  identity: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  lines: { flex: 1, gap: spacing.sm },
   actions: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', paddingVertical: 16 },
 });
 
@@ -161,6 +182,7 @@ function SaveSearchModal({
   onClearError?: () => void;
 }) {
   const { c } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const ss = React.useMemo(() => makeSs(c), [c]);
   const [name, setName] = useState('');
@@ -192,7 +214,8 @@ function SaveSearchModal({
           <Text variant="headline" color="textPrimary" style={ss.title} accessibilityRole="header">Save search</Text>
           <Input
             label="Name this search"
-            helper="For example: Punjabi doctor in Chandigarh"
+            // The example names only things a saved search actually keeps (religion, city, age).
+            helper={t('search.saveNameHelper', 'For example: Sikh in Chandigarh, 26 to 30')}
             error={error ?? undefined}
             containerStyle={ss.inputContainer}
             value={name}
@@ -202,6 +225,11 @@ function SaveSearchModal({
             maxLength={60}
             accessibilityLabel="Search name"
           />
+          {/* What the server keeps: it stores religion, caste, city and age and drops every
+              other filter, so the sheet says so instead of implying the whole filter set is saved. */}
+          <Text variant="footnote" color="textMuted" style={ss.scope}>
+            {t('search.saveScope', 'Saves religion, caste, city and age.')}
+          </Text>
           <View style={ss.row}>
             <Button title="Cancel" variant="secondary" onPress={onClose} style={ss.rowBtn} />
             <Button
@@ -222,7 +250,8 @@ const makeSs = (c: ThemeColours) => StyleSheet.create({
   scrim: { flex: 1, backgroundColor: c.scrim },
   sheet: { backgroundColor: c.sheetBg, borderTopLeftRadius: borderRadius.xl, borderTopRightRadius: borderRadius.xl, padding: spacing.lg },
   title: { marginBottom: spacing.md },
-  inputContainer: { marginBottom: spacing.lg },
+  inputContainer: { marginBottom: spacing.xs },
+  scope: { marginBottom: spacing.lg },
   row: { flexDirection: 'row', gap: spacing.md },
   rowBtn: { flex: 1 },
 });
@@ -234,7 +263,6 @@ export default function SearchScreen() {
   const navigation = useNavigation<Nav>();
   const { t } = useTranslation();
   const { c, elder } = useTheme();
-  const s = React.useMemo(() => makeS(c), [c]);
   // Elder mode's 60pt floor for the two toolbar pills; the default look is unchanged.
   const toolMinHeight = elder ? tapSize(elder) : undefined;
   const tap = tapSize(elder);
@@ -283,6 +311,9 @@ export default function SearchScreen() {
   // What the member has done to each card this session (drives the confirmed
   // state; a pass removes the card).
   const [acted, setActed] = useState<Record<string, MatchAction>>({});
+  // A Like that turns out to be mutual: the same celebration Matches and ProfileDetail play.
+  const [celebrate, setCelebrate] = useState<MatchedWho | null>(null);
+  const reduceMotion = useReduceMotion();
 
   // A member who has been given a profile ID offline ("mine is TCS-A1B2C3D4")
   // types it into the one search box they can see. Rather than add a second
@@ -398,14 +429,14 @@ export default function SearchScreen() {
   // ── Match actions ───────────────────────────────────────────────────────
   const queryClient = useQueryClient();
   const actionMutation = useMutation({
-    mutationFn: ({ userId, action }: { userId: string; action: MatchAction }) =>
+    mutationFn: ({ userId, action }: { userId: string; action: MatchAction; who: MatchedWho }) =>
       performMatchAction(userId, action),
     // Hook-level, so it fires for EVERY tap: per-call callbacks only fire for the
     // latest of several in-flight mutations, and cards are tapped in quick succession.
     // Matches keeps its lists cached for minutes (shortlist for 30), so a person the
     // member just saved or liked must be pushed into those lists here, or Matches
     // says they are not there until a manual pull to refresh.
-    onSuccess: (_data, { userId, action }) => {
+    onSuccess: (data, { userId, action, who }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.profile(userId) });
       if (action === 'shortlist') queryClient.invalidateQueries({ queryKey: queryKeys.shortlisted });
       if (action === 'like') {
@@ -415,6 +446,16 @@ export default function SearchScreen() {
       // A like or pass on someone who already liked the member answers that interest.
       if (action === 'like' || action === 'pass') queryClient.invalidateQueries({ queryKey: queryKeys.likedMe });
       queryClient.invalidateQueries({ queryKey: queryKeys.dailyMatches });
+      // A mutual match plays MatchCelebration, which fires its own success haptic; a plain
+      // like gets the success haptic here (the tap itself only gave a light one).
+      if (action === 'like') {
+        if (data.isMutualMatch) {
+          setCelebrate(who);
+          AccessibilityInfo.announceForAccessibility(`It's a match${who.name ? ` with ${who.name}` : ''}`);
+        } else {
+          haptics.success();
+        }
+      }
     },
     onError: (_err, { userId }) => {
       // Undo the optimistic mark: the request did not land, so the card must not say it did.
@@ -430,11 +471,20 @@ export default function SearchScreen() {
   const sendAction = actionMutation.mutate;
 
   const handleAction = useCallback(
-    (userId: string, action: MatchAction) => {
+    (item: ProfileSummary, action: MatchAction) => {
+      const userId = item.userId;
       // Optimistic: the card shows its confirmed state (or leaves the list) on the
       // tap, and onError above puts it back if the request fails.
       setActed((a) => ({ ...a, [userId]: action }));
-      sendAction({ userId, action });
+      sendAction({
+        userId,
+        action,
+        who: {
+          userId,
+          name: [item.firstName, item.lastName].filter(Boolean).join(' '),
+          photo: item.profilePhoto ?? item.photos?.[0] ?? undefined,
+        },
+      });
       AccessibilityInfo.announceForAccessibility(
         action === 'like' ? 'Interest sent' : action === 'shortlist' ? 'Added to your shortlist' : 'Profile passed'
       );
@@ -466,18 +516,22 @@ export default function SearchScreen() {
     ({ item }: { item: ProfileSummary }) => {
       const done = acted[item.userId];
       return (
-        <ProfileCard
-          profile={item}
-          onLike={() => handleAction(item.userId, 'like')}
-          onShortlist={() => handleAction(item.userId, 'shortlist')}
-          onPass={() => handleAction(item.userId, 'pass')}
-          onPress={() => navigation.navigate('ProfileDetail', { userId: item.userId })}
-          showCompatibility
-          sentAction={done === 'like' || done === 'shortlist' ? done : undefined}
-        />
+        // The wrapper carries the exit: Animated.FlatList's own cell only handles the layout
+        // move, and the card is plain Views with their own press animations.
+        <Animated.View exiting={reduceMotion ? undefined : CARD_EXIT}>
+          <ProfileCard
+            profile={item}
+            onLike={() => handleAction(item, 'like')}
+            onShortlist={() => handleAction(item, 'shortlist')}
+            onPass={() => handleAction(item, 'pass')}
+            onPress={() => navigation.navigate('ProfileDetail', { userId: item.userId })}
+            showCompatibility
+            sentAction={done === 'like' || done === 'shortlist' ? done : undefined}
+          />
+        </Animated.View>
       );
     },
-    [handleAction, navigation, acted]
+    [handleAction, navigation, acted, reduceMotion]
   );
 
   const renderFooter = useCallback(() => {
@@ -490,46 +544,76 @@ export default function SearchScreen() {
 
   return (
     <Screen edges={['top']} testID="SearchScreen">
-      {/* Profile-ID box. The server has no name search, so this is honest about
-          the one thing it does. */}
-      <View style={[s.searchBar, { backgroundColor: c.surfaceCard, borderColor: c.border, minHeight: tap }]}>
-        <Ionicons
-          name="search"
-          size={18}
-          color={c.textMuted}
-          style={s.searchIcon}
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-        />
-        <TextInput
-          style={[s.searchInput, searchType, { color: c.fgStrong }]}
-          value={nameQuery}
-          onChangeText={(v) => { setNameQuery(v); if (codeLookupError) setCodeLookupError(null); }}
-          placeholder="Profile ID, e.g. TCS-A1B2C3D4"
-          // textMuted is 3.4:1 on the white field; the placeholder carries the ID format, so it
-          // has to pass 4.5:1 (textSecondary is 6.9:1 light, 8:1 dark).
-          placeholderTextColor={c.textSecondary}
-          returnKeyType="search"
-          autoCapitalize="characters"
-          autoCorrect={false}
-          onSubmitEditing={() => { if (typedCode && !codeLookup.isPending) codeLookup.mutate(); }}
-          accessibilityLabel="Profile ID"
-          accessibilityRole="search"
-          testID="search-input"
-        />
-        {/* iOS-only clearButtonMode is not a control on Android, so the clear button is ours. */}
-        {nameQuery.length > 0 && (
-          <PressableScale
-            style={[s.clearBtn, elder && { width: tap, height: tap }]}
-            onPress={() => { setNameQuery(''); setCodeLookupError(null); }}
-            accessibilityRole="button"
-            accessibilityLabel="Clear profile ID"
-            testID="search-clear"
-            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="close-circle" size={18} color={c.textMuted} />
-          </PressableScale>
-        )}
+      {/* One row: the profile-ID box and Filters. The server has no name search, so the box
+          is honest about the one thing it does; Filters is an icon button beside it (its state
+          is in the accessibility label and the tinted fill), not a second row of chrome. */}
+      <View style={s.topRow}>
+        <View style={[s.searchBar, { backgroundColor: c.surfaceCard, borderColor: c.border, minHeight: tap }]}>
+          <Ionicons
+            name="search"
+            size={18}
+            color={c.textMuted}
+            style={s.searchIcon}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          />
+          <TextInput
+            style={[s.searchInput, searchType, { color: c.fgStrong }]}
+            value={nameQuery}
+            onChangeText={(v) => { setNameQuery(v); if (codeLookupError) setCodeLookupError(null); }}
+            placeholder="Profile ID, e.g. TCS-A1B2C3D4"
+            // textMuted is 3.4:1 on the white field; the placeholder carries the ID format, so it
+            // has to pass 4.5:1 (textSecondary is 6.9:1 light, 8:1 dark).
+            placeholderTextColor={c.textSecondary}
+            returnKeyType="search"
+            autoCapitalize="characters"
+            autoCorrect={false}
+            onSubmitEditing={() => { if (typedCode && !codeLookup.isPending) codeLookup.mutate(); }}
+            accessibilityLabel="Profile ID"
+            accessibilityRole="search"
+            testID="search-input"
+          />
+          {/* iOS-only clearButtonMode is not a control on Android, so the clear button is ours. */}
+          {nameQuery.length > 0 && (
+            <PressableScale
+              style={[s.clearBtn, elder && { width: tap, height: tap }]}
+              onPress={() => { setNameQuery(''); setCodeLookupError(null); }}
+              accessibilityRole="button"
+              accessibilityLabel="Clear profile ID"
+              testID="search-clear"
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="close-circle" size={18} color={c.textMuted} />
+            </PressableScale>
+          )}
+        </View>
+
+        <PressableScale
+          style={[
+            s.filterBtn,
+            { width: tap, minHeight: tap, backgroundColor: c.surface2, borderColor: c.border },
+            hasFilters && { backgroundColor: c.accentSoft, borderColor: c.accent },
+          ]}
+          onPress={() => filterRef.current?.open()}
+          accessibilityLabel={hasFilters ? 'Open filters, filters applied' : 'Open filters'}
+          accessibilityRole="button"
+          accessibilityState={{ selected: hasFilters }}
+          // The button is `tap` (48, 60 in elder) on its own, so it needs no hitSlop; the id keeps
+          // the name the tap-target audit and any harness already know it by.
+          testID="filter-btn-tap44-hitslop"
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="options" size={20} color={hasFilters ? c.accent : c.textSecondary} />
+          {/* Active marker: the tinted fill plus a dot. The state is also in the button's
+              accessibility label, so the dot is decorative. */}
+          {hasFilters ? (
+            <View
+              style={[s.filterDot, { backgroundColor: c.accent, borderColor: c.accentSoft }]}
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+            />
+          ) : null}
+        </PressableScale>
       </View>
 
       {/* Profile-ID lookup: only when what's typed could be a code */}
@@ -567,37 +651,23 @@ export default function SearchScreen() {
         </View>
       ) : null}
 
-      {/* Filter + Sort row */}
-      <View style={s.toolbar}>
-        <View style={s.toolbarLeft}>
-          <PressableScale
-            style={[
-              s.toolBtn,
-              { backgroundColor: c.surface2, borderColor: c.border, minHeight: toolMinHeight },
-              hasFilters && { backgroundColor: c.accentSoft, borderColor: c.accent },
-            ]}
-            onPress={() => filterRef.current?.open()}
-            accessibilityLabel={hasFilters ? 'Open filters, filters applied' : 'Open filters'}
-            accessibilityRole="button"
-            accessibilityState={{ selected: hasFilters }}
-            testID="filter-btn-tap44-hitslop"
-            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="options" size={16} color={hasFilters ? c.accent : c.textSecondary} />
-            <Text variant="subhead" color={hasFilters ? 'primary' : 'textSecondary'} numberOfLines={1} maxScale={1.3}>
-              Filters
+      {/* Count left, sort right. The count is hidden at zero: the empty state below already
+          says so, and showing both put "No profiles found" above the list twice. It updates
+          without a tap (filters), so it is a live region. */}
+      <View style={s.metaRow}>
+        <View style={s.metaLeft}>
+          {!isLoading && !searchFailed && total > 0 && (
+            <Text
+              variant="subhead"
+              color="textMuted"
+              numberOfLines={1}
+              maxScale={1.3}
+              style={s.tabular}
+              accessibilityLiveRegion="polite"
+            >
+              {`${total.toLocaleString('en-IN')} ${total === 1 ? 'profile' : 'profiles'}`}
             </Text>
-            {/* Active marker: the tinted pill plus a dot. The state is also in the button's
-                accessibility label, so the dot is decorative. */}
-            {hasFilters ? (
-              <View
-                style={[s.filterDot, { backgroundColor: c.accent }]}
-                accessibilityElementsHidden
-                importantForAccessibility="no-hide-descendants"
-              />
-            ) : null}
-          </PressableScale>
+          )}
         </View>
 
         <PressableScale
@@ -615,22 +685,11 @@ export default function SearchScreen() {
         </PressableScale>
       </View>
 
-      {/* Result count. Hidden at zero: the empty state below already says so, and
-          showing both put "No profiles found" above the list twice. It updates
-          without a tap (filters), so it is a live region. */}
-      {!isLoading && !searchFailed && total > 0 && (
-        <View style={s.countRow}>
-          <Text variant="footnote" color="textMuted" accessibilityLiveRegion="polite">
-            {`${total} ${total === 1 ? 'profile' : 'profiles'} found`}
-          </Text>
-        </View>
-      )}
-
       {/* List */}
       {isLoading ? (
         <View accessible accessibilityLabel="Loading profiles" accessibilityState={{ busy: true }} style={s.flex}>
           <FlatList
-            data={[1, 2, 3]}
+            data={[1, 2, 3, 4]}
             keyExtractor={(i) => String(i)}
             renderItem={() => <CardSkeleton />}
             contentContainerStyle={[s.list, { paddingBottom: tabClearance }]}
@@ -661,8 +720,12 @@ export default function SearchScreen() {
           testID="SearchScreen-empty"
         />
       ) : (
-        <FlatList
+        <Animated.FlatList
           {...LIST_PERF}
+          // Motion only while the member acts on the list. Without this flag every card would also
+          // play its exit when the whole list is swapped for the skeleton or the empty state.
+          skipEnteringExitingAnimations
+          itemLayoutAnimation={reduceMotion ? undefined : LIST_REFLOW}
           data={profiles}
           extraData={acted}
           keyExtractor={(item) => item.id}
@@ -698,6 +761,19 @@ export default function SearchScreen() {
         onClearError={() => setSaveError(null)}
       />
 
+      {/* Mutual-match reveal, the same one Matches and ProfileDetail play. */}
+      <MatchCelebration
+        visible={!!celebrate}
+        name={celebrate?.name || undefined}
+        onClose={() => setCelebrate(null)}
+        onMessage={() => {
+          // Straight into the thread with the person just matched, not the chat list.
+          const who = celebrate;
+          setCelebrate(null);
+          if (who) navigation.navigate('ChatThread', { userId: who.userId, name: who.name, photo: who.photo });
+        }}
+      />
+
       {/* Sort Picker */}
       <PickerSheet<SortOption>
         visible={showSort}
@@ -712,14 +788,24 @@ export default function SearchScreen() {
   );
 }
 
-const makeS = (c: ThemeColours) => StyleSheet.create({
+// Layout, spacing and radius only: every colour on this screen is applied inline from `useTheme()`.
+const s = StyleSheet.create({
   flex: { flex: 1 },
+  // ID box + Filters on one row. The gutter is spacing.gutter (18) like every other screen's, not
+  // spacing.lg. `stretch` so the Filters button matches the field when the field grows with text size.
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.gutter,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
+  },
   // minHeight, not height: the field grows with the OS text size instead of clipping it.
   searchBar: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    margin: spacing.lg,
-    marginBottom: spacing.sm,
     borderRadius: borderRadius.md,
     borderWidth: 1,
     paddingHorizontal: spacing.md,
@@ -727,6 +813,21 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   },
   searchIcon: { marginRight: spacing.sm },
   clearBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginRight: -spacing.md },
+  filterBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+  },
+  filterDot: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    borderWidth: 1.5,
+  },
   codeRow: { paddingHorizontal: spacing.gutter, paddingBottom: spacing.sm, gap: 4 },
   codeBtn: {
     flexDirection: 'row',
@@ -746,25 +847,21 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     alignSelf: 'stretch',
     paddingVertical: spacing.sm,
   },
-  toolbar: {
+  // Count left, sort right. The 4pt top padding plus the 8pt under the row above keeps the sort
+  // control's 12pt hitSlop from reaching into the search field.
+  metaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.gutter,
+    paddingTop: spacing.xs,
     paddingBottom: spacing.sm,
   },
-  // The Filters pill never shrinks; the Sort label gives way (ellipsis) instead, so at max text
-  // size or in elder mode on a 360dp screen the chevron is not pushed off the edge.
-  toolbarLeft: { flexDirection: 'row', gap: spacing.sm, flexShrink: 0 },
-  toolBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.full,
-    borderWidth: 1,
-  },
+  // The count takes the leftover width; the Sort label gives way (ellipsis) when both cannot fit,
+  // so at max text size or in elder mode on a 360dp screen the chevron is not pushed off the edge.
+  metaLeft: { flex: 1, minWidth: 0 },
+  // A number that changes with every filter keeps fixed digit widths so the row does not shimmy.
+  tabular: { fontVariant: ['tabular-nums'] },
   sortBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -773,11 +870,6 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     marginLeft: spacing.sm,
   },
   sortLabel: { flexShrink: 1 },
-  filterDot: { width: 7, height: 7, borderRadius: 4 },
-  countRow: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.sm,
-  },
   list: {
     paddingTop: spacing.sm,
     paddingBottom: spacing['5xl'],

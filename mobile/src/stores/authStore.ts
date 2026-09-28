@@ -82,9 +82,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         await secureStorage.deleteRefreshToken();
         set({ isAuthenticated: false });
       }
-    } catch {
-      await secureStorage.deleteRefreshToken();
-      set({ isAuthenticated: false });
+    } catch (error) {
+      // Only a REJECTED refresh means the session is gone (same rule as the 401 interceptor in
+      // api/client.ts). A refresh that never reached the server, or that got a 5xx, says nothing
+      // about the token, and deleting it on a cold start with no signal signs the member out
+      // for opening the app on a bad connection. Keep the token; with a cached user, open the
+      // app on it, and the interceptor refreshes lazily on the first request once the network
+      // is back. Without a cached user there is nothing to show, so fall to sign-in but keep
+      // the token for the next launch.
+      const status = (error as { response?: { status?: number } })?.response?.status;
+      const serverRejected = status === 401 || status === 403;
+      if (serverRejected) {
+        await secureStorage.deleteRefreshToken();
+        set({ isAuthenticated: false });
+      } else {
+        set({ isAuthenticated: !!get().user });
+      }
     } finally {
       set({ isLoading: false });
     }

@@ -32,7 +32,6 @@ interface HeroBlockProps {
   city?: string | null;
   profession?: string | null;
   verified?: boolean;
-  compatScore?: number | null;
   height: number;
   /** Distance from the hero's top edge to the gallery chip, so it clears the floating header. */
   chipTop: number;
@@ -44,8 +43,20 @@ interface HeroBlockProps {
 
 /**
  * Full-bleed story hero: first photo, bottom scrim, and the identity overlay
- * (Playfair name, city chip, verified badge). A photo-less profile gets a warm
- * burgundy monogram canvas — same overlay, nothing looks broken.
+ * (Playfair name, city chip, verified badge).
+ *
+ * With no photo on screen the hero is a light monogram canvas and the identity
+ * reads dark-on-light (`fgStrong` name, `surface2` chips): there is no photo for
+ * a scrim to protect the text from, and a dark scrim over a pale canvas only
+ * produced a muddy pink-to-brown ramp with a white name at about 4:1.
+ *   bare    the member has no resolvable photo at all. A compact, in-flow hero
+ *           (the screen passes a short `height`, used as a minimum) with a
+ *           smaller monogram: it holds nothing worth 56% of the screen.
+ *   failed  a photo exists but did not load. Keeps the full-height slot, says so,
+ *           and offers a retry, so a member with a photo is never shown as
+ *           photoless.
+ * The hero carries no compatibility chip: the compatibility card leads the page
+ * one block below, so the same number was shown twice.
  *
  * The photo is static. Parallax and the overscroll zoom were scroll-scrubbed
  * values that moved the image well past the 16px ceiling; both are banned on
@@ -58,7 +69,6 @@ export default function HeroBlock({
   city,
   profession,
   verified,
-  compatScore,
   height,
   chipTop,
   photoCount = 0,
@@ -66,7 +76,6 @@ export default function HeroBlock({
 }: HeroBlockProps) {
   const { c, elder } = useTheme();
   const reduceTransparency = useReduceTransparency();
-  const s = React.useMemo(() => makeS(c, reduceTransparency), [c, reduceTransparency]);
   const { width } = useWindowDimensions();
   const [failed, setFailed] = useState(false);
   // Bumping this remounts the image, which is what makes "Try again" fetch again.
@@ -76,6 +85,10 @@ export default function HeroBlock({
   // it did not load, and offer a retry (the gallery still reads "View all N").
   const photoFailed = failed && !!photoResolved;
   const resolved = failed ? null : photoResolved;
+  // No photo on screen (never had one, or it failed): light canvas, dark-on-light identity.
+  const light = !resolved;
+  const bare = !photoResolved;
+  const s = React.useMemo(() => makeS(c, reduceTransparency, light), [c, reduceTransparency, light]);
 
   // A different photo is a fresh attempt.
   useEffect(() => {
@@ -94,6 +107,121 @@ export default function HeroBlock({
 
   const monogram = (name.trim().charAt(0) || '?').toUpperCase();
   const chipSlop = Math.max(0, Math.ceil((tapSize(elder) - GALLERY_CHIP_HEIGHT) / 2));
+
+  const galleryChip =
+    photoCount > 0 && !!onOpenGallery ? (
+      // Gallery chip — all photos, one place. Opening a viewer is navigation,
+      // not a commit, so no haptic.
+      <PressableScale
+        scaleTo={0.92}
+        onPress={onOpenGallery}
+        style={[s.galleryChip, { top: chipTop }]}
+        hitSlop={{ top: chipSlop, bottom: chipSlop, left: chipSlop, right: chipSlop }}
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        accessibilityRole="button"
+        accessibilityLabel={photoCount === 1 ? 'View photo' : `View all ${photoCount} photos`}
+        testID="gallery-chip-tap44-hitslop"
+      >
+        <Ionicons name="images-outline" size={15} color="#fff" {...HIDE_FROM_A11Y} />
+        <Text variant="caption" style={s.galleryChipText}>{photoCount}</Text>
+      </PressableScale>
+    ) : null;
+
+  // The photo did not load: cause + a working retry, top left so it clears the
+  // gallery chip (top right) and the identity block below.
+  const photoErrorBlock = photoFailed ? (
+    <View
+      style={[s.photoError, { top: chipTop, maxWidth: Math.max(160, width - GALLERY_CHIP_RESERVE - spacing.gutter) }]}
+      testID="hero-photo-error"
+    >
+      <View style={s.photoErrorNote}>
+        <Ionicons name="image-outline" size={14} color="#fff" {...HIDE_FROM_A11Y} />
+        <Text variant="caption" style={s.chipText}>Couldn't load photo</Text>
+      </View>
+      <PressableScale
+        scaleTo={0.92}
+        onPress={retryPhoto}
+        style={s.retryChip}
+        hitSlop={{ top: chipSlop, bottom: chipSlop, left: chipSlop, right: chipSlop }}
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        accessibilityRole="button"
+        accessibilityLabel="Try loading the photo again"
+        testID="hero-photo-retry-tap44-hitslop"
+      >
+        <Ionicons name="refresh" size={14} color="#fff" {...HIDE_FROM_A11Y} />
+        <Text variant="caption" style={s.galleryChipText} numberOfLines={1}>Try again</Text>
+      </PressableScale>
+    </View>
+  ) : null;
+
+  const chipIcon = light ? c.textSecondary : '#fff';
+  const identity = (
+    <>
+      <View style={s.nameRow}>
+        <Text
+          variant="display"
+          color={light ? 'fgStrong' : undefined}
+          style={s.name}
+          numberOfLines={2}
+          maxScale={1.4}
+          accessibilityRole="header"
+        >
+          {name}
+          {age ? `, ${age}` : ''}
+        </Text>
+        {verified && (
+          <View style={s.verified}>
+            <Ionicons name="checkmark-circle" size={14} color="#fff" {...HIDE_FROM_A11Y} />
+            <Text variant="micro" style={s.verifiedText}>Verified</Text>
+          </View>
+        )}
+      </View>
+      <View style={s.metaRow}>
+        {!!city && (
+          <View style={s.chip}>
+            <Ionicons name="location-outline" size={12} color={chipIcon} {...HIDE_FROM_A11Y} />
+            <Text variant="caption" color={light ? 'textPrimary' : undefined} style={s.chipLabel} numberOfLines={1}>{city}</Text>
+          </View>
+        )}
+        {!!profession && (
+          <View style={s.chip}>
+            <Ionicons name="briefcase-outline" size={12} color={chipIcon} {...HIDE_FROM_A11Y} />
+            <Text variant="caption" color={light ? 'textPrimary' : undefined} style={s.chipLabel} numberOfLines={1}>
+              {profession}
+            </Text>
+          </View>
+        )}
+      </View>
+    </>
+  );
+
+  if (bare) {
+    // Compact and in flow: `height` is a floor, so a two-line display name grows the hero instead of
+    // sliding under the monogram. flexGrow (not flex: 1), or an auto-height parent measures the body as 0.
+    return (
+      <View style={[s.wrap, { width, minHeight: height }]}>
+        <View
+          style={StyleSheet.absoluteFill}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          <LinearGradient colors={[c.p100, c.p50]} style={StyleSheet.absoluteFill} />
+        </View>
+        <View style={[s.bareBody, { paddingTop: chipTop }]}>
+          <View
+            style={s.bareMonogramWrap}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          >
+            {/* Decorative fallback glyph, not body copy: left on raw RN Text (96px is outside the canonical scale). */}
+            <RNText style={s.monogramBare} allowFontScaling={false}>{monogram}</RNText>
+          </View>
+          <View style={s.identityFlow}>{identity}</View>
+        </View>
+        {galleryChip}
+      </View>
+    );
+  }
 
   return (
     <View style={[s.wrap, { width, height }]}>
@@ -128,113 +256,50 @@ export default function HeroBlock({
         </View>
       )}
 
-      {/* Bottom scrim so the identity overlay always reads. Photo heroes get a
-          neutral black scrim; the monogram fallback keeps a warm burgundy-dark
-          one so the pale canvas doesn't turn muddy grey. */}
-      <LinearGradient
-        colors={
-          resolved
-            ? ['transparent', 'rgba(0,0,0,0.28)', 'rgba(0,0,0,0.62)']
-            : ['transparent', 'rgba(64,17,35,0.30)', 'rgba(42,11,23,0.72)']
-        }
-        locations={[0.45, 0.75, 1]}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
-      />
-
-      {/* The photo did not load: cause + a working retry, top left so it clears the
-          gallery chip (top right) and the identity overlay below. */}
-      {photoFailed && (
-        <View
-          style={[s.photoError, { top: chipTop, maxWidth: Math.max(160, width - GALLERY_CHIP_RESERVE - spacing.gutter) }]}
-          testID="hero-photo-error"
-        >
-          <View style={s.photoErrorNote}>
-            <Ionicons name="image-outline" size={14} color="#fff" {...HIDE_FROM_A11Y} />
-            <Text variant="caption" style={s.chipText}>Couldn't load photo</Text>
-          </View>
-          <PressableScale
-            scaleTo={0.92}
-            onPress={retryPhoto}
-            style={s.retryChip}
-            hitSlop={{ top: chipSlop, bottom: chipSlop, left: chipSlop, right: chipSlop }}
-            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            accessibilityRole="button"
-            accessibilityLabel="Try loading the photo again"
-            testID="hero-photo-retry-tap44-hitslop"
-          >
-            <Ionicons name="refresh" size={14} color="#fff" {...HIDE_FROM_A11Y} />
-            <Text variant="caption" style={s.galleryChipText} numberOfLines={1}>Try again</Text>
-          </PressableScale>
-        </View>
+      {/* Bottom scrim, photo heroes only: it is what keeps the white identity readable over an
+          arbitrary photograph. A canvas with no photo has nothing to defend the text from. */}
+      {resolved && (
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.28)', 'rgba(0,0,0,0.62)']}
+          locations={[0.45, 0.75, 1]}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
       )}
 
-      {/* Gallery chip — all photos, one place. Opening a viewer is navigation,
-          not a commit, so no haptic. */}
-      {photoCount > 0 && !!onOpenGallery && (
-        <PressableScale
-          scaleTo={0.92}
-          onPress={onOpenGallery}
-          style={[s.galleryChip, { top: chipTop }]}
-          hitSlop={{ top: chipSlop, bottom: chipSlop, left: chipSlop, right: chipSlop }}
-          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          accessibilityRole="button"
-          accessibilityLabel={photoCount === 1 ? 'View photo' : `View all ${photoCount} photos`}
-          testID="gallery-chip-tap44-hitslop"
-        >
-          <Ionicons name="images-outline" size={15} color="#fff" {...HIDE_FROM_A11Y} />
-          <Text variant="caption" style={s.galleryChipText}>{photoCount}</Text>
-        </PressableScale>
-      )}
+      {photoErrorBlock}
+      {galleryChip}
 
       {/* Identity overlay */}
       <View style={s.overlay} pointerEvents="none">
-        <View style={s.nameRow}>
-          <Text variant="display" style={s.name} numberOfLines={2} maxScale={1.4} accessibilityRole="header">
-            {name}
-            {age ? `, ${age}` : ''}
-          </Text>
-          {verified && (
-            <View style={s.verified}>
-              <Ionicons name="checkmark-circle" size={14} color="#fff" {...HIDE_FROM_A11Y} />
-              <Text variant="micro" style={s.verifiedText}>Verified</Text>
-            </View>
-          )}
-        </View>
-        <View style={s.metaRow}>
-          {!!city && (
-            <View style={s.chip}>
-              <Ionicons name="location-outline" size={12} color="#fff" {...HIDE_FROM_A11Y} />
-              <Text variant="caption" style={s.chipText} numberOfLines={1}>{city}</Text>
-            </View>
-          )}
-          {!!profession && (
-            <View style={s.chip}>
-              <Ionicons name="briefcase-outline" size={12} color="#fff" {...HIDE_FROM_A11Y} />
-              <Text variant="caption" style={s.chipText} numberOfLines={1}>
-                {profession}
-              </Text>
-            </View>
-          )}
-          {typeof compatScore === 'number' && (
-            <View style={[s.chip, s.compatChip]}>
-              <Ionicons name="sparkles" size={12} color="#fff" {...HIDE_FROM_A11Y} />
-              <Text variant="caption" style={s.chipText} numberOfLines={1}>{compatScore}% match</Text>
-            </View>
-          )}
-        </View>
+        {identity}
       </View>
     </View>
   );
 }
 
-const makeS = (c: ThemeColours, solid: boolean) => StyleSheet.create({
+const makeS = (c: ThemeColours, solid: boolean, light: boolean) => StyleSheet.create({
   wrap: { overflow: 'hidden', backgroundColor: c.p50 },
   monogramWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   monogram: {
     fontFamily: 'PlayfairDisplay-Bold',
     fontSize: 140,
     color: c.p300,
+  },
+  // The compact hero: a column with the monogram taking whatever the identity block leaves.
+  bareBody: { flexGrow: 1 },
+  bareMonogramWrap: { flexGrow: 1, alignItems: 'center', justifyContent: 'center' },
+  monogramBare: {
+    fontFamily: 'PlayfairDisplay-Bold',
+    fontSize: 96,
+    lineHeight: 108,
+    includeFontPadding: false,
+    color: c.p300,
+  },
+  identityFlow: {
+    paddingHorizontal: spacing.gutter,
+    paddingBottom: spacing.xl,
+    gap: spacing.sm,
   },
   overlay: {
     position: 'absolute',
@@ -246,18 +311,24 @@ const makeS = (c: ThemeColours, solid: boolean) => StyleSheet.create({
     gap: spacing.sm,
   },
   nameRow: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm, flexWrap: 'wrap' },
-  name: {
-    color: '#fff',
-    flexShrink: 1,
-    textShadowColor: 'rgba(0,0,0,0.35)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
+  // On a photo the name is white with a soft shadow; on the light canvas the `Text` colour
+  // (`fgStrong`) applies and there is no shadow to lift it.
+  name: light
+    ? { flexShrink: 1 }
+    : {
+        color: '#fff',
+        flexShrink: 1,
+        textShadowColor: 'rgba(0,0,0,0.35)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 4,
+      },
   verified: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: solid ? c.success : 'rgba(46,125,50,0.85)',
+    // Solid on the light canvas: a translucent green washes out over a pale ground and white text
+    // on it falls under 4.5:1.
+    backgroundColor: solid || light ? c.success : 'rgba(46,125,50,0.85)',
     borderRadius: borderRadius.pill,
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -271,14 +342,16 @@ const makeS = (c: ThemeColours, solid: boolean) => StyleSheet.create({
     gap: 4,
     // A lightening fill (white at 18%) sinks white caption text to about 3:1 over
     // a bright photo; a dark translucent fill holds well above 4.5:1 on any photo.
-    backgroundColor: solid ? SOLID_CHIP : 'rgba(0,0,0,0.40)',
+    backgroundColor: light ? c.surface2 : solid ? SOLID_CHIP : 'rgba(0,0,0,0.40)',
     borderRadius: borderRadius.pill,
     paddingHorizontal: 10,
     paddingVertical: 4,
     maxWidth: 220,
   },
-  compatChip: { backgroundColor: solid ? c.p500 : 'rgba(139,35,70,0.75)' },
+  // The on-photo error note is always white-on-dark; the identity chips are white only over a photo
+  // and take the `Text` colour (`textPrimary`) on the light canvas.
   chipText: { color: '#fff', flexShrink: 1 },
+  chipLabel: light ? { flexShrink: 1 } : { color: '#fff', flexShrink: 1 },
   // The gallery chip and the retry chip sit on the un-scrimmed top of the photo,
   // where white caption text needs a heavier fill than the bottom chips get from
   // the scrim beneath them: 60% black holds 4.5:1 even over a pure-white pixel.

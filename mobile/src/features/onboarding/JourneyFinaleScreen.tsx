@@ -1,14 +1,17 @@
 /**
- * Journey finale (D6 + DS2/DS6/DS7). Ends the preferences journey with a
- * matches reveal, but only when there is real liquidity to show: fewer than 4
- * results lands on an honest early-market state instead of a card grid (DS2).
- * The staged loader (DS6) holds the loading screen for a fixed 1.5s alongside
- * the fetch, whatever the result, because the count is not known until the
- * fetch returns. It never delays an error, which kills it instantly, and
- * reduced-motion gets one static line and no hold. The single gold element on
- * this screen is the locked tease card (DS7).
+ * Journey finale (D6 + DS2/DS7). Ends the preferences journey with a matches
+ * reveal, but only when there is real liquidity to show: fewer than 4 results
+ * lands on an honest early-market state instead of a card grid (DS2).
+ * The loading screen says one true thing, "Finding matches", and reveals when the
+ * fetch returns. A short floor (MIN_HOLD_MS) only stops a fast response flashing
+ * the loader for a frame; it is not a script. This screen used to rotate through
+ * "Matching 36 gunas" and "Checking family preferences" on a fixed clock: that
+ * work was never happening (a guna match needs a nakshatra, which a member on
+ * mobile cannot have entered), so the copy claimed effort the server had not
+ * made. An error shows immediately, and reduced-motion gets no floor at all.
+ * The single gold element on this screen is the locked tease card (DS7).
  */
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, StyleSheet, ActivityIndicator, AccessibilityInfo, type StyleProp, type ViewStyle } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
@@ -20,6 +23,9 @@ import Button from '../../components/ui/Button';
 import EmptyState from '../../components/ui/EmptyState';
 import Screen from '../../components/layout/Screen';
 import { getDailyFeed } from '../../api/matches';
+import { getMyProfile } from '../../api/profile';
+import { queryKeys } from '../../constants/queryKeys';
+import { useQuery } from '@tanstack/react-query';
 import SmartImage from '../../components/common/SmartImage';
 import { useReduceMotion, PressableScale } from '../../components/motion';
 import { useOnboarding, JOURNEY_DONE_KEY } from './OnboardingContext';
@@ -30,12 +36,7 @@ import { tapSize } from '../../utils/elderTheme';
 import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import type { ProfileSummary } from '../../types';
 
-const STAGES = [
-  { key: 'journey.stageScan', fallback: 'Scanning Tricity profiles…' },
-  { key: 'journey.stageGunas', fallback: 'Matching 36 gunas…' },
-  { key: 'journey.stageFamily', fallback: 'Checking family preferences…' },
-] as const;
-const STAGE_MS = 500; // 3 stages × 500ms = 1.5s max hold (DS6)
+const MIN_HOLD_MS = 600; // floor so a fast fetch does not flash the loader for a frame
 const REVEAL_MIN = 4; // DS2 liquidity guard
 
 const ageFrom = (dob: string | null): string => {
@@ -102,10 +103,8 @@ export default function JourneyFinaleScreen() {
   const isFree = (useAuthStore((s) => s.user?.subscriptionPlan) ?? 'free') === 'free';
 
   const [phase, setPhase] = useState<'loading' | 'reveal' | 'early' | 'error'>('loading');
-  const [stageIndex, setStageIndex] = useState(0);
   const [matches, setMatches] = useState<ProfileSummary[]>([]);
   const [attempt, setAttempt] = useState(0);
-  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const revealTitle = t('journey.revealTitle', 'Your matches are ready');
   const earlyTitle = t('journey.earlyTitle', "You're early");
@@ -118,17 +117,11 @@ export default function JourneyFinaleScreen() {
   useEffect(() => {
     let cancelled = false;
     setPhase('loading');
-    setStageIndex(0);
+    // This run's timers, so the cleanup clears exactly them.
+    const pending: ReturnType<typeof setTimeout>[] = [];
 
-    if (!reduced) {
-      // Stage copy advances on a fixed clock; theater only fills real wait —
-      // the reveal fires at max(fetch, stages), never delaying an error.
-      timers.current = STAGES.map((_, i) =>
-        setTimeout(() => { if (!cancelled) setStageIndex(i); }, i * STAGE_MS),
-      );
-    }
-
-    const minHold = reduced ? Promise.resolve() : new Promise((r) => { timers.current.push(setTimeout(r, STAGES.length * STAGE_MS)); });
+    // The reveal fires at max(fetch, floor); an error never waits for the floor.
+    const minHold = reduced ? Promise.resolve() : new Promise((r) => { pending.push(setTimeout(r, MIN_HOLD_MS)); });
     (async () => {
       try {
         const [feed] = await Promise.all([getDailyFeed(), minHold]);
@@ -141,13 +134,13 @@ export default function JourneyFinaleScreen() {
         }
       } catch {
         if (!cancelled) {
-          timers.current.forEach(clearTimeout); // kill theater instantly (DS6)
+          pending.forEach(clearTimeout);
           setPhase('error');
         }
       }
     })();
 
-    return () => { cancelled = true; timers.current.forEach(clearTimeout); };
+    return () => { cancelled = true; pending.forEach(clearTimeout); };
     // Re-runs only on an explicit retry; toggling reduce-motion mid-load must not restart it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attempt]);
@@ -160,8 +153,23 @@ export default function JourneyFinaleScreen() {
     );
   }, [phase, revealTitle, earlyTitle, errorTitle]);
 
+  // Members without a profile photo are ranked last in search. That is the single most useful thing
+  // this screen can tell them, so it takes the place of the optional quiz. Unknown (still loading or
+  // failed) keeps the quiz: never claim a member has no photo on a guess.
+  // The photos step uploads without touching the query cache, so a cached profile can pre-date the
+  // photo the member just added: re-read on mount and trust only a settled read.
+  const { data: myProfile, isFetching: profileFetching } = useQuery({
+    queryKey: queryKeys.me,
+    queryFn: getMyProfile,
+    staleTime: 0,
+    refetchOnMount: 'always',
+  });
+  const noPhoto =
+    !!myProfile && !profileFetching && !myProfile.profilePhoto && (myProfile.photos?.length ?? 0) === 0;
+
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
   const goQuiz = () => navigation.navigate('Quiz');
+  const goPhotos = () => navigation.navigate('EditProfile', { section: 'photos' });
   const goPremium = () => navigation.navigate('Subscription');
 
   if (phase === 'loading') {
@@ -179,9 +187,7 @@ export default function JourneyFinaleScreen() {
         >
           <ActivityIndicator size="large" color={c.primary} />
           <Text variant="callout" color="textSecondary" style={st.stageText}>
-            {reduced
-              ? t('journey.finding', 'Finding matches…')
-              : t(STAGES[stageIndex].key, STAGES[stageIndex].fallback)}
+            {t('journey.finding', 'Finding matches…')}
           </Text>
         </View>
       </Screen>
@@ -266,14 +272,30 @@ export default function JourneyFinaleScreen() {
         testID="biodata-cta"
       />
 
-      <FinaleAction
-        tone="text"
-        icon="sparkles-outline"
-        label={t('journey.quizCta', 'Take the 2-minute personality quiz')}
-        onPress={goQuiz}
-        style={st.textAction}
-        testID="quiz-cta"
-      />
+      {noPhoto ? (
+        <>
+          <FinaleAction
+            tone="text"
+            icon="camera-outline"
+            label={t('journey.addPhoto', 'Add a photo')}
+            onPress={goPhotos}
+            style={st.textAction}
+            testID="photo-cta"
+          />
+          <Text variant="footnote" color="textSecondary" style={st.photoNote}>
+            {t('journey.addPhotoNote', 'Profiles without one are shown last in search.')}
+          </Text>
+        </>
+      ) : (
+        <FinaleAction
+          tone="text"
+          icon="sparkles-outline"
+          label={t('journey.quizCta', 'Take the 2-minute personality quiz')}
+          onPress={goQuiz}
+          style={st.textAction}
+          testID="quiz-cta"
+        />
+      )}
 
       <Button
         title={phase === 'reveal' ? t('journey.explore', 'Explore my matches') : t('journey.done', 'Go to my dashboard')}
@@ -311,6 +333,7 @@ const makeSt = (c: ThemeColours) => StyleSheet.create({
   teaseText: { flex: 1 },
   secondaryAction: { marginTop: spacing.xl },
   textAction: { marginTop: spacing.sm, alignSelf: 'center', maxWidth: '100%' },
+  photoNote: { textAlign: 'center', paddingHorizontal: spacing.lg },
   cta: { marginTop: spacing.sm },
 });
 
