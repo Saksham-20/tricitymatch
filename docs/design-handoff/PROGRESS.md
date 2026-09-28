@@ -139,3 +139,16 @@ because Android measures those scripts narrower than it draws them. The Phase 5 
 **Gates at close:** mobile tsc 0 · jest 57/57 · root lint 0 errors (mobile warnings 182 → 69) · slop-lint clean.
 **Not run:** VoiceOver/TalkBack, release builds, the iOS software keyboard. **Owner and backend items** are listed at
 the end of Phases 5 and 6 in the plan doc (deploy the `getLikes` `myAction` change first).
+
+**Follow-up — Phase 7, design-improvement pass (2026-09-26/28), commit `be422dc`.** Owner asked for a taste
+pass on top of the doctrine work: type/spacing/layout, motion/interaction and UX-flow reviews run in parallel
+(read-only, cross-checked against source), synthesized into one backlog, implemented as 5 parallel file-owned
+slices. Highlights: the photoless `ProfileCard` (the common case — ~60% of real profiles have no photo) went
+from a 308dp card holding one initial to a compact identity row; Search now reads `isMutualMatch` and shows the
+match celebration (was silently dropped); Kundli match moved into the Compatibility card with an honest
+per-side empty state instead of a buried button that blamed the wrong person; `MatchCelebration`'s seal no
+longer enters from `scale(0)` (§10.11) and its exit finally plays; haptics moved from touch-down to commit.
+Found live (not by any review): `authStore.initialize()` was deleting the refresh token and signing members
+out on ANY cold-start error, including one that never reached the server — fixed to match the 401 interceptor's
+existing rule (only a server-rejected refresh ends the session). Gates: mobile tsc 0 · jest 70/70 (9 new) ·
+root lint 0 errors (mobile warnings 69 → 60) · slop-lint clean. Full write-up: plan doc Phase 7.

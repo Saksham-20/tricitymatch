@@ -624,6 +624,77 @@ named the deleted Bureau stack) updated in the closing commit.
 
 ---
 
+## Phase 7 — Design-improvement pass (type, spacing, motion) — DONE 2026-09-26/28, commit `be422dc`
+
+Owner request after Phase 6 closed: "improve the designs, fonts, spacing, animations ... and anything that
+will help the ui ux", tested on both devices. Method: three independent read-only design reviews in parallel
+(type/spacing/layout, motion/interaction, UX flows/states/copy — each cross-referenced its claims against
+source before reporting), synthesized into one ranked backlog, then implemented as five disjoint file-ownership
+slices (P1 cards+search, P2 home+matches, Q profile screens, C chat+gates+subscription, M motion foundation)
+run in parallel, plus lead-owned shared primitives and cross-cutting fixes. Full findings are in the three
+review reports (not persisted as files — see the commit message on `be422dc` for the executed subset).
+
+**Shared primitives built first** so slices didn't collide: `components/layout/TabHeader.tsx` (one tab-root
+header; Matches/Messages/My profile each had a different title size, offset and gutter), `components/ui/
+RowSeparator.tsx` (inset hairline, stable identity — an inline `ItemSeparatorComponent={() => ...}` was a new
+component type every render), `utils/profileMissing.ts` (`computeMissing` — OwnProfile and Home's completion
+strip each computed "what's missing" differently and could disagree).
+
+**Real bugs found (not from the reviews, from driving the device pass itself):**
+- 🔴 **`authStore.initialize()` deleted the refresh token and signed the member out on ANY cold-start refresh
+  error**, including a refresh that never reached the server (a backend blip or bad connection at launch, not
+  a rejected token). The 401 interceptor in `api/client.ts` already had the right rule (only a server-REJECTED
+  refresh, 401/403, ends the session); `initialize()` didn't follow it. Verified live: killed the dev backend,
+  cold-started the app — session survived, error states rendered correctly — brought the backend back, app
+  recovered with no re-auth.
+- A repeated `interestTags` value produced a duplicate React key warning on ProfileDetail (`Encountered two
+  children with the same key`) — caught live on Android, not by any static review. De-duplicated before render.
+- 3 `Modal` sheets (`BlockReportSheet`'s report/block action sheet, `CompatibilityBreakdownSheet`,
+  `NotificationPrimingSheet`) were missing `statusBarTranslucent` on Android — the scrim stopped short of the
+  status bar and left a bright strip. Fixed; left alone on the ~14 sheets that carry a `TextInput` (that prop's
+  interaction with the keyboard wasn't verified).
+
+**Notable changes by area** (full list in the `be422dc` commit message): photoless `ProfileCard` rebuilt as a
+72pt-avatar identity row (was a 308dp card holding one initial — the *common* state, not an edge case, since
+~60% of real profiles have no photo); Search reads `isMutualMatch` and mounts `MatchCelebration` (was silently
+dropped, so a mutual match from Search looked like a plain like); Matches' mutual-row chat bubble became a
+labelled "Message" pill (icon-only was unreadable to the father/elder persona the UX review named); Home's
+completion strip now names the actual next missing field instead of a static line; OwnProfile's photoless panel
+moved from a 320dp void below several utility rows to a compact tappable row above the fold; the VIP/plan chip
+shrunk from a hit-target-sized slab to a real badge with `hitSlop`; Kundli match moved into the Compatibility
+card with a per-side honest empty state (was a buried button that blamed the other person even when the gap was
+the viewer's own missing nakshatra); free-reply-window copy is now gated on the live `features.freeReplyWindow`
+flag everywhere it appears (prod already runs the flag; several surfaces still said "Chat is Premium-only");
+new `SheetModal` (opaque scrim, measured-height slide, no scale-shrink backdrop) adopted by `PickerSheet`
+(highest-traffic sheet — 18 call sites); `MatchCelebration`'s seal now starts from `scale(0.86)/opacity 0`
+(was `scale(0)`, banned by §10.11) and actually plays its exit (was dead `exiting` code behind an early
+`return null`); haptics moved from touch-down to commit across `PressableScale` (a scrolling chip row or picker
+list no longer buzzes); `useReduceMotion` collapsed from a per-instance subscription to one module-level store;
+`useFillAnimation` no longer replays 0→value on every profile refetch.
+
+**Verified live on both platforms** (Android API 35 emulator, iPhone 17 Pro sim, real seeded data): Search
+density and Pass-exit/reflow motion (recorded and frame-extracted on Android to confirm no flicker), Home
+strip's real next-action + rail-photo-fail recovery, Matches Message pill + measured tab underline, a full
+mutual-match celebration triggered from Search via a seeded API like, its dismiss fade, and the resulting chat
+thread with the new header/banner; Kundli match's per-side empty state and numerology fallback; Subscription
+copy; the new `SheetModal` via PickerSheet's Sort control (open/select/close on both platforms); dark mode
+(Home, Matches, ProfileDetail incl. the header crossfade); elder mode (all four tabs, Settings, on/off
+round-trip); Punjabi (Home, Matches, Messages, Search — script held up on every touched screen without
+clipping); the cold-start session-restore fix end to end, including a real emulator crash-and-reboot mid-pass.
+**Not run:** VoiceOver/TalkBack, release builds, iOS software keyboard.
+
+**Left for a future pass** (noted by the reviewers, not touched — out of scope for this batch): Android bottom
+sheets not edge-to-edge on the *other* ~14 Modal sites (keyboard interaction unverified); iOS's native "Save
+Password?" prompt (system behavior, not app UI); Android keyboard tracking on the chat composer via
+`useAnimatedKeyboard` (flagged HIGH-risk, deferred to be verified on-device by its own pass); dual-emit socket
+removal (pre-existing item from Modernization A–G); a nakshatra input on mobile (Kundli match's empty state
+routes to the website instead, since mobile has no field for it).
+
+Gates: mobile tsc 0 · jest 70/70 (9 new, all in P1/M) · root lint 0 errors (mobile warnings 69→60) · slop-lint
+clean (364 files). Not merged, not pushed, not deployed — same as every other phase on this branch.
+
+---
+
 ## Standing rules for every implementing agent
 
 1. **§10 outranks your taste.** Read §10.2, §10.3, §10.10 and §10.11 before touching a file. If a change needs
