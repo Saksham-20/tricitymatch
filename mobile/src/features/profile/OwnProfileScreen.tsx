@@ -548,13 +548,17 @@ function OwnGalleryPhoto({ uri, label, onManage }: { uri: string; label: string;
   // One slide == one viewport, or pagingEnabled drifts and the dot index
   // (contentOffset.x / width) stops matching the photo on screen.
   const { width: slideWidth } = useWindowDimensions();
+  // 4:5, the same ratio PhotoBlock uses everywhere else a full-width photo is
+  // shown. A fixed 320pt height regardless of width crushed a portrait photo
+  // into a near-landscape crop on any phone wider than ~256pt.
+  const slideHeight = Math.round((slideWidth * 5) / 4);
   const [failed, setFailed] = useState(false);
   const resolved = resolveImageUri(uri);
   if (!resolved || failed) {
     // A photo that will not load offers the way to fix it, not an inert "Add photos".
     return (
       <PressableScale
-        style={[styles.photo, styles.photoEmpty, { width: slideWidth, backgroundColor: c.surface2 }]}
+        style={[styles.photoEmpty, { width: slideWidth, height: slideHeight, backgroundColor: c.surface2 }]}
         onPress={onManage}
         testID="photo-load-failed"
         accessibilityRole="button"
@@ -572,8 +576,8 @@ function OwnGalleryPhoto({ uri, label, onManage }: { uri: string; label: string;
     <Image
       source={{ uri: resolved }}
       // A neutral tile behind the photo: a remote image draws nothing until it decodes, which left a
-      // blank 320pt hole at the top of the screen on a slow connection.
-      style={[styles.photo, { width: slideWidth, backgroundColor: c.surface2 }]}
+      // blank hole at the top of the screen on a slow connection.
+      style={{ width: slideWidth, height: slideHeight, backgroundColor: c.surface2 }}
       resizeMode="cover"
       onError={() => setFailed(true)}
       accessible
@@ -822,7 +826,7 @@ export default function OwnProfileScreen() {
             const idx = Math.round(e.nativeEvent.contentOffset.x / windowWidth);
             setPhotoIdx(idx);
           }}
-          style={styles.photoScroll}
+          style={{ height: Math.round((windowWidth * 5) / 4) }}
           testID="photo-gallery"
         >
           {photos.map((uri, i) => (
@@ -1181,10 +1185,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
 
   // TabHeader pulls this into the gutter; the glyph is 24pt inside the 44pt+ box.
   headerBtn: { alignItems: 'center', justifyContent: 'center' },
-  photoScroll: { height: 320 },
-  // Width comes from useWindowDimensions at the call site — a fixed 375 letterboxed
-  // the hero and desynced the paging dots on every device that is not a 375pt iPhone.
-  photo: { height: 320 },
   photoEmpty: {
     backgroundColor: c.surfaceCard,
     alignItems: 'center',

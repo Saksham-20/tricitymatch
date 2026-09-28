@@ -195,7 +195,7 @@ const ProfileDetail = () => {
   const [kundliLoading, setKundliLoading] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState('');
-  const [lightbox, setLightbox] = useState({ open: false, src: null, alt: '' });
+  const [lightbox, setLightbox] = useState({ open: false, index: 0 });
   const [activeTab, setActiveTab] = useState('about');
   // A 404 ("this profile doesn't exist / isn't visible to you") and a genuine
   // server failure read as the same "Profile not found" screen today, which
@@ -498,10 +498,15 @@ const ProfileDetail = () => {
           {/* ── Hero section ─────────────────────────────────────────── */}
           <div className="bg-white dark:bg-surface-dark-3 rounded-3xl border border-neutral-100 dark:border-neutral-800 shadow-card overflow-hidden mb-5">
 
-            {/* Photo grid */}
+            {/* Photo grid. 1-2 photos (the common case for a new profile) get a
+                portrait aspect ratio instead of a fixed landscape-ish pixel
+                height, which used to crop most of a portrait photo away on
+                any screen narrower than the box was tuned for. 3+ photos keep
+                the mosaic, sized off its own aspect ratio rather than a fixed
+                px height so it scales with viewport width instead of getting
+                squashed on mobile. */}
             {allPhotos.length > 0 ? (
-              <div className={`grid gap-0.5 ${allPhotos.length === 1 ? 'grid-cols-1' : allPhotos.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}
-                style={{ height: allPhotos.length >= 3 ? '340px' : '280px' }}>
+              <div className={`grid gap-0.5 ${allPhotos.length === 1 ? 'grid-cols-1' : allPhotos.length === 2 ? 'grid-cols-2' : 'grid-cols-3 aspect-[4/3]'}`}>
                 {allPhotos.slice(0, allPhotos.length >= 3 ? 5 : allPhotos.length).map((photo, i) => {
                   const url = getImageUrl(photo, API_BASE_URL, 'full');
                   const isFirst = i === 0;
@@ -510,8 +515,8 @@ const ProfileDetail = () => {
                     <button
                       key={photo}
                       type="button"
-                      onClick={() => setLightbox({ open: true, src: url, alt: `${firstName} ${i + 1}` })}
-                      className={`group relative overflow-hidden bg-primary-100 dark:bg-primary-900/40 hover:brightness-95 transition-[filter] duration-[160ms] focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-inset cursor-pointer ${isFirst && allPhotos.length >= 3 ? 'row-span-2 col-span-1' : ''}`}
+                      onClick={() => setLightbox({ open: true, index: i })}
+                      className={`group relative overflow-hidden bg-primary-100 dark:bg-primary-900/40 hover:brightness-95 transition-[filter] duration-[160ms] focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-inset cursor-pointer ${isFirst && allPhotos.length >= 3 ? 'row-span-2 col-span-1' : allPhotos.length < 3 ? 'aspect-[4/5]' : ''}`}
                     >
                       <span className="absolute inset-0 flex items-center justify-center text-7xl font-display font-semibold text-primary-700/40 dark:text-primary-300/40 select-none">{firstName[0]}</span>
                       <RetryImage src={url} alt={`${firstName} ${i + 1}`} className="relative w-full h-full object-cover" loading={i === 0 ? 'eager' : 'lazy'} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
@@ -1137,8 +1142,9 @@ const ProfileDetail = () => {
       />
 
       <ImageLightbox
-        src={lightbox.src}
-        alt={lightbox.alt}
+        photos={allPhotos.map(p => getImageUrl(p, API_BASE_URL, 'full'))}
+        initialIndex={lightbox.index}
+        alt={firstName}
         open={lightbox.open}
         onClose={() => setLightbox(p => ({ ...p, open: false }))}
       />

@@ -133,7 +133,7 @@ const MyProfileView = () => {
   // haven't built a profile yet" (doctrine §6) — they need different copy and
   // a different action (retry vs. go build one).
   const [loadError, setLoadError] = useState(false);
-  const [lightbox, setLightbox] = useState({ open: false, src: null, alt: '' });
+  const [lightbox, setLightbox] = useState({ open: false, index: 0 });
 
   useEffect(() => { loadProfile(); }, []);
 
@@ -317,8 +317,7 @@ const MyProfileView = () => {
                   </Link>
                 </div>
               ) : (
-                <div className={`grid gap-0.5 ${allPhotos.length === 1 ? 'grid-cols-1' : allPhotos.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}
-                  style={{ height: allPhotos.length >= 3 ? '300px' : '240px' }}>
+                <div className={`grid gap-0.5 ${allPhotos.length === 1 ? 'grid-cols-1' : allPhotos.length === 2 ? 'grid-cols-2' : 'grid-cols-3 aspect-[4/3]'}`}>
                   {allPhotos.slice(0, allPhotos.length >= 3 ? 5 : allPhotos.length).map((photo, i) => {
                     const src = getImageUrl(photo, API_BASE_URL, 'full');
                     const alt = i === 0 ? profile.firstName : `${profile.firstName} ${i + 1}`;
@@ -326,8 +325,8 @@ const MyProfileView = () => {
                       <button
                         key={photo}
                         type="button"
-                        onClick={() => setLightbox({ open: true, src, alt })}
-                        className={`relative overflow-hidden bg-primary-100 dark:bg-primary-900/40 hover:brightness-95 active:scale-[0.98] transition-[filter,transform] duration-[160ms] focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-inset cursor-pointer ${i === 0 && allPhotos.length >= 3 ? 'row-span-2 col-span-1' : ''}`}
+                        onClick={() => setLightbox({ open: true, index: i })}
+                        className={`relative overflow-hidden bg-primary-100 dark:bg-primary-900/40 hover:brightness-95 active:scale-[0.98] transition-[filter,transform] duration-[160ms] focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-inset cursor-pointer ${i === 0 && allPhotos.length >= 3 ? 'row-span-2 col-span-1' : allPhotos.length < 3 ? 'aspect-[4/5]' : ''}`}
                       >
                         <span className="absolute inset-0 flex items-center justify-center text-6xl font-display font-semibold text-primary-700/40 dark:text-primary-300/40 select-none">{profile.firstName?.[0] || '?'}</span>
                         <RetryImage src={src} alt={alt} className="relative w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
@@ -653,8 +652,9 @@ const MyProfileView = () => {
       </div>
 
       <ImageLightbox
-        src={lightbox.src}
-        alt={lightbox.alt}
+        photos={allPhotos.map(p => getImageUrl(p, API_BASE_URL, 'full'))}
+        initialIndex={lightbox.index}
+        alt={profile.firstName}
         open={lightbox.open}
         onClose={() => setLightbox(p => ({ ...p, open: false }))}
       />
