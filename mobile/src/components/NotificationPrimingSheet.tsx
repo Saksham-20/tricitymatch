@@ -38,7 +38,7 @@ export default function NotificationPrimingSheet({ onAccepted }: Props) {
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={decline}>
+    <Modal visible={visible} transparent statusBarTranslucent animationType="fade" onRequestClose={decline}>
       <View style={styles.scrim}>
         <View style={styles.sheet} testID="notif-priming-sheet">
           <View style={styles.iconWrap}>

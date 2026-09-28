@@ -4,96 +4,90 @@ import {
   View,
   StyleSheet,
   FlatList,
-  Image,
   RefreshControl,
 } from 'react-native';
 import Text from '../../components/ui/Text';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import Screen from '../../components/layout/Screen';
+import { useRoute, RouteProp } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { ListSkeleton } from '../../components/ui/skeletons';
-import { EmptyState } from '../../components/ui';
+import { EmptyState, ScreenHeader } from '../../components/ui';
 import { PressableScale } from '../../components/motion';
-import { useTranslation } from 'react-i18next';
-import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import SmartImage from '../../components/common/SmartImage';
+import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { getGuardianMatches, getGuardianShortlist } from '../../api/guardian';
 import { queryKeys } from '../../constants/queryKeys';
 import type { MainStackParamList } from '../../navigation/types';
 import type { ProfileSummary } from '../../types';
 import { LIST_PERF } from '../../constants/listPerf';
 
-type Nav = NativeStackNavigationProp<MainStackParamList>;
 type Route = RouteProp<MainStackParamList, 'GuardianView'>;
 
 type TabKey = 'matches' | 'shortlisted';
 
+// Decorative glyphs sit beside a text label; the screen reader reads the label.
+const HIDE_FROM_A11Y = {
+  accessibilityElementsHidden: true,
+  importantForAccessibility: 'no-hide-descendants',
+} as const;
+
 // ─── Age helper ───────────────────────────────────────────────────────────────
 
-function ageFromDob(dob: string | null): string {
+function ageFromDob(dob: string | null | undefined): string {
   if (!dob) return '';
   const age = Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 3600 * 1000));
-  return `${age} yrs`;
+  return Number.isFinite(age) ? `${age} yrs` : '';
 }
 
 // ─── Read-only profile card ───────────────────────────────────────────────────
+// Deliberately NOT pressable. The guardian API sends a name and a city and
+// nothing else, and ProfileDetail has no guardian mode: tapping through would
+// land on the full interactive profile (Like, Shortlist, Message, unlock) acting
+// as the guardian's OWN member account, which is exactly what "read-only" says
+// it cannot do. A guardian-mode ProfileDetail is a product decision.
 
 interface ROCardProps {
   profile: ProfileSummary;
-  onPress: () => void;
 }
 
-function ReadOnlyProfileCard({ profile, onPress }: ROCardProps) {
+function ReadOnlyProfileCard({ profile }: ROCardProps) {
   const { c } = useTheme();
   const rc = React.useMemo(() => makeRc(c), [c]);
   const name = [profile.firstName, profile.lastName].filter(Boolean).join(' ');
   const photo = profile.photos?.[0];
+  const details = [ageFromDob(profile.dateOfBirth), profile.city, profile.profession].filter(Boolean).join(' · ');
 
   return (
-    <PressableScale
+    // One element to a screen reader: name and details read together.
+    <View
       style={rc.card}
-      onPress={onPress}
       testID={`ro-card-${profile.id}`}
-      accessibilityLabel={`View ${name}`}
-      accessibilityRole="button"
-      pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      accessible
+      accessibilityLabel={details ? `${name}, ${details}` : name}
     >
-      {photo ? (
-        <Image source={{ uri: photo }} style={rc.photo} resizeMode="cover" />
-      ) : (
-        <View style={[rc.photo, rc.photoPlaceholder]}>
-          <Ionicons name="person" size={32} color={c.textMuted} />
-        </View>
-      )}
+      {/* Initials fallback when there is no photo (the guardian API sends none today). */}
+      <SmartImage uri={photo} name={name} style={rc.photo} initialSize={24} />
       <View style={rc.info}>
-        <Text variant="headline" color="textPrimary">{name}</Text>
-        <Text variant="footnote" color="textSecondary">
-          {[ageFromDob(profile.dateOfBirth), profile.city, profile.profession].filter(Boolean).join(' · ')}
-        </Text>
-        {profile.education && <Text variant="footnote" color="textMuted">{profile.education}</Text>}
+        <Text variant="headline" color="textPrimary" numberOfLines={1}>{name}</Text>
+        {details ? <Text variant="footnote" color="textSecondary" numberOfLines={2}>{details}</Text> : null}
+        {profile.education && <Text variant="footnote" color="textSecondary" numberOfLines={1}>{profile.education}</Text>}
         {profile.compatibilityScore != null && (
           <View style={rc.compatRow}>
-            <Ionicons name="heart" size={12} color={c.primary} />
+            <Ionicons name="heart" size={12} color={c.primary} {...HIDE_FROM_A11Y} />
             <Text variant="caption" color="primary">{profile.compatibilityScore}% match</Text>
           </View>
         )}
       </View>
-      {/* Read-only badge — no action buttons */}
-      <View style={rc.viewOnlyBadge}>
-        <Text variant="micro" color="textMuted">View Only</Text>
-      </View>
-      <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
-    </PressableScale>
+    </View>
   );
 }
 
 const makeRc = (c: ThemeColours) => StyleSheet.create({
   card:            { flexDirection: 'row', alignItems: 'center', backgroundColor: c.background, borderBottomWidth: 1, borderBottomColor: c.border, padding: spacing.md, gap: spacing.md },
   photo:           { width: 64, height: 64, borderRadius: borderRadius.md },
-  photoPlaceholder:{ backgroundColor: c.surfaceCard, alignItems: 'center', justifyContent: 'center' },
   info:            { flex: 1, gap: 3 },
   compatRow:       { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
-  viewOnlyBadge:   { paddingHorizontal: 6, paddingVertical: 2, backgroundColor: c.border, borderRadius: borderRadius.full },
 });
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -101,8 +95,6 @@ const makeRc = (c: ThemeColours) => StyleSheet.create({
 export default function GuardianViewScreen() {
   const { c } = useTheme();
   const s = React.useMemo(() => makeS(c), [c]);
-  const { t } = useTranslation();
-  const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { candidateId, candidateName } = route.params;
 
@@ -125,45 +117,25 @@ export default function GuardianViewScreen() {
   const activeQuery = activeTab === 'matches' ? matchesQuery : shortlistQuery;
   const profiles: ProfileSummary[] = activeQuery.data?.profiles ?? [];
 
-  const handleViewProfile = (userId: string) => {
-    navigation.navigate('ProfileDetail', { userId });
-  };
-
   const TABS: { key: TabKey; label: string }[] = [
-    { key: 'matches',     label: 'Mutual Matches' },
+    { key: 'matches',     label: 'Mutual matches' },
     { key: 'shortlisted', label: 'Shortlisted' },
   ];
 
   return (
-    <View style={s.wrapper} testID="GuardianViewScreen">
-      {/* Header */}
-      <View style={s.header}>
-        <PressableScale
-          onPress={() => navigation.goBack()}
-          style={s.backBtn}
-          testID="back-btn"
-          accessibilityLabel="Go back"
-          accessibilityRole="button"
-          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
-        </PressableScale>
-        <View style={s.headerTitle}>
-          <Text variant="headline" color="textPrimary">{candidateName}</Text>
-          <Text variant="footnote" color="textSecondary">Guardian View</Text>
-        </View>
-        <View style={{ width: 40 }} />
-      </View>
+    <Screen edges={['top', 'bottom']} style={s.wrapper} testID="GuardianViewScreen">
+      <ScreenHeader title={candidateName} subtitle="Guardian view" testID="guardian-view-header" />
 
       {/* Read-only banner */}
       <View style={s.readOnlyBanner}>
-        <Ionicons name="eye-outline" size={14} color={c.primary} style={{ marginRight: 4 }} />
-        <Text variant="footnote" color="primary">Read-only · You can browse but not take any actions</Text>
+        <Ionicons name="eye-outline" size={14} color={c.primary} {...HIDE_FROM_A11Y} />
+        <Text variant="footnote" color="primary" style={s.readOnlyText}>
+          Read-only. You can see the names and cities of {candidateName}'s matches, but cannot act on them.
+        </Text>
       </View>
 
       {/* Tabs */}
-      <View style={s.tabBar}>
+      <View style={s.tabBar} accessibilityRole="tablist">
         {TABS.map((tab) => (
           <PressableScale
             key={tab.key}
@@ -175,7 +147,8 @@ export default function GuardianViewScreen() {
             accessibilityState={{ selected: activeTab === tab.key }}
             pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text variant="subhead" color={activeTab === tab.key ? 'primary' : 'textMuted'}>{tab.label}</Text>
+            {/* textSecondary, not textMuted: the inactive label is a control and fails AA in muted grey. */}
+            <Text variant="subhead" color={activeTab === tab.key ? 'primary' : 'textSecondary'} style={s.tabLabel}>{tab.label}</Text>
           </PressableScale>
         ))}
       </View>
@@ -201,44 +174,44 @@ export default function GuardianViewScreen() {
           data={profiles}
           keyExtractor={(p) => p.id}
           renderItem={({ item }) => (
-            <ReadOnlyProfileCard profile={item} onPress={() => handleViewProfile(item.id)} />
+            <ReadOnlyProfileCard profile={item} />
           )}
           refreshControl={
             <RefreshControl
               refreshing={activeQuery.isFetching && !activeQuery.isLoading}
               onRefresh={() => activeQuery.refetch()}
               tintColor={c.primary}
+              colors={[c.primary]}
             />
           }
           ListEmptyComponent={
-            <View style={s.emptyState}>
-              <Ionicons name={activeTab === 'matches' ? 'heart-outline' : 'bookmark-outline'} size={48} color={c.textMuted} />
-              <Text variant="title3" color="textSecondary">
-                {activeTab === 'matches' ? 'No Mutual Matches Yet' : 'No Shortlisted Profiles'}
-              </Text>
-              <Text variant="footnote" color="textMuted" style={s.emptyHint}>
-                {activeTab === 'matches'
+            <EmptyState
+              icon={activeTab === 'matches' ? 'heart-outline' : 'bookmark-outline'}
+              title={activeTab === 'matches' ? 'No mutual matches yet' : 'No shortlisted profiles'}
+              description={
+                activeTab === 'matches'
                   ? `${candidateName} has no mutual matches yet.`
-                  : `${candidateName} hasn't shortlisted anyone yet.`}
-              </Text>
-            </View>
+                  : `${candidateName} hasn't shortlisted anyone yet.`
+              }
+              actionLabel="Refresh"
+              onAction={() => activeQuery.refetch()}
+              testID="GuardianViewScreen-empty"
+            />
           }
         />
       )}
-    </View>
+    </Screen>
   );
 }
 
 const makeS = (c: ThemeColours) => StyleSheet.create({
-  wrapper:       { flex: 1, backgroundColor: c.background },
-  header:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, backgroundColor: c.background, borderBottomWidth: 1, borderBottomColor: c.border },
-  backBtn:       { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  headerTitle:   { alignItems: 'center' },
-  readOnlyBanner:{ flexDirection: 'row', alignItems: 'center', backgroundColor: c.primaryLight, paddingHorizontal: spacing.lg, paddingVertical: spacing.xs },
+  wrapper:       { backgroundColor: c.background },
+  readOnlyBanner:{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, backgroundColor: c.primaryLight, paddingHorizontal: spacing.lg, paddingVertical: spacing.xs },
+  readOnlyText:  { flex: 1 },
   tabBar:        { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: c.border, backgroundColor: c.background },
-  tab:           { flex: 1, paddingVertical: spacing.md, alignItems: 'center' },
+  // minHeight, not height: a longer hi/pa label or a bigger OS text size must grow the tab.
+  tab:           { flex: 1, minHeight: 48, paddingVertical: spacing.md, alignItems: 'center', justifyContent: 'center' },
   tabActive:     { borderBottomWidth: 2, borderBottomColor: c.primary },
+  tabLabel:      { textAlign: 'center' },
   errorState:    { flex: 1, justifyContent: 'center' },
-  emptyState:    { alignItems: 'center', gap: spacing.md, paddingTop: 80, paddingHorizontal: spacing.xl },
-  emptyHint:     { textAlign: 'center' },
 });

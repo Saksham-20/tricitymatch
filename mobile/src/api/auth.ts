@@ -82,8 +82,9 @@ export const getMe = async (): Promise<AuthUser> => {
   return res.data.user;
 };
 
-export const deleteAccount = async (): Promise<void> => {
-  await apiClient.delete('/auth/account');
+// The server verifies the member's password before erasing the account; a bare DELETE 400s.
+export const deleteAccount = async (password: string): Promise<void> => {
+  await apiClient.delete('/auth/account', { data: { password } });
 };
 
 // ─── Account security ─────────────────────────────────────────────────────────

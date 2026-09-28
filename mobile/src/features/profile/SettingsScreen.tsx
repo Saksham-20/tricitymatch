@@ -1,36 +1,51 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
+  AccessibilityInfo,
   View,
   StyleSheet,
   ScrollView,
   Alert,
+  KeyboardAvoidingView,
   Modal,
-  ActivityIndicator,
+  Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import * as LocalAuthentication from 'expo-local-authentication';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import Text from '../../components/ui/Text';
+import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
 import ListRow from '../../components/ui/ListRow';
 import PickerSheet from '../../components/ui/PickerSheet';
-import { StaggeredEntrance, PressableScale } from '../../components/motion';
+import ScreenHeader from '../../components/ui/ScreenHeader';
+import Screen from '../../components/layout/Screen';
+import { useReduceTransparency } from '../../components/motion';
 import { showToast } from '../../utils/toast';
-import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
 import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
-import { cache, CACHE_KEYS } from '../../utils/cache';
-import { updateMyProfile } from '../../api/profile';
+import { PLANS } from '@shared/constants/plans';
+import { getMyProfile, updateMyProfile } from '../../api/profile';
+import { getGuardianCandidates } from '../../api/guardian';
 import { deleteAccount } from '../../api/auth';
 import { queryKeys } from '../../constants/queryKeys';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
 import type { MainStackParamList } from '../../navigation/types';
+import type { Profile } from '../../types';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
+
+// `incognitoMode` rides on the profile record but the shared Profile type does
+// not declare it yet, so read it through this widened shape.
+type ProfileWithIncognito = Profile & { incognitoMode?: boolean };
+
+// Decorative glyphs sit beside a text label; the screen reader reads the label.
+const HIDE_FROM_A11Y = {
+  accessibilityElementsHidden: true,
+  importantForAccessibility: 'no-hide-descendants',
+} as const;
 
 type Language = 'en' | 'hi' | 'pa';
 
@@ -42,14 +57,18 @@ const LANG_OPTIONS: { code: Language; label: string; native: string }[] = [
 
 // ─── Section ──────────────────────────────────────────────────────────────────
 
-function Section({ title, index = 0, children }: { title: string; index?: number; children: React.ReactNode }) {
+// No entrance choreography: Settings is a tens-per-day surface and the native push has already
+// animated the whole screen in; a per-section rise on top of it is motion the member pays for
+// every visit (doctrine frequency gate). StaggeredEntrance belongs on rare surfaces only.
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   const { c } = useTheme();
   const sec = React.useMemo(() => makeSec(c), [c]);
   return (
-    <StaggeredEntrance index={index} style={sec.container}>
-      <Text variant="caption" color="textMuted" style={sec.title}>{title}</Text>
+    <View style={sec.container}>
+      {/* textSecondary, not textMuted: a 12pt group label on the grey page fails AA in muted grey. */}
+      <Text variant="caption" color="textSecondary" style={sec.title} accessibilityRole="header">{title}</Text>
       <View style={sec.card}>{children}</View>
-    </StaggeredEntrance>
+    </View>
   );
 }
 
@@ -65,62 +84,134 @@ function Divider() {
 }
 
 // ─── Delete Account Modal ─────────────────────────────────────────────────────
+// The failure state lives INSIDE the modal: a toast renders in the root window,
+// which an open <Modal> covers, so the member would see nothing at all.
+//
+// The server will not erase an account without the member's password
+// (DELETE /auth/account -> `body('password').notEmpty()`), so the confirm step
+// asks for it. Without it every tap of "Delete my account" came back 400.
 
-function DeleteModal({ visible, onClose, onConfirm, loading }: {
+/** Names the real reason the request failed instead of a blanket "check your connection". */
+const deleteFailureMessage = (err: unknown): string => {
+  const e = err as {
+    retryAfter?: number;
+    response?: { data?: { error?: { message?: string }; message?: string } };
+  };
+  // api/client rewrites a 429 into a plain Error carrying `retryAfter` (no `response`).
+  if (e?.retryAfter) return 'Too many attempts. Wait a minute, then try again.';
+  if (!e?.response) return 'Could not reach the server. Check your connection and try again.';
+  return e.response.data?.error?.message ?? e.response.data?.message ?? 'Could not delete your account. Please try again.';
+};
+
+function DeleteModal({ visible, onClose, onConfirm, loading, error }: {
   visible: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (password: string) => void;
   loading: boolean;
+  error: string | null;
 }) {
   const { c } = useTheme();
+  const reduceTransparency = useReduceTransparency();
   const dm = React.useMemo(() => makeDm(c), [c]);
+  const [password, setPassword] = useState('');
+  // Closing mid-request would orphan the mutation; the request decides the outcome.
+  const close = () => { if (!loading) onClose(); };
+  const canConfirm = password.length > 0 && !loading;
+  const submit = () => { if (canConfirm) onConfirm(password); };
+
+  // A closed modal must not keep the typed password around.
+  useEffect(() => {
+    if (!visible) setPassword('');
+  }, [visible]);
+
+  // The failure appears without a tap. Android reads the live region below; iOS
+  // has none, so it is announced here (one channel per platform, never both).
+  useEffect(() => {
+    if (error && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(error);
+  }, [error]);
+
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={dm.backdrop}>
-        <View style={dm.card} testID="delete-account-modal">
-          <Ionicons name="warning" size={40} color={c.error} />
-          <Text variant="title3" color="textPrimary">Delete Account</Text>
-          <Text variant="footnote" color="textSecondary" style={dm.body}>
-            This will permanently delete your profile, matches, and all data. This cannot be undone.
-          </Text>
-          <PressableScale
-            style={dm.confirmBtn}
-            onPress={onConfirm}
-            disabled={loading}
-            testID="delete-confirm-btn"
-            accessibilityLabel="Confirm delete account"
-            accessibilityRole="button"
-            accessibilityState={{ disabled: loading }}
-            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={close}>
+      <KeyboardAvoidingView style={dm.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <View style={[dm.backdrop, reduceTransparency && dm.backdropOpaque]}>
+          {/* Scrolls so the card survives the keyboard, a longer hi/pa string and the largest OS text size. */}
+          <ScrollView
+            contentContainerStyle={dm.scroll}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
           >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text variant="headline" style={dm.confirmText}>Delete My Account</Text>
-            )}
-          </PressableScale>
-          <PressableScale
-            style={dm.cancelBtn}
-            onPress={onClose}
-            testID="delete-cancel-btn"
-            accessibilityRole="button"
-            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Text variant="callout" color="textSecondary">Cancel</Text>
-          </PressableScale>
+            <View style={dm.card} testID="delete-account-modal" accessibilityViewIsModal>
+              <Ionicons name="warning" size={40} color={c.error} {...HIDE_FROM_A11Y} />
+              <Text variant="title3" color="textPrimary" accessibilityRole="header">Delete account</Text>
+              <Text variant="footnote" color="textSecondary" style={dm.body}>
+                This will permanently delete your profile, matches, and all data. This cannot be undone.
+              </Text>
+              <Input
+                label="Confirm your password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                secureToggle
+                autoCapitalize="none"
+                autoCorrect={false}
+                textContentType="password"
+                returnKeyType="done"
+                onSubmitEditing={submit}
+                editable={!loading}
+                containerStyle={dm.field}
+                testID="delete-password"
+                accessibilityLabel="Confirm your password"
+              />
+              {error ? (
+                <Text
+                  variant="footnote"
+                  color="error"
+                  style={dm.body}
+                  accessibilityRole="alert"
+                  accessibilityLiveRegion="assertive"
+                  testID="delete-account-error"
+                >
+                  {error}
+                </Text>
+              ) : null}
+              <Button
+                title="Delete my account"
+                variant="danger"
+                onPress={submit}
+                loading={loading}
+                disabled={!canConfirm}
+                testID="delete-confirm-btn"
+                accessibilityLabel="Confirm delete account"
+                style={dm.action}
+              />
+              <Button
+                title="Cancel"
+                variant="text"
+                haptic={false}
+                onPress={close}
+                disabled={loading}
+                testID="delete-cancel-btn"
+                style={dm.action}
+              />
+            </View>
+          </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const makeDm = (c: ThemeColours) => StyleSheet.create({
-  backdrop:    { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
-  card:        { backgroundColor: c.background, borderRadius: borderRadius.xl, padding: spacing['2xl'], alignItems: 'center', gap: spacing.md, width: '100%' },
-  body:        { textAlign: 'center' },
-  confirmBtn:  { backgroundColor: c.error, borderRadius: borderRadius.md, paddingVertical: spacing.md, width: '100%', alignItems: 'center', marginTop: spacing.sm },
-  confirmText: { color: '#fff' },
-  cancelBtn:   { paddingVertical: spacing.sm, width: '100%', alignItems: 'center' },
+  flex:           { flex: 1 },
+  backdrop:       { flex: 1, backgroundColor: c.scrim },
+  // Reduce Transparency: a see-through scrim becomes a solid themed surface (doctrine 10.5).
+  backdropOpaque: { backgroundColor: c.surface2 },
+  scroll:         { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
+  // Elevation is the border alone: the card sits on a scrim, not on a shadow.
+  card:           { backgroundColor: c.background, borderRadius: borderRadius.xl, borderWidth: 1, borderColor: c.border, padding: spacing['2xl'], alignItems: 'center', gap: spacing.md, width: '100%' },
+  body:           { textAlign: 'center' },
+  field:          { width: '100%', marginBottom: 0 },
+  action:         { width: '100%' },
 });
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -128,54 +219,70 @@ const makeDm = (c: ThemeColours) => StyleSheet.create({
 export default function SettingsScreen() {
   const { c } = useTheme();
   const s = React.useMemo(() => makeS(c), [c]);
-  const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
-  const { language, elderMode, setLanguage, setElderMode } = useUIStore();
+  // Individual selectors: subscribing to the whole store re-renders all ten
+  // sections on any uiStore change (a sheet opening elsewhere, for one).
+  const language = useUIStore((s) => s.language);
+  const elderMode = useUIStore((s) => s.elderMode);
+  const setLanguage = useUIStore((s) => s.setLanguage);
+  const setElderMode = useUIStore((s) => s.setElderMode);
 
   const [incognito, setIncognito] = useState(false);
   const [showLangPicker, setShowLangPicker] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [biometricAvailable, setBiometricAvailable] = useState(false);
-  const [biometricEnabled, setBiometricEnabled] = useState(false);
 
+  // The switch must show what the server actually holds, not a hard-coded "off"
+  // (a member with incognito already on used to see it off and turn it "on" again).
+  const profileQuery = useQuery({
+    queryKey: queryKeys.myProfile,
+    queryFn: getMyProfile,
+    staleTime: 60 * 1000,
+  });
+  const myProfile = profileQuery.data;
+  // Until the server has answered, the switch would be showing a guess: a member
+  // with incognito ON would see it OFF on a privacy setting.
+  const incognitoKnown = myProfile !== undefined;
+  const serverIncognito = (myProfile as ProfileWithIncognito | undefined)?.incognitoMode;
   useEffect(() => {
-    (async () => {
-      try {
-        const available = await LocalAuthentication.hasHardwareAsync();
-        const enrolled = await LocalAuthentication.isEnrolledAsync();
-        setBiometricAvailable(available && enrolled);
-        setBiometricEnabled(cache.getBoolean(CACHE_KEYS.BIOMETRIC_ENABLED) ?? false);
-      } catch {
-        setBiometricAvailable(false);
-      }
-    })();
-  }, []);
+    if (typeof serverIncognito === 'boolean') setIncognito(serverIncognito);
+  }, [serverIncognito]);
 
+  // Optimistic: the switch moves on the tap, not after the round trip, and
+  // snaps back (with a message) if the server refuses.
   const incognitoMutation = useMutation({
     mutationFn: (val: boolean) => updateMyProfile({ incognitoMode: val } as any),
-    onSuccess: (_, val) => {
-      setIncognito(val);
+    onMutate: (val) => setIncognito(val),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.me });
+      queryClient.invalidateQueries({ queryKey: queryKeys.myProfile });
     },
-    onError: () => showToast.error('Could not update', 'Incognito mode was not changed.'),
+    onError: (_err, val) => {
+      setIncognito(!val);
+      showToast.error('Could not update', 'Incognito mode was not changed.');
+    },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: deleteAccount,
+    mutationFn: (password: string) => deleteAccount(password),
     onSuccess: async () => {
       setShowDeleteModal(false);
       await logout();
     },
-    onError: () => showToast.error('Could not delete account', 'Please try again.'),
+    // No toast: the failure is shown inside the (still open) confirm modal.
   });
 
-  const handleBiometricToggle = (val: boolean) => {
-    cache.setBoolean(CACHE_KEYS.BIOMETRIC_ENABLED, val);
-    setBiometricEnabled(val);
-  };
+  // The guardian dashboard is only useful to someone a member has invited as
+  // their guardian; for everyone else it was an empty screen. Same query the
+  // dashboard itself runs, so opening it afterwards is instant.
+  const { data: guardianLinks } = useQuery({
+    queryKey: queryKeys.guardianCandidates,
+    queryFn: getGuardianCandidates,
+    staleTime: 2 * 60 * 1000,
+  });
+  const isGuardian = guardianLinks?.some((l) => l.status === 'active') ?? false;
 
   const handleLanguage = (lang: Language) => {
     setLanguage(lang);
@@ -184,32 +291,21 @@ export default function SettingsScreen() {
 
   const currentLangLabel = LANG_OPTIONS.find((l) => l.code === language)?.native ?? 'English';
 
+  const planLabel = user?.subscriptionPlan
+    ? (PLANS[user.subscriptionPlan]?.label ?? user.subscriptionPlan.replace(/_/g, ' '))
+    : null;
+
   return (
-    <SafeAreaView style={s.wrapper} testID="SettingsScreen">
-      {/* Header */}
-      <View style={s.header}>
-        <PressableScale
-          onPress={() => navigation.goBack()}
-          style={s.backBtn}
-          testID="back-btn"
-          accessibilityLabel="Go back"
-          accessibilityRole="button"
-          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
-        </PressableScale>
-        <Text variant="title3" color="textPrimary">Settings</Text>
-        <View style={{ width: 40 }} />
-      </View>
+    <Screen edges={['top', 'bottom']} style={s.wrapper} testID="SettingsScreen">
+      <ScreenHeader title="Settings" testID="settings-header" />
 
       <ScrollView showsVerticalScrollIndicator={false}>
 
         {/* Account */}
-        <Section title="Account" index={0}>
+        <Section title="Account">
           <ListRow
             icon="person-outline"
-            label="Edit Profile"
+            label="Edit profile"
             onPress={() => navigation.navigate('EditProfile')}
             testID="setting-edit-profile"
           />
@@ -226,42 +322,52 @@ export default function SettingsScreen() {
             icon="card-outline"
             iconColor={c.secondary}
             label="Subscription"
-            sublabel={user?.subscriptionPlan ? `Current: ${user.subscriptionPlan.replace('_', ' ')}` : undefined}
+            sublabel={planLabel ? `Current: ${planLabel}` : undefined}
             onPress={() => navigation.navigate('Subscription')}
             testID="setting-subscription"
           />
-          {biometricAvailable && (
-            <>
-              <Divider />
-              <ListRow
-                icon="finger-print-outline"
-                label="Face ID / Touch ID"
-                sublabel="Sign in without typing your password"
-                switchValue={biometricEnabled}
-                onSwitchChange={handleBiometricToggle}
-                testID="setting-biometric"
-              />
-            </>
-          )}
+          {/* No Face ID / Touch ID row: sign-in by biometric never worked (a signed-out
+              device has no stored session to exchange), so a switch for it only promised
+              something the app could not do. */}
         </Section>
 
         {/* Privacy */}
-        <Section title="Privacy" index={1}>
-          <ListRow
-            icon="eye-off-outline"
-            iconColor={c.primary}
-            label="Incognito Mode"
-            sublabel="Browse profiles without being seen"
-            switchValue={incognito}
-            onSwitchChange={(v) => incognitoMutation.mutate(v)}
-            testID="setting-incognito"
-          />
+        <Section title="Privacy">
+          {incognitoKnown ? (
+            <ListRow
+              icon="eye-off-outline"
+              iconColor={c.primary}
+              label="Incognito mode"
+              sublabel="Browse profiles without being seen"
+              switchValue={incognito}
+              onSwitchChange={(v) => incognitoMutation.mutate(v)}
+              testID="setting-incognito"
+            />
+          ) : profileQuery.isError ? (
+            // No switch: showing "off" for a value we could not read is a false statement.
+            <ListRow
+              icon="eye-off-outline"
+              iconColor={c.primary}
+              label="Incognito mode"
+              sublabel="Could not load this setting. Tap to retry."
+              onPress={() => profileQuery.refetch()}
+              testID="setting-incognito-retry"
+            />
+          ) : (
+            <ListRow
+              icon="eye-off-outline"
+              iconColor={c.primary}
+              label="Incognito mode"
+              sublabel="Loading your setting"
+              testID="setting-incognito-loading"
+            />
+          )}
           <Divider />
           <ListRow
             icon="lock-closed-outline"
             iconColor={c.primary}
-            label="Privacy Controls"
-            sublabel="Profile visibility, online status & last seen"
+            label="Privacy controls"
+            sublabel="Profile visibility, online status and last seen"
             onPress={() => navigation.navigate('PrivacySettings')}
             testID="setting-privacy-controls"
           />
@@ -269,21 +375,20 @@ export default function SettingsScreen() {
           <ListRow
             icon="key-outline"
             iconColor={c.primary}
-            label="Account Security"
-            sublabel="Change password & signed-in devices"
+            label="Account security"
+            sublabel="Change password and signed-in devices"
             onPress={() => navigation.navigate('AccountSecurity')}
             testID="setting-account-security"
           />
         </Section>
 
-        {/* Appearance — Dark Mode intentionally omitted: not yet themed app-wide
-            (every screen uses the static light palette). Re-add when useTheme()
-            is wired across screens. */}
-        <Section title="Appearance" index={2}>
+        {/* Appearance — there is no in-app dark-mode switch on purpose: the app
+            follows the system light/dark setting (useTheme reads it live). */}
+        <Section title="Appearance">
           <ListRow
             icon="text-outline"
             iconColor={c.primary}
-            label="Elder Mode"
+            label="Elder mode"
             sublabel="Larger text and simplified navigation"
             switchValue={elderMode}
             onSwitchChange={setElderMode}
@@ -301,11 +406,11 @@ export default function SettingsScreen() {
         </Section>
 
         {/* Family & Guardian */}
-        <Section title="Family" index={3}>
+        <Section title="Family">
           <ListRow
             icon="people-outline"
             iconColor={c.primary}
-            label="Family Chat"
+            label="Family chat"
             sublabel="Private group chat with your family"
             onPress={() => navigation.navigate('FamilyGroups')}
             testID="setting-family-chat"
@@ -314,25 +419,29 @@ export default function SettingsScreen() {
           <ListRow
             icon="shield-half-outline"
             iconColor={c.primary}
-            label="Guardian Co-Pilot"
+            label="Guardian co-pilot"
             sublabel="Let a parent or guardian browse your matches"
             onPress={() => navigation.navigate('GuardianSetup')}
             testID="setting-guardian-setup"
           />
-          {/* Show guardian dashboard if this user is acting as a guardian */}
-          <Divider />
-          <ListRow
-            icon="eye-outline"
-            iconColor={c.primary}
-            label="Guardian Dashboard"
-            sublabel="Browse matches for someone who invited you"
-            onPress={() => navigation.navigate('GuardianCandidates')}
-            testID="setting-guardian-dashboard"
-          />
+          {/* Only for a member someone has invited as their guardian. */}
+          {isGuardian ? (
+            <>
+              <Divider />
+              <ListRow
+                icon="eye-outline"
+                iconColor={c.primary}
+                label="Guardian dashboard"
+                sublabel="Browse matches for someone who invited you"
+                onPress={() => navigation.navigate('GuardianCandidates')}
+                testID="setting-guardian-dashboard"
+              />
+            </>
+          ) : null}
         </Section>
 
         {/* Notifications */}
-        <Section title="Notifications" index={4}>
+        <Section title="Notifications">
           <ListRow
             icon="notifications-outline"
             label="Notifications"
@@ -344,11 +453,11 @@ export default function SettingsScreen() {
 
         {/* Role-specific sections */}
         {(user?.role === 'admin' || user?.role === 'super_admin') && (
-          <Section title="Administration" index={5}>
+          <Section title="Administration">
             <ListRow
               icon="shield-outline"
               iconColor={c.error}
-              label="Admin Panel"
+              label="Admin panel"
               sublabel="Verify users, review reports"
               onPress={() => navigation.navigate('AdminStack', { screen: 'AdminHome' })}
               testID="setting-admin-panel"
@@ -357,11 +466,11 @@ export default function SettingsScreen() {
         )}
 
         {/* Support */}
-        <Section title="Support" index={7}>
+        <Section title="Support">
           <ListRow
             icon="help-circle-outline"
             iconColor={c.textSecondary}
-            label="Help & Support"
+            label="Help and support"
             onPress={() => navigation.navigate('Support')}
             testID="setting-support"
           />
@@ -369,7 +478,7 @@ export default function SettingsScreen() {
           <ListRow
             icon="heart-outline"
             iconColor={c.primary}
-            label="Success Stories"
+            label="Success stories"
             sublabel="Read couples who found their match"
             onPress={() => navigation.navigate('SuccessStoriesBrowse')}
             testID="setting-success-stories-browse"
@@ -378,8 +487,8 @@ export default function SettingsScreen() {
           <ListRow
             icon="star-outline"
             iconColor={c.primary}
-            label="Share Your Story"
-            sublabel="Found your match? Inspire others!"
+            label="Share your story"
+            sublabel="Found your match? Tell your story."
             onPress={() => navigation.navigate('SuccessStory')}
             testID="setting-success-story"
           />
@@ -389,7 +498,7 @@ export default function SettingsScreen() {
               <ListRow
                 icon="moon-outline"
                 iconColor={c.primary}
-                label="Astrologer Consult"
+                label="Astrologer consult"
                 sublabel="Get expert Vedic guidance for your match"
                 onPress={() => navigation.navigate('AstrologerMarketplace')}
                 testID="setting-astrologer"
@@ -399,7 +508,7 @@ export default function SettingsScreen() {
         </Section>
 
         {/* About & Legal */}
-        <Section title="About & Legal" index={8}>
+        <Section title="About and legal">
           <ListRow
             icon="information-circle-outline"
             iconColor={c.textSecondary}
@@ -411,7 +520,7 @@ export default function SettingsScreen() {
           <ListRow
             icon="shield-checkmark-outline"
             iconColor={c.textSecondary}
-            label="Safety & Trust"
+            label="Safety and trust"
             onPress={() => navigation.navigate('Safety')}
             testID="setting-safety"
           />
@@ -419,7 +528,7 @@ export default function SettingsScreen() {
           <ListRow
             icon="mail-outline"
             iconColor={c.textSecondary}
-            label="Contact Us"
+            label="Contact us"
             onPress={() => navigation.navigate('Contact')}
             testID="setting-contact"
           />
@@ -435,22 +544,23 @@ export default function SettingsScreen() {
           <ListRow
             icon="lock-closed-outline"
             iconColor={c.textSecondary}
-            label="Privacy Policy"
+            label="Privacy policy"
             onPress={() => navigation.navigate('Privacy')}
             testID="setting-privacy-policy"
           />
         </Section>
 
         {/* Danger zone */}
-        <Section title="Account Actions" index={9}>
+        <Section title="Account actions">
           <ListRow
             icon="log-out-outline"
             iconColor={c.warning}
-            label="Log Out"
+            label="Log out"
+            // Ends the session, so it asks first (ruling 22: a confirmation, not an error channel).
             onPress={() =>
-              Alert.alert('Log Out', 'Are you sure you want to log out?', [
+              Alert.alert('Log out?', 'You will need to sign in again.', [
                 { text: 'Cancel', style: 'cancel' },
-                { text: 'Log Out', style: 'destructive', onPress: () => logout() },
+                { text: 'Log out', style: 'destructive', onPress: () => logout() },
               ])
             }
             testID="setting-logout"
@@ -459,7 +569,7 @@ export default function SettingsScreen() {
           <ListRow
             icon="trash-outline"
             iconColor={c.error}
-            label="Delete Account"
+            label="Delete account"
             sublabel="Permanently remove all your data"
             destructive
             onPress={() => setShowDeleteModal(true)}
@@ -467,7 +577,7 @@ export default function SettingsScreen() {
           />
         </Section>
 
-        <View style={{ height: spacing['3xl'] }} />
+        <View style={{ height: spacing.xl }} />
       </ScrollView>
 
       <PickerSheet<Language>
@@ -484,16 +594,16 @@ export default function SettingsScreen() {
 
       <DeleteModal
         visible={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
-        onConfirm={() => deleteMutation.mutate()}
+        onClose={() => { setShowDeleteModal(false); deleteMutation.reset(); }}
+        onConfirm={(password) => deleteMutation.mutate(password)}
         loading={deleteMutation.isPending}
+        error={deleteMutation.isError ? deleteFailureMessage(deleteMutation.error) : null}
       />
-    </SafeAreaView>
+    </Screen>
   );
 }
 
 const makeS = (c: ThemeColours) => StyleSheet.create({
-  wrapper:  { flex: 1, backgroundColor: c.surfaceCard },
-  header:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, backgroundColor: c.background, borderBottomWidth: 1, borderBottomColor: c.border },
-  backBtn:  { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  // Grouped-list look: the page sits on surfaceCard, each section card on background.
+  wrapper:  { backgroundColor: c.surfaceCard },
 });

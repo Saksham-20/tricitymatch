@@ -20,7 +20,10 @@ const makeToneStyles = (c: ThemeColours): Record<Exclude<BadgeTone, 'vip'>, { bg
   neutral:  { bg: c.surface2, fg: c.textSecondary },
   // handoff component library
   verified: { bg: c.successBg, fg: c.success, border: 'rgba(46,125,50,0.28)' },
-  premium:  { bg: c.goldSoft, fg: c.g600, border: 'rgba(201,162,39,0.35)' },
+  // Gold is the fill and the border, never the label (doctrine 10.8): g600 on goldSoft is 2.7:1 in
+  // light. textPrimary clears 12:1 on the light fill and 13:1 on the dark one (goldText is a dark
+  // brown that only works on the light fill), so one token reads in both themes.
+  premium:  { bg: c.goldSoft, fg: c.textPrimary, border: 'rgba(201,162,39,0.35)' },
   new:      { bg: c.accent, fg: '#fff' },
 });
 
@@ -60,7 +63,7 @@ export function Badge({ label, tone = 'neutral', icon, style, testID }: BadgePro
       testID={testID}
     >
       {icon}
-      {/* t.fg spans curated AND non-curated colours (e.g. premium's gold g600) depending on `tone` at runtime — left as a style override */}
+      {/* t.fg spans curated AND non-curated colours (e.g. warning's orange) depending on `tone` at runtime — left as a style override */}
       <Text variant="caption" style={[styles.badgeText, { color: t.fg }]} numberOfLines={1}>{label}</Text>
     </View>
   );
@@ -78,7 +81,6 @@ interface ChipProps {
 export function Chip({ label, selected = false, icon, onPress, testID }: ChipProps) {
   const { c } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
-  const toneStylesByTheme = React.useMemo(() => makeToneStyles(c), [c]);
   const Container: React.ElementType = onPress ? PressableScale : View;
   return (
     <Container

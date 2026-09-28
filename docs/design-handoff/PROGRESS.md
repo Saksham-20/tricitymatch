@@ -116,3 +116,26 @@ RN mobile (deferred, follows this same doctrine through its own §10 translation
 rail" feature (skipped — too few real users + a consent gap); legal-document accuracy review was run as a
 separate read-only pass (`docs/LEGAL_REVIEW_2026-09-17.md`) with 2 items still open pending owner/counsel
 (Grievance Officer identity, age-gate mismatch between Terms and the signup validator).
+
+## RN mobile rework (2026-09-18 → 2026-09-24) — DONE, branch `design/rework-2026-09`, not pushed
+
+The same doctrine, translated to `mobile/` through §10, in phases (plan and full records:
+`docs/design-handoff/RN_REWORK_PLAN_2026-09.md`): **0** live money and truth bugs (one was taking real Razorpay
+money at prices we do not sell) · **1** motion foundation, one source and the doctrine's tokens · **2** the `Text`
+primitive and a real elder-mode type scale · **3** primitive adoption — `PressableScale` replaces 232
+`TouchableOpacity`, `Input`/`Screen` shells, four states per data screen (the systematic gap was the error branch) ·
+**4** chrome: one sheet mechanism per job, list performance, navigation motion · **5** screen-by-screen §10.10
+pre-flight in nine groups, each build → cold audit → fix → re-audit (every group failed its first audit) · **6** device
+sweep on an API 35 emulator and an iPhone 17 Pro simulator, dark, elder, max text size, hi/pa.
+
+Bugs worth remembering, all found by doing rather than reading: email sign-up could not complete (the OTP input was
+hard-coded to 4 digits and the server sends 6 to an email); Liked Me Decline did nothing visible; the plans call fell
+back to the whole static catalogue at regular prices; logout left the previous member's React Query cache for the next
+sign-in; on Android 15 the keyboard sat on top of every form's submit button (edge-to-edge ignores `adjustResize`);
+Home's completion ring read 0% for a fresh sign-up while Profile said 35%; Hindi and Punjabi button labels clipped
+because Android measures those scripts narrower than it draws them. The Phase 5 source audit passed a real regression
+(collapsed OTP boxes) that both device agents caught within a minute — a source audit does not replace a device pass.
+
+**Gates at close:** mobile tsc 0 · jest 57/57 · root lint 0 errors (mobile warnings 182 → 69) · slop-lint clean.
+**Not run:** VoiceOver/TalkBack, release builds, the iOS software keyboard. **Owner and backend items** are listed at
+the end of Phases 5 and 6 in the plan doc (deploy the `getLikes` `myAction` change first).

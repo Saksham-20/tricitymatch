@@ -134,6 +134,8 @@ export interface Profile {
   voiceIntroUrl: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Viewer-relative, attached by getProfile from the server's `isMutual`: the viewer and this member have liked each other. */
+  isMutual?: boolean;
 }
 
 export interface ProfileSummary {

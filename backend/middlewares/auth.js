@@ -300,6 +300,22 @@ const checkContactUnlockLimit = asyncHandler(async (req, res, next) => {
     throw createError.forbidden('Premium subscription required', 'PREMIUM_REQUIRED');
   }
 
+  // A contact already unlocked (and paid for) must stay viewable even after
+  // the plan's quota is fully spent — the controller returns it for free,
+  // but this gate used to run first and block that re-fetch with the same
+  // "limit reached" error a genuinely new unlock gets.
+  const targetUserId = req.params.userId;
+  if (targetUserId) {
+    const { ContactUnlock } = require('../models');
+    const existing = await ContactUnlock.findOne({
+      where: { userId: req.user.id, targetUserId },
+      attributes: ['id'],
+    });
+    if (existing) {
+      return next();
+    }
+  }
+
   // NULL contactUnlocksAllowed = unlimited unlocks — but "unlimited" is a
   // product promise, not a licence to drain the directory. A single cheap
   // launch-priced VIP would otherwise be enough to script every phone number

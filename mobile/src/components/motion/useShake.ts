@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { haptics } from '../../utils/haptics';
 import { useReduceMotion } from './useReduceMotion';
@@ -10,7 +11,8 @@ const SHAKE_STEP_MS = 50;
 /**
  * Horizontal error-shake (translateX ±6, 3×) + warning haptic — handoff
  * form-field error idiom. Returns an animated style to spread on the field and
- * a `shake()` trigger. Reduce-motion skips the shake but still fires the haptic.
+ * a `shake()` trigger (referentially stable, so it can sit in an effect's
+ * dependency list). Reduce-motion skips the shake but still fires the haptic.
  */
 export function useShake() {
   const reduced = useReduceMotion();
@@ -18,7 +20,7 @@ export function useShake() {
 
   const style = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
 
-  const shake = () => {
+  const shake = useCallback(() => {
     haptics.warning();
     if (reduced) return;
     x.value = withSequence(
@@ -28,7 +30,7 @@ export function useShake() {
       withTiming(6, { duration: SHAKE_STEP_MS }),
       withTiming(0, { duration: SHAKE_STEP_MS }),
     );
-  };
+  }, [reduced, x]);
 
   return { style, shake };
 }

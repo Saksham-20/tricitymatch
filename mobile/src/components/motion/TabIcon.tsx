@@ -1,8 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { spring } from '@shared/constants/motion';
-import { useReduceMotion } from './useReduceMotion';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -10,31 +7,20 @@ interface TabIconProps {
   name: IoniconName;
   size: number;
   color: string;
-  focused: boolean;
+  /**
+   * Kept so callers can keep passing it. The selected state is carried by the
+   * caller's choice of the filled glyph + the tint, not by motion.
+   */
+  focused?: boolean;
 }
 
-/** Bottom-tab icon with a small spring pop when the tab gains focus. */
-export default function TabIcon({ name, size, color, focused }: TabIconProps) {
-  const reduced = useReduceMotion();
-  const scale = useSharedValue(1);
-  const first = useRef(true);
-
-  useEffect(() => {
-    if (first.current) {
-      first.current = false;
-      return;
-    }
-    if (focused && !reduced) {
-      scale.value = 0.82;
-      scale.value = withSpring(1, spring.press);
-    }
-  }, [focused, reduced, scale]);
-
-  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-
-  return (
-    <Animated.View style={style}>
-      <Ionicons name={name} size={size} color={color} />
-    </Animated.View>
-  );
+/**
+ * Bottom-tab icon. Deliberately static: a tab switch is a 100+/day action
+ * (animate-expo frequency gate), the item's own press scale already answers the
+ * touch, and a focus "pop" stacked a hard `scale = 0.82` set on top of that
+ * press scale — a visible discontinuity that compounded the squash. Filled
+ * glyph + colour is the state indication.
+ */
+export default function TabIcon({ name, size, color }: TabIconProps) {
+  return <Ionicons name={name} size={size} color={color} />;
 }

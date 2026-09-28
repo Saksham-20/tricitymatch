@@ -1,13 +1,7 @@
 import React, { useState } from 'react';
-import { useTheme } from '../../hooks/useTheme';
-import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
-import { PressableScale } from '../../components/motion';
 import PickerSheet from '../../components/ui/PickerSheet';
-import Text from '../../components/ui/Text';
-import Input from '../../components/ui/Input';
-import OnboardingLayout from './OnboardingLayout';
+import OnboardingLayout, { OnboardingSelectField } from './OnboardingLayout';
 import { useOnboarding } from './OnboardingContext';
 
 const PROFESSIONS = [
@@ -28,33 +22,39 @@ const INCOME_RANGES: { label: string; value: number }[] = [
   { label: 'Prefer not to say', value: 0 },
 ];
 
+/**
+ * Label for a stored income. The web stores each bucket's UPPER bound (300000 =
+ * "0 - 3 Lac") where this list stores midpoints, so a value set on the web is
+ * usually not one of these and cannot be mapped to a bucket without guessing:
+ * any rule puts it in a neighbour's range and shows a sensitive figure the
+ * member never declared. Exact match gets its label; anything else is shown as
+ * the number itself, in the format the profile screen uses.
+ */
+const labelForIncome = (income: number | null): string => {
+  if (income === null || !Number.isFinite(income) || income < 0) return '';
+  const exact = INCOME_RANGES.find((r) => r.value === income);
+  if (exact) return exact.label;
+  return `₹${(income / 100000).toFixed(1)}L/yr`;
+};
+
 export default function Step5Screen() {
-  const { c } = useTheme();
-  const styles = React.useMemo(() => makeStyles(c), [c]);
   const { t } = useTranslation();
   const { data, saveAndNext } = useOnboarding();
 
   const [profession, setProfession] = useState(data.profession);
-  const [employer, setEmployer] = useState(data.employer);
   const [income, setIncome] = useState<number | null>(data.income);
   const [profSheet, setProfSheet] = useState(false);
   const [incomeSheet, setIncomeSheet] = useState(false);
 
-  const incomeLabel = income !== null
-    ? INCOME_RANGES.find((r) => r.value === income)?.label ?? ''
-    : '';
-
-  const profOptions = PROFESSIONS.map((p) => ({ label: p, value: p }));
-
-  const isValid = !!(profession);
+  const isValid = !!profession;
 
   const handleContinue = async () => {
-    await saveAndNext(
-      { profession, employer, income },
-      { profession, income } as any,
-    );
+    const answers = { profession, income };
+    await saveAndNext(answers, answers);
   };
 
+  // No "employer" input: the backend has no column for it (the web form never
+  // asked either), so the old field collected an answer and silently threw it away.
   return (
     <OnboardingLayout
       step={5}
@@ -64,65 +64,34 @@ export default function Step5Screen() {
       continueDisabled={!isValid}
     >
       {/* Profession */}
-      <View>
-        <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step5.profession')}</Text>
-        <PressableScale
-          style={styles.selectBtn}
-          onPress={() => setProfSheet(true)}
-          testID="select-profession"
-          accessibilityLabel={t('onboarding.step5.profession')}
-          accessibilityRole="button"
-          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Text variant="callout" color={profession ? 'textPrimary' : 'textMuted'}>
-            {profession || 'Select profession'}
-          </Text>
-        </PressableScale>
-      </View>
+      <OnboardingSelectField
+        label={t('onboarding.step5.profession')}
+        value={profession}
+        placeholder={t('onboarding.placeholders.profession', 'Select profession')}
+        onPress={() => setProfSheet(true)}
+        open={profSheet}
+        testID="select-profession"
+      />
 
-      {/* Employer + income reveal after profession is chosen */}
+      {/* Income reveals after profession is chosen */}
       {!!profession && (
-      <View>
-        <Input
-          label={`${t('onboarding.step5.employer')} (${t('common.optional')})`}
-          value={employer}
-          onChangeText={setEmployer}
-          placeholder="Company / organisation name"
-          autoCapitalize="words"
-          testID="input-employer"
-          accessibilityLabel={t('onboarding.step5.employer')}
-        />
-      </View>
-      )}
-
-      {/* Income */}
-      {!!profession && (
-      <View>
-        <Text variant="subhead" color="textPrimary" style={styles.label}>
-          {t('onboarding.step5.income')}
-          <Text variant="footnote" color="textMuted"> ({t('common.optional')})</Text>
-        </Text>
-        <PressableScale
-          style={styles.selectBtn}
+        <OnboardingSelectField
+          label={t('onboarding.step5.income')}
+          optional
+          value={labelForIncome(income)}
+          placeholder={t('onboarding.placeholders.income', 'Select annual income')}
           onPress={() => setIncomeSheet(true)}
+          open={incomeSheet}
           testID="select-income"
-          accessibilityLabel={t('onboarding.step5.income')}
-          accessibilityRole="button"
-          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Text variant="callout" color={income !== null ? 'textPrimary' : 'textMuted'}>
-            {incomeLabel || 'Select annual income'}
-          </Text>
-        </PressableScale>
-      </View>
+        />
       )}
 
       <PickerSheet
         visible={profSheet}
         title={t('onboarding.step5.profession')}
-        options={profOptions}
+        options={PROFESSIONS}
         selected={profession || null}
-        onSelect={(v: string) => { setProfession(v); }}
+        onSelect={setProfession}
         onClose={() => setProfSheet(false)}
       />
       <PickerSheet
@@ -136,17 +105,3 @@ export default function Step5Screen() {
     </OnboardingLayout>
   );
 }
-
-const makeStyles = (c: ThemeColours) => StyleSheet.create({
-  label: {
-    marginBottom: spacing.sm,
-  },
-  selectBtn: {
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing.md,
-    minHeight: 48,
-    justifyContent: 'center',
-  },
-});

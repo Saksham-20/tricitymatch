@@ -39,17 +39,24 @@ export default function ListRow({
 }: ListRowProps) {
   const { c, elder } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
-  const Container: React.ElementType = onPress ? PressableScale : View;
+  // A switch row toggles from anywhere on the row (a 31pt switch is under the tap floor) and
+  // reads to a screen reader as ONE labelled switch, not an unnamed control beside a label.
+  const isSwitch = !!onSwitchChange;
+  const handlePress = onPress ?? (isSwitch ? () => onSwitchChange?.(!switchValue) : undefined);
+  const Container: React.ElementType = handlePress ? PressableScale : View;
   const minHeight = tapSize(elder);
   const tint = destructive ? c.error : (iconColor ?? c.primary);
 
   return (
     <Container
       style={[styles.row, { minHeight }]}
-      onPress={onPress}
+      onPress={handlePress}
       testID={testID}
-      accessibilityRole={onPress ? 'button' : undefined}
-      accessibilityLabel={label}
+      accessibilityRole={isSwitch ? 'switch' : onPress ? 'button' : undefined}
+      accessibilityState={isSwitch ? { checked: !!switchValue } : undefined}
+      accessibilityLabel={[label, sublabel, value].filter(Boolean).join('. ')}
+      // A switch row toggles on press: that is a committed action, so it gets its haptic.
+      haptic={isSwitch ? true : undefined}
     >
       {icon ? (
         <View style={[styles.iconWrap, { backgroundColor: tint + '15' }]}>
@@ -57,11 +64,11 @@ export default function ListRow({
         </View>
       ) : null}
       <View style={styles.info}>
-        <Text variant="subhead" color={destructive ? 'error' : 'textPrimary'} numberOfLines={1}>
+        <Text variant="subhead" color={destructive ? 'error' : 'textPrimary'} numberOfLines={2}>
           {label}
         </Text>
         {sublabel ? (
-          <Text variant="footnote" color="textSecondary" style={styles.sublabel} numberOfLines={1}>
+          <Text variant="footnote" color="textSecondary" style={styles.sublabel} numberOfLines={2}>
             {sublabel}
           </Text>
         ) : null}
@@ -72,13 +79,17 @@ export default function ListRow({
         </Text>
       ) : null}
       {onSwitchChange ? (
-        <Switch
-          value={!!switchValue}
-          onValueChange={onSwitchChange}
-          trackColor={{ false: c.border, true: c.primary }}
-          thumbColor={c.surfaceCard}
-          testID={testID ? `${testID}-switch` : undefined}
-        />
+        <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <Switch
+            value={!!switchValue}
+            onValueChange={onSwitchChange}
+            // n500, not the hairline border colour: an OFF track drawn in #E8E8E8 on the #FAFAFA canvas
+            // is 1.15:1 and reads as no switch at all (WCAG 1.4.11 asks for 3:1).
+            trackColor={{ false: c.n500, true: c.primary }}
+            thumbColor={c.surfaceCard}
+            testID={testID ? `${testID}-switch` : undefined}
+          />
+        </View>
       ) : rightElement ? (
         rightElement
       ) : onPress ? (

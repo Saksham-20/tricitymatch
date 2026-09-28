@@ -1,97 +1,162 @@
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import Text from '../../../components/ui/Text';
+import Button from '../../../components/ui/Button';
+import EmptyState from '../../../components/ui/EmptyState';
+import GoldLock from '../../../components/ui/GoldLock';
 import FastImage from 'react-native-fast-image';
-import { Ionicons } from '@expo/vector-icons';
 import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { resolveImageUri } from '../../../components/common/SmartImage';
+import { PressableScale } from '../../../components/motion';
 import { useTheme } from '../../../hooks/useTheme';
+import { haptics } from '../../../utils/haptics';
 
 interface PhotoBlockProps {
   uri: string;
-  /** Warm matrimonial caption shown in the band beneath the photo. */
+  /** Plain functional caption under the photo, e.g. "Photo 2 of 4". */
   caption?: string;
-  /** Small eyebrow above the caption, e.g. the person's first name. */
-  eyebrow?: string;
-  /** Premium gate: blur + lock overlay for non-premium viewers. */
+  /** Premium gate: the photo is blurred behind a gold lock for non-premium viewers. */
   locked?: boolean;
+  /** Unlock CTA on the lock overlay. Without it the lock shows no button. */
+  onLockedPress?: () => void;
   /** Tap to open the full-screen gallery viewer (unlocked photos only). */
   onPress?: () => void;
-  /** Long-press to appreciate this photo (warm opener prefill). */
-  onLongPress?: () => void;
+  /**
+   * Mention this photo in a first message. Reachable by long-press AND by the
+   * visible "Mention this photo" button, so the gesture is never the only path.
+   */
+  onAppreciate?: () => void;
 }
 
 /**
- * Full-width 4:5 photo woven into the story scroll, with a caption band —
- * the photo carries a line of warmth instead of floating context-free
- * (interleaved-content pattern; matrimonial voice, never flirty).
- * A photo that fails to load renders nothing — the story simply flows on.
+ * Full-width 4:5 photo woven into the story scroll. A locked photo renders
+ * through the shared `GoldLock` (real blur, opaque under Reduce Transparency),
+ * so a free viewer never sees the unblurred image. A photo that fails to load
+ * shows an error tile with a working retry instead of silently vanishing.
  */
-export default function PhotoBlock({ uri, caption, eyebrow, locked = false, onPress, onLongPress }: PhotoBlockProps) {
+export default function PhotoBlock({ uri, caption, locked = false, onLockedPress, onPress, onAppreciate }: PhotoBlockProps) {
   const { c } = useTheme();
   const s = React.useMemo(() => makeS(c), [c]);
   const { width } = useWindowDimensions();
   const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const resolved = resolveImageUri(uri);
-  if (!resolved || failed) return null;
+  if (!resolved) return null;
 
   const photoW = width - spacing.gutter * 2;
   const photoH = Math.round((photoW * 5) / 4);
 
+  const image = (
+    <FastImage
+      key={attempt}
+      source={{ uri: resolved }}
+      style={StyleSheet.absoluteFill}
+      resizeMode={FastImage.resizeMode.cover}
+      onError={() => setFailed(true)}
+    />
+  );
+
+  if (locked) {
+    return (
+      <View style={s.wrap}>
+        <GoldLock title="Photo locked" ctaLabel="Upgrade to view" onUnlock={onLockedPress} testID="photo-locked">
+          {/* The real image sits behind the blur; screen readers must not read it. */}
+          <View
+            style={[s.photoHolder, { width: photoW, height: photoH }]}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          >
+            {image}
+          </View>
+        </GoldLock>
+      </View>
+    );
+  }
+
+  // The error tile holds its own button, so it must not sit inside the photo's
+  // Pressable (an accessible Pressable swallows its children for screen readers).
+  if (failed) {
+    return (
+      <View style={s.wrap}>
+        <View style={[s.photoHolder, s.failed, { width: photoW, height: photoH }]}>
+          <EmptyState
+            variant="error"
+            icon="image-outline"
+            title="Couldn't load this photo"
+            actionLabel="Try again"
+            onAction={() => {
+              setFailed(false);
+              setAttempt((n) => n + 1);
+            }}
+            testID="photo-error"
+          />
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={s.wrap}>
-      <Pressable
+      <PressableScale
+        scaleTo={0.98}
         onPress={onPress}
-        onLongPress={onLongPress}
-        disabled={!onPress && !onLongPress}
+        // Long-press reveals the sheet: the one place this screen fires a haptic
+        // for opening something, because a held press has no other confirmation.
+        onLongPress={
+          onAppreciate
+            ? () => {
+                haptics.medium();
+                onAppreciate();
+              }
+            : undefined
+        }
+        delayLongPress={350}
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        disabled={!onPress && !onAppreciate}
         accessibilityRole={onPress ? 'imagebutton' : 'image'}
         accessibilityLabel={caption ?? 'Profile photo'}
-        style={[s.photoHolder, { width: photoW, height: photoH, backgroundColor: c.surface2 }]}
+        style={[s.photoHolder, { width: photoW, height: photoH }]}
       >
-        <FastImage
-          source={{ uri: resolved }}
-          style={StyleSheet.absoluteFill}
-          resizeMode={FastImage.resizeMode.cover}
-          onError={() => setFailed(true)}
-        />
-        {locked && (
-          <View style={s.lockOverlay}>
-            <View style={s.lockBadge}>
-              <Ionicons name="lock-closed" size={22} color="#fff" />
-              <Text variant="subhead" style={s.lockText}>Upgrade to view</Text>
-            </View>
-          </View>
-        )}
-      </Pressable>
-      {!!caption && !locked && (
+        {image}
+      </PressableScale>
+      {(!!caption || !!onAppreciate) && (
         <View style={s.captionBand}>
-          {!!eyebrow && <Text variant="micro" color="primary" style={s.eyebrow}>{eyebrow}</Text>}
-          <Text variant="callout" color="textSecondary">{caption}</Text>
+          {!!caption && (
+            <Text variant="footnote" color="textSecondary" style={s.caption}>
+              {caption}
+            </Text>
+          )}
+          {!!onAppreciate && (
+            <Button
+              title="Mention this photo"
+              variant="text"
+              size="sm"
+              icon="chatbubble-ellipses-outline"
+              haptic={false}
+              onPress={onAppreciate}
+              testID="photo-mention"
+            />
+          )}
         </View>
       )}
     </View>
   );
 }
 
-const makeS = (_c: ThemeColours) => StyleSheet.create({
+const makeS = (c: ThemeColours) => StyleSheet.create({
   wrap: { paddingHorizontal: spacing.gutter, marginTop: spacing.xl },
   photoHolder: {
     borderRadius: borderRadius.lg,
     overflow: 'hidden',
+    backgroundColor: c.surface2,
   },
-  lockOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(26,26,26,0.55)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  lockBadge: { alignItems: 'center', gap: 6 },
-  lockText: { color: '#fff' },
+  failed: { alignItems: 'center', justifyContent: 'center' },
   captionBand: {
-    paddingTop: spacing.sm,
-    paddingHorizontal: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    paddingTop: spacing.xs,
   },
-  eyebrow: {
-    marginBottom: 2,
-  },
+  caption: { flexShrink: 1 },
 });

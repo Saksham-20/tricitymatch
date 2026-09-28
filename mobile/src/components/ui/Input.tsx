@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { borderRadius, colours, type, type ThemeColours } from '@shared/constants/theme';
 import Text from './Text';
 import { PressableScale } from '../motion';
+import { tapSize } from '../../utils/elderTheme';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -29,7 +30,7 @@ const Input = forwardRef<TextInput, InputProps>(function Input(
   { label, error, helper, secureToggle, toggleTestID, secureTextEntry, style, containerStyle, testID, onFocus, onBlur, ...rest },
   ref
 ) {
-  const { c } = useTheme();
+  const { c, elder } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
   const [hidden, setHidden] = useState(!!secureTextEntry);
   const [focused, setFocused] = useState(false);
@@ -45,9 +46,12 @@ const Input = forwardRef<TextInput, InputProps>(function Input(
             secureToggle && styles.inputWithIcon,
             focused && styles.inputFocused,
             !!error && styles.inputError,
+            elder && { minHeight: tapSize(true) },
             style,
           ]}
-          placeholderTextColor={c.n400}
+          // c.n400 was about 2.5:1 on the field; the muted text tone clears AA.
+          placeholderTextColor={c.textMuted}
+          accessibilityLabel={label}
           secureTextEntry={secureToggle ? hidden : secureTextEntry}
           testID={testID}
           onFocus={(e) => { setFocused(true); onFocus?.(e); }}
@@ -114,7 +118,7 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    minWidth: 40,
+    minWidth: 44,
   },
   errorText: {
     fontFamily: 'Inter-Medium',
