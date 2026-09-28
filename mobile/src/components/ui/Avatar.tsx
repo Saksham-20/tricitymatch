@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colours, type ThemeColours } from '@shared/constants/theme';
+import { type ThemeColours } from '@shared/constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import SmartImage from '../common/SmartImage';
 
@@ -9,8 +9,6 @@ interface AvatarProps {
   uri?: string | null;
   name?: string;
   size?: number;
-  /** rounded-square instead of circle */
-  square?: boolean;
   /** show the green verified tick badge */
   verified?: boolean;
   /** show an online presence dot */
@@ -20,12 +18,13 @@ interface AvatarProps {
 
 /**
  * Brand avatar — photo with Playfair initials fallback (p100 / p700), optional
- * verified tick and online dot. Mirrors the handoff `.av` component.
+ * verified tick and online dot. Mirrors the handoff `.av` component. A circle is
+ * the only shape: a rounded square needs a radius that is not on the radius scale.
  */
-export default function Avatar({ uri, name, size = 48, square, verified, online, style }: AvatarProps) {
+export default function Avatar({ uri, name, size = 48, verified, online, style }: AvatarProps) {
   const { c } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
-  const radius = square ? Math.round(size * 0.28) : size / 2;
+  const radius = size / 2;
   const badge = Math.max(16, Math.round(size * 0.34));
 
   return (

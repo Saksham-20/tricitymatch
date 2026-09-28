@@ -2,7 +2,12 @@
 // screen's full-screen loading state should render one of these instead of a
 // bare ActivityIndicator; the shimmer + reduce-motion behaviour comes from
 // SkeletonBlock. Keep each skeleton roughly the shape of the loaded layout so
-// the cross-fade (SkeletonFade) doesn't jump.
+// the swap doesn't jump.
+//
+// There is NO cross-fade: the skeleton unmounts the moment the data arrives.
+// SkeletonFade (Skeleton.tsx, used by Step10) only fades the incoming content
+// IN, from opacity 0, so between the two there is a beat of empty background —
+// shape-matching the skeleton is what keeps that beat from reading as a jump.
 import React from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { borderRadius, spacing } from '@shared/constants/theme';

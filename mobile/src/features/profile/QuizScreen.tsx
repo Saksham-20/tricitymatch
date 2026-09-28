@@ -1,23 +1,25 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
+  AccessibilityInfo,
+  Alert,
+  BackHandler,
+  Platform,
   View,
-  Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Ionicons } from '@expo/vector-icons';
+import Text from '../../components/ui/Text';
+import Button from '../../components/ui/Button';
+import ScreenHeader from '../../components/ui/ScreenHeader';
+import Screen from '../../components/layout/Screen';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import { duration, easing } from '@shared/constants/motion';
+import { duration, EASE_OUT } from '@shared/constants/motion';
 import { showToast } from '../../utils/toast';
-import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { PressableScale, useReduceMotion } from '../../components/motion';
 import { haptics } from '../../utils/haptics';
 import { updateMyProfile } from '../../api/profile';
@@ -40,8 +42,8 @@ const QUESTIONS: Question[] = [
     id: 'family_priority',
     text: 'How important is living near family after marriage?',
     options: [
-      { value: 'very_important', label: 'Very important — family is central' },
-      { value: 'somewhat_important', label: 'Somewhat — we visit regularly' },
+      { value: 'very_important', label: 'Very important: family is central' },
+      { value: 'somewhat_important', label: 'Somewhat: we visit regularly' },
       { value: 'flexible', label: 'Flexible based on work & circumstances' },
       { value: 'independent', label: 'Prefer to live independently' },
     ],
@@ -60,9 +62,9 @@ const QUESTIONS: Question[] = [
     id: 'lifestyle_pace',
     text: 'Which lifestyle pace suits you best?',
     options: [
-      { value: 'homebody', label: 'Homebody — cozy evenings at home' },
-      { value: 'social', label: 'Social — friends, gatherings, events' },
-      { value: 'adventurous', label: 'Adventurous — travel, new experiences' },
+      { value: 'homebody', label: 'Homebody: cozy evenings at home' },
+      { value: 'social', label: 'Social: friends, gatherings, events' },
+      { value: 'adventurous', label: 'Adventurous: travel, new experiences' },
       { value: 'balanced', label: 'Mix of all depending on mood' },
     ],
   },
@@ -70,7 +72,7 @@ const QUESTIONS: Question[] = [
     id: 'financial_style',
     text: 'What is your financial philosophy?',
     options: [
-      { value: 'saver', label: 'Save aggressively — security first' },
+      { value: 'saver', label: 'Save aggressively: security first' },
       { value: 'balanced_finance', label: 'Save and enjoy in balance' },
       { value: 'spender', label: 'Live in the present, enjoy now' },
       { value: 'investor', label: 'Invest and grow wealth' },
@@ -100,9 +102,9 @@ const QUESTIONS: Question[] = [
     id: 'social_media',
     text: 'Your relationship with social media?',
     options: [
-      { value: 'very_active', label: 'Very active — share everything' },
-      { value: 'moderate', label: 'Moderate — selective sharing' },
-      { value: 'private', label: 'Private — rarely post personal life' },
+      { value: 'very_active', label: 'Very active: share everything' },
+      { value: 'moderate', label: 'Moderate: selective sharing' },
+      { value: 'private', label: 'Private: rarely post personal life' },
       { value: 'not_on_social', label: 'Not on social media' },
     ],
   },
@@ -110,8 +112,8 @@ const QUESTIONS: Question[] = [
     id: 'religion_practice',
     text: 'How central is religious practice in your daily life?',
     options: [
-      { value: 'very_devout', label: 'Very devout — daily rituals matter' },
-      { value: 'observant', label: 'Observant — festivals & occasions' },
+      { value: 'very_devout', label: 'Very devout: daily rituals matter' },
+      { value: 'observant', label: 'Observant: festivals & occasions' },
       { value: 'spiritual', label: 'Spiritual but not strictly religious' },
       { value: 'non_religious', label: 'Not religious' },
     ],
@@ -130,9 +132,9 @@ const QUESTIONS: Question[] = [
     id: 'partner_independence',
     text: 'How much independence do you expect in a partner?',
     options: [
-      { value: 'very_independent', label: 'Very independent — own career & social life' },
-      { value: 'semi_independent', label: 'Semi-independent — shared decisions' },
-      { value: 'family_centric', label: 'Family-focused — joint decisions' },
+      { value: 'very_independent', label: 'Very independent: own career & social life' },
+      { value: 'semi_independent', label: 'Semi-independent: shared decisions' },
+      { value: 'family_centric', label: 'Family-focused: joint decisions' },
       { value: 'traditional', label: 'Traditional roles preferred' },
     ],
   },
@@ -147,15 +149,22 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
   const reduced = useReduceMotion();
   const w = useSharedValue(pct);
   useEffect(() => {
-    w.value = reduced ? pct : withTiming(pct, { duration: duration.base, easing: Easing.bezier(...easing.std) });
+    w.value = reduced ? pct : withTiming(pct, { duration: duration.content, easing: Easing.bezier(...EASE_OUT) });
   }, [pct, reduced, w]);
   const fill = useAnimatedStyle(() => ({ width: `${w.value}%` }));
   return (
-    <View style={pb.container}>
+    <View
+      style={pb.container}
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel={`Question ${current} of ${total}`}
+      accessibilityValue={{ min: 1, max: total, now: current }}
+    >
       <View style={pb.track}>
         <Animated.View style={[pb.fill, fill]} />
       </View>
-      <Text style={pb.label}>{current} / {total}</Text>
+      {/* textSecondary, not textMuted: this is the only visible progress readout and fails AA in muted grey. */}
+      <Text variant="footnote" color="textSecondary" style={pb.label}>{current} / {total}</Text>
     </View>
   );
 }
@@ -163,8 +172,10 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
 const makePb = (c: ThemeColours) => StyleSheet.create({
   container: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg, marginBottom: spacing.lg },
   track: { flex: 1, height: 6, backgroundColor: c.border, borderRadius: 3, overflow: 'hidden' },
-  fill: { height: '100%', backgroundColor: c.primary, borderRadius: 3 },
-  label: { fontSize: typography.fontSize.xs, color: c.textMuted, fontFamily: typography.fontFamily.medium, minWidth: 36 },
+  // Absolutely positioned and childless: the one place animating `width` is
+  // allowed (an in-flow node would re-run layout for its siblings every frame).
+  fill: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: c.primary, borderRadius: 3 },
+  label: { minWidth: 36, textAlign: 'right' },
 });
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -172,8 +183,6 @@ const makePb = (c: ThemeColours) => StyleSheet.create({
 export default function QuizScreen() {
   const { c } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
-  const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const queryClient = useQueryClient();
 
@@ -184,12 +193,59 @@ export default function QuizScreen() {
   const isLast = currentIdx === QUESTIONS.length - 1;
   const answered = !!answers[question.id];
 
+  // The question changes without a screen change. Android reads the question
+  // card's live region; iOS has none, so it is announced here (one channel per
+  // platform, otherwise TalkBack reads every question twice).
+  useEffect(() => {
+    if (currentIdx > 0 && Platform.OS === 'ios') {
+      AccessibilityInfo.announceForAccessibility(`Question ${currentIdx + 1} of ${QUESTIONS.length}. ${QUESTIONS[currentIdx].text}`);
+    }
+  }, [currentIdx]);
+
+  // Leaving the screen throws away up to nine answers, so it asks first. Header
+  // back, Android hardware back and the iOS swipe all reach `beforeRemove`.
+  const hasAnswers = Object.keys(answers).length > 0;
+  const guardRef = useRef(false);
+  useEffect(() => {
+    guardRef.current = hasAnswers;
+  }, [hasAnswers]);
+  useEffect(
+    () =>
+      navigation.addListener('beforeRemove', (e) => {
+        if (!guardRef.current) return;
+        e.preventDefault();
+        Alert.alert('Discard your answers?', 'Your answers so far will not be saved.', [
+          { text: 'Keep answering', style: 'cancel' },
+          { text: 'Discard', style: 'destructive', onPress: () => navigation.dispatch(e.data.action) },
+        ]);
+      }),
+    [navigation],
+  );
+
+  // Hardware back steps to the previous question, the same as the header arrow,
+  // instead of silently closing the quiz from question nine.
+  useFocusEffect(
+    React.useCallback(() => {
+      const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+        if (currentIdx > 0) {
+          setCurrentIdx((i) => i - 1);
+          return true;
+        }
+        return false;
+      });
+      return () => sub.remove();
+    }, [currentIdx]),
+  );
+
   const saveMutation = useMutation({
     mutationFn: (quizAnswers: QuizAnswer[]) =>
       updateMyProfile({ quizAnswers } as any),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.me });
-      showToast.success('Quiz saved', 'Your answers help us find better matches for you.');
+      // No claim about what the answers do: nothing on the server reads them yet.
+      showToast.success('Quiz saved', 'Your answers are saved to your profile.');
+      // Saved: nothing left to discard, so the leave guard must let this back through.
+      guardRef.current = false;
       navigation.goBack();
     },
     onError: () => {
@@ -221,27 +277,19 @@ export default function QuizScreen() {
   };
 
   return (
-    <View style={[styles.wrapper, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack} testID="quiz-back" accessibilityLabel="Back">
-          <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Compatibility Quiz</Text>
-        <View style={{ width: 22 }} />
-      </View>
+    <Screen edges={['top', 'bottom']} style={styles.wrapper} testID="QuizScreen">
+      <ScreenHeader title="Compatibility quiz" onBack={handleBack} testID="quiz" />
 
       <ProgressBar current={currentIdx + 1} total={QUESTIONS.length} />
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Question */}
-        <View style={styles.questionCard}>
-          <Text style={styles.questionNumber}>Question {currentIdx + 1}</Text>
-          <Text style={styles.questionText}>{question.text}</Text>
+        {/* Question (the "N / total" progress above already says which one it is) */}
+        <View style={styles.questionCard} accessibilityLiveRegion="polite">
+          <Text variant="headline" color="textPrimary">{question.text}</Text>
         </View>
 
         {/* Options */}
-        <View style={styles.options}>
+        <View style={styles.options} accessibilityRole="radiogroup">
           {question.options.map((opt) => {
             const selected = answers[question.id] === opt.value;
             return (
@@ -253,12 +301,17 @@ export default function QuizScreen() {
                 testID={`option-${opt.value}`}
                 accessibilityLabel={opt.label}
                 accessibilityRole="radio"
-                accessibilityState={{ selected }}
+                accessibilityState={{ selected, checked: selected }}
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <View style={[styles.radio, selected && styles.radioSelected]}>
                   {selected && <View style={styles.radioDot} />}
                 </View>
-                <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
+                <Text
+                  variant="subhead"
+                  color={selected ? 'primary' : 'textSecondary'}
+                  style={styles.optionText}
+                >
                   {opt.label}
                 </Text>
               </PressableScale>
@@ -266,93 +319,62 @@ export default function QuizScreen() {
           })}
         </View>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: spacing.xl }} />
       </ScrollView>
 
       {/* Footer */}
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
+      <View style={styles.footer}>
         {!isLast ? (
-          <TouchableOpacity
-            style={[styles.nextBtn, !answered && styles.nextBtnDisabled]}
+          <Button
+            title="Next"
             onPress={handleNext}
             disabled={!answered}
+            haptic={false}
             testID="quiz-next"
             accessibilityLabel="Next question"
-          >
-            <Text style={styles.nextBtnText}>Next →</Text>
-          </TouchableOpacity>
+          />
         ) : (
-          <TouchableOpacity
-            style={[styles.nextBtn, (!answered || saveMutation.isPending) && styles.nextBtnDisabled]}
+          <Button
+            title="Submit quiz"
             onPress={handleNext}
-            disabled={!answered || saveMutation.isPending}
+            loading={saveMutation.isPending}
+            disabled={!answered}
+            // The success toast fires its own haptic; one per committed action.
+            haptic={false}
             testID="quiz-submit"
             accessibilityLabel="Submit quiz"
-          >
-            {saveMutation.isPending ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={styles.nextBtnText}>Submit Quiz</Text>
-            )}
-          </TouchableOpacity>
+          />
         )}
       </View>
-    </View>
+    </Screen>
   );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const makeStyles = (c: ThemeColours) => StyleSheet.create({
-  wrapper: { flex: 1, backgroundColor: c.background || '#fff' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing['2xl'] || 32,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: c.border,
-  },
-  headerTitle: {
-    fontSize: typography.fontSize.lg,
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
-  },
+  wrapper: { backgroundColor: c.background },
   scroll: { flex: 1 },
   questionCard: {
     marginHorizontal: spacing.lg,
-    marginTop: spacing.lg,
-    marginBottom: spacing.xl || spacing.lg,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xl,
     padding: spacing.lg,
     backgroundColor: c.primaryLight,
     borderRadius: borderRadius.lg,
-  },
-  questionNumber: {
-    fontSize: typography.fontSize.xs,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.primary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: spacing.sm,
-  },
-  questionText: {
-    fontSize: typography.fontSize.lg,
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
-    lineHeight: 26,
   },
   options: { paddingHorizontal: spacing.lg, gap: spacing.sm },
   option: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
+    minHeight: 52,
     padding: spacing.md,
     borderWidth: 1.5,
     borderColor: c.border,
     borderRadius: borderRadius.md,
-    backgroundColor: '#fff',
+    // Was a hardcoded '#fff': a white card on a dark screen.
+    backgroundColor: c.surfaceCard,
   },
   optionSelected: {
     borderColor: c.primary,
@@ -376,31 +398,11 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
   },
   optionText: {
     flex: 1,
-    fontSize: typography.fontSize.sm,
-    color: c.textSecondary,
-    fontFamily: typography.fontFamily.regular,
-    lineHeight: 20,
-  },
-  optionTextSelected: {
-    color: c.primary,
-    fontFamily: typography.fontFamily.medium,
   },
   footer: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderTopWidth: 1,
     borderTopColor: c.border,
-  },
-  nextBtn: {
-    backgroundColor: c.primary,
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-  },
-  nextBtnDisabled: { opacity: 0.4 },
-  nextBtnText: {
-    color: '#fff',
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.semiBold,
   },
 });

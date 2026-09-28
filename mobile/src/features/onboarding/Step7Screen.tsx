@@ -1,13 +1,19 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { AccessibilityInfo, View, StyleSheet } from 'react-native';
 import { PressableScale } from '../../components/motion';
 import { haptics } from '../../utils/haptics';
+import { tapSize } from '../../utils/elderTheme';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
-import OnboardingLayout from './OnboardingLayout';
-import { useOnboarding } from './OnboardingContext';
+import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import Text from '../../components/ui/Text';
+import Input from '../../components/ui/Input';
+import OnboardingLayout, { flushField } from './OnboardingLayout';
+import { useOnboarding, type JourneyProfilePatch } from './OnboardingContext';
 import type { MaritalStatus } from '../../types';
+
+// A drifting finger must not cancel a press (doctrine §10.8).
+const RETAIN = { top: 10, bottom: 10, left: 10, right: 10 } as const;
 
 const MARITAL_OPTIONS: { key: MaritalStatus; tKey: string }[] = [
   { key: 'never_married', tKey: 'onboarding.step7.statusOptions.never_married' },
@@ -17,24 +23,52 @@ const MARITAL_OPTIONS: { key: MaritalStatus; tKey: string }[] = [
 ];
 
 export default function Step7Screen() {
-  const { c } = useTheme();
-  const styles = React.useMemo(() => makeStyles(c), [c]);
+  const { c, elder } = useTheme();
+  const tap = tapSize(elder);
+  const styles = React.useMemo(() => makeStyles(c, tap), [c, tap]);
   const { t } = useTranslation();
   const { data, saveAndNext } = useOnboarding();
 
   const [maritalStatus, setMaritalStatus] = useState<MaritalStatus | null>(data.maritalStatus);
-  const [hasChildren, setHasChildren] = useState(data.hasChildren);
+  // The profile only stores a count, so a stored count above zero means "yes".
+  // null = not answered yet. The stored count defaults to 0 for everyone, so a
+  // 0 cannot tell "no" from "never asked": only a real count reads as "yes", and
+  // "no" has to be tapped to be an answer.
+  const [hasChildren, setHasChildren] = useState<boolean | null>(
+    data.hasChildren || (data.numberOfChildren ?? 0) > 0 ? true : null,
+  );
   const [childrenCount, setChildrenCount] = useState(
-    data.numberOfChildren !== null ? String(data.numberOfChildren) : '',
+    data.numberOfChildren ? String(data.numberOfChildren) : '',
   );
 
   const isValid = !!maritalStatus;
 
+  const selectMarital = (key: MaritalStatus) => {
+    if (key === maritalStatus) return; // re-tapping the current choice is not a commit
+    haptics.light();
+    setMaritalStatus(key);
+  };
+
+  const selectChildren = (value: boolean) => {
+    if (value === hasChildren) return;
+    haptics.light();
+    setHasChildren(value);
+    // The count field appears with no focus move of its own, so say so.
+    if (value) AccessibilityInfo.announceForAccessibility(t('onboarding.step7.childrenCount'));
+  };
+
   const handleContinue = async () => {
-    const numChildren = hasChildren && childrenCount ? Number(childrenCount) : 0;
+    const parsed = Number(childrenCount);
+    const entered = hasChildren === true && childrenCount !== '' && Number.isFinite(parsed) ? parsed : null;
+    // Only an explicit "No" records 0. "Yes" with no count typed leaves the stored
+    // count alone (0 would say "no children" to someone who just said they have
+    // some), and an unanswered question is not an answer, so it writes nothing.
+    const numberOfChildren = hasChildren === false ? 0 : entered;
+    const profilePatch: JourneyProfilePatch = { maritalStatus };
+    if (numberOfChildren !== null) profilePatch.numberOfChildren = numberOfChildren;
     await saveAndNext(
-      { maritalStatus, hasChildren, numberOfChildren: hasChildren ? numChildren : null },
-      { maritalStatus, numberOfChildren: numChildren } as any,
+      { maritalStatus, hasChildren: hasChildren === true, numberOfChildren },
+      profilePatch,
     );
   };
 
@@ -48,22 +82,26 @@ export default function Step7Screen() {
     >
       {/* Marital status */}
       <View>
-        <Text style={styles.label}>{t('onboarding.step7.status')}</Text>
-        <View style={styles.optionsContainer}>
+        <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step7.status')}</Text>
+        <View
+          style={styles.optionsContainer}
+          accessibilityRole="radiogroup"
+          accessibilityLabel={t('onboarding.step7.status')}
+        >
           {MARITAL_OPTIONS.map((opt) => {
             const isActive = maritalStatus === opt.key;
             return (
               <PressableScale
                 key={opt.key}
-                scaleTo={0.97}
                 style={[styles.optionBtn, isActive && styles.optionBtnActive]}
-                onPress={() => { haptics.light(); setMaritalStatus(opt.key); }}
+                onPress={() => selectMarital(opt.key)}
                 testID={`marital-${opt.key}`}
                 accessibilityLabel={t(opt.tKey)}
                 accessibilityRole="radio"
-                accessibilityState={{ selected: isActive }}
+                accessibilityState={{ checked: isActive, selected: isActive }}
+                pressRetentionOffset={RETAIN}
               >
-                <Text style={[styles.optionBtnText, isActive && styles.optionBtnTextActive]}>
+                <Text variant="subhead" color={isActive ? 'primary' : 'textPrimary'}>
                   {t(opt.tKey)}
                 </Text>
               </PressableScale>
@@ -74,31 +112,35 @@ export default function Step7Screen() {
 
       {/* Children */}
       <View>
-        <Text style={styles.label}>{t('onboarding.step7.children')}</Text>
-        <View style={styles.row}>
+        <Text variant="subhead" color="textPrimary" style={styles.label}>{t('onboarding.step7.children')}</Text>
+        <View
+          style={styles.row}
+          accessibilityRole="radiogroup"
+          accessibilityLabel={t('onboarding.step7.children')}
+        >
           <PressableScale
-            scaleTo={0.96}
-            style={[styles.yesNoBtn, !hasChildren && styles.yesNoBtnActive]}
-            onPress={() => { haptics.light(); setHasChildren(false); }}
+            style={[styles.yesNoBtn, hasChildren === false && styles.yesNoBtnActive]}
+            onPress={() => selectChildren(false)}
             testID="children-no"
             accessibilityLabel={t('common.no')}
             accessibilityRole="radio"
-            accessibilityState={{ selected: !hasChildren }}
+            accessibilityState={{ checked: hasChildren === false, selected: hasChildren === false }}
+            pressRetentionOffset={RETAIN}
           >
-            <Text style={[styles.yesNoBtnText, !hasChildren && styles.yesNoBtnTextActive]}>
+            <Text variant="subhead" color={hasChildren === false ? 'primary' : 'textPrimary'}>
               {t('common.no')}
             </Text>
           </PressableScale>
           <PressableScale
-            scaleTo={0.96}
-            style={[styles.yesNoBtn, hasChildren && styles.yesNoBtnActive]}
-            onPress={() => { haptics.light(); setHasChildren(true); }}
+            style={[styles.yesNoBtn, hasChildren === true && styles.yesNoBtnActive]}
+            onPress={() => selectChildren(true)}
             testID="children-yes"
             accessibilityLabel={t('common.yes')}
             accessibilityRole="radio"
-            accessibilityState={{ selected: hasChildren }}
+            accessibilityState={{ checked: hasChildren === true, selected: hasChildren === true }}
+            pressRetentionOffset={RETAIN}
           >
-            <Text style={[styles.yesNoBtnText, hasChildren && styles.yesNoBtnTextActive]}>
+            <Text variant="subhead" color={hasChildren === true ? 'primary' : 'textPrimary'}>
               {t('common.yes')}
             </Text>
           </PressableScale>
@@ -106,75 +148,50 @@ export default function Step7Screen() {
       </View>
 
       {/* Number of children */}
-      {hasChildren && (
-        <View>
-          <Text style={styles.label}>{t('onboarding.step7.childrenCount')}</Text>
-          <TextInput
-            style={styles.input}
-            value={childrenCount}
-            onChangeText={setChildrenCount}
-            placeholder="0"
-            placeholderTextColor={c.textMuted}
-            keyboardType="number-pad"
-            maxLength={1}
-            testID="input-childrenCount"
-            accessibilityLabel={t('onboarding.step7.childrenCount')}
-          />
-        </View>
+      {hasChildren === true && (
+        <Input
+          label={t('onboarding.step7.childrenCount')}
+          containerStyle={flushField}
+          value={childrenCount}
+          onChangeText={setChildrenCount}
+          placeholder="0"
+          keyboardType="number-pad"
+          maxLength={1}
+          testID="input-childrenCount"
+          accessibilityLabel={t('onboarding.step7.childrenCount')}
+        />
       )}
     </OnboardingLayout>
   );
 }
 
-const makeStyles = (c: ThemeColours) => StyleSheet.create({
+const makeStyles = (c: ThemeColours, tap: number) => StyleSheet.create({
   label: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
     marginBottom: spacing.sm,
   },
   optionsContainer: { gap: spacing.sm },
+  // minHeight, not height, plus vertical padding: a longer hi/pa label or a
+  // larger OS text size wraps to a second line with room around it.
   optionBtn: {
-    height: 52,
+    minHeight: Math.max(52, tap),
     borderWidth: 1.5,
     borderColor: c.border,
     borderRadius: borderRadius.sm,
     justifyContent: 'center',
     paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
   },
   optionBtnActive: { borderColor: c.primary, backgroundColor: c.primaryLight },
-  optionBtnText: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
-  },
-  optionBtnTextActive: { color: c.primary },
   row: { flexDirection: 'row', gap: spacing.sm },
   yesNoBtn: {
     flex: 1,
-    height: 48,
+    minHeight: tap,
     borderWidth: 1.5,
     borderColor: c.border,
     borderRadius: borderRadius.sm,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: spacing.sm,
   },
   yesNoBtnActive: { borderColor: c.primary, backgroundColor: c.primaryLight },
-  yesNoBtnText: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
-  },
-  yesNoBtnTextActive: { color: c.primary },
-  input: {
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    fontSize: typography.fontSize.base,
-    color: c.textPrimary,
-    minHeight: 48,
-    width: 100,
-  },
 });

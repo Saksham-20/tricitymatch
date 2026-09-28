@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Switch } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { spacing } from '@shared/constants/theme';
+import { PressableScale } from '../../components/motion';
+import Input from '../../components/ui/Input';
 import PickerSheet from '../../components/ui/PickerSheet';
-import OnboardingLayout from './OnboardingLayout';
-import { useOnboarding } from './OnboardingContext';
+import Switch from '../../components/ui/Switch';
+import Text from '../../components/ui/Text';
+import { tapSize } from '../../utils/elderTheme';
+import OnboardingLayout, { OnboardingSelectField, flushField, useOnboardingControls } from './OnboardingLayout';
+import { useOnboarding, type JourneyProfilePatch } from './OnboardingContext';
 
 const INDIA_CITIES = [
   'Chandigarh', 'Mohali', 'Panchkula', 'Ambala', 'Ludhiana', 'Amritsar',
@@ -33,10 +38,10 @@ const STATE_BY_CITY: Record<string, string> = {
 };
 
 export default function Step6Screen() {
-  const { c } = useTheme();
-  const styles = React.useMemo(() => makeStyles(c), [c]);
+  const { elder } = useTheme();
   const { t } = useTranslation();
   const { data, saveAndNext } = useOnboarding();
+  const controls = useOnboardingControls();
 
   const [city, setCity] = useState(data.city);
   const [state, setState] = useState(data.state);
@@ -49,15 +54,26 @@ export default function Step6Screen() {
 
   const isValid = !!(city && (!isNRI || country));
 
-  const handleCitySelect = (c: string) => {
-    setCity(c);
-    setState(STATE_BY_CITY[c] ?? '');
+  const handleCitySelect = (picked: string) => {
+    setCity(picked);
+    setState(STATE_BY_CITY[picked] ?? '');
   };
 
   const handleContinue = async () => {
+    const abroad = isNRI;
+    // The NRI declaration was collected and then never sent, so NRI members were
+    // never flagged (and never offered the NRI plan). The backend stores it as
+    // isNri / residenceCountry / residenceStatus; '' clears a free-text column.
+    const profilePatch: JourneyProfilePatch = {
+      city,
+      state: state.trim(),
+      isNri: abroad,
+      residenceCountry: abroad ? country : '',
+      residenceStatus: abroad ? visaStatus : '',
+    };
     await saveAndNext(
-      { city, state, isNRI, country, visaStatus },
-      { city, state } as any,
+      { city, state: state.trim(), isNRI: abroad, country: abroad ? country : '', visaStatus: abroad ? visaStatus : '' },
+      profilePatch,
     );
   };
 
@@ -70,81 +86,69 @@ export default function Step6Screen() {
       continueDisabled={!isValid}
     >
       {/* Current city */}
-      <View>
-        <Text style={styles.label}>{t('onboarding.step6.city')}</Text>
-        <TouchableOpacity
-          style={styles.selectBtn}
-          onPress={() => setCitySheet(true)}
-          testID="select-city"
-          accessibilityLabel={t('onboarding.step6.city')}
-        >
-          <Text style={city ? styles.selectText : styles.placeholderText}>
-            {city || 'Select city'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <OnboardingSelectField
+        label={t('onboarding.step6.city')}
+        value={city}
+        placeholder={t('onboarding.placeholders.city', 'Select city')}
+        onPress={() => setCitySheet(true)}
+        open={citySheet}
+        testID="select-city"
+      />
 
       {/* State (auto-filled) */}
-      <View>
-        <Text style={styles.label}>{t('onboarding.step6.state')}</Text>
-        <TextInput
-          style={styles.input}
-          value={state}
-          onChangeText={setState}
-          placeholder="State"
-          placeholderTextColor={c.textMuted}
-          autoCapitalize="words"
-          testID="input-state"
-          accessibilityLabel={t('onboarding.step6.state')}
-        />
-      </View>
+      <Input
+        {...controls.inputProps}
+        label={t('onboarding.step6.state')}
+        value={state}
+        onChangeText={setState}
+        containerStyle={flushField}
+        placeholder={t('onboarding.placeholders.state', 'State')}
+        autoCapitalize="words"
+        maxLength={100}
+        testID="input-state"
+        accessibilityLabel={t('onboarding.step6.state')}
+      />
 
-      {/* NRI toggle */}
-      <View style={styles.toggleRow}>
-        <Text style={styles.toggleLabel}>{t('onboarding.step6.nriToggle')}</Text>
-        <Switch
-          value={isNRI}
-          onValueChange={setIsNRI}
-          trackColor={{ false: c.border, true: c.primary }}
-          thumbColor="#fff"
-          testID="toggle-nri"
-          accessibilityLabel={t('onboarding.step6.nriToggle')}
-        />
-      </View>
+      {/* NRI toggle: the whole row is the control (the switch alone is 31pt tall and
+          its label was not tappable); the shared Switch is only the visual, so its
+          own press is switched off and the row carries the one haptic. */}
+      <PressableScale
+        scaleTo={0.985}
+        haptic
+        style={[styles.toggleRow, { minHeight: tapSize(elder) }]}
+        onPress={() => setIsNRI((v) => !v)}
+        testID="toggle-nri"
+        accessibilityRole="switch"
+        accessibilityLabel={t('onboarding.step6.nriToggle')}
+        accessibilityState={{ checked: isNRI }}
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <Text variant="subhead" color="textPrimary" style={styles.toggleLabel}>{t('onboarding.step6.nriToggle')}</Text>
+        <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <Switch value={isNRI} onValueChange={setIsNRI} />
+        </View>
+      </PressableScale>
 
       {/* NRI fields */}
       {isNRI && (
         <>
-          <View>
-            <Text style={styles.label}>{t('onboarding.step6.country')}</Text>
-            <TouchableOpacity
-              style={styles.selectBtn}
-              onPress={() => setCountrySheet(true)}
-              testID="select-country"
-              accessibilityLabel={t('onboarding.step6.country')}
-            >
-              <Text style={country ? styles.selectText : styles.placeholderText}>
-                {country || 'Select country'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View>
-            <Text style={styles.label}>
-              {t('onboarding.step6.visaStatus')}
-              <Text style={styles.optional}> ({t('common.optional')})</Text>
-            </Text>
-            <TouchableOpacity
-              style={styles.selectBtn}
-              onPress={() => setVisaSheet(true)}
-              testID="select-visa"
-              accessibilityLabel={t('onboarding.step6.visaStatus')}
-            >
-              <Text style={visaStatus ? styles.selectText : styles.placeholderText}>
-                {visaStatus || 'Select visa / PR status'}
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <OnboardingSelectField
+            label={t('onboarding.step6.country')}
+            value={country}
+            placeholder={t('onboarding.placeholders.country', 'Select country')}
+            onPress={() => setCountrySheet(true)}
+            open={countrySheet}
+            testID="select-country"
+          />
+          <OnboardingSelectField
+            label={t('onboarding.step6.visaStatus')}
+            optional
+            value={visaStatus}
+            placeholder={t('onboarding.placeholders.visaStatus', 'Select visa / PR status')}
+            onPress={() => setVisaSheet(true)}
+            open={visaSheet}
+            testID="select-visa"
+          />
         </>
       )}
 
@@ -176,43 +180,14 @@ export default function Step6Screen() {
   );
 }
 
-const makeStyles = (c: ThemeColours) => StyleSheet.create({
-  label: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
-    marginBottom: spacing.sm,
-  },
-  optional: { color: c.textMuted, fontFamily: typography.fontFamily.regular },
-  input: {
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    fontSize: typography.fontSize.base,
-    color: c.textPrimary,
-    minHeight: 48,
-  },
-  selectBtn: {
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing.md,
-    height: 48,
-    justifyContent: 'center',
-  },
-  selectText: { fontSize: typography.fontSize.base, color: c.textPrimary },
-  placeholderText: { fontSize: typography.fontSize.base, color: c.textMuted },
+// Layout only: no colour lives in a module-scope stylesheet (doctrine 10.5).
+const styles = StyleSheet.create({
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: spacing.md,
     paddingVertical: spacing.sm,
   },
-  toggleLabel: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
-  },
+  toggleLabel: { flex: 1 },
 });

@@ -1,8 +1,10 @@
 import React from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import Text from '../ui/Text';
 import { Ionicons } from '@expo/vector-icons';
-import { colours, typography, spacing, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, type ThemeColours } from '@shared/constants/theme';
+import { PressableScale } from '../motion';
 
 interface Props {
   lastSyncedLabel?: string | null;
@@ -16,21 +18,24 @@ export default function OfflineBanner({ lastSyncedLabel, isStale, onRefresh }: P
   return (
     <View style={s.banner} testID="offline-banner" accessibilityLiveRegion="polite">
       <Ionicons name="cloud-offline-outline" size={16} color="#fff" />
-      <Text style={s.text}>
-        {isStale ? 'Offline — data may be outdated' : 'Offline — showing cached profiles'}
+      <Text variant="caption" color="onPrimary" style={s.text}>
+        {isStale ? 'Offline. Data may be outdated' : 'Offline. Showing saved profiles'}
       </Text>
       {lastSyncedLabel ? (
-        <Text style={s.sub}>{lastSyncedLabel}</Text>
+        <Text variant="caption" style={s.sub}>{lastSyncedLabel}</Text>
       ) : null}
       {onRefresh ? (
-        <TouchableOpacity
+        <PressableScale
           onPress={onRefresh}
           style={s.refreshBtn}
           testID="offline-banner-refresh"
+          accessibilityRole="button"
           accessibilityLabel="Retry connection"
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="refresh-outline" size={16} color="#fff" />
-        </TouchableOpacity>
+        </PressableScale>
       ) : null}
     </View>
   );
@@ -47,14 +52,9 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   },
   text: {
     flex: 1,
-    fontSize: typography.fontSize.xs,
-    color: '#fff',
-    fontFamily: typography.fontFamily.medium,
   },
   sub: {
-    fontSize: typography.fontSize.xs,
     color: 'rgba(255,255,255,0.75)',
-    fontFamily: typography.fontFamily.regular,
   },
   refreshBtn: {
     padding: spacing.xs,

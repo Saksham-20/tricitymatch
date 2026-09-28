@@ -1,7 +1,7 @@
 import React from 'react';
-import { useTheme } from '../../hooks/useTheme';
-import { View, Text, Image, StyleSheet } from 'react-native';
-import { colours, typography } from '@shared/constants/theme';
+import { View, Image, StyleSheet } from 'react-native';
+import Text, { type TypeRole } from '../ui/Text';
+import { colours } from '@shared/constants/theme';
 
 type Variant = 'default' | 'stacked' | 'white' | 'icon';
 type Size = 'sm' | 'md' | 'lg' | 'xl';
@@ -22,21 +22,24 @@ const badgeSizes = {
   xl: 72,
 };
 
-const textSizes = {
-  sm: typography.fontSize.base,
-  md: typography.fontSize.xl,
-  lg: typography.fontSize['2xl'],
-  xl: typography.fontSize['3xl'],
+// Wordmark size variants mapped onto the nearest canonical type role by
+// point size (original ad-hoc sizes were 16/20/24/30 in the brand serif
+// face at every size — the canonical scale only has serif roles at 22+,
+// so sm/md render sans here; flagged as a known drift in the Text-primitive
+// migration report).
+const textVariants: Record<Size, TypeRole> = {
+  sm: 'callout',
+  md: 'title3',
+  lg: 'title2',
+  xl: 'title1',
 };
 
 export default function Logo({ variant = 'default', size = 'md', showText = true }: LogoProps) {
-  const { c } = useTheme();
   const isWhite = variant === 'white';
   const isStacked = variant === 'stacked';
   const isIcon = variant === 'icon';
 
   const badgeSize = badgeSizes[size];
-  const textColor = isWhite ? '#FFFFFF' : c.textPrimary;
 
   const mark = (
     <Image
@@ -50,7 +53,9 @@ export default function Logo({ variant = 'default', size = 'md', showText = true
 
   const label = showText && !isIcon ? (
     <Text
-      style={[styles.name, { fontSize: textSizes[size], color: textColor }]}
+      variant={textVariants[size]}
+      color={isWhite ? 'onPrimary' : 'textPrimary'}
+      style={styles.name}
       numberOfLines={1}
       importantForAccessibility="no"
       accessibilityElementsHidden
@@ -82,7 +87,6 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   name: {
-    fontFamily: typography.fontFamily.display,
     letterSpacing: 0.3,
   },
 });

@@ -2,10 +2,8 @@ import React from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
@@ -14,9 +12,12 @@ import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { getAdminStats, getVerificationQueue, getReportsQueue } from '../../api/admin';
 import type { AdminStackParamList } from '../../navigation/types';
+import Text from '../../components/ui/Text';
+import { EmptyState, SkeletonBlock } from '../../components/ui';
+import { PressableScale } from '../../components/motion';
 
 type Nav = NativeStackNavigationProp<AdminStackParamList, 'AdminHome'>;
 
@@ -56,8 +57,8 @@ function StatCard({ icon, label, value, color }: StatCardProps) {
   return (
     <View style={[s.statCard, { borderLeftColor: tint }]}>
       <Ionicons name={icon} size={22} tint={tint} />
-      <Text style={s.statValue}>{value}</Text>
-      <Text style={s.statLabel}>{label}</Text>
+      <Text variant="title3" color="textPrimary">{value}</Text>
+      <Text variant="footnote" color="textSecondary">{label}</Text>
     </View>
   );
 }
@@ -75,16 +76,22 @@ function QueueRow({ icon, label, count, color, onPress, testID }: QueueRowProps)
   const { c } = useTheme();
   const s = React.useMemo(() => makeS(c), [c]);
   return (
-    <TouchableOpacity style={s.queueRow} onPress={onPress} testID={testID} accessibilityRole="button">
+    <PressableScale
+      style={s.queueRow}
+      onPress={onPress}
+      testID={testID}
+      accessibilityRole="button"
+      pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    >
       <View style={[s.queueIcon, { backgroundColor: color + '20' }]}>
         <Ionicons name={icon} size={20} color={color} />
       </View>
-      <Text style={s.queueLabel}>{label}</Text>
+      <Text variant="subhead" color="textPrimary" style={s.queueLabel}>{label}</Text>
       <View style={[s.badge, { backgroundColor: count > 0 ? color : c.textMuted }]}>
-        <Text style={s.badgeText}>{count > 99 ? '99+' : count}</Text>
+        <Text variant="caption" style={s.badgeText}>{count > 99 ? '99+' : count}</Text>
       </View>
       <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 
@@ -109,6 +116,10 @@ export default function AdminHomeScreen() {
   });
 
   const isLoading = statsQ.isLoading;
+  // The tiles have no honest value until /admin/analytics has answered. Without
+  // this the body rendered zeros as fact while loading and after a failure.
+  const showSkeleton = !statsQ.data && !statsQ.isError;
+  const showError = !statsQ.data && statsQ.isError;
   const stats: AdminStats = statsQ.data ?? {
     totalUsers: 0,
     verifiedUsers: 0,
@@ -136,16 +147,17 @@ export default function AdminHomeScreen() {
          * navigator: an admin who opened this screen could not get out of it
          * without force-quitting. Pop the parent stack explicitly.
          */}
-        <TouchableOpacity
+        <PressableScale
           onPress={() => (nav.getParent() ?? nav).goBack()}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           accessibilityRole="button"
           accessibilityLabel="Back"
           testID="admin-back"
         >
           <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
-        </TouchableOpacity>
-        <Text style={s.title}>Admin Console</Text>
+        </PressableScale>
+        <Text variant="title2" color="textPrimary" style={s.title}>Admin Console</Text>
         {isLoading ? (
           <ActivityIndicator size="small" color={c.primary} />
         ) : (
@@ -157,44 +169,69 @@ export default function AdminHomeScreen() {
         contentContainerStyle={s.scroll}
         refreshControl={<RefreshControl refreshing={statsQ.isFetching} onRefresh={refetch} />}
       >
-        <Text style={s.sectionTitle}>Overview</Text>
-        <View style={s.statsGrid}>
-          <StatCard icon="people" label="Total Users" value={(stats.totalUsers ?? 0).toLocaleString()} />
-          <StatCard icon="card" label="Active Subs" value={(stats.activeSubscribers ?? 0).toLocaleString()} color={c.info} />
-          <StatCard
-            icon="cash"
-            label="Revenue This Month"
-            value={`₹${(stats.revenueThisMonth ?? 0).toLocaleString()}`}
-            color={c.success}
+        {showSkeleton ? (
+          <View style={s.skeleton} testID="AdminHomeScreen-skeleton">
+            <SkeletonBlock width={72} height={12} style={s.skelTitle} />
+            <View style={s.statsGrid}>
+              {[0, 1, 2, 3].map(i => (
+                <SkeletonBlock key={i} width="47%" height={99} radius={borderRadius.md} />
+              ))}
+            </View>
+            <SkeletonBlock width={104} height={12} style={s.skelTitle} />
+            <SkeletonBlock height={121} radius={borderRadius.md} />
+          </View>
+        ) : showError ? (
+          <EmptyState
+            variant="error"
+            icon="cloud-offline-outline"
+            title="Couldn't load the admin overview"
+            description="Check your connection and try again."
+            actionLabel="Try again"
+            onAction={() => refetch()}
+            testID="AdminHomeScreen-error"
           />
-          <StatCard
-            icon="shield-checkmark"
-            label="Verified Users"
-            value={(stats.verifiedUsers ?? 0).toLocaleString()}
-            color={c.badgeEducation}
-          />
-        </View>
+        ) : (
+          <>
+            <Text variant="caption" color="textSecondary" style={s.sectionTitle}>Overview</Text>
+            <View style={s.statsGrid}>
+              <StatCard icon="people" label="Total Users" value={(stats.totalUsers ?? 0).toLocaleString()} />
+              <StatCard icon="card" label="Active Subs" value={(stats.activeSubscribers ?? 0).toLocaleString()} color={c.info} />
+              <StatCard
+                icon="cash"
+                label="Revenue This Month"
+                value={`₹${(stats.revenueThisMonth ?? 0).toLocaleString()}`}
+                color={c.success}
+              />
+              <StatCard
+                icon="shield-checkmark"
+                label="Verified Users"
+                value={(stats.verifiedUsers ?? 0).toLocaleString()}
+                color={c.badgeEducation}
+              />
+            </View>
 
-        <Text style={s.sectionTitle}>Action Queues</Text>
-        <View style={s.queuesCard}>
-          <QueueRow
-            icon="shield-checkmark-outline"
-            label="Verification Requests"
-            count={pendingVerif}
-            color={c.warning}
-            onPress={() => nav.navigate('VerificationQueue')}
-            testID="queue-verif"
-          />
-          <View style={s.divider} />
-          <QueueRow
-            icon="flag-outline"
-            label="Reported Users"
-            count={openReports}
-            color={c.error}
-            onPress={() => nav.navigate('ReportsQueue')}
-            testID="queue-reports"
-          />
-        </View>
+            <Text variant="caption" color="textSecondary" style={s.sectionTitle}>Action Queues</Text>
+            <View style={s.queuesCard}>
+              <QueueRow
+                icon="shield-checkmark-outline"
+                label="Verification Requests"
+                count={pendingVerif}
+                color={c.warning}
+                onPress={() => nav.navigate('VerificationQueue')}
+                testID="queue-verif"
+              />
+              <View style={s.divider} />
+              <QueueRow
+                icon="flag-outline"
+                label="Reported Users"
+                count={openReports}
+                color={c.error}
+                onPress={() => nav.navigate('ReportsQueue')}
+                testID="queue-reports"
+              />
+            </View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -213,20 +250,17 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   },
   title: {
     flex: 1,
-    fontSize: typography.fontSize['2xl'],
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
   },
   headerSpacer: { width: 24 },
   scroll: { padding: spacing.lg, gap: spacing.sm },
   sectionTitle: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
     marginBottom: spacing.xs,
     marginTop: spacing.sm,
+  },
+  skeleton: { gap: spacing.sm },
+  skelTitle: {
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -240,16 +274,6 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     padding: spacing.md,
     borderLeftWidth: 3,
     gap: spacing.xs,
-  },
-  statValue: {
-    fontSize: typography.fontSize.xl,
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
-  },
-  statLabel: {
-    fontSize: typography.fontSize.xs,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textSecondary,
   },
   queuesCard: {
     backgroundColor: c.surfaceCard,
@@ -271,9 +295,6 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   },
   queueLabel: {
     flex: 1,
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
   },
   badge: {
     minWidth: 24,
@@ -284,8 +305,6 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     paddingHorizontal: spacing.xs,
   },
   badgeText: {
-    fontSize: typography.fontSize.xs,
-    fontFamily: typography.fontFamily.bold,
     color: '#fff',
   },
   divider: {

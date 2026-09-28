@@ -38,7 +38,7 @@ export const colours = {
   textPrimary:   '#2D2D2D',
   fgStrong:      '#1A1A1A',
   textSecondary: '#5A5A5A',
-  textMuted:     '#8B8B8B',
+  textMuted:     '#6E6E6E', // AA on white (~5:1); was #8B8B8B (3.4:1). Same value as the web muted-foreground.
   muted:         '#8B8B8B',
 
   accent:        '#8B2346',
@@ -115,9 +115,6 @@ export const typography = {
     tight:   1.25,
     normal:  1.5,
     relaxed: 1.75,
-  },
-  letterSpacing: {
-    eyebrow: 1.2,
   },
 } as const;
 

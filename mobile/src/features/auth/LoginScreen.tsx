@@ -2,195 +2,159 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
   View,
-  Text,
   TextInput,
-  TouchableOpacity,
   StyleSheet,
-  ScrollView,
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
+  AccessibilityInfo,
   Platform,
-  Modal,
 } from 'react-native';
+import Text from '../../components/ui/Text';
+import Input from '../../components/ui/Input';
+import Button from '../../components/ui/Button';
+import Screen from '../../components/layout/Screen';
+import SmartContactInput, { parseContact } from '../../components/forms/SmartContactInput';
 import { useNavigation } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
+import axios from 'axios';
 import { showToast } from '../../utils/toast';
 import Animated from 'react-native-reanimated';
-import * as LocalAuthentication from 'expo-local-authentication';
 import type { AuthStackParamList } from '../../navigation/types';
 import { useAuthStore } from '../../stores/authStore';
-import { login, refreshAccessToken } from '../../api/auth';
+import { login } from '../../api/auth';
 import { CONFIG } from '../../constants/config';
-import { cache, CACHE_KEYS } from '../../utils/cache';
-import { secureStorage } from '../../utils/secureStorage';
-import { useShake } from '../../components/motion';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { useShake, PressableScale } from '../../components/motion';
+import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { tapSize } from '../../utils/elderTheme';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
+// There is no biometric sign-in on this screen. It could only ever fail:
+// authStore.logout() and a failed initialize() both delete the stored refresh
+// token, so a signed-out device has nothing for a Face ID / Touch ID check to
+// exchange for a session. (Settings still exposes a switch for it: see the
+// unresolved item reported with this change.)
+
+// What login() can reject with. api/client.ts rewrites two failures into bare
+// Errors that carry no `response`, so this is the union the screen really sees,
+// not just an AxiosError:
+//   429 -> Error('Too many requests') with `retryAfter` in seconds (60 when the
+//          server sent no Retry-After, which is the case for ACCOUNT_LOCKED).
+//   401 -> Error('No refresh token'): client.ts answers every 401 by trying to
+//          refresh the session, and a signed-out device has nothing to refresh,
+//          so a wrong password never arrives here as a 401 response.
+type LoginFailure = {
+  response?: { status?: number; data?: { error?: { code?: string; message?: string } } };
+  retryAfter?: number;
+  message?: string;
+};
+
+// How long the button stays down after a 429 that names no wait of its own.
+const FALLBACK_LOCK_SECONDS = 60;
+
 export default function LoginScreen() {
-  const { c } = useTheme();
+  const { c, elder } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
   const navigation = useNavigation<Nav>();
-  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { setUser, setAccessToken } = useAuthStore();
+  const hit = tapSize(elder);
+  // Input's own floor is 50; elder mode needs its 60pt target. (The Buttons need
+  // the same and cannot get it from here: primitive request on Button.)
+  const fieldHeight = { minHeight: Math.max(50, hit) };
 
-  const [email, setEmail] = useState('');
+  // The door accepts an email OR a 10-digit mobile: a member who signed up with
+  // a phone number (the first-class path on CreateAccountScreen) has no email to
+  // type here, and the server signs in either identifier.
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [lockoutMinutes, setLockoutMinutes] = useState<number | null>(null);
-  const [lockoutSeconds, setLockoutSeconds] = useState(0);
-  const [biometricAvailable, setBiometricAvailable] = useState(false);
-  const [biometricEnabled, setBiometricEnabled] = useState(false);
-  const [showBiometricSetup, setShowBiometricSetup] = useState(false);
-  const [bioAttempts, setBioAttempts] = useState(0);
-  const BIO_MAX_ATTEMPTS = 3;
+  const [idError, setIdError] = useState('');
+  const [pwError, setPwError] = useState('');
+  // Seconds the sign-in button stays down after a 429; null when not locked.
+  const [lockedFor, setLockedFor] = useState<number | null>(null);
 
   const passwordRef = useRef<TextInput>(null);
   const { style: shakeStyle, shake } = useShake();
 
-  // Check biometric capability on mount, auto-prompt if enabled
+  // Lockout: one timer for the whole window (not a 1s state tick). When it
+  // lifts, the "too many attempts" banner goes with it, so the button is never
+  // live under a message that says to wait.
   useEffect(() => {
-    (async () => {
-      try {
-        const available = await LocalAuthentication.hasHardwareAsync();
-        const enrolled = await LocalAuthentication.isEnrolledAsync();
-        const capable = available && enrolled;
-        setBiometricAvailable(capable);
-        const enabled = cache.getBoolean(CACHE_KEYS.BIOMETRIC_ENABLED) ?? false;
-        setBiometricEnabled(enabled);
-        if (capable && enabled) {
-          handleBiometric();
-        }
-      } catch {
-        // biometric not available
-      }
-    })();
-  }, []);
+    if (lockedFor === null) return;
+    const id = setTimeout(() => {
+      setLockedFor(null);
+      setError('');
+    }, lockedFor * 1000);
+    return () => clearTimeout(id);
+  }, [lockedFor]);
 
-  // Lockout countdown
+  // Android announces the banner through accessibilityLiveRegion; iOS ignores
+  // that prop, so speak it explicitly there.
   useEffect(() => {
-    if (lockoutSeconds <= 0) return;
-    const interval = setInterval(() => {
-      setLockoutSeconds((s) => {
-        if (s <= 1) {
-          setLockoutMinutes(null);
-          clearInterval(interval);
-          return 0;
-        }
-        return s - 1;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [lockoutSeconds]);
+    if (error && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(error);
+  }, [error]);
 
-  const handleBiometric = async () => {
-    if (bioAttempts >= BIO_MAX_ATTEMPTS) {
-      showToast.error('Too many attempts', 'Biometric login locked. Use email and password.');
-      return;
-    }
-    try {
-      const available = await LocalAuthentication.hasHardwareAsync();
-      const enrolled = await LocalAuthentication.isEnrolledAsync();
-      if (!available || !enrolled) return;
-
-      const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Sign in to TricityMatch',
-        fallbackLabel: 'Use password',
-        cancelLabel: 'Cancel',
-        disableDeviceFallback: false,
-      });
-
-      if (result.success) {
-        setBioAttempts(0);
-        setLoading(true);
-        try {
-          // Use stored refresh token to get a fresh access token
-          const refreshed = await refreshAccessToken();
-          if (refreshed.accessToken && refreshed.user) {
-            setAccessToken(refreshed.accessToken);
-            setUser(refreshed.user);
-          } else {
-            showToast.info('Session expired', 'Please sign in with your email and password.');
-          }
-        } catch {
-          showToast.error('Sign in failed', 'Please sign in with your email and password.');
-        } finally {
-          setLoading(false);
-        }
-      } else {
-        setBioAttempts((n) => n + 1);
-        if (bioAttempts + 1 >= BIO_MAX_ATTEMPTS) {
-          cache.setBoolean(CACHE_KEYS.BIOMETRIC_ENABLED, false);
-          setBiometricEnabled(false);
-          showToast.error('Biometric locked', 'Too many failed attempts. Use email and password.');
-        }
-      }
-    } catch {
-      // silently skip
-    }
-  };
-
-  const handleEnableBiometric = () => {
-    cache.setBoolean(CACHE_KEYS.BIOMETRIC_ENABLED, true);
-    setBiometricEnabled(true);
-    setShowBiometricSetup(false);
-  };
-
-  const handleSkipBiometric = () => {
-    cache.setBoolean(CACHE_KEYS.BIOMETRIC_ENABLED, false);
-    setShowBiometricSetup(false);
+  // Field problems live under their field; `error` (banner) is only for what
+  // the server said. Validated on blur (identifier) and on submit (both).
+  const identifierProblem = (raw: string): string => {
+    if (!raw.trim()) return t('auth.errors.contactRequired', 'Enter your email or mobile number');
+    if (!parseContact(raw).value) return t('auth.errors.contactInvalid', 'Enter a valid email or 10-digit mobile number');
+    return '';
   };
 
   const validate = (): boolean => {
-    if (!email.trim()) {
-      setError(t('auth.login.email') + ' is required');
-      return false;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError('Please enter a valid email address');
-      return false;
-    }
-    if (!password) {
-      setError(t('auth.login.password') + ' is required');
-      return false;
-    }
-    return true;
+    const idProblem = identifierProblem(identifier);
+    const pProblem = password ? '' : t('auth.errors.passwordRequired', 'Enter your password');
+    setIdError(idProblem);
+    setPwError(pProblem);
+    // SmartContactInput speaks its own error; Input's has no live region, so
+    // say the password problem here or a screen-reader user hears nothing.
+    if (!idProblem && pProblem) AccessibilityInfo.announceForAccessibility(pProblem);
+    return !idProblem && !pProblem;
   };
 
+  // While locked, the lockout banner is the only explanation for a dead button,
+  // so typing must not wipe it.
+  const clearError = () => { if (lockedFor === null) setError(''); };
+
   const handleLogin = async () => {
+    if (lockedFor !== null || loading) return;
     setError('');
     if (!validate()) return;
-    if (lockoutMinutes !== null) return;
 
+    const parsed = parseContact(identifier);
     setLoading(true);
     try {
-      const result = await login(email.trim().toLowerCase(), password);
+      // parsed.value is a lowercased email or a bare 10-digit mobile, the two
+      // forms the server stores. (api login() names its param `email`; the
+      // server reads it as the identifier and routes on the presence of '@'.)
+      const result = await login(parsed.value as string, password);
       setAccessToken(result.accessToken);
       setUser(result.user);
-      // Offer biometric setup after first successful email/password login
-      if (biometricAvailable && !biometricEnabled) {
-        setShowBiometricSetup(true);
-      }
     } catch (err: unknown) {
-      const anyErr = err as { response?: { status?: number; data?: { message?: string; retryAfter?: number } } };
-      const status = anyErr?.response?.status;
-      const data = anyErr?.response?.data;
+      const failure = err as LoginFailure;
+      const status = failure?.response?.status;
+      const hasResponse = !!failure?.response;
+      const rateLimited = status === 429 || (!hasResponse && typeof failure?.retryAfter === 'number');
+      const wrongCredentials = status === 401 || (!hasResponse && failure?.message === 'No refresh token');
 
-      if (status === 429) {
-        const mins = data?.retryAfter ? Math.ceil(data.retryAfter / 60) : 30;
-        setLockoutMinutes(mins);
-        setLockoutSeconds(mins * 60);
-        setError(t('auth.login.lockoutMessage', { minutes: mins }));
-      } else if (status === 401) {
-        setError(t('auth.login.invalidCredentials'));
+      if (rateLimited) {
+        // No figure in the copy: an account lockout names no duration
+        // (LOCKOUT_DURATION_MINUTES is server config), so any number here
+        // would be invented. The button only waits out what the server said.
+        const wait = failure.retryAfter;
+        setLockedFor(typeof wait === 'number' && Number.isFinite(wait) && wait > 0 ? wait : FALLBACK_LOCK_SECONDS);
+        setError(t('auth.login.lockedOut', 'Too many sign-in attempts. Wait a little, then try again, or reset your password.'));
+      } else if (wrongCredentials) {
+        setError(t('auth.login.wrongCredentials', 'Wrong email, mobile number or password.'));
+      } else if (status === 403) {
+        // The only 403 login answers with: the account is suspended or deactivated.
+        setError(t('auth.login.accountInactive', 'This account is not active. Contact support for help.'));
+      } else if (!hasResponse && axios.isAxiosError(err)) {
+        // A real transport failure: the request never reached the server.
+        setError(t('common.networkError'));
       } else {
         setError(t('common.error'));
       }
@@ -204,309 +168,176 @@ export default function LoginScreen() {
   // Only reachable when CONFIG.IS_GOOGLE_CONFIGURED — the button is not rendered
   // otherwise. The native Google SDK is not installed yet, so this states the
   // real situation instead of naming an environment variable at the user.
+  // Informational, not a destructive confirmation: a toast, never an Alert.
   const handleGoogleSignIn = () => {
-    Alert.alert(
+    showToast.info(
       t('auth.login.googleSignIn'),
-      'Google sign-in is not available in this build. Please continue with your email or phone number.',
+      t('auth.login.googleUnavailable', 'Google sign-in is not available in this build. Continue with your email or mobile number.'),
     );
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    <Screen
+      edges={['top']}
+      keyboard
+      scroll
+      contentContainerStyle={styles.content}
       testID="LoginScreen"
     >
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing['2xl'] }]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+      {navigation.canGoBack() && (
+        <PressableScale
+          onPress={() => navigation.goBack()}
+          style={[styles.backBtn, { width: hit, height: hit }]}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.back')}
+          testID="login-back"
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
+        </PressableScale>
+      )}
+
+      {/* Header */}
+      <View style={styles.header}>
+        <Text variant="title1" color="textPrimary" accessibilityRole="header">{t('auth.login.title')}</Text>
+        <Text variant="callout" color="textSecondary" style={styles.subtitle}>{t('auth.login.subtitle')}</Text>
+      </View>
+
+      {/* Server error banner: lockout, bad credentials, network. The icon is
+          the non-colour cue; the shake + warning haptic is the motion cue. */}
+      {error ? (
+        <Animated.View style={[styles.errorBanner, shakeStyle]} testID="LoginScreen-error" accessibilityLiveRegion="polite">
+          <Ionicons name="alert-circle" size={18} color={c.error} style={styles.errorIcon} accessibilityElementsHidden importantForAccessibility="no" />
+          <Text variant="subhead" color="error" style={styles.errorText}>{error}</Text>
+        </Animated.View>
+      ) : null}
+
+      {/* Email or mobile */}
+      <SmartContactInput
+        label={t('auth.emailOrPhone', 'Email or mobile number')}
+        value={identifier}
+        onChange={(raw) => { setIdentifier(raw); setIdError(''); clearError(); }}
+        onBlur={() => { if (identifier.trim()) setIdError(identifierProblem(identifier)); }}
+        error={idError || undefined}
+        placeholder="you@example.com"
+        autoFocus
+        returnKeyType="next"
+        onSubmitEditing={() => passwordRef.current?.focus()}
+        testID="LoginScreen-email"
+      />
+
+      {/* Password input */}
+      <Input
+        ref={passwordRef}
+        label={t('auth.login.password')}
+        value={password}
+        onChangeText={(v) => { setPassword(v); setPwError(''); clearError(); }}
+        secureToggle
+        secureTextEntry
+        textContentType="password"
+        autoComplete="current-password"
+        returnKeyType="done"
+        onSubmitEditing={handleLogin}
+        accessibilityLabel={t('auth.login.password')}
+        error={pwError || undefined}
+        containerStyle={styles.passwordGroup}
+        style={fieldHeight}
+        testID="LoginScreen-password"
+        toggleTestID="LoginScreen-togglePassword"
+      />
+
+      {/* Own row under the field, sized for real: a hitSlop on a 20pt line
+          loses its lower half to the field it sits against. */}
+      <PressableScale
+        onPress={() => navigation.navigate('ForgotPassword')}
+        style={[styles.forgotLink, { minHeight: hit }]}
+        testID="LoginScreen-forgotPassword"
+        accessibilityRole="link"
+        accessibilityLabel={t('auth.login.forgotPassword')}
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
-        {navigation.canGoBack() && (
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backBtn}
-            accessibilityLabel="Go back"
-            testID="login-back"
-          >
-            <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
-          </TouchableOpacity>
-        )}
+        <Text variant="subhead" color="primary">{t('auth.login.forgotPassword')}</Text>
+      </PressableScale>
 
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>{t('auth.login.title')}</Text>
-          <Text style={styles.subtitle}>{t('auth.login.subtitle')}</Text>
-        </View>
+      {/* Sign In button */}
+      <Button
+        title={t('auth.login.signInAction', 'Sign in')}
+        onPress={handleLogin}
+        loading={loading}
+        disabled={lockedFor !== null}
+        testID="LoginScreen-submit"
+        loaderTestID="LoginScreen-loader"
+        style={styles.submit}
+      />
 
-        {/* Error banner — handoff lockout state shows a warning panel, no countdown */}
-        {error ? (
-          <Animated.View style={[styles.errorBanner, shakeStyle]} testID="LoginScreen-error" accessibilityLiveRegion="polite">
-            <Text style={styles.errorText}>{error}</Text>
-          </Animated.View>
-        ) : null}
+      {/* Google Sign-In — HIDDEN on iOS. Apple Guideline 4.8 requires "Sign in
+          with Apple" alongside any third-party social login. Until that's added,
+          iOS uses email/password only (avoids guaranteed App Review rejection). */}
+      {Platform.OS !== 'ios' && CONFIG.IS_GOOGLE_CONFIGURED && (
+        <>
+          {/* Divider */}
+          <View style={styles.divider} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            <View style={styles.dividerLine} />
+            <Text variant="footnote" color="textSecondary">{t('common.or')}</Text>
+            <View style={styles.dividerLine} />
+          </View>
 
-        {/* Email input */}
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>{t('auth.login.email')}</Text>
-          <TextInput
-            style={styles.input}
-            value={email}
-            onChangeText={(v) => { setEmail(v); setError(''); }}
-            placeholder="you@example.com"
-            placeholderTextColor={c.textMuted}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            textContentType="emailAddress"
-            autoComplete="email"
-            autoFocus
-            returnKeyType="next"
-            onSubmitEditing={() => passwordRef.current?.focus()}
-            accessibilityLabel={t('auth.login.email')}
-            testID="LoginScreen-email"
+          <Button
+            title={t('auth.login.googleSignIn')}
+            onPress={handleGoogleSignIn}
+            variant="secondary"
+            icon="logo-google"
+            haptic={false}
+            testID="LoginScreen-google"
           />
-        </View>
+        </>
+      )}
 
-        {/* Password input */}
-        <View style={styles.fieldGroup}>
-          <View style={styles.labelRow}>
-            <Text style={styles.label}>{t('auth.login.password')}</Text>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('ForgotPassword')}
-              testID="LoginScreen-forgotPassword"
-              accessibilityLabel={t('auth.login.forgotPassword')}
-            >
-              <Text style={styles.forgotLink}>{t('auth.login.forgotPassword')}</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.passwordContainer}>
-            <TextInput
-              ref={passwordRef}
-              style={[styles.input, styles.passwordInput]}
-              value={password}
-              onChangeText={(v) => { setPassword(v); setError(''); }}
-              placeholder="••••••••"
-              placeholderTextColor={c.textMuted}
-              secureTextEntry={!showPassword}
-              textContentType="password"
-              autoComplete="current-password"
-              returnKeyType="done"
-              onSubmitEditing={handleLogin}
-              accessibilityLabel={t('auth.login.password')}
-              testID="LoginScreen-password"
-            />
-            <TouchableOpacity
-              style={styles.eyeBtn}
-              onPress={() => setShowPassword((v) => !v)}
-              accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
-              testID="LoginScreen-togglePassword"
-            >
-              <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={c.textMuted} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Sign In button */}
-        <TouchableOpacity
-          style={[styles.primaryBtn, (loading || lockoutMinutes !== null) && styles.btnDisabled]}
-          onPress={handleLogin}
-          disabled={loading || lockoutMinutes !== null}
-          accessibilityLabel={t('auth.login.signIn')}
-          testID="LoginScreen-submit"
-        >
-          {loading ? (
-            <ActivityIndicator color="#FFFFFF" testID="LoginScreen-loader" />
-          ) : (
-            <Text style={styles.primaryBtnText}>{t('auth.login.signIn')}</Text>
-          )}
-        </TouchableOpacity>
-
-        {/* Google Sign-In — HIDDEN on iOS. Apple Guideline 4.8 requires "Sign in
-            with Apple" alongside any third-party social login. Until that's added,
-            iOS uses email/password only (avoids guaranteed App Review rejection). */}
-        {Platform.OS !== 'ios' && CONFIG.IS_GOOGLE_CONFIGURED && (
-          <>
-            {/* Divider */}
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>{t('common.or')}</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            <TouchableOpacity
-              style={styles.googleBtn}
-              onPress={handleGoogleSignIn}
-              accessibilityLabel={t('auth.login.googleSignIn')}
-              testID="LoginScreen-google"
-            >
-              <View style={styles.btnRow}>
-                <Ionicons name="logo-google" size={18} color={c.textPrimary} />
-                <Text style={styles.googleBtnText}>{t('auth.login.googleSignIn')}</Text>
-              </View>
-            </TouchableOpacity>
-          </>
-        )}
-
-        {/* Biometric — only shown when hardware available */}
-        {biometricAvailable && (
-          <TouchableOpacity
-            style={styles.biometricBtn}
-            onPress={handleBiometric}
-            disabled={bioAttempts >= BIO_MAX_ATTEMPTS}
-            accessibilityLabel="Sign in with biometrics"
-            testID="LoginScreen-biometric"
-          >
-            <View style={styles.btnRow}>
-              <Ionicons name="finger-print" size={18} color={bioAttempts >= BIO_MAX_ATTEMPTS ? c.textMuted : c.primary} />
-              <Text style={[styles.biometricBtnText, bioAttempts >= BIO_MAX_ATTEMPTS && { color: c.textMuted }]}>
-                {biometricEnabled ? 'Sign in with Face ID / Touch ID' : 'Use biometric login'}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        )}
-
-        {/* Footer */}
-        <TouchableOpacity
-          style={styles.footerLink}
-          onPress={() => navigation.navigate('Signup')}
-          testID="LoginScreen-signup"
-          accessibilityLabel={t('auth.login.noAccount')}
-        >
-          <Text style={styles.footerLinkText}>{t('auth.login.noAccount')}</Text>
-        </TouchableOpacity>
-      </ScrollView>
-
-      {/* Biometric Setup Prompt — shown after first successful login */}
-      <Modal
-        visible={showBiometricSetup}
-        transparent
-        animationType="fade"
-        onRequestClose={handleSkipBiometric}
-        testID="biometric-setup-modal"
+      {/* Footer */}
+      <PressableScale
+        style={[styles.footerLink, { minHeight: hit }]}
+        onPress={() => navigation.navigate('Signup')}
+        testID="LoginScreen-signup"
+        accessibilityRole="link"
+        accessibilityLabel={t('auth.login.noAccount')}
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
-        <View style={styles.bioModalBackdrop}>
-          <View style={styles.bioModalCard}>
-            <View style={styles.bioModalIconWrap}>
-              <Ionicons name="finger-print" size={32} color={c.primary} />
-            </View>
-            <Text style={styles.bioModalTitle}>Enable Face ID / Touch ID?</Text>
-            <Text style={styles.bioModalBody}>
-              Sign in faster next time using biometrics instead of your password.
-            </Text>
-            <TouchableOpacity
-              style={styles.bioModalPrimary}
-              onPress={handleEnableBiometric}
-              testID="biometric-setup-enable"
-              accessibilityLabel="Enable biometric login"
-            >
-              <Text style={styles.bioModalPrimaryText}>Enable Biometrics</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.bioModalSecondary}
-              onPress={handleSkipBiometric}
-              testID="biometric-setup-skip"
-              accessibilityLabel="Skip biometric setup"
-            >
-              <Text style={styles.bioModalSecondaryText}>Not now</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    </KeyboardAvoidingView>
+        <Text variant="subhead" color="textSecondary">{t('auth.login.noAccount')}</Text>
+      </PressableScale>
+    </Screen>
   );
 }
 
 const makeStyles = (c: ThemeColours) => StyleSheet.create({
-  flex: { flex: 1, backgroundColor: c.background },
-  scroll: { flex: 1 },
   content: {
     padding: spacing['2xl'],
+    paddingBottom: spacing['3xl'],
   },
-  backBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', marginLeft: -spacing.sm, marginBottom: spacing.md },
+  // Square target; width/height come from tapSize(elder) at the call site.
+  backBtn: { alignItems: 'center', justifyContent: 'center', marginLeft: -spacing.sm, marginBottom: spacing.md },
   header: { marginBottom: spacing['3xl'] },
-  title: {
-    fontSize: typography.fontSize['3xl'],
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
-  },
   subtitle: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textSecondary,
     marginTop: spacing.xs,
   },
   errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
     backgroundColor: c.errorBg,
     borderRadius: borderRadius.md,
     padding: spacing.md,
     marginBottom: spacing.lg,
-    borderLeftWidth: 3,
-    borderLeftColor: c.error,
   },
-  errorText: {
-    fontSize: typography.fontSize.sm,
-    color: c.error,
-    fontFamily: typography.fontFamily.medium,
-  },
-  fieldGroup: { marginBottom: spacing.lg },
-  labelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  label: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
-    marginBottom: spacing.sm,
-  },
+  errorIcon: { marginTop: 1 },
+  errorText: { flex: 1 },
+  // The forgot link is the next element, so the field's own 15pt group margin is trimmed.
+  passwordGroup: { marginBottom: 0 },
   forgotLink: {
-    fontSize: typography.fontSize.sm,
-    color: c.primary,
-    fontFamily: typography.fontFamily.medium,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 14,
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textPrimary,
-    backgroundColor: c.background,
-    minHeight: 52,
-  },
-  passwordContainer: { position: 'relative' },
-  passwordInput: { paddingRight: 52 },
-  eyeBtn: {
-    position: 'absolute',
-    right: 14,
-    top: 0,
-    bottom: 0,
+    alignSelf: 'flex-end',
     justifyContent: 'center',
-    alignItems: 'center',
-    minWidth: 40,
+    paddingHorizontal: spacing.sm,
   },
-  eyeText: { fontSize: 18 },
-  primaryBtn: {
-    backgroundColor: c.primary,
-    borderRadius: borderRadius.md,
-    paddingVertical: 16,
-    alignItems: 'center',
-    minHeight: 52,
-    justifyContent: 'center',
-    marginTop: spacing.sm,
-  },
-  btnDisabled: { opacity: 0.6 },
-  primaryBtnText: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.semiBold,
-    color: '#FFFFFF',
-  },
+  submit: { marginTop: spacing.sm },
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -514,117 +345,11 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     gap: spacing.md,
   },
   dividerLine: { flex: 1, height: 1, backgroundColor: c.border },
-  dividerText: {
-    fontSize: typography.fontSize.sm,
-    color: c.textMuted,
-    fontFamily: typography.fontFamily.regular,
-  },
-  googleBtn: {
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: borderRadius.md,
-    paddingVertical: 14,
-    alignItems: 'center',
-    minHeight: 52,
-    justifyContent: 'center',
-    backgroundColor: c.background,
-  },
-  googleBtnText: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
-  },
-  biometricBtn: {
-    alignItems: 'center',
-    paddingVertical: 12,
-    marginTop: spacing.md,
-    minHeight: 48,
-    justifyContent: 'center',
-  },
-  biometricBtnText: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.medium,
-    color: c.primary,
-  },
   footerLink: {
     alignItems: 'center',
     paddingVertical: 16,
     marginTop: spacing.lg,
     minHeight: 48,
     justifyContent: 'center',
-  },
-  footerLinkText: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textSecondary,
-  },
-  bioModalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing['2xl'],
-  },
-  bioModalCard: {
-    backgroundColor: c.background,
-    borderRadius: borderRadius.xl,
-    padding: spacing['2xl'],
-    alignItems: 'center',
-    gap: spacing.md,
-    width: '100%',
-  },
-  btnRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  bioModalIconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: c.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.sm,
-  },
-  bioModalTitle: {
-    fontSize: typography.fontSize.xl,
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
-    textAlign: 'center',
-  },
-  bioModalBody: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: spacing.sm,
-  },
-  bioModalPrimary: {
-    backgroundColor: c.primary,
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
-    width: '100%',
-    alignItems: 'center',
-    minHeight: 52,
-    justifyContent: 'center',
-  },
-  bioModalPrimaryText: {
-    color: '#fff',
-    fontFamily: typography.fontFamily.bold,
-    fontSize: typography.fontSize.base,
-  },
-  bioModalSecondary: {
-    paddingVertical: spacing.sm,
-    width: '100%',
-    alignItems: 'center',
-    minHeight: 44,
-    justifyContent: 'center',
-  },
-  bioModalSecondaryText: {
-    color: c.textSecondary,
-    fontFamily: typography.fontFamily.medium,
-    fontSize: typography.fontSize.base,
   },
 });

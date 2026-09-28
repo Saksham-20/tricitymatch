@@ -3,15 +3,16 @@ import { useTheme } from '../../hooks/useTheme';
 import {
   StyleProp,
   StyleSheet,
-  Text,
   TextInput,
   TextInputProps,
-  TouchableOpacity,
   View,
   ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { borderRadius, colours, type, type ThemeColours } from '@shared/constants/theme';
+import Text from './Text';
+import { PressableScale } from '../motion';
+import { tapSize } from '../../utils/elderTheme';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -29,14 +30,14 @@ const Input = forwardRef<TextInput, InputProps>(function Input(
   { label, error, helper, secureToggle, toggleTestID, secureTextEntry, style, containerStyle, testID, onFocus, onBlur, ...rest },
   ref
 ) {
-  const { c } = useTheme();
+  const { c, elder } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
   const [hidden, setHidden] = useState(!!secureTextEntry);
   const [focused, setFocused] = useState(false);
 
   return (
     <View style={[styles.group, containerStyle]}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
+      {label ? <Text variant="footnote" color="textPrimary" style={styles.label}>{label}</Text> : null}
       <View style={styles.fieldRow}>
         <TextInput
           ref={ref}
@@ -45,9 +46,12 @@ const Input = forwardRef<TextInput, InputProps>(function Input(
             secureToggle && styles.inputWithIcon,
             focused && styles.inputFocused,
             !!error && styles.inputError,
+            elder && { minHeight: tapSize(true) },
             style,
           ]}
-          placeholderTextColor={c.n400}
+          // c.n400 was about 2.5:1 on the field; the muted text tone clears AA.
+          placeholderTextColor={c.textMuted}
+          accessibilityLabel={label}
           secureTextEntry={secureToggle ? hidden : secureTextEntry}
           testID={testID}
           onFocus={(e) => { setFocused(true); onFocus?.(e); }}
@@ -55,20 +59,23 @@ const Input = forwardRef<TextInput, InputProps>(function Input(
           {...rest}
         />
         {secureToggle ? (
-          <TouchableOpacity
+          <PressableScale
             style={styles.eyeBtn}
             onPress={() => setHidden((v) => !v)}
+            accessibilityRole="button"
             accessibilityLabel={hidden ? 'Show password' : 'Hide password'}
             testID={toggleTestID ?? (testID ? `${testID}-toggle` : undefined)}
+            hitSlop={{ top: 4, bottom: 4, left: 8, right: 8 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Ionicons name={hidden ? 'eye-off-outline' : 'eye-outline'} size={20} color={c.textMuted} />
-          </TouchableOpacity>
+          </PressableScale>
         ) : null}
       </View>
       {error ? (
-        <Text style={styles.errorText}>{error}</Text>
+        <Text variant="caption" color="error" style={styles.errorText}>{error}</Text>
       ) : helper ? (
-        <Text style={styles.helperText}>{helper}</Text>
+        <Text variant="caption" color="textMuted" style={styles.helperText}>{helper}</Text>
       ) : null}
     </View>
   );
@@ -79,9 +86,7 @@ export default Input;
 const makeStyles = (c: ThemeColours) => StyleSheet.create({
   group: { marginBottom: 15 },
   label: {
-    ...type.footnote,
     fontFamily: 'Inter-SemiBold',
-    color: c.textPrimary,
     marginBottom: 6,
   },
   fieldRow: { position: 'relative' },
@@ -113,17 +118,13 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    minWidth: 40,
+    minWidth: 44,
   },
   errorText: {
-    ...type.caption,
     fontFamily: 'Inter-Medium',
-    color: c.error,
     marginTop: 5,
   },
   helperText: {
-    ...type.caption,
-    color: c.textMuted,
     marginTop: 5,
   },
 });

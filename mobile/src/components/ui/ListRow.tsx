@@ -1,75 +1,95 @@
 import React from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Switch, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colours, spacing, typography, type ThemeColours } from '@shared/constants/theme';
-import { fontSize as scaledFontSize, tapSize } from '../../utils/elderTheme';
+import { spacing, type ThemeColours } from '@shared/constants/theme';
+import { tapSize } from '../../utils/elderTheme';
+import { PressableScale } from '../motion';
+import Text from './Text';
 
 interface ListRowProps {
   icon?: keyof typeof Ionicons.glyphMap;
+  /** Tint for the icon and its soft circular tile background. Defaults to c.primary. */
+  iconColor?: string;
   label: string;
+  /** Secondary line under the label. */
+  sublabel?: string;
   value?: string;
   onPress?: () => void;
   rightElement?: React.ReactNode;
   switchValue?: boolean;
   onSwitchChange?: (value: boolean) => void;
   destructive?: boolean;
-  /** Bumps tap target + font size for elder mode (mirrors elderTheme conventions) */
-  elder?: boolean;
   testID?: string;
 }
 
-/** Settings/list row — icon + label + value/switch/chevron, 48px+ tap target, elder-mode aware. */
+/** Settings/list row — icon + label(+sublabel) + value/switch/chevron, 48px+ tap target, elder-mode aware. */
 export default function ListRow({
   icon,
+  iconColor,
   label,
+  sublabel,
   value,
   onPress,
   rightElement,
   switchValue,
   onSwitchChange,
   destructive = false,
-  elder = false,
   testID,
 }: ListRowProps) {
-  const { c } = useTheme();
+  const { c, elder } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
-  const Container: React.ElementType = onPress ? TouchableOpacity : View;
+  // A switch row toggles from anywhere on the row (a 31pt switch is under the tap floor) and
+  // reads to a screen reader as ONE labelled switch, not an unnamed control beside a label.
+  const isSwitch = !!onSwitchChange;
+  const handlePress = onPress ?? (isSwitch ? () => onSwitchChange?.(!switchValue) : undefined);
+  const Container: React.ElementType = handlePress ? PressableScale : View;
   const minHeight = tapSize(elder);
+  const tint = destructive ? c.error : (iconColor ?? c.primary);
 
   return (
     <Container
       style={[styles.row, { minHeight }]}
-      onPress={onPress}
-      disabled={!onPress}
+      onPress={handlePress}
       testID={testID}
-      accessibilityRole={onPress ? 'button' : undefined}
-      accessibilityLabel={label}
+      accessibilityRole={isSwitch ? 'switch' : onPress ? 'button' : undefined}
+      accessibilityState={isSwitch ? { checked: !!switchValue } : undefined}
+      accessibilityLabel={[label, sublabel, value].filter(Boolean).join('. ')}
+      // A switch row toggles on press: that is a committed action, so it gets its haptic.
+      haptic={isSwitch ? true : undefined}
     >
       {icon ? (
-        <View style={styles.iconWrap}>
-          <Ionicons name={icon} size={20} color={destructive ? c.error : c.primary} />
+        <View style={[styles.iconWrap, { backgroundColor: tint + '15' }]}>
+          <Ionicons name={icon} size={18} color={tint} />
         </View>
       ) : null}
-      <Text
-        style={[styles.label, { fontSize: scaledFontSize(elder, 'base') }, destructive && styles.destructiveText]}
-        numberOfLines={1}
-      >
-        {label}
-      </Text>
+      <View style={styles.info}>
+        <Text variant="subhead" color={destructive ? 'error' : 'textPrimary'} numberOfLines={2}>
+          {label}
+        </Text>
+        {sublabel ? (
+          <Text variant="footnote" color="textSecondary" style={styles.sublabel} numberOfLines={2}>
+            {sublabel}
+          </Text>
+        ) : null}
+      </View>
       {value ? (
-        <Text style={styles.value} numberOfLines={1}>
+        <Text variant="footnote" color="textSecondary" numberOfLines={1}>
           {value}
         </Text>
       ) : null}
       {onSwitchChange ? (
-        <Switch
-          value={!!switchValue}
-          onValueChange={onSwitchChange}
-          trackColor={{ false: c.border, true: c.primary }}
-          thumbColor={c.surfaceCard}
-          testID={testID ? `${testID}-switch` : undefined}
-        />
+        <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <Switch
+            value={!!switchValue}
+            onValueChange={onSwitchChange}
+            // n500, not the hairline border colour: an OFF track drawn in #E8E8E8 on the #FAFAFA canvas
+            // is 1.15:1 and reads as no switch at all (WCAG 1.4.11 asks for 3:1).
+            trackColor={{ false: c.n500, true: c.primary }}
+            thumbColor={c.surfaceCard}
+            testID={testID ? `${testID}-switch` : undefined}
+          />
+        </View>
       ) : rightElement ? (
         rightElement
       ) : onPress ? (
@@ -85,23 +105,18 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     gap: spacing.md,
-    backgroundColor: c.surfaceCard,
   },
   iconWrap: {
-    width: 32,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  label: {
+  info: {
     flex: 1,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textPrimary,
   },
-  value: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textMuted,
-  },
-  destructiveText: {
-    color: c.error,
+  sublabel: {
+    marginTop: 2,
   },
 });

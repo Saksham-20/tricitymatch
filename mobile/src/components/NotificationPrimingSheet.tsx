@@ -5,9 +5,10 @@
  * prompt); "Not now" stores a decline and never asks again.
  */
 import React, { useEffect, useState } from 'react';
-import { Modal, View, Text, StyleSheet } from 'react-native';
+import { Modal, View, StyleSheet } from 'react-native';
+import Text from './ui/Text';
 import { Ionicons } from '@expo/vector-icons';
-import { type ThemeColours, spacing, borderRadius, type as t9 } from '@shared/constants/theme';
+import { type ThemeColours, spacing, borderRadius } from '@shared/constants/theme';
 import { PressableScale } from './motion';
 import { useTheme } from '../hooks/useTheme';
 import { useTranslation } from 'react-i18next';
@@ -37,21 +38,21 @@ export default function NotificationPrimingSheet({ onAccepted }: Props) {
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={decline}>
+    <Modal visible={visible} transparent statusBarTranslucent animationType="fade" onRequestClose={decline}>
       <View style={styles.scrim}>
         <View style={styles.sheet} testID="notif-priming-sheet">
           <View style={styles.iconWrap}>
             <Ionicons name="heart" size={26} color={c.accent} />
           </View>
-          <Text style={styles.title}>{t('notifPrime.title', 'Know the moment they like you back')}</Text>
-          <Text style={styles.sub}>
+          <Text variant="title2" color="fgStrong" style={styles.title}>{t('notifPrime.title', 'Know the moment they like you back')}</Text>
+          <Text variant="footnote" color="textMuted" style={styles.sub}>
             {t('notifPrime.sub', "We'll only notify you about the things that matter — mutual likes, new messages and interest in your profile. No noise.")}
           </Text>
           <PressableScale haptic style={styles.cta} onPress={accept} accessibilityRole="button" testID="notif-accept">
-            <Text style={styles.ctaText}>{t('notifPrime.cta', 'Turn on notifications')}</Text>
+            <Text variant="headline" color="onPrimary">{t('notifPrime.cta', 'Turn on notifications')}</Text>
           </PressableScale>
           <PressableScale style={styles.later} onPress={decline} accessibilityRole="button" testID="notif-decline">
-            <Text style={styles.laterText}>{t('notifPrime.later', 'Not now')}</Text>
+            <Text variant="subhead" color="textMuted">{t('notifPrime.later', 'Not now')}</Text>
           </PressableScale>
         </View>
       </View>
@@ -75,8 +76,8 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     marginBottom: spacing.md,
   },
-  title: { ...t9.title2, color: c.fgStrong, textAlign: 'center' },
-  sub: { ...t9.footnote, color: c.textMuted, textAlign: 'center', marginTop: spacing.sm, marginBottom: spacing.lg },
+  title: { textAlign: 'center' },
+  sub: { textAlign: 'center', marginTop: spacing.sm, marginBottom: spacing.lg },
   cta: {
     alignSelf: 'stretch',
     backgroundColor: c.primary,
@@ -85,7 +86,5 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  ctaText: { ...t9.headline, color: '#fff' },
   later: { marginTop: spacing.md, minHeight: 44, justifyContent: 'center' },
-  laterText: { ...t9.subhead, color: c.textMuted },
 });

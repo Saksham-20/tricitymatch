@@ -1,5 +1,6 @@
 import { apiClient } from './client';
 import { toProfileSummary } from './profileSummary';
+import { normalizeMatchActionResponse } from './matchAction';
 import type { Match, MatchAction, MatchActionResponse, ProfileSummary } from '../types';
 
 // Backend wraps list responses as { success, <key>, pagination } — unwrap to the inner key.
@@ -21,6 +22,8 @@ interface RawMatchItem {
   likedAt?: string;
   note?: string | null;
   likedItem?: Match['likedItem'];
+  /** Liked-me rows: the viewer's own action toward this liker, when the server sends it. */
+  myAction?: MatchAction | null;
   isMutual?: boolean;
 }
 
@@ -37,6 +40,7 @@ const toMatch = (m: RawMatchItem, isMutual: boolean): Match => {
     mutualMatchDate: m.matchedAt ?? null,
     note: m.note ?? null,
     likedItem: m.likedItem ?? null,
+    myAction: m.myAction ?? null,
     createdAt: when,
     updatedAt: when,
     MatchedProfile: toProfileSummary({
@@ -61,8 +65,8 @@ export const performMatchAction = async (
   // D3 like-with-note: only honoured with action 'like'.
   extras?: { note?: string; likedItem?: Match['likedItem'] }
 ): Promise<MatchActionResponse> => {
-  const res = await apiClient.post<MatchActionResponse>(`/match/${userId}`, { action, ...(extras ?? {}) });
-  return res.data;
+  const res = await apiClient.post<MatchActionResponse & { isMutual?: boolean }>(`/match/${userId}`, { action, ...(extras ?? {}) });
+  return normalizeMatchActionResponse(res.data);
 };
 
 export const getDailyFeed = async (): Promise<ProfileSummary[]> => {

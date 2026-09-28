@@ -1,6 +1,7 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from './types';
+import { useNavAnimation } from './useNavAnimation';
 
 // Placeholder screens
 import SplashScreen from '../features/auth/SplashScreen';
@@ -16,8 +17,10 @@ import PrivacyScreen from '../features/legal/PrivacyScreen';
 const Stack = createNativeStackNavigator<AuthStackParamList>();
 
 export default function AuthNavigator() {
+  // The first screens a member meets honour Reduce Motion / elder mode too.
+  const anim = useNavAnimation();
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator screenOptions={{ headerShown: false, animation: anim() }}>
       <Stack.Screen name="Splash" component={SplashScreen} />
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />

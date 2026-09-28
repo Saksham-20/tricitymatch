@@ -1,10 +1,12 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { spacing, type } from '@shared/constants/theme';
+import { spacing } from '@shared/constants/theme';
+import { tapSize } from '../../utils/elderTheme';
 import { PressableScale } from '../motion';
 import { useTheme } from '../../hooks/useTheme';
+import Text from './Text';
 
 interface ScreenHeaderProps {
   title: string;
@@ -18,7 +20,8 @@ interface ScreenHeaderProps {
 /** Editorial header for custom (headerShown:false) screens — serif title + optional back/right action. */
 export default function ScreenHeader({ title, subtitle, onBack, showBack = true, right, testID }: ScreenHeaderProps) {
   const navigation = useNavigation();
-  const { c } = useTheme();
+  const { c, elder } = useTheme();
+  const backSize = elder ? tapSize(true) : 44;
   const handleBack = onBack ?? (() => navigation.goBack());
 
   return (
@@ -27,8 +30,8 @@ export default function ScreenHeader({ title, subtitle, onBack, showBack = true,
         {showBack ? (
           <PressableScale
             onPress={handleBack}
-            haptic
-            style={styles.backBtn}
+            // No haptic: a navigation tap is not a committed action (doctrine 10.8).
+            style={[styles.backBtn, { width: backSize, height: backSize }]}
             accessibilityRole="button"
             accessibilityLabel="Go back"
             testID={testID ? `${testID}-back` : undefined}
@@ -37,11 +40,11 @@ export default function ScreenHeader({ title, subtitle, onBack, showBack = true,
           </PressableScale>
         ) : null}
         <View style={styles.titleGroup}>
-          <Text style={[type.title2, { color: c.textPrimary }]} numberOfLines={1}>
+          <Text variant="title2" color="textPrimary" numberOfLines={1}>
             {title}
           </Text>
           {subtitle ? (
-            <Text style={[type.footnote, styles.subtitle, { color: c.textSecondary }]} numberOfLines={1}>
+            <Text variant="footnote" color="textSecondary" style={styles.subtitle} numberOfLines={1}>
               {subtitle}
             </Text>
           ) : null}

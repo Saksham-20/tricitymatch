@@ -1,9 +1,10 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text as RNText, View } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
-import { colours, type, type ThemeColours } from '@shared/constants/theme';
+import { type, type ThemeColours } from '@shared/constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import { useFillAnimation } from '../motion';
+import Text from './Text';
 
 interface TickRingProps {
   /** 0–100 */
@@ -14,6 +15,8 @@ interface TickRingProps {
   tickWidth?: number;
   /** filled-tick colour (defaults to brand accent) */
   color?: string;
+  /** unlit-tick colour (defaults to the border tone; pass a stronger one on a tinted fill) */
+  offColor?: string;
   children?: React.ReactNode;
 }
 
@@ -75,6 +78,7 @@ export default function TickRing({
   tickLength = 10,
   tickWidth = 3,
   color,
+  offColor,
   children,
 }: TickRingProps) {
   const { c } = useTheme();
@@ -97,7 +101,7 @@ export default function TickRing({
           tickLength={tickLength}
           tickWidth={tickWidth}
           onColor={fillColor}
-          offColor={c.border}
+          offColor={offColor ?? c.border}
         />
       ))}
       <View style={styles.center}>{children}</View>
@@ -110,7 +114,7 @@ interface RingLabelProps { value: number; caption?: string; }
 /** Completion ring — 10-tick rim + Playfair % + caption.
  *  Font and tick length scale with `size` so the number never collides with the
  *  rim (a fixed 22pt % overflowed the ticks at the small 58pt Home-card size). */
-export function CompletionRing({ value, caption = 'COMPLETE', size = 88 }: RingLabelProps & { size?: number }) {
+export function CompletionRing({ value, caption = 'Complete', size = 88, offColor }: RingLabelProps & { size?: number; offColor?: string }) {
   const { c } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
   const pctFont = Math.round(size * 0.26);
@@ -118,11 +122,13 @@ export function CompletionRing({ value, caption = 'COMPLETE', size = 88 }: RingL
   // A caption inside a small ring crowds the number — only show it with room.
   const showCaption = !!caption && size >= 72;
   return (
-    <TickRing value={value} size={size} ticks={10} tickLength={tickLen}>
-      <Text style={[styles.bigPct, { fontSize: pctFont, lineHeight: Math.round(pctFont * 1.1) }]}>
+    <TickRing value={value} size={size} ticks={10} tickLength={tickLen} offColor={offColor}>
+      {/* per-instance fontSize scales with `size` to fit the rim — decorative
+          glyph, not body copy; left on raw RN Text per migration exception */}
+      <RNText style={[styles.bigPct, { fontSize: pctFont, lineHeight: Math.round(pctFont * 1.1) }]}>
         {Math.round(value)}%
-      </Text>
-      {showCaption ? <Text style={styles.caption}>{caption}</Text> : null}
+      </RNText>
+      {showCaption ? <Text variant="micro" color="textMuted" style={styles.caption}>{caption}</Text> : null}
     </TickRing>
   );
 }
@@ -131,7 +137,7 @@ export function CompletionRing({ value, caption = 'COMPLETE', size = 88 }: RingL
 // an accent on a dark surfaceCard — `successAccent` is the theme-reactive
 // pair that stays legible as a ring/text tint in both themes.
 const compatColour = (pct: number, c: ThemeColours) =>
-  pct >= 90 ? c.successAccent : pct >= 75 ? colours.g500 : colours.p500;
+  pct >= 90 ? c.successAccent : pct >= 75 ? c.accent : c.textMuted;
 
 /** Compatibility ring — 24-tick gauge tinted by score + center %. */
 export function CompatRing({ value, size = 64 }: { value: number; size?: number }) {
@@ -140,8 +146,8 @@ export function CompatRing({ value, size = 64 }: { value: number; size?: number 
   const colour = compatColour(value, c);
   return (
     <TickRing value={value} size={size} ticks={24} tickLength={size * 0.12} tickWidth={2.5} color={colour}>
-      <Text style={[styles.midPct, { color: colour }]}>{Math.round(value)}</Text>
-      <Text style={styles.pctMark}>%</Text>
+      <Text variant="headline" style={{ color: colour }}>{Math.round(value)}</Text>
+      <Text variant="micro" color="textMuted" style={styles.pctMark}>%</Text>
     </TickRing>
   );
 }
@@ -150,7 +156,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
   tick: { position: 'absolute' },
   center: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
   bigPct: { ...type.title2, color: c.fgStrong, lineHeight: 26 },
-  caption: { ...type.micro, color: c.textMuted, letterSpacing: 1, marginTop: 1 },
-  midPct: { ...type.headline, fontFamily: 'Inter-Bold', lineHeight: 18 },
-  pctMark: { ...type.micro, color: c.textMuted, marginTop: -2 },
+  caption: { marginTop: 1 },
+  pctMark: { marginTop: -2 },
 });

@@ -1,7 +1,10 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, Pressable, StyleSheet } from 'react-native';
-import { shadows } from '@shared/constants/theme';
+import React, { useEffect } from 'react';
+import { Pressable, StyleSheet } from 'react-native';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { shadows, darkShadows } from '@shared/constants/theme';
+import { duration, EASE_OUT } from '@shared/constants/motion';
 import { useTheme } from '../../hooks/useTheme';
+import { useReduceMotion } from '../motion';
 import { haptics } from '../../utils/haptics';
 
 interface SwitchProps {
@@ -11,16 +14,25 @@ interface SwitchProps {
   testID?: string;
 }
 
-/** iOS-style toggle — green when on, burgundy-tinted thumb shadow. */
+const THUMB_OFF = 2;
+const THUMB_TRAVEL = 20;
+
+/** iOS-style toggle — green when on, thumb slides on the UI thread. */
 export default function Switch({ value, onValueChange, disabled, testID }: SwitchProps) {
-  const { c } = useTheme();
-  const x = useRef(new Animated.Value(value ? 1 : 0)).current;
+  const { c, isDark } = useTheme();
+  const reduceMotion = useReduceMotion();
+  const x = useSharedValue(value ? 1 : 0);
 
   useEffect(() => {
-    Animated.timing(x, { toValue: value ? 1 : 0, duration: 200, useNativeDriver: true }).start();
-  }, [value, x]);
+    const target = value ? 1 : 0;
+    x.value = reduceMotion
+      ? target
+      : withTiming(target, { duration: duration.menu, easing: Easing.bezier(...EASE_OUT) });
+  }, [value, reduceMotion, x]);
 
-  const translateX = x.interpolate({ inputRange: [0, 1], outputRange: [2, 22] });
+  const thumbStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: THUMB_OFF + x.value * THUMB_TRAVEL }],
+  }));
 
   return (
     <Pressable
@@ -40,7 +52,7 @@ export default function Switch({ value, onValueChange, disabled, testID }: Switc
       accessibilityState={{ checked: value, disabled }}
       testID={testID}
     >
-      <Animated.View style={[styles.thumb, shadows.e2, { transform: [{ translateX }] }]} />
+      <Animated.View style={[styles.thumb, isDark ? darkShadows.e2 : shadows.e2, thumbStyle]} />
     </Pressable>
   );
 }

@@ -2,18 +2,31 @@ import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   Linking,
-  LayoutAnimation,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { Easing, FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import Text from '../../components/ui/Text';
+import ScreenHeader from '../../components/ui/ScreenHeader';
+import Screen from '../../components/layout/Screen';
+import { PressableScale } from '../../components/motion';
+import { duration, EASE_OUT } from '@shared/constants/motion';
+import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { CONFIG } from '../../constants/config';
+import { showToast } from '../../utils/toast';
+import type { MainStackParamList } from '../../navigation/types';
+
+type Nav = NativeStackNavigationProp<MainStackParamList>;
+
+// Decorative glyphs sit beside a text label; the screen reader reads the label.
+const HIDE_FROM_A11Y = {
+  accessibilityElementsHidden: true,
+  importantForAccessibility: 'no-hide-descendants',
+} as const;
 
 // Support channels come from config — an unconfigured channel is HIDDEN rather
 // than rendered as a dead button. (This screen used to hardcode a placeholder
@@ -21,26 +34,33 @@ import { CONFIG } from '../../constants/config';
 const WHATSAPP_NUMBER = CONFIG.SUPPORT_WHATSAPP;
 const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=Hi+TricityMatch+Support%2C+I+need+help+with`;
 
+// Every answer here must match shipped behaviour and the website's Help Centre
+// (frontend/src/pages/Help.jsx). Three of these used to state things that were
+// not true: "monthly unlock credits" (unlocks belong to the plan and last until
+// it expires), "photos are blurred until a mutual match" (blur is a member's
+// own opt-in, not the default), and "horoscope is never folded into the score"
+// (backend/utils/compatibility.js gives horoscope 20 of its points). Change
+// these and the web copy together.
 const FAQ: Array<{ q: string; a: string }> = [
   {
     q: 'How do I get verified?',
-    a: 'Go to Profile → Verification and take a live selfie. Our team matches it against your profile photos and awards your verified badge — usually within 24–48 hours. We never ask for government ID.',
+    a: 'Go to Settings, then Verification, and take a live selfie. Our team compares it by hand against your profile photos and awards the verified badge, usually within 24–48 hours. We never accept an uploaded photo and never ask for a government ID.',
   },
   {
     q: 'Why can\'t I see phone numbers?',
-    a: 'Contact details are unlocked with a Premium plan. Each unlock uses one of your monthly unlock credits. Upgrade under Profile → Subscription.',
+    a: 'Each contact unlock reveals one member\'s phone number and email. Unlocks come with your plan and stay valid until it expires. You can see your plan under Settings, then Subscription.',
   },
   {
     q: 'How do I delete my account?',
-    a: 'Settings → Account → Delete Account. Your data is permanently removed within 7 days as per our privacy policy.',
+    a: 'Settings, then Account actions, then Delete account. You confirm with your password. Your profile, photos, verification selfie, messages, matches and guardian links are erased immediately and cannot be recovered. We keep payment records as long as tax law requires, and a moderation record if you were reported, as described in our Privacy Policy.',
   },
   {
-    q: 'My photos are blurred for others — why?',
-    a: 'Photos are blurred until both parties mutually like each other. Once it\'s a mutual match, photos become visible.',
+    q: 'Who can see my photos?',
+    a: 'You choose under Settings, then Privacy Controls. You can be visible to everyone or only to your matches, and hide your online status and last-seen time.',
   },
   {
     q: 'How does the compatibility score work?',
-    a: 'Score is calculated from shared religion, caste preferences, location, lifestyle, diet, and partner preferences. Higher = more compatible.',
+    a: 'The score is out of 100. It combines age, city, height, religion, education, lifestyle (diet, smoking and drinking), horoscope (Ashtakoot and Manglik, when both of you have entered them), shared interests and your stated partner preferences. Tap the score on any profile for the breakdown.',
   },
   {
     q: 'Can I use the app without internet?',
@@ -53,23 +73,37 @@ function FaqItem({ q, a }: { q: string; a: string }) {
   const s = React.useMemo(() => makeS(c), [c]);
   const [open, setOpen] = useState(false);
 
-  const toggle = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setOpen(!open);
-  };
-
   return (
-    <TouchableOpacity style={s.faqItem} onPress={toggle} activeOpacity={0.7} testID="faq-item">
-      <View style={s.faqRow}>
-        <Text style={s.faqQ}>{q}</Text>
+    <View>
+      {/* The question is the control; the answer is a sibling so a screen reader
+          can reach it (an accessible parent would swallow it). */}
+      <PressableScale
+        style={s.faqHead}
+        onPress={() => setOpen((o) => !o)}
+        testID="faq-item"
+        accessibilityRole="button"
+        accessibilityLabel={q}
+        accessibilityState={{ expanded: open }}
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <Text variant="subhead" color="textPrimary" style={s.faqQ}>{q}</Text>
         <Ionicons
           name={open ? 'chevron-up' : 'chevron-down'}
           size={18}
           color={c.textSecondary}
+          {...HIDE_FROM_A11Y}
         />
-      </View>
-      {open && <Text style={s.faqA}>{a}</Text>}
-    </TouchableOpacity>
+      </PressableScale>
+      {open ? (
+        // Opacity only, on the UI thread, from the motion tokens; kept under Reduce Motion.
+        <Animated.View
+          entering={FadeIn.duration(duration.accordion).easing(Easing.bezier(...EASE_OUT).factory())}
+          style={s.faqAWrap}
+        >
+          <Text variant="footnote" color="textSecondary">{a}</Text>
+        </Animated.View>
+      ) : null}
+    </View>
   );
 }
 
@@ -89,51 +123,59 @@ function ContactRow({
   const { c } = useTheme();
   const s = React.useMemo(() => makeS(c), [c]);
   return (
-    <TouchableOpacity style={s.contactRow} onPress={onPress} testID={testID} accessibilityRole="button">
-      <View style={s.contactIcon}>
+    <PressableScale
+      style={s.contactRow}
+      onPress={onPress}
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={`${label}, ${sub}`}
+      pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    >
+      <View style={s.contactIcon} {...HIDE_FROM_A11Y}>
         <Ionicons name={icon} size={22} color={c.primary} />
       </View>
       <View style={s.contactText}>
-        <Text style={s.contactLabel}>{label}</Text>
-        <Text style={s.contactSub}>{sub}</Text>
+        <Text variant="subhead" color="textPrimary">{label}</Text>
+        <Text variant="footnote" color="textSecondary">{sub}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
-    </TouchableOpacity>
+      <Ionicons name="chevron-forward" size={16} color={c.textMuted} {...HIDE_FROM_A11Y} />
+    </PressableScale>
   );
 }
 
 export default function SupportScreen() {
   const { c } = useTheme();
   const s = React.useMemo(() => makeS(c), [c]);
-  const nav = useNavigation();
+  const navigation = useNavigation<Nav>();
 
   const openWhatsApp = () => {
-    Linking.openURL(WHATSAPP_URL).catch(() => {
-      Linking.openURL(`https://wa.me/${WHATSAPP_NUMBER}`);
-    });
+    Linking.openURL(WHATSAPP_URL).catch(() =>
+      Linking.openURL(`https://wa.me/${WHATSAPP_NUMBER}`).catch(() =>
+        showToast.error('Could not open WhatsApp', 'Try email instead.'),
+      ),
+    );
   };
 
+  // A device with no mail app rejects mailto:. Say where to write instead of
+  // failing silently.
   const openEmail = () => {
-    Linking.openURL(`mailto:${CONFIG.SUPPORT_EMAIL}?subject=Support+Request`);
+    Linking.openURL(`mailto:${CONFIG.SUPPORT_EMAIL}?subject=Support+Request`).catch(() =>
+      showToast.info('No email app found', `Write to ${CONFIG.SUPPORT_EMAIL}`),
+    );
   };
 
   return (
-    <SafeAreaView style={s.safe} testID="SupportScreen">
-      <View style={s.header}>
-        <TouchableOpacity onPress={() => nav.goBack()} style={s.backBtn} accessibilityLabel="Go back">
-          <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
-        </TouchableOpacity>
-        <Text style={s.title}>Help & Support</Text>
-      </View>
+    <Screen edges={['top', 'bottom']} style={s.safe} testID="SupportScreen">
+      <ScreenHeader title="Help & Support" testID="support-header" />
 
       <ScrollView contentContainerStyle={s.scroll}>
-        <Text style={s.sectionTitle}>Contact Us</Text>
+        <Text variant="caption" color="textSecondary" style={s.sectionTitle} accessibilityRole="header">Contact us</Text>
         <View style={s.contactCard}>
           {CONFIG.IS_WHATSAPP_CONFIGURED && (
             <>
               <ContactRow
                 icon="logo-whatsapp"
-                label="WhatsApp Support"
+                label="WhatsApp support"
                 sub="Chat with our team"
                 onPress={openWhatsApp}
                 testID="whatsapp-btn"
@@ -143,17 +185,25 @@ export default function SupportScreen() {
           )}
           <ContactRow
             icon="mail-outline"
-            label="Email Support"
+            label="Email support"
             sub={CONFIG.SUPPORT_EMAIL}
             onPress={openEmail}
             testID="email-btn"
           />
+          <View style={s.divider} />
+          <ContactRow
+            icon="chatbubble-ellipses-outline"
+            label="Send a message"
+            sub="Use the contact form"
+            onPress={() => navigation.navigate('Contact')}
+            testID="contact-form-btn"
+          />
         </View>
 
-        <Text style={s.sectionTitle}>Frequently Asked Questions</Text>
+        <Text variant="caption" color="textSecondary" style={s.sectionTitle} accessibilityRole="header">Frequently asked questions</Text>
         <View style={s.faqCard}>
           {FAQ.map((item, i) => (
-            <React.Fragment key={i}>
+            <React.Fragment key={item.q}>
               {i > 0 && <View style={s.divider} />}
               <FaqItem q={item.q} a={item.a} />
             </React.Fragment>
@@ -161,39 +211,18 @@ export default function SupportScreen() {
         </View>
 
         <View style={s.footerNote}>
-          <Ionicons name="information-circle-outline" size={16} color={c.textMuted} />
-          <Text style={s.footerText}>TricityMatch — Chandigarh, Mohali, Panchkula</Text>
+          <Ionicons name="information-circle-outline" size={16} color={c.textMuted} {...HIDE_FROM_A11Y} />
+          <Text variant="footnote" color="textSecondary">TricityMatch · Chandigarh, Mohali, Panchkula</Text>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
 const makeS = (c: ThemeColours) => StyleSheet.create({
-  safe: { flex: 1, backgroundColor: c.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: c.border,
-    gap: spacing.sm,
-  },
-  backBtn: { padding: spacing.xs },
-  title: {
-    flex: 1,
-    fontSize: typography.fontSize.lg,
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
-  },
+  safe: { backgroundColor: c.background },
   scroll: { padding: spacing.lg, gap: spacing.sm },
   sectionTitle: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
     marginTop: spacing.md,
     marginBottom: spacing.xs,
   },
@@ -217,35 +246,24 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     justifyContent: 'center',
   },
   contactText: { flex: 1 },
-  contactLabel: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
-  },
-  contactSub: {
-    fontSize: typography.fontSize.xs,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textSecondary,
-  },
   faqCard: {
     backgroundColor: c.surfaceCard,
     borderRadius: borderRadius.md,
     overflow: 'hidden',
   },
-  faqItem: { padding: spacing.md },
-  faqRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  faqHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    minHeight: 48,
+    padding: spacing.md,
+  },
   faqQ: {
     flex: 1,
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
   },
-  faqA: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textSecondary,
-    marginTop: spacing.sm,
-    lineHeight: 20,
+  faqAWrap: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.md,
   },
   divider: { height: 1, backgroundColor: c.border },
   footerNote: {
@@ -255,10 +273,5 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     gap: spacing.xs,
     marginTop: spacing.lg,
     marginBottom: spacing.md,
-  },
-  footerText: {
-    fontSize: typography.fontSize.xs,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textMuted,
   },
 });

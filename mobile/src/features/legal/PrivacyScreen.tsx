@@ -12,7 +12,7 @@ export default function PrivacyScreen() {
   const address = CONFIG.LEGAL_ADDRESS ? ` · ${entity}, ${CONFIG.LEGAL_ADDRESS}` : '';
 
   return (
-    <LegalLayout title="Privacy Policy" subtitle={`Last updated: ${CONFIG.LEGAL_UPDATED}`}>
+    <LegalLayout title="Privacy policy" subtitle={`Last updated: ${CONFIG.LEGAL_UPDATED}`}>
       <Section>
         <Para>
           A matrimonial profile is one of the most personal things a person publishes about

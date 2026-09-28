@@ -1,8 +1,10 @@
 import React from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { StyleProp, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { borderRadius, colours, spacing, type, type ThemeColours } from '@shared/constants/theme';
+import { borderRadius, spacing, type ThemeColours } from '@shared/constants/theme';
+import { PressableScale } from '../motion';
+import Text from './Text';
 
 export type BadgeTone =
   | 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info' | 'neutral'
@@ -18,7 +20,10 @@ const makeToneStyles = (c: ThemeColours): Record<Exclude<BadgeTone, 'vip'>, { bg
   neutral:  { bg: c.surface2, fg: c.textSecondary },
   // handoff component library
   verified: { bg: c.successBg, fg: c.success, border: 'rgba(46,125,50,0.28)' },
-  premium:  { bg: c.goldSoft, fg: c.g600, border: 'rgba(201,162,39,0.35)' },
+  // Gold is the fill and the border, never the label (doctrine 10.8): g600 on goldSoft is 2.7:1 in
+  // light. textPrimary clears 12:1 on the light fill and 13:1 on the dark one (goldText is a dark
+  // brown that only works on the light fill), so one token reads in both themes.
+  premium:  { bg: c.goldSoft, fg: c.textPrimary, border: 'rgba(201,162,39,0.35)' },
   new:      { bg: c.accent, fg: '#fff' },
 });
 
@@ -46,7 +51,8 @@ export function Badge({ label, tone = 'neutral', icon, style, testID }: BadgePro
         testID={testID}
       >
         {icon}
-        <Text style={[styles.badgeText, { color: c.goldText }]} numberOfLines={1}>{label}</Text>
+        {/* c.goldText is a gold token, excluded from the curated text-colour union — kept as a style override */}
+        <Text variant="caption" style={[styles.badgeText, { color: c.goldText }]} numberOfLines={1}>{label}</Text>
       </LinearGradient>
     );
   }
@@ -57,7 +63,8 @@ export function Badge({ label, tone = 'neutral', icon, style, testID }: BadgePro
       testID={testID}
     >
       {icon}
-      <Text style={[styles.badgeText, { color: t.fg }]} numberOfLines={1}>{label}</Text>
+      {/* t.fg spans curated AND non-curated colours (e.g. warning's orange) depending on `tone` at runtime — left as a style override */}
+      <Text variant="caption" style={[styles.badgeText, { color: t.fg }]} numberOfLines={1}>{label}</Text>
     </View>
   );
 }
@@ -74,19 +81,18 @@ interface ChipProps {
 export function Chip({ label, selected = false, icon, onPress, testID }: ChipProps) {
   const { c } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
-  const toneStylesByTheme = React.useMemo(() => makeToneStyles(c), [c]);
-  const Container: React.ElementType = onPress ? TouchableOpacity : View;
+  const Container: React.ElementType = onPress ? PressableScale : View;
   return (
     <Container
       style={[styles.chip, selected && styles.chipSelected]}
       onPress={onPress}
       testID={testID}
-      activeOpacity={0.8}
       accessibilityRole={onPress ? 'button' : undefined}
       accessibilityState={onPress ? { selected } : undefined}
     >
       {icon}
-      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{label}</Text>
+      {/* c.accent is the 'primary' alias (identical hex) */}
+      <Text variant="subhead" color={selected ? 'primary' : 'textPrimary'} style={[styles.chipText, selected && styles.chipTextSelected]}>{label}</Text>
     </Container>
   );
 }
@@ -103,7 +109,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     alignSelf: 'flex-start',
   },
   badgeText: {
-    ...type.caption,
     fontFamily: 'Inter-Bold',
   },
   chip: {
@@ -121,12 +126,8 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     backgroundColor: c.accentSoft,
     borderColor: 'rgba(139,35,70,0.4)',
   },
-  chipText: {
-    ...type.subhead,
-    color: c.textPrimary,
-  },
+  chipText: {},
   chipTextSelected: {
-    color: c.accent,
     fontFamily: 'Inter-SemiBold',
   },
 });

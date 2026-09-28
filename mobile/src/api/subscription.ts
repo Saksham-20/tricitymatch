@@ -25,20 +25,21 @@ export const getPlans = async (): Promise<PlanFeatures[]> => {
   const res = await apiClient.get<{ plans: Record<string, LivePlan> }>('/subscription/plans');
   const live = res.data.plans ?? {};
   // A tier the server omitted is WITHDRAWN for the current offer window and is
-  // refused at checkout. Falling back to the shared constant for it — which is
-  // what `if (!l) return base` used to do for every key — rendered a buyable
-  // card at the regular price for a plan create-order rejects. Only fall back
-  // wholesale when the server sent no plans at all (a failed/empty response).
-  const served = Object.keys(live).length > 0;
-  return PLAN_ORDER.map((planType) => {
+  // refused at checkout, so it gets no card: falling back to the shared constant
+  // for it (or for the WHOLE list when the server sent none) renders buyable cards
+  // at regular prices for plans create-order rejects. An empty list is a real
+  // answer; the screen renders its empty/error state for it.
+  return PLAN_ORDER.map((planType): PlanFeatures | null => {
     const base = PLANS[planType];
     const l = live[planType];
-    if (!l) return served ? null : base;
+    if (!l) return null;
     return {
       ...base,
       price: typeof l.price === 'number' ? l.price : base.price,
-      mrp: typeof l.mrp === 'number' ? l.mrp : base.mrp,
-      perMonth: typeof l.perMonth === 'number' ? l.perMonth : base.perMonth,
+      // A live plan without an anchor has NO anchor: inheriting the regular ladder's
+      // strike-through would advertise a discount the offer does not carry.
+      mrp: typeof l.mrp === 'number' ? l.mrp : undefined,
+      perMonth: typeof l.perMonth === 'number' ? l.perMonth : undefined,
       durationDays: typeof l.durationDays === 'number' ? l.durationDays : base.durationDays,
       // The API sends -1 for "unlimited"; the shared shape uses null.
       contactUnlocks: typeof l.contactUnlocks === 'number'

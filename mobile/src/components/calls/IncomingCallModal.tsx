@@ -1,17 +1,19 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
-  View, Text, TouchableOpacity, Image, StyleSheet, Modal, Animated, Easing,
+  View, Image, StyleSheet, Modal, Animated, Easing,
 } from 'react-native';
+import Text from '../ui/Text';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { callColours } from '../../features/calls/callTheme';
 import { useCallStore } from '../../stores/callStore';
 import { declineCall } from '../../api/calls';
 import type { MainStackParamList } from '../../navigation/types';
 import type { CallInvitation } from '../../types';
+import { PressableScale } from '../motion';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 
@@ -103,7 +105,7 @@ export default function IncomingCallModal({ invitation }: Props) {
       <View style={styles.backdrop}>
         <View style={styles.card}>
           {/* Call type label */}
-          <Text style={styles.callTypeLabel}>
+          <Text variant="subhead" color="textMuted">
             {invitation.callType === 'video' ? 'Incoming Video Call' : 'Incoming Voice Call'}
           </Text>
 
@@ -119,10 +121,10 @@ export default function IncomingCallModal({ invitation }: Props) {
           </Animated.View>
 
           {/* Caller name */}
-          <Text style={styles.callerName} testID="CallerName">{invitation.callerName}</Text>
+          <Text variant="title3" color="onPrimary" testID="CallerName">{invitation.callerName}</Text>
 
           {/* Countdown */}
-          <Text style={styles.countdown} testID="Countdown">
+          <Text variant="footnote" style={styles.countdown} testID="Countdown">
             Auto-declining in {remaining}s
           </Text>
 
@@ -165,17 +167,19 @@ function ActionBtn({ icon, iconStyle, label, color, onPress, testID }: ActionBtn
   const styles = React.useMemo(() => makeStyles(c), [c]);
   return (
     <View style={styles.actionWrap}>
-      <TouchableOpacity
+      <PressableScale
         style={[styles.actionBtn, { backgroundColor: color }]}
         onPress={onPress}
         testID={testID}
+        accessibilityRole="button"
         accessibilityLabel={label}
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
         <View style={iconStyle}>
           <Ionicons name={icon} size={28} color="#fff" />
         </View>
-      </TouchableOpacity>
-      <Text style={styles.actionLabel}>{label}</Text>
+      </PressableScale>
+      <Text variant="subhead" style={styles.actionLabel}>{label}</Text>
     </View>
   );
 }
@@ -196,13 +200,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     alignItems: 'center',
     gap: spacing.lg,
   },
-  callTypeLabel: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textMuted,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
   avatarWrap: {
     marginVertical: spacing.md,
   },
@@ -218,14 +215,7 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  callerName: {
-    fontSize: typography.fontSize['2xl'],
-    fontFamily: typography.fontFamily.bold,
-    color: '#ffffff',
-  },
   countdown: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.regular,
     color: callColours.textMuted,
   },
   actions: {
@@ -250,8 +240,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
   },
   actionLabel: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
     color: callColours.textMuted,
   },
 });

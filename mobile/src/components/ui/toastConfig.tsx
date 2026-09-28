@@ -1,9 +1,10 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { ToastConfig, ToastConfigParams } from 'react-native-toast-message';
-import { colours, darkColours, type, borderRadius, spacing, shadows } from '@shared/constants/theme';
+import { colours, darkColours, borderRadius, spacing, shadows, darkShadows } from '@shared/constants/theme';
 import { useTheme } from '../../hooks/useTheme';
+import Text from './Text';
 
 type Tone = 'success' | 'error' | 'info';
 
@@ -24,6 +25,7 @@ function BrandToast({ text1, text2, tone }: ToastConfigParams<unknown> & { tone:
           backgroundColor: isDark ? darkColours.surfaceCard : colours.surfaceCard,
           borderColor: isDark ? darkColours.border : colours.border,
         },
+        isDark ? darkShadows.e3 : shadows.e3,
       ]}
     >
       <View style={[styles.accentBar, { backgroundColor: accent }]} />
@@ -31,7 +33,8 @@ function BrandToast({ text1, text2, tone }: ToastConfigParams<unknown> & { tone:
       <View style={styles.textWrap}>
         {!!text1 && (
           <Text
-            style={[type.subhead, { color: isDark ? darkColours.textPrimary : colours.textPrimary }]}
+            variant="subhead"
+            style={{ color: isDark ? darkColours.textPrimary : colours.textPrimary }}
             numberOfLines={2}
           >
             {text1}
@@ -39,7 +42,8 @@ function BrandToast({ text1, text2, tone }: ToastConfigParams<unknown> & { tone:
         )}
         {!!text2 && (
           <Text
-            style={[type.footnote, styles.body, { color: isDark ? darkColours.textSecondary : colours.textSecondary }]}
+            variant="footnote"
+            style={[styles.body, { color: isDark ? darkColours.textSecondary : colours.textSecondary }]}
             numberOfLines={3}
           >
             {text2}
@@ -67,7 +71,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     paddingRight: spacing.lg,
     overflow: 'hidden',
-    ...shadows.e3,
   },
   accentBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4 },
   icon: { marginLeft: spacing.lg, marginRight: spacing.md },

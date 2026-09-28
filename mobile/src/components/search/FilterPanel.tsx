@@ -7,22 +7,26 @@ import React, {
   useImperativeHandle,
 } from 'react';
 import {
+  Keyboard,
   View,
-  Text,
   StyleSheet,
-  TouchableOpacity,
-  TextInput,
 } from 'react-native';
 import BottomSheet, {
   BottomSheetScrollView,
   BottomSheetBackdrop,
+  useBottomSheetTimingConfigs,
 } from '@gorhom/bottom-sheet';
+import { Easing } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colours, type, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
-import { Button, Switch } from '../ui';
+import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { duration, EASE_DRAWER } from '@shared/constants/motion';
+import { Button, Input, Switch } from '../ui';
+import Text from '../ui/Text';
 import { useUIStore } from '../../stores/uiStore';
 import { useTheme } from '../../hooks/useTheme';
-import { haptics } from '../../utils/haptics';
+import { PressableScale } from '../motion';
+import { tapSize } from '../../utils/elderTheme';
 import type { SearchFilters, Diet, MaritalStatus, ManglikStatus } from '../../types';
 
 export interface FilterPanelHandle {
@@ -43,26 +47,25 @@ interface Props {
 const RELIGIONS = ['Hindu', 'Sikh', 'Muslim', 'Christian', 'Jain', 'Buddhist', 'Other'];
 const DIETS: { label: string; value: Diet }[] = [
   { label: 'Vegetarian', value: 'vegetarian' },
-  { label: 'Non-Veg', value: 'non-vegetarian' },
+  { label: 'Non-veg', value: 'non-vegetarian' },
   { label: 'Vegan', value: 'vegan' },
   { label: 'Jain', value: 'jain' },
 ];
 const MARITAL: { label: string; value: MaritalStatus }[] = [
-  { label: 'Never Married', value: 'never_married' },
+  { label: 'Never married', value: 'never_married' },
   { label: 'Divorced', value: 'divorced' },
   { label: 'Widowed', value: 'widowed' },
-  { label: 'Awaiting Divorce', value: 'awaiting_divorce' },
+  { label: 'Awaiting divorce', value: 'awaiting_divorce' },
 ];
 const MANGLIK: { label: string; value: ManglikStatus | undefined }[] = [
   { label: 'Any', value: undefined },
-  { label: 'Manglik Only', value: 'manglik' },
-  { label: 'Non-Manglik Only', value: 'non_manglik' },
+  { label: 'Manglik only', value: 'manglik' },
+  { label: 'Non-manglik only', value: 'non_manglik' },
 ];
 const PROFESSIONS = [
   'Doctor', 'Engineer', 'Teacher', 'Business', 'Government', 'IT Professional',
   'Lawyer', 'Accountant', 'Nurse', 'Architect', 'Designer', 'Other',
 ];
-const EDUCATION_LEVELS = ['10th', '12th', 'Graduate', 'Post-Graduate', 'PhD'];
 const SNAP_POINTS = ['50%', '92%'];
 
 function toggleArray<T>(arr: T[] | undefined, val: T): T[] {
@@ -73,168 +76,167 @@ function toggleArray<T>(arr: T[] | undefined, val: T): T[] {
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function Section({ title, expanded, onToggle }: { title: string; expanded: boolean; onToggle: () => void }) {
-  const { c } = useTheme();
+  const { c, elder } = useTheme();
   return (
-    <TouchableOpacity style={[sh.row, { borderBottomColor: c.hairline }]} onPress={onToggle} activeOpacity={0.7}>
-      <Text style={[sh.title, { color: c.fgStrong }]}>{title}</Text>
+    <PressableScale
+      style={[sh.row, { borderBottomColor: c.hairline }, elder && { minHeight: tapSize(elder) }]}
+      onPress={onToggle}
+      accessibilityRole="button"
+      accessibilityState={{ expanded }}
+      pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    >
+      <Text variant="headline" color="fgStrong">{title}</Text>
       <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={c.textSecondary} />
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 const sh = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.md, borderBottomWidth: 0.5 },
-  title: { ...type.headline },
 });
 
-function ChipGroup<T extends string>({ options, selected, onToggle }: {
+function ChipGroup<T extends string>({ options, selected, onToggle, idPrefix }: {
   options: { label: string; value: T }[]; selected: T[] | undefined; onToggle: (val: T) => void;
+  /** namespaces the chips' testIDs, since one label ("Other", "Jain") can appear in two groups */
+  idPrefix: string;
 }) {
-  const { c } = useTheme();
-  const cg = React.useMemo(() => makeCg(c), [c]);
+  const { c, elder } = useTheme();
   return (
     <View style={cg.wrap}>
       {options.map((o) => {
         const active = (selected ?? []).includes(o.value);
         return (
-          <TouchableOpacity
+          <PressableScale
             key={o.value}
             style={[
               cg.chip,
               { backgroundColor: c.surface2, borderColor: c.border },
               active && { backgroundColor: c.accentSoft, borderColor: c.accent },
+              // Elder mode's 60pt floor: the mark itself grows (the 4pt slop below stays for 44).
+              elder && { minHeight: tapSize(elder), justifyContent: 'center' },
             ]}
-            onPress={() => { haptics.light(); onToggle(o.value); }}
+            onPress={() => onToggle(o.value)}
+            haptic
+            accessibilityRole="button"
             accessibilityLabel={o.label}
+            accessibilityState={{ selected: active }}
+            testID={`chip-${idPrefix}-${o.value}-tap44-hitslop`}
+            // The chip is 36pt tall: 4 above and below reaches 44 without touching the
+            // next row (the gap is 8). The old 6 reached 48 but overlapped its neighbours.
+            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text style={[cg.label, { color: c.textPrimary }, active && cg.labelActive]}>{o.label}</Text>
-          </TouchableOpacity>
+            {/* c.accent is the 'primary' alias (identical hex) — resolved via the dynamic colour prop.
+                Active is signalled by fill, border and colour only: a heavier face (Inter-SemiBold)
+                changes the chip's width, which re-wraps the row on every toggle. */}
+            <Text variant="subhead" color={active ? 'primary' : 'textPrimary'}>{o.label}</Text>
+          </PressableScale>
         );
       })}
     </View>
   );
 }
-const makeCg = (c: ThemeColours) => StyleSheet.create({
+// Layout only: chip colours are applied inline from `useTheme()`.
+const cg = StyleSheet.create({
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, paddingVertical: spacing.sm },
   chip: { paddingHorizontal: 13, paddingVertical: 7, borderRadius: borderRadius.pill, borderWidth: 1 },
-  label: { ...type.subhead },
-  labelActive: { color: c.accent, fontFamily: 'Inter-SemiBold' },
 });
 
 function RangeRow({ label, min, max, absMin, absMax, onChangeMin, onChangeMax, unit }: {
   label: string; min: number; max: number; absMin: number; absMax: number;
   onChangeMin: (v: number) => void; onChangeMax: (v: number) => void; unit?: string;
 }) {
-  const { c } = useTheme();
+  // Remounted by the panel's "Reset all" (see `resetCount`), which is what puts
+  // these back to the defaults: the text lives here, so a reset of the filter
+  // alone used to leave the typed digits on screen.
   const [minText, setMinText] = useState(String(min));
   const [maxText, setMaxText] = useState(String(max));
-  const inputStyle = [rr.input, { borderColor: c.border, color: c.fgStrong, backgroundColor: c.surfaceCard }];
+  const [minErr, setMinErr] = useState<string | undefined>();
+  const [maxErr, setMaxErr] = useState<string | undefined>();
+
+  // Out-of-range or non-numeric input is never applied. Say so on blur (not on
+  // every keystroke: "2" is a fine step on the way to "25") and name the fix.
+  const check = (text: string, lo: number, hi: number) => {
+    const n = parseInt(text, 10);
+    return isNaN(n) || n < lo || n > hi ? `Enter a number from ${lo} to ${hi}` : undefined;
+  };
 
   return (
     <View style={rr.container}>
-      <Text style={[rr.label, { color: c.fgStrong }]}>{label}</Text>
+      <Text variant="subhead" color="fgStrong" style={rr.label}>{label}</Text>
       <View style={rr.row}>
-        <View style={rr.inputWrap}>
-          <Text style={[rr.sublabel, { color: c.textMuted }]}>Min{unit ? ` (${unit})` : ''}</Text>
-          <TextInput
-            style={inputStyle}
-            value={minText}
-            onChangeText={(t) => { setMinText(t); const n = parseInt(t, 10); if (!isNaN(n) && n >= absMin && n <= max) onChangeMin(n); }}
-            keyboardType="number-pad"
-            accessibilityLabel={`${label} minimum`}
-            returnKeyType="done"
-          />
-        </View>
-        <Text style={[rr.dash, { color: c.textMuted }]}>–</Text>
-        <View style={rr.inputWrap}>
-          <Text style={[rr.sublabel, { color: c.textMuted }]}>Max{unit ? ` (${unit})` : ''}</Text>
-          <TextInput
-            style={inputStyle}
-            value={maxText}
-            onChangeText={(t) => { setMaxText(t); const n = parseInt(t, 10); if (!isNaN(n) && n >= min && n <= absMax) onChangeMax(n); }}
-            keyboardType="number-pad"
-            accessibilityLabel={`${label} maximum`}
-            returnKeyType="done"
-          />
-        </View>
+        <Input
+          label={`Min${unit ? ` (${unit})` : ''}`}
+          containerStyle={rr.inputWrap}
+          style={rr.inputText}
+          value={minText}
+          onChangeText={(t) => {
+            setMinText(t);
+            setMinErr(undefined);
+            const n = parseInt(t, 10);
+            if (!isNaN(n) && n >= absMin && n <= max) onChangeMin(n);
+          }}
+          onBlur={() => setMinErr(check(minText, absMin, max))}
+          error={minErr}
+          keyboardType="number-pad"
+          accessibilityLabel={`${label} minimum`}
+          returnKeyType="done"
+        />
+        {/* decorative range separator */}
+        <Text variant="title3" color="textMuted" style={rr.dash} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">–</Text>
+        <Input
+          label={`Max${unit ? ` (${unit})` : ''}`}
+          containerStyle={rr.inputWrap}
+          style={rr.inputText}
+          value={maxText}
+          onChangeText={(t) => {
+            setMaxText(t);
+            setMaxErr(undefined);
+            const n = parseInt(t, 10);
+            if (!isNaN(n) && n >= min && n <= absMax) onChangeMax(n);
+          }}
+          onBlur={() => setMaxErr(check(maxText, min, absMax))}
+          error={maxErr}
+          keyboardType="number-pad"
+          accessibilityLabel={`${label} maximum`}
+          returnKeyType="done"
+        />
       </View>
     </View>
   );
 }
 const rr = StyleSheet.create({
   container: { paddingVertical: spacing.sm },
-  label: { ...type.subhead, fontFamily: 'Inter-Medium', marginBottom: spacing.sm },
+  label: { marginBottom: spacing.sm },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  inputWrap: { flex: 1 },
-  sublabel: { ...type.caption, marginBottom: 4 },
-  input: { borderWidth: 1.5, borderRadius: borderRadius.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, ...type.body, textAlign: 'center' },
-  dash: { ...type.title3, marginTop: 16 },
-});
-
-function GotraTagInput({ excluded, onChange }: { excluded: string[]; onChange: (v: string[]) => void }) {
-  const { c } = useTheme();
-  const gt = React.useMemo(() => makeGt(c), [c]);
-  const [text, setText] = useState('');
-  const add = () => { const v = text.trim(); if (v && !excluded.includes(v)) onChange([...excluded, v]); setText(''); };
-  return (
-    <View style={gt.container}>
-      <Text style={[gt.label, { color: c.fgStrong }]}>Exclude Gotra</Text>
-      <View style={gt.row}>
-        <TextInput
-          style={[gt.input, { borderColor: c.border, color: c.fgStrong, backgroundColor: c.surfaceCard }]}
-          value={text}
-          onChangeText={setText}
-          placeholder="Type gotra name..."
-          placeholderTextColor={c.textMuted}
-          returnKeyType="done"
-          onSubmitEditing={add}
-          accessibilityLabel="Gotra exclusion input"
-        />
-        <TouchableOpacity style={gt.addBtn} onPress={add} accessibilityLabel="Add gotra">
-          <Ionicons name="add" size={20} color="#fff" />
-        </TouchableOpacity>
-      </View>
-      {excluded.length > 0 && (
-        <View style={gt.chips}>
-          {excluded.map((x) => (
-            <View key={x} style={gt.chip}>
-              <Text style={gt.chipText}>{x}</Text>
-              <TouchableOpacity onPress={() => onChange(excluded.filter((y) => y !== x))} accessibilityLabel={`Remove ${x}`}>
-                <Ionicons name="close-circle" size={14} color={c.accent} />
-              </TouchableOpacity>
-            </View>
-          ))}
-        </View>
-      )}
-    </View>
-  );
-}
-const makeGt = (c: ThemeColours) => StyleSheet.create({
-  container: { paddingVertical: spacing.sm },
-  label: { ...type.subhead, fontFamily: 'Inter-Medium', marginBottom: spacing.sm },
-  row: { flexDirection: 'row', gap: spacing.sm },
-  input: { flex: 1, borderWidth: 1.5, borderRadius: borderRadius.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, ...type.body },
-  addBtn: { width: 44, height: 44, backgroundColor: c.accent, borderRadius: borderRadius.sm, alignItems: 'center', justifyContent: 'center' },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.sm },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: c.accentSoft, borderRadius: borderRadius.pill, paddingHorizontal: spacing.sm, paddingVertical: 4 },
-  chipText: { ...type.caption, color: c.accent, fontFamily: 'Inter-Medium' },
+  inputWrap: { flex: 1, marginBottom: 0 },
+  inputText: { textAlign: 'center' },
+  dash: { marginTop: 16 },
 });
 
 function RadioGroup<T>({ options, selected, onSelect }: {
   options: { label: string; value: T }[]; selected: T | undefined; onSelect: (val: T) => void;
 }) {
-  const { c } = useTheme();
+  const { c, elder } = useTheme();
   const radio = React.useMemo(() => makeRadio(c), [c]);
   return (
-    <View style={radio.container}>
+    <View style={radio.container} accessibilityRole="radiogroup">
       {options.map((o) => {
         const active = selected === o.value;
         return (
-          <TouchableOpacity key={String(o.value ?? 'any')} style={radio.option} onPress={() => onSelect(o.value)} accessibilityLabel={o.label}>
+          <PressableScale
+            key={String(o.value ?? 'any')}
+            style={[radio.option, elder && { minHeight: tapSize(elder) }]}
+            onPress={() => onSelect(o.value)}
+            accessibilityRole="radio"
+            accessibilityLabel={o.label}
+            accessibilityState={{ selected: active, checked: active }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <View style={[radio.dot, { borderColor: active ? c.accent : c.border }]}>
               {active && <View style={radio.dotFill} />}
             </View>
-            <Text style={[radio.label, { color: active ? c.fgStrong : c.textSecondary }, active && radio.labelActive]}>{o.label}</Text>
-          </TouchableOpacity>
+            <Text variant="body" color={active ? 'fgStrong' : 'textSecondary'}>{o.label}</Text>
+          </PressableScale>
         );
       })}
     </View>
@@ -242,11 +244,11 @@ function RadioGroup<T>({ options, selected, onSelect }: {
 }
 const makeRadio = (c: ThemeColours) => StyleSheet.create({
   container: { paddingVertical: spacing.xs },
-  option: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm },
+  // 12 + 23 + 12 = 47pt: reaches 44 on its own. The old 8pt padding was 39pt and leaned
+  // on a hitSlop that overlapped the row above and below (the rows have no gap).
+  option: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.md },
   dot: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   dotFill: { width: 10, height: 10, borderRadius: 5, backgroundColor: c.accent },
-  label: { ...type.body },
-  labelActive: { fontFamily: 'Inter-Medium' },
 });
 
 // ─── Main FilterPanel ─────────────────────────────────────────────────────────
@@ -254,16 +256,35 @@ const makeRadio = (c: ThemeColours) => StyleSheet.create({
 const FilterPanel = forwardRef<FilterPanelHandle, Props>(({
   filters, onChange, resultCount, loadingCount, onApply, onReset, onSaveSearch,
 }, ref) => {
-  const { c } = useTheme();
+  const { c, elder } = useTheme();
+  const insets = useSafeAreaInsets();
   const styles = React.useMemo(() => makeStyles(c), [c]);
   const sheetRef = useRef<BottomSheet>(null);
+  // No "Location" section: its only contents were an "NRI only" switch hard-wired to
+  // `false` with an empty handler (it could never turn on) and a note telling members
+  // to use the search box for cities, which searches by profile ID. Add it back when
+  // there is a city/NRI filter the server honours.
   const [sections, setSections] = useState({
-    demographics: true, community: false, location: false, education: false, lifestyle: false, cultural: false,
+    demographics: true, community: false, career: false, lifestyle: false, cultural: false,
+  });
+  // Bumped by "Reset all" to remount the sections, which is how the range inputs'
+  // own typed text (local state) goes back to the defaults along with the filters.
+  const [resetCount, setResetCount] = useState(0);
+  // Sheet motion from the token file (drawer curve, sheet duration), not gorhom's own defaults.
+  const animationConfigs = useBottomSheetTimingConfigs({
+    duration: duration.sheet,
+    easing: Easing.bezier(...EASE_DRAWER),
   });
   // gorhom v5 keeps a CLOSED sheet's backdrop mounted full-screen and clickable
   // (accessibility dump: Button "Bottom sheet backdrop" [0,136][1080,2337]),
   // which silently swallowed every touch on the Search screen. Track openness in
   // React state and only render the backdrop while the sheet is actually open.
+  //
+  // Timing matters: `onChange` fires when the animation ENDS, `onAnimate` when it
+  // STARTS. Opening is flagged at the start (so the backdrop fades in with the sheet
+  // instead of popping in at full opacity afterwards, and the floating pill is
+  // already gone before it can draw over the footer buttons); closing is flagged at
+  // the end (so the backdrop is still mounted to fade out).
   const [sheetOpen, setSheetOpen] = useState(false);
 
   // Tell the floating tab bar to get out of the way — it is absolutely
@@ -278,7 +299,7 @@ const FilterPanel = forwardRef<FilterPanelHandle, Props>(({
 
   useImperativeHandle(ref, () => ({
     open: () => sheetRef.current?.expand(),
-    close: () => sheetRef.current?.close(),
+    close: () => { Keyboard.dismiss(); sheetRef.current?.close(); },
   }));
 
   const toggle = (key: keyof typeof sections) => setSections((s) => ({ ...s, [key]: !s[key] }));
@@ -298,61 +319,80 @@ const FilterPanel = forwardRef<FilterPanelHandle, Props>(({
       // mis-measures the closed sheet: its invisible container swallowed every
       // touch on the Search screen (list, filters, search box all dead).
       enableDynamicSizing={false}
+      animationConfigs={animationConfigs}
       enablePanDownToClose
-      onChange={(i) => setSheetOpen(i >= 0)}
+      onAnimate={(_from, to) => { if (to >= 0) setSheetOpen(true); }}
+      // A range field still focused when the sheet closes keeps the IME 'shown' against a
+      // sheet nobody can see, and Search below it lost its tab bar (seen on device).
+      onChange={(i) => { setSheetOpen(i >= 0); if (i < 0) Keyboard.dismiss(); }}
       backdropComponent={renderBackdrop}
       backgroundStyle={{ backgroundColor: c.sheetBg }}
-      handleIndicatorStyle={[styles.handle, { backgroundColor: c.n300 }]}
+      // `n300` is 1.4:1 on the dark sheet, which hides the only cue that the sheet drags.
+      handleIndicatorStyle={[styles.handle, { backgroundColor: c.textMuted }]}
     >
       <View style={[styles.header, { borderBottomColor: c.hairline }]}>
-        <Text style={[styles.headerTitle, { color: c.fgStrong }]}>Filters</Text>
-        <TouchableOpacity onPress={onReset} accessibilityLabel="Reset all filters">
-          <Text style={styles.resetText}>Reset all</Text>
-        </TouchableOpacity>
+        {/* deliberately serif (Playfair) for this sheet heading — mapped to title2, which natively carries that face at 22/28 instead of title3's Inter-SemiBold 20/25 */}
+        <Text variant="title2" color="fgStrong" accessibilityRole="header" style={styles.headerTitle}>Filters</Text>
+        <PressableScale
+          style={elder ? { minHeight: tapSize(elder), justifyContent: 'center' } : undefined}
+          onPress={() => { setResetCount((n) => n + 1); onReset(); }}
+          accessibilityRole="button"
+          accessibilityLabel="Reset all filters"
+          testID="filter-reset-tap44-hitslop"
+          // 20pt of text: 12 above and below reaches 44
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          {/* c.accent is the 'primary' alias; the extra SemiBold weight over subhead's own Medium is a deliberate emphasis override */}
+          <Text variant="subhead" color="primary" style={styles.resetText}>Reset all</Text>
+        </PressableScale>
       </View>
 
-      <BottomSheetScrollView contentContainerStyle={styles.content}>
+      <BottomSheetScrollView
+        contentContainerStyle={styles.content}
+        // The age and height fields use a number pad, which has no Return key on iOS:
+        // dragging the list is the way to put the keyboard away.
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
+        <View key={resetCount}>
         <Section title="Demographics" expanded={sections.demographics} onToggle={() => toggle('demographics')} />
         {sections.demographics && (
           <View>
-            <RangeRow label="Age Range" min={filters.ageMin ?? 18} max={filters.ageMax ?? 65} absMin={18} absMax={65}
+            <RangeRow label="Age range" min={filters.ageMin ?? 18} max={filters.ageMax ?? 65} absMin={18} absMax={65}
               onChangeMin={(v) => update({ ageMin: v })} onChangeMax={(v) => update({ ageMax: v })} unit="yrs" />
-            <RangeRow label="Height Range" min={filters.heightMin ?? 140} max={filters.heightMax ?? 210} absMin={140} absMax={210}
+            <RangeRow label="Height range" min={filters.heightMin ?? 140} max={filters.heightMax ?? 210} absMin={140} absMax={210}
               onChangeMin={(v) => update({ heightMin: v })} onChangeMax={(v) => update({ heightMax: v })} unit="cm" />
-            <Text style={[styles.subLabel, { color: c.fgStrong }]}>Marital Status</Text>
-            <ChipGroup options={MARITAL} selected={filters.maritalStatus} onToggle={(v) => update({ maritalStatus: toggleArray(filters.maritalStatus, v) })} />
+            <Text variant="subhead" color="fgStrong" style={styles.subLabel}>Marital status</Text>
+            {/* Single-select: the server takes ONE marital status and ignores an array, so a
+                second chip used to be silently dropped from the request. Multi-select can
+                come back when the endpoint accepts a list. */}
+            <ChipGroup idPrefix="marital" options={MARITAL} selected={filters.maritalStatus}
+              onToggle={(v) => update({ maritalStatus: filters.maritalStatus?.[0] === v ? [] : [v] })} />
           </View>
         )}
 
         <Section title="Community" expanded={sections.community} onToggle={() => toggle('community')} />
         {sections.community && (
           <View>
-            <Text style={[styles.subLabel, { color: c.fgStrong }]}>Religion</Text>
-            <ChipGroup options={RELIGIONS.map((r) => ({ label: r, value: r }))} selected={filters.religion ? [filters.religion] : []}
+            <Text variant="subhead" color="fgStrong" style={styles.subLabel}>Religion</Text>
+            <ChipGroup idPrefix="religion" options={RELIGIONS.map((r) => ({ label: r, value: r }))} selected={filters.religion ? [filters.religion] : []}
               onToggle={(v) => update({ religion: filters.religion === v ? undefined : v })} />
-            <GotraTagInput excluded={filters.excludeGotra ?? []} onChange={(v) => update({ excludeGotra: v })} />
+            {/* No "Exclude gotra": GET /search has no such parameter (SearchScreen drops it), so the
+                control implied an exclusion that never happened. Restore it from git history
+                when the endpoint honours `excludeGotra`. */}
           </View>
         )}
 
-        <Section title="Location" expanded={sections.location} onToggle={() => toggle('location')} />
-        {sections.location && (
-          <View style={styles.section}>
-            <View style={styles.switchRow}>
-              <Text style={[styles.subLabel, { color: c.fgStrong }]}>NRI Only</Text>
-              <Switch value={false} onValueChange={() => {}} />
-            </View>
-            <Text style={[styles.hint, { color: c.textMuted }]}>City filter: use the Search bar for location-specific results.</Text>
-          </View>
-        )}
-
-        <Section title="Education & Career" expanded={sections.education} onToggle={() => toggle('education')} />
-        {sections.education && (
+        <Section title="Career" expanded={sections.career} onToggle={() => toggle('career')} />
+        {sections.career && (
           <View>
-            <Text style={[styles.subLabel, { color: c.fgStrong }]}>Min Education</Text>
-            <ChipGroup options={EDUCATION_LEVELS.map((e) => ({ label: e, value: e }))} selected={filters.education ? [filters.education] : []}
-              onToggle={(v) => update({ education: filters.education === v ? undefined : v })} />
-            <Text style={[styles.subLabel, { color: c.fgStrong }]}>Profession</Text>
-            <ChipGroup options={PROFESSIONS.map((p) => ({ label: p, value: p }))} selected={filters.profession ? [filters.profession] : []}
+            {/* No education chips: the server matches `education` by EXACT string while
+                profiles store 'Graduate (B.Tech/B.E.)', '12th / Intermediate' and so on, so
+                '12th', 'Graduate' and 'PhD' could never match anyone. Return them once the
+                endpoint takes a level or a prefix. */}
+            <Text variant="subhead" color="fgStrong" style={styles.subLabel}>Profession</Text>
+            <ChipGroup idPrefix="profession" options={PROFESSIONS.map((p) => ({ label: p, value: p }))} selected={filters.profession ? [filters.profession] : []}
               onToggle={(v) => update({ profession: filters.profession === v ? undefined : v })} />
           </View>
         )}
@@ -360,34 +400,58 @@ const FilterPanel = forwardRef<FilterPanelHandle, Props>(({
         <Section title="Lifestyle" expanded={sections.lifestyle} onToggle={() => toggle('lifestyle')} />
         {sections.lifestyle && (
           <View>
-            <Text style={[styles.subLabel, { color: c.fgStrong }]}>Diet</Text>
-            <ChipGroup options={DIETS} selected={filters.diet} onToggle={(v) => update({ diet: toggleArray(filters.diet, v) })} />
+            <Text variant="subhead" color="fgStrong" style={styles.subLabel}>Diet</Text>
+            <ChipGroup idPrefix="diet" options={DIETS} selected={filters.diet} onToggle={(v) => update({ diet: toggleArray(filters.diet, v) })} />
           </View>
         )}
 
         <Section title="Cultural" expanded={sections.cultural} onToggle={() => toggle('cultural')} />
         {sections.cultural && (
           <View>
-            <Text style={[styles.subLabel, { color: c.fgStrong }]}>Manglik Preference</Text>
+            <Text variant="subhead" color="fgStrong" style={styles.subLabel}>Manglik preference</Text>
             <RadioGroup options={MANGLIK} selected={filters.manglikStatus} onSelect={(v) => update({ manglikStatus: v })} />
-            <View style={styles.switchRow}>
-              <Text style={[styles.subLabel, { color: c.fgStrong }]}>Verified profiles only</Text>
-              <Switch value={filters.isVerified ?? false} onValueChange={(v) => update({ isVerified: v })} />
-            </View>
+            {/* The row is the switch as far as a screen reader is concerned. The visual switch is
+                hidden from it and inert (touches fall through to the row), so TalkBack does not
+                find a second, unlabelled "switch" inside the labelled one, and one tap is one
+                toggle and one haptic. */}
+            <PressableScale
+              style={[styles.switchRow, elder && { minHeight: tapSize(elder) }]}
+              scaleTo={1}
+              haptic
+              onPress={() => update({ isVerified: !(filters.isVerified ?? false) })}
+              accessibilityRole="switch"
+              accessibilityLabel="Verified profiles only"
+              accessibilityState={{ checked: filters.isVerified ?? false }}
+              testID="filter-verified-only"
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text variant="subhead" color="fgStrong" style={styles.subLabel}>Verified profiles only</Text>
+              <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                <Switch value={filters.isVerified ?? false} onValueChange={(v) => update({ isVerified: v })} />
+              </View>
+            </PressableScale>
           </View>
         )}
 
+        </View>
         <View style={styles.bottomPad} />
       </BottomSheetScrollView>
 
-      <View style={[styles.footer, { borderTopColor: c.hairline, backgroundColor: c.sheetBg }]}>
+      {/* The footer sits at the bottom edge of a sheet that is anchored to the screen
+          bottom, so it owes the home indicator / gesture bar its own inset. */}
+      <View
+        style={[
+          styles.footer,
+          { borderTopColor: c.hairline, backgroundColor: c.sheetBg, paddingBottom: spacing.md + insets.bottom },
+        ]}
+      >
         {onSaveSearch && (
           <Button title="Save search" variant="secondary" icon="bookmark-outline" onPress={onSaveSearch} />
         )}
         <Button
-          title={resultCount !== undefined ? `Show ${resultCount} profiles` : 'Apply'}
+          title={resultCount !== undefined ? `Show ${resultCount} ${resultCount === 1 ? 'profile' : 'profiles'}` : 'Apply'}
           loading={loadingCount}
-          onPress={() => { sheetRef.current?.close(); onApply(); }}
+          onPress={() => { Keyboard.dismiss(); sheetRef.current?.close(); onApply(); }}
         />
       </View>
     </BottomSheet>
@@ -399,13 +463,12 @@ export default FilterPanel;
 
 const makeStyles = (c: ThemeColours) => StyleSheet.create({
   handle: { width: 38 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.gutter, paddingVertical: spacing.md, borderBottomWidth: 0.5 },
-  headerTitle: { ...type.title3, fontFamily: 'PlayfairDisplay-Bold' },
-  resetText: { ...type.subhead, color: c.accent, fontFamily: 'Inter-SemiBold' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.gutter, paddingVertical: spacing.md, borderBottomWidth: 0.5 },
+  headerTitle: { flexShrink: 1 },
+  resetText: { fontFamily: 'Inter-SemiBold' },
   content: { paddingHorizontal: spacing.gutter, paddingBottom: spacing['2xl'] },
   section: { paddingVertical: spacing.sm },
-  subLabel: { ...type.subhead, fontFamily: 'Inter-Medium', marginTop: spacing.sm, marginBottom: 2 },
-  hint: { ...type.caption },
+  subLabel: { marginTop: spacing.sm, marginBottom: 2 },
   switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.sm },
   bottomPad: { height: 80 },
   footer: { paddingHorizontal: spacing.gutter, paddingVertical: spacing.md, borderTopWidth: 0.5, gap: spacing.sm },

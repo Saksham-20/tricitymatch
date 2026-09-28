@@ -2,24 +2,26 @@ import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
-  TouchableOpacity,
   ActivityIndicator,
   Alert,
   Modal,
-  TextInput,
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { getVerificationQueue, approveVerification, rejectVerification } from '../../api/admin';
 import SmartImage from '../../components/common/SmartImage';
 import type { Verification } from '../../types';
+import Text from '../../components/ui/Text';
+import Input from '../../components/ui/Input';
+import { EmptyState, SkeletonBlock } from '../../components/ui';
+import { PressableScale } from '../../components/motion';
+import { LIST_PERF } from '../../constants/listPerf';
 
 /**
  * Matches what `GET /admin/verifications` returns: the reviewed user arrives
@@ -63,43 +65,86 @@ function VerifCard({
   return (
     <View style={s.card} testID={`verif-card-${item.id}`}>
       <View style={s.cardHeader}>
-        <Text style={s.cardName}>{name}</Text>
-        <Text style={s.cardDate}>{new Date(item.createdAt).toLocaleDateString('en-IN')}</Text>
+        <Text variant="headline" color="textPrimary">{name}</Text>
+        <Text variant="footnote" color="textSecondary">{new Date(item.createdAt).toLocaleDateString('en-IN')}</Text>
       </View>
-      {item.User?.email ? <Text style={s.cardEmail}>{item.User.email}</Text> : null}
+      {item.User?.email ? <Text variant="footnote" color="textSecondary">{item.User.email}</Text> : null}
 
       {/* The actual review: submitted selfie against the profile photo. */}
       <View style={s.compareRow}>
         <View style={s.compareCell}>
-          <Text style={s.compareLabel}>Selfie</Text>
+          <Text variant="caption" color="textSecondary">Selfie</Text>
           <SmartImage uri={item.selfiePhoto ?? undefined} name={name} style={s.compareImg} />
         </View>
         <View style={s.compareCell}>
-          <Text style={s.compareLabel}>Profile photo</Text>
+          <Text variant="caption" color="textSecondary">Profile photo</Text>
           <SmartImage uri={profilePhoto ?? undefined} name={name} style={s.compareImg} />
         </View>
       </View>
 
       <View style={s.actions}>
-        <TouchableOpacity
+        <PressableScale
           style={[s.btn, s.rejectBtn]}
           onPress={() => onReject(item.id, nameOf(item))}
           testID={`reject-btn-${item.id}`}
+          accessibilityRole="button"
           accessibilityLabel="Reject verification"
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="close" size={16} color={c.error} />
-          <Text style={[s.btnText, { color: c.error }]}>Reject</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
+          <Text variant="caption" color="error">Reject</Text>
+        </PressableScale>
+        <PressableScale
           style={[s.btn, s.approveBtn]}
           onPress={() => onApprove(item.id)}
           testID={`approve-btn-${item.id}`}
+          accessibilityRole="button"
           accessibilityLabel="Approve verification"
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="checkmark" size={16} color="#fff" />
-          <Text style={[s.btnText, { color: '#fff' }]}>Approve</Text>
-        </TouchableOpacity>
+          <Text variant="caption" style={{ color: '#fff' }}>Approve</Text>
+        </PressableScale>
       </View>
+    </View>
+  );
+}
+
+/** Loading state shaped like VerifCard: name/date, email, two photos, two buttons. */
+function VerifQueueSkeleton() {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
+  return (
+    <View style={s.list} testID="VerificationQueueScreen-skeleton">
+      {[0, 1].map((i) => (
+        <View key={i} style={s.card}>
+          <View style={s.cardHeader}>
+            <SkeletonBlock width="45%" height={16} />
+            <SkeletonBlock width={64} height={12} />
+          </View>
+          <SkeletonBlock width="55%" height={12} />
+          <View style={s.compareRow}>
+            <View style={s.compareCell}>
+              <SkeletonBlock width="30%" height={12} />
+              <SkeletonBlock height={150} radius={borderRadius.md} />
+            </View>
+            <View style={s.compareCell}>
+              <SkeletonBlock width="40%" height={12} />
+              <SkeletonBlock height={150} radius={borderRadius.md} />
+            </View>
+          </View>
+          <View style={s.actions}>
+            <View style={s.compareCell}>
+              <SkeletonBlock height={36} />
+            </View>
+            <View style={s.compareCell}>
+              <SkeletonBlock height={36} />
+            </View>
+          </View>
+        </View>
+      ))}
     </View>
   );
 }
@@ -112,7 +157,7 @@ export default function VerificationQueueScreen() {
   const [rejectTarget, setRejectTarget] = useState<{ id: string; name: string } | null>(null);
   const [reason, setReason] = useState('');
 
-  const { data, isLoading, refetch, isFetching } = useQuery<VerifItem[]>({
+  const { data, isLoading, isError, refetch, isFetching } = useQuery<VerifItem[]>({
     queryKey: ['admin', 'verificationQueue'],
     queryFn: getVerificationQueue,
   });
@@ -160,17 +205,35 @@ export default function VerificationQueueScreen() {
   return (
     <SafeAreaView style={s.safe} testID="VerificationQueueScreen">
       <View style={s.header}>
-        <TouchableOpacity onPress={() => nav.goBack()} style={s.backBtn} accessibilityLabel="Go back">
+        <PressableScale
+          onPress={() => nav.goBack()}
+          style={s.backBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
-        </TouchableOpacity>
-        <Text style={s.title}>Verification Queue</Text>
+        </PressableScale>
+        <Text variant="title3" color="textPrimary" style={s.title}>Verification Queue</Text>
         {isLoading && <ActivityIndicator size="small" color={c.primary} />}
       </View>
 
       {isLoading ? (
-        <ActivityIndicator style={s.loader} color={c.primary} />
+        <VerifQueueSkeleton />
+      ) : isError && !data ? (
+        <EmptyState
+          variant="error"
+          icon="cloud-offline-outline"
+          title="Couldn't load verifications"
+          description="Check your connection and try again."
+          actionLabel="Try again"
+          onAction={() => refetch()}
+          testID="VerificationQueueScreen-error"
+        />
       ) : (
         <FlatList
+          {...LIST_PERF}
           data={data ?? []}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
@@ -181,7 +244,7 @@ export default function VerificationQueueScreen() {
           ListEmptyComponent={
             <View style={s.empty}>
               <Ionicons name="checkmark-circle-outline" size={48} color={c.textMuted} />
-              <Text style={s.emptyText}>Queue is clear</Text>
+              <Text variant="subhead" color="textMuted">Queue is clear</Text>
             </View>
           }
         />
@@ -195,36 +258,46 @@ export default function VerificationQueueScreen() {
       >
         <View style={s.modalBackdrop}>
           <View style={s.modalCard}>
-            <Text style={s.modalTitle}>Reject Verification</Text>
-            <Text style={s.modalSub}>
-              Rejecting <Text style={s.modalBold}>{rejectTarget?.name}</Text>. Provide a reason:
+            <Text variant="title3" color="textPrimary">Reject Verification</Text>
+            <Text variant="footnote" color="textSecondary">
+              Rejecting <Text variant="caption" color="textPrimary">{rejectTarget?.name}</Text>. Provide a reason:
             </Text>
-            <TextInput
+            <Input
               style={s.reasonInput}
               value={reason}
               onChangeText={setReason}
               placeholder="e.g. Document unclear, mismatch with profile..."
-              placeholderTextColor={c.textMuted}
               multiline
               maxLength={300}
               testID="reject-reason-input"
             />
             <View style={s.modalActions}>
-              <TouchableOpacity style={s.modalCancel} onPress={() => setRejectTarget(null)}>
-                <Text style={s.modalCancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
+              <PressableScale
+                style={s.modalCancel}
+                onPress={() => setRejectTarget(null)}
+                accessibilityRole="button"
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Text variant="subhead" color="textSecondary">Cancel</Text>
+              </PressableScale>
+              <PressableScale
                 style={[s.modalConfirm, mutPending && s.disabled]}
                 onPress={handleRejectConfirm}
                 disabled={mutPending}
                 testID="reject-confirm-btn"
+                accessibilityRole="button"
+                accessibilityLabel="Confirm reject"
+                accessibilityState={{ disabled: mutPending }}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 {mutPending ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text style={s.modalConfirmText}>Reject</Text>
+                  <Text variant="caption" style={{ color: '#fff' }}>Reject</Text>
                 )}
-              </TouchableOpacity>
+              </PressableScale>
             </View>
           </View>
         </View>
@@ -247,11 +320,7 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   backBtn: { padding: spacing.xs },
   title: {
     flex: 1,
-    fontSize: typography.fontSize.lg,
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
   },
-  loader: { marginTop: spacing.xl },
   list: { padding: spacing.md, gap: spacing.md },
   card: {
     backgroundColor: c.surfaceCard,
@@ -260,30 +329,8 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     gap: spacing.sm,
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  cardDate: {
-    fontSize: typography.fontSize.xs,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textSecondary,
-  },
-  cardName: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.textPrimary,
-  },
-  cardEmail: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textSecondary,
-  },
   compareRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
   compareCell: { flex: 1, gap: 4 },
-  compareLabel: {
-    fontSize: typography.fontSize.xs,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-  },
   compareImg: {
     width: '100%',
     aspectRatio: 1,
@@ -302,13 +349,7 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   },
   rejectBtn: { borderWidth: 1, borderColor: c.error },
   approveBtn: { backgroundColor: c.success },
-  btnText: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold },
   empty: { alignItems: 'center', justifyContent: 'center', paddingTop: 80, gap: spacing.md },
-  emptyText: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textMuted,
-  },
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -323,27 +364,9 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     padding: spacing.lg,
     gap: spacing.md,
   },
-  modalTitle: {
-    fontSize: typography.fontSize.lg,
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
-  },
-  modalSub: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textSecondary,
-  },
-  modalBold: { fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
   reasonInput: {
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: borderRadius.sm,
-    padding: spacing.sm,
     minHeight: 80,
     textAlignVertical: 'top',
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textPrimary,
   },
   modalActions: { flexDirection: 'row', gap: spacing.sm },
   modalCancel: {
@@ -354,22 +377,12 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     borderColor: c.border,
     borderRadius: borderRadius.sm,
   },
-  modalCancelText: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textSecondary,
-  },
   modalConfirm: {
     flex: 1,
     paddingVertical: spacing.sm,
     alignItems: 'center',
     backgroundColor: c.error,
     borderRadius: borderRadius.sm,
-  },
-  modalConfirmText: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.semiBold,
-    color: '#fff',
   },
   disabled: { opacity: 0.6 },
 });

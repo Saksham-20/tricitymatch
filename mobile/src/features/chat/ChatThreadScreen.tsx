@@ -1,15 +1,18 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
-  View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Modal, Pressable,
+  View, FlatList, StyleSheet,
+  KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Modal, Pressable, TextInput,
+  AccessibilityInfo, Keyboard, AppState, Linking, Clipboard,
 } from 'react-native';
-import SmartImage from '../../components/common/SmartImage';
+import Text from '../../components/ui/Text';
+import Input from '../../components/ui/Input';
+import Screen from '../../components/layout/Screen';
 import { PressableScale, useReduceMotion } from '../../components/motion';
 import Animated, {
   Easing,
-  FadeInDown,
   cancelAnimation,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -17,29 +20,43 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { duration } from '@shared/constants/motion';
+import { EASE_IN_OUT, EASE_OUT, STAGGER_MS, duration } from '@shared/constants/motion';
+
+// The typing-dot loop is one of doctrine §10.3's four sanctioned infinite loops.
+// Its cadence is built from the duration table rather than typed in: a bounce is
+// one `content` step each way, and the rest between bounces is two of them, which
+// keeps the whole cycle near the handoff's 1.2s. (A dedicated `loop` token in
+// motion.ts would say this directly; see primitiveRequests.)
+const TYPING_DOT_BOUNCE_MS = duration.content;
+const TYPING_DOT_REST_MS = duration.content * 2;
 import { ChatThreadSkeleton } from '../../components/ui/skeletons';
+import { Avatar, Button, EmptyState, SkeletonBlock } from '../../components/ui';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { showToast } from '../../utils/toast';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { haptics } from '../../utils/haptics';
+import { tapSize } from '../../utils/elderTheme';
+import { spacing, borderRadius, shadows, darkShadows, type ThemeColours } from '@shared/constants/theme';
 import { useAuthStore } from '../../stores/authStore';
 import { useSocket } from '../../hooks/useSocket';
 import { unlockContact } from '../../api/matches';
 import { getThread, sendMessage, editMessage, deleteMessage, sendVoiceMessage, toggleReaction } from '../../api/chat';
 import { VoiceRecorderStrip, VoiceMessageBubble } from './VoiceMessage';
-import { REACTION_EMOJIS } from '@shared/constants/chat';
+import BlockReportSheet from '../profile/BlockReportSheet';
+import { REACTION_EMOJIS, FREE_REPLY_MAX_MESSAGES, FREE_REPLY_WINDOW_MS } from '@shared/constants/chat';
 import type { ReplyWindow } from '@shared/types/chat';
 import { getProfile } from '../../api/profile';
 import { CONFIG } from '../../constants/config';
 import { queryKeys } from '../../constants/queryKeys';
 import type { MainStackParamList } from '../../navigation/types';
 import type { Message } from '../../types';
+import { CHAT_LIST_PERF } from '../../constants/listPerf';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 type Route = RouteProp<MainStackParamList, 'ChatThread'>;
@@ -56,144 +73,416 @@ function isSameDay(a: string, b: string): boolean {
     da.getDate() === db.getDate();
 }
 
-function formatDateSeparator(iso: string): string {
+/**
+ * Whole calendar days between `iso` and today (0 = today, 1 = yesterday). Elapsed
+ * hours are not days: a message at 11pm last night is "Yesterday" at 8am, and it
+ * must not read "Today" just because fewer than 24 hours have passed. Rounds to
+ * absorb the 23/25-hour days either side of a DST change.
+ */
+function calendarDaysAgo(iso: string): number {
   const d = new Date(iso);
   const now = new Date();
-  const diffDays = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  return d.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'short' });
+  const startOfMsgDay = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  return Math.round((startOfToday - startOfMsgDay) / 86400000);
+}
+
+/** The shared constant in whole hours (48), so retuning the window retunes every line that quotes it. */
+const FREE_REPLY_WINDOW_HOURS = Math.round(FREE_REPLY_WINDOW_MS / 3_600_000);
+
+/** "1 free reply left" / "2 free replies left" (the meter's warning announcement). */
+function repliesLeftText(t: TFunction, count: number): string {
+  return t('chat.repliesLeft', {
+    count,
+    defaultValue: '{{count}} free reply left',
+    defaultValue_plural: '{{count}} free replies left',
+  });
+}
+
+/**
+ * Time left in the window, rounded UP to the minute ("47h 12m", "12m"): a window
+ * that is still open never reads "0m". The units are translated keys so hi/pa
+ * can use their own abbreviations.
+ */
+function formatWindowRemaining(t: TFunction, ms: number): string {
+  const mins = Math.max(1, Math.ceil(ms / 60_000));
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return h > 0
+    ? t('chat.durHoursMinutes', '{{h}}h {{m}}m', { h, m })
+    : t('chat.durMinutes', '{{m}}m', { m });
+}
+
+/**
+ * The meter's line. Before the first reply the clock has not started
+ * (`expiresAt` is null until then), so it says what will happen rather than
+ * counting down a window that is not running; after it, the count and the time.
+ */
+function replyMeterText(t: TFunction, w: ReplyWindow, now: number): string {
+  if (!w.expiresAt) {
+    return t(
+      'chat.meterIdle',
+      '{{count}} free replies. The {{hours}}-hour window starts when you send your first.',
+      { count: w.messagesRemaining, hours: FREE_REPLY_WINDOW_HOURS }
+    );
+  }
+  return t('chat.meterRunning', {
+    count: w.messagesRemaining,
+    time: formatWindowRemaining(t, new Date(w.expiresAt).getTime() - now),
+    defaultValue: '{{count}} free reply left · {{time}} remaining',
+    defaultValue_plural: '{{count}} free replies left · {{time}} remaining',
+  });
+}
+
+/** What the paywalled composer (and the spoken end-of-window line) says: used up, or timed out. */
+function windowEndText(t: TFunction, w: ReplyWindow | null): string {
+  // The 5 and the 48 come from the shared chat constants, so retuning the window
+  // cannot leave the paywall copy quoting the old figures.
+  return w?.messagesRemaining === 0
+    ? t('chat.windowExhausted', {
+        count: FREE_REPLY_MAX_MESSAGES,
+        defaultValue: "You've used your {{count}} free reply",
+        defaultValue_plural: "You've used your {{count}} free replies",
+      })
+    : t('chat.windowExpired', 'Your {{hours}}-hour reply window ended', { hours: FREE_REPLY_WINDOW_HOURS });
 }
 
 function canEdit(createdAt: string): boolean {
   return Date.now() - new Date(createdAt).getTime() < 15 * 60 * 1000;
 }
 
+/**
+ * True while the software keyboard is up. The composer owes the bottom safe
+ * inset only when the keyboard is down: with it up the keyboard already covers
+ * the home-indicator strip, so keeping the inset leaves a dead band above it.
+ */
+function useKeyboardUp(): boolean {
+  const [up, setUp] = useState(false);
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const a = Keyboard.addListener(showEvt, () => setUp(true));
+    const b = Keyboard.addListener(hideEvt, () => setUp(false));
+    return () => { a.remove(); b.remove(); };
+  }, []);
+  return up;
+}
+
+/**
+ * `useSocket()` plus a re-read of the singleton it exposes.
+ *
+ * `useSocket` returns `socket: socketInstance`, a module variable read at render
+ * time, and nothing re-renders a consumer when that instance is replaced. Two
+ * moments replace it: the hook's own connect effect, which runs AFTER the first
+ * render that already read `null`, and a foreground resume, which builds a new
+ * `io()` (the old one is disconnected and gone). Without a nudge a screen that
+ * binds listeners to `socket` keeps them on a dead instance until something
+ * unrelated re-renders it. So: re-render once after mount (the connect effect
+ * has run by then) and again after every resume, deferred a macrotask so every
+ * mounted `useSocket`'s own AppState handler has finished swapping the instance.
+ * The proper fix is the hook holding the instance in state; see primitiveRequests.
+ */
+function useLiveSocket() {
+  const api = useSocket();
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    let pending: ReturnType<typeof setTimeout> | null = null;
+    const refresh = () => {
+      if (pending) clearTimeout(pending);
+      pending = setTimeout(() => setTick((n) => n + 1), 0);
+    };
+    refresh();
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') refresh();
+    });
+    return () => {
+      sub.remove();
+      if (pending) clearTimeout(pending);
+    };
+  }, []);
+  return api;
+}
+
 // ─── Typing indicator — 3 dots bouncing on a 1.2s loop (handoff spec) ───────
+/**
+ * The typing row's height, fixed. The row is a permanent header of the inverted
+ * list (see TypingIndicator), so its height is part of the list's resting
+ * geometry: the bubble fading in and out never changes how tall the thread is,
+ * where it used to push every message up by ~40pt twice per typing burst.
+ */
+const TYPING_ROW_HEIGHT = 32;
+
 function TypingDot({ delay }: { delay: number }) {
   const { c } = useTheme();
-  const s = React.useMemo(() => makeS(c), [c]);
+  const s = getS(c);
   const reduced = useReduceMotion();
   const y = useSharedValue(0);
   useEffect(() => {
-    if (reduced) return;
+    // Reduce Motion flipping on mid-loop must leave the dot at rest, not frozen
+    // wherever the bounce happened to be. The three dots still read as "typing",
+    // and the row's own label says it aloud.
+    cancelAnimation(y);
+    y.value = 0;
+    if (reduced) return undefined;
     y.value = withDelay(
       delay,
       withRepeat(
         withSequence(
-          withTiming(-4, { duration: 300, easing: Easing.inOut(Easing.quad) }),
-          withTiming(0, { duration: 300, easing: Easing.inOut(Easing.quad) }),
-          withTiming(0, { duration: 600 }),
+          withTiming(-4, { duration: TYPING_DOT_BOUNCE_MS, easing: Easing.bezier(...EASE_IN_OUT) }),
+          withTiming(0, { duration: TYPING_DOT_BOUNCE_MS, easing: Easing.bezier(...EASE_IN_OUT) }),
+          withTiming(0, { duration: TYPING_DOT_REST_MS, easing: Easing.bezier(...EASE_IN_OUT) }),
         ),
         -1,
       ),
     );
-    return () => cancelAnimation(y);
+    return () => {
+      cancelAnimation(y);
+      y.value = 0;
+    };
   }, [reduced, delay, y]);
   const st = useAnimatedStyle(() => ({ transform: [{ translateY: y.value }] }));
   return <Animated.View style={[s.typingDot, st]} />;
 }
 
-function TypingIndicator() {
+/**
+ * Sits in the inverted list's header slot PERMANENTLY, at a fixed height, and
+ * only its bubble fades (opacity, no layout): `duration.menu` in,
+ * `duration.press` out, both EASE_OUT. Mounting the row on demand grew the
+ * list's content by ~40pt each time the other person started typing and shrank
+ * it when they stopped, so the whole thread jumped under the reader's eyes.
+ *
+ * The dots (and their infinite loop, one of the four sanctioned ones) exist only
+ * while the bubble is visible: they mount with the fade-in and unmount once the
+ * fade-out has finished. The row is hidden from the screen reader whenever
+ * nobody is typing, so it never presents an unlabelled empty element.
+ */
+function TypingIndicator({ name, active }: { name: string; active: boolean }) {
   const { c } = useTheme();
-  const s = React.useMemo(() => makeS(c), [c]);
+  const { t } = useTranslation();
+  const s = getS(c);
+  const opacity = useSharedValue(0);
+  // Keeps the dots mounted through the fade-out.
+  const [retained, setRetained] = useState(active);
+
+  useEffect(() => {
+    if (active) {
+      setRetained(true);
+      opacity.value = withTiming(1, { duration: duration.menu, easing: Easing.bezier(...EASE_OUT) });
+    } else {
+      opacity.value = withTiming(0, { duration: duration.press, easing: Easing.bezier(...EASE_OUT) }, (finished) => {
+        // An interrupted fade (they started typing again) must not unmount.
+        if (finished) runOnJS(setRetained)(false);
+      });
+    }
+  }, [active, opacity]);
+
+  const fade = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  const showDots = active || retained;
+
   return (
-    <View style={s.typingRow} testID="TypingIndicator">
-      <View style={s.typingBubble}>
-        <View style={s.typingDotsRow}>
-          <TypingDot delay={0} />
-          <TypingDot delay={150} />
-          <TypingDot delay={300} />
-        </View>
-      </View>
+    <View
+      style={s.typingRow}
+      testID="TypingIndicator"
+      accessible={active}
+      accessibilityLabel={active ? t('chat.typingA11y', '{{name}} is typing', { name }) : undefined}
+      accessibilityLiveRegion={active ? 'polite' : 'none'}
+      accessibilityElementsHidden={!active}
+      importantForAccessibility={active ? 'yes' : 'no-hide-descendants'}
+    >
+      {/* the dots are decoration; the label above carries the meaning */}
+      {showDots ? (
+        <Animated.View
+          style={[s.typingBubble, fade]}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          <View style={s.typingDotsRow}>
+            <TypingDot delay={0} />
+            <TypingDot delay={STAGGER_MS * 3} />
+            <TypingDot delay={STAGGER_MS * 6} />
+          </View>
+        </Animated.View>
+      ) : null}
     </View>
   );
 }
 
 // ─── Read receipt ────────────────────────────────────────────────────────────
+// Decorative: the delivery state is spoken in the bubble's accessibilityLabel.
 function ReadReceipt({ msg }: { msg: Message }) {
-  if (msg.readAt) return <Ionicons name="checkmark-done" size={15} color="#fff" />;
-  if (msg.deliveredAt) return <Ionicons name="checkmark-done" size={15} color="rgba(255,255,255,0.6)" />;
-  return <Ionicons name="checkmark" size={15} color="rgba(255,255,255,0.6)" />;
+  const { c } = useTheme();
+  const read = !!msg.readAt;
+  const delivered = !!msg.deliveredAt;
+  return (
+    <Ionicons
+      name={read || delivered ? 'checkmark-done' : 'checkmark'}
+      size={15}
+      color={c.onPrimary}
+      style={read ? undefined : { opacity: 0.65 }}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    />
+  );
 }
 
 // ─── Message bubble ──────────────────────────────────────────────────────────
 interface BubbleProps {
   msg: Message;
   isOwn: boolean;
-  onLongPress: () => void;
+  /** Who the other person is, for the spoken label. */
+  senderName: string;
+  /** Opens the actions menu. Long press is the shortcut, a plain tap the fallback. */
+  onOpenActions: (msg: Message) => void;
 }
 
-function MessageBubble({ msg, isOwn, onLongPress }: BubbleProps) {
+// Memoised: the composer re-renders the screen on every keystroke and a
+// thread can hold hundreds of rows. There is deliberately NO `entering`
+// animation here — a virtualized row remounts as it scrolls back into the
+// window (and swaps key when its optimistic id is replaced by the server's),
+// so an entrance would replay on history (doctrine §10.8 Lists).
+const MessageBubble = React.memo(function MessageBubble({ msg, isOwn, senderName, onOpenActions }: BubbleProps) {
   const { c } = useTheme();
-  const s = React.useMemo(() => makeS(c), [c]);
-  const reduced = useReduceMotion();
+  const { t } = useTranslation();
+  const s = getS(c);
   // Optimistic sends render at half opacity until the server ack swaps in
-  // the real message (id no longer tmp-*).
+  // the real message (id no longer tmp-*). They have no server id yet, so
+  // edit/delete/react on them would 404: the menu stays closed.
   const pending = msg.id.startsWith('tmp-');
-  // Entrance only for messages created in the last few seconds — history
-  // must never re-animate when pages load or the list re-renders.
-  const isFresh = Date.now() - new Date(msg.createdAt).getTime() < 3000;
-  const entering = !reduced && isFresh ? FadeInDown.duration(duration.fast * 1.5) : undefined;
+  const isVoice = msg.messageType === 'voice';
+  const reactions = Object.entries(msg.reactions || {}).filter(([, u]) => u?.length);
+
+  const open = useCallback(() => { if (!pending) onOpenActions(msg); }, [pending, onOpenActions, msg]);
+  const openFromLongPress = useCallback(() => {
+    if (pending) return;
+    haptics.medium();
+    onOpenActions(msg);
+  }, [pending, onOpenActions, msg]);
+
+  const who = isOwn ? t('chat.a11yYou', 'You') : senderName;
+  const status = !isOwn
+    ? ''
+    : pending
+      ? t('chat.a11ySending', 'Sending')
+      : msg.readAt
+        ? t('chat.a11yRead', 'Read')
+        : msg.deliveredAt
+          ? t('chat.a11yDelivered', 'Delivered')
+          : t('chat.a11ySent', 'Sent');
+  const time = formatMsgTime(msg.createdAt);
+  const quote = msg.ReplyTo
+    ? t('chat.a11yInReplyTo', 'In reply to {{text}}', {
+        text: msg.ReplyTo.messageType === 'voice' ? t('chat.voiceMessage', 'Voice message') : msg.ReplyTo.content,
+      })
+    : '';
+  const label = [
+    `${who}: ${isVoice ? t('chat.voiceMessage', 'Voice message') : msg.content}`,
+    quote,
+    msg.isEdited ? t('chat.edited', 'edited') : '',
+    time,
+    status,
+    reactions.length ? reactions.map(([e, u]) => `${e} ${u.length}`).join(', ') : '',
+  ].filter(Boolean).join('. ');
+
   return (
-    <Animated.View entering={entering}>
-    <TouchableOpacity
-      onLongPress={onLongPress}
-      delayLongPress={400}
-      style={[s.bubbleRow, isOwn ? s.bubbleRowOwn : s.bubbleRowTheirs, pending && { opacity: 0.5 }]}
-      testID={`Bubble-${msg.id}`}
-      accessibilityLabel={`Message: ${msg.content}`}
-    >
-      <View>
-        <View style={[s.bubble, isOwn ? s.bubbleOwn : s.bubbleTheirs]}>
-          {msg.ReplyTo && (
-            <View style={[s.quoteBlock, isOwn ? s.quoteBlockOwn : s.quoteBlockTheirs]}>
-              <Text style={[s.quoteText, isOwn && { color: 'rgba(255,255,255,0.85)' }]} numberOfLines={2}>
-                {msg.ReplyTo.messageType === 'voice' ? 'Voice message' : msg.ReplyTo.content}
+    <View style={[s.bubbleRow, isOwn ? s.bubbleRowOwn : s.bubbleRowTheirs]}>
+      <PressableScale
+        onPress={open}
+        onLongPress={openFromLongPress}
+        delayLongPress={400}
+        style={s.bubbleWrap}
+        testID={`Bubble-${msg.id}`}
+        // A voice bubble carries its own play control. An accessible parent
+        // would swallow it on iOS (VoiceOver treats the parent as one element),
+        // so for voice the group is opened up and the play button offers the
+        // "message actions" action instead.
+        accessible={!isVoice}
+        accessibilityLabel={label}
+        // A still-sending row cannot open the menu (no server id yet), so it must
+        // not promise one.
+        accessibilityHint={pending ? undefined : t('chat.a11yOpenActions', 'Opens message actions')}
+        accessibilityRole="button"
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        {/* The "sending" dim lives here, not on the PressableScale: its animated
+            style owns `opacity` and would override a static one. */}
+        <View style={pending ? s.pendingRow : undefined}>
+          <View style={[s.bubble, isOwn ? s.bubbleOwn : s.bubbleTheirs]}>
+            {msg.ReplyTo && (
+              <View style={[s.quoteBlock, isOwn ? s.quoteBlockOwn : s.quoteBlockTheirs]}>
+                <Text
+                  variant="footnote"
+                  color={isOwn ? 'onPrimary' : 'textMuted'}
+                  style={isOwn ? { opacity: 0.85 } : undefined}
+                  numberOfLines={2}
+                >
+                  {msg.ReplyTo.messageType === 'voice' ? t('chat.voiceMessage', 'Voice message') : msg.ReplyTo.content}
+                </Text>
+              </View>
+            )}
+            {isVoice ? (
+              <VoiceMessageBubble
+                uri={msg.mediaUrl}
+                durationMs={msg.mediaDurationMs}
+                own={isOwn}
+                from={isOwn ? 'you' : senderName}
+                onMoreActions={open}
+              />
+            ) : (
+              // The product's main reading text: `callout` (16), not `footnote`
+              // (13). Same role as the family-group bubble.
+              <Text variant="callout" color={isOwn ? 'onPrimary' : 'textPrimary'}>
+                {msg.content}
               </Text>
+            )}
+            {msg.isEdited && (
+              <Text variant="micro" color={isOwn ? 'onPrimary' : 'textMuted'} style={[s.editedTag, isOwn && { opacity: 0.65 }]}>
+                {t('chat.edited', 'edited')}
+              </Text>
+            )}
+            <View
+              style={s.bubbleMeta}
+              accessible={isVoice}
+              accessibilityLabel={isVoice ? [time, status].filter(Boolean).join('. ') : undefined}
+            >
+              <Text variant="micro" color={isOwn ? 'onPrimary' : 'textMuted'} style={isOwn ? { opacity: 0.7 } : undefined}>
+                {time}
+              </Text>
+              {isOwn && <ReadReceipt msg={msg} />}
+            </View>
+          </View>
+          {reactions.length > 0 && (
+            <View style={[s.reactionRow, isOwn && { alignSelf: 'flex-end' }]}>
+              {reactions.map(([emoji, users]) => (
+                <View key={emoji} style={s.reactionPill}>
+                  <Text variant="footnote">{emoji}</Text>
+                  {users.length > 1 && <Text variant="caption" color="textMuted" style={s.reactionCount}>{users.length}</Text>}
+                </View>
+              ))}
             </View>
           )}
-          {msg.messageType === 'voice' ? (
-            <VoiceMessageBubble uri={msg.mediaUrl} durationMs={msg.mediaDurationMs} own={isOwn} />
-          ) : (
-            <Text style={[s.bubbleText, isOwn ? s.bubbleTextOwn : s.bubbleTextTheirs]}>
-              {msg.content}
-            </Text>
-          )}
-          {msg.isEdited && (
-            <Text style={[s.editedTag, isOwn ? s.editedTagOwn : s.editedTagTheirs]}>edited</Text>
-          )}
-          <View style={s.bubbleMeta}>
-            <Text style={[s.msgTime, isOwn ? s.msgTimeOwn : s.msgTimeTheirs]}>
-              {formatMsgTime(msg.createdAt)}
-            </Text>
-            {isOwn && <ReadReceipt msg={msg} />}
-          </View>
         </View>
-        {Object.keys(msg.reactions || {}).length > 0 && (
-          <View style={[s.reactionRow, isOwn && { alignSelf: 'flex-end' }]}>
-            {Object.entries(msg.reactions).filter(([, u]) => u?.length).map(([emoji, users]) => (
-              <View key={emoji} style={s.reactionPill}>
-                <Text style={s.reactionEmoji}>{emoji}</Text>
-                {users.length > 1 && <Text style={s.reactionCount}>{users.length}</Text>}
-              </View>
-            ))}
-          </View>
-        )}
-      </View>
-    </TouchableOpacity>
-    </Animated.View>
+      </PressableScale>
+    </View>
   );
-}
+});
 
 // ─── Date separator ──────────────────────────────────────────────────────────
-function DateSeparator({ label }: { label: string }) {
+function DateSeparator({ iso }: { iso: string }) {
   const { c } = useTheme();
-  const s = React.useMemo(() => makeS(c), [c]);
+  const { t } = useTranslation();
+  const s = getS(c);
+  const d = new Date(iso);
+  const diffDays = calendarDaysAgo(iso);
+  const label =
+    diffDays === 0
+      ? t('chat.today', 'Today')
+      : diffDays === 1
+        ? t('chat.yesterday', 'Yesterday')
+        : d.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'short' });
   return (
     <View style={s.dateSep}>
       <View style={s.dateLine} />
-      <Text style={s.dateLabel}>{label}</Text>
+      <Text variant="caption" color="textMuted">{label}</Text>
       <View style={s.dateLine} />
     </View>
   );
@@ -206,9 +495,10 @@ interface ContactBannerProps {
 }
 
 function ContactUnlockBanner({ userId, onUnlocked }: ContactBannerProps) {
-  const { c } = useTheme();
-  const s = React.useMemo(() => makeS(c), [c]);
+  const { c, elder } = useTheme();
+  const s = getS(c);
   const { t } = useTranslation();
+  const tap = tapSize(elder);
   const [phone, setPhone] = useState<string | null>(null);
 
   const { mutate: unlock, isPending } = useMutation({
@@ -216,16 +506,40 @@ function ContactUnlockBanner({ userId, onUnlocked }: ContactBannerProps) {
     onSuccess: (res) => {
       setPhone(res.phone);
       onUnlocked(res.phone);
+      // Appears without a tap on the screen reader's focus: announce it
+      // (accessibilityLiveRegion is Android-only, this covers both).
+      AccessibilityInfo.announceForAccessibility(t('chat.contactUnlockedA11y', 'Phone number unlocked: {{phone}}', { phone: res.phone }));
     },
-    onError: () => {
-      showToast.error(t('error', 'Error'), t('chat.unlockFailed', 'Could not unlock contact. Check your quota.'));
+    onError: (err) => {
+      // Say what actually happened. This used to blame "your quota" for every
+      // failure, including a dropped connection and the daily cap that unlimited
+      // plans carry. The server's own message names the real number, so it is
+      // shown as sent; the codes are the ones checkContactUnlockLimit throws.
+      const res = (err as { response?: { data?: { error?: { code?: string; message?: string } } } })?.response;
+      const code = res?.data?.error?.code;
+      const serverMessage = res?.data?.error?.message;
+      if (code === 'CONTACT_UNLOCK_LIMIT_REACHED') {
+        showToast.error(t('chat.unlockQuotaTitle', 'No unlocks left'), serverMessage ?? t('chat.unlockQuotaBody', 'You have used every contact unlock on your plan.'));
+      } else if (code === 'DAILY_UNLOCK_LIMIT_REACHED') {
+        showToast.error(t('chat.unlockDailyTitle', 'Daily limit reached'), serverMessage ?? t('chat.unlockDailyBody', 'Try again after 24 hours.'));
+      } else if (!res) {
+        showToast.error(t('chat.unlockFailedTitle', "Couldn't unlock the number"), t('chat.unlockOffline', 'Check your connection and try again.'));
+      } else {
+        showToast.error(t('chat.unlockFailedTitle', "Couldn't unlock the number"), serverMessage ?? t('chat.unlockFailed', 'Try again in a moment.'));
+      }
     },
   });
 
+  // Ruling 22: this Alert stays. Spending a contact unlock is irreversible
+  // (it consumes paid quota), which is the same class as a destructive confirm.
+  // The client does not know whether this member's plan is capped or unlimited
+  // (AuthUser carries no unlock allowance), so the copy is true for both: it
+  // never names a quota, and it says a number already unlocked costs nothing
+  // (the server returns it without charging).
   const handleUnlock = () => {
     Alert.alert(
-      t('chat.unlockTitle', 'Unlock Contact?'),
-      t('chat.unlockConfirm', 'This will use 1 contact unlock from your quota.'),
+      t('chat.unlockTitle', 'Unlock phone number?'),
+      t('chat.unlockConfirm', 'This uses one contact unlock on your plan, unless you have already unlocked this number.'),
       [
         { text: t('cancel', 'Cancel'), style: 'cancel' },
         { text: t('chat.unlock', 'Unlock'), onPress: () => unlock() },
@@ -234,36 +548,149 @@ function ContactUnlockBanner({ userId, onUnlocked }: ContactBannerProps) {
   };
 
   if (phone) {
+    // successAccent, not success: darkColours.success is 3.64:1 on this tint and
+    // theme.ts documents it as unreadable as an accent. successAccent is 5.13:1
+    // light / 6.88:1 dark. The number is the whole point of paying an unlock, so
+    // it gets the two things a member does with it (dial it, copy it) as real
+    // buttons rather than a long-press on selectable text.
+    const dialable = phone.replace(/[^\d+]/g, '');
+    const actionH = Math.max(tap - 12, 36);
     return (
-      <View style={s.contactBanner} testID="ContactBannerUnlocked">
-        <Ionicons name="call" size={16} color={c.success} />
-        <Text style={s.contactPhone}>{phone}</Text>
+      <View style={[s.contactBanner, s.contactBannerRow, { minHeight: tap }]} testID="ContactBannerUnlocked">
+        <Text variant="subhead" style={[s.contactPhone, { color: c.successAccent }]} numberOfLines={1}>{phone}</Text>
+        <View style={s.contactActions}>
+          <PressableScale
+            onPress={() => {
+              Linking.openURL(`tel:${dialable}`).catch(() =>
+                showToast.error(t('chat.callFailed', "Couldn't open the dialler"), t('chat.callFailedBody', 'Copy the number and dial it yourself.'))
+              );
+            }}
+            // The visual is `actionH` tall; hitSlop tops it up to the 44/48 floor.
+            hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+            style={[s.contactAction, { height: actionH }]}
+            accessibilityRole="button"
+            accessibilityLabel={t('chat.callNumberA11y', 'Call {{phone}}', { phone })}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            testID="ContactCallBtn-tap44-hitslop"
+          >
+            <Ionicons name="call-outline" size={16} color={c.primary} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+            <Text variant="subhead" color="primary" numberOfLines={1}>{t('chat.callNumber', 'Call')}</Text>
+          </PressableScale>
+          <PressableScale
+            onPress={() => {
+              // RN core's Clipboard: deprecated in 0.76 (a one-time dev warning on
+              // first use) but present. Swap for expo-clipboard when the next
+              // dependency pass installs it; this is the only call site.
+              Clipboard.setString(phone);
+              showToast.success(t('chat.numberCopied', 'Number copied'));
+              AccessibilityInfo.announceForAccessibility(t('chat.numberCopied', 'Number copied'));
+            }}
+            hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+            style={[s.contactAction, { height: actionH }]}
+            accessibilityRole="button"
+            accessibilityLabel={t('chat.copyNumberA11y', 'Copy phone number')}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            testID="ContactCopyBtn-tap44-hitslop"
+          >
+            <Ionicons name="copy-outline" size={16} color={c.primary} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+            <Text variant="subhead" color="primary" numberOfLines={1}>{t('chat.copyNumber', 'Copy')}</Text>
+          </PressableScale>
+        </View>
       </View>
     );
   }
 
+  // The label names what the tap DOES. It used to read "Request phone number",
+  // which promises a message to the other person; the tap actually spends one of
+  // the member's own unlocks (after a confirm). "Uses one unlock" is stated where
+  // the member decides, not only in the dialog.
   return (
-    <TouchableOpacity
-      style={s.contactBanner}
+    <PressableScale
+      style={[s.contactBanner, { minHeight: tap }]}
       onPress={handleUnlock}
       disabled={isPending}
-      accessibilityLabel={t('chat.requestContact', 'Request Contact')}
+      accessibilityLabel={`${t('chat.unlockPhone', 'Unlock phone number')}. ${t('chat.unlockPhoneSub', 'Uses one unlock')}`}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: isPending, busy: isPending }}
+      pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
       testID="ContactUnlockBanner"
     >
-      <Ionicons name="person-add-outline" size={16} color={c.primary} />
-      <Text style={s.contactBannerText}>{t('chat.requestContact', 'Request Contact')}</Text>
+      <Ionicons name="call-outline" size={16} color={c.primary} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+      <View style={s.contactText}>
+        <Text variant="subhead" color="primary">{t('chat.unlockPhone', 'Unlock phone number')}</Text>
+        <Text variant="caption" color="textSecondary">{t('chat.unlockPhoneSub', 'Uses one unlock')}</Text>
+      </View>
       {isPending && <ActivityIndicator size="small" color={c.primary} style={{ marginLeft: 8 }} />}
-    </TouchableOpacity>
+    </PressableScale>
+  );
+}
+
+// ─── Reply meter (D1 / DS3) ──────────────────────────────────────────────────
+/**
+ * The free-reply window's status line, last in the composer's hierarchy: muted,
+ * and warning (icon plus full-strength text) at 2 left or fewer. Its own
+ * component so the once-a-minute clock tick re-renders only this line, not the
+ * whole thread. The tick runs only while the window's clock is running, i.e.
+ * after the first reply (`expiresAt` is null before it).
+ *
+ * It is NOT a live region: the time changes every minute and a live region would
+ * read every change aloud. The moments worth speaking (2 left, the window ending)
+ * are announced explicitly by the screen.
+ */
+function ReplyMeter({ replyWindow }: { replyWindow: ReplyWindow }) {
+  const { c } = useTheme();
+  const { t } = useTranslation();
+  const s = getS(c);
+  const [now, setNow] = useState(() => Date.now());
+  const running = !!replyWindow.expiresAt;
+
+  useEffect(() => {
+    if (!running) return undefined;
+    setNow(Date.now());
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    // A backgrounded app throttles the interval: catch up the moment it returns.
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') setNow(Date.now());
+    });
+    return () => {
+      clearInterval(id);
+      sub.remove();
+    };
+  }, [running]);
+
+  const low = replyWindow.messagesRemaining <= 2;
+  return (
+    <View style={s.meterRow}>
+      {low && (
+        <Ionicons
+          name="alert-circle-outline"
+          size={14}
+          color={c.warning}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        />
+      )}
+      <Text
+        variant="caption"
+        color={low ? 'textPrimary' : 'textMuted'}
+        style={s.meterText}
+        testID="ReplyMeter"
+      >
+        {replyMeterText(t, replyWindow, now)}
+      </Text>
+    </View>
   );
 }
 
 // ─── Message action menu ─────────────────────────────────────────────────────
 interface ActionMenuProps {
   msg: Message | null;
-  isOwn: boolean;
+  currentUserId: string | undefined;
   visible: boolean;
   canRich: boolean;
   onClose: () => void;
+  /** iOS only: fires once the menu's fade-out has finished (see handleReport). */
+  onDismissed: () => void;
   onEdit: (msg: Message) => void;
   onDelete: (msg: Message) => void;
   onReport: (msg: Message) => void;
@@ -271,82 +698,125 @@ interface ActionMenuProps {
   onReply: (msg: Message) => void;
 }
 
-function MessageActionMenu({ msg, isOwn, visible, canRich, onClose, onEdit, onDelete, onReport, onReact, onReply }: ActionMenuProps) {
-  const { c } = useTheme();
-  const s = React.useMemo(() => makeS(c), [c]);
+function MessageActionMenu({ msg, currentUserId, visible, canRich, onClose, onDismissed, onEdit, onDelete, onReport, onReact, onReply }: ActionMenuProps) {
+  const { c, elder, isDark } = useTheme();
+  const s = getS(c);
   const { t } = useTranslation();
-  if (!msg) return null;
+  const tap = tapSize(elder);
+  // The parent clears `msg` the instant the menu closes, which would unmount
+  // the Modal before its fade-out plays and flip Delete/Edit to Report under
+  // the user's finger. Keep the last message alive for the exit.
+  const lastMsg = useRef<Message | null>(null);
+  if (msg) lastMsg.current = msg;
+  const m = msg ?? lastMsg.current;
+  if (!m) return null;
+  const isOwn = m.senderId === currentUserId;
 
   return (
-    <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
-      <Pressable style={s.menuOverlay} onPress={onClose}>
-        <View style={s.menuCard}>
-          {/* D2 reactions — premium; six-emoji allowlist mirrors the server */}
+    <Modal transparent statusBarTranslucent visible={visible} animationType="fade" onRequestClose={onClose} onDismiss={onDismissed}>
+      <View style={s.menuOverlay} accessibilityViewIsModal>
+        {/* Backdrop: tap anywhere outside the card to dismiss. */}
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel={t('chat.closeMenu', 'Close menu')}
+          testID="MenuBackdrop"
+        />
+        <View style={[s.menuCard, isDark ? darkShadows.e3 : shadows.e3]}>
+          {/* D2 reactions — premium; six-emoji allowlist mirrors the server.
+              The emoji ARE the content here (a reaction), not an icon stand-in. */}
           {canRich && (
             <View style={s.emojiRow}>
-              {REACTION_EMOJIS.map((e) => (
-                <TouchableOpacity
-                  key={e}
-                  onPress={() => { onReact(msg, e); onClose(); }}
-                  style={s.emojiBtn}
-                  accessibilityLabel={`React ${e}`}
-                  testID={`React-${e}`}
-                >
-                  <Text style={s.emojiText}>{e}</Text>
-                </TouchableOpacity>
-              ))}
+              {REACTION_EMOJIS.map((e) => {
+                // The server toggles: tapping a reaction you already left removes
+                // it. Show which ones are yours before the tap, sighted and spoken.
+                const mine = !!currentUserId && !!m.reactions?.[e]?.includes(currentUserId);
+                return (
+                  <PressableScale
+                    key={e}
+                    onPress={() => { onReact(m, e); onClose(); }}
+                    style={[s.emojiBtn, { width: tap, height: tap, borderRadius: tap / 2 }, mine && s.emojiBtnMine]}
+                    scaleTo={0.92}
+                    accessibilityLabel={mine
+                      ? t('chat.removeReaction', 'Remove {{emoji}} reaction', { emoji: e })
+                      : t('chat.reactWith', 'React with {{emoji}}', { emoji: e })}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: mine }}
+                    pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    testID={`React-${e}`}
+                  >
+                    <Text variant="title2" maxScale={1.3}>{e}</Text>
+                  </PressableScale>
+                );
+              })}
             </View>
           )}
           {canRich && (
-            <TouchableOpacity
-              style={s.menuItem}
-              onPress={() => { onReply(msg); onClose(); }}
+            <PressableScale
+              style={[s.menuItem, { minHeight: tap }]}
+              onPress={() => { onReply(m); onClose(); }}
+              accessibilityRole="button"
+              accessibilityLabel={t('chat.reply', 'Reply')}
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
               testID="MenuReply"
             >
-              <Ionicons name="return-up-back" size={18} color={c.textPrimary} />
-              <Text style={s.menuItemText}>{t('chat.reply', 'Reply')}</Text>
-            </TouchableOpacity>
+              <Ionicons name="return-up-back" size={18} color={c.textPrimary} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+              <Text variant="subhead" color="textPrimary">{t('chat.reply', 'Reply')}</Text>
+            </PressableScale>
           )}
-          {isOwn && canEdit(msg.createdAt) && (
-            <TouchableOpacity
-              style={s.menuItem}
-              onPress={() => { onEdit(msg); onClose(); }}
+          {isOwn && canEdit(m.createdAt) && m.messageType !== 'voice' && (
+            <PressableScale
+              style={[s.menuItem, { minHeight: tap }]}
+              onPress={() => { onEdit(m); onClose(); }}
+              accessibilityRole="button"
+              accessibilityLabel={t('chat.edit', 'Edit')}
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
               testID="MenuEdit"
             >
-              <Ionicons name="pencil" size={18} color={c.textPrimary} />
-              <Text style={s.menuItemText}>{t('chat.edit', 'Edit')}</Text>
-            </TouchableOpacity>
+              <Ionicons name="pencil" size={18} color={c.textPrimary} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+              <Text variant="subhead" color="textPrimary">{t('chat.edit', 'Edit')}</Text>
+            </PressableScale>
           )}
           {isOwn && (
-            <TouchableOpacity
-              style={s.menuItem}
-              onPress={() => { onDelete(msg); onClose(); }}
+            <PressableScale
+              style={[s.menuItem, { minHeight: tap }]}
+              onPress={() => { onDelete(m); onClose(); }}
+              accessibilityRole="button"
+              accessibilityLabel={t('chat.delete', 'Delete')}
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
               testID="MenuDelete"
             >
-              <Ionicons name="trash" size={18} color={c.error} />
-              <Text style={[s.menuItemText, { color: c.error }]}>{t('chat.delete', 'Delete')}</Text>
-            </TouchableOpacity>
+              <Ionicons name="trash" size={18} color={c.error} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+              <Text variant="subhead" color="error">{t('chat.delete', 'Delete')}</Text>
+            </PressableScale>
           )}
           {!isOwn && (
-            <TouchableOpacity
-              style={s.menuItem}
-              onPress={() => { onReport(msg); onClose(); }}
+            <PressableScale
+              style={[s.menuItem, { minHeight: tap }]}
+              onPress={() => { onReport(m); onClose(); }}
+              accessibilityRole="button"
+              accessibilityLabel={t('chat.report', 'Report')}
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
               testID="MenuReport"
             >
-              <Ionicons name="flag" size={18} color={c.warning} />
-              <Text style={[s.menuItemText, { color: c.warning }]}>{t('chat.report', 'Report')}</Text>
-            </TouchableOpacity>
+              {/* The hue stays in the icon; the word is textPrimary. c.warning as
+                  text is 2.70:1 on this white card, under AA at 15pt. */}
+              <Ionicons name="flag" size={18} color={c.warning} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+              <Text variant="subhead" color="textPrimary">{t('chat.report', 'Report')}</Text>
+            </PressableScale>
           )}
         </View>
-      </Pressable>
+      </View>
     </Modal>
   );
 }
 
 // ─── Main screen ─────────────────────────────────────────────────────────────
 export default function ChatThreadScreen() {
-  const { c } = useTheme();
-  const s = React.useMemo(() => makeS(c), [c]);
+  const { c, elder } = useTheme();
+  const s = getS(c);
+  const tap = tapSize(elder);
   const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
@@ -356,7 +826,7 @@ export default function ChatThreadScreen() {
   // tap, for one — navigate here with an empty name, which rendered a chat with
   // a blank header. Fall back to fetching the profile so the header is correct
   // regardless of who navigated.
-  const { data: fallbackProfile } = useQuery({
+  const { data: fallbackProfile, isLoading: nameLoading } = useQuery({
     queryKey: queryKeys.profile(userId),
     queryFn: () => getProfile(userId),
     enabled: !nameParam,
@@ -368,41 +838,96 @@ export default function ChatThreadScreen() {
     [fallbackProfile?.firstName, fallbackProfile?.lastName].filter(Boolean).join(' ') ||
     '';
   const photo = photoParam ?? fallbackProfile?.profilePhoto ?? undefined;
+  const firstName = name.split(' ')[0];
 
   const { user } = useAuthStore();
   const insets = useSafeAreaInsets();
+  const keyboardUp = useKeyboardUp();
   const queryClient = useQueryClient();
 
   const [input, setInput] = useState(draft ?? '');
+  // Mirror of `input` for the send-failure handler: it needs to know whether the
+  // composer is still empty at the moment the failure lands, not when it rendered.
+  const inputValueRef = useRef(input);
+  inputValueRef.current = input;
   const [editingMsg, setEditingMsg] = useState<Message | null>(null);
   const [selectedMsg, setSelectedMsg] = useState<Message | null>(null);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [showRecorder, setShowRecorder] = useState(false);
   const [isOtherTyping, setIsOtherTyping] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  // iOS cannot present a second Modal while the first is still dismissing, so a
+  // Report tap is parked here and opened from the menu's onDismiss.
+  const pendingReport = useRef(false);
   // D1: live window state — seeded from the thread response, advanced by every
   // send, and flipped inactive by the local expiry timer (403 is the backstop).
   const [replyWindow, setReplyWindow] = useState<ReplyWindow | null>(null);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inputRef = useRef<TextInput>(null);
 
   const isPaid = (user?.subscriptionPlan ?? 'free') !== 'free';
+  // Free-reply window on: a free member can read and reply, so the gate copy must
+  // say what Premium adds (writing first), not that chat itself is Premium.
+  const freeReplyOn = user?.features?.freeReplyWindow === true;
 
-  const { emitTyping, joinThread, leaveThread } = useSocket({
-    onTypingIndicator: (data) => {
-      if (data.userId === userId) {
-        setIsOtherTyping(data.isTyping);
-        if (data.isTyping) {
-          if (typingTimer.current) clearTimeout(typingTimer.current);
-          typingTimer.current = setTimeout(() => setIsOtherTyping(false), 5000);
-        }
-      }
-    },
-  });
+  const { socket, emitTyping, joinThread, leaveThread } = useLiveSocket();
 
-  // Join the pair room so the server-authoritative broadcasts reach this device.
+  useEffect(() => () => { if (typingTimer.current) clearTimeout(typingTimer.current); }, []);
+
+  // Read at event time so the listeners below are not torn down and re-bound
+  // every time the header name loads or the language changes.
+  const firstNameRef = useRef(firstName);
+  firstNameRef.current = firstName;
+
+  // Everything realtime for this thread is bound here, straight onto the live
+  // socket. It used to be passed to useSocket as handler props, but each hook
+  // instance owns its own handler ref and the singleton's listeners are wired
+  // only by whichever instance happened to create the socket: open the Chat tab
+  // first (which is what creates it) and this screen's typing dots and spoken
+  // incoming messages never fired.
   useEffect(() => {
-    joinThread(userId);
-    return () => leaveThread(userId);
-  }, [userId, joinThread, leaveThread]);
+    if (!socket) return undefined;
+    const seen = new Set<string>();
+
+    const onTyping = (data: { userId: string; isTyping: boolean }) => {
+      if (data?.userId !== userId) return;
+      setIsOtherTyping(data.isTyping);
+      if (typingTimer.current) clearTimeout(typingTimer.current);
+      if (data.isTyping) typingTimer.current = setTimeout(() => setIsOtherTyping(false), 5000);
+    };
+
+    // A message from the other person lands without the user touching anything.
+    // Sighted users see the row appear; a screen reader has to be told. The server
+    // can deliver the same message to more than one room, hence the id set.
+    const onNewMessage = (data: { message?: Message }) => {
+      const msg = data?.message;
+      if (!msg?.id || msg.senderId !== userId || seen.has(msg.id)) return;
+      seen.add(msg.id);
+      if (seen.size > 50) seen.clear();
+      const who = firstNameRef.current || t('chat.theyShort', 'They');
+      AccessibilityInfo.announceForAccessibility(
+        msg.messageType === 'voice'
+          ? t('chat.a11yVoiceFrom', '{{name}} sent a voice message', { name: who })
+          : `${who}: ${msg.content}`
+      );
+    };
+
+    // Join the pair room so the server-authoritative broadcasts (and the typing
+    // relay, which is pair-room only) reach this device. Room membership lives on
+    // the server-side socket, so a reconnect loses it: re-join on every 'connect'.
+    // An already-connected socket will not fire 'connect' again, so join now.
+    const join = () => joinThread(userId);
+    if (socket.connected) join();
+    socket.on('connect', join);
+    socket.on('user_typing', onTyping);
+    socket.on('message:new', onNewMessage);
+    return () => {
+      socket.off('connect', join);
+      socket.off('user_typing', onTyping);
+      socket.off('message:new', onNewMessage);
+      leaveThread(userId);
+    };
+  }, [socket, userId, joinThread, leaveThread, t]);
 
   // Load thread (cursor-based, scroll up = load more)
   const {
@@ -411,6 +936,8 @@ export default function ChatThreadScreen() {
     hasNextPage,
     isFetchingNextPage,
     isLoading,
+    isError,
+    refetch,
     error: threadError,
   } = useInfiniteQuery({
     queryKey: queryKeys.thread(userId),
@@ -443,12 +970,17 @@ export default function ChatThreadScreen() {
   }, [replyWindow?.active, replyWindow?.expiresAt]);
 
   // Flatten pages; pages[0] = newest page (inverted FlatList shows newest at bottom)
-  const messages: Message[] = data?.pages.flatMap((p) => p.messages) ?? [];
+  const messages: Message[] = useMemo(() => data?.pages.flatMap((p) => p.messages) ?? [], [data]);
 
   // Send message
+  // The quote target travels WITH the send (as a variable, and back out through
+  // the mutation context) rather than being read from `replyingTo` state, which
+  // handleSend clears the instant it fires. That is what lets a failed reply put
+  // its quote back.
   const { mutate: doSend, isPending: isSending } = useMutation({
-    mutationFn: (content: string) => sendMessage(userId, content, replyingTo?.id),
-    onMutate: async (content) => {
+    mutationFn: ({ content, replyTarget }: { content: string; replyTarget: Message | null }) =>
+      sendMessage(userId, content, replyTarget?.id),
+    onMutate: async ({ content, replyTarget }) => {
       const optimistic: Message = {
         id: `tmp-${Date.now()}`,
         senderId: user!.id,
@@ -457,7 +989,10 @@ export default function ChatThreadScreen() {
         messageType: 'text',
         mediaUrl: null,
         mediaDurationMs: null,
-        replyToId: null,
+        replyToId: replyTarget?.id ?? null,
+        ReplyTo: replyTarget
+          ? { id: replyTarget.id, content: replyTarget.content, messageType: replyTarget.messageType, senderId: replyTarget.senderId }
+          : null,
         reactions: {},
         isRead: false,
         deliveredAt: null,
@@ -476,15 +1011,35 @@ export default function ChatThreadScreen() {
           return { ...old, pages };
         }
       );
-      return { optimistic };
+      return { optimistic, replyTarget };
     },
-    onError: (err, _content, ctx) => {
+    onError: (err, { content }, ctx) => {
       // 403 backstop: trust the server's window state; the paywalled composer
       // takes over.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const errBody = (err as any)?.response?.data?.error;
       if (errBody?.code === 'REPLY_WINDOW_ENDED') {
-        setReplyWindow(errBody.replyWindow ?? { active: false, messagesRemaining: 0, messagesUsed: 5, firstReplyAt: null, expiresAt: null });
+        setReplyWindow(errBody.replyWindow ?? { active: false, messagesRemaining: 0, messagesUsed: FREE_REPLY_MAX_MESSAGES, firstReplyAt: null, expiresAt: null });
+      } else if (!inputValueRef.current.trim()) {
+        // The optimistic row is removed below and the composer was already
+        // cleared, so without this the message just vanished. The composer is
+        // still empty, so the text (and the quote it was replying to) goes back
+        // in and sending again is one tap.
+        showToast.error(
+          t('chat.sendFailed', 'Message not sent'),
+          t('chat.sendFailedBody', 'Your message is back in the box. Try again.')
+        );
+        setInput(content);
+        if (ctx?.replyTarget) setReplyingTo((cur) => cur ?? ctx.replyTarget);
+      } else {
+        // The user has already started something new. Putting the failed text
+        // back would clobber it and swapping them would surprise, so leave the
+        // composer alone and do not claim otherwise: quote what was lost.
+        const preview = content.length > 60 ? `${content.slice(0, 59)}…` : content;
+        showToast.error(
+          t('chat.sendFailed', 'Message not sent'),
+          t('chat.sendFailedKept', '"{{text}}" was not sent. Try again.', { text: preview })
+        );
       }
       // Remove optimistic message on failure
       if (ctx?.optimistic) {
@@ -523,9 +1078,19 @@ export default function ChatThreadScreen() {
   });
 
   // Edit message
-  const { mutate: doEdit } = useMutation({
+  const { mutate: doEdit, isPending: isEditing } = useMutation({
     mutationFn: ({ id, content }: { id: string; content: string }) => editMessage(id, content),
+    // The edit banner and the text stay put until the server accepts the change,
+    // so a failure leaves the user where they were with a working retry.
+    onError: () => {
+      showToast.error(
+        t('chat.editFailed', "Couldn't save your edit"),
+        t('chat.editFailedBody', 'Your changes are still here. Try again.')
+      );
+    },
     onSuccess: (updated) => {
+      setEditingMsg(null);
+      setInput('');
       queryClient.setQueryData<{ pages: { messages: Message[]; nextCursor: string | null }[] }>(
         queryKeys.thread(userId),
         (old) => {
@@ -543,6 +1108,9 @@ export default function ChatThreadScreen() {
   // Delete message
   const { mutate: doDelete } = useMutation({
     mutationFn: ({ id, forBoth }: { id: string; forBoth: boolean }) => deleteMessage(id, forBoth),
+    onError: () => {
+      showToast.error(t('chat.deleteFailed', "Couldn't delete the message"), t('chat.deleteFailedBody', 'Check your connection and try again.'));
+    },
     onSuccess: (_r, vars) => {
       queryClient.setQueryData<{ pages: { messages: Message[]; nextCursor: string | null }[] }>(
         queryKeys.thread(userId),
@@ -575,7 +1143,8 @@ export default function ChatThreadScreen() {
     queryClient.invalidateQueries({ queryKey: queryKeys.conversations });
   }, [userId, queryClient]);
 
-  // D2: reaction toggle — optimistic with server reconcile.
+  // D2: reaction toggle. Not optimistic: the server owns the toggle (it may add
+  // or remove), so the cache takes the reactions map it answers with.
   const { mutate: doReact } = useMutation({
     mutationFn: ({ id, emoji }: { id: string; emoji: string }) => toggleReaction(id, emoji),
     onSuccess: (reactions, vars) => {
@@ -598,15 +1167,16 @@ export default function ChatThreadScreen() {
     const text = input.trim();
     if (!text) return;
     if (editingMsg) {
+      // Cleared in doEdit's onSuccess, not here: see the mutation.
       doEdit({ id: editingMsg.id, content: text });
-      setEditingMsg(null);
-    } else {
-      doSend(text);
-      setReplyingTo(null);
+      emitTyping(userId, false);
+      return;
     }
+    doSend({ content: text, replyTarget: replyingTo });
+    setReplyingTo(null);
     setInput('');
     emitTyping(userId, false);
-  }, [input, editingMsg, doSend, doEdit, emitTyping, userId]);
+  }, [input, editingMsg, replyingTo, doSend, doEdit, emitTyping, userId]);
 
   const handleInputChange = useCallback(
     (text: string) => {
@@ -619,7 +1189,7 @@ export default function ChatThreadScreen() {
   const handleDeletePrompt = useCallback(
     (msg: Message) => {
       Alert.alert(
-        t('chat.deleteTitle', 'Delete Message?'),
+        t('chat.deleteTitle', 'Delete message?'),
         undefined,
         [
           { text: t('cancel', 'Cancel'), style: 'cancel' },
@@ -631,9 +1201,22 @@ export default function ChatThreadScreen() {
     [t, doDelete]
   );
 
-  const handleReport = useCallback((_msg: Message) => {
-    showToast.success(t('chat.reportSent', 'Report submitted. Thank you.'));
-  }, [t]);
+  // This used to raise a "Report submitted" success toast and send nothing.
+  // It now opens the real report sheet (POST /report/:userId). The menu and the
+  // sheet are both Modals: on iOS the second one must wait for the first to
+  // finish dismissing, so iOS parks the request for the menu's onDismiss.
+  const handleReport = useCallback(() => {
+    if (Platform.OS === 'ios') pendingReport.current = true;
+    else setReportOpen(true);
+  }, []);
+  const handleMenuDismissed = useCallback(() => {
+    if (pendingReport.current) {
+      pendingReport.current = false;
+      setReportOpen(true);
+    }
+  }, []);
+
+  const openActions = useCallback((msg: Message) => setSelectedMsg(msg), []);
 
   // Render list item with optional date separator
   const renderItem = useCallback(
@@ -644,25 +1227,138 @@ export default function ChatThreadScreen() {
 
       return (
         <>
-          {showDate && <DateSeparator label={formatDateSeparator(item.createdAt)} />}
-          <MessageBubble
-            msg={item}
-            isOwn={isOwn}
-            onLongPress={() => setSelectedMsg(item)}
-          />
+          {/* Bubble first, separator second: this list is inverted, so the cell's children are
+              drawn bottom-up and the separator lands above the first message of its day. */}
+          <MessageBubble msg={item} isOwn={isOwn} senderName={name} onOpenActions={openActions} />
+          {showDate && <DateSeparator iso={item.createdAt} />}
         </>
       );
     },
-    [messages, user?.id]
+    [messages, user?.id, name, openActions]
   );
 
-  const isOwn = selectedMsg ? selectedMsg.senderId === user?.id : false;
+  // The reply meter (D1) is deliberately not a live region: its time text moves
+  // every minute and would be read out every time. Two moments are worth speaking,
+  // and both are announced here on both platforms, never on first load (the first
+  // snapshot is the baseline): the count dropping to 2, and the window ending
+  // (used up or timed out).
+  const lastMeter = useRef<{ left: number; active: boolean } | null>(null);
+  useEffect(() => {
+    if (!isGrantThread || !replyWindow) return;
+    const prev = lastMeter.current;
+    lastMeter.current = { left: replyWindow.messagesRemaining, active: replyWindow.active };
+    if (!prev) return;
+    if (replyWindow.active && replyWindow.messagesRemaining === 2 && prev.left > 2) {
+      AccessibilityInfo.announceForAccessibility(repliesLeftText(t, 2));
+    } else if (prev.active && !replyWindow.active) {
+      AccessibilityInfo.announceForAccessibility(windowEndText(t, replyWindow));
+    }
+  }, [isGrantThread, replyWindow, t]);
+
+  // Announce the reply/edit banners when they appear: focus was on the menu
+  // that just closed, so nothing else tells a screen-reader user they took hold.
+  useEffect(() => {
+    if (replyingTo) {
+      AccessibilityInfo.announceForAccessibility(
+        t('chat.a11yReplying', 'Replying to {{text}}', {
+          text: replyingTo.messageType === 'voice' ? t('chat.voiceMessage', 'Voice message') : replyingTo.content,
+        })
+      );
+    }
+  }, [replyingTo, t]);
+  useEffect(() => {
+    if (editingMsg) AccessibilityInfo.announceForAccessibility(t('chat.a11yEditing', 'Editing message'));
+  }, [editingMsg, t]);
+
+  // The way back must exist in every state: loading and error included (the
+  // loading branch used to render a bare skeleton with no header at all).
+  const header = (
+    <View style={[s.header, { paddingTop: spacing.sm }]}>
+      <PressableScale
+        onPress={() => navigation.goBack()}
+        style={[s.headerIconBtn, { width: tap, height: tap }]}
+        accessibilityLabel={t('back', 'Back')}
+        accessibilityRole="button"
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        testID="BackBtn"
+      >
+        <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
+      </PressableScale>
+
+      <PressableScale
+        style={[s.headerProfile, { minHeight: tap }]}
+        onPress={() => navigation.navigate('ProfileDetail', { userId })}
+        // No name yet (a notification-tap entry while the profile loads, or the
+        // fetch failed): never speak "View 's profile".
+        accessibilityLabel={name
+          ? t('chat.viewProfileA11y', "View {{name}}'s profile", { name })
+          : t('chat.viewProfileNoName', 'View profile')}
+        accessibilityRole="button"
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        testID="HeaderProfile"
+      >
+        {/* The same circle, and the same `headline` name, as this person's row in
+            the Messages list, so opening the thread does not restyle them. */}
+        <Avatar uri={photo} name={name} size={40} />
+
+        {name ? (
+          <Text variant="headline" color="fgStrong" style={s.headerName} numberOfLines={1}>{name}</Text>
+        ) : nameLoading ? (
+          // The title is on its way: a placeholder bar, not a blank header.
+          <View style={s.headerName}>
+            <SkeletonBlock width={120} height={14} />
+          </View>
+        ) : (
+          <Text variant="headline" color="fgStrong" style={s.headerName} numberOfLines={1}>
+            {t('chat.conversationTitle', 'Conversation')}
+          </Text>
+        )}
+      </PressableScale>
+
+      {/* Calls are config-gated on the Agora credentials, matching the web app
+          (which hides its call UI when VITE_AGORA_APP_ID is unset). Without
+          them these buttons navigate to a screen that cannot connect, so they
+          are hidden rather than shown-and-broken. Starting a call is a commit,
+          so these two keep their haptic. */}
+      <View style={s.headerActions}>
+        {CONFIG.IS_AGORA_CONFIGURED && (
+        <>
+        <PressableScale
+          scaleTo={0.9}
+          haptic
+          style={[s.headerIconBtn, { width: tap, height: tap }]}
+          onPress={() => navigation.navigate('VoiceCall', { calleeId: userId, channelName: `voice_${userId}` })}
+          accessibilityLabel={t('chat.voiceCall', 'Voice call')}
+          accessibilityRole="button"
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          testID="VoiceCallBtn"
+        >
+          <Ionicons name="call-outline" size={22} color={c.textPrimary} />
+        </PressableScale>
+        <PressableScale
+          scaleTo={0.9}
+          haptic
+          style={[s.headerIconBtn, { width: tap, height: tap }]}
+          onPress={() => navigation.navigate('VideoCall', { calleeId: userId, channelName: `video_${userId}`, callType: 'video' })}
+          accessibilityLabel={t('chat.videoCall', 'Video call')}
+          accessibilityRole="button"
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          testID="VideoCallBtn"
+        >
+          <Ionicons name="videocam-outline" size={22} color={c.textPrimary} />
+        </PressableScale>
+        </>
+        )}
+      </View>
+    </View>
+  );
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, backgroundColor: c.background }} testID="ChatThreadLoading">
+      <Screen edges={['top']} testID="ChatThreadLoading">
+        {header}
         <ChatThreadSkeleton />
-      </View>
+      </Screen>
     );
   }
 
@@ -671,235 +1367,309 @@ export default function ChatThreadScreen() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if ((threadError as any)?.response?.status === 403) {
     return (
-      <View style={[s.gateWrap, { paddingTop: insets.top }]} testID="ChatThreadGate">
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.gateBack} accessibilityLabel={t('back', 'Back')}>
+      <Screen edges={['top']} style={s.gateWrap} testID="ChatThreadGate">
+        <PressableScale
+          onPress={() => navigation.goBack()}
+          style={[s.gateBack, { width: tap, height: tap }]}
+          accessibilityLabel={t('back', 'Back')}
+          accessibilityRole="button"
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
-        </TouchableOpacity>
+        </PressableScale>
         <View style={s.gateBody}>
-          <View style={s.gateIcon}>
+          <View style={s.gateIcon} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
             <Ionicons name="lock-closed" size={32} color={c.secondary} />
           </View>
-          <Text style={s.gateTitle}>{t('chat.gateTitle', 'Chat is a premium feature')}</Text>
-          <Text style={s.gateLine}>
-            {t('chat.gateLine', 'Upgrade to start the conversation with {{name}}.', { name: name || 'your match' })}
-          </Text>
-          <TouchableOpacity
-            style={s.gateCta}
+          {freeReplyOn ? (
+            // Free-reply window on: reading and replying are open to a free member
+            // once a Premium member writes first. What this thread lacks is that
+            // first message, and only Premium can send it.
+            <>
+              <Text variant="title3" color="textPrimary" style={s.gateTitle} accessibilityRole="header">
+                {t('chat.gateFreeReplyTitle', 'Sending the first message needs Premium')}
+              </Text>
+              <Text variant="footnote" color="textMuted" style={s.gateLine}>
+                {t('chat.gateFreeReplyLine', 'Premium lets you write to {{name}} first.', { name: firstName || t('chat.yourMatch', 'your match') })}
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text variant="title3" color="textPrimary" style={s.gateTitle} accessibilityRole="header">{t('chat.gateTitle', 'Chat is a Premium feature')}</Text>
+              <Text variant="footnote" color="textMuted" style={s.gateLine}>
+                {t('chat.gateLine', 'Upgrade to start the conversation with {{name}}.', { name: name || t('chat.yourMatch', 'your match') })}
+              </Text>
+            </>
+          )}
+          <Button
+            title={t('chat.gateCta', 'See plans')}
+            variant="gold"
             onPress={() => navigation.navigate('Subscription')}
             testID="ChatGateUpgrade"
-          >
-            <Text style={s.gateCtaText}>{t('chat.gateCta', 'See plans')}</Text>
-          </TouchableOpacity>
+            style={s.gateCta}
+          />
         </View>
-      </View>
+      </Screen>
     );
   }
 
   const windowEnded = isGrantThread && replyWindow != null && !replyWindow.active;
-  const endHeadline = replyWindow?.messagesRemaining === 0
-    ? t('chat.windowExhausted', "You've used your 5 free replies")
-    : t('chat.windowExpired', 'Your 48-hour reply window ended');
+  const endHeadline = windowEndText(t, replyWindow);
+
+  // A failed load with nothing cached must not fall through to an empty thread
+  // and a live composer (the 403 gate above is the one failure that has its own
+  // screen). A failed background refetch or next-page fetch keeps the thread.
+  const showError = isError && !data;
+
+  // With the keyboard down the composer clears the home indicator; with it up
+  // the keyboard already covers that strip.
+  const composerBottom = keyboardUp ? spacing.xs : Math.max(insets.bottom, spacing.xs);
+  const canSend = !!input.trim() && !isSending && !isEditing;
 
   return (
+    // The stack sets headerShown:false, so this view starts at the top of the
+    // screen and the KAV needs no offset. (It was 90, a native-header height,
+    // which pushed the composer 90pt clear of the keyboard on iOS.)
     <KeyboardAvoidingView
       style={s.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      keyboardVerticalOffset={0}
     >
-      {/* Header */}
-      <View style={[s.header, { paddingTop: insets.top + spacing.sm }]}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={s.backBtn}
-          accessibilityLabel={t('back', 'Back')}
-          testID="BackBtn"
-        >
-          <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
-        </TouchableOpacity>
+      <Screen edges={['top']}>
+      {header}
 
-        <TouchableOpacity
-          style={s.headerProfile}
-          onPress={() => navigation.navigate('ProfileDetail', { userId })}
-          accessibilityLabel={`View ${name}'s profile`}
-          testID="HeaderProfile"
-        >
-          <SmartImage uri={photo} name={name} style={s.headerAvatar} initialSize={16} />
-
-          <Text style={s.headerName} numberOfLines={1}>{name}</Text>
-        </TouchableOpacity>
-
-        {/* Calls are config-gated on the Agora credentials, matching the web app
-            (which hides its call UI when VITE_AGORA_APP_ID is unset). Without
-            them these buttons navigate to a screen that cannot connect, so they
-            are hidden rather than shown-and-broken. */}
-        <View style={s.headerActions}>
-          {CONFIG.IS_AGORA_CONFIGURED && (
-          <>
-          <PressableScale
-            scaleTo={0.9}
-            haptic
-            style={s.headerBtn}
-            onPress={() => navigation.navigate('VoiceCall', { calleeId: userId, channelName: `voice_${userId}` })}
-            accessibilityLabel={t('chat.voiceCall', 'Voice call')}
-            testID="VoiceCallBtn"
-          >
-            <Ionicons name="call-outline" size={22} color={c.textPrimary} />
-          </PressableScale>
-          <PressableScale
-            scaleTo={0.9}
-            haptic
-            style={s.headerBtn}
-            onPress={() => navigation.navigate('VideoCall', { calleeId: userId, channelName: `video_${userId}`, callType: 'video' })}
-            accessibilityLabel={t('chat.videoCall', 'Video call')}
-            testID="VideoCallBtn"
-          >
-            <Ionicons name="videocam-outline" size={22} color={c.textPrimary} />
-          </PressableScale>
-          </>
-          )}
+      {showError ? (
+        <View style={s.errorBody}>
+          <EmptyState
+            variant="error"
+            icon="chatbubbles-outline"
+            title={t('chat.loadFailedTitle', "Couldn't load messages")}
+            description={t('chat.loadFailedBody', 'Check your connection and try again.')}
+            actionLabel={t('chat.tryAgain', 'Try again')}
+            onAction={() => refetch()}
+            testID="ChatThreadScreen-error"
+          />
         </View>
-      </View>
-
-      {/* Contact unlock banner */}
-      <ContactUnlockBanner userId={userId} onUnlocked={() => {}} />
+      ) : (
+      <>
+      {/* Contact unlock banner. Paid members only: the route behind it is
+          `requirePremium`, so a free member on a reply-window thread could only
+          tap it and receive a 403. Free members see nothing here. */}
+      {isPaid && <ContactUnlockBanner userId={userId} onUnlocked={() => {}} />}
 
       {/* Message list (inverted — newest at bottom) */}
       <FlatList
+        {...CHAT_LIST_PERF}
         data={messages}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         inverted
-        contentContainerStyle={s.listContent}
+        // Rows open a menu on tap now; with the keyboard up the first tap must
+        // reach the row instead of only dismissing the keyboard.
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        contentContainerStyle={[s.listContent, messages.length === 0 && s.listContentEmpty]}
         onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
         onEndReachedThreshold={0.2}
+        ListEmptyComponent={
+          <View style={s.emptyBody}>
+            <EmptyState
+              icon="chatbubble-ellipses-outline"
+              title={t('chat.threadEmptyTitle', 'No messages yet')}
+              description={t('chat.threadEmptyBody', 'Say hello to {{name}} and start the conversation.', { name: firstName || 'your match' })}
+              actionLabel={t('chat.threadEmptyAction', 'Write a message')}
+              onAction={() => inputRef.current?.focus()}
+              testID="ChatThreadScreen-empty"
+            />
+          </View>
+        }
         ListFooterComponent={
           isFetchingNextPage ? (
             <ActivityIndicator
               size="small"
               color={c.primary}
               style={{ marginVertical: spacing.sm }}
+              accessibilityLabel={t('chat.loadingOlder', 'Loading earlier messages')}
             />
           ) : null
         }
-        ListHeaderComponent={isOtherTyping ? <TypingIndicator /> : null}
+        // A permanent, fixed-height row (see TypingIndicator): the bubble fades in
+        // and out inside it, so nothing above it moves.
+        ListHeaderComponent={<TypingIndicator name={firstName || t('chat.theyShort', 'They')} active={isOtherTyping} />}
       />
 
       {/* Edit banner */}
       {editingMsg && (
-        <View style={s.editBanner} testID="EditBanner">
-          <Ionicons name="pencil" size={14} color={c.primary} />
-          <Text style={s.editBannerText} numberOfLines={1}>{editingMsg.content}</Text>
-          <TouchableOpacity onPress={() => { setEditingMsg(null); setInput(''); }}>
+        <View style={[s.editBanner, { minHeight: tap }]} testID="EditBanner">
+          <Ionicons name="pencil" size={14} color={c.primary} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+          <Text variant="caption" color="primary" style={s.editBannerText} numberOfLines={1}>{editingMsg.content}</Text>
+          <PressableScale
+            onPress={() => { setEditingMsg(null); setInput(''); }}
+            style={[s.bannerClose, { width: tap, height: tap }]}
+            accessibilityLabel={t('chat.cancelEdit', 'Cancel edit')}
+            accessibilityRole="button"
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Ionicons name="close" size={18} color={c.textMuted} />
-          </TouchableOpacity>
+          </PressableScale>
         </View>
       )}
 
       {/* Reply-quote banner (D2, premium) */}
       {replyingTo && !editingMsg && (
-        <View style={s.editBanner} testID="ReplyBanner">
-          <Ionicons name="return-up-back" size={14} color={c.primary} />
-          <Text style={s.editBannerText} numberOfLines={1}>
-            {replyingTo.messageType === 'voice' ? 'Voice message' : replyingTo.content}
+        <View style={[s.editBanner, { minHeight: tap }]} testID="ReplyBanner">
+          <Ionicons name="return-up-back" size={14} color={c.primary} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+          <Text variant="caption" color="primary" style={s.editBannerText} numberOfLines={1}>
+            {replyingTo.messageType === 'voice' ? t('chat.voiceMessage', 'Voice message') : replyingTo.content}
           </Text>
-          <TouchableOpacity onPress={() => setReplyingTo(null)} accessibilityLabel="Cancel reply">
+          <PressableScale
+            onPress={() => setReplyingTo(null)}
+            style={[s.bannerClose, { width: tap, height: tap }]}
+            accessibilityLabel={t('chat.cancelReply', 'Cancel reply')}
+            accessibilityRole="button"
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Ionicons name="close" size={18} color={c.textMuted} />
-          </TouchableOpacity>
+          </PressableScale>
         </View>
       )}
 
       {windowEnded ? (
         /* DS1: scripted paywalled composer — thread stays readable above. */
-        <View style={[s.paywallBar, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]} testID="PaywalledComposer">
+        <View style={[s.paywallBar, { paddingBottom: composerBottom }]} testID="PaywalledComposer">
           <View style={{ flex: 1 }}>
-            <Text style={s.paywallTitle}>{endHeadline}</Text>
-            <Text style={s.paywallLine}>
-              {t('chat.windowKeepTalking', '{{name}} can still write to you — upgrade to keep talking.', { name: (name || 'They').split(' ')[0] })}
+            <Text variant="subhead" color="textPrimary">{endHeadline}</Text>
+            <Text variant="caption" color="textMuted" style={s.paywallLine}>
+              {t('chat.windowKeepTalking', '{{name}} can still write to you. Upgrade to keep talking.', { name: (name || 'They').split(' ')[0] })}
             </Text>
           </View>
-          <TouchableOpacity
-            style={s.paywallCta}
+          {/* Upgrade CTA = premium = gold. It was white text on flat gold (~2.4:1);
+              the Button's gold variant carries the dark goldText for contrast. */}
+          <Button
+            title={t('chat.upgrade', 'Upgrade')}
+            variant="gold"
+            size="sm"
             onPress={() => navigation.navigate('Subscription')}
             testID="PaywallUpgrade"
-          >
-            <Text style={s.paywallCtaText}>{t('chat.upgrade', 'Upgrade')}</Text>
-          </TouchableOpacity>
+          />
         </View>
       ) : showRecorder ? (
-        <View style={{ paddingBottom: Math.max(insets.bottom, spacing.xs) }}>
+        <View style={[s.composerDock, { paddingBottom: composerBottom }]}>
           <VoiceRecorderStrip onSend={sendVoice} onClose={() => setShowRecorder(false)} />
         </View>
       ) : (
-      <View style={{ paddingBottom: Math.max(insets.bottom, spacing.xs) }}>
+      <View style={[s.composerDock, { paddingBottom: composerBottom }]}>
         <View style={s.inputBar}>
-          <TextInput
+          <Input
+            ref={inputRef}
+            containerStyle={s.inputContainer}
             style={s.input}
             value={input}
             onChangeText={handleInputChange}
             placeholder={t('chat.typePlaceholder', 'Type a message…')}
-            placeholderTextColor={c.textMuted}
             multiline
             maxLength={2000}
             accessibilityLabel={t('chat.typePlaceholder', 'Type a message')}
             testID="MessageInput"
           />
-          {/* D2 voice note — premium only; grant threads are text-only (D1). */}
-          {isPaid && !isGrantThread && !input.trim() && !editingMsg && (
-            <PressableScale
-              scaleTo={0.9}
-              haptic
-              style={s.micBtn}
-              onPress={() => setShowRecorder(true)}
-              accessibilityLabel={t('chat.recordVoice', 'Record a voice message')}
-              testID="MicBtn"
-            >
-              <Ionicons name="mic-outline" size={20} color={c.textSecondary} />
-            </PressableScale>
-          )}
-          <PressableScale
-            scaleTo={0.9}
-            haptic
-            style={[s.sendBtn, (!input.trim() || isSending) && s.sendBtnDisabled]}
-            onPress={handleSend}
-            disabled={!input.trim() || isSending}
-            accessibilityLabel={t('chat.send', 'Send')}
-            testID="SendBtn"
-          >
-            {isSending ? (
-              <ActivityIndicator size="small" color="#fff" />
+          {/* ONE trailing slot with a fixed width, so the input never widens or
+              narrows under the member's thumb: a paid member with an empty box
+              sees the mic (D2 voice note; premium only, grant threads are
+              text-only per D1), anyone else, and everyone once a character is
+              typed, sees Send. The swap is instant and changes no width. The mic
+              used to unmount on the first keystroke, taking the input 44pt wider
+              mid-word. */}
+          <View style={[s.sendSlot, { width: tap, height: tap }]}>
+            {isPaid && !isGrantThread && !editingMsg && !input.trim() ? (
+              <PressableScale
+                scaleTo={0.9}
+                haptic
+                style={[s.micBtn, { width: tap, height: tap, borderRadius: tap / 2 }]}
+                onPress={() => setShowRecorder(true)}
+                accessibilityLabel={t('chat.recordVoice', 'Record a voice message')}
+                accessibilityRole="button"
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                testID="MicBtn"
+              >
+                <Ionicons name="mic-outline" size={20} color={c.textSecondary} />
+              </PressableScale>
             ) : (
-              <Ionicons name="send" size={18} color={!input.trim() ? c.textMuted : '#fff'} />
+              <PressableScale
+                scaleTo={0.9}
+                haptic
+                style={[s.sendBtn, { width: tap, height: tap, borderRadius: tap / 2 }, !canSend && s.sendBtnDisabled]}
+                onPress={handleSend}
+                disabled={!canSend}
+                accessibilityLabel={editingMsg ? t('chat.saveEdit', 'Save edit') : t('chat.send', 'Send')}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: !canSend, busy: isSending || isEditing }}
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                testID="SendBtn"
+              >
+                {isSending || isEditing ? (
+                  <ActivityIndicator size="small" color={c.onPrimary} />
+                ) : (
+                  <Ionicons name="send" size={18} color={!input.trim() ? c.textMuted : c.onPrimary} />
+                )}
+              </PressableScale>
             )}
-          </PressableScale>
+          </View>
         </View>
-        {/* DS3: the meter is last in the hierarchy — muted, warns at ≤2 */}
-        {isGrantThread && replyWindow?.active && (
-          <Text
-            style={[s.meterText, replyWindow.messagesRemaining <= 2 && s.meterWarn]}
-            accessibilityLiveRegion="polite"
-            testID="ReplyMeter"
-          >
-            {t('chat.repliesLeft', '{{count}} free replies left', { count: replyWindow.messagesRemaining })}
-          </Text>
-        )}
+        {/* DS3: the meter is last in the hierarchy: muted, warning at 2 or fewer.
+            The warning is the icon (semantic hue) and the full-strength text:
+            c.warning as 12pt text is 2.70:1 on this white dock, under AA.
+            Gold is reserved for premium. */}
+        {isGrantThread && replyWindow?.active && <ReplyMeter replyWindow={replyWindow} />}
       </View>
       )}
+      </>
+      )}
 
-      {/* Long-press action menu */}
+      {/* Long-press / tap action menu */}
       <MessageActionMenu
         msg={selectedMsg}
-        isOwn={isOwn}
+        currentUserId={user?.id}
         visible={selectedMsg !== null}
         canRich={isPaid}
         onClose={() => setSelectedMsg(null)}
+        onDismissed={handleMenuDismissed}
         onEdit={(msg) => { setEditingMsg(msg); setInput(msg.content); }}
         onDelete={handleDeletePrompt}
         onReport={handleReport}
         onReact={(msg, emoji) => doReact({ id: msg.id, emoji })}
         onReply={setReplyingTo}
       />
+
+      <BlockReportSheet
+        visible={reportOpen}
+        userId={userId}
+        userName={name || t('chat.theyShort', 'They')}
+        onClose={() => setReportOpen(false)}
+        onBlocked={() => {
+          queryClient.invalidateQueries({ queryKey: queryKeys.conversations });
+          navigation.goBack();
+        }}
+      />
+      </Screen>
     </KeyboardAvoidingView>
   );
+}
+
+/**
+ * Stylesheets are a pure function of the palette and only two palettes exist, so
+ * they are built once per palette rather than once per row instance. Rows remount
+ * as they scroll back into the window (and swap key when an optimistic id is
+ * replaced by the server's), which used to rebuild this ~60-entry sheet each time.
+ * `c` is always the `colours` / `darkColours` singleton from useTheme().
+ */
+const sheetsByPalette = new WeakMap<ThemeColours, ReturnType<typeof makeS>>();
+function getS(c: ThemeColours): ReturnType<typeof makeS> {
+  let sheet = sheetsByPalette.get(c);
+  if (!sheet) {
+    sheet = makeS(c);
+    sheetsByPalette.set(c, sheet);
+  }
+  return sheet;
 }
 
 const makeS = (c: ThemeColours) => StyleSheet.create({
@@ -911,71 +1681,62 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     marginBottom: spacing.xs,
     borderRadius: 4,
   },
-  quoteBlockOwn: { borderLeftColor: 'rgba(255,255,255,0.5)', backgroundColor: 'rgba(255,255,255,0.12)' },
-  quoteBlockTheirs: { borderLeftColor: c.primary, backgroundColor: 'rgba(0,0,0,0.04)' },
-  quoteText: { fontSize: typography.fontSize.xs, color: c.textMuted },
+  // White-on-burgundy tints: the own bubble is the fixed p500 fill in both themes
+  // and its text is c.onPrimary (#FFFFFF), so these are that token at low alpha
+  // (8-digit hex: 0x80 = 50%, 0x1F = 12%) rather than a literal or a
+  // theme-dependent surface.
+  quoteBlockOwn: { borderLeftColor: c.onPrimary + '80', backgroundColor: c.onPrimary + '1F' },
+  quoteBlockTheirs: { borderLeftColor: c.primary, backgroundColor: c.surface2 },
   reactionRow: { flexDirection: 'row', gap: 4, marginTop: 2, marginHorizontal: spacing.md },
   reactionPill: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
     backgroundColor: c.surfaceCard, borderWidth: 1, borderColor: c.border,
     borderRadius: 12, paddingHorizontal: 6, paddingVertical: 2,
   },
-  reactionEmoji: { fontSize: 13 },
-  reactionCount: { fontSize: typography.fontSize.xs, color: c.textMuted, fontVariant: ['tabular-nums'] },
+  reactionCount: { fontVariant: ['tabular-nums'] },
+  // Six 48pt targets are ~290pt; in elder mode (60pt) they must wrap rather than clip.
   emojiRow: {
-    flexDirection: 'row', justifyContent: 'space-between',
+    flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center',
     paddingHorizontal: spacing.sm, paddingBottom: spacing.sm,
     borderBottomWidth: 1, borderBottomColor: c.border, marginBottom: spacing.xs,
   },
-  emojiBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  emojiText: { fontSize: 22 },
+  // Target size (48 / 60 elder) and radius are applied inline from tapSize().
+  emojiBtn: { alignItems: 'center', justifyContent: 'center' },
+  // A reaction this member already left: the border sits inside the fixed box.
+  emojiBtnMine: { backgroundColor: c.accentSoft, borderWidth: 1.5, borderColor: c.primary },
+  // The composer's single trailing slot; Mic and Send both fill it. Size
+  // (48 / 60 elder) is applied inline, so its width never depends on which is shown.
+  sendSlot: { alignItems: 'center', justifyContent: 'center' },
   micBtn: {
-    width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center',
-    marginRight: spacing.xs,
+    alignItems: 'center', justifyContent: 'center',
   },
-  meterText: {
-    fontSize: typography.fontSize.xs, color: c.textMuted,
-    paddingHorizontal: spacing.md, paddingTop: 4, fontVariant: ['tabular-nums'],
+  meterRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: spacing.md, paddingTop: 4,
   },
-  meterWarn: { color: c.secondary, fontWeight: '600' },
+  // flexShrink so a long hi/pa line wraps inside the row instead of running past the icon.
+  meterText: { fontVariant: ['tabular-nums'], flexShrink: 1 },
   paywallBar: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
     paddingHorizontal: spacing.md, paddingTop: spacing.sm,
     borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.surfaceCard,
   },
-  paywallTitle: { fontSize: typography.fontSize.sm, fontWeight: '600', color: c.textPrimary },
-  paywallLine: { fontSize: typography.fontSize.xs, color: c.textMuted, marginTop: 2 },
-  paywallCta: {
-    backgroundColor: c.secondary, borderRadius: 22, paddingHorizontal: spacing.lg,
-    minHeight: 44, alignItems: 'center', justifyContent: 'center',
-  },
-  paywallCtaText: { color: '#fff', fontWeight: '700', fontSize: typography.fontSize.sm },
+  paywallLine: { marginTop: 2 },
   gateWrap: { flex: 1, backgroundColor: c.background },
-  gateBack: { padding: spacing.md, alignSelf: 'flex-start' },
+  gateBack: { alignSelf: 'flex-start', alignItems: 'center', justifyContent: 'center', marginLeft: spacing.sm },
   gateBody: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl },
   gateIcon: {
     width: 72, height: 72, borderRadius: 36, backgroundColor: c.goldSoft,
     alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
   },
   gateTitle: {
-    fontSize: typography.fontSize.xl, fontWeight: '700', color: c.textPrimary,
     textAlign: 'center', marginBottom: spacing.xs,
   },
-  gateLine: { fontSize: typography.fontSize.sm, color: c.textMuted, textAlign: 'center', marginBottom: spacing.lg },
-  gateCta: {
-    backgroundColor: c.primary, borderRadius: 24, paddingHorizontal: spacing.xl,
-    minHeight: 48, alignItems: 'center', justifyContent: 'center',
-  },
-  gateCtaText: { color: '#fff', fontWeight: '700' },
+  gateLine: { textAlign: 'center', marginBottom: spacing.lg },
+  gateCta: { minWidth: 200 },
 
   container: {
     flex: 1,
-    backgroundColor: c.background,
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: c.background,
   },
   // Header
@@ -988,43 +1749,21 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: c.border,
   },
-  backBtn: {
-    padding: spacing.xs,
-    marginRight: spacing.xs,
-  },
+  // Size (48 / 60 elder) is applied inline from tapSize().
+  headerIconBtn: { alignItems: 'center', justifyContent: 'center' },
+  bannerClose: { alignItems: 'center', justifyContent: 'center', marginRight: -spacing.sm },
   headerProfile: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
   },
-  headerAvatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-  },
-  headerAvatarFallback: {
-    backgroundColor: c.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerAvatarInitial: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.bold,
-    color: c.primary,
-  },
   headerName: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.textPrimary,
     flex: 1,
   },
   headerActions: {
     flexDirection: 'row',
     gap: spacing.xs,
-  },
-  headerBtn: {
-    padding: spacing.xs,
   },
   // Contact banner
   contactBanner: {
@@ -1037,25 +1776,45 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: c.border,
   },
-  contactBannerText: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.primary,
+  contactText: { flex: 1 },
+  // Unlocked: number + Call + Copy. At a large text size the buttons wrap under
+  // the number rather than shrinking it or running off the row.
+  contactBannerRow: { flexWrap: 'wrap', justifyContent: 'space-between', rowGap: spacing.xs },
+  contactPhone: { flexGrow: 1, flexShrink: 1 },
+  contactActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  // Height (tapSize - 12) is applied inline; hitSlop makes up the rest of the target.
+  contactAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+    borderColor: c.border,
+    backgroundColor: c.surfaceCard,
   },
-  contactPhone: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.success,
-  },
-  // List
+  // List. The list is inverted, so its content container is flipped with it:
+  // `paddingTop` is the gutter at the visual BOTTOM. That gutter is the typing
+  // row (TYPING_ROW_HEIGHT, the list header), so there is no extra padding there.
   listContent: {
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingTop: 0,
+    paddingBottom: spacing.sm,
   },
+  // Empty thread: let the content container fill the list so the empty state centres.
+  listContentEmpty: { flexGrow: 1 },
+  emptyBody: { flex: 1, justifyContent: 'center' },
+  errorBody: { flex: 1, justifyContent: 'center' },
   // Bubbles
   bubbleRow: {
     marginVertical: 2,
   },
+  // The press area is the bubble itself, not the whole row: a tap in the empty
+  // space beside a short message must not open its menu.
+  bubbleWrap: {
+    maxWidth: '78%',
+  },
+  pendingRow: { opacity: 0.5 },
   bubbleRowOwn: {
     alignItems: 'flex-end',
   },
@@ -1063,13 +1822,14 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     alignItems: 'flex-start',
   },
   bubble: {
-    maxWidth: '78%',
     paddingHorizontal: spacing.sm + 2,
     paddingVertical: spacing.xs + 2,
     borderRadius: borderRadius.lg,
   },
   bubbleOwn: {
-    backgroundColor: c.primary,
+    // p500 is #8B2346 in both palettes (white on it ~10:1); c.primary is the
+    // lighter #C75D7E accent in dark mode (white on it is ~3.96:1, under AA).
+    backgroundColor: c.p500,
     borderBottomRightRadius: 4,
   },
   bubbleTheirs: {
@@ -1078,27 +1838,8 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     borderColor: c.border,
     borderBottomLeftRadius: 4,
   },
-  bubbleText: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.regular,
-    lineHeight: 20,
-  },
-  bubbleTextOwn: {
-    color: '#fff',
-  },
-  bubbleTextTheirs: {
-    color: c.textPrimary,
-  },
   editedTag: {
-    fontSize: typography.fontSize.xs - 1,
-    fontFamily: typography.fontFamily.regular,
     marginTop: 2,
-  },
-  editedTagOwn: {
-    color: 'rgba(255,255,255,0.6)',
-  },
-  editedTagTheirs: {
-    color: c.textMuted,
   },
   bubbleMeta: {
     flexDirection: 'row',
@@ -1106,23 +1847,6 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     justifyContent: 'flex-end',
     gap: 3,
     marginTop: 3,
-  },
-  msgTime: {
-    fontSize: typography.fontSize.xs - 1,
-    fontFamily: typography.fontFamily.regular,
-  },
-  msgTimeOwn: {
-    color: 'rgba(255,255,255,0.65)',
-  },
-  msgTimeTheirs: {
-    color: c.textMuted,
-  },
-  receipt: {
-    fontSize: typography.fontSize.xs,
-    color: '#fff',
-  },
-  receiptGray: {
-    color: 'rgba(255,255,255,0.5)',
   },
   // Date separator
   dateSep: {
@@ -1136,15 +1860,12 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     height: 1,
     backgroundColor: c.border,
   },
-  dateLabel: {
-    fontSize: typography.fontSize.xs,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textMuted,
-  },
-  // Typing indicator
+  // Typing indicator: a fixed-height row (TYPING_ROW_HEIGHT) so the bubble
+  // fading in and out never moves the thread. The bubble is 26pt inside it.
   typingRow: {
+    height: TYPING_ROW_HEIGHT,
     alignItems: 'flex-start',
-    marginVertical: spacing.xs,
+    justifyContent: 'center',
   },
   typingBubble: {
     backgroundColor: c.surfaceCard,
@@ -1152,31 +1873,31 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: 4,
   },
-  typingDotsRow: { flexDirection: 'row', gap: 4, alignItems: 'center', height: 18 },
+  typingDotsRow: { flexDirection: 'row', gap: 4, alignItems: 'center', height: 16 },
   typingDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: c.textMuted },
-  typingDotsLegacy: {
-    fontSize: typography.fontSize.lg,
-    color: c.textMuted,
-    letterSpacing: 3,
-  },
   // Edit banner
   editBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
     backgroundColor: c.primaryLight + '20',
     borderTopWidth: 1,
     borderTopColor: c.border,
   },
   editBannerText: {
     flex: 1,
-    fontSize: typography.fontSize.xs,
-    color: c.primary,
-    fontFamily: typography.fontFamily.medium,
+  },
+  // The composer's surface. The bottom-inset padding lives on this wrapper, so
+  // the surface (and the hairline above it) must too: with the colour only on
+  // the bar, the home-indicator strip underneath painted the screen background
+  // and read as a second band, most visibly in dark mode.
+  composerDock: {
+    backgroundColor: c.surfaceCard,
+    borderTopWidth: 1,
+    borderTopColor: c.border,
   },
   // Input bar
   inputBar: {
@@ -1184,30 +1905,24 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     alignItems: 'flex-end',
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
-    backgroundColor: c.surfaceCard,
-    borderTopWidth: 1,
-    borderTopColor: c.border,
     gap: spacing.xs,
   },
-  input: {
+  // Input primitive owns border/radius/padding/type/colour; only the
+  // composer-specific sizing (compact + capped growth) and the background
+  // (contrast against the surfaceCard bar behind it) are kept here.
+  inputContainer: {
     flex: 1,
-    minHeight: 40,
+    marginBottom: 0,
+  },
+  input: {
+    minHeight: 44,
     maxHeight: 120,
     backgroundColor: c.background,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: c.border,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textPrimary,
   },
+  // Target size (48 / 60 elder) and radius are applied inline from tapSize().
+  // p500 for the same reason as bubbleOwn: the arrow is white on it.
   sendBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: c.primary,
+    backgroundColor: c.p500,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1217,7 +1932,7 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   // Action menu
   menuOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: c.scrim,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1226,11 +1941,9 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     borderRadius: borderRadius.lg,
     paddingVertical: spacing.xs,
     minWidth: 200,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
+    maxWidth: '92%',
+    // Elevation comes from the token tables (light burgundy-tint, dark black),
+    // applied inline where isDark is known.
   },
   menuItem: {
     flexDirection: 'row',
@@ -1238,10 +1951,5 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-  },
-  menuItemText: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
   },
 });

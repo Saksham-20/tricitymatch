@@ -39,8 +39,10 @@ export const getMyProfile = async (): Promise<Profile> => {
 };
 
 export const getProfile = async (userId: string): Promise<Profile> => {
-  const res = await apiClient.get<{ profile: Profile }>(`/profile/${userId}`);
-  return res.data.profile;
+  const res = await apiClient.get<{ profile: Profile; isMutual?: boolean }>(`/profile/${userId}`);
+  // `isMutual` sits beside the profile, not inside it. Carry it in so a profile opened AFTER the
+  // match can still offer the conversation instead of asking for a like that was already made.
+  return { ...res.data.profile, isMutual: res.data.isMutual === true };
 };
 
 export const updateMyProfile = async (data: Partial<Profile>): Promise<Profile> => {
@@ -169,12 +171,28 @@ export interface AshtakootResult {
   gunas: Record<string, GunaDetail>;
 }
 
+export interface LifePath { number: number; title: string; summary: string }
+
+/**
+ * The numerology block `getHoroscopeCompatibility` returns beside the guna
+ * result. It works from date of birth alone, so it exists even when neither
+ * member has a nakshatra.
+ */
+export interface NumerologyBlock {
+  /** The requesting member. */
+  person1: LifePath;
+  /** The member being viewed. */
+  person2: LifePath;
+  compatibility: { score: number; label: string; note: string } | null;
+}
+
 export interface HoroscopeCompatibilityResponse {
   ashtakoot: AshtakootResult | null;
   manglikCompatible: boolean;
   manglikDetail: string;
   rashiScore: number | null;
   summary: string;
+  numerology?: NumerologyBlock | null;
 }
 
 export const getHoroscopeCompatibility = async (

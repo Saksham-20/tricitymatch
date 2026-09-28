@@ -2,22 +2,25 @@ import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
-  TouchableOpacity,
   ActivityIndicator,
   Alert,
   Modal,
-  TextInput,
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { colours, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { getReportsQueue, updateReport, updateUserStatus } from '../../api/admin';
+import Text from '../../components/ui/Text';
+import Input from '../../components/ui/Input';
+import EmptyState from '../../components/ui/EmptyState';
+import { SkeletonBlock } from '../../components/ui/Skeleton';
+import { PressableScale } from '../../components/motion';
+import { LIST_PERF } from '../../constants/listPerf';
 
 interface ReportItem {
   id: string;
@@ -76,44 +79,74 @@ function ReportCard({
       <View style={s.cardHeader}>
         <View style={s.categoryRow}>
           <Ionicons name={iconName} size={16} color={c.warning} />
-          <Text style={s.categoryText}>{label}</Text>
+          <Text variant="caption" color="warning" style={s.categoryText}>{label}</Text>
         </View>
-        <Text style={s.cardDate}>{new Date(item.createdAt).toLocaleDateString('en-IN')}</Text>
+        <Text variant="footnote" color="textSecondary">{new Date(item.createdAt).toLocaleDateString('en-IN')}</Text>
       </View>
 
       <View style={s.namesRow}>
-        <Text style={s.nameLabel}>Reported:</Text>
-        <Text style={s.nameValue}>{displayName(item.ReportedUser, item.reportedUserId)}</Text>
+        <Text variant="caption" color="textSecondary" style={s.nameLabel}>Reported:</Text>
+        <Text variant="subhead" color="textPrimary" style={s.nameValue}>{displayName(item.ReportedUser, item.reportedUserId)}</Text>
       </View>
       <View style={s.namesRow}>
-        <Text style={s.nameLabel}>By:</Text>
-        <Text style={s.nameValue}>{displayName(item.Reporter, item.reporterId)}</Text>
+        <Text variant="caption" color="textSecondary" style={s.nameLabel}>By:</Text>
+        <Text variant="subhead" color="textPrimary" style={s.nameValue}>{displayName(item.Reporter, item.reporterId)}</Text>
       </View>
 
       {item.description ? (
-        <Text style={s.desc} numberOfLines={3}>{item.description}</Text>
+        <Text variant="footnote" color="textSecondary" style={s.desc} numberOfLines={3}>{item.description}</Text>
       ) : null}
 
       <View style={s.actions}>
-        <TouchableOpacity
+        <PressableScale
           style={[s.btn, s.dismissBtn]}
           onPress={() => onDismiss(item.id)}
           testID={`dismiss-btn-${item.id}`}
+          accessibilityRole="button"
           accessibilityLabel="Dismiss report"
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="close-circle-outline" size={16} color={c.textSecondary} />
-          <Text style={[s.btnText, { color: c.textSecondary }]}>Dismiss</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
+          <Text variant="caption" color="textSecondary">Dismiss</Text>
+        </PressableScale>
+        <PressableScale
           style={[s.btn, s.blockBtn]}
           onPress={() => onBlock(item.id, item.reportedUserId, displayName(item.ReportedUser, 'User'))}
           testID={`block-btn-${item.id}`}
-          accessibilityLabel="Block user"
+          accessibilityRole="button"
+          accessibilityLabel="Suspend user"
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="ban-outline" size={16} color="#fff" />
-          <Text style={[s.btnText, { color: '#fff' }]}>Suspend</Text>
-        </TouchableOpacity>
+          <Text variant="caption" style={{ color: '#fff' }}>Suspend</Text>
+        </PressableScale>
       </View>
+    </View>
+  );
+}
+
+/** Card-shaped placeholder so the queue doesn't jump when the real cards land. */
+function ReportsSkeleton() {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
+  return (
+    <View style={s.list} testID="ReportsQueueScreen-loading">
+      {[0, 1, 2].map((i) => (
+        <View key={i} style={s.card}>
+          <View style={s.cardHeader}>
+            <SkeletonBlock width={96} height={14} />
+            <SkeletonBlock width={64} height={12} />
+          </View>
+          <SkeletonBlock width="55%" height={16} />
+          <SkeletonBlock width="45%" height={16} />
+          <View style={s.actions}>
+            <SkeletonBlock height={36} radius={borderRadius.sm} style={s.skelBtn} />
+            <SkeletonBlock height={36} radius={borderRadius.sm} style={s.skelBtn} />
+          </View>
+        </View>
+      ))}
     </View>
   );
 }
@@ -126,7 +159,7 @@ export default function ReportsQueueScreen() {
   const [blockTarget, setBlockTarget] = useState<{ reportId: string; userId: string; name: string } | null>(null);
   const [adminNotes, setAdminNotes] = useState('');
 
-  const { data, isLoading, refetch, isFetching } = useQuery<ReportItem[]>({
+  const { data, isLoading, isError, refetch, isFetching } = useQuery<ReportItem[]>({
     queryKey: ['admin', 'reportsQueue'],
     queryFn: getReportsQueue,
   });
@@ -173,21 +206,42 @@ export default function ReportsQueueScreen() {
   };
 
   const mutPending = dismissMut.isPending || blockMut.isPending;
+  // Only when there is nothing to show: a failed background refetch keeps the
+  // cards already on screen, but a failed load must never read as "No open reports".
+  const showError = isError && (data?.length ?? 0) === 0;
 
   return (
     <SafeAreaView style={s.safe} testID="ReportsQueueScreen">
       <View style={s.header}>
-        <TouchableOpacity onPress={() => nav.goBack()} style={s.backBtn} accessibilityLabel="Go back">
+        <PressableScale
+          onPress={() => nav.goBack()}
+          style={s.backBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="arrow-back" size={22} color={c.textPrimary} />
-        </TouchableOpacity>
-        <Text style={s.title}>Reports Queue</Text>
+        </PressableScale>
+        <Text variant="title3" color="textPrimary" style={s.title}>Reports Queue</Text>
         {isLoading && <ActivityIndicator size="small" color={c.primary} />}
       </View>
 
       {isLoading ? (
-        <ActivityIndicator style={s.loader} color={c.primary} />
+        <ReportsSkeleton />
+      ) : showError ? (
+        <EmptyState
+          variant="error"
+          icon="cloud-offline-outline"
+          title="Couldn't load reports"
+          description="Check your connection and try again."
+          actionLabel="Try again"
+          onAction={() => refetch()}
+          testID="ReportsQueueScreen-error"
+        />
       ) : (
         <FlatList
+          {...LIST_PERF}
           data={data ?? []}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
@@ -198,7 +252,7 @@ export default function ReportsQueueScreen() {
           ListEmptyComponent={
             <View style={s.empty}>
               <Ionicons name="shield-checkmark-outline" size={48} color={c.textMuted} />
-              <Text style={s.emptyText}>No open reports</Text>
+              <Text variant="subhead" color="textMuted">No open reports</Text>
             </View>
           }
         />
@@ -212,36 +266,46 @@ export default function ReportsQueueScreen() {
       >
         <View style={s.modalBackdrop}>
           <View style={s.modalCard}>
-            <Text style={s.modalTitle}>Suspend User</Text>
-            <Text style={s.modalSub}>
-              Suspend <Text style={s.modalBold}>{blockTarget?.name}</Text> and mark report as reviewed?
+            <Text variant="title3" color="textPrimary">Suspend User</Text>
+            <Text variant="footnote" color="textSecondary">
+              Suspend <Text variant="caption" color="textPrimary">{blockTarget?.name}</Text> and mark report as reviewed?
             </Text>
-            <TextInput
+            <Input
               style={s.notesInput}
               value={adminNotes}
               onChangeText={setAdminNotes}
               placeholder="Admin notes (optional)..."
-              placeholderTextColor={c.textMuted}
               multiline
               maxLength={300}
               testID="admin-notes-input"
             />
             <View style={s.modalActions}>
-              <TouchableOpacity style={s.modalCancel} onPress={() => setBlockTarget(null)}>
-                <Text style={s.modalCancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
+              <PressableScale
+                style={s.modalCancel}
+                onPress={() => setBlockTarget(null)}
+                accessibilityRole="button"
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Text variant="subhead" color="textSecondary">Cancel</Text>
+              </PressableScale>
+              <PressableScale
                 style={[s.modalConfirm, mutPending && s.disabled]}
                 onPress={handleBlockConfirm}
                 disabled={mutPending}
                 testID="block-confirm-btn"
+                accessibilityRole="button"
+                accessibilityLabel="Confirm suspend"
+                accessibilityState={{ disabled: mutPending }}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 {mutPending ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text style={s.modalConfirmText}>Suspend</Text>
+                  <Text variant="caption" style={{ color: '#fff' }}>Suspend</Text>
                 )}
-              </TouchableOpacity>
+              </PressableScale>
             </View>
           </View>
         </View>
@@ -264,11 +328,8 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   backBtn: { padding: spacing.xs },
   title: {
     flex: 1,
-    fontSize: typography.fontSize.lg,
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
   },
-  loader: { marginTop: spacing.xl },
+  skelBtn: { flex: 1 },
   list: { padding: spacing.md, gap: spacing.md },
   card: {
     backgroundColor: c.surfaceCard,
@@ -279,21 +340,10 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   categoryRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   categoryText: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.warning,
     textTransform: 'capitalize',
-  },
-  cardDate: {
-    fontSize: typography.fontSize.xs,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textSecondary,
   },
   namesRow: { flexDirection: 'row', gap: spacing.xs },
   nameLabel: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.textSecondary,
     // 60pt cut "Reported:" mid-word on iOS, leaving a stray ":" on its own
     // line. The label sizes itself; only the floor is fixed, so the two rows
     // still line their values up.
@@ -301,14 +351,8 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   },
   nameValue: {
     flex: 1,
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
   },
   desc: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textSecondary,
     fontStyle: 'italic',
   },
   actions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
@@ -323,13 +367,7 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   },
   dismissBtn: { borderWidth: 1, borderColor: c.border },
   blockBtn: { backgroundColor: c.error },
-  btnText: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold },
   empty: { alignItems: 'center', justifyContent: 'center', paddingTop: 80, gap: spacing.md },
-  emptyText: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textMuted,
-  },
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -344,27 +382,9 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     padding: spacing.lg,
     gap: spacing.md,
   },
-  modalTitle: {
-    fontSize: typography.fontSize.lg,
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
-  },
-  modalSub: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textSecondary,
-  },
-  modalBold: { fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
   notesInput: {
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: borderRadius.sm,
-    padding: spacing.sm,
     minHeight: 60,
     textAlignVertical: 'top',
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.regular,
-    color: c.textPrimary,
   },
   modalActions: { flexDirection: 'row', gap: spacing.sm },
   modalCancel: {
@@ -375,22 +395,12 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
     borderColor: c.border,
     borderRadius: borderRadius.sm,
   },
-  modalCancelText: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textSecondary,
-  },
   modalConfirm: {
     flex: 1,
     paddingVertical: spacing.sm,
     alignItems: 'center',
     backgroundColor: c.error,
     borderRadius: borderRadius.sm,
-  },
-  modalConfirmText: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.semiBold,
-    color: '#fff',
   },
   disabled: { opacity: 0.6 },
 });

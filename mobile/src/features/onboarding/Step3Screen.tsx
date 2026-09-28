@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import Text from '../../components/ui/Text';
+import Input from '../../components/ui/Input';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { PressableScale } from '../../components/motion';
 import { haptics } from '../../utils/haptics';
-import OnboardingLayout from './OnboardingLayout';
+import { tapSize } from '../../utils/elderTheme';
+import OnboardingLayout, { flushField, useOnboardingControls } from './OnboardingLayout';
 import { useOnboarding } from './OnboardingContext';
 import type { ManglikStatus } from '../../types';
 
@@ -17,10 +21,11 @@ const MANGLIK_OPTIONS: { key: ManglikStatus; tKey: string }[] = [
 ];
 
 export default function Step3Screen() {
-  const { c } = useTheme();
+  const { c, elder } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
   const { t } = useTranslation();
   const { data, saveAndNext } = useOnboarding();
+  const controls = useOnboardingControls();
 
   const [manglikStatus, setManglikStatus] = useState<ManglikStatus | null>(data.manglikStatus);
   const [birthTime, setBirthTime] = useState(data.birthTime);
@@ -28,11 +33,13 @@ export default function Step3Screen() {
 
   const isValid = !!manglikStatus;
 
+  // Same string for the eye and the screen reader, so "(Optional)" is spoken.
+  const birthTimeLabel = `${t('onboarding.step3.birthTime')} (${t('common.optional')})`;
+  const birthPlaceLabel = `${t('onboarding.step3.birthPlace')} (${t('common.optional')})`;
+
   const handleContinue = async () => {
-    await saveAndNext(
-      { manglikStatus, birthTime, placeOfBirth },
-      { manglikStatus, birthTime, placeOfBirth } as any,
-    );
+    const answers = { manglikStatus, birthTime: birthTime.trim(), placeOfBirth: placeOfBirth.trim() };
+    await saveAndNext(answers, answers);
   };
 
   return (
@@ -45,22 +52,37 @@ export default function Step3Screen() {
     >
       {/* Manglik status */}
       <View>
-        <Text style={styles.label}>{t('onboarding.step3.manglikStatus')}</Text>
-        <View style={styles.grid}>
+        <Text variant="footnote" color="textPrimary" style={styles.label}>{t('onboarding.step3.manglikStatus')}</Text>
+        <View
+          style={styles.grid}
+          accessibilityRole="radiogroup"
+          accessibilityLabel={t('onboarding.step3.manglikStatus')}
+        >
           {MANGLIK_OPTIONS.map((opt) => {
             const isActive = manglikStatus === opt.key;
             return (
               <PressableScale
                 key={opt.key}
                 scaleTo={0.95}
-                style={[styles.optionBtn, isActive && styles.optionBtnActive]}
+                style={[styles.optionBtn, { minHeight: tapSize(elder) }, isActive && styles.optionBtnActive]}
                 onPress={() => { haptics.light(); setManglikStatus(opt.key); }}
                 testID={`manglik-${opt.key}`}
                 accessibilityLabel={t(opt.tKey)}
                 accessibilityRole="radio"
-                accessibilityState={{ selected: isActive }}
+                accessibilityState={{ selected: isActive, checked: isActive }}
+                pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Text style={[styles.optionBtnText, isActive && styles.optionBtnTextActive]}>
+                {/* Selection is a checkmark as well as a tint, so colour is never the only cue. */}
+                {isActive ? (
+                  <Ionicons
+                    name="checkmark"
+                    size={16}
+                    color={c.accent}
+                    accessibilityElementsHidden
+                    importantForAccessibility="no"
+                  />
+                ) : null}
+                <Text variant="subhead" color={isActive ? 'primary' : 'textPrimary'}>
                   {t(opt.tKey)}
                 </Text>
               </PressableScale>
@@ -71,74 +93,59 @@ export default function Step3Screen() {
 
       {/* Birth details reveal only after manglik is answered — kundli
           questions stay hidden until the member engages with the topic */}
-      {manglikStatus && (
-      <View>
-        <Text style={styles.sectionHeader}>{t('onboarding.step3.birthDetails')}</Text>
-      </View>
-      )}
-
-      {manglikStatus && (
-      <View>
-        <Text style={styles.label}>
-          {t('onboarding.step3.birthTime')}
-          <Text style={styles.optional}> ({t('common.optional')})</Text>
-        </Text>
-        <TextInput
-          style={styles.input}
-          value={birthTime}
-          onChangeText={setBirthTime}
-          placeholder="HH:MM (e.g. 06:30)"
-          placeholderTextColor={c.textMuted}
-          keyboardType="numbers-and-punctuation"
-          testID="input-birthTime"
-          accessibilityLabel={t('onboarding.step3.birthTime')}
-        />
-      </View>
-      )}
-
-      {manglikStatus && (
-      <View>
-        <Text style={styles.label}>
-          {t('onboarding.step3.birthPlace')}
-          <Text style={styles.optional}> ({t('common.optional')})</Text>
-        </Text>
-        <TextInput
-          style={styles.input}
-          value={placeOfBirth}
-          onChangeText={setPlaceOfBirth}
-          placeholder="City of birth"
-          placeholderTextColor={c.textMuted}
-          autoCapitalize="words"
-          autoComplete="postal-address-locality"
-          textContentType="addressCity"
-          returnKeyType="done"
-          testID="input-placeOfBirth"
-          accessibilityLabel={t('onboarding.step3.birthPlace')}
-        />
-      </View>
-      )}
+      {manglikStatus ? (
+        <>
+          <Text variant="headline" color="textSecondary" style={styles.sectionHeader} accessibilityRole="header">
+            {t('onboarding.step3.birthDetails')}
+          </Text>
+          {/* Server caps birthTime at 20 and placeOfBirth at 100 characters; a longer value 400s the whole save. */}
+          <Input
+            {...controls.inputProps}
+            label={birthTimeLabel}
+            value={birthTime}
+            onChangeText={setBirthTime}
+            containerStyle={flushField}
+            placeholder={t('onboarding.placeholders.birthTime', 'HH:MM (e.g. 06:30)')}
+            keyboardType="numbers-and-punctuation"
+            maxLength={20}
+            testID="input-birthTime"
+            accessibilityLabel={birthTimeLabel}
+          />
+          <Input
+            {...controls.inputProps}
+            label={birthPlaceLabel}
+            value={placeOfBirth}
+            onChangeText={setPlaceOfBirth}
+            containerStyle={flushField}
+            placeholder={t('onboarding.placeholders.birthPlace', 'City of birth')}
+            autoCapitalize="words"
+            // No address/city autofill hint: it would offer the member's CURRENT city as their birthplace.
+            autoComplete="off"
+            returnKeyType="done"
+            maxLength={100}
+            testID="input-placeOfBirth"
+            accessibilityLabel={birthPlaceLabel}
+          />
+        </>
+      ) : null}
     </OnboardingLayout>
   );
 }
 
 const makeStyles = (c: ThemeColours) => StyleSheet.create({
+  // Same treatment as Input's label, so chips and text fields on one screen read as one form.
   label: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
-    marginBottom: spacing.sm,
+    fontFamily: 'Inter-SemiBold',
+    marginBottom: 6,
   },
-  optional: { color: c.textMuted, fontFamily: typography.fontFamily.regular },
   sectionHeader: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.textSecondary,
     marginTop: spacing.sm,
   },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   optionBtn: {
+    flexDirection: 'row',
+    gap: 6,
     paddingHorizontal: spacing.md,
-    height: 44,
     borderWidth: 1.5,
     borderColor: c.border,
     borderRadius: borderRadius.full,
@@ -146,20 +153,4 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     justifyContent: 'center',
   },
   optionBtnActive: { borderColor: c.primary, backgroundColor: c.primaryLight },
-  optionBtnText: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
-  },
-  optionBtnTextActive: { color: c.primary },
-  input: {
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    fontSize: typography.fontSize.base,
-    color: c.textPrimary,
-    minHeight: 48,
-  },
 });

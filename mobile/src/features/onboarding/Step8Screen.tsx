@@ -1,15 +1,25 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, Text, StyleSheet } from 'react-native';
+import { AccessibilityInfo, Platform, View, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { PressableScale } from '../../components/motion';
 import { haptics } from '../../utils/haptics';
+import { tapSize } from '../../utils/elderTheme';
+import Text from '../../components/ui/Text';
+import { Button } from '../../components/ui';
 import OnboardingLayout from './OnboardingLayout';
-import { useOnboarding } from './OnboardingContext';
+import { useOnboarding, type JourneyProfilePatch } from './OnboardingContext';
+import { queryKeys } from '../../constants/queryKeys';
+import { getMyProfile } from '../../api/profile';
 import type { Diet, SmokingDrinking } from '../../types';
 
 type Exercise = 'daily' | 'weekly' | 'rarely' | 'never';
+
+// A drifting finger must not cancel a press (doctrine §10.8).
+const RETAIN = { top: 10, bottom: 10, left: 10, right: 10 } as const;
 
 interface RadioGroupProps<T extends string> {
   label: string;
@@ -17,37 +27,75 @@ interface RadioGroupProps<T extends string> {
   selected: T | null;
   onSelect: (v: T) => void;
   testPrefix: string;
+  /** i18n key prefix: each option's label is `${labelPrefix}.${key}`, the option's own label is the English fallback. */
+  labelPrefix: string;
 }
 
 function RadioGroup<T extends string>({
-  label, options, selected, onSelect, testPrefix,
+  label, options, selected, onSelect, testPrefix, labelPrefix,
 }: RadioGroupProps<T>) {
-  const { c } = useTheme();
-  const styles = React.useMemo(() => makeStyles(c), [c]);
+  const { c, elder } = useTheme();
+  const { t } = useTranslation();
+  const tap = tapSize(elder);
+  const styles = React.useMemo(() => makeStyles(c, tap), [c, tap]);
   return (
     <View>
-      <Text style={styles.label}>{label}</Text>
-      <View style={styles.pillRow}>
+      <Text variant="subhead" color="textPrimary" style={styles.label}>{label}</Text>
+      <View style={styles.pillRow} accessibilityRole="radiogroup" accessibilityLabel={label}>
         {options.map((opt) => {
           const active = selected === opt.key;
+          const optLabel = t(`${labelPrefix}.${opt.key}`, opt.label);
           return (
             <PressableScale
               key={opt.key}
-              scaleTo={0.95}
               style={[styles.pill, active && styles.pillActive]}
-              onPress={() => { haptics.light(); onSelect(opt.key); }}
+              onPress={() => {
+                if (active) return; // re-tapping the current choice is not a commit
+                haptics.light();
+                onSelect(opt.key);
+              }}
               testID={`${testPrefix}-${opt.key}`}
-              accessibilityLabel={opt.label}
+              accessibilityLabel={optLabel}
               accessibilityRole="radio"
-              accessibilityState={{ selected: active }}
+              accessibilityState={{ checked: active, selected: active }}
+              pressRetentionOffset={RETAIN}
             >
-              <Text style={[styles.pillText, active && styles.pillTextActive]}>
-                {opt.label}
+              <Text variant="subhead" color={active ? 'primary' : 'textPrimary'}>
+                {optLabel}
               </Text>
             </PressableScale>
           );
         })}
       </View>
+    </View>
+  );
+}
+
+/**
+ * Shown when the saved profile could not be loaded, so the pills below are not
+ * misread as "nothing saved yet". Nothing here is overwritten (only chosen
+ * groups are sent), which is why the form stays usable behind it.
+ */
+function SavedLoadNotice({ onRetry }: { onRetry: () => void }) {
+  const { c } = useTheme();
+  const { t } = useTranslation();
+  const styles = React.useMemo(() => makeNoticeStyles(c), [c]);
+  const message = t('onboarding.loadFailedTitle', "Couldn't load your saved answers");
+  useEffect(() => {
+    // Android reads the live region; iOS VoiceOver only hears an explicit announce.
+    if (Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(message);
+  }, [message]);
+  return (
+    <View style={styles.notice} accessibilityLiveRegion="polite" testID="saved-error">
+      <Ionicons
+        name="alert-circle-outline"
+        size={20}
+        color={c.error}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      />
+      <Text variant="footnote" color="textSecondary" style={styles.noticeText}>{message}</Text>
+      <Button title={t('common.retry')} variant="text" size="sm" onPress={onRetry} testID="btn-retry-saved" />
     </View>
   );
 }
@@ -87,15 +135,34 @@ export default function Step8Screen() {
   const [smoking, setSmoking] = useState<SmokingDrinking | null>(data.smoking);
   const [exercise, setExercise] = useState<Exercise | null>(data.exercise);
 
+  // The journey context does not hydrate these from the saved profile, so a member
+  // who already answered elsewhere would see every pill unselected. Fill only the
+  // groups still unchosen, so a late response never undoes a tap.
+  const {
+    data: saved,
+    isError: savedError,
+    isFetching: savedFetching,
+    refetch: refetchSaved,
+  } = useQuery({ queryKey: queryKeys.myProfile, queryFn: getMyProfile });
+  useEffect(() => {
+    if (!saved) return;
+    setDiet((prev) => prev ?? saved.diet ?? null);
+    setDrinking((prev) => prev ?? saved.drinking ?? null);
+    setSmoking((prev) => prev ?? saved.smoking ?? null);
+  }, [saved]);
+  const savedFailed = !saved && savedError && !savedFetching;
+
   const handleSkip = async () => {
     await saveAndNext({}, {});
   };
 
   const handleContinue = async () => {
-    await saveAndNext(
-      { diet, drinking, smoking, exercise },
-      { diet, smoking, drinking } as any,
-    );
+    // Only send what was chosen: an untouched group means "no answer", not "clear it".
+    const profilePatch: JourneyProfilePatch = {};
+    if (diet) profilePatch.diet = diet;
+    if (smoking) profilePatch.smoking = smoking;
+    if (drinking) profilePatch.drinking = drinking;
+    await saveAndNext({ diet, drinking, smoking, exercise }, profilePatch);
   };
 
   return (
@@ -107,12 +174,14 @@ export default function Step8Screen() {
       skippable
       onSkip={handleSkip}
     >
+      {savedFailed ? <SavedLoadNotice onRetry={() => { refetchSaved(); }} /> : null}
       <RadioGroup
         label={t('onboarding.step8.diet')}
         options={DIET_OPTIONS}
         selected={diet}
         onSelect={setDiet}
         testPrefix="diet"
+        labelPrefix="onboarding.step8.dietOptions"
       />
       <RadioGroup
         label={t('onboarding.step8.drinking')}
@@ -120,6 +189,7 @@ export default function Step8Screen() {
         selected={drinking}
         onSelect={setDrinking}
         testPrefix="drinking"
+        labelPrefix="onboarding.step8.drinkingOptions"
       />
       <RadioGroup
         label={t('onboarding.step8.smoking')}
@@ -127,6 +197,7 @@ export default function Step8Screen() {
         selected={smoking}
         onSelect={setSmoking}
         testPrefix="smoking"
+        labelPrefix="onboarding.step8.smokingOptions"
       />
       <RadioGroup
         label={t('onboarding.step8.exercise')}
@@ -134,16 +205,14 @@ export default function Step8Screen() {
         selected={exercise}
         onSelect={setExercise}
         testPrefix="exercise"
+        labelPrefix="onboarding.step8.exerciseOptions"
       />
     </OnboardingLayout>
   );
 }
 
-const makeStyles = (c: ThemeColours) => StyleSheet.create({
+const makeStyles = (c: ThemeColours, tap: number) => StyleSheet.create({
   label: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
     marginBottom: spacing.sm,
   },
   pillRow: {
@@ -157,7 +226,7 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     borderWidth: 1.5,
     borderColor: c.border,
     borderRadius: borderRadius.full,
-    minHeight: 44,
+    minHeight: tap,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -165,12 +234,17 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     borderColor: c.primary,
     backgroundColor: c.primaryLight,
   },
-  pillText: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
+});
+
+const makeNoticeStyles = (c: ThemeColours) => StyleSheet.create({
+  notice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingLeft: spacing.md,
+    paddingRight: spacing.xs,
+    borderRadius: borderRadius.md,
+    backgroundColor: c.errorBg,
   },
-  pillTextActive: {
-    color: c.primary,
-  },
+  noticeText: { flex: 1, paddingVertical: spacing.sm },
 });

@@ -20,7 +20,12 @@ export interface ScreenProps {
   scroll?: boolean;
   /** Apply the standard 18pt horizontal gutter. */
   padded?: boolean;
-  /** Keyboard-avoid (iOS padding / Android default). Use on form screens. */
+  /**
+   * Keyboard-avoid. Use on form screens. Android needs 'height' too: on API 35 with
+   * targetSdk 35 the window is edge-to-edge and `adjustResize` no longer shrinks it, so
+   * the keyboard sat on top of the submit button with nothing to scroll. KAV measures the
+   * overlap against its own laid-out frame, so where the OS still resizes it adds nothing.
+   */
   keyboard?: boolean;
   style?: StyleProp<ViewStyle>;
   contentContainerStyle?: StyleProp<ViewStyle>;
@@ -72,7 +77,7 @@ export default function Screen({
 
   if (!keyboard) return shell;
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {shell}
     </KeyboardAvoidingView>
   );

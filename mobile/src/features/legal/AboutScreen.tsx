@@ -1,35 +1,42 @@
 import React from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import Text from '../../components/ui/Text';
 import { LegalLayout, Section, Para } from './LegalLayout';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 
-// Mirrors frontend/src/pages/About.jsx
+// Mirrors frontend/src/pages/About.jsx. The four "stats" are statements, not
+// numbers, on purpose: this screen used to print 1,190+ marriages, 50K+
+// verified members, a 92% reply rate and "Since 2011", none of which were
+// true. A member count you do not have is worse than none; do not put a
+// figure back here unless it is read from the server.
 const STATS = [
-  { value: '1,190+', label: 'Marriages made' },
-  { value: '50K+', label: 'Verified members' },
-  { value: '92%', label: 'Reply within 48 hrs' },
-  { value: '15 yr', label: 'Serving Tricity families' },
+  { value: 'Live selfie', label: 'Verification, never uploads' },
+  { value: 'Tricity only', label: 'Chandigarh · Mohali · Panchkula' },
+  { value: 'Family-first', label: 'Guardians participate gracefully' },
+  { value: 'Founding', label: 'Members join free' },
 ];
 
+// No index numerals beside these: a numbered list of principles is a section-number
+// pattern (doctrine 8), and the order carries no meaning.
 const VALUES = [
-  { n: '01', t: 'Verified, every profile', d: 'Selfie verification and human review before any profile goes live. Zero fake accounts, zero exceptions.' },
-  { n: '02', t: 'Privacy-first', d: 'Your data is yours. Browse incognito, control who sees you, numbers never shared.' },
-  { n: '03', t: 'Family-oriented', d: 'Matching that respects family background, values, and the people who matter in the decision.' },
-  { n: '04', t: 'Hyperlocal focus', d: 'Built only for Chandigarh, Mohali and Panchkula. Partners within driving distance.' },
-  { n: '05', t: 'Transparent pricing', d: 'Clear plans, no hidden fees, no surprise renewals. Free to start.' },
-  { n: '06', t: 'Human-reviewed', d: 'A real safety team reviews profiles and reports — not just an algorithm.' },
+  { t: 'Verified profiles', d: 'The verified badge is earned with a live selfie matched by human review, never a file upload.' },
+  { t: 'Privacy-first', d: 'Your data is yours. Browse incognito, control who sees you, numbers never shared.' },
+  { t: 'Family-oriented', d: 'Matching that respects family background, values, and the people who matter in the decision.' },
+  { t: 'Hyperlocal focus', d: 'Built only for Chandigarh, Mohali and Panchkula. Partners within driving distance.' },
+  { t: 'Transparent pricing', d: 'Clear plans, no hidden fees, no surprise renewals. Free to start.' },
+  { t: 'Human-reviewed', d: 'A person, not an algorithm, reviews every verification selfie and every report.' },
 ];
 
 export default function AboutScreen() {
   const { c } = useTheme();
   const s = React.useMemo(() => makeS(c), [c]);
   return (
-    <LegalLayout title="About Us" subtitle="Our story · Tricity only · Since 2011">
+    <LegalLayout title="About us" subtitle="Chandigarh, Mohali and Panchkula">
       <Section>
         <Para>
           TricityMatch is a hyperlocal matrimonial platform built specifically for families in
-          Chandigarh, Mohali and Panchkula — where finding a life partner is meaningful, safe and
+          Chandigarh, Mohali and Panchkula, where finding a life partner is meaningful, safe and
           community-first. Matrimony built for families, not algorithms.
         </Para>
       </Section>
@@ -37,8 +44,8 @@ export default function AboutScreen() {
       <View style={s.statsGrid}>
         {STATS.map((st) => (
           <View key={st.label} style={s.statCard}>
-            <Text style={s.statValue}>{st.value}</Text>
-            <Text style={s.statLabel}>{st.label}</Text>
+            <Text variant="title2" color="primary">{st.value}</Text>
+            <Text variant="subhead" color="textSecondary" style={s.statLabel}>{st.label}</Text>
           </View>
         ))}
       </View>
@@ -46,12 +53,9 @@ export default function AboutScreen() {
       <Section heading="What we stand for">
         <Para>Six principles that shape every decision.</Para>
         {VALUES.map((v) => (
-          <View key={v.n} style={s.valueRow}>
-            <Text style={s.valueNum}>{v.n}</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={s.valueTitle}>{v.t}</Text>
-              <Text style={s.valueDesc}>{v.d}</Text>
-            </View>
+          <View key={v.t} style={s.valueRow}>
+            <Text variant="headline" color="textPrimary">{v.t}</Text>
+            <Text variant="subhead" color="textSecondary" style={s.valueDesc}>{v.d}</Text>
           </View>
         ))}
       </Section>
@@ -62,10 +66,7 @@ export default function AboutScreen() {
 const makeS = (c: ThemeColours) => StyleSheet.create({
   statsGrid:  { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.lg },
   statCard:   { flexBasis: '47%', flexGrow: 1, backgroundColor: c.surfaceCard, borderRadius: borderRadius.md, borderWidth: 1, borderColor: c.border, padding: spacing.md },
-  statValue:  { fontSize: typography.fontSize['2xl'], fontFamily: typography.fontFamily.bold, color: c.primary },
-  statLabel:  { fontSize: typography.fontSize.sm, color: c.textSecondary, marginTop: 2 },
-  valueRow:   { flexDirection: 'row', gap: spacing.md, marginTop: spacing.md },
-  valueNum:   { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.bold, color: c.primary, width: 28 },
-  valueTitle: { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
-  valueDesc:  { fontSize: typography.fontSize.sm, color: c.textSecondary, lineHeight: 20, marginTop: 2 },
+  statLabel:  { marginTop: 2 },
+  valueRow:   { marginTop: spacing.md },
+  valueDesc:  { marginTop: 2 },
 });

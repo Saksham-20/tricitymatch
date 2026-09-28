@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { borderRadius } from '@shared/constants/theme';
 import { PressableScale } from '../motion';
 import { useTheme } from '../../hooks/useTheme';
+import { tapSize } from '../../utils/elderTheme';
 
 interface IconButtonProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -13,11 +14,13 @@ interface IconButtonProps {
   /** Soft circular background behind the glyph. */
   filled?: boolean;
   accessibilityLabel: string;
+  /** A haptic belongs to a committed action (toggle, send), not to opening something. Off by default. */
+  haptic?: boolean;
   style?: StyleProp<ViewStyle>;
   testID?: string;
 }
 
-/** 44pt circular icon button with the standard scale-pop press. */
+/** 44pt (60pt in elder mode) circular icon button with the standard scale-pop press. */
 export default function IconButton({
   icon,
   onPress,
@@ -25,18 +28,20 @@ export default function IconButton({
   color,
   filled = false,
   accessibilityLabel,
+  haptic = false,
   style,
   testID,
 }: IconButtonProps) {
-  const { c } = useTheme();
+  const { c, elder } = useTheme();
+  const box = elder ? tapSize(true) : 44;
   return (
     <PressableScale
       onPress={onPress}
-      haptic
+      haptic={haptic}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       testID={testID}
-      style={[styles.btn, filled && { backgroundColor: c.surface2 }, style]}
+      style={[styles.btn, { width: box, height: box }, filled && { backgroundColor: c.surface2 }, style]}
     >
       <Ionicons name={icon} size={size} color={color ?? c.textPrimary} />
     </PressableScale>

@@ -1,18 +1,26 @@
 /**
  * Dashboard fill for the empty stretch below the match rails — two rotating
  * cards chosen by profile stage, never a stacked wall of upsells:
- *   - early profile (<60% or unverified): verification + invite + voice intro
- *   - established: membership (gold, founding-aware) + success story
- * Everything here reads data that already exists — no new backend.
+ *   - early profile (<60% or unverified): verification (once there is a photo to
+ *     verify against) + invite + voice intro
+ *   - established: membership (gold) + success story
+ * Everything here reads data that already exists, no new backend.
+ *
+ * The membership card never advertises the founding offer: the mobile app has
+ * no way to claim it (no claim screen; the web Subscription page owns
+ * `claimFounding`), so a "Founding member offer" card led to a screen that
+ * could not honour it. Restore the variant, gated on the server-decided
+ * `features.canClaimFounding`, once the claim exists here.
  */
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Share } from 'react-native';
+import { View, StyleSheet, Share, ActivityIndicator } from 'react-native';
+import Text from '../../components/ui/Text';
 import { useNavigation } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { type ThemeColours, spacing, borderRadius, type as t9 } from '@shared/constants/theme';
+import { type ThemeColours, spacing, borderRadius } from '@shared/constants/theme';
 import { PressableScale } from '../../components/motion';
 import SmartImage from '../../components/common/SmartImage';
 import { useTheme } from '../../hooks/useTheme';
@@ -41,9 +49,7 @@ export default function DiscoverCards() {
   // just to render.
   const inviteReward = useAuthStore((s) => s.user?.features?.inviteRewardUnlocks) ?? 0;
 
-  const completionPct = user?.Profile?.completionPercentage ?? 0;
   const isFree = (user?.subscriptionPlan ?? 'free') === 'free';
-  const foundingOpen = user?.features?.foundingOpen ?? false;
 
   const { data: verification } = useQuery({
     queryKey: queryKeys.verification,
@@ -55,6 +61,9 @@ export default function DiscoverCards() {
     queryFn: getMyProfile,
     staleTime: 5 * 60 * 1000,
   });
+  // The auth user carries the percentage from sign-in time (0 for a fresh signup);
+  // the profile query is recomputed by the server on every save.
+  const completionPct = myProfile?.completionPercentage ?? user?.Profile?.completionPercentage ?? 0;
   const established = completionPct >= 60;
   const { data: stories } = useQuery({
     queryKey: ['success-stories', 'public'],
@@ -63,8 +72,15 @@ export default function DiscoverCards() {
     enabled: established, // story card only renders for established profiles
   });
 
+  // `verification` is undefined while loading or after a failed request. Treating
+  // that as "not verified" flashed the verify card at verified members and then
+  // pulled it away, so the card waits for an answer.
   const verified = verification?.status === 'approved' || verification?.status === 'pending';
   const hasVoice = !!myProfile?.voiceIntroUrl;
+  // A verification selfie is matched against the member's profile photos, so the verify card
+  // must not compete with (or precede) the photo nudge on Home. Until the profile answers this
+  // reads false, which also keeps the card from flashing in and out while it loads.
+  const hasPhoto = !!(myProfile?.profilePhoto || (myProfile?.photos?.length ?? 0) > 0);
   const story = stories?.find((s) => s.quote) ?? null;
 
   const shareInvite = async () => {
@@ -73,7 +89,7 @@ export default function DiscoverCards() {
     try {
       const { url } = await getMyInvite();
       await Share.share({
-        message: `Looking for a match in the Tricity? Join me on TricityMatch — ${url}`,
+        message: `Looking for a match in the Tricity? Join me on TricityMatch: ${url}`,
       });
     } catch {
       showToast.error('Could not fetch your invite link', 'Try again in a moment.');
@@ -87,7 +103,7 @@ export default function DiscoverCards() {
     ? ['membership', 'story', 'verify', 'invite', 'voice']
     : ['verify', 'invite', 'voice'];
   const eligible = order.filter((k) => {
-    if (k === 'verify') return !verified;
+    if (k === 'verify') return !!verification && !verified && hasPhoto;
     if (k === 'voice') return !!myProfile && !hasVoice;
     if (k === 'membership') return isFree;
     if (k === 'story') return !!story;
@@ -96,66 +112,107 @@ export default function DiscoverCards() {
 
   if (eligible.length === 0) return null;
 
+  // Copy is resolved once per card so the accessibility label can say exactly
+  // what the eye reads (title, then the line under it).
+  const inviteSub =
+    inviteReward > 0
+      ? t('discover.inviteSubReward', 'You both get {{n}} contact unlocks when they join.', { n: inviteReward })
+      : t('discover.inviteSub', 'Every good match starts with someone you trust. Share your invite.');
+  const copy: Record<CardKey, { title: string; sub: string }> = {
+    verify: {
+      title: t('discover.verifyTitle', 'Get the verified badge'),
+      // New key on purpose: the locale files carry the old `discover.verifySub` value and a
+      // resource always beats the code default, so re-wording under that key changes nothing.
+      // The old line's second sentence ("earn far more trust") was an unquantified comparative
+      // with no data behind it; this states what the flow actually does.
+      sub: t('discover.verifyBody', 'A live selfie, reviewed by our team, adds a verified badge to your profile.'),
+    },
+    invite: { title: t('discover.inviteTitle', 'Know someone searching?'), sub: inviteSub },
+    voice: {
+      title: t('discover.voiceTitle', 'Add a voice intro'),
+      sub: t('discover.voiceSub', 'Families remember a voice. Say hello in 30 seconds.'),
+    },
+    membership: {
+      title: t('discover.premiumTitle', 'See who liked you'),
+      // New key on purpose (same reason as verifyBody): the locale files still carry the old
+      // `discover.premiumSub` value, and a resource beats the code default. That line said
+      // "opens chat", which stopped being true once free members could reply after a premium
+      // member writes first; this states what Premium actually adds.
+      sub: t('discover.premiumBody', 'Premium shows who liked you, lets you write first and unlocks phone numbers.'),
+    },
+    story: { title: story?.coupleNames ?? '', sub: story?.quote ? `“${story.quote}”` : '' },
+  };
+  const label = (key: CardKey) => `${copy[key].title}. ${copy[key].sub}`;
+  const rowPress = { pressRetentionOffset: { top: 10, bottom: 10, left: 10, right: 10 } } as const;
+
   return (
     <View style={styles.wrap} testID="discover-cards">
       {eligible.map((key) => {
+        // None of these taps commits anything (they open a screen or the share
+        // sheet), so none fires a haptic: a light tick on a navigation tap is noise.
         switch (key) {
           case 'verify':
             return (
-              <PressableScale key={key} haptic style={styles.card} onPress={() => navigation.navigate('Verification')} testID="card-verify">
+              <PressableScale key={key} style={styles.card} onPress={() => navigation.navigate('Verification')} testID="card-verify" accessibilityRole="button" accessibilityLabel={label(key)} {...rowPress}>
                 <View style={[styles.iconWrap, { backgroundColor: c.successBg }]}>
-                  <Ionicons name="shield-checkmark-outline" size={20} color={c.success} />
+                  <Ionicons name="shield-checkmark-outline" size={20} color={c.successAccent} />
                 </View>
                 <View style={styles.body}>
-                  <Text style={styles.title}>{t('discover.verifyTitle', 'Get the verified badge')}</Text>
-                  <Text style={styles.sub}>{t('discover.verifySub', 'A 30-second selfie — verified profiles earn far more trust.')}</Text>
+                  <Text variant="headline" color="textPrimary" style={styles.title}>{copy.verify.title}</Text>
+                  <Text variant="footnote" color="textMuted" style={styles.sub}>{copy.verify.sub}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
               </PressableScale>
             );
           case 'invite':
             return (
-              <PressableScale key={key} haptic style={styles.card} onPress={shareInvite} testID="card-invite">
+              <PressableScale
+                key={key}
+                style={styles.card}
+                onPress={shareInvite}
+                disabled={inviteBusy}
+                testID="card-invite"
+                accessibilityRole="button"
+                accessibilityLabel={label(key)}
+                accessibilityState={{ disabled: inviteBusy, busy: inviteBusy }}
+                {...rowPress}
+              >
                 <View style={[styles.iconWrap, { backgroundColor: c.accentSoft }]}>
                   <Ionicons name="people-outline" size={20} color={c.accent} />
                 </View>
                 <View style={styles.body}>
-                  <Text style={styles.title}>{t('discover.inviteTitle', 'Know someone searching?')}</Text>
-                  <Text style={styles.sub}>
-                    {inviteReward > 0
-                      ? t('discover.inviteSubReward', `You both get ${inviteReward} contact unlocks when they join.`)
-                      : t('discover.inviteSub', 'Every good match starts with someone you trust. Share your invite.')}
-                  </Text>
+                  <Text variant="headline" color="textPrimary" style={styles.title}>{copy.invite.title}</Text>
+                  <Text variant="footnote" color="textMuted" style={styles.sub}>{copy.invite.sub}</Text>
                 </View>
-                <Ionicons name={inviteBusy ? 'hourglass-outline' : 'share-social-outline'} size={18} color={c.textMuted} />
+                {inviteBusy ? (
+                  <ActivityIndicator size="small" color={c.textMuted} />
+                ) : (
+                  <Ionicons name="share-social-outline" size={18} color={c.textMuted} />
+                )}
               </PressableScale>
             );
           case 'voice':
             return (
-              <PressableScale key={key} haptic style={styles.card} onPress={() => navigation.navigate('MainTabs', { screen: 'Profile' } as never)} testID="card-voice">
+              <PressableScale key={key} style={styles.card} onPress={() => navigation.navigate('MainTabs', { screen: 'Profile' } as never)} testID="card-voice" accessibilityRole="button" accessibilityLabel={label(key)} {...rowPress}>
                 <View style={[styles.iconWrap, { backgroundColor: c.infoBg }]}>
                   <Ionicons name="mic-outline" size={20} color={c.info} />
                 </View>
                 <View style={styles.body}>
-                  <Text style={styles.title}>{t('discover.voiceTitle', 'Add a voice intro')}</Text>
-                  <Text style={styles.sub}>{t('discover.voiceSub', 'Families remember a voice — say hello in 30 seconds.')}</Text>
+                  <Text variant="headline" color="textPrimary" style={styles.title}>{copy.voice.title}</Text>
+                  <Text variant="footnote" color="textMuted" style={styles.sub}>{copy.voice.sub}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
               </PressableScale>
             );
           case 'membership':
             return (
-              <PressableScale key={key} haptic onPress={() => navigation.navigate('Subscription')} testID="card-membership">
+              <PressableScale key={key} onPress={() => navigation.navigate('Subscription')} testID="card-membership" accessibilityRole="button" accessibilityLabel={label(key)} {...rowPress}>
                 <LinearGradient colors={[c.g400, c.g600]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.goldCard}>
                   <View style={styles.body}>
-                    <Text style={[styles.title, { color: c.goldText }]}>
-                      {foundingOpen ? t('discover.foundingTitle', 'Founding member offer') : t('discover.premiumTitle', 'See who liked you')}
-                    </Text>
-                    <Text style={[styles.sub, { color: c.goldText, opacity: 0.85 }]}>
-                      {foundingOpen
-                        ? t('discover.foundingSub', 'Early members get premium at the founding price — limited window.')
-                        : t('discover.premiumSub', 'Premium opens chat, likes and contact details.')}
-                    </Text>
+                    <Text variant="headline" style={[styles.title, { color: c.goldText }]}>{copy.membership.title}</Text>
+                    {/* Full-strength goldText: at 0.85 opacity the sub line dipped under
+                        4.5:1 on the darker end of the gradient. */}
+                    <Text variant="footnote" style={[styles.sub, { color: c.goldText }]}>{copy.membership.sub}</Text>
                   </View>
                   <Ionicons name="sparkles" size={20} color={c.goldText} />
                 </LinearGradient>
@@ -163,7 +220,7 @@ export default function DiscoverCards() {
             );
           case 'story':
             return story ? (
-              <PressableScale key={key} haptic style={styles.card} onPress={() => navigation.navigate('SuccessStoriesBrowse')} testID="card-story">
+              <PressableScale key={key} style={styles.card} onPress={() => navigation.navigate('SuccessStoriesBrowse')} testID="card-story" accessibilityRole="button" accessibilityLabel={label(key)} {...rowPress}>
                 {story.photoUrl ? (
                   <SmartImage uri={story.photoUrl} name={story.coupleNames} style={styles.storyPhoto} />
                 ) : (
@@ -172,8 +229,8 @@ export default function DiscoverCards() {
                   </View>
                 )}
                 <View style={styles.body}>
-                  <Text style={styles.title} numberOfLines={1}>{story.coupleNames}</Text>
-                  <Text style={styles.sub} numberOfLines={2}>“{story.quote}”</Text>
+                  <Text variant="headline" color="textPrimary" style={styles.title} numberOfLines={1}>{story.coupleNames}</Text>
+                  <Text variant="footnote" color="textMuted" style={styles.sub} numberOfLines={2}>{copy.story.sub}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
               </PressableScale>
@@ -211,6 +268,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
   },
   storyPhoto: { width: 44, height: 44, borderRadius: 12 },
   body: { flex: 1 },
-  title: { ...t9.headline, color: c.textPrimary },
-  sub: { ...t9.footnote, color: c.textMuted, marginTop: 2 },
+  title: {},
+  sub: { marginTop: 2 },
 });

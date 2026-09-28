@@ -11,10 +11,22 @@
  * (`navigate('Main', { screen })`). Screens themselves never navigate — they
  * call saveAndNext/goBack/exit.
  */
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation } from 'react-i18next';
 import { updateMyProfile, getMyProfile } from '../../api/profile';
+import { refreshProfileCaches } from '../../utils/profileCache';
+import { showToast } from '../../utils/toast';
+import { haptics } from '../../utils/haptics';
 import type { Profile, Gender, MaritalStatus, ManglikStatus, Diet, SmokingDrinking, FamilyType } from '../../types';
+
+/**
+ * Profile columns PUT /profile/me accepts (backend PROFILE_EDITABLE_FIELDS) that
+ * the shared `Profile` type does not model yet. Step6 needs them: without these
+ * the NRI declaration was collected and then dropped on the floor.
+ */
+type ProfileNriExtras = { residenceCountry?: string | null; residenceStatus?: string | null };
+export type JourneyProfilePatch = Partial<Profile> & ProfileNriExtras;
 
 type Exercise = 'daily' | 'weekly' | 'rarely' | 'never';
 type FamilyValues = 'orthodox' | 'traditional' | 'moderate' | 'liberal';
@@ -100,14 +112,11 @@ export interface OnboardingData {
   manglikStatus: ManglikStatus | null;
   birthTime: string;
   placeOfBirth: string;
-  kundliUrl: string;
   // Step 4
   education: string;
   degree: string;
-  institution: string;
   // Step 5
   profession: string;
-  employer: string;
   income: number | null;
   // Step 6
   city: string;
@@ -163,12 +172,9 @@ const DEFAULT_DATA: OnboardingData = {
   manglikStatus: null,
   birthTime: '',
   placeOfBirth: '',
-  kundliUrl: '',
   education: '',
   degree: '',
-  institution: '',
   profession: '',
-  employer: '',
   income: null,
   city: '',
   state: '',
@@ -208,8 +214,24 @@ interface OnboardingContextValue {
   stepCount: number;
   isSaving: boolean;
   update: (patch: Partial<OnboardingData>) => void;
-  saveAndNext: (patch: Partial<OnboardingData>, profilePatch: Partial<Profile>) => Promise<void>;
+  saveAndNext: (patch: Partial<OnboardingData>, profilePatch: JourneyProfilePatch) => Promise<void>;
+  /** The last save failed and the member is still on the same step. Cleared on the next attempt. */
+  saveFailed: boolean;
+  /**
+   * A screen that renders `saveFailed` inline (OnboardingLayout) registers here
+   * so the provider does not ALSO toast the same failure. Screens with their own
+   * chrome that never register still get the toast, so a failed save is never silent.
+   */
+  registerInlineSaveError: () => () => void;
   goBack: () => void;
+  /**
+   * Re-align the provider with the journey screen that is actually on screen.
+   * The step lives here, but navigation can move without us (Android's system
+   * back pops the native stack and never calls goBack), so each journey screen
+   * reports its own index whenever it gains focus. No-op when already aligned;
+   * a real change also clears a stale save-failed banner.
+   */
+  syncStep: (index: number) => void;
   /**
    * Enter the journey at the first incomplete step. `auto` = the HomeScreen
    * auto-prompt: it declines to open when every required field is already
@@ -242,100 +264,156 @@ interface ProviderProps {
 }
 
 export function OnboardingProvider({ children, navigateToStep }: ProviderProps) {
+  const { t } = useTranslation();
   const [data, setData] = useState<OnboardingData>(DEFAULT_DATA);
   const [currentStep, setCurrentStep] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
+
+  // The step lives in a ref as well as state: navigation is a side effect and
+  // must never run inside a setState updater (updaters are replayed by StrictMode
+  // and concurrent rendering, which would push the same route twice).
+  const stepRef = useRef(0);
+  const inFlight = useRef(false);
+  const inlineHosts = useRef(0);
+
+  // Every step change goes through here, and a failed save belongs to the step
+  // it happened on: moving (Skip, back, resume) must not carry its banner along.
+  const gotoStep = useCallback((index: number) => {
+    stepRef.current = index;
+    setCurrentStep(index);
+    setSaveFailed(false);
+  }, []);
+
+  const syncStep = useCallback((index: number) => {
+    if (index < 0 || index >= JOURNEY_STEPS.length) return;
+    if (stepRef.current === index) return;
+    gotoStep(index);
+  }, [gotoStep]);
 
   const update = useCallback((patch: Partial<OnboardingData>) => {
     setData((prev) => ({ ...prev, ...patch }));
   }, []);
 
+  const registerInlineSaveError = useCallback(() => {
+    inlineHosts.current += 1;
+    return () => { inlineHosts.current = Math.max(0, inlineHosts.current - 1); };
+  }, []);
+
   const start = useCallback(async ({ auto = false }: { auto?: boolean } = {}): Promise<boolean> => {
-    let profile: Partial<Profile> = {};
+    let profile: JourneyProfilePatch | null = null;
     try {
       profile = await getMyProfile();
     } catch {
-      // Offline / transient failure: an explicit tap still opens at Step2;
-      // the auto-prompt stays quiet rather than opening on stale knowledge.
-      if (auto) return false;
+      // Never open a blank journey on a failed load. Every step saves its whole
+      // answer object, optional fields included ('' / null), so a member who
+      // skipped one would overwrite what they had saved before once the network
+      // came back. Stay where they are: the auto-prompt says nothing, and an
+      // explicit tap says why, and tapping the same entry point again is the retry.
+      if (!auto) showToast.error(t('onboarding.loadFailedTitle', "Couldn't load your saved answers"), t('onboarding.loadFailedBody', 'Check your connection, then tap again.'));
+      return false;
     }
-    setData((prev) => ({
-      ...prev,
-      firstName: profile.firstName || '',
-      lastName: profile.lastName || '',
-      dateOfBirth: profile.dateOfBirth || '',
-      gender: profile.gender ?? null,
-      height: profile.height ?? null,
-      weight: profile.weight ?? null,
-      religion: profile.religion || '',
-      caste: profile.caste || '',
-      subCaste: profile.subCaste || '',
-      gotra: profile.gotra || '',
-      motherTongue: profile.motherTongue || '',
-      manglikStatus: profile.manglikStatus ?? null,
-      birthTime: profile.birthTime || '',
-      placeOfBirth: profile.placeOfBirth || '',
-      education: profile.education || '',
-      degree: profile.degree || '',
-      profession: profile.profession || '',
-      income: profile.income ?? null,
-      city: profile.city || '',
-      state: profile.state || '',
-      maritalStatus: profile.maritalStatus ?? null,
-      numberOfChildren: profile.numberOfChildren ?? null,
-      bio: profile.bio || '',
-      photos: profile.photos ?? [],
-    }));
+    if (profile) {
+      const p = profile;
+      setData((prev) => ({
+        ...prev,
+        firstName: p.firstName || '',
+        lastName: p.lastName || '',
+        dateOfBirth: p.dateOfBirth || '',
+        gender: p.gender ?? null,
+        height: p.height ?? null,
+        weight: p.weight ?? null,
+        religion: p.religion || '',
+        caste: p.caste || '',
+        subCaste: p.subCaste || '',
+        gotra: p.gotra || '',
+        motherTongue: p.motherTongue || '',
+        manglikStatus: p.manglikStatus ?? null,
+        birthTime: p.birthTime || '',
+        placeOfBirth: p.placeOfBirth || '',
+        education: p.education || '',
+        degree: p.degree || '',
+        profession: p.profession || '',
+        income: p.income ?? null,
+        city: p.city || '',
+        state: p.state || '',
+        isNRI: !!p.isNri,
+        country: p.residenceCountry || '',
+        visaStatus: p.residenceStatus || '',
+        maritalStatus: p.maritalStatus ?? null,
+        numberOfChildren: p.numberOfChildren ?? null,
+        bio: p.bio || '',
+        photos: p.photos ?? [],
+      }));
+    }
 
-    const resumeName = firstIncompleteStep(profile);
+    const resumeName = firstIncompleteStep(profile ?? {});
     if (auto && resumeName === 'JourneyFinale') return false; // nothing left to collect
     const index = JOURNEY_STEPS.indexOf(resumeName);
-    setCurrentStep(index);
+    gotoStep(index);
     navigateToStep(resumeName);
     return true;
-  }, [navigateToStep]);
+  }, [navigateToStep, gotoStep, t]);
 
   const saveAndNext = useCallback(
-    async (patch: Partial<OnboardingData>, profilePatch: Partial<Profile>) => {
+    async (patch: Partial<OnboardingData>, profilePatch: JourneyProfilePatch) => {
+      // A second Continue while a save is in flight would submit twice.
+      if (inFlight.current) return;
       setData((prev) => ({ ...prev, ...patch }));
+      // Every attempt starts clean, including a Skip that sends no patch: a
+      // banner from an earlier failed save must not follow the member forward.
+      setSaveFailed(false);
       if (Object.keys(profilePatch).length > 0) {
+        inFlight.current = true;
         setIsSaving(true);
         try {
           await updateMyProfile(profilePatch);
+          // Home's completion ring and Profile / Edit Profile read the profile
+          // from two caches; the server recomputes the percentage on every save.
+          refreshProfileCaches();
         } catch {
-          // Non-blocking — user advances regardless; backend syncs on next open
+          // Nothing re-sends a failed patch, so advancing would silently drop
+          // this step's answers. Stay on the step; Continue is the retry.
+          setSaveFailed(true);
+          if (inlineHosts.current > 0) {
+            haptics.warning();
+          } else {
+            showToast.error(t('onboarding.saveFailedTitle', "Couldn't save your answers"), t('onboarding.saveFailedToast', 'Check your connection and try again.'));
+          }
+          return;
         } finally {
+          inFlight.current = false;
           setIsSaving(false);
         }
       }
-      setCurrentStep((step) => {
-        const next = step + 1;
-        if (next < JOURNEY_STEPS.length) {
-          navigateToStep(JOURNEY_STEPS[next]);
-          return next;
-        }
-        return step;
-      });
+      const next = stepRef.current + 1;
+      if (next < JOURNEY_STEPS.length) {
+        gotoStep(next);
+        navigateToStep(JOURNEY_STEPS[next]);
+      }
     },
-    [navigateToStep],
+    [navigateToStep, gotoStep, t],
   );
 
   const goBack = useCallback(() => {
-    setCurrentStep((step) => {
-      if (step <= 0) return step;
-      navigateToStep(JOURNEY_STEPS[step - 1]);
-      return step - 1;
-    });
-  }, [navigateToStep]);
+    const step = stepRef.current;
+    if (step <= 0) return;
+    gotoStep(step - 1);
+    navigateToStep(JOURNEY_STEPS[step - 1]);
+  }, [navigateToStep, gotoStep]);
 
   const exit = useCallback(() => {
     AsyncStorage.setItem(JOURNEY_PROMPTED_AT_KEY, String(Date.now())).catch(() => {});
+    setSaveFailed(false);
     navigateToStep('MainTabs');
   }, [navigateToStep]);
 
   return (
     <OnboardingContext.Provider
-      value={{ data, currentStep, stepCount: JOURNEY_STEPS.length, isSaving, update, saveAndNext, goBack, start, exit }}
+      value={{
+        data, currentStep, stepCount: JOURNEY_STEPS.length, isSaving, saveFailed,
+        update, saveAndNext, goBack, syncStep, start, exit, registerInlineSaveError,
+      }}
     >
       {children}
     </OnboardingContext.Provider>

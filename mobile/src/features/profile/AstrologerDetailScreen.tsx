@@ -1,18 +1,68 @@
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AccessibilityInfo, Linking, View, StyleSheet, ScrollView } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import { ListSkeleton } from '../../components/ui/skeletons';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
-import { getAstrologer, bookAstrologer } from '../../api/profile';
+import { SkeletonBlock } from '../../components/ui/Skeleton';
+import EmptyState from '../../components/ui/EmptyState';
+import Avatar from '../../components/ui/Avatar';
+import Button from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
+import ScreenHeader from '../../components/ui/ScreenHeader';
+import SectionHeader from '../../components/ui/SectionHeader';
+import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import Text from '../../components/ui/Text';
+import Screen from '../../components/layout/Screen';
+import { showToast } from '../../utils/toast';
+import { tapSize } from '../../utils/elderTheme';
+import { getAstrologer } from '../../api/profile';
 import type { MainStackParamList } from '../../navigation/types';
 
 type Route = RouteProp<MainStackParamList, 'AstrologerDetail'>;
 
-const DURATIONS = [15, 30, 45, 60];
+/**
+ * Booking and payment live on the website. The app can create a booking, but a
+ * booking comes back as an UNPAID Razorpay order and this build has no checkout
+ * for it, so booking here could only ever end in "not confirmed" and leave an
+ * abandoned order behind (the endpoint is also rate-limited to 10 an hour). The
+ * website page takes a date and time, opens Razorpay and confirms the payment, so
+ * that is where the member is sent.
+ */
+const WEB_ASTROLOGERS_URL = 'https://tricitymatch.com/astrologers';
+
+/** Mirrors the loaded layout: centered profile card, specialities, price rows. */
+function AstrologerDetailSkeleton() {
+  const { c } = useTheme();
+  const s = React.useMemo(() => makeS(c), [c]);
+  return (
+    <View style={s.scroll} testID="AstrologerDetailScreen-skeleton">
+      <View style={s.profileCard}>
+        <SkeletonBlock width={76} height={76} radius={38} style={{ marginBottom: spacing.sm }} />
+        <SkeletonBlock width={160} height={20} />
+        <SkeletonBlock width={200} height={14} />
+        <SkeletonBlock width={120} height={14} />
+        <View style={s.chips}>
+          {[64, 72, 56].map((w) => <SkeletonBlock key={w} width={w} height={24} radius={borderRadius.full} />)}
+        </View>
+      </View>
+      <View style={s.section}>
+        <SkeletonBlock width={110} height={18} />
+        <View style={s.chips}>
+          {[88, 76, 96].map((w) => <SkeletonBlock key={w} width={w} height={24} radius={borderRadius.full} />)}
+        </View>
+      </View>
+      <View style={s.section}>
+        <SkeletonBlock width={170} height={18} />
+        <View style={s.priceList}>
+          {[0, 1, 2, 3].map((i) => (
+            <SkeletonBlock key={i} width="100%" height={20} />
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+}
 
 /**
  * Everything here comes from `GET /astrologers/:id`.
@@ -23,100 +73,123 @@ const DURATIONS = [15, 30, 45, 60];
  * fetched, all of it rendered as though it described the practitioner whose
  * name was in the header.
  *
- * It also never called the API, and a stale in-code comment claimed the
- * astrologer routes "are not yet implemented". They are: this screen now reads
- * the real record and books against `POST /astrologers/book`.
- *
- * Booking returns a Razorpay order, so completing payment needs Razorpay
- * configured; until then the booking is created and left pending, and we say so
- * rather than reporting a confirmation that has not happened.
+ * It then read the real record and booked against `POST /astrologers/book`, but
+ * that call returns an unpaid Razorpay order the app cannot pay, so every booking
+ * ended in an error toast and an orphaned order. It now shows the practitioner
+ * and their prices and sends the member to the website to book (see
+ * WEB_ASTROLOGERS_URL). When the app can take the payment itself, booking comes
+ * back here with a checkout step.
  */
 export default function AstrologerDetailScreen() {
-  const { c } = useTheme();
+  const { c, elder } = useTheme();
   const s = React.useMemo(() => makeS(c), [c]);
-  const insets = useSafeAreaInsets();
   const nav = useNavigation();
   const route = useRoute<Route>();
   const { astrologerId, astrologerName } = route.params;
 
-  const [selectedDuration, setSelectedDuration] = useState(30);
-  const [booking, setBooking] = useState(false);
-
-  const { data: astrologer, isLoading, isError, refetch } = useQuery({
+  const { data: astrologer, isLoading, error, refetch } = useQuery({
     queryKey: ['astrologer', astrologerId],
     queryFn: () => getAstrologer(astrologerId),
     staleTime: 5 * 60 * 1000,
+    // A 404 is "no longer listed" and retrying never changes it: skip the
+    // default two backoff retries so the answer shows at once instead of after
+    // ~3s of skeleton. Anything else keeps the normal retry.
+    retry: (failureCount, err) =>
+      (err as { response?: { status?: number } } | null)?.response?.status !== 404 && failureCount < 2,
   });
+  // A 404 is "no longer listed", which retrying will never fix.
+  const notFound = (error as { response?: { status?: number } } | null)?.response?.status === 404;
 
   const pricePerMin = astrologer?.pricePerMin ?? 0;
-  const totalAmount = pricePerMin * selectedDuration;
+  const hasRating = (astrologer?.reviewCount ?? 0) > 0;
 
-  const handleBook = async () => {
-    setBooking(true);
-    try {
-      // Earliest sensible slot: the next hour. There is no availability endpoint,
-      // so we do not present invented time slots.
-      const scheduledAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
-      const result = await bookAstrologer({ astrologerId, scheduledAt, durationMin: selectedDuration });
-      Alert.alert(
-        'Booking requested',
-        result.status === 'pending_payment'
-          ? `Your ${selectedDuration}-minute consultation with ${result.astrologerName} is reserved and awaiting payment. We'll email you the payment link and confirmation.`
-          : `Your consultation with ${result.astrologerName} is confirmed.`,
-        [{ text: 'OK', onPress: () => nav.goBack() }],
-      );
-    } catch {
-      Alert.alert('Booking failed', 'We could not create that booking. Please try again.');
-    } finally {
-      setBooking(false);
-    }
+  // The load failing appears without a tap (the skeleton is replaced), so it is
+  // announced; a screen-reader member would otherwise wait on a spinner that has
+  // already given up.
+  const loadProblem = isLoading || astrologer
+    ? null
+    : notFound
+    ? "This astrologer isn't available."
+    : "Couldn't load astrologer details. Check your connection and try again.";
+  useEffect(() => {
+    if (loadProblem) AccessibilityInfo.announceForAccessibility(loadProblem);
+  }, [loadProblem]);
+
+  const openWebsite = () => {
+    Linking.openURL(`${WEB_ASTROLOGERS_URL}/${encodeURIComponent(astrologerId)}`).catch(() => {
+      const title = 'Could not open browser';
+      const body = 'Visit tricitymatch.com/astrologers to book.';
+      showToast.error(title, body);
+      // a toast is not announced to screen readers (toastConfig has no live region)
+      AccessibilityInfo.announceForAccessibility(`${title}. ${body}`);
+    });
   };
 
   return (
-    <View style={[s.container, { paddingTop: insets.top }]}>
-      <View style={s.header}>
-        <TouchableOpacity onPress={() => nav.goBack()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
-        </TouchableOpacity>
-        <Text style={s.headerTitle} numberOfLines={1}>{astrologer?.name ?? astrologerName}</Text>
-        <View style={{ width: 24 }} />
-      </View>
+    <Screen edges={['top', 'bottom']}>
+      <ScreenHeader title={astrologer?.name ?? astrologerName} testID="AstrologerDetailScreen-header" />
 
       {isLoading ? (
-        <ListSkeleton rows={5} />
-      ) : isError || !astrologer ? (
-        <View style={s.state}>
-          <Ionicons name="cloud-offline-outline" size={44} color={c.textMuted} />
-          <Text style={s.stateText}>Could not load this astrologer.</Text>
-          <TouchableOpacity onPress={() => refetch()} style={s.retryBtn}>
-            <Text style={s.retryText}>Try again</Text>
-          </TouchableOpacity>
+        <AstrologerDetailSkeleton />
+      ) : !astrologer ? (
+        // Nothing to show (failed fetch, or a fetch paused offline): retryable error.
+        // A failed background refetch with cached data falls through to the content.
+        <View style={s.errorBody}>
+          {notFound ? (
+            <EmptyState
+              icon="moon-outline"
+              title="This astrologer isn't available"
+              description="They may no longer be listed."
+              actionLabel="Go back"
+              onAction={() => nav.goBack()}
+              testID="AstrologerDetailScreen-notfound"
+            />
+          ) : (
+            <EmptyState
+              variant="error"
+              icon="cloud-offline-outline"
+              title="Couldn't load astrologer details"
+              description="Check your connection and try again."
+              actionLabel="Try again"
+              onAction={() => refetch()}
+              testID="AstrologerDetailScreen-error"
+            />
+          )}
         </View>
       ) : (
         <>
           <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
             <View style={s.profileCard}>
-              <View style={s.avatarWrap}>
-                <Text style={s.avatarText}>{astrologer.name.charAt(0)}</Text>
-              </View>
-              <Text style={s.name}>{astrologer.name}</Text>
-              <Text style={s.meta}>
-                Vedic Astrologer{astrologer.experience ? ` · ${astrologer.experience} yrs experience` : ''}
+              <Avatar uri={astrologer.avatarUrl} name={astrologer.name} size={76} online={astrologer.isOnline} style={s.avatar} />
+              <Text variant="title3" color="textPrimary">{astrologer.name}</Text>
+              <Text variant="footnote" color="textSecondary">
+                Astrologer{astrologer.experience ? ` · ${astrologer.experience} yrs experience` : ''}
               </Text>
-              {astrologer.reviewCount > 0 && (
+              {hasRating && (
                 <View style={s.ratingRow}>
-                  <Ionicons name="star" size={14} color={c.secondary} />
-                  <Text style={s.ratingText}>
-                    {astrologer.rating} ({astrologer.reviewCount} reviews)
+                  {/* neutral: a rating is a score, and gold is the premium signal */}
+                  <Ionicons
+                    name="star"
+                    size={14}
+                    color={c.textSecondary}
+                    accessibilityElementsHidden
+                    importantForAccessibility="no-hide-descendants"
+                  />
+                  <Text variant="footnote" color="textSecondary">
+                    {Number(astrologer.rating).toFixed(1)} ({astrologer.reviewCount} {astrologer.reviewCount === 1 ? 'review' : 'reviews'})
                   </Text>
                 </View>
               )}
+              {/* Availability in words: the dot on the photo is colour-only. */}
+              {astrologer.isOnline ? (
+                <Badge label="Online now" tone="success" style={s.statusBadge} />
+              ) : astrologer.nextAvailable ? (
+                <Text variant="footnote" color="textSecondary">Next available: {astrologer.nextAvailable}</Text>
+              ) : null}
               {astrologer.languages?.length > 0 && (
                 <View style={s.chips}>
                   {astrologer.languages.map((lang) => (
-                    <View key={lang} style={s.chip}>
-                      <Text style={s.chipText}>{lang}</Text>
-                    </View>
+                    <Badge key={lang} label={lang} tone="neutral" />
                   ))}
                 </View>
               )}
@@ -124,119 +197,72 @@ export default function AstrologerDetailScreen() {
 
             {astrologer.speciality?.length > 0 && (
               <View style={s.section}>
-                <Text style={s.sectionTitle}>Specialities</Text>
+                <SectionHeader title="Specialities" />
                 <View style={s.chips}>
                   {astrologer.speciality.map((sp) => (
-                    <View key={sp} style={s.chip}>
-                      <Text style={s.chipText}>{sp}</Text>
-                    </View>
+                    <Badge key={sp} label={sp} tone="neutral" />
                   ))}
                 </View>
               </View>
             )}
 
-            <View style={s.section}>
-              <Text style={s.sectionTitle}>Consultation Duration</Text>
-              <View style={s.durationRow}>
-                {DURATIONS.map((d) => (
-                  <TouchableOpacity
-                    key={d}
-                    style={[s.durationBtn, selectedDuration === d && s.durationBtnActive]}
-                    onPress={() => setSelectedDuration(d)}
-                  >
-                    <Text style={[s.durationLabel, selectedDuration === d && s.durationLabelActive]}>
-                      {d} min
-                    </Text>
-                    <Text style={[s.durationPrice, selectedDuration === d && s.durationLabelActive]}>
-                      ₹{pricePerMin * d}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+            {pricePerMin > 0 ? (
+              <View style={s.section}>
+                <SectionHeader title="Consultation rate" />
+                {/* One stated rate, not a list of lengths: the website decides which
+                    durations it sells, and a second copy of that list here drifts. */}
+                <Text variant="subhead" color="textPrimary">
+                  ₹{pricePerMin.toLocaleString('en-IN')} per minute. You choose the length when you book on the website.
+                </Text>
               </View>
-              <Text style={s.slotNote}>
-                We’ll confirm an exact time with you by email after booking.
-              </Text>
-            </View>
+            ) : null}
           </ScrollView>
 
-          <View style={[s.bookBar, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
-            <View>
-              <Text style={s.bookPrice}>₹{totalAmount}</Text>
-              <Text style={s.bookDuration}>for {selectedDuration} min</Text>
-            </View>
-            <TouchableOpacity
-              style={[s.bookBtn, booking && s.bookBtnDisabled]}
-              onPress={handleBook}
-              disabled={booking}
-            >
-              <Text style={s.bookBtnText}>{booking ? 'Booking…' : 'Book Consultation'}</Text>
-            </TouchableOpacity>
+          {/* A sibling of the scroller rather than an overlay: an absolutely
+              positioned bar needs a guessed clearance constant on the content,
+              and the guess is wrong the moment the OS text size changes. The
+              bottom safe area is Screen's. */}
+          <View style={s.bookBar}>
+            <Text variant="footnote" color="textSecondary" style={s.bookNote}>
+              You choose a date and time, and pay, on tricitymatch.com.
+            </Text>
+            <Button
+              title="Book on our website"
+              icon="open-outline"
+              onPress={openWebsite}
+              // Button's own floor is 50pt; elder mode owes 60 (the gradient is centred in the taller box).
+              style={elder ? { minHeight: tapSize(true), justifyContent: 'center' } : undefined}
+              testID="book-btn"
+              accessibilityLabel="Book a consultation on our website"
+            />
           </View>
         </>
       )}
-    </View>
+    </Screen>
   );
 }
 
 const makeS = (c: ThemeColours) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: c.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: c.border,
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: typography.fontSize.lg,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.textPrimary,
-  },
-  scroll: { padding: spacing.md, paddingBottom: 120 },
+  scroll: { padding: spacing.md, paddingBottom: spacing.xl },
 
-  state: { alignItems: 'center', paddingTop: 64, gap: spacing.sm },
-  stateText: { fontSize: typography.fontSize.base, color: c.textMuted },
-  retryBtn: { marginTop: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: borderRadius.full, borderWidth: 1, borderColor: c.primary },
-  retryText: { color: c.primary, fontFamily: typography.fontFamily.semiBold },
+  errorBody: { flex: 1, justifyContent: 'center' },
 
   profileCard: { alignItems: 'center', paddingVertical: spacing.xl, gap: spacing.xs },
-  avatarWrap: {
-    width: 76, height: 76, borderRadius: 38, backgroundColor: c.primary,
-    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm,
-  },
-  avatarText: { fontSize: typography.fontSize['3xl'], fontFamily: typography.fontFamily.bold, color: '#fff' },
-  name: { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: c.textPrimary },
-  meta: { fontSize: typography.fontSize.sm, color: c.textSecondary },
+  avatar: { marginBottom: spacing.sm },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
-  ratingText: { fontSize: typography.fontSize.sm, color: c.textSecondary },
+  statusBadge: { alignSelf: 'center' },
 
   section: { marginTop: spacing.lg, gap: spacing.sm },
-  sectionTitle: { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, justifyContent: 'center' },
-  chip: { backgroundColor: c.surfaceCard, borderRadius: borderRadius.full, paddingHorizontal: spacing.sm, paddingVertical: 4, borderWidth: 1, borderColor: c.border },
-  chipText: { fontSize: typography.fontSize.xs, color: c.textSecondary },
 
-  durationRow: { flexDirection: 'row', gap: spacing.xs },
-  durationBtn: { flex: 1, alignItems: 'center', paddingVertical: spacing.sm, borderRadius: borderRadius.md, borderWidth: 1, borderColor: c.border },
-  durationBtnActive: { borderColor: c.primary, backgroundColor: c.primaryLight },
-  durationLabel: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
-  durationPrice: { fontSize: typography.fontSize.xs, color: c.textMuted },
-  durationLabelActive: { color: c.primary },
-  slotNote: { fontSize: typography.fontSize.xs, color: c.textMuted },
+  priceList: { gap: spacing.xs },
 
   bookBar: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    padding: spacing.md, backgroundColor: c.background,
-    borderTopWidth: 1, borderTopColor: c.border,
+    padding: spacing.md,
+    gap: spacing.sm,
+    backgroundColor: c.background,
+    borderTopWidth: 1,
+    borderTopColor: c.border,
   },
-  bookPrice: { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: c.textPrimary },
-  bookDuration: { fontSize: typography.fontSize.xs, color: c.textMuted },
-  bookBtn: { backgroundColor: c.primary, borderRadius: borderRadius.lg, paddingHorizontal: spacing.lg, paddingVertical: 14 },
-  bookBtnDisabled: { backgroundColor: c.textMuted },
-  bookBtnText: { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: '#fff' },
+  bookNote: { textAlign: 'center' },
 });

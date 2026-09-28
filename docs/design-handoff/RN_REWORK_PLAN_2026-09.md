@@ -124,9 +124,21 @@ the plans endpoint forced to fail. Not verified in source.
 
 ---
 
-## Phase 1 — Motion foundation: one source, correct tokens
+## Phase 1 — Motion foundation: one source, correct tokens — DONE 2026-09-18
 
 The highest-leverage phase. Nothing new is invented; §10.3 is enforced.
+
+All 8 sub-steps done. Notable judgment calls made during the sweep (each documented inline where applied):
+`PressableScale` under reduce-motion previously gave literally zero press feedback (scale locked, no opacity
+substitute) — fixed to match ruling 18's own rationale, since the ruling existed for exactly this gap.
+Several choreographed micro-sequences (typing-dot bounce, shimmer sweep, waveform pulse, splash loader pulse,
+error shake, match-celebration pulse ring) don't map to any named interaction duration — kept as local named
+constants with a comment rather than force-fit onto an unrelated bucket. Doctrine's own §10.3 claim that all
+4 sanctioned loops are "opacity-only" was independently re-verified and found wrong for 3 of 4 (typing dots =
+translateY, shimmer = translateX, waveform = scaleY) — corrected in the doctrine text itself rather than left
+standing; not redesigned here (scope discipline — Phase 5 territory). `MatchCelebration`'s spring mapped to
+`spring.momentum` (closest genuine-overshoot bucket) as RN's earned-celebration exception. Gates: mobile tsc
+0 errors · mobile jest 57/57 · root lint 0 errors, 187 baseline unchanged.
 
 **1.1 Rewrite `shared/src/constants/motion.ts`** to §10.3: `EASE_OUT`/`EASE_IN_OUT`/`EASE_DRAWER`, the full
 `duration` table, Apple two-parameter `spring` configs, `STAGGER_MS`. **Delete** `easing.in` (ease-in is
@@ -166,7 +178,59 @@ and then **off**, both platforms.
 
 ---
 
-## Phase 2 — Scale: the `Text` primitive and elder mode made real
+## Phase 2 — Scale: the `Text` primitive and elder mode made real — DONE 2026-09-18
+
+Built `components/ui/Text.tsx` (variant = the 11 `type` roles, curated 10-key `TextColor` union excluding
+gold, `maxScale`, elder bump = ×1.15625 on every role — the same ratio as the web's `html.elder` 16→18.5px,
+resolved internally via `useTheme()`). `utils/elderTheme.ts` slimmed to just `tapSize(elder)` (correctly
+sourced off `tapTarget`); its dead `fontSize()`/`elderFontSize` (which operated on the wrong, unused
+`typography.fontSize` scale) deleted. `ListRow.tsx` — the util's one importer — migrated onto the new
+primitive as the pilot.
+
+**2.3 adoption** ran as 9 parallel builder agents (91 files, every raw `<Text>` in `src/` except 3 documented
+exceptions — `SmartImage`'s avatar-initial glyph, `TickRing`'s `CompletionRing` percentage glyph, and
+`ProfileDetailScreen`'s `Animated.Text` floating header, none of which can safely route through a
+non-forwardRef primitive or a fixed 11-role scale). Verified myself afterward, not just trusted the builders'
+self-reports: grepped every file for leftover `fontSize:`/`fontFamily:`/`color:` that could silently override
+the primitive (the #1 failure mode flagged in the builder brief) — every hit traced to a TextInput field, an
+Ionicons glyph, dead/orphaned styling, or the 3 documented exceptions, zero real leaks. tsc 0, mobile jest
+57/57, lint 0 errors (187 warnings, back to baseline after cleaning up import stragglers the migration
+orphaned), slop-lint clean.
+
+**Flagged, not "fixed" — genuine judgment calls for a design pass, not bugs:** `Logo.tsx`'s wordmark now
+renders serif at lg/xl and sans at sm/md (no serif role exists below 22px); the admin console header and
+several legal/contact page titles moved from sans-bold to serif Playfair (no large sans-bold role exists in
+the canonical scale); `PhotoBlock.tsx`'s photo caption lost its deliberate `PlayfairDisplay-Italic` styling
+(no italic role exists); `HomeScreen`'s rail-card name moved from 17px to 22px over a 166×226 photo tile
+(mitigated by `numberOfLines={1}` + the card's own `overflow:'hidden'`, but worth a look at very large OS
+text sizes). None of these are doctrine violations — every one followed the "map to the nearest canonical
+role" rule — they're visible consequences of collapsing forked ad-hoc styling onto one real scale, which is
+what this phase was for.
+
+**2.4** — checked the plan's 4 named offenders directly: `Button.tsx`'s `sm` size and `FloatingTabBar`'s tab
+item already used `minHeight` (safe, no clip risk); `HomeScreen`'s rail card is a fixed-aspect photo tile with
+an absolutely-positioned, `numberOfLines`-guarded overlay (graceful degradation at extreme scale, not a hard
+clip); "every list row" was already covered by the `ListRow.tsx` fix above. Then swept the whole app for
+`height:` (not `minHeight`) literals wrapping actual text content: found and fixed 9 real risks — the
+`selectBtn`/`optionBtn`/`yesNoBtn` pattern repeated across 8 onboarding steps (Step2–7, 9, 11) plus Step12's
+`continueBtn`, all converted `height`→`minHeight`. Every other `height:` hit checked was a circular icon/avatar
+container (`width === height`, correctly fixed) or a TextInput field (out of scope).
+
+**2.5** — verified rather than rebuilt: the docked elder-mode tab bar already sources tap targets from
+`tapTarget.elder` (`MainNavigator.tsx:126`), stack + tab navigation animation is already off for elder mode,
+and the 2026-08-16 "Chat tab hides → CTA becomes a silent no-op" regression is still correctly guarded —
+`MatchesScreen` hides the chat CTAs entirely under elder mode (with an inline comment explaining why) rather
+than pointing them at a tab the navigator no longer mounts. No new code needed here.
+
+**Not verified — genuinely needs a device/simulator, noted rather than skipped:** a live walk at maximum OS
+text size in both themes/both platforms with elder mode on/off. Everything above was checked from source; the
+visual judgment calls flagged two paragraphs up, and any real clipping the `height:`→`minHeight` sweep might
+have missed, need actual rendering to confirm. Owed, same as other device-verification items in this
+campaign.
+
+---
+
+## Phase 2 (original plan text)
 
 **Blocked on owner decision 1.** The riskiest phase and the one with the largest diff; it goes second so
 everything after it is built on the right foundation.
@@ -195,105 +259,349 @@ elder mode on and off. This is the first time anybody will have looked at this a
 
 ---
 
-## Phase 3 — Primitive adoption: press, targets, states
+## Phase 3 — Primitive adoption: press, targets, states — DONE (3.1–3.7, 3.9), 3.8 PARTIAL
 
-The bulk of the campaign, and the reason the app currently looks like several products.
+The bulk of the campaign, and the reason the app currently looked like several products. 3.1–3.8 shipped as
+8 gated, individually-committed slices on `design/rework-2026-09`. Each ran `tsc`/`npm test`/root `lint`
+clean before commit; 3.4's 25-file migration additionally ran through a Workflow build+verify pipeline (25
+build agents + 25 fresh-verify agents, 0 failures) with 5 of those agents personally re-verified by the
+implementing session after a safety-classifier rate-limit.
 
-**3.1 `PressableScale` replaces `TouchableOpacity`** — 232 uses across 60 files. Each gains
-`accessibilityRole`, `accessibilityLabel`, `accessibilityState` where it has one, `hitSlop` where the visual
-is under 44pt, and `pressRetentionOffset`. `hitSlop` appears in 5 files today; `pressRetentionOffset` in zero.
+**3.1 `PressableScale` replaces `TouchableOpacity` — DONE.** 232 uses across 57 files (`d7e718a`). Each
+gained `accessibilityRole`, `accessibilityLabel`, `accessibilityState` where applicable, `hitSlop` under
+44pt, and universal `pressRetentionOffset`. Found and fixed one pre-existing mislabel along the way
+(`ReportsQueueScreen.tsx` Suspend button was announcing "Block user").
 
-**3.2 Small targets declare themselves.** Adopt the `tap44-hitslop` `testID` marker (§10.8), because
-`hitSlop` is invisible to the accessibility tree and to any sweep. Known offenders:
-`HomeScreen.tsx:348` (`bellBtn` padding 4 around a 24pt icon → 32pt), `HomeScreen.tsx:219` ("See all",
-text-only), `OnboardingLayout.tsx:169-171` (back / close / skip at 40×40), `Button.tsx:46` (`size="sm"` 38).
+**3.2 Small targets declare themselves — DONE (`28995cd`).** `tap44-hitslop` `testID` marker adopted on
+Home's notif-bell + "See all" link and onboarding's back/close/skip chrome (`OnboardingLayout.tsx` and
+`Step12Screen.tsx`'s duplicated copy). `Button.tsx`'s `size="sm"` grew 38pt → 44pt instead of relying on
+`hitSlop`, per the doctrine's own preferred remedy.
 
-**3.3 The `Input` primitive becomes the only text field.** 50 raw `<TextInput>` across 29 files. This is why
-label, helper and error treatment differ screen to screen.
+**3.3 The `Input` primitive becomes the only text field — DONE (`0e64ab8`).** 26 files migrated via a
+Workflow pipeline; `OtpInput.tsx` and `SmartContactInput.tsx` deliberately excluded (structurally don't fit
+a single-bordered-box shape — read in full before dispatch to avoid a forced-fit migration).
 
-**3.4 The `Screen` shell gets its first importer.** 28 files hand-roll `useSafeAreaInsets`.
+**3.4 The `Screen` shell gets its first importer — DONE (`a2467f1`).** 23 of 25 candidate screens migrated;
+`PhotoGalleryViewer.tsx` and `ProfileDetailScreen.tsx` correctly left alone (deliberate full-bleed layouts
+that render under the status bar and never hand-padded `insets.top` for their own shell — verified agents
+caught this rather than forcing an ill-fitting wrap).
 
-**3.5 `Card` declares elevation once.** `Card.tsx:21,33-36` has `borderWidth: 1` **and** `shadows.e2/e3` —
-the §3.4 ghost card, in the component every card inherits from. Same at `FloatingTabBar.tsx:110-127`.
-`Button.tsx:151,157` hardcodes light-mode shadows in both themes.
+**3.5 `Card` declares elevation once — DONE (`b15bf38`).** `Card.tsx` and `FloatingTabBar.tsx` each dropped
+their `borderWidth` (kept the shadow). `Button.tsx`'s primary/gold shadows now branch `isDark ? darkShadows
+: shadows` instead of hardcoding the light-mode table in both themes.
 
-**3.6 Eyebrows die.** Remove the `eyebrow` prop from `SectionHeader.tsx:9,28,57-62`, delete
-`shared/src/constants/theme.ts:120-121`'s `letterSpacing.eyebrow`, delete the 15 hand-rolled
-`textTransform: 'uppercase'` micro-labels.
+**3.6 Eyebrows die — DONE (`2b994a0`).** `eyebrow` prop removed from `SectionHeader.tsx` (zero consumers
+found on removal); `shared/src/constants/theme.ts`'s `letterSpacing.eyebrow` deleted (zero consumers across
+web+mobile); all 12 hand-rolled `textTransform: 'uppercase'` micro-labels stripped.
 
-**3.7 Gold gets its meaning back.** Gold currently marks a 75-89% compatibility score in five files
-(`HomeScreen.tsx:50`, `MatchesScreen.tsx:50`, `ProfileDetailScreen.tsx:56`, `TickRing.tsx:131`,
-`ProfileCard.tsx:52`) and a `SectionHeader` eyebrow. After this phase gold means premium and nothing else —
-the same fix the web made in its Phase 1.7.
+**3.7 Gold gets its meaning back — DONE (`74f9b8c`).** The 75–89% compat-score gold band in all 5 named
+files (Home/Matches/ProfileDetail rails, `TickRing`, `ProfileCard`) now reads `c.accent`; the low band moved
+off a hardcoded static `colours.p500` onto theme-reactive `c.textMuted` in the same edit (closes a
+light-palette-in-component violation on the same line).
 
-**3.8 `ListRow`, `Badge`, `Chip`, `IconButton` go from zero importers to being the only way those things are
-built.**
+**3.8 `ListRow`, `Badge`, `Chip`, `IconButton` — PARTIAL (`7ea338c`).** `ListRow` and `Chip` both used
+`TouchableOpacity` internally (the primitives themselves shipped the banned pattern) — fixed to
+`PressableScale`. `ListRow` extended with `sublabel`/`iconColor` to match the settings-row shape the app
+actually needs, then `SettingsScreen`'s local 25-usage `SettingRow` duplicate was deleted in favour of the
+shared primitive (its first real importer). `IconButton` already used `PressableScale`, no fix needed.
+**Not done:** a broader sweep for `Badge`/`Chip`/`IconButton` duplicates elsewhere in the app was censused
+and found low-yield — most candidate sites (composer send buttons, avatar circles, branded CTA pills) are
+semantically distinct branded elements, not settings-row/status-pill duplicates, and forcing them into the
+existing primitives' APIs without extending those APIs first would be a forced fit, not an adoption. Left
+open for a follow-up pass with its own scoping, rather than churned blind.
 
-**3.9 Every screen ships four states.** `EmptyState` has 4 uses in 3 files; `SkeletonBlock` has 43 uses in 5
-files. The screens with neither, from the census: `ChatThreadScreen` (14 `TouchableOpacity`, no empty, no
-error), `SubscriptionScreen` (no empty, no error — see 0.1), all 11 onboarding steps, `EditProfileScreen`,
-`SettingsScreen`, `NotificationsScreen`, the family-group screens.
+**3.9 Every screen ships four states — DONE in code 2026-09-21 (commit below), device pass owed.**
+Census first: loading skeletons and empty states mostly existed already; the systematic gap was the
+**error branch** (`isError` never destructured or never rendered on ~17 query screens, so a failed fetch
+rendered as zeros, a blank form, or a fake "empty" list). Correction to the earlier note: `NotificationsScreen`
+was *not* at zero coverage (it had a skeleton and an empty component; only error was missing).
+Shipped via a Workflow build+verify pipeline over 26 screens (17 with known gaps + 9 believed compliant, all
+26 needed at least an error/guard/copy fix), 3 of 26 failed their first fresh verify and were fixed by hand:
+`AstrologerDetailScreen` (generic list skeleton over a centered-profile layout: replaced with an in-file
+`SkeletonBlock` skeleton that matches), `MatchesScreen` (empty states had no action; shortlist "Try again"
+was a silent no-op offline; em dash in copy), `ChatThreadScreen` (new thread empty-state i18n keys collided
+with `ConversationsScreen`'s `chat.emptyTitle/emptyAction`: renamed `chat.threadEmpty*`).
+The pattern, now uniform: `EmptyState variant="error"` + "Couldn't load <noun>" / "Check your connection and
+try again." / "Try again" → `refetch()`, shown only when `isError && no cached data` so a failed background
+refetch never blanks a list; testID `<Screen>-error`; error branches placed after every hook (rules of hooks).
+Also fixed: `OnboardingContext.saveAndNext` swallowed save failures and advanced anyway ("backend syncs on next
+open" was false, nothing re-sends), silently dropping a step's answers; it now toasts and stays on the step,
+Continue is the retry (covers all 11 onboarding steps in one place).
+**Deliberately left / known follow-ups:** `DiscoverCards` (3 decorative queries, silent-omit by design);
+`MatchesScreen` `liked_me` for a client-side-premium/server-403 mismatch shows a retryable error that will
+keep 403ing (not distinguished from transient); no `onlineManager`/NetInfo wiring, so a first fetch paused
+offline shows the skeleton until reconnect (and the shortlist tab shows the empty card for ~3s of retries);
+`ChatThreadScreen`'s loading branch has no header/back button (pre-existing). Doctrine §10.10 wants every
+state *seen on a device*: not done, folded into the Phase 6 sim sweep.
 
-**Gates:** tsc, tests, lint, and each sub-step audited by a fresh agent against §10.11 before the next starts.
+**Phase 3 closing census (2026-09-21), DOCTRINE §10.11 greps over `mobile/src`:**
+`<TouchableOpacity` **0** (was 232) · `textTransform: 'uppercase'` **0** · raw `<TextInput` only in
+`OtpInput`, `SmartContactInput` and `SearchScreen`'s search bar (all three deliberate: none fits `Input`'s
+single-bordered-box shape). The census found things earlier phases had marked done or missed, fixed the same day:
+`Switch.tsx` **still imported core `Animated`** although Phase 1.5 was recorded as done (now Reanimated + token
+duration + reduce-motion; note `ui/Switch` has no consumers, `ListRow` and `PrivacySettingsScreen` use RN's
+native `Switch`); light `shadows.*` without an `isDark` branch in `SubscriptionScreen` plan cards, `toastConfig`,
+`GoldLock`; gold on non-premium things beyond the five named files (`VerificationScreen` trust ring/percent/
+"why verified" panel, both Shortlist buttons, the `PasswordStrength` meter's third segment) → `c.accent`/neutral;
+two literal ALL-CAPS eyebrow labels (`STATUS`, `WHY GET VERIFIED`) plus `TickRing`'s default `'COMPLETE'` that a
+`textTransform` grep cannot see, and leftover `letterSpacing` on them; `✓`/`✕` text glyphs used as icons
+(`PrivacySettingsScreen`, `Step10Screen`) → Ionicons. **Left open, not Phase 3:** `Alert.alert` is still **60
+uses in 19 files** (ruling 22: destructive confirmation only; errors/successes must be toast or inline) and no
+later phase currently owns triaging them, so it needs an explicit owner before Phase 5; `MatchCelebration`'s gold
+seal (celebration, not on the doctrine's score/meter/free-tier/text list, left as-is); plan-card border+shadow on
+`SubscriptionScreen` (selection border is a state indicator, left).
+
+**Gates:** tsc, tests, lint, and each sub-step audited by a fresh agent against §10.11 before the next
+starts — met for 3.1–3.8 via the Workflow verify stages (3.1, 3.3, 3.4) or direct gate runs (3.2, 3.5, 3.6,
+3.7, 3.8, 3.9). The Phase 3 closing full-doctrine audit (§10.11) and 3.8's deferred Badge/Chip/IconButton
+sweep remain (Phase 4 has since shipped, 2026-09-21).
 
 ---
 
-## Phase 4 — Chrome: sheets, lists, navigation
+## Phase 4 — Chrome: sheets, lists, navigation — DONE 2026-09-21
 
-Small, mechanical, high user-visible payoff.
+Small, mechanical, high user-visible payoff. Gates: mobile tsc 0, jest 57/57, root lint 0 errors with the
+mobile warning count unchanged at 182, slop-lint clean.
 
-**4.1 One sheet mechanism per job** (§10.7). Three coexist: gorhom (1 file), RN `<Modal animationType="slide">`
-(21 `<Modal>` across 18 files), and hand-rolled `TouchableOpacity` backdrops (`SearchScreen.tsx:97,140`).
-Retire the hand-rolled ones. **Verified while looking:** RN `<Modal>` renders in its own native window above
-the absolutely-positioned pill, so it does **not** need `uiStore.bottomSheetOpen`; only gorhom does
-(`FilterPanel.tsx:272-277` is the reference).
+**4.1 One sheet mechanism per job** (§10.7). Rule applied: draggable/detented → gorhom (`FilterPanel`),
+full-screen takeover → native-stack `presentation:'modal'`, single-select → the `PickerSheet` primitive.
+`SearchScreen`'s sort sheet and `SettingsScreen`'s language picker were the hand-rolled `TouchableOpacity`
+backdrops; both are now `PickerSheet`. **Deliberately kept:** the form/confirm RN `<Modal>` sheets (delete-account
+confirm, report/block, note entry etc.). They own text inputs; converting them to gorhom reintroduces the
+keyboard-avoidance and closed-backdrop-swallows-touches failure already hit once (2026-08-19, Search touch-dead),
+for no gain. RN `<Modal>` renders in its own native window above the pill so it needs no `bottomSheetOpen`.
 
-**4.2 Configure every long list.** 20 `FlatList`s, **one** `getItemLayout`, zero `windowSize` /
-`maxToRenderPerBatch` / `removeClippedSubviews` / `initialNumToRender`. On a mid-range Android this is the
-main jank source in a browse product, and no screenshot will ever show it.
+**4.2 Every long list configured.** New `mobile/src/constants/listPerf.ts`: `LIST_PERF` (initialNumToRender 8,
+maxToRenderPerBatch 6, windowSize 7, `removeClippedSubviews` Android-only) and `CHAT_LIST_PERF` (bigger window;
+no clipping on inverted lists, where it misplaces rows). Spread into 15 FlatLists: Conversations, ChatThread,
+FamilyGroupChat, FamilyGroups, VerificationQueue, ReportsQueue, Matches, Search, AstrologerMarketplace,
+GuardianView, GuardianCandidates, SuccessStoriesBrowse, Notifications, Step11, `PickerSheet`. **Not done, on
+purpose:** `getItemLayout` (rows are not truly fixed-height: wrapped names, optional badges, elder-mode type
+scale; a wrong layout is worse than none). Horizontal rails (few items) are exempt. Note for Phase 5 group C:
+`ChatThreadScreen` still has an `entering` animation on a virtualized row.
 
-**4.3 Navigation options** reviewed against §10.4: `animation: 'none'` on tabs, `'fade'` (not `'none'`) under
-reduce motion outside elder mode, `presentation: 'modal'` only where a screen is genuinely a takeover.
+**4.3 Navigation options.** Tabs stay `animation:'none'` (tabs never slide). `MainNavigator` now computes
+`elderMode ? 'none' : reduceMotion ? 'fade' : <platform default>` through one `anim()` helper for the stack,
+both `presentation:'modal'` screens (Subscription, SuccessStory) and the journey `Stack.Group`. Reduce Motion
+previously still slid; elder mode keeps `'none'` per ruling 18. `AuthNavigator` sets no `animation` so it
+inherits the OS default; left alone. Both modals are genuine takeovers (checkout, story submit).
 
-**4.4 The pill's blur question** (open question 9) resolved one way or the other, with its
-reduce-transparency fallback.
-
----
-
-## Phase 5 — Screen-by-screen §10.10 pre-flight
-
-Five independent groups, each built then audited cold by a different agent. Based on the web campaign, expect
-**every group to fail its first audit**.
-
-| Group | Screens | Known going in |
-| --- | --- | --- |
-| **A — Money** | Subscription, payment history, unlock bundles, `GoldLock` gates | 0.1's aftermath; the premium gate must never fake a count or a photo; gold audit |
-| **B — Browse** | Home, Search + `FilterPanel`, Matches, `ProfileCard`, `DiscoverCards` | Photoless profiles (the web's Phase 5 finding — check whether RN has the same void); list perf; all four states |
-| **C — Detail and chat** | ProfileDetail + `detail/*`, ChatThread, Conversations, family groups, `BlockReportSheet` | `ChatThreadScreen` is 1,247 lines with 14 `TouchableOpacity`, no empty and no error state; `RevealOnScroll` ruling; composer + keyboard behaviour |
-| **D — Identity** | OwnProfile (1,102 lines), EditProfile, Verification, Settings, Privacy, Guardian, Support | `SettingsScreen` is one of only two files that know elder mode exists; `OwnProfileScreen` has 13 `TouchableOpacity` |
-| **E — Funnel** | Welcome, Login, CreateAccount, Basics, `OnboardingLayout`, Steps 2-12, JourneyFinale | Blocked on open question 2; 40×40 chrome buttons; zero states across all 11 steps; `LoginScreen` has 9 `TouchableOpacity` and 0 `PressableScale` |
-
-Each group's audit uses §10.10 in full, on a device, with Reduce Motion, Reduce Transparency, maximum text
-size, dark mode, elder mode, VoiceOver and TalkBack all exercised. Findings carry `file:line`.
+**4.4 The pill's blur — decided: no blur** (open question 9). At ~95% opacity a blur is invisible, and a live
+blur costs a compositing pass per scroll frame on mid-range Android. Reduce Transparency already forces an
+opaque `c.surfaceCard`. The false "iOS gets real blur" claim is gone from the file header, replaced by the
+decision.
 
 ---
 
-## Phase 6 — Verification and close
+## Phase 5 — Screen-by-screen §10.10 pre-flight — DONE at source level 2026-09-24 (NOT seen on a device)
 
-**6.1 Build the sweep instrument.** Port HomeKrafted's `mobile/scripts/sim-sweep.mjs` shape: walk every route
-by deep link, read the accessibility tree, assert per screen that (1) it rendered rather than sitting on a
-loading line, (2) every control is reachable **by accessibility label** and measures ≥44pt or carries the
-`tap44-hitslop` marker, (3) the signed-out state offers a door rather than a wall. Our existing `idb`/`adb`
-harness (`docs/QA.md`, `rn-qa-progress.md`) is the driver. Method notes that cost time before and are written
-down for the next person: **a Metro reload resets a debug build to its initial route** — a "screen didn't
-open" can be that, not a bug; **React Query's cache survives Fast Refresh** — force-stop and relaunch before
-believing a redbox; **idb wants POINTS, screenshots are PIXELS, divide by 3**.
+Nine file groups (A money, B browse, C1 detail, C2 chat, D1 identity, D2 settings/legal/guardian, E1 auth, E2a and
+E2b onboarding) each ran **build → cold audit by a fresh agent → fix → cold re-audit** (36 agents, one Workflow run).
+No simulator was booted, so per standing rule 6 everything below is a source-read finding; the device pass is Phase 6.
+**As the campaign predicted, every group failed its first audit** (10 to 19 findings each). After the fix pass five
+groups re-audited clean of critical/major findings (C1, C2, D2, E2a, E2b); four still held one or two majors
+(A, B, D1, E1), which were closed by hand afterwards and verified in source. Minor findings that remain are listed
+below, not hidden.
 
-**6.2 Full §10.10 pre-flight per screen**, both platforms, release build if the hardware exists (open
-question 11) and a written limitation if it does not.
+**Alert.alert triage (ruling 22): 60 uses in 19 files → 23 in 14 files**, of which 7 are the deferred admin screens
+and 1 is a comment. Every remaining member-surface use is a confirmation (discard, remove, leave, revoke, block,
+sign out, unlock a phone number, delete a message). Choices became `PickerSheet`, errors became toast or inline
+state with an announcement, informational notices became inline.
 
-**6.3 Update `PROGRESS.md`, the CLAUDE.md audit history, and `mobile/READINESS.md`.** Correct root
-`CLAUDE.md:84`'s stale stack line in the same commit.
+**Real bugs found and fixed** (not polish):
+- **Email sign-up was uncompletable on mobile.** The server sends a 6-digit code to an email and 4 to a phone;
+  `OtpInput` was hard-coded to 4 boxes and auto-submitted at 4, so an email code could never verify. `OtpInput` now
+  takes `length` (6 for email, same split as the web); boxes flex and cap at 52pt so six fit a 320dp screen; copy
+  parametrised with `{{digits}}` in en/hi/pa and the helper under the field no longer says "4-digit" before the kind
+  is known.
+- **Liked Me Decline did nothing visible.** `getLikes` returned every like aimed at the member, answered or not, so
+  the refetch brought the same row back while the screen announced "Interest declined". The endpoint now also
+  returns `myAction` per liker (additive: `like` | `pass` | `shortlist` | null, one extra query over the page's
+  liker ids); the screen hides declined rows, swaps Accept/Decline for a chat button on accepted ones, shows
+  "You're all caught up" when everyone is answered, and a like or pass made from Search or a profile refreshes the
+  list. A local map still covers taps before the refetch lands and an older server. **Needs the backend deployed.**
+- **Search and ProfileDetail like/shortlist never refreshed Matches**, which caches the shortlist for 30 minutes.
+- **`DELETE /auth/account` was sent without the password and always 400ed** from the shared `deleteAccount()`;
+  Settings had worked around it inline. Moved into `api/auth.ts` as `deleteAccount(password)`.
+- **Login biometric sign-in could never succeed**: `logout()` and a failed `initialize()` both delete the stored
+  refresh token, so a signed-out device has nothing for a Face ID check to exchange. Removed from Login, and the
+  Settings switch that promised "Sign in without typing your password" (nothing read it) was removed with it.
+- **`getPlans()` returned the entire static catalogue at regular prices** whenever the server sent no plans, and
+  inherited the regular ladder's MRP strike-through for a live plan that carried none. Both fabrications are gone; an
+  empty list renders the screen's existing "No plans available" state.
+- **Fabricated or unsupported claims removed**: the astrologer duration price table (the app listed 15/30/45/60 min,
+  the website sells 10/15/30/45) is now one true per-minute rate; "Vedic astrologer" hardcoded on every practitioner;
+  quiz "Better match suggestions" and "Your answers help us find better matches" (nothing on the server reads
+  `quizAnswers`); onboarding "5x more matches" (key deleted in all three locales).
+- Photoless `ProfileCard` no longer leaves a void; onboarding progress bar no longer animates width; `RevealOnScroll`
+  rise clamped to the 16px ceiling.
+
+**Shared-primitive pass (Phase 5b)**, requested independently by several groups: light `textMuted` `#8B8B8B` →
+`#6E6E6E` (3.4:1 → about 5:1, the value the web already adopted); `Button` gets the elder 60pt floor and wraps to two
+lines instead of truncating; `Input` defaults its accessibility name to its label, announces errors, gets the elder
+floor and an AA placeholder; `ListRow` switch rows are one labelled `switch` that toggles from the whole row;
+`ScreenHeader` no longer buzzes on a navigation tap and sizes the back target for elder;
+`IconButton` haptic is opt-in (the two voice-intro toggles opt in) and elder-sized; `PickerSheet` fades under Reduce Motion, has a solid scrim under
+Reduce Transparency, drops its false grabber, opens on the selected row and honours the elder row floor; the two
+remaining slide Modals (save-search, guardian invite) fade under Reduce Motion.
+
+**Decisions taken here:** open question 2 (funnel vs the web's one-field-first gate) — the funnel already is
+identifier + inline OTP, then basics, so it conforms and needed no rebuild; open question 7 (`RevealOnScroll`) —
+kept and clamped to 16px; open question 8 (`usePop`) — retuned to 1.12, a plain tap earns no 1.3× overshoot.
+
+**Owner and backend items surfaced (none fixed here):**
+1. **`ensureSeeded()` in `backend/routes/astrologerRoutes.js` bulk-creates three invented practitioners** (342/198/571
+   reviews, a "Certified by Bharatiya Vidya Bhavan" bio) into an empty Astrologers table in ANY environment. Masked
+   only while `ASTROLOGER_MARKETPLACE` is off. Gate it to development before that flag is ever flipped.
+2. **Google-sign-in accounts cannot delete their account**: they have `password: null` and `deleteAccount` runs
+   bcrypt against it. In-app account deletion is a Play and App Store requirement.
+3. **Onboarding collects answers the server has no column for and silently drops them**: Step 11 partner preferences
+   (marital status, religion, diet, manglik), Step 8 exercise, Step 9 family values, Step 7 has-children. Add a
+   dedicated JSONB (not `lifestylePreferences`, which saved searches use) or remove the questions.
+4. **Deploy the `getLikes` `myAction` change** (`backend/controllers/matchController.js`); until then Liked Me
+   answers are session-local. Also decide whether answered likers should stay in the list at all.
+5. Astrologer booking cannot be paid in-app (no verify-payment client, `openRazorpay` lives inside
+   `SubscriptionScreen`); the app hands off to the website. Each web-only booking tap on the API still creates a
+   pending order. Wire payment before the flag is on, or keep it hidden.
+6. Copy needing an owner or counsel decision: "Our safety team reviews reports within 24 hours" (RN sheet, web Safety
+   and Help); the finale's staged-loader lines; income buckets stored as midpoints on RN and upper bounds on web.
+7. The Android biodata "Share PDF" still ships only a caption (`Share.share` drops the file on Android).
+8. `frontend/src/pages/Help.jsx:84` carries the false "horoscope never folded into the score" sentence the mobile
+   side already corrected.
+
+**Cold-audited after the fact** (a fresh agent audited the primitive batch): it caught `Input`'s new live region
+doubling TalkBack speech against eight per-screen announcements (reverted, callers keep announcing), a 44→48pt drift
+in `Button` text variant / `IconButton` / back button (restored to 44 outside elder mode), a picker scroll on a blind
+timer (now on list layout), the switch row's label dropping its value, and stale comments.
+
+**Known minors left open** (all source-level, low severity): `app.json` and `Info.plist` still carry the Face ID usage
+string and `expo-local-authentication` is still a dependency though no biometric sign-in exists (drop at the next
+native build); toasts are not announced to screen readers centrally
+(screens announce per site; a central announce would double them, so it needs one owner at once); `Chip` is about
+34pt tall with no hitSlop; `EmptyState`/`GoldLock` cannot carry a custom action testID; `useKeyboardUp` and
+`useLiveSocket` are duplicated across the two chat screens; a raw `TextInput` remains in Search (Input has no
+leading-icon slot); the toast host renders beneath iOS `<Modal>` windows; `FilterPanel` range fields do not
+re-sync after a programmatic reset; the family-group Add-member button shows to non-owners though the server allows
+only owners (the server's `myRole` is dropped by `mapGroup`); ~89 `t()` keys in the chat files have no locale entry
+(English default shows in hi/pa); light `textMuted` is fixed but `c.warning`/`c.info` used as small text on white are
+about 3:1.
+
+**Gates:** mobile tsc 0, jest 57/57, root lint 0 errors (mobile warnings 182 → 69), slop-lint clean.
+
+---
+
+## Phase 6 — Verification and close — DONE 2026-09-24 (device sweep, both platforms)
+
+**Method.** Built and drove the app on an API 35 Android emulator (`adb input` + `uiautomator` dumps, screenshots) and an
+iPhone 17 Pro simulator (`idb`, POINTS not pixels), against a local backend, as two accounts (VIP `aman.singh2`, free
+`priya.sharma1`). Two device agents ran in parallel per pass (one per platform) with the source frozen; findings were
+fixed in one batch afterwards and re-verified on the device that found them. Coverage: every member screen at default
+type size, dark mode, elder mode, max OS text size (Android font scale 2×, iOS AX5), Hindi and Punjabi, signed-out
+door, cold-start restore, cross-account logout, a fresh email sign-up end to end, Settings, Filters, chat send, the
+picker and confirmation sheets. **The phase caught what the Phase 5 source audit could not** — including a regression
+that audit had passed (the OTP boxes).
+
+**Real bugs found on device and fixed (all verified live):**
+- **OTP boxes collapsed to slivers** (a Phase 5 regression: the row lost its width when the boxes went `flex`). The
+  cold source audit passed it; both device agents failed it within a minute. `OtpInput` wrap is `alignSelf: 'stretch'`.
+- **The next member to sign in saw the previous member's data.** `logout()` cleared the MMKV cache but not React Query,
+  whose keys (`['profile','me']`) carry no user id. Aman → log out → Priya showed Aman's Home and Profile.
+  `queryClient.clear()` in `authStore.logout()`.
+- **The keyboard sat on top of the submit button on Android 15.** targetSdk 35 makes the window edge-to-edge and
+  `adjustResize` stops resizing it, so `Screen keyboard` (KAV `behavior` undefined on Android) left Continue and Save
+  behind the keyboard with nothing to scroll: create-account, basics, login, every journey step. KAV now uses
+  `'height'` on Android in `Screen`, `OnboardingLayout` and `FamilyGroupChatScreen`; KAV measures overlap against its
+  own frame so it adds nothing where the OS still resizes. RN `Modal` windows resize on their own (verified with the
+  delete-account sheet) and were left alone.
+- **Home's completion ring read 0% for a fresh sign-up** while the Profile tab said 35% and the journey said "a quarter
+  done". Home read the auth user's `Profile.completionPercentage`, frozen at sign-in; it now reads the live
+  `myProfile` query, and journey saves invalidate it.
+- **Filters left the keyboard open** (and the tab bar hidden) after Apply; `Keyboard.dismiss()` on close and Apply.
+- **Hindi/Punjabi button labels clipped** ("साइन इन करें" lost its last glyphs; Account Security's Sign out button
+  swallowed the device name). Android measures Indic scripts narrower than it draws them, so a label that fits by
+  measurement is cut. `Button` now fills its row only when it is a block (`variant !== 'text' && size !== 'sm'`),
+  shrinks a single line to fit, and inline buttons size to their content again. Three earlier attempts (two-line
+  label, `width: 100%`, `flexGrow` on all buttons) each broke a different screen; the notes are in `Button.tsx`.
+- **`@gorhom/bottom-sheet` v5 crashed on a density or text-size change** ("Property 'window' doesn't exist" thrown
+  inside a Reanimated worklet from a destructured `{ window }`). `scripts/patch-native-modules.cjs` patches
+  `useAnimatedLayout` (idempotent, fails soft) alongside the existing patches.
+- **Chat date separators drew below their day's first message.** An inverted FlatList draws cell children
+  bottom-up; the separator now renders after the bubble in JSX.
+- **Chat buttons were silent no-ops in elder mode on Matches** (elder mode hides the Chat *tab*; the thread is a
+  stack screen and reachable). Gating removed.
+- **Dark-mode avatar initials were about 1.2:1** (`p700` on a dark `p100` tile); `SmartImage` uses `p300` in dark and
+  pins the glyph (`maxFontSizeMultiplier={1}`) because it sits in a fixed circle.
+- **Max-text-size breakage:** the floating tab bar labels, the display and title `Text` variants and conversation row
+  names overflowed or clipped at AX5/2×. Tab labels cap at 1.3 (height-constrained), row names and `ListRow` labels
+  take two lines, and the single-word tab titles ("Messages", "Matches") are one line that shrinks to fit rather
+  than breaking mid-word. A first attempt capped every display/title variant in `Text` by default; the cold audit
+  rejected it against §10.6 (headings scale freely, and at 200% a capped title rendered smaller than body text), so
+  it was removed.
+- Smaller: a `t('home.todayMatches')` key typo showed the raw key; the switch off-state track had too little contrast
+  (`c.n500`); the Welcome CTA sat too close to the gesture bar (`edges` now includes bottom); the picker scrim
+  did not cover the Android status bar (`statusBarTranslucent`); notification dates now pin the `en-IN` locale;
+  the password eye button is at least 44pt wide.
+
+**Verified working on device, no change needed:** the 6-digit email OTP with auto-verify (dev master code), the
+DOB slash mask, sign-up → Main → journey auto-present, journey exit and resume-at-first-incomplete, cold-start
+session restore, system dark mode live-switch across every tab, elder mode round trip, hi/pa switching, the gorhom
+Filters sheet open/close cycle, the delete-account confirmation (wrong password shows an inline error and keeps the
+sheet open; the right one signs out to the Welcome door and the account can no longer sign in).
+
+**Cold audit of this batch** (a fresh agent, source only, 91 tool calls) confirmed four defects, all fixed: the
+journey save refreshed only one of the two profile caches (`me` and `myProfile`), so a Profile tab already open kept
+the old ring and an Edit Profile save could post the stale form over the journey's answers — both keys now refresh
+through `utils/profileCache.refreshProfileCaches()`, which Edit Profile shares; the photo step never refreshed either
+(photos persist on upload and are worth 13 completion points); the group chat had the same inverted-list separator
+bug the 1:1 chat was fixed for; and the default heading caps in `Text` (above). It also checked all 62 `<Button`
+call sites, every changed KeyboardAvoidingView, the Step 8-11 hydration effects, import cycles, `queryClient.clear()`
+and the gorhom patch's idempotency, and found them sound.
+
+**Not exercised (recorded, not hidden):** VoiceOver and TalkBack were not run — the accessibility tree was the
+proxy, so labels, roles, states and target sizes are checked but spoken order and rotor behaviour are not; release
+builds (no signing identity for the hardware, open question 11) — every behaviour above is a debug build; the iOS
+software keyboard (the simulator had a hardware keyboard attached, so the DOB mask was verified through the Android
+keyboard and the Share-Your-Story date field only); Reduce Motion fade versus slide on Android; Liked Me Decline
+(the seed data has no unanswered likers); an offline or backend-down pass.
+
+**Device-found items left open at the first close** (all low severity) were worked through in a follow-up on
+2026-09-26, recorded next.
+
+**Phase 6b follow-up (2026-09-26, both platforms).** Closed the device-found items, plus one bug found while
+closing them:
+- 🔴 **The mutual-match celebration and "It's a match" state could never fire from a profile.** `POST /match/:id`
+  answers `{ success, match, isMutual }`; the shared type and `ProfileDetailScreen` read `isMutualMatch`, so the flag
+  was always undefined. Nothing had exercised it because the seed data has no unanswered likers; this time three
+  seeded members liked the test account by API first. `api/matchAction.ts` normalises both spellings (with a unit test),
+  `performMatchAction` uses it, and a like on a member who already liked you now plays the celebration.
+- **After a match the bar offers the conversation.** It said "It's a match. Start chatting." with nothing to press, and
+  elder mode has no Chat tab, so that line was the only cue. The bar is now a "Message {name}" button; it opens the
+  thread directly (the thread carries the paywall or the free-reply window, as it does from Matches) instead of
+  detouring free members through Subscription. `getProfile` now carries the server's `isMutual`, so a profile opened
+  *after* the match also offers the button and shows the media the server already unblurred; likes and Liked Me accepts
+  invalidate the profile query so it does not serve a pre-match copy.
+- **`SectionCard` titles measured two lines and drew one** ("About Rohit" as "About" / "Rohit"), leaving a blank second
+  line and an off-centre icon on the flagship profile screen. Reproduced on a fresh mount in light and dark; the title is
+  now one fitted line that fills the row (`numberOfLines={1}`, `adjustsFontSizeToFit`, `flex: 1`).
+- **Elder docked tab items were 56dp** (`tabBarStyle.height` is the whole bar including the bottom inset, so a flat 80
+  left 56 for the items): now `tapTarget.elder + spacing.md + inset`, items 72dp. (The "Open full profile preview" 40dp
+  in the sweep was the row clipped under the tab bar, not its target size.)
+- **Search field hit area** was the 38pt input inside a 48pt bar; `alignSelf: 'stretch'` makes the whole bar the target
+  (46pt measured on both platforms). **Own-profile hero** is a neutral tile while the photo decodes instead of a blank 320pt
+  hole. **Gallery viewer "Try again"** was stretched full width; it is 108×44 centred (fixed by the `Button` block-only fill).
+- Still open: bottom sheets are not edge-to-edge at the bottom on Android; iOS's "Save Password?" sheet after sign-up
+  (system behaviour); several rows share identical accessibility labels.
+
+**Owner and backend items surfaced by the sweep:** compatibility percentage differs between Liked Me (stored when the
+like was made) and Mutual (recomputed) in `matchController.js`; deploy the `getLikes` `myAction` change; hi/pa
+coverage (31 screens have no `t()`, about 97 chat keys are missing from the locales); the Face ID usage string and
+`expo-local-authentication` are still shipped; the dev backend should also log the email OTP when `EMAIL_DRY_RUN` is
+on (it would remove the need for the master bypass code to test sign-up). The earlier Phase 5 owner list stands.
+
+**6.3 Docs.** `PROGRESS.md`, the CLAUDE.md audit history, `mobile/READINESS.md` and `CLAUDE.md`'s Nav line (it still
+named the deleted Bureau stack) updated in the closing commit.
+
+**Gates:** mobile tsc 0, jest 57/57, root lint 0 errors (mobile warnings 69), slop-lint clean.
 
 ---
 
@@ -313,6 +621,77 @@ question 11) and a written limitation if it does not.
 - **The bureau stack.** Deleted 2026-08-19.
 - **Store-listing screenshots / `imagegen-frontend-mobile`.** Out of scope; an owner-level decision of its
   own.
+
+---
+
+## Phase 7 — Design-improvement pass (type, spacing, motion) — DONE 2026-09-26/28, commit `be422dc`
+
+Owner request after Phase 6 closed: "improve the designs, fonts, spacing, animations ... and anything that
+will help the ui ux", tested on both devices. Method: three independent read-only design reviews in parallel
+(type/spacing/layout, motion/interaction, UX flows/states/copy — each cross-referenced its claims against
+source before reporting), synthesized into one ranked backlog, then implemented as five disjoint file-ownership
+slices (P1 cards+search, P2 home+matches, Q profile screens, C chat+gates+subscription, M motion foundation)
+run in parallel, plus lead-owned shared primitives and cross-cutting fixes. Full findings are in the three
+review reports (not persisted as files — see the commit message on `be422dc` for the executed subset).
+
+**Shared primitives built first** so slices didn't collide: `components/layout/TabHeader.tsx` (one tab-root
+header; Matches/Messages/My profile each had a different title size, offset and gutter), `components/ui/
+RowSeparator.tsx` (inset hairline, stable identity — an inline `ItemSeparatorComponent={() => ...}` was a new
+component type every render), `utils/profileMissing.ts` (`computeMissing` — OwnProfile and Home's completion
+strip each computed "what's missing" differently and could disagree).
+
+**Real bugs found (not from the reviews, from driving the device pass itself):**
+- 🔴 **`authStore.initialize()` deleted the refresh token and signed the member out on ANY cold-start refresh
+  error**, including a refresh that never reached the server (a backend blip or bad connection at launch, not
+  a rejected token). The 401 interceptor in `api/client.ts` already had the right rule (only a server-REJECTED
+  refresh, 401/403, ends the session); `initialize()` didn't follow it. Verified live: killed the dev backend,
+  cold-started the app — session survived, error states rendered correctly — brought the backend back, app
+  recovered with no re-auth.
+- A repeated `interestTags` value produced a duplicate React key warning on ProfileDetail (`Encountered two
+  children with the same key`) — caught live on Android, not by any static review. De-duplicated before render.
+- 3 `Modal` sheets (`BlockReportSheet`'s report/block action sheet, `CompatibilityBreakdownSheet`,
+  `NotificationPrimingSheet`) were missing `statusBarTranslucent` on Android — the scrim stopped short of the
+  status bar and left a bright strip. Fixed; left alone on the ~14 sheets that carry a `TextInput` (that prop's
+  interaction with the keyboard wasn't verified).
+
+**Notable changes by area** (full list in the `be422dc` commit message): photoless `ProfileCard` rebuilt as a
+72pt-avatar identity row (was a 308dp card holding one initial — the *common* state, not an edge case, since
+~60% of real profiles have no photo); Search reads `isMutualMatch` and mounts `MatchCelebration` (was silently
+dropped, so a mutual match from Search looked like a plain like); Matches' mutual-row chat bubble became a
+labelled "Message" pill (icon-only was unreadable to the father/elder persona the UX review named); Home's
+completion strip now names the actual next missing field instead of a static line; OwnProfile's photoless panel
+moved from a 320dp void below several utility rows to a compact tappable row above the fold; the VIP/plan chip
+shrunk from a hit-target-sized slab to a real badge with `hitSlop`; Kundli match moved into the Compatibility
+card with a per-side honest empty state (was a buried button that blamed the other person even when the gap was
+the viewer's own missing nakshatra); free-reply-window copy is now gated on the live `features.freeReplyWindow`
+flag everywhere it appears (prod already runs the flag; several surfaces still said "Chat is Premium-only");
+new `SheetModal` (opaque scrim, measured-height slide, no scale-shrink backdrop) adopted by `PickerSheet`
+(highest-traffic sheet — 18 call sites); `MatchCelebration`'s seal now starts from `scale(0.86)/opacity 0`
+(was `scale(0)`, banned by §10.11) and actually plays its exit (was dead `exiting` code behind an early
+`return null`); haptics moved from touch-down to commit across `PressableScale` (a scrolling chip row or picker
+list no longer buzzes); `useReduceMotion` collapsed from a per-instance subscription to one module-level store;
+`useFillAnimation` no longer replays 0→value on every profile refetch.
+
+**Verified live on both platforms** (Android API 35 emulator, iPhone 17 Pro sim, real seeded data): Search
+density and Pass-exit/reflow motion (recorded and frame-extracted on Android to confirm no flicker), Home
+strip's real next-action + rail-photo-fail recovery, Matches Message pill + measured tab underline, a full
+mutual-match celebration triggered from Search via a seeded API like, its dismiss fade, and the resulting chat
+thread with the new header/banner; Kundli match's per-side empty state and numerology fallback; Subscription
+copy; the new `SheetModal` via PickerSheet's Sort control (open/select/close on both platforms); dark mode
+(Home, Matches, ProfileDetail incl. the header crossfade); elder mode (all four tabs, Settings, on/off
+round-trip); Punjabi (Home, Matches, Messages, Search — script held up on every touched screen without
+clipping); the cold-start session-restore fix end to end, including a real emulator crash-and-reboot mid-pass.
+**Not run:** VoiceOver/TalkBack, release builds, iOS software keyboard.
+
+**Left for a future pass** (noted by the reviewers, not touched — out of scope for this batch): Android bottom
+sheets not edge-to-edge on the *other* ~14 Modal sites (keyboard interaction unverified); iOS's native "Save
+Password?" prompt (system behavior, not app UI); Android keyboard tracking on the chat composer via
+`useAnimatedKeyboard` (flagged HIGH-risk, deferred to be verified on-device by its own pass); dual-emit socket
+removal (pre-existing item from Modernization A–G); a nakshatra input on mobile (Kundli match's empty state
+routes to the website instead, since mobile has no field for it).
+
+Gates: mobile tsc 0 · jest 70/70 (9 new, all in P1/M) · root lint 0 errors (mobile warnings 69→60) · slop-lint
+clean (364 files). Not merged, not pushed, not deployed — same as every other phase on this branch.
 
 ---
 

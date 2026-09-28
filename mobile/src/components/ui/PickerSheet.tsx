@@ -1,10 +1,14 @@
-import React from 'react';
-import { FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useRef } from 'react';
+import { FlatList, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { borderRadius, spacing, type } from '@shared/constants/theme';
-import { haptics } from '../../utils/haptics';
+import { borderRadius, spacing } from '@shared/constants/theme';
 import { useTheme } from '../../hooks/useTheme';
+import Text from './Text';
+import { PressableScale, useReduceTransparency } from '../motion';
+import SheetModal, { SHEET_SCRIM } from './SheetModal';
+import { tapSize } from '../../utils/elderTheme';
+import { LIST_PERF } from '../../constants/listPerf';
 
 export interface PickerOption<T> {
   label: string;
@@ -23,9 +27,11 @@ interface PickerSheetProps<T> {
 }
 
 /**
- * Single-select bottom sheet used across onboarding + forms. Rows use opacity
- * press (iOS list convention — rows don't scale); selection gets burgundy text
- * + a right-aligned checkmark and a light haptic.
+ * Single-select bottom sheet used across onboarding + forms. Rows are
+ * PressableScale with a light haptic on commit (not on touch-down, so a finger
+ * landing to scroll the list stays silent); selection gets burgundy text + a
+ * right-aligned checkmark. The shell (scrim fade + sheet slide + exit) is
+ * SheetModal.
  */
 export default function PickerSheet<T = string>({
   visible,
@@ -36,63 +42,80 @@ export default function PickerSheet<T = string>({
   onClose,
 }: PickerSheetProps<T>) {
   const insets = useSafeAreaInsets();
-  const { c } = useTheme();
+  const { c, elder } = useTheme();
+  const reduceTransparency = useReduceTransparency();
+  const listRef = useRef<FlatList<PickerOption<T | string>>>(null);
 
   const normalized: PickerOption<T | string>[] = options.map((o) =>
     typeof o === 'string' ? { label: o, value: o } : o,
   );
 
+  // A long list (the age picker has ~48 rows) must open on the current value, not row 1.
+  // Driven by the list's own layout (it mounts fresh each time the sheet opens), not a timer.
+  const selectedIndex = normalized.findIndex((o) => o.value === selected);
+  const rowHeight = Math.max(52, tapSize(elder));
+  const scrollToSelected = () => {
+    if (selectedIndex < 1) return;
+    listRef.current?.scrollToIndex({ index: selectedIndex, animated: false, viewPosition: 0.4 });
+  };
+
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
-      <View style={[styles.sheet, { backgroundColor: c.background, paddingBottom: insets.bottom }]}>
-        <View style={[styles.grabber, { backgroundColor: c.border }]} />
-        <Text style={[type.title3, styles.title, { color: c.textPrimary }]}>{title}</Text>
-        <FlatList
-          data={normalized}
-          keyExtractor={(item) => String(item.value)}
-          renderItem={({ item }) => {
-            const active = item.value === selected;
-            return (
-              <TouchableOpacity
-                style={[styles.row, active && { backgroundColor: c.accentSoft }]}
-                onPress={() => {
-                  haptics.light();
-                  onSelect(item.value);
-                  onClose();
-                }}
-                testID={`option-${item.value}`}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-              >
-                <Text
-                  style={[
-                    type.body,
-                    { color: active ? c.primary : c.textPrimary },
-                    active && styles.rowTextActive,
-                  ]}
-                >
-                  {item.label}
-                </Text>
-                {active && <Ionicons name="checkmark" size={20} color={c.primary} />}
-              </TouchableOpacity>
-            );
-          }}
-        />
-      </View>
-    </Modal>
+    <SheetModal
+      visible={visible}
+      onRequestClose={onClose}
+      scrimColor={reduceTransparency ? SCRIM_SOLID : SHEET_SCRIM}
+      sheetStyle={[styles.sheet, { backgroundColor: c.background, paddingBottom: insets.bottom }]}
+    >
+      <Text variant="title3" color="textPrimary" style={styles.title}>{title}</Text>
+      {/* No grabber: this sheet does not drag, so a handle would promise a gesture it lacks. */}
+      <FlatList
+        ref={listRef}
+        {...LIST_PERF}
+        onLayout={scrollToSelected}
+        onScrollToIndexFailed={({ index, averageItemLength }) => {
+          // Rows past the first window are unmeasured: jump by an estimate, then settle.
+          listRef.current?.scrollToOffset({ offset: index * (averageItemLength || rowHeight), animated: false });
+          setTimeout(scrollToSelected, 50);
+        }}
+        data={normalized}
+        keyExtractor={(item) => String(item.value)}
+        renderItem={({ item }) => {
+          const active = item.value === selected;
+          return (
+            <PressableScale
+              style={[styles.row, { minHeight: rowHeight }, active && { backgroundColor: c.accentSoft }]}
+              onPress={() => {
+                onSelect(item.value);
+                onClose();
+              }}
+              haptic
+              testID={`option-${item.value}`}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text variant={active ? 'headline' : 'body'} color={active ? 'primary' : 'textPrimary'}>
+                {item.label}
+              </Text>
+              {active && <Ionicons name="checkmark" size={20} color={c.primary} />}
+            </PressableScale>
+          );
+        }}
+      />
+    </SheetModal>
   );
 }
 
+// Reduce Transparency: a denser scrim so the sheet still separates from the page.
+const SCRIM_SOLID = 'rgba(0,0,0,0.65)';
+
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
   sheet: {
     borderTopLeftRadius: borderRadius.xl,
     borderTopRightRadius: borderRadius.xl,
     maxHeight: '55%',
     paddingTop: spacing.sm,
   },
-  grabber: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, marginBottom: spacing.md },
   title: { paddingHorizontal: spacing.lg, marginBottom: spacing.md },
   row: {
     minHeight: 52,
@@ -101,5 +124,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  rowTextActive: { fontFamily: 'Inter-SemiBold' },
 });

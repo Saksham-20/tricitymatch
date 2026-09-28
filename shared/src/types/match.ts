@@ -15,6 +15,8 @@ export interface Match {
   updatedAt: string;
   /** D3 like-with-note — optional note the liker attached (like action only). */
   note?: string | null;
+  /** Liked-me rows only: what the VIEWER has already done about this liker (null = nothing yet). */
+  myAction?: MatchAction | null;
   /** D3/ES8 — content SNAPSHOT of the liked thing (never index-keyed). */
   likedItem?: { type: 'photo'; photoUrl: string } | { type: 'prompt'; promptText: string } | null;
   // Associations

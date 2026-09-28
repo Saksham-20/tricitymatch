@@ -1,23 +1,29 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
+  AccessibilityInfo,
   View,
-  Text,
   StyleSheet,
   FlatList,
-  TouchableOpacity,
-  Image,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { ListSkeleton } from '../../components/ui/skeletons';
 import { useQuery } from '@tanstack/react-query';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import { PressableScale } from '../../components/motion';
+import Screen from '../../components/layout/Screen';
+import Text from '../../components/ui/Text';
+import EmptyState from '../../components/ui/EmptyState';
+import Avatar from '../../components/ui/Avatar';
+import Card from '../../components/ui/Card';
+import ScreenHeader from '../../components/ui/ScreenHeader';
+import { tapSize } from '../../utils/elderTheme';
 import { getAstrologers } from '../../api/profile';
 import type { Astrologer } from '../../api/profile';
 import type { MainStackParamList } from '../../navigation/types';
+import { LIST_PERF } from '../../constants/listPerf';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 
@@ -30,75 +36,94 @@ const SPECIALITY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   'Gemstone': 'diamond-outline',
 };
 
+/** Rating as the record carries it. Only shown once someone has actually rated. */
+const formatRating = (rating: number) => Number(rating).toFixed(1);
 
 function AstrologerCard({ item, onPress }: { item: Astrologer; onPress: () => void }) {
   const { c } = useTheme();
   const cs = React.useMemo(() => makeCs(c), [c]);
+  const hasRating = item.reviewCount > 0;
+  const languages = item.languages ?? [];
+  const specialities = item.speciality ?? [];
+  const spoken = [
+    item.name,
+    item.isOnline ? 'online now' : 'offline',
+    item.experience ? `${item.experience} years experience` : null,
+    hasRating ? `rated ${formatRating(item.rating)} from ${item.reviewCount} ${item.reviewCount === 1 ? 'review' : 'reviews'}` : null,
+    `₹${item.pricePerMin} per minute`,
+  ].filter(Boolean).join(', ');
+
   return (
-    <TouchableOpacity style={cs.card} onPress={onPress} activeOpacity={0.8}>
-      {/* Avatar + Online */}
-      <View style={cs.avatarWrap}>
-        {item.avatarUrl ? (
-          <Image source={{ uri: item.avatarUrl }} style={cs.avatar} />
-        ) : (
-          <View style={cs.avatarPlaceholder}>
-            <Text style={cs.avatarInitial}>{item.name.charAt(0)}</Text>
+    <PressableScale
+      style={cs.press}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={spoken}
+      accessibilityHint="Opens their profile and prices"
+      pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    >
+      {/* Card owns the elevation (shadow only), so the row declares it once. */}
+      <Card padded={false} style={cs.card}>
+        {/* photo, or the brand initials when the record has none / it fails to load */}
+        <Avatar uri={item.avatarUrl} name={item.name} size={60} online={item.isOnline} />
+
+        {/* Info */}
+        <View style={cs.info}>
+          <Text variant="headline" color="textPrimary">{item.name}</Text>
+          {(item.experience || languages.length > 0) ? (
+            <Text variant="caption" color="textSecondary" style={cs.experience}>
+              {[item.experience ? `${item.experience} yrs exp` : null, languages.join(', ') || null]
+                .filter(Boolean)
+                .join(' · ')}
+            </Text>
+          ) : null}
+
+          {/* Specialities */}
+          <View style={cs.chips}>
+            {specialities.slice(0, 2).map(s => (
+              <View key={s} style={cs.chip}>
+                <Ionicons name={SPECIALITY_ICONS[s] ?? 'star-outline'} size={11} color={c.accent} />
+                <Text variant="micro" color="primary">{s}</Text>
+              </View>
+            ))}
           </View>
-        )}
-        {item.isOnline && <View style={cs.onlineDot} />}
-      </View>
 
-      {/* Info */}
-      <View style={cs.info}>
-        <Text style={cs.name}>{item.name}</Text>
-        <Text style={cs.experience}>{item.experience} yrs exp · {item.languages.join(', ')}</Text>
+          {/* Rating + Price. No reviews yet means no rating row: "0 (0)" reads as
+              a bad score, not as "not rated". */}
+          <View style={cs.footer}>
+            {hasRating ? (
+              <View style={cs.ratingRow}>
+                {/* neutral: a rating is a score, and gold is the premium signal */}
+                <Ionicons name="star" size={12} color={c.textSecondary} />
+                <Text variant="caption" color="textSecondary">{formatRating(item.rating)} ({item.reviewCount})</Text>
+              </View>
+            ) : <View />}
+            <Text variant="caption" color="fgStrong">₹{item.pricePerMin}/min</Text>
+          </View>
 
-        {/* Specialities */}
-        <View style={cs.chips}>
-          {item.speciality.slice(0, 2).map(s => (
-            <View key={s} style={cs.chip}>
-              <Ionicons name={SPECIALITY_ICONS[s] ?? 'star-outline'} size={11} color={c.primary} />
-              <Text style={cs.chipText}>{s}</Text>
-            </View>
-          ))}
+          {/* Availability in words too: the green dot on the photo is colour-only. */}
+          {item.isOnline ? (
+            <Text variant="caption" color="textSecondary" style={cs.nextAvail}>Online now</Text>
+          ) : item.nextAvailable ? (
+            <Text variant="caption" color="textSecondary" style={cs.nextAvail}>Next: {item.nextAvailable}</Text>
+          ) : null}
         </View>
 
-        {/* Rating + Price */}
-        <View style={cs.footer}>
-          <View style={cs.ratingRow}>
-            <Ionicons name="star" size={12} color={c.secondary} />
-            <Text style={cs.rating}>{item.rating} ({item.reviewCount})</Text>
-          </View>
-          <Text style={cs.price}>₹{item.pricePerMin}/min</Text>
+        {/* Both states lead to the same profile screen, so the affordance is one
+            honest label. It used to read "Chat" for online astrologers, but there is
+            no astrologer chat, and it read "Book" until booking moved to the
+            website: this opens their profile and prices, which is what "View" says. */}
+        <View style={cs.cta}>
+          <Text variant="caption" color="primary">View</Text>
         </View>
-
-        {!item.isOnline && item.nextAvailable && (
-          <Text style={cs.nextAvail}>Next: {item.nextAvailable}</Text>
-        )}
-      </View>
-
-      {/* CTA — online: filled primary "Chat"; offline: outlined secondary "Book"
-          (a bordered pill, not bare grey text that reads as unstyled). */}
-      <View
-        style={[
-          cs.cta,
-          item.isOnline
-            ? { backgroundColor: c.primary }
-            : { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: c.primary },
-        ]}
-      >
-        <Text style={[cs.ctaText, { color: item.isOnline ? '#fff' : c.primary }]}>
-          {item.isOnline ? 'Chat' : 'Book'}
-        </Text>
-      </View>
-    </TouchableOpacity>
+      </Card>
+    </PressableScale>
   );
 }
 
 export default function AstrologerMarketplaceScreen() {
-  const { c } = useTheme();
+  const { c, elder } = useTheme();
   const s = React.useMemo(() => makeS(c), [c]);
-  const insets = useSafeAreaInsets();
   const nav = useNavigation<Nav>();
   const [filter, setFilter] = useState<'all' | 'online'>('all');
 
@@ -108,59 +133,97 @@ export default function AstrologerMarketplaceScreen() {
   // are not placeholder copy; they shipped as if real. The endpoint works and
   // returns real records where the table is seeded, so an empty list means
   // "none onboarded here yet", not "feature missing".
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch } = useQuery({
     queryKey: ['astrologers'],
     queryFn: getAstrologers,
   });
 
-  const filtered = filter === 'online' ? (data ?? []).filter(a => a.isOnline) : (data ?? []);
+  const all = data ?? [];
+  const filtered = filter === 'online' ? all.filter(a => a.isOnline) : all;
+
+  // Finished loading with no list at all is a failed (or paused, offline) fetch,
+  // whether or not react-query has flagged it isError: an offline member's query
+  // is paused, and falling through to "No astrologers listed yet" would say
+  // nobody is listed when the truth is we could not ask.
+  const loadFailed = !isLoading && !data;
+  // The skeleton being replaced by an error card appears without a tap, so it is
+  // announced; a screen-reader member would otherwise keep waiting on a load
+  // that has already given up.
+  useEffect(() => {
+    if (loadFailed) {
+      AccessibilityInfo.announceForAccessibility("Couldn't load astrologers. Check your connection and try again.");
+    }
+  }, [loadFailed]);
 
   return (
-    <View style={[s.container, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={s.header}>
-        <TouchableOpacity onPress={() => nav.goBack()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
-        </TouchableOpacity>
-        <View style={s.headerText}>
-          <Text style={s.title}>Astrologer Consult</Text>
-          <Text style={s.subtitle}>Expert Vedic guidance for your match</Text>
-        </View>
-        <View style={{ width: 24 }} />
-      </View>
+    <Screen edges={['top', 'bottom']}>
+      <ScreenHeader
+        title="Astrologer consult"
+        subtitle="Vedic guidance for your match"
+        testID="AstrologerMarketplace-header"
+      />
 
-      {/* Banner */}
+      {/* Banner: one muted info panel, not a gold-tinted card (gold is premium only).
+          "Certified" is gone with the rest of the credential claims: nothing on
+          the record says who certified whom. */}
       <View style={s.banner}>
-        <Ionicons name="planet-outline" size={28} color={c.primary} style={s.bannerEmoji} />
+        {/* decorative: the headline beside it says what this is */}
+        <Ionicons
+          name="planet-outline"
+          size={28}
+          color={c.accent}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        />
         <View style={s.bannerText}>
-          <Text style={s.bannerTitle}>Get a Kundli reading</Text>
-          <Text style={s.bannerBody}>Consult certified Vedic astrologers for marriage timing and compatibility.</Text>
+          <Text variant="headline" color="textPrimary">Get a Kundli reading</Text>
+          <Text variant="caption" color="textSecondary" style={s.bannerBody}>Consult Vedic astrologers about marriage timing and compatibility.</Text>
         </View>
       </View>
 
-      {/* Filter Pills */}
-      <View style={s.pills}>
+      {/* Filter pills: 32pt visual + 6pt slop = 44pt tall, 4pt side slop stays inside the 8pt gap */}
+      <View style={s.pills} accessibilityRole="radiogroup" accessibilityLabel="Filter astrologers">
         {(['all', 'online'] as const).map(f => (
-          <TouchableOpacity
+          <PressableScale
             key={f}
-            style={[s.pill, filter === f && s.pillActive]}
+            style={[s.pill, filter === f && s.pillActive, elder ? { minHeight: tapSize(true) } : null]}
             onPress={() => setFilter(f)}
+            testID={`astrologer-filter-${f}-tap44-hitslop`}
+            accessibilityRole="radio"
+            accessibilityLabel={f === 'all' ? 'All astrologers' : 'Online now'}
+            accessibilityState={{ checked: filter === f }}
+            hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             {f === 'online' && <View style={s.pillDot} />}
-            <Text style={[s.pillText, filter === f && s.pillTextActive]}>
-              {f === 'all' ? 'All Astrologers' : 'Online Now'}
+            <Text variant="subhead" color={filter === f ? 'primary' : 'textSecondary'}>
+              {f === 'all' ? 'All astrologers' : 'Online now'}
             </Text>
-          </TouchableOpacity>
+          </PressableScale>
         ))}
       </View>
 
       {isLoading ? (
         <ListSkeleton rows={5} />
+      ) : !data ? (
+        // A failed fetch must not fall through to the "none listed" empty state
+        // below: that copy says nobody is listed yet, which is a different
+        // statement from "we could not reach the server".
+        <EmptyState
+          variant="error"
+          icon="cloud-offline-outline"
+          title="Couldn't load astrologers"
+          description="Check your connection and try again."
+          actionLabel="Try again"
+          onAction={() => refetch()}
+          testID="AstrologerMarketplace-error"
+        />
       ) : (
         <FlatList
+          {...LIST_PERF}
           data={filtered}
           keyExtractor={a => a.id}
-          contentContainerStyle={{ padding: spacing.md, paddingBottom: spacing.xl * 2 }}
+          contentContainerStyle={s.listContent}
           renderItem={({ item }) => (
             <AstrologerCard
               item={item}
@@ -168,73 +231,60 @@ export default function AstrologerMarketplaceScreen() {
             />
           )}
           ListEmptyComponent={
-            <View style={s.empty}>
-              <Ionicons name="moon-outline" size={48} color={c.textMuted} />
-              <Text style={s.emptyText}>
-                {filter === 'online'
-                  ? 'No astrologers online right now'
-                  : 'Astrologer consultations are coming soon'}
-              </Text>
-              {filter === 'all' && (
-                <Text style={s.emptySub}>
-                  We are onboarding certified Vedic astrologers. Check back shortly.
-                </Text>
-              )}
-            </View>
+            all.length === 0 ? (
+              <EmptyState
+                icon="moon-outline"
+                title="No astrologers listed yet"
+                description="Astrologers will appear here once they are listed."
+                actionLabel="Refresh"
+                onAction={() => refetch()}
+                testID="AstrologerMarketplace-empty"
+              />
+            ) : (
+              <EmptyState
+                icon="moon-outline"
+                title="No astrologers online right now"
+                description="Check back later, or see everyone who is listed."
+                actionLabel="Show all astrologers"
+                onAction={() => setFilter('all')}
+                testID="AstrologerMarketplace-empty-online"
+              />
+            )
           }
         />
       )}
-    </View>
+    </Screen>
   );
 }
 
 const makeS = (c: ThemeColours) => StyleSheet.create({
-  container:   { flex: 1, backgroundColor: c.background },
-  header:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingTop: spacing.xl, paddingBottom: spacing.sm, borderBottomWidth: 1, borderBottomColor: c.border },
-  headerText:  { flex: 1, alignItems: 'center' },
-  title:       { fontSize: typography.fontSize.lg, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
-  subtitle:    { fontSize: typography.fontSize.xs, color: c.textSecondary },
-
-  banner:      { flexDirection: 'row', alignItems: 'center', backgroundColor: c.secondaryLight, margin: spacing.md, borderRadius: borderRadius.lg, padding: spacing.md, gap: spacing.sm },
-  bannerEmoji: { fontSize: 32 },
+  banner:      { flexDirection: 'row', alignItems: 'center', backgroundColor: c.surface2, margin: spacing.md, borderRadius: borderRadius.lg, padding: spacing.md, gap: spacing.sm },
   bannerText:  { flex: 1 },
-  bannerTitle: { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
-  bannerBody:  { fontSize: typography.fontSize.xs, color: c.textSecondary, marginTop: 2 },
+  bannerBody:  { marginTop: 2 },
 
-  pills:       { flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.md, marginBottom: spacing.xs },
-  pill:        { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: borderRadius.full, borderWidth: 1, borderColor: c.border },
-  pillActive:  { backgroundColor: c.primary, borderColor: c.primary },
-  pillDot:     { width: 7, height: 7, borderRadius: 4, backgroundColor: c.success },
-  pillText:    { fontSize: typography.fontSize.sm, color: c.textSecondary },
-  pillTextActive: { color: '#fff', fontFamily: typography.fontFamily.medium },
+  pills:       { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, paddingHorizontal: spacing.md, marginBottom: spacing.xs },
+  pill:        { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: borderRadius.full, borderWidth: 1, borderColor: c.border },
+  // the same selected treatment as the shared Chip: soft accent fill + accent edge, never a flat burgundy slab
+  pillActive:  { backgroundColor: c.accentSoft, borderColor: c.accent },
+  // successAccent, not success: the plain green is unreadable on a dark surface
+  pillDot:     { width: 7, height: 7, borderRadius: 4, backgroundColor: c.successAccent },
 
-  empty:       { alignItems: 'center', paddingVertical: 60, gap: spacing.sm },
-  emptyText:   { fontSize: typography.fontSize.base, color: c.textMuted },
-  emptySub:    { fontSize: typography.fontSize.sm, color: c.textMuted, textAlign: 'center', paddingHorizontal: spacing.xl },
+  listContent: { padding: spacing.md, paddingBottom: spacing.xl * 2 },
 });
 
 const makeCs = (c: ThemeColours) => StyleSheet.create({
-  card:            { flexDirection: 'row', alignItems: 'center', backgroundColor: c.surfaceCard, borderRadius: borderRadius.lg, padding: spacing.md, marginBottom: spacing.sm, gap: spacing.sm },
-  avatarWrap:      { position: 'relative' },
-  avatar:          { width: 60, height: 60, borderRadius: 30 },
-  avatarPlaceholder: { width: 60, height: 60, borderRadius: 30, backgroundColor: c.primaryLight, alignItems: 'center', justifyContent: 'center' },
-  avatarInitial:   { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, color: c.primary },
-  onlineDot:       { position: 'absolute', bottom: 2, right: 2, width: 12, height: 12, borderRadius: 6, backgroundColor: c.success, borderWidth: 2, borderColor: c.surfaceCard },
+  press:      { marginBottom: spacing.sm },
+  card:       { flexDirection: 'row', alignItems: 'center', padding: spacing.md, gap: spacing.sm },
 
   info:       { flex: 1 },
-  name:       { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, color: c.textPrimary },
-  experience: { fontSize: typography.fontSize.xs, color: c.textSecondary, marginTop: 1 },
+  experience: { marginTop: 1 },
 
   chips:      { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
-  chip:       { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: c.primaryLight, borderRadius: borderRadius.sm, paddingHorizontal: 6, paddingVertical: 2 },
-  chipText:   { fontSize: 10, color: c.primary },
+  chip:       { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: c.accentSoft, borderRadius: borderRadius.sm, paddingHorizontal: 6, paddingVertical: 2 },
 
   footer:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
   ratingRow:  { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  rating:     { fontSize: typography.fontSize.xs, color: c.textSecondary },
-  price:      { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold, color: c.secondary },
-  nextAvail:  { fontSize: typography.fontSize.xs, color: c.textMuted, marginTop: 2 },
+  nextAvail:  { marginTop: 2 },
 
-  cta:        { borderRadius: borderRadius.md, paddingHorizontal: spacing.sm, paddingVertical: 6, alignItems: 'center', minWidth: 48 },
-  ctaText:    { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold },
+  cta:        { backgroundColor: c.accentSoft, borderRadius: borderRadius.md, paddingHorizontal: spacing.sm, paddingVertical: 6, alignItems: 'center', minWidth: 48 },
 });

@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
-import { useTheme } from '../../hooks/useTheme';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import PickerSheet from '../../components/ui/PickerSheet';
-import OnboardingLayout from './OnboardingLayout';
+import OnboardingLayout, { OnboardingSelectField } from './OnboardingLayout';
 import { useOnboarding } from './OnboardingContext';
 
 const PROFESSIONS = [
@@ -25,33 +22,39 @@ const INCOME_RANGES: { label: string; value: number }[] = [
   { label: 'Prefer not to say', value: 0 },
 ];
 
+/**
+ * Label for a stored income. The web stores each bucket's UPPER bound (300000 =
+ * "0 - 3 Lac") where this list stores midpoints, so a value set on the web is
+ * usually not one of these and cannot be mapped to a bucket without guessing:
+ * any rule puts it in a neighbour's range and shows a sensitive figure the
+ * member never declared. Exact match gets its label; anything else is shown as
+ * the number itself, in the format the profile screen uses.
+ */
+const labelForIncome = (income: number | null): string => {
+  if (income === null || !Number.isFinite(income) || income < 0) return '';
+  const exact = INCOME_RANGES.find((r) => r.value === income);
+  if (exact) return exact.label;
+  return `₹${(income / 100000).toFixed(1)}L/yr`;
+};
+
 export default function Step5Screen() {
-  const { c } = useTheme();
-  const styles = React.useMemo(() => makeStyles(c), [c]);
   const { t } = useTranslation();
   const { data, saveAndNext } = useOnboarding();
 
   const [profession, setProfession] = useState(data.profession);
-  const [employer, setEmployer] = useState(data.employer);
   const [income, setIncome] = useState<number | null>(data.income);
   const [profSheet, setProfSheet] = useState(false);
   const [incomeSheet, setIncomeSheet] = useState(false);
 
-  const incomeLabel = income !== null
-    ? INCOME_RANGES.find((r) => r.value === income)?.label ?? ''
-    : '';
-
-  const profOptions = PROFESSIONS.map((p) => ({ label: p, value: p }));
-
-  const isValid = !!(profession);
+  const isValid = !!profession;
 
   const handleContinue = async () => {
-    await saveAndNext(
-      { profession, employer, income },
-      { profession, income } as any,
-    );
+    const answers = { profession, income };
+    await saveAndNext(answers, answers);
   };
 
+  // No "employer" input: the backend has no column for it (the web form never
+  // asked either), so the old field collected an answer and silently threw it away.
   return (
     <OnboardingLayout
       step={5}
@@ -61,66 +64,34 @@ export default function Step5Screen() {
       continueDisabled={!isValid}
     >
       {/* Profession */}
-      <View>
-        <Text style={styles.label}>{t('onboarding.step5.profession')}</Text>
-        <TouchableOpacity
-          style={styles.selectBtn}
-          onPress={() => setProfSheet(true)}
-          testID="select-profession"
-          accessibilityLabel={t('onboarding.step5.profession')}
-        >
-          <Text style={profession ? styles.selectText : styles.placeholderText}>
-            {profession || 'Select profession'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <OnboardingSelectField
+        label={t('onboarding.step5.profession')}
+        value={profession}
+        placeholder={t('onboarding.placeholders.profession', 'Select profession')}
+        onPress={() => setProfSheet(true)}
+        open={profSheet}
+        testID="select-profession"
+      />
 
-      {/* Employer + income reveal after profession is chosen */}
+      {/* Income reveals after profession is chosen */}
       {!!profession && (
-      <View>
-        <Text style={styles.label}>
-          {t('onboarding.step5.employer')}
-          <Text style={styles.optional}> ({t('common.optional')})</Text>
-        </Text>
-        <TextInput
-          style={styles.input}
-          value={employer}
-          onChangeText={setEmployer}
-          placeholder="Company / organisation name"
-          placeholderTextColor={c.textMuted}
-          autoCapitalize="words"
-          testID="input-employer"
-          accessibilityLabel={t('onboarding.step5.employer')}
-        />
-      </View>
-      )}
-
-      {/* Income */}
-      {!!profession && (
-      <View>
-        <Text style={styles.label}>
-          {t('onboarding.step5.income')}
-          <Text style={styles.optional}> ({t('common.optional')})</Text>
-        </Text>
-        <TouchableOpacity
-          style={styles.selectBtn}
+        <OnboardingSelectField
+          label={t('onboarding.step5.income')}
+          optional
+          value={labelForIncome(income)}
+          placeholder={t('onboarding.placeholders.income', 'Select annual income')}
           onPress={() => setIncomeSheet(true)}
+          open={incomeSheet}
           testID="select-income"
-          accessibilityLabel={t('onboarding.step5.income')}
-        >
-          <Text style={income !== null ? styles.selectText : styles.placeholderText}>
-            {incomeLabel || 'Select annual income'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+        />
       )}
 
       <PickerSheet
         visible={profSheet}
         title={t('onboarding.step5.profession')}
-        options={profOptions}
+        options={PROFESSIONS}
         selected={profession || null}
-        onSelect={(v: string) => { setProfession(v); }}
+        onSelect={setProfession}
         onClose={() => setProfSheet(false)}
       />
       <PickerSheet
@@ -134,33 +105,3 @@ export default function Step5Screen() {
     </OnboardingLayout>
   );
 }
-
-const makeStyles = (c: ThemeColours) => StyleSheet.create({
-  label: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
-    marginBottom: spacing.sm,
-  },
-  optional: { color: c.textMuted, fontFamily: typography.fontFamily.regular },
-  input: {
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    fontSize: typography.fontSize.base,
-    color: c.textPrimary,
-    minHeight: 48,
-  },
-  selectBtn: {
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing.md,
-    height: 48,
-    justifyContent: 'center',
-  },
-  selectText: { fontSize: typography.fontSize.base, color: c.textPrimary },
-  placeholderText: { fontSize: typography.fontSize.base, color: c.textMuted },
-});

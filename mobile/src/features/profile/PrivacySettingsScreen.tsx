@@ -1,35 +1,127 @@
-import React, { useEffect, useState } from 'react';
-import { useTheme } from '../../hooks/useTheme';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Switch,
-  ActivityIndicator,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useEffect, useRef, useState } from 'react';
+import { AccessibilityInfo, Alert, Platform, View, StyleSheet, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import { ListSkeleton } from '../../components/ui/skeletons';
-import { colours, typography, spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
+import Text from '../../components/ui/Text';
+import Screen from '../../components/layout/Screen';
+import { Button, EmptyState, ScreenHeader, SkeletonBlock, Switch } from '../../components/ui';
+import { PressableScale } from '../../components/motion';
+import { useTheme } from '../../hooks/useTheme';
+import { tapSize } from '../../utils/elderTheme';
+import { showToast } from '../../utils/toast';
+import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { getMyProfile, updatePrivacy, type PrivacySettings } from '../../api/profile';
 import { queryKeys } from '../../constants/queryKeys';
-import type { MainStackParamList } from '../../navigation/types';
+import type { Profile } from '../../types';
 
-type Nav = NativeStackNavigationProp<MainStackParamList>;
 type Visibility = 'everyone' | 'matches_only';
 
+/** A decorative glyph: the screen reader skips it and reads the text beside it. */
+const HIDE_FROM_A11Y = {
+  accessibilityElementsHidden: true,
+  importantForAccessibility: 'no-hide-descendants',
+} as const;
+
+// The three privacy columns ride on the profile record but the shared Profile
+// type does not declare them yet, so read them through this widened shape.
+type ProfileWithPrivacy = Profile & PrivacySettings;
+
+const VISIBILITY_OPTIONS: { key: Visibility; label: string }[] = [
+  { key: 'everyone', label: 'Everyone' },
+  { key: 'matches_only', label: 'Matches only' },
+];
+
+// ─── Toggle row ──────────────────────────────────────────────────────────────
+// The whole row is the switch: a bare 51x31 native switch is under 44pt tall.
+// The visual switch inside is inert and hidden from the accessibility tree, so
+// a screen reader meets exactly one control per setting.
+
+interface ToggleRowProps {
+  label: string;
+  sub: string;
+  value: boolean;
+  onChange: (next: boolean) => void;
+  divider?: boolean;
+  testID: string;
+}
+
+function ToggleRow({ label, sub, value, onChange, divider, testID }: ToggleRowProps) {
+  const { c, elder } = useTheme();
+  return (
+    <PressableScale
+      scaleTo={0.99}
+      haptic
+      onPress={() => onChange(!value)}
+      style={[
+        tr.row,
+        { minHeight: tapSize(elder) },
+        divider && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.border },
+      ]}
+      testID={testID}
+      accessibilityRole="switch"
+      accessibilityLabel={label}
+      accessibilityHint={sub}
+      accessibilityState={{ checked: value }}
+      pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    >
+      <View style={tr.info}>
+        <Text variant="subhead" color="textPrimary">{label}</Text>
+        <Text variant="footnote" color="textSecondary" style={tr.sub}>{sub}</Text>
+      </View>
+      <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <Switch value={value} onValueChange={() => undefined} />
+      </View>
+    </PressableScale>
+  );
+}
+
+// Layout only, no colour.
+const tr = StyleSheet.create({
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.md },
+  info: { flex: 1 },
+  sub: { marginTop: 2 },
+});
+
+// ─── Loading ─────────────────────────────────────────────────────────────────
+// Shaped like the form it stands in for (a segmented control, a two-row card, a
+// button), not like a list of avatar rows.
+
+function PrivacyLoading() {
+  return (
+    // One busy element for a screen reader: without it the header is followed by
+    // silence until the form appears.
+    <View
+      style={sk.pad}
+      testID="PrivacyLoading-body"
+      accessible
+      accessibilityLabel="Loading privacy settings"
+      accessibilityState={{ busy: true }}
+    >
+      <SkeletonBlock width="45%" height={13} />
+      <SkeletonBlock width="100%" height={52} radius={borderRadius.md} />
+      <SkeletonBlock width="80%" height={13} />
+      <SkeletonBlock width="100%" height={132} radius={borderRadius.md} style={sk.gap} />
+      <SkeletonBlock width="100%" height={50} radius={borderRadius.md} style={sk.gap} />
+    </View>
+  );
+}
+
+const sk = StyleSheet.create({
+  pad: { padding: spacing.lg, gap: spacing.md },
+  gap: { marginTop: spacing.lg },
+});
+
+// ─── Screen ──────────────────────────────────────────────────────────────────
+
 export default function PrivacySettingsScreen() {
-  const { c } = useTheme();
+  const { c, elder } = useTheme();
   const styles = React.useMemo(() => makeStyles(c), [c]);
-  const navigation = useNavigation<Nav>();
+  const segmentHeight = tapSize(elder);
+  const navigation = useNavigation();
   const queryClient = useQueryClient();
 
-  const { data: profile, isLoading } = useQuery({
+  const { data: profile, isLoading, refetch } = useQuery({
     queryKey: queryKeys.me,
     queryFn: getMyProfile,
     staleTime: 5 * 60 * 1000,
@@ -39,23 +131,78 @@ export default function PrivacySettingsScreen() {
   const [showOnlineStatus, setShowOnlineStatus] = useState(true);
   const [showLastSeen, setShowLastSeen] = useState(true);
 
+  // What the server currently holds. Absent columns read as the defaults the
+  // controls open on.
+  const p = profile as ProfileWithPrivacy | undefined;
+  const serverVisibility: Visibility = p?.profileVisibility === 'matches_only' ? 'matches_only' : 'everyone';
+  const serverOnline = typeof p?.showOnlineStatus === 'boolean' ? p.showOnlineStatus : true;
+  const serverLastSeen = typeof p?.showLastSeen === 'boolean' ? p.showLastSeen : true;
+
+  const dirty =
+    visibility !== serverVisibility || showOnlineStatus !== serverOnline || showLastSeen !== serverLastSeen;
+
   // Hydrate from the loaded profile (these columns ride on the profile record).
+  // The first load always hydrates; after that a refetch (a background refresh, an
+  // invalidation from another screen) must not overwrite toggles the member has
+  // changed and not yet saved.
+  const hydratedRef = useRef(false);
   useEffect(() => {
-    if (!profile) return;
-    const p = profile as any;
-    if (p.profileVisibility === 'matches_only' || p.profileVisibility === 'everyone') {
-      setVisibility(p.profileVisibility);
-    }
-    if (typeof p.showOnlineStatus === 'boolean') setShowOnlineStatus(p.showOnlineStatus);
-    if (typeof p.showLastSeen === 'boolean') setShowLastSeen(p.showLastSeen);
+    if (!p) return;
+    if (hydratedRef.current && dirty) return;
+    hydratedRef.current = true;
+    setVisibility(serverVisibility);
+    setShowOnlineStatus(serverOnline);
+    setShowLastSeen(serverLastSeen);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
 
   const mutation = useMutation({
     mutationFn: (settings: PrivacySettings) => updatePrivacy(settings),
-    onSuccess: () => {
+    onSuccess: (_data, settings) => {
+      // Write the saved values into the cache first so `dirty` clears at once;
+      // otherwise Save re-enables until the refetch below lands.
+      queryClient.setQueryData<Profile>(queryKeys.me, (old) =>
+        old ? ({ ...old, ...settings } as Profile) : old,
+      );
+      // The profile is cached under two keys (`me` and `myProfile`); Settings and
+      // Home read the second, so refreshing only one leaves them on the old values.
       queryClient.invalidateQueries({ queryKey: queryKeys.me });
+      queryClient.invalidateQueries({ queryKey: queryKeys.myProfile });
+      showToast.success('Privacy settings saved');
+      AccessibilityInfo.announceForAccessibility('Privacy settings saved');
+    },
+    // The inline note below is the visible message. Android reads its live region;
+    // VoiceOver does not read a role="alert" that appears on its own, so say it
+    // on iOS only, or Android hears it twice.
+    onError: () => {
+      if (Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility('Could not save. Please try again.');
     },
   });
+
+  // Unsaved-changes guard: back, swipe-back and hardware back would otherwise
+  // drop the toggles without a word. The one Alert this screen has is that
+  // destructive confirmation (ruling 22). Not while a save is in flight: the
+  // save carries on regardless of where the member goes.
+  const guardRef = useRef(false);
+  useEffect(() => {
+    guardRef.current = dirty && !mutation.isPending;
+  }, [dirty, mutation.isPending]);
+  useEffect(() => {
+    return navigation.addListener('beforeRemove', (e) => {
+      if (!guardRef.current) return;
+      e.preventDefault();
+      Alert.alert('Discard changes?', 'You have unsaved privacy changes.', [
+        { text: 'Keep editing', style: 'cancel' },
+        { text: 'Discard', style: 'destructive', onPress: () => navigation.dispatch(e.data.action) },
+      ]);
+    });
+  }, [navigation]);
+
+  // Any edit invalidates a previous "could not save" note.
+  const edit = <T,>(setter: (v: T) => void) => (v: T) => {
+    if (mutation.isError) mutation.reset();
+    setter(v);
+  };
 
   const save = () => {
     mutation.mutate({ profileVisibility: visibility, showOnlineStatus, showLastSeen });
@@ -63,131 +210,112 @@ export default function PrivacySettingsScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.loader} testID="PrivacyLoading">
-        <ListSkeleton rows={5} />
-      </View>
+      <Screen edges={['top']} testID="PrivacyLoading">
+        <ScreenHeader title="Privacy" />
+        <PrivacyLoading />
+      </Screen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safe} testID="PrivacySettingsScreen">
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} testID="back-btn" accessibilityLabel="Back">
-          <Ionicons name="chevron-back" size={26} color={c.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Privacy</Text>
-        <View style={{ width: 26 }} />
-      </View>
+    <Screen edges={['top', 'bottom']} testID="PrivacySettingsScreen">
+      <ScreenHeader title="Privacy" />
 
-      <ScrollView contentContainerStyle={styles.body}>
-        {/* Profile visibility */}
-        <Text style={styles.sectionTitle}>Who can see your profile</Text>
-        <View style={styles.segment}>
-          {(['everyone', 'matches_only'] as Visibility[]).map((opt) => {
-            const active = visibility === opt;
-            return (
-              <TouchableOpacity
-                key={opt}
-                style={[styles.segmentBtn, active && styles.segmentBtnActive]}
-                onPress={() => setVisibility(opt)}
-                testID={`visibility-${opt}`}
-                accessibilityLabel={opt === 'everyone' ? 'Everyone' : 'Matches only'}
-              >
-                <Text style={[styles.segmentText, active && styles.segmentTextActive]}>
-                  {opt === 'everyone' ? 'Everyone' : 'Matches only'}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+      {!profile ? (
+        <View style={styles.errorBody}>
+          <EmptyState
+            variant="error"
+            icon="shield-outline"
+            title="Couldn't load privacy settings"
+            description="Check your connection and try again."
+            actionLabel="Try again"
+            onAction={() => refetch()}
+            testID="PrivacySettingsScreen-error"
+          />
         </View>
-        <Text style={styles.hint}>
-          {visibility === 'everyone'
-            ? 'Anyone on TricityMatch can view your full profile.'
-            : 'Only people you have matched with can view your full profile.'}
-        </Text>
+      ) : (
+        <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+          {/* Profile visibility */}
+          <Text variant="headline" color="fgStrong" style={styles.sectionTitle} accessibilityRole="header">
+            Who can see your profile
+          </Text>
+          <View style={styles.segment} accessibilityRole="radiogroup" accessibilityLabel="Who can see your profile">
+            {VISIBILITY_OPTIONS.map(({ key, label }) => {
+              const active = visibility === key;
+              return (
+                <PressableScale
+                  key={key}
+                  style={[styles.segmentBtn, { minHeight: segmentHeight }, active && styles.segmentBtnActive]}
+                  onPress={() => edit(setVisibility)(key)}
+                  haptic
+                  testID={`visibility-${key}`}
+                  accessibilityLabel={label}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: active }}
+                  pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Text variant="subhead" color={active ? 'primary' : 'textSecondary'}>
+                    {label}
+                  </Text>
+                </PressableScale>
+              );
+            })}
+          </View>
+          <Text variant="footnote" color="textSecondary" style={styles.hint} accessibilityLiveRegion="polite">
+            {visibility === 'everyone'
+              ? 'Anyone on TricityMatch can view your full profile.'
+              : 'Only people you have matched with can view your full profile.'}
+          </Text>
 
-        {/* Toggles */}
-        <View style={styles.toggleCard}>
-          <View style={styles.toggleRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.toggleLabel}>Show online status</Text>
-              <Text style={styles.toggleSub}>Let others see when you are active</Text>
-            </View>
-            <Switch
+          {/* Toggles */}
+          <View style={styles.toggleCard}>
+            <ToggleRow
+              label="Show online status"
+              sub="Let others see when you are active"
               value={showOnlineStatus}
-              onValueChange={setShowOnlineStatus}
-              trackColor={{ false: c.border, true: c.primary + '80' }}
-              thumbColor={showOnlineStatus ? c.primary : c.textMuted}
+              onChange={edit(setShowOnlineStatus)}
+              divider
               testID="toggle-online-status"
             />
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.toggleRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.toggleLabel}>Show last seen</Text>
-              <Text style={styles.toggleSub}>Display when you were last online</Text>
-            </View>
-            <Switch
+            <ToggleRow
+              label="Show last seen"
+              sub="Display when you were last online"
               value={showLastSeen}
-              onValueChange={setShowLastSeen}
-              trackColor={{ false: c.border, true: c.primary + '80' }}
-              thumbColor={showLastSeen ? c.primary : c.textMuted}
+              onChange={edit(setShowLastSeen)}
               testID="toggle-last-seen"
             />
           </View>
-        </View>
 
-        <TouchableOpacity
-          style={styles.saveBtn}
-          onPress={save}
-          disabled={mutation.isPending}
-          testID="save-privacy"
-          accessibilityLabel="Save privacy settings"
-        >
-          {mutation.isPending ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.saveText}>Save Privacy Settings</Text>
+          <Button
+            title="Save privacy settings"
+            onPress={save}
+            loading={mutation.isPending}
+            disabled={!dirty}
+            // The outcome toast carries the haptic; a press haptic too would be two for one commit.
+            haptic={false}
+            style={styles.saveBtn}
+            testID="save-privacy"
+            accessibilityLabel="Save privacy settings"
+          />
+
+          {mutation.isError && (
+            <View style={styles.errorNote} accessibilityRole="alert" accessibilityLiveRegion="assertive">
+              <Ionicons name="alert-circle" size={16} color={c.error} {...HIDE_FROM_A11Y} />
+              <Text variant="subhead" color="error" style={styles.errorText}>
+                Could not save. Please try again.
+              </Text>
+            </View>
           )}
-        </TouchableOpacity>
-
-        {mutation.isSuccess && !mutation.isPending && (
-          <Text style={styles.savedNote}>Saved ✓</Text>
-        )}
-        {mutation.isError && (
-          <Text style={styles.errorNote}>Could not save. Please try again.</Text>
-        )}
-      </ScrollView>
-    </SafeAreaView>
+        </ScrollView>
+      )}
+    </Screen>
   );
 }
 
 const makeStyles = (c: ThemeColours) => StyleSheet.create({
-  safe: { flex: 1, backgroundColor: c.background },
-  loader: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: c.border,
-  },
-  headerTitle: {
-    fontSize: typography.fontSize.lg,
-    fontFamily: typography.fontFamily.bold,
-    color: c.textPrimary,
-  },
-  body: { padding: spacing.lg },
-  sectionTitle: {
-    fontSize: typography.fontSize.xs,
-    fontFamily: typography.fontFamily.semiBold,
-    color: c.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: spacing.sm,
-  },
+  errorBody: { flex: 1, justifyContent: 'center' },
+  body: { padding: spacing.lg, paddingTop: spacing.sm },
+  sectionTitle: { marginBottom: spacing.sm },
   segment: {
     flexDirection: 'row',
     backgroundColor: c.surfaceCard,
@@ -199,22 +327,18 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
   segmentBtn: {
     flex: 1,
     paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
     alignItems: 'center',
+    justifyContent: 'center',
     borderRadius: borderRadius.sm,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
   },
-  segmentBtnActive: { backgroundColor: c.primary },
-  segmentText: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textSecondary,
-  },
-  segmentTextActive: { color: '#fff', fontFamily: typography.fontFamily.semiBold },
+  // Selected = a tint plus an accent rule, never a flat burgundy fill.
+  segmentBtnActive: { backgroundColor: c.accentSoft, borderColor: c.accent },
   hint: {
-    fontSize: typography.fontSize.xs,
-    color: c.textMuted,
     marginTop: spacing.sm,
     marginBottom: spacing.xl,
-    lineHeight: 18,
   },
   toggleCard: {
     backgroundColor: c.surfaceCard,
@@ -223,36 +347,13 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     borderColor: c.border,
     paddingHorizontal: spacing.lg,
   },
-  toggleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md },
-  toggleLabel: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.medium,
-    color: c.textPrimary,
-  },
-  toggleSub: { fontSize: typography.fontSize.xs, color: c.textSecondary, marginTop: 2 },
-  divider: { height: 1, backgroundColor: c.border },
-  saveBtn: {
-    backgroundColor: c.primary,
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-    marginTop: spacing.xl,
-  },
-  saveText: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.semiBold,
-    color: '#fff',
-  },
-  savedNote: {
-    textAlign: 'center',
-    marginTop: spacing.md,
-    color: c.success || c.primary,
-    fontFamily: typography.fontFamily.medium,
-  },
+  saveBtn: { marginTop: spacing.xl },
   errorNote: {
-    textAlign: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
     marginTop: spacing.md,
-    color: c.error,
-    fontFamily: typography.fontFamily.medium,
   },
+  errorText: { flexShrink: 1, textAlign: 'center' },
 });

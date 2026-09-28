@@ -1,6 +1,7 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { OnboardingStackParamList } from './types';
+import { useNavAnimation } from './useNavAnimation';
 
 import CompleteBasicsScreen from '../features/onboarding/CompleteBasicsScreen';
 
@@ -12,8 +13,9 @@ const Stack = createNativeStackNavigator<OnboardingStackParamList>();
  * (pre-door signups, or web accounts missing basics) pass through here.
  */
 export default function OnboardingNavigator() {
+  const anim = useNavAnimation();
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false, gestureEnabled: false }}>
+    <Stack.Navigator screenOptions={{ headerShown: false, gestureEnabled: false, animation: anim() }}>
       <Stack.Screen name="CompleteBasics" component={CompleteBasicsScreen} />
     </Stack.Navigator>
   );

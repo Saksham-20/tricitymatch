@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
-  View, Text, TouchableOpacity, Image, StyleSheet,
+  View, Image, StyleSheet,
   ActivityIndicator, StatusBar,
 } from 'react-native';
+import Text from '../../components/ui/Text';
+import { PressableScale } from '../../components/motion';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -260,8 +262,8 @@ export default function VoiceCallScreen() {
       </View>
 
       {/* Name + status */}
-      <Text style={styles.name} testID="CalleeName">{calleeName || 'Calling…'}</Text>
-      <Text style={styles.status} testID="CallStatus">{phaseLabel[phase]}</Text>
+      <Text variant="title2" style={styles.name} testID="CalleeName">{calleeName || 'Calling…'}</Text>
+      <Text variant="callout" style={styles.status} testID="CallStatus">{phaseLabel[phase]}</Text>
 
       {phase === 'connecting' && (
         <ActivityIndicator color={c.primary} style={{ marginTop: spacing.md }} />
@@ -312,7 +314,7 @@ function CallButton({ icon, label, onPress, variant = 'default', active, testID 
   const styles = React.useMemo(() => makeStyles(c), [c]);
   return (
     <View style={styles.btnWrap}>
-      <TouchableOpacity
+      <PressableScale
         style={[
           styles.btn,
           variant === 'end' && styles.btnEnd,
@@ -321,14 +323,17 @@ function CallButton({ icon, label, onPress, variant = 'default', active, testID 
         onPress={onPress}
         testID={testID}
         accessibilityLabel={label}
+        accessibilityRole="button"
+        accessibilityState={{ selected: !!active }}
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
         <Ionicons
           name={icon}
           size={28}
           color={variant === 'end' || active ? c.background : c.textPrimary}
         />
-      </TouchableOpacity>
-      <Text style={styles.btnLabel}>{label}</Text>
+      </PressableScale>
+      <Text variant="caption" style={styles.btnLabel}>{label}</Text>
     </View>
   );
 }
@@ -358,13 +363,9 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     justifyContent: 'center',
   },
   name: {
-    fontSize: typography.fontSize['2xl'],
-    fontFamily: typography.fontFamily.bold,
     color: '#ffffff',
   },
   status: {
-    fontSize: typography.fontSize.base,
-    fontFamily: typography.fontFamily.regular,
     color: callColours.textMuted,
     letterSpacing: 0.3,
   },
@@ -396,8 +397,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     backgroundColor: c.primary,
   },
   btnLabel: {
-    fontSize: typography.fontSize.xs,
-    fontFamily: typography.fontFamily.medium,
     color: callColours.textMuted,
   },
 });

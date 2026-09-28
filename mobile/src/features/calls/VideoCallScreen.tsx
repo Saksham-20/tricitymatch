@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import {
-  View, Text, TouchableOpacity, Image, StyleSheet,
+  View, Image, StyleSheet,
   ActivityIndicator, StatusBar, PanResponder, Animated, Dimensions,
 } from 'react-native';
+import Text from '../../components/ui/Text';
+import { PressableScale } from '../../components/motion';
 import type { ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -273,10 +275,13 @@ export default function VideoCallScreen() {
       <StatusBar barStyle="light-content" backgroundColor={callColours.black} />
 
       {/* Remote video / placeholder */}
-      <TouchableOpacity
+      <PressableScale
         style={StyleSheet.absoluteFill}
-        activeOpacity={1}
+        scaleTo={1}
         onPress={resetControlsTimer}
+        accessibilityRole="button"
+        accessibilityLabel="Toggle call controls"
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
         testID="TapArea"
       >
         {remoteUid && RtcRemoteView ? (
@@ -295,12 +300,12 @@ export default function VideoCallScreen() {
                 <Ionicons name="person" size={80} color={c.textMuted} />
               </View>
             )}
-            <Text style={styles.remoteName}>{calleeName || 'Connecting…'}</Text>
-            {phase === 'ringing' && <Text style={styles.remoteStatus}>Ringing…</Text>}
+            <Text variant="title2" style={styles.remoteName}>{calleeName || 'Connecting…'}</Text>
+            {phase === 'ringing' && <Text variant="footnote" style={styles.remoteStatus}>Ringing…</Text>}
             {phase === 'connecting' && <ActivityIndicator color={c.primary} style={{ marginTop: spacing.md }} />}
           </View>
         )}
-      </TouchableOpacity>
+      </PressableScale>
 
       {/* PiP local camera */}
       {isCameraOn && (
@@ -329,9 +334,9 @@ export default function VideoCallScreen() {
           {/* Top bar */}
           <View style={styles.topBar}>
             <View>
-              <Text style={styles.topName}>{calleeName || 'Video call'}</Text>
+              <Text variant="headline" style={styles.topName}>{calleeName || 'Video call'}</Text>
               {phase === 'connected' && (
-                <Text style={styles.topTimer}>{formatDuration(elapsed)}</Text>
+                <Text variant="footnote" style={styles.topTimer}>{formatDuration(elapsed)}</Text>
               )}
             </View>
           </View>
@@ -351,7 +356,7 @@ export default function VideoCallScreen() {
       {/* Ended overlay */}
       {phase === 'ended' && (
         <View style={styles.endedOverlay}>
-          <Text style={styles.endedText}>Call ended</Text>
+          <Text variant="title2" style={styles.endedText}>Call ended</Text>
         </View>
       )}
     </View>
@@ -373,19 +378,22 @@ function VideoBtn({ icon, label, onPress, variant = 'default', active, testID }:
   const styles = React.useMemo(() => makeStyles(c), [c]);
   return (
     <View style={styles.btnWrap}>
-      <TouchableOpacity
+      <PressableScale
         style={[styles.btn, variant === 'end' && styles.btnEnd, active && styles.btnActive]}
         onPress={onPress}
         testID={testID}
         accessibilityLabel={label}
+        accessibilityRole="button"
+        accessibilityState={{ selected: !!active }}
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
         <Ionicons
           name={icon}
           size={24}
           color={variant === 'end' || active ? c.background : c.textPrimary}
         />
-      </TouchableOpacity>
-      <Text style={styles.btnLabel}>{label}</Text>
+      </PressableScale>
+      <Text variant="caption" style={styles.btnLabel}>{label}</Text>
     </View>
   );
 }
@@ -416,13 +424,9 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     justifyContent: 'center',
   },
   remoteName: {
-    fontSize: typography.fontSize['2xl'],
-    fontFamily: typography.fontFamily.bold,
     color: '#fff',
   },
   remoteStatus: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.regular,
     color: callColours.textMuted,
   },
   pip: {
@@ -454,13 +458,9 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     paddingBottom: spacing.md,
   },
   topName: {
-    fontSize: typography.fontSize.lg,
-    fontFamily: typography.fontFamily.semiBold,
     color: '#fff',
   },
   topTimer: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.regular,
     color: callColours.textMuted,
   },
   controls: {
@@ -494,8 +494,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     backgroundColor: c.primary,
   },
   btnLabel: {
-    fontSize: typography.fontSize.xs,
-    fontFamily: typography.fontFamily.medium,
     color: callColours.textMuted,
   },
   endedOverlay: {
@@ -505,8 +503,6 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     justifyContent: 'center',
   },
   endedText: {
-    fontSize: typography.fontSize['2xl'],
-    fontFamily: typography.fontFamily.semiBold,
     color: '#fff',
   },
 });

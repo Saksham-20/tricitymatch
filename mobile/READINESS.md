@@ -17,6 +17,7 @@ _Last updated: 2026-08-16 · `main`_
 | Builds and runs | **Verified.** Builds and boots on an API 35 Android emulator and an iPhone 17 Pro simulator; walked authed end-to-end (login → home → search + filters → matches → chat send → profile → settings → verification → subscription). |
 | Android store posture | **Close.** targetSdk 35 confirmed in the installed artifact; sensitive permissions stripped from the release APK. Gated on a Play Console account and live payment keys. |
 | iOS store posture | **Blocked on accounts.** No Apple Developer account, no `DEVELOPMENT_TEAM`, placeholder `submit.production.ios`. |
+| UI/UX doctrine pass | **Done and device-swept (2026-09-24), followed by a design-improvement pass (2026-09-28, commit `be422dc`).** Every member screen was rebuilt against `docs/design-handoff/DOCTRINE_2026-09.md` §10 and walked on an API 35 emulator and an iPhone 17 Pro simulator (default, dark, elder, max text size, hi/pa). The follow-up pass (3 parallel reviews → 5 implementation slices) tightened type/spacing/density and motion feel and found a real cold-start logout bug (`authStore.initialize()`), fixed and re-verified live. Not run: VoiceOver/TalkBack, release builds, the iOS software keyboard, Android sheet edge-to-edge on ~14 non-PickerSheet Modal sites. Record: `docs/design-handoff/RN_REWORK_PLAN_2026-09.md` Phases 6–7. |
 | Payments | **Code complete, cannot take money.** No live Razorpay keys anywhere; Google Play billing needs a Play-signed build. |
 | Push and calls | **Not shipped.** See below — this is not a config gap. |
 
@@ -31,6 +32,12 @@ _Last updated: 2026-08-16 · `main`_
   checkout once live keys exist.
 - Safe areas exercised on an API 35 emulator (edge-to-edge is forced there) and
   on a Dynamic Island simulator.
+- **Edge-to-edge and the keyboard.** With targetSdk 35 on Android 15 the window no
+  longer resizes for the keyboard, so `adjustResize` in the manifest does nothing
+  and a form's submit button sat under the keyboard. Form screens use
+  `KeyboardAvoidingView behavior="height"` on Android (`Screen`, `OnboardingLayout`,
+  the group chat). Any new form screen must go through `Screen keyboard` or do the
+  same. RN `Modal` windows resize by themselves.
 
 ## Not shipped — and not merely unconfigured
 
@@ -57,13 +64,23 @@ from `mobile/package.json`, so no amount of environment setup turns them on.
 
 ## Known product gaps
 
-- **Astrologer marketplace** has no backend; both screens now show honest
-  "coming soon" states rather than invented practitioners.
-- **Saved searches** and a **sent-interests** tab have no endpoints; the UI is hidden.
-- **i18n**: 6 member screens remain English-only; language switching itself works.
-- **Dark mode** is light-locked on purpose — 84 of 88 screen files bake the light
-  palette into module-scope `StyleSheet.create`, which cannot respond to a theme
-  change. Do not unlock it before that retrofit.
+- **Astrologer marketplace** is behind the server flag `ASTROLOGER_MARKETPLACE`
+  (default off, the routes 404 and the app hides the entry). Before the flag is ever
+  turned on: `ensureSeeded()` in `backend/routes/astrologerRoutes.js` bulk-creates
+  three invented practitioners into an empty table in any environment, and
+  in-app booking payment is not wired (the app hands off to the website).
+- **i18n**: language switching works, but 31 member screens have no `t()` calls and
+  about 97 chat keys have no hi/pa entry, so those strings show English.
+- **Dark mode follows the system** (the module-scope palette retrofit landed
+  2026-08-19) and was walked on both platforms in the 2026-09-24 sweep.
+- **Google-sign-in accounts cannot delete their account in-app** (`password` is
+  null and the delete endpoint runs bcrypt against it). Account deletion in the app
+  is a Play and App Store requirement.
+- **Android biodata "Share PDF"** ships only the caption (`Share.share` drops the
+  file on Android; `expo-sharing` needs a native rebuild).
+- Onboarding asks some questions the server has no column for (Step 11 partner
+  preferences, Step 8 exercise, Step 9 family values, Step 7 has-children); the
+  answers are dropped.
 
 ## Installing on a real device today
 

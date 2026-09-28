@@ -1,7 +1,7 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { type } from '@shared/constants/theme';
+import { StyleSheet, View } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
+import Text from './Text';
 
 /**
  * Rough 0–4 strength score.
@@ -30,10 +30,10 @@ interface Props {
   showLabel?: boolean;
 }
 
-/** 4-segment password-strength bar — fills red → amber → gold → green. */
+/** 4-segment password-strength bar — fills red → amber → blue → green. */
 export default function PasswordStrength({ password, score, showLabel = true }: Props) {
   const { c } = useTheme();
-  const segColour = [c.border, c.error, c.warning, c.g500, c.success];
+  const segColour = [c.border, c.error, c.warning, c.info, c.success];
   const s = score ?? scorePassword(password ?? '');
   return (
     <View style={styles.wrap}>
@@ -46,7 +46,7 @@ export default function PasswordStrength({ password, score, showLabel = true }: 
         ))}
       </View>
       {showLabel && s > 0 ? (
-        <Text style={[styles.label, { color: segColour[s] }]}>{LABELS[s]}</Text>
+        <Text variant="caption" style={[styles.label, { color: segColour[s] }]}>{LABELS[s]}</Text>
       ) : null}
     </View>
   );
@@ -56,5 +56,5 @@ const styles = StyleSheet.create({
   wrap: { marginTop: 8 },
   bar: { flexDirection: 'row', gap: 5 },
   seg: { flex: 1, height: 4, borderRadius: 3 },
-  label: { ...type.caption, marginTop: 5, alignSelf: 'flex-end' },
+  label: { marginTop: 5, alignSelf: 'flex-end' },
 });
