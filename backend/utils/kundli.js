@@ -8,6 +8,7 @@
  */
 
 const PDFDocument = require('pdfkit');
+const { pdfSafe } = require('./pdfText');
 
 const BURGUNDY = '#7c2d3e';
 const DARK = '#1a1a2e';
@@ -17,7 +18,7 @@ const GREEN = '#16a34a';
 const RED = '#dc2626';
 
 const fullName = (p) =>
-  p ? `${p.firstName || ''} ${p.lastName || ''}`.trim() || 'N/A' : 'N/A';
+  p ? pdfSafe(`${p.firstName || ''} ${p.lastName || ''}`, 'Member') : 'N/A';
 
 const fmtDate = (d) => {
   if (!d) return '—';

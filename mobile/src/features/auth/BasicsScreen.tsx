@@ -54,12 +54,12 @@ export const REGISTERING_FOR_KEY = 'registeringFor';
 const STACK_NAMES_FONT_SCALE = 1.3;
 
 // Mirrors the signup validator in backend/validators/index.js (firstName and
-// lastName): 2-50 characters after trimming, English letters, spaces, hyphens
+// lastName): 2-50 characters after trimming, English/Hindi/Punjabi letters, spaces, hyphens
 // and apostrophes. A client looser than that turns a typo into a rejection on
 // the very last step of the funnel, and in production the server's reason is
 // stripped down to "Validation failed". Non-Latin names are a server/product
 // change, not something to accept here and fail there.
-const NAME_PATTERN = /^[a-zA-Z\s'-]+$/;
+const NAME_PATTERN = /^[A-Za-zÀ-ÖØ-öø-ÿऀ-ॣॱ-ॿਁ-੥ੰ-ੵ‌‍\s'’.-]+$/;
 const NAME_MIN = 2;
 const NAME_MAX = 50;
 
@@ -162,7 +162,7 @@ export default function BasicsScreen() {
   const genderMsg = t('auth.signup.genderRequired', 'Choose one');
   const dobRequiredMsg = t('auth.signup.dobRequired', 'Enter your date of birth as DD/MM/YYYY');
 
-  const nameCharsMsg = t('auth.signup.nameChars', 'Use English letters only, with no digits or symbols.');
+  const nameCharsMsg = t('auth.signup.nameChars', 'Use letters only, with no digits or symbols.');
   const nameLengthMsg = t('auth.signup.nameLength', 'Names need 2 to 50 characters.');
   // Characters before length: a Hindi or Punjabi name fails the alphabet first, and
   // "2 to 50 characters" would send that member the wrong way.
@@ -369,7 +369,7 @@ export default function BasicsScreen() {
       </View>
       {/* Named up front so a hi/pa member is not first told on blur. Swapped for the error once there is one. */}
       {!firstNameError && !lastNameError ? (
-        <Text variant="caption" color="textSecondary" style={st.nameHint}>{t('auth.signup.nameHint', 'English letters only, 2 to 50 characters.')}</Text>
+        <Text variant="caption" color="textSecondary" style={st.nameHint}>{t('auth.signup.nameHint', 'English, Hindi or Punjabi letters, 2 to 50 characters.')}</Text>
       ) : null}
 
       <Text variant="footnote" color="textPrimary" style={st.label}>{t('auth.signup.gender', 'Gender')}</Text>

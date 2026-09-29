@@ -5,6 +5,7 @@
 
 const jwt = require('jsonwebtoken');
 const { User, Profile, RefreshToken, ReferralCode, MarketingLead } = require('../models');
+const { cleanName } = require('../constants/names');
 const { sendWelcomeEmail, sendPasswordResetEmail, sendEmail, sendOtpEmail, sendSecurityAlert } = require('../utils/email');
 const config = require('../config/env');
 const { eraseAccount } = require('../utils/accountErasure');
@@ -1164,11 +1165,10 @@ exports.googleAuth = asyncHandler(async (req, res) => {
   if (!email_verified) throw createError.badRequest('Google account email is not verified');
 
   // Names arriving on this path never pass signupValidation, so they skip the
-  // [a-zA-Z\s'-] restriction every other write path enforces. The account
-  // holder controls their own Google display name, so this is untrusted input:
-  // hold it to the same charset and length as a native signup.
-  const sanitizeGoogleName = (value) =>
-    String(value ?? '').replace(/[^a-zA-Z\s'-]/g, '').trim().slice(0, 50);
+  // character rule every other write path enforces. The account holder controls
+  // their own Google display name, so this is untrusted input: hold it to the
+  // same charset (constants/names) and length as a native signup.
+  const sanitizeGoogleName = (value) => cleanName(value, 50);
   const firstName = sanitizeGoogleName(rawFirstName);
   const lastName = sanitizeGoogleName(rawLastName);
 

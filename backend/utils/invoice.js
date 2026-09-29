@@ -8,6 +8,7 @@
  */
 
 const PDFDocument = require('pdfkit');
+const { pdfSafe } = require('./pdfText');
 const config = require('../config/env');
 
 /**
@@ -50,7 +51,7 @@ const generateInvoicePDF = (res, { subscription, user, profile }) => {
 
   doc.fontSize(11).fillColor(DARK).text('Billed To:', 50, billingY);
   const name = profile
-    ? `${profile.firstName || ''} ${profile.lastName || ''}`.trim()
+    ? pdfSafe(`${profile.firstName || ''} ${profile.lastName || ''}`)
     : 'N/A';
   doc.fontSize(10).fillColor(GRAY)
     .text(name, 50, billingY + 16)

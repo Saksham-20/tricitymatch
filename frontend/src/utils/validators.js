@@ -106,7 +106,7 @@ export const validateName = (name) => {
   // 2-100 characters, letters, spaces, hyphens, apostrophes
   return trimmed.length >= 2 && 
          trimmed.length <= 100 && 
-         /^[a-zA-Z\s'-]+$/.test(trimmed);
+         /^[A-Za-zÀ-ÖØ-öø-ÿऀ-ॣॱ-ॿਁ-੥ੰ-ੵ‌‍\s'’.-]+$/.test(trimmed);
 };
 
 // Age validation from date of birth
@@ -167,7 +167,7 @@ export const validateCity = (city) => {
   const trimmed = city.trim();
   return trimmed.length >= 2 && 
          trimmed.length <= 100 && 
-         /^[a-zA-Z\s'-]+$/.test(trimmed);
+         /^[A-Za-zÀ-ÖØ-öø-ÿऀ-ॣॱ-ॿਁ-੥ੰ-ੵ‌‍\s'’.-]+$/.test(trimmed);
 };
 
 // Interest tags validation

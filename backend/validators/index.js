@@ -4,6 +4,7 @@
  */
 
 const { body, param, query } = require('express-validator');
+const { NAME_PATTERN } = require('../constants/names');
 const { canonicalEmail } = require('../utils/emailAddress');
 const { marriageableAgeProblem } = require('../constants/marriageableAge');
 const { PROFILE_STRIPPER_ALLOWLIST } = require('../constants/profileFields');
@@ -92,15 +93,15 @@ const signupValidation = [
     .trim()
     .isLength({ min: 2, max: 50 })
     .withMessage('First name must be 2-50 characters')
-    .matches(/^[a-zA-Z\s'-]+$/)
-    .withMessage('First name can only contain letters, spaces, hyphens, and apostrophes'),
+    .matches(NAME_PATTERN)
+    .withMessage('First name can only contain letters, spaces, hyphens, apostrophes and full stops'),
   body('lastName')
     .optional({ checkFalsy: true })
     .trim()
     .isLength({ min: 2, max: 50 })
     .withMessage('Last name must be 2-50 characters')
-    .matches(/^[a-zA-Z\s'-]+$/)
-    .withMessage('Last name can only contain letters, spaces, hyphens, and apostrophes'),
+    .matches(NAME_PATTERN)
+    .withMessage('Last name can only contain letters, spaces, hyphens, apostrophes and full stops'),
   body('phone')
     .optional({ checkFalsy: true })
     .matches(/^[6-9]\d{9}$/)
@@ -220,15 +221,15 @@ const updateProfileValidation = [
     .trim()
     .isLength({ min: 2, max: 50 })
     .withMessage('First name must be 2-50 characters')
-    .matches(/^[a-zA-Z\s'-]+$/)
-    .withMessage('First name can only contain letters'),
+    .matches(NAME_PATTERN)
+    .withMessage('First name can only contain letters, spaces, hyphens, apostrophes and full stops'),
   body('lastName')
     .optional()
     .trim()
     .isLength({ min: 2, max: 50 })
     .withMessage('Last name must be 2-50 characters')
-    .matches(/^[a-zA-Z\s'-]+$/)
-    .withMessage('Last name can only contain letters'),
+    .matches(NAME_PATTERN)
+    .withMessage('Last name can only contain letters, spaces, hyphens, apostrophes and full stops'),
   body('gender')
     .optional()
     .isIn(['male', 'female', 'other'])

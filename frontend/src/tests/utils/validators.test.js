@@ -196,3 +196,12 @@ describe('Validators', () => {
     });
   });
 });
+
+describe('name validation accepts Hindi and Punjabi names (audit P2)', () => {
+  it.each(['Aman Singh', 'अमन शर्मा', 'ਗੁਰਪ੍ਰੀਤ ਸਿੰਘ', "O'Neil", 'José'])('accepts %s', (n) => {
+    expect(validateName(n)).toBe(true);
+  });
+  it.each(['Aman1', 'Аман', '<b>x</b>', 'a'])('rejects %s', (n) => {
+    expect(validateName(n)).toBe(false);
+  });
+});

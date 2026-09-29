@@ -37,11 +37,11 @@ const toIsoDate = (dd: string, mm: string, yyyy: string): string | null => {
 
 /**
  * The server's rule for firstName / lastName (validators updateProfileValidation):
- * trimmed, 2-50 characters, English letters, spaces, apostrophes and hyphens.
+ * trimmed, 2-50 characters, English/Hindi/Punjabi letters, spaces, apostrophes and hyphens.
  * Mirrored here so a rejected name is explained beside its field instead of
  * coming back from the save as an opaque "Validation failed".
  */
-const NAME_PATTERN = /^[a-zA-Z\s'-]+$/;
+const NAME_PATTERN = /^[A-Za-zÀ-ÖØ-öø-ÿऀ-ॣॱ-ॿਁ-੥ੰ-ੵ‌‍\s'’.-]+$/;
 const isValidName = (raw: string): boolean => {
   const v = raw.trim();
   return v.length >= 2 && v.length <= 50 && NAME_PATTERN.test(v);
@@ -129,7 +129,7 @@ export default function CompleteBasicsScreen() {
   // fails the server's rule says how to fix it.
   const nameProblem = (raw: string, requiredMsg: string): string => {
     if (!raw.trim()) return requiredMsg;
-    return isValidName(raw) ? '' : t('auth.signup.nameInvalid', 'Enter at least 2 letters, using English letters only.');
+    return isValidName(raw) ? '' : t('auth.signup.nameInvalid', 'Enter at least 2 letters, in English, Hindi or Punjabi.');
   };
   const firstNameRequired = t('auth.signup.firstNameRequired', 'Enter your first name');
   const lastNameRequired = t('auth.signup.lastNameRequired', 'Enter your last name');

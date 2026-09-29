@@ -39,7 +39,7 @@ const MAX_PHOTOS = 6;
 // Mirrors backend/validators/index.js `updateProfileValidation`, so a value the
 // server would refuse is caught on the field instead of surfacing as a vague
 // "could not save" after the round trip.
-const NAME_RE = /^[a-zA-Z\s'-]+$/;
+const NAME_RE = /^[A-Za-zÀ-ÖØ-öø-ÿऀ-ॣॱ-ॿਁ-੥ੰ-ੵ‌‍\s'’.-]+$/;
 const HEIGHT_MIN_CM = 100;
 const HEIGHT_MAX_CM = 250;
 
@@ -50,7 +50,7 @@ type FieldErrors = Partial<Record<'firstName' | 'lastName' | 'height', string>>;
 const firstNameError = (value: string): string | undefined => {
   const fn = value.trim();
   if (fn.length < 2 || fn.length > 50) return 'Enter your first name (2 to 50 letters).';
-  if (!NAME_RE.test(fn)) return 'Use letters only.';
+  if (!NAME_RE.test(fn)) return 'Use letters only (English, Hindi or Punjabi).';
   return undefined;
 };
 
@@ -60,7 +60,7 @@ const lastNameError = (value: string): string | undefined => {
   const ln = value.trim();
   if (!ln) return undefined;
   if (ln.length < 2 || ln.length > 50) return 'Last name must be 2 to 50 letters.';
-  if (!NAME_RE.test(ln)) return 'Use letters only.';
+  if (!NAME_RE.test(ln)) return 'Use letters only (English, Hindi or Punjabi).';
   return undefined;
 };
 
