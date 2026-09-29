@@ -26,6 +26,8 @@ const { log, logAudit } = require('../middlewares/logger');
 const { generateInvoicePDF } = require('../utils/invoice');
 const { hardDeleteUsers, MAX_BATCH } = require('../utils/hardDeleteUsers');
 const { marriageableAgeProblem } = require('../constants/marriageableAge');
+const { invoiceBlocker } = require('../utils/invoiceEligibility');
+const { recordRefund } = require('../utils/paymentRefunds');
 const { notify } = require('../utils/notifyUser');
 const { sendVerificationApproved, sendVerificationRejected, sendSupportReply } = require('../utils/email');
 const {
@@ -472,13 +474,16 @@ exports.getAnalytics = asyncHandler(async (req, res) => {
     // and no payment id, so summing on amount alone reported comped plans as
     // money that was never taken. razorpayPaymentId also carries the Google
     // Play purchase token, so store purchases still count.
-    Subscription.sum('amount', {
+    // Net of refunds: a partly refunded plan only counts what was kept.
+    Subscription.findOne({
+      attributes: [[sequelize.literal('COALESCE(SUM("amount" - "refundedAmount"), 0)'), 'total']],
       where: {
         status: 'active',
         razorpayPaymentId: { [Op.ne]: null },
         createdAt: { [Op.gte]: startOfMonth },
       },
-    }),
+      raw: true,
+    }).then((row) => Number(row?.total) || 0),
 
     // Pending verification requests
     Verification.count({ where: { status: 'pending' } }),
@@ -499,7 +504,7 @@ exports.getAnalytics = asyncHandler(async (req, res) => {
     // Monthly revenue for last 6 months
     sequelize.query(
       `SELECT TO_CHAR(DATE_TRUNC('month', "createdAt"), 'Mon YY') AS month,
-              SUM(amount)::float AS amount
+              SUM(amount - "refundedAmount")::float AS amount
        FROM "Subscriptions"
        WHERE "createdAt" >= :sixMonthsAgo AND status = 'active'
          AND "razorpayPaymentId" IS NOT NULL
@@ -1230,7 +1235,7 @@ exports.getRevenueReport = asyncHandler(async (req, res) => {
        TO_CHAR(DATE_TRUNC('month', "createdAt"), 'YYYY-MM') AS month,
        "planType",
        COUNT(*)::int AS count,
-       SUM(amount)::float AS revenue
+       SUM(amount - "refundedAmount")::float AS revenue
      FROM "Subscriptions"
      WHERE status IN ('active', 'expired')
        AND amount > 0
@@ -1245,8 +1250,8 @@ exports.getRevenueReport = asyncHandler(async (req, res) => {
   const [totals] = await sequelize.query(
     `SELECT
        COUNT(*)::int AS total_transactions,
-       SUM(amount)::float AS total_revenue,
-       AVG(amount)::float AS avg_transaction
+       SUM(amount - "refundedAmount")::float AS total_revenue,
+       AVG(amount - "refundedAmount")::float AS avg_transaction
      FROM "Subscriptions"
      WHERE status IN ('active', 'expired') AND amount > 0
        AND "razorpayPaymentId" IS NOT NULL`,
@@ -1303,12 +1308,8 @@ exports.adminGetInvoice = asyncHandler(async (req, res) => {
   // Same rule as the member-facing endpoint: no receipt for a ₹0 grant, and
   // none for an order that was created but never paid. An admin handing a
   // member a PDF for money that never arrived is worse than no PDF.
-  if (!subscription.amount || parseFloat(subscription.amount) === 0) {
-    throw createError.badRequest('Invoice not available for a free or granted plan');
-  }
-  if (subscription.status === 'pending' && !subscription.razorpayPaymentId) {
-    throw createError.badRequest('This payment was never completed, so there is no invoice for it');
-  }
+  const blocked = invoiceBlocker(subscription);
+  if (blocked) throw createError.badRequest(blocked);
 
   generateInvoicePDF(res, {
     subscription,
@@ -1404,6 +1405,20 @@ exports.refundSubscription = asyncHandler(async (req, res) => {
     reason,
     razorpayRefundId: refund.id,
   });
+
+  // Record it on the subscription now (the webhook's refund.processed will find
+  // it already recorded and do nothing). Best-effort: the refund has happened at
+  // the gateway either way, and the webhook is the safety net if this fails.
+  try {
+    await recordRefund({
+      paymentId: subscription.razorpayPaymentId,
+      refundId: refund.id,
+      amountPaise,
+      source: 'admin',
+    });
+  } catch (err) {
+    log.error('Could not record refund on the subscription', { error: err.message, subscriptionId: subscription.id });
+  }
 
   if (subscription.User?.id) {
     await notify(

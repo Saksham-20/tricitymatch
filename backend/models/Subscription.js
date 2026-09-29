@@ -67,6 +67,20 @@ const Subscription = sequelize.define('Subscription', {
     comment: 'Number of contact unlocks used so far.',
     validate: { min: 0 }
   },
+  // Refund / dispute state (migration 000068; utils/paymentRefunds.js). A full
+  // refund or a lost dispute ends the plan; a partial refund only nets revenue.
+  refundedAmount: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    defaultValue: 0,
+  },
+  // [{ id, amount, at, source }] — one entry per Razorpay refund id, so a
+  // redelivered webhook is a no-op.
+  refunds: { type: DataTypes.JSONB, allowNull: true },
+  refundedAt: { type: DataTypes.DATE, allowNull: true },
+  // null | 'open' | 'won' | 'lost' | 'closed'
+  disputeStatus: { type: DataTypes.STRING(20), allowNull: true },
+  disputedAt: { type: DataTypes.DATE, allowNull: true },
   // Lifecycle ledger: timestamps of payment events (`paymentFailedAt`,
   // `cancelledAt`) and of mails already sent for this row. Migration 000060
   // created the column, but this model never declared it — and Sequelize

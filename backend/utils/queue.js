@@ -475,6 +475,7 @@ const setupCleanupProcessor = (queue) => {
    */
   queue.process('subscription-lifecycle', () => lifecycle().runSubscriptionLifecycle());
   queue.process('photo-nudge', () => lifecycle().runPhotoNudge());
+  queue.process('payment-reconcile', () => require('./paymentReconcile').reconcilePendingOrders());
 };
 
 /**
@@ -621,6 +622,12 @@ const scheduleCleanupJobs = async () => {
     // the 10:00–22:00 IST window, at a per-member slot, at most once per
     // (row, kind) — see utils/lifecycleMail.js. Frequent ticks just let a slot
     // that falls at 14:07 go out at 14:15 rather than at the next hour.
+    // Asks Razorpay about orders the browser and the webhook both missed
+    // (utils/paymentReconcile.js). Every 30 minutes; idempotent activation.
+    await cleanupQueue.add('payment-reconcile', {}, {
+      repeat: { cron: '5,35 * * * *' }
+    });
+
     await cleanupQueue.add('subscription-lifecycle', {}, {
       repeat: { cron: '15,45 * * * *' }
     });
