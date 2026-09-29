@@ -250,6 +250,31 @@ Complexity: S under a day, M one to three days, L a week or more. Every P0 item 
 
 Partner-preference schema with must-have versus preferred; missing profile fields; per-field visibility for income and birth details; account pause and a deletion grace period; new-device login alerts and login history; phone-OTP password reset for phone-only accounts; malicious-link and off-platform-payment detection in chat; duplicate-person detection; controlled vocabularies for caste, education and profession; audit-log completeness and per-member moderation history; CSV formula-injection guard; Redis socket adapter for horizontal scale; ranking experiments; Unicode names at signup.
 
+### Implementation status (branch `fix/audit-p0-2026-09`, not merged or deployed)
+
+**P1: all sixteen items are implemented.** P1-11 is the repo half only (runbook `docs/BACKUP_DR.md`); installing the backup job on the VPS, the off-box copy and the restore rehearsal are owner/ops actions. Log retention of 180 days (P1-12) also needs the host logrotate setting.
+
+**P2: all fourteen items are implemented**, each with tests that fail on the old behaviour:
+
+| Item | Where | Note |
+|---|---|---|
+| Partner-preference must-haves | `utils/preferenceFit.js`, migration 000078, search, web + app | A must-have with no value does nothing; blank candidate fields are never excluded; only the searcher's own must-haves apply |
+| Missing profile fields | migration 000079, validators, web steps and views | Nationality, relocation, living arrangement, family values, institution, industry, brothers/sisters. App screens read them, only the website edits them |
+| Per-field visibility | `constants/fieldVisibility.js`, migration 000076 | Income and birth details: everyone / matches / only me. Search will not match a hidden income |
+| Pause and deletion grace | `utils/accountLifecycle.js`, migration 000074 | 30-day grace, `ACCOUNT_DELETION_GRACE_DAYS` |
+| New-device alerts, login history | `utils/deviceRecognition.js` | History reaches back as far as refresh-token rows survive (30 days after revocation) |
+| Phone-OTP reset | `authController` | Only for active phone-only accounts with a password; uniform answers |
+| Chat scam and link signals | `utils/chatSafety.js`, migration 000075 | Signals beside messages and a staff alert for repeat senders; nothing is blocked; phone numbers and emails are not flagged |
+| Duplicate-person detection | `adminSafetyController.getSuspicious` | New `duplicateIdentity` signal: same name, birth date and gender (weak weight) |
+| Controlled vocabularies | `constants/vocabularies.js`, migration 000077 | `educationLevel` and `professionGroup` derived by a model hook and used by search; caste canonicalised only on an exact or alias match |
+| Audit completeness, moderation history | `GET /admin/users/:id/moderation-history`, `utils/moderationHistory.js` | Story create/update/delete and opening a member record are now audited; the audit log filters by actor and target |
+| CSV formula guard | `utils/csv.js` | Both exports and the client-side revenue export |
+| Redis socket adapter | `utils/socketAdapter.js` | Off unless `SOCKET_REDIS_ADAPTER=true`; a second instance also needs sticky sessions and the presence map moved to Redis |
+| Ranking experiments | `utils/rankingExperiment.js` | One at a time, stable hash buckets, per-arm interests and mutual matches since the start; admin Search ranking page |
+| Unicode names | `constants/names.js` | Devanagari and Gurmukhi accepted; PDFs print only the Latin part (pdfkit fonts) |
+
+Migrations added by P0-P2: **000065-000079**, applied to the dev and test databases only.
+
 ## 9. Corrections to what `CLAUDE.md` currently says
 
 - Says 60 migrations. Auditor A counted **64** (through `000064`).
