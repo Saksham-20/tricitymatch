@@ -23,6 +23,21 @@ const memoryQueue = {
 };
 
 /**
+ * Connection for the job queues: the dedicated non-evicting instance when one is
+ * configured (QUEUE_REDIS_*), otherwise the main Redis.
+ */
+const queueRedisConnection = () => {
+  const q = config.redis.queue || {};
+  if (q.url) return q.url;
+  if (!q.host && config.redis.url) return config.redis.url;
+  return {
+    host: q.host || config.redis.host,
+    port: q.port || config.redis.port,
+    ...((q.password || config.redis.password) ? { password: q.password || config.redis.password } : {}),
+  };
+};
+
+/**
  * Initialize job queues
  */
 const initQueues = async () => {
@@ -39,13 +54,7 @@ const initQueues = async () => {
   try {
     const Bull = require('bull');
     const redisOptions = {
-      redis: config.redis.url
-        ? config.redis.url
-        : {
-          host: config.redis.host,
-          port: config.redis.port,
-          ...(config.redis.password ? { password: config.redis.password } : {}),
-        },
+      redis: queueRedisConnection(),
       defaultJobOptions: {
         removeOnComplete: 100, // Keep last 100 completed jobs
         removeOnFail: 500, // Keep last 500 failed jobs
@@ -694,6 +703,7 @@ const closeQueues = async () => {
 };
 
 module.exports = {
+  queueRedisConnection, // exported for tests
   runSubscriptionLifecycle: (...args) => lifecycle().runSubscriptionLifecycle(...args),
   runPhotoNudge: (...args) => lifecycle().runPhotoNudge(...args),
   initQueues,

@@ -326,6 +326,16 @@ const config = {
     isConfigured: () => {
       return !!optionalString('REDIS_URL') || !!optionalString('REDIS_HOST');
     },
+    // Job queues (Bull) belong on an instance that NEVER evicts: dropping a queued
+    // job silently loses an email, a renewal notice or a payment reconcile. The
+    // cache instance evicts under memory pressure by design. Unset QUEUE_REDIS_*
+    // falls back to the main instance (dev, single-Redis installs).
+    queue: {
+      url: optionalString('QUEUE_REDIS_URL', ''),
+      host: optionalString('QUEUE_REDIS_HOST', '') || optionalString('REDIS_HOST', 'localhost'),
+      port: optionalNumber('QUEUE_REDIS_PORT', 0) || optionalNumber('REDIS_PORT', 6379),
+      password: optionalString('QUEUE_REDIS_PASSWORD', '') || optionalString('REDIS_PASSWORD', ''),
+    },
   },
 
   // Founding-member offer (Phase S)
