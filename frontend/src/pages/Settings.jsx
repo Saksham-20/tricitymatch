@@ -15,6 +15,7 @@ import useElderMode from '../hooks/useElderMode';
 import LanguageSwitcher from '../components/common/LanguageSwitcher';
 import LiveSelfieCapture from '../components/verification/LiveSelfieCapture';
 import InviteLink from '../components/common/InviteLink';
+import ContactNumberVerify from '../components/common/ContactNumberVerify';
 import { EmptyState, ErrorState, Skeleton } from '../components/ui';
 import { modal, backdrop } from '../utils/animations';
 
@@ -364,6 +365,26 @@ const SessionsSection = () => {
   );
 };
 
+const ContactNumberCard = () => {
+  const { user, updateUser } = useAuth();
+  const [phone, setPhone] = useState(user?.phone || '');
+  const verified = !!user?.phoneVerified && phone === user?.phone;
+  return (
+    <div>
+      <GroupHeader title="Contact number" desc="The number members call after they unlock your contact" />
+      <div className="px-4 max-w-xl">
+        <ContactNumberVerify
+          flow="account"
+          value={phone}
+          verified={verified}
+          onChange={setPhone}
+          onVerified={(d) => { setPhone(d); updateUser({ phone: d, phoneVerified: true }); toast.success('Number verified'); }}
+        />
+      </div>
+    </div>
+  );
+};
+
 const AccountTab = () => {
   const { user } = useAuth();
   const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -409,6 +430,8 @@ const AccountTab = () => {
 
   return (
     <div className="space-y-8">
+      <ContactNumberCard />
+
       {/* Doctrine §3.4 finding: Invite/Appearance/More were each their own
           bordered box nested inside the content panel's own border+shadow —
           a card inside a card, repeated. All three are plain settings groups

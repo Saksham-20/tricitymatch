@@ -115,6 +115,8 @@
     "POST /api/v1/auth/change-email/request",
     "POST /api/v1/auth/change-email/verify",
     "POST /api/v1/auth/change-password",
+    "POST /api/v1/auth/contact-number/request",
+    "POST /api/v1/auth/contact-number/verify",
     "POST /api/v1/auth/forgot-password",
     "POST /api/v1/auth/google",
     "POST /api/v1/auth/login",

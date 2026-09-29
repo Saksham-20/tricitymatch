@@ -975,6 +975,57 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
   res.json({ ...result, message: `${type} verified successfully` });
 });
 
+// ---- Contact number (the number other members call after an unlock) ----
+// Only a number the member has proved they control is ever shown on unlock, so a
+// typo in a form can never send someone to a stranger. The check is against the
+// DB: if the account already holds this exact number as verified, no OTP.
+const phoneVariants = (phone10) => [phone10, `91${phone10}`, `+91${phone10}`, `0${phone10}`];
+const toPhone10 = (raw) => String(raw || '').replace(/\D/g, '').slice(-10);
+
+const assertPhoneFree = async (phone10, userId) => {
+  const { Op } = require('sequelize');
+  const taken = await User.findOne({
+    where: { phone: { [Op.in]: phoneVariants(phone10) }, id: { [Op.ne]: userId } },
+    attributes: ['id'],
+  });
+  if (taken) throw createError.conflict('This number is already linked to another account.');
+};
+
+// @route   POST /api/auth/contact-number/request
+// @desc    Start verifying a contact number (skips the OTP when already verified)
+// @access  Private
+exports.requestContactNumber = asyncHandler(async (req, res) => {
+  const phone10 = toPhone10(req.body.phone);
+  if (!/^[6-9]\d{9}$/.test(phone10)) throw createError.badRequest('Enter a valid 10-digit Indian mobile number');
+
+  const user = await User.findByPk(req.user.id, { attributes: ['id', 'phone', 'phoneVerified'] });
+  if (user.phoneVerified && toPhone10(user.phone) === phone10) {
+    return res.json({ success: true, alreadyVerified: true, phone: phone10 });
+  }
+  await assertPhoneFree(phone10, user.id);
+  const result = await smsService.sendOtp(phone10);
+  res.json({ ...result, alreadyVerified: false, phone: phone10 });
+});
+
+// @route   POST /api/auth/contact-number/verify
+// @desc    Confirm the OTP and save the number as the member's verified contact
+// @access  Private
+exports.verifyContactNumber = asyncHandler(async (req, res) => {
+  const phone10 = toPhone10(req.body.phone);
+  if (!/^[6-9]\d{9}$/.test(phone10)) throw createError.badRequest('Enter a valid 10-digit Indian mobile number');
+
+  const user = await User.findByPk(req.user.id, { attributes: ['id', 'phone', 'phoneVerified'] });
+  const alreadyVerified = user.phoneVerified && toPhone10(user.phone) === phone10;
+  if (!alreadyVerified) {
+    if (!req.body.code) throw createError.badRequest('Enter the code we sent');
+    await assertPhoneFree(phone10, user.id);
+    await smsService.verifyOtp(phone10, String(req.body.code));
+    await User.update({ phone: phone10, phoneVerified: true }, { where: { id: user.id } });
+    log.info('Contact number verified', { userId: user.id });
+  }
+  res.json({ success: true, phone: phone10, phoneVerified: true });
+});
+
 // @route   POST /api/auth/google
 // @desc    Sign in / sign up with Google ID token
 // @access  Public

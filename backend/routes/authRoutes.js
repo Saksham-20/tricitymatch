@@ -23,6 +23,8 @@ const {
   googleAuth,
   requestEmailChange,
   verifyEmailChange,
+  requestContactNumber,
+  verifyContactNumber,
 } = require('../controllers/authController');
 const { auth } = require('../middlewares/auth');
 const { handleValidationErrors } = require('../middlewares/errorHandler');
@@ -166,6 +168,25 @@ router.post('/change-email/verify',
   changeEmailVerifyValidation,
   handleValidationErrors,
   verifyEmailChange
+);
+
+// Contact number: verified once, then shown to members who unlock this profile.
+// The request step skips the OTP entirely when the DB already holds this exact
+// number as verified for the account.
+router.post('/contact-number/request',
+  auth,
+  otpLimiter,
+  body('phone').isString().isLength({ min: 10, max: 16 }),
+  handleValidationErrors,
+  requestContactNumber
+);
+router.post('/contact-number/verify',
+  auth,
+  otpLimiter,
+  body('phone').isString().isLength({ min: 10, max: 16 }),
+  body('code').optional().isLength({ min: 4, max: 6 }).isNumeric(),
+  handleValidationErrors,
+  verifyContactNumber
 );
 
 // Get active sessions

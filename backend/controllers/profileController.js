@@ -670,12 +670,14 @@ exports.getProfile = asyncHandler(async (req, res) => {
   // Only fetch contact details from DB when the viewer has actually earned access.
   // This prevents any accidental leakage through JSON serialisation.
   if (hasPremiumAccess && isContactUnlocked) {
-    const targetUser = await User.findByPk(userId, { attributes: ['phone', 'email'] });
+    const targetUser = await User.findByPk(userId, { attributes: ['phone', 'email', 'phoneVerified'] });
+    // Only a number the owner proved they control is ever revealed.
+    const revealedPhone = targetUser?.phoneVerified ? targetUser.phone : null;
     if (profileData.User) {
-      profileData.User.phone = targetUser?.phone ?? null;
+      profileData.User.phone = revealedPhone ?? null;
       profileData.User.email = targetUser?.email ?? null;
     } else {
-      profileData.contactPhone = targetUser?.phone ?? null;
+      profileData.contactPhone = revealedPhone ?? null;
       profileData.contactEmail = targetUser?.email ?? null;
     }
   } else {
@@ -805,13 +807,21 @@ exports.unlockContact = asyncHandler(async (req, res) => {
   if (existing) {
     const tp = await Profile.findOne({
       where: { userId: targetUserId },
-      include: [{ model: User, attributes: ['email', 'phone'] }]
+      include: [{ model: User, attributes: ['email', 'phone', 'phoneVerified'] }]
     });
     return res.json({
       success: true,
       alreadyUnlocked: true,
-      contact: { phone: tp?.User?.phone || null, email: tp?.User?.email || null }
+      contact: { phone: (tp?.User?.phoneVerified && tp?.User?.phone) || null, email: tp?.User?.email || null }
     });
+  }
+
+  // Nothing to call means nothing to buy: refuse before a paid unlock is spent.
+  const targetContact = await User.findByPk(targetUserId, { attributes: ['phone', 'phoneVerified'] });
+  if (!targetContact?.phoneVerified || !targetContact.phone) {
+    throw createError.conflict(
+      'This member has not verified a contact number yet, so no unlock was used. Send them an interest and check back soon.'
+    );
   }
 
   let result;
@@ -842,12 +852,12 @@ exports.unlockContact = asyncHandler(async (req, res) => {
         // Another request created it; charge nothing and report it as unlocked.
         const tpDup = await Profile.findOne({
           where: { userId: targetUserId },
-          include: [{ model: User, attributes: ['email', 'phone'] }],
+          include: [{ model: User, attributes: ['email', 'phone', 'phoneVerified'] }],
           transaction: t
         });
         return {
           duplicate: true,
-          contact: { phone: tpDup?.User?.phone || null, email: tpDup?.User?.email || null },
+          contact: { phone: (tpDup?.User?.phoneVerified && tpDup?.User?.phone) || null, email: tpDup?.User?.email || null },
         };
       }
 
@@ -926,12 +936,12 @@ exports.unlockContact = asyncHandler(async (req, res) => {
 
       const tp = await Profile.findOne({
         where: { userId: targetUserId },
-        include: [{ model: User, attributes: ['email', 'phone'] }],
+        include: [{ model: User, attributes: ['email', 'phone', 'phoneVerified'] }],
         transaction: t
       });
 
       return {
-        contact: { phone: tp?.User?.phone || null, email: tp?.User?.email || null },
+        contact: { phone: (tp?.User?.phoneVerified && tp?.User?.phone) || null, email: tp?.User?.email || null },
         remaining
       };
     });
@@ -942,12 +952,12 @@ exports.unlockContact = asyncHandler(async (req, res) => {
     if (err?.name === 'SequelizeUniqueConstraintError') {
       const tp = await Profile.findOne({
         where: { userId: targetUserId },
-        include: [{ model: User, attributes: ['email', 'phone'] }]
+        include: [{ model: User, attributes: ['email', 'phone', 'phoneVerified'] }]
       });
       return res.json({
         success: true,
         alreadyUnlocked: true,
-        contact: { phone: tp?.User?.phone || null, email: tp?.User?.email || null }
+        contact: { phone: (tp?.User?.phoneVerified && tp?.User?.phone) || null, email: tp?.User?.email || null }
       });
     }
     throw err;

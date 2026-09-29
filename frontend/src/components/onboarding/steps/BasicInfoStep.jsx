@@ -4,6 +4,7 @@ import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
 import Select from '../../ui/Select';
 import DobField from '../../ui/DobField';
+import ContactNumberVerify from '../../common/ContactNumberVerify';
 import { validateName, validateAge } from '../../../utils/validators';
 import { staggerContainer, fadeRise } from '../../../utils/animations';
 
@@ -44,6 +45,12 @@ const BasicInfoStep = () => {
 
     if (!data.gender) {
       newErrors.gender = 'Gender is required';
+    }
+
+    // An email signup has no phone yet; members call this number after an
+    // unlock, so it must be present and proven before the account exists.
+    if (mode === 'signup' && data.email && !data.phoneVerification) {
+      newErrors.phone = 'Verify your mobile number to continue';
     }
 
     if (!data.dateOfBirth) {
@@ -150,6 +157,22 @@ const BasicInfoStep = () => {
           required
         />
       </motion.div>
+
+      {mode === 'signup' && formData.email && (
+        <motion.div variants={fadeRise}>
+          <ContactNumberVerify
+            flow="signup"
+            value={formData.phone}
+            verified={!!formData.phoneVerification}
+            error={errors.phone}
+            onChange={(d) => {
+              updateFormData('phone', d);
+              if (formData.phoneVerification) updateFormData('phoneVerification', false);
+            }}
+            onVerified={(d) => { updateFormData('phone', d); updateFormData('phoneVerification', true); setStepErrors({}); }}
+          />
+        </motion.div>
+      )}
 
       {/* Height/weight are collected post-signup: self-signup stays a 2-field
           minimum, while edit + guardian flows carry the full basic profile. */}
