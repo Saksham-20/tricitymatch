@@ -388,6 +388,10 @@ exports.signup = asyncHandler(async (req, res) => {
     });
   }
 
+  // Guardian invites sent to this address before the account existed are now
+  // visible to it — say so (only when the address was proved at signup).
+  setImmediate(() => { require('../utils/guardianInvites').noticeInvitesOnJoin(result); });
+
   // Generate tokens — the refresh row first, so the access token can carry its id.
   const { token: refreshToken, sessionId } = await generateRefreshToken(
     result.id,

@@ -168,7 +168,7 @@ const makeIm = (c: ThemeColours) => StyleSheet.create({
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
 const STATUS_BADGE: Record<GuardianLink['status'], { label: string; tone: 'warning' | 'success' | 'neutral' }> = {
-  pending: { label: 'Invite sent', tone: 'warning' },
+  pending: { label: 'Waiting for reply', tone: 'warning' },
   active:  { label: 'Active',      tone: 'success' },
   revoked: { label: 'Revoked',     tone: 'neutral' },
 };
@@ -192,7 +192,7 @@ export default function GuardianSetupScreen() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.guardianLinks });
       setShowInvite(false);
-      showToast.success('Invite sent', 'They can log in with their email to see your match list.');
+      showToast.success('Invite sent', 'They have 7 days to accept. They only see your matches if they say yes.');
     },
     // No toast: the failure is shown inside the (still open) invite sheet.
   });

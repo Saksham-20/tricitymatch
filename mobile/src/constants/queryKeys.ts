@@ -23,6 +23,7 @@ export const queryKeys = {
   groupInvitations: ['chat', 'group-invitations'] as const,
   guardianLinks:    ['guardian', 'links'] as const,
   guardianCandidates: ['guardian', 'candidates'] as const,
+  guardianInvites:  ['guardian', 'invites'] as const,
   guardianMatches:  (candidateId: string) => ['guardian', 'matches', candidateId] as const,
   guardianShortlist:(candidateId: string) => ['guardian', 'shortlist', candidateId] as const,
 };

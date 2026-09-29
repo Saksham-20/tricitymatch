@@ -212,6 +212,17 @@ const setupCleanupProcessor = (queue) => {
     return runMessageRetention();
   });
 
+  // Guardian invites that nobody answered inside their 7 days are closed, so
+  // they stop counting toward a candidate's 3-guardian cap and cannot be
+  // accepted late. Reads already ignore expired rows; this keeps the table
+  // honest.
+  queue.process('expire-guardian-invites', async () => {
+    const { expireStaleInvites } = require('./guardianInvites');
+    const expired = await expireStaleInvites();
+    log.info('Expired guardian invites', { count: expired });
+    return { expired };
+  });
+
   queue.process('cleanup-inactive-sessions', async (job) => {
     const { RefreshToken } = require('../models');
     const { Op } = require('sequelize');
@@ -595,6 +606,11 @@ const scheduleCleanupJobs = async () => {
     // Clean inactive sessions every day at 4 AM
     await cleanupQueue.add('cleanup-inactive-sessions', {}, {
       repeat: { cron: '0 4 * * *' }
+    });
+
+    // Close unanswered guardian invites daily at 5 AM
+    await cleanupQueue.add('expire-guardian-invites', {}, {
+      repeat: { cron: '0 5 * * *' }
     });
 
     // Expire subscriptions every hour

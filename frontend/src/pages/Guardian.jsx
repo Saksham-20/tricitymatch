@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
-import { FiUsers, FiUserPlus, FiTrash2, FiEye, FiHeart, FiStar } from 'react-icons/fi';
+import { FiUsers, FiUserPlus, FiTrash2, FiEye, FiHeart, FiStar, FiCheck, FiX } from 'react-icons/fi';
 import { EmptyState, ErrorState, Skeleton } from '../components/ui';
 
 export default function Guardian() {
@@ -18,17 +19,21 @@ export default function Guardian() {
   // server problem behind a claim about the member's own data.
   const [loadError, setLoadError] = useState(false);
   const [confirmRevoke, setConfirmRevoke] = useState(null); // linkId pending confirmation
+  const [invitesForMe, setInvitesForMe] = useState([]);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const load = useCallback(async () => {
     setLoading(true);
     setLoadError(false);
     try {
-      const [g, c] = await Promise.all([
+      const [g, c, p] = await Promise.all([
         api.get('/guardian/my-guardians'),
         api.get('/guardian/my-candidates'),
+        api.get('/guardian/pending-invites'),
       ]);
       setGuardians(g.data.guardians || []);
       setCandidates(c.data.candidates || []);
+      setInvitesForMe(p.data.invites || []);
     } catch {
       setLoadError(true);
     } finally {
@@ -36,7 +41,44 @@ export default function Guardian() {
     }
   }, []);
 
+  // The emailed link lands here as /guardian?invite=<token>. Opening it while
+  // signed in is the acceptance; the token only ever went to the invited address.
+  const inviteToken = searchParams.get('invite');
+  useEffect(() => {
+    if (!inviteToken) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        await api.post(`/guardian/resolve-invite/${encodeURIComponent(inviteToken)}`);
+        if (!cancelled) {
+          toast.success('You are now a guardian');
+          setTab('candidates');
+        }
+      } catch (err) {
+        if (!cancelled) toast.error(err.response?.data?.message || 'This invite is invalid or has expired');
+      } finally {
+        if (!cancelled) {
+          setSearchParams((prev) => { const next = new URLSearchParams(prev); next.delete('invite'); return next; }, { replace: true });
+          load();
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [inviteToken, load, setSearchParams]);
+
   useEffect(() => { load(); }, [load]);
+
+  const answerInvite = async (linkId, decision) => {
+    try {
+      await api.post(`/guardian/${linkId}/${decision}`);
+      toast.success(decision === 'accept' ? 'You are now a guardian' : 'Invite declined');
+      if (decision === 'accept') setTab('candidates');
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'That invite is no longer open');
+      load();
+    }
+  };
 
   const invite = async (e) => {
     e.preventDefault();
@@ -87,6 +129,31 @@ export default function Guardian() {
         <h1 className="text-2xl font-semibold text-neutral-800 dark:text-neutral-100">{t('guardian.title')}</h1>
       </div>
       <p className="text-neutral-500 dark:text-neutral-400 mb-6">{t('guardian.subtitle')}</p>
+
+      {invitesForMe.length > 0 && (
+        <section aria-label="Guardian invites waiting for you" className="mb-6 rounded-xl bg-neutral-100 dark:bg-neutral-800 px-4 py-4">
+          <h2 className="text-base font-semibold text-neutral-800 dark:text-neutral-100 mb-1">Invites waiting for you</h2>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-3">As a guardian you can see their shortlist and mutual matches. You cannot message anyone or edit their profile.</p>
+          <ul className="space-y-2">
+            {invitesForMe.map((inv) => (
+              <li key={inv.linkId} className="flex flex-wrap items-center justify-between gap-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg px-3 py-2.5">
+                <div>
+                  <p className="text-neutral-800 dark:text-neutral-100 font-medium">{inv.candidateName || 'A TricityMatch member'}</p>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">Open until {new Date(inv.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => answerInvite(inv.linkId, 'accept')} className="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 transition-colors duration-[160ms]">
+                    <FiCheck className="w-4 h-4" /> Accept
+                  </button>
+                  <button onClick={() => answerInvite(inv.linkId, 'decline')} className="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 text-sm font-medium hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-[160ms]">
+                    <FiX className="w-4 h-4" /> Decline
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className="flex gap-2 mb-6">
         <TabBtn active={tab === 'guardians'} onClick={() => setTab('guardians')}>{t('guardian.myGuardians')}</TabBtn>
@@ -140,7 +207,11 @@ export default function Guardian() {
                 <li key={g.linkId} className="flex items-center justify-between bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl px-4 py-3">
                   <div>
                     <p className="text-neutral-800 dark:text-neutral-100 font-medium">{g.email}</p>
-                    <span className={`text-xs capitalize ${g.status === 'active' ? 'text-success' : 'text-warning'}`}>{g.status}</span>
+                    <span className={`text-xs ${g.status === 'active' ? 'text-success' : 'text-warning'}`}>
+                      {g.status === 'active'
+                        ? 'Active'
+                        : `Waiting for their reply${g.expiresAt ? ` · until ${new Date(g.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : ''}`}
+                    </span>
                   </div>
                   {confirmRevoke === g.linkId ? (
                     <div className="flex items-center gap-2 text-sm">
@@ -157,6 +228,8 @@ export default function Guardian() {
               ))}
             </ul>
           )}
+
+          <HandOverCard />
         </>
       )}
 
@@ -245,5 +318,63 @@ function CandidateCard({ candidate }) {
         </ul>
       )}
     </li>
+  );
+}
+
+/**
+ * Hand this profile to the person it is about. Shown to everyone because the
+ * account holder is the only one who knows whether they set it up for someone
+ * else; it asks for the password again and mails the owner a one-time link.
+ */
+function HandOverCard() {
+  const [open, setOpen] = useState(false);
+  const [ownerEmail, setOwnerEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await api.post('/guardian/handover', { email: ownerEmail, password });
+      setSent(true);
+      setPassword('');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not send the hand-over link');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const field = 'w-full px-4 py-3 text-base rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-[border-color,box-shadow] duration-[160ms]';
+
+  return (
+    <section className="mt-10 rounded-xl bg-neutral-100 dark:bg-neutral-800 px-4 py-4">
+      <h2 className="text-base font-semibold text-neutral-800 dark:text-neutral-100">Set this profile up for someone else?</h2>
+      <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">When they are ready, hand it over. They get an email link, choose their own password, and the profile becomes theirs. You are signed out of it.</p>
+      {!open ? (
+        <button onClick={() => setOpen(true)} className="mt-3 inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-sm font-medium text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-[160ms]">
+          Hand over this profile
+        </button>
+      ) : sent ? (
+        <p role="status" className="mt-3 text-sm text-neutral-700 dark:text-neutral-200">We sent {ownerEmail} a link. It works once and expires in 7 days.</p>
+      ) : (
+        <form onSubmit={submit} className="mt-3 space-y-3">
+          <div>
+            <label htmlFor="handover-email" className="block text-sm font-medium text-neutral-600 dark:text-neutral-300 mb-1">Their email address</label>
+            <input id="handover-email" type="email" required value={ownerEmail} onChange={(e) => setOwnerEmail(e.target.value)} className={field} autoComplete="off" />
+          </div>
+          <div>
+            <label htmlFor="handover-password" className="block text-sm font-medium text-neutral-600 dark:text-neutral-300 mb-1">Your password, to confirm</label>
+            <input id="handover-password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className={field} autoComplete="current-password" />
+          </div>
+          <div className="flex gap-2">
+            <button type="submit" disabled={busy} className="inline-flex items-center justify-center min-h-[44px] px-5 rounded-lg bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 disabled:opacity-60 transition-colors duration-[160ms]">Send link</button>
+            <button type="button" onClick={() => setOpen(false)} className="inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg text-sm text-neutral-600 dark:text-neutral-300">Cancel</button>
+          </div>
+        </form>
+      )}
+    </section>
   );
 }
