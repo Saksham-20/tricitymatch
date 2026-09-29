@@ -88,6 +88,7 @@ const AdminLeads = lazy(() => import('./pages/admin/AdminLeads'));
 const AdminSuccessStories = lazy(() => import('./pages/admin/AdminSuccessStories'));
 const AdminContactMessages = lazy(() => import('./pages/admin/AdminContactMessages'));
 const AdminLaunchOffer = lazy(() => import('./pages/admin/AdminLaunchOffer'));
+const AdminRanking = lazy(() => import('./pages/admin/AdminRanking'));
 const AdminTeam = lazy(() => import('./pages/admin/AdminTeam'));
 const AdminFunnel = lazy(() => import('./pages/admin/AdminFunnel'));
 const AdminAuditLog = lazy(() => import('./pages/admin/AdminAuditLog'));
@@ -481,6 +482,7 @@ const AnimatedRoutes = () => {
             <Route path="success-stories"          element={<AdminScopeRoute scope="stories"><AdminSuccessStories /></AdminScopeRoute>} />
             <Route path="contact-messages"         element={<AdminScopeRoute scope="support"><AdminContactMessages /></AdminScopeRoute>} />
             <Route path="launch-offer"             element={<AdminScopeRoute scope="pricing"><AdminLaunchOffer /></AdminScopeRoute>} />
+            <Route path="ranking"                  element={<AdminScopeRoute scope="ranking"><AdminRanking /></AdminScopeRoute>} />
             <Route path="team"                     element={<AdminScopeRoute scope="team"><AdminTeam /></AdminScopeRoute>} />
             <Route path="funnel"                   element={<AdminScopeRoute scope="users"><AdminFunnel /></AdminScopeRoute>} />
             <Route path="audit-log"                element={<AdminScopeRoute scope="team"><AdminAuditLog /></AdminScopeRoute>} />

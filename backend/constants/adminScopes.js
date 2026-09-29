@@ -25,6 +25,7 @@ const ADMIN_SCOPES = {
   subscriptions: 'Grant or change a member plan, download invoices',
   verifications: 'Approve or reject photo verifications',
   pricing: 'Edit launch pricing, offers and the founding window',
+  ranking: 'Tune how search results are ranked',
   revenue: 'View revenue reports and export them',
   reports: 'Work the abuse/report queue',
   support: 'Read and reply to the support inbox',

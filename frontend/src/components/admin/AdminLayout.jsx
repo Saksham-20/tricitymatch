@@ -6,7 +6,7 @@ import {
   FiGrid, FiUsers, FiCheckCircle, FiCreditCard,
   FiTrendingUp, FiFlag, FiLogOut, FiMenu, FiX,
   FiChevronRight, FiTag, FiUserPlus, FiPhoneCall, FiHeart, FiInbox, FiShield,
-  FiFilter, FiList, FiMoon, FiSun, FiExternalLink, FiAlertTriangle,
+  FiFilter, FiList, FiMoon, FiSun, FiExternalLink, FiAlertTriangle, FiSliders,
 } from 'react-icons/fi';
 
 // `scope` is the permission the server requires for that section. A sub-admin
@@ -19,6 +19,7 @@ const navItems = [
   { to: '/admin/verifications',    label: 'Verifications',     icon: FiCheckCircle, scope: 'verifications' },
   { to: '/admin/subscriptions',    label: 'Subscriptions',     icon: FiCreditCard,  scope: 'subscriptions' },
   { to: '/admin/launch-offer',     label: 'Pricing & Offers',  icon: FiTag,         scope: 'pricing' },
+  { to: '/admin/ranking',          label: 'Search Ranking',    icon: FiSliders,     scope: 'ranking' },
   { to: '/admin/revenue',          label: 'Revenue',           icon: FiTrendingUp,  scope: 'revenue' },
   { to: '/admin/reports',          label: 'Reports',           icon: FiFlag,        scope: 'reports' },
   { to: '/admin/safety',            label: 'Trust & Safety',    icon: FiAlertTriangle, scope: 'reports' },

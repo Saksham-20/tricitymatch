@@ -48,6 +48,8 @@ const {
   replyToContactMessage,
   getLaunchOffer,
   updateLaunchOffer,
+  getRankingWeights,
+  updateRankingWeights,
   updateContactMessage,
   getSuccessStories,
   createSuccessStory,
@@ -296,6 +298,8 @@ router.post(
 // express-validator chains that would drift from it.
 router.get('/launch-offer', requireAdminScope('pricing'), getLaunchOffer);
 router.put('/launch-offer', requireAdminScope('pricing'), updateLaunchOffer);
+router.get('/ranking-weights', requireAdminScope('ranking'), getRankingWeights);
+router.put('/ranking-weights', requireAdminScope('ranking'), updateRankingWeights);
 
 // ==================== SUCCESS STORIES ====================
 

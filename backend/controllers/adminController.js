@@ -2072,6 +2072,32 @@ exports.updateLaunchOffer = asyncHandler(async (req, res) => {
   });
 });
 
+// @route   GET /api/v1/admin/ranking-weights
+// @desc    Current search ranking weights, the defaults, and the allowed ranges
+// @access  Admin (ranking scope)
+exports.getRankingWeights = asyncHandler(async (req, res) => {
+  const { getWeights, DEFAULT_WEIGHTS, LIMITS, FACTOR_LABELS } = require('../utils/rankingWeights');
+  res.json({ success: true, weights: getWeights(), defaults: DEFAULT_WEIGHTS, limits: LIMITS, labels: FACTOR_LABELS });
+});
+
+// @route   PUT /api/v1/admin/ranking-weights
+// @desc    Save search ranking weights (or reset with { reset: true })
+// @access  Admin (ranking scope)
+exports.updateRankingWeights = asyncHandler(async (req, res) => {
+  const { saveWeights, resetWeights } = require('../utils/rankingWeights');
+  let weights;
+  try {
+    weights = req.body?.reset === true
+      ? await resetWeights(req.user.id)
+      : await saveWeights(req.body?.weights, req.user.id);
+  } catch (err) {
+    if (err.statusCode === 400) throw createError.badRequest(err.message);
+    throw err;
+  }
+  logAudit('ranking_weights_updated', req.user.id, { weights, reset: req.body?.reset === true });
+  res.json({ success: true, weights });
+});
+
 // @route   POST /api/v1/admin/contact-messages/:id/reply
 // @desc    Reply to a support enquiry (emails the enquirer, records the reply)
 // @access  Private/Admin

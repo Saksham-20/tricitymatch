@@ -348,6 +348,13 @@ const startServer = async () => {
       console.log('✓ Database migrations up to date');
     }
 
+    // Search ranking weights (admin-editable). A failure means the defaults.
+    try {
+      await require('./utils/rankingWeights').initRankingWeights();
+    } catch (error) {
+      console.log('⚠ Ranking weights unavailable — defaults in effect');
+    }
+
     // Warm the admin-editable launch-offer / founding-window settings. Sync
     // reads downstream (getPlanDetails runs inside payment transactions) serve
     // off this cache; a failure here just means regular pricing, never free.

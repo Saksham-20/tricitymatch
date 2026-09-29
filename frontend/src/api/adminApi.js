@@ -23,6 +23,11 @@ export const updateReport = (reportId, data) => api.put(`/admin/reports/${report
 export const getAppeals = (params) => api.get('/admin/appeals', { params });
 export const decideAppeal = (id, data) => api.put(`/admin/appeals/${id}`, data);
 
+// Search ranking weights
+export const getRankingWeights = () => api.get('/admin/ranking-weights');
+export const saveRankingWeights = (weights) => api.put('/admin/ranking-weights', { weights });
+export const resetRankingWeights = () => api.put('/admin/ranking-weights', { reset: true });
+
 // Invoice
 export const adminGetInvoice = (subscriptionId) =>
   api.get(`/admin/invoice/${subscriptionId}`, { responseType: 'blob' });
