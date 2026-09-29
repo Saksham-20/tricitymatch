@@ -1,19 +1,25 @@
 # TricityMatch Backend Dockerfile
 # Multi-stage build for production optimization
 
+# Node 22 (LTS). Node 20 reached end of life in April 2026. Pinned by digest so a
+# rebuild cannot silently pick up a different base; bump the tag AND digest
+# together (docker buildx imagetools inspect node:22-alpine).
+ARG NODE_IMAGE=node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402
+
 # ==================== BUILD STAGE ====================
-FROM node:20-alpine AS builder
+FROM ${NODE_IMAGE} AS builder
 
 WORKDIR /app
 
 # Copy package files (+ .npmrc for legacy-peer-deps resolution)
 COPY package*.json .npmrc ./
 
-# Install production dependencies (npm install tolerates lock file out of sync)
-RUN npm install --omit=dev
+# Install exactly the tree that was tested (backend/package-lock.json is committed;
+# npm ci fails if it and package.json disagree)
+RUN npm ci --omit=dev
 
 # ==================== PRODUCTION STAGE ====================
-FROM node:20-alpine AS production
+FROM ${NODE_IMAGE} AS production
 
 # Set environment
 ENV NODE_ENV=production

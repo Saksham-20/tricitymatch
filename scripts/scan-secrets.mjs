@@ -48,7 +48,8 @@ const ALLOW = [
   // the development JWT_SECRET default. Neither was ever a live credential.
   /another-secure-random-string-for-cookies/, /dev-super-secret-jwt-key/,
   // A shell/compose variable reference is by definition not a literal secret.
-  /\$\{[A-Za-z_][A-Za-z0-9_]*\}/, /\$[A-Z_]{3,}\b/,
+  // Includes compose defaults/required forms: ${VAR:-default}, ${VAR:?msg}, ${VAR-x}.
+  /\$\{[A-Za-z_][A-Za-z0-9_]*(?::?[-?+=][^}]*)?\}/, /\$[A-Z_]{3,}\b/,
   // Documentation shorthand for a PEM block, e.g. "-----BEGIN PRIVATE KEY-----\n..."
   /PRIVATE KEY-----\\n\.\.\./,
 ];

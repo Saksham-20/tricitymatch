@@ -20,9 +20,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Was 18.x while the project targets Node 20 (engines >=18, but local dev and
-  # the Docker images are 20). CI must build what production runs.
-  NODE_VERSION: '20.x'
+  # CI must build what production runs: the Docker images are Node 22 (Node 20
+  # reached end of life in April 2026).
+  NODE_VERSION: '22.x'
 
 jobs:
   # ==================== BACKEND TESTS ====================
@@ -165,6 +165,16 @@ jobs:
       # bumps that would break the mobile app -- so a repo-wide gate would be
       # permanently red and therefore permanently ignored. This gate covers what
       # actually reaches a server or a browser, and it is allowed to fail.
+      # The backend image installs from backend/package-lock.json (its Docker
+      # context cannot see the root lockfile). Fail here, not in the image build,
+      # when package.json and that lockfile disagree.
+      # Run from a copy: inside the repo npm resolves the workspace root instead.
+      - name: Backend image lockfile in sync
+        run: |
+          mkdir "$RUNNER_TEMP/be"
+          cp backend/package.json backend/package-lock.json backend/.npmrc "$RUNNER_TEMP/be/"
+          cd "$RUNNER_TEMP/be" && npm ci --omit=dev --dry-run --ignore-scripts
+
       - name: npm audit (backend production deps)
         run: npm audit --omit=dev --workspace=backend --audit-level=high
 

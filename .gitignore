@@ -14,7 +14,9 @@ pnpm-debug.log*
 # the production image builds the exact dependency tree that was tested
 # (regenerate via `npm install --package-lock-only` on a copied package.json,
 # NOT inside the workspace).
-backend/package-lock.json
+# EXCEPTION (2026-09): backend/package-lock.json is committed for the same reason
+# (backend Docker context is ./backend). Regenerate it the same way whenever
+# backend/package.json changes, and keep its `overrides` in step with the root's.
 .npm/
 .pnpm-store/
 .yarn/cache/
