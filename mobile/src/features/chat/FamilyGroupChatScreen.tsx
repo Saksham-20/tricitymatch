@@ -214,10 +214,10 @@ const makeBub = (c: ThemeColours) => StyleSheet.create({
 });
 
 // ─── Add-member modal ─────────────────────────────────────────────────────────
-// The backend's `/invite` route is `addMember`: it adds an existing TricityMatch
-// user straight to the group by phone. It sends no SMS and there is no accept
-// step, so the old "Send Invite via SMS" / "They will join via SMS link" copy
-// described something that does not happen.
+// The backend's `/invite` route creates a PENDING invitation for an existing
+// TricityMatch user, found by phone. They get an in-app notification and join
+// only when they accept. No SMS is sent, and the reply is the same whether or not
+// the number belongs to a member, so this screen cannot promise either.
 
 interface InviteModalProps {
   visible: boolean;
@@ -280,18 +280,20 @@ function InviteModal({ visible, groupId, onClose, onAdded }: InviteModalProps) {
       setPhone('');
       onAdded();
       onClose();
-      showToast.success('Family member added', `${number} is now in this group.`);
+      // The server answers every valid request the same way, so this cannot say
+      // whether the number belongs to a member. Say what is true: an invitation
+      // goes out, and they join only once they accept.
+      showToast.success('Invitation sent', 'If that number has a TricityMatch account, they will be asked to join.');
     } catch (e) {
-      // Blame the right thing. Only a plain miss is about the number: the server
-      // answers "not the owner" with 403, "full" and a miss with 400 (a miss is
-      // deliberately indistinguishable from a hit, so it is the generic case).
+      // Blame the right thing. A miss, a block and an existing member are all
+      // deliberately indistinguishable from a hit (202), so only owner-only (403)
+      // and full (400) reach here.
       const { status, message } = failureOf(e);
-      if (status === 409) fail('That person is already in this group.');
-      else if (status === 403) fail('Only the group owner can add members.');
+      if (status === 403) fail('Only the group owner can add members.');
       else if (status === 400 && message && /full/i.test(message)) fail(message);
       else if (status === 429) fail('Too many tries. Wait a little and try again.');
       else if (status === undefined) fail("Couldn't reach the server. Check your connection and try again.");
-      else fail("Couldn't add that number. Check it, and make sure they have a TricityMatch account.");
+      else fail("Couldn't send that invitation. Check the number and try again.");
     } finally {
       setLoading(false);
     }
@@ -314,7 +316,7 @@ function InviteModal({ visible, groupId, onClose, onAdded }: InviteModalProps) {
         {/* No drag handle: the sheet does not drag. The bottom padding clears the
             home indicator / 3-button bar (it was a flat 32). */}
         <View style={[im.sheet, { paddingBottom: Math.max(insets.bottom, spacing.xl) + spacing.lg }]}>
-          <Text variant="title3" color="textPrimary" style={im.title} accessibilityRole="header">Add family member</Text>
+          <Text variant="title3" color="textPrimary" style={im.title} accessibilityRole="header">Invite family member</Text>
 
           <Input
             label="Phone number"
@@ -325,14 +327,14 @@ function InviteModal({ visible, groupId, onClose, onAdded }: InviteModalProps) {
             // Room for a pasted "+91 98765 43210" (15) with its separators; the
             // number is normalised on submit, so nothing may be cut off here.
             maxLength={18}
-            helper="They need a TricityMatch account with this number."
+            helper="They need a TricityMatch account with this number, and will be asked to accept."
             error={error}
             testID="invite-phone-input"
             accessibilityLabel="Phone number to add"
           />
 
           <Button
-            title="Add to group"
+            title="Send invitation"
             onPress={handleInvite}
             loading={loading}
             style={im.sendBtn}

@@ -23,7 +23,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { ListSkeleton } from '../../components/ui/skeletons';
 import { Button, EmptyState } from '../../components/ui';
 import { spacing, type ThemeColours } from '@shared/constants/theme';
-import { getFamilyGroups, createFamilyGroup, type FamilyGroup } from '../../api/chat';
+import {
+  getFamilyGroups,
+  createFamilyGroup,
+  getGroupInvitations,
+  respondToGroupInvitation,
+  type FamilyGroup,
+  type GroupInvitation,
+} from '../../api/chat';
 import { queryKeys } from '../../constants/queryKeys';
 import { showToast } from '../../utils/toast';
 import { tapSize } from '../../utils/elderTheme';
@@ -179,6 +186,54 @@ const makeGr = (c: ThemeColours) => StyleSheet.create({
   sub:    { marginTop: 2 },
 });
 
+// ─── Invitation row ───────────────────────────────────────────────────────────
+// An owner can invite any member, so joining is the invitee's own choice: nothing
+// in the group is readable until they accept.
+
+function InvitationRow({ invitation, busy, onRespond }: {
+  invitation: GroupInvitation;
+  busy: boolean;
+  onRespond: (accept: boolean) => void;
+}) {
+  const { c } = useTheme();
+  const iv = React.useMemo(() => makeIv(c), [c]);
+  const from = invitation.invitedByName ? `${invitation.invitedByName} invited you` : 'You were invited';
+  return (
+    <View style={iv.row} testID={`invitation-${invitation.groupId}`}>
+      <View style={iv.info}>
+        <Text variant="headline" color="textPrimary">{invitation.groupName}</Text>
+        <Text variant="caption" color="textSecondary" style={iv.sub}>{from}. Nothing is shared until you accept.</Text>
+      </View>
+      <View style={iv.actions}>
+        <Button
+          title="Decline"
+          variant="text"
+          size="sm"
+          disabled={busy}
+          onPress={() => onRespond(false)}
+          testID={`decline-invite-${invitation.groupId}`}
+          accessibilityLabel={`Decline invitation to ${invitation.groupName}`}
+        />
+        <Button
+          title="Accept"
+          size="sm"
+          loading={busy}
+          onPress={() => onRespond(true)}
+          testID={`accept-invite-${invitation.groupId}`}
+          accessibilityLabel={`Accept invitation to ${invitation.groupName}`}
+        />
+      </View>
+    </View>
+  );
+}
+
+const makeIv = (c: ThemeColours) => StyleSheet.create({
+  row:     { padding: spacing.lg, backgroundColor: c.surface2, borderBottomWidth: 1, borderBottomColor: c.border, gap: spacing.md },
+  info:    { flex: 1 },
+  sub:     { marginTop: 2 },
+  actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.sm },
+});
+
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function FamilyGroupsScreen() {
@@ -202,6 +257,27 @@ export default function FamilyGroupsScreen() {
     onSuccess: (group) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.familyGroups });
       showToast.success('Family group created', group?.name);
+    },
+  });
+
+  const { data: invitations } = useQuery({
+    queryKey: queryKeys.groupInvitations,
+    queryFn: getGroupInvitations,
+    staleTime: 30 * 1000,
+  });
+
+  const respondMutation = useMutation({
+    mutationFn: ({ groupId, accept }: { groupId: string; accept: boolean }) =>
+      respondToGroupInvitation(groupId, accept),
+    onSuccess: (_data, { accept }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.groupInvitations });
+      queryClient.invalidateQueries({ queryKey: queryKeys.familyGroups });
+      showToast.success(accept ? 'Joined the group' : 'Invitation declined');
+    },
+    onError: () => {
+      // The invitation may have been withdrawn; refresh so the row goes away.
+      queryClient.invalidateQueries({ queryKey: queryKeys.groupInvitations });
+      showToast.error("Couldn't answer that invitation", 'It may have been withdrawn. Pull to refresh.');
     },
   });
 
@@ -277,13 +353,25 @@ export default function FamilyGroupsScreen() {
           // The intro lives in the list, only when there are groups: the empty state
           // already says the same thing, and pinned above the list it ate the
           // viewport at a large OS text size. Scrolling it away is the point.
-          ListHeaderComponent={isEmpty ? null : (
-            <View style={s.banner}>
-              <Ionicons name="people-circle-outline" size={28} color={c.primary} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
-              <Text variant="subhead" color="textSecondary" style={s.bannerText}>
-                Add family members to a private group chat. Talk through matches together before you decide.
-              </Text>
-            </View>
+          ListHeaderComponent={(
+            <>
+              {(invitations ?? []).map((inv) => (
+                <InvitationRow
+                  key={inv.groupId}
+                  invitation={inv}
+                  busy={respondMutation.isPending && respondMutation.variables?.groupId === inv.groupId}
+                  onRespond={(accept) => respondMutation.mutate({ groupId: inv.groupId, accept })}
+                />
+              ))}
+              {isEmpty ? null : (
+                <View style={s.banner}>
+                  <Ionicons name="people-circle-outline" size={28} color={c.primary} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+                  <Text variant="subhead" color="textSecondary" style={s.bannerText}>
+                    Invite family members to a private group chat. Talk through matches together before you decide.
+                  </Text>
+                </View>
+              )}
+            </>
           )}
           contentContainerStyle={isEmpty ? s.emptyContainer : undefined}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[c.accent]} tintColor={c.accent} />}

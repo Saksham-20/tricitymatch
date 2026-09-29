@@ -26,10 +26,23 @@ const GroupMember = sequelize.define('GroupMember', {
     allowNull: false,
     defaultValue: 'member',
   },
+  // 'pending' = invited, has NOT accepted: grants no access to messages, the
+  // member list or the socket room. Only 'active' is membership.
+  status: {
+    type: DataTypes.ENUM('pending', 'active'),
+    allowNull: false,
+    defaultValue: 'active',
+  },
+  invitedBy: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: { model: 'Users', key: 'id' },
+  },
 }, {
   indexes: [
     { unique: true, fields: ['groupId', 'userId'] },
     { fields: ['userId'] },
+    { fields: ['userId', 'status'] },
   ],
 });
 

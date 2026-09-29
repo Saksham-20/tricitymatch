@@ -9,6 +9,7 @@ const { Group, GroupMember, GroupMessage, User, Profile } = require('../models')
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { log } = require('../middlewares/logger');
 const { notify } = require('../utils/notifyUser');
+const { isBlockedBetween } = require('../utils/blocks');
 
 const MAX_MESSAGE_LENGTH = 2000;
 const MAX_MEMBERS = 20;
@@ -28,9 +29,11 @@ const sanitizeMessage = (content) => {
     .trim();
 };
 
-// Authorization: confirm the user is a member of the group; returns membership.
+// Authorization: confirm the user is an ACTIVE member of the group; returns
+// membership. A pending invitation deliberately grants nothing — the invitee has
+// not consented to being in the group, so must not read it.
 const requireMembership = async (groupId, userId) => {
-  const membership = await GroupMember.findOne({ where: { groupId, userId } });
+  const membership = await GroupMember.findOne({ where: { groupId, userId, status: 'active' } });
   if (!membership) throw createError.forbidden('You are not a member of this group');
   return membership;
 };
@@ -88,7 +91,7 @@ exports.getMyGroups = asyncHandler(async (req, res) => {
   const userId = req.user.id;
 
   const memberships = await GroupMember.findAll({
-    where: { userId },
+    where: { userId, status: 'active' },
     attributes: ['groupId', 'role'],
   });
   const groupIds = memberships.map((m) => m.groupId);
@@ -98,7 +101,7 @@ exports.getMyGroups = asyncHandler(async (req, res) => {
     where: { id: groupIds },
     include: [
       { model: User, as: 'Creator', attributes: ['id'], include: [{ model: Profile, attributes: ['firstName', 'lastName'] }] },
-      { model: GroupMember, as: 'Members', attributes: ['id'] },
+      { model: GroupMember, as: 'Members', attributes: ['id'], where: { status: 'active' }, required: false },
     ],
     order: [['updatedAt', 'DESC']],
   });
@@ -121,7 +124,7 @@ exports.getMyGroups = asyncHandler(async (req, res) => {
 // @desc    Group detail + members (members only)
 exports.getGroup = asyncHandler(async (req, res) => {
   const { groupId } = req.params;
-  await requireMembership(groupId, req.user.id);
+  const membership = await requireMembership(groupId, req.user.id);
 
   const group = await Group.findByPk(groupId, {
     include: [
@@ -134,64 +137,147 @@ exports.getGroup = asyncHandler(async (req, res) => {
   });
   if (!group) throw createError.notFound('Group not found');
 
-  res.json({ success: true, group });
+  // Invitees who have not accepted are visible to the owner who invited them,
+  // never to the rest of the group (they have not agreed to be shown yet).
+  const json = group.toJSON();
+  if (membership.role !== 'owner') {
+    json.Members = (json.Members || []).filter((m) => m.status === 'active');
+  }
+
+  res.json({ success: true, group: json });
 });
 
-// @route   POST /api/v1/groups/:groupId/members
-// @desc    Add a member (owner only)
+// @route   POST /api/v1/groups/:groupId/members  (alias: /invite)
+// @desc    Invite a member (owner only). The invitee must ACCEPT before they can
+//          read or write anything in the group.
+//
+// Every outcome that depends on the TARGET — no such user, a phone that matches
+// nobody, a blocked pair, an inactive account, someone already invited or in
+// the group — returns the same 202 with the same body. The endpoint used to
+// answer 201 with the member row for a hit and 400 for a miss, which made it a
+// phone-number -> user-id oracle for any member who created a throwaway group.
 exports.addMember = asyncHandler(async (req, res) => {
   const { groupId } = req.params;
   const { userId: bodyUserId, phone } = req.body;
   const membership = await requireMembership(groupId, req.user.id);
   if (membership.role !== 'owner') throw createError.forbidden('Only the group owner can add members');
 
-  // Accept either a userId or a phone number (families invite relatives by phone).
-  //
-  // The phone branch used to answer "No registered user found with that phone
-  // number", which turned this into a membership oracle for the whole user
-  // base: any authenticated user could spin up a throwaway group and probe
-  // phone numbers one at a time. Both branches now fail identically so a hit
-  // and a miss are indistinguishable.
-  let target = null;
-  if (bodyUserId) {
-    target = await User.findByPk(bodyUserId, { attributes: ['id'] });
-  } else if (phone) {
-    target = await User.findOne({ where: { phone: String(phone).trim() }, attributes: ['id'] });
-  } else {
-    throw createError.badRequest('userId or phone is required');
-  }
-  if (!target) throw createError.badRequest('Could not add that member');
-  const newUserId = target.id;
+  if (!bodyUserId && !phone) throw createError.badRequest('userId or phone is required');
 
+  // Group capacity is the owner's own state, not the target's, so reporting it
+  // reveals nothing about who the target is. Pending invitations count so an
+  // owner cannot pile up an unbounded number of them.
   const count = await GroupMember.count({ where: { groupId } });
   if (count >= MAX_MEMBERS) throw createError.badRequest(`Group is full (max ${MAX_MEMBERS} members)`);
 
-  const existing = await GroupMember.findOne({ where: { groupId, userId: newUserId } });
-  if (existing) throw createError.conflict('User is already a member');
+  const accepted = { success: true, message: 'If that member can be invited, they have been sent an invitation.' };
 
-  const member = await GroupMember.create({ groupId, userId: newUserId, role: 'member' });
+  let target = null;
+  if (bodyUserId) {
+    target = await User.findByPk(bodyUserId, { attributes: ['id', 'status'] });
+  } else {
+    target = await User.findOne({ where: { phone: String(phone).trim() }, attributes: ['id', 'status'] });
+  }
 
-  // Tell the person they were added. There is no accept step — an owner can put
-  // anyone into a family group, and that group's messages become readable
-  // immediately — so silence meant a stranger could be reading a family's
-  // conversation without ever knowing. Notifying at least makes it visible and
-  // actionable: DELETE /groups/:groupId/leave is already available to them.
-  // (A proper pending-invite state needs a schema change and is a product call.)
+  const invitable = target
+    && target.status === 'active'
+    && target.id !== req.user.id
+    && !(await isBlockedBetween(req.user.id, target.id))
+    && !(await GroupMember.findOne({ where: { groupId, userId: target.id }, attributes: ['id'] }));
+
+  if (!invitable) return res.status(202).json(accepted);
+
+  await GroupMember.create({
+    groupId,
+    userId: target.id,
+    role: 'member',
+    status: 'pending',
+    invitedBy: req.user.id,
+  });
+
   try {
     const group = await Group.findByPk(groupId, { attributes: ['name'] });
     await notify(
-      newUserId,
+      target.id,
       'system',
-      'You were added to a family group',
-      `You are now a member of "${group?.name || 'a family group'}". You can leave at any time from the group screen.`,
+      'You have been invited to a family group',
+      `You were invited to join "${group?.name || 'a family group'}". Nothing is shared until you accept.`,
       groupId
     );
   } catch (err) {
-    // Never fail the add because the notification could not be delivered.
-    log.error('Group add notification failed', { groupId, newUserId, error: err.message });
+    // Never fail the invite because the notification could not be delivered.
+    log.error('Group invite notification failed', { groupId, targetId: target.id, error: err.message });
   }
 
-  res.status(201).json({ success: true, member });
+  res.status(202).json(accepted);
+});
+
+// @route   GET /api/v1/groups/invitations
+// @desc    Pending invitations addressed to the current user
+exports.getMyInvitations = asyncHandler(async (req, res) => {
+  const rows = await GroupMember.findAll({
+    where: { userId: req.user.id, status: 'pending' },
+    attributes: ['groupId', 'invitedBy', 'createdAt'],
+    order: [['createdAt', 'DESC']],
+    limit: 50,
+  });
+  if (rows.length === 0) return res.json({ success: true, invitations: [] });
+
+  const groups = await Group.findAll({
+    where: { id: rows.map((r) => r.groupId) },
+    attributes: ['id', 'name'],
+  });
+  const nameById = Object.fromEntries(groups.map((g) => [g.id, g.name]));
+
+  const inviterProfiles = await Profile.findAll({
+    where: { userId: rows.map((r) => r.invitedBy).filter(Boolean) },
+    attributes: ['userId', 'firstName', 'lastName'],
+  });
+  const inviterName = Object.fromEntries(
+    inviterProfiles.map((p) => [p.userId, [p.firstName, p.lastName].filter(Boolean).join(' ')])
+  );
+
+  res.json({
+    success: true,
+    invitations: rows.map((r) => ({
+      groupId: r.groupId,
+      groupName: nameById[r.groupId] || 'Family group',
+      invitedByName: inviterName[r.invitedBy] || null,
+      invitedAt: r.createdAt,
+    })),
+  });
+});
+
+// Load the caller's PENDING invitation for a group, or 404. A 404 (not 403) for
+// "no invitation" so the endpoint cannot be used to probe group existence.
+const requirePendingInvitation = async (groupId, userId) => {
+  const invite = await GroupMember.findOne({ where: { groupId, userId, status: 'pending' } });
+  if (!invite) throw createError.notFound('Invitation not found');
+  return invite;
+};
+
+// @route   POST /api/v1/groups/:groupId/accept
+exports.acceptInvitation = asyncHandler(async (req, res) => {
+  const { groupId } = req.params;
+  const invite = await requirePendingInvitation(groupId, req.user.id);
+
+  // The owner may have blocked, or been blocked by, the invitee since inviting.
+  if (invite.invitedBy && (await isBlockedBetween(req.user.id, invite.invitedBy))) {
+    await invite.destroy();
+    throw createError.notFound('Invitation not found');
+  }
+
+  invite.status = 'active';
+  await invite.save();
+  res.json({ success: true });
+});
+
+// @route   POST /api/v1/groups/:groupId/decline
+exports.declineInvitation = asyncHandler(async (req, res) => {
+  const { groupId } = req.params;
+  const invite = await requirePendingInvitation(groupId, req.user.id);
+  await invite.destroy();
+  res.json({ success: true });
 });
 
 // @route   DELETE /api/v1/groups/:groupId/members/:memberUserId
@@ -211,7 +297,7 @@ exports.removeMember = asyncHandler(async (req, res) => {
 
   // Owner cannot leave while other members remain — must delete the group or transfer.
   if (target.role === 'owner') {
-    const others = await GroupMember.count({ where: { groupId } });
+    const others = await GroupMember.count({ where: { groupId, status: 'active' } });
     if (others > 1) throw createError.badRequest('Owner must delete the group or transfer ownership before leaving');
   }
 
@@ -227,7 +313,7 @@ exports.leaveGroup = asyncHandler(async (req, res) => {
   const membership = await requireMembership(groupId, userId);
 
   if (membership.role === 'owner') {
-    const others = await GroupMember.count({ where: { groupId } });
+    const others = await GroupMember.count({ where: { groupId, status: 'active' } });
     if (others > 1) throw createError.badRequest('Owner must delete the group or transfer ownership before leaving');
   }
   await membership.destroy();

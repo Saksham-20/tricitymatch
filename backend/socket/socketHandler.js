@@ -387,7 +387,7 @@ const initializeSocket = (io) => {
           socket.emit('error', { code: 'INVALID_GROUP', message: 'Invalid group id' });
           return;
         }
-        const membership = await GroupMember.findOne({ where: { groupId, userId } });
+        const membership = await GroupMember.findOne({ where: { groupId, userId, status: 'active' } });
         if (!membership) {
           logSecurityEvent('group_join_denied', { userId, groupId });
           socket.emit('error', { code: 'NOT_A_MEMBER', message: 'You are not a member of this group' });
