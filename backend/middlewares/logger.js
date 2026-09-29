@@ -32,9 +32,31 @@ const SENSITIVE_KEY_PATTERN =
 const REDACTED = '[REDACTED]';
 const MAX_REDACT_DEPTH = 6;
 
+// ==================== PERSONAL DATA IN LOGS ====================
+//
+// Logs are kept for months (CERT-In) and read by more people than the database
+// is, so they must not carry contact details. An address or number is replaced by
+// a short stable hash: two lines about the same address still correlate when
+// someone is debugging, and nobody can read the address back out.
+
+const crypto = require('crypto');
+
+const CONTACT_KEY_PATTERN = /^(to|from|recipient|identifier|target)$|e-?mail|phone|mobile/i;
+const EMAIL_IN_TEXT = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/g;
+const PHONE_IN_TEXT = /(?<![\w-])(?:\+?91[\s-]?)?[6-9]\d{4}[\s-]?\d{5}(?![\w-])/g;
+
+const shortHash = (v) => crypto.createHash('sha256').update(String(v).trim().toLowerCase()).digest('hex').slice(0, 8);
+
+/** Replace emails and Indian mobile numbers inside free text. */
+const scrubText = (text) =>
+  String(text)
+    .replace(EMAIL_IN_TEXT, (m) => `email#${shortHash(m)}`)
+    .replace(PHONE_IN_TEXT, (m) => `phone#${shortHash(m.replace(/\D/g, '').slice(-10))}`);
+
 const redactValue = (value, depth = 0) => {
   if (value === null || value === undefined) return value;
   if (depth >= MAX_REDACT_DEPTH) return value;
+  if (typeof value === 'string') return scrubText(value);
 
   if (Array.isArray(value)) {
     return value.map((v) => redactValue(v, depth + 1));
@@ -47,7 +69,9 @@ const redactValue = (value, depth = 0) => {
     }
     const out = {};
     for (const [k, v] of Object.entries(value)) {
-      out[k] = SENSITIVE_KEY_PATTERN.test(k) ? REDACTED : redactValue(v, depth + 1);
+      if (SENSITIVE_KEY_PATTERN.test(k)) out[k] = REDACTED;
+      else if (CONTACT_KEY_PATTERN.test(k) && typeof v === 'string') out[k] = `${v.includes('@') ? 'email' : 'contact'}#${shortHash(v)}`;
+      else out[k] = redactValue(v, depth + 1);
     }
     return out;
   }
@@ -104,7 +128,7 @@ const formatLogEntry = (level, message, meta = {}) => {
   const entry = {
     timestamp: new Date().toISOString(),
     level,
-    message,
+    message: typeof message === 'string' ? scrubText(message) : message,
     environment: config.env,
     ...redactValue(meta),
   };

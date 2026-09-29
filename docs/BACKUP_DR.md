@@ -55,3 +55,19 @@ against production. (Audit P1-11.)
    landed after the last dump; check Razorpay for anything older than the reconciler window.
 5. Media lives at Cloudinary, not in the database: nothing to restore there. Chat rows older
    than `MESSAGE_RETENTION_MONTHS` are gone by design.
+
+## Log retention and PII (audit P1-12)
+
+- **App log lines carry no contact details.** `backend/middlewares/logger.js` replaces email
+  addresses and Indian mobile numbers, in message text and in contact-named fields
+  (`to`, `email`, `phone`, `identifier`…), with a short stable hash (`email#ab12cd34`,
+  `phone#…`, `contact#…`). The same address hashes the same everywhere, so an incident can be
+  followed by hash without the log revealing who it was. Tokens and passwords were already
+  redacted by key. Dev-only OTP echo lines (`NODE_ENV=development`, SMS unconfigured) still
+  print the code on purpose; the address in them is hashed.
+- **Retention is a host setting, not app code.** Compose keeps `json-file` at 10 MB × 3 files per
+  container: that is days, not months. The privacy policy retention target is **180 days**.
+  Owner action on the VPS: ship container logs to a rotated file (for example a
+  `logrotate` rule over `/var/lib/docker/containers/*/*-json.log` copied nightly to
+  `/var/log/tricitymatch/`, `rotate 180`, `daily`, `compress`) and keep nginx access logs at
+  180 days the same way. Nothing here is installed by the deploy.
