@@ -326,6 +326,8 @@ function getInitialFormData() {
     preferredEducation: '',
     preferredProfession: '',
     preferredCity: ['Chandigarh', 'Mohali', 'Panchkula'],
+    // Preferences the member will not compromise on (age, education, city ...)
+    mustHavePreferences: [],
 
     // Photos & Verification
     photos: [],
@@ -474,7 +476,7 @@ export const STEPS = [
     title: 'Preferences',
     icon: 'Heart',
     description: 'What are you looking for? — all optional',
-    fields: ['preferredAgeMin', 'preferredAgeMax', 'preferredEducation', 'preferredCity'],
+    fields: ['preferredAgeMin', 'preferredAgeMax', 'preferredEducation', 'preferredCity', 'mustHavePreferences'],
     required: [],
     showIn: ['edit', 'create_for_other'],
   },

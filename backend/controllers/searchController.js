@@ -19,6 +19,7 @@ const {
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { rankBreakdown } = require('../utils/rankingWeights');
 const { weightsFor } = require('../utils/rankingExperiment');
+const { mustHaveClauses } = require('../utils/preferenceFit');
 const { normalizeEducation, professionGroupFromFilter } = require('../constants/vocabularies');
 
 // Ranked search scores the newest CANDIDATE_CAP matching profiles together, so the
@@ -56,7 +57,8 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
     motherTongue,
     manglikFilter,  // 'manglik_only' | 'non_manglik_only' | 'exclude_incompatible'
     verifiedOnly,   // 'true' → only photo-verified members
-    sortBy = 'compatibility'
+    sortBy = 'compatibility',
+    mustHaves       // 'off' → ignore the searcher's own must-have preferences
   } = req.query;
 
   const userId = req.user.id;
@@ -81,6 +83,15 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
   if (gender === 'male') where.gender = 'female';
   else if (gender === 'female') where.gender = 'male';
   else where.gender = { [Op.in]: ['male', 'female'] };
+
+  // The searcher's own must-have partner preferences are hard filters. A
+  // must-have with no value behind it, and candidates whose own field is blank,
+  // are never excluded (utils/preferenceFit).
+  const mustHave = mustHaves === 'off' ? { clauses: [], applied: [] } : mustHaveClauses(currentProfile);
+  if (mustHave.clauses.length) {
+    if (!where[Op.and]) where[Op.and] = [];
+    where[Op.and].push(...mustHave.clauses);
+  }
 
   // Age filter: dateOfBirth in [now - (ageMax+1) years exclusive, now - ageMin years inclusive]
   // "Age in [25, 35]" → born between 1991-01-01 (exclusive, >25 not >=26) and 2001-01-01 (inclusive, <=35)
@@ -394,6 +405,9 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     profiles: profilesWithCompatibility,
+    // Which of the member's must-haves shaped this list, so the client can say
+    // so and offer to switch them off (?mustHaves=off).
+    mustHaves: { applied: mustHave.applied },
     pagination: {
       page: parseInt(page),
       limit: parseInt(limit),

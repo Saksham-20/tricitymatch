@@ -18,6 +18,7 @@ const recheckVerification = async (userId) => {
 const { applyIdentityRules } = require('../utils/identityLock');
 const { blockedIdsFor } = require('../utils/blocks');
 const { redactForViewer, stripOwnerOnlyKeys } = require('../utils/profileVisibility');
+const { sanitizeMustHaves } = require('../utils/preferenceFit');
 const { applyFieldVisibility, sanitizeFieldVisibility } = require('../constants/fieldVisibility');
 const { getActiveSubscription } = require('../utils/entitlements');
 const { visibleSocialLinks, normalizeSocialLinks } = require('../utils/socialLinks');
@@ -236,6 +237,8 @@ exports.updateProfile = asyncHandler(async (req, res) => {
         } else if (arrayFields.includes(field)) {
           // If multer parsed a single appended element, it's a string. Make it an array.
           updateData[field] = typeof value === 'string' ? (value ? [value] : []) : value;
+        } else if (field === 'mustHavePreferences') {
+          updateData[field] = sanitizeMustHaves(value);
         } else if (field === 'fieldVisibility') {
           // Merge onto the stored value so changing one group keeps the other.
           updateData[field] = { ...(profile.fieldVisibility || {}), ...sanitizeFieldVisibility(value) };

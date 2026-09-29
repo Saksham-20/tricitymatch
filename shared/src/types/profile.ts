@@ -107,6 +107,8 @@ export interface Profile {
   preferredEducation: string | null;
   preferredProfession: string | null;
   preferredCity: string[];
+  /** Preference keys (age, height, education, profession, city) the member will not compromise on. */
+  mustHavePreferences?: string[];
   // Personality & Lifestyle JSON
   personalityValues: PersonalityValues | null;
   familyPreferences: FamilyPreferences | null;

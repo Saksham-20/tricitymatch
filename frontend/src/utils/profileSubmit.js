@@ -12,7 +12,7 @@ export const PROFILE_SUBMIT_FIELDS = [
   'placeOfBirth', 'birthTime', 'manglikStatus', 'zodiacSign', 'rashi', 'nakshatra',
   'familyType', 'familyStatus', 'fatherOccupation', 'motherOccupation', 'numberOfSiblings',
   'preferredAgeMin', 'preferredAgeMax', 'preferredHeightMin', 'preferredHeightMax',
-  'preferredEducation', 'preferredProfession', 'preferredCity',
+  'preferredEducation', 'preferredProfession', 'preferredCity', 'mustHavePreferences',
   'personalityValues', 'familyPreferences', 'lifestylePreferences',
   'bio', 'interestTags', 'profilePrompts', 'quizAnswers',
   'spotifyPlaylist', 'socialMediaLinks', 'personalityType', 'languages',
@@ -27,7 +27,7 @@ const SUBMIT_SET = new Set(PROFILE_SUBMIT_FIELDS);
 // cities and have it persist (previously an empty array appended nothing, the
 // key was absent, and the backend kept the old value). `photos` is excluded —
 // it's handled as file uploads, not a clearable text array.
-const CLEARABLE_ARRAY_FIELDS = new Set(['preferredCity', 'interestTags', 'languages']);
+const CLEARABLE_ARRAY_FIELDS = new Set(['preferredCity', 'interestTags', 'languages', 'mustHavePreferences']);
 
 /**
  * Build a multipart FormData for PUT /profile/me from the onboarding formData,

@@ -302,6 +302,10 @@ export default function Step11Screen() {
   const [diet, setDiet] = useState<Diet[]>(data.preferredDiet);
   // Older builds stored the picker's literal "Any" row as the answer.
   const [manglik, setManglik] = useState(isLegacyAny(data.preferredManglik) ? '' : data.preferredManglik);
+  // Preferences the member will not compromise on: search hides people who miss
+  // them. Seeded from the saved profile below; sent with the rest of the patch.
+  const [mustHaves, setMustHaves] = useState<string[]>([]);
+  const mustHavesSeeded = useRef(false);
   const [educationSheet, setEducationSheet] = useState(false);
   const [manglikSheet, setManglikSheet] = useState(false);
   // Ends (and the education level) the member set back to "Any". A saved value
@@ -320,6 +324,10 @@ export default function Step11Screen() {
   } = useQuery({ queryKey: queryKeys.myProfile, queryFn: getMyProfile });
   useEffect(() => {
     if (!saved) return;
+    if (!mustHavesSeeded.current) {
+      mustHavesSeeded.current = true;
+      setMustHaves(Array.isArray(saved.mustHavePreferences) ? saved.mustHavePreferences : []);
+    }
     setRange((prev) => seedRange(prev, saved, clearedEnds.current));
     if (!educationCleared.current) {
       setEducation((prev) => prev || (isLegacyAny(saved.preferredEducation) ? '' : saved.preferredEducation ?? ''));
@@ -345,6 +353,9 @@ export default function Step11Screen() {
   const toggleReligion = (v: string) =>
     setReligions((prev) => prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]);
 
+  const toggleMustHave = (v: string) =>
+    setMustHaves((prev) => prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]);
+
   const toggleDiet = (v: Diet) =>
     setDiet((prev) => prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]);
 
@@ -362,6 +373,8 @@ export default function Step11Screen() {
       if (value != null) profilePatch[END_FIELD[end]] = value;
       else if (clearedEnds.current.has(end)) profilePatch[END_FIELD[end]] = null;
     });
+    // Only once the saved list has loaded, so a slow load never wipes it.
+    if (mustHavesSeeded.current) profilePatch.mustHavePreferences = mustHaves;
     if (education) profilePatch.preferredEducation = education;
     // Clear the stray "Any" an older build saved, so other members stop seeing a
     // requirement that was never chosen; likewise a level the member cleared here.
@@ -543,6 +556,25 @@ export default function Step11Screen() {
         open={manglikSheet}
         testID="select-prefManglik"
       />
+
+      {/* Must-haves */}
+      <MultiSelectPills
+        label={t('onboarding.step11.mustHaves', 'Must-haves')}
+        options={[
+          { key: 'age', label: t('onboarding.step11.ageRange') },
+          { key: 'height', label: t('onboarding.step11.heightRange') },
+          { key: 'education', label: t('onboarding.step11.education') },
+        ]}
+        selected={mustHaves}
+        onToggle={toggleMustHave}
+        onClear={() => setMustHaves([])}
+        anyLabel={t('onboarding.step11.noneLabel', 'None')}
+        optionTestPrefix="musthave"
+        anyTestID="musthave-none"
+      />
+      <Text variant="footnote" color="textSecondary">
+        {t('onboarding.step11.mustHavesHint', 'People who do not meet a must-have will not appear in your search.')}
+      </Text>
 
       <PickerSheet
         visible={educationSheet}

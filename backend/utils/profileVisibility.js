@@ -32,6 +32,7 @@ const OWNER_ONLY_KEYS = [
   'showLastSeen',
   'photoBlurUntilMatch',
   'fieldVisibility',
+  'mustHavePreferences',
 ];
 
 /**

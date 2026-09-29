@@ -52,7 +52,7 @@ const PROFILE_EDITABLE_FIELDS = [
   'familyType', 'familyStatus', 'fatherOccupation', 'motherOccupation', 'numberOfSiblings',
   // Preferences
   'preferredAgeMin', 'preferredAgeMax', 'preferredHeightMin', 'preferredHeightMax',
-  'preferredEducation', 'preferredProfession', 'preferredCity',
+  'preferredEducation', 'preferredProfession', 'preferredCity', 'mustHavePreferences',
   // Rich/JSON
   'personalityValues', 'familyPreferences', 'lifestylePreferences',
   'bio', 'interestTags', 'profilePrompts', 'quizAnswers',
