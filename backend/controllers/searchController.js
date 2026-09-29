@@ -17,7 +17,8 @@ const {
   redactForViewer,
 } = require('../utils/profileVisibility');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
-const { rankBreakdown, getWeights } = require('../utils/rankingWeights');
+const { rankBreakdown } = require('../utils/rankingWeights');
+const { weightsFor } = require('../utils/rankingExperiment');
 
 // Ranked search scores the newest CANDIDATE_CAP matching profiles together, so the
 // order is global rather than per page. Past the cap the directory is larger than
@@ -309,7 +310,8 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
   const viewerPaid = await viewerHasPaidAccess(userId);
 
   // Score every candidate (cheap: no serialisation yet).
-  const weights = getWeights();
+  // The live weights, or this member's arm of a running ranking experiment.
+  const { weights } = weightsFor(userId);
   const scored = profiles.map((profile) => {
     const compatibilityScore = calculateCompatibility(currentProfile, profile);
     const premiumPlan = subMap.get(profile.userId) || null;
@@ -477,7 +479,7 @@ exports.getSuggestions = asyncHandler(async (req, res) => {
   const nowSug = new Date();
 
   // Calculate compatibility and sort with the same admin-tunable weights as search.
-  const weightsSug = getWeights();
+  const { weights: weightsSug } = weightsFor(userId);
   const profilesWithCompatibility = profiles.map(profile => {
     const isBoostedActive = profile.User?.isBoosted &&
       (!profile.User?.boostExpiresAt || new Date(profile.User.boostExpiresAt) > nowSug);

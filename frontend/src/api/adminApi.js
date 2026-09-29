@@ -31,6 +31,9 @@ export const decideMediaReview = (id, data) => api.put(`/admin/media-reviews/${i
 // Search ranking weights
 export const getRankingWeights = () => api.get('/admin/ranking-weights');
 export const saveRankingWeights = (weights) => api.put('/admin/ranking-weights', { weights });
+export const getRankingExperiment = () => api.get('/admin/ranking-experiment');
+export const startRankingExperiment = (experiment) => api.put('/admin/ranking-experiment', { experiment });
+export const stopRankingExperiment = () => api.put('/admin/ranking-experiment', { stop: true });
 export const resetRankingWeights = () => api.put('/admin/ranking-weights', { reset: true });
 
 // Invoice

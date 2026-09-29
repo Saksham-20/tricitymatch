@@ -50,6 +50,8 @@ const {
   getLaunchOffer,
   updateLaunchOffer,
   getRankingWeights,
+  getRankingExperiment,
+  updateRankingExperiment,
   updateRankingWeights,
   updateContactMessage,
   getSuccessStories,
@@ -310,6 +312,8 @@ router.get('/launch-offer', requireAdminScope('pricing'), getLaunchOffer);
 router.put('/launch-offer', requireAdminScope('pricing'), updateLaunchOffer);
 router.get('/ranking-weights', requireAdminScope('ranking'), getRankingWeights);
 router.put('/ranking-weights', requireAdminScope('ranking'), updateRankingWeights);
+router.get('/ranking-experiment', requireAdminScope('ranking'), getRankingExperiment);
+router.put('/ranking-experiment', requireAdminScope('ranking'), updateRankingExperiment);
 
 // ==================== SUCCESS STORIES ====================
 

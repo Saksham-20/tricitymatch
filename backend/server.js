@@ -353,6 +353,7 @@ const startServer = async () => {
     // Search ranking weights (admin-editable). A failure means the defaults.
     try {
       await require('./utils/rankingWeights').initRankingWeights();
+      await require('./utils/rankingExperiment').initRankingExperiment();
     } catch (error) {
       console.log('⚠ Ranking weights unavailable — defaults in effect');
     }

@@ -2129,6 +2129,40 @@ exports.updateRankingWeights = asyncHandler(async (req, res) => {
   res.json({ success: true, weights });
 });
 
+// @route   GET /api/v1/admin/ranking-experiment
+// @desc    The running (or last) ranking experiment and what each arm did
+// @access  Admin (ranking scope)
+exports.getRankingExperiment = asyncHandler(async (req, res) => {
+  const exp = require('../utils/rankingExperiment');
+  const stored = await exp.readStored();
+  const results = stored ? await exp.results(stored) : null;
+  res.json({
+    success: true,
+    experiment: stored,
+    variantWeights: stored ? exp.variantWeights(stored.overrides) : null,
+    results,
+    maxShare: exp.MAX_SHARE,
+  });
+});
+
+// @route   PUT /api/v1/admin/ranking-experiment
+// @desc    Start an experiment, or stop it with { stop: true }
+// @access  Admin (ranking scope)
+exports.updateRankingExperiment = asyncHandler(async (req, res) => {
+  const exp = require('../utils/rankingExperiment');
+  let experiment;
+  try {
+    experiment = req.body?.stop === true
+      ? await exp.stopExperiment(req.user.id)
+      : await exp.saveExperiment(req.body?.experiment, req.user.id);
+  } catch (err) {
+    if (err.statusCode === 400) throw createError.badRequest(err.message);
+    throw err;
+  }
+  logAudit(req.body?.stop === true ? 'ranking_experiment_stopped' : 'ranking_experiment_started', req.user.id, { experiment });
+  res.json({ success: true, experiment });
+});
+
 // @route   POST /api/v1/admin/contact-messages/:id/reply
 // @desc    Reply to a support enquiry (emails the enquirer, records the reply)
 // @access  Private/Admin

@@ -1,6 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { getRankingWeights, saveRankingWeights, resetRankingWeights } from '../../api/adminApi';
+import {
+  getRankingWeights, saveRankingWeights, resetRankingWeights,
+  getRankingExperiment, startRankingExperiment, stopRankingExperiment,
+} from '../../api/adminApi';
 
 const PLAN_LABELS = {
   basic_premium: 'Basic Premium',
@@ -29,6 +32,149 @@ function Row({ label, hint, value, min, max, onChange, defaultValue }) {
         />
       </div>
     </div>
+  );
+}
+
+const SIGNALS = [
+  ['verified', 'Photo verified'],
+  ['boosted', 'Profile boost'],
+  ['noPhoto', 'No photo'],
+];
+
+// One experiment at a time: a share of members (chosen by a stable hash of their
+// id) is ranked with changed weights; everyone else keeps the live ones.
+function ExperimentSection() {
+  const [state, setState] = useState(null);
+  const [form, setForm] = useState({ name: '', sharePct: 20, overrides: {} });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(false);
+
+  const load = useCallback(async () => {
+    setError(false);
+    try {
+      const res = await getRankingExperiment();
+      setState(res.data);
+    } catch {
+      setError(true);
+    }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  if (error) {
+    return <p className="text-sm text-red-700">Could not load the experiment. <button className="underline" onClick={load}>Retry</button></p>;
+  }
+  if (!state) return null;
+
+  const exp = state.experiment;
+  const running = Boolean(exp && exp.enabled);
+
+  const start = async () => {
+    const overrides = {};
+    for (const [key] of SIGNALS) if (form.overrides[key] !== undefined && form.overrides[key] !== '') overrides[key] = Number(form.overrides[key]);
+    setBusy(true);
+    try {
+      await startRankingExperiment({ name: form.name, sharePct: Number(form.sharePct), overrides });
+      toast.success('Experiment started');
+      await load();
+    } catch (err) {
+      toast.error(err.response?.data?.error?.message || 'Could not start');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const stop = async () => {
+    setBusy(true);
+    try {
+      await stopRankingExperiment();
+      toast.success('Stopped — everyone is back on the live weights');
+      await load();
+    } catch {
+      toast.error('Could not stop');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const arm = (label, r) => (
+    <tr key={label} className="border-t border-gray-50">
+      <td className="py-2 pr-4 text-sm text-gray-700">{label}</td>
+      <td className="py-2 pr-4 text-sm text-right">{r ? r.members : '—'}</td>
+      <td className="py-2 pr-4 text-sm text-right">{r ? r.interestsSent : '—'}</td>
+      <td className="py-2 pr-4 text-sm text-right">{r ? r.interestsPerMember : '—'}</td>
+      <td className="py-2 text-sm text-right">{r ? r.mutualMatches : '—'}</td>
+    </tr>
+  );
+
+  return (
+    <section className="bg-white rounded-2xl shadow-sm border border-gray-100 px-5 py-4 space-y-4">
+      <div>
+        <h2 className="text-sm font-semibold text-gray-700">Ranking experiment</h2>
+        <p className="text-xs text-gray-500 mt-0.5">
+          Rank a share of members with changed weights and compare what they do. A member stays in the
+          same group for the whole experiment. Stopping returns everyone to the live weights.
+        </p>
+      </div>
+
+      {exp && (
+        <div className="text-sm text-gray-700">
+          <p>
+            <span className="font-medium">{exp.name}</span>{' '}
+            <span className={running ? 'text-green-700' : 'text-gray-400'}>({running ? 'running' : 'stopped'})</span>
+            {' · '}{exp.sharePct}% get the variant · since {new Date(exp.startedAt).toLocaleDateString('en-IN')}
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Variant changes: {Object.entries(exp.overrides).map(([k, v]) => `${k} ${typeof v === 'object' ? JSON.stringify(v) : v}`).join(', ')}
+          </p>
+          {state.results && (
+            <table className="mt-3 w-full">
+              <thead>
+                <tr className="text-xs text-gray-400 text-left">
+                  <th className="pr-4 font-medium">Group</th>
+                  <th className="pr-4 font-medium text-right">Members</th>
+                  <th className="pr-4 font-medium text-right">Interests sent</th>
+                  <th className="pr-4 font-medium text-right">Per member</th>
+                  <th className="font-medium text-right">Mutual</th>
+                </tr>
+              </thead>
+              <tbody>{arm('Live weights', state.results.control)}{arm('Variant', state.results.variant)}</tbody>
+            </table>
+          )}
+          {running && (
+            <button disabled={busy} onClick={stop}
+              className="mt-3 px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-700 disabled:opacity-50">Stop experiment</button>
+          )}
+        </div>
+      )}
+
+      {!running && (
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-3">
+            <label className="text-xs text-gray-500">
+              Name
+              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="verified-boost"
+                className="mt-1 block w-44 border border-gray-200 rounded-lg px-2 py-1.5 text-sm" />
+            </label>
+            <label className="text-xs text-gray-500">
+              % in the variant (1–{state.maxShare})
+              <input type="number" min={1} max={state.maxShare} value={form.sharePct}
+                onChange={(e) => setForm({ ...form, sharePct: e.target.value })}
+                className="mt-1 block w-24 border border-gray-200 rounded-lg px-2 py-1.5 text-sm" />
+            </label>
+            {SIGNALS.map(([key, label]) => (
+              <label key={key} className="text-xs text-gray-500">
+                {label} (blank = unchanged)
+                <input type="number" value={form.overrides[key] ?? ''}
+                  onChange={(e) => setForm({ ...form, overrides: { ...form.overrides, [key]: e.target.value } })}
+                  className="mt-1 block w-28 border border-gray-200 rounded-lg px-2 py-1.5 text-sm" />
+              </label>
+            ))}
+          </div>
+          <button disabled={busy || !form.name} onClick={start}
+            className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm disabled:opacity-50">Start experiment</button>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -123,6 +269,8 @@ export default function AdminRanking() {
         <button disabled={busy} onClick={reset}
           className="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-700 disabled:opacity-50">Reset to defaults</button>
       </div>
+
+      <ExperimentSection />
     </div>
   );
 }
