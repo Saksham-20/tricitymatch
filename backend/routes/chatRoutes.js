@@ -27,14 +27,21 @@ const {
   paginationRules
 } = require('../validators');
 
-// All chat routes require authentication and chat access. `requireChatAccess`
-// is premium-only by default and additionally admits mutual matches when
-// FREE_CHAT_FOR_MUTUALS is on — it is the ONLY gate that reads that flag, so
-// every other premium perk stays behind `requirePremium`.
-router.use(auth, requireChatAccess);
+// All chat routes require authentication. `requireChatAccess` is premium-only by
+// default and additionally admits mutual matches when FREE_CHAT_FOR_MUTUALS is
+// on — it is the ONLY gate that reads that flag, so every other premium perk
+// stays behind `requirePremium`.
+//
+// It is applied PER ROUTE, not with router.use(): a middleware mounted with
+// router.use runs before the route matches, so `req.params` is `{}` there and
+// the gate could not see `:userId`. It then asked "may this member use chat at
+// all?" instead of "may they chat with THIS person?", and any free member
+// holding a grant for one thread passed the gate for every thread.
+router.use(auth);
 
 // Get all conversations with pagination
 router.get('/conversations', 
+  requireChatAccess,
   paginationRules,
   handleValidationErrors,
   getConversations
@@ -42,6 +49,7 @@ router.get('/conversations',
 
 // Get messages with a specific user
 router.get('/messages/:userId', 
+  requireChatAccess,
   getMessagesValidation,
   handleValidationErrors,
   getMessages
@@ -49,6 +57,7 @@ router.get('/messages/:userId',
 
 // Send a message (rate limited)
 router.post('/messages', 
+  requireChatAccess,
   messageLimiter,
   sendMessageValidation,
   handleValidationErrors,
@@ -58,6 +67,7 @@ router.post('/messages',
 
 // Alias for frontend compatibility
 router.post('/send', 
+  requireChatAccess,
   messageLimiter,
   sendMessageValidation,
   handleValidationErrors,
@@ -87,6 +97,7 @@ router.post('/messages/:messageId/reactions',
 
 // Edit a message
 router.put('/messages/:messageId',
+  requireChatAccess,
   // Sibling send/react routes carry messageLimiter; edit and delete did not.
   messageLimiter,
   editMessageValidation,
@@ -96,6 +107,7 @@ router.put('/messages/:messageId',
 
 // Delete a message
 router.delete('/messages/:messageId',
+  requireChatAccess,
   messageLimiter,
   deleteMessageValidation,
   handleValidationErrors,

@@ -34,7 +34,9 @@ const describeDb = (name, body) => {
   let usable = null;
   describe(name, () => {
     beforeAll(async () => { usable = await connect(); });
-    afterAll(async () => { if (usable) await usable.close().catch(() => {}); });
+    // No close() here: afterAll hooks run in registration order, so closing the
+    // pool in this hook would run before the suite's own cleanup and leave every
+    // test row behind. Jest's forceExit ends the process.
     const t = (title, fn) => it(title, async () => {
       if (!usable) {
         // eslint-disable-next-line no-console
@@ -76,13 +78,18 @@ const removeMembers = async (ids) => {
   if (!ids.length) return;
   const sequelize = require('../../config/database');
   const q = (sql) => sequelize.query(sql, { replacements: { ids } });
+  await q('DELETE FROM "ProfileViews" WHERE "viewerId" IN (:ids) OR "viewedUserId" IN (:ids)').catch(() => {});
+  await q('DELETE FROM "ContactUnlocks" WHERE "userId" IN (:ids) OR "targetUserId" IN (:ids)').catch(() => {});
+  await q('DELETE FROM "AnalyticsEvents" WHERE "userId" IN (:ids)').catch(() => {});
   await q('DELETE FROM "Notifications" WHERE "userId" IN (:ids)').catch(() => {});
   await q('DELETE FROM "Blocks" WHERE "blockerId" IN (:ids) OR "blockedUserId" IN (:ids)').catch(() => {});
   await q('DELETE FROM "ChatGrants" WHERE "freeUserId" IN (:ids) OR "otherUserId" IN (:ids)').catch(() => {});
   await q('DELETE FROM "Matches" WHERE "userId" IN (:ids) OR "matchedUserId" IN (:ids)').catch(() => {});
   await q('DELETE FROM "Subscriptions" WHERE "userId" IN (:ids)').catch(() => {});
   await q('DELETE FROM "Profiles" WHERE "userId" IN (:ids)').catch(() => {});
-  await q('DELETE FROM "Users" WHERE id IN (:ids)').catch(() => {});
+  // Not swallowed: a user row left behind would collide with the next run's
+  // unique email/phone and turn a cleanup problem into a confusing failure.
+  await q('DELETE FROM "Users" WHERE id IN (:ids)');
 };
 
 /** Minimal Express req/res pair for calling a controller directly. */

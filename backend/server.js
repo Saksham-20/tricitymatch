@@ -281,12 +281,13 @@ if (config.isDevelopment || process.env.ENABLE_SWAGGER === 'true') {
 // Note: Comprehensive health checks are available at /monitoring/health/*
 
 // Simple health check endpoint (for load balancers)
+// Public and unauthenticated: it says the process is up and nothing else. Uptime
+// and environment name were free reconnaissance (restart timing, and whether a
+// target is running a development configuration).
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    environment: config.env
+    timestamp: new Date().toISOString()
   });
 });
 
