@@ -17,6 +17,7 @@
 const { Op } = require('sequelize');
 const { Block, Match, Profile, User } = require('../models');
 const { getActiveSubscription } = require('./entitlements');
+const { applyFieldVisibility } = require('../constants/fieldVisibility');
 
 // Keys that belong to the owner and are never useful to anyone else. Note
 // `dateOfBirth` stays: clients derive age from it today. Replacing it with a
@@ -30,6 +31,7 @@ const OWNER_ONLY_KEYS = [
   'showOnlineStatus',
   'showLastSeen',
   'photoBlurUntilMatch',
+  'fieldVisibility',
 ];
 
 /**
@@ -164,6 +166,10 @@ const redactForViewer = (raw, { isMutual = false, isSelf = false, hasPaidAccess 
     out.voiceIntroUrl = null;
     out.videoIntroUrl = null;
   }
+
+  // Income / birth details per the owner's own field-level choice. Must run
+  // before stripOwnerOnlyKeys removes the setting.
+  applyFieldVisibility(out, { isMutual, isSelf: false });
 
   // Lists never carry social links; the detail page applies per-link visibility.
   delete out.socialMediaLinks;

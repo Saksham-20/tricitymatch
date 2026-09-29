@@ -283,10 +283,18 @@ export const getRecentlyViewed = async (): Promise<ProfileSummary[]> => {
 
 // ─── Privacy ────────────────────────────────────────────────────────────────
 
+export type FieldLevel = 'everyone' | 'matches' | 'hidden';
+
+export interface FieldVisibility {
+  income?: FieldLevel;
+  birthDetails?: FieldLevel;
+}
+
 export interface PrivacySettings {
   profileVisibility?: 'everyone' | 'matches_only';
   showOnlineStatus?: boolean;
   showLastSeen?: boolean;
+  fieldVisibility?: FieldVisibility;
 }
 
 export const updatePrivacy = async (settings: PrivacySettings): Promise<void> => {

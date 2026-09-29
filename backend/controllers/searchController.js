@@ -162,6 +162,12 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
   if (!isNaN(parsedIncomeMax) && parsedIncomeMax >= 0) {
     where.income = { ...(where.income || {}), [Op.lte]: parsedIncomeMax };
   }
+  if (where.income) {
+    // A member who hides their income must not be findable by it: a range
+    // filter would reveal exactly what they chose not to show.
+    if (!where[Op.and]) where[Op.and] = [];
+    where[Op.and].push(Sequelize.literal(`COALESCE("Profile"."fieldVisibility"->>'income', 'everyone') = 'everyone'`));
+  }
 
   // Mother tongue filter (exact case-insensitive match to use LOWER() index)
   if (motherTongue) {

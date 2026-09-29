@@ -256,6 +256,13 @@ const Profile = sequelize.define('Profile', {
     type: DataTypes.JSONB,
     allowNull: true // e.g., { travel: true, hobbies: ['reading', 'music'] }
   },
+  // Who may see income and birth details: { income, birthDetails } each
+  // everyone | matches | hidden. Empty = everyone. See constants/fieldVisibility.
+  fieldVisibility: {
+    type: DataTypes.JSONB,
+    allowNull: false,
+    defaultValue: {}
+  },
   // Photos
   photos: {
     type: DataTypes.ARRAY(DataTypes.STRING),

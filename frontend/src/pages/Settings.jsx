@@ -628,6 +628,7 @@ const PrivacyTab = () => {
     profileVisibility: 'everyone',
     showOnlineStatus: true,
     showLastSeen: true,
+    fieldVisibility: { income: 'everyone', birthDetails: 'everyone' },
   });
   // CRITICAL fix: this used to render the hardcoded defaults above
   // immediately and swallow a failed GET (`.catch(() => {})`), with no
@@ -652,6 +653,10 @@ const PrivacyTab = () => {
           profileVisibility: p.profileVisibility || 'everyone',
           showOnlineStatus: p.showOnlineStatus ?? true,
           showLastSeen: p.showLastSeen ?? true,
+          fieldVisibility: {
+            income: p.fieldVisibility?.income || 'everyone',
+            birthDetails: p.fieldVisibility?.birthDetails || 'everyone',
+          },
         });
       }
     }).catch(() => {
@@ -725,6 +730,32 @@ const PrivacyTab = () => {
             <option value="everyone">Everyone</option>
             <option value="matches_only">Matches Only</option>
           </select>
+        </div>
+      </div>
+
+      <div>
+        <GroupHeader title="Details you share" desc="Show income and birth details to everyone, only to your matches, or to no one" />
+        <div className="max-w-xl space-y-4">
+          {[
+            ['income', 'Income', 'Also stops people finding you with an income filter'],
+            ['birthDetails', 'Birth time and place', 'Used for horoscope reports; your star sign match still works'],
+          ].map(([key, label, hint]) => (
+            <div key={key}>
+              <label htmlFor={`setting-field-${key}`} className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">{label}</label>
+              <select
+                id={`setting-field-${key}`}
+                name={key}
+                value={settings.fieldVisibility[key]}
+                onChange={(e) => setSettings((s) => ({ ...s, fieldVisibility: { ...s.fieldVisibility, [key]: e.target.value } }))}
+                className="input-field"
+              >
+                <option value="everyone">Everyone who can see my profile</option>
+                <option value="matches">Only my matches</option>
+                <option value="hidden">Only me</option>
+              </select>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">{hint}</p>
+            </div>
+          ))}
         </div>
       </div>
 

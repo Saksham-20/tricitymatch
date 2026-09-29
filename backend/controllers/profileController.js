@@ -18,6 +18,7 @@ const recheckVerification = async (userId) => {
 const { applyIdentityRules } = require('../utils/identityLock');
 const { blockedIdsFor } = require('../utils/blocks');
 const { redactForViewer, stripOwnerOnlyKeys } = require('../utils/profileVisibility');
+const { applyFieldVisibility, sanitizeFieldVisibility } = require('../constants/fieldVisibility');
 const { getActiveSubscription } = require('../utils/entitlements');
 const { visibleSocialLinks, normalizeSocialLinks } = require('../utils/socialLinks');
 const { Op, QueryTypes } = require('sequelize');
@@ -235,6 +236,9 @@ exports.updateProfile = asyncHandler(async (req, res) => {
         } else if (arrayFields.includes(field)) {
           // If multer parsed a single appended element, it's a string. Make it an array.
           updateData[field] = typeof value === 'string' ? (value ? [value] : []) : value;
+        } else if (field === 'fieldVisibility') {
+          // Merge onto the stored value so changing one group keeps the other.
+          updateData[field] = { ...(profile.fieldVisibility || {}), ...sanitizeFieldVisibility(value) };
         } else if (jsonFields.includes(field)) {
           // If the frontend stringified the object for FormData, parse it back
           if (typeof value === 'string') {
@@ -717,7 +721,11 @@ exports.getProfile = asyncHandler(async (req, res) => {
   // Owner-only keys (private settings, quiz answers, the member's own saved
   // searches) are never useful to another viewer. A member viewing their own
   // profile through this route still gets everything.
-  if (viewerId !== userId) stripOwnerOnlyKeys(profileData);
+  if (viewerId !== userId) {
+    // Field-level visibility reads the owner's setting, so it runs first.
+    applyFieldVisibility(profileData, { isMutual, isSelf: false });
+    stripOwnerOnlyKeys(profileData);
+  }
 
   // (Incognito handling moved up — the view is simply not recorded when the
   // viewer browses in incognito mode. See CTRL-1.)
@@ -1187,9 +1195,14 @@ exports.getCompatibilityBreakdown = asyncHandler(async (req, res) => {
 });
 
 exports.updatePrivacySettings = asyncHandler(async (req, res) => {
-  const { profileVisibility, showOnlineStatus, showLastSeen } = req.body;
+  const { profileVisibility, showOnlineStatus, showLastSeen, fieldVisibility } = req.body;
   const profile = await Profile.findOne({ where: { userId: req.user.id } });
   if (!profile) throw createError.notFound('Profile not found');
+
+  if (fieldVisibility !== undefined) {
+    // Merge so changing one group keeps the other; unknown groups/levels dropped.
+    profile.fieldVisibility = { ...(profile.fieldVisibility || {}), ...sanitizeFieldVisibility(fieldVisibility) };
+  }
 
   if (profileVisibility !== undefined) {
     const valid = ['everyone', 'matches_only'];
@@ -1207,6 +1220,7 @@ exports.updatePrivacySettings = asyncHandler(async (req, res) => {
     profileVisibility: profile.profileVisibility,
     showOnlineStatus: profile.showOnlineStatus,
     showLastSeen: profile.showLastSeen,
+    fieldVisibility: profile.fieldVisibility || {},
   }});
 });
 
@@ -1364,9 +1378,12 @@ exports.downloadKundliReport = asyncHandler(async (req, res) => {
   const myProfile = await Profile.findOne({ where: { userId: req.user.id } });
   if (!myProfile) throw createError.notFound('Your profile not found');
 
-  const { profile: theirProfile } = await assertProfileVisible(req.user.id, userId, {
+  const visible = await assertProfileVisible(req.user.id, userId, {
     viewerRole: req.user.role,
   });
+  // The report prints the other member's place of birth: honour their choice.
+  // Nakshatra, rashi and manglik feed the score itself and stay available.
+  const theirProfile = applyFieldVisibility(visible.profile.toJSON(), { isMutual: visible.isMutual, isSelf: visible.isSelf });
 
   const ashtakoot = getAshtakootScore(myProfile.nakshatra, theirProfile.nakshatra);
   const manglikCompatible = isManglikCompatible(myProfile.manglikStatus, theirProfile.manglikStatus);
