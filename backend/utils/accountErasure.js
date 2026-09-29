@@ -48,6 +48,7 @@
  */
 
 const crypto = require('crypto');
+const { emailLookupCandidates } = require('../utils/emailAddress');
 const { Op } = require('sequelize');
 
 // Required lazily inside eraseAccount rather than at module load. authController
@@ -147,28 +148,32 @@ const eraseAccount = async (userId) => {
     // The referral lead created at signup holds a copy of the name, phone and
     // email; a support enquiry holds name, email, phone and the sender's IP.
     // Matching is by the member's own contact details (captured above).
+    // Copies may hold the address as typed or in the older Gmail-stripped form.
+    const emailForms = emailLookupCandidates(identity.email);
+    if (emailForms.length === 0) emailForms.push(null);
+
     const [leadRows] = await sequelize.query(
       `UPDATE "MarketingLeads"
           SET "name" = :deleted, "phone" = '', "email" = NULL, "updatedAt" = NOW()
         WHERE "convertedUserId" = :userId
-           OR (:email::text IS NOT NULL AND "email" = :email)
+           OR lower("email") IN (:emails)
            OR (:phone::text IS NOT NULL AND "phone" = :phone)
         RETURNING "id"`,
-      { replacements: { userId, deleted: 'Deleted member', email: identity.email || null, phone: identity.phone || null }, transaction }
+      { replacements: { userId, deleted: 'Deleted member', emails: emailForms, phone: identity.phone || null }, transaction }
     );
     counts.marketingLeadsScrubbed = leadRows.length;
 
     const [enquiryRows] = await sequelize.query(
       `UPDATE "ContactMessages"
           SET "name" = :deleted, "email" = :placeholder, "phone" = NULL, "ipAddress" = NULL, "updatedAt" = NOW()
-        WHERE (:email::text IS NOT NULL AND "email" = :email)
+        WHERE lower("email") IN (:emails)
            OR (:phone::text IS NOT NULL AND "phone" = :phone)
         RETURNING "id"`,
       {
         replacements: {
           deleted: 'Deleted member',
           placeholder: 'deleted@deleted.invalid',
-          email: identity.email || null,
+          emails: emailForms,
           phone: identity.phone || null,
         },
         transaction,

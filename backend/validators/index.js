@@ -4,6 +4,7 @@
  */
 
 const { body, param, query } = require('express-validator');
+const { canonicalEmail } = require('../utils/emailAddress');
 const { PROFILE_STRIPPER_ALLOWLIST } = require('../constants/profileFields');
 const { PURCHASABLE_PLANS } = require('../constants/plans');
 
@@ -51,7 +52,7 @@ const signupValidation = [
     .optional({ checkFalsy: true })
     .isEmail()
     .withMessage('Please provide a valid email')
-    .normalizeEmail()
+    .customSanitizer(canonicalEmail)
     .isLength({ max: 255 })
     .withMessage('Email must not exceed 255 characters'),
   body('password')
@@ -132,7 +133,7 @@ const changeEmailRequestValidation = [
   body('newEmail')
     .isEmail()
     .withMessage('Please provide a valid email')
-    .normalizeEmail()
+    .customSanitizer(canonicalEmail)
     .isLength({ max: 255 }),
   body('password')
     .optional({ checkFalsy: true })
@@ -143,7 +144,7 @@ const changeEmailVerifyValidation = [
   body('newEmail')
     .isEmail()
     .withMessage('Please provide a valid email')
-    .normalizeEmail(),
+    .customSanitizer(canonicalEmail),
   body('code')
     .isLength({ min: 4, max: 6 })
     .withMessage('Code must be 4–6 digits')
@@ -155,7 +156,7 @@ const forgotPasswordValidation = [
   body('email')
     .isEmail()
     .withMessage('Please provide a valid email')
-    .normalizeEmail(),
+    .customSanitizer(canonicalEmail),
 ];
 
 const resetPasswordValidation = [
@@ -683,7 +684,7 @@ const contactValidation = [
     .escape(),
   body('email')
     .isEmail().withMessage('Please provide a valid email')
-    .normalizeEmail(),
+    .customSanitizer(canonicalEmail),
   body('phone')
     .optional({ checkFalsy: true })
     .trim()

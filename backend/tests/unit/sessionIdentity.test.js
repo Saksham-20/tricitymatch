@@ -127,6 +127,7 @@ describe('GET /auth/sessions marks the current device', () => {
 describe('change-password keeps the session that made the request', () => {
   const user = {
     id: 'user-1',
+    password: 'stored-hash',
     comparePassword: jest.fn().mockResolvedValue(true),
     save: jest.fn().mockResolvedValue(undefined),
   };

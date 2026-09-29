@@ -10,6 +10,7 @@ const config = require('../config/env');
 const { eraseAccount } = require('../utils/accountErasure');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { recordFailedLogin, clearLoginAttempts, loginLookupKey } = require('../middlewares/security');
+const { canonicalEmail, emailLookupCandidates } = require('../utils/emailAddress');
 const { log } = require('../middlewares/logger');
 const { OAuth2Client } = require('google-auth-library');
 const smsService = require('../utils/smsService');
@@ -167,6 +168,19 @@ const clearAuthCookies = (res) => {
   res.clearCookie('refreshToken', { path: '/' });
 };
 
+/**
+ * Find the account for an email address under any form it may be stored in:
+ * the address as typed (canonical), then the form older signups stored after
+ * Gmail dot/+tag stripping. Canonical wins if both exist.
+ */
+const findUserByEmail = async (email, options = {}) => {
+  for (const candidate of emailLookupCandidates(email)) {
+    const found = await User.findOne({ ...options, where: { ...(options.where || {}), email: candidate } });
+    if (found) return found;
+  }
+  return null;
+};
+
 // @route   POST /api/auth/signup
 // @desc    Register a new user
 // @access  Public
@@ -178,7 +192,7 @@ exports.signup = asyncHandler(async (req, res) => {
   const inviteFromRequest = req.body.invite || req.query.invite;
 
   // Flexible auth: account is identified by EITHER an email OR a phone number.
-  const normalizedEmail = email ? email.toLowerCase().trim() : null;
+  const normalizedEmail = email ? canonicalEmail(email) : null;
   const normalizedPhone = phone ? String(phone).trim() : null;
   if (!normalizedEmail && !normalizedPhone) {
     throw createError.badRequest('An email address or phone number is required');
@@ -186,7 +200,7 @@ exports.signup = asyncHandler(async (req, res) => {
 
   // Check if user already exists (by whichever identifier was provided)
   if (normalizedEmail) {
-    const existingByEmail = await User.findOne({ where: { email: normalizedEmail } });
+    const existingByEmail = await findUserByEmail(normalizedEmail, { attributes: ['id'] });
     if (existingByEmail) throw createError.conflict('An account already exists with this email');
   }
   if (normalizedPhone) {
@@ -402,10 +416,11 @@ exports.login = asyncHandler(async (req, res) => {
   // Shared with checkAccountLockout so the lockout gate keys off exactly what
   // we record failures against (see loginLookupKey in middlewares/security).
   const lookupKey = loginLookupKey(req.body);
-  const where = isEmail ? { email: lookupKey } : { phone: lookupKey };
-
-  // Find user by email or phone
-  const user = await User.findOne({ where });
+  // Email: lookupKey is the lockout identity (variants collapsed), NOT what is
+  // stored — look the account up under every form it may be stored in.
+  const user = isEmail
+    ? await findUserByEmail(rawIdentifier)
+    : await User.findOne({ where: { phone: lookupKey } });
   if (!user) {
     await recordFailedLogin(lookupKey);
     throw createError.unauthorized('Invalid credentials');
@@ -613,14 +628,16 @@ exports.getMe = asyncHandler(async (req, res) => {
 // @access  Public
 exports.forgotPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
-  const normalizedEmail = email.toLowerCase();
-  
+  const normalizedEmail = canonicalEmail(email);
+
   // Always respond with same message to prevent email enumeration
   const genericMessage = 'If the email exists, a reset link has been sent.';
 
-  const user = await User.findOne({ where: { email: normalizedEmail } });
+  const user = await findUserByEmail(normalizedEmail);
 
-  if (!user) {
+  // A member with no password (Google-only) has nothing to reset: same generic
+  // answer as an unknown address, so this cannot be used to tell them apart.
+  if (!user || !user.password) {
     // Simulate processing time to prevent timing attacks
     await new Promise(resolve => setTimeout(resolve, Math.random() * 200 + 100));
     return res.json({ success: true, message: genericMessage });
@@ -689,6 +706,9 @@ exports.resetPassword = asyncHandler(async (req, res) => {
   if (!decoded.pwdFp) {
     throw createError.badRequest('Reset token is malformed or is no longer valid');
   }
+  if (!user.password) {
+    throw createError.badRequest('Reset token has already been used or is no longer valid');
+  }
   const currentFp = require('crypto')
     .createHash('sha256')
     .update(user.password)
@@ -736,6 +756,12 @@ exports.changePassword = asyncHandler(async (req, res) => {
   const user = await User.findByPk(req.user.id);
   if (!user) {
     throw createError.notFound('User not found');
+  }
+
+  // Google-only members have no password to change (bcrypt on a null hash
+  // would throw a 500).
+  if (!user.password) {
+    throw createError.badRequest('Your account signs in with Google, so there is no password to change');
   }
 
   // Verify current password
@@ -908,8 +934,9 @@ exports.sendOtp = asyncHandler(async (req, res) => {
   // existing (even logged-in) user could trigger an OTP to their own number.
   const { Op } = require('sequelize');
   if (type === 'email') {
-    const email = String(target).toLowerCase().trim();
-    const exists = await User.findOne({ where: { email }, attributes: ['id'] });
+    const email = canonicalEmail(target);
+    if (!email) throw createError.badRequest('A valid email address is required');
+    const exists = await findUserByEmail(email, { attributes: ['id'] });
     if (exists) throw createError.conflict('An account already exists with this email. Please log in instead.');
   } else if (type === 'phone') {
     // Match every form a phone might be stored in (bare 10-digit, +91, 91…).
@@ -927,14 +954,15 @@ exports.sendOtp = asyncHandler(async (req, res) => {
     const { set: cacheSet } = require('../utils/cache');
     const code = String(Math.floor(100000 + Math.random() * 900000));
     const payload = JSON.stringify({ code, expiresAt: Date.now() + 600 * 1000, attempts: 0 });
-    await cacheSet(`otp:${target}`, payload, 600);
-    await sendOtpEmail(target, code, 'verify your email');
+    const otpEmail = canonicalEmail(target);
+    await cacheSet(`otp:${otpEmail}`, payload, 600);
+    await sendOtpEmail(otpEmail, code, 'verify your email');
     // Dev affordance: log the code when no email channel is configured.
     // Gate on isDevelopment, not !isProduction: the negative form is also true
     // for 'staging', 'qa' or any unrecognised NODE_ENV. The code is interpolated
     // into the message string, where redactValue can never reach it.
     if (!config.email.isConfigured() && config.isDevelopment) {
-      log.info(`[EMAIL-OTP DEV] Code for ${target}: ${code}`);
+      log.info(`[EMAIL-OTP DEV] Code for ${otpEmail}: ${code}`);
     }
     res.json({ success: true, message: 'OTP sent to email' });
   } else {
@@ -961,7 +989,7 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
     // smsService.verifyOtp, which canonicalizes the target as a phone number —
     // an email normalizes to null and throws before any code check. Verify here.
     const { get: cacheGet, set: cacheSet, del: cacheDel } = require('../utils/cache');
-    const key = `otp:${String(target).toLowerCase().trim()}`;
+    const key = `otp:${canonicalEmail(String(target))}`;
 
     const bypassCodes = config.sms.bypassCodes || [];
     if (bypassCodes.length > 0 && bypassCodes.includes(String(code))) {
@@ -996,7 +1024,7 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
     const { set: cacheSet } = require('../utils/cache');
     const key = type === 'phone'
       ? `otp-verified:phone:${smsService.normalizePhone(target)}`
-      : `otp-verified:email:${String(target).toLowerCase().trim()}`;
+      : `otp-verified:email:${canonicalEmail(String(target))}`;
     await cacheSet(key, '1', 1800);
   } catch { /* non-fatal: verification still succeeds */ }
 
@@ -1100,7 +1128,7 @@ exports.googleAuth = asyncHandler(async (req, res) => {
   let isNewUser = false;
 
   if (!user) {
-    user = await User.findOne({ where: { email: email.toLowerCase() } });
+    user = await findUserByEmail(email);
     if (user) {
       // Link Google to existing email account
       user.googleId = googleId;
@@ -1111,7 +1139,7 @@ exports.googleAuth = asyncHandler(async (req, res) => {
       isNewUser = true;
       user = await sequelize.transaction(async (t) => {
         const newUser = await User.create({
-          email: email.toLowerCase(),
+          email: canonicalEmail(email),
           googleId,
           password: null,
           status: 'active',
@@ -1180,7 +1208,7 @@ exports.googleAuth = asyncHandler(async (req, res) => {
 // @access  Private
 exports.requestEmailChange = asyncHandler(async (req, res) => {
   const { newEmail, password } = req.body;
-  const normalized = (newEmail || '').toLowerCase().trim();
+  const normalized = canonicalEmail(newEmail) || '';
   if (!normalized) throw createError.badRequest('New email is required');
 
   const user = await User.findByPk(req.user.id);
@@ -1197,7 +1225,7 @@ exports.requestEmailChange = asyncHandler(async (req, res) => {
     throw createError.badRequest('That is already your email address');
   }
 
-  const taken = await User.findOne({ where: { email: normalized } });
+  const taken = await findUserByEmail(normalized, { attributes: ['id'] });
   if (taken) throw createError.conflict('That email is already in use');
 
   const { set: cacheSet } = require('../utils/cache');
@@ -1219,7 +1247,7 @@ exports.requestEmailChange = asyncHandler(async (req, res) => {
 // @access  Private
 exports.verifyEmailChange = asyncHandler(async (req, res) => {
   const { newEmail, code } = req.body;
-  const normalized = (newEmail || '').toLowerCase().trim();
+  const normalized = canonicalEmail(newEmail) || '';
   if (!normalized || !code) throw createError.badRequest('New email and code are required');
 
   const { get: cacheGet, set: cacheSet, del: cacheDel } = require('../utils/cache');
@@ -1238,7 +1266,7 @@ exports.verifyEmailChange = asyncHandler(async (req, res) => {
   }
 
   // Re-check availability (guards a race between request and verify)
-  const taken = await User.findOne({ where: { email: normalized } });
+  const taken = await findUserByEmail(normalized, { attributes: ['id'] });
   if (taken && taken.id !== req.user.id) throw createError.conflict('That email is already in use');
 
   const user = await User.findByPk(req.user.id);

@@ -190,6 +190,8 @@ const User = sequelize.define('User', {
 });
 
 User.prototype.comparePassword = async function(candidatePassword) {
+  // Google-only members have no hash; bcrypt.compare would throw a 500.
+  if (!this.password || typeof candidatePassword !== 'string') return false;
   return await bcrypt.compare(candidatePassword, this.password);
 };
 

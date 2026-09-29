@@ -91,7 +91,7 @@ describe('erasure and copies of the member\'s identity', () => {
     // database: a mocked query cannot tell) so it is blanked, not nulled.
     expect(sql).toContain(`"phone" = ''`);
     expect(opts.transaction).toBe('TXN');
-    expect(opts.replacements).toMatchObject({ userId: USER, email: 'asha@example.com', phone: '9876543210' });
+    expect(opts.replacements).toMatchObject({ userId: USER, emails: ['asha@example.com'], phone: '9876543210' });
   });
 
   it('anonymises support enquiries from the member, keeping the enquiry itself', async () => {
@@ -107,7 +107,7 @@ describe('erasure and copies of the member\'s identity', () => {
     sequelize.query.mockImplementation(async (sql) => (sql.includes('SELECT "email", "phone"') ? [[{}], {}] : [[], {}]));
     await expect(eraseAccount(USER)).resolves.toBeDefined();
     const [, opts] = inTxn('UPDATE "MarketingLeads"');
-    expect(opts.replacements).toMatchObject({ email: null, phone: null });
+    expect(opts.replacements).toMatchObject({ emails: [null], phone: null });
   });
 });
 
