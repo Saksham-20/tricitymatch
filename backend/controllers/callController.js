@@ -9,6 +9,7 @@ const { notify } = require('../utils/notifyUser');
 const { asyncHandler, createError } = require('../middlewares/errorHandler');
 const { log } = require('../middlewares/logger');
 const config = require('../config/env');
+const { assertNotBlocked } = require('../utils/blocks');
 
 // GET /calls/agora-token?channel=<name>&type=voice|video
 //
@@ -32,8 +33,13 @@ exports.getAgoraToken = asyncHandler(async (req, res) => {
       status: { [Op.in]: ['initiated', 'accepted'] },
       [Op.or]: [{ callerId: req.user.id }, { calleeId: req.user.id }],
     },
-    attributes: ['id'],
+    attributes: ['id', 'callerId', 'calleeId'],
   });
+
+  // A block placed after the call was set up still ends the right to join it.
+  if (call) {
+    await assertNotBlocked(call.callerId, call.calleeId);
+  }
 
   let authorized = !!call;
 
@@ -84,6 +90,8 @@ exports.initiateCall = asyncHandler(async (req, res) => {
 
   const callee = await User.findByPk(calleeId, { attributes: ['id'] });
   if (!callee) throw createError.notFound('User not found');
+
+  await assertNotBlocked(req.user.id, calleeId);
 
   // Only mutual matches may call each other — mirrors the chat gate. Without
   // this, any premium member could ring any user by ID (unsolicited calls /
@@ -177,6 +185,8 @@ exports.acceptCall = asyncHandler(async (req, res) => {
   const call = await CallSession.findByPk(req.params.id);
   if (!call) throw createError.notFound('Call session not found');
   if (call.calleeId !== req.user.id) throw createError.forbidden('Not the callee');
+
+  await assertNotBlocked(call.callerId, call.calleeId);
 
   await call.update({ status: 'accepted', startedAt: new Date() });
 

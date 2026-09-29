@@ -4,6 +4,7 @@
  */
 
 const { Profile, User, ProfileView, Subscription, Match, ContactUnlock, Block, Verification } = require('../models');
+const { blockedIdsFor } = require('../utils/blocks');
 const { visibleSocialLinks, normalizeSocialLinks } = require('../utils/socialLinks');
 const { Op, QueryTypes } = require('sequelize');
 const { randomUUID } = require('crypto');
@@ -988,8 +989,14 @@ exports.getProfileViewers = asyncHandler(async (req, res) => {
   const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 100);
   const offset = (page - 1) * limit;
 
+  // A member in a block relationship with the viewer is not shown as a viewer.
+  const blockedIds = [...(await blockedIdsFor(userId))];
+
   const { count, rows: views } = await ProfileView.findAndCountAll({
-    where: { viewedUserId: userId },
+    where: {
+      viewedUserId: userId,
+      ...(blockedIds.length ? { viewerId: { [Op.notIn]: blockedIds } } : {})
+    },
     include: [{
       model: User, as: 'Viewer', attributes: ['id'],
       include: [{

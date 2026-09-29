@@ -4,6 +4,7 @@
  */
 
 const { Match, Profile, User, Subscription, Block, Verification } = require('../models');
+const { blockedIdsFor } = require('../utils/blocks');
 const { Op, QueryTypes } = require('sequelize');
 const { randomUUID } = require('crypto');
 const sequelize = require('../config/database');
@@ -390,11 +391,15 @@ exports.getLikes = asyncHandler(async (req, res) => {
   const limit = parseInt(req.query.limit) || 20;
   const offset = (page - 1) * limit;
 
+  // Members in a block relationship (either direction) never appear in a list.
+  const blockedIds = [...(await blockedIdsFor(userId))];
+
   // Get likes with pagination
   const { count, rows: likes } = await Match.findAndCountAll({
     where: {
       matchedUserId: userId,
-      action: 'like'
+      action: 'like',
+      ...(blockedIds.length ? { userId: { [Op.notIn]: blockedIds } } : {})
     },
     include: [
       {
@@ -462,10 +467,13 @@ exports.getShortlist = asyncHandler(async (req, res) => {
   const limit = parseInt(req.query.limit) || 20;
   const offset = (page - 1) * limit;
 
+  const blockedIds = [...(await blockedIdsFor(userId))];
+
   const { count, rows: shortlisted } = await Match.findAndCountAll({
     where: {
       userId,
-      action: 'shortlist'
+      action: 'shortlist',
+      ...(blockedIds.length ? { matchedUserId: { [Op.notIn]: blockedIds } } : {})
     },
     include: [
       {
@@ -514,10 +522,13 @@ exports.getSentInterests = asyncHandler(async (req, res) => {
   const limit = parseInt(req.query.limit) || 20;
   const offset = (page - 1) * limit;
 
+  const blockedIds = [...(await blockedIdsFor(userId))];
+
   const { count, rows: sent } = await Match.findAndCountAll({
     where: {
       userId,
-      action: 'like'
+      action: 'like',
+      ...(blockedIds.length ? { matchedUserId: { [Op.notIn]: blockedIds } } : {})
     },
     include: [
       {
@@ -569,10 +580,13 @@ exports.getMutualMatches = asyncHandler(async (req, res) => {
   const limit = parseInt(req.query.limit) || 20;
   const offset = (page - 1) * limit;
 
+  const blockedIds = [...(await blockedIdsFor(userId))];
+
   const { count, rows: mutualMatches } = await Match.findAndCountAll({
     where: {
       userId,
-      isMutual: true
+      isMutual: true,
+      ...(blockedIds.length ? { matchedUserId: { [Op.notIn]: blockedIds } } : {})
     },
     include: [
       {

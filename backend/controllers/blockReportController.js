@@ -2,10 +2,71 @@
  * Block & Report Controller
  */
 
-const { Block, Report, User, Profile } = require('../models');
+const { Block, Report, User, Profile, Match, ChatGrant, CallSession } = require('../models');
 const { Op } = require('sequelize');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
-const { logAudit } = require('../middlewares/logger');
+const { logAudit, log } = require('../middlewares/logger');
+const sequelize = require('../config/database');
+const { getIO } = require('../utils/socket');
+
+// Blocking used to insert a Block row and nothing else, so an existing mutual
+// match kept its chat, its calls and its live socket room. The row alone is
+// enforced at each contact channel (utils/blocks); this removes the standing
+// relationship so nothing resumes on unblock without a fresh mutual choice, and
+// tears down what is live right now.
+//
+// Match rows are kept (history, analytics, admin review) — only `isMutual` is
+// cleared. Chat grants are revoked so a free-reply window cannot outlive the
+// relationship. Failures here are logged, never surfaced: the Block row is
+// already the authoritative barrier.
+const severRelationship = async (blockerId, blockedUserId) => {
+  const pair = [
+    { userId: blockerId, matchedUserId: blockedUserId },
+    { userId: blockedUserId, matchedUserId: blockerId },
+  ];
+  try {
+    await sequelize.transaction(async (t) => {
+      await Match.update(
+        { isMutual: false },
+        { where: { [Op.or]: pair, isMutual: true }, transaction: t }
+      );
+      await ChatGrant.destroy({
+        where: {
+          [Op.or]: [
+            { premiumUserId: blockerId, freeUserId: blockedUserId },
+            { premiumUserId: blockedUserId, freeUserId: blockerId },
+          ],
+        },
+        transaction: t,
+      });
+      await CallSession.update(
+        { status: 'ended', endedAt: new Date() },
+        {
+          where: {
+            status: { [Op.in]: ['initiated', 'accepted'] },
+            [Op.or]: [
+              { callerId: blockerId, calleeId: blockedUserId },
+              { callerId: blockedUserId, calleeId: blockerId },
+            ],
+          },
+          transaction: t,
+        }
+      );
+    });
+  } catch (err) {
+    log.error('Block cleanup failed', { blockerId, blockedUserId, error: err.message });
+  }
+
+  try {
+    const io = getIO();
+    if (io) {
+      const room = [blockerId, blockedUserId].sort().join('_room_');
+      io.in(room).socketsLeave(room);
+    }
+  } catch (err) {
+    log.error('Block socket eviction failed', { blockerId, blockedUserId, error: err.message });
+  }
+};
 
 // @route   POST /api/block/:userId
 // @desc    Block a user
@@ -25,6 +86,11 @@ exports.blockUser = asyncHandler(async (req, res) => {
   const [, created] = await Block.findOrCreate({
     where: { blockerId, blockedUserId },
   });
+
+  // Sever every existing channel even when the block row already existed: a
+  // block that pre-dates this cleanup (or a partial failure) is repaired by
+  // simply blocking again.
+  await severRelationship(blockerId, blockedUserId);
 
   if (!created) {
     return res.json({ success: true, message: 'User was already blocked' });

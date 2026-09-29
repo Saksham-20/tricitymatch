@@ -10,6 +10,7 @@ const { sendMessageNotification } = require('../utils/emailService');
 const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { log } = require('../middlewares/logger');
+const { assertNotBlocked, blockedIdsFor, isBlockedBetween } = require('../utils/blocks');
 const { getActiveSubscription, grantWindowState } = require('../utils/entitlements');
 const { REACTION_EMOJIS, VOICE_MESSAGE_MAX_DURATION_MS } = require('../constants/chat');
 
@@ -72,7 +73,10 @@ const emitToConversation = (req, senderId, receiverId, events) => {
 // Verify mutual match between two users
 const verifyMutualMatch = async (userId1, userId2, transaction = null) => {
   const options = transaction ? { transaction } : {};
-  
+
+  // A block severs the relationship regardless of what the Match row says.
+  if (await isBlockedBetween(userId1, userId2)) return false;
+
   const match = await Match.findOne({
     where: {
       [Op.or]: [
@@ -99,11 +103,17 @@ exports.getConversations = asyncHandler(async (req, res) => {
   const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 100);
   const offset = (page - 1) * limit;
 
+  // A block in either direction removes the conversation from the list — the
+  // match row is left alone so history is not destroyed, but it is unreachable.
+  const blockedIds = [...(await blockedIdsFor(userId))];
+  const notBlocked = blockedIds.length ? { matchedUserId: { [Op.notIn]: blockedIds } } : {};
+
   // Get mutual matches (only mutual matches can have conversations)
   const mutualMatches = await Match.findAll({
     where: {
       userId,
-      isMutual: true
+      isMutual: true,
+      ...notBlocked
     },
     attributes: ['matchedUserId'],
     include: [{
@@ -228,7 +238,7 @@ exports.getConversations = asyncHandler(async (req, res) => {
 
   // Get total count for pagination
   const totalMatches = await Match.count({
-    where: { userId, isMutual: true }
+    where: { userId, isMutual: true, ...notBlocked }
   });
 
   res.json({
@@ -253,6 +263,8 @@ exports.getMessages = asyncHandler(async (req, res) => {
   // Cap to 100 messages per page to prevent bulk dumps
   const limit = Math.min(Math.max(parseInt(req.query.limit) || 50, 1), 100);
   const offset = (page - 1) * limit;
+
+  await assertNotBlocked(currentUserId, otherUserId);
 
   // Verify mutual match
   const isMutual = await verifyMutualMatch(currentUserId, otherUserId);
@@ -326,6 +338,8 @@ exports.sendMessage = asyncHandler(async (req, res) => {
   if (sanitizedContent.length > MAX_MESSAGE_LENGTH) {
     throw createError.badRequest(`Message too long. Maximum ${MAX_MESSAGE_LENGTH} characters allowed.`);
   }
+
+  await assertNotBlocked(senderId, receiverId);
 
   // Verify mutual match
   const isMutual = await verifyMutualMatch(senderId, receiverId);
@@ -501,6 +515,9 @@ exports.editMessage = asyncHandler(async (req, res) => {
     throw createError.forbidden('You can only edit your own messages');
   }
 
+  // An edit is delivered to the other person; after a block it must not be.
+  await assertNotBlocked(userId, message.receiverId);
+
   // Check time limit
   const messageAge = Date.now() - new Date(message.createdAt).getTime();
   if (messageAge > MESSAGE_EDIT_TIME_LIMIT) {
@@ -605,6 +622,8 @@ exports.sendVoiceMessage = asyncHandler(async (req, res) => {
     throw createError.badRequest('User is not available');
   }
 
+  await assertNotBlocked(senderId, receiverId);
+
   const isMutual = await verifyMutualMatch(senderId, receiverId);
   if (!isMutual) {
     throw createError.forbidden('You can only message mutual matches');
@@ -661,6 +680,7 @@ exports.toggleReaction = asyncHandler(async (req, res) => {
     if (row.senderId !== userId && row.receiverId !== userId) {
       throw createError.forbidden('You can only react in your own conversations');
     }
+    await assertNotBlocked(userId, row.senderId === userId ? row.receiverId : row.senderId);
 
     const reactions = { ...(row.reactions || {}) };
     const users = new Set(reactions[emoji] || []);
