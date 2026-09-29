@@ -108,7 +108,7 @@
       "female": "Female",
       "dobRequired": "Enter your date of birth as DD/MM/YYYY",
       "dobInvalid": "Enter a valid date",
-      "dobUnder": "You must be at least 18 years old",
+      "dobUnder": "You must be at least {{min}} years old",
       "dobOver": "Members must be 65 or younger",
       "dobA11yHint": "Type day, month and year as eight digits. The slashes are added for you.",
       "tooManySignups": "Too many signup attempts. Please try again later.",

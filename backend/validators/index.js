@@ -5,6 +5,7 @@
 
 const { body, param, query } = require('express-validator');
 const { canonicalEmail } = require('../utils/emailAddress');
+const { marriageableAgeProblem } = require('../constants/marriageableAge');
 const { PROFILE_STRIPPER_ALLOWLIST } = require('../constants/profileFields');
 const { PURCHASABLE_PLANS } = require('../constants/plans');
 
@@ -96,16 +97,9 @@ const signupValidation = [
     .optional()
     .isISO8601()
     .withMessage('Invalid date of birth format')
-    .custom((value) => {
-      const dob = new Date(value);
-      const today = new Date();
-      const age = Math.floor((today - dob) / (365.25 * 24 * 60 * 60 * 1000));
-      if (age < 18) {
-        throw new Error('You must be at least 18 years old');
-      }
-      if (age > 120) {
-        throw new Error('Invalid date of birth');
-      }
+    .custom((value, { req }) => {
+      const problem = marriageableAgeProblem(req.body.gender, value);
+      if (problem) throw new Error(problem);
       return true;
     }),
   // Member invite token (Phase S). Optional and non-blocking BY DESIGN: an
@@ -219,7 +213,7 @@ const updateProfileValidation = [
     .isIn(['male', 'female', 'other'])
     .withMessage('Invalid gender'),
   body('dateOfBirth')
-    .optional()
+    .optional({ checkFalsy: true })
     .isISO8601()
     .withMessage('Invalid date format'),
   body('height')

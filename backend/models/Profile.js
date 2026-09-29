@@ -1,4 +1,5 @@
 const { DataTypes } = require('sequelize');
+const { marriageableAgeProblem } = require('../constants/marriageableAge');
 const sequelize = require('../config/database');
 
 const Profile = sequelize.define('Profile', {
@@ -42,11 +43,12 @@ const Profile = sequelize.define('Profile', {
     type: DataTypes.DATE,
     allowNull: true,
     validate: {
+      // 21 for men and gender `other`, 18 for women (constants/marriageableAge).
+      // Field validators see the instance, so a gender edited in the same update
+      // is the one the age is judged against.
       isOldEnough(value) {
-        if (value) {
-          const age = Math.floor((Date.now() - new Date(value)) / (365.25 * 24 * 60 * 60 * 1000));
-          if (age < 18) throw new Error('Must be at least 18 years old');
-        }
+        const problem = marriageableAgeProblem(this.gender, value);
+        if (problem) throw new Error(problem);
       }
     }
   },

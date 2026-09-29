@@ -20,6 +20,7 @@ const {
   getUser,
   createUser,
   updateUserStatus,
+  changeMemberIdentity,
   updateSubscription,
   getVerifications,
   updateVerification,
@@ -93,6 +94,14 @@ router.put('/users/bulk-status', requireAdminScope('users'), bulkUpdateStatus);
 router.get('/users/export', requireAdminScope('users'), exportUsers);
 router.get('/users/:userId', requireAdminScope('users'), param('userId').isUUID(4), handleValidationErrors, getUser);
 router.put('/users/:userId/status', requireAdminScope('users'), updateUserStatusValidation, handleValidationErrors, updateUserStatus);
+router.put('/users/:userId/identity', requireAdminScope('users'),
+  param('userId').isUUID(4),
+  body('dateOfBirth').optional().isISO8601().withMessage('Invalid date format'),
+  body('gender').optional().isIn(['male', 'female', 'other']).withMessage('Invalid gender'),
+  body('reason').isString().isLength({ min: 10, max: 500 }).withMessage('A reason (10-500 characters) is required'),
+  handleValidationErrors,
+  changeMemberIdentity
+);
 router.delete('/users/:userId/subscription',
   requireAdminScope('subscriptions'),
   param('userId').isUUID(4),

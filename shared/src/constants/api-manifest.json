@@ -173,6 +173,7 @@
     "PUT /api/v1/admin/referral-codes/:id/toggle",
     "PUT /api/v1/admin/reports/:reportId",
     "PUT /api/v1/admin/success-stories/:id",
+    "PUT /api/v1/admin/users/:userId/identity",
     "PUT /api/v1/admin/users/:userId/role",
     "PUT /api/v1/admin/users/:userId/status",
     "PUT /api/v1/admin/users/:userId/subscription",

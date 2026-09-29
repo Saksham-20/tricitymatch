@@ -25,6 +25,7 @@ const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { log, logAudit } = require('../middlewares/logger');
 const { generateInvoicePDF } = require('../utils/invoice');
 const { hardDeleteUsers, MAX_BATCH } = require('../utils/hardDeleteUsers');
+const { marriageableAgeProblem } = require('../constants/marriageableAge');
 const { notify } = require('../utils/notifyUser');
 const { sendVerificationApproved, sendVerificationRejected, sendSupportReply } = require('../utils/email');
 const {
@@ -252,6 +253,48 @@ exports.updateUserStatus = asyncHandler(async (req, res) => {
     message: 'User status updated',
     user
   });
+});
+
+// @route   PUT /api/admin/users/:userId/identity
+// @desc    Correct a member's date of birth and/or gender (locked to members once
+//          onboarding completes). Support-only, reason required, audited, and the
+//          new pair must still satisfy the marriageable-age rule.
+// @access  Private/Admin (scope: users)
+exports.changeMemberIdentity = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const { dateOfBirth, gender, reason } = req.body;
+
+  if (dateOfBirth === undefined && gender === undefined) {
+    throw createError.badRequest('Provide dateOfBirth and/or gender');
+  }
+  if (typeof reason !== 'string' || reason.trim().length < 10) {
+    throw createError.badRequest('A reason of at least 10 characters is required for the audit trail');
+  }
+
+  const profile = await Profile.findOne({ where: { userId } });
+  if (!profile) throw createError.notFound('Profile not found');
+
+  const previous = { dateOfBirth: profile.dateOfBirth, gender: profile.gender };
+  const nextGender = gender !== undefined ? gender : profile.gender;
+  const nextDob = dateOfBirth !== undefined ? dateOfBirth : profile.dateOfBirth;
+  if (gender !== undefined && !['male', 'female', 'other'].includes(gender)) {
+    throw createError.badRequest('Invalid gender');
+  }
+  const problem = marriageableAgeProblem(nextGender, nextDob);
+  if (problem) throw createError.badRequest(problem);
+
+  if (gender !== undefined) profile.gender = gender;
+  if (dateOfBirth !== undefined) profile.dateOfBirth = new Date(dateOfBirth);
+  await profile.save();
+
+  logAudit('member_identity_changed', req.user.id, {
+    targetUserId: userId,
+    reason: reason.trim(),
+    previous,
+    next: { dateOfBirth: profile.dateOfBirth, gender: profile.gender },
+  });
+
+  res.json({ success: true, message: 'Member identity updated', profile: { gender: profile.gender, dateOfBirth: profile.dateOfBirth } });
 });
 
 // @route   GET /api/admin/verifications

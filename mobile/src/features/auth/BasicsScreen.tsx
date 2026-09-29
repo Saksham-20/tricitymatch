@@ -33,6 +33,7 @@ import { signup } from '../../api/auth';
 import { useAuthStore } from '../../stores/authStore';
 import { spacing, borderRadius, type, type ThemeColours } from '@shared/constants/theme';
 import { tapSize } from '../../utils/elderTheme';
+import { minAgeFor, ageOnIso } from '../../utils/marriageableAge';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'SignupBasics'>;
 type Route = RouteProp<AuthStackParamList, 'SignupBasics'>;
@@ -146,7 +147,8 @@ export default function BasicsScreen() {
       // Same arithmetic as the server's signup validator, so the two agree on
       // who is 18 today.
       const age = (Date.now() - date.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
-      if (age < 18) { rejectDob(t('auth.signup.dobUnder', 'You must be at least 18 years old')); return; }
+      // 18 is the floor for anyone; men need 21 — checked against the chosen gender below.
+      if (age < 18) { rejectDob(t('auth.signup.dobUnder', { min: 18, defaultValue: 'You must be at least {{min}} years old' })); return; }
       if (Math.floor(age) > MAX_AGE) { rejectDob(t('auth.signup.dobInvalid', 'Enter a valid date')); return; }
       setDob(iso);
     }
@@ -174,7 +176,12 @@ export default function BasicsScreen() {
   const firstNameError = (submitted || touched.first) ? firstNameProblem : undefined;
   const lastNameError = (submitted || touched.last) ? lastNameProblem : undefined;
   const genderError = submitted && !gender ? genderMsg : undefined;
-  const dobShownError = dobError || ((submitted || touched.dob) && !dob ? dobRequiredMsg : '');
+  // Men must be 21, women 18 — judged against the gender chosen, whichever order they are filled in.
+  const minAge = minAgeFor(gender);
+  const dobAgeError = dob && ageOnIso(dob) < minAge
+    ? t('auth.signup.dobUnder', { min: minAge, defaultValue: 'You must be at least {{min}} years old' })
+    : '';
+  const dobShownError = dobError || dobAgeError || ((submitted || touched.dob) && !dob ? dobRequiredMsg : '');
 
   // Input's error text has no live region, so a blur that produces an error says so.
   const leaveField = (key: 'first' | 'last' | 'dob', problem: string | undefined) => {
@@ -185,13 +192,13 @@ export default function BasicsScreen() {
   const handleCreate = async () => {
     if (loading) return;
     setSubmitted(true);
-    if (firstNameProblem || lastNameProblem || !gender || !dob || dobError) {
+    if (firstNameProblem || lastNameProblem || !gender || !dob || dobError || dobAgeError) {
       // Nothing moves on screen for a screen-reader user: read out what is missing.
       const problems = [
         firstNameProblem,
         lastNameProblem,
         !gender && genderMsg,
-        (dobError || !dob) && (dobError || dobRequiredMsg),
+        (dobError || dobAgeError || !dob) && (dobError || dobAgeError || dobRequiredMsg),
       ].filter(Boolean) as string[];
       AccessibilityInfo.announceForAccessibility(problems.join('. '));
       return;

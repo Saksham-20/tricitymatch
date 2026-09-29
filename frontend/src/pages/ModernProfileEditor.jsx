@@ -6,6 +6,7 @@ import { OnboardingProvider, useOnboarding } from '../context/OnboardingContext'
 import api from '../api/axios';
 import { buildProfileFormData } from '../utils/profileSubmit';
 import { validateAge } from '../utils/validators';
+import { minAgeFor, minAgeMessage } from '../utils/marriageableAge';
 import useUnsavedChangesGuard from '../hooks/useUnsavedChangesGuard';
 import toast from 'react-hot-toast';
 import { FiX, FiArrowLeft, FiArrowRight, FiCheck, FiAlertCircle } from 'react-icons/fi';
@@ -113,8 +114,8 @@ const ModernProfileEditorContent = () => {
         return { section: SECTION_INDEX.basic, message: 'Weight must be between 30–300 kg' };
       }
     }
-    if (formData.dateOfBirth && !validateAge(formData.dateOfBirth, 18, 100)) {
-      return { section: SECTION_INDEX.basic, message: 'You must be at least 18 years old' };
+    if (formData.dateOfBirth && !validateAge(formData.dateOfBirth, minAgeFor(formData.gender), 100)) {
+      return { section: SECTION_INDEX.basic, message: minAgeMessage(formData.gender) };
     }
     const min = Number(formData.preferredAgeMin);
     const max = Number(formData.preferredAgeMax);

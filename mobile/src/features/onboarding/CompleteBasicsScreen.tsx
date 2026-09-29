@@ -22,6 +22,7 @@ import { getMyProfile, updateMyProfile } from '../../api/profile';
 import { getMe } from '../../api/auth';
 import { useAuthStore } from '../../stores/authStore';
 import { tapSize } from '../../utils/elderTheme';
+import { minAgeFor, ageOnIso } from '../../utils/marriageableAge';
 import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 
 /** Calendar-valid DD/MM/YYYY -> ISO date, or null. `new Date('2000-02-31')` may roll over, so round-trip it. */
@@ -155,7 +156,7 @@ export default function CompleteBasicsScreen() {
       // Same arithmetic as the server's validator, so client and server agree at the boundary.
       const age = (Date.now() - new Date(iso).getTime()) / (1000 * 60 * 60 * 24 * 365.25);
       // Same keys and wording as the Basics screen the new-account path uses.
-      if (age < 18) { setDobError(t('auth.signup.dobUnder', 'You must be at least 18 years old')); return; }
+      if (age < 18) { setDobError(t('auth.signup.dobUnder', { min: 18, defaultValue: 'You must be at least {{min}} years old' })); return; }
       if (age > 65) { setDobError(t('auth.signup.dobOver', 'Members must be 65 or younger')); return; }
       setDob(iso);
     }
@@ -168,7 +169,12 @@ export default function CompleteBasicsScreen() {
     }
   };
 
-  const isValid = !!(firstName.trim() && lastName.trim() && gender && dob && !dobError);
+  // Men must be 21, women 18 — against whichever gender is chosen, in either fill order.
+  const minAge = minAgeFor(gender);
+  const dobAgeError = dob && ageOnIso(dob) < minAge
+    ? t('auth.signup.dobUnder', { min: minAge, defaultValue: 'You must be at least {{min}} years old' })
+    : '';
+  const isValid = !!(firstName.trim() && lastName.trim() && gender && dob && !dobError && !dobAgeError);
 
   const handleContinue = async () => {
     if (!isValid || loading) return;
@@ -333,7 +339,7 @@ export default function CompleteBasicsScreen() {
         placeholder="DD/MM/YYYY"
         keyboardType="numeric"
         maxLength={10}
-        error={dobError}
+        error={dobError || dobAgeError}
         testID="dob-input"
         accessibilityLabel={t('auth.signup.dob', 'Date of birth')}
       />

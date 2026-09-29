@@ -4,6 +4,7 @@
  */
 
 const { Profile, User, ProfileView, Subscription, Match, ContactUnlock, Block, Verification } = require('../models');
+const { applyIdentityRules } = require('../utils/identityLock');
 const { blockedIdsFor } = require('../utils/blocks');
 const { redactForViewer, stripOwnerOnlyKeys } = require('../utils/profileVisibility');
 const { getActiveSubscription } = require('../utils/entitlements');
@@ -257,6 +258,11 @@ exports.updateProfile = asyncHandler(async (req, res) => {
       const v = updateData[key];
       if (v === '' || v === null || v === undefined) delete updateData[key];
     });
+
+    // Age rule (21 men / 18 women / 21 other) and the post-onboarding lock on
+    // date of birth + gender. Runs on the sanitised update so an unchanged
+    // resubmitted value is dropped rather than re-validated.
+    applyIdentityRules(profile, updateData);
 
     // Normalize social connections to the canonical { key: {url, visibility} }
     // shape, dropping unknown platforms and unsafe (non-http) URLs. null clears
