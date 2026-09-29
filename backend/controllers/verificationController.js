@@ -10,6 +10,7 @@
  */
 
 const { Verification, User } = require('../models');
+const { signMediaUrl, TTL } = require('../utils/privateMedia');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 
 // @route   POST /api/verification/submit
@@ -88,7 +89,8 @@ exports.getVerificationStatus = asyncHandler(async (req, res) => {
     success: true,
     verification: {
       status: verification.status,
-      selfiePhoto: verification.selfiePhoto,
+      // Identity evidence: a short-lived link, never the stored asset URL.
+      selfiePhoto: signMediaUrl(verification.selfiePhoto, TTL.selfie),
       adminNotes: verification.status === 'rejected' ? verification.adminNotes : null,
       verifiedAt: verification.verifiedAt,
       submittedAt: verification.createdAt

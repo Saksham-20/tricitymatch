@@ -12,6 +12,7 @@
 
 const { Op } = require('sequelize');
 const models = require('../models');
+const { withSignedMedia, TTL } = require('./privateMedia');
 
 const ROW_LIMIT = 50000;
 
@@ -97,6 +98,14 @@ const buildMemberExport = async (userId) => {
       exclude: ['token', 'tokenHash', 'family'],
     })),
   ]);
+
+  // The queries above are raw, so private media would go out as the permanent
+  // stored asset URL. Hand out expiring links instead, like every other surface.
+  if (out.profile) {
+    out.profile = withSignedMedia(out.profile, { voiceIntroUrl: TTL.playback, videoIntroUrl: TTL.playback });
+  }
+  out.messages = out.messages.map((m) => withSignedMedia(m, { mediaUrl: TTL.playback }));
+  out.verification = out.verification.map((v) => withSignedMedia(v, { selfiePhoto: TTL.playback, selfieVideoUrl: TTL.playback }));
 
   if (truncated.length) out.truncated = truncated;
   return out;

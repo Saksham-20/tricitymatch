@@ -1,6 +1,7 @@
 const { DataTypes } = require('sequelize');
 const { marriageableAgeProblem } = require('../constants/marriageableAge');
 const sequelize = require('../config/database');
+const { signOnSerialize, TTL } = require('../utils/privateMedia');
 
 const Profile = sequelize.define('Profile', {
   id: {
@@ -360,6 +361,10 @@ const Profile = sequelize.define('Profile', {
     { fields: ['dateOfBirth'] }
   ]
 });
+
+// Voice/video intros are private media: clients receive short-lived URLs, the
+// stored attribute stays the underlying asset URL (see utils/privateMedia).
+signOnSerialize(Profile, { voiceIntroUrl: TTL.playback, videoIntroUrl: TTL.playback });
 
 module.exports = Profile;
 

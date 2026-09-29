@@ -131,6 +131,7 @@ const createCloudinaryStorage = (folder, transformation = [], opts = {}) => {
     cloudinary: cloudinary,
     params: {
       folder: `${config.cloudinary.folder}/${folder}`,
+      ...(opts.type ? { type: opts.type } : {}),
       allowed_formats: formats,
       transformation: transformation.length > 0 ? transformation : undefined,
       resource_type: resourceType,
@@ -153,7 +154,7 @@ const galleryPhotoStorage = createCloudinaryStorage('gallery', [
 // from 'auto'/raw/video.
 const documentStorage = createCloudinaryStorage('verification-docs', [
   { quality: 'auto:eco' },
-], { resourceType: 'image', formats: ['jpg', 'jpeg', 'png', 'webp', 'pdf'] });
+], { resourceType: 'image', formats: ['jpg', 'jpeg', 'png', 'webp', 'pdf'], type: 'authenticated' });
 
 // Create multer upload instances
 const uploadProfilePhoto = multer({
@@ -201,6 +202,7 @@ const voiceIntroStorage = config.cloudinary.isConfigured()
       cloudinary,
       params: {
         folder: `${config.cloudinary.folder}/voice-intros`,
+        type: 'authenticated', // private media: see utils/privateMedia
         resource_type: 'video', // Cloudinary uses 'video' for audio
         allowed_formats: ['mp3', 'm4a', 'aac', 'ogg', 'wav', 'webm'],
       },
@@ -231,6 +233,7 @@ const voiceMessageStorage = config.cloudinary.isConfigured()
       cloudinary,
       params: {
         folder: `${config.cloudinary.folder}/voice-messages`,
+        type: 'authenticated', // private media: see utils/privateMedia
         resource_type: 'video', // Cloudinary uses 'video' for audio
         allowed_formats: ['mp3', 'm4a', 'aac', 'ogg', 'wav', 'webm'],
       },
@@ -268,6 +271,7 @@ const videoIntroStorage = config.cloudinary.isConfigured()
       cloudinary,
       params: {
         folder: `${config.cloudinary.folder}/video-intros`,
+        type: 'authenticated', // private media: see utils/privateMedia
         resource_type: 'video',
         allowed_formats: ['mp4', 'mov', 'webm'],
       },

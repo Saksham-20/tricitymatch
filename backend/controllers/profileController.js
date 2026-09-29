@@ -20,6 +20,10 @@ const { generateBiodataPDF, TEMPLATES: BIODATA_TEMPLATES } = require('../utils/b
 const { toProfileCode } = require('../utils/profileCode');
 const { sanitizeSavedSearchList } = require('../utils/savedSearches');
 const { notify } = require('../utils/notifyUser');
+const { withSignedMedia, signMediaUrl, TTL: MEDIA_TTL } = require('../utils/privateMedia');
+
+// Private intro media leaves the server as short-lived URLs only.
+const INTRO_MEDIA = { voiceIntroUrl: MEDIA_TTL.playback, videoIntroUrl: MEDIA_TTL.playback };
 const { trackEvent } = require('../utils/trackEvent');
 
 // Completion milestones and their messages
@@ -155,7 +159,7 @@ exports.getMyProfile = asyncHandler(async (req, res) => {
     await profile.save();
   }
 
-  const payload = profile.get ? profile.get({ plain: true }) : profile.toJSON();
+  const payload = withSignedMedia(profile.get ? profile.get({ plain: true }) : profile.toJSON(), INTRO_MEDIA);
 
   // Own verification state, derived the same way every other surface derives it
   // (an approved Verification row — there is no column). Without it the member's
@@ -391,7 +395,7 @@ exports.updateProfile = asyncHandler(async (req, res) => {
 
   // Reload once more so response has latest DB state; send plain object so client gets photos array
   await profile.reload();
-  const payload = profile.get ? profile.get({ plain: true }) : profile.toJSON();
+  const payload = withSignedMedia(profile.get ? profile.get({ plain: true }) : profile.toJSON(), INTRO_MEDIA);
 
   if (process.env.NODE_ENV === 'development' && payload.photos?.length) {
     console.log('[profile] Responding with photos count:', payload.photos.length);
@@ -1175,7 +1179,7 @@ exports.uploadVoiceIntro = asyncHandler(async (req, res) => {
   profile.voiceIntroUrl = audioUrl;
   await profile.save();
 
-  res.json({ success: true, voiceIntroUrl: audioUrl });
+  res.json({ success: true, voiceIntroUrl: signMediaUrl(audioUrl, MEDIA_TTL.playback) });
 });
 
 // @route   DELETE /api/v1/profile/voice-intro
@@ -1220,7 +1224,7 @@ exports.uploadVideoIntro = asyncHandler(async (req, res) => {
   profile.videoIntroUrl = videoUrl;
   await profile.save();
 
-  res.json({ success: true, videoIntroUrl: videoUrl });
+  res.json({ success: true, videoIntroUrl: signMediaUrl(videoUrl, MEDIA_TTL.playback) });
 });
 
 // @route   DELETE /api/v1/profile/video-intro

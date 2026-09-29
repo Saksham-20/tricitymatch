@@ -1,5 +1,6 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
+const { signOnSerialize, TTL } = require('../utils/privateMedia');
 
 const Verification = sequelize.define('Verification', {
   id: {
@@ -71,6 +72,14 @@ const Verification = sequelize.define('Verification', {
     allowNull: false,
   },
   selfieVideoUrl: { type: DataTypes.TEXT, allowNull: true },
+});
+
+// Selfies are identity evidence: never leave the server as a permanent link.
+signOnSerialize(Verification, {
+  selfiePhoto: TTL.selfie,
+  selfieVideoUrl: TTL.selfie,
+  documentFront: TTL.selfie,
+  documentBack: TTL.selfie,
 });
 
 module.exports = Verification;
