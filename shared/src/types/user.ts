@@ -66,6 +66,10 @@ export interface AuthFeatures {
 export interface AuthUser extends User {
   subscriptionPlan: SubscriptionPlanType;
   onboardingComplete: boolean;
+  /** The Terms changed since this member accepted them; the server blocks the API until they accept. */
+  requiresReconsent?: boolean;
+  /** Version the server is asking the member to accept (send it back to /auth/accept-terms). */
+  currentTermsVersion?: string;
   /** Optional: older server builds predate this block. Treat absence as all-false. */
   features?: AuthFeatures;
 }
