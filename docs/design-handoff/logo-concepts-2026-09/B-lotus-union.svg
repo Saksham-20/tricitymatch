@@ -1,0 +1,3 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256"><title>Two paisleys, one lotus</title>
+<g fill="#000"><path id="p" d="M128 220C74 220 38 184 38 138C38 96 72 72 94 30C102 60 128 84 128 134Z"/>
+<use href="#p" transform="translate(256 0) scale(-1 1)"/></g></svg>

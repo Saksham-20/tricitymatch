@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256"><title>Two arches, one bond</title>
+<path fill="#000" fill-rule="evenodd" d="M40 218V136a52 52 0 0 1 104 0V218H112V136a20 20 0 0 0 -40 0V218Z"/>
+<path fill="#000" fill-rule="evenodd" d="M112 218V136a52 52 0 0 1 104 0V218H184V136a20 20 0 0 0 -40 0V218Z"/>
+<circle cx="128" cy="48" r="19" fill="#000"/></svg>

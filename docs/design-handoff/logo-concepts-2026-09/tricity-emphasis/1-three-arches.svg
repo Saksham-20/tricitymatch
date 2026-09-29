@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256"><title>Three Arches</title>
+<g fill="#000" fill-rule="evenodd">
+<path d="M80 224V116a48 48 0 0 1 96 0V224H148V116a20 20 0 0 0 -40 0V224Z"/>
+<path d="M20 224V158a44 44 0 0 1 88 0V224H80V158a16 16 0 0 0 -32 0V224Z"/>
+<path d="M148 224V158a44 44 0 0 1 88 0V224H208V158a16 16 0 0 0 -32 0V224Z"/></g>
+<circle cx="128" cy="34" r="16" fill="#000"/></svg>

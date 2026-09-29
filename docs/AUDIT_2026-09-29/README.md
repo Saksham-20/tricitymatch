@@ -262,15 +262,24 @@ Not from `CLAUDE.md`, but the same kind of drift in product copy: the Privacy pa
 
 ## 10. Final launch-readiness checklist
 
+**Remediation status (branch `fix/audit-p0-2026-09`, not yet merged or deployed):**
+P0-1..P0-11 and P0-13..P0-15 are implemented with tests. **P0-12 is partly done**: refund/dispute/chargeback
+handling, receipts only for real payments and a missed-capture reconciler are in; the GST-compliant sequential
+invoice (accountant), the bundle/astrologer webhook fallback and Google Play RTDN are not. P0-11 ships the build
+plumbing and a check script; the values (entity, address, GSTIN, Grievance Officer) are the owner's. P0-15 ships
+priority/ownership, evidence preservation and appeals; the legal-request intake workflow needs counsel.
+Migrations 000065-000069 must be applied on deploy. Staff two-step verification ships OFF (`STAFF_MFA_REQUIRED=false`)
+so a deploy cannot lock admins out: enrol first, then turn it on.
+
 **Must pass before a public launch (engineering):**
-- [ ] P0-1, P0-2, P0-3, P0-4 (member safety and stability)
-- [ ] P0-5 (privacy across listings)
-- [ ] P0-6 (web report and block)
-- [ ] P0-7 (erasure) and P0-14 (export or copy fix)
-- [ ] P0-8, P0-9 (auth correctness and signup integrity)
-- [ ] P0-10 (age rule matches Terms)
-- [ ] P0-12 (payments, refunds, invoices)
-- [ ] P0-13 (admin rank guard and MFA)
+- [x] P0-1, P0-2, P0-3, P0-4 (member safety and stability)
+- [x] P0-5 (privacy across listings)
+- [x] P0-6 (web report and block)
+- [x] P0-7 (erasure) and P0-14 (export or copy fix)
+- [x] P0-8, P0-9 (auth correctness and signup integrity)
+- [x] P0-10 (age rule matches Terms)
+- [ ] P0-12 (payments, refunds, invoices) — partly done, see above
+- [x] P0-13 (admin rank guard and MFA; MFA enforcement is opt-in by flag)
 - [ ] P1-3 (dependency and image currency) and P1-2 (Redis policy)
 - [ ] Integration suite green and the new regression tests in CI
 
