@@ -32,9 +32,12 @@ const SEVERITY = {
 
 // Zero-width characters are a standard way to split a keyword so a filter misses
 // it; fold them away and normalise compatibility forms before matching.
+// Zero-width space/joiners, word joiner and byte-order mark, by code point.
+const ZERO_WIDTH = new Set([0x200b, 0x200c, 0x200d, 0x2060, 0xfeff]);
+
 const normalise = (text) => String(text || '')
   .normalize('NFKC')
-  .replace(/[​-‍⁠﻿]/g, '')
+  .split('').filter((ch) => !ZERO_WIDTH.has(ch.charCodeAt(0))).join('')
   .toLowerCase();
 
 // name@handle where the handle has no dot (UPI), which an email address never
@@ -43,7 +46,7 @@ const UPI_ID = /(?<![\w.-])[a-z0-9._-]{2,64}@[a-z][a-z0-9]{1,20}\b(?!\.[a-z])/;
 
 const BANK_DETAILS = [
   /\b[a-z]{4}0[a-z0-9]{6}\b/,                                                   // IFSC
-  /\b(?:a\/c|acct?|account)\s*(?:no\.?|number|num|#)?\s*[:\-]?\s*\d{9,18}\b/,  // account number
+  /\b(?:a\/c|acct?|account)\s*(?:no\.?|number|num|#)?\s*[:-]?\s*\d{9,18}\b/,  // account number
   /\b(?:upi|paytm|gpay|phonepe|google\s?pay|bhim)\b[^.\n]{0,25}\b[6-9]\d{9}\b/, // payment app + number
 ];
 
