@@ -84,6 +84,13 @@ const User = sequelize.define('User', {
     allowNull: true,
     defaultValue: null
   },
+  // How consent was given (ip, user agent, optional choices, guardian
+  // attestation). See utils/consentRecord.
+  consent: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    defaultValue: null
+  },
   lastLogin: {
     type: DataTypes.DATE,
     allowNull: true
@@ -225,6 +232,10 @@ User.prototype.toJSON = function() {
 
   // Internal mail bookkeeping.
   delete values.lifecycleMail;
+
+  // Consent evidence carries the IP and user agent of the acceptance. The member
+  // can read it through the data export; it never rides the generic user shape.
+  delete values.consent;
 
   // Second-factor material: never serialised. `mfaEnabled` (derived) is enough.
   values.mfaEnabled = Boolean(values.mfaEnabledAt);

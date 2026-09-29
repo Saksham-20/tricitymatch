@@ -93,6 +93,9 @@ export default function BasicsScreen() {
   const { contactKind, contactValue, password, proof } = route.params;
 
   const [registeringFor, setRegisteringFor] = useState('self');
+  // A profile made for someone else needs the operator's attestation, recorded by the server.
+  const [attested, setAttested] = useState(false);
+  const [attestTouched, setAttestTouched] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [gender, setGender] = useState<'male' | 'female' | null>(null);
@@ -203,6 +206,11 @@ export default function BasicsScreen() {
       AccessibilityInfo.announceForAccessibility(problems.join('. '));
       return;
     }
+    if (registeringFor !== 'self' && !attested) {
+      setAttestTouched(true);
+      AccessibilityInfo.announceForAccessibility(t('auth.signup.attestRequired', 'Confirm the person agrees to this profile'));
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -215,6 +223,15 @@ export default function BasicsScreen() {
         lastName: lastName.trim(),
         gender,
         dateOfBirth: dob,
+        // This screen is only reachable after the Terms box was ticked on the
+        // previous one; the server needs it stated in the request.
+        termsAccepted: true,
+        marketingConsent: Boolean(route.params.marketing),
+        creatingFor: registeringFor === 'self' ? 'self' : 'other',
+        ...(registeringFor === 'self' ? {} : {
+          relationshipToProfile: registeringFor === 'son' || registeringFor === 'daughter' ? 'child' : registeringFor,
+          subjectAttestation: attested,
+        }),
       });
       setAccessToken(result.accessToken);
       setUser(result.user);
@@ -292,6 +309,29 @@ export default function BasicsScreen() {
           );
         })}
       </View>
+
+      {registeringFor !== 'self' && (
+        <View>
+          <PressableScale
+            haptic
+            style={[st.attestRow, { minHeight: hit }]}
+            onPress={() => { setAttested((v) => !v); setAttestTouched(true); }}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: attested }}
+            accessibilityLabel={t('auth.signup.attestSubject', 'The person this profile is for is of legal age to marry, knows about it, and agrees to it.')}
+            testID="attest-checkbox"
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name={attested ? 'checkbox' : 'square-outline'} size={22} color={attested ? c.primary : c.textMuted} />
+            <Text variant="footnote" color="textSecondary" style={st.attestText}>
+              {t('auth.signup.attestSubject', 'The person this profile is for is of legal age to marry, knows about it, and agrees to it.')}
+            </Text>
+          </PressableScale>
+          {attestTouched && !attested && (
+            <Text variant="footnote" color="error" style={st.attestError}>{t('auth.signup.attestRequired', 'Confirm the person agrees to this profile')}</Text>
+          )}
+        </View>
+      )}
 
       <View style={[st.nameRow, stackNames && st.nameRowStacked]}>
         <Input
@@ -398,6 +438,9 @@ const makeSt = (c: ThemeColours) => StyleSheet.create({
   // Same face as the Input primitive's label, so group labels and field labels match.
   label: { fontFamily: type.headline.fontFamily, marginBottom: 6, marginTop: spacing.md },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.lg },
+  attestRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm },
+  attestText: { flex: 1 },
+  attestError: { marginBottom: spacing.md },
   // Selected = accent-tinted (the Chip primitive's idiom), not a flat burgundy
   // fill: white on the dark-mode accent (#C75D7E) is only ~4:1.
   chip: {

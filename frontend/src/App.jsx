@@ -35,6 +35,7 @@ import { SocketProvider } from './context/SocketContext';
 import { CallProvider } from './context/CallContext';
 import CallOverlay from './components/calls/CallOverlay';
 import ContactNumberPrompt from './components/common/ContactNumberPrompt';
+import TermsReconsentPrompt from './components/common/TermsReconsentPrompt';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import LoadingSpinner, { PageSkeleton } from './components/common/LoadingSpinner';
 import ProtectedRoute from './components/common/ProtectedRoute';
@@ -608,6 +609,7 @@ function App() {
                     <AppContent />
                     <CallOverlay />
                     <ContactNumberPrompt />
+                    <TermsReconsentPrompt />
                   </div>
                 </Router>
               </CallProvider>

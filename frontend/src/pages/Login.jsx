@@ -82,7 +82,10 @@ const Login = () => {
     setGoogleLoading(true);
     setApiError('');
     try {
-      const result = await api.post('/auth/google', { credential: response.credential });
+      // The page shows "By continuing you agree to the Terms and Privacy Policy" beside
+      // the Google button; the server needs that acceptance stated in the request
+      // before it will create a NEW account (an existing member is unaffected).
+      const result = await api.post('/auth/google', { credential: response.credential, termsAccepted: true });
       if (result.data.success) {
         // Fetch full user profile and let AuthContext handle state
         const meResult = await api.get('/auth/me');

@@ -13,12 +13,13 @@ const { recordFailedLogin, clearLoginAttempts, loginLookupKey } = require('../mi
 const { canonicalEmail, emailLookupCandidates } = require('../utils/emailAddress');
 const { issueProof, consumeProof } = require('../utils/otpProof');
 const otpStore = require('../utils/otpStore');
+const { buildConsent, renewConsent, truthy } = require('../utils/consentRecord');
 const { checkSecondFactor } = require('../utils/mfa');
 const { buildMemberExport } = require('../utils/dataExport');
 const { log, logSecurityEvent, logAudit } = require('../middlewares/logger');
 const { OAuth2Client } = require('google-auth-library');
 const smsService = require('../utils/smsService');
-const { TERMS_VERSION } = require('../constants/legal');
+const { TERMS_VERSION, needsReconsent } = require('../constants/legal');
 const { trackEvent } = require('../utils/trackEvent');
 const { grantFoundingIfOpen } = require('../utils/foundingGrant');
 const { getActiveSubscription } = require('../utils/entitlements');
@@ -59,6 +60,11 @@ const withDerivedUserFields = async (userInstance) => {
   // runs at all. The sweep is cleanup, not correctness.
   const activeSub = await getActiveSubscription(user.id);
   user.subscriptionPlan = activeSub?.planType || 'free';
+  // True when the Terms have moved on since the version this member accepted.
+  // Clients block the app behind an accept screen; the server enforces it too
+  // (middlewares/auth.js).
+  user.requiresReconsent = needsReconsent(userInstance);
+  user.currentTermsVersion = TERMS_VERSION;
   const profile = user.Profile;
   // Authoritative flag persisted on the profile: set at signup for web (full profile
   // collected first), at the end of onboarding Step 14 for mobile. The migration
@@ -189,7 +195,9 @@ const findUserByEmail = async (email, options = {}) => {
 // @desc    Register a new user
 // @access  Public
 exports.signup = asyncHandler(async (req, res) => {
-  const { email, password, phone, firstName, lastName, gender, dateOfBirth, referralCode } = req.body;
+  const { email, password, phone, firstName, lastName, gender, dateOfBirth, referralCode, creatingFor } = req.body;
+  const marketingConsent = truthy(req.body.marketingConsent);
+  const subjectAttested = truthy(req.body.subjectAttestation);
   const codeFromQuery = req.query.ref || req.body.ref;
   // Member invite (Phase S) — a DIFFERENT param from the marketing `ref` above.
   // Both may be present on one signup and are honoured independently.
@@ -200,6 +208,13 @@ exports.signup = asyncHandler(async (req, res) => {
   const normalizedPhone = phone ? String(phone).trim() : null;
   if (!normalizedEmail && !normalizedPhone) {
     throw createError.badRequest('An email address or phone number is required');
+  }
+
+  // A profile made on someone else's behalf needs the operator to attest, in the
+  // request, that the person is of legal age and knows about and agrees to it.
+  // The Terms say so; this is the record that it was asserted.
+  if (creatingFor && creatingFor !== 'self' && !subjectAttested) {
+    throw createError.badRequest('Please confirm the person this profile is for is of legal age and agrees to it');
   }
 
   // Check if user already exists (by whichever identifier was provided)
@@ -284,6 +299,11 @@ exports.signup = asyncHandler(async (req, res) => {
         // Terms + Privacy checkbox, so account creation IS the acceptance.
         termsAcceptedAt: new Date(),
         termsVersion: TERMS_VERSION,
+        consent: buildConsent(req, { marketing: marketingConsent, createdFor: req.body.relationshipToProfile || creatingFor, subjectAttested }),
+        // Promotional email is a separate, optional choice. Unticked means opted
+        // out from the start, using the same switch the unsubscribe link flips
+        // (a member can turn it back on from the link or their account).
+        ...(marketingConsent ? {} : { lifecycleMail: { emailOptOut: new Date().toISOString() } }),
         invitedBy,
         ...(referralData && referralData)
       }, { transaction: t });
@@ -1177,6 +1197,11 @@ exports.googleAuth = asyncHandler(async (req, res) => {
       }
     } else {
       // New user — create account + profile in one transaction
+      // A NEW account needs acceptance stated in the request, exactly like email
+      // signup. An existing member signing in with Google is not creating one.
+      if (!truthy(req.body.termsAccepted)) {
+        throw createError.badRequest('Please accept the Terms and Privacy Policy to create an account');
+      }
       isNewUser = true;
       user = await sequelize.transaction(async (t) => {
         const newUser = await User.create({
@@ -1185,10 +1210,10 @@ exports.googleAuth = asyncHandler(async (req, res) => {
           password: null,
           status: 'active',
           emailVerified: true,
-          // Google sign-in creates the account from the login page, whose
-          // "By continuing, you agree…" notice carries the same Terms/Privacy.
           termsAcceptedAt: new Date(),
           termsVersion: TERMS_VERSION,
+          consent: buildConsent(req, { marketing: truthy(req.body.marketingConsent) }),
+          ...(truthy(req.body.marketingConsent) ? {} : { lifecycleMail: { emailOptOut: new Date().toISOString() } }),
         }, { transaction: t });
 
         await Profile.create({
@@ -1323,3 +1348,27 @@ exports.verifyEmailChange = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Email updated successfully', user: await withDerivedUserFields(fullUser) });
 });
 
+
+// @route   POST /api/auth/accept-terms
+// @desc    Accept the current Terms and Privacy Policy (re-consent after a version bump)
+// @access  Private
+// The client must send the version it displayed; accepting a version that is not
+// the current one would record consent to text the member was not shown.
+exports.acceptTerms = asyncHandler(async (req, res) => {
+  if (String(req.body.termsVersion || '') !== TERMS_VERSION) {
+    throw createError.conflict('The Terms have been updated again. Reload and review the latest version.');
+  }
+  if (!truthy(req.body.accepted)) {
+    throw createError.badRequest('Please accept the Terms and Privacy Policy to continue');
+  }
+  const user = await User.findByPk(req.user.id, { attributes: ['id', 'consent'] });
+  if (!user) throw createError.unauthorized('Not authenticated');
+
+  user.termsAcceptedAt = new Date();
+  user.termsVersion = TERMS_VERSION;
+  user.consent = renewConsent(user.consent, req);
+  await user.save({ fields: ['termsAcceptedAt', 'termsVersion', 'consent'], hooks: false });
+
+  logAudit('terms_accepted', req.user.id, { termsVersion: TERMS_VERSION });
+  res.json({ success: true, termsVersion: TERMS_VERSION, requiresReconsent: false });
+});

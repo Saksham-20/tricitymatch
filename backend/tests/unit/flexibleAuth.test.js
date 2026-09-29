@@ -36,7 +36,7 @@ describe('Flexible auth validators', () => {
   });
 
   describe('signupValidation (email OR phone)', () => {
-    const base = { password: 'StrongPass123!', firstName: 'John', lastName: 'Doe' };
+    const base = { password: 'StrongPass123!', firstName: 'John', lastName: 'Doe', termsAccepted: true };
     it('passes with email only', async () => {
       const r = await run(validators.signupValidation, { ...base, email: 'a@b.com' });
       expect(r.isEmpty()).toBe(true);

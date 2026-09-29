@@ -170,7 +170,7 @@ describe('Google sign-in linking to an existing email account', () => {
     User.findOne.mockResolvedValue(null);
     User.create.mockResolvedValue({ id: 'u3', email: 'victim@example.com', status: 'active', save: jest.fn(), toJSON: () => ({ id: 'u3' }) });
     User.findByPk.mockResolvedValue({ id: 'u3', toJSON: () => ({ id: 'u3', Profile: {} }) });
-    await run(authController.googleAuth, { body: { credential: 'cred' } });
+    await run(authController.googleAuth, { body: { credential: 'cred', termsAccepted: true } });
     const profileArgs = Profile.create.mock.calls[0][0];
     expect(profileArgs.gender).toBeUndefined();
     expect(profileArgs.dateOfBirth).toBeUndefined();

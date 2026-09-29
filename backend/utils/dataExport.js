@@ -58,6 +58,9 @@ const buildMemberExport = async (userId) => {
       lastLogin: user.lastLogin,
       termsAcceptedAt: user.termsAcceptedAt,
       termsVersion: user.termsVersion,
+      // How the acceptance was recorded (ip, user agent, optional choices).
+      consent: user.consent || null,
+      termsVersion: user.termsVersion,
     },
     profile,
   };

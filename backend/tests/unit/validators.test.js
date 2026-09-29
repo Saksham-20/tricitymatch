@@ -26,6 +26,7 @@ describe('Validators', () => {
       const result = await runValidation(validators.signupValidation, {
         body: {
           email: 'test@example.com',
+          termsAccepted: true,
           password: 'StrongPass123!',
           firstName: 'John',
           lastName: 'Doe',

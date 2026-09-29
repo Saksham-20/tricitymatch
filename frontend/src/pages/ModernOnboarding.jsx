@@ -278,6 +278,11 @@ const ModernOnboardingContent = () => {
         // and sends it even when the kicker never rendered — a token that failed
         // to RESOLVE (rate limit, transient 500) may still be perfectly valid.
         if (inviteParam) signupData.invite = inviteParam;
+        // What the member actually ticked, stated in the request itself. The server
+        // rejects a signup that does not assert termsAccepted.
+        signupData.termsAccepted = !!formData.account_agree;
+        signupData.marketingConsent = !!formData.account_marketing;
+        signupData.subjectAttestation = !!formData.account_attest;
         if (signupData.phone) signupData.phone = String(signupData.phone).replace(/[\s-]/g, '');
         if (!signupData.email) delete signupData.email; // phone-only signup
         const result = await signup(signupData);

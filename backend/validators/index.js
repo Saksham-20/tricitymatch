@@ -57,6 +57,22 @@ const signupValidation = [
     .isLength({ max: 255 })
     .withMessage('Email must not exceed 255 characters'),
   // Single-use proofs returned by verify-otp; the controller checks them.
+  // Explicit, request-borne acceptance. Signup used to stamp consent for ANY
+  // request that got this far, so a direct API call or an old client was recorded
+  // as having accepted a checkbox it never saw.
+  body('termsAccepted')
+    .custom((v) => v === true || v === 'true')
+    .withMessage('Please accept the Terms and Privacy Policy to create an account'),
+  body('marketingConsent').optional({ nullable: true }).isBoolean().withMessage('marketingConsent must be true or false'),
+  body('creatingFor')
+    .optional({ checkFalsy: true })
+    .isIn(['self', 'other', 'parent', 'sibling', 'child', 'relative', 'friend'])
+    .withMessage('Invalid value for who the profile is for'),
+  body('relationshipToProfile')
+    .optional({ checkFalsy: true })
+    .isIn(['parent', 'sibling', 'child', 'relative', 'friend', 'other'])
+    .withMessage('Invalid relationship'),
+  body('subjectAttestation').optional({ nullable: true }).isBoolean().withMessage('subjectAttestation must be true or false'),
   body(['emailProof', 'phoneProof'])
     .optional({ checkFalsy: true })
     .isString()

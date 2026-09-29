@@ -239,6 +239,9 @@ function getInitialFormData() {
     password: '',
     confirmPassword: '',
     account_agree: false,
+    // Separate, optional choices. Not conditions of using the service.
+    account_marketing: false,
+    account_attest: false,
 
     // Creating by guardian for someone else
     creatingFor: 'self', // 'self', 'parent', 'sibling', 'child', 'relative', 'friend'

@@ -9,6 +9,7 @@ const {
   signup,
   login,
   getMe,
+  acceptTerms,
   forgotPassword,
   resetPassword,
   refreshToken,
@@ -131,6 +132,7 @@ router.post(
 
 // Get current user
 router.get('/me', auth, getMe);
+router.post('/accept-terms', auth, body('termsVersion').isString().isLength({ max: 32 }), handleValidationErrors, acceptTerms);
 
 // Logout current session
 router.post('/logout', auth, logout);

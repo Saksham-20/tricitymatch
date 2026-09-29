@@ -128,7 +128,10 @@
         "sibling": "Sibling",
         "relative": "Relative",
         "friend": "Friend"
-      }
+      },
+      "marketingOptIn": "Email me reminders and suggestions about matches (optional)",
+      "attestSubject": "The person this profile is for is of legal age to marry, knows about it, and agrees to it.",
+      "attestRequired": "Confirm the person agrees to this profile"
     },
     "forgotPassword": {
       "title": "Forgot Password",
@@ -813,5 +816,14 @@
     "noScore": "No guna score for this pair",
     "noScoreRecognised": "One of the two nakshatras isn't one we can match, so there is no guna score.",
     "noScoreGeneric": "A guna match needs a nakshatra on both profiles."
+  },
+  "reconsent": {
+    "title": "We have updated our Terms",
+    "body": "Please read the updated Terms and Privacy Policy and accept them to keep using TricityMatch. Your profile and matches are unchanged.",
+    "agree": "I agree to the updated Terms and Privacy Policy",
+    "accept": "Accept and continue",
+    "signOut": "Sign out",
+    "failed": "Could not save your choice",
+    "tryAgain": "Please try again."
   }
 }

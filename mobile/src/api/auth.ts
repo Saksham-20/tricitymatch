@@ -41,6 +41,14 @@ export interface SignupPayload {
   lastName?: string;
   gender?: string;
   dateOfBirth?: string;
+  /** Stated in the request: the server refuses a signup that does not assert it. */
+  termsAccepted: boolean;
+  /** Optional, unticked by default: promotional email. */
+  marketingConsent?: boolean;
+  /** 'self' or 'other'; with 'other', the operator's attestation is required. */
+  creatingFor?: 'self' | 'other';
+  relationshipToProfile?: string;
+  subjectAttestation?: boolean;
 }
 
 export const signup = async (payload: SignupPayload): Promise<AuthResult> => {
@@ -126,4 +134,9 @@ export const revokeSession = async (sessionId: string): Promise<void> => {
 /** Signs out every device including this one. */
 export const logoutAll = async (): Promise<void> => {
   await apiClient.post('/auth/logout-all');
+};
+
+/** Re-accept the Terms after a version bump. `termsVersion` is the one the server asked for. */
+export const acceptTerms = async (termsVersion: string): Promise<void> => {
+  await apiClient.post('/auth/accept-terms', { termsVersion, accepted: true });
 };
