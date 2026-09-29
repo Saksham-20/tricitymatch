@@ -24,6 +24,7 @@ const { trackEvent } = require('../utils/trackEvent');
 const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { log } = require('../middlewares/logger');
+const { severRelationshipRows, evictChatRoom } = require('../utils/relationship');
 
 // @route   POST /api/match/:userId
 // @desc    Like/shortlist/pass a profile
@@ -71,6 +72,15 @@ exports.matchAction = asyncHandler(async (req, res) => {
 
   // Use transaction for consistency
   const result = await sequelize.transaction(async (t) => {
+    // Serialise everything that touches this PAIR. Two members liking each other
+    // at the same moment each read "no reverse like yet" and neither marked the
+    // match mutual; the same race made a withdraw and a re-like interleave. The
+    // advisory lock is per unordered pair and released at commit.
+    await sequelize.query(
+      'SELECT pg_advisory_xact_lock(hashtextextended(:pairKey, 0))',
+      { replacements: { pairKey: [currentUserId, userId].sort().join(':') }, transaction: t }
+    );
+
     // Check if match already exists
     let match = await Match.findOne({
       where: {
@@ -79,6 +89,10 @@ exports.matchAction = asyncHandler(async (req, res) => {
       },
       transaction: t
     });
+    // What this row said BEFORE this request: every transition below is decided
+    // from it, so a repeated tap is a no-op rather than a second announcement.
+    const previousAction = match ? match.action : null;
+    const wasMutual = Boolean(match && match.isMutual);
 
     // Calculate compatibility
     const [currentProfile, matchedProfile] = await Promise.all([
@@ -175,9 +189,25 @@ exports.matchAction = asyncHandler(async (req, res) => {
       });
     }
 
-    // Check for mutual match
-    let isMutualMatch = false;
-    if (action === 'like') {
+    // Interest state machine (per row: none | like | shortlist | pass).
+    //   * Any action may follow any other; a member can change their mind.
+    //   * Leaving 'like' while the pair is mutual WITHDRAWS the match: the mutual
+    //     flag, chat grant and live calls end, and the other member's like stays
+    //     as an ordinary one-way like. (Previously a pass left isMutual=true on
+    //     both rows, so chat carried on.)
+    //   * Liking a member who liked you makes the match mutual exactly once;
+    //     liking again while already mutual changes nothing and announces nothing.
+    let isMutualMatch = wasMutual;
+    let newlyMutual = false;
+    let withdrawn = false;
+
+    if (action !== 'like' && wasMutual) {
+      await severRelationshipRows(currentUserId, userId, { transaction: t, clearMutualDate: true });
+      match.isMutual = false;
+      match.mutualMatchDate = null;
+      isMutualMatch = false;
+      withdrawn = true;
+    } else if (action === 'like' && !wasMutual) {
       const reverseMatch = await Match.findOne({
         where: {
           userId,
@@ -190,6 +220,7 @@ exports.matchAction = asyncHandler(async (req, res) => {
       if (reverseMatch) {
         // Mutual match! Update both records
         isMutualMatch = true;
+        newlyMutual = true;
         const mutualDate = new Date();
 
         match.isMutual = true;
@@ -202,7 +233,9 @@ exports.matchAction = asyncHandler(async (req, res) => {
       }
     }
 
-    return { match, isMutualMatch, currentProfile, matchedProfile };
+    const firstLike = action === 'like' && previousAction !== 'like';
+
+    return { match, isMutualMatch, newlyMutual, withdrawn, firstLike, currentProfile, matchedProfile };
   });
 
   // Funnel stage 5 — first expressed interest. 'pass' is a rejection, not an
@@ -230,8 +263,9 @@ exports.matchAction = asyncHandler(async (req, res) => {
         ? `${result.matchedProfile.firstName} ${result.matchedProfile.lastName}`
         : 'Someone';
 
-      if (result.isMutualMatch) {
-        // Mutual match — notify both users in-app + email
+      if (result.newlyMutual) {
+        // Mutual match — notify both users in-app + email (once: only on the
+        // transition, never for a repeated like)
         await Promise.all([
           notify(userId, 'new_match', "It's a Match!", `You and ${currentName} liked each other!`, result.match.id),
           notify(currentUserId, 'new_match', "It's a Match!", `You and ${matchedName} liked each other!`, result.match.id),
@@ -243,7 +277,7 @@ exports.matchAction = asyncHandler(async (req, res) => {
           sendMatchNotification(matchedUser.email, currentName, profileUrl),
           sendMatchNotification(currentUser.email, matchedName, matchedProfileUrl),
         ]).catch(err => log.error('Failed to send match emails', { error: err.message }));
-      } else if (result.match.action === 'like') {
+      } else if (result.firstLike && !result.isMutualMatch) {
         // One-way like — notify the liked user in-app only (no email, avoid spam).
         // D3: a like-with-note leads with what was liked + the note.
         const item = result.match.likedItem;
@@ -262,10 +296,17 @@ exports.matchAction = asyncHandler(async (req, res) => {
     }
   });
 
+  // Socket half of a withdrawal (the database half ran in the transaction).
+  if (result.withdrawn) evictChatRoom(currentUserId, userId);
+
   res.json({
     success: true,
     match: result.match,
-    isMutual: result.isMutualMatch
+    isMutual: result.isMutualMatch,
+    // True only on the request that CREATED the match, so a client can celebrate
+    // once. `isMutual` stays the truthful current state.
+    newMatch: result.newlyMutual,
+    withdrawn: result.withdrawn
   });
 });
 

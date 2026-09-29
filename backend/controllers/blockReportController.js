@@ -2,12 +2,12 @@
  * Block & Report Controller
  */
 
-const { Block, Report, User, Profile, Match, ChatGrant, CallSession, MediaReview } = require('../models');
+const { Block, Report, User, Profile, MediaReview } = require('../models');
 const { Op } = require('sequelize');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { logAudit, log } = require('../middlewares/logger');
 const sequelize = require('../config/database');
-const { getIO } = require('../utils/socket');
+const { severRelationshipRows, evictChatRoom } = require('../utils/relationship');
 const { REPORT_REASONS, HIGH_RISK_REASONS } = require('../constants/reportReasons');
 const { sendEmail } = require('../utils/email');
 const config = require('../config/env');
@@ -23,52 +23,12 @@ const config = require('../config/env');
 // relationship. Failures here are logged, never surfaced: the Block row is
 // already the authoritative barrier.
 const severRelationship = async (blockerId, blockedUserId) => {
-  const pair = [
-    { userId: blockerId, matchedUserId: blockedUserId },
-    { userId: blockedUserId, matchedUserId: blockerId },
-  ];
   try {
-    await sequelize.transaction(async (t) => {
-      await Match.update(
-        { isMutual: false },
-        { where: { [Op.or]: pair, isMutual: true }, transaction: t }
-      );
-      await ChatGrant.destroy({
-        where: {
-          [Op.or]: [
-            { premiumUserId: blockerId, freeUserId: blockedUserId },
-            { premiumUserId: blockedUserId, freeUserId: blockerId },
-          ],
-        },
-        transaction: t,
-      });
-      await CallSession.update(
-        { status: 'ended', endedAt: new Date() },
-        {
-          where: {
-            status: { [Op.in]: ['initiated', 'accepted'] },
-            [Op.or]: [
-              { callerId: blockerId, calleeId: blockedUserId },
-              { callerId: blockedUserId, calleeId: blockerId },
-            ],
-          },
-          transaction: t,
-        }
-      );
-    });
+    await sequelize.transaction((t) => severRelationshipRows(blockerId, blockedUserId, { transaction: t }));
   } catch (err) {
     log.error('Block cleanup failed', { blockerId, blockedUserId, error: err.message });
   }
-
-  try {
-    const io = getIO();
-    if (io) {
-      const room = [blockerId, blockedUserId].sort().join('_room_');
-      io.in(room).socketsLeave(room);
-    }
-  } catch (err) {
-    log.error('Block socket eviction failed', { blockerId, blockedUserId, error: err.message });
-  }
+  evictChatRoom(blockerId, blockedUserId);
 };
 
 // @route   POST /api/block/:userId
