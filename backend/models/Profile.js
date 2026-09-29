@@ -1,6 +1,7 @@
 const { DataTypes } = require('sequelize');
 const { marriageableAgeProblem } = require('../constants/marriageableAge');
 const sequelize = require('../config/database');
+const { normalizeEducation, normalizeProfession, normalizeCaste } = require('../constants/vocabularies');
 const { signOnSerialize, TTL } = require('../utils/privateMedia');
 
 const Profile = sequelize.define('Profile', {
@@ -199,6 +200,16 @@ const Profile = sequelize.define('Profile', {
     type: DataTypes.STRING,
     allowNull: true
   },
+  // Derived from `education` / `profession` by the beforeSave hook below
+  // (constants/vocabularies). Never client-settable; search filters on these.
+  educationLevel: {
+    type: DataTypes.STRING(16),
+    allowNull: true
+  },
+  professionGroup: {
+    type: DataTypes.STRING(40),
+    allowNull: true
+  },
   income: {
     type: DataTypes.INTEGER,
     allowNull: true,
@@ -364,6 +375,22 @@ const Profile = sequelize.define('Profile', {
     allowNull: true
   }
 }, {
+  hooks: {
+    // Keep the derived vocabulary columns and the canonical caste spelling in
+    // step with whatever text was written, on every path (editor, onboarding,
+    // guardian setup, admin edits).
+    beforeSave: (profile) => {
+      if (profile.isNewRecord || profile.changed('education')) {
+        profile.educationLevel = normalizeEducation(profile.education);
+      }
+      if (profile.isNewRecord || profile.changed('profession')) {
+        profile.professionGroup = normalizeProfession(profile.profession);
+      }
+      if (profile.changed('caste') && typeof profile.caste === 'string') {
+        profile.caste = normalizeCaste(profile.caste);
+      }
+    },
+  },
   indexes: [
     // Frequently filtered in search queries
     { fields: ['city'] },

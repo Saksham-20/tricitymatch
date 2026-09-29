@@ -19,6 +19,7 @@ const {
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { rankBreakdown } = require('../utils/rankingWeights');
 const { weightsFor } = require('../utils/rankingExperiment');
+const { normalizeEducation, professionGroupFromFilter } = require('../constants/vocabularies');
 
 // Ranked search scores the newest CANDIDATE_CAP matching profiles together, so the
 // order is global rather than per page. Past the cap the directory is larger than
@@ -112,14 +113,21 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
     where.city = { [Op.iLike]: `%${escapeLikePattern(city)}%` };
   }
 
-  // Education filter
+  // Education filter: matches the canonical level, so "Master" also finds
+  // "Masters", "M.Tech" and "MBA". Text we cannot classify keeps the exact match.
   if (education) {
-    where.education = education;
+    const level = normalizeEducation(education);
+    if (level) where.educationLevel = level;
+    else where.education = education;
   }
 
-  // Profession filter (escape special characters)
+  // Profession filter: the canonical group ("Software / IT" finds "Software
+  // Engineer" and "Engineer (Software)"); unclassifiable text falls back to a
+  // contains match with special characters escaped.
   if (profession) {
-    where.profession = { [Op.iLike]: `%${escapeLikePattern(profession)}%` };
+    const group = professionGroupFromFilter(profession);
+    if (group && group !== 'Other') where.professionGroup = group;
+    else where.profession = { [Op.iLike]: `%${escapeLikePattern(profession)}%` };
   }
 
   // Lifestyle filters
