@@ -127,6 +127,11 @@ const loginValidation = [
   body('password')
     .notEmpty()
     .withMessage('Password is required'),
+  body('mfaCode')
+    .optional({ checkFalsy: true })
+    .isString()
+    .isLength({ max: 20 })
+    .withMessage('Invalid code'),
 ];
 
 const changeEmailRequestValidation = [
@@ -593,6 +598,26 @@ const updateUserStatusValidation = [
     .withMessage('Invalid status'),
 ];
 
+// Accounts an admin creates on someone's behalf were validated by nothing: the
+// controllers only checked the fields were present, so "a" was an acceptable
+// password for a member AND for an admin. Members get the signup rule; staff
+// accounts (whose compromise is far worse) also need 12 characters.
+const STRONG_PASSWORD = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d\s])/;
+const strongPassword = (minLength) => body('password')
+  .isString().withMessage('Password is required')
+  .isLength({ min: minLength, max: 100 }).withMessage(`Password must be at least ${minLength} characters`)
+  .matches(STRONG_PASSWORD).withMessage('Password must contain uppercase, lowercase, number, and special character');
+
+const adminCreateUserValidation = [
+  body('email').isEmail().withMessage('Please provide a valid email').customSanitizer(canonicalEmail),
+  strongPassword(8),
+];
+
+const adminCreateAdminValidation = [
+  body('email').isEmail().withMessage('Please provide a valid email').customSanitizer(canonicalEmail),
+  strongPassword(12),
+];
+
 const updateVerificationValidation = [
   isUUID('verificationId', 'param'),
   body('status')
@@ -733,6 +758,8 @@ module.exports = {
   verifyPaymentValidation,
   // Admin
   updateUserStatusValidation,
+  adminCreateUserValidation,
+  adminCreateAdminValidation,
   updateVerificationValidation,
   adminSearchValidation,
   // Verification

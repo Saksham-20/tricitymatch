@@ -38,7 +38,8 @@ const ErrorTypes = {
 // Error factory functions
 const createError = {
   badRequest: (message, details = null) => new AppError(message, 400, ErrorTypes.BAD_REQUEST, details),
-  unauthorized: (message = 'Authentication required') => new AppError(message, 401, ErrorTypes.AUTHENTICATION_ERROR),
+  // Optional `code` for clients to branch on (e.g. MFA_REQUIRED), same contract as `forbidden`.
+  unauthorized: (message = 'Authentication required', code = ErrorTypes.AUTHENTICATION_ERROR) => new AppError(message, 401, code),
   // The optional `code` is what the CLIENT branches on. Six call sites have
   // been passing one since the premium gates were written
   // (`PREMIUM_REQUIRED`, `SUBSCRIPTION_EXPIRED`, `VIP_REQUIRED`,

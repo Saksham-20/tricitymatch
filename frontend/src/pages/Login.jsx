@@ -17,6 +17,9 @@ const Login = () => {
   const [phase, setPhase] = useState('identifier'); // 'identifier' | 'password'
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  // Set once the server says this account has two-step verification on.
+  const [mfaNeeded, setMfaNeeded] = useState(false);
+  const [mfaCode, setMfaCode] = useState('');
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -175,8 +178,14 @@ const Login = () => {
     setLoading(true);
     try {
       const submitId = idType === 'phone' ? phoneDigits(identifier) : identifier.trim();
-      const result = await login(submitId, password);
+      const result = await login(submitId, password, mfaNeeded ? mfaCode : undefined);
       setLoading(false);
+
+      if (result.mfaRequired) {
+        setMfaNeeded(true);
+        setMfaCode('');
+        return;
+      }
 
       if (result.success) {
         setTimeout(() => goAfterLogin(result.role), 100);
@@ -435,6 +444,27 @@ const Login = () => {
                       )}
                     </AnimatePresence>
                   </div>
+
+                  {mfaNeeded && (
+                    <div>
+                      <label htmlFor="mfa-code" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                        Authenticator code
+                      </label>
+                      <input
+                        id="mfa-code"
+                        name="mfaCode"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        autoFocus
+                        maxLength={20}
+                        className="input-field dark:bg-surface-dark-2 dark:border-neutral-700"
+                        placeholder="6-digit code or a recovery code"
+                        value={mfaCode}
+                        onChange={(e) => { setMfaCode(e.target.value); if (apiError) setApiError(''); }}
+                      />
+                      <p className="mt-1.5 text-xs text-neutral-500 dark:text-neutral-400">Open your authenticator app and enter the current code.</p>
+                    </div>
+                  )}
 
                   {/* Forgot Password */}
                   <div className="flex items-center justify-end -mt-2">

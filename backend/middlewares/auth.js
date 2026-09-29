@@ -59,7 +59,7 @@ const auth = asyncHandler(async (req, res, next) => {
     // because requireAdminScope reads it on every admin request — leaving it
     // out made a scoped sub-admin resolve to NO scopes and 403 on its own pages.
     const user = await User.findByPk(decoded.userId, {
-      attributes: ['id', 'email', 'role', 'status', 'adminPermissions']
+      attributes: ['id', 'email', 'role', 'status', 'adminPermissions', 'mfaEnabledAt']
     });
 
     if (!user) {
@@ -122,6 +122,20 @@ const optionalAuth = asyncHandler(async (req, res, next) => {
 });
 
 /**
+ * When STAFF_MFA_REQUIRED is on, a staff account without an enrolled second
+ * factor may sign in (it has to reach the enrolment screen) but cannot use any
+ * staff surface until it has enrolled.
+ */
+const assertStaffMfa = (user) => {
+  if (config.features.staffMfaRequired && !user.mfaEnabledAt) {
+    throw createError.forbidden(
+      'Turn on two-step verification (Settings → Account) to use this area',
+      'MFA_ENROLLMENT_REQUIRED'
+    );
+  }
+};
+
+/**
  * Admin authorization middleware
  * Must be used after auth middleware
  */
@@ -137,6 +151,7 @@ const adminAuth = asyncHandler(async (req, res, next) => {
     throw createError.forbidden('Admin access required');
   }
 
+  assertStaffMfa(req.user);
   next();
 });
 
@@ -175,6 +190,7 @@ const marketingAuth = asyncHandler(async (req, res, next) => {
     throw createError.forbidden('Marketing access required');
   }
 
+  assertStaffMfa(req.user);
   next();
 });
 

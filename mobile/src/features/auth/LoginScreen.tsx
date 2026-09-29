@@ -68,6 +68,9 @@ export default function LoginScreen() {
   // type here, and the server signs in either identifier.
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  // Set when the server says this account has two-step verification on.
+  const [mfaNeeded, setMfaNeeded] = useState(false);
+  const [mfaCode, setMfaCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [idError, setIdError] = useState('');
@@ -130,17 +133,24 @@ export default function LoginScreen() {
       // parsed.value is a lowercased email or a bare 10-digit mobile, the two
       // forms the server stores. (api login() names its param `email`; the
       // server reads it as the identifier and routes on the presence of '@'.)
-      const result = await login(parsed.value as string, password);
+      const result = await login(parsed.value as string, password, mfaNeeded ? mfaCode.trim() : undefined);
       setAccessToken(result.accessToken);
       setUser(result.user);
     } catch (err: unknown) {
       const failure = err as LoginFailure;
       const status = failure?.response?.status;
       const hasResponse = !!failure?.response;
+      const errCode = (failure?.response?.data as { error?: { code?: string } } | undefined)?.error?.code;
       const rateLimited = status === 429 || (!hasResponse && typeof failure?.retryAfter === 'number');
       const wrongCredentials = status === 401 || (!hasResponse && failure?.message === 'No refresh token');
 
-      if (rateLimited) {
+      if (errCode === 'MFA_REQUIRED') {
+        // Password was right; ask for the authenticator code (not a failure).
+        setMfaNeeded(true);
+        setMfaCode('');
+      } else if (errCode === 'INVALID_MFA_CODE') {
+        setError(t('auth.login.wrongCode', 'That code is not right. Try the current code from your authenticator app.'));
+      } else if (rateLimited) {
         // No figure in the copy: an account lockout names no duration
         // (LOCKOUT_DURATION_MINUTES is server config), so any number here
         // would be invented. The button only waits out what the server said.
@@ -245,6 +255,25 @@ export default function LoginScreen() {
         testID="LoginScreen-password"
         toggleTestID="LoginScreen-togglePassword"
       />
+
+      {mfaNeeded ? (
+        <Input
+          label={t('auth.login.authenticatorCode', 'Authenticator code')}
+          value={mfaCode}
+          onChangeText={(v) => { setMfaCode(v); clearError(); }}
+          keyboardType="number-pad"
+          textContentType="oneTimeCode"
+          autoComplete="one-time-code"
+          returnKeyType="done"
+          onSubmitEditing={handleLogin}
+          autoFocus
+          maxLength={20}
+          accessibilityLabel={t('auth.login.authenticatorCode', 'Authenticator code')}
+          containerStyle={styles.passwordGroup}
+          style={fieldHeight}
+          testID="LoginScreen-mfa"
+        />
+      ) : null}
 
       {/* Own row under the field, sized for real: a hitSlop on a 20pt line
           loses its lower half to the field it sits against. */}

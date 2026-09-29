@@ -58,6 +58,11 @@ const User = sequelize.define('User', {
     allowNull: true,
     defaultValue: null
   },
+  // TOTP second factor (utils/totp.js). The secret is stored encrypted and never
+  // leaves the server; `mfaEnabledAt` is set only after a valid first code.
+  mfaSecret: { type: DataTypes.TEXT, allowNull: true },
+  mfaEnabledAt: { type: DataTypes.DATE, allowNull: true },
+  mfaRecoveryHashes: { type: DataTypes.JSONB, allowNull: true },
   status: {
     type: DataTypes.ENUM('active', 'inactive', 'banned', 'pending', 'deleted'),
     defaultValue: 'pending'
@@ -220,6 +225,11 @@ User.prototype.toJSON = function() {
 
   // Internal mail bookkeeping.
   delete values.lifecycleMail;
+
+  // Second-factor material: never serialised. `mfaEnabled` (derived) is enough.
+  values.mfaEnabled = Boolean(values.mfaEnabledAt);
+  delete values.mfaSecret;
+  delete values.mfaRecoveryHashes;
 
   return values;
 };

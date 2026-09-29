@@ -22,8 +22,8 @@ const persistTokens = async (env: AuthEnvelope): Promise<AuthResult> => {
   return { accessToken: env.tokens?.accessToken, user: env.user };
 };
 
-export const login = async (email: string, password: string): Promise<AuthResult> => {
-  const res = await apiClient.post<AuthEnvelope>('/auth/login', { email, password });
+export const login = async (email: string, password: string, mfaCode?: string): Promise<AuthResult> => {
+  const res = await apiClient.post<AuthEnvelope>('/auth/login', { email, password, ...(mfaCode ? { mfaCode } : {}) });
   return persistTokens(res.data);
 };
 

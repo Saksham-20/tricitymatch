@@ -72,6 +72,8 @@ const { Op } = require('sequelize');
 const { ALL_PLANS } = require('../constants/plans');
 const { 
   updateUserStatusValidation, 
+  adminCreateUserValidation,
+  adminCreateAdminValidation,
   updateVerificationValidation, 
   adminSearchValidation 
 } = require('../validators');
@@ -86,7 +88,7 @@ router.use(auth, adminAuth, adminLimiter);
 // ==================== USER MANAGEMENT ====================
 
 router.get('/users', requireAdminScope('users'), adminSearchValidation, handleValidationErrors, getUsers);
-router.post('/users', requireAdminScope('users'), createUser);
+router.post('/users', requireAdminScope('users'), adminCreateUserValidation, handleValidationErrors, createUser);
 router.delete('/users', requireAdminScope('users'), deleteUsers);
 router.put('/users/bulk-status', requireAdminScope('users'), bulkUpdateStatus);
 // Before /users/:userId — Express matches in declaration order, and `export`
@@ -127,7 +129,7 @@ router.get('/plan-options', requireAdminScope('subscriptions'), getPlanOptions);
 // ==================== ADMIN TEAM ====================
 
 router.get('/admins', requireAdminScope('team'), getAdmins);
-router.post('/admins', requireAdminScope('team'), createAdmin);
+router.post('/admins', requireAdminScope('team'), adminCreateAdminValidation, handleValidationErrors, createAdmin);
 router.put('/users/:userId/role',
   requireAdminScope('team'),
   param('userId').isUUID(4),

@@ -12,7 +12,8 @@ const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { recordFailedLogin, clearLoginAttempts, loginLookupKey } = require('../middlewares/security');
 const { canonicalEmail, emailLookupCandidates } = require('../utils/emailAddress');
 const { issueProof, consumeProof } = require('../utils/otpProof');
-const { log } = require('../middlewares/logger');
+const { checkSecondFactor } = require('../utils/mfa');
+const { log, logSecurityEvent } = require('../middlewares/logger');
 const { OAuth2Client } = require('google-auth-library');
 const smsService = require('../utils/smsService');
 const { TERMS_VERSION } = require('../constants/legal');
@@ -449,13 +450,31 @@ exports.login = asyncHandler(async (req, res) => {
     throw createError.unauthorized('Invalid credentials');
   }
 
-  // Clear failed login attempts on success
-  await clearLoginAttempts(lookupKey);
-
   // Check if user is active
   if (user.status !== 'active') {
     throw createError.forbidden('Account is not active. Please contact support.');
   }
+
+  // Second factor. The password is already proven, so answering "a code is
+  // needed" reveals nothing an attacker does not hold. A missing code is the
+  // normal first step (not counted as a failure); a wrong one counts toward
+  // lockout, which is what bounds guessing a 6-digit code.
+  if (user.mfaEnabledAt) {
+    const supplied = req.body.mfaCode;
+    if (!supplied) throw createError.unauthorized('Enter the code from your authenticator app', 'MFA_REQUIRED');
+    const factor = await checkSecondFactor(user, supplied);
+    if (!factor.ok) {
+      await recordFailedLogin(lookupKey);
+      throw createError.unauthorized('That code is not right', 'INVALID_MFA_CODE');
+    }
+    if (factor.recoveryUsed) {
+      user.mfaRecoveryHashes = (user.mfaRecoveryHashes || []).filter((h) => h !== factor.recoveryUsed);
+      logSecurityEvent('mfa_recovery_code_used', req, { userId: user.id });
+    }
+  }
+
+  // Clear failed login attempts on success
+  await clearLoginAttempts(lookupKey);
 
   // Update last login
   user.lastLogin = new Date();
@@ -1183,6 +1202,12 @@ exports.googleAuth = asyncHandler(async (req, res) => {
           .catch(err => log.error('Failed to send welcome email (google)', { error: err.message }));
       });
     }
+  }
+
+  // Google carries no second factor, so it cannot stand in for one: an account
+  // with two-step verification on must sign in with its password and code.
+  if (user.mfaEnabledAt) {
+    throw createError.unauthorized('This account uses two-step verification. Sign in with your password and code.', 'MFA_REQUIRED_PASSWORD_LOGIN');
   }
 
   // Every other auth path rejects `status !== 'active'`; this one checked only

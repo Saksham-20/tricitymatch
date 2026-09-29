@@ -363,6 +363,10 @@ const config = {
     // it). Two-way door: flipping only changes whether NEW grants are created
     // and whether existing grants authorize; rows persist harmlessly when off.
     freeReplyWindow: optionalBoolean('FREE_REPLY_WINDOW', false),
+    // Staff (admin, sub_admin, super_admin, marketing) must have TOTP enabled to
+    // use their panels. Ships DARK so a deploy cannot lock every existing admin
+    // out before they have enrolled: enrol first (Settings → Account), then flip.
+    staffMfaRequired: optionalBoolean('STAFF_MFA_REQUIRED', false),
     // D7: astrologer marketplace visibility. Default OFF — routes 404 and
     // clients hide the entry points until the owner turns it on.
     astrologerMarketplace: optionalBoolean('ASTROLOGER_MARKETPLACE', false),

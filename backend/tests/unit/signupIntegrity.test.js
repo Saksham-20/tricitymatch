@@ -148,6 +148,15 @@ describe('Google sign-in linking to an existing email account', () => {
     expect(RefreshToken.revokeAllUserTokens).toHaveBeenCalledWith('u1', expect.any(String));
   });
 
+  it('refuses Google sign-in to an account that has a second factor on', async () => {
+    const staff = { id: 'u5', email: 'victim@example.com', password: 'hash', emailVerified: true, googleId: 'g-1', mfaEnabledAt: new Date(), status: 'active', save: jest.fn() };
+    mockVerifyIdToken.mockResolvedValue({ getPayload: () => payload });
+    User.findOne.mockResolvedValue(staff);
+    const { error, res } = await run(authController.googleAuth, { body: { credential: 'cred' } });
+    expect(error).toMatchObject({ statusCode: 401, code: 'MFA_REQUIRED_PASSWORD_LOGIN' });
+    expect(res.cookie).not.toHaveBeenCalled();
+  });
+
   it('leaves a verified account alone', async () => {
     const owner = { id: 'u2', email: 'victim@example.com', password: 'real-hash', emailVerified: true, status: 'active', save: jest.fn().mockResolvedValue(undefined) };
     linkTo(owner);

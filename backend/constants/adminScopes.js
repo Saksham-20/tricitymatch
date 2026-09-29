@@ -45,6 +45,10 @@ const ADMIN_ROLES = ['sub_admin', 'admin', 'super_admin'];
 // Roles that implicitly hold every scope.
 const FULL_ACCESS_ROLES = ['admin', 'super_admin'];
 
+// Everyone who can act on other members' data or money. These hold the second
+// factor when STAFF_MFA_REQUIRED is on.
+const STAFF_ROLES = [...ADMIN_ROLES, 'marketing_manager', 'marketing'];
+
 /**
  * Effective scopes for a user row. `admin`/`super_admin` get everything;
  * `sub_admin` gets exactly what is stored (an unset/garbage column reads as
@@ -73,6 +77,7 @@ module.exports = {
   DEFAULT_SUB_ADMIN_SCOPES,
   ADMIN_ROLES,
   FULL_ACCESS_ROLES,
+  STAFF_ROLES,
   scopesFor,
   hasScope,
   sanitizeScopes,

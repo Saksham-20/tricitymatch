@@ -175,6 +175,7 @@ services:
       # allowlist, so setting it in .env did nothing at all — the exact failure
       # the comment above warns about, made a second time.
       FREE_REPLY_WINDOW: ${FREE_REPLY_WINDOW:-false}
+      STAFF_MFA_REQUIRED: ${STAFF_MFA_REQUIRED:-false}
       ASTROLOGER_MARKETPLACE: ${ASTROLOGER_MARKETPLACE:-false}
       # Rolling-24h ceiling on unlimited-tier contact unlocks (anti-harvest).
       UNLIMITED_DAILY_UNLOCK_CAP: ${UNLIMITED_DAILY_UNLOCK_CAP:-}

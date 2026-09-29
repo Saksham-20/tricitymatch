@@ -206,9 +206,9 @@ export const AuthProvider = ({ children }) => {
   }, [checkAuth]);
 
   // `identifier` may be an email or a phone number (flexible auth).
-  const login = async (identifier, password) => {
+  const login = async (identifier, password, mfaCode) => {
     try {
-      const response = await api.post('/auth/login', { identifier, password });
+      const response = await api.post('/auth/login', { identifier, password, ...(mfaCode ? { mfaCode } : {}) });
       const { user: userData } = response.data;
       
       if (!userData) {
@@ -246,6 +246,11 @@ export const AuthProvider = ({ children }) => {
         || error.message
         || 'Login failed';
       const status = error.response?.status;
+      // The password was right and the account has two-step verification on: this
+      // is the normal first step, not a failure — the form asks for the code.
+      if (error.response?.data?.error?.code === 'MFA_REQUIRED') {
+        return { success: false, mfaRequired: true, status };
+      }
       // 429 = IP rate-limit; 401 with a "locked" message = account lockout.
       // Surface both to the caller so the UI can show a distinct lockout state.
       const locked = status === 429 || /locked|too many/i.test(message);

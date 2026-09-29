@@ -237,6 +237,23 @@ exports.updateUserStatus = asyncHandler(async (req, res) => {
     throw createError.notFound('User not found');
   }
 
+  // Staff accounts are managed through Admins & Roles, and never by themselves.
+  // This route used to change ANY account's status: a support sub-admin holding
+  // only `users` could ban an admin (or the last super_admin), and an admin could
+  // deactivate their own account and lock the site out of administration.
+  if (user.id === req.user.id) {
+    throw createError.badRequest('You cannot change the status of your own account');
+  }
+  if (user.role !== 'user') {
+    if (!FULL_ACCESS_ROLES.includes(req.user.role) && !scopesFor(req.user).includes('team')) {
+      throw createError.forbidden('Only an admin who manages the team can change a staff account');
+    }
+    if (rankOf(user.role) > rankOf(req.user.role)) {
+      throw createError.forbidden(`You cannot modify a ${user.role} account`);
+    }
+    if (status !== 'active') await assertNotLastFullAdmin(user, 'user');
+  }
+
   const previousStatus = user.status;
   user.status = status;
   await user.save();

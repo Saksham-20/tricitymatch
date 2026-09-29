@@ -26,6 +26,7 @@ const {
   requestContactNumber,
   verifyContactNumber,
 } = require('../controllers/authController');
+const { getMfaStatus, setupMfa, enableMfa, disableMfa } = require('../controllers/mfaController');
 const { auth } = require('../middlewares/auth');
 const { handleValidationErrors } = require('../middlewares/errorHandler');
 const {
@@ -221,5 +222,18 @@ router.delete('/account',
   handleValidationErrors,
   deleteAccount
 );
+
+// ==================== TWO-STEP VERIFICATION ====================
+router.get('/mfa/status', auth, getMfaStatus);
+router.post('/mfa/setup', auth, sensitiveActionLimiter,
+  body('password').isString().isLength({ min: 1, max: 100 }).withMessage('Password is required'),
+  handleValidationErrors, setupMfa);
+router.post('/mfa/enable', auth, sensitiveActionLimiter,
+  body('code').isString().isLength({ min: 6, max: 7 }).withMessage('Enter the 6-digit code'),
+  handleValidationErrors, enableMfa);
+router.post('/mfa/disable', auth, sensitiveActionLimiter,
+  body('password').isString().isLength({ min: 1, max: 100 }).withMessage('Password is required'),
+  body('code').isString().isLength({ min: 6, max: 20 }).withMessage('Enter a code'),
+  handleValidationErrors, disableMfa);
 
 module.exports = router;

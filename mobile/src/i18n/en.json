@@ -42,7 +42,9 @@
       "wrongCredentials": "Wrong email, mobile number or password.",
       "googleUnavailable": "Google sign-in is not available in this build. Continue with your email or mobile number.",
       "lockedOut": "Too many sign-in attempts. Wait a little, then try again, or reset your password.",
-      "accountInactive": "This account is not active. Contact support for help."
+      "accountInactive": "This account is not active. Contact support for help.",
+      "authenticatorCode": "Authenticator code",
+      "wrongCode": "That code is not right. Try the current code from your authenticator app."
     },
     "signup": {
       "title": "Create your account",
