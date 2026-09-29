@@ -67,6 +67,13 @@ const Message = sequelize.define('Message', {
     allowNull: false,
     defaultValue: {}
   },
+  // Scam/phishing signals found in `content` (utils/chatSafety), e.g.
+  // ["upi_id","suspicious_link"]. NULL when nothing was found.
+  safetyFlags: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    defaultValue: null
+  },
   isRead: {
     type: DataTypes.BOOLEAN,
     defaultValue: false

@@ -9,7 +9,9 @@ const sequelize = require('../config/database');
 const { sendMessageNotification } = require('../utils/emailService');
 const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
-const { log } = require('../middlewares/logger');
+const { assessMessage, recordHighSignal } = require('../utils/chatSafety');
+const { log, logAudit } = require('../middlewares/logger');
+const { sendEmail } = require('../utils/email');
 const { assertNotBlocked, blockedIdsFor, isBlockedBetween } = require('../utils/blocks');
 const { getActiveSubscription, grantWindowState } = require('../utils/entitlements');
 const { REACTION_EMOJIS, VOICE_MESSAGE_MAX_DURATION_MS } = require('../constants/chat');
@@ -324,6 +326,22 @@ exports.getMessages = asyncHandler(async (req, res) => {
 // @route   POST /api/chat/messages
 // @desc    Send a message
 // @access  Private/Premium
+// A member who keeps sending the strongest scam signals to different people gets
+// put in front of staff, once per day. Nothing is blocked automatically: the
+// message flags and this alert give a human what they need to decide.
+const escalateScamPattern = async (senderId, receiverId, flags) => {
+  const crossed = await recordHighSignal(senderId, receiverId);
+  if (!crossed) return;
+  logAudit('chat_scam_pattern', senderId, { flags, lastReceiverId: receiverId });
+  sendEmail({
+    to: config.email.support,
+    channel: 'documents',
+    subject: 'Chat safety: a member is repeatedly sending payment or phishing signals',
+    html: `<p>A member has sent several messages carrying payment or phishing signals (${flags.join(', ')}) to more than one person in the last 24 hours.</p><p>Member id: ${senderId}</p><p>Open the member in the admin panel and read the audit log and their conversations before deciding.</p>`,
+    text: `A member has sent several messages carrying payment or phishing signals (${flags.join(', ')}) to more than one person in the last 24 hours. Member id: ${senderId}. Review in the admin panel.`,
+  }).catch((err) => log.warn('Chat safety staff alert failed', { senderId, error: err.message }));
+};
+
 exports.sendMessage = asyncHandler(async (req, res) => {
   const { receiverId, content, replyToId } = req.body;
   const senderId = req.user.id;
@@ -340,6 +358,11 @@ exports.sendMessage = asyncHandler(async (req, res) => {
   }
 
   await assertNotBlocked(senderId, receiverId);
+
+  // Scam/phishing signals. Never blocks: the flags ride on the message so the
+  // recipient sees a warning, and a repeat pattern reaches staff.
+  const safety = assessMessage(sanitizedContent);
+  const safetyFlags = safety.flags.length ? safety.flags : null;
 
   // Verify mutual match
   const isMutual = await verifyMutualMatch(senderId, receiverId);
@@ -403,7 +426,8 @@ exports.sendMessage = asyncHandler(async (req, res) => {
       const created = await Message.create({
         senderId,
         receiverId,
-        content: sanitizedContent
+        content: sanitizedContent,
+        safetyFlags
       }, { transaction: t });
 
       grant.messagesUsed += 1;
@@ -418,7 +442,8 @@ exports.sendMessage = asyncHandler(async (req, res) => {
       senderId,
       receiverId,
       content: sanitizedContent,
-      replyToId: replyToId || null
+      replyToId: replyToId || null,
+      safetyFlags
     });
 
     // D1 grant creation: a PAID member's message to a FREE member opens (or
@@ -444,6 +469,10 @@ exports.sendMessage = asyncHandler(async (req, res) => {
         log.error('Chat grant creation failed', { senderId, receiverId, error: error.message });
       }
     }
+  }
+
+  if (safety.high) {
+    escalateScamPattern(senderId, receiverId, safety.flags).catch(() => {});
   }
 
   // Fetch message with sender info
@@ -479,6 +508,10 @@ exports.sendMessage = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     message: messageWithSender,
+    // What the sender is told when their message tripped a signal. The message
+    // was still delivered; this lets their app say why the other person may see
+    // a caution beside it.
+    ...(safety.flags.length ? { safety: { flags: safety.flags, high: safety.high } } : {}),
     // D1: post-increment window state — drives the "N replies left" meter and
     // the first-reply upsell. Absent for paid/flag sends.
     ...(replyWindow ? { replyWindow } : {})
@@ -531,9 +564,16 @@ exports.editMessage = asyncHandler(async (req, res) => {
 
   // Update message
   message.content = sanitizedContent;
+  // Re-read the signals on the NEW text: sending something harmless and editing
+  // in the link afterwards must not be a way round the warning.
+  const editSafety = assessMessage(sanitizedContent);
+  message.safetyFlags = editSafety.flags.length ? editSafety.flags : null;
   message.isEdited = true;
   message.editedAt = new Date();
   await message.save();
+  if (editSafety.high) {
+    escalateScamPattern(userId, message.receiverId, editSafety.flags).catch(() => {});
+  }
 
   // Return updated message with sender info
   const updatedMessage = await Message.findByPk(messageId, {

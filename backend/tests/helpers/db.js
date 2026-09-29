@@ -108,7 +108,7 @@ const call = async (handler, { user, params = {}, body = {}, query = {} }) => {
       res.body = { error: err };
       resolve(res);
     };
-    handler({ user, params, body, query, headers: {}, ip: '127.0.0.1', get: () => '' }, res, next);
+    handler({ user, params, body, query, headers: {}, ip: '127.0.0.1', get: () => '', app: { get: () => null } }, res, next);
   });
 };
 
