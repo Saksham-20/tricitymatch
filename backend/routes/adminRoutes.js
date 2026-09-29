@@ -6,7 +6,17 @@
 const express = require('express');
 const router = express.Router();
 const {
+  getSuspicious,
+  getModerationStats,
+  bulkUpdateStatus,
+  getPhotoQueue,
+  removePhoto,
+  getSupportStaff,
+  assignContactMessage,
+} = require('../controllers/adminSafetyController');
+const {
   getUsers,
+  deleteUsers,
   getUser,
   createUser,
   updateUserStatus,
@@ -76,6 +86,8 @@ router.use(auth, adminAuth, adminLimiter);
 
 router.get('/users', requireAdminScope('users'), adminSearchValidation, handleValidationErrors, getUsers);
 router.post('/users', requireAdminScope('users'), createUser);
+router.delete('/users', requireAdminScope('users'), deleteUsers);
+router.put('/users/bulk-status', requireAdminScope('users'), bulkUpdateStatus);
 // Before /users/:userId — Express matches in declaration order, and `export`
 // would otherwise be read as a user id and rejected by the UUID validator.
 router.get('/users/export', requireAdminScope('users'), exportUsers);
@@ -129,6 +141,10 @@ router.get('/revenue', requireAdminScope('revenue'), getRevenueReport);
 // ==================== REPORTS ====================
 
 router.get('/reports', requireAdminScope('reports'), getReports);
+router.get('/suspicious', requireAdminScope('reports'), getSuspicious);
+router.get('/moderation-stats', requireAdminScope('reports'), getModerationStats);
+router.get('/photos', requireAdminScope('reports'), getPhotoQueue);
+router.delete('/photos', requireAdminScope('reports'), removePhoto);
 router.put('/reports/:reportId', requireAdminScope('reports'),
   param('reportId').isUUID(4),
   body('status').isIn(['reviewing', 'resolved', 'reviewed', 'dismissed']),
@@ -235,6 +251,13 @@ router.put(
   body('status').isIn(['new', 'read', 'resolved']),
   handleValidationErrors,
   updateContactMessage
+);
+router.get('/support-staff', requireAdminScope('support'), getSupportStaff);
+router.put(
+  '/contact-messages/:id/assign', requireAdminScope('support'),
+  param('id').isUUID(4),
+  handleValidationErrors,
+  assignContactMessage
 );
 router.post(
   '/contact-messages/:id/reply', requireAdminScope('support'),

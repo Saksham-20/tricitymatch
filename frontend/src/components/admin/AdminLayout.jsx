@@ -6,7 +6,7 @@ import {
   FiGrid, FiUsers, FiCheckCircle, FiCreditCard,
   FiTrendingUp, FiFlag, FiLogOut, FiMenu, FiX,
   FiChevronRight, FiTag, FiUserPlus, FiPhoneCall, FiHeart, FiInbox, FiShield,
-  FiFilter, FiList, FiMoon, FiSun,
+  FiFilter, FiList, FiMoon, FiSun, FiExternalLink, FiAlertTriangle,
 } from 'react-icons/fi';
 
 // `scope` is the permission the server requires for that section. A sub-admin
@@ -21,6 +21,7 @@ const navItems = [
   { to: '/admin/launch-offer',     label: 'Pricing & Offers',  icon: FiTag,         scope: 'pricing' },
   { to: '/admin/revenue',          label: 'Revenue',           icon: FiTrendingUp,  scope: 'revenue' },
   { to: '/admin/reports',          label: 'Reports',           icon: FiFlag,        scope: 'reports' },
+  { to: '/admin/safety',            label: 'Trust & Safety',    icon: FiAlertTriangle, scope: 'reports' },
   { to: '/admin/contact-messages', label: 'Support Inbox',     icon: FiInbox,       scope: 'support' },
   { to: '/admin/marketing-users',  label: 'Marketing Users',   icon: FiUserPlus,    scope: 'marketing' },
   { to: '/admin/referral-codes',   label: 'Referral Codes',    icon: FiTag,         scope: 'marketing' },
@@ -151,6 +152,14 @@ export default function AdminLayout() {
           <p className="text-xs font-medium text-white truncate">{user?.firstName || 'Admin'} {user?.lastName || ''}</p>
           <p className="text-[11px] text-gray-400 truncate">{user?.email}</p>
         </div>
+        <Link
+          to="/dashboard"
+          onClick={() => setSidebarOpen(false)}
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white transition-all duration-150"
+        >
+          <FiExternalLink className="w-4 h-4" />
+          View live site
+        </Link>
         <button
           type="button"
           onClick={toggleDark}

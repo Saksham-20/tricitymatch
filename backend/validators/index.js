@@ -612,7 +612,7 @@ const adminSearchValidation = [
     .isIn(['active', 'inactive', 'banned', 'pending', 'deleted']),
   query('role')
     .optional()
-    .isIn(['user', 'admin', 'super_admin', 'marketing_manager', 'marketing']),
+    .isIn(['user', 'sub_admin', 'admin', 'super_admin', 'marketing_manager', 'marketing']),
   query('search')
     .optional()
     .trim()

@@ -41,4 +41,13 @@ export const getAuditLog = (params) => api.get('/admin/audit-log', { params });
 export const cancelSubscription = (userId, data) => api.delete(`/admin/users/${userId}/subscription`, { data });
 
 // Member export (CSV — blob so the browser saves it rather than rendering it)
-export const exportUsers = () => api.get('/admin/users/export', { responseType: 'blob' });
+export const exportUsers = (params) => api.get('/admin/users/export', { params, responseType: 'blob' });
+// Permanent delete (full admins only). Resolves { deleted, blocked } per account.
+export const deleteUsers = (ids) => api.delete('/admin/users', { data: { ids } });
+
+// Trust & safety
+export const getSuspicious = (params) => api.get('/admin/suspicious', { params });
+export const getModerationStats = () => api.get('/admin/moderation-stats');
+export const getPhotoQueue = (params) => api.get('/admin/photos', { params });
+export const removePhoto = (data) => api.delete('/admin/photos', { data });
+export const bulkUpdateStatus = (ids, status) => api.put('/admin/users/bulk-status', { ids, status });

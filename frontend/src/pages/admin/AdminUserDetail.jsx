@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { getUser, updateSubscription, updateVerification, cancelSubscription } from '../../api/adminApi';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { getUser, updateSubscription, updateVerification, cancelSubscription, deleteUsers } from '../../api/adminApi';
 import usePlanOptions from '../../hooks/usePlanOptions';
 import toast from 'react-hot-toast';
-import { FiArrowLeft, FiCheckCircle, FiXCircle } from 'react-icons/fi';
+import { FiArrowLeft, FiCheckCircle, FiXCircle, FiTrash2 } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 
 const Section = ({ title, children }) => (
@@ -22,6 +23,9 @@ const InfoRow = ({ label, value }) => (
 
 export default function AdminUserDetail() {
   const { userId } = useParams();
+  const navigate = useNavigate();
+  const { user: me } = useAuth();
+  const canDelete = me?.role === 'admin' || me?.role === 'super_admin';
   const [data, setData]     = useState(null);
   const [loading, setLoading] = useState(true);
   const [planModal, setPlanModal] = useState(false);
@@ -54,6 +58,21 @@ export default function AdminUserDetail() {
       // "planType: Invalid value" and the panel showed nothing useful.
       const e = err?.response?.data?.error;
       toast.error(e?.details?.[0]?.message ? `${e.message}: ${e.details[0].message}` : (e?.message || 'Update failed'));
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!window.confirm('Permanently delete this account? Profile, photos, messages and matches are removed from the database. This cannot be undone.')) return;
+    try {
+      const res = await deleteUsers([userId]);
+      if (res.data.deleted?.length) {
+        toast.success('Account deleted');
+        navigate('/admin/users');
+      } else {
+        toast.error(res.data.blocked?.[0]?.reason || 'Account was not deleted');
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err?.response?.data?.error?.message || 'Delete failed');
     }
   };
 
@@ -138,6 +157,14 @@ export default function AdminUserDetail() {
           <p className="text-gray-400 text-xs mt-1">ID: {user.id} · Role: {user.role} · Status: {user.status}</p>
         </div>
         <div className="flex items-center gap-2">
+          {canDelete && user.role === 'user' && (
+            <button
+              onClick={handleDeleteAccount}
+              className="flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-xl text-sm font-medium transition-colors"
+            >
+              <FiTrash2 className="w-3.5 h-3.5" /> Delete
+            </button>
+          )}
           <button
             onClick={() => { setNewPlan(subscription?.planType || 'free'); setPlanModal(true); }}
             className="flex items-center gap-2 px-4 py-2 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-xl text-sm font-medium transition-colors"

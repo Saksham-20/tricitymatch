@@ -113,12 +113,28 @@ export default function AdminContactMessages() {
   const [replyDraft, setReplyDraft] = useState({});   // id → text
   const [replyingId, setReplyingId] = useState(null);
   const [replyError, setReplyError] = useState({});   // id → message
+  const [staff, setStaff] = useState([]);
+  const [assigned, setAssigned] = useState('');
+
+  useEffect(() => {
+    apiClient.get('/admin/support-staff').then((r) => setStaff(r.data.staff || [])).catch(() => {});
+  }, []);
+
+  const assign = async (id, assignedTo) => {
+    try {
+      const res = await apiClient.put(`/admin/contact-messages/${id}/assign`, { assignedTo: assignedTo || null });
+      setMessages((list) => list.map((m) => (m.id === id ? { ...m, ...res.data.message } : m)));
+    } catch (err) {
+      setError(err.response?.data?.error?.message || 'Could not assign this enquiry');
+    }
+  };
 
   const fetchMessages = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({ page, limit: 20 });
       if (status) params.append('status', status);
+      if (assigned) params.append('assigned', assigned);
       if (search.trim()) params.append('search', search.trim());
 
       const res = await apiClient.get(`/admin/contact-messages?${params}`);
@@ -131,7 +147,7 @@ export default function AdminContactMessages() {
     } finally {
       setLoading(false);
     }
-  }, [page, status, search]);
+  }, [page, status, search, assigned]);
 
   useEffect(() => { fetchMessages(); }, [fetchMessages]);
 
@@ -219,6 +235,16 @@ export default function AdminContactMessages() {
             <option value="read">Read</option>
             <option value="resolved">Resolved</option>
           </select>
+          <select
+            value={assigned}
+            onChange={(e) => { setAssigned(e.target.value); setPage(1); }}
+            className="border px-3 py-2 rounded"
+            aria-label="Filter by assignee"
+          >
+            <option value="">Everyone's enquiries</option>
+            <option value="me">Assigned to me</option>
+            <option value="unassigned">Unassigned</option>
+          </select>
           <form onSubmit={applySearch} className="flex gap-2 flex-1 min-w-[240px]">
             <input
               value={search}
@@ -266,6 +292,7 @@ export default function AdminContactMessages() {
                   <th className="border p-3 text-left">From</th>
                   <th className="border p-3 text-left">Subject</th>
                   <th className="border p-3 text-left">Status</th>
+                  <th className="border p-3 text-left">Assigned to</th>
                 </tr>
               </thead>
               <tbody>
@@ -298,10 +325,21 @@ export default function AdminContactMessages() {
                           </a>
                         </div>
                       </td>
+                      <td className="border p-3" onClick={(e) => e.stopPropagation()}>
+                        <select
+                          value={m.assignedTo || ''}
+                          onChange={(e) => assign(m.id, e.target.value)}
+                          aria-label={`Assign enquiry from ${m.name}`}
+                          className="text-sm border border-neutral-200 rounded-lg px-2 py-1.5"
+                        >
+                          <option value="">Unassigned</option>
+                          {staff.map((s) => <option key={s.id} value={s.id}>{s.email}</option>)}
+                        </select>
+                      </td>
                     </tr>
                     {expanded === m.id && (
                       <tr key={`${m.id}-body`}>
-                        <td colSpan={4} className="border p-4 bg-neutral-50">
+                        <td colSpan={5} className="border p-4 bg-neutral-50">
                           <p className="whitespace-pre-wrap text-sm text-neutral-800">{m.message}</p>
 
                           {m.replyBody ? (

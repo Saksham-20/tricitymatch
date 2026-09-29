@@ -53,6 +53,15 @@ const ContactMessage = sequelize.define('ContactMessage', {
     type: DataTypes.UUID,
     allowNull: true,
   },
+  // Staff member handling this enquiry (migration 000064).
+  assignedTo: {
+    type: DataTypes.UUID,
+    allowNull: true,
+  },
+  assignedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
 });
 
 module.exports = ContactMessage;

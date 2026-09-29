@@ -24,6 +24,7 @@ const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { log, logAudit } = require('../middlewares/logger');
 const { generateInvoicePDF } = require('../utils/invoice');
+const { hardDeleteUsers, MAX_BATCH } = require('../utils/hardDeleteUsers');
 const { notify } = require('../utils/notifyUser');
 const { sendVerificationApproved, sendVerificationRejected, sendSupportReply } = require('../utils/email');
 const {
@@ -73,6 +74,90 @@ const escapeLikePattern = (str) => {
   return str.replace(/[%_\\]/g, '\\$&');
 };
 
+const VALID_USER_STATUSES = ['active', 'inactive', 'banned', 'pending', 'deleted'];
+const VALID_USER_ROLES = ['user', 'sub_admin', 'admin', 'super_admin', 'marketing', 'marketing_manager'];
+const SUB_ADMIN_REFUND_LIMIT_RUPEES = 1000;
+const TEST_EMAIL_PATTERNS = ['%@example.com', '%@loadtest.local', '%@test.com'];
+const ACTIVE_SUB_SQL = (planSql) => `SELECT "userId" FROM "Subscriptions"
+  WHERE status = 'active' AND ${planSql} AND ("endDate" IS NULL OR "endDate" > NOW())`;
+
+const isYmd = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
+
+/**
+ * Turn the admin filter query into a Sequelize where. Every value is checked
+ * against an allowlist / strict format before it reaches a literal, and
+ * sequelize.escape() quotes anything that is interpolated.
+ */
+const buildUserWhere = (query) => {
+  const {
+    status, role, search, joinedFrom, joinedTo, joinedWithin, plan, verified,
+    hasPhoto, gender, city, emailVerified, phoneVerified, inactiveDays, testAccounts,
+  } = query;
+  const and = [];
+  const yes = (v) => v === 'yes';
+  const no = (v) => v === 'no';
+  const inSub = (userSql, negate) => sequelize.literal(`"User"."id" ${negate ? 'NOT ' : ''}IN (${userSql})`);
+
+  if (status && VALID_USER_STATUSES.includes(status)) and.push({ status });
+  if (role && VALID_USER_ROLES.includes(role)) and.push({ role });
+  if (search) {
+    const like = `%${escapeLikePattern(search)}%`;
+    and.push({
+      [Op.or]: [
+        { email: { [Op.iLike]: like } },
+        { phone: { [Op.iLike]: like } },
+        sequelize.literal(`"User"."id" IN (SELECT "userId" FROM "Profiles" WHERE ("firstName" || ' ' || COALESCE("lastName", '')) ILIKE ${sequelize.escape(like)})`),
+      ],
+    });
+  }
+
+  if (isYmd(joinedFrom)) and.push({ createdAt: { [Op.gte]: new Date(`${joinedFrom}T00:00:00.000Z`) } });
+  if (isYmd(joinedTo)) and.push({ createdAt: { [Op.lt]: new Date(new Date(`${joinedTo}T00:00:00.000Z`).getTime() + 86400000) } });
+  const within = parseInt(joinedWithin, 10);
+  if (within > 0 && within <= 3650) and.push({ createdAt: { [Op.gte]: new Date(Date.now() - within * 86400000) } });
+
+  const quoted = (list) => list.map((p) => sequelize.escape(p)).join(',');
+  if (plan === 'free') and.push(inSub(ACTIVE_SUB_SQL(`"planType" IN (${quoted(PAID_PLANS)})`), true));
+  else if (plan === 'paid') and.push(inSub(ACTIVE_SUB_SQL(`"planType" IN (${quoted(PAID_PLANS)})`)));
+  else if (plan === 'expiring') {
+    and.push(inSub(`SELECT "userId" FROM "Subscriptions" WHERE status = 'active' AND "planType" IN (${quoted(PAID_PLANS)})
+      AND "endDate" > NOW() AND "endDate" < NOW() + INTERVAL '7 days'`));
+  } else if (plan === 'lapsed') {
+    // Had a paid plan once, has none live now.
+    and.push(inSub(`SELECT "userId" FROM "Subscriptions" WHERE "planType" IN (${quoted(PAID_PLANS)}) AND "razorpayPaymentId" IS NOT NULL`));
+    and.push(inSub(ACTIVE_SUB_SQL(`"planType" IN (${quoted(PAID_PLANS)})`), true));
+  } else if (PAID_PLANS.includes(plan)) and.push(inSub(ACTIVE_SUB_SQL(`"planType" = ${sequelize.escape(plan)}`)));
+
+  if (verified === 'yes' || verified === 'no' || verified === 'pending') {
+    if (verified === 'yes') and.push(inSub(`SELECT "userId" FROM "Verifications" WHERE status = 'approved'`));
+    if (verified === 'pending') and.push(inSub(`SELECT "userId" FROM "Verifications" WHERE status = 'pending'`));
+    if (verified === 'no') and.push(inSub(`SELECT "userId" FROM "Verifications" WHERE status = 'approved'`, true));
+  }
+  if (yes(hasPhoto)) and.push(inSub(`SELECT "userId" FROM "Profiles" WHERE COALESCE(array_length(photos, 1), 0) > 0`));
+  if (no(hasPhoto)) and.push(inSub(`SELECT "userId" FROM "Profiles" WHERE COALESCE(array_length(photos, 1), 0) > 0`, true));
+  if (['male', 'female', 'other'].includes(gender)) and.push(inSub(`SELECT "userId" FROM "Profiles" WHERE gender = ${sequelize.escape(gender)}`));
+  if (city && String(city).length <= 60) and.push(inSub(`SELECT "userId" FROM "Profiles" WHERE city ILIKE ${sequelize.escape(`%${escapeLikePattern(String(city))}%`)}`));
+  if (yes(emailVerified) || no(emailVerified)) and.push({ emailVerified: yes(emailVerified) });
+  if (yes(phoneVerified) || no(phoneVerified)) and.push({ phoneVerified: yes(phoneVerified) });
+
+  const idle = parseInt(inactiveDays, 10);
+  if (idle > 0 && idle <= 3650) {
+    and.push({ [Op.or]: [{ lastLogin: null }, { lastLogin: { [Op.lt]: new Date(Date.now() - idle * 86400000) } }] });
+  }
+
+  if (testAccounts === 'only' || testAccounts === 'exclude') {
+    const testOr = { [Op.or]: TEST_EMAIL_PATTERNS.map((pat) => ({ email: { [Op.iLike]: pat } })) };
+    and.push(testAccounts === 'only' ? testOr : { [Op.not]: testOr });
+  }
+  return and.length ? { [Op.and]: and } : {};
+};
+
+const userOrder = (sort) => {
+  if (sort === 'oldest') return [['createdAt', 'ASC']];
+  if (sort === 'lastLogin') return [[sequelize.literal('"User"."lastLogin" DESC NULLS LAST')]];
+  return [['createdAt', 'DESC']];
+};
+
 // @route   GET /api/admin/users
 // @desc    Get all users with filters
 // @access  Private/Admin
@@ -80,32 +165,19 @@ exports.getUsers = asyncHandler(async (req, res) => {
   const rawLimit = parseInt(req.query.limit) || 20;
   const limit = Math.min(Math.max(rawLimit, 1), 100); // cap at 100 rows per page
   const page = Math.max(parseInt(req.query.page) || 1, 1);
-  const { status, role, search } = req.query;
   const offset = (page - 1) * limit;
-
-  const VALID_USER_STATUSES = ['active', 'inactive', 'banned', 'pending', 'deleted'];
-  const VALID_USER_ROLES = ['user', 'sub_admin', 'admin', 'super_admin', 'marketing', 'marketing_manager'];
-
-  const where = {};
-  if (status && VALID_USER_STATUSES.includes(status)) where.status = status;
-  if (role && VALID_USER_ROLES.includes(role)) where.role = role;
-  if (search) {
-    where[Op.or] = [
-      { email: { [Op.iLike]: `%${escapeLikePattern(search)}%` } },
-      { phone: { [Op.iLike]: `%${escapeLikePattern(search)}%` } }
-    ];
-  }
+  const where = buildUserWhere(req.query);
 
   const { count, rows: users } = await User.findAndCountAll({
     where,
     include: [
-      { model: Profile, attributes: ['firstName', 'lastName', 'city'] },
+      { model: Profile, attributes: ['firstName', 'lastName', 'city', 'gender', 'photos'] },
       // separate:true runs a dedicated query per user — required for limit+order on HasMany in findAndCountAll
       { model: Subscription, separate: true, order: [['createdAt', 'DESC']], limit: 1 }
     ],
     limit,
     offset,
-    order: [['createdAt', 'DESC']],
+    order: userOrder(req.query.sort),
     subQuery: false,
   });
 
@@ -121,6 +193,30 @@ exports.getUsers = asyncHandler(async (req, res) => {
       pages: Math.ceil(count / limit)
     }
   });
+});
+
+// @route   DELETE /api/admin/users   body { ids: [uuid] }
+// @desc    Permanently delete member accounts (bulk). Full admins only.
+// @access  Private/Admin
+exports.deleteUsers = asyncHandler(async (req, res) => {
+  if (!FULL_ACCESS_ROLES.includes(req.user.role)) {
+    throw createError.forbidden('Only a full admin can permanently delete accounts');
+  }
+  const ids = Array.isArray(req.body?.ids) ? req.body.ids : [];
+  if (!ids.length) throw createError.badRequest('Select at least one account');
+  if (ids.length > MAX_BATCH) throw createError.badRequest(`Delete at most ${MAX_BATCH} accounts at a time`);
+  if (!ids.every((id) => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id))) {
+    throw createError.badRequest('Invalid account id');
+  }
+
+  const result = await hardDeleteUsers(ids, req.user.id);
+  logAudit('users_hard_deleted', req.user.id, {
+    deletedCount: result.deleted.length,
+    deleted: result.deleted,
+    blocked: result.blocked,
+  });
+
+  res.json({ success: true, ...result });
 });
 
 // @route   PUT /api/admin/users/:userId/status
@@ -718,6 +814,7 @@ exports.cancelSubscription = asyncHandler(async (req, res) => {
 // memory spike waiting for the day the table is large.
 exports.exportUsers = asyncHandler(async (req, res) => {
   const users = await User.findAll({
+    where: buildUserWhere(req.query),
     include: [{ model: Profile, attributes: ['firstName', 'lastName', 'city', 'gender', 'dateOfBirth', 'photos'] }],
     order: [['createdAt', 'DESC']],
     limit: 5000,
@@ -1183,6 +1280,11 @@ exports.refundSubscription = asyncHandler(async (req, res) => {
   }
   if (!Number.isFinite(amountRupees) || amountRupees <= 0) {
     throw createError.badRequest('amount must be a positive number of rupees');
+  }
+
+  // A sub-admin may refund small amounts; anything larger needs a full admin.
+  if (req.user.role === 'sub_admin' && amountRupees > SUB_ADMIN_REFUND_LIMIT_RUPEES) {
+    throw createError.forbidden(`Refunds above ₹${SUB_ADMIN_REFUND_LIMIT_RUPEES} need a full admin`);
   }
 
   const subscription = await Subscription.findByPk(subscriptionId, {
@@ -1742,6 +1844,8 @@ exports.getContactMessages = asyncHandler(async (req, res) => {
   const VALID_STATUSES = ['new', 'read', 'resolved'];
   const where = {};
   if (status && VALID_STATUSES.includes(status)) where.status = status;
+  if (req.query.assigned === 'me') where.assignedTo = req.user.id;
+  else if (req.query.assigned === 'unassigned') where.assignedTo = null;
   if (search) {
     const term = `%${escapeLikePattern(search)}%`;
     where[Op.or] = [
