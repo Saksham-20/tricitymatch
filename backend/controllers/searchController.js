@@ -3,13 +3,19 @@
  * Handles profile search with optimized queries
  */
 
-const { Profile, User, Match, Subscription, Block, Verification } = require('../models');
+const { Profile, User, Match, Subscription, Verification } = require('../models');
 const { Op, fn, col, where: seqWhere } = require('sequelize');
 const Sequelize = require('sequelize');
 const { PAID_PLANS } = require('../constants/plans');
 const { calculateCompatibility, isManglikCompatible } = require('../utils/compatibility');
 const { toProfileCode, parseProfileCode } = require('../utils/profileCode');
 const { randomUUID } = require('crypto');
+const {
+  loadViewerContext,
+  listingScope,
+  viewerHasPaidAccess,
+  redactForViewer,
+} = require('../utils/profileVisibility');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 
 // Escape special characters for LIKE patterns to prevent injection
@@ -57,43 +63,10 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
     throw createError.badRequest('Please complete your profile first');
   }
 
-  // Fetch blocked/blocking user IDs to exclude from results
-  const blocks = await Block.findAll({
-    where: {
-      [Op.or]: [{ blockerId: userId }, { blockedUserId: userId }]
-    },
-    attributes: ['blockerId', 'blockedUserId']
-  });
-  const blockedUserIds = blocks.map(b => b.blockerId === userId ? b.blockedUserId : b.blockerId);
-
-  // Build where clause
-  const where = {
-    isActive: true,
-    incognitoMode: { [Op.ne]: true }, // Exclude users in incognito mode
-    userId: {
-      [Op.ne]: userId, // Exclude self
-      ...(blockedUserIds.length > 0 ? { [Op.notIn]: blockedUserIds } : {})
-    }
-  };
-
-  // M-2 (2026-07-01 pentest): respect the "matches only" privacy setting in search.
-  // profileVisibility='matches_only' profiles are hidden from non-mutual viewers;
-  // NULL / 'everyone' remain visible to all.
-  const mutualRows = await Match.findAll({
-    where: { userId, isMutual: true },
-    attributes: ['matchedUserId'],
-  });
-  const mutualUserIds = mutualRows.map((m) => m.matchedUserId);
-  where[Op.and] = [
-    ...(where[Op.and] || []),
-    {
-      [Op.or]: [
-        { profileVisibility: { [Op.is]: null } },
-        { profileVisibility: { [Op.ne]: 'matches_only' } },
-        ...(mutualUserIds.length ? [{ userId: { [Op.in]: mutualUserIds } }] : []),
-      ],
-    },
-  ];
+  // Who may appear (blocked, incognito, matches-only unless mutual, self) is one
+  // shared rule for every listing — see utils/profileVisibility.
+  const viewerCtx = await loadViewerContext(userId);
+  const where = listingScope(viewerCtx);
 
   // Gender filter: opposite gender when set; otherwise both so results aren't empty
   const gender = (currentProfile.gender || '').toLowerCase();
@@ -317,6 +290,8 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
 
   const now = new Date();
 
+  const viewerPaid = await viewerHasPaidAccess(userId);
+
   // Calculate compatibility for each profile
   const profilesWithCompatibility = profiles.map((profile) => {
     const compatibilityScore = calculateCompatibility(currentProfile, profile);
@@ -326,17 +301,14 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
     const isBoostedActive = profile.User?.isBoosted &&
       (!profile.User?.boostExpiresAt || new Date(profile.User.boostExpiresAt) > now);
 
-    const raw = profile.toJSON();
     const isMutual = match ? match.isMutual : false;
 
-    // Enforce photo blur: hide photos for non-mutual matches when user has photoBlurUntilMatch
-    const profilePhoto = (raw.photoBlurUntilMatch && !isMutual) ? null : raw.profilePhoto;
-    const photos = (raw.photoBlurUntilMatch && !isMutual) ? [] : raw.photos;
+    // Photo blur, intro-media URLs and owner-only keys are withheld here, in the
+    // payload — the same redaction every other listing applies.
+    const raw = redactForViewer(profile.toJSON(), { isMutual, hasPaidAccess: viewerPaid });
 
     const profileData = {
       ...raw,
-      profilePhoto,
-      photos,
       userId: raw.userId || raw.User?.id || profile.userId,
       compatibilityScore,
       matchStatus: match ? match.action : null,
@@ -426,22 +398,21 @@ exports.getSuggestions = asyncHandler(async (req, res) => {
       ? { gender: 'male' }
       : { gender: { [Op.in]: ['male', 'female'] } };
 
-  // Get profiles user hasn't interacted with, excluding blocked users
-  const [interactedUserIds, suggestionBlocks] = await Promise.all([
+  // Profiles the viewer hasn't interacted with. Who may appear at all is the
+  // shared visibility rule; the interacted set is layered on top of it.
+  const [interactedUserIds, viewerCtx] = await Promise.all([
     Match.findAll({ where: { userId }, attributes: ['matchedUserId'] })
       .then(matches => matches.map(m => m.matchedUserId)),
-    Block.findAll({
-      where: { [Op.or]: [{ blockerId: userId }, { blockedUserId: userId }] },
-      attributes: ['blockerId', 'blockedUserId']
-    })
+    loadViewerContext(userId)
   ]);
-  const blockedSuggestionIds = suggestionBlocks.map(b => b.blockerId === userId ? b.blockedUserId : b.blockerId);
-  const excludedIds = [...new Set([...interactedUserIds, ...blockedSuggestionIds])];
+  const excludedIds = [...new Set([...interactedUserIds, ...viewerCtx.blockedIds])];
+  const scope = listingScope(viewerCtx);
+  scope.userId = { [Op.ne]: userId, [Op.notIn]: excludedIds };
+  const viewerPaid = await viewerHasPaidAccess(userId);
 
   const profiles = await Profile.findAll({
     where: {
-      isActive: true,
-      userId: { [Op.ne]: userId, [Op.notIn]: excludedIds },
+      ...scope,
       ...genderFilter
     },
     include: [
@@ -519,7 +490,8 @@ exports.getSuggestions = asyncHandler(async (req, res) => {
   const topMatches = profilesWithCompatibility
     .slice(0, limit)
     .map(item => {
-      const raw = item.profile.toJSON();
+      // Never mutual (interacted profiles are excluded above), so blur applies.
+      const raw = redactForViewer(item.profile.toJSON(), { isMutual: false, hasPaidAccess: viewerPaid });
       const premiumPlan = item.premiumPlan;
       const profileData = {
         ...raw,
@@ -554,12 +526,7 @@ exports.getProfileByCode = asyncHandler(async (req, res) => {
     throw createError.badRequest('Enter a valid profile ID, e.g. TCS-A1B2C3D4');
   }
 
-  // Exclude profiles in a block relationship with the requester
-  const blocks = await Block.findAll({
-    where: { [Op.or]: [{ blockerId: userId }, { blockedUserId: userId }] },
-    attributes: ['blockerId', 'blockedUserId'],
-  });
-  const blockedUserIds = blocks.map(b => (b.blockerId === userId ? b.blockedUserId : b.blockerId));
+  const isSelfCode = String(userId).slice(0, 8).toLowerCase() === prefix;
 
   // UTIL-2: the 8-hex code is the first 4 bytes (time_low) of the userId UUID, so
   // match an indexed UUID range instead of LOWER(CAST(userId AS text)) LIKE — the
@@ -567,17 +534,28 @@ exports.getProfileByCode = asyncHandler(async (req, res) => {
   const uuidLo = `${prefix}-0000-0000-0000-000000000000`;
   const uuidHi = `${prefix}-ffff-ffff-ffff-ffffffffffff`;
 
+  // A code the member chose to share is a direct lookup, so incognito does not
+  // hide it — but matches-only, blocks, deactivated and banned/suspended accounts
+  // do, exactly as in every other listing. (This lookup used to check isActive
+  // and blocks only, so a matches-only or banned member was reachable by code.)
+  // Looking up your own code is always allowed.
+  const viewerCtx = await loadViewerContext(userId);
+  const scope = isSelfCode
+    ? { isActive: true }
+    : listingScope(viewerCtx, { includeIncognito: true });
+
   // Fetch up to 2 to detect (extremely rare) prefix collisions instead of silently
   // returning an arbitrary row, as the old findOne did.
   const matches = await Profile.findAll({
     where: {
-      isActive: true,
-      userId: {
-        [Op.between]: [uuidLo, uuidHi],
-        ...(blockedUserIds.length > 0 ? { [Op.notIn]: blockedUserIds } : {}),
-      },
+      ...scope,
+      [Op.and]: [
+        ...(scope[Op.and] || []),
+        { userId: { [Op.between]: [uuidLo, uuidHi] } },
+      ],
     },
     attributes: ['userId', 'firstName', 'lastName', 'dateOfBirth', 'city', 'profession', 'profilePhoto', 'photoBlurUntilMatch'],
+    include: [{ model: User, attributes: [], where: { status: 'active' }, required: true }],
     limit: 2,
   });
 
@@ -590,25 +568,21 @@ exports.getProfileByCode = asyncHandler(async (req, res) => {
   }
   const profile = matches[0];
 
-  const raw = profile.toJSON();
-  const isSelf = raw.userId === userId;
+  const rawProfile = profile.toJSON();
+  const isSelf = rawProfile.userId === userId;
 
-  // Photo-privacy: mirror the main search (see line ~324) — hide the photo from a
-  // non-mutual viewer when the target enabled blur-until-match. (Own profile is
-  // always shown to itself.)
-  const mutual = isSelf
-    ? null
-    : await Match.findOne({
-        where: { userId, matchedUserId: raw.userId, isMutual: true },
-        attributes: ['id'],
-      });
-  const profilePhoto = (raw.photoBlurUntilMatch && !mutual && !isSelf) ? null : raw.profilePhoto;
+  // Same redaction as every other listing (photo blur until match, owner-only
+  // keys). Own profile is shown to itself untouched.
+  const raw = redactForViewer(rawProfile, {
+    isSelf,
+    isMutual: viewerCtx.mutualIds.has(rawProfile.userId),
+    hasPaidAccess: false,
+  });
 
   res.json({
     success: true,
     profile: {
       ...raw,
-      profilePhoto,
       profileCode: toProfileCode(raw.userId),
       isSelf,
     },

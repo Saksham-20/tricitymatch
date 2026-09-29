@@ -5,6 +5,8 @@
 
 const { Profile, User, ProfileView, Subscription, Match, ContactUnlock, Block, Verification } = require('../models');
 const { blockedIdsFor } = require('../utils/blocks');
+const { redactForViewer, stripOwnerOnlyKeys } = require('../utils/profileVisibility');
+const { getActiveSubscription } = require('../utils/entitlements');
 const { visibleSocialLinks, normalizeSocialLinks } = require('../utils/socialLinks');
 const { Op, QueryTypes } = require('sequelize');
 const { randomUUID } = require('crypto');
@@ -601,12 +603,12 @@ exports.getProfile = asyncHandler(async (req, res) => {
   });
 
   // Check subscription for contact visibility
-  const viewerSubscription = await Subscription.findOne({
-    where: { userId: viewerId, status: 'active' }
-  });
+  // Live paid plan only: the query carries the endDate predicate, so a row that
+  // still says 'active' after its end date (the hourly sweep is cleanup, not
+  // correctness) no longer grants intro media or contact display here.
+  const viewerSubscription = await getActiveSubscription(viewerId);
 
-  const hasPremiumAccess = viewerSubscription &&
-    PAID_PLANS.includes(viewerSubscription.planType);
+  const hasPremiumAccess = Boolean(viewerSubscription);
 
   // Check if contact was already unlocked
   const existingUnlock = await ContactUnlock.findOne({
@@ -648,6 +650,11 @@ exports.getProfile = asyncHandler(async (req, res) => {
 
   // Prepare response with privacy checks
   const profileData = profile.toJSON();
+
+  // Owner-only keys (private settings, quiz answers, the member's own saved
+  // searches) are never useful to another viewer. A member viewing their own
+  // profile through this route still gets everything.
+  if (viewerId !== userId) stripOwnerOnlyKeys(profileData);
 
   // (Incognito handling moved up — the view is simply not recorded when the
   // viewer browses in incognito mode. See CTRL-1.)
@@ -992,16 +999,19 @@ exports.getProfileViewers = asyncHandler(async (req, res) => {
   // A member in a block relationship with the viewer is not shown as a viewer.
   const blockedIds = [...(await blockedIdsFor(userId))];
 
+  const mutualRows = await Match.findAll({ where: { userId, isMutual: true }, attributes: ['matchedUserId'] });
+  const mutualIds = new Set(mutualRows.map(m => m.matchedUserId));
+
   const { count, rows: views } = await ProfileView.findAndCountAll({
     where: {
       viewedUserId: userId,
       ...(blockedIds.length ? { viewerId: { [Op.notIn]: blockedIds } } : {})
     },
     include: [{
-      model: User, as: 'Viewer', attributes: ['id'],
+      model: User, as: 'Viewer', attributes: ['id'], where: { status: 'active' },
       include: [{
         model: Profile, where: { isActive: true },
-        attributes: ['firstName', 'lastName', 'city', 'profilePhoto', 'gender', 'dateOfBirth', 'education', 'profession']
+        attributes: ['firstName', 'lastName', 'city', 'profilePhoto', 'photoBlurUntilMatch', 'gender', 'dateOfBirth', 'education', 'profession']
       }]
     }],
     order: [['createdAt', 'DESC']],
@@ -1011,7 +1021,11 @@ exports.getProfileViewers = asyncHandler(async (req, res) => {
 
   const validViewers = views
     .filter(v => v.Viewer?.Profile)
-    .map(v => ({ userId: v.viewerId, ...v.Viewer.Profile.toJSON(), viewedAt: v.createdAt }));
+    .map(v => ({
+      userId: v.viewerId,
+      ...redactForViewer(v.Viewer.Profile.toJSON(), { isMutual: mutualIds.has(v.viewerId), hasPaidAccess: true }),
+      viewedAt: v.createdAt
+    }));
 
   res.json({
     success: true,
@@ -1063,13 +1077,20 @@ exports.getRecentlyViewed = asyncHandler(async (req, res) => {
   const profiles = finalIds.length
     ? await Profile.findAll({
         where: { userId: { [Op.in]: finalIds }, isActive: true },
-        attributes: ['userId', 'firstName', 'lastName', 'city', 'profilePhoto', 'gender', 'dateOfBirth', 'education', 'profession'],
+        attributes: ['userId', 'firstName', 'lastName', 'city', 'profilePhoto', 'photoBlurUntilMatch', 'gender', 'dateOfBirth', 'education', 'profession'],
+        // A member who has since been banned or deleted is not shown.
+        include: [{ model: User, attributes: [], where: { status: 'active' }, required: true }],
       })
     : [];
+  const mutualRows = await Match.findAll({ where: { userId, isMutual: true }, attributes: ['matchedUserId'] });
+  const mutualIds = new Set(mutualRows.map(m => m.matchedUserId));
 
   // Preserve recency order + attach viewedAt timestamp
   const lastViewedMap = Object.fromEntries(grouped.map(g => [g.viewedUserId, g.lastViewedAt]));
-  const profileMap = Object.fromEntries(profiles.map(p => [p.userId, p.toJSON()]));
+  const profileMap = Object.fromEntries(profiles.map(p => [
+    p.userId,
+    redactForViewer(p.toJSON(), { isMutual: mutualIds.has(p.userId), hasPaidAccess: false })
+  ]));
   const ordered = finalIds
     .filter(id => profileMap[id])
     .map(id => ({ ...profileMap[id], viewedAt: lastViewedMap[id] }));

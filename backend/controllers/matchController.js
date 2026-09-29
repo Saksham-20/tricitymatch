@@ -4,7 +4,14 @@
  */
 
 const { Match, Profile, User, Subscription, Block, Verification } = require('../models');
-const { blockedIdsFor } = require('../utils/blocks');
+const {
+  loadViewerContext,
+  listingScope,
+  matchesOnlyClause,
+  stillVisible,
+  viewerHasPaidAccess,
+  redactForViewer,
+} = require('../utils/profileVisibility');
 const { Op, QueryTypes } = require('sequelize');
 const { randomUUID } = require('crypto');
 const sequelize = require('../config/database');
@@ -37,6 +44,29 @@ exports.matchAction = asyncHandler(async (req, res) => {
   });
   if (blockExists) {
     throw createError.forbidden('Cannot perform this action');
+  }
+
+  // The target must be a real, active, visible member. This used to check only
+  // blocks, so anyone could like themselves (a self "mutual match"), act on a
+  // banned or non-existent id, and send a "liked your profile" notification to a
+  // member who had set their profile to matches-only.
+  if (userId === currentUserId) {
+    throw createError.badRequest('You cannot act on your own profile');
+  }
+  const [targetUser, targetProfile] = await Promise.all([
+    User.findByPk(userId, { attributes: ['id', 'status'] }),
+    Profile.findOne({ where: { userId }, attributes: ['isActive', 'profileVisibility'] }),
+  ]);
+  if (!targetUser || targetUser.status !== 'active' || !targetProfile || !targetProfile.isActive) {
+    throw createError.notFound('Profile not found');
+  }
+  if (targetProfile.profileVisibility === 'matches_only') {
+    // Matches-only members can be reached only by someone they already liked.
+    const theyLikedMe = await Match.findOne({
+      where: { userId, matchedUserId: currentUserId, action: 'like' },
+      attributes: ['id'],
+    });
+    if (!theyLikedMe) throw createError.notFound('Profile not found');
   }
 
   // Use transaction for consistency
@@ -267,20 +297,20 @@ const computeDailyMatches = async (userId) => {
       ? { gender: 'male' }
       : { gender: { [Op.in]: ['male', 'female'] } };
 
-  const [interacted, blocks] = await Promise.all([
+  const [interacted, viewerCtx] = await Promise.all([
     Match.findAll({ where: { userId }, attributes: ['matchedUserId'] }).then(rows => rows.map(r => r.matchedUserId)),
-    Block.findAll({
-      where: { [Op.or]: [{ blockerId: userId }, { blockedUserId: userId }] },
-      attributes: ['blockerId', 'blockedUserId'],
-    }),
+    loadViewerContext(userId),
   ]);
-  const blockedIds = blocks.map(b => (b.blockerId === userId ? b.blockedUserId : b.blockerId));
-  const excludedIds = [...new Set([...interacted, ...blockedIds])];
+  const excludedIds = [...new Set([...interacted, ...viewerCtx.blockedIds])];
+
+  // Who may appear is the shared visibility rule (incognito, matches-only,
+  // blocks, inactive); the already-interacted set is layered on top.
+  const scope = listingScope(viewerCtx);
+  scope.userId = { [Op.ne]: userId, [Op.notIn]: excludedIds };
 
   const profiles = await Profile.findAll({
     where: {
-      isActive: true,
-      userId: { [Op.ne]: userId, [Op.notIn]: excludedIds },
+      ...scope,
       ...genderFilter,
     },
     include: [{ model: User, attributes: ['id', 'status', 'isBoosted', 'boostExpiresAt'], where: { status: 'active' } }],
@@ -329,8 +359,11 @@ const computeDailyMatches = async (userId) => {
     .sort((a, b) => b.score - a.score)
     .slice(0, DAILY_CACHE_SIZE)
     .map(item => {
-      const raw = item.profile.toJSON();
-      delete raw.User;
+      // The set is cached for the day and shared by every tier, so it is stored
+      // in its most restricted form: never mutual (interacted profiles are
+      // excluded above) so blur applies, and no intro-media URLs. Cards do not
+      // need them; the profile page fetches them under the viewer's live tier.
+      const raw = redactForViewer(item.profile.toJSON(), { isMutual: false, hasPaidAccess: false });
       return {
         ...raw,
         userId: raw.userId,
@@ -370,13 +403,20 @@ exports.getDailyMatches = asyncHandler(async (req, res) => {
 
   const cacheKey = `daily-matches:v2:${userId}:${istDateKey()}`;
   // Cache the full ranked set once per IST day; recompute on Redis miss.
-  const fullSet = await getOrSet(cacheKey, () => computeDailyMatches(userId), secondsToNextISTMidnight());
+  const cachedSet = await getOrSet(cacheKey, () => computeDailyMatches(userId), secondsToNextISTMidnight());
+
+  // The set lives all day, but members change: one can go matches-only or
+  // incognito, be blocked, banned, deactivated or erased after it was cached.
+  // Re-check every candidate against current state so none of them keeps
+  // appearing until midnight (this also covers an erased member's profile JSON
+  // still sitting in other viewers' caches).
+  const fullSet = await stillVisible(userId, cachedSet || []);
 
   res.json({
     success: true,
-    matches: (fullSet || []).slice(0, visibleCount),
+    matches: fullSet.slice(0, visibleCount),
     isPremium: isPremiumViewer,
-    totalAvailable: (fullSet || []).length,
+    totalAvailable: fullSet.length,
     visibleCount,
     refreshesAt: 'next midnight IST',
   });
@@ -392,7 +432,9 @@ exports.getLikes = asyncHandler(async (req, res) => {
   const offset = (page - 1) * limit;
 
   // Members in a block relationship (either direction) never appear in a list.
-  const blockedIds = [...(await blockedIdsFor(userId))];
+  const viewerCtx = await loadViewerContext(userId);
+  const blockedIds = viewerCtx.blockedIds;
+  const viewerPaid = await viewerHasPaidAccess(userId);
 
   // Get likes with pagination
   const { count, rows: likes } = await Match.findAndCountAll({
@@ -406,10 +448,11 @@ exports.getLikes = asyncHandler(async (req, res) => {
         model: User,
         as: 'User',
         attributes: ['id'],
+        where: { status: 'active' },
         include: [{
           model: Profile,
           where: { isActive: true },
-          attributes: ['firstName', 'lastName', 'city', 'profilePhoto', 'gender', 'dateOfBirth', 'education', 'profession']
+          attributes: ['firstName', 'lastName', 'city', 'profilePhoto', 'photoBlurUntilMatch', 'gender', 'dateOfBirth', 'education', 'profession']
         }]
       }
     ],
@@ -436,7 +479,7 @@ exports.getLikes = asyncHandler(async (req, res) => {
     .filter(like => like.User?.Profile)
     .map(like => ({
       userId: like.userId,
-      ...like.User.Profile.toJSON(),
+      ...redactForViewer(like.User.Profile.toJSON(), { isMutual: viewerCtx.mutualIds.has(like.userId), hasPaidAccess: viewerPaid }),
       likedAt: like.createdAt,
       compatibilityScore: like.compatibilityScore,
       // D3 (additive): the note + liked-item snapshot the liker attached
@@ -467,7 +510,9 @@ exports.getShortlist = asyncHandler(async (req, res) => {
   const limit = parseInt(req.query.limit) || 20;
   const offset = (page - 1) * limit;
 
-  const blockedIds = [...(await blockedIdsFor(userId))];
+  const viewerCtx = await loadViewerContext(userId);
+  const blockedIds = viewerCtx.blockedIds;
+  const viewerPaid = await viewerHasPaidAccess(userId);
 
   const { count, rows: shortlisted } = await Match.findAndCountAll({
     where: {
@@ -480,10 +525,11 @@ exports.getShortlist = asyncHandler(async (req, res) => {
         model: User,
         as: 'MatchedUser',
         attributes: ['id'],
+        where: { status: 'active' },
         include: [{
           model: Profile,
-          where: { isActive: true },
-          attributes: ['firstName', 'lastName', 'city', 'profilePhoto', 'gender', 'dateOfBirth', 'education', 'profession']
+          where: { isActive: true, [Op.and]: [matchesOnlyClause(viewerCtx)] },
+          attributes: ['firstName', 'lastName', 'city', 'profilePhoto', 'photoBlurUntilMatch', 'gender', 'dateOfBirth', 'education', 'profession']
         }]
       }
     ],
@@ -496,7 +542,7 @@ exports.getShortlist = asyncHandler(async (req, res) => {
     .filter(match => match.MatchedUser?.Profile)
     .map(match => ({
       userId: match.matchedUserId,
-      ...match.MatchedUser.Profile.toJSON(),
+      ...redactForViewer(match.MatchedUser.Profile.toJSON(), { isMutual: viewerCtx.mutualIds.has(match.matchedUserId), hasPaidAccess: viewerPaid }),
       shortlistedAt: match.createdAt,
       compatibilityScore: match.compatibilityScore
     }));
@@ -522,7 +568,9 @@ exports.getSentInterests = asyncHandler(async (req, res) => {
   const limit = parseInt(req.query.limit) || 20;
   const offset = (page - 1) * limit;
 
-  const blockedIds = [...(await blockedIdsFor(userId))];
+  const viewerCtx = await loadViewerContext(userId);
+  const blockedIds = viewerCtx.blockedIds;
+  const viewerPaid = await viewerHasPaidAccess(userId);
 
   const { count, rows: sent } = await Match.findAndCountAll({
     where: {
@@ -535,10 +583,11 @@ exports.getSentInterests = asyncHandler(async (req, res) => {
         model: User,
         as: 'MatchedUser',
         attributes: ['id'],
+        where: { status: 'active' },
         include: [{
           model: Profile,
-          where: { isActive: true },
-          attributes: ['firstName', 'lastName', 'city', 'profilePhoto', 'gender', 'dateOfBirth', 'education', 'profession']
+          where: { isActive: true, [Op.and]: [matchesOnlyClause(viewerCtx)] },
+          attributes: ['firstName', 'lastName', 'city', 'profilePhoto', 'photoBlurUntilMatch', 'gender', 'dateOfBirth', 'education', 'profession']
         }]
       }
     ],
@@ -551,7 +600,7 @@ exports.getSentInterests = asyncHandler(async (req, res) => {
     .filter(match => match.MatchedUser?.Profile)
     .map(match => ({
       userId: match.matchedUserId,
-      ...match.MatchedUser.Profile.toJSON(),
+      ...redactForViewer(match.MatchedUser.Profile.toJSON(), { isMutual: viewerCtx.mutualIds.has(match.matchedUserId), hasPaidAccess: viewerPaid }),
       likedAt: match.createdAt,
       compatibilityScore: match.compatibilityScore,
       isMutual: match.isMutual,
@@ -580,7 +629,8 @@ exports.getMutualMatches = asyncHandler(async (req, res) => {
   const limit = parseInt(req.query.limit) || 20;
   const offset = (page - 1) * limit;
 
-  const blockedIds = [...(await blockedIdsFor(userId))];
+  const viewerCtx = await loadViewerContext(userId);
+  const blockedIds = viewerCtx.blockedIds;
 
   const { count, rows: mutualMatches } = await Match.findAndCountAll({
     where: {
@@ -593,11 +643,12 @@ exports.getMutualMatches = asyncHandler(async (req, res) => {
         model: User,
         as: 'MatchedUser',
         attributes: ['id'],
+        where: { status: 'active' },
         include: [{
           model: Profile,
           where: { isActive: true },
           required: false,
-          attributes: ['firstName', 'lastName', 'city', 'profilePhoto', 'gender', 'dateOfBirth', 'education', 'profession']
+          attributes: ['firstName', 'lastName', 'city', 'profilePhoto', 'photoBlurUntilMatch', 'gender', 'dateOfBirth', 'education', 'profession']
         }]
       }
     ],
