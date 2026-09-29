@@ -429,7 +429,7 @@ const CreateAccountStep = () => {
         ) : (
           <h3 className="font-semibold text-neutral-900 text-sm">Account Information</h3>
         )}
-        <p className="text-xs text-neutral-500 -mb-1">Sign up with an email, a phone number, or both. At least one is required.</p>
+        <p className="text-xs text-neutral-500 -mb-1">A verified mobile number is required. An email is optional.</p>
         <FormField label={formData.creatingFor !== 'self' ? "Profile Owner's Email" : 'Email'} type="email" name="email" autoComplete="email" inputMode="email" placeholder={formData.creatingFor !== 'self' ? 'Their email address' : 'email@example.com'} value={formData.email} onChange={(v) => updateFormData('email', v)} onBlur={() => { setFieldTouched('email'); validateStep(); }} error={errors.email} />
         <FormField label={formData.creatingFor !== 'self' ? "Profile Owner's Phone" : 'Phone'} type="tel" name="phone" autoComplete="tel" inputMode="numeric" placeholder="10-digit mobile number" value={formData.phone || ''} onChange={(v) => updateFormData('phone', v)} onBlur={() => { setFieldTouched('phone'); validateStep(); }} error={errors.phone} />
         <div className="space-y-2">

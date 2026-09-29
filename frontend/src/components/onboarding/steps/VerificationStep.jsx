@@ -48,10 +48,12 @@ const VerificationStep = () => {
   const validateStep = () => {
     const d = formDataRef.current;
     const newErrors = {};
-    if (primary === 'email' && !d.emailVerification) {
+    // A verified mobile number is compulsory (members call it after an unlock);
+    // an email, when given, must be verified as well.
+    if (!d.phoneVerification) {
+      newErrors.verify = 'Please add and verify a mobile number to continue';
+    } else if (primary === 'email' && !d.emailVerification) {
       newErrors.verify = 'Please verify your email to continue';
-    } else if (primary === 'phone' && !d.phoneVerification) {
-      newErrors.verify = 'Please verify your phone number to continue';
     }
     setStepErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -253,7 +255,7 @@ const VerificationStep = () => {
 
       {renderCard({
         method: 'phone', icon: FiPhone, title: 'Phone verification', target: hasPhone ? `+91 ${formData.phone}` : '',
-        verified: formData.phoneVerification, optional: hasEmail, codeLen: 4,
+        verified: formData.phoneVerification, optional: false, codeLen: 4,
         code: phoneCode, setCode: setPhoneCode, sent: phoneSent, sending: phoneSending, cooldown: phoneCooldown,
       })}
 

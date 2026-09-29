@@ -241,6 +241,15 @@ exports.signup = asyncHandler(async (req, res) => {
     }
   } catch { /* non-fatal */ }
 
+  // A verified mobile number is compulsory: other members call it after an
+  // unlock. Native builds already in stores have no screen for it yet, so they
+  // are exempt and prompted in-app once one ships (the server hides any
+  // unverified number regardless).
+  const isNativeClient = String(req.headers['x-app-client'] || '').toLowerCase() === 'mobile';
+  if (!isNativeClient && !phoneWasVerified) {
+    throw createError.badRequest('Please verify your mobile number to create your account.');
+  }
+
   const sequelize = require('../config/database');
   let result;
   try {
