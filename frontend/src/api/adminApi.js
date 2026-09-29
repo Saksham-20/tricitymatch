@@ -3,6 +3,7 @@ import api from './axios';
 // Users
 export const getUsers = (params) => api.get('/admin/users', { params });
 export const getUser = (userId) => api.get(`/admin/users/${userId}`);
+export const getModerationHistory = (userId) => api.get(`/admin/users/${userId}/moderation-history`);
 export const createUser = (data) => api.post('/admin/users', data);
 export const updateUserStatus = (userId, data) => api.put(`/admin/users/${userId}/status`, data);
 export const updateSubscription = (userId, data) => api.put(`/admin/users/${userId}/subscription`, data);

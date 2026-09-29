@@ -18,6 +18,7 @@ const {
   getUsers,
   deleteUsers,
   getUser,
+  getModerationHistory,
   createUser,
   updateUserStatus,
   changeMemberIdentity,
@@ -99,6 +100,7 @@ router.put('/users/bulk-status', requireAdminScope('users'), bulkUpdateStatus);
 // would otherwise be read as a user id and rejected by the UUID validator.
 router.get('/users/export', requireAdminScope('users'), exportUsers);
 router.get('/users/:userId', requireAdminScope('users'), param('userId').isUUID(4), handleValidationErrors, getUser);
+router.get('/users/:userId/moderation-history', requireAdminScope('reports'), param('userId').isUUID(4), handleValidationErrors, getModerationHistory);
 router.put('/users/:userId/status', requireAdminScope('users'), updateUserStatusValidation, handleValidationErrors, updateUserStatus);
 // Appeals and preserved evidence belong to the moderation desk (`reports` scope).
 router.get('/appeals', requireAdminScope('reports'), listAppeals);

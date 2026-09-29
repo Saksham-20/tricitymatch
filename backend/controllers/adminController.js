@@ -23,6 +23,7 @@ const { PAID_PLANS, ALL_PLANS, UNLIMITED_PLANS, FOUNDING_PLAN, FOUNDING_CONTACT_
 const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { log, logAudit } = require('../middlewares/logger');
+const { buildModerationHistory } = require('../utils/moderationHistory');
 const { csvCell } = require('../utils/csv');
 const { generateInvoicePDF } = require('../utils/invoice');
 const { hardDeleteUsers, MAX_BATCH } = require('../utils/hardDeleteUsers');
@@ -766,7 +767,22 @@ exports.getUser = asyncHandler(async (req, res) => {
     attributes: ['id', 'reason', 'status', 'createdAt'],
   });
 
+  // Opening a member's full record is itself a privileged read.
+  logAudit('member_record_viewed', req.user.id, { targetUserId: userId });
+
   res.json({ success: true, user, reports });
+});
+
+// @route   GET /api/v1/admin/users/:userId/moderation-history
+// @desc    Reports, photo holds, appeals and staff actions for one member
+// @access  Private/Admin (scope: reports)
+exports.getModerationHistory = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const exists = await User.count({ where: { id: userId } });
+  if (!exists) throw createError.notFound('User not found');
+  const history = await buildModerationHistory(userId);
+  logAudit('moderation_history_viewed', req.user.id, { targetUserId: userId });
+  res.json({ success: true, ...history });
 });
 
 // @route   PUT /api/admin/users/:userId/subscription
@@ -1888,6 +1904,7 @@ exports.createSuccessStory = asyncHandler(async (req, res) => {
     throw createError.badRequest('coupleNames and quote are required');
   }
   const story = await SuccessStory.create(data);
+  logAudit('success_story_created', req.user.id, { storyId: story.id });
   res.status(201).json({ success: true, story });
 });
 
@@ -1897,7 +1914,9 @@ exports.createSuccessStory = asyncHandler(async (req, res) => {
 exports.updateSuccessStory = asyncHandler(async (req, res) => {
   const story = await SuccessStory.findByPk(req.params.id);
   if (!story) throw createError.notFound('Story not found');
+  const previous = story.status;
   await story.update(sanitizeStoryInput(req.body));
+  logAudit('success_story_updated', req.user.id, { storyId: story.id, previousStatus: previous, status: story.status });
   res.json({ success: true, story });
 });
 
@@ -1908,6 +1927,7 @@ exports.deleteSuccessStory = asyncHandler(async (req, res) => {
   const story = await SuccessStory.findByPk(req.params.id);
   if (!story) throw createError.notFound('Story not found');
   await story.destroy();
+  logAudit('success_story_deleted', req.user.id, { storyId: req.params.id });
   res.json({ success: true, message: 'Story deleted' });
 });
 

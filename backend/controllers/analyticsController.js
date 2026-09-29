@@ -109,6 +109,9 @@ exports.getAuditLog = asyncHandler(async (req, res) => {
   const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
   const where = {};
   if (req.query.action) where.action = String(req.query.action).slice(0, 64);
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (req.query.actorId && uuid.test(String(req.query.actorId))) where.actorId = String(req.query.actorId);
+  if (req.query.targetUserId && uuid.test(String(req.query.targetUserId))) where.targetUserId = String(req.query.targetUserId);
 
   const { count, rows } = await AuditLog.findAndCountAll({
     where,

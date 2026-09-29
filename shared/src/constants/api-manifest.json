@@ -55,6 +55,7 @@
     "GET /api/v1/admin/suspicious",
     "GET /api/v1/admin/users",
     "GET /api/v1/admin/users/:userId",
+    "GET /api/v1/admin/users/:userId/moderation-history",
     "GET /api/v1/admin/users/export",
     "GET /api/v1/admin/verifications",
     "GET /api/v1/astrologers/",
