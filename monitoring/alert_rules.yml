@@ -168,6 +168,21 @@ groups:
 
       # ==================== QUEUE ALERTS ====================
 
+      # A scheduled job stopped completing. The hourly/daily jobs (expiry,
+      # reconcile, lifecycle mail, token cleanup) are silent when they die, so a
+      # missing run is the only signal. 26h covers the daily ones with slack.
+      - alert: BackgroundJobStalled
+        expr: |
+          time() - tricitymatch_job_last_success_timestamp_seconds{job=~"expire-subscriptions|cleanup-expired-tokens|cleanup-inactive-sessions"} > 93600
+        for: 10m
+        labels:
+          severity: critical
+          service: queue
+        annotations:
+          summary: "Background job {{ $labels.job }} has not completed for over 26h"
+          description: "Check the backend logs and that Redis is reachable; without Redis no scheduled job runs."
+
+
       # High queue backlog
       - alert: HighQueueBacklog
         expr: |

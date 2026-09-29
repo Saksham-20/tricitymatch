@@ -102,7 +102,7 @@ describe('match transitions', () => {
     const out = await act(A, B, 'like');
     expect(out).toMatchObject({ isMutual: false, newMatch: false, withdrawn: false });
     expect(mockNotify).toHaveBeenCalledTimes(1);
-    expect(mockNotify).toHaveBeenCalledWith(B, 'new_match', 'Someone liked your profile!', expect.any(String), expect.anything());
+    expect(mockNotify).toHaveBeenCalledWith(B, 'new_match', 'Someone liked your profile!', expect.any(String), expect.anything(), { category: 'interests' });
   });
 
   it('liking again does not announce again', async () => {

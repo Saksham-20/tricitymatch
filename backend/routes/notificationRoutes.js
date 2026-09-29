@@ -12,6 +12,8 @@ const {
   deleteNotification,
   registerFcmToken,
   removeFcmToken,
+  getPreferences,
+  updatePreferences,
 } = require('../controllers/notificationController');
 const { auth } = require('../middlewares/auth');
 const { param } = require('express-validator');
@@ -24,6 +26,8 @@ const notifIdParam = [
 
 router.get('/', auth, getNotifications);
 router.get('/unread-count', auth, getUnreadCount);
+router.get('/preferences', auth, getPreferences);
+router.put('/preferences', auth, updatePreferences);
 router.put('/read-all', auth, markAllRead);
 router.put('/:id/read', auth, notifIdParam, markRead);
 router.delete('/:id', auth, notifIdParam, deleteNotification);

@@ -25,6 +25,7 @@ const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { log } = require('../middlewares/logger');
 const { severRelationshipRows, evictChatRoom } = require('../utils/relationship');
+const { isEnabled } = require('../utils/notificationPrefs');
 
 // @route   POST /api/match/:userId
 // @desc    Like/shortlist/pass a profile
@@ -267,15 +268,15 @@ exports.matchAction = asyncHandler(async (req, res) => {
         // Mutual match — notify both users in-app + email (once: only on the
         // transition, never for a repeated like)
         await Promise.all([
-          notify(userId, 'new_match', "It's a Match!", `You and ${currentName} liked each other!`, result.match.id),
-          notify(currentUserId, 'new_match', "It's a Match!", `You and ${matchedName} liked each other!`, result.match.id),
+          notify(userId, 'new_match', "It's a Match!", `You and ${currentName} liked each other!`, result.match.id, { category: 'matches' }),
+          notify(currentUserId, 'new_match', "It's a Match!", `You and ${matchedName} liked each other!`, result.match.id, { category: 'matches' }),
         ]);
 
         const profileUrl = `${config.server.frontendUrl}/profile/${userId}`;
         const matchedProfileUrl = `${config.server.frontendUrl}/profile/${currentUserId}`;
         Promise.all([
-          sendMatchNotification(matchedUser.email, currentName, profileUrl),
-          sendMatchNotification(currentUser.email, matchedName, matchedProfileUrl),
+          isEnabled(matchedUser.notificationPrefs, 'matches') ? sendMatchNotification(matchedUser.email, currentName, profileUrl) : null,
+          isEnabled(currentUser.notificationPrefs, 'matches') ? sendMatchNotification(currentUser.email, matchedName, matchedProfileUrl) : null,
         ]).catch(err => log.error('Failed to send match emails', { error: err.message }));
       } else if (result.firstLike && !result.isMutualMatch) {
         // One-way like — notify the liked user in-app only (no email, avoid spam).
@@ -289,7 +290,7 @@ exports.matchAction = asyncHandler(async (req, res) => {
         } else {
           body = `${currentName} liked your profile. Like them back to connect!`;
         }
-        await notify(userId, 'new_match', 'Someone liked your profile!', body, result.match.id);
+        await notify(userId, 'new_match', 'Someone liked your profile!', body, result.match.id, { category: 'interests' });
       }
     } catch (error) {
       log.error('Error sending match notifications', { error: error.message, userId, currentUserId });

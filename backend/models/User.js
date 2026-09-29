@@ -84,6 +84,12 @@ const User = sequelize.define('User', {
     allowNull: true,
     defaultValue: null
   },
+  // Notification choices (utils/notificationPrefs). NULL = defaults.
+  notificationPrefs: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    defaultValue: null
+  },
   // How consent was given (ip, user agent, optional choices, guardian
   // attestation). See utils/consentRecord.
   consent: {

@@ -10,6 +10,7 @@ const { log } = require('../middlewares/logger');
 // Redis. Required lazily inside the processors to keep queue.js free of the
 // model graph at import time, as the other jobs here are.
 const lifecycle = () => require('./lifecycleMail');
+const { recordJobSuccess, setQueueWaiting } = require('./metrics');
 
 // Job queues
 let emailQueue = null;
@@ -80,6 +81,7 @@ const initQueues = async () => {
     [emailQueue, notificationQueue, cleanupQueue].forEach(queue => {
       queue.on('completed', (job) => {
         log.debug('Job completed', { queue: queue.name, jobId: job.id });
+        recordJobSuccess(job.name);
       });
 
       queue.on('failed', (job, err) => {
@@ -95,6 +97,16 @@ const initQueues = async () => {
         log.warn('Job stalled', { queue: queue.name, jobId: job.id });
       });
     });
+
+    // Waiting-job gauge for the backlog alert (the rule existed; nothing fed it).
+    const pollWaiting = async () => {
+      try {
+        const counts = await Promise.all([emailQueue, notificationQueue, cleanupQueue].map((q) => q.getWaitingCount()));
+        setQueueWaiting(counts.reduce((a, b) => a + b, 0));
+      } catch { /* metrics only */ }
+    };
+    const waitingTimer = setInterval(pollWaiting, 30000);
+    if (typeof waitingTimer.unref === 'function') waitingTimer.unref();
 
     log.info('Job queues initialized');
   } catch (error) {
@@ -195,37 +207,9 @@ const setupCleanupProcessor = (queue) => {
     return { cleaned: result };
   });
 
-  queue.process('cleanup-old-messages', async (job) => {
-    const { Message } = require('../models');
-    const { Op } = require('sequelize');
-    
-    // This job filtered on `deletedAt`, a column that does not exist on
-    // Messages -- there is no soft delete on that model and no migration ever
-    // added one. So it has never removed a single row: chat bodies, voice-note
-    // URLs and reply quotes are retained indefinitely.
-    //
-    // Retention is a policy decision (and for a matrimonial product, silently
-    // destroying conversation history is not a change to make unprompted), so
-    // this is opt-in. Set MESSAGE_RETENTION_MONTHS to a positive number to
-    // enable it; unset or 0 keeps the previous behaviour of retaining forever,
-    // but now says so out loud instead of failing silently.
-    const retentionMonths = Number(process.env.MESSAGE_RETENTION_MONTHS) || 0;
-    if (retentionMonths <= 0) {
-      log.info('Message retention disabled — set MESSAGE_RETENTION_MONTHS to enable', {
-        retained: 'indefinitely',
-      });
-      return { cleaned: 0, disabled: true };
-    }
-
-    const cutoffDate = new Date();
-    cutoffDate.setMonth(cutoffDate.getMonth() - retentionMonths);
-
-    const result = await Message.destroy({
-      where: { createdAt: { [Op.lt]: cutoffDate } },
-    });
-
-    log.info('Cleaned up old messages', { count: result, retentionMonths });
-    return { cleaned: result, retentionMonths };
+  queue.process('cleanup-old-messages', async () => {
+    const { runMessageRetention } = require('./messageRetention');
+    return runMessageRetention();
   });
 
   queue.process('cleanup-inactive-sessions', async (job) => {
@@ -257,8 +241,12 @@ const setupCleanupProcessor = (queue) => {
 
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-    // Get active users with complete profiles (have gender set)
-    const users = await User.findAll({
+    const { linksFor } = require('./emailUnsubscribe');
+    const { forEachUserPage } = require('./batch');
+
+    let sent = 0;
+    // Active users with complete profiles (have gender set), EVERY page of them.
+    const total = await forEachUserPage(User, {
       where: { status: 'active' },
       include: [{
         model: Profile,
@@ -266,11 +254,7 @@ const setupCleanupProcessor = (queue) => {
         attributes: ['gender', 'city', 'preferredAgeMin', 'preferredAgeMax', 'firstName']
       }],
       attributes: ['id', 'email', 'lifecycleMail'],
-      limit: 500 // batch size — prevents memory overload on large user base
-    });
-    const { linksFor } = require('./emailUnsubscribe');
-
-    let sent = 0;
+    }, async (users) => {
     for (const user of users) {
       try {
         const profile = user.Profile;
@@ -353,8 +337,9 @@ const setupCleanupProcessor = (queue) => {
         log.warn('Weekly digest failed for user', { userId: user.id, error: err.message });
       }
     }
+    });
 
-    log.info('Weekly digest sent', { sent, total: users.length });
+    log.info('Weekly digest sent', { sent, total });
     return { sent };
   });
 
@@ -370,7 +355,10 @@ const setupCleanupProcessor = (queue) => {
     // We check profiles created in last 24h against each user's preferences
     const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-    const users = await User.findAll({
+    const { forEachUserPage } = require('./batch');
+    let notified = 0;
+
+    const total = await forEachUserPage(User, {
       where: { status: 'active' },
       include: [{
         model: Profile,
@@ -379,11 +367,7 @@ const setupCleanupProcessor = (queue) => {
                      'preferredEducation', 'preferredProfession', 'lifestylePreferences', 'firstName'],
       }],
       attributes: ['id', 'fcmTokens'],
-      limit: 1000,
-    });
-
-    let notified = 0;
-
+    }, async (users) => {
     for (const user of users) {
       try {
         const profile = user.Profile;
@@ -447,8 +431,9 @@ const setupCleanupProcessor = (queue) => {
         log.warn('Saved search alert failed for user', { userId: user.id, error: err.message });
       }
     }
+    });
 
-    log.info('Saved search alerts sent', { notified, total: users.length });
+    log.info('Saved search alerts sent', { notified, total });
     return { notified };
   });
 

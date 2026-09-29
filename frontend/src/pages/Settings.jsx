@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -708,28 +708,56 @@ const PrivacyTab = () => {
 
 // ─── Notifications tab ────────────────────────────────────────────────────────
 const NotificationsTab = () => {
-  const PREFS_KEY = 'tm_notif_prefs';
-  const defaultPrefs = { matches: true, messages: true, profileViews: true, interests: true, promotions: false };
+  // Server-side preferences (GET/PUT /notifications/preferences). They used to be
+  // a localStorage key that nothing read, so every toggle here did nothing.
+  const [prefs, setPrefs] = useState(null); // null = loading
+  const [loadError, setLoadError] = useState(false);
 
-  const [prefs, setPrefs] = useState(() => {
-    try { return { ...defaultPrefs, ...JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') }; }
-    catch { return defaultPrefs; }
-  });
+  const load = useCallback(() => {
+    setPrefs(null);
+    setLoadError(false);
+    api.get('/notifications/preferences')
+      .then((r) => setPrefs(r.data.preferences))
+      .catch(() => setLoadError(true));
+  }, []);
+  useEffect(() => { load(); }, [load]);
 
-  const togglePref = (key) => {
-    const updated = { ...prefs, [key]: !prefs[key] };
-    setPrefs(updated);
-    localStorage.setItem(PREFS_KEY, JSON.stringify(updated));
-    toast.success('Preference saved');
+  const togglePref = async (key) => {
+    const before = prefs;
+    const next = { ...prefs, [key]: !prefs[key] };
+    setPrefs(next); // optimistic
+    try {
+      await api.put('/notifications/preferences', { [key]: next[key] });
+      toast.success('Preference saved');
+    } catch {
+      setPrefs(before);
+      toast.error('Could not save. Try again.');
+    }
   };
 
+  // Only the notices we actually send. Payment, security and verification
+  // messages are not optional and are not listed.
   const items = [
-    { key: 'matches',      label: 'New Matches',   desc: 'When someone matches with you' },
-    { key: 'messages',     label: 'Messages',       desc: 'When you receive a new message' },
-    { key: 'profileViews', label: 'Profile Views',  desc: 'When someone views your profile' },
-    { key: 'interests',    label: 'Interests',      desc: 'When someone sends you an interest' },
-    { key: 'promotions',   label: 'Promotions',     desc: 'Offers and promotional emails' },
+    { key: 'matches',   label: 'New matches', desc: 'When you and another member like each other (app, push and email)' },
+    { key: 'interests', label: 'Interests',   desc: 'When someone likes your profile' },
   ];
+
+  if (loadError) {
+    return (
+      <div className="space-y-4">
+        <GroupHeader title="Notification Preferences" desc="Choose which alerts you want to receive" />
+        <p className="text-sm text-neutral-600 dark:text-neutral-400">Could not load your preferences. <button type="button" className="underline" onClick={load}>Try again</button></p>
+      </div>
+    );
+  }
+  if (!prefs) {
+    return (
+      <div className="space-y-4">
+        <GroupHeader title="Notification Preferences" desc="Choose which alerts you want to receive" />
+        <div className="h-24 max-w-xl rounded-2xl skeleton" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

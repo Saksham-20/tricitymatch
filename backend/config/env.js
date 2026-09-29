@@ -289,6 +289,10 @@ const config = {
   chat: {
     maxMessageLength: optionalNumber('MAX_MESSAGE_LENGTH', 2000),
     messageEditTimeLimit: optionalNumber('MESSAGE_EDIT_TIME_LIMIT_MINUTES', 15),
+    // Chat messages are deleted this many months after they were sent (0 keeps
+    // them forever). Stated in the Privacy Policy. Messages between two members
+    // with an open report are held back until it is decided.
+    messageRetentionMonths: optionalNumber('MESSAGE_RETENTION_MONTHS', 24),
   },
 
   // Admin
