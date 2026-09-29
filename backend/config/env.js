@@ -285,6 +285,13 @@ const config = {
     maxGalleryPhotos: optionalNumber('MAX_GALLERY_PHOTOS', 6),
   },
 
+  // Realtime
+  socket: {
+    // Relay Socket.io emits between backend instances through Redis. Only needed
+    // once there is more than one instance; see utils/socketAdapter.
+    redisAdapter: optionalBoolean('SOCKET_REDIS_ADAPTER', false),
+  },
+
   // Chat
   chat: {
     maxMessageLength: optionalNumber('MAX_MESSAGE_LENGTH', 2000),

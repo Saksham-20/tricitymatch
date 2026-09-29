@@ -38,6 +38,7 @@ const initializeSocket = require('./socket/socketHandler');
 
 // Import monitoring utilities
 const { initRedis, close: closeCache } = require('./utils/cache');
+const { attachRedisAdapter } = require('./utils/socketAdapter');
 const { initQueues, scheduleCleanupJobs, closeQueues } = require('./utils/queue');
 const { metricsMiddleware, setGauge } = require('./utils/metrics');
 const { requestPerformanceMiddleware } = require('./utils/performance');
@@ -376,6 +377,9 @@ const startServer = async () => {
     } catch (error) {
       console.log('⚠ Redis not available, using in-memory cache');
     }
+
+    // Relay realtime events between instances (off unless SOCKET_REDIS_ADAPTER=true).
+    attachRedisAdapter(io);
 
     // Initialize background job queues
     try {

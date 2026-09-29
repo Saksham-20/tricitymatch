@@ -222,6 +222,7 @@ services:
       # Chat messages are deleted this many months after sending (0 = keep forever).
       MESSAGE_RETENTION_MONTHS: ${MESSAGE_RETENTION_MONTHS:-24}
       ACCOUNT_DELETION_GRACE_DAYS: ${ACCOUNT_DELETION_GRACE_DAYS:-30}
+      SOCKET_REDIS_ADAPTER: ${SOCKET_REDIS_ADAPTER:-false}
       # Rolling-24h ceiling on unlimited-tier contact unlocks (anti-harvest).
       UNLIMITED_DAILY_UNLOCK_CAP: ${UNLIMITED_DAILY_UNLOCK_CAP:-}
       # Email dry run — renders and logs, sends nothing. Defaults OFF in

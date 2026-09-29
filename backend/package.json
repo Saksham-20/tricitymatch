@@ -36,6 +36,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@socket.io/redis-adapter": "^8.3.0",
     "agora-access-token": "^2.0.4",
     "bcryptjs": "^3",
     "bull": "^4.12.0",
