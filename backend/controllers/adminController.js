@@ -23,6 +23,7 @@ const { PAID_PLANS, ALL_PLANS, UNLIMITED_PLANS, FOUNDING_PLAN, FOUNDING_CONTACT_
 const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { log, logAudit } = require('../middlewares/logger');
+const { csvCell } = require('../utils/csv');
 const { generateInvoicePDF } = require('../utils/invoice');
 const { hardDeleteUsers, MAX_BATCH } = require('../utils/hardDeleteUsers');
 const { marriageableAgeProblem } = require('../constants/marriageableAge');
@@ -920,12 +921,7 @@ exports.exportUsers = asyncHandler(async (req, res) => {
   });
   await attachActivePlans(users);
 
-  const esc = (value) => {
-    if (value === null || value === undefined) return '';
-    const str = String(value);
-    // A name containing a comma or a quote must not shift every later column.
-    return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
-  };
+  const esc = csvCell;
 
   const header = ['Name', 'Email', 'Phone', 'City', 'Gender', 'Role', 'Status', 'Plan', 'Has photo', 'Joined'];
   const lines = [header.join(',')];
@@ -1293,17 +1289,7 @@ exports.getRevenueReport = asyncHandler(async (req, res) => {
   );
 
   if (format === 'csv') {
-    // Sanitize CSV fields against formula injection. Excel and Sheets also treat
-    // a leading TAB or CR as a formula lead-in, so they belong in the prefix set;
-    // and any cell is then RFC4180-quoted so a value containing a comma, quote or
-    // newline cannot break out into a new column or row. Today every column here
-    // is a date, an enum or a number, but this function is the kind of thing that
-    // gets reused for a user-supplied column later.
-    const csvSafe = (v) => {
-      const raw = String(v == null ? '' : v);
-      const guarded = /^[=+\-@|\t\r]/.test(raw) ? `'${raw}` : raw;
-      return /[",\n\r]/.test(guarded) ? `"${guarded.replace(/"/g, '""')}"` : guarded;
-    };
+    const csvSafe = csvCell;
     const rows = ['Month,Plan,Transactions,Revenue'];
     monthlyRevenue.forEach(r => {
       rows.push([csvSafe(r.month), csvSafe(r.planType), csvSafe(r.count), csvSafe(r.revenue)].join(','));

@@ -99,6 +99,7 @@ const call = async (handler, { user, params = {}, body = {}, query = {} }) => {
     status(c) { this.statusCode = c; return this; },
     json(b) { this.body = b; this._done(); return this; },
     send(b) { this.body = b; this._done(); return this; },
+    setHeader(k, v) { (this.headers = this.headers || {})[k.toLowerCase()] = v; return this; },
   };
   return new Promise((resolve) => {
     res._done = () => resolve(res);
