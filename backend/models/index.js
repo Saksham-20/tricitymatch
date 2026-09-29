@@ -28,6 +28,7 @@ const UnlockPurchase = require('./UnlockPurchase');
 const AnalyticsEvent = require('./AnalyticsEvent');
 const ChatGrant = require('./ChatGrant');
 const EvidenceArchive = require('./EvidenceArchive');
+const MediaReview = require('./MediaReview');
 const Appeal = require('./Appeal');
 const AuditLog = require('./AuditLog');
 
@@ -193,6 +194,7 @@ module.exports = {
   AnalyticsEvent,
   ChatGrant,
   EvidenceArchive,
+  MediaReview,
   Appeal,
 };
 

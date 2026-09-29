@@ -217,6 +217,8 @@ services:
       FREE_REPLY_WINDOW: ${FREE_REPLY_WINDOW:-false}
       STAFF_MFA_REQUIRED: ${STAFF_MFA_REQUIRED:-false}
       ASTROLOGER_MARKETPLACE: ${ASTROLOGER_MARKETPLACE:-false}
+      # Photo screening: off | cloudinary (needs the Rekognition add-on) | stub
+      IMAGE_MODERATION_PROVIDER: ${IMAGE_MODERATION_PROVIDER:-off}
       # Rolling-24h ceiling on unlimited-tier contact unlocks (anti-harvest).
       UNLIMITED_DAILY_UNLOCK_CAP: ${UNLIMITED_DAILY_UNLOCK_CAP:-}
       # Email dry run — renders and logs, sends nothing. Defaults OFF in

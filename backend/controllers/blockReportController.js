@@ -2,7 +2,7 @@
  * Block & Report Controller
  */
 
-const { Block, Report, User, Profile, Match, ChatGrant, CallSession } = require('../models');
+const { Block, Report, User, Profile, Match, ChatGrant, CallSession, MediaReview } = require('../models');
 const { Op } = require('sequelize');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { logAudit, log } = require('../middlewares/logger');
@@ -172,6 +172,25 @@ exports.reportUser = asyncHandler(async (req, res) => {
     description: typeof description === 'string' ? description.substring(0, 1000) : null,
     status: 'pending',
   });
+
+  // A stolen-photo report puts the reported member's current photos in front of
+  // the moderation desk. They stay live until a person decides.
+  if (reason === 'stolen_photos') {
+    try {
+      const reported = await Profile.findOne({ where: { userId: reportedUserId }, attributes: ['photos', 'profilePhoto'] });
+      const urls = [...new Set([...(reported?.photos || []), reported?.profilePhoto].filter(Boolean))];
+      for (const url of urls) {
+        await MediaReview.create({
+          userId: reportedUserId, url, source: 'report', status: 'pending',
+          provider: 'report', labels: ['stolen_photos'], reportId: report.id,
+          wasProfilePhoto: url === reported.profilePhoto,
+        });
+      }
+    } catch (err) {
+      // The report itself is already stored; the desk can still work it from there.
+      log.warn('Could not queue photos for stolen-photo report', { error: err.message, reportId: report.id });
+    }
+  }
 
   logAudit('user_reported', reporterId, { reportedUserId, reason, reportId: report.id, priority: report.priority });
 

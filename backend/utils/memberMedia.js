@@ -68,6 +68,14 @@ const collectMemberMedia = async (sequelize, userIds) => {
     add(v.documentBack);
   }
 
+  // Photos held for review are not on the profile any more, but they are still
+  // uploaded assets that belong to the member.
+  const held = rows(await sequelize.query(
+    'SELECT "url" FROM "MediaReviews" WHERE "userId" IN (:ids)',
+    { replacements }
+  ));
+  for (const h of held) add(h.url);
+
   const messages = rows(await sequelize.query(
     'SELECT "mediaUrl" FROM "Messages" WHERE "senderId" IN (:ids) AND "mediaUrl" IS NOT NULL',
     { replacements }

@@ -3,7 +3,8 @@
  * Handles user profile management with proper security
  */
 
-const { Profile, User, ProfileView, Subscription, Match, ContactUnlock, Block, Verification } = require('../models');
+const { Profile, User, ProfileView, Subscription, Match, ContactUnlock, Block, Verification, MediaReview } = require('../models');
+const { holdFlaggedPhotos } = require('../utils/imageModeration');
 const { applyIdentityRules } = require('../utils/identityLock');
 const { blockedIdsFor } = require('../utils/blocks');
 const { redactForViewer, stripOwnerOnlyKeys } = require('../utils/profileVisibility');
@@ -200,6 +201,7 @@ exports.updateProfile = asyncHandler(async (req, res) => {
   const PROFILE_UPDATABLE_FIELDS = PROFILE_EDITABLE_FIELDS;
 
   // Use transaction for data consistency
+  let heldPhotoCount = 0;
   await sequelize.transaction(async (t) => {
     // Build updateData from ONLY allowlisted fields — prevents mass-assignment
     const bodyProfilePhoto = req.body?.profilePhoto;
@@ -349,6 +351,25 @@ exports.updateProfile = asyncHandler(async (req, res) => {
       }
     }
 
+    // Screen the photos uploaded in THIS request. Flagged ones are held off the
+    // profile (never visible to anyone) and queued for staff; the member is told.
+    const uploadedNow = [
+      ...(req.files?.photos || []).map(getStoredPath),
+      ...(req.files?.profilePhoto || []).map(getStoredPath),
+    ].filter(Boolean);
+    const { held } = await holdFlaggedPhotos({
+      userId: req.user.id,
+      newUrls: [...new Set(uploadedNow)],
+      profilePhoto: finalProfilePhoto,
+      MediaReview,
+      transaction: t,
+    });
+    if (held.length) {
+      heldPhotoCount = held.length;
+      finalPhotos = finalPhotos.filter((u) => !held.includes(u));
+      if (held.includes(finalProfilePhoto)) finalProfilePhoto = finalPhotos[0] || null;
+    }
+
     updateData.photos = finalPhotos;
     updateData.profilePhoto = finalProfilePhoto || null;
 
@@ -401,10 +422,25 @@ exports.updateProfile = asyncHandler(async (req, res) => {
     console.log('[profile] Responding with photos count:', payload.photos.length);
   }
 
+  if (heldPhotoCount > 0) {
+    notify(
+      req.user.id,
+      'system',
+      'A photo is being reviewed',
+      heldPhotoCount === 1
+        ? 'One of your new photos is being checked by our team before it appears on your profile. We will let you know.'
+        : `${heldPhotoCount} of your new photos are being checked by our team before they appear on your profile. We will let you know.`
+    ).catch((err) => log.error('Held-photo notification failed', { error: err.message }));
+  }
+
   res.json({
     success: true,
     profile: payload,
-    message: 'Profile updated successfully'
+    // Photos from this upload that are waiting for a reviewer (0 when none).
+    photosUnderReview: heldPhotoCount,
+    message: heldPhotoCount > 0
+      ? 'Profile updated. Some photos are under review before they go live.'
+      : 'Profile updated successfully'
   });
 });
 

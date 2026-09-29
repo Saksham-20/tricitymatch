@@ -37,6 +37,7 @@ jest.mock('../../models', () => ({
   CallSession: { destroy: jest.fn().mockResolvedValue(1) },
   AnalyticsEvent: { destroy: jest.fn().mockResolvedValue(1) },
   ChatGrant: { destroy: jest.fn().mockResolvedValue(1) },
+  MediaReview: { destroy: jest.fn().mockResolvedValue(0) },
   Block: { destroy: jest.fn().mockResolvedValue(1) },
   GroupMember: { destroy: jest.fn().mockResolvedValue(1) },
   Message: { destroy: jest.fn() },

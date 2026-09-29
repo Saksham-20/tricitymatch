@@ -81,6 +81,7 @@ const {
 } = require('../validators');
 const { body, param } = require('express-validator');
 const { listAppeals, decideAppeal, listEvidence, getEvidence } = require('../controllers/appealController');
+const { listMediaReviews, decideMediaReview } = require('../controllers/mediaReviewController');
 
 // All admin routes require authentication and an admin-family role. Each route
 // then names the permission it needs: `admin`/`super_admin` hold every scope,
@@ -106,6 +107,13 @@ router.put('/appeals/:id', requireAdminScope('reports'),
   body('decision').isIn(['overturned', 'upheld']).withMessage('Invalid decision'),
   body('note').isString().isLength({ min: 10, max: 1000 }).withMessage('A note (10-1000 characters) is required'),
   handleValidationErrors, decideAppeal);
+// Photos held by automated screening, and photos named in stolen-photo reports.
+router.get('/media-reviews', requireAdminScope('reports'), listMediaReviews);
+router.put('/media-reviews/:id', requireAdminScope('reports'),
+  param('id').isUUID(4),
+  body('decision').isIn(['approve', 'reject']).withMessage('Invalid decision'),
+  body('note').optional({ nullable: true }).isString().isLength({ max: 500 }),
+  handleValidationErrors, decideMediaReview);
 router.get('/evidence', requireAdminScope('reports'), listEvidence);
 router.get('/evidence/:id', requireAdminScope('reports'), param('id').isUUID(4), handleValidationErrors, getEvidence);
 

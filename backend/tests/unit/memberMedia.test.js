@@ -11,6 +11,7 @@ const { collectMemberMedia, destroyMedia } = require('../../utils/memberMedia');
 const IMG = 'https://res.cloudinary.com/demo/image/upload/v1/profile-photos/a.jpg';
 const IMG2 = 'https://res.cloudinary.com/demo/image/upload/v1/gallery/b.jpg';
 const VID = 'https://res.cloudinary.com/demo/video/upload/v1/voice-intros/c.mp3';
+const HELD = 'https://res.cloudinary.com/demo/image/upload/v1/gallery/held.jpg';
 
 const fakeCloudinary = (impl) => ({ uploader: { destroy: jest.fn(impl || (async () => ({ result: 'ok' }))) } });
 const deps = (cloudinary, extra = {}) => ({ cloudinary, isConfigured: true, retryDelayMs: 0, ...extra });
@@ -21,10 +22,13 @@ describe('collectMemberMedia', () => {
       query: jest.fn()
         .mockResolvedValueOnce([[{ profilePhoto: IMG, photos: [IMG, IMG2], voiceIntroUrl: VID, videoIntroUrl: null }], {}])
         .mockResolvedValueOnce([[{ selfiePhoto: 'https://res.cloudinary.com/demo/image/upload/v1/verification-docs/s.jpg', selfieVideoUrl: null, documentFront: null, documentBack: null }], {}])
+        // photos held for moderation review are no longer on the profile
+        .mockResolvedValueOnce([[{ url: HELD }], {}])
         .mockResolvedValueOnce([[{ mediaUrl: 'https://res.cloudinary.com/demo/video/upload/v1/voice-messages/m.webm' }], {}]),
     };
     const urls = await collectMemberMedia(sequelize, ['u1']);
     expect(urls.sort()).toEqual([
+      HELD,
       'https://res.cloudinary.com/demo/image/upload/v1/verification-docs/s.jpg',
       'https://res.cloudinary.com/demo/video/upload/v1/voice-messages/m.webm',
       IMG2, IMG, VID,

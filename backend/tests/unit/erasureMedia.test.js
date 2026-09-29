@@ -23,7 +23,7 @@ jest.mock('../../models', () => {
   return {
     Profile: d(), Verification: d(), GuardianLink: d(), ProfileView: d(), Match: d(),
     ContactUnlock: d(), Notification: d(), RefreshToken: d(), CallSession: d(),
-    AnalyticsEvent: d(), ChatGrant: d(), Block: d(), GroupMember: d(),
+    AnalyticsEvent: d(), ChatGrant: d(), Block: d(), GroupMember: d(), MediaReview: d(),
   };
 });
 

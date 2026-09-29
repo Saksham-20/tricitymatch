@@ -86,7 +86,7 @@ const eraseAccount = async (userId) => {
   const {
     Profile, Verification, GuardianLink, ProfileView, Match, ContactUnlock,
     Notification, RefreshToken, CallSession, AnalyticsEvent, ChatGrant, Block,
-    GroupMember,
+    GroupMember, MediaReview,
   } = models();
 
   await sequelize.transaction(async (transaction) => {
@@ -126,6 +126,9 @@ const eraseAccount = async (userId) => {
       where: bothWays('blockerId', 'blockedUserId'), transaction,
     });
     counts.groupMemberships = await GroupMember.destroy({ where: { userId }, transaction });
+    // Photos held for review or named in a report: the assets are destroyed below
+    // (collectMemberMedia includes them); the queue rows go with the member.
+    counts.mediaReviews = await MediaReview.destroy({ where: { userId }, transaction });
     counts.refreshTokens = await RefreshToken.destroy({ where: { userId }, transaction });
 
     // ── Message bodies: destroy the content, keep the row ──

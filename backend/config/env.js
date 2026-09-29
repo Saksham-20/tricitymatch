@@ -264,6 +264,13 @@ const config = {
     },
   },
 
+  // Image moderation. 'off' (default) screens nothing; 'cloudinary' uses the
+  // Cloudinary Rekognition AI Moderation add-on (account must be subscribed);
+  // 'stub' is for tests/dev and flags URLs containing "flag-test".
+  moderation: {
+    provider: optionalString('IMAGE_MODERATION_PROVIDER', 'off'),
+  },
+
   // Upload
   upload: {
     dir: optionalString('UPLOAD_DIR', './uploads'),

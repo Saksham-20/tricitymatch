@@ -23,6 +23,10 @@ export const updateReport = (reportId, data) => api.put(`/admin/reports/${report
 export const getAppeals = (params) => api.get('/admin/appeals', { params });
 export const decideAppeal = (id, data) => api.put(`/admin/appeals/${id}`, data);
 
+// Photo review (auto-held uploads and stolen-photo reports)
+export const getMediaReviews = (params) => api.get('/admin/media-reviews', { params });
+export const decideMediaReview = (id, data) => api.put(`/admin/media-reviews/${id}`, data);
+
 // Search ranking weights
 export const getRankingWeights = () => api.get('/admin/ranking-weights');
 export const saveRankingWeights = (weights) => api.put('/admin/ranking-weights', { weights });
