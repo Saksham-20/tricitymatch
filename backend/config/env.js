@@ -250,6 +250,10 @@ const config = {
     apiKey: optionalString('SMS_API_KEY'),
     senderId: optionalString('SMS_SENDER_ID', 'TRCSDI'),
     msg91TemplateId: optionalString('MSG91_TEMPLATE_ID'),
+    // Ceiling on OTP texts per UTC day across ALL numbers. Per-number and per-IP
+    // limits do not stop a botnet spreading sends over many numbers, and every
+    // text is billed. An alert fires at 80%; past 100% sends are refused.
+    dailyBudget: optionalNumber('SMS_DAILY_BUDGET', 1500),
     // ⚠️ PRE-LAUNCH TESTING ONLY — master OTP codes that always verify when SMS
     // is not yet wired. REMOVE (unset OTP_BYPASS_CODES) before real users.
     bypassCodes: optionalString('OTP_BYPASS_CODES', '')

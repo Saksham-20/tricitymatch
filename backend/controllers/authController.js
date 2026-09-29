@@ -12,6 +12,7 @@ const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { recordFailedLogin, clearLoginAttempts, loginLookupKey } = require('../middlewares/security');
 const { canonicalEmail, emailLookupCandidates } = require('../utils/emailAddress');
 const { issueProof, consumeProof } = require('../utils/otpProof');
+const otpStore = require('../utils/otpStore');
 const { checkSecondFactor } = require('../utils/mfa');
 const { buildMemberExport } = require('../utils/dataExport');
 const { log, logSecurityEvent, logAudit } = require('../middlewares/logger');
@@ -990,13 +991,16 @@ exports.sendOtp = asyncHandler(async (req, res) => {
     const result = await smsService.sendOtp(target);
     res.json(result);
   } else if (type === 'email') {
-    // Email OTP: use smsService-style store but deliver via email (Resend)
-    const { set: cacheSet } = require('../utils/cache');
-    const code = String(Math.floor(100000 + Math.random() * 900000));
-    const payload = JSON.stringify({ code, expiresAt: Date.now() + 600 * 1000, attempts: 0 });
+    // Email OTP: same store, budget and hashing as the phone path, delivered by email.
     const otpEmail = canonicalEmail(target);
-    await cacheSet(`otp:${otpEmail}`, payload, 600);
-    await sendOtpEmail(otpEmail, code, 'verify your email');
+    await otpStore.spendSend('email', otpEmail);
+    const code = await otpStore.issue('email', otpEmail, { digits: 6 });
+    try {
+      await sendOtpEmail(otpEmail, code, 'verify your email');
+    } catch (err) {
+      await otpStore.discard('email', otpEmail);
+      throw err;
+    }
     // Dev affordance: log the code when no email channel is configured.
     // Gate on isDevelopment, not !isProduction: the negative form is also true
     // for 'staging', 'qa' or any unrecognised NODE_ENV. The code is interpolated
@@ -1025,30 +1029,16 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
 
   let result;
   if (type === 'email') {
-    // Email OTP lives at `otp:<email>` (set by send-otp). It must NOT go through
-    // smsService.verifyOtp, which canonicalizes the target as a phone number —
-    // an email normalizes to null and throws before any code check. Verify here.
-    const { get: cacheGet, set: cacheSet, del: cacheDel } = require('../utils/cache');
-    const key = `otp:${canonicalEmail(String(target))}`;
-
+    // Email OTP lives in the shared store under the 'email' namespace. It must
+    // NOT go through smsService.verifyOtp, which canonicalizes the target as a
+    // phone number — an email normalizes to null and throws before any code check.
+    const emailTarget = canonicalEmail(String(target));
     const bypassCodes = config.sms.bypassCodes || [];
     if (bypassCodes.length > 0 && bypassCodes.includes(String(code))) {
-      await cacheDel(key);
+      await otpStore.discard('email', emailTarget);
       result = { success: true, message: 'OTP verified (bypass)' };
     } else {
-      const raw = await cacheGet(key);
-      if (!raw) throw createError.badRequest('OTP expired or not sent. Please request a new one.');
-      let entry;
-      try { entry = JSON.parse(raw); } catch { throw createError.badRequest('OTP data corrupt. Please request a new one.'); }
-      if (entry.expiresAt < Date.now()) { await cacheDel(key); throw createError.badRequest('OTP has expired. Please request a new one.'); }
-      if ((entry.attempts || 0) >= 5) { await cacheDel(key); throw createError.badRequest('Too many incorrect attempts. Please request a new OTP.'); }
-      if (entry.code !== String(code)) {
-        const ttlSec = Math.max(1, Math.ceil((entry.expiresAt - Date.now()) / 1000));
-        await cacheSet(key, JSON.stringify({ ...entry, attempts: (entry.attempts || 0) + 1 }), ttlSec);
-        const remaining = 5 - (entry.attempts || 0) - 1;
-        throw createError.badRequest(`Invalid OTP. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`);
-      }
-      await cacheDel(key);
+      await otpStore.verify('email', emailTarget, code);
       result = { success: true, message: 'OTP verified successfully' };
     }
   } else {
@@ -1286,11 +1276,18 @@ exports.requestEmailChange = asyncHandler(async (req, res) => {
   const taken = await findUserByEmail(normalized, { attributes: ['id'] });
   if (taken) throw createError.conflict('That email is already in use');
 
-  const { set: cacheSet } = require('../utils/cache');
-  const code = String(Math.floor(100000 + Math.random() * 900000));
-  const payload = JSON.stringify({ code, expiresAt: Date.now() + 600 * 1000, attempts: 0, userId: user.id });
-  await cacheSet(`email-change:${normalized}`, payload, 600);
-  await sendOtpEmail(normalized, code, 'confirm your new email address');
+  // Budget is per member (not per address) so one account cannot fan out mail to
+  // many addresses; the code itself is bound to member + address, so nobody else
+  // can burn its attempts or redeem it.
+  await otpStore.spendSend('email-change', user.id);
+  const changeTarget = `${user.id}:${normalized}`;
+  const code = await otpStore.issue('email-change', changeTarget, { digits: 6 });
+  try {
+    await sendOtpEmail(normalized, code, 'confirm your new email address');
+  } catch (err) {
+    await otpStore.discard('email-change', changeTarget);
+    throw err;
+  }
   // Dev affordance (matches smsService): log the code when email isn't configured.
   // isDevelopment, not !isProduction -- see the note in sendOtp.
   if (!config.email.isConfigured() && config.isDevelopment) {
@@ -1308,20 +1305,7 @@ exports.verifyEmailChange = asyncHandler(async (req, res) => {
   const normalized = canonicalEmail(newEmail) || '';
   if (!normalized || !code) throw createError.badRequest('New email and code are required');
 
-  const { get: cacheGet, set: cacheSet, del: cacheDel } = require('../utils/cache');
-  const key = `email-change:${normalized}`;
-  const raw = await cacheGet(key);
-  if (!raw) throw createError.badRequest('Code expired or not found. Please request a new one.');
-
-  const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
-  if (data.userId !== req.user.id) throw createError.unauthorized('This code was issued for a different account');
-  if (Date.now() > data.expiresAt) { await cacheDel(key); throw createError.badRequest('Code expired. Please request a new one.'); }
-  if (data.attempts >= 5) { await cacheDel(key); throw createError.badRequest('Too many attempts. Please request a new code.'); }
-  if (String(code).trim() !== String(data.code)) {
-    data.attempts += 1;
-    await cacheSet(key, JSON.stringify(data), 600);
-    throw createError.badRequest('Incorrect code');
-  }
+  await otpStore.verify('email-change', `${req.user.id}:${normalized}`, code);
 
   // Re-check availability (guards a race between request and verify)
   const taken = await findUserByEmail(normalized, { attributes: ['id'] });
@@ -1331,7 +1315,6 @@ exports.verifyEmailChange = asyncHandler(async (req, res) => {
   user.email = normalized;
   user.emailVerified = true;
   await user.save();
-  await cacheDel(key);
 
   const fullUser = await User.findByPk(user.id, {
     attributes: { exclude: ['password'] },
