@@ -151,6 +151,33 @@ const generateRefreshToken = async (userId, userAgent, ipAddress, existingFamily
   return { token, sessionId: row.id };
 };
 
+/**
+ * Tell the member when their account is signed in from a device it has not been
+ * used from before (audit P2). Best-effort and off the request path: a mail or
+ * lookup failure must never fail or slow a sign-in. The first-ever sign-in is
+ * not "new" (see utils/deviceRecognition).
+ */
+const alertIfNewDevice = (req, user, sessionId) => {
+  const userAgent = req.headers['user-agent'];
+  const ip = req.clientIp || req.ip;
+  setImmediate(async () => {
+    try {
+      const { isNewDevice, describeDevice, maskIp } = require('../utils/deviceRecognition');
+      if (!(await isNewDevice(RefreshToken, { userId: user.id, sessionId, userAgent }))) return;
+      const device = describeDevice(userAgent).label;
+      const where = maskIp(ip);
+      const detail = `Your account was signed in to from ${device}${where ? ` (network ${where})` : ''}, a device we have not seen before.`;
+      const { notify } = require('../utils/notifyUser');
+      await notify(user.id, 'system', 'New sign-in to your account', `${device}. If this was not you, change your password and sign out other devices in Settings.`);
+      if (user.email) {
+        await sendSecurityAlert(user.email, '', 'New sign-in', detail, new Date().toUTCString());
+      }
+    } catch (error) {
+      log.warn('New-device alert failed', { userId: user.id, error: error.message });
+    }
+  });
+};
+
 // Parse duration string (e.g., '7d', '1h', '30m') to milliseconds
 const parseDuration = (duration) => {
   const units = {
@@ -514,6 +541,7 @@ exports.login = asyncHandler(async (req, res) => {
     req.clientIp || req.ip
   );
   const accessToken = generateAccessToken(user.id, sessionId);
+  alertIfNewDevice(req, user, sessionId);
 
   // Set cookies
   setAuthCookies(res, accessToken, refreshToken);
@@ -896,6 +924,15 @@ exports.getSessions = asyncHandler(async (req, res) => {
   });
 });
 
+// @route   GET /api/auth/login-history
+// @desc    Recent sign-ins (one entry per login), newest first
+// @access  Private
+exports.getLoginHistory = asyncHandler(async (req, res) => {
+  const { loginHistory } = require('../utils/deviceRecognition');
+  const history = await loginHistory(RefreshToken, req.user.id, { limit: 20 });
+  res.json({ success: true, history });
+});
+
 // @route   DELETE /api/auth/sessions/:sessionId
 // @desc    Revoke a specific session
 // @access  Private
@@ -1269,6 +1306,7 @@ exports.googleAuth = asyncHandler(async (req, res) => {
     req.clientIp || req.ip
   );
   const accessToken = generateAccessToken(user.id, sessionId);
+  if (!isNewUser) alertIfNewDevice(req, user, sessionId);
   setAuthCookies(res, accessToken, refreshToken);
 
   res.status(isNewUser ? 201 : 200).json({

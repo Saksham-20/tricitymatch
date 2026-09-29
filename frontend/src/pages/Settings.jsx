@@ -365,6 +365,66 @@ const SessionsSection = () => {
         </button>
         )
       )}
+      <RecentSignIns />
+    </div>
+  );
+};
+
+// Every sign-in, including the ones that have ended: a device you signed out of
+// still tells you where the account has been. Server groups rotations into one
+// entry per sign-in and masks the network address.
+const RecentSignIns = () => {
+  const [history, setHistory] = useState(null);
+  const [error, setError] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open || history) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await api.get('/auth/login-history');
+        if (!cancelled) setHistory(data.history || []);
+      } catch {
+        if (!cancelled) setError(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [open, history]);
+
+  return (
+    <div className="mt-8 max-w-xl">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="text-sm font-semibold text-primary-700 dark:text-primary-300 hover:opacity-80 py-3 px-2 -mx-2"
+      >
+        {open ? 'Hide recent sign-ins' : 'See recent sign-ins'}
+      </button>
+      {open && (error ? (
+        <p className="text-sm text-neutral-500 dark:text-neutral-400">Could not load your sign-ins. Try again in a moment.</p>
+      ) : !history ? (
+        <Skeleton className="h-3 w-40" />
+      ) : history.length === 0 ? (
+        <p className="text-sm text-neutral-500 dark:text-neutral-400">No sign-ins recorded yet.</p>
+      ) : (
+        <ul className="divide-y divide-neutral-100 dark:divide-neutral-800 border-y border-neutral-100 dark:border-neutral-800">
+          {history.map((h) => (
+            <li key={`${h.signedInAt}-${h.device}`} className="py-3 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">{h.device}</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
+                  {new Date(h.signedInAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}
+                  {h.approximateIp ? ` · ${h.approximateIp}` : ''}
+                </p>
+              </div>
+              <span className={`text-xs font-semibold flex-shrink-0 ${h.status === 'active' ? 'text-success' : 'text-neutral-500 dark:text-neutral-400'}`}>
+                {h.status === 'active' ? 'Active' : 'Ended'}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ))}
     </div>
   );
 };

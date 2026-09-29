@@ -17,6 +17,7 @@ const {
   logoutAll,
   changePassword,
   getSessions,
+  getLoginHistory,
   revokeSession,
   deleteAccount,
   exportMyData,
@@ -195,6 +196,9 @@ router.post('/contact-number/verify',
 
 // Get active sessions
 router.get('/sessions', auth, getSessions);
+
+// Recent sign-ins (audit P2: login history)
+router.get('/login-history', auth, getLoginHistory);
 
 // Revoke a specific session
 router.delete('/sessions/:sessionId',
