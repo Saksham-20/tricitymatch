@@ -13,7 +13,8 @@ const { recordFailedLogin, clearLoginAttempts, loginLookupKey } = require('../mi
 const { canonicalEmail, emailLookupCandidates } = require('../utils/emailAddress');
 const { issueProof, consumeProof } = require('../utils/otpProof');
 const { checkSecondFactor } = require('../utils/mfa');
-const { log, logSecurityEvent } = require('../middlewares/logger');
+const { buildMemberExport } = require('../utils/dataExport');
+const { log, logSecurityEvent, logAudit } = require('../middlewares/logger');
 const { OAuth2Client } = require('google-auth-library');
 const smsService = require('../utils/smsService');
 const { TERMS_VERSION } = require('../constants/legal');
@@ -894,6 +895,24 @@ exports.revokeSession = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * Re-authenticate the signed-in member before a sensitive action (erasure,
+ * data export). Password members give their password; Google-only members
+ * (no password: bcrypt on a null hash used to 500) give a fresh Google
+ * credential for the SAME Google identity — a token for another account is refused.
+ */
+const reauthenticateMember = async (user, { password, googleCredential }, action) => {
+  if (user.password) {
+    if (!password) throw createError.badRequest(`Password is required to ${action}`);
+    if (!(await user.comparePassword(password))) throw createError.unauthorized('Incorrect password');
+    return;
+  }
+  if (!user.googleId) throw createError.badRequest(`Password is required to ${action}`);
+  if (!googleCredential) throw createError.badRequest(`Confirm with Google to ${action}`);
+  const payload = await verifyGoogleCredential(googleCredential);
+  if (payload.sub !== user.googleId) throw createError.unauthorized('That Google account does not match this member');
+};
+
 // @route   DELETE /api/auth/account
 // @desc    Soft-delete account (requires password confirmation)
 // @access  Private
@@ -903,21 +922,7 @@ exports.deleteAccount = asyncHandler(async (req, res) => {
   const user = await User.findByPk(req.user.id);
   if (!user) throw createError.notFound('User not found');
 
-  if (user.password) {
-    // Password members re-authenticate with their password.
-    if (!password) throw createError.badRequest('Password is required to delete your account');
-    const isValid = await user.comparePassword(password);
-    if (!isValid) throw createError.unauthorized('Incorrect password');
-  } else {
-    // Members who signed up with Google have NO password (bcrypt on a null hash
-    // threw, so deletion returned 500 and they could never erase their account).
-    // They re-authenticate with a fresh Google credential for the SAME Google
-    // identity; a valid token for a different account is refused.
-    if (!user.googleId) throw createError.badRequest('Password is required to delete your account');
-    if (!googleCredential) throw createError.badRequest('Confirm with Google to delete your account');
-    const payload = await verifyGoogleCredential(googleCredential);
-    if (payload.sub !== user.googleId) throw createError.unauthorized('That Google account does not match this member');
-  }
+  await reauthenticateMember(user, { password, googleCredential }, 'delete your account');
 
   // Real erasure. This used to be `user.status = 'deleted'` plus a token purge,
   // which left the profile (exact DOB, birth time, place of birth, caste,
@@ -936,6 +941,25 @@ exports.deleteAccount = asyncHandler(async (req, res) => {
   clearAuthCookies(res);
 
   res.json({ success: true, message: 'Account deleted successfully' });
+});
+
+// @route   POST /api/auth/me/export
+// @desc    Download everything we hold about the signed-in member (re-auth required)
+// @access  Private
+exports.exportMyData = asyncHandler(async (req, res) => {
+  const { password, googleCredential } = req.body;
+  const user = await User.findByPk(req.user.id);
+  if (!user) throw createError.notFound('User not found');
+  await reauthenticateMember(user, { password, googleCredential }, 'download your data');
+
+  const data = await buildMemberExport(user.id);
+  logAudit('member_data_exported', user.id, { collections: Object.keys(data).length });
+
+  const day = new Date().toISOString().slice(0, 10);
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="tricitymatch-my-data-${day}.json"`);
+  res.setHeader('Cache-Control', 'no-store');
+  res.send(JSON.stringify(data, null, 2));
 });
 
 // @route   POST /api/auth/send-otp

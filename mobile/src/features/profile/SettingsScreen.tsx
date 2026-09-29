@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
+  Linking,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -379,6 +380,15 @@ export default function SettingsScreen() {
             sublabel="Change password and signed-in devices"
             onPress={() => navigation.navigate('AccountSecurity')}
             testID="setting-account-security"
+          />
+          <Divider />
+          <ListRow
+            icon="download-outline"
+            iconColor={c.primary}
+            label="Download my data"
+            sublabel="Get a copy of everything we hold about you, on the website"
+            onPress={() => { Linking.openURL('https://tricitymatch.com/settings').catch(() => {}); }}
+            testID="setting-download-data"
           />
         </Section>
 

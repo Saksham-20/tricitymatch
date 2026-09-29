@@ -18,6 +18,7 @@ const {
   getSessions,
   revokeSession,
   deleteAccount,
+  exportMyData,
   sendOtp,
   verifyOtp,
   googleAuth,
@@ -221,6 +222,24 @@ router.delete('/account',
   ],
   handleValidationErrors,
   deleteAccount
+);
+
+// Download everything we hold about the member. Re-authenticates like account
+// deletion (a stolen session must not be able to walk off with the whole file),
+// and shares its limiter: it assembles ~17 queries per call.
+router.post('/me/export',
+  auth,
+  sensitiveActionLimiter,
+  [
+    body('password').optional().isString().isLength({ max: 200 }),
+    body('googleCredential').optional().isString().isLength({ max: 4096 }),
+    body().custom((value) => {
+      if (!value || (!value.password && !value.googleCredential)) throw new Error('Password is required');
+      return true;
+    }),
+  ],
+  handleValidationErrors,
+  exportMyData
 );
 
 // ==================== TWO-STEP VERIFICATION ====================

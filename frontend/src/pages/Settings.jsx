@@ -18,6 +18,7 @@ import LiveSelfieCapture from '../components/verification/LiveSelfieCapture';
 import InviteLink from '../components/common/InviteLink';
 import ContactNumberVerify from '../components/common/ContactNumberVerify';
 import TwoStepVerification from '../components/settings/TwoStepVerification';
+import DownloadMyData from '../components/settings/DownloadMyData';
 import { EmptyState, ErrorState, Skeleton } from '../components/ui';
 import { modal, backdrop } from '../utils/animations';
 import BlockedMembers from '../components/safety/BlockedMembers';
@@ -506,6 +507,8 @@ const AccountTab = () => {
       <EmailSection />
 
       <TwoStepVerification />
+
+      <DownloadMyData />
 
       <div>
         <GroupHeader title="Change Password" desc="Must be 8+ characters with uppercase, lowercase, number, and special character." />
