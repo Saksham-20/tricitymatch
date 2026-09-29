@@ -44,6 +44,22 @@ const Report = sequelize.define('Report', {
     type: DataTypes.DATE,
     allowNull: true,
   },
+  // 'urgent' for threats / underage / financial scam (constants/reportReasons
+  // HIGH_RISK_REASONS): surfaced first in the queue and mailed to staff at once.
+  priority: {
+    type: DataTypes.STRING(12),
+    allowNull: false,
+    defaultValue: 'normal',
+  },
+  assignedTo: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: { model: 'Users', key: 'id' },
+  },
+  escalatedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
 }, {
   indexes: [
     { fields: ['reportedUserId', 'status'] },

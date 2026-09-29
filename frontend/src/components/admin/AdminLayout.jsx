@@ -22,6 +22,7 @@ const navItems = [
   { to: '/admin/revenue',          label: 'Revenue',           icon: FiTrendingUp,  scope: 'revenue' },
   { to: '/admin/reports',          label: 'Reports',           icon: FiFlag,        scope: 'reports' },
   { to: '/admin/safety',            label: 'Trust & Safety',    icon: FiAlertTriangle, scope: 'reports' },
+  { to: '/admin/appeals',           label: 'Appeals',           icon: FiInbox,       scope: 'reports' },
   { to: '/admin/contact-messages', label: 'Support Inbox',     icon: FiInbox,       scope: 'support' },
   { to: '/admin/marketing-users',  label: 'Marketing Users',   icon: FiUserPlus,    scope: 'marketing' },
   { to: '/admin/referral-codes',   label: 'Referral Codes',    icon: FiTag,         scope: 'marketing' },

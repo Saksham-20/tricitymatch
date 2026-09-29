@@ -344,7 +344,14 @@ const Login = () => {
                   exit="exit"
                   className="flex items-center gap-2 px-4 py-3 rounded-xl bg-destructive/10 dark:bg-red-950/30 border border-destructive/20 dark:border-red-900/50 text-destructive dark:text-red-300 text-sm"
                 >
-                  {apiError}
+                  <span>
+                    {apiError}
+                    {/not active/i.test(apiError) && (
+                      <>
+                        {' '}<Link to="/appeal" className="underline font-medium">Think this is a mistake? Appeal.</Link>
+                      </>
+                    )}
+                  </span>
                 </motion.div>
               ) : null}
             </AnimatePresence>

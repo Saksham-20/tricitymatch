@@ -568,9 +568,13 @@ exports.getReports = asyncHandler(async (req, res) => {
   const page = Math.max(parseInt(req.query.page) || 1, 1);
   const offset = (page - 1) * limit;
   const { status } = req.query;
-  const VALID_REPORT_STATUSES = ['pending', 'reviewed', 'dismissed'];
+  // Every status the workflow can write. The allowlist used to stop at
+  // pending/reviewed/dismissed, so the queue's Reviewing and Resolved tabs
+  // silently returned everything.
+  const VALID_REPORT_STATUSES = ['pending', 'reviewing', 'reviewed', 'resolved', 'dismissed'];
   const where = {};
   if (status && VALID_REPORT_STATUSES.includes(status)) where.status = status;
+  if (['urgent', 'normal'].includes(req.query.priority)) where.priority = req.query.priority;
 
   const { count, rows: reports } = await Report.findAndCountAll({
     where,
@@ -588,7 +592,8 @@ exports.getReports = asyncHandler(async (req, res) => {
         include: [{ model: Profile, attributes: ['firstName', 'lastName'] }],
       },
     ],
-    order: [['createdAt', 'DESC']],
+    // 'urgent' sorts after 'normal', so DESC puts urgent reports first.
+    order: [['priority', 'DESC'], ['createdAt', 'DESC']],
     limit,
     offset,
   });
@@ -610,7 +615,7 @@ exports.getReports = asyncHandler(async (req, res) => {
 // @access  Private/Admin
 exports.updateReport = asyncHandler(async (req, res) => {
   const { reportId } = req.params;
-  const { status, adminNotes } = req.body;
+  const { status, adminNotes, assignToMe } = req.body;
 
   const validStatuses = ['reviewing', 'resolved', 'reviewed', 'dismissed'];
   if (!validStatuses.includes(status)) {
@@ -625,6 +630,10 @@ exports.updateReport = asyncHandler(async (req, res) => {
   report.adminNotes = adminNotes || null;
   report.reviewedBy = req.user.id;
   report.reviewedAt = new Date();
+  // Owner of the case: whoever picks it up (or asks to) holds it until someone
+  // else does — a queue with no owner is a queue where everyone assumes another
+  // person has it.
+  if (assignToMe || status === 'reviewing') report.assignedTo = req.user.id;
   await report.save();
 
   logAudit('report_status_changed', req.user.id, { reportId, previous, status });

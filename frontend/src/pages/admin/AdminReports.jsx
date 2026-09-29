@@ -137,7 +137,12 @@ export default function AdminReports() {
                       <p className="font-medium text-gray-800">{[r.ReportedUser?.Profile?.firstName, r.ReportedUser?.Profile?.lastName].filter(Boolean).join(' ') || '—'}</p>
                       <p className="text-xs text-gray-400">{r.ReportedUser?.email}</p>
                     </td>
-                    <td className="px-4 py-3 text-gray-600 capitalize text-xs">{r.reason?.replace(/_/g, ' ')}</td>
+                    <td className="px-4 py-3 text-gray-600 capitalize text-xs">
+                      {r.priority === 'urgent' && (
+                        <span className="mr-1.5 inline-flex items-center px-1.5 py-0.5 rounded bg-red-100 text-red-700 text-[10px] font-bold uppercase">Urgent</span>
+                      )}
+                      {r.reason?.replace(/_/g, ' ')}
+                    </td>
                     <td className="px-4 py-3"><StatusBadge status={r.status} /></td>
                     <td className="px-4 py-3 text-xs text-gray-400">{new Date(r.createdAt).toLocaleDateString('en-IN')}</td>
                     <td className="px-4 py-3 text-right">

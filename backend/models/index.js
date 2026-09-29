@@ -27,6 +27,8 @@ const AppSetting = require('./AppSetting');
 const UnlockPurchase = require('./UnlockPurchase');
 const AnalyticsEvent = require('./AnalyticsEvent');
 const ChatGrant = require('./ChatGrant');
+const EvidenceArchive = require('./EvidenceArchive');
+const Appeal = require('./Appeal');
 const AuditLog = require('./AuditLog');
 
 // Define Relationships
@@ -190,5 +192,7 @@ module.exports = {
   UnlockPurchase,
   AnalyticsEvent,
   ChatGrant,
+  EvidenceArchive,
+  Appeal,
 };
 

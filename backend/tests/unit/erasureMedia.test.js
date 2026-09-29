@@ -13,6 +13,11 @@ jest.mock('../../config/database', () => ({
   query: jest.fn(),
 }));
 
+// Evidence snapshotting has its own suite (moderationWorkflow.test.js); here it
+// is a stub so these tests keep asserting what they always asserted.
+const mockPreserve = jest.fn().mockResolvedValue({ archived: 0 });
+jest.mock('../../utils/evidencePreservation', () => ({ preserveEvidence: (...a) => mockPreserve(...a) }));
+
 jest.mock('../../models', () => {
   const d = () => ({ destroy: jest.fn().mockResolvedValue(1) });
   return {

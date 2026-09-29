@@ -8,7 +8,9 @@ const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { logAudit, log } = require('../middlewares/logger');
 const sequelize = require('../config/database');
 const { getIO } = require('../utils/socket');
-const { REPORT_REASONS } = require('../constants/reportReasons');
+const { REPORT_REASONS, HIGH_RISK_REASONS } = require('../constants/reportReasons');
+const { sendEmail } = require('../utils/email');
+const config = require('../config/env');
 
 // Blocking used to insert a Block row and nothing else, so an existing mutual
 // match kept its chat, its calls and its live socket room. The row alone is
@@ -155,17 +157,34 @@ exports.reportUser = asyncHandler(async (req, res) => {
   const targetUser = await User.findByPk(reportedUserId);
   if (!targetUser) throw createError.notFound('User not found');
 
+  // Threats, underage and financial-scam reports are urgent: they jump the
+  // queue and staff are mailed immediately rather than finding them later.
+  const urgent = HIGH_RISK_REASONS.includes(reason);
+
   const report = await Report.create({
     reporterId,
     reportedUserId,
     reason,
+    priority: urgent ? 'urgent' : 'normal',
+    escalatedAt: urgent ? new Date() : null,
     // typeof guard, not just optional chaining: a JSON body can send a number
     // or an array here, and `.substring` on either is a TypeError -> 500.
     description: typeof description === 'string' ? description.substring(0, 1000) : null,
     status: 'pending',
   });
 
-  logAudit('user_reported', reporterId, { reportedUserId, reason, reportId: report.id });
+  logAudit('user_reported', reporterId, { reportedUserId, reason, reportId: report.id, priority: report.priority });
+
+  if (urgent) {
+    // Best-effort: the report is already stored; a mail failure must not fail it.
+    sendEmail({
+      to: config.email.support,
+      channel: 'documents',
+      subject: `URGENT report: ${reason.replace(/_/g, ' ')}`,
+      html: `<p>An urgent report (<strong>${reason.replace(/_/g, ' ')}</strong>) was filed. Open the Reports queue and review it now.</p><p>Report id: ${report.id}</p>`,
+      text: `An urgent report (${reason}) was filed. Open the Reports queue and review it now. Report id: ${report.id}`,
+    }).catch((err) => log.warn('Urgent-report email failed (report still stored)', { error: err.message, reportId: report.id }));
+  }
 
   res.status(201).json({ success: true, message: 'Report submitted successfully', reportId: report.id });
 });

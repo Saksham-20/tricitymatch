@@ -18,6 +18,7 @@
  */
 
 const { Op } = require('sequelize');
+const { preserveEvidence } = require('./evidencePreservation');
 
 const models = () => require('../models');
 const db = () => require('../config/database');
@@ -75,6 +76,9 @@ const hardDeleteUsers = async (ids, actorId) => {
     await sequelize.transaction(async (transaction) => {
       const replacements = { ids: deleteIds };
       const run = (sql) => sequelize.query(sql, { replacements, transaction });
+      // Reports against these members cascade away with the user row; keep the
+      // evidence behind them first (see utils/evidencePreservation).
+      await preserveEvidence(deleteIds, transaction, { models: models() });
       await run('UPDATE "Groups" SET "candidateUserId" = NULL WHERE "candidateUserId" IN (:ids)');
       // Groups a doomed user created go with them, members and messages first.
       await run('DELETE FROM "GroupMessages" WHERE "groupId" IN (SELECT id FROM "Groups" WHERE "createdBy" IN (:ids))');

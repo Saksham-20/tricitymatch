@@ -78,6 +78,7 @@ const {
   adminSearchValidation 
 } = require('../validators');
 const { body, param } = require('express-validator');
+const { listAppeals, decideAppeal, listEvidence, getEvidence } = require('../controllers/appealController');
 
 // All admin routes require authentication and an admin-family role. Each route
 // then names the permission it needs: `admin`/`super_admin` hold every scope,
@@ -96,6 +97,16 @@ router.put('/users/bulk-status', requireAdminScope('users'), bulkUpdateStatus);
 router.get('/users/export', requireAdminScope('users'), exportUsers);
 router.get('/users/:userId', requireAdminScope('users'), param('userId').isUUID(4), handleValidationErrors, getUser);
 router.put('/users/:userId/status', requireAdminScope('users'), updateUserStatusValidation, handleValidationErrors, updateUserStatus);
+// Appeals and preserved evidence belong to the moderation desk (`reports` scope).
+router.get('/appeals', requireAdminScope('reports'), listAppeals);
+router.put('/appeals/:id', requireAdminScope('reports'),
+  param('id').isUUID(4),
+  body('decision').isIn(['overturned', 'upheld']).withMessage('Invalid decision'),
+  body('note').isString().isLength({ min: 10, max: 1000 }).withMessage('A note (10-1000 characters) is required'),
+  handleValidationErrors, decideAppeal);
+router.get('/evidence', requireAdminScope('reports'), listEvidence);
+router.get('/evidence/:id', requireAdminScope('reports'), param('id').isUUID(4), handleValidationErrors, getEvidence);
+
 router.put('/users/:userId/identity', requireAdminScope('users'),
   param('userId').isUUID(4),
   body('dateOfBirth').optional().isISO8601().withMessage('Invalid date format'),

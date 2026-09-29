@@ -19,6 +19,11 @@ jest.mock('../../config/database', () => ({
   query: jest.fn().mockResolvedValue([[], {}]),
 }));
 
+// Evidence snapshotting has its own suite (moderationWorkflow.test.js); here it
+// is a stub so these tests keep asserting what they always asserted.
+const mockPreserve = jest.fn().mockResolvedValue({ archived: 0 });
+jest.mock('../../utils/evidencePreservation', () => ({ preserveEvidence: (...a) => mockPreserve(...a) }));
+
 jest.mock('../../models', () => ({
   User: { destroy: jest.fn() },
   Profile: { destroy: jest.fn().mockResolvedValue(1) },
@@ -49,6 +54,16 @@ describe('eraseAccount', () => {
     jest.clearAllMocks();
     sequelize.transaction.mockImplementation(async (fn) => fn('TXN'));
     sequelize.query.mockResolvedValue([[], {}]);
+  });
+
+  it('snapshots evidence in the erasure transaction BEFORE the profile and messages are destroyed', async () => {
+    const order = [];
+    mockPreserve.mockImplementationOnce(async () => { order.push('preserve'); return { archived: 1 }; });
+    models.Profile.destroy.mockImplementationOnce(async () => { order.push('profile.destroy'); return 1; });
+    const out = await eraseAccount(USER_ID);
+    expect(order).toEqual(['preserve', 'profile.destroy']);
+    expect(mockPreserve).toHaveBeenCalledWith([USER_ID], expect.anything(), expect.anything());
+    expect(out.evidenceArchived).toBe(1);
   });
 
   it('runs entirely inside one transaction', async () => {

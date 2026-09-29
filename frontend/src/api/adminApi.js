@@ -19,6 +19,10 @@ export const getRevenueReport = (params) => api.get('/admin/revenue', { params }
 export const getReports = (params) => api.get('/admin/reports', { params });
 export const updateReport = (reportId, data) => api.put(`/admin/reports/${reportId}`, data);
 
+// Appeals against a suspension
+export const getAppeals = (params) => api.get('/admin/appeals', { params });
+export const decideAppeal = (id, data) => api.put(`/admin/appeals/${id}`, data);
+
 // Invoice
 export const adminGetInvoice = (subscriptionId) =>
   api.get(`/admin/invoice/${subscriptionId}`, { responseType: 'blob' });

@@ -91,7 +91,11 @@ const SECTIONS = [
     faqs: [
       {
         q: 'Someone is behaving inappropriately. What do I do?',
-        a: 'Use Report on their profile or in the chat. Reports go to our safety team and are reviewed within 24 hours. Blocking them immediately stops all contact and hides your profile from them.',
+        a: 'Use Report on their profile or in the chat. Reports go to our safety team; threats, reports about someone under the legal age and scams are marked urgent and read first. Blocking them immediately stops all contact and hides your profile from them.',
+      },
+      {
+        q: 'My account was suspended. Can I appeal?',
+        a: 'Yes. Use the appeal form at tricitymatch.com/appeal with the email address of your account and tell us what happened. A person reads every appeal and replies by email; if we got it wrong, your account is restored.',
       },
       {
         q: 'How do I delete my account?',

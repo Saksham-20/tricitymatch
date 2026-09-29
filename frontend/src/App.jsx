@@ -78,6 +78,8 @@ const AdminVerifications = lazy(() => import('./pages/admin/AdminVerifications')
 const AdminSubscriptions = lazy(() => import('./pages/admin/AdminSubscriptions'));
 const AdminRevenue = lazy(() => import('./pages/admin/AdminRevenue'));
 const AdminReports = lazy(() => import('./pages/admin/AdminReports'));
+const AdminAppeals = lazy(() => import('./pages/admin/AdminAppeals'));
+const Appeal = lazy(() => import('./pages/Appeal'));
 const AdminSafety = lazy(() => import('./pages/admin/AdminSafety'));
 const AdminMarketingUsers = lazy(() => import('./pages/admin/AdminMarketingUsers'));
 const AdminMarketingUserDetail = lazy(() => import('./pages/admin/AdminMarketingUserDetail'));
@@ -181,6 +183,11 @@ const AnimatedRoutes = () => {
           <Route path="/terms" element={
             <PageTransition>
               <Terms />
+            </PageTransition>
+          } />
+          <Route path="/appeal" element={
+            <PageTransition>
+              <Appeal />
             </PageTransition>
           } />
           <Route path="/refund-policy" element={
@@ -466,6 +473,7 @@ const AnimatedRoutes = () => {
             <Route path="revenue"       element={<AdminScopeRoute scope="revenue"><AdminRevenue /></AdminScopeRoute>} />
             <Route path="reports"       element={<AdminScopeRoute scope="reports"><AdminReports /></AdminScopeRoute>} />
             <Route path="safety"        element={<AdminScopeRoute scope="reports"><AdminSafety /></AdminScopeRoute>} />
+            <Route path="appeals"       element={<AdminScopeRoute scope="reports"><AdminAppeals /></AdminScopeRoute>} />
             <Route path="marketing-users"          element={<AdminScopeRoute scope="marketing"><AdminMarketingUsers /></AdminScopeRoute>} />
             <Route path="marketing-users/:userId"  element={<AdminScopeRoute scope="marketing"><AdminMarketingUserDetail /></AdminScopeRoute>} />
             <Route path="referral-codes"           element={<AdminScopeRoute scope="marketing"><AdminReferralCodes /></AdminScopeRoute>} />

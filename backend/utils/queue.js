@@ -476,6 +476,7 @@ const setupCleanupProcessor = (queue) => {
   queue.process('subscription-lifecycle', () => lifecycle().runSubscriptionLifecycle());
   queue.process('photo-nudge', () => lifecycle().runPhotoNudge());
   queue.process('payment-reconcile', () => require('./paymentReconcile').reconcilePendingOrders());
+  queue.process('evidence-purge', () => require('./evidencePreservation').purgeExpiredEvidence(require('../models')));
 };
 
 /**
@@ -624,6 +625,11 @@ const scheduleCleanupJobs = async () => {
     // that falls at 14:07 go out at 14:15 rather than at the next hour.
     // Asks Razorpay about orders the browser and the webhook both missed
     // (utils/paymentReconcile.js). Every 30 minutes; idempotent activation.
+    // Moderation evidence is kept 180 days, then removed (utils/evidencePreservation).
+    await cleanupQueue.add('evidence-purge', {}, {
+      repeat: { cron: '30 3 * * *' }
+    });
+
     await cleanupQueue.add('payment-reconcile', {}, {
       repeat: { cron: '5,35 * * * *' }
     });

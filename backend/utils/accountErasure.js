@@ -49,6 +49,7 @@
 
 const crypto = require('crypto');
 const { emailLookupCandidates } = require('../utils/emailAddress');
+const { preserveEvidence } = require('./evidencePreservation');
 const { Op } = require('sequelize');
 
 // Required lazily inside eraseAccount rather than at module load. authController
@@ -90,6 +91,11 @@ const eraseAccount = async (userId) => {
 
   await sequelize.transaction(async (transaction) => {
     const bothWays = (a, b) => ({ [Op.or]: [{ [a]: userId }, { [b]: userId }] });
+
+    // Snapshot what any report against this member rests on BEFORE their
+    // messages are tombstoned and their profile destroyed — otherwise deleting
+    // the account would delete the evidence.
+    counts.evidenceArchived = (await preserveEvidence([userId], transaction, { models: models() })).archived;
 
     // ── Rows that are wholly this member's personal data ──
     counts.profiles = await Profile.destroy({ where: { userId }, transaction });
