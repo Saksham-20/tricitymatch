@@ -818,6 +818,87 @@ exports.resetPassword = asyncHandler(async (req, res) => {
   });
 });
 
+// ── Phone-OTP password reset ──────────────────────────────────────────────────
+// For accounts that were created with a mobile number and no verified email, the
+// email link has nowhere to go: those members had no way back in. A one-time code
+// texted to the number they verified stands in for the link.
+//
+// Narrow on purpose, because a phone number is a weaker proof than a mailbox
+// (SIM swap): only ordinary members (never staff), only accounts that already
+// have a password (a Google-only account must not gain a password because
+// someone held its number), only a VERIFIED number, and only when there is no
+// verified email that the normal flow could use instead. Every session is
+// revoked on success and an email alert goes out if there is an address.
+const PHONE_RESET_GENERIC = 'If a matching account can be reset by mobile, we sent a code to that number.';
+const PHONE_RESET_BAD_CODE = 'That code is not right or has expired. Request a new one.';
+
+const findPhoneResetCandidate = async (phone10) => {
+  const { Op } = require('sequelize');
+  if (!/^[6-9]\d{9}$/.test(phone10)) return null;
+  const user = await User.findOne({ where: { phone: { [Op.in]: phoneVariants(phone10) } } });
+  if (!user) return null;
+  const eligible = user.status === 'active'
+    && user.role === 'user'
+    && Boolean(user.password)
+    && user.phoneVerified
+    && !(user.email && user.emailVerified);
+  return eligible ? user : null;
+};
+
+// @route   POST /api/auth/forgot-password/phone
+// @desc    Text a reset code to a verified mobile number (phone-only accounts)
+// @access  Public
+exports.forgotPasswordPhone = asyncHandler(async (req, res) => {
+  const phone10 = toPhone10(req.body.phone);
+  const user = await findPhoneResetCandidate(phone10);
+
+  if (user) {
+    try {
+      await smsService.sendOtp(phone10);
+    } catch (error) {
+      // Budget spent, provider down: the caller must not be able to tell this
+      // apart from "no such account", so it is logged and answered the same.
+      log.warn('Phone reset code not sent', { userId: user.id, error: error.message });
+    }
+  } else {
+    // Match the time an eligible request spends, so timing does not answer either.
+    await new Promise((resolve) => setTimeout(resolve, Math.random() * 200 + 100));
+  }
+  res.json({ success: true, message: PHONE_RESET_GENERIC });
+});
+
+// @route   POST /api/auth/reset-password/phone
+// @desc    Set a new password with the texted code
+// @access  Public
+exports.resetPasswordPhone = asyncHandler(async (req, res) => {
+  const phone10 = toPhone10(req.body.phone);
+  const { code, password } = req.body;
+
+  const user = await findPhoneResetCandidate(phone10);
+  // One answer for every failure (no such account, ineligible, wrong or expired
+  // code). Only a real, eligible account has a code stored, so distinguishing
+  // "invalid" from "expired or not sent" would reveal which numbers are members.
+  if (!user) throw createError.badRequest(PHONE_RESET_BAD_CODE);
+  try {
+    await smsService.verifyOtp(phone10, String(code));
+  } catch (error) {
+    throw createError.badRequest(PHONE_RESET_BAD_CODE);
+  }
+
+  user.password = password;
+  await user.save();
+  await RefreshToken.revokeAllUserTokens(user.id, 'password_reset');
+  await clearLoginAttempts(phone10);
+
+  logSecurityEvent('password_reset_by_phone', req, { userId: user.id });
+  if (user.email) {
+    sendSecurityAlert(user.email, '', 'Your password was changed', 'Your TricityMatch password was just changed using a code sent to your mobile number.', new Date().toUTCString())
+      .catch((error) => log.warn('Phone reset alert failed', { userId: user.id, error: error.message }));
+  }
+
+  res.json({ success: true, message: 'Password updated. Sign in with your new password.' });
+});
+
 // @route   POST /api/auth/change-password
 // @desc    Change password (while logged in)
 // @access  Private

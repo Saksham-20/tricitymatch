@@ -76,6 +76,17 @@ export const forgotPassword = async (email: string): Promise<void> => {
   await apiClient.post('/auth/forgot-password', { email });
 };
 
+// Password reset by texted code, for accounts with no verified email. The first
+// call answers identically for every number (the server never says whether one
+// is registered), so its result is never used to decide what to show.
+export const forgotPasswordPhone = async (phone: string): Promise<void> => {
+  await apiClient.post('/auth/forgot-password/phone', { phone });
+};
+
+export const resetPasswordPhone = async (phone: string, code: string, password: string): Promise<void> => {
+  await apiClient.post('/auth/reset-password/phone', { phone, code, password });
+};
+
 export const resetPassword = async (token: string, password: string): Promise<void> => {
   await apiClient.post('/auth/reset-password', { token, password });
 };

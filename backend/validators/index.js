@@ -194,6 +194,20 @@ const resetPasswordValidation = [
     .withMessage('Password must contain uppercase, lowercase, number, and special character'),
 ];
 
+// Phone-OTP password reset (accounts that have no verified email to receive a link).
+const phoneResetRequestValidation = [
+  body('phone').isString().withMessage('Enter your mobile number').isLength({ min: 10, max: 16 }).withMessage('Enter a valid mobile number'),
+];
+
+const phoneResetSubmitValidation = [
+  body('phone').isString().isLength({ min: 10, max: 16 }).withMessage('Enter a valid mobile number'),
+  body('code').isString().isNumeric().isLength({ min: 4, max: 6 }).withMessage('Enter the code we sent'),
+  body('password')
+    .isString().isLength({ min: 8, max: 100 }).withMessage('Password must be at least 8 characters')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d\s])/)
+    .withMessage('Password must contain uppercase, lowercase, number, and special character'),
+];
+
 const refreshTokenValidation = [
   body('refreshToken')
     .optional()
@@ -754,6 +768,8 @@ module.exports = {
   changeEmailVerifyValidation,
   forgotPasswordValidation,
   resetPasswordValidation,
+  phoneResetRequestValidation,
+  phoneResetSubmitValidation,
   refreshTokenValidation,
   // Profile
   updateProfileValidation,

@@ -55,6 +55,7 @@ const ModernOnboarding = lazy(() => import('./pages/ModernOnboarding'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const HandOver = lazy(() => import('./pages/HandOver'));
+const ForgotPasswordPhone = lazy(() => import('./pages/ForgotPasswordPhone'));
 const Terms = lazy(() => import('./pages/Terms'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const DeleteAccount = lazy(() => import('./pages/DeleteAccount'));
@@ -177,6 +178,11 @@ const AnimatedRoutes = () => {
           <Route path="/forgot-password" element={
             <PageTransition>
               <ForgotPassword />
+            </PageTransition>
+          } />
+          <Route path="/forgot-password/phone" element={
+            <PageTransition>
+              <ForgotPasswordPhone />
             </PageTransition>
           } />
           <Route path="/reset-password" element={

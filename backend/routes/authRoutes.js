@@ -18,6 +18,8 @@ const {
   changePassword,
   getSessions,
   getLoginHistory,
+  forgotPasswordPhone,
+  resetPasswordPhone,
   revokeSession,
   deleteAccount,
   exportMyData,
@@ -49,6 +51,8 @@ const {
   changeEmailVerifyValidation,
   forgotPasswordValidation,
   resetPasswordValidation,
+  phoneResetRequestValidation,
+  phoneResetSubmitValidation,
   refreshTokenValidation
 } = require('../validators');
 const { body, param } = require('express-validator');
@@ -94,6 +98,22 @@ router.post('/reset-password',
   resetPasswordValidation, 
   handleValidationErrors, 
   resetPassword
+);
+
+// Phone-OTP password reset: only for accounts with no verified email to receive
+// a link (see the controller). Same budgets as the email flow.
+router.post('/forgot-password/phone',
+  passwordResetLimiter,
+  phoneResetRequestValidation,
+  handleValidationErrors,
+  forgotPasswordPhone
+);
+
+router.post('/reset-password/phone',
+  passwordResetSubmitLimiter,
+  phoneResetSubmitValidation,
+  handleValidationErrors,
+  resetPasswordPhone
 );
 
 // Google OAuth — verify Google ID token, sign in or register

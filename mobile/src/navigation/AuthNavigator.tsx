@@ -10,6 +10,7 @@ import LoginScreen from '../features/auth/LoginScreen';
 import CreateAccountScreen from '../features/auth/CreateAccountScreen';
 import BasicsScreen from '../features/auth/BasicsScreen';
 import ForgotPasswordScreen from '../features/auth/ForgotPasswordScreen';
+import ForgotPasswordPhoneScreen from '../features/auth/ForgotPasswordPhoneScreen';
 import ResetPasswordScreen from '../features/auth/ResetPasswordScreen';
 import TermsScreen from '../features/legal/TermsScreen';
 import PrivacyScreen from '../features/legal/PrivacyScreen';
@@ -27,6 +28,7 @@ export default function AuthNavigator() {
       <Stack.Screen name="Signup" component={CreateAccountScreen} />
       <Stack.Screen name="SignupBasics" component={BasicsScreen} />
       <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+      <Stack.Screen name="ForgotPasswordPhone" component={ForgotPasswordPhoneScreen} />
       <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
       {/* Legal pages reachable from the signup consent checkbox (pre-auth) */}
       <Stack.Screen name="Terms" component={TermsScreen} />

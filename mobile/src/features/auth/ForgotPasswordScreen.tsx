@@ -209,6 +209,18 @@ export default function ForgotPasswordScreen() {
         testID="ForgotPasswordScreen-submit"
         loaderTestID="ForgotPasswordScreen-loader"
       />
+
+      {/* Members who signed up with a mobile number and no email have no inbox for a link. */}
+      <PressableScale
+        onPress={() => navigation.navigate('ForgotPasswordPhone')}
+        style={[styles.textLink, { minHeight: hit }]}
+        accessibilityRole="button"
+        accessibilityLabel={t('auth.forgotPassword.usePhone', 'No email on your account? Reset with your mobile number')}
+        testID="ForgotPasswordScreen-usePhone"
+        pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <Text variant="subhead" color="primary" style={styles.center}>{t('auth.forgotPassword.usePhone', 'No email on your account? Reset with your mobile number')}</Text>
+      </PressableScale>
     </Screen>
   );
 }
@@ -267,4 +279,5 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
   },
   successBtn: { alignSelf: 'stretch' },
   textLink: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.md, marginTop: spacing.sm },
+  center: { textAlign: 'center' },
 });
