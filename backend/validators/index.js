@@ -55,6 +55,12 @@ const signupValidation = [
     .customSanitizer(canonicalEmail)
     .isLength({ max: 255 })
     .withMessage('Email must not exceed 255 characters'),
+  // Single-use proofs returned by verify-otp; the controller checks them.
+  body(['emailProof', 'phoneProof'])
+    .optional({ checkFalsy: true })
+    .isString()
+    .isLength({ max: 128 })
+    .withMessage('Invalid verification proof'),
   body('password')
     .isLength({ min: 8 })
     .withMessage('Password must be at least 8 characters')

@@ -17,7 +17,7 @@ const errOf = (err, fallback) => err?.response?.data?.error?.message || err?.res
  * flow="signup": no account exists yet, so the public send/verify endpoints are
  *   used; the server remembers the verification and stamps it at signup.
  *
- * `onVerified(phone)` fires once the number is proven. Editing a verified
+ * `onVerified(phone, proof)` fires once the number is proven. Editing a verified
  * number clears the proof, so a late typo can never ride on an old check.
  */
 export default function ContactNumberVerify({
@@ -82,14 +82,16 @@ export default function ContactNumberVerify({
     setVerifying(true);
     setMessage('');
     try {
+      let proof = '';
       if (flow === 'signup') {
-        await api.post('/auth/verify-otp', { type: 'phone', target: phone, code: otp });
+        const { data } = await api.post('/auth/verify-otp', { type: 'phone', target: phone, code: otp });
+        proof = data?.verificationProof || '';
       } else {
         await api.post('/auth/contact-number/verify', { phone, code: otp });
       }
       setCode('');
       setOtpSent(false);
-      onVerified?.(phone);
+      onVerified?.(phone, proof);
     } catch (err) {
       setCode('');
       setMessage(errOf(err, 'That code did not match. Try again.'));

@@ -87,14 +87,17 @@ const Login = () => {
           setUser(meResult.data.user);
           localStorage.setItem('tricitymatch-auth-hint', '1');
         }
-        goAfterLogin(result.data.user?.role);
+        // A brand-new Google member has no gender or date of birth yet (the
+        // server no longer invents placeholders): send them to fill the basics.
+        if (result.data.isNewUser) navigate('/profile/edit');
+        else goAfterLogin(result.data.user?.role);
       }
     } catch (err) {
       setApiError(err.response?.data?.message || 'Google sign-in failed. Please try again.');
     } finally {
       setGoogleLoading(false);
     }
-  }, [goAfterLogin, setUser]);
+  }, [goAfterLogin, navigate, setUser]);
 
   useEffect(() => {
     if (!googleConfig.isConfigured) return;

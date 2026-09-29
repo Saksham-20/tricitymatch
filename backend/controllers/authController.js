@@ -11,6 +11,7 @@ const { eraseAccount } = require('../utils/accountErasure');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { recordFailedLogin, clearLoginAttempts, loginLookupKey } = require('../middlewares/security');
 const { canonicalEmail, emailLookupCandidates } = require('../utils/emailAddress');
+const { issueProof, consumeProof } = require('../utils/otpProof');
 const { log } = require('../middlewares/logger');
 const { OAuth2Client } = require('google-auth-library');
 const smsService = require('../utils/smsService');
@@ -244,29 +245,25 @@ exports.signup = asyncHandler(async (req, res) => {
     }
   }
 
-  // Consume the OTP-verified markers set by verify-otp so the account is stamped
-  // verified at creation (proves the contact was confirmed, not client-trusted).
+  // A contact counts as verified only when the caller presents the single-use
+  // proof verify-otp handed back for it (bound to whoever entered the code).
+  // No client is exempt: every account starts with at least one proven contact,
+  // so nobody can register an address or number they do not control.
   let emailWasVerified = false;
   let phoneWasVerified = false;
   try {
-    const { get: cacheGet, del: cacheDel } = require('../utils/cache');
     if (normalizedEmail) {
-      const k = `otp-verified:email:${normalizedEmail}`;
-      if (await cacheGet(k)) { emailWasVerified = true; await cacheDel(k); }
+      emailWasVerified = await consumeProof('email', normalizedEmail, req.body.emailProof);
     }
     if (normalizedPhone) {
-      const k = `otp-verified:phone:${smsService.normalizePhone(normalizedPhone)}`;
-      if (await cacheGet(k)) { phoneWasVerified = true; await cacheDel(k); }
+      phoneWasVerified = await consumeProof('phone', smsService.normalizePhone(normalizedPhone), req.body.phoneProof);
     }
-  } catch { /* non-fatal */ }
+  } catch (err) {
+    log.warn('Signup proof check failed', { error: err.message });
+  }
 
-  // A verified mobile number is compulsory: other members call it after an
-  // unlock. Native builds already in stores have no screen for it yet, so they
-  // are exempt and prompted in-app once one ships (the server hides any
-  // unverified number regardless).
-  const isNativeClient = String(req.headers['x-app-client'] || '').toLowerCase() === 'mobile';
-  if (!isNativeClient && !phoneWasVerified) {
-    throw createError.badRequest('Please verify your mobile number to create your account.');
+  if (!emailWasVerified && !phoneWasVerified) {
+    throw createError.badRequest('Please verify your email or mobile number to create your account.');
   }
 
   const sequelize = require('../config/database');
@@ -1016,22 +1013,19 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
     result = await smsService.verifyOtp(target, code);
   }
 
-  // Record a short-lived "this contact was just verified" marker so signup can
-  // (a) stamp the new account as verified and (b) prove the contact really was
-  // confirmed — not just trusted from a client flag. 30-min window to finish
-  // signup. Phone is canonicalized to match how signup normalizes it.
-  try {
-    const { set: cacheSet } = require('../utils/cache');
-    const key = type === 'phone'
-      ? `otp-verified:phone:${smsService.normalizePhone(target)}`
-      : `otp-verified:email:${canonicalEmail(String(target))}`;
-    await cacheSet(key, '1', 1800);
-  } catch { /* non-fatal: verification still succeeds */ }
+  // Issue the single-use proof signup will ask for (see utils/otpProof). Unlike
+  // the old contact-keyed marker it is returned only to the caller who entered
+  // the correct code. Not "non-fatal": without it signup cannot proceed, so a
+  // cache failure must surface here rather than as a confusing signup error.
+  const verificationProof = await issueProof(
+    type === 'phone' ? 'phone' : 'email',
+    type === 'phone' ? smsService.normalizePhone(target) : canonicalEmail(String(target))
+  );
 
   // Funnel stage 2 — still pre-account (userId NULL), same raw-counter caveat.
   trackEvent(null, 'otp_verify_succeeded');
 
-  res.json({ ...result, message: `${type} verified successfully` });
+  res.json({ ...result, verificationProof, message: `${type} verified successfully` });
 });
 
 // ---- Contact number (the number other members call after an unlock) ----
@@ -1130,10 +1124,24 @@ exports.googleAuth = asyncHandler(async (req, res) => {
   if (!user) {
     user = await findUserByEmail(email);
     if (user) {
-      // Link Google to existing email account
+      // Link Google to the existing account with this email.
+      //
+      // If that account's email was never verified, whoever created it may not
+      // own the address (they signed up with a victim's email, then waited for
+      // the victim to arrive via Google). Google has now proven the address, so
+      // the rightful owner takes the account: drop any password the earlier
+      // registrant set and end every session they hold.
+      const takeover = !user.emailVerified;
       user.googleId = googleId;
-      if (!user.emailVerified) user.emailVerified = true;
+      if (takeover) {
+        user.emailVerified = true;
+        user.password = null;
+      }
       await user.save();
+      if (takeover) {
+        await RefreshToken.revokeAllUserTokens(user.id, 'google_link_unverified_email');
+        log.warn('Google link took over an unverified-email account', { userId: user.id });
+      }
     } else {
       // New user — create account + profile in one transaction
       isNewUser = true;
@@ -1154,8 +1162,9 @@ exports.googleAuth = asyncHandler(async (req, res) => {
           userId: newUser.id,
           firstName: firstName || '',
           lastName: lastName || '',
-          gender: 'other',
-          dateOfBirth: new Date('2000-01-01'),
+          // gender/dateOfBirth stay NULL: a placeholder here meant every
+          // Google member was a 26-year-old of gender 'other' in search until
+          // they edited it. Onboarding collects the real values.
         }, { transaction: t });
 
         return newUser;

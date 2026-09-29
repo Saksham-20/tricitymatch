@@ -89,6 +89,8 @@ export default function CreateAccountScreen() {
   const [touched, setTouched] = useState({ contact: false, password: false, terms: false });
   // idle → sending → sent (boxes shown) → verifying → verified
   const [otpPhase, setOtpPhase] = useState<OtpPhase>('idle');
+  // Single-use proof from verify-otp; signup presents it for this contact.
+  const [otpProof, setOtpProof] = useState('');
   // A resend keeps the boxes on screen, so it is its own flag, not a phase.
   const [resending, setResending] = useState(false);
   const [otpResetKey, setOtpResetKey] = useState(0);
@@ -199,7 +201,7 @@ export default function CreateAccountScreen() {
     setOtpPhase('verifying');
     setOtpError('');
     try {
-      await verifyOtp(parsed.value, code, parsed.kind);
+      setOtpProof(await verifyOtp(parsed.value, code, parsed.kind));
       setOtpPhase('verified');
     } catch (err: unknown) {
       const status = failureStatus(err);
@@ -241,6 +243,7 @@ export default function CreateAccountScreen() {
       contactKind: parsed.kind,
       contactValue: parsed.value,
       password,
+      proof: otpProof,
     });
   };
 

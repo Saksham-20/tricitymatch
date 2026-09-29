@@ -117,7 +117,8 @@ const VerificationStep = () => {
     setVerifying(method);
     const target = method === 'email' ? formData.email : String(formData.phone || '').replace(/\D/g, '');
     try {
-      await api.post('/auth/verify-otp', { type: method, target, code });
+      const { data: verified } = await api.post('/auth/verify-otp', { type: method, target, code });
+      updateFormData(method === 'email' ? 'emailProof' : 'phoneProof', verified?.verificationProof || '');
       updateFormData(method === 'email' ? 'emailVerification' : 'phoneVerification', true);
       method === 'email' ? setEmailCode('') : setPhoneCode('');
       setStepErrors({});

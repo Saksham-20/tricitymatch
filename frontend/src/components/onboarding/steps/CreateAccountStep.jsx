@@ -107,7 +107,8 @@ const CreateAccountStep = () => {
   const verifyOtp = async (code) => {
     setOtpVerifying(true);
     try {
-      await api.post('/auth/verify-otp', { type: idType, target: idTarget(), code });
+      const { data: verified } = await api.post('/auth/verify-otp', { type: idType, target: idTarget(), code });
+      updateFormData(idType === 'email' ? 'emailProof' : 'phoneProof', verified?.verificationProof || '');
       updateFormData(idType === 'email' ? 'emailVerification' : 'phoneVerification', true);
       setOtpCode('');
       setStepErrors({});

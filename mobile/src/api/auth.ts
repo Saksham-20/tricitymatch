@@ -34,6 +34,9 @@ export interface SignupPayload {
   email?: string;
   phone?: string;
   password: string;
+  /** Proof from verifyOtp() for whichever contact is being registered. */
+  emailProof?: string;
+  phoneProof?: string;
   firstName?: string;
   lastName?: string;
   gender?: string;
@@ -73,8 +76,10 @@ export const sendOtp = async (target: string, type: 'phone' | 'email' = 'phone')
   await apiClient.post('/auth/send-otp', { type, target });
 };
 
-export const verifyOtp = async (target: string, otp: string, type: 'phone' | 'email' = 'phone'): Promise<void> => {
-  await apiClient.post('/auth/verify-otp', { type, target, code: otp });
+// Returns the single-use proof signup must present for this contact.
+export const verifyOtp = async (target: string, otp: string, type: 'phone' | 'email' = 'phone'): Promise<string> => {
+  const res = await apiClient.post<{ verificationProof?: string }>('/auth/verify-otp', { type, target, code: otp });
+  return res.data?.verificationProof ?? '';
 };
 
 export const getMe = async (): Promise<AuthUser> => {

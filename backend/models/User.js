@@ -182,7 +182,8 @@ const User = sequelize.define('User', {
       if ((user.changed('email') || user.changed('phone')) && !user.email && !user.phone) {
         throw new Error('An email address or phone number is required');
       }
-      if (user.changed('password')) {
+      // A null password (Google-only account) is stored as null, never hashed.
+      if (user.changed('password') && user.password) {
         user.password = await bcrypt.hash(user.password, config.auth.bcryptRounds);
       }
     }

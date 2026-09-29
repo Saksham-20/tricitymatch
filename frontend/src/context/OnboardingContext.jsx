@@ -79,7 +79,12 @@ export const OnboardingProvider = ({ children, mode = 'signup', existingProfile 
   // already requires it).
   useEffect(() => {
     if (onboardingMode === 'edit') return;
-    const { password, confirmPassword, ...safeDraft } = formData;
+    // The OTP proofs are single-use credentials too, and are not persisted; a
+    // resumed draft therefore asks for the code again rather than showing a
+    // "verified" state the server would reject.
+    // eslint-disable-next-line no-unused-vars
+    const { password, confirmPassword, emailProof, phoneProof, ...persisted } = formData;
+    const safeDraft = { ...persisted, emailVerification: false, phoneVerification: false };
     localStorage.setItem('onboarding_draft', JSON.stringify(safeDraft));
   }, [formData, onboardingMode]);
 
@@ -324,6 +329,9 @@ function getInitialFormData() {
     profilePhoto: null,
     phoneVerification: false,
     emailVerification: false,
+    // Single-use proofs verify-otp returns; the signup payload carries them.
+    phoneProof: '',
+    emailProof: '',
     // Single canonical contact number used for BOTH the account (User.phone) and
     // phone verification — never re-asked. (Was split across `phone`/`phoneNumber`.)
     phone: '',

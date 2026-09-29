@@ -89,7 +89,7 @@ export default function BasicsScreen() {
   const fieldHeight = { minHeight: Math.max(50, hit) };
   const stackNames = elder || fontScale > STACK_NAMES_FONT_SCALE;
 
-  const { contactKind, contactValue, password } = route.params;
+  const { contactKind, contactValue, password, proof } = route.params;
 
   const [registeringFor, setRegisteringFor] = useState('self');
   const [firstName, setFirstName] = useState('');
@@ -202,6 +202,7 @@ export default function BasicsScreen() {
       await AsyncStorage.setItem(REGISTERING_FOR_KEY, registeringFor).catch(() => {});
       const result = await signup({
         [contactKind === 'phone' ? 'phone' : 'email']: contactValue,
+        [contactKind === 'phone' ? 'phoneProof' : 'emailProof']: proof,
         password,
         firstName: firstName.trim(),
         lastName: lastName.trim(),

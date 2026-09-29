@@ -169,7 +169,7 @@ const BasicInfoStep = () => {
               updateFormData('phone', d);
               if (formData.phoneVerification) updateFormData('phoneVerification', false);
             }}
-            onVerified={(d) => { updateFormData('phone', d); updateFormData('phoneVerification', true); setStepErrors({}); }}
+            onVerified={(d, proof) => { updateFormData('phone', d); updateFormData('phoneProof', proof || ''); updateFormData('phoneVerification', true); setStepErrors({}); }}
           />
         </motion.div>
       )}
