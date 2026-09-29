@@ -65,6 +65,12 @@ const hardDeleteUsers = async (ids, actorId) => {
   const deletable = eligible.filter((u) => !blocked.some((b) => b.id === u.id));
   const deleteIds = deletable.map((u) => u.id);
 
+  // The rows go in one transaction; the uploaded files (photos, selfies, voice
+  // and video) are collected first and destroyed after it commits, so an admin
+  // "delete" does not leave the media live on public URLs.
+  const { collectMemberMedia, destroyMedia } = require('./memberMedia');
+  const mediaUrls = deleteIds.length ? await collectMemberMedia(sequelize, deleteIds) : [];
+
   if (deleteIds.length) {
     await sequelize.transaction(async (transaction) => {
       const replacements = { ids: deleteIds };
@@ -81,9 +87,18 @@ const hardDeleteUsers = async (ids, actorId) => {
     });
   }
 
+  const media = await destroyMedia(mediaUrls);
+
   return {
     deleted: deletable.map((u) => ({ id: u.id, email: u.email })),
     blocked,
+    media: {
+      deleted: media.deleted,
+      alreadyGone: media.alreadyGone,
+      local: media.local,
+      skipped: media.skipped,
+      failed: media.failed,
+    },
   };
 };
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { google as googleConfig } from '../config';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 import {
@@ -926,7 +927,11 @@ const VerificationTab = () => {
 
 // ─── Danger Zone tab ──────────────────────────────────────────────────────────
 const DangerTab = () => {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+  // Members who signed up with Google have no password. `=== false` on purpose:
+  // an absent flag means "unknown", and unknown must not hide the password box.
+  const googleOnly = user?.hasPassword === false;
+  const googleBtnRef = useRef(null);
   const [showModal, setShowModal] = useState(false);
   const [password, setPassword]   = useState('');
   const [loading, setLoading]     = useState(false);
@@ -978,19 +983,56 @@ const DangerTab = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showModal]);
 
-  const handleDelete = async () => {
-    if (!password) { toast.error('Please enter your password'); return; }
+  const deleteWith = async (data) => {
     setLoading(true);
     try {
-      await api.delete('/auth/account', { data: { password } });
+      await api.delete('/auth/account', { data });
       toast.success('Account deleted');
       await logout();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Could not delete your account. Try again.');
+      toast.error(err.response?.data?.error?.message || err.response?.data?.message || 'Could not delete your account. Try again.');
     } finally {
       setLoading(false);
     }
   };
+
+  const handleDelete = () => {
+    if (!password) { toast.error('Please enter your password'); return; }
+    return deleteWith({ password });
+  };
+
+  // Google-only members confirm with a fresh Google credential for the same
+  // account (the server checks it is the same identity).
+  useEffect(() => {
+    if (!showModal || !googleOnly || !googleConfig.isConfigured) return undefined;
+    let cancelled = false;
+
+    const render = () => {
+      if (cancelled || !window.google?.accounts?.id || !googleBtnRef.current) return;
+      window.google.accounts.id.initialize({
+        client_id: googleConfig.clientId,
+        callback: (response) => deleteWith({ googleCredential: response.credential }),
+        auto_select: false,
+        cancel_on_tap_outside: true,
+      });
+      window.google.accounts.id.renderButton(googleBtnRef.current, {
+        theme: 'outline', size: 'large', width: 280, text: 'continue_with',
+      });
+    };
+
+    if (window.google?.accounts?.id) {
+      render();
+      return () => { cancelled = true; };
+    }
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = render;
+    document.head.appendChild(script);
+    return () => { cancelled = true; if (script.parentNode) script.parentNode.removeChild(script); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showModal, googleOnly]);
 
   return (
     <div className="space-y-6">
@@ -1028,8 +1070,17 @@ const DangerTab = () => {
               className="bg-white dark:bg-neutral-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl"
             >
               <h3 id="delete-account-title" className="text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-1">Confirm Account Deletion</h3>
-              <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-5">Enter your password to confirm. This action is permanent.</p>
-              <div className="relative mb-5">
+              <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-5">
+                {googleOnly
+                  ? 'You signed up with Google. Confirm with the same Google account. This action is permanent.'
+                  : 'Enter your password to confirm. This action is permanent.'}
+              </p>
+              {googleOnly && (
+                googleConfig.isConfigured
+                  ? <div ref={googleBtnRef} className="mb-5 flex justify-center" aria-busy={loading} />
+                  : <p role="alert" className="mb-5 text-sm text-destructive">Google confirmation isn&apos;t available right now. Contact support to delete your account.</p>
+              )}
+              <div className={`relative mb-5 ${googleOnly ? 'hidden' : ''}`}>
                 <input
                   ref={passwordInputRef}
                   type={showPw ? 'text' : 'password'}
@@ -1059,13 +1110,15 @@ const DangerTab = () => {
                 >
                   Cancel
                 </button>
-                <button
-                  onClick={handleDelete}
-                  disabled={loading}
-                  className="flex-1 py-2.5 rounded-xl bg-destructive hover:bg-destructive/90 active:scale-[0.97] text-white text-sm font-semibold disabled:opacity-60 disabled:active:scale-100 transition-[background-color,transform] duration-[160ms] cursor-pointer"
-                >
-                  {loading ? 'Deleting…' : 'Delete'}
-                </button>
+                {!googleOnly && (
+                  <button
+                    onClick={handleDelete}
+                    disabled={loading}
+                    className="flex-1 py-2.5 rounded-xl bg-destructive hover:bg-destructive/90 active:scale-[0.97] text-white text-sm font-semibold disabled:opacity-60 disabled:active:scale-100 transition-[background-color,transform] duration-[160ms] cursor-pointer"
+                  >
+                    {loading ? 'Deleting…' : 'Delete'}
+                  </button>
+                )}
               </div>
             </motion.div>
           </motion.div>

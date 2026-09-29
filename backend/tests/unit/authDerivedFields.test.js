@@ -126,3 +126,28 @@ describe('onboardingComplete', () => {
     await expect(callGetMe()).resolves.toMatchObject({ onboardingComplete: false });
   });
 });
+
+describe('hasPassword', () => {
+  const withPassword = (password) => ({ ...asUser(), password });
+
+  it('is true for a member with a password, so the client asks for it', async () => {
+    User.findByPk.mockResolvedValue(withPassword('$2b$12$hash'));
+    await expect(callGetMe()).resolves.toMatchObject({ hasPassword: true });
+  });
+
+  it('is false for a Google-only member (null password), so deletion asks for Google instead', async () => {
+    User.findByPk.mockResolvedValue(withPassword(null));
+    await expect(callGetMe()).resolves.toMatchObject({ hasPassword: false });
+  });
+
+  it('is absent (unknown) when the password column was not loaded, never a false "no password"', async () => {
+    const user = await callGetMe();
+    expect(user).not.toHaveProperty('hasPassword');
+  });
+
+  it('never exposes the hash itself', async () => {
+    User.findByPk.mockResolvedValue(withPassword('$2b$12$hash'));
+    const user = await callGetMe();
+    expect(JSON.stringify(user)).not.toContain('$2b$12$hash');
+  });
+});

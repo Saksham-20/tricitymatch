@@ -41,6 +41,11 @@ const getCookieOptions = (maxAge) => ({
 // Step-1 basics). Kept in one place so login/signup/getMe stay in sync.
 const withDerivedUserFields = async (userInstance) => {
   const user = userInstance.toJSON();
+  // Whether the member can re-authenticate with a password. Members who signed
+  // up with Google have none and must confirm sensitive actions (account
+  // deletion) with a fresh Google credential instead. Only stated when the
+  // column was actually loaded: `undefined` means "unknown", never "no password".
+  if (userInstance.password !== undefined) user.hasPassword = Boolean(userInstance.password);
   // Read through utils/entitlements — the SAME query every gate uses, including
   // its endDate predicate. Filtering on `status:'active'` alone (what this did
   // until 2026-08-10) meant that between a subscription's expiry and the hourly
@@ -851,14 +856,26 @@ exports.revokeSession = asyncHandler(async (req, res) => {
 // @desc    Soft-delete account (requires password confirmation)
 // @access  Private
 exports.deleteAccount = asyncHandler(async (req, res) => {
-  const { password } = req.body;
-  if (!password) throw createError.badRequest('Password is required to delete your account');
+  const { password, googleCredential } = req.body;
 
   const user = await User.findByPk(req.user.id);
   if (!user) throw createError.notFound('User not found');
 
-  const isValid = await user.comparePassword(password);
-  if (!isValid) throw createError.unauthorized('Incorrect password');
+  if (user.password) {
+    // Password members re-authenticate with their password.
+    if (!password) throw createError.badRequest('Password is required to delete your account');
+    const isValid = await user.comparePassword(password);
+    if (!isValid) throw createError.unauthorized('Incorrect password');
+  } else {
+    // Members who signed up with Google have NO password (bcrypt on a null hash
+    // threw, so deletion returned 500 and they could never erase their account).
+    // They re-authenticate with a fresh Google credential for the SAME Google
+    // identity; a valid token for a different account is refused.
+    if (!user.googleId) throw createError.badRequest('Password is required to delete your account');
+    if (!googleCredential) throw createError.badRequest('Confirm with Google to delete your account');
+    const payload = await verifyGoogleCredential(googleCredential);
+    if (payload.sub !== user.googleId) throw createError.unauthorized('That Google account does not match this member');
+  }
 
   // Real erasure. This used to be `user.status = 'deleted'` plus a token purge,
   // which left the profile (exact DOB, birth time, place of birth, caste,
@@ -868,6 +885,11 @@ exports.deleteAccount = asyncHandler(async (req, res) => {
   const erased = await eraseAccount(user.id);
 
   log.info('Account erased', { userId: user.id, erased });
+  if (erased.mediaFailed && erased.mediaFailed.length) {
+    // The database erasure is complete but some files could not be destroyed.
+    // public_ids are not personal data; this is the retry list for an operator.
+    log.error('Erasure left media files behind', { userId: user.id, files: erased.mediaFailed });
+  }
 
   clearAuthCookies(res);
 
@@ -1035,6 +1057,21 @@ exports.verifyContactNumber = asyncHandler(async (req, res) => {
   res.json({ success: true, phone: phone10, phoneVerified: true });
 });
 
+// Verify a Google ID token and return its payload. Shared by sign-in and by
+// account deletion (re-authentication for members who have no password).
+async function verifyGoogleCredential(credential) {
+  const clientId = config.google.clientId;
+  if (!clientId) throw createError.internal('Google OAuth is not configured on this server');
+
+  const client = new OAuth2Client(clientId);
+  try {
+    const ticket = await client.verifyIdToken({ idToken: credential, audience: clientId });
+    return ticket.getPayload();
+  } catch {
+    throw createError.unauthorized('Invalid Google credential');
+  }
+}
+
 // @route   POST /api/auth/google
 // @desc    Sign in / sign up with Google ID token
 // @access  Public
@@ -1042,17 +1079,7 @@ exports.googleAuth = asyncHandler(async (req, res) => {
   const { credential } = req.body;
   if (!credential) throw createError.badRequest('Google credential is required');
 
-  const clientId = config.google.clientId;
-  if (!clientId) throw createError.internal('Google OAuth is not configured on this server');
-
-  const client = new OAuth2Client(clientId);
-  let payload;
-  try {
-    const ticket = await client.verifyIdToken({ idToken: credential, audience: clientId });
-    payload = ticket.getPayload();
-  } catch {
-    throw createError.unauthorized('Invalid Google credential');
-  }
+  const payload = await verifyGoogleCredential(credential);
 
   const { sub: googleId, email, given_name: rawFirstName, family_name: rawLastName, email_verified } = payload;
   if (!email_verified) throw createError.badRequest('Google account email is not verified');

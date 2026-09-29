@@ -206,7 +206,18 @@ router.delete('/account',
   // Compares a password on every call. Without a dedicated limiter the only
   // bound was apiLimiter's 900-per-15-minutes-per-user budget.
   sensitiveActionLimiter,
-  [body('password').notEmpty().withMessage('Password is required')],
+  [
+    // Password members send `password`; Google-only members (no password) send a
+    // fresh `googleCredential` instead. The controller decides which applies.
+    body('password').optional().isString().isLength({ max: 200 }),
+    body('googleCredential').optional().isString().isLength({ max: 4096 }),
+    body().custom((value) => {
+      if (!value || (!value.password && !value.googleCredential)) {
+        throw new Error('Password is required');
+      }
+      return true;
+    }),
+  ],
   handleValidationErrors,
   deleteAccount
 );

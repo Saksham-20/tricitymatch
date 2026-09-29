@@ -9,6 +9,7 @@ const cloudinary = require('cloudinary').v2;
 const path = require('path');
 const fs = require('fs');
 const config = require('../config/env');
+const { parseCloudinaryAsset } = require('../utils/cloudinaryAsset');
 const { createError } = require('./errorHandler');
 
 // Configure Cloudinary (log once so we know which storage is used)
@@ -357,24 +358,6 @@ const validateUploadedFiles = (req, res, next) => {
   next();
 };
 
-// Extract Cloudinary public_id from URL (handles optional transformations)
-// e.g. .../upload/v123/folder/id.jpg or .../upload/c_fill,w_500/v123/folder/id.jpg
-function getCloudinaryPublicId(fileUrl) {
-  if (!fileUrl || !fileUrl.includes('cloudinary')) return null;
-  const parts = fileUrl.split('/');
-  const vIndex = parts.findIndex((p) => /^v\d+$/.test(p));
-  if (vIndex === -1 || vIndex >= parts.length - 1) {
-    // Fallback: last two segments as folder/filename
-    const file = parts[parts.length - 1];
-    const folder = parts[parts.length - 2];
-    if (!file || !folder) return null;
-    return `${folder}/${file.split('.')[0]}`;
-  }
-  const pathAfterVersion = parts.slice(vIndex + 1).join('/');
-  const withoutExt = pathAfterVersion.replace(/\.[^.]+$/, '');
-  return withoutExt || null;
-}
-
 // Delete file from Cloudinary
 const deleteFromCloudinary = async (fileUrl) => {
   if (!fileUrl || !config.cloudinary.isConfigured()) {
@@ -382,12 +365,19 @@ const deleteFromCloudinary = async (fileUrl) => {
   }
 
   try {
-    const publicId = getCloudinaryPublicId(fileUrl);
-    if (!publicId) {
+    // resource_type comes from the URL. Voice notes and video intros are stored
+    // as `video`; destroying them with the SDK default (`image`) answered
+    // "not found" and silently left the media live.
+    const asset = parseCloudinaryAsset(fileUrl);
+    if (!asset || asset.kind !== 'cloudinary') {
       if (config.isDevelopment) console.warn('[upload] Could not extract public_id from URL:', fileUrl?.slice(0, 80));
       return;
     }
-    const result = await cloudinary.uploader.destroy(publicId);
+    const result = await cloudinary.uploader.destroy(asset.publicId, {
+      resource_type: asset.resourceType,
+      type: asset.type,
+      invalidate: true,
+    });
     if (config.isDevelopment && result?.result !== 'ok') {
       console.warn('[upload] Cloudinary destroy result:', result);
     }
