@@ -27,12 +27,20 @@
  * Bidirectional and other invisible control characters are not in the set.
  */
 
-const NAME_CHARS = "A-Za-z\\u00C0-\\u00D6\\u00D8-\\u00F6\\u00F8-\\u00FF\\u0900-\\u0963\\u0971-\\u097F\\u0A01-\\u0A65\\u0A70-\\u0A75\\u200C\\u200D\\s'\\u2019.-";
+// One alternative per script, each class holding a single range, with the
+// zero-width joiners as alternatives of their own. Merged into one class the
+// linter reads a range end followed by a combining mark (U+0963 then U+0971) or
+// a joiner as a base-plus-mark sequence; as separate alternatives they are
+// simply allowed characters. Kept as a literal (not assembled from strings) so
+// the same text can be read, and checked, exactly as it will run.
+const NAME_PATTERN = /^(?:[A-Za-zÀ-ÖØ-öø-ÿ]|[ऀ-ॣ]|[ॱ-ॿ]|[ਁ-੥]|[ੰ-ੵ]|[\s'’.-]|‌|‍)+$/;
 
-const NAME_PATTERN = new RegExp(`^[${NAME_CHARS}]+$`);
-const NAME_STRIP_PATTERN = new RegExp(`[^${NAME_CHARS}]`, 'g');
+// Every code point that is NOT an allowed name character. Built from the same
+// pattern text so the two can never drift apart.
+const ALLOWED_ONE = NAME_PATTERN.source.replace(/^\^/, '').replace(/\+\$$/, '');
+const NAME_STRIP_PATTERN = new RegExp(`(?!${ALLOWED_ONE}).`, 'gsu');
 
 /** Remove everything a name may not contain, trim, and clamp the length. */
 const cleanName = (value, max = 50) => String(value ?? '').replace(NAME_STRIP_PATTERN, '').trim().slice(0, max);
 
-module.exports = { NAME_CHARS, NAME_PATTERN, NAME_STRIP_PATTERN, cleanName };
+module.exports = { NAME_PATTERN, NAME_STRIP_PATTERN, cleanName };

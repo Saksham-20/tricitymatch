@@ -39,7 +39,7 @@ const MAX_PHOTOS = 6;
 // Mirrors backend/validators/index.js `updateProfileValidation`, so a value the
 // server would refuse is caught on the field instead of surfacing as a vague
 // "could not save" after the round trip.
-const NAME_RE = /^[A-Za-zÀ-ÖØ-öø-ÿऀ-ॣॱ-ॿਁ-੥ੰ-ੵ‌‍\s'’.-]+$/;
+const NAME_RE = /^(?:[A-Za-zÀ-ÖØ-öø-ÿ]|[ऀ-ॣ]|[ॱ-ॿ]|[ਁ-੥]|[ੰ-ੵ]|[\s'’.-]|‌|‍)+$/;
 const HEIGHT_MIN_CM = 100;
 const HEIGHT_MAX_CM = 250;
 

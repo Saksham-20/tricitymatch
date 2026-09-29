@@ -59,7 +59,7 @@ const STACK_NAMES_FONT_SCALE = 1.3;
 // the very last step of the funnel, and in production the server's reason is
 // stripped down to "Validation failed". Non-Latin names are a server/product
 // change, not something to accept here and fail there.
-const NAME_PATTERN = /^[A-Za-zÀ-ÖØ-öø-ÿऀ-ॣॱ-ॿਁ-੥ੰ-ੵ‌‍\s'’.-]+$/;
+const NAME_PATTERN = /^(?:[A-Za-zÀ-ÖØ-öø-ÿ]|[ऀ-ॣ]|[ॱ-ॿ]|[ਁ-੥]|[ੰ-ੵ]|[\s'’.-]|‌|‍)+$/;
 const NAME_MIN = 2;
 const NAME_MAX = 50;
 

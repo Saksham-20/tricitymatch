@@ -41,7 +41,7 @@ const toIsoDate = (dd: string, mm: string, yyyy: string): string | null => {
  * Mirrored here so a rejected name is explained beside its field instead of
  * coming back from the save as an opaque "Validation failed".
  */
-const NAME_PATTERN = /^[A-Za-zÀ-ÖØ-öø-ÿऀ-ॣॱ-ॿਁ-੥ੰ-ੵ‌‍\s'’.-]+$/;
+const NAME_PATTERN = /^(?:[A-Za-zÀ-ÖØ-öø-ÿ]|[ऀ-ॣ]|[ॱ-ॿ]|[ਁ-੥]|[ੰ-ੵ]|[\s'’.-]|‌|‍)+$/;
 const isValidName = (raw: string): boolean => {
   const v = raw.trim();
   return v.length >= 2 && v.length <= 50 && NAME_PATTERN.test(v);
