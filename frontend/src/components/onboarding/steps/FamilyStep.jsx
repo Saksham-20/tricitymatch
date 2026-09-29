@@ -17,6 +17,18 @@ const FAMILY_STATUS = [
   { value: 'rich', label: 'Rich' },
 ];
 
+const FAMILY_VALUES = [
+  { value: 'traditional', label: 'Traditional' },
+  { value: 'moderate', label: 'Moderate' },
+  { value: 'liberal', label: 'Liberal' },
+];
+
+const LIVING_ARRANGEMENT = [
+  { value: 'with_family', label: 'With family' },
+  { value: 'alone', label: 'On my own' },
+  { value: 'with_roommates', label: 'With roommates' },
+];
+
 const FamilyStep = () => {
   const { formData, updateFormData, errors, setStepErrors } = useOnboarding();
 
@@ -77,6 +89,51 @@ const FamilyStep = () => {
           onChange={(value) => updateFormData('numberOfSiblings', value)}
           min="0"
           max="10"
+        />
+      </motion.div>
+
+      <motion.div variants={fadeRise} className="grid grid-cols-2 gap-4">
+        <FormField
+          label="Brothers"
+          type="number"
+          inputMode="numeric"
+          placeholder="Optional"
+          value={formData.brothers}
+          onChange={(value) => updateFormData('brothers', value)}
+          min="0"
+          max="15"
+        />
+        <FormField
+          label="Sisters"
+          type="number"
+          inputMode="numeric"
+          placeholder="Optional"
+          value={formData.sisters}
+          onChange={(value) => updateFormData('sisters', value)}
+          min="0"
+          max="15"
+        />
+      </motion.div>
+
+      <motion.div variants={fadeRise}>
+        <Select
+          label="Family values"
+          options={FAMILY_VALUES}
+          value={formData.familyValues}
+          onChange={(value) => updateFormData('familyValues', value)}
+          optional
+          placeholder="Select family values"
+        />
+      </motion.div>
+
+      <motion.div variants={fadeRise}>
+        <Select
+          label="Where do you live"
+          options={LIVING_ARRANGEMENT}
+          value={formData.livingArrangement}
+          onChange={(value) => updateFormData('livingArrangement', value)}
+          optional
+          placeholder="Select living arrangement"
         />
       </motion.div>
 

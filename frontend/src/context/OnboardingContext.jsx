@@ -297,6 +297,14 @@ function getInitialFormData() {
     fatherOccupation: '',
     motherOccupation: '',
     numberOfSiblings: 0,
+    brothers: '',
+    sisters: '',
+    familyValues: '',
+    livingArrangement: '',
+    nationality: '',
+    willingToRelocate: '',
+    institution: '',
+    industry: '',
 
     // Lifestyle
     skinTone: '', // 'fair', 'wheatish', 'dark'

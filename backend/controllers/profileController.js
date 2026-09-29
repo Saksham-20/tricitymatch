@@ -259,7 +259,8 @@ exports.updateProfile = asyncHandler(async (req, res) => {
             'residenceCountry', 'residenceStatus', 'familyLocation',
             'religion', 'caste', 'subCaste', 'gotra', 'motherTongue', 'placeOfBirth',
             'birthTime', 'rashi', 'nakshatra', 'zodiacSign', 'fatherOccupation', 'motherOccupation',
-            'preferredEducation', 'preferredProfession', 'firstName', 'lastName', 'personalityType'];
+            'preferredEducation', 'preferredProfession', 'firstName', 'lastName', 'personalityType',
+            'nationality', 'institution', 'industry'];
           if (freeTextFields.includes(field) && typeof value === 'string') {
             value = value.replace(/<[^>]*>/g, '').trim();
           }

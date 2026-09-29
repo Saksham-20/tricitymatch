@@ -200,6 +200,15 @@ const Profile = sequelize.define('Profile', {
     type: DataTypes.STRING,
     allowNull: true
   },
+  // Optional extras (audit P2). Enumerations are validated in validators/index.
+  nationality: { type: DataTypes.STRING(60), allowNull: true },
+  willingToRelocate: { type: DataTypes.STRING(8), allowNull: true },          // yes | no | maybe
+  livingArrangement: { type: DataTypes.STRING(20), allowNull: true },         // with_family | alone | with_roommates
+  familyValues: { type: DataTypes.STRING(16), allowNull: true },              // traditional | moderate | liberal
+  institution: { type: DataTypes.STRING(120), allowNull: true },
+  industry: { type: DataTypes.STRING(60), allowNull: true },
+  brothers: { type: DataTypes.INTEGER, allowNull: true, validate: { min: 0, max: 15 } },
+  sisters: { type: DataTypes.INTEGER, allowNull: true, validate: { min: 0, max: 15 } },
   // Derived from `education` / `profession` by the beforeSave hook below
   // (constants/vocabularies). Never client-settable; search filters on these.
   educationLevel: {

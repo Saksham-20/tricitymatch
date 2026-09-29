@@ -11,6 +11,8 @@ export const PROFILE_SUBMIT_FIELDS = [
   'maritalStatus', 'numberOfChildren',
   'placeOfBirth', 'birthTime', 'manglikStatus', 'zodiacSign', 'rashi', 'nakshatra',
   'familyType', 'familyStatus', 'fatherOccupation', 'motherOccupation', 'numberOfSiblings',
+  'brothers', 'sisters', 'familyValues', 'livingArrangement',
+  'nationality', 'willingToRelocate', 'institution', 'industry',
   'preferredAgeMin', 'preferredAgeMax', 'preferredHeightMin', 'preferredHeightMax',
   'preferredEducation', 'preferredProfession', 'preferredCity', 'mustHavePreferences',
   'personalityValues', 'familyPreferences', 'lifestylePreferences',

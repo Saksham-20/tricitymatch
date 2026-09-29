@@ -65,6 +65,21 @@ const EducationStep = () => {
         />
       </motion.div>
 
+      <motion.div variants={fadeRise} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <FormField
+          label="College / University"
+          placeholder="Optional"
+          value={formData.institution}
+          onChange={(value) => updateFormData('institution', value)}
+        />
+        <FormField
+          label="Industry"
+          placeholder="e.g. Healthcare, Banking"
+          value={formData.industry}
+          onChange={(value) => updateFormData('industry', value)}
+        />
+      </motion.div>
+
       {/* Progressive reveal: income follows profession — mirrors the mobile
           journey (details only after the field they qualify is filled). */}
       {formData.profession && (

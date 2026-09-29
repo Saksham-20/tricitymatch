@@ -28,6 +28,12 @@ const COUNTRY_OPTIONS = [
 const RESIDENCE_STATUS = ['Citizen', 'Permanent Resident', 'Work Visa', 'Student Visa', 'Other']
   .map((s) => ({ value: s, label: s }));
 
+const RELOCATE_OPTIONS = [
+  { value: 'yes', label: 'Yes' },
+  { value: 'maybe', label: 'Maybe, depends' },
+  { value: 'no', label: 'No' },
+];
+
 const LocationStep = () => {
   const { formData, updateFormData, errors, setStepErrors, registerStepValidator } = useOnboarding();
   const formDataRef = useRef(formData);
@@ -207,6 +213,27 @@ const LocationStep = () => {
             </motion.div>
           )}
         </AnimatePresence>
+      </motion.div>
+
+      <motion.div variants={fadeRise}>
+        <Select
+          label="Open to relocating after marriage"
+          options={RELOCATE_OPTIONS}
+          value={formData.willingToRelocate}
+          onChange={(value) => updateFormData('willingToRelocate', value)}
+          optional
+          placeholder="Select an answer"
+        />
+      </motion.div>
+
+      <motion.div variants={fadeRise}>
+        <FormField
+          label="Nationality"
+          placeholder="e.g. Indian"
+          value={formData.nationality}
+          onChange={(value) => updateFormData('nationality', value)}
+          optional
+        />
       </motion.div>
 
       <motion.div variants={fadeRise} className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600">

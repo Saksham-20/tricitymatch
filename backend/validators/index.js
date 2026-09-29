@@ -384,6 +384,24 @@ const updateProfileValidation = [
   body('numberOfSiblings')
     .optional({ checkFalsy: true })
     .isInt({ min: 0, max: 20 }).withMessage('Number of siblings must be 0-20').toInt(),
+  body('brothers')
+    .optional({ checkFalsy: true })
+    .isInt({ min: 0, max: 15 }).withMessage('Brothers must be 0-15').toInt(),
+  body('sisters')
+    .optional({ checkFalsy: true })
+    .isInt({ min: 0, max: 15 }).withMessage('Sisters must be 0-15').toInt(),
+  body('willingToRelocate')
+    .optional({ checkFalsy: true })
+    .isIn(['yes', 'no', 'maybe']).withMessage('Invalid relocation answer'),
+  body('livingArrangement')
+    .optional({ checkFalsy: true })
+    .isIn(['with_family', 'alone', 'with_roommates']).withMessage('Invalid living arrangement'),
+  body('familyValues')
+    .optional({ checkFalsy: true })
+    .isIn(['traditional', 'moderate', 'liberal']).withMessage('Invalid family values'),
+  body('nationality').optional().trim().isLength({ max: 60 }).withMessage('Nationality too long'),
+  body('institution').optional().trim().isLength({ max: 120 }).withMessage('Institution too long'),
+  body('industry').optional().trim().isLength({ max: 60 }).withMessage('Industry too long'),
   body('degree').optional().trim().isLength({ max: 100 }).withMessage('Degree too long'),
   body('preferredEducation').optional().trim().isLength({ max: 100 }).withMessage('Preferred education too long'),
   body('preferredProfession').optional().trim().isLength({ max: 100 }).withMessage('Preferred profession too long'),
