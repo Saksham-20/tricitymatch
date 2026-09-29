@@ -14,7 +14,11 @@ export type ReportReason =
   | 'spam'
   | 'inappropriate_content'
   | 'underage'
-  | 'other';
+  | 'other'
+  | 'financial_scam'
+  | 'threats'
+  | 'stolen_photos'
+  | 'misleading_info';
 
 export interface ReportPayload {
   userId: string;

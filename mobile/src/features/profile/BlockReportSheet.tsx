@@ -27,11 +27,15 @@ import { showToast } from '../../utils/toast';
 import { tapSize } from '../../utils/elderTheme';
 
 const REPORT_CATEGORIES = [
-  'Fake profile',
-  'Inappropriate photos',
+  'Threats or I feel unsafe',
   'Harassment or abuse',
-  'Spam or scam',
+  'Asks for money or a scam',
+  'Fake profile',
+  "Uses someone else's photos",
   'Underage user',
+  'Inappropriate photos',
+  'Misleading information',
+  'Spam or advertising',
   'Other',
 ] as const;
 
@@ -39,11 +43,15 @@ type ReportCategory = typeof REPORT_CATEGORIES[number];
 
 // Display labels → the reason enum the backend accepts.
 const REASON_BY_LABEL: Record<ReportCategory, ReportReason> = {
-  'Fake profile': 'fake_profile',
-  'Inappropriate photos': 'inappropriate_content',
+  'Threats or I feel unsafe': 'threats',
   'Harassment or abuse': 'harassment',
-  'Spam or scam': 'spam',
+  'Asks for money or a scam': 'financial_scam',
+  'Fake profile': 'fake_profile',
+  "Uses someone else's photos": 'stolen_photos',
   'Underage user': 'underage',
+  'Inappropriate photos': 'inappropriate_content',
+  'Misleading information': 'misleading_info',
+  'Spam or advertising': 'spam',
   Other: 'other',
 };
 
@@ -61,7 +69,8 @@ type Sheet = 'menu' | 'report';
  * What the member is told once a report is in. One constant feeds both the
  * toast and the spoken announcement, so the two can never drift apart.
  */
-const REPORT_ACK = 'Our safety team reviews reports within 24 hours.';
+// No turnaround is promised: nothing in the product measures one yet.
+const REPORT_ACK = 'Our team reviews every report. They are not told who reported them.';
 
 /**
  * Error row shown inside the sheet. A toast cannot do this job: an RN `<Modal>`

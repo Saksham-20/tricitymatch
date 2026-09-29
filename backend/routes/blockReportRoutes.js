@@ -9,6 +9,7 @@ const { blockUser, unblockUser, getBlockedUsers, reportUser } = require('../cont
 const { auth } = require('../middlewares/auth');
 const { param, body } = require('express-validator');
 const { handleValidationErrors } = require('../middlewares/errorHandler');
+const { REPORT_REASONS } = require('../constants/reportReasons');
 
 const userIdParam = [
   param('userId').isUUID(4).withMessage('Invalid user ID'),
@@ -17,7 +18,7 @@ const userIdParam = [
 
 const reportBody = [
   body('reason')
-    .isIn(['fake_profile', 'harassment', 'spam', 'inappropriate_content', 'underage', 'other'])
+    .isIn(REPORT_REASONS)
     .withMessage('Invalid reason'),
   body('description').optional().trim().isLength({ max: 1000 }).withMessage('Description too long'),
   handleValidationErrors,

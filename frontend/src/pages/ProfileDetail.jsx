@@ -20,6 +20,7 @@ import { sanitizeText, sanitizeUrl } from '../utils/sanitize';
 import { ImageLightbox } from '../components/ui/ImageLightbox';
 import FloatingActionBar from '../components/profile/FloatingActionBar';
 import PreferenceMatch from '../components/profile/PreferenceMatch';
+import SafetyMenu from '../components/safety/SafetyMenu';
 import UpgradeModal from '../components/common/UpgradeModal';
 import LikeNoteModal from '../components/profile/LikeNoteModal';
 import { friendlyLabel, formatEnum } from '../constants/profileOptions';
@@ -580,6 +581,16 @@ const ProfileDetail = () => {
                         <FaCrown className="w-3 h-3 text-gold-500 dark:text-gold-400" />
                         <span className="text-[0.6875rem] font-bold text-gold-700">Premium</span>
                       </div>
+                    )}
+                    {/* Report / Block — never on your own profile. Blocking leaves
+                        the page, since a blocked profile is no longer viewable. */}
+                    {userId !== me?.id && (
+                      <SafetyMenu
+                        userId={userId}
+                        name={firstName}
+                        onBlocked={() => navigate('/search', { replace: true })}
+                        className="ml-auto"
+                      />
                     )}
                   </div>
 

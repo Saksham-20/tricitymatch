@@ -18,6 +18,7 @@ import InviteLink from '../components/common/InviteLink';
 import ContactNumberVerify from '../components/common/ContactNumberVerify';
 import { EmptyState, ErrorState, Skeleton } from '../components/ui';
 import { modal, backdrop } from '../utils/animations';
+import BlockedMembers from '../components/safety/BlockedMembers';
 
 const TABS = [
   { id: 'account',       label: 'Account',      icon: FiUser,          desc: 'Password & appearance' },
@@ -688,6 +689,11 @@ const PrivacyTab = () => {
             <><div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> Saving…</>
           ) : 'Save Privacy Settings'}
         </button>
+      </div>
+
+      <div>
+        <GroupHeader title="Blocked members" desc="Blocked members can't message, call or find you, and you won't see them" />
+        <BlockedMembers />
       </div>
     </div>
   );

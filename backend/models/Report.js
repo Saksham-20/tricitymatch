@@ -1,5 +1,6 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
+const { REPORT_REASONS } = require('../constants/reportReasons');
 
 const Report = sequelize.define('Report', {
   id: {
@@ -18,14 +19,7 @@ const Report = sequelize.define('Report', {
     references: { model: 'Users', key: 'id' },
   },
   reason: {
-    type: DataTypes.ENUM(
-      'fake_profile',
-      'harassment',
-      'spam',
-      'inappropriate_content',
-      'underage',
-      'other'
-    ),
+    type: DataTypes.ENUM(...REPORT_REASONS),
     allowNull: false,
   },
   description: {

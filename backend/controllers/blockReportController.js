@@ -8,6 +8,7 @@ const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { logAudit, log } = require('../middlewares/logger');
 const sequelize = require('../config/database');
 const { getIO } = require('../utils/socket');
+const { REPORT_REASONS } = require('../constants/reportReasons');
 
 // Blocking used to insert a Block row and nothing else, so an existing mutual
 // match kept its chat, its calls and its live socket room. The row alone is
@@ -147,8 +148,7 @@ exports.reportUser = asyncHandler(async (req, res) => {
     throw createError.badRequest('You cannot report yourself');
   }
 
-  const validReasons = ['fake_profile', 'harassment', 'spam', 'inappropriate_content', 'underage', 'other'];
-  if (!validReasons.includes(reason)) {
+  if (!REPORT_REASONS.includes(reason)) {
     throw createError.badRequest('Invalid report reason');
   }
 
