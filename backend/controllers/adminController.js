@@ -30,6 +30,7 @@ const { invoiceBlocker } = require('../utils/invoiceEligibility');
 const { recordRefund } = require('../utils/paymentRefunds');
 const { notify } = require('../utils/notifyUser');
 const { sendVerificationApproved, sendVerificationRejected, sendSupportReply } = require('../utils/email');
+const { fingerprintOf } = require('../utils/verificationFingerprint');
 const {
   ADMIN_SCOPES,
   ALL_SCOPES,
@@ -375,11 +376,35 @@ exports.updateVerification = asyncHandler(async (req, res) => {
     throw createError.notFound('Verification not found');
   }
 
+  // A reviewer cannot rule on their own selfie. Otherwise anyone holding the
+  // `verifications` scope could badge themselves.
+  if (verification.userId === req.user.id) {
+    throw createError.forbidden('You cannot review your own verification');
+  }
+
+  // Approval vouches for the profile as it is NOW: record what was compared, so a
+  // later photo or name change withdraws the badge (utils/verificationFingerprint).
+  let approvedFingerprint = null;
+  if (status === 'approved') {
+    const memberProfile = await Profile.findOne({
+      where: { userId: verification.userId },
+      attributes: ['profilePhoto', 'firstName', 'lastName', 'dateOfBirth', 'gender'],
+    });
+    if (!memberProfile?.profilePhoto) {
+      throw createError.badRequest('This member has no profile photo to compare the selfie with');
+    }
+    approvedFingerprint = fingerprintOf(memberProfile);
+  }
+
   const previousStatus = verification.status;
   verification.status = status;
   verification.adminNotes = safeAdminNotes;
+  // verifiedAt/verifiedBy record WHEN and BY WHOM the decision was made, for any
+  // decision (the moderation-safety stats read them that way). Member-facing
+  // output only reports verifiedAt for an approved verification.
   verification.verifiedAt = new Date();
   verification.verifiedBy = req.user.id;
+  verification.approvedFingerprint = approvedFingerprint;
   await verification.save();
 
   // Audit log

@@ -94,17 +94,6 @@ const imageFileFilter = (req, file, cb) => {
   cb(null, true);
 };
 
-// File filter for documents — validates Content-Type header AND filename extension
-const documentFileFilter = (req, file, cb) => {
-  if (!ALLOWED_DOCUMENT_TYPES.includes(file.mimetype)) {
-    return cb(createError.badRequest(`Invalid file type: ${file.mimetype}. Only images and PDFs are allowed.`), false);
-  }
-  if (!hasAllowedExtension(file.originalname, file.mimetype)) {
-    return cb(createError.badRequest('File extension does not match the declared file type.'), false);
-  }
-  cb(null, true);
-};
-
 // Create Cloudinary storage configuration.
 // SEC-4: pin resource_type per endpoint (never 'auto') and scope allowed_formats
 // tightly. Cloudinary content-validates uploads against allowed_formats by actually
@@ -154,7 +143,7 @@ const galleryPhotoStorage = createCloudinaryStorage('gallery', [
 // from 'auto'/raw/video.
 const documentStorage = createCloudinaryStorage('verification-docs', [
   { quality: 'auto:eco' },
-], { resourceType: 'image', formats: ['jpg', 'jpeg', 'png', 'webp', 'pdf'], type: 'authenticated' });
+], { resourceType: 'image', formats: ['jpg', 'jpeg', 'png', 'webp'], type: 'authenticated' });
 
 // Create multer upload instances
 const uploadProfilePhoto = multer({
@@ -290,16 +279,25 @@ const uploadVideoIntro = multer({
   limits: { fileSize: MAX_VIDEO_SIZE },
 }).single('videoIntro');
 
-// Upload for verification documents
-const uploadDocuments = multer({
+// Selfie for photo verification: ONE image, one field. Identity documents are not
+// collected (2026-07-02), so any other file field is refused outright instead of
+// being uploaded to Cloudinary and then ignored, which left stray identity
+// documents hosted and never deleted.
+const selfieFileFilter = (req, file, cb) => {
+  if (!ALLOWED_IMAGE_TYPES.includes(file.mimetype)) {
+    return cb(createError.badRequest(`Invalid file type: ${file.mimetype}. A selfie must be a JPEG, PNG or WebP image.`), false);
+  }
+  if (!hasAllowedExtension(file.originalname, file.mimetype)) {
+    return cb(createError.badRequest('File extension does not match the declared file type.'), false);
+  }
+  cb(null, true);
+};
+
+const uploadSelfie = multer({
   storage: documentStorage,
-  fileFilter: documentFileFilter,
-  limits: { fileSize: MAX_FILE_SIZE * 2 }, // Allow larger files for documents
-}).fields([
-  { name: 'documentFront', maxCount: 1 },
-  { name: 'documentBack', maxCount: 1 },
-  { name: 'selfiePhoto', maxCount: 1 },
-]);
+  fileFilter: selfieFileFilter,
+  limits: { fileSize: MAX_FILE_SIZE, files: 1 },
+}).fields([{ name: 'selfiePhoto', maxCount: 1 }]);
 
 // SEC-4 (full): magic-byte content validation.
 // Read the leading bytes of a file and confirm they match the signature for the
@@ -421,7 +419,7 @@ module.exports = {
   uploadProfilePhoto,
   uploadGalleryPhotos,
   uploadPhotos,
-  uploadDocuments,
+  uploadSelfie,
   uploadVoiceIntro,
   uploadVoiceMessage,
   uploadVideoIntro,

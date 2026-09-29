@@ -161,7 +161,7 @@ export default function Privacy() {
 
             <section>
               <H>9. Your verification selfie</H>
-              <p>Photo verification is optional. If you use it, we capture a live selfie through your device camera — there is no upload option, because an uploaded photograph can be someone else's. A reviewer on our team compares it against your profile photographs and records only the result. The selfie is <strong>never shown to other members</strong>, is not used for advertising or training, and is deleted when your account is deleted. You can decline verification and continue using the Service without a verified badge, and you can withdraw your consent by writing to us.</p>
+              <p>Photo verification is optional. If you use it, we take a selfie through your device camera; the site and app offer no file-upload option, and our servers only accept a selfie that came from a camera session they started. That cannot prove a photograph was never staged, so a reviewer on our team compares it against your profile photographs and records the outcome and any note they leave. The selfie is <strong>never shown to other members</strong>, is not used for advertising or training, and is deleted when your account is deleted. You can decline verification and continue using the Service without a verified badge, and you can withdraw your consent by writing to us.</p>
             </section>
 
             <section>

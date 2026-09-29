@@ -14,7 +14,7 @@ import { PressableScale } from '../../components/motion';
 import { useTheme } from '../../hooks/useTheme';
 import { tapSize } from '../../utils/elderTheme';
 import { showToast } from '../../utils/toast';
-import { getPhotoVerification, submitVerification } from '../../api/verification';
+import { getPhotoVerification, submitVerification, startCaptureSession } from '../../api/verification';
 import { getMyProfile } from '../../api/profile';
 import { useAuthStore } from '../../stores/authStore';
 import { queryKeys } from '../../constants/queryKeys';
@@ -39,12 +39,15 @@ type Nav = NativeStackNavigationProp<MainStackParamList>;
  * which defeats the point of matching a face to a profile.
  */
 
-type PickedFile = { uri: string; name: string; type: string };
+type PickedFile = { uri: string; name: string; type: string; captureToken: string | null };
 
 /** 'denied' = the member refused camera access; null = they backed out. */
 async function captureSelfie(): Promise<PickedFile | 'denied' | null> {
   const { status } = await ImagePicker.requestCameraPermissionsAsync();
   if (status !== 'granted') return 'denied';
+  // Open a server-side capture session BEFORE the camera, so the selfie that comes
+  // back can be tied to it.
+  const captureToken = await startCaptureSession();
   const result = await ImagePicker.launchCameraAsync({
     cameraType: ImagePicker.CameraType.front,
     mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -53,7 +56,7 @@ async function captureSelfie(): Promise<PickedFile | 'denied' | null> {
   });
   if (result.canceled || !result.assets?.[0]) return null;
   const a = result.assets[0];
-  return { uri: a.uri, name: 'selfie.jpg', type: a.mimeType ?? 'image/jpeg' };
+  return { uri: a.uri, name: 'selfie.jpg', type: a.mimeType ?? 'image/jpeg', captureToken };
 }
 
 /** A decorative glyph: the screen reader skips it and reads the text beside it. */
@@ -207,7 +210,7 @@ export default function VerificationScreen() {
     setCameraDenied(false);
     const form = new FormData();
     form.append('selfiePhoto', { uri: file.uri, name: file.name, type: file.type } as unknown as Blob);
-    submitMutation.mutate(form);
+    submitMutation.mutate({ formData: form, captureToken: file.captureToken });
   };
 
   const status = memberFacingStatus(data?.status ?? 'not_submitted');

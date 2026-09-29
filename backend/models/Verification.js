@@ -72,6 +72,8 @@ const Verification = sequelize.define('Verification', {
     allowNull: false,
   },
   selfieVideoUrl: { type: DataTypes.TEXT, allowNull: true },
+  // Hash of the profile fields the reviewer compared (utils/verificationFingerprint).
+  approvedFingerprint: { type: DataTypes.STRING(64), allowNull: true },
 });
 
 // Selfies are identity evidence: never leave the server as a permanent link.

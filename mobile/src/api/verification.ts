@@ -25,9 +25,29 @@ export const getPhotoVerification = async (): Promise<PhotoVerification> => {
   };
 };
 
+/**
+ * Ask the server for a capture session when the camera opens. The submission must
+ * present the token it returns (X-Capture-Token), which proves the selfie followed
+ * a session the server started rather than a scripted upload.
+ */
+export const startCaptureSession = async (): Promise<string | null> => {
+  try {
+    const res = await apiClient.post<{ captureToken?: string }>('/verification/capture-session');
+    return res.data.captureToken ?? null;
+  } catch {
+    // The upload is refused with a clear message if the token is missing.
+    return null;
+  }
+};
+
 /** `formData` must carry a `selfiePhoto` file captured from the live camera. */
-export const submitVerification = async (formData: FormData): Promise<void> => {
+export const submitVerification = async (
+  { formData, captureToken }: { formData: FormData; captureToken: string | null }
+): Promise<void> => {
   await apiClient.post('/verification/submit', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+    headers: {
+      'Content-Type': 'multipart/form-data',
+      ...(captureToken ? { 'X-Capture-Token': captureToken } : {}),
+    },
   });
 };

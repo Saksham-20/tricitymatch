@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 import { FiShield, FiCheckCircle, FiClock, FiXCircle } from 'react-icons/fi';
-import LiveSelfieCapture from '../components/verification/LiveSelfieCapture';
+import LiveSelfieCapture, { captureHeaders } from '../components/verification/LiveSelfieCapture';
 import ErrorState from '../components/ui/ErrorState';
 import Skeleton from '../components/ui/Skeleton';
 import { fadeRise, staggerContainer, DUR, EASE_OUT } from '../utils/animations';
@@ -98,7 +98,7 @@ export default function Verification() {
     try {
       const form = new FormData();
       form.append('selfiePhoto', selfie);
-      await api.post('/verification/submit', form);
+      await api.post('/verification/submit', form, { headers: captureHeaders(selfie) });
       toast.success('Selfie submitted for review');
       setSelfie(null);
       loadStatus();

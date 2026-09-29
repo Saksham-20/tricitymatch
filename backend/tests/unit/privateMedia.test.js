@@ -103,7 +103,12 @@ describe('uploads', () => {
     expect(block).toMatch(/type: 'authenticated'/);
   });
   it('verification documents (selfies) are stored as authenticated assets', () => {
-    expect(src).toMatch(/formats: \['jpg', 'jpeg', 'png', 'webp', 'pdf'\], type: 'authenticated'/);
+    expect(src).toMatch(/formats: \['jpg', 'jpeg', 'png', 'webp'\], type: 'authenticated'/);
+  });
+  it('the selfie endpoint accepts one image field and nothing else (no PDFs, no ID documents)', () => {
+    expect(src).toMatch(/\.fields\(\[\{ name: 'selfiePhoto', maxCount: 1 \}\]\)/);
+    expect(src).not.toMatch(/documentFront|documentBack/);
+    expect(src).not.toMatch(/'pdf'\]?, type: 'authenticated'/);
   });
 });
 

@@ -264,6 +264,13 @@ const config = {
     },
   },
 
+  // Photo verification. A submission must come out of a capture session the server
+  // started (utils/captureSession). Turn off only as an emergency rollback if a
+  // client build cannot start sessions.
+  verification: {
+    requireCaptureToken: optionalBoolean('VERIFICATION_REQUIRE_CAPTURE_TOKEN', true),
+  },
+
   // Image moderation. 'off' (default) screens nothing; 'cloudinary' uses the
   // Cloudinary Rekognition AI Moderation add-on (account must be subscribed);
   // 'stub' is for tests/dev and flags URLs containing "flag-test".

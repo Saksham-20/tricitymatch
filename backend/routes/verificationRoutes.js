@@ -17,9 +17,9 @@
 
 const express = require('express');
 const router = express.Router();
-const { submitVerification, getVerificationStatus } = require('../controllers/verificationController');
+const { submitVerification, getVerificationStatus, startCaptureSession, precheckSubmission } = require('../controllers/verificationController');
 const { auth } = require('../middlewares/auth');
-const { uploadDocuments, validateUploadedFiles } = require('../middlewares/upload');
+const { uploadSelfie, validateUploadedFiles } = require('../middlewares/upload');
 const { handleValidationErrors } = require('../middlewares/errorHandler');
 const { uploadLimiter } = require('../middlewares/security');
 const { submitVerificationValidation } = require('../validators');
@@ -30,10 +30,15 @@ router.use(auth);
 // Get verification status (selfie fields)
 router.get('/status', getVerificationStatus);
 
+// Start a capture session (called when the camera opens); the token comes back as
+// the X-Capture-Token header on /submit.
+router.post('/capture-session', uploadLimiter, startCaptureSession);
+
 // Submit a selfie for photo verification (multipart field: selfiePhoto)
 router.post('/submit',
   uploadLimiter,
-  uploadDocuments,
+  precheckSubmission,
+  uploadSelfie,
   validateUploadedFiles,
   submitVerificationValidation,
   handleValidationErrors,

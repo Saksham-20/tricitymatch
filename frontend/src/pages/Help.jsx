@@ -29,7 +29,7 @@ const SECTIONS = [
     faqs: [
       {
         q: 'How do I get the verified badge?',
-        a: 'Go to Verification and capture a live selfie in your browser — we never accept an uploaded file, because an upload can be doctored. Our team compares it by hand against your profile photos and awards the badge, usually within 24–48 hours. We never ask for a government ID.',
+        a: 'Go to Verification and capture a live selfie in your browser — there is no file-upload option, because an uploaded photo can be someone else’s. Our team compares it by hand against your profile photos and awards the badge, usually within 24–48 hours. We never ask for a government ID.',
       },
       {
         q: 'Who can see my photos?',

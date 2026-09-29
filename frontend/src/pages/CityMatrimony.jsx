@@ -24,7 +24,7 @@ const VERIFY_STEPS = [
   {
     icon: FiCamera,
     title: 'A live selfie, in the app',
-    body: 'The camera opens in the browser and the photo is captured there and then. There is no upload option anywhere in the flow: an uploaded file can be borrowed, edited or lifted from someone else’s profile.',
+    body: 'The camera opens in the browser and the photo is captured there and then. The flow has no upload option, and our servers only accept a selfie that came from a camera session they started, since an uploaded file can be borrowed or lifted from someone else’s profile.',
   },
   {
     icon: FiUserCheck,

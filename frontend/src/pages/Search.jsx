@@ -417,7 +417,7 @@ const Search = () => {
                   title={activeFilterCount > 0 ? 'No profiles match these filters' : 'The circle is still small'}
                   description={activeFilterCount > 0
                     ? 'Widen a filter or two: with a community this focused, a narrow search can rule out everyone.'
-                    : 'We verify every member by hand, one Tricity family at a time. The fastest way to find someone worth meeting is to bring someone you already trust.'}
+                    : 'New Tricity families join every week. The fastest way to find someone worth meeting is to bring someone you already trust.'}
                   actionLabel={activeFilterCount > 0 ? 'Clear filters' : undefined}
                   onAction={activeFilterCount > 0 ? handleClearFilters : undefined}
                   className="py-16"

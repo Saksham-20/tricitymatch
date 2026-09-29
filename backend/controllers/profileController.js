@@ -5,6 +5,16 @@
 
 const { Profile, User, ProfileView, Subscription, Match, ContactUnlock, Block, Verification, MediaReview } = require('../models');
 const { holdFlaggedPhotos } = require('../utils/imageModeration');
+const { revalidateVerification } = require('../utils/verificationFingerprint');
+
+// Withdraw the photo-verified badge if the photo or name it vouched for changed.
+const recheckVerification = async (userId) => {
+  try {
+    await revalidateVerification(userId, { Verification, Profile, notify, log });
+  } catch (err) {
+    log.error('Verification re-check failed', { error: err.message, userId });
+  }
+};
 const { applyIdentityRules } = require('../utils/identityLock');
 const { blockedIdsFor } = require('../utils/blocks');
 const { redactForViewer, stripOwnerOnlyKeys } = require('../utils/profileVisibility');
@@ -414,6 +424,9 @@ exports.updateProfile = asyncHandler(async (req, res) => {
     trackEvent(req.user.id, 'profile_60pct');
   }
 
+  // A changed main photo or name withdraws the photo-verified badge until re-reviewed.
+  await recheckVerification(req.user.id);
+
   // Reload once more so response has latest DB state; send plain object so client gets photos array
   await profile.reload();
   const payload = withSignedMedia(profile.get ? profile.get({ plain: true }) : profile.toJSON(), INTRO_MEDIA);
@@ -486,6 +499,8 @@ exports.deletePhoto = asyncHandler(async (req, res) => {
   profile.completionPercentage = completion;
   await profile.save();
 
+  await recheckVerification(req.user.id);
+
   res.json({
     success: true,
     message: 'Photo deleted successfully',
@@ -534,6 +549,8 @@ exports.deleteProfilePhoto = asyncHandler(async (req, res) => {
   const completion = calculateCompletion(profileData);
   profile.completionPercentage = completion;
   await profile.save();
+
+  await recheckVerification(req.user.id);
 
   res.json({
     success: true,

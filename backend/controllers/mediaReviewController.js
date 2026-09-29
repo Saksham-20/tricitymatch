@@ -5,13 +5,14 @@
  */
 
 const { Op } = require('sequelize');
-const { Profile, MediaReview } = require('../models');
+const { Profile, MediaReview, Verification } = require('../models');
 const sequelize = require('../config/database');
 const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { log, logAudit } = require('../middlewares/logger');
 const { deleteFromCloudinary } = require('../middlewares/upload');
 const { notify } = require('../utils/notifyUser');
+const { revalidateVerification } = require('../utils/verificationFingerprint');
 
 const STATUSES = ['pending', 'approved', 'rejected'];
 
@@ -76,6 +77,12 @@ exports.decideMediaReview = asyncHandler(async (req, res) => {
     await review.save({ transaction: t });
     return review;
   });
+
+  if (decision === 'reject') {
+    // Removing a member's main photo changes what their verification vouched for.
+    revalidateVerification(result.userId, { Verification, Profile, notify, log })
+      .catch((err) => log.error('Verification re-check failed', { error: err.message, reviewId: result.id }));
+  }
 
   if (decision === 'reject') {
     // Outside the transaction: a Cloudinary hiccup must not undo the decision.

@@ -14,7 +14,7 @@ import {
 import useDarkMode from '../hooks/useDarkMode';
 import useElderMode from '../hooks/useElderMode';
 import LanguageSwitcher from '../components/common/LanguageSwitcher';
-import LiveSelfieCapture from '../components/verification/LiveSelfieCapture';
+import LiveSelfieCapture, { captureHeaders } from '../components/verification/LiveSelfieCapture';
 import InviteLink from '../components/common/InviteLink';
 import ContactNumberVerify from '../components/common/ContactNumberVerify';
 import TwoStepVerification from '../components/settings/TwoStepVerification';
@@ -775,7 +775,7 @@ const VerificationTab = () => {
       const fd = new FormData();
       fd.append('selfiePhoto', selfiePhoto);
 
-      const res = await api.post('/verification/submit', fd);
+      const res = await api.post('/verification/submit', fd, { headers: captureHeaders(selfiePhoto) });
       toast.success('Selfie submitted. We will review within 24 hours.');
       setStatus(res.data.verification);
     } catch (err) {
