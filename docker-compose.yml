@@ -188,6 +188,10 @@ services:
       AGORA_TOKEN_EXPIRY_SECONDS: ${AGORA_TOKEN_EXPIRY_SECONDS:-${AGORA_TOKEN_EXPIRY:-3600}}
       # SMS / OTP (MSG91 4-digit; authkey IP-whitelist must include VPS egress IP)
       SMS_PROVIDER: ${SMS_PROVIDER:-dev}
+      # Global SMS ceiling per day (config default 1500). Compose passes only listed vars.
+      SMS_DAILY_BUDGET: ${SMS_DAILY_BUDGET:-1500}
+      # Selfie needs a server-issued capture session (config default true).
+      VERIFICATION_REQUIRE_CAPTURE_TOKEN: ${VERIFICATION_REQUIRE_CAPTURE_TOKEN:-true}
       SMS_API_KEY: ${SMS_API_KEY:-}
       MSG91_TEMPLATE_ID: ${MSG91_TEMPLATE_ID:-}
       SMS_SENDER_ID: ${SMS_SENDER_ID:-TRISHD}
