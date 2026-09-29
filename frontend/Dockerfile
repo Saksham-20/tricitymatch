@@ -18,6 +18,17 @@ ARG VITE_SUPPORT_EMAIL=
 ARG VITE_SUPPORT_WHATSAPP=
 ARG VITE_SUPPORT_PHONE=
 ARG VITE_SUPPORT_ADDRESS=
+# Statutory disclosures published on /terms, /privacy and the footer (IT Rules 2021
+# r.3(2)(a), Consumer Protection (E-Commerce) Rules 2020). Vite bakes these in at
+# BUILD time: a value that is not passed here is absent from the shipped bundle
+# no matter what the server .env says. Unset => the line is hidden, never faked.
+ARG VITE_LEGAL_ENTITY=
+ARG VITE_LEGAL_ADDRESS=
+ARG VITE_LEGAL_GSTIN=
+ARG VITE_GRIEVANCE_OFFICER=
+ARG VITE_GRIEVANCE_EMAIL=
+ARG VITE_PRIVACY_EMAIL=
+ARG VITE_DPO_NAME=
 
 # Set environment variables for build
 ENV VITE_API_URL=$VITE_API_URL \
@@ -28,7 +39,14 @@ ENV VITE_API_URL=$VITE_API_URL \
     VITE_SUPPORT_EMAIL=$VITE_SUPPORT_EMAIL \
     VITE_SUPPORT_WHATSAPP=$VITE_SUPPORT_WHATSAPP \
     VITE_SUPPORT_PHONE=$VITE_SUPPORT_PHONE \
-    VITE_SUPPORT_ADDRESS=$VITE_SUPPORT_ADDRESS
+    VITE_SUPPORT_ADDRESS=$VITE_SUPPORT_ADDRESS \
+    VITE_LEGAL_ENTITY=$VITE_LEGAL_ENTITY \
+    VITE_LEGAL_ADDRESS=$VITE_LEGAL_ADDRESS \
+    VITE_LEGAL_GSTIN=$VITE_LEGAL_GSTIN \
+    VITE_GRIEVANCE_OFFICER=$VITE_GRIEVANCE_OFFICER \
+    VITE_GRIEVANCE_EMAIL=$VITE_GRIEVANCE_EMAIL \
+    VITE_PRIVACY_EMAIL=$VITE_PRIVACY_EMAIL \
+    VITE_DPO_NAME=$VITE_DPO_NAME
 
 # Copy package files (package-lock.json is a standalone lockfile for this
 # Docker context — the repo root's workspace lockfile isn't visible here)
