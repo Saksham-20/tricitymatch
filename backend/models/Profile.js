@@ -274,6 +274,13 @@ const Profile = sequelize.define('Profile', {
     type: DataTypes.BOOLEAN,
     defaultValue: true
   },
+  // Set when the member paused (hid) their profile; isActive is false while set.
+  // Kept apart from isActive so "hidden by choice" and a scheduled deletion can
+  // be told apart and resumed.
+  pausedAt: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
   bio: {
     type: DataTypes.TEXT,
     allowNull: true

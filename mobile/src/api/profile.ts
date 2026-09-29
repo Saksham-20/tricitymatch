@@ -38,6 +38,15 @@ export const getMyProfile = async (): Promise<Profile> => {
   return res.data.profile;
 };
 
+// Pause hides the profile from every listing (nothing is deleted); resume undoes it.
+export const pauseMyProfile = async (): Promise<void> => {
+  await apiClient.post('/profile/me/pause');
+};
+
+export const resumeMyProfile = async (): Promise<void> => {
+  await apiClient.post('/profile/me/resume');
+};
+
 export const getProfile = async (userId: string): Promise<Profile> => {
   const res = await apiClient.get<{ profile: Profile; isMutual?: boolean }>(`/profile/${userId}`);
   // `isMutual` sits beside the profile, not inside it. Carry it in so a profile opened AFTER the

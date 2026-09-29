@@ -223,6 +223,14 @@ const setupCleanupProcessor = (queue) => {
     return { expired };
   });
 
+  // Accounts whose deletion grace period (ACCOUNT_DELETION_GRACE_DAYS) has ended.
+  queue.process('run-scheduled-deletions', async () => {
+    const { runScheduledDeletions } = require('./accountLifecycle');
+    const result = await runScheduledDeletions({ limit: 50 });
+    log.info('Scheduled deletions run', result);
+    return result;
+  });
+
   queue.process('cleanup-inactive-sessions', async (job) => {
     const { RefreshToken } = require('../models');
     const { Op } = require('sequelize');
@@ -606,6 +614,11 @@ const scheduleCleanupJobs = async () => {
     // Clean inactive sessions every day at 4 AM
     await cleanupQueue.add('cleanup-inactive-sessions', {}, {
       repeat: { cron: '0 4 * * *' }
+    });
+
+    // Erase accounts whose deletion grace period has ended, daily at 5:30 AM
+    await cleanupQueue.add('run-scheduled-deletions', {}, {
+      repeat: { cron: '30 5 * * *' }
     });
 
     // Close unanswered guardian invites daily at 5 AM

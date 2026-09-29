@@ -23,8 +23,9 @@ export default function DeleteAccount() {
           <div className="prose prose-sm max-w-none text-neutral-700 dark:text-neutral-300 space-y-6">
             <section>
               <p>
-                You can permanently delete your TricityMatch account at any time. Deletion
-                removes your profile from the platform and cannot be undone.
+                You can delete your TricityMatch account at any time. Your profile is hidden
+                straight away and everything is erased 30 days later. Until then you can sign
+                in and cancel; after that it cannot be undone.
               </p>
             </section>
 
@@ -33,8 +34,9 @@ export default function DeleteAccount() {
               <ol className="list-decimal pl-5 space-y-1">
                 <li>Log in at <Link to="/login" className="text-primary-600 dark:text-primary-300 underline hover:text-primary-700 dark:hover:text-primary-200">tricitymatch.com/login</Link></li>
                 <li>Go to <strong>Settings</strong></li>
-                <li>Open the <strong>Danger Zone</strong> tab and choose <strong>Delete My Account</strong></li>
-                <li>Confirm with your password</li>
+                <li>Open the <strong>Pause or delete</strong> tab and choose <strong>Delete My Account</strong></li>
+                <li>Confirm with your password. To erase everything at once instead of after 30 days, tick <strong>Delete immediately</strong></li>
+                <li>Changed your mind? Sign in and choose <strong>Cancel deletion</strong> on the same tab</li>
               </ol>
             </section>
 
@@ -43,7 +45,8 @@ export default function DeleteAccount() {
               <ol className="list-decimal pl-5 space-y-1">
                 <li>Open the TricityMatch app and log in</li>
                 <li>Go to <strong>Settings</strong></li>
-                <li>Choose <strong>Delete Account</strong> and confirm</li>
+                <li>Choose <strong>Delete account</strong> and confirm with your password (the app schedules the deletion for 30 days later; use the website if you want it erased at once)</li>
+                <li>To keep your account, open Settings again and choose <strong>Cancel account deletion</strong></li>
               </ol>
             </section>
 
@@ -66,8 +69,8 @@ export default function DeleteAccount() {
                 <li>Your contact details and notification tokens</li>
               </ul>
               <p className="mt-2">
-                Your profile and this data are erased immediately — this cannot be
-                undone. Limited records (for example payment/invoice records, or data
+                Your profile and this data are erased 30 days after you ask (or immediately if you
+                choose that on the website) — after that it cannot be undone. Limited records (for example payment/invoice records, or data
                 connected to a safety report) are retained where the law requires it
                 or to prevent fraud and abuse, as described in our{' '}
                 <Link to="/privacy" className="text-primary-600 dark:text-primary-300 underline hover:text-primary-700 dark:hover:text-primary-200">Privacy Policy</Link>.

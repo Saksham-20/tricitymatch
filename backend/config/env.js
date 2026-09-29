@@ -295,6 +295,14 @@ const config = {
     messageRetentionMonths: optionalNumber('MESSAGE_RETENTION_MONTHS', 24),
   },
 
+  // Account lifecycle
+  account: {
+    // A deletion the member schedules waits this many days before the account is
+    // erased, and can be cancelled by signing in. 0 disables the wait (immediate
+    // erasure stays available through DELETE /auth/account either way).
+    deletionGraceDays: optionalNumber('ACCOUNT_DELETION_GRACE_DAYS', 30),
+  },
+
   // Admin
   admin: {
     email: optionalString('ADMIN_EMAIL', 'admin@tricitymatch.com'),

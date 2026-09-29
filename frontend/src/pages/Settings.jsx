@@ -28,7 +28,7 @@ const TABS = [
   { id: 'privacy',       label: 'Privacy',       icon: FiShield,        desc: 'Visibility controls' },
   { id: 'notifications', label: 'Notifications', icon: FiBell,          desc: 'Alert preferences' },
   { id: 'verification',  label: 'Verification',  icon: FiFileText,      desc: 'Identity & trust badge' },
-  { id: 'danger',        label: 'Danger Zone',   icon: FiAlertTriangle, desc: 'Irreversible actions' },
+  { id: 'danger',        label: 'Pause or delete', icon: FiAlertTriangle, desc: 'Take a break or leave' },
 ];
 
 // ─── Shared Toggle ────────────────────────────────────────────────────────────
@@ -1021,7 +1021,39 @@ const VerificationTab = () => {
 
 // ─── Danger Zone tab ──────────────────────────────────────────────────────────
 const DangerTab = () => {
-  const { logout, user } = useAuth();
+  const { logout, user, updateUser } = useAuth();
+  // Delete after a grace period by default; immediate erasure is an explicit choice.
+  const [deleteNow, setDeleteNow] = useState(false);
+  const [lifecycleBusy, setLifecycleBusy] = useState(false);
+  const scheduledFor = user?.deletionScheduledFor ? new Date(user.deletionScheduledFor) : null;
+  const paused = Boolean(user?.Profile?.pausedAt);
+  const fmtDate = (d) => d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  const setPaused = async (pause) => {
+    setLifecycleBusy(true);
+    try {
+      const { data } = await api.post(pause ? '/profile/me/pause' : '/profile/me/resume');
+      updateUser({ Profile: { ...(user?.Profile || {}), pausedAt: pause ? (data.pausedAt || new Date().toISOString()) : null, isActive: !pause } });
+      toast.success(pause ? 'Your profile is hidden' : 'Your profile is visible again');
+    } catch (err) {
+      toast.error(err.response?.data?.error?.message || err.response?.data?.message || 'Could not change that. Try again.');
+    } finally {
+      setLifecycleBusy(false);
+    }
+  };
+
+  const cancelScheduledDeletion = async () => {
+    setLifecycleBusy(true);
+    try {
+      await api.post('/auth/account/cancel-deletion');
+      updateUser({ deletionScheduledFor: null, Profile: { ...(user?.Profile || {}), isActive: !user?.Profile?.pausedAt } });
+      toast.success('Deletion cancelled. Your account stays.');
+    } catch {
+      toast.error('Could not cancel. Try again.');
+    } finally {
+      setLifecycleBusy(false);
+    }
+  };
   // Members who signed up with Google have no password. `=== false` on purpose:
   // an absent flag means "unknown", and unknown must not hide the password box.
   const googleOnly = user?.hasPassword === false;
@@ -1080,9 +1112,21 @@ const DangerTab = () => {
   const deleteWith = async (data) => {
     setLoading(true);
     try {
-      await api.delete('/auth/account', { data });
-      toast.success('Account deleted');
-      await logout();
+      if (deleteNow) {
+        await api.delete('/auth/account', { data });
+        toast.success('Account deleted');
+        await logout();
+      } else {
+        const res = await api.post('/auth/account/schedule-deletion', data);
+        if (res.data?.immediate) {
+          toast.success('Account deleted');
+          await logout();
+          return;
+        }
+        updateUser({ deletionScheduledFor: res.data.scheduledFor, Profile: { ...(user?.Profile || {}), isActive: false } });
+        toast.success(`Deletion scheduled for ${fmtDate(new Date(res.data.scheduledFor))}`);
+        closeModal();
+      }
     } catch (err) {
       toast.error(err.response?.data?.error?.message || err.response?.data?.message || 'Could not delete your account. Try again.');
     } finally {
@@ -1130,7 +1174,41 @@ const DangerTab = () => {
 
   return (
     <div className="space-y-6">
-      <GroupHeader title="Danger Zone" desc="These actions are permanent and cannot be undone" />
+      <GroupHeader title="Pause or delete" desc="Take a break without losing anything, or delete your account" />
+
+      {scheduledFor && (
+        <div role="status" className="rounded-2xl bg-neutral-100 dark:bg-neutral-800 p-5 max-w-xl">
+          <h4 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-1">Your account is scheduled for deletion</h4>
+          <p className="text-sm text-neutral-600 dark:text-neutral-300 mb-4 leading-relaxed">
+            It will be permanently deleted on {fmtDate(scheduledFor)}. Your profile is hidden until then. Changed your mind? Cancel and everything stays as it was.
+          </p>
+          <button
+            onClick={cancelScheduledDeletion}
+            disabled={lifecycleBusy}
+            className="px-4 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 active:scale-[0.97] text-white text-sm font-semibold disabled:opacity-60 transition-[background-color,transform] duration-[160ms] cursor-pointer"
+          >
+            Cancel deletion
+          </button>
+        </div>
+      )}
+
+      {!scheduledFor && (
+        <div className="rounded-2xl bg-neutral-100 dark:bg-neutral-800 p-5 max-w-xl">
+          <h4 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-1">{paused ? 'Your profile is paused' : 'Pause my profile'}</h4>
+          <p className="text-sm text-neutral-600 dark:text-neutral-300 mb-4 leading-relaxed">
+            {paused
+              ? 'Nobody can find or open your profile, and you cannot send or answer interests until you resume. Nothing has been deleted.'
+              : 'Hide your profile from search and suggestions for now. Your matches, messages and details stay, and you can resume any time.'}
+          </p>
+          <button
+            onClick={() => setPaused(!paused)}
+            disabled={lifecycleBusy}
+            className="px-4 py-2.5 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 active:scale-[0.97] text-neutral-800 dark:text-neutral-100 text-sm font-semibold disabled:opacity-60 transition-[background-color,transform] duration-[160ms] cursor-pointer"
+          >
+            {paused ? 'Resume my profile' : 'Pause my profile'}
+          </button>
+        </div>
+      )}
 
       {/* Doctrine §3.4 finding: dropped the border — the destructive tint
           alone still marks this as a distinct, dangerous action, so it no
@@ -1139,11 +1217,12 @@ const DangerTab = () => {
       <div className="rounded-2xl bg-destructive/5 p-5 max-w-xl">
         <h4 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-1">Delete Account</h4>
         <p className="text-sm text-neutral-600 dark:text-neutral-300 mb-4 leading-relaxed">
-          Permanently removes your profile, matches, messages, and all data. This cannot be undone.
+          Removes your profile, matches, messages, and all data. Your profile is hidden straight away and the deletion happens after 30 days, so you can change your mind by signing in and cancelling. After that it cannot be undone.
         </p>
         <button
           onClick={() => setShowModal(true)}
-          className="px-4 py-2.5 rounded-xl bg-destructive hover:bg-destructive/90 active:scale-[0.97] text-white text-sm font-semibold transition-[background-color,transform] duration-[160ms] cursor-pointer"
+          disabled={Boolean(scheduledFor)}
+          className="px-4 py-2.5 rounded-xl bg-destructive hover:bg-destructive/90 active:scale-[0.97] text-white text-sm font-semibold disabled:opacity-50 disabled:active:scale-100 transition-[background-color,transform] duration-[160ms] cursor-pointer"
         >
           Delete My Account
         </button>
@@ -1164,11 +1243,16 @@ const DangerTab = () => {
               className="bg-white dark:bg-neutral-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl"
             >
               <h3 id="delete-account-title" className="text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-1">Confirm Account Deletion</h3>
-              <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-5">
+              <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">
                 {googleOnly
-                  ? 'You signed up with Google. Confirm with the same Google account. This action is permanent.'
-                  : 'Enter your password to confirm. This action is permanent.'}
+                  ? 'You signed up with Google. Confirm with the same Google account.'
+                  : 'Enter your password to confirm.'}
+                {' '}{deleteNow ? 'Everything is erased now and this cannot be undone.' : 'Your account will be deleted in 30 days; you can cancel before then.'}
               </p>
+              <label className="flex items-start gap-2 mb-5 text-sm text-neutral-600 dark:text-neutral-300 cursor-pointer">
+                <input type="checkbox" checked={deleteNow} onChange={(e) => setDeleteNow(e.target.checked)} className="mt-1" />
+                <span>Delete immediately instead of waiting 30 days</span>
+              </label>
               {googleOnly && (
                 googleConfig.isConfigured
                   ? <div ref={googleBtnRef} className="mb-5 flex justify-center" aria-busy={loading} />
@@ -1210,7 +1294,7 @@ const DangerTab = () => {
                     disabled={loading}
                     className="flex-1 py-2.5 rounded-xl bg-destructive hover:bg-destructive/90 active:scale-[0.97] text-white text-sm font-semibold disabled:opacity-60 disabled:active:scale-100 transition-[background-color,transform] duration-[160ms] cursor-pointer"
                   >
-                    {loading ? 'Deleting…' : 'Delete'}
+                    {loading ? 'Working…' : deleteNow ? 'Delete now' : 'Schedule deletion'}
                   </button>
                 )}
               </div>

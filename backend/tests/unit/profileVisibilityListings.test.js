@@ -233,10 +233,17 @@ describe('POST /match/:userId target checks', () => {
   const act = (userId, action = 'like') =>
     run(match.matchAction, { params: { userId }, body: { action }, user: { id: ME } });
 
+  // matchAction also reads the ACTOR's own profile (a paused member may not send
+  // interests), so Profile.findOne is answered per userId: the acting member is
+  // always visible here, and each test controls what the TARGET's row says.
+  const targetProfile = (value) => models.Profile.findOne.mockImplementation(async (query) => (
+    query && query.where && query.where.userId === ME ? { isActive: true, pausedAt: null } : value
+  ));
+
   beforeEach(() => {
     models.Block.findOne.mockResolvedValue(null);
     models.User.findByPk.mockResolvedValue({ id: A, status: 'active' });
-    models.Profile.findOne.mockResolvedValue({ isActive: true, profileVisibility: 'everyone' });
+    targetProfile({ isActive: true, profileVisibility: 'everyone' });
   });
 
   it('refuses to act on yourself', async () => {
@@ -248,8 +255,8 @@ describe('POST /match/:userId target checks', () => {
   it.each([
     ['no such user', () => models.User.findByPk.mockResolvedValue(null)],
     ['banned user', () => models.User.findByPk.mockResolvedValue({ id: A, status: 'banned' })],
-    ['no profile', () => models.Profile.findOne.mockResolvedValue(null)],
-    ['deactivated profile', () => models.Profile.findOne.mockResolvedValue({ isActive: false })],
+    ['no profile', () => targetProfile(null)],
+    ['deactivated profile', () => targetProfile({ isActive: false })],
   ])('404s for %s, with no write', async (_label, setup) => {
     setup();
     const { thrown } = await act(A);
@@ -258,7 +265,7 @@ describe('POST /match/:userId target checks', () => {
   });
 
   it('404s for a matches-only member who has not liked the viewer', async () => {
-    models.Profile.findOne.mockResolvedValue({ isActive: true, profileVisibility: 'matches_only' });
+    targetProfile({ isActive: true, profileVisibility: 'matches_only' });
     models.Match.findOne.mockResolvedValue(null);
     const { thrown } = await act(A);
     expect(thrown).toMatchObject({ statusCode: 404 });
@@ -266,7 +273,7 @@ describe('POST /match/:userId target checks', () => {
   });
 
   it('checks for an inbound like from that member, and only a like', async () => {
-    models.Profile.findOne.mockResolvedValue({ isActive: true, profileVisibility: 'matches_only' });
+    targetProfile({ isActive: true, profileVisibility: 'matches_only' });
     models.Match.findOne.mockResolvedValue(null);
     await act(A);
     expect(models.Match.findOne).toHaveBeenCalledWith(

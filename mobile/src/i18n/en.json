@@ -624,7 +624,7 @@
     "familyMode": "Family Mode",
     "support": "Support",
     "legal": "Legal",
-    "danger": "Danger Zone",
+    "danger": "Pause or delete",
     "deleteAccount": "Delete Account",
     "deleteAccountWarning": "This will permanently delete your account in 30 days. This cannot be undone.",
     "incognito": "Incognito Mode",

@@ -99,7 +99,7 @@ const SECTIONS = [
       },
       {
         q: 'How do I delete my account?',
-        a: 'Settings → Account → Delete Account, or use the delete-account page. Your profile, photos, verification selfie, messages, matches and guardian links are erased immediately and cannot be recovered. We keep payment records as long as tax law requires, and a moderation record if you were reported, as described in our Privacy Policy.',
+        a: 'Settings → Pause or delete → Delete My Account, or use the delete-account page. Your profile is hidden straight away and, 30 days later, your profile, photos, verification selfie, messages, matches and guardian links are erased and cannot be recovered. Sign in and cancel before then to keep everything. If you only want a break, use Pause my profile instead. We keep payment records as long as tax law requires, and a moderation record if you were reported, as described in our Privacy Policy.',
       },
     ],
   },

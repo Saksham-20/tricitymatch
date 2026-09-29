@@ -18,6 +18,8 @@ const {
   changePassword,
   getSessions,
   getLoginHistory,
+  scheduleAccountDeletion,
+  cancelAccountDeletion,
   forgotPasswordPhone,
   resetPasswordPhone,
   revokeSession,
@@ -227,6 +229,27 @@ router.delete('/sessions/:sessionId',
   handleValidationErrors,
   revokeSession
 );
+
+// Delete after a grace period (cancellable). Same re-authentication as the
+// immediate delete below.
+router.post('/account/schedule-deletion',
+  auth,
+  sensitiveActionLimiter,
+  [
+    body('password').optional().isString().isLength({ max: 200 }),
+    body('googleCredential').optional().isString().isLength({ max: 4096 }),
+    body().custom((value) => {
+      if (!value || (!value.password && !value.googleCredential)) {
+        throw new Error('Password is required');
+      }
+      return true;
+    }),
+  ],
+  handleValidationErrors,
+  scheduleAccountDeletion
+);
+
+router.post('/account/cancel-deletion', auth, sensitiveActionLimiter, cancelAccountDeletion);
 
 // Delete account (soft-delete, requires password confirmation)
 router.delete('/account',

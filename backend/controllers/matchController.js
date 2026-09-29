@@ -55,10 +55,20 @@ exports.matchAction = asyncHandler(async (req, res) => {
   if (userId === currentUserId) {
     throw createError.badRequest('You cannot act on your own profile');
   }
-  const [targetUser, targetProfile] = await Promise.all([
+  const [targetUser, targetProfile, actorProfile] = await Promise.all([
     User.findByPk(userId, { attributes: ['id', 'status'] }),
     Profile.findOne({ where: { userId }, attributes: ['isActive', 'profileVisibility'] }),
+    Profile.findOne({ where: { userId: currentUserId }, attributes: ['isActive', 'pausedAt'] }),
   ]);
+  // A paused (or deletion-scheduled) member is hidden from everyone; letting
+  // them keep sending interests would surface them to people while they are
+  // meant to be invisible.
+  if (actorProfile && actorProfile.isActive === false) {
+    throw createError.forbidden(
+      'Your profile is hidden. Resume it to send or answer interests.',
+      'PROFILE_HIDDEN'
+    );
+  }
   if (!targetUser || targetUser.status !== 'active' || !targetProfile || !targetProfile.isActive) {
     throw createError.notFound('Profile not found');
   }

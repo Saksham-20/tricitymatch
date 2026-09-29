@@ -27,9 +27,9 @@ import { showToast } from '../../utils/toast';
 import i18n from '../../i18n';
 import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
 import { PLANS } from '@shared/constants/plans';
-import { getMyProfile, updateMyProfile } from '../../api/profile';
+import { getMyProfile, updateMyProfile, pauseMyProfile, resumeMyProfile } from '../../api/profile';
 import { getGuardianCandidates } from '../../api/guardian';
-import { deleteAccount } from '../../api/auth';
+import { scheduleAccountDeletion, cancelAccountDeletion, getMe } from '../../api/auth';
 import { queryKeys } from '../../constants/queryKeys';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
@@ -145,7 +145,7 @@ function DeleteModal({ visible, onClose, onConfirm, loading, error }: {
               <Ionicons name="warning" size={40} color={c.error} {...HIDE_FROM_A11Y} />
               <Text variant="title3" color="textPrimary" accessibilityRole="header">Delete account</Text>
               <Text variant="footnote" color="textSecondary" style={dm.body}>
-                This will permanently delete your profile, matches, and all data. This cannot be undone.
+                Your profile is hidden straight away and your account, matches and messages are permanently deleted after 30 days. Sign in and cancel any time before then to keep everything.
               </Text>
               <Input
                 label="Confirm your password"
@@ -176,7 +176,7 @@ function DeleteModal({ visible, onClose, onConfirm, loading, error }: {
                 </Text>
               ) : null}
               <Button
-                title="Delete my account"
+                title="Schedule deletion"
                 variant="danger"
                 onPress={submit}
                 loading={loading}
@@ -266,13 +266,45 @@ export default function SettingsScreen() {
     },
   });
 
+  // Deletion is scheduled, not immediate: the member stays signed in and can
+  // cancel until the date. (A grace period of 0 on the server erases at once.)
   const deleteMutation = useMutation({
-    mutationFn: (password: string) => deleteAccount(password),
-    onSuccess: async () => {
+    mutationFn: (password: string) => scheduleAccountDeletion(password),
+    onSuccess: async (result) => {
       setShowDeleteModal(false);
-      await logout();
+      if (result.immediate) {
+        await logout();
+        return;
+      }
+      showToast.success('Deletion scheduled', 'Your profile is hidden. You can cancel in Settings before the date.');
+      queryClient.invalidateQueries({ queryKey: queryKeys.me });
+      queryClient.invalidateQueries({ queryKey: queryKeys.myProfile });
     },
     // No toast: the failure is shown inside the (still open) confirm modal.
+  });
+
+  const meQuery = useQuery({ queryKey: queryKeys.me, queryFn: getMe, staleTime: 60 * 1000 });
+  const scheduledFor = meQuery.data?.deletionScheduledFor ?? null;
+  const pausedAt = (myProfile as { pausedAt?: string | null } | undefined)?.pausedAt ?? null;
+  const formatDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+
+  const cancelDeletionMutation = useMutation({
+    mutationFn: cancelAccountDeletion,
+    onSuccess: () => {
+      showToast.success('Deletion cancelled', 'Your account stays.');
+      queryClient.invalidateQueries({ queryKey: queryKeys.me });
+      queryClient.invalidateQueries({ queryKey: queryKeys.myProfile });
+    },
+    onError: () => showToast.error('Could not cancel', 'Check your connection and try again.'),
+  });
+
+  const pauseMutation = useMutation({
+    mutationFn: (pause: boolean) => (pause ? pauseMyProfile() : resumeMyProfile()),
+    onSuccess: (_d, pause) => {
+      showToast.success(pause ? 'Profile hidden' : 'Profile visible again');
+      queryClient.invalidateQueries({ queryKey: queryKeys.myProfile });
+    },
+    onError: () => showToast.error('Could not change that', 'Check your connection and try again.'),
   });
 
   // The guardian dashboard is only useful to someone a member has invited as
@@ -576,15 +608,37 @@ export default function SettingsScreen() {
             testID="setting-logout"
           />
           <Divider />
-          <ListRow
-            icon="trash-outline"
-            iconColor={c.error}
-            label="Delete account"
-            sublabel="Permanently remove all your data"
-            destructive
-            onPress={() => setShowDeleteModal(true)}
-            testID="setting-delete-account"
-          />
+          {scheduledFor ? (
+            <ListRow
+              icon="hourglass-outline"
+              iconColor={c.warning}
+              label="Cancel account deletion"
+              sublabel={`Scheduled for ${formatDate(scheduledFor)}. Tap to keep your account.`}
+              onPress={() => cancelDeletionMutation.mutate()}
+              testID="setting-cancel-deletion"
+            />
+          ) : (
+            <>
+              <ListRow
+                icon={pausedAt ? 'eye-outline' : 'eye-off-outline'}
+                iconColor={c.textSecondary}
+                label={pausedAt ? 'Resume my profile' : 'Pause my profile'}
+                sublabel={pausedAt ? 'Your profile is hidden. Tap to make it visible again.' : 'Hide your profile for now. Nothing is deleted.'}
+                onPress={() => pauseMutation.mutate(!pausedAt)}
+                testID="setting-pause-profile"
+              />
+              <Divider />
+              <ListRow
+                icon="trash-outline"
+                iconColor={c.error}
+                label="Delete account"
+                sublabel="Deleted after 30 days unless you cancel"
+                destructive
+                onPress={() => setShowDeleteModal(true)}
+                testID="setting-delete-account"
+              />
+            </>
+          )}
         </Section>
 
         <View style={{ height: spacing.xl }} />

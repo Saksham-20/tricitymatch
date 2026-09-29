@@ -16,12 +16,21 @@
  */
 
 // Latin-1 letters and punctuation, general punctuation used in prose, and the
-// rupee sign, which the existing invoice already draws.
-const DRAWABLE = /[^\u0009\u000A\u000D -~ -ÿ–—‘’“”•…₹]/g;
+// rupee sign, which the existing invoice already draws. Tab and line breaks are
+// kept. Decided by code point rather than a character-class regex so the control
+// characters and the no-break space are explicit and readable.
+const drawable = (code) => (
+  code === 0x09 || code === 0x0a || code === 0x0d
+  || (code >= 0x20 && code <= 0x7e)
+  || (code >= 0xa0 && code <= 0xff)
+  || code === 0x2013 || code === 0x2014
+  || code === 0x2018 || code === 0x2019 || code === 0x201c || code === 0x201d
+  || code === 0x2022 || code === 0x2026 || code === 0x20b9
+);
 
 const pdfSafe = (value, fallback = '') => {
-  const cleaned = String(value ?? '').replace(DRAWABLE, '').replace(/\s{2,}/g, ' ').trim();
-  return cleaned || fallback;
+  const kept = Array.from(String(value ?? '')).filter((ch) => drawable(ch.codePointAt(0))).join('');
+  return kept.replace(/\s{2,}/g, ' ').trim() || fallback;
 };
 
 module.exports = { pdfSafe };

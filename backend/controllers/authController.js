@@ -1087,6 +1087,45 @@ exports.deleteAccount = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Account deleted successfully' });
 });
 
+// @route   POST /api/auth/account/schedule-deletion
+// @desc    Delete the account after a grace period (cancellable by signing in)
+// @access  Private (re-authentication required, same as immediate deletion)
+exports.scheduleAccountDeletion = asyncHandler(async (req, res) => {
+  const { password, googleCredential } = req.body;
+  const user = await User.findByPk(req.user.id);
+  if (!user) throw createError.notFound('User not found');
+  await reauthenticateMember(user, { password, googleCredential }, 'delete your account');
+
+  const { scheduleDeletion } = require('../utils/accountLifecycle');
+  const result = await scheduleDeletion(user);
+  if (result.immediate) {
+    // Grace period switched off in configuration: same outcome as DELETE /account.
+    await eraseAccount(user.id);
+    clearAuthCookies(res);
+    return res.json({ success: true, immediate: true, message: 'Account deleted successfully' });
+  }
+
+  if (user.email) {
+    sendSecurityAlert(
+      user.email, '', 'Account deletion scheduled',
+      `Your TricityMatch account will be deleted on ${result.scheduledFor.toUTCString()}. Your profile is hidden until then. Sign in and cancel in Settings to keep it.`,
+      new Date().toUTCString()
+    ).catch((error) => log.warn('Deletion notice failed', { userId: user.id, error: error.message }));
+  }
+  res.json({ success: true, scheduledFor: result.scheduledFor, message: 'Deletion scheduled. Sign in and cancel any time before then to keep your account.' });
+});
+
+// @route   POST /api/auth/account/cancel-deletion
+// @desc    Cancel a scheduled deletion and restore the profile
+// @access  Private
+exports.cancelAccountDeletion = asyncHandler(async (req, res) => {
+  const user = await User.findByPk(req.user.id);
+  if (!user) throw createError.notFound('User not found');
+  const { cancelDeletion } = require('../utils/accountLifecycle');
+  const result = await cancelDeletion(user);
+  res.json({ success: true, cancelled: result.changed });
+});
+
 // @route   POST /api/auth/me/export
 // @desc    Download everything we hold about the signed-in member (re-auth required)
 // @access  Private

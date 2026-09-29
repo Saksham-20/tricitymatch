@@ -111,6 +111,17 @@ export const deleteAccount = async (password: string): Promise<void> => {
   await apiClient.delete('/auth/account', { data: { password } });
 };
 
+// Deletion with a grace period: the profile is hidden now and the account is
+// erased on `scheduledFor`, and can be cancelled by signing in before then.
+export const scheduleAccountDeletion = async (password: string): Promise<{ scheduledFor: string | null; immediate: boolean }> => {
+  const res = await apiClient.post<{ scheduledFor?: string; immediate?: boolean }>('/auth/account/schedule-deletion', { password });
+  return { scheduledFor: res.data.scheduledFor ?? null, immediate: Boolean(res.data.immediate) };
+};
+
+export const cancelAccountDeletion = async (): Promise<void> => {
+  await apiClient.post('/auth/account/cancel-deletion');
+};
+
 // ─── Account security ─────────────────────────────────────────────────────────
 
 export interface AuthSession {

@@ -66,6 +66,8 @@ export interface AuthFeatures {
 export interface AuthUser extends User {
   subscriptionPlan: SubscriptionPlanType;
   onboardingComplete: boolean;
+  /** ISO date the account will be erased, when the member scheduled a deletion. */
+  deletionScheduledFor?: string | null;
   /** The Terms changed since this member accepted them; the server blocks the API until they accept. */
   requiresReconsent?: boolean;
   /** Version the server is asking the member to accept (send it back to /auth/accept-terms). */

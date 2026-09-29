@@ -1446,3 +1446,25 @@ exports.downloadBiodata = asyncHandler(async (req, res) => {
     profileCode: toProfileCode(req.user.id),
   });
 });
+
+
+// @route   POST /api/profile/me/pause
+// @desc    Hide my profile from everyone until I resume it
+// @access  Private
+exports.pauseMyProfile = asyncHandler(async (req, res) => {
+  const { pauseProfile } = require('../utils/accountLifecycle');
+  const result = await pauseProfile(req.user.id);
+  res.json({ success: true, paused: true, pausedAt: result.pausedAt || null });
+});
+
+// @route   POST /api/profile/me/resume
+// @desc    Make my profile visible again
+// @access  Private
+exports.resumeMyProfile = asyncHandler(async (req, res) => {
+  const { resumeProfile } = require('../utils/accountLifecycle');
+  const result = await resumeProfile(req.user.id);
+  if (result.reason === 'deletion_scheduled') {
+    throw createError.conflict('Your account is scheduled for deletion. Cancel the deletion first.', 'DELETION_SCHEDULED');
+  }
+  res.json({ success: true, paused: false });
+});

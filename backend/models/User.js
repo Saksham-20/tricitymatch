@@ -90,6 +90,13 @@ const User = sequelize.define('User', {
     allowNull: true,
     defaultValue: null
   },
+  // When the account will be erased, if the member scheduled a deletion. The
+  // profile is hidden until then and signing in lets them cancel.
+  deletionScheduledFor: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    defaultValue: null
+  },
   // How consent was given (ip, user agent, optional choices, guardian
   // attestation). See utils/consentRecord.
   consent: {
