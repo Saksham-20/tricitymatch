@@ -452,6 +452,21 @@ const Navbar = () => {
                       </motion.div>
                     ))}
 
+                    {/* Staff portal. The desktop profile dropdown is hidden below
+                        md, so without this an admin or marketing rep on a phone
+                        had no way out of the member site except typing the URL. */}
+                    {STAFF_PORTALS[user?.role] && (
+                      <div className="pt-3 mt-3 border-t border-neutral-100 dark:border-[#252b3b]">
+                        <Link
+                          to={STAFF_PORTALS[user.role].to}
+                          className="flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm text-primary-600 dark:text-primary-300 bg-primary-50 dark:bg-primary-900/20 hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors"
+                        >
+                          <FiBriefcase className="w-5 h-5 flex-shrink-0" />
+                          {STAFF_PORTALS[user.role].label}
+                        </Link>
+                      </div>
+                    )}
+
                     {/* Extra links */}
                     <div className="pt-3 mt-3 border-t border-neutral-100 dark:border-[#252b3b] space-y-0.5">
                       {[
